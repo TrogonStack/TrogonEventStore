@@ -1,0 +1,27 @@
+services:
+  alpine-bld:
+    build:
+      context: ..
+      dockerfile: dev-env/Dockerfile
+      args:
+        TARGET_IMAGE: build-container-alpine
+    container_name: alpine-bld
+    volumes:
+      - .:/home/runner
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # bookworm-slim-bld:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       TARGET_IMAGE: build-container-bookworm-slim
+  #   container_name: bookworm-slim-bld
+  #
+  # jammy-bld:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       TARGET_IMAGE: build-container-jammy
+  #   container_name: jammy-bld
