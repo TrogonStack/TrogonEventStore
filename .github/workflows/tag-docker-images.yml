@@ -1,7 +1,7 @@
 name: Tag Docker Images
 on:
   schedule:
-    - cron: '0 3 * * *' # Every day at 3am UTC.
+    - cron: "0 3 * * *" # Every day at 3am UTC.
   workflow_dispatch:
 jobs:
   tag-docker-images:
@@ -35,7 +35,7 @@ jobs:
                 'version': 'previous-lts'
               }
             });
-            
+
             await github.rest.actions.createWorkflowDispatch({
               owner: 'EventStore',
               repo: 'EventStore-Client-gRPC-TestData',
@@ -46,7 +46,7 @@ jobs:
                 'version': 'lts'
               }
             });
-            
+
             await github.rest.actions.createWorkflowDispatch({
               owner: 'EventStore',
               repo: 'EventStore-Client-gRPC-TestData',

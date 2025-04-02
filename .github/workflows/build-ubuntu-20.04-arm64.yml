@@ -9,6 +9,7 @@ on:
     branches:
       - master
       - release/oss-v*
+      - chore/clean-cicd
     tags:
       - oss-v*
     paths-ignore:
