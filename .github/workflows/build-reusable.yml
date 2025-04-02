@@ -19,54 +19,54 @@ jobs:
     runs-on: ${{ inputs.os }}
     name: ci/github/build-${{ inputs.os }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install netcoreapp3.1
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 3.1.x
-    - name: Install net8.0
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
-    - name: Clear Nuget Cache
-      shell: powershell
-      if: inputs.os == 'windows-2019'
-      run: |
-        if (-not(Test-Path $env:APPDATA\NuGet\NuGet.Config -PathType Leaf)) {
-          return;
-        }
-        Remove-Item $env:APPDATA\NuGet\NuGet.Config
-    - name: Compile
-      shell: bash
-      run: |
-        dotnet build --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} src/EventStore.sln
-    - name: Verify Build
-      shell: bash
-      run: |
-        dotnet run --project src/EventStore.ClusterNode --configuration ${{ matrix.configuration }} -- --insecure --what-if
-    - name: Run Tests
-      shell: bash
-      run: |
-        find ./src -maxdepth 1 -type d -name "*.Tests"  -print0 \
-          | xargs -I{} -0 -n1 bash -c \
-          'dotnet test --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} --blame --blame-hang-timeout 5min --blame-hang-dump-type mini --settings ./ci/ci.runsettings --logger:GitHubActions --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory=$(pwd)/test-results/$1 $1' - '{}'
-    - name: Collect Test Results
-      shell: bash
-      if: always()
-      run: |
-        echo $(find ./test-results -name "*.html" | xargs cat) > test-results.html
-    - name: Publish Test Results (HTML)
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        path: test-results.html
-        name: test-results-${{ matrix.configuration }}-${{ inputs.os }}.html
-    - name: Publish Test Results (All)
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: test-results-${{ matrix.configuration }}-${{ inputs.os }}
-        path: test-results
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install netcoreapp3.1
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 3.1.x
+      - name: Install net8.0
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+      - name: Clear Nuget Cache
+        shell: powershell
+        if: inputs.os == 'windows-2019'
+        run: |
+          if (-not(Test-Path $env:APPDATA\NuGet\NuGet.Config -PathType Leaf)) {
+            return;
+          }
+          Remove-Item $env:APPDATA\NuGet\NuGet.Config
+      - name: Compile
+        shell: bash
+        run: |
+          dotnet build --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} src/EventStore.sln
+      - name: Verify Build
+        shell: bash
+        run: |
+          dotnet run --project src/EventStore.ClusterNode --configuration ${{ matrix.configuration }} -- --insecure --what-if
+      - name: Run Tests
+        shell: bash
+        run: |
+          find ./src -maxdepth 1 -type d -name "*.Tests"  -print0 \
+            | xargs -I{} -0 -n1 bash -c \
+            'dotnet test --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} --blame --blame-hang-timeout 5min --blame-hang-dump-type mini --settings ./ci/ci.runsettings --logger:GitHubActions --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory=$(pwd)/test-results/$1 $1' - '{}'
+      - name: Collect Test Results
+        shell: bash
+        if: always()
+        run: |
+          echo $(find ./test-results -name "*.html" | xargs cat) > test-results.html
+      - name: Publish Test Results (HTML)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          path: test-results.html
+          name: test-results-${{ matrix.configuration }}-${{ inputs.os }}.html
+      - name: Publish Test Results (All)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.configuration }}-${{ inputs.os }}
+          path: test-results
