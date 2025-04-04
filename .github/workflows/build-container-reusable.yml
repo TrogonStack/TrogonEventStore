@@ -14,79 +14,79 @@ jobs:
     runs-on: ubuntu-latest
     name: ci/github/build-${{ inputs.container-runtime }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Install net8.0
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
-    - name: Setup QEMU
-      uses: docker/setup-qemu-action@v2
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Setup Variables
-      id: variables
-      uses: kanga333/variable-mapper@master
-      with:
-        key: "${{ inputs.container-runtime }}"
-        map: |
-          {
-            "jammy": {
-              "runtime": "linux-x64"
-            },
-            "bookworm-slim": {
-              "runtime": "linux-x64"
-            },
-            "alpine": {
-              "runtime": "linux-musl-x64"
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install net8.0
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Variables
+        id: variables
+        uses: kanga333/variable-mapper@master
+        with:
+          key: "${{ inputs.container-runtime }}"
+          map: |
+            {
+              "jammy": {
+                "runtime": "linux-x64"
+              },
+              "bookworm-slim": {
+                "runtime": "linux-x64"
+              },
+              "alpine": {
+                "runtime": "linux-musl-x64"
+              }
             }
-          }
-        export_to: output
-    - name: Build
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        load: true
-        tags: eventstore
-        build-args: |
-          CONTAINER_RUNTIME=${{ inputs.container-runtime }}
-          RUNTIME=${{ steps.variables.outputs.runtime }}
-    - name: Verify Build
-      run: |
-        docker run --rm eventstore --insecure --what-if
-    - name: Build Test Container
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        load: true
-        target: test
-        tags: eventstore-test
-        build-args: |
-          CONTAINER_RUNTIME=${{ inputs.container-runtime }}
-          RUNTIME=${{ steps.variables.outputs.runtime }}
-    - name: Run Tests
-      run: |
+          export_to: output
+      - name: Build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          load: true
+          tags: eventstore
+          build-args: |
+            CONTAINER_RUNTIME=${{ inputs.container-runtime }}
+            RUNTIME=${{ steps.variables.outputs.runtime }}
+      - name: Verify Build
+        run: |
+          docker run --rm eventstore --insecure --what-if
+      - name: Build Test Container
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          load: true
+          target: test
+          tags: eventstore-test
+          build-args: |
+            CONTAINER_RUNTIME=${{ inputs.container-runtime }}
+            RUNTIME=${{ steps.variables.outputs.runtime }}
+      - name: Run Tests
+        run: |
           docker run \
           --volume $(pwd)/test-results:/build/test-results \
           --rm \
           eventstore-test
-    - name: Publish Test Results (HTML)
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        path: test-results/test-results.html
-        name: test-results-${{ inputs.container-runtime }}.html
-    - name: Publish Test Results (All)
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: test-results-${{ inputs.container-runtime }}
-        path: test-results
+      - name: Publish Test Results (HTML)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          path: test-results/test-results.html
+          name: test-results-${{ inputs.container-runtime }}.html
+      - name: Publish Test Results (All)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ inputs.container-runtime }}
+          path: test-results

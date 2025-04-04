@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - master
+      - release/v*
       - release/oss-v*
     tags:
       - oss-v*
@@ -18,8 +19,7 @@ on:
       - "**.md"
 
 jobs:
-  build-container:
+  build-container-alpine:
     uses: ./.github/workflows/build-container-reusable.yml
     with:
       container-runtime: alpine
-

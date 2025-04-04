@@ -22,4 +22,3 @@ jobs:
     uses: ./.github/workflows/build-container-reusable.yml
     with:
       container-runtime: jammy
-

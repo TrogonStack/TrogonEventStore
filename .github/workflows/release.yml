@@ -1,10 +1,10 @@
 name: Initiate Release
- 
+
 on:
   push:
     tags:
       - "oss-v*"
- 
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -13,7 +13,7 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF:15}" >> $GITHUB_OUTPUT
 
-      - name: Perform Release 
+      - name: Perform Release
         run: |
           curl -X POST https://api.github.com/repos/EventStore/TrainStation/dispatches \
           -H 'Accept: application/vnd.github.everest-preview+json' \
