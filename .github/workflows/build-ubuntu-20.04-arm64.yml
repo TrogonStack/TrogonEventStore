@@ -8,7 +8,6 @@ on:
   push:
     branches:
       - master
-      - main
       - release/oss-v*
     tags:
       - oss-v*
