@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   tag-docker-images:
-    if: github.repository == 'EventStore/EventStore'
+    if: github.repository == 'TrogonStack/TrogonEventStore'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -17,7 +17,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Tag and Push
-        uses: EventStore/Automations/tag-docker-images@master
+        uses: TrogonStack/Automations/tag-docker-images@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -26,7 +26,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
-              owner: 'EventStore',
+              owner: 'TrogonStack',
               repo: 'EventStore-Client-gRPC-TestData',
               workflow_id: 'build.yml',
               ref: 'master',
@@ -37,7 +37,7 @@ jobs:
             });
 
             await github.rest.actions.createWorkflowDispatch({
-              owner: 'EventStore',
+              owner: 'TrogonStack',
               repo: 'EventStore-Client-gRPC-TestData',
               workflow_id: 'build.yml',
               ref: 'master',
@@ -48,7 +48,7 @@ jobs:
             });
 
             await github.rest.actions.createWorkflowDispatch({
-              owner: 'EventStore',
+              owner: 'TrogonStack',
               repo: 'EventStore-Client-gRPC-TestData',
               workflow_id: 'build.yml',
               ref: 'master',

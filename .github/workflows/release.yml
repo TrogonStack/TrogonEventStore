@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "oss-v*"
-      - chore/clean-cicd
 
 jobs:
   release:
@@ -20,4 +19,3 @@ jobs:
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -u ${{ secrets.GH_PAT }} \
           --data '{"event_type": "release", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "version": "${{ steps.get_version.outputs.version }}" }}'
-

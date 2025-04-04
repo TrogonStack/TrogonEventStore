@@ -9,8 +9,9 @@ on:
   push:
     branches:
       - master
+      - main
+      - release/v*
       - release/oss-v*
-      - chore/clean-cicd
     tags:
       - oss-v*
     paths-ignore:

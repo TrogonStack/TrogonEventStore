@@ -8,8 +8,8 @@ on:
   push:
     branches:
       - master
+      - main
       - release/oss-v*
-      - chore/clean-cicd
     tags:
       - oss-v*
     paths-ignore:
