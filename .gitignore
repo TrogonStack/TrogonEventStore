@@ -54,6 +54,9 @@ dependencies
 *.ncrunchsolution
 *.ncrunchproject
 **/.vs/
+**/.idea/
+**/.vscode/
+
 
 .idea
 
