@@ -27,7 +27,7 @@ using EventStore.Plugins.Authentication;
 using EventStore.Plugins.Authorization;
 using EventStore.Plugins.MD5;
 using EventStore.Plugins.Subsystems;
-using EventStore.Projections.Core;
+// using EventStore.Projections.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Serilog;
@@ -64,6 +64,7 @@ namespace EventStore.ClusterNode {
 						"Failed to configure MD5. If FIPS mode is enabled, please use the FIPS commercial plugin or disable FIPS mode.");
 			}
 
+			/*
 			var projectionMode = options.DevMode.Dev && options.Projection.RunProjections == ProjectionType.None
 				? ProjectionType.System
 				: options.Projection.RunProjections;
@@ -79,6 +80,7 @@ namespace EventStore.ClusterNode {
 						options.Projection.ProjectionCompilationTimeout,
 						options.Projection.ProjectionExecutionTimeout)))
 				: options;
+				*/
 
 			if (!_options.Database.MemDb) {
 				var absolutePath = Path.GetFullPath(_options.Database.Db);
@@ -119,9 +121,14 @@ namespace EventStore.ClusterNode {
 				throw new ArgumentOutOfRangeException(nameof(_options.Database.DbLogFormat), "Unexpected log format specified.");
 			}
 
-			var enabledNodeSubsystems = projectionMode >= ProjectionType.System
+			/*
+			var enabledNodeSubsystems =
+				projectionMode >= ProjectionType.System
 				? new[] {NodeSubsystems.Projections}
 				: Array.Empty<NodeSubsystems>();
+				*/
+
+			var enabledNodeSubsystems = Array.Empty<NodeSubsystems>();
 
 			RegisterWebControllers(enabledNodeSubsystems);
 			return;
