@@ -16,7 +16,7 @@ namespace EventStore.MicroBenchmarks {
 		}
 	}
 
-	[MemoryDiagnoser]
+	/*[MemoryDiagnoser]
 	public class ProjectionSerializationBenchmarks {
 		private JsonSerializer _builtIn;
 		private JintProjectionStateHandler _handler;
@@ -29,10 +29,10 @@ namespace EventStore.MicroBenchmarks {
 			var parser = new JsonParser(engine);
 			_builtIn = new JsonSerializer(engine);
 			_handler = new JintProjectionStateHandler("", false, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
-			
+
 			_stateInstance = parser.Parse(json);
 
-		}
+		}*/
 
 		[Benchmark(Baseline = true)]
 		public void JintSerializer() {
@@ -47,6 +47,6 @@ namespace EventStore.MicroBenchmarks {
 			if (string.IsNullOrEmpty(s))
 				throw new Exception("something went wrong");
 		}
-		
+
 	}
 }

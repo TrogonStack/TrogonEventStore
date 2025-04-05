@@ -5,8 +5,8 @@
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
 	</ItemGroup>
-	<ItemGroup>
+	<!--<ItemGroup>
 		<ProjectReference Include="..\EventStore.Projections.Core.Tests\EventStore.Projections.Core.Tests.csproj" />
 		<ProjectReference Include="..\EventStore.Projections.Core\EventStore.Projections.Core.csproj" />
-	</ItemGroup>
+	</ItemGroup>-->
 </Project>
