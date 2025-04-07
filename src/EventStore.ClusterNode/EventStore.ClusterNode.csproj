@@ -14,7 +14,7 @@
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
 		<ProjectReference Include="..\EventStore.Core\EventStore.Core.csproj" />
 		<ProjectReference Include="..\EventStore.PluginHosting\EventStore.PluginHosting.csproj" />
-		<ProjectReference Include="..\EventStore.Projections.Core\EventStore.Projections.Core.csproj" />
+		<!-- <ProjectReference Include="..\EventStore.Projections.Core\EventStore.Projections.Core.csproj" /> -->
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="..\EventStore.Common\Utils\version.properties">
@@ -34,6 +34,9 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="logconfig.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="metricsconfig.json.bak">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

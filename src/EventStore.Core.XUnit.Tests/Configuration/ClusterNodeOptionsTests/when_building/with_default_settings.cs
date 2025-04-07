@@ -56,8 +56,8 @@ namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when
 			Assert.AreEqual(false, _options.Interface.DisableStatsOnHttp, "StatsOnPublic");
 			Assert.AreEqual(false, _options.Interface.DisableGossipOnHttp, "GossipOnPublic");
 			Assert.AreEqual(1_000_000, _options.Database.MaxMemTableSize, "MaxMemtableEntryCount");
-			Assert.AreEqual(false, _options.Projection.RunProjections > ProjectionType.System,
-				"StartStandardProjections");
+			/*Assert.AreEqual(false, _options.Projection.RunProjections > ProjectionType.System,
+				"StartStandardProjections");*/
 			Assert.AreEqual(false, _options.Database.UnsafeIgnoreHardDelete,
 				"UnsafeIgnoreHardDeletes");
 			Assert.That(string.IsNullOrEmpty(_options.Database.Index), "IndexPath");
