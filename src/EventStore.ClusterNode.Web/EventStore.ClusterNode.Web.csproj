@@ -2,11 +2,11 @@
 	<PropertyGroup>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	</PropertyGroup>
-	<!-- ItemGroup>
+	<ItemGroup>
 		<Content Include="projections\es.projections.environment.js">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
-	</ItemGroup -->
+	</ItemGroup>
 	<ItemGroup>
 		<None Include="clusternode-web\apple-touch-icon.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
