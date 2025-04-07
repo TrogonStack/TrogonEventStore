@@ -42,7 +42,8 @@ namespace EventStore.Core {
 		[OptionGroup] public DatabaseOptions Database { get; init; } = new();
 		[OptionGroup] public GrpcOptions Grpc { get; init; } = new();
 		[OptionGroup] public InterfaceOptions Interface { get; init; } = new();
-		[OptionGroup] public ProjectionOptions Projection { get; init; } = new();
+		/*[Obsolete("TrogonEventstore won't do projections")]
+		[OptionGroup] public ProjectionOptions Projection { get; init; } = new();*/
 		public UnknownOptions Unknown { get; init; } = new([]);
 
 		public byte IndexBitnessVersion { get; init; } = Index.PTableVersions.IndexV4;
@@ -79,7 +80,8 @@ namespace EventStore.Core {
 				Database = configuration.BindOptions<DatabaseOptions>(),
 				Grpc = configuration.BindOptions<GrpcOptions>(),
 				Interface = configuration.BindOptions<InterfaceOptions>(),
-				Projection = configuration.BindOptions<ProjectionOptions>(),
+
+//				Projection = configuration.BindOptions<ProjectionOptions>(),
 
 				Unknown = UnknownOptions.FromConfiguration(configuration),
 				ConfigurationRoot = configurationRoot,
@@ -718,6 +720,7 @@ namespace EventStore.Core {
 #pragma warning restore 0618
 		}
 
+		[Obsolete("TrogonEventstore won't do projections")]
 		[Description("Projection Options")]
 		public record ProjectionOptions {
 			public const int DefaultProjectionExecutionTimeout = 250;

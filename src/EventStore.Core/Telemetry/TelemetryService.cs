@@ -174,7 +174,7 @@ public sealed class TelemetryService :
 				["clusterSize"] = _nodeOptions.Cluster.ClusterSize,
 				["enableAtomPubOverHttp"] = _nodeOptions.Interface.EnableAtomPubOverHttp,
 				["insecure"] = _nodeOptions.Application.Insecure,
-				["runProjections"] = _nodeOptions.Projection.RunProjections.ToString(),
+	//			["runProjections"] = _nodeOptions.Projection.RunProjections.ToString(),
 				["authorizationType"] = _nodeOptions.Auth.AuthorizationType,
 				["authenticationType"] = _nodeOptions.Auth.AuthenticationType
 			}));

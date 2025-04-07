@@ -4,7 +4,6 @@
 
 	"Meters": [
 		"EventStore.Core"
-		//        "EventStore.Projections.Core"
 	],
 
 	"Statuses": {
@@ -16,7 +15,6 @@
 	"ElectionsCount": true,
 
 	"ProjectionStats": false,
-	//   "ProjectionStats": true,
 
 	"PersistentSubscriptionStats": true,
 
@@ -150,14 +148,6 @@
 		{
 			"Regex": "PersistentSubscriptions",
 			"Label": "Persistent Subscriptions"
-		},
-		{
-			"Regex": "Projections Leader",
-			"Label": "Projections Leader"
-		},
-		{
-			"Regex": "Projection Core #.*",
-			"Label": "Projections Core"
 		},
 		{
 			"Regex": "Worker #.*",

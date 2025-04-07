@@ -141,9 +141,9 @@ namespace EventStore.Core.Tests.Helpers {
 					ChunksCacheSize = MiniNode.CachedChunkSize,
 					StreamExistenceFilterSize = 10_000
 				},
-				Projection = new() {
+				/*Projection = new() {
 					RunProjections = ProjectionType.None
-				},
+				},*/
 				PlugableComponents = subsystems
 			};
 
