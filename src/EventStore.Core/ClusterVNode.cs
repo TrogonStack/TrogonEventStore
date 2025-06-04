@@ -75,7 +75,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ILogger = Serilog.ILogger;
 using LogLevel = EventStore.Common.Options.LogLevel;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
-using TimeoutControl = DotNext.Threading.Timeout;
 using EventStore.Core.Services.Archiver;
 
 namespace EventStore.Core;
@@ -542,6 +541,12 @@ public class ClusterVNode<TStreamId> :
 
 		_mainQueue = _controller.MainQueue;
 		_mainBus = _controller.MainBus;
+
+		var shutdownService = new ShutdownService(_mainQueue, NodeInfo);
+		_mainBus.Subscribe<SystemMessage.RegisterForGracefulTermination>(shutdownService);
+		_mainBus.Subscribe<ClientMessage.RequestShutdown>(shutdownService);
+		_mainBus.Subscribe<SystemMessage.ComponentTerminated>(shutdownService);
+		_mainBus.Subscribe<SystemMessage.PeripheralShutdownTimeout>(shutdownService);
 
 		var uriScheme = options.Application.Insecure ? Uri.UriSchemeHttp : Uri.UriSchemeHttps;
 		var clusterDns = options.Cluster.DiscoverViaDns ? options.Cluster.ClusterDns : null;
@@ -1847,25 +1852,23 @@ public class ClusterVNode<TStreamId> :
 
 		_mainQueue.Publish(new ClientMessage.RequestShutdown(false, true));
 
-		_reloadConfigSignalRegistration?.Dispose();
-		_reloadConfigSignalRegistration = null;
-
-		TimeSpan remainingTime;
-		var timeoutCtl = new TimeoutControl(timeout ?? DefaultShutdownTimeout);
-		foreach (var subsystem in _subsystems ?? [])
+		try
 		{
-			timeoutCtl.ThrowIfExpired(out remainingTime);
-			await subsystem.Stop().WaitAsync(remainingTime, cancellationToken);
+			await _shutdownSource.Task.WaitAsync(timeout ?? DefaultShutdownTimeout, cancellationToken);
 		}
-
-		timeoutCtl.ThrowIfExpired(out remainingTime);
-		await _shutdownSource.Task.WaitAsync(remainingTime, cancellationToken);
+		catch (Exception)
+		{
+			Log.Error("Graceful shutdown not complete. Forcing shutdown now.");
+			throw;
+		}
 
 		_switchChunksLock?.Dispose();
 	}
 
 	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
 	{
+		Log.Information("========== [{httpEndPoint}] Is shutting down subsystems", NodeInfo.HttpEndPoint);
+
 		_reloadConfigSignalRegistration?.Dispose();
 		_reloadConfigSignalRegistration = null;
 

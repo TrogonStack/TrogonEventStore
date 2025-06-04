@@ -39,13 +39,11 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 			(_, socket) =>
 			{
 				connection.InitSslStream(targetHost, otherNames, serverCertValidator, clientCertificatesSelector, verbose);
-				if (onConnectionEstablished != null)
-					onConnectionEstablished(connection);
+				onConnectionEstablished?.Invoke(connection);
 			},
 			(_, socketError) =>
 			{
-				if (onConnectionFailed != null)
-					onConnectionFailed(connection, socketError);
+				onConnectionFailed?.Invoke(connection, socketError);
 			}, connection, connectionTimeout);
 		// ReSharper restore ImplicitlyCapturedClosure
 		return connection;
@@ -87,17 +85,16 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 
 	private Socket _socket;
 
-	private readonly ConcurrentQueueWrapper<ArraySegment<byte>> _sendQueue =
-		new ConcurrentQueueWrapper<ArraySegment<byte>>();
+	private readonly ConcurrentQueueWrapper<ArraySegment<byte>> _sendQueue = new();
 
 	private readonly ConcurrentQueueWrapper<ReceivedData>
-		_receiveQueue = new ConcurrentQueueWrapper<ReceivedData>();
+		_receiveQueue = new();
 
-	private readonly MemoryStream _memoryStream = new MemoryStream();
-	private long _memoryStreamOffset = 0L;
+	private readonly MemoryStream _memoryStream = new();
+	private long _memoryStreamOffset;
 
-	private readonly object _streamLock = new object();
-	private readonly object _closeLock = new object();
+	private readonly object _streamLock = new();
+	private readonly object _closeLock = new();
 	private bool _isSending;
 	private int _receiveHandling;
 	private volatile bool _isClosed;
@@ -185,7 +182,7 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 				EnabledSslProtocols = enabledSslProtocols,
 				CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
 				RemoteCertificateValidationCallback = ValidateClientCertificate,
-				ApplicationProtocols = new List<SslApplicationProtocol>(),
+				ApplicationProtocols = [],
 				AllowRenegotiation = false,
 			});
 
@@ -219,10 +216,8 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 		TrySend();
 	}
 
-	private void InitClientSocket(Socket socket)
-	{
+	private void InitClientSocket(Socket socket) =>
 		_socket = socket;
-	}
 
 	private void InitSslStream(string targetHost, string[] otherNames, CertificateDelegates.ServerCertificateValidator serverCertValidator, Func<X509CertificateCollection> clientCertificatesSelector, bool verbose)
 	{
@@ -324,7 +319,7 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 		}
 	}
 
-	// The following method is invoked by the RemoteCertificateValidationDelegate. 
+	// The following method is invoked by the RemoteCertificateValidationDelegate.
 	public bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain,
 		SslPolicyErrors sslPolicyErrors)
 	{
@@ -679,10 +674,8 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 				 && Interlocked.CompareExchange(ref _receiveHandling, 1, 0) == 0);
 	}
 
-	public void Close(string reason)
-	{
+	public void Close(string reason) =>
 		CloseInternal(SocketError.Success, reason ?? "Normal socket close."); // normal socket closing
-	}
 
 	private void CloseInternal(SocketError socketError, string reason)
 	{
@@ -727,29 +720,18 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 		}
 
 		var handler = ConnectionClosed;
-		if (handler != null)
-			handler(this, socketError);
+		handler?.Invoke(this, socketError);
 	}
 
-	public void SetClientConnectionName(string clientConnectionName)
-	{
+	public void SetClientConnectionName(string clientConnectionName) =>
 		_clientConnectionName = clientConnectionName;
-	}
 
-	public override string ToString()
+	public override string ToString() =>
+		"S" + RemoteEndPoint;
+
+	private struct ReceivedData(ArraySegment<byte> buf, int dataLen)
 	{
-		return "S" + RemoteEndPoint;
-	}
-
-	private struct ReceivedData
-	{
-		public readonly ArraySegment<byte> Buf;
-		public readonly int DataLen;
-
-		public ReceivedData(ArraySegment<byte> buf, int dataLen)
-		{
-			Buf = buf;
-			DataLen = dataLen;
-		}
+		public readonly ArraySegment<byte> Buf = buf;
+		public readonly int DataLen = dataLen;
 	}
 }
