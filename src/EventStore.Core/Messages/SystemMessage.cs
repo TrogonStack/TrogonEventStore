@@ -202,7 +202,22 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.System)]
-		public partial class ShutdownTimeout : Message {
+		public partial class PeripheralShutdownTimeout : Message;
+
+		[DerivedMessage(CoreMessage.System)]
+		public partial class ShutdownTimeout : Message;
+
+		[DerivedMessage(CoreMessage.System)]
+		public partial class RegisterForGracefulTermination(string componentName, Action action) : Message
+		{
+			public readonly string ComponentName = componentName;
+			public readonly Action Action = action;
+		}
+
+		[DerivedMessage(CoreMessage.System)]
+		public partial class ComponentTerminated(string componentName) : Message
+		{
+			public readonly string ComponentName = componentName;
 		}
 
 		[DerivedMessage(CoreMessage.System)]
