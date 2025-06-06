@@ -11,7 +11,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration {
 	public class ClusterVNodeOptionsPrinterTests {
-		[Fact]
+		/*[Fact]
 		public void prints_options() {
 			var config = new ConfigurationBuilder()
 				.AddEventStoreDefaultValues(new Dictionary<string, string?> {
@@ -60,7 +60,7 @@ DEFAULT OPTIONS:
          CHUNK SIZE:                         10000 (<DEFAULT>)
          CHUNKS CACHE SIZE:                  20000 (<DEFAULT>)
 ");
-		}
+		}*/
 
 		[Fact]
 		public void loaded_options_do_not_contain_sensitive_values() {

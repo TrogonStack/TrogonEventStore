@@ -3,8 +3,7 @@
 	"ExpectedScrapeIntervalSeconds": 15,
 
 	"Meters": [
-		"EventStore.Core",
-		"EventStore.Projections.Core"
+		"EventStore.Core"
 	],
 
 	"Statuses": {
@@ -15,7 +14,7 @@
 
 	"ElectionsCount": true,
 
-	"ProjectionStats": true,
+	"ProjectionStats": false,
 
 	"PersistentSubscriptionStats": true,
 
@@ -149,14 +148,6 @@
 		{
 			"Regex": "PersistentSubscriptions",
 			"Label": "Persistent Subscriptions"
-		},
-		{
-			"Regex": "Projections Leader",
-			"Label": "Projections Leader"
-		},
-		{
-			"Regex": "Projection Core #.*",
-			"Label": "Projections Core"
 		},
 		{
 			"Regex": "Worker #.*",

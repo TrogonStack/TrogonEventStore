@@ -7,7 +7,7 @@ namespace EventStore.Common.Utils {
 	public class Locations {
 		public static readonly string ApplicationDirectory;
 		public static readonly string WebContentDirectory;
-		public static readonly string ProjectionsDirectory;
+		// public static readonly string ProjectionsDirectory;
 		public static readonly string PreludeDirectory;
 		public static readonly string PreludeResourcesPath;
 		public static readonly string PluginsDirectory;
@@ -18,6 +18,19 @@ namespace EventStore.Common.Utils {
 		public static readonly string DefaultTestClientLogDirectory;
 		public static readonly string FallbackDefaultDataDirectory;
 		public static readonly string DefaultTrustedRootCertificateDirectory;
+
+		/// <summary>
+		/// Returns the preceded location by checking the existence of the directory.
+		/// The local directory should be the first priority as the first element followed by
+		/// the global default location as last element.
+		/// </summary>
+		/// <param name="locations">the locations ordered by prioity starting with the preceded location</param>
+		/// <returns>the preceded location</returns>
+		public static string GetPrecededLocation(params string[] locations) {
+			var precedenceList = locations.Distinct().ToList();
+			return precedenceList.FirstOrDefault(Directory.Exists) ??
+			       precedenceList.Last();
+		}
 
 		static Locations() {
 			ApplicationDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
@@ -59,28 +72,15 @@ namespace EventStore.Common.Utils {
 				Path.Combine(ApplicationDirectory, "clusternode-web"),
 				Path.Combine(DefaultContentDirectory, "clusternode-web")
 			);
-			ProjectionsDirectory = GetPrecededLocation(
+			/*ProjectionsDirectory = GetPrecededLocation(
 				Path.Combine(ApplicationDirectory, "projections"),
 				Path.Combine(DefaultContentDirectory, "projections")
-			);
+			);*/
 			PreludeDirectory = GetPrecededLocation(
 				Path.Combine(ApplicationDirectory, "Prelude"),
 				Path.Combine(DefaultContentDirectory, "Prelude")
 			);
 			PreludeResourcesPath = "EventStore.Projections.Core.Prelude";
-		}
-
-		/// <summary>
-		/// Returns the preceded location by checking the existence of the directory.
-		/// The local directory should be the first priority as the first element followed by
-		/// the global default location as last element.
-		/// </summary>
-		/// <param name="locations">the locations ordered by prioity starting with the preceded location</param>
-		/// <returns>the preceded location</returns>
-		public static string GetPrecededLocation(params string[] locations) {
-			var precedenceList = locations.Distinct().ToList();
-			return precedenceList.FirstOrDefault(Directory.Exists) ??
-			       precedenceList.Last();
 		}
 
 		/// <summary>
