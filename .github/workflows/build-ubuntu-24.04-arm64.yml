@@ -1,5 +1,4 @@
-name: Build Ubuntu 22.04
-
+name: Build Ubuntu 24.04 ARM64
 on:
   pull_request:
     paths-ignore:
@@ -21,5 +20,5 @@ jobs:
   build:
     uses: ./.github/workflows/build-reusable.yml
     with:
-      os: ubuntu-22.04
-      arch: x64
+      os: ubuntu-24.04-arm
+      arch: arm64
