@@ -29,7 +29,7 @@ namespace EventStore.Projections.Core.Tests.Services.Jint {
 				using (_stateHandlerFactory.Create(_projectionType, @"log(1;", true, null, logger: (s, _) => { })) {
 				}
 			} catch (Exception ex) {
-				Assert.IsInstanceOf<Esprima.ParserException>(ex);
+				Assert.IsInstanceOf<JavaScriptException>(ex);
 			}
 		}
 
