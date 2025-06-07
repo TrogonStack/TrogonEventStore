@@ -11,28 +11,28 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
 		<PackageReference Include="Microsoft.Extensions.FileProviders.Composite" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.16" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
-		<PackageReference Include="Serilog" Version="4.0.1" />
+		<PackageReference Include="Serilog" Version="4.0.2" />
 		<PackageReference Include="Serilog.Enrichers.Process" Version="3.0.0" />
 		<PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
 		<PackageReference Include="Serilog.Expressions" Version="5.0.0" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
-		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.2" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
 		<PackageReference Include="Serilog.Sinks.Async" Version="2.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 
-		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.0" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
 		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
 		<PackageReference Include="YamlDotnet" Version="13.7.1" />
 		<!-- upgrade because of transitive dependency vulnerability https://github.com/advisories/GHSA-hh2w-p6rv-4g7w -->
 		<PackageReference Include="System.Text.Json" Version="8.0.5" />
 		<!-- upgrade because of transitive dependency vulnerability https://github.com/advisories/GHSA-447r-wph3-92pm -->
-		<PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
+		<PackageReference Include="System.Formats.Asn1" Version="8.0.2" />
 	</ItemGroup>
 	<ItemGroup>
 	  <None Update="Utils\version.properties">
