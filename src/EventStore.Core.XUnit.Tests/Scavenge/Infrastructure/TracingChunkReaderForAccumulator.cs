@@ -1,34 +1,31 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using EventStore.Core.TransactionLog.Scavenging;
 
-namespace EventStore.Core.XUnit.Tests.Scavenge {
-	public class TracingChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<TStreamId> {
-		private readonly IChunkReaderForAccumulator<TStreamId> _wrapped;
-		private readonly Action<string> _trace;
+namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-		public TracingChunkReaderForAccumulator(
-			IChunkReaderForAccumulator<TStreamId> wrapped,
-			Action<string> trace) {
+public class TracingChunkReaderForAccumulator<TStreamId>(
+	IChunkReaderForAccumulator<TStreamId> wrapped,
+	Action<string> trace)
+	: IChunkReaderForAccumulator<TStreamId>
+{
+	public IAsyncEnumerable<AccumulatorRecordType> ReadChunkInto(
+		int logicalChunkNumber,
+		RecordForAccumulator<TStreamId>.OriginalStreamRecord originalStreamRecord,
+		RecordForAccumulator<TStreamId>.MetadataStreamRecord metadataStreamRecord,
+		RecordForAccumulator<TStreamId>.TombStoneRecord tombStoneRecord,
+		CancellationToken cancellationToken)
+	{
 
-			_wrapped = wrapped;
-			_trace = trace;
-		}
+		var ret = wrapped.ReadChunkInto(
+			logicalChunkNumber,
+			originalStreamRecord,
+			metadataStreamRecord,
+			tombStoneRecord,
+			cancellationToken);
 
-		public IEnumerable<AccumulatorRecordType> ReadChunkInto(
-			int logicalChunkNumber,
-			RecordForAccumulator<TStreamId>.OriginalStreamRecord originalStreamRecord,
-			RecordForAccumulator<TStreamId>.MetadataStreamRecord metadataStreamRecord,
-			RecordForAccumulator<TStreamId>.TombStoneRecord tombStoneRecord) {
-
-			var ret = _wrapped.ReadChunkInto(
-				logicalChunkNumber,
-				originalStreamRecord,
-				metadataStreamRecord,
-				tombStoneRecord);
-
-			_trace($"Reading Chunk {logicalChunkNumber}");
-			return ret;
-		}
+		trace($"Reading Chunk {logicalChunkNumber}");
+		return ret;
 	}
 }
