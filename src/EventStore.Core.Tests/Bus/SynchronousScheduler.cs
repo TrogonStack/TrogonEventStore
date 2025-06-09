@@ -5,21 +5,31 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Bus;
 
-public sealed class SynchronousScheduler(string name = "Test", bool watchSlowMsg = true) : InMemoryBus(name, watchSlowMsg), IPublisher {
-	public void Publish(Message msg) {
+public sealed class SynchronousScheduler(string name = "Test", bool watchSlowMsg = true) : InMemoryBus(name, watchSlowMsg), IPublisher
+{
+	public void Publish(Message msg)
+	{
 		ArgumentNullException.ThrowIfNull(msg);
 
 		var task = DispatchAsync(msg, CancellationToken.None);
-		if (task.IsCompleted) {
+		if (task.IsCompleted)
+		{
 			task.GetAwaiter().GetResult();
-		} else {
+		}
+		else
+		{
 			var wrapperTask = task.AsTask();
 
-			try {
+			try
+			{
 				wrapperTask.Wait();
-			} catch (AggregateException e) when (e.InnerExceptions is [var innerEx]) {
+			}
+			catch (AggregateException e) when (e.InnerExceptions is [var innerEx])
+			{
 				throw innerEx;
-			} finally {
+			}
+			finally
+			{
 				wrapperTask.Dispose();
 			}
 		}

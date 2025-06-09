@@ -1,21 +1,28 @@
 using System;
-using System.Threading;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests;
 
-public static class AssertEx {
+public static class AssertEx
+{
 	public static async Task<TException> ThrowsAsync<TException>(Func<Task> code)
-		where TException : Exception {
+		where TException : Exception
+	{
 		var expected = default(TException);
-		try {
+		try
+		{
 			await code();
 			Assert.Fail($"Expected exception of type: {typeof(TException)} but no exception was thrown");
-		} catch (TException ex) {
+		}
+		catch (TException ex)
+		{
 			expected = ex;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			Assert.Fail($"Expected exception of type: {typeof(TException)} but was {ex.GetType()} instead");
 		}
 
@@ -23,10 +30,14 @@ public static class AssertEx {
 	}
 
 	public static async Task DoesNotThrowAsync<TException>(Func<Task> code, string message)
-		where TException : Exception {
-		try {
+		where TException : Exception
+	{
+		try
+		{
 			await code();
-		} catch (TException) {
+		}
+		catch (TException)
+		{
 			Assert.Fail(message);
 		}
 	}
@@ -46,7 +57,8 @@ public static class AssertEx {
 		string msg = "AssertEx.IsOrBecomesTrue() timed out", Action onFail = null,
 		[CallerMemberName] string memberName = "",
 		[CallerFilePath] string sourceFilePath = "",
-		[CallerLineNumber] int sourceLineNumber = 0) {
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
 
 		if (SpinWait.SpinUntil(func, timeout ?? TimeSpan.FromMilliseconds(1000)))
 			return;

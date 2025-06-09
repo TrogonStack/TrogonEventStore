@@ -9,7 +9,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests {
+public partial class EnumeratorTests
+{
 	public record SubscriptionResponse { }
 	public record Event(Guid Id, long EventNumber, TFPos? EventPosition) : SubscriptionResponse { }
 	public record SubscriptionConfirmation() : SubscriptionResponse { }
@@ -17,23 +18,28 @@ public partial class EnumeratorTests {
 	public record FellBehind : SubscriptionResponse { }
 	public record Checkpoint(Position CheckpointPosition) : SubscriptionResponse { }
 
-	public class EnumeratorWrapper : IAsyncDisposable {
+	public class EnumeratorWrapper : IAsyncDisposable
+	{
 		private readonly IAsyncEnumerator<ReadResponse> _enumerator;
 
-		public EnumeratorWrapper(IAsyncEnumerator<ReadResponse> enumerator) {
+		public EnumeratorWrapper(IAsyncEnumerator<ReadResponse> enumerator)
+		{
 			_enumerator = enumerator;
 		}
 
 		public ValueTask DisposeAsync() => _enumerator.DisposeAsync();
 
-		public async Task<SubscriptionResponse> GetNext() {
-			if (!await _enumerator.MoveNextAsync()) {
+		public async Task<SubscriptionResponse> GetNext()
+		{
+			if (!await _enumerator.MoveNextAsync())
+			{
 				throw new Exception("No more items in enumerator");
 			}
 
 			var resp = _enumerator.Current;
 
-			return resp switch {
+			return resp switch
+			{
 				ReadResponse.EventReceived eventReceived => new Event(eventReceived.Event.Event.EventId, eventReceived.Event.OriginalEventNumber, eventReceived.Event.OriginalPosition),
 				ReadResponse.SubscriptionConfirmed => new SubscriptionConfirmation(),
 				ReadResponse.SubscriptionCaughtUp => new CaughtUp(),

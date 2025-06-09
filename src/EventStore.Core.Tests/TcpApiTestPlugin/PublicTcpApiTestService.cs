@@ -17,15 +17,18 @@ using Serilog;
 
 namespace EventStore.TcpUnitTestPlugin;
 
-public class PublicTcpApiTestService : IHostedService {
+public class PublicTcpApiTestService : IHostedService
+{
 	static readonly ILogger Logger = Log.ForContext<PublicTcpApiTestService>();
 
-	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus) {
+	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus)
+	{
 		bus.Subscribe<SystemMessage.SystemInit>(tcpService);
 		bus.Subscribe<SystemMessage.SystemStart>(tcpService);
 		bus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
 
-		_ = Task.Run(async () => {
+		_ = Task.Run(async () =>
+		{
 			await Task.Delay(TimeSpan.FromHours(1));
 			Logger.Warning("Shutting down TCP unit tests");
 			tcpService.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), true, true));
@@ -33,11 +36,12 @@ public class PublicTcpApiTestService : IHostedService {
 	}
 
 	public static PublicTcpApiTestService Insecure(
-		TcpApiTestOptions options, 
+		TcpApiTestOptions options,
 		IAuthenticationProvider authProvider,
-		AuthorizationGateway authGateway, 
+		AuthorizationGateway authGateway,
 		StandardComponents components
-	) {
+	)
+	{
 		var endpoint = new IPEndPoint(IPAddress.Loopback, options.NodeTcpPort);
 
 		var tcpService = new TcpService(
@@ -61,12 +65,13 @@ public class PublicTcpApiTestService : IHostedService {
 	}
 
 	public static PublicTcpApiTestService Secure(
-		TcpApiTestOptions options, 
-		IAuthenticationProvider authProvider, 
-		AuthorizationGateway authGateway, 
-		StandardComponents components, 
+		TcpApiTestOptions options,
+		IAuthenticationProvider authProvider,
+		AuthorizationGateway authGateway,
+		StandardComponents components,
 		CertificateProvider? certificateProvider
-	) {
+	)
+	{
 		var endpoint = new IPEndPoint(IPAddress.Loopback, options.NodeTcpPort);
 
 		var tcpService = new TcpService(
@@ -80,11 +85,13 @@ public class PublicTcpApiTestService : IHostedService {
 			authProvider: authProvider,
 			authorizationGateway: authGateway,
 			certificateSelector: () => certificateProvider?.Certificate,
-			intermediatesSelector: () => {
+			intermediatesSelector: () =>
+			{
 				var intermediates = certificateProvider?.IntermediateCerts;
 				return intermediates == null ? null : new X509Certificate2Collection(intermediates);
 			},
-			sslClientCertValidator: delegate { return (true, null); },
+			sslClientCertValidator: delegate
+			{ return (true, null); },
 			connectionPendingSendBytesThreshold: options.ConnectionPendingSendBytesThreshold,
 			connectionQueueSizeThreshold: options.ConnectionQueueSizeThreshold
 		);

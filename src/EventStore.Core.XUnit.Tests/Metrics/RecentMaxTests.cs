@@ -5,35 +5,41 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class RecentMaxTests {
+public class RecentMaxTests
+{
 	private readonly RecentMax<long> _sut;
 	private readonly FakeClock _clock = new();
 
-	public RecentMaxTests() {
+	public RecentMaxTests()
+	{
 		_sut = new RecentMax<long>(expectedScrapeIntervalSeconds: 15);
 	}
 
 	[Fact]
-	public void record_now_returns_now() {
+	public void record_now_returns_now()
+	{
 		_clock.SecondsSinceEpoch = 500;
 		var now = Record(123);
 		Assert.Equal(_clock.Now, now);
 	}
 
 	[Fact]
-	public void no_records() {
+	public void no_records()
+	{
 		AssertObservedValue(0);
 	}
 
 	[Fact]
-	public void one_record() {
+	public void one_record()
+	{
 		AssertObservedValue(0);
 		Record(1);
 		AssertObservedValue(1);
 	}
 
 	[Fact]
-	public void two_records_instant() {
+	public void two_records_instant()
+	{
 		AssertObservedValue(0);
 		Record(1);
 		AssertObservedValue(1);
@@ -42,7 +48,8 @@ public class RecentMaxTests {
 	}
 
 	[Fact]
-	public void two_records_ascending() {
+	public void two_records_ascending()
+	{
 		AssertObservedValue(0);
 
 		AdvanceSeconds(1);
@@ -55,7 +62,8 @@ public class RecentMaxTests {
 	}
 
 	[Fact]
-	public void two_records_descending() {
+	public void two_records_descending()
+	{
 		AssertObservedValue(0);
 
 		AdvanceSeconds(1);
@@ -68,7 +76,8 @@ public class RecentMaxTests {
 	}
 
 	[Fact]
-	public void removes_stale_data() {
+	public void removes_stale_data()
+	{
 		Record(1);
 
 		AdvanceSeconds(19);
@@ -79,7 +88,8 @@ public class RecentMaxTests {
 	}
 
 	[Fact]
-	public void removes_stale_data_incrementally() {
+	public void removes_stale_data_incrementally()
+	{
 		// record a series of values, each 4s apart (so in a different bucket)
 		// there are 5 buckets
 		AssertObservedValue(0);
@@ -119,7 +129,8 @@ public class RecentMaxTests {
 	private void AssertObservedValue(long value) =>
 		Assert.Equal(value, _sut.Observe(_clock.Now));
 
-	public class BucketCalculatorTests {
+	public class BucketCalculatorTests
+	{
 		[Theory]
 		[InlineData(0, 1, 1, 0, 1)]
 		[InlineData(1, 3, 1, 2, 3)]
@@ -138,7 +149,8 @@ public class RecentMaxTests {
 			int expectedNumBuckets,
 			int expectedSecondsPerBucket,
 			int expectedMinPeriodSeconds,
-			int expectedMaxPeriodSeconds) {
+			int expectedMaxPeriodSeconds)
+		{
 
 			var sut = new RecentMax<long>.BucketCalculator(scrapeIntervalSeconds);
 
@@ -149,8 +161,10 @@ public class RecentMaxTests {
 		}
 
 		[Fact]
-		public void throws() {
-			var ex = Assert.Throws<ArgumentException>(() => {
+		public void throws()
+		{
+			var ex = Assert.Throws<ArgumentException>(() =>
+			{
 				_ = new RecentMax<long>.BucketCalculator(16);
 			});
 

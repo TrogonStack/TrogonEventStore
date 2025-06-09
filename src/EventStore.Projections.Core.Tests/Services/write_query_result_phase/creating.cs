@@ -11,13 +11,17 @@ using EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_mana
 using EventStore.Projections.Core.Tests.Services.core_projection.multi_phase;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
-	namespace creating {
+namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase
+{
+	namespace creating
+	{
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_creating<TLogFormat, TStreamId> {
+		class when_creating<TLogFormat, TStreamId>
+		{
 			[Test]
-			public void it_can_be_created() {
+			public void it_can_be_created()
+			{
 				var coreProjection = new FakeCoreProjection();
 				var stateCache = new PartitionStateCache();
 				var bus = new SynchronousScheduler();
@@ -38,7 +42,8 @@ namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
 			}
 		}
 
-		abstract class specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId> {
+		abstract class specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId>
+		{
 			protected WriteQueryResultProjectionProcessingPhase _phase;
 			protected specification_with_multi_phase_core_projection<TLogFormat, TStreamId>.FakeCheckpointManager _checkpointManager;
 			protected specification_with_multi_phase_core_projection<TLogFormat, TStreamId>.FakeEmittedStreamsTracker _emittedStreamsTracker;
@@ -48,7 +53,8 @@ namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
 			protected FakeCoreProjection _coreProjection;
 
 			[SetUp]
-			public void SetUp() {
+			public void SetUp()
+			{
 				_stateCache = GivenStateCache();
 				_publisher = new();
 				_coreProjection = new FakeCoreProjection();
@@ -68,7 +74,8 @@ namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
 				When();
 			}
 
-			protected virtual PartitionStateCache GivenStateCache() {
+			protected virtual PartitionStateCache GivenStateCache()
+			{
 				var stateCache = new PartitionStateCache();
 
 				stateCache.CachePartitionState(
@@ -83,52 +90,63 @@ namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
 			protected abstract void When();
 
 			[TearDown]
-			public void TearDown() {
+			public void TearDown()
+			{
 				_phase = null;
 			}
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_created<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId> {
-			protected override void When() {
+		class when_created<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId>
+		{
+			protected override void When()
+			{
 			}
 
 			[Test]
-			public void can_be_initialized_from_phase_checkpoint() {
+			public void can_be_initialized_from_phase_checkpoint()
+			{
 				_phase.InitializeFromCheckpoint(CheckpointTag.FromPhase(1, completed: false));
 			}
 
 			[Test]
-			public void process_event_throws_invalid_operation_exception() {
+			public void process_event_throws_invalid_operation_exception()
+			{
 				Assert.Throws<InvalidOperationException>(() => { _phase.ProcessEvent(); });
 			}
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_subscribing<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId> {
-			protected override void When() {
+		class when_subscribing<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId>
+		{
+			protected override void When()
+			{
 				_phase.Subscribe(CheckpointTag.FromPhase(1, completed: false), false);
 			}
 
 			[Test]
-			public void notifies_core_projection_with_subscribed() {
+			public void notifies_core_projection_with_subscribed()
+			{
 				Assert.AreEqual(1, _coreProjection.SubscribedInvoked);
 			}
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_processing_event<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId> {
-			protected override void When() {
+		class when_processing_event<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId>
+		{
+			protected override void When()
+			{
 				_phase.Subscribe(CheckpointTag.FromPhase(1, completed: false), false);
 				_phase.SetProjectionState(PhaseState.Running);
 				_phase.ProcessEvent();
 			}
 
 			[Test]
-			public void writes_query_results() {
+			public void writes_query_results()
+			{
 				Assert.AreEqual(3, _checkpointManager.EmittedEvents.Count(v => v.Event.EventType == "Result"));
 			}
 		}
@@ -136,8 +154,10 @@ namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		class
-			when_completed_query_processing_event<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId> {
-			protected override void When() {
+			when_completed_query_processing_event<TLogFormat, TStreamId> : specification_with_write_query_result_projection_processing_phase<TLogFormat, TStreamId>
+		{
+			protected override void When()
+			{
 				_phase.Subscribe(CheckpointTag.FromPhase(1, completed: false), false);
 				_phase.SetProjectionState(PhaseState.Running);
 				_phase.ProcessEvent();
@@ -146,7 +166,8 @@ namespace EventStore.Projections.Core.Tests.Services.write_query_result_phase {
 			}
 
 			[Test]
-			public void writes_query_results_only_once() {
+			public void writes_query_results_only_once()
+			{
 				Assert.AreEqual(3, _checkpointManager.EmittedEvents.Count(v => v.Event.EventType == "Result"));
 			}
 		}

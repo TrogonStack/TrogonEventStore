@@ -9,21 +9,26 @@ using EventStore.Projections.Core.Services.Processing.Strategies;
 using EventStore.Projections.Core.Services.Processing.Subscriptions;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_with_links_event_reader {
-	namespace when_not_including_links {
+namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_with_links_event_reader
+{
+	namespace when_not_including_links
+	{
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class when_reading<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId> {
+		public class when_reading<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
+		{
 			protected Guid _subscriptionId;
 			private QuerySourcesDefinition _sourceDefinition;
 			protected IReaderStrategy _readerStrategy;
 			protected ReaderSubscriptionOptions _readerSubscriptionOptions;
 
-			protected override bool GivenHeadingReaderRunning() {
+			protected override bool GivenHeadingReaderRunning()
+			{
 				return false;
 			}
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				base.Given();
 				AllWritesSucceed();
 				ExistingEvent("test-stream", "$>", "{}", "{Data: 1}");
@@ -36,11 +41,13 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_wi
 				ExistingEvent("test-stream", "eventType", "{}", "{Data: 7}");
 
 				_subscriptionId = Guid.NewGuid();
-				_sourceDefinition = new QuerySourcesDefinition {
+				_sourceDefinition = new QuerySourcesDefinition
+				{
 					ByStreams = true,
 					AllStreams = true,
 					AllEvents = true,
-					Options = new QuerySourcesDefinitionOptions {
+					Options = new QuerySourcesDefinitionOptions
+					{
 						IncludeLinks = false
 					}
 				};
@@ -58,7 +65,8 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_wi
 					enableContentTypeValidation: true);
 			}
 
-			protected override IEnumerable<WhenStep> When() {
+			protected override IEnumerable<WhenStep> When()
+			{
 				var fromZeroPosition = CheckpointTag.FromPosition(0, 0, 0);
 				yield return
 					new ReaderSubscriptionManagement.Subscribe(
@@ -66,7 +74,8 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_wi
 			}
 
 			[Test]
-			public void returns_non_linked_events() {
+			public void returns_non_linked_events()
+			{
 				var receivedEvents =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToArray();
 

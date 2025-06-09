@@ -10,24 +10,28 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Index;
 
-public class IndexTrackerTests : IDisposable {
+public class IndexTrackerTests : IDisposable
+{
 	private readonly TestMeterListener<long> _listener;
 	private readonly IndexTracker _sut;
 
-	public IndexTrackerTests() {
+	public IndexTrackerTests()
+	{
 		var meter = new Meter($"{typeof(IndexTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 
 		var eventMetric = new CounterMetric(meter, "eventstore-io", "events");
-		_sut = new IndexTracker(new CounterSubMetric(eventMetric, new[] {new KeyValuePair<string, object>("activity", "written")}));
+		_sut = new IndexTracker(new CounterSubMetric(eventMetric, new[] { new KeyValuePair<string, object>("activity", "written") }));
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_listener.Dispose();
 	}
 
 	[Fact]
-	public void can_observe_prepare_logs() {
+	public void can_observe_prepare_logs()
+	{
 		var prepares = new List<IPrepareLogRecord<string>> {
 			CreatePrepare(),
 			CreatePrepare(),
@@ -40,17 +44,21 @@ public class IndexTrackerTests : IDisposable {
 		AssertMeasurements(expectedEventsWritten: 3);
 	}
 
-	private static PrepareLogRecord CreatePrepare() {
+	private static PrepareLogRecord CreatePrepare()
+	{
 		return new PrepareLogRecord(42, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.Now,
 			PrepareFlags.Data, "type-test", null, Array.Empty<byte>(), Array.Empty<byte>());
 	}
 
-	private void AssertMeasurements(long expectedEventsWritten) {
+	private void AssertMeasurements(long expectedEventsWritten)
+	{
 		Assert.Collection(
 			_listener.RetrieveMeasurements("eventstore-io-events"),
-			m => {
+			m =>
+			{
 				Assert.Equal(expectedEventsWritten, m.Value);
-				Assert.Collection(m.Tags.ToArray(), t => {
+				Assert.Collection(m.Tags.ToArray(), t =>
+				{
 					Assert.Equal("activity", t.Key);
 					Assert.Equal("written", t.Value);
 				});

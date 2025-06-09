@@ -5,10 +5,12 @@ namespace EventStore.Projections.Core.Services.Processing.TransactionFile;
 
 public partial class HeadingEventReader
 {
-	private abstract class Item {
+	private abstract class Item
+	{
 		public readonly TFPos Position;
 
-		protected Item(TFPos position) {
+		protected Item(TFPos position)
+		{
 			Position = position;
 		}
 

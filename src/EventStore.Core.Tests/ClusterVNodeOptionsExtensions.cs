@@ -1,15 +1,20 @@
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Tests.Helpers;
 
-namespace EventStore.Core.Tests; 
+namespace EventStore.Core.Tests;
 
-public static class ClusterVNodeOptionsExtensions {
-	public static ClusterVNodeOptions ReduceMemoryUsageForTests(this ClusterVNodeOptions options) {
-		return options with {
-			Cluster = options.Cluster with {
+public static class ClusterVNodeOptionsExtensions
+{
+	public static ClusterVNodeOptions ReduceMemoryUsageForTests(this ClusterVNodeOptions options)
+	{
+		return options with
+		{
+			Cluster = options.Cluster with
+			{
 				StreamInfoCacheCapacity = 10_000
 			},
-			Database = options.Database with {
+			Database = options.Database with
+			{
 				ChunkSize = MiniNode.ChunkSize,
 				ChunksCacheSize = MiniNode.CachedChunkSize,
 				StreamExistenceFilterSize = 10_000,

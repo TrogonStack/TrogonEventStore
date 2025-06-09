@@ -6,23 +6,29 @@ using EventStore.Core.Messaging;
 using EventStore.Core.Tests;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Management;
-using NUnit.Framework;
 using EventStore.Projections.Core.Services.Processing;
+using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
-	namespace a_completed_projection {
-		public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId> {
+namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
+{
+	namespace a_completed_projection
+	{
+		public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId>
+		{
 			protected Guid _reader;
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				base.Given();
 				AllWritesToSucceed(ProjectionNamesBuilder.ProjectionsStreamPrefix + _projectionName + "-result");
 				AllWritesToSucceed("$$$projections-" + _projectionName + "-result");
 				NoOtherStreams();
 			}
 
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) yield return m;
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+					yield return m;
 
 				var readerAssignedMessage =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
@@ -41,9 +47,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class when_stopping<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) yield return m;
+		public class when_stopping<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+		{
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+					yield return m;
 
 				yield return
 					(new ProjectionManagementMessage.Command.Disable(
@@ -51,7 +60,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void the_projection_status_becomes_completed_disabled() {
+			public void the_projection_status_becomes_completed_disabled()
+			{
 				_manager.Handle(
 					new ProjectionManagementMessage.Command.GetStatistics(
 						_bus, null, _projectionName, false));
@@ -85,16 +95,20 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class when_starting<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) yield return m;
+		public class when_starting<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+		{
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+					yield return m;
 				yield return
 					(new ProjectionManagementMessage.Command.Enable(
 						_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
 			}
 
 			[Test]
-			public void the_projection_status_becomes_running_enabled() {
+			public void the_projection_status_becomes_running_enabled()
+			{
 				_manager.Handle(
 					new ProjectionManagementMessage.Command.GetStatistics(
 						_bus, null, _projectionName, false));

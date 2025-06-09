@@ -4,30 +4,38 @@ using EventStore.Core.TransactionLog.Checkpoint;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-internal class InterceptorCheckpoint : ICheckpoint {
+internal class InterceptorCheckpoint : ICheckpoint
+{
 	private readonly ICheckpoint _wrapped;
 	private readonly List<long> _values = new();
 	private readonly object _lock = new();
 
-	public IEnumerable<long> Values {
-		get {
-			lock (_lock) {
+	public IEnumerable<long> Values
+	{
+		get
+		{
+			lock (_lock)
+			{
 				return _values.ToArray();
 			}
 		}
 	}
 
-	public InterceptorCheckpoint(ICheckpoint wrapped) {
+	public InterceptorCheckpoint(ICheckpoint wrapped)
+	{
 		_wrapped = wrapped;
 	}
 
 	public string Name => _wrapped.Name;
 
-	public event Action<long> Flushed {
-		add {
+	public event Action<long> Flushed
+	{
+		add
+		{
 			_wrapped.Flushed += value;
 		}
-		remove {
+		remove
+		{
 			_wrapped.Flushed -= value;
 		}
 	}
@@ -35,9 +43,11 @@ internal class InterceptorCheckpoint : ICheckpoint {
 	public long Read() => _wrapped.Read();
 	public long ReadNonFlushed() => _wrapped.ReadNonFlushed();
 
-	public void Write(long checkpoint) {
+	public void Write(long checkpoint)
+	{
 		_wrapped.Write(checkpoint);
-		lock (_lock) {
+		lock (_lock)
+		{
 			_values.Add(checkpoint);
 		}
 	}

@@ -1,6 +1,7 @@
-namespace EventStore.Common.DevCertificates {
-	internal enum CertificatePurpose {
-		All,
-		HTTPS
-	}
+namespace EventStore.Common.DevCertificates;
+
+internal enum CertificatePurpose
+{
+	All,
+	HTTPS
 }

@@ -17,7 +17,8 @@ namespace EventStore.Projections.Core.XUnit.Tests.CheckpointManagers;
 
 /// More tests for MultiStreamMultiOutputCheckpointManager exist in the NUnit tests,
 /// and derive from <see cref="EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager.multi_stream.TestFixtureWithMultiStreamCheckpointManager"/>
-public class MultiStreamMultiOutputCheckpointManagerTests {
+public class MultiStreamMultiOutputCheckpointManagerTests
+{
 	private const string ProjectionName = "test-projection";
 	private const string OrderStreamName = $"$projections-{ProjectionName}-order";
 	private const int ProjectionPhase = 0;
@@ -27,7 +28,8 @@ public class MultiStreamMultiOutputCheckpointManagerTests {
 	private readonly CoreProjectionCheckpointWriter _checkpointWriter;
 	private readonly ExistingStreamsHelper _existingStreams;
 
-	public MultiStreamMultiOutputCheckpointManagerTests() {
+	public MultiStreamMultiOutputCheckpointManagerTests()
+	{
 		var projectionId = Guid.NewGuid();
 		var projectionVersion = new ProjectionVersion(3, ProjectionPhase, 5);
 		var namingBuilder = new ProjectionNamesBuilder(ProjectionName, new ProjectionSourceDefinition());
@@ -35,7 +37,7 @@ public class MultiStreamMultiOutputCheckpointManagerTests {
 		var envelope = new FakeEnvelope();
 		_ioDispatcher = new IODispatcher(_publisher, envelope);
 		_checkpointWriter = new CoreProjectionCheckpointWriter(
-				namingBuilder.MakeCheckpointStreamName(),_ioDispatcher, projectionVersion, ProjectionName);
+				namingBuilder.MakeCheckpointStreamName(), _ioDispatcher, projectionVersion, ProjectionName);
 		_existingStreams = new ExistingStreamsHelper();
 
 		var projectionConfig = new ProjectionConfig(SystemAccounts.System, 10, 1000, 20, 2,
@@ -50,7 +52,8 @@ public class MultiStreamMultiOutputCheckpointManagerTests {
 
 	[Theory]
 	[MemberData(nameof(PreRecordedEvents))]
-	public void when_loading_prerecorded_events(PreRecordedEventsScenario scenario) {
+	public void when_loading_prerecorded_events(PreRecordedEventsScenario scenario)
+	{
 		_existingStreams.AddEvents(scenario.WithExistingEvents);
 		_existingStreams.HardDeleteStreams(scenario.WithHardDeletedStreams);
 
@@ -72,7 +75,8 @@ public class MultiStreamMultiOutputCheckpointManagerTests {
 			.OfType<ClientMessage.ReadStreamEventsBackward>()
 			.Skip(1) // Order stream read
 			.ToArray();
-		for (var i = 0; i < scenario.ExpectedInputStreamReads.Length; i++) {
+		for (var i = 0; i < scenario.ExpectedInputStreamReads.Length; i++)
+		{
 			var (expectedStream, expectedFrom) = scenario.ExpectedInputStreamReads[i];
 			var actual = readRequests[i];
 			Assert.Equal(expectedStream, actual.EventStreamId);
@@ -85,7 +89,8 @@ public class MultiStreamMultiOutputCheckpointManagerTests {
 		var committedEvents = _publisher.Messages
 			.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToArray();
 		Assert.Equal(scenario.ExpectedCommittedEvents.Length, committedEvents.Length);
-		for (var i = 0; i < scenario.ExpectedCommittedEvents.Length; i++) {
+		for (var i = 0; i < scenario.ExpectedCommittedEvents.Length; i++)
+		{
 			var exp = scenario.ExpectedCommittedEvents[i];
 			var act = committedEvents[i];
 			Assert.Equal(exp.EventStreamId, act.Data.EventStreamId);
@@ -106,7 +111,8 @@ public class MultiStreamMultiOutputCheckpointManagerTests {
 		ExistingEvent[] withExistingEvents,
 		ExistingEvent[] expectedCommittedEvents,
 		Tuple<string, long>[] expectedInputStreamReads,
-		string[]? withHardDeletedStreams = null) {
+		string[]? withHardDeletedStreams = null)
+	{
 		private string ScenarioName { get; } = scenarioName;
 		public ExistingEvent[] WithExistingEvents { get; } = withExistingEvents;
 		public ExistingEvent[] ExpectedCommittedEvents { get; } = expectedCommittedEvents;

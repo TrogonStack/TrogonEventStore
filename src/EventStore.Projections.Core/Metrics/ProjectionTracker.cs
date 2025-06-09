@@ -6,10 +6,12 @@ using EventStore.Projections.Core.Services;
 
 namespace EventStore.Projections.Core.Metrics;
 
-public class ProjectionTracker : IProjectionTracker {
+public class ProjectionTracker : IProjectionTracker
+{
 	private ProjectionStatistics[] _currentStats = [];
 
-	public void OnNewStats(ProjectionStatistics[] newStats) {
+	public void OnNewStats(ProjectionStatistics[] newStats)
+	{
 		_currentStats = newStats ?? [];
 	}
 
@@ -30,7 +32,8 @@ public class ProjectionTracker : IProjectionTracker {
 				]));
 
 	public IEnumerable<Measurement<long>> ObserveRunning() =>
-		_currentStats.Select(x => {
+		_currentStats.Select(x =>
+		{
 			var projectionRunning = x.Status.Equals("running", StringComparison.CurrentCultureIgnoreCase)
 				? 1
 				: 0;
@@ -41,13 +44,16 @@ public class ProjectionTracker : IProjectionTracker {
 				]);
 		});
 
-	public IEnumerable<Measurement<long>> ObserveStatus() {
-		foreach (var statistics in _currentStats) {
+	public IEnumerable<Measurement<long>> ObserveStatus()
+	{
+		foreach (var statistics in _currentStats)
+		{
 			var projectionRunning = 0;
 			var projectionFaulted = 0;
 			var projectionStopped = 0;
 
-			switch (statistics.Status.ToLower()) {
+			switch (statistics.Status.ToLower())
+			{
 				case "running":
 					projectionRunning = 1;
 					break;

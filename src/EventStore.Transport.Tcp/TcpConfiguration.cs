@@ -1,15 +1,16 @@
-namespace EventStore.Transport.Tcp {
-	public static class TcpConfiguration {
-		public const int SocketCloseTimeoutSecs = 1;
+namespace EventStore.Transport.Tcp;
 
-		public const int AcceptBacklogCount = 128;
-		public const int ConcurrentAccepts = 1;
-		public const int AcceptPoolSize = ConcurrentAccepts * 2;
+public static class TcpConfiguration
+{
+	public const int SocketCloseTimeoutSecs = 1;
 
-		public const int ConnectPoolSize = 32;
-		public const int SendReceivePoolSize = 512;
+	public const int AcceptBacklogCount = 128;
+	public const int ConcurrentAccepts = 1;
+	public const int AcceptPoolSize = ConcurrentAccepts * 2;
 
-		public const int BufferChunksCount = 512;
-		public const int SocketBufferSize = 8 * 1024;
-	}
+	public const int ConnectPoolSize = 32;
+	public const int SendReceivePoolSize = 512;
+
+	public const int BufferChunksCount = 512;
+	public const int SocketBufferSize = 8 * 1024;
 }

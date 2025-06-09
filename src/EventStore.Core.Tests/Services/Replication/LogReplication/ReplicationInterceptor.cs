@@ -4,22 +4,27 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-internal class ReplicationInterceptor : WriterInterceptor {
-	private record DataChunkInterceptionInfo {
+internal class ReplicationInterceptor : WriterInterceptor
+{
+	private record DataChunkInterceptionInfo
+	{
 		public long MaxLogPosition { get; init; }
 	}
 
-	private static readonly DataChunkInterceptionInfo DefaultDataInfo = new() {
+	private static readonly DataChunkInterceptionInfo DefaultDataInfo = new()
+	{
 		MaxLogPosition = long.MaxValue
 	};
 
-	private record RawChunkInterceptionInfo {
+	private record RawChunkInterceptionInfo
+	{
 		public int ChunkStartNumber { get; init; }
 		public int ChunkEndNumber { get; init; }
 		public int MaxRawPosition { get; init; }
 	}
 
-	private static readonly RawChunkInterceptionInfo DefaultRawInfo = new() {
+	private static readonly RawChunkInterceptionInfo DefaultRawInfo = new()
+	{
 		ChunkStartNumber = -1,
 		ChunkEndNumber = -1,
 		MaxRawPosition = -1
@@ -33,7 +38,8 @@ internal class ReplicationInterceptor : WriterInterceptor {
 
 	public ReplicationInterceptor(ISubscriber subscriber) : base(subscriber) { }
 
-	private void PauseIfConditionsAreMet(Message message, int bytesToAdd) {
+	private void PauseIfConditionsAreMet(Message message, int bytesToAdd)
+	{
 		if (Paused)
 			return;
 
@@ -41,45 +47,55 @@ internal class ReplicationInterceptor : WriterInterceptor {
 		{
 			case ReplicationMessage.DataChunkBulk dataChunkBulk:
 				if (dataChunkBulk.SubscriptionPosition + dataChunkBulk.DataBytes.Length + bytesToAdd >
-				    _dataInfo.MaxLogPosition)
+					_dataInfo.MaxLogPosition)
 					Pause();
 				break;
 			case ReplicationMessage.RawChunkBulk rawChunkBulk:
 				if (rawChunkBulk.ChunkStartNumber == _rawInfo.ChunkStartNumber &&
-				    rawChunkBulk.ChunkEndNumber == _rawInfo.ChunkEndNumber &&
-				    rawChunkBulk.RawPosition + rawChunkBulk.RawBytes.Length + bytesToAdd > _rawInfo.MaxRawPosition)
+					rawChunkBulk.ChunkEndNumber == _rawInfo.ChunkEndNumber &&
+					rawChunkBulk.RawPosition + rawChunkBulk.RawBytes.Length + bytesToAdd > _rawInfo.MaxRawPosition)
 					Pause();
 				break;
 		}
 	}
-	protected override void Process(Message message) {
-		lock (_lock) {
+	protected override void Process(Message message)
+	{
+		lock (_lock)
+		{
 			PauseIfConditionsAreMet(message, bytesToAdd: 0);
 			base.Process(message);
 			PauseIfConditionsAreMet(message, bytesToAdd: 1);
 		}
 	}
 
-	public override void Resume() {
-		lock (_lock) {
+	public override void Resume()
+	{
+		lock (_lock)
+		{
 			_dataInfo = DefaultDataInfo;
 			_rawInfo = DefaultRawInfo;
 			base.Resume();
 		}
 	}
 
-	public void ResumeUntil(long maxLogPosition) {
-		lock (_lock) {
-			_dataInfo = new DataChunkInterceptionInfo {
+	public void ResumeUntil(long maxLogPosition)
+	{
+		lock (_lock)
+		{
+			_dataInfo = new DataChunkInterceptionInfo
+			{
 				MaxLogPosition = maxLogPosition
 			};
 			base.Resume();
 		}
 	}
 
-	public void ResumeUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition) {
-		lock (_lock) {
-			_rawInfo = new RawChunkInterceptionInfo {
+	public void ResumeUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition)
+	{
+		lock (_lock)
+		{
+			_rawInfo = new RawChunkInterceptionInfo
+			{
 				ChunkStartNumber = rawChunkStartNumber,
 				ChunkEndNumber = rawChunkEndNumber,
 				MaxRawPosition = maxRawPosition
@@ -88,8 +104,10 @@ internal class ReplicationInterceptor : WriterInterceptor {
 		}
 	}
 
-	public void Reset(bool pauseReplication = false) {
-		lock (_lock) {
+	public void Reset(bool pauseReplication = false)
+	{
+		lock (_lock)
+		{
 			_dataInfo = DefaultDataInfo;
 			_rawInfo = DefaultRawInfo;
 

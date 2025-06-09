@@ -7,18 +7,22 @@ using EventStore.ClientAPI;
 using EventStore.Common.Utils;
 using EventStore.Core.Services;
 using EventStore.Core.Tests.Http.Users;
-using NUnit.Framework;
 using Newtonsoft.Json.Linq;
+using NUnit.Framework;
 
-namespace EventStore.Core.Tests.Http.StreamSecurity {
-	namespace stream_access {
+namespace EventStore.Core.Tests.Http.StreamSecurity
+{
+	namespace stream_access
+	{
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_creating_a_secured_stream_by_posting_metadata<TLogFormat, TStreamId> : SpecificationWithUsers<TLogFormat, TStreamId> {
+		class when_creating_a_secured_stream_by_posting_metadata<TLogFormat, TStreamId> : SpecificationWithUsers<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				var metadata =
 					(StreamMetadata)
 					StreamMetadata.Build()
@@ -39,31 +43,37 @@ namespace EventStore.Core.Tests.Http.StreamSecurity {
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.Created, _response.StatusCode);
 			}
 
 			[Test]
-			public async Task refuses_to_post_event_as_anonymous() {
+			public async Task refuses_to_post_event_as_anonymous()
+			{
 				var response = await PostEvent(new { Some = "Data" });
 				Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
 			}
 
 			[Test]
-			public async Task accepts_post_event_as_authorized_user() {
+			public async Task accepts_post_event_as_authorized_user()
+			{
 				var response = await PostEvent(new { Some = "Data" }, GetCorrectCredentialsFor("user1"));
 				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 			}
 
 			[Test]
-			public async Task accepts_post_event_as_authorized_user_by_trusted_auth() {
+			public async Task accepts_post_event_as_authorized_user_by_trusted_auth()
+			{
 				var uri = MakeUrl(TestStream);
 
-				var request = new HttpRequestMessage(HttpMethod.Post, uri) {
+				var request = new HttpRequestMessage(HttpMethod.Post, uri)
+				{
 					Headers = { { "ES-TrustedAuth", "root; admin, other" } },
 					Content = new ByteArrayContent(
 						new[] { new { EventId = Guid.NewGuid(), EventType = "event-type", Data = new { Some = "Data" } } }
-							.ToJsonBytes()) {
+							.ToJsonBytes())
+					{
 						Headers = {
 							ContentType = MediaTypeHeaderValue.Parse("application/vnd.eventstore.events+json")
 						}

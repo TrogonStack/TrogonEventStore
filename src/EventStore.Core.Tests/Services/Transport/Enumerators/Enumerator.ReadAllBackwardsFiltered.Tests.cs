@@ -13,8 +13,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests {
-	private static EnumeratorWrapper ReadAllBackwardsFiltered(IPublisher publisher, Position position, IEventFilter filter = null) {
+public partial class EnumeratorTests
+{
+	private static EnumeratorWrapper ReadAllBackwardsFiltered(IPublisher publisher, Position position, IEventFilter filter = null)
+	{
 		return new EnumeratorWrapper(new Enumerator.ReadAllBackwardsFiltered(
 			bus: publisher,
 			position: position,
@@ -30,10 +32,12 @@ public partial class EnumeratorTests {
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class read_all_backwards_filtered<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	public class read_all_backwards_filtered<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
 		private readonly List<Guid> _eventIds = new();
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			EnableReadAll();
 			_eventIds.Add(WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId);
 			_eventIds.Add(WriteEvent("test-stream", "type2", "{}", "{Data: 2}").Item1.EventId);
@@ -43,7 +47,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_read_all_the_filtered_events() {
+		public async Task should_read_all_the_filtered_events()
+		{
 			await using var enumerator = ReadAllBackwardsFiltered(_publisher, Position.End,
 				EventFilter.EventType.Prefixes(false, "type2"));
 

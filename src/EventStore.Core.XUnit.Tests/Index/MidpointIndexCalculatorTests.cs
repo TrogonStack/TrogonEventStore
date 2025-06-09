@@ -4,9 +4,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Index;
 
-public class MidpointIndexCalculatorTests {
+public class MidpointIndexCalculatorTests
+{
 	[Fact]
-	public void return_correct_next_indexes() {
+	public void return_correct_next_indexes()
+	{
 		const int numIndexEntries = 100_000;
 		const int numMidpoints = 1 << 10;
 
@@ -19,25 +21,29 @@ public class MidpointIndexCalculatorTests {
 	}
 
 	[Fact]
-	public void return_correct_result_when_num_midpoints_is_zero() {
+	public void return_correct_result_when_num_midpoints_is_zero()
+	{
 		var sut = new PTable.MidpointIndexCalculator(numIndexEntries: 10, numMidpoints: 0);
 		Assert.Equal([], ConsumeAll(sut));
 	}
 
 	[Fact]
-	public void return_correct_result_when_num_index_entries_is_zero() {
+	public void return_correct_result_when_num_index_entries_is_zero()
+	{
 		var sut = new PTable.MidpointIndexCalculator(numIndexEntries: 0, numMidpoints: 2);
 		Assert.Equal([], ConsumeAll(sut));
 	}
 
 	[Fact]
-	public void return_correct_result_when_num_index_entries_is_one() {
+	public void return_correct_result_when_num_index_entries_is_one()
+	{
 		var sut = new PTable.MidpointIndexCalculator(numIndexEntries: 1, numMidpoints: 2);
 		Assert.Equal([0, 0], ConsumeAll(sut));
 	}
 
 	[Fact]
-	public void return_correct_result_when_num_index_entries_is_large() {
+	public void return_correct_result_when_num_index_entries_is_large()
+	{
 		const long numIndexEntries = 46_000_000_000;
 		const int numMidpoints = 1 << 28;
 
@@ -50,8 +56,10 @@ public class MidpointIndexCalculatorTests {
 			ConsumeAll(sut));
 	}
 
-	static IEnumerable<long> ConsumeAll(PTable.MidpointIndexCalculator sut) {
-		while (sut.NextMidpointIndex is not null) {
+	static IEnumerable<long> ConsumeAll(PTable.MidpointIndexCalculator sut)
+	{
+		while (sut.NextMidpointIndex is not null)
+		{
 			yield return sut.NextMidpointIndex.Value;
 			sut.Advance();
 		}

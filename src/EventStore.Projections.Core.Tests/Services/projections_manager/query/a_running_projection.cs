@@ -10,19 +10,25 @@ using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Management;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
-	namespace a_running_projection {
-		public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId> {
+namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
+{
+	namespace a_running_projection
+	{
+		public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId>
+		{
 			protected Guid _reader;
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				base.Given();
 				AllWritesSucceed();
 				NoOtherStreams();
 			}
 
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) yield return m;
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+					yield return m;
 				var readerAssignedMessage =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
 						.LastOrDefault();
@@ -39,21 +45,26 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class when_handling_eof<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) yield return m;
+		public class when_handling_eof<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+		{
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+					yield return m;
 
 				yield return (new ReaderSubscriptionMessage.EventReaderEof(_reader));
 			}
 
 			[Test]
-			public void pause_message_is_published() {
+			public void pause_message_is_published()
+			{
 				Assert.Inconclusive("actually in unsubscribes...");
 			}
 
 
 			[Test]
-			public void the_projection_status_becomes_completed_enabled() {
+			public void the_projection_status_becomes_completed_enabled()
+			{
 				_manager.Handle(
 					new ProjectionManagementMessage.Command.GetStatistics(
 						_bus, null, _projectionName, false));
@@ -85,7 +96,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void writes_result_stream() {
+			public void writes_result_stream()
+			{
 				List<EventRecord> resultsStream;
 				Assert.IsTrue((_streams.TryGetValue("$projections-test-projection-result", out resultsStream)));
 				Assert.AreEqual(1 + 1 /* $Eof*/, resultsStream.Count);
@@ -93,7 +105,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void does_not_write_to_any_other_streams() {
+			public void does_not_write_to_any_other_streams()
+			{
 				Assert.IsEmpty(
 					HandledMessages.OfType<ClientMessage.WriteEvents>()
 						.Where(v => v.EventStreamId != "$projections-test-projection-result")
@@ -104,9 +117,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class when_handling_event<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) yield return m;
+		public class when_handling_event<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+		{
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+					yield return m;
 				yield return
 					(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 						_reader, new TFPos(200, 150), new TFPos(200, 150), "stream", 2, "stream", 1, false,
@@ -114,7 +130,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void the_projection_status_remains_running_enabled() {
+			public void the_projection_status_remains_running_enabled()
+			{
 				_manager.Handle(
 					new ProjectionManagementMessage.Command.GetStatistics(
 						_bus, null, _projectionName, false));

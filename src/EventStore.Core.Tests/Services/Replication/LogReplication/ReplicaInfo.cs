@@ -8,7 +8,8 @@ using EventStore.Core.TransactionLog.Chunks;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-internal record ReplicaInfo<TStreamId> {
+internal record ReplicaInfo<TStreamId>
+{
 	public TFChunkDb Db { get; init; }
 	public IPublisher Publisher { get; init; }
 	public ReplicaService ReplicaService { get; init; }

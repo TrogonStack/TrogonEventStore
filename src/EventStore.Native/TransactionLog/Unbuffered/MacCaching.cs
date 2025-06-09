@@ -3,26 +3,30 @@ using Microsoft.Win32.SafeHandles;
 using Mono.Unix;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
 
-namespace EventStore.Core.TransactionLog.Unbuffered {
-	internal static class MacCaching {
-		// ReSharper disable once InconsistentNaming
-		private const uint MAC_F_NOCACHE = 48;
+namespace EventStore.Core.TransactionLog.Unbuffered;
 
-		[DllImport("libc")]
-		static extern int fcntl(int fd, uint command, int arg);
+internal static class MacCaching
+{
+	// ReSharper disable once InconsistentNaming
+	private const uint MAC_F_NOCACHE = 48;
 
-		public static void Disable(SafeFileHandle handle) {
-			if (!RuntimeInformation.IsOSX)
-                return;
+	[DllImport("libc")]
+	static extern int fcntl(int fd, uint command, int arg);
 
-			long r;
-			do {
-				r = fcntl(handle.DangerousGetHandle().ToInt32(), MAC_F_NOCACHE, 1);
-			} while (UnixMarshal.ShouldRetrySyscall((int)r));
+	public static void Disable(SafeFileHandle handle)
+	{
+		if (!RuntimeInformation.IsOSX)
+			return;
 
-			if (r == -1) {
-				UnixMarshal.ThrowExceptionForLastError();
-			}
+		long r;
+		do
+		{
+			r = fcntl(handle.DangerousGetHandle().ToInt32(), MAC_F_NOCACHE, 1);
+		} while (UnixMarshal.ShouldRetrySyscall((int)r));
+
+		if (r == -1)
+		{
+			UnixMarshal.ThrowExceptionForLastError();
 		}
 	}
 }

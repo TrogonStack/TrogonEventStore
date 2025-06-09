@@ -19,7 +19,8 @@ namespace EventStore.Core.Tests.Transforms;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class TransformTests<TLogFormat, TStreamId>: SpecificationWithDirectoryPerTestFixture {
+public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private const int NumEvents = 1000;
 	private const int BatchSize = 50;
 
@@ -31,11 +32,13 @@ public class TransformTests<TLogFormat, TStreamId>: SpecificationWithDirectoryPe
 	[TestCase("bytedup", true)]
 	[TestCase("withheader", false)]
 	[TestCase("withheader", true)]
-	public async Task transform_works(string transform, bool memDb) {
+	public async Task transform_works(string transform, bool memDb)
+	{
 		MiniNode<TLogFormat, TStreamId> node = null;
 		IEventStoreConnection connection = null;
 		var dbPath = Path.Combine(PathName, $"node-{Guid.NewGuid()}");
-		try {
+		try
+		{
 			(node, connection) = await CreateNode(dbPath, transform, memDb);
 
 			var writtenIds = await WriteEvents(connection);
@@ -53,29 +56,38 @@ public class TransformTests<TLogFormat, TStreamId>: SpecificationWithDirectoryPe
 
 			// and verify the events again
 			await VerifyEvents(connection, writtenIds);
-		} finally {
+		}
+		finally
+		{
 			await ShutdownNode(node, connection);
 		}
 	}
 
-	private void VerifyChecksums(MiniNode<TLogFormat,TStreamId> node) {
+	private void VerifyChecksums(MiniNode<TLogFormat, TStreamId> node)
+	{
 		var completedChunks = new List<TFChunk>();
-		for (var i = 0 ; ; i++) {
-			try {
+		for (var i = 0; ; i++)
+		{
+			try
+			{
 				var chunk = node.Db.Manager.GetChunk(i);
 				if (chunk.IsReadOnly)
 					completedChunks.Add(chunk);
-			} catch (ArgumentOutOfRangeException) {
+			}
+			catch (ArgumentOutOfRangeException)
+			{
 				break;
 			}
 		}
 
-		foreach(var chunk in completedChunks)
+		foreach (var chunk in completedChunks)
 			chunk.VerifyFileHash();
 	}
 
-	private async Task<(MiniNode<TLogFormat,TStreamId>, IEventStoreConnection)> CreateNode(string dbPath, string transform, bool memDb) {
-		IDbTransform dbTransform = transform switch {
+	private async Task<(MiniNode<TLogFormat, TStreamId>, IEventStoreConnection)> CreateNode(string dbPath, string transform, bool memDb)
+	{
+		IDbTransform dbTransform = transform switch
+		{
 			"identity" => new IdentityDbTransform(),
 			"bitflip" => new BitFlipDbTransform(),
 			"bytedup" => new ByteDupDbTransform(),
@@ -102,21 +114,25 @@ public class TransformTests<TLogFormat, TStreamId>: SpecificationWithDirectoryPe
 	private static async Task ShutdownNode(
 		MiniNode<TLogFormat, TStreamId> node,
 		IEventStoreConnection connection,
-		bool keepDb = false) {
+		bool keepDb = false)
+	{
 		if (node is not null)
 			await node.Shutdown(keepDb);
 
 		connection?.Dispose();
 	}
 
-	private static IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	private static IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
-	private static async Task<Guid[]> WriteEvents(IEventStoreConnection connection) {
+	private static async Task<Guid[]> WriteEvents(IEventStoreConnection connection)
+	{
 		var writtenIds = new List<Guid>();
 
-		for (var i = 0; i < NumEvents / BatchSize; i++) {
+		for (var i = 0; i < NumEvents / BatchSize; i++)
+		{
 			var events = CreateEventBatch(BatchSize);
 			await connection.AppendToStreamAsync("test", ExpectedVersion.Any, events);
 			writtenIds.AddRange(events.Select(x => x.EventId));
@@ -125,10 +141,12 @@ public class TransformTests<TLogFormat, TStreamId>: SpecificationWithDirectoryPe
 		return writtenIds.ToArray();
 	}
 
-	private static EventData[] CreateEventBatch(int numEvents) {
+	private static EventData[] CreateEventBatch(int numEvents)
+	{
 		var events = new EventData[numEvents];
 
-		for (var i = 0; i < numEvents; i++) {
+		for (var i = 0; i < numEvents; i++)
+		{
 			events[i] = new(eventId: Guid.NewGuid(),
 				type: "testEvent",
 				isJson: true,
@@ -139,11 +157,13 @@ public class TransformTests<TLogFormat, TStreamId>: SpecificationWithDirectoryPe
 		return events;
 	}
 
-	private static async Task VerifyEvents(IEventStoreConnection connection, Guid[] writtenIds) {
+	private static async Task VerifyEvents(IEventStoreConnection connection, Guid[] writtenIds)
+	{
 		StreamEventsSlice slice;
 		var nextEventNumber = 0L;
 		var readIds = new List<Guid>();
-		do {
+		do
+		{
 			slice = await connection.ReadStreamEventsForwardAsync("test", nextEventNumber, BatchSize, resolveLinkTos: false);
 			readIds.AddRange(slice.Events.Select(evt => evt.Event.EventId));
 			nextEventNumber = slice.NextEventNumber;

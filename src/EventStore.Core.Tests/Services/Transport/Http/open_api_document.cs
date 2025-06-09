@@ -9,11 +9,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Http;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class open_api_document<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId> {
+public class open_api_document<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId>
+{
 
 	[Test]
-	public async Task should_document_the_actions_of_all_controllers() {
-		var skipActionPaths = new [] {
+	public async Task should_document_the_actions_of_all_controllers()
+	{
+		var skipActionPaths = new[] {
 			"/admin/login",
 			"/users/$current",
 			// handled by: /stats/{statPath}
@@ -49,9 +51,11 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 
 		Assert.IsEmpty(missingPaths, "OpenAPI document has extra or missing paths!");
 
-		string ActionUriPath(ControllerAction a) {
+		string ActionUriPath(ControllerAction a)
+		{
 			var path = a.UriTemplate;
-			if (a.UriTemplate.Contains("?")) {
+			if (a.UriTemplate.Contains("?"))
+			{
 				var parts = path.Split("?");
 				path = parts.First();
 			}

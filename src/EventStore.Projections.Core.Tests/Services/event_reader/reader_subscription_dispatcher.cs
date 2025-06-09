@@ -18,12 +18,14 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId> {
+public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
+{
 	private ReaderSubscriptionOptions _defaultOptions = new(1000, null, 1000, false, null, false);
 	private FakeReaderStrategy _readerStrategy;
 	private FakeSubscriptionHandler _handler;
 	private Guid _subscriptionId;
-	protected override void Given() {
+	protected override void Given()
+	{
 		base.Given();
 		_readerStrategy = new FakeReaderStrategy();
 		_subscriptionId = Guid.NewGuid();
@@ -31,7 +33,8 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 	}
 
 	[Test]
-	public void should_publish_subscribe_timeout_if_schedule_timeout_is_true() {
+	public void should_publish_subscribe_timeout_if_schedule_timeout_is_true()
+	{
 		_subscriptionDispatcher.PublishSubscribe(new ReaderSubscriptionManagement.Subscribe(
 			_subscriptionId, CheckpointTag.Empty, _readerStrategy, _defaultOptions),
 			_handler, scheduleTimeout: true);
@@ -47,7 +50,8 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 	}
 
 	[Test]
-	public void should_not_publish_subscribe_timeout_if_schedule_timeout_is_false() {
+	public void should_not_publish_subscribe_timeout_if_schedule_timeout_is_false()
+	{
 		_subscriptionDispatcher.PublishSubscribe(new ReaderSubscriptionManagement.Subscribe(
 				_subscriptionId, CheckpointTag.Empty, _readerStrategy, _defaultOptions),
 			_handler, scheduleTimeout: false);
@@ -59,7 +63,8 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 	}
 
 	[Test]
-	public void should_publish_subscription_messages_to_subscribed_handler() {
+	public void should_publish_subscription_messages_to_subscribed_handler()
+	{
 		_subscriptionDispatcher.PublishSubscribe(new ReaderSubscriptionManagement.Subscribe(
 				_subscriptionId, CheckpointTag.Empty, _readerStrategy, _defaultOptions),
 			_handler, scheduleTimeout: false);
@@ -80,7 +85,8 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 	}
 
 	[Test]
-	public void should_not_send_subscription_messages_to_cancelled_handlers() {
+	public void should_not_send_subscription_messages_to_cancelled_handlers()
+	{
 		_subscriptionDispatcher.PublishSubscribe(new ReaderSubscriptionManagement.Subscribe(
 				_subscriptionId, CheckpointTag.Empty, _readerStrategy, _defaultOptions),
 			_handler, scheduleTimeout: false);
@@ -101,7 +107,8 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 	}
 
 	[Test]
-	public void should_send_subscription_messages_to_handler_that_has_subscribed_without_publishing() {
+	public void should_send_subscription_messages_to_handler_that_has_subscribed_without_publishing()
+	{
 		_subscriptionDispatcher.Subscribed(_subscriptionId, _handler);
 
 		_readerService.Handle(new ReaderSubscriptionManagement.Subscribe(
@@ -114,7 +121,8 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 
 
 	[Test]
-	public void multiple_handlers_should_only_receive_messages_for_their_subscription() {
+	public void multiple_handlers_should_only_receive_messages_for_their_subscription()
+	{
 		var secondSubscription = Guid.NewGuid();
 		var secondHandler = new FakeSubscriptionHandler(secondSubscription);
 		_subscriptionDispatcher.PublishSubscribe(new ReaderSubscriptionManagement.Subscribe(
@@ -144,10 +152,12 @@ public class reader_subscription_dispatcher<TLogFormat, TStreamId> : TestFixture
 		IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
 		IHandle<EventReaderSubscriptionMessage.ReaderAssignedReader>,
 		IHandle<EventReaderSubscriptionMessage.Failed>,
-		IHandle<EventReaderSubscriptionMessage.SubscribeTimeout> {
+		IHandle<EventReaderSubscriptionMessage.SubscribeTimeout>
+	{
 		public Guid SubscriptionId { get; }
 
-		public FakeSubscriptionHandler(Guid subscriptionId) {
+		public FakeSubscriptionHandler(Guid subscriptionId)
+		{
 			SubscriptionId = subscriptionId;
 		}
 

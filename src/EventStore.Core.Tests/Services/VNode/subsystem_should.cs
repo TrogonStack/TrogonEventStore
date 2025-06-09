@@ -10,13 +10,16 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode;
 
 [TestFixture]
-public class subsystem_should : SpecificationWithDirectory {
+public class subsystem_should : SpecificationWithDirectory
+{
 	[Test]
-	public async Task report_as_initialised_after_being_started_successfully() {
+	public async Task report_as_initialised_after_being_started_successfully()
+	{
 		var tcs = new TaskCompletionSource();
 
-		await using var node = new MiniNode<LogFormat.V2,string>(PathName, subsystems: [ new FakeSubSystem() ]);
-		node.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.SystemReady>( t => {
+		await using var node = new MiniNode<LogFormat.V2, string>(PathName, subsystems: [new FakeSubSystem()]);
+		node.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.SystemReady>(t =>
+		{
 			tcs.TrySetResult();
 		}));
 

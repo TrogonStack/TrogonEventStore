@@ -4,19 +4,24 @@ using System.Threading.Tasks;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Transport.Http.Controllers;
 using EventStore.Core.Tests.Helpers;
-using NUnit.Framework;
 using Newtonsoft.Json.Linq;
+using NUnit.Framework;
 
-namespace EventStore.Core.Tests.Http.Users {
-	namespace users {
-		public abstract class with_admin_user<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId> {
+namespace EventStore.Core.Tests.Http.Users
+{
+	namespace users
+	{
+		public abstract class with_admin_user<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId>
+		{
 			protected readonly NetworkCredential _admin = DefaultData.AdminNetworkCredentials;
 
-			protected override bool GivenSkipInitializeStandardUsersCheck() {
+			protected override bool GivenSkipInitializeStandardUsersCheck()
+			{
 				return false;
 			}
 
-			public with_admin_user() {
+			public with_admin_user()
+			{
 				SetDefaultCredentials(_admin);
 			}
 		}
@@ -24,15 +29,18 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_creating_a_user<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_creating_a_user<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
 			protected override Task Given() => Task.CompletedTask;
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakeJsonPost(
 					"/users/",
-					new {
+					new
+					{
 						LoginName = "test1",
 						FullName = "User Full Name",
 						Groups = new[] { "admin", "other" },
@@ -41,7 +49,8 @@ namespace EventStore.Core.Tests.Http.Users {
 			}
 
 			[Test]
-			public void returns_created_status_code_and_location() {
+			public void returns_created_status_code_and_location()
+			{
 				Assert.AreEqual(HttpStatusCode.Created, _response.StatusCode);
 				Assert.AreEqual(MakeUrl("/users/test1"), _response.Headers.GetLocationAsString());
 			}
@@ -50,13 +59,16 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_retrieving_a_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_retrieving_a_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private JObject _response;
 
-			protected override Task Given() {
+			protected override Task Given()
+			{
 				return MakeJsonPost(
 					"/users/",
-					new {
+					new
+					{
 						LoginName = "test1",
 						FullName = "User Full Name",
 						Groups = new[] { "admin", "other" },
@@ -64,23 +76,28 @@ namespace EventStore.Core.Tests.Http.Users {
 					}, _admin);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await GetJson<JObject>("/users/test1");
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
 			}
 
 			[Test]
-			public void returns_valid_json_data() {
+			public void returns_valid_json_data()
+			{
 				HelperExtensions.AssertJson(
-					new {
+					new
+					{
 						Success = true,
 						Error = "Success",
 						Data =
-							new {
+							new
+							{
 								LoginName = "test1",
 								FullName = "User Full Name",
 								Groups = new[] { "admin", "other" },
@@ -118,13 +135,16 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_retrieving_a_disabled_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_retrieving_a_disabled_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private JObject _response;
 
-			protected override async Task Given() {
+			protected override async Task Given()
+			{
 				await MakeJsonPost(
 					"/users/",
-					new {
+					new
+					{
 						LoginName = "test2",
 						FullName = "User Full Name",
 						Groups = new[] { "admin", "other" },
@@ -134,23 +154,28 @@ namespace EventStore.Core.Tests.Http.Users {
 				await MakePost("/users/test2/command/disable", _admin);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await GetJson<JObject>("/users/test2");
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
 			}
 
 			[Test]
-			public void returns_valid_json_data_with_enable_link() {
+			public void returns_valid_json_data_with_enable_link()
+			{
 				HelperExtensions.AssertJson(
-					new {
+					new
+					{
 						Success = true,
 						Error = "Success",
 						Data =
-							new {
+							new
+							{
 								Links = new[] {
 									new {
 										Href = "http://" + _node.HttpEndPoint +
@@ -183,22 +208,26 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_creating_an_already_existing_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_creating_an_already_existing_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override async Task Given() {
+			protected override async Task Given()
+			{
 				var response = await MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 			}
 
 			[Test]
-			public void returns_create_status_code_and_location() {
+			public void returns_create_status_code_and_location()
+			{
 				Assert.AreEqual(HttpStatusCode.Created, _response.StatusCode);
 			}
 		}
@@ -206,23 +235,27 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_creating_an_already_existing_user_account_with_a_different_password<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_creating_an_already_existing_user_account_with_a_different_password<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override async Task Given() {
+			protected override async Task Given()
+			{
 				var response = await MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "AnotherPa55w0rd!" },
 					_admin);
 			}
 
 			[Test]
-			public void returns_conflict_status_code_and_location() {
+			public void returns_conflict_status_code_and_location()
+			{
 				Assert.AreEqual(HttpStatusCode.Conflict, _response.StatusCode);
 			}
 		}
@@ -230,23 +263,28 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_disabling_an_enabled_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
-			protected override Task Given() {
+		class when_disabling_an_enabled_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
+			protected override Task Given()
+			{
 				return MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 			}
 
-			protected override Task When() {
+			protected override Task When()
+			{
 				return MakePost("/users/test1/command/disable", _admin);
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
 			}
 
 			[Test]
-			public async Task enables_it() {
+			public async Task enables_it()
+			{
 				var jsonResponse = await GetJson<JObject>("/users/test1");
 				HelperExtensions.AssertJson(
 					new { Success = true, Error = "Success", Data = new { LoginName = "test1", Disabled = true } },
@@ -257,26 +295,31 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_enabling_a_disabled_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_enabling_a_disabled_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override async Task Given() {
+			protected override async Task Given()
+			{
 				await MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 				await MakePost("/users/test1/command/disable", _admin);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakePost("/users/test1/command/enable", _admin);
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
 			}
 
 			[Test]
-			public async Task disables_it() {
+			public async Task disables_it()
+			{
 				var jsonResponse = await GetJson<JObject>("/users/test1");
 				HelperExtensions.AssertJson(
 					new { Success = true, Error = "Success", Data = new { LoginName = "test1", Disabled = false } },
@@ -287,25 +330,30 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_updating_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_updating_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override Task Given() {
+			protected override Task Given()
+			{
 				return MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakeRawJsonPut("/users/test1", new { FullName = "Updated Full Name" }, _admin);
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
 			}
 
 			[Test]
-			public async Task updates_full_name() {
+			public async Task updates_full_name()
+			{
 				var jsonResponse = await GetJson<JObject>("/users/test1");
 				HelperExtensions.AssertJson(
 					new { Success = true, Error = "Success", Data = new { FullName = "Updated Full Name" } }, jsonResponse);
@@ -316,26 +364,31 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_resetting_a_password<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_resetting_a_password<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override Task Given() {
+			protected override Task Given()
+			{
 				return MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakeJsonPost(
 					"/users/test1/command/reset-password", new { NewPassword = "NewPassword!" }, _admin);
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
 			}
 
 			[Test]
-			public async Task can_change_password_using_the_new_password() {
+			public async Task can_change_password_using_the_new_password()
+			{
 				var response = await MakeJsonPost(
 					"/users/test1/command/change-password",
 					new { CurrentPassword = "NewPassword!", NewPassword = "TheVeryNewPassword!" },
@@ -348,25 +401,30 @@ namespace EventStore.Core.Tests.Http.Users {
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_deleting_a_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId> {
+		class when_deleting_a_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
+		{
 			private HttpResponseMessage _response;
 
-			protected override Task Given() {
+			protected override Task Given()
+			{
 				return MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 			}
 
-			protected override async Task When() {
+			protected override async Task When()
+			{
 				_response = await MakeDelete("/users/test1", _admin);
 			}
 
 			[Test]
-			public void returns_ok_status_code() {
+			public void returns_ok_status_code()
+			{
 				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
 			}
 
 			[Test]
-			public async Task get_returns_not_found() {
+			public async Task get_returns_not_found()
+			{
 				await GetJson<JObject>("/users/test1");
 				Assert.AreEqual(HttpStatusCode.NotFound, _lastResponse.StatusCode);
 			}

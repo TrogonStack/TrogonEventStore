@@ -9,21 +9,25 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Authorization;
 
-public class MultiPolicyEvaluatorTests {
+public class MultiPolicyEvaluatorTests
+{
 	private CancellationToken _ct = CancellationToken.None;
 	private ClaimsPrincipal _cp = new();
 	private const string TestAction = "read";
 
-	private MultiPolicyEvaluator CreateSut(Policy[] policies) {
+	private MultiPolicyEvaluator CreateSut(Policy[] policies)
+	{
 		var selectors = policies
 			.Select(x => new StaticPolicySelector(x.AsReadOnly()))
 			.ToArray<IPolicySelector>();
 		return new MultiPolicyEvaluator(selectors);
 	}
 
-	private Policy CreatePolicy(string policyName, TestAssertion[] assertions) {
+	private Policy CreatePolicy(string policyName, TestAssertion[] assertions)
+	{
 		var policy = new Policy(policyName, 1, DateTimeOffset.MinValue);
-		foreach (var assertion in assertions) {
+		foreach (var assertion in assertions)
+		{
 			policy.Add(new OperationDefinition(assertion.Resource, TestAction), assertion);
 		}
 
@@ -33,7 +37,8 @@ public class MultiPolicyEvaluatorTests {
 	[Theory]
 	[InlineData(true)]
 	[InlineData(false)]
-	public async Task evaluating_a_single_policy(bool completeAsync) {
+	public async Task evaluating_a_single_policy(bool completeAsync)
+	{
 		var sut = CreateSut([CreatePolicy("test", [
 			new TestAssertion("allow", Grant.Allow, completeAsync),
 			new TestAssertion("deny", Grant.Deny, completeAsync),
@@ -47,7 +52,8 @@ public class MultiPolicyEvaluatorTests {
 	[Theory]
 	[InlineData(true)]
 	[InlineData(false)]
-	public async Task evaluating_multiple_policies(bool completeAsync) {
+	public async Task evaluating_multiple_policies(bool completeAsync)
+	{
 		var policy = CreatePolicy("test", [
 			new TestAssertion("allow", Grant.Allow, completeAsync),
 			new TestAssertion("deny", Grant.Deny, completeAsync),
@@ -67,27 +73,33 @@ public class MultiPolicyEvaluatorTests {
 	}
 
 	[Fact]
-	public async Task evaluating_a_policy_with_no_assertions() {
+	public async Task evaluating_a_policy_with_no_assertions()
+	{
 		var sut = CreateSut([CreatePolicy("test", [])]);
 		await AssertDeniedByDefault(sut, ["unknown"]);
 	}
 
 	[Fact]
-	public async Task evaluating_with_no_policy() {
+	public async Task evaluating_with_no_policy()
+	{
 		var sut = CreateSut([]);
 		await AssertDeniedByDefault(sut, ["unknown"]);
 	}
 
-	private async Task AssertDeniedByDefault(MultiPolicyEvaluator sut, string[] resources) {
-		foreach (var resource in resources) {
+	private async Task AssertDeniedByDefault(MultiPolicyEvaluator sut, string[] resources)
+	{
+		foreach (var resource in resources)
+		{
 			var result = await sut.EvaluateAsync(_cp, new Operation(resource, TestAction), _ct);
 			Assert.Equal(Grant.Deny, result.Grant);
 			Assert.Contains("denied by default", result.Matches.Last().Assertion.ToString());
 		}
 	}
 
-	private async Task AssertGrantForResources(MultiPolicyEvaluator sut, Grant expectedGrant, string[] resources) {
-		foreach (var resource in resources) {
+	private async Task AssertGrantForResources(MultiPolicyEvaluator sut, Grant expectedGrant, string[] resources)
+	{
+		foreach (var resource in resources)
+		{
 			var result = await sut.EvaluateAsync(_cp, new Operation(resource, TestAction), _ct);
 			Assert.Equal(expectedGrant, result.Grant);
 			Assert.Contains(TestAssertion.Name, result.Matches.Last().Assertion.ToString());

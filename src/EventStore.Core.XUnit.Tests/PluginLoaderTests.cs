@@ -10,15 +10,19 @@ using Xunit;
 
 namespace EventStore.PluginHosting.Tests;
 
-public class PluginLoaderTests : IAsyncLifetime {
+public class PluginLoaderTests : IAsyncLifetime
+{
 	private readonly DirectoryFixture<PluginLoaderTests> _fixture = new();
 
-	public async Task InitializeAsync() {
+	public async Task InitializeAsync()
+	{
 		await _fixture.InitializeAsync();
 	}
 
-	public async Task DisposeAsync() {
-		for (int i = 0; i < 3; i++) {
+	public async Task DisposeAsync()
+	{
+		for (int i = 0; i < 3; i++)
+		{
 			GC.Collect();
 			GC.WaitForPendingFinalizers();
 		}
@@ -26,7 +30,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public void root_plugin_folder_does_not_exist() {
+	public void root_plugin_folder_does_not_exist()
+	{
 		var rootPluginDirectory = new DirectoryInfo(Path.Combine(_fixture.Directory, "nonexistent"));
 		Assert.False(rootPluginDirectory.Exists);
 
@@ -35,7 +40,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public void root_plugin_folder_does_exist_but_is_empty() {
+	public void root_plugin_folder_does_exist_but_is_empty()
+	{
 		var rootPluginDirectory = new DirectoryInfo(_fixture.Directory);
 		Assert.True(rootPluginDirectory.Exists);
 
@@ -44,7 +50,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public void sub_plugin_folder_does_exist_but_is_empty() {
+	public void sub_plugin_folder_does_exist_but_is_empty()
+	{
 		var rootPluginDirectory = new DirectoryInfo(_fixture.Directory);
 		var subPluginDirectory = rootPluginDirectory.CreateSubdirectory(Guid.NewGuid().ToString());
 		Assert.True(subPluginDirectory.Exists);
@@ -54,7 +61,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public async Task plugin_exists_in_root_plugin_folder() {
+	public async Task plugin_exists_in_root_plugin_folder()
+	{
 		var rootPluginDirectory = new DirectoryInfo(_fixture.Directory);
 		await BuildFakePlugin(rootPluginDirectory);
 
@@ -63,7 +71,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public async Task plugin_exists_in_sub_plugin_folder() {
+	public async Task plugin_exists_in_sub_plugin_folder()
+	{
 		var rootPluginDirectory = new DirectoryInfo(_fixture.Directory);
 		var subPluginDirectory = rootPluginDirectory.CreateSubdirectory(Guid.NewGuid().ToString());
 		await BuildFakePlugin(subPluginDirectory);
@@ -73,7 +82,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public async Task plugin_exists_in_sub_sub_plugin_folder_should_not_get_loaded() {
+	public async Task plugin_exists_in_sub_sub_plugin_folder_should_not_get_loaded()
+	{
 		var rootPluginDirectory = new DirectoryInfo(_fixture.Directory);
 		var subPluginDirectory = rootPluginDirectory.CreateSubdirectory(Guid.NewGuid().ToString());
 		var subSubPluginDirectory = subPluginDirectory.CreateSubdirectory(Guid.NewGuid().ToString());
@@ -83,10 +93,13 @@ public class PluginLoaderTests : IAsyncLifetime {
 		Assert.Empty(sut.Load<ICloneable>());
 	}
 
-	private static async Task BuildFakePlugin(DirectoryInfo outputFolder) {
+	private static async Task BuildFakePlugin(DirectoryInfo outputFolder)
+	{
 		var tcs = new TaskCompletionSource<bool>();
-		using var process = new Process {
-			StartInfo = new ProcessStartInfo {
+		using var process = new Process
+		{
+			StartInfo = new ProcessStartInfo
+			{
 				FileName = "dotnet",
 				Arguments = $"publish --configuration {BuildConfiguration} --framework=net8.0 --output {outputFolder.FullName}",
 				WorkingDirectory = PluginSourceDirectory,
@@ -105,7 +118,8 @@ public class PluginLoaderTests : IAsyncLifetime {
 
 		await Task.WhenAll(tcs.Task, stdout, stderr);
 
-		if (process.ExitCode != 0) {
+		if (process.ExitCode != 0)
+		{
 			throw new Exception(stdout.Result);
 		}
 	}

@@ -2,15 +2,18 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.Helpers;
-using NUnit.Framework;
 using Newtonsoft.Json.Linq;
+using NUnit.Framework;
 
-namespace EventStore.Core.Tests.Http.ArgumentPassing {
-	namespace matching {
+namespace EventStore.Core.Tests.Http.ArgumentPassing
+{
+	namespace matching
+	{
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_matching_against_simple_placeholders<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId> {
+		class when_matching_against_simple_placeholders<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId>
+		{
 			private JObject _response;
 
 			protected override Task Given() => Task.CompletedTask;
@@ -31,7 +34,8 @@ namespace EventStore.Core.Tests.Http.ArgumentPassing {
 			//            [TestCase("%2F", "/", "2", "2")] // /
 			[TestCase("%20", " ", "2", "2")] // space
 			[TestCase("%25", "%", "2", "2")] // %
-			public async Task returns_ok_status_code(string _a, string _ra, string _b, string _rb) {
+			public async Task returns_ok_status_code(string _a, string _ra, string _b, string _rb)
+			{
 				_response = await GetJson2<JObject>("/test-encoding/" + _a, "b=" + _b);
 				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
 				HelperExtensions.AssertJson(new { a = _ra, b = _rb }, _response);
@@ -41,7 +45,8 @@ namespace EventStore.Core.Tests.Http.ArgumentPassing {
 			[TestCase("*/*")]
 			[TestCase("application/json")]
 			[TestCase("application/json,*/*;q=0.1")]
-			public async Task can_specify_multple_accepts(string accept) {
+			public async Task can_specify_multple_accepts(string accept)
+			{
 				_response = await GetJson<JObject>("/test-encoding/1", accept: accept);
 				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
 				HelperExtensions.AssertJson(new { a = "1" }, _response);
@@ -52,7 +57,8 @@ namespace EventStore.Core.Tests.Http.ArgumentPassing {
 		[Ignore("Only demonstrates differences between .NET and Mono")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_matching_against_placeholders_with_reserved_characters<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId> {
+		class when_matching_against_placeholders_with_reserved_characters<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId>
+		{
 			private JObject _response;
 
 			protected override Task Given() => Task.CompletedTask;
@@ -65,7 +71,8 @@ namespace EventStore.Core.Tests.Http.ArgumentPassing {
 			// [TestCase("%2F", "/", "2", "2")] // /
 			// [TestCase("%20", " ", "2", "2")] // space
 			// [TestCase("%25", "%", "2", "2")] // %
-			public async Task returns_ok_status_code(string _a, string _ra, string _b, string _rb) {
+			public async Task returns_ok_status_code(string _a, string _ra, string _b, string _rb)
+			{
 				_response = await GetJson2<JObject>("/test-encoding-reserved-" + _a, "?b=" + _b);
 				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
 				Console.WriteLine(_response.ToString());

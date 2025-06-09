@@ -8,11 +8,13 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Transforms.Identity;
 
-public class IdentityDbTransformTests {
+public class IdentityDbTransformTests
+{
 	private readonly IdentityDbTransform _dbTransform;
 	private readonly IChunkTransform _chunkTransform;
 
-	public IdentityDbTransformTests() {
+	public IdentityDbTransformTests()
+	{
 		_dbTransform = new IdentityDbTransform();
 		_chunkTransform = _dbTransform.ChunkFactory.CreateTransform(ReadOnlyMemory<byte>.Empty);
 	}
@@ -33,7 +35,8 @@ public class IdentityDbTransformTests {
 	public void chunk_factory_reads_correct_header() => Assert.Equal(ReadOnlyMemory<byte>.Empty, _dbTransform.ChunkFactory.ReadTransformHeader(null!));
 
 	[Fact]
-	public void chunk_transform_properly_transforms_reads() {
+	public void chunk_transform_properly_transforms_reads()
+	{
 		const int dataSize = 1024;
 
 		var data = new byte[dataSize];
@@ -48,7 +51,8 @@ public class IdentityDbTransformTests {
 	}
 
 	[Fact]
-	public void chunk_transform_properly_transforms_writes() {
+	public void chunk_transform_properly_transforms_writes()
+	{
 		const int dataSize = 2000;
 		const int footerSize = 10;
 		const int alignmentSize = 1024;
@@ -79,7 +83,8 @@ public class IdentityDbTransformTests {
 		Assert.Equal(md5.Hash, MD5.HashData(transformedData));
 	}
 
-	private static int GetAlignedSize(int size, int alignment) {
+	private static int GetAlignedSize(int size, int alignment)
+	{
 		if (size % alignment == 0)
 			return size;
 

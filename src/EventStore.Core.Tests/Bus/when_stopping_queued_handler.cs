@@ -8,26 +8,31 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Bus;
 
 [TestFixture]
-public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopConsumer {
+public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopConsumer
+{
 	protected when_stopping_queued_handler(
 		Func<IHandle<Message>, string, TimeSpan, IQueuedHandler> queuedHandlerFactory)
-		: base(queuedHandlerFactory) {
+		: base(queuedHandlerFactory)
+	{
 	}
 
 
 	[Test]
-	public void gracefully_should_not_throw() {
+	public void gracefully_should_not_throw()
+	{
 		Queue.Start();
 		Assert.DoesNotThrow(() => Queue.Stop());
 	}
 
 	[Test]
-	public void gracefully_and_queue_is_not_busy_should_not_take_much_time() {
+	public void gracefully_and_queue_is_not_busy_should_not_take_much_time()
+	{
 		Queue.Start();
 
 		var wait = new ManualResetEventSlim(false);
 
-		ThreadPool.QueueUserWorkItem(_ => {
+		ThreadPool.QueueUserWorkItem(_ =>
+		{
 			Queue.Stop();
 			wait.Set();
 		});
@@ -36,20 +41,23 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 	}
 
 	[Test]
-	public void second_time_should_not_throw() {
+	public void second_time_should_not_throw()
+	{
 		Queue.Start();
 		Queue.Stop();
 		Assert.DoesNotThrow(() => Queue.Stop());
 	}
 
 	[Test]
-	public void second_time_should_not_take_much_time() {
+	public void second_time_should_not_take_much_time()
+	{
 		Queue.Start();
 		Queue.Stop();
 
 		var wait = new ManualResetEventSlim(false);
 
-		ThreadPool.QueueUserWorkItem(_ => {
+		ThreadPool.QueueUserWorkItem(_ =>
+		{
 			Queue.Stop();
 			wait.Set();
 		});
@@ -58,23 +66,28 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 	}
 
 	[Test]
-	public void while_queue_is_busy_should_crash_with_timeout() {
+	public void while_queue_is_busy_should_crash_with_timeout()
+	{
 		var consumer = new WaitingConsumer(1);
 		var busyQueue = new QueuedHandlerThreadPool(consumer, "busy_test_queue", new QueueStatsManager(), new(),
 			watchSlowMsg: false,
 			threadStopWaitTimeout: TimeSpan.FromMilliseconds(100));
 		var waitHandle = new ManualResetEvent(false);
 		var handledEvent = new ManualResetEvent(false);
-		try {
+		try
+		{
 			busyQueue.Start();
-			busyQueue.Publish(new DeferredExecutionTestMessage(() => {
+			busyQueue.Publish(new DeferredExecutionTestMessage(() =>
+			{
 				handledEvent.Set();
 				waitHandle.WaitOne();
 			}));
 
 			handledEvent.WaitOne();
 			Assert.Throws<TimeoutException>(() => busyQueue.Stop());
-		} finally {
+		}
+		finally
+		{
 			waitHandle.Set();
 			consumer.Wait();
 
@@ -87,9 +100,11 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 }
 
 [TestFixture]
-public class when_stopping_queued_handler_threadpool : when_stopping_queued_handler {
+public class when_stopping_queued_handler_threadpool : when_stopping_queued_handler
+{
 	public when_stopping_queued_handler_threadpool()
 		: base((consumer, name, timeout) =>
-			new QueuedHandlerThreadPool(consumer, name, new QueueStatsManager(), new(), false, null, timeout)) {
+			new QueuedHandlerThreadPool(consumer, name, new QueueStatsManager(), new(), false, null, timeout))
+	{
 	}
 }
