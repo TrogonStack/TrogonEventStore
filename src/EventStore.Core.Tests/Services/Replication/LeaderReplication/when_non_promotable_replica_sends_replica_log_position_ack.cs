@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture]
-public class when_non_promotable_replica_sends_replica_log_position_ack : with_replication_service
+public class when_non_promotable_replica_sends_replica_log_position_ack : WithReplicationService
 {
 	private long _logPosition;
 

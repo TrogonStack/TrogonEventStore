@@ -70,13 +70,15 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		public Instant RecordNow(Instant start) => start;
 	}
 
-	private StorageWriterService<TStreamId> CreateStorageWriter(TFChunkDb db, ISubscriber inputBus, IPublisher outputBus)
+	private StorageWriterService<TStreamId> CreateStorageWriter(TFChunkDb db, ISubscriber inputBus,
+		IPublisher outputBus)
 	{
 		var writer = new TFChunkWriter(db);
-		var logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
-			IndexDirectory = Path.Combine(db.Config.Path, "index")
-		});
+		var logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+			{
+				IndexDirectory = Path.Combine(db.Config.Path, "index")
+			});
 		logFormat.StreamNamesProvider.SetReader(new FakeIndexReader<TStreamId>());
 		logFormat.StreamNamesProvider.SetTableIndex(new FakeInMemoryTableIndex<TStreamId>());
 
@@ -308,13 +310,13 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		_leaderInfo = CreateLeader(leaderDb);
 		_replicaInfo = CreateReplica(replicaDb, _leaderInfo);
 
-		AddEpoch(epochNumber: 0, epochPosition: 0);
+		await AddEpoch(epochNumber: 0, epochPosition: 0);
 		StartLeader();
 	}
 
 	protected virtual Task SetUpDbs(TFChunkDb leaderDb, TFChunkDb replicaDb) => Task.CompletedTask;
 
-	private void AddEpoch(int epochNumber, long epochPosition)
+	private async ValueTask AddEpoch(int epochNumber, long epochPosition, CancellationToken token = default)
 	{
 		var epoch = new EpochRecord(
 			epochPosition: epochPosition,
@@ -324,8 +326,8 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			timeStamp: DateTime.Now,
 			leaderInstanceId: Guid.Empty);
 
-		_leaderInfo.EpochManager.CacheEpoch(epoch);
-		_replicaInfo.EpochManager.CacheEpoch(epoch);
+		await _leaderInfo.EpochManager.CacheEpoch(epoch, token);
+		await _replicaInfo.EpochManager.CacheEpoch(epoch, token);
 	}
 
 	private Event[] CreateEvents(string streamId, string[] eventDatas)
@@ -376,7 +378,8 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 
 		if (flushedWriterPos > 0)
 		{
-			Assert.Greater(writerChks.Length, 0, "The writer checkpoint has been flushed but the list of writer checkpoints is empty");
+			Assert.Greater(writerChks.Length, 0,
+				"The writer checkpoint has been flushed but the list of writer checkpoints is empty");
 			Assert.AreEqual(flushedWriterPos, writerChks[^1], "There are pending writer checkpoint flushes");
 		}
 
@@ -449,7 +452,8 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		await ReplicaWriterFlushed(initialFlushes, expectedFlushes);
 	}
 
-	protected async Task ResumeReplicationUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition, int expectedFlushes)
+	protected async Task ResumeReplicationUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition,
+		int expectedFlushes)
 	{
 		var initialFlushes = _replicaInfo.GetNumWriterFlushes();
 		_replicaInfo.ReplicationInterceptor.ResumeUntil(rawChunkStartNumber, rawChunkEndNumber, maxRawPosition);
@@ -542,7 +546,8 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 
 	private static ReadOnlySpan<byte> ReadChunkData(string fileName, bool excludeChecksum)
 	{
-		using var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
+		using var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096,
+			FileOptions.SequentialScan);
 		var fi = new FileInfo(fileName);
 		var data = new byte[fi.Length].AsSpan();
 
@@ -551,7 +556,9 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		while ((read = fs.Read(data[pos..])) > 0)
 			pos += read;
 
-		return excludeChecksum ? data[TFConsts.ChunkHeaderSize..^ChunkFooter.ChecksumSize] : data[TFConsts.ChunkHeaderSize..];
+		return excludeChecksum
+			? data[TFConsts.ChunkHeaderSize..^ChunkFooter.ChecksumSize]
+			: data[TFConsts.ChunkHeaderSize..];
 	}
 
 	[TearDown]

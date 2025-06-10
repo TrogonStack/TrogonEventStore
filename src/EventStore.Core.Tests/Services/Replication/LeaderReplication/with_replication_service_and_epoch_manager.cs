@@ -2,7 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using DotNext;
 using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -25,10 +27,10 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public abstract class with_replication_service_and_epoch_manager<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+public abstract class
+	WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private const int _connectionPendingSendBytesThreshold = 10 * 1024;
 	private const int _connectionQueueSizeThreshold = 50000;
@@ -52,10 +54,8 @@ public abstract class with_replication_service_and_epoch_manager<TLogFormat, TSt
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
-			IndexDirectory = indexDirectory,
-		});
+		_logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
 
 		TcpSendPublisher.Subscribe(new AdHocHandler<TcpMessage.TcpSend>(msg => TcpSends.Enqueue(msg)));
 
@@ -94,7 +94,7 @@ public abstract class with_replication_service_and_epoch_manager<TLogFormat, TSt
 		Service.Handle(new SystemMessage.SystemStart());
 		Service.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
-		When();
+		await When();
 	}
 
 	[OneTimeTearDown]
@@ -114,11 +114,12 @@ public abstract class with_replication_service_and_epoch_manager<TLogFormat, TSt
 			null, DateTime.UtcNow);
 	}
 
-	public Guid AddSubscription(Guid replicaId, bool isPromotable, Epoch[] epochs, long logPosition, out TcpConnectionManager manager)
+	public async ValueTask<(Guid, TcpConnectionManager)> AddSubscription(Guid replicaId, bool isPromotable,
+		Epoch[] epochs, long logPosition, CancellationToken token = default)
 	{
 		var tcpConn = new DummyTcpConnection() { ConnectionId = replicaId };
 
-		manager = new TcpConnectionManager(
+		var manager = new TcpConnectionManager(
 			"Test Subscription Connection manager", TcpServiceType.External, new ClientTcpDispatcher(2_000),
 			new SynchronousScheduler(), tcpConn, new SynchronousScheduler(),
 			new InternalAuthenticationProvider(InMemoryBus.CreateTest(),
@@ -139,11 +140,12 @@ public abstract class with_replication_service_and_epoch_manager<TLogFormat, TSt
 			LeaderId,
 			replicaId,
 			isPromotable);
-		Service.Handle(subRequest);
-		return tcpConn.ConnectionId;
+		await Service.As<IAsyncHandle<ReplicationMessage.ReplicaSubscriptionRequest>>()
+			.HandleAsync(subRequest, token);
+		return (tcpConn.ConnectionId, manager);
 	}
 
-	public abstract void When();
+	public abstract Task When(CancellationToken token = default);
 
 	public TcpMessage.TcpSend[] GetTcpSendsFor(TcpConnectionManager connection)
 	{

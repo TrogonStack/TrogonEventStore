@@ -26,7 +26,8 @@ namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture, IDisposable
+public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture,
+	IDisposable
 {
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
@@ -43,7 +44,9 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 	{
 		return (int)Interlocked.Increment(ref _currentEpoch);
 	}
+
 	private long _currentEpoch = -1;
+
 	private EpochManager<TStreamId> GetManager()
 	{
 		return new EpochManager<TStreamId>(_mainBus,
@@ -62,11 +65,14 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 				writer: _writer),
 			_instanceId);
 	}
+
 	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager)
 	{
-		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>).GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
+		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>)
+			.GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
 			.GetValue(_epochManager);
 	}
+
 	private EpochRecord WriteEpoch(int epochNumber, long lastPos, Guid instanceId)
 	{
 		long pos = _writer.Position;
@@ -76,18 +82,17 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		_writer.Flush();
 		return epoch;
 	}
+
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
-			IndexDirectory = indexDirectory,
-		});
+		_logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
 
-		_mainBus = new(nameof(when_having_an_epoch_manager_and_empty_tf_log<TLogFormat, TStreamId>));
+		_mainBus = new(nameof(WhenHavingAnEpochManagerAndEmptyTfLog<TLogFormat, TStreamId>));
 		_mainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(m => _published.Add(m)));
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
 		_db.Open();
@@ -96,7 +101,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		_writer.Open();
 
 		_epochManager = GetManager();
-		_epochManager.Init();
+		await _epochManager.Init(CancellationToken.None);
 		_cache = GetCache(_epochManager);
 		Assert.NotNull(_cache);
 		Assert.That(_cache.Count == 0);
@@ -116,55 +121,56 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		this.Dispose();
 		await base.TestFixtureTearDown();
 	}
+
 	// epoch manager is stateful with TFLog,
 	// and TFLog is expesive to build fresh for each test
 	// and the tests depend on previous state in the epoch manager
 	// so this test will run through the test cases
 	// in order
 	[Test]
-	public void can_add_epochs_to_cache()
+	public async Task can_add_epochs_to_cache()
 	{
 
 		Assert.That(_cache.Count == 0);
 		//add fist epoch to empty cache
-		_epochManager.AddEpochToCache(_epochs[3]);
+		await _epochManager.AddEpochToCache(_epochs[3], CancellationToken.None);
 
 		Assert.That(_cache.Count == 4);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[0].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[3].EpochNumber);
 
 		//add new last epoch
-		_epochManager.AddEpochToCache(_epochs[4]);
+		await _epochManager.AddEpochToCache(_epochs[4], CancellationToken.None);
 
 		Assert.That(_cache.Count == 5);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[0].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[4].EpochNumber);
 
 		//idempotent add
-		_epochManager.AddEpochToCache(_epochs[1]);
-		_epochManager.AddEpochToCache(_epochs[2]);
-		_epochManager.AddEpochToCache(_epochs[3]);
+		await _epochManager.AddEpochToCache(_epochs[1], CancellationToken.None);
+		await _epochManager.AddEpochToCache(_epochs[2], CancellationToken.None);
+		await _epochManager.AddEpochToCache(_epochs[3], CancellationToken.None);
 
 		Assert.That(_cache.Count == 5);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[0].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[4].EpochNumber);
 
 		//add new skip 1 last epoch
-		_epochManager.AddEpochToCache(_epochs[6]);
+		await _epochManager.AddEpochToCache(_epochs[6], CancellationToken.None);
 
 		Assert.That(_cache.Count == 7);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[0].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[6].EpochNumber);
 
 		//add new skip 5 last epoch
-		_epochManager.AddEpochToCache(_epochs[11]);
+		await _epochManager.AddEpochToCache(_epochs[11], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[2].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[11].EpochNumber);
 
 		//add last rolls cache
-		_epochManager.AddEpochToCache(_epochs[12]);
+		await _epochManager.AddEpochToCache(_epochs[12], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[3].EpochNumber);
@@ -172,28 +178,28 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 
 
 		//add epoch before cache
-		_epochManager.AddEpochToCache(_epochs[1]);
+		await _epochManager.AddEpochToCache(_epochs[1], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[3].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[12].EpochNumber);
 
 		//add idempotent first epoch
-		_epochManager.AddEpochToCache(_epochs[2]);
+		await _epochManager.AddEpochToCache(_epochs[2], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[3].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[12].EpochNumber);
 
 		//add idempotent last epoch
-		_epochManager.AddEpochToCache(_epochs[12]);
+		await _epochManager.AddEpochToCache(_epochs[12], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[3].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[12].EpochNumber);
 
 		//add disjunct skip epoch
-		_epochManager.AddEpochToCache(_epochs[24]);
+		await _epochManager.AddEpochToCache(_epochs[24], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[15].EpochNumber);
@@ -201,7 +207,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 
 
 		//cannot get epoch ahead of last cached on master
-		var nextEpoch = _epochManager.GetEpochAfter(_epochs[24].EpochNumber, false);
+		var nextEpoch = await _epochManager.GetEpochAfter(_epochs[24].EpochNumber, false, CancellationToken.None);
 		Assert.Null(nextEpoch);
 
 		Assert.That(_cache.Count == 10);
@@ -209,7 +215,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[24].EpochNumber);
 
 		//cannot get epoch ahead of cache on master
-		nextEpoch = _epochManager.GetEpochAfter(_epochs[25].EpochNumber, false);
+		nextEpoch = await _epochManager.GetEpochAfter(_epochs[25].EpochNumber, false, CancellationToken.None);
 		Assert.Null(nextEpoch);
 
 		Assert.That(_cache.Count == 10);
@@ -217,7 +223,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[24].EpochNumber);
 
 		//can get next  in cache
-		nextEpoch = _epochManager.GetEpochAfter(_epochs[20].EpochNumber, false);
+		nextEpoch = await _epochManager.GetEpochAfter(_epochs[20].EpochNumber, false, CancellationToken.None);
 
 		Assert.That(nextEpoch.EpochPosition == _epochs[21].EpochPosition);
 		Assert.That(_cache.Count == 10);
@@ -225,7 +231,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[24].EpochNumber);
 
 		//can get next from first
-		nextEpoch = _epochManager.GetEpochAfter(_epochs[15].EpochNumber, false);
+		nextEpoch = await _epochManager.GetEpochAfter(_epochs[15].EpochNumber, false, CancellationToken.None);
 
 		Assert.That(nextEpoch.EpochPosition == _epochs[16].EpochPosition);
 		Assert.That(_cache.Count == 10);
@@ -233,7 +239,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[24].EpochNumber);
 
 		//can get next epoch from just before cache
-		nextEpoch = _epochManager.GetEpochAfter(_epochs[14].EpochNumber, false);
+		nextEpoch = await _epochManager.GetEpochAfter(_epochs[14].EpochNumber, false, CancellationToken.None);
 
 		Assert.That(nextEpoch.EpochPosition == _epochs[15].EpochPosition);
 		Assert.That(_cache.Count == 10);
@@ -241,7 +247,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[24].EpochNumber);
 
 		//can get next epoch from before cache
-		nextEpoch = _epochManager.GetEpochAfter(_epochs[10].EpochNumber, false);
+		nextEpoch = await _epochManager.GetEpochAfter(_epochs[10].EpochNumber, false, CancellationToken.None);
 
 		Assert.That(nextEpoch.EpochPosition == _epochs[11].EpochPosition);
 		Assert.That(_cache.Count == 10);
@@ -249,7 +255,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[24].EpochNumber);
 
 		//can get next epoch from 0 epoch
-		nextEpoch = _epochManager.GetEpochAfter(_epochs[0].EpochNumber, false);
+		nextEpoch = await _epochManager.GetEpochAfter(_epochs[0].EpochNumber, false, CancellationToken.None);
 
 		Assert.That(nextEpoch.EpochPosition == _epochs[1].EpochPosition);
 		Assert.That(_cache.Count == 10);
@@ -258,7 +264,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 
 
 		//can add last epoch in log
-		_epochManager.AddEpochToCache(_epochs[29]);
+		await _epochManager.AddEpochToCache(_epochs[29], CancellationToken.None);
 
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[20].EpochNumber);
@@ -266,8 +272,8 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 
 		// can write an epoch with epoch information (even though previous epochs
 		// dont have epoch information)
-		_epochManager.WriteNewEpoch(GetNextEpoch());
-		_epochManager.WriteNewEpoch(GetNextEpoch());
+		await _epochManager.WriteNewEpoch(GetNextEpoch(), CancellationToken.None);
+		await _epochManager.WriteNewEpoch(GetNextEpoch(), CancellationToken.None);
 		var epochsWritten = _published.OfType<SystemMessage.EpochWritten>().ToArray();
 		Assert.AreEqual(2, epochsWritten.Length);
 		for (int i = 0; i < epochsWritten.Length; i++)
@@ -285,6 +291,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 					break;
 				}
 			}
+
 			var expectedStreamId = LogFormatHelper<TLogFormat, TStreamId>.Choose<TStreamId>(
 				SystemStreams.EpochInformationStream,
 				LogV3SystemStreams.EpochInformationStreamNumber);
@@ -316,6 +323,7 @@ public class when_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : Spe
 		{
 			//workaround for TearDown error
 		}
+
 		_db?.Dispose();
 	}
 }
