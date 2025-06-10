@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture]
-public class when_replication_service_recieves_leader_log_commited_to : with_replication_service
+public class WhenReplicationServiceRecievesLeaderLogCommitedTo : WithReplicationService
 {
 	private long _logPosition;
 
@@ -20,7 +20,8 @@ public class when_replication_service_recieves_leader_log_commited_to : with_rep
 	{
 		AssertEx.IsOrBecomesTrue(() => TcpSends.Count > 4, msg: "TcpSend msg not recieved");
 		var sends = TcpSends.Where(tcpSend => tcpSend.Message is ReplicationTrackingMessage.ReplicatedTo).ToList();
-		Assert.AreEqual(4 * 2, sends.Count); //one ReplicatedTo message in sent when the subscription is added and the second one in When()
+		Assert.AreEqual(4 * 2,
+			sends.Count); //one ReplicatedTo message in sent when the subscription is added and the second one in When()
 		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReplicaSubscriptionId));
 		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReplicaSubscriptionId2));
 		Assert.AreEqual(2, sends.Count(msg => msg.ConnectionManager.ConnectionId == ReadOnlyReplicaSubscriptionId));

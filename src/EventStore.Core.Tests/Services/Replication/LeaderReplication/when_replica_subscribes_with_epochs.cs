@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Tcp;
@@ -9,28 +11,27 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
-
-public class when_replica_subscribes_with_no_common_epochs<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaSubscribesWithNoCommonEpochs<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out _);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 
 		var epochs = new[] {
 			new Epoch(1010, 1, Guid.NewGuid()),
 			new Epoch(999, 2, Guid.NewGuid())
 		};
 
-		AddSubscription(_replicaId, true, epochs, 1010, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, epochs, 1010, token);
 	}
 
 	[Test]
@@ -46,28 +47,28 @@ public class when_replica_subscribes_with_no_common_epochs<TLogFormat, TStreamId
 	}
 }
 
-public class when_replica_with_same_epochs_subscribes_from_last_epoch_position<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaWithSameEpochsSubscribesFromLastEpochPosition<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private EpochRecord _lastEpoch;
 
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out _);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 
 		_lastEpoch = EpochManager.GetLastEpoch();
-		var epochs = EpochManager.GetLastEpochs(10)
+		var epochs = (await EpochManager.GetLastEpochs(10, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToArray();
 
-		AddSubscription(_replicaId, true, epochs, _lastEpoch.EpochPosition, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, epochs, _lastEpoch.EpochPosition, token);
 	}
 
 	[Test]
@@ -83,29 +84,29 @@ public class when_replica_with_same_epochs_subscribes_from_last_epoch_position<T
 	}
 }
 
-public class when_replica_with_same_epochs_subscribes_from_position_less_than_last_epoch_position<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaWithSameEpochsSubscribesFromPositionLessThanLastEpochPosition<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private EpochRecord _lastEpoch;
 	private long _subscribedPosition;
 
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out _);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _subscribedPosition);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 
 		_lastEpoch = EpochManager.GetLastEpoch();
-		var epochs = EpochManager.GetLastEpochs(10)
+		var epochs = (await EpochManager.GetLastEpochs(10, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToArray();
 
-		AddSubscription(_replicaId, true, epochs, _subscribedPosition, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, epochs, _subscribedPosition, token);
 	}
 
 	[Test]
@@ -121,36 +122,38 @@ public class when_replica_with_same_epochs_subscribes_from_position_less_than_la
 	}
 }
 
-public class when_replica_with_additional_epochs_subscribes_to_position_past_leaders_last_epoch<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaWithAdditionalEpochsSubscribesToPositionPastLeadersLastEpoch<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out _);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 		Writer.Write(CreateLogRecord(5), out _);
 		Writer.Write(CreateLogRecord(6), out _);
 		Writer.Write(CreateLogRecord(7), out var lastWritePosition);
 		Writer.Flush();
 
-		_replicaEpochs = new List<Epoch> {
+		_replicaEpochs =
+		[
 			new Epoch(lastWritePosition + 2000, 4, Guid.NewGuid()),
 			new Epoch(lastWritePosition + 1000, 3, Guid.NewGuid()),
-			new Epoch(lastWritePosition, 2, Guid.NewGuid()),
-		};
-		_replicaEpochs.AddRange(EpochManager.GetLastEpochs(10)
+			new Epoch(lastWritePosition, 2, Guid.NewGuid())
+		];
+		_replicaEpochs.AddRange((await EpochManager.GetLastEpochs(10, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToList());
 
-		AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), lastWritePosition + 2000, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(),
+		lastWritePosition + 2000, token);
 	}
 
 	[Test]
@@ -166,30 +169,31 @@ public class when_replica_with_additional_epochs_subscribes_to_position_past_lea
 	}
 }
 
-public class when_replica_subscribes_with_epoch_that_doesnt_exist_on_leader_but_is_before_leaders_last_epoch<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaSubscribesWithEpochThatDoesntExistOnLeaderButIsBeforeLeadersLastEpoch<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out var otherEpochLogPosition);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(2);
+		await EpochManager.WriteNewEpoch(2, token);
 
-		var firstEpoch = EpochManager.GetLastEpochs(10).First(e => e.EpochNumber == 0);
+		var firstEpoch = (await EpochManager.GetLastEpochs(10, token)).First(e => e.EpochNumber == 0);
 		_replicaEpochs = new List<Epoch> {
 			new Epoch(otherEpochLogPosition, 1, Guid.NewGuid()),
 			new Epoch(firstEpoch.EpochPosition, firstEpoch.EpochNumber, firstEpoch.EpochId)
 		};
 
-		AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), _replicaEpochs[1].EpochPosition, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(),
+		_replicaEpochs[1].EpochPosition, token);
 	}
 
 	[Test]
@@ -205,31 +209,32 @@ public class when_replica_subscribes_with_epoch_that_doesnt_exist_on_leader_but_
 	}
 }
 
-public class when_replica_subscribes_with_additional_epoch_past_leaders_writer_checkpoint<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaSubscribesWithAdditionalEpochPastLeadersWriterCheckpoint<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out _);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 
 		var subscribePosition = Writer.Position + 1000;
 		_replicaEpochs = new List<Epoch> {
 			new Epoch(subscribePosition, 2, Guid.NewGuid()),
 		};
-		_replicaEpochs.AddRange(EpochManager.GetLastEpochs(10)
+		_replicaEpochs.AddRange((await EpochManager.GetLastEpochs(10, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToList());
 
-		AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), subscribePosition, out _replicaManager);
+		(_, _replicaManager) =
+		await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), subscribePosition, token);
 	}
 
 	[Test]
@@ -245,33 +250,31 @@ public class when_replica_subscribes_with_additional_epoch_past_leaders_writer_c
 	}
 }
 
-public class when_replica_subscribes_with_additional_epoch_and_leader_has_epoch_after_common_epoch<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaSubscribesWithAdditionalEpochAndLeaderHasEpochAfterCommonEpoch<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override void When()
+	public override async Task When(CancellationToken token = default)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
 		Writer.Write(CreateLogRecord(1), out _);
 		Writer.Write(CreateLogRecord(2), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 		Writer.Write(CreateLogRecord(3), out _);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(4);
+		await EpochManager.WriteNewEpoch(4, token);
 
 		var subscribePosition = Writer.Position + 1000;
-		_replicaEpochs = new List<Epoch> {
-			new Epoch(subscribePosition, 2, Guid.NewGuid()),
-		};
-		_replicaEpochs.AddRange(EpochManager.GetLastEpochs(10)
+		_replicaEpochs = [new Epoch(subscribePosition, 2, Guid.NewGuid())];
+		_replicaEpochs.AddRange((await EpochManager.GetLastEpochs(10, token))
 			.Where(e => e.EpochNumber < 4)
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToList());
 
-		AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), subscribePosition, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), subscribePosition, token);
 	}
 
 	[Test]
@@ -287,34 +290,35 @@ public class when_replica_subscribes_with_additional_epoch_and_leader_has_epoch_
 	}
 }
 
-public class when_replica_subscribes_with_uncached_epoch<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaSubscribesWithUncachedEpoch<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
-	public override void When()
+	public override async Task When(CancellationToken token)
 	{
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 
 		// The EpochManager for these tests only caches 5 epochs
-		_replicaEpochs = EpochManager.GetLastEpochs(2)
+		_replicaEpochs = (await EpochManager.GetLastEpochs(2, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToList();
 
 		Writer.Write(CreateLogRecord(1), out _);
-		EpochManager.WriteNewEpoch(2);
+		await EpochManager.WriteNewEpoch(2, token);
 		Writer.Write(CreateLogRecord(2), out _);
-		EpochManager.WriteNewEpoch(3);
+		await EpochManager.WriteNewEpoch(3, token);
 		Writer.Write(CreateLogRecord(3), out _);
-		EpochManager.WriteNewEpoch(4);
+		await EpochManager.WriteNewEpoch(4, token);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(5);
+		await EpochManager.WriteNewEpoch(5, token);
 		Writer.Write(CreateLogRecord(5), out _);
-		EpochManager.WriteNewEpoch(6);
+		await EpochManager.WriteNewEpoch(6, token);
 
-		AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), _replicaEpochs[0].EpochPosition, out _replicaManager);
+		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(),
+			_replicaEpochs[0].EpochPosition, token);
 	}
 
 	[Test]
@@ -330,52 +334,63 @@ public class when_replica_subscribes_with_uncached_epoch<TLogFormat, TStreamId>
 	}
 }
 
-public class when_replica_subscribes_with_uncached_epoch_that_does_not_exist_on_leader<TLogFormat, TStreamId>
-	: with_replication_service_and_epoch_manager<TLogFormat, TStreamId>
+public class WhenReplicaSubscribesWithUncachedEpochThatDoesNotExistOnLeader<TLogFormat, TStreamId>
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
 {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 	private EpochRecord[] _uncachedLeaderEpochs;
-	public override void When()
+
+	public override async Task When(CancellationToken token = default)
 	{
 		// The EpochManager for these tests only caches 5 epochs
 		// Epochs 2 and 3 don't exist
-		EpochManager.WriteNewEpoch(0);
+		await EpochManager.WriteNewEpoch(0, token);
 		Writer.Write(CreateLogRecord(0), out _);
-		EpochManager.WriteNewEpoch(1);
+		await EpochManager.WriteNewEpoch(1, token);
 		Writer.Write(CreateLogRecord(1), out _);
 
-		_uncachedLeaderEpochs = EpochManager.GetLastEpochs(2);
+		_uncachedLeaderEpochs = (await EpochManager.GetLastEpochs(2, token)).ToArray();
 
-		EpochManager.WriteNewEpoch(4);
+		await EpochManager.WriteNewEpoch(4, token);
 		Writer.Write(CreateLogRecord(2), out _);
-		EpochManager.WriteNewEpoch(5);
+		await EpochManager.WriteNewEpoch(5, token);
 		Writer.Write(CreateLogRecord(3), out _);
-		EpochManager.WriteNewEpoch(6);
+		await EpochManager.WriteNewEpoch(6, token);
 		Writer.Write(CreateLogRecord(4), out _);
-		EpochManager.WriteNewEpoch(7);
+		await EpochManager.WriteNewEpoch(7, token);
 		Writer.Write(CreateLogRecord(5), out _);
-		EpochManager.WriteNewEpoch(8);
+		await EpochManager.WriteNewEpoch(8, token);
 
-		_replicaEpochs = new List<Epoch> {
+		_replicaEpochs =
+		[
 			new Epoch(_uncachedLeaderEpochs[0].EpochPosition + 8000, 3, Guid.NewGuid()),
 			new Epoch(_uncachedLeaderEpochs[0].EpochPosition + 4000, 2, Guid.NewGuid()),
-			new Epoch(_uncachedLeaderEpochs[0].EpochPosition, _uncachedLeaderEpochs[0].EpochNumber, _uncachedLeaderEpochs[0].EpochId),
-			new Epoch(_uncachedLeaderEpochs[1].EpochPosition, _uncachedLeaderEpochs[1].EpochNumber, _uncachedLeaderEpochs[1].EpochId)
-		};
+			new Epoch(_uncachedLeaderEpochs[0].EpochPosition, _uncachedLeaderEpochs[0].EpochNumber,
+				_uncachedLeaderEpochs[0].EpochId),
 
-		AddSubscription(_replicaId, true, _replicaEpochs.ToArray(), _replicaEpochs[0].EpochPosition, out _replicaManager);
+			new Epoch(_uncachedLeaderEpochs[1].EpochPosition, _uncachedLeaderEpochs[1].EpochNumber,
+				_uncachedLeaderEpochs[1].EpochId)
+		];
+
+		(_, _replicaManager) = await AddSubscription(
+			_replicaId,
+			true,
+			_replicaEpochs.ToArray(),
+			_replicaEpochs[0].EpochPosition,
+			token);
 	}
 
 	[Test]
-	public void subscription_is_sent_a_replica_subscribed_message_to_epoch_position_after_common_epoch()
+	public async Task subscription_is_sent_a_replica_subscribed_message_to_epoch_position_after_common_epoch()
 	{
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
 		var subscribed = (ReplicationMessage.ReplicaSubscribed)message;
-		Assert.AreEqual(EpochManager.GetLastEpochs(5).First(x => x.EpochNumber == 4).EpochPosition, subscribed.SubscriptionPosition);
+		Assert.AreEqual((await EpochManager.GetLastEpochs(5, CancellationToken.None))
+			.First(x => x.EpochNumber == 4).EpochPosition, subscribed.SubscriptionPosition);
 		Assert.AreEqual(_replicaId, subscribed.SubscriptionId);
 		Assert.AreEqual(LeaderId, subscribed.LeaderId);
 	}

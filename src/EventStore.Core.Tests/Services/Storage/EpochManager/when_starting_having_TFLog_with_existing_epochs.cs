@@ -23,7 +23,9 @@ namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture, IDisposable
+public sealed class
+	WhenStartingHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture,
+	IDisposable
 {
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
@@ -40,6 +42,7 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 	{
 		return (int)Interlocked.Increment(ref _currentEpoch);
 	}
+
 	private static long _currentEpoch = -1;
 
 	private EpochManager<TStreamId> GetManager()
@@ -60,11 +63,14 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 				writer: _writer),
 			_instanceId);
 	}
+
 	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager)
 	{
-		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>).GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
+		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>)
+			.GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
 			.GetValue(_epochManager);
 	}
+
 	private EpochRecord WriteEpoch(int epochNumber, long lastPos, Guid instanceId)
 	{
 		long pos = _writer.Position;
@@ -75,18 +81,17 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 		_writer.Flush();
 		return epoch;
 	}
+
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
-			IndexDirectory = indexDirectory,
-		});
+		_logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
 
-		_mainBus = new(nameof(when_starting_having_TFLog_with_existing_epochs<TLogFormat, TStreamId>));
+		_mainBus = new(nameof(WhenStartingHavingTfLogWithExistingEpochs<TLogFormat, TStreamId>));
 		_mainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(m => _published.Add(m)));
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
 		_db.Open();
@@ -111,11 +116,11 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 	}
 
 	[Test]
-	public void starting_epoch_manager_loads_epochs()
+	public async Task starting_epoch_manager_loads_epochs()
 	{
 
 		_epochManager = GetManager();
-		_epochManager.Init();
+		await _epochManager.Init(CancellationToken.None);
 		_cache = GetCache(_epochManager);
 		Assert.NotNull(_cache);
 
@@ -124,8 +129,9 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[29].EpochNumber);
 
 	}
+
 	[Test]
-	public void starting_epoch_manager_with_cache_larger_than_epoch_count_loads_all_epochs()
+	public async Task starting_epoch_manager_with_cache_larger_than_epoch_count_loads_all_epochs()
 	{
 
 		_epochManager = new EpochManager<TStreamId>(_mainBus,
@@ -143,7 +149,7 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 				reader: new TFChunkReader(_db, _db.Config.WriterCheckpoint),
 				writer: _writer),
 			_instanceId);
-		_epochManager.Init();
+		await _epochManager.Init(CancellationToken.None);
 		_cache = GetCache(_epochManager);
 		Assert.NotNull(_cache);
 
@@ -152,6 +158,7 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[29].EpochNumber);
 
 	}
+
 	public void Dispose()
 	{
 		//epochManager?.Dispose();
@@ -165,6 +172,7 @@ public sealed class when_starting_having_TFLog_with_existing_epochs<TLogFormat, 
 		{
 			//workaround for TearDown error
 		}
+
 		_db?.Dispose();
 	}
 }

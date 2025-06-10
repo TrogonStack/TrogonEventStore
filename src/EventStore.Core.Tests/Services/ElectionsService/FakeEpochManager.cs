@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using DotNext.Collections.Generic;
+using DotNext.Threading;
 using EventStore.Core.Services.Storage.EpochManager;
 using EventStore.Core.TransactionLog.LogRecords;
 
@@ -8,95 +13,100 @@ namespace EventStore.Core.Tests.Services.ElectionsService;
 
 internal class FakeEpochManager : IEpochManager
 {
+	public int LastEpochNumber => _epochs.LastOrNone().Convert(static epoch => epoch.EpochNumber).Or(-1);
 
-	public int LastEpochNumber
+	private readonly AsyncExclusiveLock _lock = new();
+	private volatile ImmutableList<EpochRecord> _epochs = ImmutableList<EpochRecord>.Empty;
+
+	public ValueTask Init(CancellationToken token) => ValueTask.CompletedTask;
+
+	public EpochRecord GetLastEpoch() => _epochs.LastOrDefault();
+
+	public ValueTask<IReadOnlyList<EpochRecord>> GetLastEpochs(
+		int maxCount,
+		CancellationToken token)
 	{
-		get
+		IReadOnlyList<EpochRecord> epochs = _epochs;
+		return new ValueTask<IReadOnlyList<EpochRecord>>((maxCount >= epochs.Count
+			? epochs
+			: epochs.Skip(_epochs.Count - maxCount)).ToArray());
+	}
+
+	public ValueTask<EpochRecord> GetEpochAfter(
+		int epochNumber,
+		bool throwIfNotFound,
+		CancellationToken token)
+	{
+		ValueTask<EpochRecord> task;
+		try
 		{
-			lock (_epochs)
+			ImmutableList<EpochRecord> epochs = _epochs;
+			if (epochs.FirstOrDefault(e => e.EpochNumber == epochNumber) is { } epoch)
 			{
-				return _epochs.Any() ? _epochs.Last().EpochNumber : -1;
-			}
-		}
-	}
-
-	private readonly List<EpochRecord> _epochs = new List<EpochRecord>();
-	public void Init()
-	{
-	}
-
-	public EpochRecord GetLastEpoch()
-	{
-		lock (_epochs)
-		{
-			return _epochs.LastOrDefault();
-		}
-	}
-
-	public EpochRecord[] GetLastEpochs(int maxCount)
-	{
-		lock (_epochs)
-		{
-			if (maxCount >= _epochs.Count)
-			{
-				return _epochs.ToArray();
+				var index = epochs.IndexOf(epoch);
+				epoch = null;
+				if (index + 1 < epochs.Count)
+				{
+					epoch = epochs[index + 1];
+				}
 			}
 			else
 			{
-				return _epochs.Skip(_epochs.Count - maxCount).ToArray();
-			}
-		}
-	}
-
-	public EpochRecord GetEpochAfter(int epochNumber, bool throwIfNotFound)
-	{
-		lock (_epochs)
-		{
-			var epoch = _epochs.FirstOrDefault(e => e.EpochNumber == epochNumber);
-			if (epoch != null)
-			{
-				var index = _epochs.IndexOf(epoch);
 				epoch = null;
-				if (index + 1 < _epochs.Count)
-				{
-					epoch = _epochs[index + 1];
-				}
 			}
 
-			if (throwIfNotFound && epoch == null)
+			if (throwIfNotFound && epoch is null)
 				throw new ArgumentOutOfRangeException(nameof(epochNumber), "Epoch not Found");
-			return epoch;
-		}
-	}
 
-	public bool IsCorrectEpochAt(long epochPosition, int epochNumber, Guid epochId)
-	{
-		lock (_epochs)
+			task = new ValueTask<EpochRecord>(epoch);
+		}
+		catch (Exception e)
 		{
-			var epoch = _epochs.FirstOrDefault(e => e.EpochNumber == epochNumber);
-			if (epoch == null)
-				return false;
-
-			return epoch.EpochPosition == epochPosition &&
-				   epoch.EpochId == epochId;
+			task = ValueTask.FromException<EpochRecord>(e);
 		}
+
+		return task;
 	}
 
-	public void WriteNewEpoch(int epochNumber)
+	public ValueTask<bool> IsCorrectEpochAt(
+		long epochPosition,
+		int epochNumber,
+		Guid epochId,
+		CancellationToken token)
 	{
-		throw new NotImplementedException();
-	}
-
-	public void CacheEpoch(EpochRecord epoch)
-	{
-		lock (_epochs)
+		ValueTask<bool> task;
+		try
 		{
-			_epochs.Add(epoch);
+			task = new ValueTask<bool>(_epochs.FirstOrDefault(e => e.EpochNumber == epochNumber) is { } epoch
+									   && epoch.EpochNumber == epochNumber
+									   && epoch.EpochId == epochId);
+		}
+		catch (Exception e)
+		{
+			task = ValueTask.FromException<bool>(e);
+		}
+
+		return task;
+	}
+
+	public ValueTask WriteNewEpoch(int epochNumber, CancellationToken token)
+		=> ValueTask.FromException(new NotImplementedException());
+
+	public async ValueTask CacheEpoch(
+		EpochRecord epoch,
+		CancellationToken token)
+	{
+		await _lock.AcquireAsync(token);
+		try
+		{
+			_epochs = _epochs.Add(epoch);
+		}
+		finally
+		{
+			_lock.Release();
 		}
 	}
 
-	public bool TryTruncateBefore(long position, out EpochRecord epoch)
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<EpochRecord> TryTruncateBefore(long position, CancellationToken token)
+		=> ValueTask.FromException<EpochRecord>(new NotImplementedException());
 }

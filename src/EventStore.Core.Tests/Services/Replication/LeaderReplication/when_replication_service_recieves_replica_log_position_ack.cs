@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture]
-public class when_replication_service_receives_replica_log_position_ack_subscription_v0 : with_replication_service
+public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV0 : WithReplicationService
 {
 	private long _replicationLogPosition;
 	private long _writerLogPosition;
@@ -28,7 +28,7 @@ public class when_replication_service_receives_replica_log_position_ack_subscrip
 }
 
 [TestFixture]
-public class when_replication_service_receives_replica_log_position_ack_subscription_v1 : with_replication_service
+public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV1 : WithReplicationService
 {
 	private long _replicationLogPosition;
 	private long _writerLogPosition;
@@ -37,7 +37,8 @@ public class when_replication_service_receives_replica_log_position_ack_subscrip
 	{
 		_replicationLogPosition = 4000;
 		_writerLogPosition = 3000;
-		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, _replicationLogPosition, _writerLogPosition));
+		Service.Handle(
+			new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, _replicationLogPosition, _writerLogPosition));
 	}
 
 	[Test]

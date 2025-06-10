@@ -14,7 +14,7 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		var data = new ChunkTimeStampRange(min: DateTime.UtcNow, DateTime.UtcNow.AddDays(1));
+		var data = new ChunkTimeStampRange(Min: DateTime.Now, DateTime.Now.AddDays(1));
 
 		sut[33] = data;
 
@@ -28,9 +28,9 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		sut[33] = new ChunkTimeStampRange(min: DateTime.Now, DateTime.Now.AddDays(1));
+		sut[33] = new ChunkTimeStampRange(Min: DateTime.Now, DateTime.Now.AddDays(1));
 
-		var data = new ChunkTimeStampRange(min: DateTime.Now.AddDays(1), DateTime.Now.AddDays(2));
+		var data = new ChunkTimeStampRange(Min: DateTime.Now.AddDays(1), DateTime.Now.AddDays(2));
 
 		sut[33] = data;
 
@@ -111,12 +111,13 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 
 	private ChunkTimeStampRange[] GetChunkTimeStampRangeTestData()
 	{
-		return new[] {
-			new ChunkTimeStampRange(min: DateTime.MinValue, DateTime.UtcNow.AddDays(2)),
-			new ChunkTimeStampRange(min: DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(3)),
-			new ChunkTimeStampRange(min: DateTime.UtcNow.AddDays(3), DateTime.UtcNow.AddDays(4)),
-			new ChunkTimeStampRange(min: DateTime.UtcNow.AddDays(4), DateTime.UtcNow.AddDays(5)),
-			new ChunkTimeStampRange(min: DateTime.UtcNow.AddDays(5), DateTime.MaxValue)
-		};
+		return
+		[
+			new ChunkTimeStampRange(Min: DateTime.MinValue, DateTime.UtcNow.AddDays(2)),
+			new ChunkTimeStampRange(Min: DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(3)),
+			new ChunkTimeStampRange(Min: DateTime.UtcNow.AddDays(3), DateTime.UtcNow.AddDays(4)),
+			new ChunkTimeStampRange(Min: DateTime.UtcNow.AddDays(4), DateTime.UtcNow.AddDays(5)),
+			new ChunkTimeStampRange(Min: DateTime.UtcNow.AddDays(5), DateTime.MaxValue)
+		];
 	}
 }
