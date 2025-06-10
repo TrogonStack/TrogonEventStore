@@ -11,11 +11,13 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class ElectionsCounterTrackerTests : IDisposable {
+public class ElectionsCounterTrackerTests : IDisposable
+{
 	private readonly Disposables _disposables = new();
 	private readonly ElectionMessage.ElectionsDone _electionsDoneMessage;
 
-	public ElectionsCounterTrackerTests() {
+	public ElectionsCounterTrackerTests()
+	{
 		var endPoint = new DnsEndPoint("127.0.0.1", 1113);
 		var memberInfo = Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
 			VNodeState.Unknown, true,
@@ -24,12 +26,14 @@ public class ElectionsCounterTrackerTests : IDisposable {
 		_electionsDoneMessage = new ElectionMessage.ElectionsDone(1, 1, memberInfo);
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_disposables?.Dispose();
 	}
 
 	private (ElectionsCounterTracker, TestMeterListener<long>) GenSut(
-		[CallerMemberName] string callerName = "") {
+		[CallerMemberName] string callerName = "")
+	{
 
 		var meter = new Meter($"{typeof(ElectionsCounterTrackerTests)}--{callerName}").DisposeWith(_disposables);
 		var listener = new TestMeterListener<long>(meter).DisposeWith(_disposables);
@@ -40,7 +44,8 @@ public class ElectionsCounterTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void test_election_count_for_one_election() {
+	public void test_election_count_for_one_election()
+	{
 		var (sut, listener) = GenSut();
 		sut.Handle(_electionsDoneMessage);
 
@@ -48,7 +53,8 @@ public class ElectionsCounterTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void test_election_count_for_five_elections() {
+	public void test_election_count_for_five_elections()
+	{
 		var (sut, listener) = GenSut();
 		sut.Handle(_electionsDoneMessage);
 		sut.Handle(_electionsDoneMessage);
@@ -61,13 +67,15 @@ public class ElectionsCounterTrackerTests : IDisposable {
 
 	static Action<TestMeterListener<long>.TestMeasurement> AssertMeasurement(
 		int expectedValue) =>
-		actualMeasurement => {
+		actualMeasurement =>
+		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
 		};
 
 	static void AssertMeasurements(
 		TestMeterListener<long> listener,
-		params Action<TestMeterListener<long>.TestMeasurement>[] actions) {
+		params Action<TestMeterListener<long>.TestMeasurement>[] actions)
+	{
 
 		listener.Observe();
 		Assert.Collection(listener.RetrieveMeasurements("test-metric"), actions);

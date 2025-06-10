@@ -6,35 +6,47 @@ using EventStore.Core.TransactionLog.LogRecords;
 namespace EventStore.Projections.Core.XUnit.Tests.TestHelpers;
 
 // TODO: Flesh out this helper as more tests need it
-public class ExistingStreamsHelper {
+public class ExistingStreamsHelper
+{
 	private readonly Dictionary<string, List<ExistingEvent>> _streams = new();
 	private readonly List<string> _hardDeletedStreams = new();
 	private long _lastPosition;
 
-	public void AddEvents(params ExistingEvent[] newEvents) {
-		foreach (var newEvent in newEvents) {
-			if (_streams.TryGetValue(newEvent.EventStreamId, out var existingEvents)) {
+	public void AddEvents(params ExistingEvent[] newEvents)
+	{
+		foreach (var newEvent in newEvents)
+		{
+			if (_streams.TryGetValue(newEvent.EventStreamId, out var existingEvents))
+			{
 				existingEvents.Add(newEvent);
-			} else {
+			}
+			else
+			{
 				_streams.Add(newEvent.EventStreamId, [newEvent]);
 			}
 
-			if (newEvent.PreparePosition > _lastPosition) {
+			if (newEvent.PreparePosition > _lastPosition)
+			{
 				_lastPosition = newEvent.PreparePosition;
 			}
 		}
 	}
 
-	public void HardDeleteStreams(string[] deletedStreams) {
-		foreach (var stream in deletedStreams) {
-			if (!_hardDeletedStreams.Contains(stream)) {
+	public void HardDeleteStreams(string[] deletedStreams)
+	{
+		foreach (var stream in deletedStreams)
+		{
+			if (!_hardDeletedStreams.Contains(stream))
+			{
 				_hardDeletedStreams.Add(stream);
 			}
 		}
 	}
 
-	public long GetLastEventNumberForStream(string streamId) {
-		if (_hardDeletedStreams.Contains(streamId)) {
+	public long GetLastEventNumberForStream(string streamId)
+	{
+		if (_hardDeletedStreams.Contains(streamId))
+		{
 			return EventNumber.DeletedStream;
 		}
 
@@ -44,21 +56,26 @@ public class ExistingStreamsHelper {
 	}
 
 	public ClientMessage.ReadStreamEventsBackwardCompleted ReadStreamBackward(
-		ClientMessage.ReadStreamEventsBackward request) {
-		if (_hardDeletedStreams.Contains(request.EventStreamId)) {
+		ClientMessage.ReadStreamEventsBackward request)
+	{
+		if (_hardDeletedStreams.Contains(request.EventStreamId))
+		{
 			return CreateReadBackwardCompleted(request, ReadStreamResult.StreamDeleted, []);
 		}
 
-		if (!_streams.TryGetValue(request.EventStreamId, out var existingEvents)) {
+		if (!_streams.TryGetValue(request.EventStreamId, out var existingEvents))
+		{
 			return CreateReadBackwardCompleted(request, ReadStreamResult.NoStream, []);
 		}
 
 		var resolvedEvents = new List<ResolvedEvent>();
 		var lastEventNumber = GetLastEventNumberForStream(request.EventStreamId);
 		var current = request.FromEventNumber == -1 ? lastEventNumber : request.FromEventNumber;
-		for (var i = 0; i < request.MaxCount; i++) {
+		for (var i = 0; i < request.MaxCount; i++)
+		{
 			var foundEvent = existingEvents.FirstOrDefault(x => x.EventNumber == current);
-			if (foundEvent is not null) {
+			if (foundEvent is not null)
+			{
 				resolvedEvents.Add(ResolvedEvent.ForUnresolvedEvent(foundEvent.ToEventRecord(request.CorrelationId)));
 			}
 
@@ -69,15 +86,18 @@ public class ExistingStreamsHelper {
 	}
 
 	private ClientMessage.ReadStreamEventsBackwardCompleted CreateReadBackwardCompleted(
-		ClientMessage.ReadStreamEventsBackward request, ReadStreamResult result, ResolvedEvent[] events) {
-		if (result is ReadStreamResult.NoStream) {
+		ClientMessage.ReadStreamEventsBackward request, ReadStreamResult result, ResolvedEvent[] events)
+	{
+		if (result is ReadStreamResult.NoStream)
+		{
 			return new ClientMessage.ReadStreamEventsBackwardCompleted(request.CorrelationId, request.EventStreamId,
 				request.FromEventNumber, request.MaxCount, result, [], StreamMetadata.Empty, false,
 				"", -1, EventNumber.Invalid, true, _lastPosition);
 		}
 
 		long nextEventNumber = 0;
-		if (events.Length > 0) {
+		if (events.Length > 0)
+		{
 			nextEventNumber = events.Last().OriginalEventNumber;
 		}
 
@@ -88,9 +108,11 @@ public class ExistingStreamsHelper {
 			nextEventNumber, GetLastEventNumberForStream(request.EventStreamId), isEof, _lastPosition);
 	}
 
-	public class ExistingEvent {
+	public class ExistingEvent
+	{
 		public ExistingEvent(string eventStreamId, long eventNumber, long position, string data,
-			string metadata = "", string eventType = "test-event") {
+			string metadata = "", string eventType = "test-event")
+		{
 			EventStreamId = eventStreamId;
 			EventNumber = eventNumber;
 			PreparePosition = position;

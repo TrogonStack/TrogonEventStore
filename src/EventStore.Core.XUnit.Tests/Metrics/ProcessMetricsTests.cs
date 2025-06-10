@@ -9,13 +9,15 @@ using Xunit.Sdk;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class ProcessMetricsTests : IDisposable {
+public class ProcessMetricsTests : IDisposable
+{
 	private readonly TestMeterListener<int> _intListener;
 	private readonly TestMeterListener<double> _doubleListener;
 	private readonly TestMeterListener<long> _longListener;
 	private readonly ProcessMetrics _sut;
 
-	public ProcessMetricsTests() {
+	public ProcessMetricsTests()
+	{
 		var meter = new Meter($"{typeof(ProcessMetricsTests)}");
 		_intListener = new TestMeterListener<int>(meter);
 		_doubleListener = new TestMeterListener<double>(meter);
@@ -23,7 +25,8 @@ public class ProcessMetricsTests : IDisposable {
 
 		var config = new Dictionary<MetricsConfiguration.ProcessTracker, bool>();
 
-		foreach (var value in Enum.GetValues<MetricsConfiguration.ProcessTracker>()) {
+		foreach (var value in Enum.GetValues<MetricsConfiguration.ProcessTracker>())
+		{
 			config[value] = true;
 		}
 
@@ -79,21 +82,25 @@ public class ProcessMetricsTests : IDisposable {
 		_longListener.Observe();
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_intListener.Dispose();
 		_doubleListener.Dispose();
 		_longListener.Dispose();
 	}
 
 	[Fact]
-	public void can_collect_proc_up_time() {
+	public void can_collect_proc_up_time()
+	{
 		Assert.Collection(
 			_doubleListener.RetrieveMeasurements("eventstore-proc-up-time"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("pid", tag.Key);
 						Assert.NotNull(tag.Value);
 					});
@@ -101,122 +108,147 @@ public class ProcessMetricsTests : IDisposable {
 	}
 
 	[Fact]
-	public void can_collect_proc_cpu() {
+	public void can_collect_proc_cpu()
+	{
 		Assert.Collection(
 			_doubleListener.RetrieveMeasurements("eventstore-proc-cpu"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_proc_contention_count() {
+	public void can_collect_proc_contention_count()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-proc-contention-count"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_thread_pool_pending_work_item_count() {
+	public void can_collect_thread_pool_pending_work_item_count()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-proc-thread-pool-pending-work-item-count"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_proc_exception_count() {
+	public void can_collect_proc_exception_count()
+	{
 		Assert.Collection(
 			_intListener.RetrieveMeasurements("eventstore-proc-exception-count"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_gc_total_allocated() {
+	public void can_collect_gc_total_allocated()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-gc-total-allocated"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_thread_count() {
+	public void can_collect_thread_count()
+	{
 		Assert.Collection(
 			_intListener.RetrieveMeasurements("eventstore-proc-thread-count"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_gc_time_in_gc() {
+	public void can_collect_gc_time_in_gc()
+	{
 		Assert.Collection(
 			_intListener.RetrieveMeasurements("eventstore-gc-time-in-gc"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_gc_heap_size() {
+	public void can_collect_gc_heap_size()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-gc-heap-size-bytes"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_gc_heap_fragmentation() {
+	public void can_collect_gc_heap_fragmentation()
+	{
 		Assert.Collection(
 			_doubleListener.RetrieveMeasurements("eventstore-gc-heap-fragmentation"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_proc_mem() {
+	public void can_collect_proc_mem()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-proc-mem-bytes"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("working-set", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("paged-bytes", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("virtual-bytes", tag.Value);
 					});
@@ -224,41 +256,50 @@ public class ProcessMetricsTests : IDisposable {
 	}
 
 	[Fact]
-	public void can_collect_gc_generation_size() {
+	public void can_collect_gc_generation_size()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-gc-generation-size-bytes"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("gen0", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("gen1", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("gen2", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("loh", tag.Value);
 					});
@@ -266,32 +307,39 @@ public class ProcessMetricsTests : IDisposable {
 	}
 
 	[Fact]
-	public void can_collect_gc_collections_count() {
+	public void can_collect_gc_collections_count()
+	{
 		Assert.Collection(
 			_intListener.RetrieveMeasurements("eventstore-gc-collection-count"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("gen0", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("gen1", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("generation", tag.Key);
 						Assert.Equal("gen2", tag.Value);
 					});
@@ -299,23 +347,28 @@ public class ProcessMetricsTests : IDisposable {
 	}
 
 	[Fact]
-	public void can_collect_disk_io_bytes() {
+	public void can_collect_disk_io_bytes()
+	{
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-disk-io-bytes"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("activity", tag.Key);
 						Assert.Equal("read", tag.Value);
 					});
 			},
-			m => {
+			m =>
+			{
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag => {
+					tag =>
+					{
 						Assert.Equal("activity", tag.Key);
 						Assert.Equal("written", tag.Value);
 					});
@@ -323,15 +376,20 @@ public class ProcessMetricsTests : IDisposable {
 	}
 
 	[Fact]
-	public void can_detect_gc_pauses() {
-		for (var count = 0; count < 50; ++count) {
-			try {
+	public void can_detect_gc_pauses()
+	{
+		for (var count = 0; count < 50; ++count)
+		{
+			try
+			{
 				Assert.Collection(
 					_doubleListener.RetrieveMeasurements("eventstore-gc-pause-duration-seconds"),
-					m => {
+					m =>
+					{
 						Assert.Collection(
 							m.Tags,
-							tag => {
+							tag =>
+							{
 								Assert.Equal("range", tag.Key);
 								Assert.Equal("16-20 seconds", tag.Value);
 							});
@@ -340,7 +398,9 @@ public class ProcessMetricsTests : IDisposable {
 					});
 
 				return;
-			} catch (CollectionException) {
+			}
+			catch (CollectionException)
+			{
 			}
 
 			Thread.Sleep(10);

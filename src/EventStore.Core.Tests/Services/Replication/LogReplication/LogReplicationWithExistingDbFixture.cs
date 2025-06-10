@@ -11,18 +11,21 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId> {
+public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId>
+{
 	private readonly Random _random = new();
 	protected LogFormatAbstractor<TStreamId> LogFormat;
 	protected const int DataSize = 3333;
 
-	protected override async Task SetUpDbs(TFChunkDb leaderDb, TFChunkDb replicaDb) {
+	protected override async Task SetUpDbs(TFChunkDb leaderDb, TFChunkDb replicaDb)
+	{
 		await CreateChunks(leaderDb);
 	}
 
 	protected abstract Task CreateChunks(TFChunkDb leaderDb);
 
-	protected static async Task CreateChunk(TFChunkDb db, bool raw, bool complete, int chunkStartNumber, int chunkEndNumber, ILogRecord[] logRecords) {
+	protected static async Task CreateChunk(TFChunkDb db, bool raw, bool complete, int chunkStartNumber, int chunkEndNumber, ILogRecord[] logRecords)
+	{
 		var filename = db.Config.FileNamingStrategy.GetFilenameFor(chunkStartNumber, raw ? 1 : 0);
 
 		if (raw && !complete)
@@ -56,7 +59,8 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 
 		var posMaps = new List<PosMap>();
 
-		for (var i = 0; i < logRecords.Length; i++) {
+		for (var i = 0; i < logRecords.Length; i++)
+		{
 			var logRecord = logRecords[i];
 			var logicalPos = chunk.ChunkHeader.GetLocalLogPosition(logRecord.LogPosition);
 			var actualPos = chunk.RawWriterPosition - ChunkHeader.Size;
@@ -70,8 +74,8 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 			// move the (intercepted) writer checkpoint to the expected positions so that they can be compared with the
 			// replica's writer checkpoints during tests
 			if (!raw &&
-			    (logRecord.IsTransactionBoundary() /* complete transaction */
-			     || i == logRecords.Length - 1)) /* incomplete transaction at the end of a chunk - commit for backwards compatibility */
+				(logRecord.IsTransactionBoundary() /* complete transaction */
+				 || i == logRecords.Length - 1)) /* incomplete transaction at the end of a chunk - commit for backwards compatibility */
 				db.Config.WriterCheckpoint.Write(writerPos);
 
 			posMaps.Add(new PosMap(logicalPos, actualPos));
@@ -91,7 +95,8 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 		chunk.WaitForDestroy(0);
 	}
 
-	private ILogRecord CreatePrepare(long logPosition, PrepareFlags flags) {
+	private ILogRecord CreatePrepare(long logPosition, PrepareFlags flags)
+	{
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 
@@ -114,19 +119,24 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 		);
 	}
 
-	protected ILogRecord[] GenerateLogRecords(int chunkNumber, int[] transactionSizes, out long writerPos) {
+	protected ILogRecord[] GenerateLogRecords(int chunkNumber, int[] transactionSizes, out long writerPos)
+	{
 		var logPosition = chunkNumber * ChunkSize;
 
 		var logRecords = new List<ILogRecord>();
-		foreach (var transactionSize in transactionSizes) {
+		foreach (var transactionSize in transactionSizes)
+		{
 			// a negative transaction size represents an incomplete transaction
 			var incomplete = transactionSize < 0;
 			var txSize = Math.Abs(transactionSize);
 
-			for (var i = 0; i < txSize; i++) {
+			for (var i = 0; i < txSize; i++)
+			{
 				var flags = PrepareFlags.Data | PrepareFlags.IsCommitted;
-				if (i == 0) flags |= PrepareFlags.TransactionBegin;
-				if (!incomplete && i == txSize - 1) flags |= PrepareFlags.TransactionEnd;
+				if (i == 0)
+					flags |= PrepareFlags.TransactionBegin;
+				if (!incomplete && i == txSize - 1)
+					flags |= PrepareFlags.TransactionEnd;
 				var logRecord = CreatePrepare(logPosition, flags);
 				logPosition += logRecord.GetSizeWithLengthPrefixAndSuffix();
 				logRecords.Add(logRecord);

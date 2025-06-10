@@ -6,12 +6,14 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class DurationMaxTrackerTests : IDisposable {
+public class DurationMaxTrackerTests : IDisposable
+{
 	private readonly TestMeterListener<double> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly DurationMaxTracker _sut;
 
-	public DurationMaxTrackerTests() {
+	public DurationMaxTrackerTests()
+	{
 		var meter = new Meter($"{typeof(DurationMaxTrackerTests)}");
 		_listener = new TestMeterListener<double>(meter);
 		var metric = new DurationMaxMetric(meter, "the-metric");
@@ -22,13 +24,16 @@ public class DurationMaxTrackerTests : IDisposable {
 			clock: _clock);
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_listener.Dispose();
 	}
 
 	[Fact]
-	public void throws_with_invalid_period_configuration() {
-		var ex = Assert.Throws<ArgumentException>(() => {
+	public void throws_with_invalid_period_configuration()
+	{
+		var ex = Assert.Throws<ArgumentException>(() =>
+		{
 			var sut = new DurationMaxTracker(
 				metric: null,
 				name: "the-tracker",
@@ -42,7 +47,8 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void record_now_returns_now() {
+	public void record_now_returns_now()
+	{
 		_clock.SecondsSinceEpoch = 500;
 		var start = _clock.Now;
 		_clock.SecondsSinceEpoch = 501;
@@ -52,12 +58,14 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void no_records() {
+	public void no_records()
+	{
 		AssertMeasurements(0);
 	}
 
 	[Fact]
-	public void one_record() {
+	public void one_record()
+	{
 		AssertMeasurements(0);
 		_clock.SecondsSinceEpoch = 500;
 		var start = _clock.Now;
@@ -67,7 +75,8 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void two_records_ascending() {
+	public void two_records_ascending()
+	{
 		AssertMeasurements(0);
 		_clock.SecondsSinceEpoch = 500;
 		var start1 = _clock.Now;
@@ -81,7 +90,8 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void two_records_descending() {
+	public void two_records_descending()
+	{
 		AssertMeasurements(0);
 		_clock.SecondsSinceEpoch = 500;
 		var start2 = _clock.Now;
@@ -95,7 +105,8 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void removes_stale_data() {
+	public void removes_stale_data()
+	{
 		_clock.SecondsSinceEpoch = 500;
 		var start = _clock.Now;
 		_clock.SecondsSinceEpoch = 501;
@@ -107,7 +118,8 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void removes_stale_data_incrementally() {
+	public void removes_stale_data_incrementally()
+	{
 		_clock.SecondsSinceEpoch = 500;
 		var start10 = _clock.Now;
 
@@ -152,24 +164,28 @@ public class DurationMaxTrackerTests : IDisposable {
 
 		_clock.SecondsSinceEpoch = 530;
 		_sut.RecordNow(start5); // record a 5s duration
-		// original measurement has become stale
+								// original measurement has become stale
 		AssertMeasurements(9);
 	}
 
-	void AssertMeasurements(double expectedValue) {
+	void AssertMeasurements(double expectedValue)
+	{
 		_listener.Observe();
 
 		Assert.Collection(
 			_listener.RetrieveMeasurements("the-metric-seconds"),
-			m => {
+			m =>
+			{
 				Assert.Equal(expectedValue, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t => {
+					t =>
+					{
 						Assert.Equal("name", t.Key);
 						Assert.Equal("the-tracker", t.Value);
 					},
-					t => {
+					t =>
+					{
 						Assert.Equal("range", t.Key);
 						Assert.Equal("16-20 seconds", t.Value);
 					});
@@ -177,7 +193,8 @@ public class DurationMaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void no_name() {
+	public void no_name()
+	{
 		using var meter = new Meter($"{typeof(DurationMaxTrackerTests)}");
 		using var listener = new TestMeterListener<double>(meter);
 		var sut = new DurationMaxTracker(
@@ -189,11 +206,13 @@ public class DurationMaxTrackerTests : IDisposable {
 
 		Assert.Collection(
 			listener.RetrieveMeasurements("the-metric-seconds"),
-			m => {
+			m =>
+			{
 				Assert.Equal(0, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t => {
+					t =>
+					{
 						Assert.Equal("range", t.Key);
 						Assert.Equal("16-20 seconds", t.Value);
 					});

@@ -8,9 +8,11 @@ using Conf = EventStore.Common.Configuration.MetricsConfiguration;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class IncomingGrpcCallsMetricTests {
+public class IncomingGrpcCallsMetricTests
+{
 	[EventSource(Name = nameof(IncomingGrpcCallsMetricTests))]
-	private class TestEventSource : EventSource {
+	private class TestEventSource : EventSource
+	{
 		[Event(1)] public void CallStart() => WriteEvent(1);
 		[Event(2)] public void CallStop() => WriteEvent(2);
 		[Event(3)] public void CallFailed() => WriteEvent(3);
@@ -19,7 +21,8 @@ public class IncomingGrpcCallsMetricTests {
 	}
 
 	[Fact]
-	public void can_collect() {
+	public void can_collect()
+	{
 		using var testSource = new TestEventSource();
 		using var meter = new Meter($"{typeof(IncomingGrpcCallsMetricTests)}");
 		using var listener = new TestMeterListener<long>(meter);
@@ -88,7 +91,8 @@ public class IncomingGrpcCallsMetricTests {
 	}
 
 	[Fact]
-	public void can_collect_filtered() {
+	public void can_collect_filtered()
+	{
 		using var testSource = new TestEventSource();
 		using var meter = new Meter($"{typeof(IncomingGrpcCallsMetricTests)}");
 		using var listener = new TestMeterListener<long>(meter);
@@ -143,7 +147,8 @@ public class IncomingGrpcCallsMetricTests {
 	static Action<TestMeterListener<long>.TestMeasurement> AssertCurrentMeasurement(
 		long expectedValue) =>
 
-		actualMeasurement => {
+		actualMeasurement =>
+		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
 			Assert.Empty(actualMeasurement.Tags);
 		};
@@ -152,11 +157,13 @@ public class IncomingGrpcCallsMetricTests {
 		string expectedKind,
 		long expectedValue) =>
 
-		actualMeasurement => {
+		actualMeasurement =>
+		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
 			Assert.Collection(
 				actualMeasurement.Tags.ToArray(),
-				tag => {
+				tag =>
+				{
 					Assert.Equal("kind", tag.Key);
 					Assert.Equal(expectedKind, tag.Value);
 				});
@@ -165,7 +172,8 @@ public class IncomingGrpcCallsMetricTests {
 	static void AssertMeasurements(
 		TestMeterListener<long> listener,
 		string name,
-		params Action<TestMeterListener<long>.TestMeasurement>[] actions) {
+		params Action<TestMeterListener<long>.TestMeasurement>[] actions)
+	{
 
 		Assert.Collection(listener.RetrieveMeasurements(name), actions);
 	}

@@ -1,6 +1,7 @@
 namespace EventStore.TcpUnitTestPlugin;
 
-public class TcpApiTestOptions {
+public class TcpApiTestOptions
+{
 	public int NodeTcpPort { get; init; } = 1113;
 	public int NodeHeartbeatInterval { get; init; } = 2_000;
 	public int NodeHeartbeatTimeout { get; init; } = 1_000;

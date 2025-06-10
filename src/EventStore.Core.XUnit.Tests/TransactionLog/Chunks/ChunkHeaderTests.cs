@@ -5,11 +5,13 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
 
-public class ChunkHeaderTests {
+public class ChunkHeaderTests
+{
 	[Theory]
 	[InlineData(true)]
 	[InlineData(false)]
-	public void can_round_trip(bool isScavenged) {
+	public void can_round_trip(bool isScavenged)
+	{
 		var source = new ChunkHeader(
 			version: (byte)Random.Shared.Next(4, 8),
 			minCompatibleVersion: (byte)Random.Shared.Next(4),

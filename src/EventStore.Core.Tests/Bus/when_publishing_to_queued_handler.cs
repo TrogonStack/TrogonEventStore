@@ -9,30 +9,36 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Bus;
 
 [TestFixture, Category("LongRunning")]
-public abstract class when_publishing_to_queued_handler : QueuedHandlerTestWithWaitingConsumer {
+public abstract class when_publishing_to_queued_handler : QueuedHandlerTestWithWaitingConsumer
+{
 	protected when_publishing_to_queued_handler(
 		Func<IHandle<Message>, string, TimeSpan, IQueuedHandler> queuedHandlerFactory)
-		: base(queuedHandlerFactory) {
+		: base(queuedHandlerFactory)
+	{
 	}
 
-	public override void SetUp() {
+	public override void SetUp()
+	{
 		base.SetUp();
 		Queue.Start();
 	}
 
-	public override void TearDown() {
+	public override void TearDown()
+	{
 		Consumer.Dispose();
 		Queue.Stop();
 		base.TearDown();
 	}
 
 	[Test, Ignore("We do not check each message for null for performance reasons.")]
-	public void null_message_should_throw() {
+	public void null_message_should_throw()
+	{
 		Assert.Throws<ArgumentNullException>(() => Queue.Publish(null));
 	}
 
 	[Test]
-	public void message_it_should_be_delivered_to_bus() {
+	public void message_it_should_be_delivered_to_bus()
+	{
 		Consumer.SetWaitingCount(1);
 
 		Queue.Publish(new TestMessage());
@@ -42,7 +48,8 @@ public abstract class when_publishing_to_queued_handler : QueuedHandlerTestWithW
 	}
 
 	[Test]
-	public void multiple_messages_they_should_be_delivered_to_bus() {
+	public void multiple_messages_they_should_be_delivered_to_bus()
+	{
 		Consumer.SetWaitingCount(2);
 
 		Queue.Publish(new TestMessage());
@@ -55,7 +62,8 @@ public abstract class when_publishing_to_queued_handler : QueuedHandlerTestWithW
 	}
 
 	[Test]
-	public void messages_order_should_remain_the_same() {
+	public void messages_order_should_remain_the_same()
+	{
 		Consumer.SetWaitingCount(6);
 
 		Queue.Publish(new TestMessageWithId(4));
@@ -79,9 +87,11 @@ public abstract class when_publishing_to_queued_handler : QueuedHandlerTestWithW
 }
 
 [TestFixture, Category("LongRunning")]
-public class when_publishing_to_queued_handler_threadpool : when_publishing_to_queued_handler {
+public class when_publishing_to_queued_handler_threadpool : when_publishing_to_queued_handler
+{
 	public when_publishing_to_queued_handler_threadpool()
 		: base((consumer, name, timeout) =>
-			new QueuedHandlerThreadPool(consumer, name, new QueueStatsManager(), new(), false, null, timeout)) {
+			new QueuedHandlerThreadPool(consumer, name, new QueueStatsManager(), new(), false, null, timeout))
+	{
 	}
 }

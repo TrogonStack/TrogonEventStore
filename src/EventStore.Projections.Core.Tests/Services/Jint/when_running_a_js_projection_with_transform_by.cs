@@ -6,12 +6,14 @@ using EventStore.Projections.Core.Services.Processing.Emitting;
 using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.Jint
+namespace EventStore.Projections.Core.Tests.Services.Jint;
+
+[TestFixture]
+public class when_running_a_js_projection_with_transform_by : TestFixtureWithInterpretedProjection
 {
-	[TestFixture]
-	public class when_running_a_js_projection_with_transform_by : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
-			_projection = @"
+	protected override void Given()
+	{
+		_projection = @"
                 fromAll().when({
                     $any: function(state, event) {
                         state.a = '1';
@@ -23,20 +25,20 @@ namespace EventStore.Projections.Core.Tests.Services.Jint
                     return state;
                 });
             ";
-		}
+	}
 
-		[Test, Category(_projectionType)]
-		public void transform_state_returns_correct_result() {
-			string state;
-			EmittedEventEnvelope[] emittedEvents;
-			_stateHandler.ProcessEvent(
-				"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
-				"metadata",
-				@"{}", out state, out emittedEvents);
-			var result = _stateHandler.TransformStateToResult();
+	[Test, Category(_projectionType)]
+	public void transform_state_returns_correct_result()
+	{
+		string state;
+		EmittedEventEnvelope[] emittedEvents;
+		_stateHandler.ProcessEvent(
+			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
+			"metadata",
+			@"{}", out state, out emittedEvents);
+		var result = _stateHandler.TransformStateToResult();
 
-			Assert.IsNotNull(result);
-			Assert.AreEqual(@"{""a"":""1"",""b"":""2""}", result);
-		}
+		Assert.IsNotNull(result);
+		Assert.AreEqual(@"{""a"":""1"",""b"":""2""}", result);
 	}
 }

@@ -10,7 +10,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Authentication;
 
 [TestFixture]
-public class PassthroughHttpAuthenticationProviderTests {
+public class PassthroughHttpAuthenticationProviderTests
+{
 	[Test]
 	public void WrongProviderThrows() =>
 		Assert.Throws<ArgumentException>(() => new PassthroughHttpAuthenticationProvider(new TestAuthenticationProvider()));
@@ -19,13 +20,15 @@ public class PassthroughHttpAuthenticationProviderTests {
 	public void CorrectProviderDoesNotThrow(IAuthenticationProvider provider) =>
 		Assert.DoesNotThrow(() => new PassthroughHttpAuthenticationProvider(provider));
 
-	public static IEnumerable<object[]> TestCases() {
+	public static IEnumerable<object[]> TestCases()
+	{
 		yield return [new DelegatedAuthenticationProvider(new PassthroughAuthenticationProvider())];
 		yield return [new PassthroughAuthenticationProvider()];
 	}
 
-	class TestAuthenticationProvider : AuthenticationProviderBase {
-		public override void Authenticate(AuthenticationRequest authenticationRequest) => 
+	class TestAuthenticationProvider : AuthenticationProviderBase
+	{
+		public override void Authenticate(AuthenticationRequest authenticationRequest) =>
 			throw new NotImplementedException();
 	}
 }

@@ -14,10 +14,12 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.event_reader_core_service;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_handling_subscribe_requests<TLogFormat, TStreamId> :TestFixtureWithEventReaderService<TLogFormat, TStreamId> {
-	private readonly ReaderSubscriptionOptions _defaultOptions = new (1000, 10, 1000, false, null, false);
+public class when_handling_subscribe_requests<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
+{
+	private readonly ReaderSubscriptionOptions _defaultOptions = new(1000, 10, 1000, false, null, false);
 	[Test]
-	public void should_publish_subscription_failed_if_the_reader_is_not_running() {
+	public void should_publish_subscription_failed_if_the_reader_is_not_running()
+	{
 		EventReaderSubscriptionMessage.Failed failedMessage = null;
 		var subscriptionId = Guid.NewGuid();
 		_readerService.Handle(new ReaderCoreServiceMessage.StopReader(Guid.Empty));
@@ -34,7 +36,8 @@ public class when_handling_subscribe_requests<TLogFormat, TStreamId> :TestFixtur
 	}
 
 	[Test]
-	public void should_publish_subscription_failed_if_creating_the_reader_fails() {
+	public void should_publish_subscription_failed_if_creating_the_reader_fails()
+	{
 		EventReaderSubscriptionMessage.Failed failedMessage = null;
 		var subscriptionId = Guid.NewGuid();
 		_subscriptionDispatcher.PublishSubscribe(
@@ -50,7 +53,8 @@ public class when_handling_subscribe_requests<TLogFormat, TStreamId> :TestFixtur
 	}
 
 	[Test]
-	public void should_publish_subscription_failed_if_creating_the_paused_event_reader_fails() {
+	public void should_publish_subscription_failed_if_creating_the_paused_event_reader_fails()
+	{
 		EventReaderSubscriptionMessage.Failed failedMessage = null;
 		var subscriptionId = Guid.NewGuid();
 		_subscriptionDispatcher.PublishSubscribe(
@@ -65,11 +69,13 @@ public class when_handling_subscribe_requests<TLogFormat, TStreamId> :TestFixtur
 		Assert.True(failedMessage.Reason.Contains(nameof(FakeReaderSubscriptionThatThrows)));
 	}
 
-	private class FakeReaderStrategyThatThrows :IReaderStrategy {
+	private class FakeReaderStrategyThatThrows : IReaderStrategy
+	{
 		private readonly bool _throwOnCreateSubscription;
 		private readonly bool _throwOnCreatePausedReader;
 
-		private FakeReaderStrategyThatThrows(bool throwOnCreateSubscription, bool throwOnCreatePausedReader) {
+		private FakeReaderStrategyThatThrows(bool throwOnCreateSubscription, bool throwOnCreatePausedReader)
+		{
 			_throwOnCreateSubscription = throwOnCreateSubscription;
 			_throwOnCreatePausedReader = throwOnCreatePausedReader;
 		}
@@ -82,7 +88,8 @@ public class when_handling_subscribe_requests<TLogFormat, TStreamId> :TestFixtur
 		public PositionTagger PositionTagger { get; }
 
 		public IReaderSubscription CreateReaderSubscription(IPublisher publisher, CheckpointTag fromCheckpointTag, Guid subscriptionId,
-			ReaderSubscriptionOptions readerSubscriptionOptions) {
+			ReaderSubscriptionOptions readerSubscriptionOptions)
+		{
 			if (_throwOnCreateSubscription)
 				throw new ArgumentException(nameof(FakeReaderStrategyThatThrows));
 			if (_throwOnCreatePausedReader)
@@ -91,47 +98,58 @@ public class when_handling_subscribe_requests<TLogFormat, TStreamId> :TestFixtur
 		}
 
 		public IEventReader CreatePausedEventReader(Guid eventReaderId, IPublisher publisher, IODispatcher ioDispatcher,
-			CheckpointTag checkpointTag, bool stopOnEof, int? stopAfterNEvents) {
+			CheckpointTag checkpointTag, bool stopOnEof, int? stopAfterNEvents)
+		{
 			throw new NotImplementedException();
 		}
 	}
 
-	private class FakeReaderSubscriptionThatThrows : IReaderSubscription {
-		public void Handle(ReaderSubscriptionMessage.CommittedEventDistributed message) {
+	private class FakeReaderSubscriptionThatThrows : IReaderSubscription
+	{
+		public void Handle(ReaderSubscriptionMessage.CommittedEventDistributed message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.EventReaderIdle message) {
+		public void Handle(ReaderSubscriptionMessage.EventReaderIdle message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.EventReaderStarting message) {
+		public void Handle(ReaderSubscriptionMessage.EventReaderStarting message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.EventReaderEof message) {
+		public void Handle(ReaderSubscriptionMessage.EventReaderEof message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.EventReaderPartitionEof message) {
+		public void Handle(ReaderSubscriptionMessage.EventReaderPartitionEof message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.EventReaderPartitionDeleted message) {
+		public void Handle(ReaderSubscriptionMessage.EventReaderPartitionDeleted message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.EventReaderNotAuthorized message) {
+		public void Handle(ReaderSubscriptionMessage.EventReaderNotAuthorized message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(ReaderSubscriptionMessage.ReportProgress message) {
+		public void Handle(ReaderSubscriptionMessage.ReportProgress message)
+		{
 			throw new NotImplementedException();
 		}
 
 		public string Tag { get; }
 		public Guid SubscriptionId { get; }
-		public IEventReader CreatePausedEventReader(IPublisher publisher, IODispatcher ioDispatcher, Guid forkedEventReaderId) {
+		public IEventReader CreatePausedEventReader(IPublisher publisher, IODispatcher ioDispatcher, Guid forkedEventReaderId)
+		{
 			throw new ArgumentException(nameof(FakeReaderSubscriptionThatThrows));
 		}
 	}

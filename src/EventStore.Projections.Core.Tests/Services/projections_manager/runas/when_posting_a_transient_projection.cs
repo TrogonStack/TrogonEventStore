@@ -1,30 +1,34 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using EventStore.Core.Messaging;
+using EventStore.Core.Tests;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using NUnit.Framework;
-using System.Linq;
-using EventStore.Core.Tests;
 
-namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
-	namespace when_posting_a_transient_projection {
+namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
+{
+	namespace when_posting_a_transient_projection
+	{
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class Authenticated<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+		public class Authenticated<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+		{
 			private string _projectionName;
 			private ClaimsPrincipal _testUserPrincipal;
 
 			private string _projectionBody = @"fromAll().when({$any:function(s,e){return s;}});";
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				_projectionName = "test-projection";
 				_projectionBody = @"fromAll().when({$any:function(s,e){return s;}});";
 				_testUserPrincipal = new ClaimsPrincipal(new ClaimsIdentity(
-					new [] {
+					new[] {
 						new Claim(ClaimTypes.Name,"test-user"),
-						new Claim(ClaimTypes.Role,"test-role1"), 
+						new Claim(ClaimTypes.Role,"test-role1"),
 						new Claim(ClaimTypes.Role,"test-role2")
 					}
 					, "ES-Test"));
@@ -33,7 +37,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
 				NoOtherStreams();
 			}
 
-			protected override IEnumerable<WhenStep> When() {
+			protected override IEnumerable<WhenStep> When()
+			{
 				yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 				yield return
 					new ProjectionManagementMessage.Command.Post(
@@ -43,7 +48,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
 			}
 
 			[Test, Ignore("ignored")]
-			public void anonymous_cannot_retrieve_projection_query() {
+			public void anonymous_cannot_retrieve_projection_query()
+			{
 				GetInputQueue()
 					.Publish(
 						new ProjectionManagementMessage.Command.GetQuery(
@@ -54,7 +60,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
 			}
 
 			[Test]
-			public void projection_owner_can_retrieve_projection_query() {
+			public void projection_owner_can_retrieve_projection_query()
+			{
 				GetInputQueue()
 					.Publish(
 						new ProjectionManagementMessage.Command.GetQuery(
@@ -69,12 +76,14 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		public class Anonymous<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+		public class Anonymous<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+		{
 			private string _projectionName;
 
 			private string _projectionBody = @"fromAll().when({$any:function(s,e){return s;}});";
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				_projectionName = "test-projection";
 				_projectionBody = @"fromAll().when({$any:function(s,e){return s;}});";
 
@@ -82,7 +91,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
 				NoOtherStreams();
 			}
 
-			protected override IEnumerable<WhenStep> When() {
+			protected override IEnumerable<WhenStep> When()
+			{
 				yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 				yield return
 					new ProjectionManagementMessage.Command.Post(
@@ -92,7 +102,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas {
 			}
 
 			[Test]
-			public void replies_with_not_authorized() {
+			public void replies_with_not_authorized()
+			{
 				Assert.IsTrue(HandledMessages.OfType<ProjectionManagementMessage.NotAuthorized>().Any());
 			}
 		}

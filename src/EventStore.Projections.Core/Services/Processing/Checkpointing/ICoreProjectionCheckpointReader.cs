@@ -1,6 +1,7 @@
 namespace EventStore.Projections.Core.Services.Processing.Checkpointing;
 
-public interface ICoreProjectionCheckpointReader {
+public interface ICoreProjectionCheckpointReader
+{
 	void BeginLoadState();
 	void Initialize();
 }

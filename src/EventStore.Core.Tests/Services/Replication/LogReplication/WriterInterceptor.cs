@@ -6,7 +6,7 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-internal class WriterInterceptor:
+internal class WriterInterceptor :
 	IHandle<SystemMessage.SystemInit>,
 	IHandle<SystemMessage.StateChangeMessage>,
 	IHandle<SystemMessage.WriteEpoch>,
@@ -21,19 +21,25 @@ internal class WriterInterceptor:
 	IHandle<ReplicationMessage.ReplicaSubscribed>,
 	IHandle<ReplicationMessage.CreateChunk>,
 	IHandle<ReplicationMessage.RawChunkBulk>,
-	IHandle<ReplicationMessage.DataChunkBulk> {
+	IHandle<ReplicationMessage.DataChunkBulk>
+{
 
 	private bool _paused;
 	private readonly object _lock = new();
 
-	public bool Paused {
-		get {
-			lock (_lock) {
+	public bool Paused
+	{
+		get
+		{
+			lock (_lock)
+			{
 				return _paused;
 			}
 		}
-		private set {
-			lock (_lock) {
+		private set
+		{
+			lock (_lock)
+			{
 				_paused = value;
 			}
 		}
@@ -42,7 +48,8 @@ internal class WriterInterceptor:
 	private readonly ConcurrentQueue<Message> _queue = new();
 	public SynchronousScheduler Bus { get; }
 
-	public WriterInterceptor(ISubscriber subscriber) {
+	public WriterInterceptor(ISubscriber subscriber)
+	{
 		Bus = new("outputBus");
 		subscriber.Subscribe<SystemMessage.SystemInit>(this);
 		subscriber.Subscribe<SystemMessage.StateChangeMessage>(this);
@@ -74,11 +81,13 @@ internal class WriterInterceptor:
 	public void Handle(MonitoringMessage.InternalStatsRequest message) => Process(message);
 	public void Handle(ReplicationMessage.ReplicaSubscribed message) => Process(message);
 	public void Handle(ReplicationMessage.CreateChunk message) => Process(message);
-	public void Handle(ReplicationMessage.RawChunkBulk message)  => Process(message);
+	public void Handle(ReplicationMessage.RawChunkBulk message) => Process(message);
 	public void Handle(ReplicationMessage.DataChunkBulk message) => Process(message);
 
-	protected virtual void Process(Message message) {
-		lock (_lock) {
+	protected virtual void Process(Message message)
+	{
+		lock (_lock)
+		{
 			if (!_paused)
 				Bus.Publish(message);
 			else
@@ -86,14 +95,18 @@ internal class WriterInterceptor:
 		}
 	}
 
-	public virtual void Pause() {
-		lock (_lock) {
+	public virtual void Pause()
+	{
+		lock (_lock)
+		{
 			_paused = true;
 		}
 	}
 
-	public virtual void Resume() {
-		lock (_lock) {
+	public virtual void Resume()
+	{
+		lock (_lock)
+		{
 			_paused = false;
 
 			var msgs = new List<Message>();
@@ -105,8 +118,10 @@ internal class WriterInterceptor:
 		}
 	}
 
-	public virtual void Reset() {
-		lock (_lock) {
+	public virtual void Reset()
+	{
+		lock (_lock)
+		{
 			_paused = false;
 			_queue.Clear();
 		}

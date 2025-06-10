@@ -9,12 +9,14 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ParallelLoopTests {
+public class ParallelLoopTests
+{
 	static async Task RunAsync(
 		int[] source,
 		int[] completionOrder,
 		int[] expectedCheckpoints,
-		int degreeOfParallelism = 2) {
+		int degreeOfParallelism = 2)
+	{
 
 		if (source.Any(x => x % 10 != 0))
 			throw new Exception("use multiples of 10");
@@ -25,7 +27,8 @@ public class ParallelLoopTests {
 		var nextTriggers = new Dictionary<int, AsyncManualResetEvent>();
 
 		var prev = default(int?);
-		foreach (var item in completionOrder) {
+		foreach (var item in completionOrder)
+		{
 			selfTriggers[item] = new AsyncManualResetEvent(initialState: false);
 			if (prev is not null)
 				nextTriggers[prev.Value] = selfTriggers[item];
@@ -33,7 +36,8 @@ public class ParallelLoopTests {
 			prev = item;
 		}
 
-		if (completionOrder.Length > 0) {
+		if (completionOrder.Length > 0)
+		{
 			nextTriggers[completionOrder.Last()] = new AsyncManualResetEvent(initialState: false);
 			selfTriggers[completionOrder[0]].Set();
 		}
@@ -47,7 +51,8 @@ public class ParallelLoopTests {
 			source: source,
 			degreeOfParallelism: degreeOfParallelism,
 			getCheckpointInclusive: x => x,
-			getCheckpointExclusive: x => {
+			getCheckpointExclusive: x =>
+			{
 				var chunkStartNumber = x == 10
 					? x - 10
 					: x - 9;
@@ -55,7 +60,8 @@ public class ParallelLoopTests {
 					return null;
 				return chunkStartNumber - 1;
 			},
-			process: async (slot, x, token) => {
+			process: async (slot, x, token) =>
+			{
 
 				// wait until we are complete
 				await selfTriggers[x].WaitAsync(token);
@@ -67,7 +73,8 @@ public class ParallelLoopTests {
 				// complete the next in line
 				nextTriggers[x].Set();
 			},
-			emitCheckpoint: checkpoint => {
+			emitCheckpoint: checkpoint =>
+			{
 				emittedCheckpoints.Add(checkpoint);
 			},
 			onConsiderEmit: () => serializer.Set());
@@ -135,15 +142,18 @@ public class ParallelLoopTests {
 		expectedCheckpoints: []);
 
 	[Fact]
-	public async Task exception_during_processing_is_propagated_async() {
-		var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+	public async Task exception_during_processing_is_propagated_async()
+	{
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+		{
 			await ParallelLoop.RunWithTrailingCheckpointAsync(
 				source: new int[] { 10 },
 				degreeOfParallelism: 2,
 				getCheckpointInclusive: x => x,
 				getCheckpointExclusive: x => x,
 				process: (slot, x, token) => Task.FromException(new InvalidOperationException("something went wrong")),
-				emitCheckpoint: checkpoint => {
+				emitCheckpoint: checkpoint =>
+				{
 				});
 		});
 
@@ -151,8 +161,10 @@ public class ParallelLoopTests {
 	}
 
 	[Fact]
-	public async Task exception_during_emit_is_propagated_async() {
-		var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+	public async Task exception_during_emit_is_propagated_async()
+	{
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+		{
 			await ParallelLoop.RunWithTrailingCheckpointAsync(
 				source: new int[] { 10 },
 				degreeOfParallelism: 2,

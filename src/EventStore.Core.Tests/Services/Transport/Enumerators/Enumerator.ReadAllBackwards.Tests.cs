@@ -12,8 +12,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests {
-	private static EnumeratorWrapper ReadAllBackwards(IPublisher publisher, Position position) {
+public partial class EnumeratorTests
+{
+	private static EnumeratorWrapper ReadAllBackwards(IPublisher publisher, Position position)
+	{
 		return new EnumeratorWrapper(new Enumerator.ReadAllBackwards(
 			bus: publisher,
 			position: position,
@@ -27,10 +29,12 @@ public partial class EnumeratorTests {
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class read_all_backwards<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	public class read_all_backwards<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
 		private readonly List<Guid> _eventIds = new();
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			EnableReadAll();
 			_eventIds.Add(WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId);
 			_eventIds.Add(WriteEvent("test-stream", "type2", "{}", "{Data: 2}").Item1.EventId);
@@ -39,7 +43,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_read_all_the_events() {
+		public async Task should_read_all_the_events()
+		{
 			await using var enumerator = ReadAllBackwards(_publisher, Position.End);
 
 			Assert.AreEqual(_eventIds[3], ((Event)await enumerator.GetNext()).Id);

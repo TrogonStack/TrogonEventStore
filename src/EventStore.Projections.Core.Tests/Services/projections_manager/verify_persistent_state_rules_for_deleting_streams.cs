@@ -1,35 +1,38 @@
-namespace EventStore.Projections.Core.Tests.Services.projections_manager{
-	using Core.Services.Management;
-	using NUnit.Framework;
+namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
-	[TestFixture]
-	public class VerifyPersistentStateRulesForDeletingStreams {
-		[Test]
-		[TestCase(true,true,true)]
-		[TestCase(false,true,false)]
-		[TestCase(true,false,false)]
-		[TestCase(false,false,false)]
-		public void EmitStreamNeedsDeletedAsExpected(bool emitEnabled,bool deleteEmitStreams,bool expectedResult) {
-			ManagedProjection.PersistedState persistedState = new ManagedProjection.PersistedState();
+using Core.Services.Management;
+using NUnit.Framework;
 
-			persistedState.EmitEnabled = emitEnabled;
-			persistedState.DeleteEmittedStreams = deleteEmitStreams;
+[TestFixture]
+public class VerifyPersistentStateRulesForDeletingStreams
+{
+	[Test]
+	[TestCase(true, true, true)]
+	[TestCase(false, true, false)]
+	[TestCase(true, false, false)]
+	[TestCase(false, false, false)]
+	public void EmitStreamNeedsDeletedAsExpected(bool emitEnabled, bool deleteEmitStreams, bool expectedResult)
+	{
+		ManagedProjection.PersistedState persistedState = new ManagedProjection.PersistedState();
 
-			Assert.IsTrue(persistedState.EmitStreamNeedsDeleted() == expectedResult);
-		}
+		persistedState.EmitEnabled = emitEnabled;
+		persistedState.DeleteEmittedStreams = deleteEmitStreams;
 
-		[Test]
-		[TestCase(true, true, false)]
-		[TestCase(false, true, true)]
-		[TestCase(true, false, false)]
-		[TestCase(false, false, false)]
-		public void CheckpointStreamNeedsDeletedAsExpected(bool checkPointsDisabled, bool deleteCheckpointStreams, bool expectedResult) {
-			ManagedProjection.PersistedState persistedState = new ManagedProjection.PersistedState();
+		Assert.IsTrue(persistedState.EmitStreamNeedsDeleted() == expectedResult);
+	}
 
-			persistedState.CheckpointsDisabled = checkPointsDisabled;
-			persistedState.DeleteCheckpointStream = deleteCheckpointStreams;
+	[Test]
+	[TestCase(true, true, false)]
+	[TestCase(false, true, true)]
+	[TestCase(true, false, false)]
+	[TestCase(false, false, false)]
+	public void CheckpointStreamNeedsDeletedAsExpected(bool checkPointsDisabled, bool deleteCheckpointStreams, bool expectedResult)
+	{
+		ManagedProjection.PersistedState persistedState = new ManagedProjection.PersistedState();
 
-			Assert.IsTrue(persistedState.CheckpointStreamNeedsDeleted() == expectedResult);
-		}
+		persistedState.CheckpointsDisabled = checkPointsDisabled;
+		persistedState.DeleteCheckpointStream = deleteCheckpointStreams;
+
+		Assert.IsTrue(persistedState.CheckpointStreamNeedsDeleted() == expectedResult);
 	}
 }

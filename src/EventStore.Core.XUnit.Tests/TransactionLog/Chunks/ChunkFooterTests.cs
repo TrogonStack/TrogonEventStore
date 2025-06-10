@@ -5,13 +5,15 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
 
-public class ChunkFooterTests {
+public class ChunkFooterTests
+{
 	[Theory]
 	[InlineData(false, false)]
 	[InlineData(false, true)]
 	[InlineData(true, false)]
 	[InlineData(true, true)]
-	public void can_round_trip(bool isCompleted, bool isMap12Bytes) {
+	public void can_round_trip(bool isCompleted, bool isMap12Bytes)
+	{
 		var hash = new byte[ChunkFooter.ChecksumSize];
 		Random.Shared.NextBytes(hash);
 

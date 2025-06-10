@@ -11,21 +11,25 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Storage.InMemory;
 
-public class InMemoryStreamReaderTests {
+public class InMemoryStreamReaderTests
+{
 	private readonly InMemoryStreamReader _sut;
 	private readonly NodeStateListenerService _listener;
 
-	public InMemoryStreamReaderTests() {
+	public InMemoryStreamReaderTests()
+	{
 		var channel = Channel.CreateUnbounded<Message>();
 		_listener = new NodeStateListenerService(
 			new EnvelopePublisher(new ChannelEnvelope(channel)),
 			new InMemoryLog());
-		_sut = new InMemoryStreamReader(new Dictionary<string, IInMemoryStreamReader> {
+		_sut = new InMemoryStreamReader(new Dictionary<string, IInMemoryStreamReader>
+		{
 			[SystemStreams.NodeStateStream] = _listener,
 		});
 	}
 
-	private static ClientMessage.ReadStreamEventsBackward GenReadBackwards(Guid correlation, long fromEventNumber, int maxCount) {
+	private static ClientMessage.ReadStreamEventsBackward GenReadBackwards(Guid correlation, long fromEventNumber, int maxCount)
+	{
 		return new ClientMessage.ReadStreamEventsBackward(
 			internalCorrId: correlation,
 			correlationId: correlation,
@@ -39,7 +43,8 @@ public class InMemoryStreamReaderTests {
 			user: ClaimsPrincipal.Current);
 	}
 
-	public static ClientMessage.ReadStreamEventsForward GenReadForwards(Guid correlation, long fromEventNumber, int maxCount) {
+	public static ClientMessage.ReadStreamEventsForward GenReadForwards(Guid correlation, long fromEventNumber, int maxCount)
+	{
 		return new ClientMessage.ReadStreamEventsForward(
 			internalCorrId: correlation,
 			correlationId: correlation,
@@ -54,9 +59,11 @@ public class InMemoryStreamReaderTests {
 			replyOnExpired: true);
 	}
 
-	public class ReadForwardEmptyTests : InMemoryStreamReaderTests {
+	public class ReadForwardEmptyTests : InMemoryStreamReaderTests
+	{
 		[Fact]
-		public void read_forwards_empty() {
+		public void read_forwards_empty()
+		{
 			var correlation = Guid.NewGuid();
 
 			var result = _sut.ReadForwards(GenReadForwards(correlation, fromEventNumber: 0, maxCount: 10));
@@ -73,9 +80,11 @@ public class InMemoryStreamReaderTests {
 		}
 	}
 
-	public class ReadForwardTests : InMemoryStreamReaderTests {
+	public class ReadForwardTests : InMemoryStreamReaderTests
+	{
 		[Fact]
-		public void read_forwards() {
+		public void read_forwards()
+		{
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			var correlation = Guid.NewGuid();
 
@@ -98,7 +107,8 @@ public class InMemoryStreamReaderTests {
 		}
 
 		[Fact]
-		public void read_forwards_beyond_latest_event() {
+		public void read_forwards_beyond_latest_event()
+		{
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			var correlation = Guid.NewGuid();
 
@@ -116,7 +126,8 @@ public class InMemoryStreamReaderTests {
 		}
 
 		[Fact]
-		public void read_forwards_below_latest_event() {
+		public void read_forwards_below_latest_event()
+		{
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			var correlation = Guid.NewGuid();
@@ -140,7 +151,8 @@ public class InMemoryStreamReaderTests {
 		}
 
 		[Fact]
-		public void read_forwards_far_below_latest_event() {
+		public void read_forwards_far_below_latest_event()
+		{
 			// we specify maxCount, not an upper event number, so it is acceptable in this case to either
 			// - find event 49 (like we do for regular stream forward maxAge reads if old events have been scavenged)
 			//   and reach the end of the stream (nextEventNumber == 50)
@@ -170,9 +182,11 @@ public class InMemoryStreamReaderTests {
 		}
 	}
 
-	public class ReadBackwardsEmptyTests : InMemoryStreamReaderTests {
+	public class ReadBackwardsEmptyTests : InMemoryStreamReaderTests
+	{
 		[Fact]
-		public void read_backwards_empty() {
+		public void read_backwards_empty()
+		{
 			var correlation = Guid.NewGuid();
 
 			var result = _sut.ReadBackwards(GenReadBackwards(correlation, fromEventNumber: 0, maxCount: 10));
@@ -189,9 +203,11 @@ public class InMemoryStreamReaderTests {
 		}
 	}
 
-	public class ReadBackwardsTests : InMemoryStreamReaderTests {
+	public class ReadBackwardsTests : InMemoryStreamReaderTests
+	{
 		[Fact]
-		public void read_backwards() {
+		public void read_backwards()
+		{
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			var correlation = Guid.NewGuid();
 
@@ -214,7 +230,8 @@ public class InMemoryStreamReaderTests {
 		}
 
 		[Fact]
-		public void read_backwards_beyond_latest_event() {
+		public void read_backwards_beyond_latest_event()
+		{
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			var correlation = Guid.NewGuid();
 
@@ -237,7 +254,8 @@ public class InMemoryStreamReaderTests {
 		}
 
 		[Fact]
-		public void read_backwards_far_beyond_latest_event() {
+		public void read_backwards_far_beyond_latest_event()
+		{
 			// we specify maxCount, not a lower event number, so it is acceptable in this case to either
 			// - find event 0 (like we do for regular stream forward maxAge reads if old events have been scavenged)
 			//   and reach the end of the stream (nextEventNumber == -1)
@@ -266,7 +284,8 @@ public class InMemoryStreamReaderTests {
 		}
 
 		[Fact]
-		public void read_backwards_below_latest_event() {
+		public void read_backwards_below_latest_event()
+		{
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 			var correlation = Guid.NewGuid();

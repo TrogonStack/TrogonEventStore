@@ -6,10 +6,12 @@ using Xunit;
 
 namespace EventStore.Projections.Core.XUnit.Tests.Metrics;
 
-public class ProjectionMetricsTests {
+public class ProjectionMetricsTests
+{
 	readonly ProjectionTracker _sut = new();
 
-	public ProjectionMetricsTests() {
+	public ProjectionMetricsTests()
+	{
 		_sut.OnNewStats([new() {
 			Name = "TestProjection",
 			ProjectionId = 1234,
@@ -24,28 +26,32 @@ public class ProjectionMetricsTests {
 	}
 
 	[Fact]
-	public void ObserveEventsProcessed() {
+	public void ObserveEventsProcessed()
+	{
 		var measurements = _sut.ObserveEventsProcessed();
 		var measurement = Assert.Single(measurements);
 		AssertMeasurement(50L, ("projection", "TestProjection"))(measurement);
 	}
 
 	[Fact]
-	public void ObserveRunning() {
+	public void ObserveRunning()
+	{
 		var measurements = _sut.ObserveRunning();
 		var measurement = Assert.Single(measurements);
 		AssertMeasurement(1L, ("projection", "TestProjection"))(measurement);
 	}
 
 	[Fact]
-	public void ObserveProgress() {
+	public void ObserveProgress()
+	{
 		var measurements = _sut.ObserveProgress();
 		var measurement = Assert.Single(measurements);
 		AssertMeasurement(0.75f, ("projection", "TestProjection"))(measurement);
 	}
 
 	[Fact]
-	public void ObserveStatus() {
+	public void ObserveStatus()
+	{
 		var measurements = _sut.ObserveStatus();
 		Assert.Collection(measurements,
 			AssertMeasurement(1L, ("projection", "TestProjection"), ("status", "Running")),
@@ -56,9 +62,11 @@ public class ProjectionMetricsTests {
 	static Action<Measurement<T>> AssertMeasurement<T>(
 		T expectedValue, params (string, string?)[] tags) where T : struct =>
 
-		actualMeasurement => {
+		actualMeasurement =>
+		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
-			if (actualMeasurement.Tags == null) return;
+			if (actualMeasurement.Tags == null)
+				return;
 
 			Assert.Equal(
 				tags,

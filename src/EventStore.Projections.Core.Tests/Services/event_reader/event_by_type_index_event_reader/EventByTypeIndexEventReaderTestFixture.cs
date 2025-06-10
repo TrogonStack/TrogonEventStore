@@ -6,8 +6,10 @@ using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Tests.Services.core_projection;
 using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 
-public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
-	public Guid CompleteForwardStreamRead(string streamId, Guid corrId, params ResolvedEvent[] events) {
+public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
+	public Guid CompleteForwardStreamRead(string streamId, Guid corrId, params ResolvedEvent[] events)
+	{
 		var lastEventNumber = events != null && events.Length > 0 ? events.Last().Event.EventNumber : 0;
 		var message = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
 			.Last(x => x.EventStreamId == streamId);
@@ -18,7 +20,8 @@ public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStream
 		return message.CorrelationId;
 	}
 
-	public Guid CompleteForwardAllStreamRead(Guid corrId, params ResolvedEvent[] events) {
+	public Guid CompleteForwardAllStreamRead(Guid corrId, params ResolvedEvent[] events)
+	{
 		var message = _consumer.HandledMessages.OfType<ClientMessage.ReadAllEventsForward>().Last();
 		message.Envelope.ReplyWith(
 			new ClientMessage.ReadAllEventsForwardCompleted(
@@ -27,7 +30,8 @@ public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStream
 		return message.CorrelationId;
 	}
 
-	public Guid CompleteBackwardStreamRead(string streamId, Guid corrId, params ResolvedEvent[] events) {
+	public Guid CompleteBackwardStreamRead(string streamId, Guid corrId, params ResolvedEvent[] events)
+	{
 		var lastEventNumber = events != null && events.Length > 0 ? events.Last().Event.EventNumber : 0;
 		var message = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsBackward>()
 			.Last(x => x.EventStreamId == streamId);
@@ -38,7 +42,8 @@ public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStream
 		return message.CorrelationId;
 	}
 
-	public Guid TimeoutRead(string streamId, Guid corrId) {
+	public Guid TimeoutRead(string streamId, Guid corrId)
+	{
 		var timeoutMessage = _consumer.HandledMessages
 			.OfType<EventStore.Core.Services.TimerService.TimerMessage.Schedule>().Last(x =>
 				((ProjectionManagementMessage.Internal.ReadTimeout)x.ReplyMessage).StreamId == streamId);
@@ -51,7 +56,8 @@ public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStream
 		return correlationId;
 	}
 
-	protected static string TFPosToMetadata(TFPos tfPos) {
+	protected static string TFPosToMetadata(TFPos tfPos)
+	{
 		return string.Format(@"{{""$c"":{0},""$p"":{1}}}", tfPos.CommitPosition, tfPos.PreparePosition);
 	}
 }

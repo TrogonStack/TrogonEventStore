@@ -7,9 +7,11 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Other;
 
 [TestFixture]
-public class claims_serialization {
+public class claims_serialization
+{
 	[Test]
-	public void should_serialize_principal_name() {
+	public void should_serialize_principal_name()
+	{
 		var principalName = "foo-name";
 		var claimsIdentity = new ClaimsIdentity(new Claim[] {
 			new(ClaimTypes.Name, principalName),
@@ -21,9 +23,10 @@ public class claims_serialization {
 	}
 
 	[Test]
-	public void should_only_serialize_role() {
+	public void should_only_serialize_role()
+	{
 		var roleClaim = new Claim(ClaimTypes.Role, "$admins");
-		var claimsIdentity = new ClaimsIdentity(new [] {
+		var claimsIdentity = new ClaimsIdentity(new[] {
 			new(ClaimTypes.Name, "foo-name"),
 			roleClaim,
 			new("uid", "foo-uid"),
@@ -36,14 +39,16 @@ public class claims_serialization {
 	}
 
 	[Test]
-	public void should_return_null_for_anonymous() {
+	public void should_return_null_for_anonymous()
+	{
 		var runas = new ProjectionManagementMessage.RunAs(SystemAccounts.Anonymous);
 		var sra = SerializedRunAs.SerializePrincipal(runas);
 		Assert.IsNull(sra);
 	}
 
 	[Test]
-	public void should_set_runas_system_for_system_principal() {
+	public void should_set_runas_system_for_system_principal()
+	{
 		var runas = new ProjectionManagementMessage.RunAs(SystemAccounts.System);
 		var sra = SerializedRunAs.SerializePrincipal(runas);
 		Assert.AreEqual("$system", sra.Name);

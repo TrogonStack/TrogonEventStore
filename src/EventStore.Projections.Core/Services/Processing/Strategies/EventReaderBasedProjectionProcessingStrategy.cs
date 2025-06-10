@@ -11,7 +11,8 @@ using EventStore.Projections.Core.Services.Processing.Phases;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionProcessingStrategy {
+public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionProcessingStrategy
+{
 	protected readonly ProjectionConfig _projectionConfig;
 	protected readonly IQuerySources _sourceDefinition;
 	private readonly ReaderSubscriptionDispatcher _subscriptionDispatcher;
@@ -21,7 +22,8 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 	protected EventReaderBasedProjectionProcessingStrategy(
 		string name, ProjectionVersion projectionVersion, ProjectionConfig projectionConfig,
 		IQuerySources sourceDefinition, Serilog.ILogger logger, ReaderSubscriptionDispatcher subscriptionDispatcher, bool enableContentTypeValidation)
-		: base(name, projectionVersion, logger) {
+		: base(name, projectionVersion, logger)
+	{
 		_projectionConfig = projectionConfig;
 		_sourceDefinition = sourceDefinition;
 		_subscriptionDispatcher = subscriptionDispatcher;
@@ -39,7 +41,8 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 		ProjectionNamesBuilder namingBuilder,
 		ITimeProvider timeProvider,
 		IODispatcher ioDispatcher,
-		CoreProjectionCheckpointWriter coreProjectionCheckpointWriter) {
+		CoreProjectionCheckpointWriter coreProjectionCheckpointWriter)
+	{
 		var definesFold = _sourceDefinition.DefinesFold;
 
 		var readerStrategy = CreateReaderStrategy(timeProvider);
@@ -101,7 +104,8 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 		IResultWriter resultWriter,
 		IEmittedStreamsTracker emittedStreamsTracker);
 
-	protected virtual IReaderStrategy CreateReaderStrategy(ITimeProvider timeProvider) {
+	protected virtual IReaderStrategy CreateReaderStrategy(ITimeProvider timeProvider)
+	{
 		return ReaderStrategy.Create(
 			_name,
 			0,
@@ -123,15 +127,18 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 		IODispatcher ioDispatcher,
 		IProjectionProcessingPhase firstPhase);
 
-	protected override IQuerySources GetSourceDefinition() {
+	protected override IQuerySources GetSourceDefinition()
+	{
 		return _sourceDefinition;
 	}
 
-	public override bool GetRequiresRootPartition() {
+	public override bool GetRequiresRootPartition()
+	{
 		return !(_sourceDefinition.ByStreams || _sourceDefinition.ByCustomPartitions) || _isBiState;
 	}
 
-	public override void EnrichStatistics(ProjectionStatistics info) {
+	public override void EnrichStatistics(ProjectionStatistics info)
+	{
 		//TODO: get rid of this cast
 		info.ResultStreamName = _sourceDefinition.ResultStreamNameOption;
 	}
@@ -139,18 +146,22 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 	protected virtual ICoreProjectionCheckpointManager CreateCheckpointManager(
 		Guid projectionCorrelationId, IPublisher publisher, IODispatcher ioDispatcher,
 		ProjectionNamesBuilder namingBuilder, CoreProjectionCheckpointWriter coreProjectionCheckpointWriter,
-		bool definesFold, IReaderStrategy readerStrategy) {
+		bool definesFold, IReaderStrategy readerStrategy)
+	{
 		var emitAny = _projectionConfig.EmitEventEnabled;
 
 		//NOTE: not emitting one-time/transient projections are always handled by default checkpoint manager
 		// as they don't depend on stable event order
-		if (emitAny && !readerStrategy.IsReadingOrderRepeatable) {
+		if (emitAny && !readerStrategy.IsReadingOrderRepeatable)
+		{
 			return new MultiStreamMultiOutputCheckpointManager(
 				publisher, projectionCorrelationId, _projectionVersion, _projectionConfig.RunAs, ioDispatcher,
 				_projectionConfig, _name, readerStrategy.PositionTagger, namingBuilder,
 				_projectionConfig.CheckpointsEnabled, GetProducesRunningResults(), definesFold,
 				coreProjectionCheckpointWriter);
-		} else {
+		}
+		else
+		{
 			return new DefaultCheckpointManager(
 				publisher, projectionCorrelationId, _projectionVersion, _projectionConfig.RunAs, ioDispatcher,
 				_projectionConfig, _name, readerStrategy.PositionTagger, namingBuilder,
@@ -161,7 +172,8 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 
 	protected virtual IResultWriter CreateFirstPhaseResultWriter(
 		IEmittedEventWriter emittedEventWriter, CheckpointTag zeroCheckpointTag,
-		ProjectionNamesBuilder namingBuilder) {
+		ProjectionNamesBuilder namingBuilder)
+	{
 		return new ResultWriter(
 			CreateFirstPhaseResultEmitter(namingBuilder), emittedEventWriter, GetProducesRunningResults(),
 			zeroCheckpointTag, namingBuilder.GetPartitionCatalogStreamName());

@@ -1,9 +1,11 @@
 using System;
 
-namespace EventStore.BufferManagement {
-	public class UnableToAllocateBufferException : Exception {
-		public UnableToAllocateBufferException()
-			: base("Cannot allocate buffer after few trials.") {
-		}
+namespace EventStore.BufferManagement;
+
+public class UnableToAllocateBufferException : Exception
+{
+	public UnableToAllocateBufferException()
+		: base("Cannot allocate buffer after few trials.")
+	{
 	}
 }

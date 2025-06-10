@@ -2,8 +2,10 @@ using System;
 
 namespace EventStore.Common.Utils;
 
-public abstract class EventPositionParser {
-	public static (long commit, long prepare) ParseCommitPreparePosition(string position) {
+public abstract class EventPositionParser
+{
+	public static (long commit, long prepare) ParseCommitPreparePosition(string position)
+	{
 		if (string.IsNullOrEmpty(position))
 			return (-1, -1);
 

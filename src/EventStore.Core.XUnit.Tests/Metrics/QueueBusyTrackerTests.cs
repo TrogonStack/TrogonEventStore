@@ -5,9 +5,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class QueueBusyTrackerTests {
+public class QueueBusyTrackerTests
+{
 	[Fact]
-	public async Task records() {
+	public async Task records()
+	{
 		using var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
 		using var listener = new TestMeterListener<double>(meter);
 		var metric = new AverageMetric(meter, "the-metric", "seconds", label => new("queue", label));
@@ -20,11 +22,13 @@ public class QueueBusyTrackerTests {
 
 		Assert.Collection(
 			listener.RetrieveMeasurements("the-metric-seconds"),
-			m => {
+			m =>
+			{
 				Assert.True(m.Value > 0.0001);
 				Assert.Collection(
 					m.Tags,
-					t => {
+					t =>
+					{
 						Assert.Equal("queue", t.Key);
 						Assert.Equal("the-queue", t.Value);
 					});

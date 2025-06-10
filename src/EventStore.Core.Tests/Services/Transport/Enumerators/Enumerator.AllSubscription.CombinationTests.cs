@@ -15,24 +15,30 @@ using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests {
+public partial class EnumeratorTests
+{
 	[TestFixtureSource(nameof(TestCases))]
-	public class AllSubscriptionCombinationTests : TestFixtureWithMiniNodeConnection {
+	public class AllSubscriptionCombinationTests : TestFixtureWithMiniNodeConnection
+	{
 		public record struct StreamProperties(int NumEvents = 0);
 		public record struct SubscriptionProperties(CheckpointType CheckpointType = CheckpointType.Start);
 		public record struct LiveProperties(int NumEventsToAdd = 0, bool RevokeAccessWithStreamAcl = false, bool RevokeAccessWithDefaultAcl = false, bool FallBehindThenCatchUp = false);
-		public readonly record struct TestData(string TestCase, StreamProperties StreamProperties, SubscriptionProperties SubscriptionProperties, LiveProperties LiveProperties) {
-			public override string ToString() {
+		public readonly record struct TestData(string TestCase, StreamProperties StreamProperties, SubscriptionProperties SubscriptionProperties, LiveProperties LiveProperties)
+		{
+			public override string ToString()
+			{
 				return TestCase;
 			}
 		}
-		public static object[] CreateTestData(string testCase, StreamProperties streamProperties, SubscriptionProperties subscriptionProperties, LiveProperties liveProperties) {
+		public static object[] CreateTestData(string testCase, StreamProperties streamProperties, SubscriptionProperties subscriptionProperties, LiveProperties liveProperties)
+		{
 			return new object[] {
 				new TestData(testCase, streamProperties, subscriptionProperties, liveProperties)
 			};
 		}
 
-		public enum CheckpointType {
+		public enum CheckpointType
+		{
 			Start = 0,
 			End = 1,
 			AtZero = 2,
@@ -118,33 +124,39 @@ public partial class EnumeratorTests {
 
 		private int _nextEventIndex;
 
-		public AllSubscriptionCombinationTests(TestData testData) {
+		public AllSubscriptionCombinationTests(TestData testData)
+		{
 			_testData = testData;
 			_streamPrefix = $"stream-{Guid.NewGuid()}-";
 		}
 
-		private Position GetPosition(ResolvedEvent @event) {
+		private Position GetPosition(ResolvedEvent @event)
+		{
 			var pos = @event.OriginalPosition!.Value;
 			return Position.FromInt64(pos.CommitPosition, pos.PreparePosition);
 		}
 
-		private Position GetPositionPlusOneByte(ResolvedEvent @event) {
+		private Position GetPositionPlusOneByte(ResolvedEvent @event)
+		{
 			var pos = GetPosition(@event);
 			return new Position(pos.CommitPosition + 1, pos.PreparePosition + 1);
 		}
 
-		private Position GetPositionMinusOneByte(ResolvedEvent @event) {
+		private Position GetPositionMinusOneByte(ResolvedEvent @event)
+		{
 			var pos = GetPosition(@event);
 			return new Position(pos.CommitPosition - 1, pos.PreparePosition - 1);
 		}
 
-		private async Task WriteExistingEvents() {
+		private async Task WriteExistingEvents()
+		{
 			var numEvents = StreamProps.NumEvents;
 			for (int i = 0; i < numEvents; i++)
 				await WriteEvent();
 		}
 
-		private async Task PopulateExistingEvents() {
+		private async Task PopulateExistingEvents()
+		{
 			_events.Clear();
 
 			var result = await NodeConnection.ReadAllEventsForwardAsync(
@@ -156,7 +168,8 @@ public partial class EnumeratorTests {
 				_events.Add(@event);
 		}
 
-		private async Task WriteEvent(string stream, string eventType, string data, string metadata) {
+		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
+		{
 			data ??= string.Empty;
 			metadata ??= string.Empty;
 			var eventData = new EventData(Guid.NewGuid(), eventType, true, Encoding.UTF8.GetBytes(data), Encoding.UTF8.GetBytes(metadata));
@@ -166,24 +179,32 @@ public partial class EnumeratorTests {
 		private Task RevokeAccessWithStreamAcl() => WriteEvent(SystemStreams.MetastreamOf(Core.Services.SystemStreams.AllStream), "$metadata", @"{ ""$acl"": { ""$r"": [] } }", null);
 		private Task RevokeAccessWithDefaultAcl() => WriteEvent(SystemStreams.SettingsStream, "update-default-acl", @"{ ""$systemStreamAcl"" : { ""$r"" : [] } }", null);
 
-		private async Task<(int numEventsAdded, bool accessRevoked, bool fallBehindThenCatchup)> ApplyLiveProperties() {
+		private async Task<(int numEventsAdded, bool accessRevoked, bool fallBehindThenCatchup)> ApplyLiveProperties()
+		{
 			var numEventsAdded = 0;
 			var accessRevoked = false;
 			var shouldFallBehindThenCatchup = false;
 
-			if (LiveProps.NumEventsToAdd > 0) {
+			if (LiveProps.NumEventsToAdd > 0)
+			{
 				numEventsAdded = LiveProps.NumEventsToAdd;
 				for (var i = 0; i < numEventsAdded; i++)
 					await WriteEvent();
-			} else if (LiveProps.RevokeAccessWithStreamAcl) {
+			}
+			else if (LiveProps.RevokeAccessWithStreamAcl)
+			{
 				numEventsAdded = 1;
 				accessRevoked = true;
 				await RevokeAccessWithStreamAcl();
-			} else if (LiveProps.RevokeAccessWithDefaultAcl) {
+			}
+			else if (LiveProps.RevokeAccessWithDefaultAcl)
+			{
 				numEventsAdded = 1;
 				accessRevoked = true;
 				await RevokeAccessWithDefaultAcl();
-			} else if (LiveProps.FallBehindThenCatchUp) {
+			}
+			else if (LiveProps.FallBehindThenCatchUp)
+			{
 				numEventsAdded = NumEventsToFallBehind;
 				for (var i = 0; i < NumEventsToFallBehind; i++)
 					await WriteEvent();
@@ -197,8 +218,10 @@ public partial class EnumeratorTests {
 			return (numEventsAdded, accessRevoked, shouldFallBehindThenCatchup);
 		}
 
-		private int CalculateNextEventIndexFromCheckpoint() {
-			return SubscriptionProps.CheckpointType switch {
+		private int CalculateNextEventIndexFromCheckpoint()
+		{
+			return SubscriptionProps.CheckpointType switch
+			{
 				CheckpointType.Start => 0,
 				CheckpointType.End => _events.Count,
 				CheckpointType.AtZero => 0,
@@ -210,8 +233,10 @@ public partial class EnumeratorTests {
 			};
 		}
 
-		private EnumeratorWrapper Subscribe() {
-			Position? checkpoint = SubscriptionProps.CheckpointType switch {
+		private EnumeratorWrapper Subscribe()
+		{
+			Position? checkpoint = SubscriptionProps.CheckpointType switch
+			{
 				CheckpointType.Start => null,
 				CheckpointType.End => Position.End,
 				CheckpointType.AtZero => Position.Start,
@@ -225,7 +250,8 @@ public partial class EnumeratorTests {
 			return CreateAllSubscription(Node.Node.MainQueue, checkpoint, SystemAccounts.Anonymous);
 		}
 
-		private async Task<int> ReadExpectedEvents(EnumeratorWrapper sub, int nextEventIndex, int lastEventIndex, bool shouldFallBehindThenCatchUp = false) {
+		private async Task<int> ReadExpectedEvents(EnumeratorWrapper sub, int nextEventIndex, int lastEventIndex, bool shouldFallBehindThenCatchUp = false)
+		{
 			var fellBehind = false;
 			var caughtUp = false;
 
@@ -233,9 +259,11 @@ public partial class EnumeratorTests {
 			if (shouldFallBehindThenCatchUp)
 				numResponsesExpected += 2;
 
-			while (--numResponsesExpected >= 0) {
+			while (--numResponsesExpected >= 0)
+			{
 				var response = await sub.GetNext();
-				switch (response) {
+				switch (response)
+				{
 					case Event evt:
 						var evtPos = _events[nextEventIndex++].OriginalPosition!.Value;
 						var evtTfPos = new TFPos(evtPos.CommitPosition, evtPos.PreparePosition);
@@ -258,11 +286,12 @@ public partial class EnumeratorTests {
 						break;
 					default:
 						Assert.Fail($"Unexpected response: {response}");
-						break ;
+						break;
 				}
 			}
 
-			if (shouldFallBehindThenCatchUp) {
+			if (shouldFallBehindThenCatchUp)
+			{
 				if (!fellBehind)
 					Assert.Fail("Subscription did not fall behind.");
 
@@ -274,19 +303,22 @@ public partial class EnumeratorTests {
 		}
 
 		[SetUp]
-		public async Task SetUp() {
+		public async Task SetUp()
+		{
 			await WriteExistingEvents();
 			await PopulateExistingEvents();
 			_nextEventIndex = CalculateNextEventIndexFromCheckpoint();
 		}
 
 		[Test]
-		public async Task enumeration_is_correct() {
+		public async Task enumeration_is_correct()
+		{
 			var sub = Subscribe();
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 
-			if (SubscriptionProps.CheckpointType == CheckpointType.InvalidPosition) {
+			if (SubscriptionProps.CheckpointType == CheckpointType.InvalidPosition)
+			{
 				Assert.ThrowsAsync<ReadResponseException.InvalidPosition>(async () => await sub.GetNext());
 				return;
 			}
@@ -299,7 +331,8 @@ public partial class EnumeratorTests {
 
 			_nextEventIndex = await ReadExpectedEvents(sub, _nextEventIndex, _nextEventIndex + numEventsAdded - 1, shouldFallBehindThenCatchup);
 
-			if (accessRevoked) {
+			if (accessRevoked)
+			{
 				Assert.ThrowsAsync<ReadResponseException.AccessDenied>(async () => await sub.GetNext());
 			}
 		}

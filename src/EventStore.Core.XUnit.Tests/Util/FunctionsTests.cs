@@ -5,9 +5,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Util;
 
-public class FunctionsTests {
+public class FunctionsTests
+{
 	[Fact]
-	public void sanity_check() {
+	public void sanity_check()
+	{
 		var clock = new FakeClock();
 		clock.SecondsSinceEpoch = 12345;
 		var calls = 0;

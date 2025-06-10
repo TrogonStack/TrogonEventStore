@@ -12,9 +12,12 @@ using EventStore.Projections.Core.Services.Processing.Strategies;
 using EventStore.Projections.Core.Services.Processing.Subscriptions;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_index_reader.catching_up {
-	namespace when_reordering_happens_in_event_by_type_index {
-		abstract class ReadingReorderedEventsInTheIndexTestFixture<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId> {
+namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_index_reader.catching_up
+{
+	namespace when_reordering_happens_in_event_by_type_index
+	{
+		abstract class ReadingReorderedEventsInTheIndexTestFixture<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
+		{
 			protected Guid _subscriptionId;
 			private QuerySourcesDefinition _sourceDefinition;
 			protected IReaderStrategy _readerStrategy;
@@ -23,11 +26,13 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 			protected TFPos _tfPos2;
 			protected TFPos _tfPos3;
 
-			protected override bool GivenHeadingReaderRunning() {
+			protected override bool GivenHeadingReaderRunning()
+			{
 				return true;
 			}
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				base.Given();
 				AllWritesSucceed();
 
@@ -38,9 +43,10 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 				GivenInitialIndexState();
 
 				_subscriptionId = Guid.NewGuid();
-				_sourceDefinition = new QuerySourcesDefinition {
+				_sourceDefinition = new QuerySourcesDefinition
+				{
 					AllStreams = true,
-					Events = new[] {"type1", "type2"},
+					Events = new[] { "type1", "type2" },
 					Options = new QuerySourcesDefinitionOptions { }
 				};
 				_readerStrategy = ReaderStrategy.Create(
@@ -60,12 +66,14 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 
 			protected abstract void GivenInitialIndexState();
 
-			protected string TFPosToMetadata(TFPos tfPos) {
+			protected string TFPosToMetadata(TFPos tfPos)
+			{
 				return string.Format(@"{{""$c"":{0},""$p"":{1}}}", tfPos.CommitPosition, tfPos.PreparePosition);
 			}
 
 			[Test]
-			public void returns_all_events() {
+			public void returns_all_events()
+			{
 				var receivedEvents =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToArray();
 
@@ -73,29 +81,33 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 			}
 
 			[Test]
-			public void returns_events_in_original_order() {
+			public void returns_events_in_original_order()
+			{
 				var receivedEvents =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToArray();
 
 				Assert.That(
-					new long[] {0, 1, 2}.SequenceEqual(from e in receivedEvents
-						select e.Data.EventSequenceNumber),
+					new long[] { 0, 1, 2 }.SequenceEqual(from e in receivedEvents
+														 select e.Data.EventSequenceNumber),
 					"Incorrect event order received");
 			}
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_starting_with_empty_index<TLogFormat, TStreamId> : ReadingReorderedEventsInTheIndexTestFixture<TLogFormat, TStreamId> {
-			protected override void GivenInitialIndexState() {
+		class when_starting_with_empty_index<TLogFormat, TStreamId> : ReadingReorderedEventsInTheIndexTestFixture<TLogFormat, TStreamId>
+		{
+			protected override void GivenInitialIndexState()
+			{
 				NoStream("$et-type1");
 				NoStream("$et-type2");
 				NoStream("$et");
 			}
 
-			protected override IEnumerable<WhenStep> When() {
+			protected override IEnumerable<WhenStep> When()
+			{
 				var fromZeroPosition = CheckpointTag.FromEventTypeIndexPositions(
-					0, new TFPos(0, -1), new Dictionary<string, long> {{"type1", -1}, {"type2", -1}});
+					0, new TFPos(0, -1), new Dictionary<string, long> { { "type1", -1 }, { "type2", -1 } });
 				yield return
 					new ReaderSubscriptionManagement.Subscribe(
 						_subscriptionId, fromZeroPosition, _readerStrategy, _readerSubscriptionOptions);
@@ -122,8 +134,10 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-		class when_starting_with_partially_built_index<TLogFormat, TStreamId> : ReadingReorderedEventsInTheIndexTestFixture<TLogFormat, TStreamId> {
-			protected override void GivenInitialIndexState() {
+		class when_starting_with_partially_built_index<TLogFormat, TStreamId> : ReadingReorderedEventsInTheIndexTestFixture<TLogFormat, TStreamId>
+		{
+			protected override void GivenInitialIndexState()
+			{
 				// simulate index-by-type system projection
 				ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos1), "0@test-stream");
 
@@ -133,9 +147,10 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 				NoStream("$et");
 			}
 
-			protected override IEnumerable<WhenStep> When() {
+			protected override IEnumerable<WhenStep> When()
+			{
 				var fromZeroPosition = CheckpointTag.FromEventTypeIndexPositions(
-					0, new TFPos(0, -1), new Dictionary<string, long> {{"type1", -1}, {"type2", -1}});
+					0, new TFPos(0, -1), new Dictionary<string, long> { { "type1", -1 }, { "type2", -1 } });
 				yield return
 					new ReaderSubscriptionManagement.Subscribe(
 						_subscriptionId, fromZeroPosition, _readerStrategy, _readerSubscriptionOptions);

@@ -13,25 +13,31 @@ using ExpectedVersion = EventStore.ClientAPI.ExpectedVersion;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests {
+public partial class EnumeratorTests
+{
 	[TestFixtureSource(nameof(TestCases))]
-	public class StreamSubscriptionCombinationTests : TestFixtureWithMiniNodeConnection {
+	public class StreamSubscriptionCombinationTests : TestFixtureWithMiniNodeConnection
+	{
 		public record struct StreamProperties(int NumEvents = 0, TruncationInfo TruncationInfo = new(), bool IsHardDeleted = false, bool IsEphemeralStream = false);
 		public record struct SubscriptionProperties(CheckpointType CheckpointType = CheckpointType.Start);
 		public record struct LiveProperties(int NumEventsToAdd = 0, bool SoftDeleteStream = false, bool HardDeleteStream = false, bool RevokeAccessWithStreamAcl = false, bool RevokeAccessWithDefaultAcl = false, bool FallBehindThenCatchUp = false);
-		public readonly record struct TestData(string TestCase, StreamProperties StreamProperties, SubscriptionProperties SubscriptionProperties, LiveProperties LiveProperties) {
-			public override string ToString() {
+		public readonly record struct TestData(string TestCase, StreamProperties StreamProperties, SubscriptionProperties SubscriptionProperties, LiveProperties LiveProperties)
+		{
+			public override string ToString()
+			{
 				return TestCase;
 			}
 		}
-		public static object[] CreateTestData(string testCase, StreamProperties streamProperties, SubscriptionProperties subscriptionProperties, LiveProperties liveProperties) {
+		public static object[] CreateTestData(string testCase, StreamProperties streamProperties, SubscriptionProperties subscriptionProperties, LiveProperties liveProperties)
+		{
 			return new object[] {
 				new TestData(testCase, streamProperties, subscriptionProperties, liveProperties)
 			};
 		}
 
 		public record struct TruncationInfo(TruncationType TruncationType, long? TruncationParam = null);
-		public enum TruncationType {
+		public enum TruncationType
+		{
 			None = 0,
 			SoftDelete = 1,
 			TruncateBefore = 2,
@@ -39,7 +45,8 @@ public partial class EnumeratorTests {
 			ExpiredMaxAge = 4
 		}
 
-		public enum CheckpointType {
+		public enum CheckpointType
+		{
 			Start = 0,
 			End = 1,
 			AtZero = 2,
@@ -609,12 +616,15 @@ public partial class EnumeratorTests {
 		private long _ephemeralStreamLastEventNumber;
 
 		private bool HardDeleted => StreamProps.IsHardDeleted;
-		private long FirstEventNumber {
-			get {
+		private long FirstEventNumber
+		{
+			get
+			{
 				if (StreamProps.IsEphemeralStream)
 					return _ephemeralStreamLastEventNumber; // the $mem-node-state ephemeral stream keeps only the last event
 
-				return StreamProps.TruncationInfo.TruncationType switch {
+				return StreamProps.TruncationInfo.TruncationType switch
+				{
 					TruncationType.None => 0L,
 					TruncationType.SoftDelete => StreamProps.NumEvents,
 					TruncationType.TruncateBefore => StreamProps.TruncationInfo.TruncationParam!.Value,
@@ -625,8 +635,10 @@ public partial class EnumeratorTests {
 			}
 		}
 
-		private long LastEventNumber {
-			get {
+		private long LastEventNumber
+		{
+			get
+			{
 				if (StreamProps.IsEphemeralStream)
 					return _ephemeralStreamLastEventNumber;
 
@@ -634,13 +646,15 @@ public partial class EnumeratorTests {
 			}
 		}
 
-		public StreamSubscriptionCombinationTests(TestData testData) {
+		public StreamSubscriptionCombinationTests(TestData testData)
+		{
 			_testData = testData;
 			_stream = StreamProps.IsEphemeralStream ? "$mem-node-state" : $"stream-{Guid.NewGuid()}";
 			_nextEventNumber = CalculateNextEventNumberFromCheckpoint();
 		}
 
-		private async Task WriteExistingEvents() {
+		private async Task WriteExistingEvents()
+		{
 			if (StreamProps is { IsEphemeralStream: true, NumEvents: > 0 })
 				throw new Exception("Ephemeral streams cannot be written to.");
 
@@ -649,7 +663,8 @@ public partial class EnumeratorTests {
 				await WriteEvent();
 		}
 
-		private async Task WriteEvent(string stream, string eventType, string data, string metadata) {
+		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
+		{
 			data ??= string.Empty;
 			metadata ??= string.Empty;
 			var eventData = new EventData(Guid.NewGuid(), eventType, true, Encoding.UTF8.GetBytes(data), Encoding.UTF8.GetBytes(metadata));
@@ -661,7 +676,8 @@ public partial class EnumeratorTests {
 		private async Task RevokeAccessWithStreamAcl() => await WriteEvent(SystemStreams.MetastreamOf(_stream), "$metadata", @"{ ""$acl"": { ""$r"": [] } }", null);
 		private async Task RevokeAccessWithDefaultAcl() => await WriteEvent(SystemStreams.SettingsStream, "update-default-acl", @"{ ""$userStreamAcl"" : { ""$r"" : [] } }", null);
 
-		private Task WriteMetadata(string metadata) {
+		private Task WriteMetadata(string metadata)
+		{
 			var metaStream = SystemStreams.MetastreamOf(_stream);
 			const string metaEventType = "$metadata";
 			return WriteEvent(metaStream, metaEventType, metadata, null);
@@ -669,18 +685,21 @@ public partial class EnumeratorTests {
 
 		private Task Truncate(long tb) => WriteMetadata(@$"{{""$tb"":{tb}}}");
 		private Task MaxCount(long maxCount) => WriteMetadata(@$"{{""$maxCount"":{maxCount}}}");
-		private async Task ExpiredMaxAge() {
+		private async Task ExpiredMaxAge()
+		{
 			// a max age of zero doesn't do anything, so we're forced to introduce a delay of 1 second
 			await WriteMetadata(@"{""$maxAge"": 1 }");
 			await Task.Delay(TimeSpan.FromMilliseconds(1001));
 		}
 
-		private Task ApplyTruncation() {
+		private Task ApplyTruncation()
+		{
 			if (StreamProps.IsEphemeralStream && StreamProps.TruncationInfo.TruncationType != TruncationType.None)
 				throw new Exception("Ephemeral streams cannot be truncated.");
 
 			var truncationParam = StreamProps.TruncationInfo.TruncationParam;
-			switch (StreamProps.TruncationInfo.TruncationType) {
+			switch (StreamProps.TruncationInfo.TruncationType)
+			{
 				case TruncationType.None:
 					break;
 				case TruncationType.SoftDelete:
@@ -698,46 +717,59 @@ public partial class EnumeratorTests {
 			return Task.CompletedTask;
 		}
 
-		private Task ApplyTombstone() {
+		private Task ApplyTombstone()
+		{
 			if (StreamProps is { IsEphemeralStream: true, IsHardDeleted: true })
 				throw new Exception("Ephemeral streams cannot be hard deleted.");
 
 			return StreamProps.IsHardDeleted ? Tombstone() : Task.CompletedTask;
 		}
 
-		private async Task<(int numEventsAdded, bool softDeleted, bool hardDeleted, bool accessRevoked, bool fallBehindThenCatchup)> ApplyLiveProperties() {
+		private async Task<(int numEventsAdded, bool softDeleted, bool hardDeleted, bool accessRevoked, bool fallBehindThenCatchup)> ApplyLiveProperties()
+		{
 			var numEventsAdded = 0;
 			var softDeleted = false;
 			var hardDeleted = false;
 			var accessRevoked = false;
 			var shouldFallBehindThenCatchup = false;
 
-			if (LiveProps.NumEventsToAdd > 0) {
+			if (LiveProps.NumEventsToAdd > 0)
+			{
 				if (StreamProps.IsEphemeralStream)
 					throw new Exception("Ephemeral streams cannot be written to.");
 
 				numEventsAdded = LiveProps.NumEventsToAdd;
 				for (var i = 0; i < numEventsAdded; i++)
 					await WriteEvent();
-			} else if (LiveProps.SoftDeleteStream) {
+			}
+			else if (LiveProps.SoftDeleteStream)
+			{
 				if (StreamProps.IsEphemeralStream)
 					throw new Exception("Ephemeral streams cannot be soft deleted.");
 
 				softDeleted = true;
 				await SoftDelete();
-			} else if (LiveProps.HardDeleteStream) {
+			}
+			else if (LiveProps.HardDeleteStream)
+			{
 				if (StreamProps.IsEphemeralStream)
 					throw new Exception("Ephemeral streams cannot be hard deleted.");
 
 				hardDeleted = true;
 				await Tombstone();
-			} else if (LiveProps.RevokeAccessWithStreamAcl) {
+			}
+			else if (LiveProps.RevokeAccessWithStreamAcl)
+			{
 				accessRevoked = true;
 				await RevokeAccessWithStreamAcl();
-			} else if (LiveProps.RevokeAccessWithDefaultAcl) {
+			}
+			else if (LiveProps.RevokeAccessWithDefaultAcl)
+			{
 				accessRevoked = true;
 				await RevokeAccessWithDefaultAcl();
-			} else if (LiveProps.FallBehindThenCatchUp) {
+			}
+			else if (LiveProps.FallBehindThenCatchUp)
+			{
 				numEventsAdded = NumEventsToFallBehind;
 				for (var i = 0; i < NumEventsToFallBehind; i++)
 					await WriteEvent();
@@ -748,7 +780,8 @@ public partial class EnumeratorTests {
 			return (numEventsAdded, softDeleted, hardDeleted, accessRevoked, shouldFallBehindThenCatchup);
 		}
 
-		private async Task SetUpForEphemeralStream() {
+		private async Task SetUpForEphemeralStream()
+		{
 			if (!StreamProps.IsEphemeralStream)
 				return;
 
@@ -758,8 +791,10 @@ public partial class EnumeratorTests {
 			_nextEventNumber = CalculateNextEventNumberFromCheckpoint();
 		}
 
-		private long CalculateNextEventNumberFromCheckpoint() {
-			return SubscriptionProps.CheckpointType switch {
+		private long CalculateNextEventNumberFromCheckpoint()
+		{
+			return SubscriptionProps.CheckpointType switch
+			{
 				CheckpointType.Start => FirstEventNumber,
 				CheckpointType.End => LastEventNumber + 1,
 				CheckpointType.AtZero => Math.Max(1, FirstEventNumber),
@@ -770,8 +805,10 @@ public partial class EnumeratorTests {
 			};
 		}
 
-		private EnumeratorWrapper Subscribe() {
-			StreamRevision? checkpoint = SubscriptionProps.CheckpointType switch {
+		private EnumeratorWrapper Subscribe()
+		{
+			StreamRevision? checkpoint = SubscriptionProps.CheckpointType switch
+			{
 				CheckpointType.Start => null,
 				CheckpointType.End => StreamRevision.End,
 				CheckpointType.AtZero => StreamRevision.FromInt64(0),
@@ -784,7 +821,8 @@ public partial class EnumeratorTests {
 			return CreateStreamSubscription<string>(Node.Node.MainQueue, _stream, checkpoint, SystemAccounts.Anonymous);
 		}
 
-		private static async Task<long> ReadExpectedEvents(EnumeratorWrapper sub, long nextEventNumber, long lastEventNumber, bool shouldFallBehindThenCatchUp = false) {
+		private static async Task<long> ReadExpectedEvents(EnumeratorWrapper sub, long nextEventNumber, long lastEventNumber, bool shouldFallBehindThenCatchUp = false)
+		{
 			var fellBehind = false;
 			var caughtUp = false;
 
@@ -792,9 +830,11 @@ public partial class EnumeratorTests {
 			if (shouldFallBehindThenCatchUp)
 				numResponsesExpected += 2;
 
-			while (--numResponsesExpected >= 0) {
+			while (--numResponsesExpected >= 0)
+			{
 				var response = await sub.GetNext();
-				switch (response) {
+				switch (response)
+				{
 					case Event evt:
 						Assert.AreEqual(nextEventNumber++, evt.EventNumber);
 						break;
@@ -815,11 +855,12 @@ public partial class EnumeratorTests {
 						break;
 					default:
 						Assert.Fail($"Unexpected response: {response}");
-						break ;
+						break;
 				}
 			}
 
-			if (shouldFallBehindThenCatchUp) {
+			if (shouldFallBehindThenCatchUp)
+			{
 				if (!fellBehind)
 					Assert.Fail("Subscription did not fall behind.");
 
@@ -831,7 +872,8 @@ public partial class EnumeratorTests {
 		}
 
 		[SetUp]
-		public async Task SetUp() {
+		public async Task SetUp()
+		{
 			await WriteExistingEvents();
 			await ApplyTruncation();
 			await ApplyTombstone();
@@ -839,10 +881,12 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task enumeration_is_correct() {
+		public async Task enumeration_is_correct()
+		{
 			var sub = Subscribe();
 
-			if (HardDeleted) {
+			if (HardDeleted)
+			{
 				Assert.ThrowsAsync<ReadResponseException.StreamDeleted>(async () => await sub.GetNext());
 				return;
 			}
@@ -857,12 +901,17 @@ public partial class EnumeratorTests {
 
 			_nextEventNumber = await ReadExpectedEvents(sub, _nextEventNumber, LastEventNumber + numEventsAdded, shouldFallBehindThenCatchup);
 
-			if (softDeleted) {
+			if (softDeleted)
+			{
 				Assert.ThrowsAsync<TimeoutException>(async () => await sub.GetNext().WithTimeout(timeoutMs: 500));
-			} else if (hardDeleted) {
+			}
+			else if (hardDeleted)
+			{
 				await ReadExpectedEvents(sub, EventNumber.DeletedStream, EventNumber.DeletedStream);
 				Assert.ThrowsAsync<ReadResponseException.StreamDeleted>(async () => await sub.GetNext());
-			} else if (accessRevoked) {
+			}
+			else if (accessRevoked)
+			{
 				Assert.ThrowsAsync<ReadResponseException.AccessDenied>(async () => await sub.GetNext());
 			}
 		}

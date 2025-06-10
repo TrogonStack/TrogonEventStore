@@ -18,18 +18,21 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode;
 
 [TestFixture]
-public class http_pipeline_should : SpecificationWithDirectory {
+public class http_pipeline_should : SpecificationWithDirectory
+{
 	private const string SubsystemUnprotectedEndpoint = "/my-subsystem/unprotected";
 	private const string SubsystemProtectedEndpoint = "/my-subsystem/protected";
 	private const string ControllerProtectedEndpoint = "/my-controller/protected";
 	private const string ControllerUnprotectedEndpoint = "/my-controller/unprotected";
 
 	[Test]
-	public async Task allow_subsystems_to_protect_their_endpoints() {
+	public async Task allow_subsystems_to_protect_their_endpoints()
+	{
 		var tcs = new TaskCompletionSource();
 
-		await using var node = new MiniNode<LogFormat.V2,string>(PathName, subsystems: [ new FakeProtectedSubSystem() ]);
-		node.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.SystemReady>( t => {
+		await using var node = new MiniNode<LogFormat.V2, string>(PathName, subsystems: [new FakeProtectedSubSystem()]);
+		node.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.SystemReady>(t =>
+		{
 			tcs.TrySetResult();
 		}));
 
@@ -59,36 +62,43 @@ public class http_pipeline_should : SpecificationWithDirectory {
 
 
 		Task<HttpResponseMessage> SendAuthenticatedGetAsync(string endpoint) => node
-			.HttpClient.SendAsync(new HttpRequestMessage() {
+			.HttpClient.SendAsync(new HttpRequestMessage()
+			{
 				Method = HttpMethod.Get,
 				RequestUri = new Uri(node.HttpClient.BaseAddress!, endpoint),
 				Headers = {
 					Authorization = new AuthenticationHeaderValue("Basic",
 						Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit")))
 				}
-		});
+			});
 	}
 
-	class FakeProtectedSubSystem() : SubsystemsPlugin(name: "FakeProtectedSubSystem") {
-		public override void ConfigureServices(IServiceCollection services, IConfiguration _) => 
+	class FakeProtectedSubSystem() : SubsystemsPlugin(name: "FakeProtectedSubSystem")
+	{
+		public override void ConfigureServices(IServiceCollection services, IConfiguration _) =>
 			services.AddControllers().AddApplicationPart(typeof(FakeController).Assembly);
 
 		public override void ConfigureApplication(IApplicationBuilder app, IConfiguration _) =>
-			app.UseEndpoints(ep => {
+			app.UseEndpoints(ep =>
+			{
 				ep.MapControllers();
 
-				ep.MapGet(SubsystemProtectedEndpoint, context => {
-					if (context.User.IsInRole("$ops") || context.User.IsInRole("$admins")) {
+				ep.MapGet(SubsystemProtectedEndpoint, context =>
+				{
+					if (context.User.IsInRole("$ops") || context.User.IsInRole("$admins"))
+					{
 						context.Response.StatusCode = (int)HttpStatusCode.OK;
 					}
-					else {
+					else
+					{
 						context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
 					}
 
 					return Task.CompletedTask;
 				});
 
-				ep.MapGet(SubsystemUnprotectedEndpoint, context => {
+				ep.MapGet(SubsystemUnprotectedEndpoint, context =>
+				{
 					context.Response.StatusCode = (int)HttpStatusCode.OK;
 					return Task.CompletedTask;
 				});
@@ -98,7 +108,8 @@ public class http_pipeline_should : SpecificationWithDirectory {
 
 [ApiController]
 [Route("/my-controller")]
-public class FakeController : ControllerBase {
+public class FakeController : ControllerBase
+{
 	[HttpGet]
 	[Authorize(Roles = "$admins")]
 	[Route("protected")]
