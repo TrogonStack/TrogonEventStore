@@ -77,13 +77,18 @@ internal static class Program
 
 			Log.Information(
 				"{description,-25} {version} {edition} ({buildId}/{commitSha}, {timestamp})", "ES VERSION:",
-				VersionInfo.Version, VersionInfo.Edition, VersionInfo.BuildId, VersionInfo.CommitSha, VersionInfo.Timestamp
+				VersionInfo.Version, VersionInfo.Edition, VersionInfo.BuildId, VersionInfo.CommitSha,
+				VersionInfo.Timestamp
 			);
 
-			Log.Information("{description,-25} {osArchitecture} ", "OS ARCHITECTURE:", System.Runtime.InteropServices.RuntimeInformation.OSArchitecture);
-			Log.Information("{description,-25} {osFlavor} ({osVersion})", "OS:", RuntimeInformation.OsPlatform, Environment.OSVersion);
-			Log.Information("{description,-25} {osRuntimeVersion} ({architecture}-bit)", "RUNTIME:", RuntimeInformation.RuntimeVersion, RuntimeInformation.RuntimeMode);
-			Log.Information("{description,-25} {maxGeneration} IsServerGC: {isServerGC} Latency Mode: {latencyMode}", "GC:",
+			Log.Information("{description,-25} {osArchitecture} ", "OS ARCHITECTURE:",
+				System.Runtime.InteropServices.RuntimeInformation.OSArchitecture);
+			Log.Information("{description,-25} {osFlavor} ({osVersion})", "OS:", RuntimeInformation.OsPlatform,
+				Environment.OSVersion);
+			Log.Information("{description,-25} {osRuntimeVersion} ({architecture}-bit)", "RUNTIME:",
+				RuntimeInformation.RuntimeVersion, RuntimeInformation.RuntimeMode);
+			Log.Information("{description,-25} {maxGeneration} IsServerGC: {isServerGC} Latency Mode: {latencyMode}",
+				"GC:",
 				GC.MaxGeneration == 0 ? "NON-GENERATION (PROBABLY BOEHM)" : $"{GC.MaxGeneration + 1} GENERATIONS",
 				GCSettings.IsServerGC,
 				GCSettings.LatencyMode);
@@ -102,7 +107,8 @@ internal static class Program
 				}
 				else
 				{
-					Log.Write(level, "The option {option} is not a known option. Did you mean {suggestion}?", option, suggestion);
+					Log.Write(level, "The option {option} is not a known option. Did you mean {suggestion}?", option,
+						suggestion);
 				}
 			}
 
@@ -110,7 +116,8 @@ internal static class Program
 			{
 				Log.Fatal(
 					$"Found unknown options. To continue anyway, set {nameof(ClusterVNodeOptions.ApplicationOptions.AllowUnknownOptions)} to true.");
-				Log.Information("Use the --help option in the command line to see the full list of EventStoreDB configuration options.");
+				Log.Information(
+					"Use the --help option in the command line to see the full list of EventStoreDB configuration options.");
 				return 1;
 			}
 
@@ -124,8 +131,10 @@ internal static class Program
 					"DEV MODE WILL GENERATE AND TRUST DEV CERTIFICATES FOR RUNNING A SINGLE SECURE NODE ON LOCALHOST.\n" +
 					"==============================================================================================================\n");
 				var manager = CertificateManager.Instance;
-				var result = manager.EnsureDevelopmentCertificate(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMonths(1));
-				if (result is not (EnsureCertificateResult.Succeeded or EnsureCertificateResult.ValidCertificatePresent))
+				var result =
+					manager.EnsureDevelopmentCertificate(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMonths(1));
+				if (result is not (EnsureCertificateResult.Succeeded
+				    or EnsureCertificateResult.ValidCertificatePresent))
 				{
 					Log.Fatal("Could not ensure dev certificate is available. Reason: {result}", result);
 					return 1;
@@ -140,6 +149,7 @@ internal static class Program
 					Log.Fatal("Could not create dev certificate.");
 					return 1;
 				}
+
 				if (!manager.IsTrusted(certs[0]) && RuntimeInformation.IsWindows)
 				{
 					Log.Information("Dev certificate {cert} is not trusted. Adding it to the trusted store.", certs[0]);
@@ -148,7 +158,7 @@ internal static class Program
 				else
 				{
 					Log.Warning("Automatically trusting dev certs is only supported on Windows.\n" +
-								"Please trust certificate {cert} if it's not trusted already.", certs[0]);
+					            "Please trust certificate {cert} if it's not trusted already.", certs[0]);
 				}
 
 				Log.Information("Running in dev mode using certificate '{cert}'", certs[0]);
@@ -212,7 +222,8 @@ internal static class Program
 				try
 				{
 					await new HostBuilder()
-						.ConfigureHostConfiguration(builder => builder.AddEnvironmentVariables("DOTNET_").AddCommandLine(args))
+						.ConfigureHostConfiguration(builder =>
+							builder.AddEnvironmentVariables("DOTNET_").AddCommandLine(args))
 						.ConfigureAppConfiguration(builder => builder.AddConfiguration(configuration))
 						.ConfigureLogging(logging => logging.ClearProviders().AddSerilog())
 						.ConfigureServices(services => services
@@ -228,11 +239,14 @@ internal static class Program
 						.ConfigureWebHostDefaults(builder => builder
 							.UseKestrel(server =>
 							{
-								server.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromMilliseconds(options.Grpc.KeepAliveInterval);
-								server.Limits.Http2.KeepAlivePingTimeout = TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
+								server.Limits.Http2.KeepAlivePingDelay =
+									TimeSpan.FromMilliseconds(options.Grpc.KeepAliveInterval);
+								server.Limits.Http2.KeepAlivePingTimeout =
+									TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
 
 								server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
-									ConfigureHttpOptions(listenOptions, hostedService, useHttps: !hostedService.Node.DisableHttps));
+									ConfigureHttpOptions(listenOptions, hostedService,
+										useHttps: !hostedService.Node.DisableHttps));
 
 								if (hostedService.Node.EnableUnixSocket)
 									TryListenOnUnixSocket(hostedService, server);
@@ -251,7 +265,7 @@ internal static class Program
 				}
 				catch (Exception ex)
 				{
-					Log.Fatal("Error occurred during setup: {e}", ex);
+					Log.Fatal(ex, "Exiting during setup");
 					exitCodeSource.TrySetResult(1);
 				}
 				finally
@@ -277,7 +291,8 @@ internal static class Program
 		}
 	}
 
-	private static void ConfigureHttpOptions(ListenOptions listenOptions, ClusterVNodeHostedService hostedService, bool useHttps)
+	private static void ConfigureHttpOptions(ListenOptions listenOptions, ClusterVNodeHostedService hostedService,
+		bool useHttps)
 	{
 		if (useHttps)
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
@@ -313,7 +328,9 @@ internal static class Program
 				}
 				catch (Exception ex)
 				{
-					Log.Error(ex, "Failed to clean up stale UNIX domain socket: {unixSocket}. Please delete the file manually.", unixSocket);
+					Log.Error(ex,
+						"Failed to clean up stale UNIX domain socket: {unixSocket}. Please delete the file manually.",
+						unixSocket);
 					throw;
 				}
 			}
@@ -332,7 +349,8 @@ internal static class Program
 		}
 	}
 
-	private static ServerOptionsSelectionCallback CreateServerOptionsSelectionCallback(ClusterVNodeHostedService hostedService)
+	private static ServerOptionsSelectionCallback CreateServerOptionsSelectionCallback(
+		ClusterVNodeHostedService hostedService)
 	{
 		return ((_, _, _, _) =>
 		{
@@ -342,7 +360,8 @@ internal static class Program
 					hostedService.Node.CertificateSelector(),
 					hostedService.Node.IntermediateCertificatesSelector(),
 					offline: true),
-				ClientCertificateRequired = true, // request a client certificate but it's not necessary for the client to supply one
+				ClientCertificateRequired =
+					true, // request a client certificate but it's not necessary for the client to supply one
 				RemoteCertificateValidationCallback = (_, certificate, chain, sslPolicyErrors) =>
 				{
 					if (certificate == null) // not necessary to have a client certificate
@@ -362,10 +381,8 @@ internal static class Program
 				},
 				CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
 				EnabledSslProtocols = SslProtocols.None, // let the OS choose a secure TLS protocol
-				ApplicationProtocols = new List<SslApplicationProtocol> {
-					SslApplicationProtocol.Http2,
-					SslApplicationProtocol.Http11
-				},
+				ApplicationProtocols =
+					new List<SslApplicationProtocol> { SslApplicationProtocol.Http2, SslApplicationProtocol.Http11 },
 				AllowRenegotiation = false
 			};
 
