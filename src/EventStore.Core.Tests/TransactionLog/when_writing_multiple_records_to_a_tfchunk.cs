@@ -107,7 +107,7 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 		var res = _chunk.TryReadClosestForward(_prepare1.GetSizeWithLengthPrefixAndSuffix());
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_prepare1.GetSizeWithLengthPrefixAndSuffix()
-						+ _prepare2.GetSizeWithLengthPrefixAndSuffix(), res.NextPosition);
+		                + _prepare2.GetSizeWithLengthPrefixAndSuffix(), res.NextPosition);
 		Assert.IsTrue(res.LogRecord is IPrepareLogRecord<TStreamId>);
 		Assert.AreEqual(_prepare2, res.LogRecord);
 	}
@@ -116,32 +116,33 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	public void cannot_read_past_second_record_with_closest_forward_method()
 	{
 		var res = _chunk.TryReadClosestForward(_prepare1.GetSizeWithLengthPrefixAndSuffix()
-											   + _prepare2.GetSizeWithLengthPrefixAndSuffix());
+		                                       + _prepare2.GetSizeWithLengthPrefixAndSuffix());
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void the_seconds_record_can_be_read_as_last()
+	public async Task the_seconds_record_can_be_read_as_last()
 	{
-		var res = _chunk.TryReadLast();
+		var res = await _chunk.TryReadLast(CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_prepare1.GetSizeWithLengthPrefixAndSuffix(), res.NextPosition);
 		Assert.AreEqual(_prepare2, res.LogRecord);
 	}
 
 	[Test]
-	public void the_first_record_can_be_read_as_closest_backward_after_last()
+	public async Task the_first_record_can_be_read_as_closest_backward_after_last()
 	{
-		var res = _chunk.TryReadClosestBackward(_prepare1.GetSizeWithLengthPrefixAndSuffix());
+		var res = await _chunk.TryReadClosestBackward(_prepare1.GetSizeWithLengthPrefixAndSuffix(),
+			CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(0, res.NextPosition);
 		Assert.AreEqual(_prepare1, res.LogRecord);
 	}
 
 	[Test]
-	public void cannot_read_backward_from_zero_pos()
+	public async Task cannot_read_backward_from_zero_pos()
 	{
-		var res = _chunk.TryReadClosestBackward(0);
+		var res = await _chunk.TryReadClosestBackward(0, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 }

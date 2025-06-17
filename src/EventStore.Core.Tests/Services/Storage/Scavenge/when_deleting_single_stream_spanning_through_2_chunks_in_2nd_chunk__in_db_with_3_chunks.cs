@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
@@ -9,7 +11,7 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_deleting_single_stream_spanning_through_2_chunks_in_2nd_chunk_in_db_with_3_chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenDeletingSingleStreamSpanningThrough2ChunksIn2NdChunkInDbWith3Chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _event7;
 	private EventRecord _event9;
@@ -41,9 +43,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_backward_does_not_return_scavenged_deleted_stream_events_and_return_remaining()
+	public async Task read_all_backward_does_not_return_scavenged_deleted_stream_events_and_return_remaining()
 	{
-		var events = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(2, events.Length);
@@ -52,10 +55,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_backward_from_beginning_of_second_chunk_returns_no_records()
+	public async Task read_all_backward_from_beginning_of_second_chunk_returns_no_records()
 	{
 		var pos = new TFPos(10000, 10000);
-		var events = ReadIndex.ReadAllEventsBackward(pos, 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(pos, 100, CancellationToken.None)).EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(0, events.Length);

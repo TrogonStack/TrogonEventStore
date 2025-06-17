@@ -1,5 +1,7 @@
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 
@@ -33,7 +35,7 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 		_event4 = WriteSingleEvent("ES", 3, new string('.', 4000));
 		WriteSingleEvent("ES", 4, new string('.', 4000), retryOnFail: true); // chunk 2
 		WriteSingleEvent("ES", 5, new string('.', 4000)); // ptable 2
-		_event7 = WriteSingleEvent("ES", 6, new string('.', 4000), retryOnFail: true); // chunk 3 
+		_event7 = WriteSingleEvent("ES", 6, new string('.', 4000), retryOnFail: true); // chunk 3
 
 		TruncateCheckpoint = _event4.LogPosition;
 
@@ -145,9 +147,9 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 	}
 
 	[Test]
-	public void read_all_backward_doesnt_return_truncated_records()
+	public async Task read_all_backward_doesnt_return_truncated_records()
 	{
-		var res = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100);
+		var res = await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None);
 		var records = res.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();

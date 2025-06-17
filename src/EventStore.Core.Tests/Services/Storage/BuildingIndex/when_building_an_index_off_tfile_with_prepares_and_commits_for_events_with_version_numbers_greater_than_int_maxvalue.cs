@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -10,7 +12,8 @@ namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_building_an_index_off_tfile_with_prepares_and_commits_for_events_with_version_numbers_greater_than_int_maxvalue<TLogFormat, TStreamId>
+	when_building_an_index_off_tfile_with_prepares_and_commits_for_events_with_version_numbers_greater_than_int_maxvalue<
+		TLogFormat, TStreamId>
 	: ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private Guid _id1;
@@ -122,9 +125,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_events_backward_returns_all_events_in_correct_order()
+	public async Task read_all_events_backward_returns_all_events_in_correct_order()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 10).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 10, CancellationToken.None))
+			.EventRecords();
 
 		Assert.AreEqual(3, records.Count);
 		Assert.AreEqual(_id1, records[2].Event.EventId);

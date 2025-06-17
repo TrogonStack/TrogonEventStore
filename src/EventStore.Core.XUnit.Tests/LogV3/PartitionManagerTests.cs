@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.LogV3;
 using EventStore.Core.TransactionLog;
@@ -150,7 +152,7 @@ public class PartitionManagerTests
 		timeStamp: DateTime.UtcNow,
 		systemRecordType: SystemRecordType.Invalid,
 		systemRecordSerialization: SystemRecordSerialization.Invalid,
-		data: new byte[0]);
+		data: []);
 }
 
 class FakeWriter : ITransactionFileWriter
@@ -158,13 +160,8 @@ class FakeWriter : ITransactionFileWriter
 	public long Position { get; }
 	public long FlushedPosition { get; }
 
-	public FakeWriter()
-	{
-		WrittenRecords = new List<ILogRecord>();
-	}
-
 	public bool IsFlushed { get; private set; }
-	public List<ILogRecord> WrittenRecords { get; }
+	public List<ILogRecord> WrittenRecords { get; } = [];
 
 	public void Open() { }
 	public bool CanWrite(int numBytes) => true;
@@ -228,42 +225,27 @@ class FakeReader : ITransactionFileReader
 			_results.Add(new SeqReadResult(true, false, rootPartitionType, 0, 0, 0));
 		}
 
-		if (rootPartitionId.HasValue && rootPartitionTypeId.HasValue)
-		{
-			var rootPartition = new PartitionLogRecord(
-				DateTime.UtcNow, 3, rootPartitionId.Value, rootPartitionTypeId.Value, Guid.Empty, 0, 0, "Root");
+		if (!rootPartitionId.HasValue || !rootPartitionTypeId.HasValue) return;
+		
+		var rootPartition = new PartitionLogRecord(
+			DateTime.UtcNow, 3, rootPartitionId.Value, rootPartitionTypeId.Value, Guid.Empty, 0, 0, "Root");
 
-			_results.Add(new SeqReadResult(true, false, rootPartition, 0, 0, 0));
-		}
+		_results.Add(new SeqReadResult(true, false, rootPartition, 0, 0, 0));
 	}
 
-	public void Reposition(long position)
-	{
-		_resultIndex = (int)position;
-	}
+	public void Reposition(long position) => _resultIndex = (int)position;
 
 	public SeqReadResult TryReadNext()
 	{
 		_readCount++;
 
-		if (_resultIndex < _results.Count)
-			return _results[_resultIndex++];
-
-		return SeqReadResult.Failure;
+		return _resultIndex < _results.Count ? _results[_resultIndex++] : SeqReadResult.Failure;
 	}
 
-	public SeqReadResult TryReadPrev()
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
+		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
-	public RecordReadResult TryReadAt(long position, bool couldBeScavenged)
-	{
-		throw new NotImplementedException();
-	}
+	public RecordReadResult TryReadAt(long position, bool couldBeScavenged) => throw new NotImplementedException();
 
-	public bool ExistsAt(long position)
-	{
-		return true;
-	}
+	public bool ExistsAt(long position) => true;
 }

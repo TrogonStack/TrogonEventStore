@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -131,9 +133,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_backward_should_return_all_stream_records_except_uncommited()
+	public async Task read_all_backward_should_return_all_stream_records_except_uncommited()
 	{
-		var events = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(1, events.Length);

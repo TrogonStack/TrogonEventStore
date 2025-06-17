@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -10,7 +12,9 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_writing_delete_prepare_without_commit_and_scavenging<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class
+	when_writing_delete_prepare_without_commit_and_scavenging<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat,
+	TStreamId>
 {
 	private EventRecord _event0;
 	private EventRecord _event1;
@@ -72,9 +76,10 @@ public class when_writing_delete_prepare_without_commit_and_scavenging<TLogForma
 	}
 
 	[Test]
-	public void read_all_backward_returns_all_events()
+	public async Task read_all_backward_returns_all_events()
 	{
-		var events = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(2, events.Length);

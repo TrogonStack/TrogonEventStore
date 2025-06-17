@@ -80,9 +80,9 @@ public class when_creating_tfchunk_from_empty_file : SpecificationWithFile
 	}
 
 	[Test]
-	public void there_is_no_last_record()
+	public async Task there_is_no_last_record()
 	{
-		var res = _chunk.TryReadLast();
+		var res = await _chunk.TryReadLast(CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 }

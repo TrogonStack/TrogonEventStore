@@ -1,5 +1,7 @@
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 
@@ -152,9 +154,9 @@ public class
 	}
 
 	[Test]
-	public void read_all_backward_doesnt_return_truncated_records()
+	public async Task read_all_backward_doesnt_return_truncated_records()
 	{
-		var res = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100);
+		var res = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None));
 		var records = res.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();

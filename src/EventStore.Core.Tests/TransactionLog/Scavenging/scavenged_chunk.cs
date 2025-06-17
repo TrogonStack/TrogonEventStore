@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture]
-public class scavenged_chunk : SpecificationWithFile
+public class ScavengedChunk : SpecificationWithFile
 {
 	[Test]
 	public async Task is_fully_resident_in_memory_when_cached()
@@ -36,9 +36,9 @@ public class scavenged_chunk : SpecificationWithFile
 
 		Assert.IsTrue(chunk.IsCached);
 
-		var last = chunk.TryReadLast();
+		var last = await chunk.TryReadLast(CancellationToken.None);
 		Assert.IsTrue(last.Success);
-		Assert.AreEqual(map[map.Count - 1].ActualPos, last.LogRecord.LogPosition);
+		Assert.AreEqual(map[^1].ActualPos, last.LogRecord.LogPosition);
 
 		chunk.MarkForDeletion();
 		chunk.WaitForDestroy(1000);

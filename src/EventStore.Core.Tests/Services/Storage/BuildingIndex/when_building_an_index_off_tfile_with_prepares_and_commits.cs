@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -9,7 +11,10 @@ namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_building_an_index_off_tfile_with_prepares_and_commits<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class
+	when_building_an_index_off_tfile_with_prepares_and_commits<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat
+	,
+	TStreamId>
 {
 	private Guid _id1;
 	private Guid _id2;
@@ -26,13 +31,16 @@ public class when_building_an_index_off_tfile_with_prepares_and_commits<TLogForm
 		var expectedVersion1 = ExpectedVersion.NoStream;
 		var expectedVersion2 = ExpectedVersion.NoStream;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos0, _id1, _id1, pos0, 0, streamId1, expectedVersion1++,
+		Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos0, _id1, _id1, pos0, 0, streamId1,
+				expectedVersion1++,
 				PrepareFlags.SingleWrite, eventTypeId, new byte[0], new byte[0], DateTime.UtcNow),
 			out pos1);
-		Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos1, _id2, _id2, pos1, 0, streamId2, expectedVersion2++,
+		Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos1, _id2, _id2, pos1, 0, streamId2,
+				expectedVersion2++,
 				PrepareFlags.SingleWrite, eventTypeId, new byte[0], new byte[0], DateTime.UtcNow),
 			out pos2);
-		Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos2, _id3, _id3, pos2, 0, streamId2, expectedVersion2++,
+		Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos2, _id3, _id3, pos2, 0, streamId2,
+				expectedVersion2++,
 				PrepareFlags.SingleWrite, eventTypeId, new byte[0], new byte[0], DateTime.UtcNow),
 			out pos3);
 		Writer.Write(new CommitLogRecord(pos3, _id1, pos0, DateTime.UtcNow, 0), out pos4);
@@ -127,9 +135,10 @@ public class when_building_an_index_off_tfile_with_prepares_and_commits<TLogForm
 	}
 
 	[Test]
-	public void read_all_events_backward_returns_all_events_in_correct_order()
+	public async Task read_all_events_backward_returns_all_events_in_correct_order()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 10).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 10, CancellationToken.None))
+			.EventRecords();
 
 		Assert.AreEqual(3, records.Count);
 		Assert.AreEqual(_id1, records[2].Event.EventId);

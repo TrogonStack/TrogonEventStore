@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using NUnit.Framework;
@@ -181,9 +183,9 @@ public class
 	}
 
 	[Test]
-	public void read_all_backward_returns_all_records_including_expired_ones()
+	public async Task read_all_backward_returns_all_records_including_expired_ones()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None)).EventRecords();
 		Assert.AreEqual(12, records.Count);
 		Assert.AreEqual(_r11, records[11].Event);
 		Assert.AreEqual(_r21, records[10].Event);

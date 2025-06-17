@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Index;
 using EventStore.Core.Index.Hashes;
@@ -10,18 +11,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.IndexV3;
 
 [TestFixture, Category("LongRunning")]
-public class when_upgrading_index_to_64bit_stream_version : SpecificationWithDirectoryPerTestFixture
+public class WhenUpgradingIndexTo64BitStreamVersion : SpecificationWithDirectoryPerTestFixture
 {
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
 	private string _indexDir;
-	protected byte _ptableVersion;
-
-	public when_upgrading_index_to_64bit_stream_version()
-	{
-		_ptableVersion = PTableVersions.IndexV3;
-	}
+	protected byte _ptableVersion = PTableVersions.IndexV3;
 
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
@@ -144,10 +140,8 @@ public class FakeIndexReader : ITransactionFileReader
 		throw new NotImplementedException();
 	}
 
-	public SeqReadResult TryReadPrev()
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
+		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
 	public RecordReadResult TryReadAt(long position, bool couldBeScavenged)
 	{

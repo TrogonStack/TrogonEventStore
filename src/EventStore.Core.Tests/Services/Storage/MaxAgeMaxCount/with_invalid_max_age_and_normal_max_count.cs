@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
@@ -111,9 +113,10 @@ public class with_invalid_max_age_and_normal_max_count<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void on_read_all_backward_metadata_is_ignored()
+	public async Task on_read_all_backward_metadata_is_ignored()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).Records;
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.Records;
 
 		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
 		{

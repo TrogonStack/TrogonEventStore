@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -27,23 +29,24 @@ public class FakeIndexWriter<TStreamId> : IIndexWriter<TStreamId>
 		throw new NotSupportedException();
 	}
 
-	public CommitCheckResult<TStreamId> CheckCommitStartingAt(long transactionPosition, long commitPosition)
-	{
-		return new CommitCheckResult<TStreamId>(CommitDecision.Ok, GetFakeStreamId(), -1, -1, -1, false);
-	}
+	public CommitCheckResult<TStreamId> CheckCommitStartingAt(long transactionPosition, long commitPosition) =>
+		new CommitCheckResult<TStreamId>(CommitDecision.Ok, GetFakeStreamId(), -1, -1, -1, false);
 
-	public CommitCheckResult<TStreamId> CheckCommit(TStreamId streamId, long expectedVersion, IEnumerable<Guid> eventIds, bool streamMightExist)
-	{
-		return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, expectedVersion, -1, -1, false);
-	}
+	public CommitCheckResult<TStreamId> CheckCommit(TStreamId streamId, long expectedVersion,
+		IEnumerable<Guid> eventIds, bool streamMightExist) =>
+		new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, expectedVersion, -1, -1, false);
 
 	public void PreCommit(CommitLogRecord commit) { }
 
 	public void PreCommit(ReadOnlySpan<IPrepareLogRecord<TStreamId>> committedPrepares) { }
 
-	public void UpdateTransactionInfo(long transactionId, long logPosition, TransactionInfo<TStreamId> transactionInfo) { }
+	public void UpdateTransactionInfo(long transactionId, long logPosition, TransactionInfo<TStreamId> transactionInfo)
+	{
+	}
 
-	public TransactionInfo<TStreamId> GetTransactionInfo(long writerCheckpoint, long transactionId) => new();
+	public ValueTask<TransactionInfo<TStreamId>> GetTransactionInfo(long writerCheckpoint, long transactionId,
+		CancellationToken token)
+		=> ValueTask.FromResult<TransactionInfo<TStreamId>>(default);
 
 	public void PurgeNotProcessedCommitsTill(long checkpoint) { }
 

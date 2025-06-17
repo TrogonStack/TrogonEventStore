@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -11,7 +12,9 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
-public class when_stream_is_softdeleted_with_log_record_version_0<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
+public class
+	when_stream_is_softdeleted_with_log_record_version_0<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat,
+	TStreamId>
 {
 	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
 	{
@@ -59,22 +62,22 @@ public class when_stream_is_softdeleted_with_log_record_version_0<TLogFormat, TS
 	}
 
 	[Test]
-	public void the_stream_is_absent_physically()
+	public async Task the_stream_is_absent_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 			.Where(x => x.Event.EventStreamId == "test"));
-		Assert.IsEmpty(ReadIndex.ReadAllEventsBackward(headOfTf, 1000).Records
+		Assert.IsEmpty((await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == "test"));
 	}
 
 	[Test]
-	public void the_metastream_is_absent_physically()
+	public async Task the_metastream_is_absent_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 			.Where(x => x.Event.EventStreamId == "$$test"));
-		Assert.IsEmpty(ReadIndex.ReadAllEventsBackward(headOfTf, 1000).Records
+		Assert.IsEmpty((await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == "$$test"));
 	}
 }

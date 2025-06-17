@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -10,7 +12,9 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_stream_is_softdeleted_and_temp_but_some_metaevents_are_in_multiple_chunks<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
+public class
+	WhenStreamIsSoftdeletedAndTempButSomeMetaeventsAreInMultipleChunks<TLogFormat, TStreamId> :
+	ScavengeTestScenario<TLogFormat, TStreamId>
 {
 	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
 	{
@@ -23,7 +27,8 @@ public class when_stream_is_softdeleted_and_temp_but_some_metaevents_are_in_mult
 				Rec.Commit(1, "test"),
 				Rec.Prepare(2, "test"),
 				Rec.Commit(2, "test"),
-				Rec.Prepare(3, "$$test", metadata: new StreamMetadata(truncateBefore: EventNumber.DeletedStream, tempStream: true)),
+				Rec.Prepare(3, "$$test",
+					metadata: new StreamMetadata(truncateBefore: EventNumber.DeletedStream, tempStream: true)),
 				Rec.Commit(3, "$$test"))
 			.CompleteLastChunk()
 			.CreateDb();
@@ -33,28 +38,20 @@ public class when_stream_is_softdeleted_and_temp_but_some_metaevents_are_in_mult
 	{
 		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
 		{
-			return new[] {
-				new ILogRecord[0],
-				new[] {
-					dbResult.Recs[1][2],
-					dbResult.Recs[1][3],
-					dbResult.Recs[1][4],
-					dbResult.Recs[1][5]
-				}
-			};
+			return
+			[
+				[],
+				[dbResult.Recs[1][2], dbResult.Recs[1][3], dbResult.Recs[1][4], dbResult.Recs[1][5]]
+			];
 		}
 
-		return new[] {
-			new[] {
-				dbResult.Recs[0][0], // "test" created
-			},
-			new[] {
-				dbResult.Recs[1][2],
-				dbResult.Recs[1][3],
-				dbResult.Recs[1][4],
-				dbResult.Recs[1][5]
-			}
-		};
+		return
+		[
+			[
+				dbResult.Recs[0][0] // "test" created
+			],
+			[dbResult.Recs[1][2], dbResult.Recs[1][3], dbResult.Recs[1][4], dbResult.Recs[1][5]]
+		];
 	}
 
 	[Test]
@@ -82,24 +79,26 @@ public class when_stream_is_softdeleted_and_temp_but_some_metaevents_are_in_mult
 	}
 
 	[Test]
-	public void the_stream_is_present_physically()
+	public async Task the_stream_is_present_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.AreEqual(1,
 			ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 				.Count(x => x.Event.EventStreamId == "test"));
 		Assert.AreEqual(1,
-			ReadIndex.ReadAllEventsBackward(headOfTf, 1000).Records.Count(x => x.Event.EventStreamId == "test"));
+			(await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records.Count(x =>
+				x.Event.EventStreamId == "test"));
 	}
 
 	[Test]
-	public void the_metastream_is_present_physically()
+	public async Task the_metastream_is_present_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.AreEqual(1,
 			ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 				.Count(x => x.Event.EventStreamId == "$$test"));
 		Assert.AreEqual(1,
-			ReadIndex.ReadAllEventsBackward(headOfTf, 1000).Records.Count(x => x.Event.EventStreamId == "$$test"));
+			(await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records.Count(x =>
+				x.Event.EventStreamId == "$$test"));
 	}
 }
