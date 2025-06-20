@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 
@@ -38,9 +40,10 @@ public class when_deleting_single_stream_spanning_through_2_chunks_in_db_with_2_
 	}
 
 	[Test]
-	public void read_all_backward_returns_events_only_from_uncompleted_chunk_and_delete_record()
+	public async Task read_all_backward_returns_events_only_from_uncompleted_chunk_and_delete_record()
 	{
-		var events = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(3, events.Length);
@@ -50,10 +53,10 @@ public class when_deleting_single_stream_spanning_through_2_chunks_in_db_with_2_
 	}
 
 	[Test]
-	public void read_all_backward_from_beginning_of_second_chunk_returns_no_records()
+	public async Task read_all_backward_from_beginning_of_second_chunk_returns_no_records()
 	{
 		var pos = new TFPos(10000, 10000);
-		var events = ReadIndex.ReadAllEventsBackward(pos, 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(pos, 100, CancellationToken.None)).EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(0, events.Length);

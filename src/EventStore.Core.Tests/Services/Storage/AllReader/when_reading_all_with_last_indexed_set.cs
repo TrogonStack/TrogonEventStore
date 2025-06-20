@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
@@ -18,11 +20,11 @@ public class when_reading_all<TLogFormat, TStreamId> : ReadIndexTestScenario<TLo
 	}
 
 	[Test]
-	public void should_be_able_to_read_all_backwards()
+	public async Task should_be_able_to_read_all_backwards()
 	{
 		var checkpoint = WriterCheckpoint.Read();
 		var pos = new TFPos(checkpoint, checkpoint);
-		var result = ReadIndex.ReadAllEventsBackward(pos, 10).EventRecords();
+		var result = (await ReadIndex.ReadAllEventsBackward(pos, 10, CancellationToken.None)).EventRecords();
 		Assert.AreEqual(3, result.Count);
 	}
 

@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_reading_uncached_empty_scavenged_tfchunk : SpecificationWithFilePerTestFixture
+public class WhenReadingUncachedEmptyScavengedTfchunk : SpecificationWithFilePerTestFixture
 {
 	private TFChunk _chunk;
 
@@ -16,7 +16,7 @@ public class when_reading_uncached_empty_scavenged_tfchunk : SpecificationWithFi
 	{
 		await base.TestFixtureSetUp();
 		_chunk = TFChunkHelper.CreateNewChunk(Filename, isScavenged: true);
-		await _chunk.CompleteScavenge(Array.Empty<PosMap>(), CancellationToken.None);
+		await _chunk.CompleteScavenge([], CancellationToken.None);
 	}
 
 	[OneTimeTearDown]
@@ -45,14 +45,10 @@ public class when_reading_uncached_empty_scavenged_tfchunk : SpecificationWithFi
 	}
 
 	[Test]
-	public void no_record_can_be_read_as_closest_backward_record()
-	{
-		Assert.IsFalse(_chunk.TryReadClosestBackward(0).Success);
-	}
+	public async Task no_record_can_be_read_as_closest_backward_record() =>
+		Assert.IsFalse((await _chunk.TryReadClosestBackward(0, CancellationToken.None)).Success);
 
 	[Test]
-	public void no_record_can_be_read_as_last_record()
-	{
-		Assert.IsFalse(_chunk.TryReadLast().Success);
-	}
+	public async Task no_record_can_be_read_as_last_record() =>
+		Assert.IsFalse((await _chunk.TryReadLast(CancellationToken.None)).Success);
 }

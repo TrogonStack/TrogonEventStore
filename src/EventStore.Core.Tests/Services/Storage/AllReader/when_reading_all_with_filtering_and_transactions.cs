@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -7,7 +9,7 @@ namespace EventStore.Core.Tests.Services.Storage.AllReader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class when_reading_all_with_filtering_and_transactions<TLogFormat, TStreamId>
+public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
 	: RepeatableDbTestScenario<TLogFormat, TStreamId>
 {
 
@@ -52,7 +54,7 @@ public class when_reading_all_with_filtering_and_transactions<TLogFormat, TStrea
 	}
 
 	[Test]
-	public void should_receive_all_events_backward()
+	public async Task should_receive_all_events_backward()
 	{
 		// create a db with explicit transactions, some of which are filtered out on read.
 		// previously, a bug caused those filtered-out records to prevent the successful
@@ -81,11 +83,12 @@ public class when_reading_all_with_filtering_and_transactions<TLogFormat, TStrea
 		]);
 
 		var writerCp = DbRes.Db.Config.WriterCheckpoint.Read();
-		var read = ReadIndex.ReadAllEventsBackwardFiltered(
+		var read = await ReadIndex.ReadAllEventsBackwardFiltered(
 			pos: new TFPos(writerCp, writerCp),
 			maxCount: 10,
 			maxSearchWindow: int.MaxValue,
-			eventFilter: EventFilter.StreamName.Prefixes(false, "included"));
+			eventFilter: EventFilter.StreamName.Prefixes(false, "included"),
+			CancellationToken.None);
 
 		Assert.AreEqual(10, read.Records.Count);
 		for (int j = 9; j <= 0; j--)

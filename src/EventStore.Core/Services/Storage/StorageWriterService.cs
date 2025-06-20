@@ -35,8 +35,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	IHandle<StorageMessage.WritePrepares>,
 	IHandle<StorageMessage.WriteDelete>,
 	IHandle<StorageMessage.WriteTransactionStart>,
-	IHandle<StorageMessage.WriteTransactionData>,
-	IHandle<StorageMessage.WriteTransactionEnd>,
+	IAsyncHandle<StorageMessage.WriteTransactionData>,
+	IAsyncHandle<StorageMessage.WriteTransactionEnd>,
 	IHandle<StorageMessage.WriteCommit>,
 	IHandle<MonitoringMessage.InternalStatsRequest>
 {
@@ -180,13 +180,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		StorageWriterQueue.Publish(message);
 
-		if (message is SystemMessage.BecomeShuttingDown)
-			// we need to handle this message on main thread to stop StorageWriterQueue
-		{
-			StorageWriterQueue.Stop();
-			BlockWriter = true;
-			Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
-		}
+		if (message is not SystemMessage.BecomeShuttingDown) return;
+
+		// we need to handle this message on main thread to stop StorageWriterQueue
+		StorageWriterQueue.Stop();
+		BlockWriter = true;
+		Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
 	}
 
 	private async ValueTask CommonHandle(Message message, CancellationToken token)
@@ -607,13 +606,15 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 	}
 
-	void IHandle<StorageMessage.WriteTransactionData>.Handle(StorageMessage.WriteTransactionData message)
+	async ValueTask IAsyncHandle<StorageMessage.WriteTransactionData>.HandleAsync(
+		StorageMessage.WriteTransactionData message, CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
 		{
 			var logPosition = Writer.Position;
-			var transactionInfo = _indexWriter.GetTransactionInfo(Writer.FlushedPosition, message.TransactionId);
+			var transactionInfo =
+				await _indexWriter.GetTransactionInfo(Writer.FlushedPosition, message.TransactionId, token);
 			if (!CheckTransactionInfo(message.TransactionId, transactionInfo))
 				return;
 
@@ -658,7 +659,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 	}
 
-	void IHandle<StorageMessage.WriteTransactionEnd>.Handle(StorageMessage.WriteTransactionEnd message)
+	async ValueTask IAsyncHandle<StorageMessage.WriteTransactionEnd>.HandleAsync(
+		StorageMessage.WriteTransactionEnd message, CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
@@ -666,7 +668,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			if (message.LiveUntil < DateTime.UtcNow)
 				return;
 
-			var transactionInfo = _indexWriter.GetTransactionInfo(Writer.FlushedPosition, message.TransactionId);
+			var transactionInfo =
+				await _indexWriter.GetTransactionInfo(Writer.FlushedPosition, message.TransactionId, token);
 			if (!CheckTransactionInfo(message.TransactionId, transactionInfo))
 				return;
 

@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using NUnit.Framework;
@@ -9,7 +11,8 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	with_two_collisioned_streams_one_event_each_first_stream_deleted_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	with_two_collisioned_streams_one_event_each_first_stream_deleted_read_index_should<TLogFormat, TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _prepare1;
 	private EventRecord _delete1;
@@ -135,9 +138,10 @@ public class
 	}
 
 	[Test]
-	public void return_all_events_on_read_all_backward()
+	public async Task return_all_events_on_read_all_backward()
 	{
-		var events = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(3, events.Length);

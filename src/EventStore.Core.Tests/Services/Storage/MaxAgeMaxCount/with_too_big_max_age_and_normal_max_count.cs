@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using NUnit.Framework;
@@ -96,9 +98,10 @@ public class with_too_big_max_age_and_normal_max_count<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void on_read_all_backward_all_metadata_is_ignored()
+	public async Task on_read_all_backward_all_metadata_is_ignored()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords();
 		Assert.AreEqual(6, records.Count);
 		Assert.AreEqual(_r6, records[0].Event);
 		Assert.AreEqual(_r5, records[1].Event);

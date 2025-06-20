@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -82,22 +83,22 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 	}
 
 	[Test]
-	public void the_stream_is_absent_physically()
+	public async Task the_stream_is_absent_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 			.Where(x => x.Event.EventStreamId == _deletedStream));
-		Assert.IsEmpty(ReadIndex.ReadAllEventsBackward(headOfTf, 1000).Records
+		Assert.IsEmpty((await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == _deletedStream));
 	}
 
 	[Test]
-	public void the_metastream_is_absent_physically()
+	public async Task the_metastream_is_absent_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 			.Where(x => x.Event.EventStreamId == _deletedMetaStream));
-		Assert.IsEmpty(ReadIndex.ReadAllEventsBackward(headOfTf, 1000).Records
+		Assert.IsEmpty((await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == _deletedMetaStream));
 	}
 

@@ -96,18 +96,19 @@ public class when_appending_to_a_tfchunk_and_flushing<TLogFormat, TStreamId> : S
 	}
 
 	[Test]
-	public void the_record_can_be_read_as_closest_backward_from_end()
+	public async Task the_record_can_be_read_as_closest_backward_from_end()
 	{
-		var res = _chunk.TryReadClosestBackward(_record.GetSizeWithLengthPrefixAndSuffix());
+		var res = await _chunk.TryReadClosestBackward(_record.GetSizeWithLengthPrefixAndSuffix(),
+			CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_record, res.LogRecord);
 		Assert.AreEqual(0, res.NextPosition);
 	}
 
 	[Test]
-	public void the_record_can_be_read_as_last_one()
+	public async Task the_record_can_be_read_as_last_one()
 	{
-		var res = _chunk.TryReadLast();
+		var res = await _chunk.TryReadLast(CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_record, res.LogRecord);
 		Assert.AreEqual(0, res.NextPosition);

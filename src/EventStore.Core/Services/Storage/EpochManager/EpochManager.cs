@@ -145,7 +145,7 @@ public class EpochManager<TStreamId> : IEpochManager
 					reader.Reposition(_writer.FlushedPosition);
 
 					for (SeqReadResult result;
-					     (result = reader.TryReadPrev()).Success;
+					     (result = await reader.TryReadPrev(token)).Success;
 					     token.ThrowIfCancellationRequested())
 					{
 						var rec = result.LogRecord;
@@ -342,7 +342,7 @@ public class EpochManager<TStreamId> : IEpochManager
 			epoch = sysRec.GetEpochRecord();
 			return epoch.EpochNumber == epochNumber && epoch.EpochId == epochId;
 		}
-		catch (Exception ex) when (ex is InvalidReadException || ex is UnableToReadPastEndOfStreamException)
+		catch (Exception ex) when (ex is InvalidReadException or UnableToReadPastEndOfStreamException)
 		{
 			Log.Information(ex, "Failed to read epoch {epochNumber} at {epochPosition}.", epochNumber,
 				epochPosition);
@@ -451,9 +451,7 @@ public class EpochManager<TStreamId> : IEpochManager
 			return;
 
 		throw new Exception(
-			string.Format("Second write try failed when first writing $epoch-information at {0}, then at {1}.",
-				originalLogPosition,
-				retryLogPosition));
+			$"Second write try failed when first writing $epoch-information at {originalLogPosition}, then at {retryLogPosition}.");
 	}
 
 	// we have just written epoch. about to write the $epoch-information for it.
@@ -464,7 +462,7 @@ public class EpochManager<TStreamId> : IEpochManager
 	// initialization before the epochinfo.
 	bool TryGetExpectedVersionForEpochInformation(EpochRecord epoch, out long expectedVersion)
 	{
-		expectedVersion = default;
+		expectedVersion = 0;
 
 		if (epoch.PrevEpochPosition < 0)
 			return false;

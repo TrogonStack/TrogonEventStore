@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using NUnit.Framework;
@@ -9,7 +11,8 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.AfterScavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_having_stream_both_maxage_and_maxcount_specified_with_maxcount_more_strict<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	when_having_stream_both_maxage_and_maxcount_specified_with_maxcount_more_strict<TLogFormat, TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _r1;
 	private EventRecord _r4;
@@ -91,9 +94,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_backward_doesnt_return_expired_records()
+	public async Task read_all_backward_doesnt_return_expired_records()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords();
 		Assert.AreEqual(4, records.Count);
 		Assert.AreEqual(_r6, records[0].Event);
 		Assert.AreEqual(_r5, records[1].Event);

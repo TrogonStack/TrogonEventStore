@@ -17,7 +17,7 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenScavengingTfchunkWithTransactions<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private const string _streamIdOne = "ES-1";
 	private const string _streamIdTwo = "ES-2";
@@ -48,7 +48,8 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 		var t1Commit = WriteCommit(t1.TransactionPosition, _streamIdOne, 0);
 		_t1CommitPos = t1Commit.LogPosition;
 		_postCommitPos =
-			t1Commit.GetNextLogPosition(t1Commit.LogPosition, t1Commit.GetSizeWithLengthPrefixAndSuffix() - 2 * sizeof(int));
+			t1Commit.GetNextLogPosition(t1Commit.LogPosition,
+				t1Commit.GetSizeWithLengthPrefixAndSuffix() - 2 * sizeof(int));
 
 		Writer.CompleteChunk();
 		Writer.AddNewChunk();
@@ -235,10 +236,10 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void read_all_events_backward_returns_all_events_in_correct_order()
+	public async Task read_all_events_backward_returns_all_events_in_correct_order()
 	{
 		var pos = GetBackwardReadPos();
-		var records = ReadIndex.ReadAllEventsBackward(pos, 10).Records;
+		var records = (await ReadIndex.ReadAllEventsBackward(pos, 10, CancellationToken.None)).Records;
 
 		Assert.AreEqual(6, records.Count);
 		Assert.AreEqual(_random1.EventId, records[0].Event.EventId);
@@ -259,15 +260,15 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void
+	public async Task
 		read_all_events_backwards_returns_nothing_when_prepare_position_is_smaller_than_first_prepare_in_commit()
 	{
-		var records = ReadIndex.ReadAllEventsBackward(new TFPos(_t2CommitPos, 0), 10).Records;
+		var records = (await ReadIndex.ReadAllEventsBackward(new TFPos(_t2CommitPos, 0), 10, CancellationToken.None)).Records;
 		Assert.AreEqual(0, records.Count);
 	}
 
 	[Test]
-	public void read_all_events_forward_returns_correct_events_starting_in_the_middle_of_tf()
+	public async Task read_all_events_forward_returns_correct_events_starting_in_the_middle_of_tf()
 	{
 		var res1 = ReadIndex.ReadAllEventsForward(new TFPos(_t2CommitPos, _p4.LogPosition),
 			10); // end of first commit
@@ -278,16 +279,16 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 		Assert.AreEqual(_p5.EventId, res1.Records[3].Event.EventId);
 		Assert.AreEqual(_random1.EventId, res1.Records[4].Event.EventId);
 
-		var res2 = ReadIndex.ReadAllEventsBackward(res1.PrevPos, 10);
+		var res2 = await ReadIndex.ReadAllEventsBackward(res1.PrevPos, 10, CancellationToken.None);
 		Assert.AreEqual(1, res2.Records.Count);
 		Assert.AreEqual(_p2.EventId, res2.Records[0].Event.EventId);
 	}
 
 	[Test]
-	public void read_all_events_backward_returns_correct_events_starting_in_the_middle_of_tf()
+	public async Task read_all_events_backward_returns_correct_events_starting_in_the_middle_of_tf()
 	{
 		var pos = new TFPos(_postCommitPos, _p4.LogPosition); // p3 post position
-		var res1 = ReadIndex.ReadAllEventsBackward(pos, 10);
+		var res1 = await ReadIndex.ReadAllEventsBackward(pos, 10, CancellationToken.None);
 
 		Assert.AreEqual(4, res1.Records.Count);
 		Assert.AreEqual(_p3.EventId, res1.Records[0].Event.EventId);
@@ -320,14 +321,14 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void all_records_can_be_read_sequentially_page_by_page_in_backward_pass()
+	public async Task all_records_can_be_read_sequentially_page_by_page_in_backward_pass()
 	{
 		var recs = new[] { _random1, _p5, _p3, _p1, _p4, _p2 }; // in reverse committed order
 
 		int count = 0;
 		var pos = GetBackwardReadPos();
 		IndexReadAllResult result;
-		while ((result = ReadIndex.ReadAllEventsBackward(pos, 1)).Records.Count != 0)
+		while ((result = await ReadIndex.ReadAllEventsBackward(pos, 1, CancellationToken.None)).Records.Count != 0)
 		{
 			Assert.AreEqual(1, result.Records.Count);
 			Assert.AreEqual(recs[count].EventId, result.Records[0].Event.EventId);
@@ -339,7 +340,7 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void position_returned_for_prev_page_when_traversing_forward_allow_to_traverse_backward_correctly()
+	public async Task position_returned_for_prev_page_when_traversing_forward_allow_to_traverse_backward_correctly()
 	{
 		var recs = new[] { _p2, _p4, _p1, _p3, _p5, _random1 }; // in committed order
 
@@ -354,7 +355,7 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 			var localPos = result.PrevPos;
 			int localCount = 0;
 			IndexReadAllResult localResult;
-			while ((localResult = ReadIndex.ReadAllEventsBackward(localPos, 1)).Records.Count != 0)
+			while ((localResult = await ReadIndex.ReadAllEventsBackward(localPos, 1, CancellationToken.None)).Records.Count != 0)
 			{
 				Assert.AreEqual(1, localResult.Records.Count);
 				Assert.AreEqual(recs[count - 1 - localCount].EventId, localResult.Records[0].Event.EventId);
@@ -370,14 +371,14 @@ public class when_scavenging_tfchunk_with_transactions<TLogFormat, TStreamId> : 
 	}
 
 	[Test]
-	public void position_returned_for_prev_page_when_traversing_backward_allow_to_traverse_forward_correctly()
+	public async Task position_returned_for_prev_page_when_traversing_backward_allow_to_traverse_forward_correctly()
 	{
 		var recs = new[] { _random1, _p5, _p3, _p1, _p4, _p2 }; // in reverse committed order
 
 		int count = 0;
 		var pos = GetBackwardReadPos();
 		IndexReadAllResult result;
-		while ((result = ReadIndex.ReadAllEventsBackward(pos, 1)).Records.Count != 0)
+		while ((result = await ReadIndex.ReadAllEventsBackward(pos, 1, CancellationToken.None)).Records.Count != 0)
 		{
 			Assert.AreEqual(1, result.Records.Count);
 			Assert.AreEqual(recs[count].EventId, result.Records[0].Event.EventId);

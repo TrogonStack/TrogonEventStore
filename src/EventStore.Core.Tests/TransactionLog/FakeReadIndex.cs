@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.LogAbstraction;
@@ -36,95 +38,92 @@ internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
 		_metastreams = metastreams;
 	}
 
-	public void Init(long buildToPosition)
-	{
-		throw new NotImplementedException();
-	}
+	public void Init(long buildToPosition) => throw new NotImplementedException();
 
-	public void Commit(CommitLogRecord record)
-	{
-		throw new NotImplementedException();
-	}
+	public void Commit(CommitLogRecord record) => throw new NotImplementedException();
 
-	public void Commit(IList<IPrepareLogRecord<TStreamId>> commitedPrepares)
-	{
-		throw new NotImplementedException();
-	}
+	public void Commit(IList<IPrepareLogRecord<TStreamId>> commitedPrepares) => throw new NotImplementedException();
 
-	public ReadIndexStats GetStatistics()
-	{
-		throw new NotImplementedException();
-	}
+	public ReadIndexStats GetStatistics() => throw new NotImplementedException();
 
-	public IndexReadEventResult ReadEvent(string streamName, TStreamId streamId, long eventNumber)
-	{
-		throw new NotImplementedException();
-	}
+	public IndexReadEventResult ReadEvent(
+		string streamName,
+		TStreamId streamId,
+		long eventNumber)
+		=> throw new NotImplementedException();
 
-	public IndexReadStreamResult ReadStreamEventsBackward(string streamName, TStreamId streamId, long fromEventNumber, int maxCount)
-	{
-		throw new NotImplementedException();
-	}
+	public IndexReadStreamResult ReadStreamEventsBackward(
+		string streamName,
+		TStreamId streamId,
+		long fromEventNumber,
+		int maxCount)
+		=> throw new NotImplementedException();
 
-	public IndexReadStreamResult ReadStreamEventsForward(string streamName, TStreamId streamId, long fromEventNumber, int maxCount)
-	{
-		throw new NotImplementedException();
-	}
+	public IndexReadStreamResult ReadStreamEventsForward(
+		string streamName,
+		TStreamId streamId,
+		long fromEventNumber,
+		int maxCount)
+		=> throw new NotImplementedException();
 
-	public IndexReadEventInfoResult ReadEventInfo_KeepDuplicates(TStreamId streamId, long eventNumber)
-	{
-		throw new NotImplementedException();
-	}
+	public IndexReadEventInfoResult ReadEventInfo_KeepDuplicates(
+		TStreamId streamId,
+		long eventNumber)
+		=> throw new NotImplementedException();
 
-	public IndexReadEventInfoResult ReadEventInfoForward_KnownCollisions(TStreamId streamId, long fromEventNumber, int maxCount,
+	public IndexReadEventInfoResult ReadEventInfoForward_KnownCollisions(
+		TStreamId streamId,
+		long fromEventNumber,
+		int maxCount,
+		long beforePosition) => throw new NotImplementedException();
+
+	public IndexReadEventInfoResult ReadEventInfoForward_NoCollisions(
+		ulong stream,
+		long fromEventNumber,
+		int maxCount,
 		long beforePosition)
-	{
-		throw new NotImplementedException();
-	}
+		=> throw new NotImplementedException();
 
-	public IndexReadEventInfoResult ReadEventInfoForward_NoCollisions(ulong stream, long fromEventNumber, int maxCount, long beforePosition)
-	{
-		throw new NotImplementedException();
-	}
+	public IndexReadEventInfoResult ReadEventInfoBackward_KnownCollisions(
+		TStreamId streamId,
+		long fromEventNumber,
+		int maxCount,
+		long beforePosition) => throw new NotImplementedException();
 
-	public IndexReadEventInfoResult ReadEventInfoBackward_KnownCollisions(TStreamId streamId, long fromEventNumber, int maxCount,
-		long beforePosition)
-	{
-		throw new NotImplementedException();
-	}
-
-	public IndexReadEventInfoResult ReadEventInfoBackward_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId, long fromEventNumber,
+	public IndexReadEventInfoResult ReadEventInfoBackward_NoCollisions(
+		ulong stream,
+		Func<ulong, TStreamId> getStreamId,
+		long fromEventNumber,
 		int maxCount, long beforePosition)
-	{
-		throw new NotImplementedException();
-	}
+		=> throw new NotImplementedException();
 
-	public IndexReadAllResult ReadAllEventsForward(TFPos pos, int maxCount)
-	{
-		throw new NotImplementedException();
-	}
+	public IndexReadAllResult ReadAllEventsForward(
+		TFPos pos,
+		int maxCount)
+		=> throw new NotImplementedException();
 
-	public IndexReadAllResult ReadAllEventsBackward(TFPos pos, int maxCount)
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<IndexReadAllResult> ReadAllEventsBackward(
+		TFPos pos,
+		int maxCount,
+		CancellationToken token)
+		=> ValueTask.FromException<IndexReadAllResult>(new NotImplementedException());
 
-	public IndexReadAllResult ReadAllEventsForwardFiltered(TFPos pos, int maxCount, int maxSearchWindow,
+	public IndexReadAllResult ReadAllEventsForwardFiltered(
+		TFPos pos,
+		int maxCount,
+		int maxSearchWindow,
 		IEventFilter eventFilter)
-	{
-		throw new NotImplementedException();
-	}
+		=> throw new NotImplementedException();
 
-	public IndexReadAllResult ReadAllEventsBackwardFiltered(TFPos pos, int maxCount, int maxSearchWindow,
-		IEventFilter eventFilter)
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<IndexReadAllResult> ReadAllEventsBackwardFiltered(
+		TFPos pos,
+		int maxCount,
+		int maxSearchWindow,
+		IEventFilter eventFilter,
+		CancellationToken token)
+		=> ValueTask.FromException<IndexReadAllResult>(new NotImplementedException());
 
-	public bool IsStreamDeleted(TStreamId streamId)
-	{
-		return _isStreamDeleted(streamId);
-	}
+	public bool IsStreamDeleted(TStreamId streamId) => _isStreamDeleted(streamId);
 
 	public long GetStreamLastEventNumber(TStreamId streamId)
 	{
@@ -133,53 +132,31 @@ internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
 		return _isStreamDeleted(streamId) ? EventNumber.DeletedStream : 1000000;
 	}
 
-	public long GetStreamLastEventNumber_KnownCollisions(TStreamId streamId, long beforePosition)
-	{
-		throw new NotImplementedException();
-	}
+	public long GetStreamLastEventNumber_KnownCollisions(
+		TStreamId streamId,
+		long beforePosition)
+		=> throw new NotImplementedException();
 
-	public long GetStreamLastEventNumber_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId, long beforePosition)
-	{
-		throw new NotImplementedException();
-	}
+	public long GetStreamLastEventNumber_NoCollisions(
+		ulong stream,
+		Func<ulong, TStreamId> getStreamId,
+		long beforePosition)
+		=> throw new NotImplementedException();
 
-	public StorageMessage.EffectiveAcl GetEffectiveAcl(TStreamId streamId)
-	{
-		throw new NotImplementedException();
-	}
+	public StorageMessage.EffectiveAcl GetEffectiveAcl(TStreamId streamId) => throw new NotImplementedException();
 
-	public TStreamId GetEventStreamIdByTransactionId(long transactionId)
-	{
-		throw new NotImplementedException();
-	}
+	public TStreamId GetEventStreamIdByTransactionId(long transactionId) => throw new NotImplementedException();
 
 	public StreamAccess CheckStreamAccess(TStreamId streamId, StreamAccessType streamAccessType, ClaimsPrincipal user)
-	{
-		throw new NotImplementedException();
-	}
+		=> throw new NotImplementedException();
 
-	public StreamMetadata GetStreamMetadata(TStreamId streamId)
-	{
-		throw new NotImplementedException();
-	}
+	public StreamMetadata GetStreamMetadata(TStreamId streamId) => throw new NotImplementedException();
 
-	public TStreamId GetStreamId(string streamName)
-	{
-		throw new NotImplementedException();
-	}
+	public TStreamId GetStreamId(string streamName) => throw new NotImplementedException();
 
-	public string GetStreamName(TStreamId streamId)
-	{
-		throw new NotImplementedException();
-	}
+	public string GetStreamName(TStreamId streamId) => throw new NotImplementedException();
 
-	public void Close()
-	{
-		throw new NotImplementedException();
-	}
+	public void Close() => throw new NotImplementedException();
 
-	public void Dispose()
-	{
-		throw new NotImplementedException();
-	}
+	public void Dispose() => throw new NotImplementedException();
 }
