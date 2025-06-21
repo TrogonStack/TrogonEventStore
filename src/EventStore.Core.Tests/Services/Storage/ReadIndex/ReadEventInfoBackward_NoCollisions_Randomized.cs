@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.Index.Hashers;
@@ -45,7 +47,7 @@ public class ReadEventInfoBackward_NoCollisions_Randomized : ReadIndexTestScenar
 		}
 	}
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var streamLast = 0L;
 		var nonCollidingStreamLast = 0L;
@@ -54,11 +56,12 @@ public class ReadEventInfoBackward_NoCollisions_Randomized : ReadIndexTestScenar
 		{
 			if (_random.Next(2) == 0)
 			{
-				_events.Add(WriteSingleEvent(Stream, streamLast++, "test data"));
+				_events.Add(await WriteSingleEvent(Stream, streamLast++, "test data", token: token));
 			}
 			else
 			{
-				_events.Add(WriteSingleEvent(NonCollidingStream, nonCollidingStreamLast++, "testing"));
+				_events.Add(await WriteSingleEvent(NonCollidingStream, nonCollidingStreamLast++, "testing",
+					token: token));
 			}
 		}
 	}

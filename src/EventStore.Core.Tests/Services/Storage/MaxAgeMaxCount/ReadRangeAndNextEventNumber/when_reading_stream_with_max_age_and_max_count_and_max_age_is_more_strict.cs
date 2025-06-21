@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
@@ -8,27 +10,26 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNext
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_strict<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenReadingStreamWithMaxAgeAndMaxCountAndMaxAgeIsMoreStrict<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _event3;
 	private EventRecord _event4;
 	private EventRecord _event5;
 
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var now = DateTime.UtcNow;
 
-		var metadata = string.Format(@"{{""$maxAge"":{0},""$maxCount"":5}}",
-			(int)TimeSpan.FromMinutes(20).TotalSeconds);
+		var metadata = $@"{{""$maxAge"":{(int)TimeSpan.FromMinutes(20).TotalSeconds},""$maxCount"":5}}";
 
-		WriteStreamMetadata("ES", 0, metadata);
-		WriteSingleEvent("ES", 0, "bla", now.AddMinutes(-100)); // expired: maxcount & maxage
-		WriteSingleEvent("ES", 1, "bla", now.AddMinutes(-50)); // expired: maxage
-		WriteSingleEvent("ES", 2, "bla", now.AddMinutes(-25)); // expired: maxage
-		_event3 = WriteSingleEvent("ES", 3, "bla", now.AddMinutes(-15)); // active
-		_event4 = WriteSingleEvent("ES", 4, "bla", now.AddMinutes(-11)); // active
-		_event5 = WriteSingleEvent("ES", 5, "bla", now.AddMinutes(-3)); // active
+		await WriteStreamMetadata("ES", 0, metadata, token: token);
+		await WriteSingleEvent("ES", 0, "bla", now.AddMinutes(-100), token: token); // expired: maxcount & maxage
+		await WriteSingleEvent("ES", 1, "bla", now.AddMinutes(-50), token: token); // expired: maxage
+		await WriteSingleEvent("ES", 2, "bla", now.AddMinutes(-25), token: token); // expired: maxage
+		_event3 = await WriteSingleEvent("ES", 3, "bla", now.AddMinutes(-15), token: token); // active
+		_event4 = await WriteSingleEvent("ES", 4, "bla", now.AddMinutes(-11), token: token); // active
+		_event5 = await WriteSingleEvent("ES", 5, "bla", now.AddMinutes(-3), token: token); // active
 	}
 
 	[Test]
@@ -216,36 +217,30 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_reading_stream_with_max_age_and_a_mostly_expired<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat,
-		TStreamId>
+	when_reading_stream_with_max_age_and_a_mostly_expired<TLogFormat, TStreamId>() : ReadIndexTestScenario<TLogFormat,
+	TStreamId>(maxEntriesInMemTable: 50,
+	chunkSize: 100000)
 {
-
-	public when_reading_stream_with_max_age_and_a_mostly_expired() : base(maxEntriesInMemTable: 50,
-		chunkSize: 100000)
-	{
-
-	}
-
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var now = DateTime.UtcNow;
 
 		var metadata = string.Format(@"{{""$maxAge"":{0}}}",
 			(int)TimeSpan.FromMinutes(20).TotalSeconds);
 
-		WriteStreamMetadata("ES", 0, metadata);
+		await WriteStreamMetadata("ES", 0, metadata, token: token);
 		var start = 0;
 		var end = 1008;
 		for (int i = start; i < end; i++)
 		{
-			WriteSingleEvent("ES", i, "bla", now.AddMinutes(-100), retryOnFail: true);
+			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-100), retryOnFail: true, token: token);
 		}
 
 		start = end;
 		end += 5;
 		for (int i = start; i < end; i++)
 		{
-			WriteSingleEvent("ES", i, "bla", now, retryOnFail: true);
+			await WriteSingleEvent("ES", i, "bla", now, retryOnFail: true, token: token);
 		}
 
 	}

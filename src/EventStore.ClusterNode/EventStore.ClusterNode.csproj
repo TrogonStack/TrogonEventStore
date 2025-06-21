@@ -36,6 +36,7 @@
 		<None Update="logconfig.json">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Remove="packages.lock.json" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="app2.ico" />

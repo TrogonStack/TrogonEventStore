@@ -12,22 +12,21 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_writing_delete_prepare_but_no_commit_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _event0;
 	private EventRecord _event1;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		_event0 = WriteSingleEvent("ES", 0, "bla1");
+		_event0 = await WriteSingleEvent("ES", 0, "bla1", token: token);
 		Assert.True(_logFormat.StreamNameIndex.GetOrReserve("ES", out var esStreamId, out _, out _));
 		var prepare = LogRecord.DeleteTombstone(_recordFactory, Writer.Position, Guid.NewGuid(), Guid.NewGuid(),
 			esStreamId, eventTypeId, 1);
-		long pos;
-		Assert.IsTrue(Writer.Write(prepare, out pos));
+		Assert.IsTrue(await Writer.Write(prepare, token) is (true, _));
 
-		_event1 = WriteSingleEvent("ES", 1, "bla1");
+		_event1 = await WriteSingleEvent("ES", 1, "bla1", token: token);
 	}
 
 	[Test]

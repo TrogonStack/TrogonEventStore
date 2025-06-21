@@ -8,12 +8,16 @@
 
 	<ItemGroup>
 	  <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-	  <PackageReference Include="Serilog" Version="4.0.1" />
-	  <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+	  <PackageReference Include="Serilog" Version="4.3.0" />
+	  <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.1" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="JetBrains.Annotations" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="packages.lock.json" />
 	</ItemGroup>
 
 </Project>

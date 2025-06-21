@@ -130,7 +130,7 @@ public class SystemMetricsTests : IDisposable
 
 		// Assert
 		collector.LastMeasurement.Should().NotBeNull();
-		collector.LastMeasurement!.Value.Should().BeGreaterOrEqualTo(0);
+		collector.LastMeasurement!.Value.Should().BeGreaterThanOrEqualTo(0);
 	}
 
 

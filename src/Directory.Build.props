@@ -16,8 +16,6 @@
 		<IsPackable>false</IsPackable>
 		<VersionPrefix>24.10.0</VersionPrefix>
 		<VersionSuffix>prerelease</VersionSuffix>
-		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-		<RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />

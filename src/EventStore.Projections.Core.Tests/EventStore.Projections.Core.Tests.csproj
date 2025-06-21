@@ -6,6 +6,7 @@
 		<Compile Remove="Services\checkpoint_strategy\**" />
 		<EmbeddedResource Remove="Services\checkpoint_strategy\**" />
 		<None Remove="Services\checkpoint_strategy\**" />
+		<None Remove="packages.lock.json" />
 	</ItemGroup>
 	<ItemGroup>
 		<Compile Remove="Playground\Launchpad.cs" />
@@ -17,9 +18,12 @@
 		<None Remove="Services\Jint\Serialization\big_state.json" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="GitHubActionsTestLogger" Version="2.3.3" />
+		<PackageReference Include="GitHubActionsTestLogger" Version="2.3.3">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
 		<PackageReference Include="NUnit" Version="3.14.0" />
 		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
 		<PackageReference Include="Serilog.Sinks.TextWriter" Version="3.0.0" />

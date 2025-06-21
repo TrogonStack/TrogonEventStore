@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using NUnit.Framework;
 
@@ -8,25 +10,22 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNext
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_reading_very_long_stream_with_max_age_and_mostly_expired_events<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenReadingVeryLongStreamWithMaxAgeAndMostlyExpiredEvents<TLogFormat, TStreamId>()
+	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize)
 {
-	public when_reading_very_long_stream_with_max_age_and_mostly_expired_events() : base(maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize)
-	{
-
-	}
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var now = DateTime.UtcNow;
-		var metadata = string.Format(@"{{""$maxAge"":{0}}}", (int)TimeSpan.FromMinutes(20).TotalSeconds);
-		WriteStreamMetadata("ES", 0, metadata, now.AddMinutes(-100));
+		var metadata = $@"{{""$maxAge"":{(int)TimeSpan.FromMinutes(20).TotalSeconds}}}";
+		await WriteStreamMetadata("ES", 0, metadata, now.AddMinutes(-100), token: token);
 		for (int i = 0; i < 1_000_000; i++)
 		{
-			WriteSingleEvent("ES", i, "bla", now.AddMinutes(-50), retryOnFail: true);
+			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-50), retryOnFail: true, token: token);
 		}
 
 		for (int i = 1_000_000; i < 1_000_015; i++)
 		{
-			WriteSingleEvent("ES", i, "bla", now.AddMinutes(-1), retryOnFail: true);
+			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-1), retryOnFail: true, token: token);
 		}
 	}
 

@@ -9,4 +9,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\EventStore.SystemRuntime\EventStore.SystemRuntime.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="packages.lock.json" />
+	</ItemGroup>
 </Project>

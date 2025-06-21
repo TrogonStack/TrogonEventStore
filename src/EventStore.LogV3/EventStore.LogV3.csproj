@@ -16,4 +16,7 @@
 	<ItemGroup>
 		<Protobuf Include="**/*.proto" />
 	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="packages.lock.json" />
+	</ItemGroup>
 </Project>

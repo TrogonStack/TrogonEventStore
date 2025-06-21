@@ -26,7 +26,7 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename);
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId1 = LogFormatHelper<TLogFormat, TStreamId>.StreamId;

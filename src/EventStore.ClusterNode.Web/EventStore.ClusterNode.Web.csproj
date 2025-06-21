@@ -53,5 +53,6 @@
 		<None Include="clusternode-web\js\ace\worker-json.js">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Remove="packages.lock.json" />
 	</ItemGroup>
 </Project>
