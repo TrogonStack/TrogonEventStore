@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using EventStore.Cluster;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
@@ -36,9 +37,8 @@ namespace EventStore.Core.Services.Replication {
 		private readonly string _clusterDns;
 
 		private VNodeState _state = VNodeState.Initializing;
-		private MemberInfo _currentLeader;
-		private Guid _currentSubscriptionId;
-		private Replication.ReplicationClient _currentClient;
+		private EventStore.Core.Cluster.MemberInfo _currentLeader;
+		private EventStore.Cluster.Replication.ReplicationClient _currentClient;
 		private AsyncDuplexStreamingCall<ReplicationRequest, ReplicationResponse> _streamingCall;
 		private CancellationTokenSource _connectionCancellation;
 		private Task _connectionTask;
@@ -109,6 +109,10 @@ namespace EventStore.Core.Services.Replication {
 			ConnectToLeader(message.ConnectionCorrelationId, message.Leader);
 		}
 
+		public ValueTask HandleAsync(ReplicationMessage.SubscribeToLeader message, CancellationToken token) {
+			return new ValueTask(Handle(message));
+		}
+
 		public async Task Handle(ReplicationMessage.SubscribeToLeader message) {
 			if (_streamingCall == null || _currentLeader?.InstanceId != message.LeaderId) {
 				Log.Warning("Cannot subscribe to leader - no active connection or leader mismatch");
@@ -155,7 +159,7 @@ namespace EventStore.Core.Services.Replication {
 			}
 		}
 
-		private void ConnectToLeader(Guid leaderConnectionCorrelationId, MemberInfo leader) {
+		private void ConnectToLeader(Guid leaderConnectionCorrelationId, EventStore.Core.Cluster.MemberInfo leader) {
 			if (_state != VNodeState.PreReplica && _state != VNodeState.PreReadOnlyReplica) {
 				return;
 			}
@@ -167,12 +171,12 @@ namespace EventStore.Core.Services.Replication {
 			_connectionTask = ConnectToLeaderAsync(leaderConnectionCorrelationId, leader, _connectionCancellation.Token);
 		}
 
-		private async Task ConnectToLeaderAsync(Guid leaderConnectionCorrelationId, MemberInfo leader, CancellationToken cancellationToken) {
+		private async Task ConnectToLeaderAsync(Guid leaderConnectionCorrelationId, EventStore.Core.Cluster.MemberInfo leader, CancellationToken cancellationToken) {
 			try {
 				Log.Information("Connecting to leader {leaderId} at {endpoint}", leader.InstanceId, leader.HttpEndPoint);
 
-				var client = _clientCache.Get(leader);
-				_currentClient = new Replication.ReplicationClient(client.Channel);
+				var client = _clientCache.Get(leader.HttpEndPoint);
+				_currentClient = new EventStore.Cluster.Replication.ReplicationClient(client.Channel);
 
 				_streamingCall = _currentClient.StreamReplication(cancellationToken: cancellationToken);
 
@@ -263,7 +267,7 @@ namespace EventStore.Core.Services.Replication {
 				transformHeader: createChunk.TransformHeaderBytes.ToByteArray());
 		}
 
-		private ReplicationRequest CreateSubscribeRequest(Guid subscriptionId, Guid leaderId, Epoch[] epochs) {
+		private ReplicationRequest CreateSubscribeRequest(Guid subscriptionId, Guid leaderId, EventStore.Core.Data.Epoch[] epochs) {
 			var epochProtos = new List<EventStore.Cluster.Epoch>();
 			foreach (var epoch in epochs) {
 				epochProtos.Add(new EventStore.Cluster.Epoch {
@@ -287,10 +291,17 @@ namespace EventStore.Core.Services.Replication {
 				port = 0;
 			}
 
+			var logPosition = _db.Config.WriterCheckpoint.Read();
+			var chunkId = Guid.Empty;
+			
+			// the chunk may not exist if it's a new database or if we're at a chunk boundary
+			if (_db.Manager.TryGetChunkFor(logPosition, out var chunk))
+				chunkId = chunk.ChunkHeader.ChunkId;
+
 			return new ReplicationRequest {
 				SubscribeReplica = new SubscribeReplica {
-					LogPosition = _db.Config.WriterCheckpoint.Read(),
-					ChunkId = ByteString.CopyFrom(_db.Manager.GetCurrentChunk().ChunkHeader.ChunkId.ToByteArray()),
+					LogPosition = logPosition,
+					ChunkId = ByteString.CopyFrom(chunkId.ToByteArray()),
 					LastEpochs = { epochProtos },
 					Ip = ByteString.CopyFrom(ipBytes),
 					Port = port,
@@ -302,10 +313,10 @@ namespace EventStore.Core.Services.Replication {
 			};
 		}
 
-		private async Task<Epoch[]> GetLastEpochs() {
+		private async Task<EventStore.Core.Data.Epoch[]> GetLastEpochs() {
 			// Get last epochs from epoch manager
-			var epochs = await _epochManager.GetLastEpochs(10); // Get last 10 epochs
-			return epochs.ToArray();
+			var epochRecords = await _epochManager.GetLastEpochs(10, CancellationToken.None); // Get last 10 epochs
+			return epochRecords.Select(e => new EventStore.Core.Data.Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToArray();
 		}
 
 		private void Disconnect() {

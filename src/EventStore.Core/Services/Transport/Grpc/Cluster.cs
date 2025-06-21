@@ -5,6 +5,6 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 	internal partial class Elections : EventStore.Cluster.Elections.ElectionsBase {
 	}
 	
-	internal partial class Replication : EventStore.Cluster.Replication.ReplicationBase {
+	public partial class Replication : EventStore.Cluster.Replication.ReplicationBase {
 	}
 }

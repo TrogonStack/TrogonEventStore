@@ -1526,7 +1526,7 @@ public class ClusterVNode<TStreamId> :
 			if (options.Cluster.EnableGrpcReplication) {
 				// Use gRPC for replication
 				var grpcReplicaService = new GrpcReplicaService(_mainQueue, Db, epochManager, 
-					clusterClientCache,
+					_eventStoreClusterClientCache,
 					GossipAdvertiseInfo.InternalTcp ?? GossipAdvertiseInfo.InternalSecureTcp,
 					options.Cluster.ReadOnlyReplica,
 					options.Cluster.ClusterDns);

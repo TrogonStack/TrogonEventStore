@@ -21,6 +21,7 @@ namespace EventStore.Core.Cluster {
 		private readonly IDurationTracker _gossipGetTracker;
 
 		public bool Disposed { get; private set; }
+		public GrpcChannel Channel => _channel;
 
 		public EventStoreClusterClient(
 			IPublisher bus,

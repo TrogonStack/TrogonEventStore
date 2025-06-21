@@ -207,7 +207,7 @@ namespace EventStore.Core {
 				.AddSingleton(new Monitoring(_monitoringQueue))
 				.AddSingleton(new Redaction(_mainQueue, _authorizationProvider))
 				.AddSingleton<ServerFeatures>()
-				.AddSingleton(new Replication(_mainQueue, _authorizationProvider, _trackers, _clusterDns))
+				.AddSingleton(new Replication(_mainQueue, _authorizationProvider, _trackers.QueueTrackers, _clusterDns))
 
 				// OpenTelemetry
 				.AddOpenTelemetry()

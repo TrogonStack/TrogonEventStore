@@ -15,10 +15,10 @@ using Google.Protobuf;
 using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc.Cluster {
-	partial class Replication {
+	public partial class Replication {
 		private readonly IPublisher _bus;
 		private readonly IAuthorizationProvider _authorizationProvider;
-		private readonly DurationTracker _streamReplicationTracker;
+		private readonly IDurationTracker _streamReplicationTracker;
 		private readonly string _clusterDns;
 		
 		// Track active streaming connections
@@ -32,7 +32,7 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 			_bus = bus ?? throw new ArgumentNullException(nameof(bus));
 			_authorizationProvider = authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
 			_clusterDns = clusterDns;
-			_streamReplicationTracker = queueTrackers.GetTracker("grpc-stream-replication");
+			_streamReplicationTracker = new DurationTracker.NoOp();
 		}
 
 		public override async Task<ReplicationInfo> GetReplicationInfo(EventStore.Client.Empty request, ServerCallContext context) {
@@ -78,7 +78,7 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 				throw RpcExceptions.AccessDenied();
 			}
 
-			using var activity = _streamReplicationTracker.StartActivity();
+			using var activity = _streamReplicationTracker.Start();
 			
 			string connectionId = null;
 			
@@ -111,7 +111,7 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 				if (connectionId != null) {
 					_activeConnections.TryRemove(connectionId, out _);
 				}
-			} catch (Exception ex) {
+			} catch (Exception) {
 				// Log error and clean up
 				if (connectionId != null) {
 					_activeConnections.TryRemove(connectionId, out _);
@@ -142,13 +142,13 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 			for (int i = 0; i < request.LastEpochs.Count; i++) {
 				var epoch = request.LastEpochs[i];
 				epochs[i] = new Data.Epoch(
-					new Guid(epoch.EpochId.ToByteArray()),
+					epoch.EpochPosition,
 					epoch.EpochNumber,
-					epoch.EpochPosition);
+					new Guid(epoch.EpochId.ToByteArray()));
 			}
 
 			// Create endpoint from IP and port
-			EndPoint replicaEndPoint;
+			System.Net.EndPoint replicaEndPoint;
 			try {
 				var ipBytes = request.Ip.ToByteArray();
 				var ipAddress = new IPAddress(ipBytes);
@@ -216,7 +216,7 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 			if (_activeConnections.TryGetValue(connectionId, out var responseStream)) {
 				try {
 					await responseStream.WriteAsync(response);
-				} catch (Exception ex) {
+				} catch (Exception) {
 					// Connection failed, remove it
 					_activeConnections.TryRemove(connectionId, out _);
 					throw;
@@ -244,7 +244,7 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 					if (grpcResponse != null) {
 						await _replicationService.SendToReplica(_connectionId, grpcResponse);
 					}
-				} catch (Exception ex) {
+				} catch (Exception) {
 					// Log error - connection may have been closed
 					// TODO: Add proper logging
 				}
