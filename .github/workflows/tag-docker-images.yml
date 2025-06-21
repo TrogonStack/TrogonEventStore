@@ -17,7 +17,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Tag and Push
-        uses: TrogonStack/Automations/tag-docker-images@master
+        uses: EventStore/Automations/tag-docker-images@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -44,9 +44,6 @@ jobs:
               },
               "bookworm-slim": {
                 "runtime": "linux-x64"
-              },
-              "alpine": {
-                "runtime": "linux-musl-x64"
               }
             }
           export_to: output

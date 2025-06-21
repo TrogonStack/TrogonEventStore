@@ -1,4 +1,13 @@
-# Contributing to EventStoreDB
+# Contributing
+
+Development is done on the `master` branch.
+We attempt to do our best to ensure that the history remains clean and to do so, we generally ask contributors to squash their commits into a set or single logical commit.
+
+If you want to switch to a particular release, you can check out the release branch for that particular release. For example: `git checkout release/oss-v22.10`
+
+- [Create an issue](https://github.com/TrogonStack/TrogonEventStore/issues)
+- [Documentation](https://developers.trogondb.com/)
+- [Contributing guide](https://github.com/TrogonStack/TrogonEventStore/blob/master/CONTRIBUTING.md)
 
 ## Working with the Git
 
@@ -6,23 +15,23 @@ We're using `master` as the main development branch. It contains all changes to 
 
 We attempt to do our best to ensure that the history remains clean and to do so, we generally ask contributors to squash their commits into a set or single logical commit.
 
-To contribute to EventStoreDB:
+To contribute to TrogonDB:
 
 1. Fork the repository.
 2. Create a feature branch from the `master` (or release) branch.
 3. It's recommended using rebase strategy for feature branches (see more in [Git documentation](https://git-scm.com/book/en/v2/Git-Branching-Rebasing)). Having that, we highly recommend using clear commit messages. Commits should also represent the unit of change.
 4. Before sending PR to ensure that you rebased the latest source branch from the main repository.
-5. When you're ready to create the [Pull Request on GitHub](https://github.com/EventStore/EventStore/compare).
+5. When you're ready to create the [Pull Request on GitHub](https://github.com/TrogonStack/TrogonEventStore/compare).
 
 ## Documentation
 
-Documentation is located in the [`docs`](/docs) folder. It's orchestrated in the separate [documentation repository](https://github.com/EventStore/documentation). It's available online at https://developers.eventstore.com/.
+Documentation is located in the [`docs`](/docs) folder. It's orchestrated in the separate [documentation repository](https://github.com/TrogonStack/documentation). It's available online at https://developers.trogondb.com/.
 
 It's recommended to have documentation changes be put together with code changes.
 
 We're supporting multiple versions of the documentation. Versions are kept in:
 - the main (`master`) branch: all changes that refer to the upcoming release should be put there. That includes both non-released changes and enhancements to documentation for existing features.
-- specific release branches - the last version and older release are kept there (e.g. `release/oss-v5`, `release/oss-v20.10`, `release/oss-v21.2`). We aim to keep the up to date documentation for the last LTS releases and all further. Read more on the release strategy: [link](https://www.eventstore.com/blog/eventstoredb-20.10-lts-has-been-released).
+- specific release branches - the last version and older release are kept there (e.g. `release/oss-v5`, `release/oss-v20.10`, `release/oss-v21.2`). We aim to keep the up to date documentation for the last LTS releases and all further. Read more on the release strategy: [link](https://www.trogondb.com/blog/eventstoredb-20.10-lts-has-been-released).
 
 To update the specific database version's docs, it's recommended to create a feature branch based on the particular version release branch. For instance, if you want to change documentation in the `21.2` version, then you should:
 - checkout the latest `release/oss-v21.2`,
