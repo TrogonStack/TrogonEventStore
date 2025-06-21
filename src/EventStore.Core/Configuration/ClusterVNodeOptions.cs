@@ -325,6 +325,9 @@ namespace EventStore.Core {
 			 Unit("ms")]
 			public int LeaderElectionTimeoutMs { get; init; } = 1_000;
 
+			[Description("Enable gRPC for internal cluster replication instead of TCP.")]
+			public bool EnableGrpcReplication { get; init; } = false;
+
 			public int QuorumSize => ClusterSize == 1 ? 1 : ClusterSize / 2 + 1;
 		}
 

@@ -21,6 +21,11 @@ service Elections {
 	rpc LeaderIsResigningOk (LeaderIsResigningOkRequest) returns (event_store.client.Empty);
 }
 
+service Replication {
+	rpc StreamReplication(stream ReplicationRequest) returns (stream ReplicationResponse);
+	rpc GetReplicationInfo(event_store.client.Empty) returns (ReplicationInfo);
+}
+
 message GossipRequest {
 	ClusterInfo info = 1;
 	EndPoint server = 2;
@@ -234,4 +239,37 @@ message CloneAssignment{
 message DropSubscription{
 	bytes leader_id = 1;
 	bytes subscription_id = 2;
+}
+
+message ReplicationRequest {
+	oneof request {
+		SubscribeReplica subscribe_replica = 1;
+		ReplicaLogPositionAck replica_log_position_ack = 2;
+		DropSubscription drop_subscription = 3;
+		ReplicaSubscriptionRetry replica_subscription_retry = 4;
+	}
+}
+
+message ReplicationResponse {
+	oneof response {
+		ReplicaSubscribed replica_subscribed = 1;
+		DataChunkBulk data_chunk_bulk = 2;
+		RawChunkBulk raw_chunk_bulk = 3;
+		FollowerAssignment follower_assignment = 4;
+		CloneAssignment clone_assignment = 5;
+		CreateChunk create_chunk = 6;
+		ReplicatedTo replicated_to = 7;
+	}
+}
+
+message ReplicationInfo {
+	int32 active_subscriptions = 1;
+	repeated ReplicationSubscriptionInfo subscriptions = 2;
+}
+
+message ReplicationSubscriptionInfo {
+	bytes subscription_id = 1;
+	EndPoint replica_endpoint = 2;
+	int64 subscription_position = 3;
+	string state = 4;
 }

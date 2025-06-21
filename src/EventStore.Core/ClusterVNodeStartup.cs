@@ -145,6 +145,7 @@ namespace EventStore.Core {
 					ep.MapGrpcService<ClientGossip>();
 					ep.MapGrpcService<Monitoring>();
 					ep.MapGrpcService<ServerFeatures>();
+					ep.MapGrpcService<Replication>();
 
 					// enable redaction service on unix sockets only
 					ep.MapGrpcService<Redaction>().AddEndpointFilter(async (c, next) => {
@@ -206,6 +207,7 @@ namespace EventStore.Core {
 				.AddSingleton(new Monitoring(_monitoringQueue))
 				.AddSingleton(new Redaction(_mainQueue, _authorizationProvider))
 				.AddSingleton<ServerFeatures>()
+				.AddSingleton(new Replication(_mainQueue, _authorizationProvider, _trackers, _clusterDns))
 
 				// OpenTelemetry
 				.AddOpenTelemetry()

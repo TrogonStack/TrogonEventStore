@@ -1523,20 +1523,34 @@ public class ClusterVNode<TStreamId> :
 			monitoringInnerBus.Subscribe<ReplicationMessage.GetReplicationStats>(leaderReplicationService);
 
 			// REPLICA REPLICATION
-			var replicaService = new ReplicaService(_mainQueue, Db, epochManager, _workersHandler,
-				_authenticationProvider, authorizationGateway,
-				GossipAdvertiseInfo.InternalTcp ?? GossipAdvertiseInfo.InternalSecureTcp,
-				options.Cluster.ReadOnlyReplica,
-				!disableInternalTcpTls, _internalServerCertificateValidator,
-				_certificateSelector,
-				TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
-				TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
-				TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
-			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(replicaService);
-			_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(replicaService);
-			_mainBus.Subscribe<ReplicationMessage.SubscribeToLeader>(replicaService);
-			_mainBus.Subscribe<ReplicationMessage.AckLogPosition>(replicaService);
-			_mainBus.Subscribe<ClientMessage.TcpForwardMessage>(replicaService);
+			if (options.Cluster.EnableGrpcReplication) {
+				// Use gRPC for replication
+				var grpcReplicaService = new GrpcReplicaService(_mainQueue, Db, epochManager, 
+					clusterClientCache,
+					GossipAdvertiseInfo.InternalTcp ?? GossipAdvertiseInfo.InternalSecureTcp,
+					options.Cluster.ReadOnlyReplica,
+					options.Cluster.ClusterDns);
+				_mainBus.Subscribe<SystemMessage.StateChangeMessage>(grpcReplicaService);
+				_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(grpcReplicaService);
+				_mainBus.Subscribe<ReplicationMessage.SubscribeToLeader>(grpcReplicaService);
+				_mainBus.Subscribe<ReplicationMessage.AckLogPosition>(grpcReplicaService);
+			} else {
+				// Use TCP for replication (existing implementation)
+				var replicaService = new ReplicaService(_mainQueue, Db, epochManager, _workersHandler,
+					_authenticationProvider, authorizationGateway,
+					GossipAdvertiseInfo.InternalTcp ?? GossipAdvertiseInfo.InternalSecureTcp,
+					options.Cluster.ReadOnlyReplica,
+					!disableInternalTcpTls, _internalServerCertificateValidator,
+					_certificateSelector,
+					TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatTimeout),
+					TimeSpan.FromMilliseconds(options.Interface.ReplicationHeartbeatInterval),
+					TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
+				_mainBus.Subscribe<SystemMessage.StateChangeMessage>(replicaService);
+				_mainBus.Subscribe<ReplicationMessage.ReconnectToLeader>(replicaService);
+				_mainBus.Subscribe<ReplicationMessage.SubscribeToLeader>(replicaService);
+				_mainBus.Subscribe<ReplicationMessage.AckLogPosition>(replicaService);
+				_mainBus.Subscribe<ClientMessage.TcpForwardMessage>(replicaService);
+			}
 		}
 		else
 		{

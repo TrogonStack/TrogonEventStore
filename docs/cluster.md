@@ -245,3 +245,37 @@ You can control which clones the cluster promotes with the `NodePriority` settin
 Changing `NodePriority` does not guarantee that the cluster will not promote the node. It is only one of the criteria that the Election Service considers.
 :::
 
+## gRPC replication
+
+TrogonEventStore supports gRPC for internal cluster replication as an alternative to TCP. gRPC replication provides unified protocol usage, better debugging capabilities, and HTTP/2 benefits.
+
+### Enable gRPC replication
+
+To enable gRPC replication, use the `EnableGrpcReplication` setting:
+
+| Format               | Syntax                                    |
+|:---------------------|:------------------------------------------|
+| Command line         | `--cluster-enable-grpc-replication`      |
+| YAML                 | `EnableGrpcReplication`                   |
+| Environment variable | `EVENTSTORE_CLUSTER_ENABLE_GRPC_REPLICATION` |
+
+**Default**: `false`, set to `true` to enable gRPC replication.
+
+When enabled, cluster nodes will use gRPC streaming for internal data replication instead of TCP connections. This provides:
+
+- **Unified Protocol**: All cluster communication uses gRPC
+- **Better Observability**: Enhanced metrics and debugging
+- **HTTP/2 Benefits**: Multiplexing and improved flow control
+- **Future Extensibility**: Easier to add new replication features
+
+### Migration considerations
+
+gRPC replication can be enabled gradually across cluster nodes:
+
+1. Enable on follower nodes first
+2. Enable on the leader after all followers support it
+3. Monitor replication performance and stability
+4. Rollback by setting `EnableGrpcReplication=false` if needed
+
+For detailed information about gRPC replication, see the [gRPC Replication documentation](grpc-replication.md).
+
