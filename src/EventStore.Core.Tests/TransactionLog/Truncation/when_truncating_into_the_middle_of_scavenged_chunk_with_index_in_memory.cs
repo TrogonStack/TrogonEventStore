@@ -1,4 +1,6 @@
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 
@@ -15,20 +17,20 @@ public class when_truncating_into_the_middle_of_scavenged_chunk_with_index_in_me
 
 	private EventRecord chunkEdge;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent("ES1", 0, new string('.', 3000)); // chunk 0
-		WriteSingleEvent("ES1", 1, new string('.', 3000));
-		WriteSingleEvent("ES2", 0, new string('.', 3000));
-		chunkEdge = WriteSingleEvent("ES1", 2, new string('.', 3000), retryOnFail: true); // chunk 1
-		var ackRec = WriteSingleEvent("ES1", 3, new string('.', 3000));
-		WriteSingleEvent("ES1", 4, new string('.', 3000));
-		WriteSingleEvent("ES1", 5, new string('.', 3000), retryOnFail: true); // chunk 2
-		WriteSingleEvent("ES1", 6, new string('.', 3000));
-		WriteSingleEvent("ES1", 7, new string('.', 3000));
-		WriteSingleEvent("ES1", 8, new string('.', 3000), retryOnFail: true); // chunk 3
+		await WriteSingleEvent("ES1", 0, new string('.', 3000), token: token); // chunk 0
+		await WriteSingleEvent("ES1", 1, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES2", 0, new string('.', 3000), token: token);
+		chunkEdge = await WriteSingleEvent("ES1", 2, new string('.', 3000), retryOnFail: true, token: token); // chunk 1
+		var ackRec = await WriteSingleEvent("ES1", 3, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES1", 4, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES1", 5, new string('.', 3000), retryOnFail: true, token: token); // chunk 2
+		await WriteSingleEvent("ES1", 6, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES1", 7, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES1", 8, new string('.', 3000), retryOnFail: true, token: token); // chunk 3
 
-		WriteDelete("ES1");
+		await WriteDelete("ES1", token);
 		Scavenge(completeLast: false, mergeChunks: false);
 
 		TruncateCheckpoint = ackRec.LogPosition;

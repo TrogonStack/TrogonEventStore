@@ -13,10 +13,10 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
 public class
-	when_stream_is_softdeleted_with_log_record_version_0<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat,
+	WhenStreamIsSoftdeletedWithLogRecordVersion0<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat,
 	TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator.Chunk(
 				Rec.Prepare(0, "$$test", metadata: new StreamMetadata(tempStream: true),
@@ -31,7 +31,7 @@ public class
 					version: LogRecordVersion.LogRecordV0),
 				Rec.Commit(3, "$$test", version: LogRecordVersion.LogRecordV0))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

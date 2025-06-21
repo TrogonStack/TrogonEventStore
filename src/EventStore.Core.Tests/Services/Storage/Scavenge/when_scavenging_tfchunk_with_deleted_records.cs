@@ -15,29 +15,29 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_scavenging_tfchunk_with_deleted_records<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenScavengingTfchunkWithDeletedRecords<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private const string _eventStreamId = "ES";
 	private const string _deletedEventStreamId = "Deleted-ES";
 	private EventRecord _event1, _event2, _event3, _event4, _deleted;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		// Stream that will be kept
-		_event1 = WriteSingleEvent(_eventStreamId, 0, "bla1");
-		_event2 = WriteSingleEvent(_eventStreamId, 1, "bla1");
+		_event1 = await WriteSingleEvent(_eventStreamId, 0, "bla1", token: token);
+		_event2 = await WriteSingleEvent(_eventStreamId, 1, "bla1", token: token);
 
 		// Stream that will be deleted
-		WriteSingleEvent(_deletedEventStreamId, 0, "bla1");
-		WriteSingleEvent(_deletedEventStreamId, 1, "bla1");
-		_deleted = WriteDelete(_deletedEventStreamId);
+		await WriteSingleEvent(_deletedEventStreamId, 0, "bla1", token: token);
+		await WriteSingleEvent(_deletedEventStreamId, 1, "bla1", token: token);
+		_deleted = await WriteDelete(_deletedEventStreamId, token);
 
 		// Stream that will be kept
-		_event3 = WriteSingleEvent(_eventStreamId, 2, "bla1");
-		_event4 = WriteSingleEvent(_eventStreamId, 3, "bla1");
+		_event3 = await WriteSingleEvent(_eventStreamId, 2, "bla1", token: token);
+		_event4 = await WriteSingleEvent(_eventStreamId, 3, "bla1", token: token);
 
 		Writer.CompleteChunk();
-		Writer.AddNewChunk();
+		await Writer.AddNewChunk(token: token);
 
 		Scavenge(completeLast: false, mergeChunks: true);
 	}

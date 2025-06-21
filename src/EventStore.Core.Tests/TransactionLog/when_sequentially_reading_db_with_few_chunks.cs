@@ -28,7 +28,7 @@ public class WhenSequentiallyReadingDbWithFewChunks<TLogFormat, TStreamId> : Spe
 		await base.TestFixtureSetUp();
 
 		_db = new TFChunkDb(TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 4096));
-		_db.Open();
+		await _db.Open();
 
 		var chunk = _db.Manager.GetChunk(0);
 
@@ -47,7 +47,7 @@ public class WhenSequentiallyReadingDbWithFewChunks<TLogFormat, TStreamId> : Spe
 			{
 				pos = i / 3 * _db.Config.ChunkSize;
 				chunk.Complete();
-				chunk = _db.Manager.AddNewChunk();
+				chunk = await _db.Manager.AddNewChunk(CancellationToken.None);
 			}
 
 			_records[i] = LogRecord.SingleWrite(recordFactory, pos,
@@ -64,11 +64,11 @@ public class WhenSequentiallyReadingDbWithFewChunks<TLogFormat, TStreamId> : Spe
 		_db.Config.WriterCheckpoint.Flush();
 	}
 
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
-		_db.Dispose();
+		await _db.DisposeAsync();
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

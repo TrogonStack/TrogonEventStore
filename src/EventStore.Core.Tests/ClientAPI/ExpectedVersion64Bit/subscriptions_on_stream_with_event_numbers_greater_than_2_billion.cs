@@ -12,7 +12,7 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 [Category("ClientAPI"), Category("LongRunning")]
-public class subscriptions_on_stream_with_event_numbers_greater_than_2_billion<TLogFormat, TStreamId>
+public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
 	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
 {
 	private const long intMaxValue = (long)int.MaxValue;
@@ -23,16 +23,16 @@ public class subscriptions_on_stream_with_event_numbers_greater_than_2_billion<T
 
 	private EventRecord _c1, _c2;
 
-	public override void WriteTestScenario()
+	public override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent(_volatileStreamOne, intMaxValue + 1, new string('.', 3000));
-		WriteSingleEvent(_volatileStreamOne, intMaxValue + 2, new string('.', 3000));
+		await WriteSingleEvent(_volatileStreamOne, intMaxValue + 1, new string('.', 3000), token: token);
+		await WriteSingleEvent(_volatileStreamOne, intMaxValue + 2, new string('.', 3000), token: token);
 
-		WriteSingleEvent(_volatileStreamTwo, intMaxValue + 1, new string('.', 3000));
-		WriteSingleEvent(_volatileStreamTwo, intMaxValue + 2, new string('.', 3000));
+		await WriteSingleEvent(_volatileStreamTwo, intMaxValue + 1, new string('.', 3000), token: token);
+		await WriteSingleEvent(_volatileStreamTwo, intMaxValue + 2, new string('.', 3000), token: token);
 
-		_c1 = WriteSingleEvent(_catchupStreamOne, intMaxValue + 1, new string('.', 3000));
-		_c2 = WriteSingleEvent(_catchupStreamOne, intMaxValue + 2, new string('.', 3000));
+		_c1 = await WriteSingleEvent(_catchupStreamOne, intMaxValue + 1, new string('.', 3000), token: token);
+		_c2 = await WriteSingleEvent(_catchupStreamOne, intMaxValue + 2, new string('.', 3000), token: token);
 	}
 
 	public override async Task Given()

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
@@ -9,19 +10,19 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 [Category("ClientAPI"), Category("LongRunning")]
-public class append_to_stream_with_event_numbers_greater_than_2_billion<TLogFormat, TStreamId>
+public class AppendToStreamWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
 	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
 {
 	private const string StreamName = "append_to_stream_with_event_numbers_greater_than_2_billion";
-	private const long intMaxValue = (long)int.MaxValue;
+	private const long intMaxValue = int.MaxValue;
 
-	public override void WriteTestScenario()
+	public override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000));
-		WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000));
-		WriteSingleEvent(StreamName, intMaxValue + 3, new string('.', 3000));
-		WriteSingleEvent(StreamName, intMaxValue + 4, new string('.', 3000));
-		WriteSingleEvent(StreamName, intMaxValue + 5, new string('.', 3000));
+		await WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000), token: token);
+		await WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000), token: token);
+		await WriteSingleEvent(StreamName, intMaxValue + 3, new string('.', 3000), token: token);
+		await WriteSingleEvent(StreamName, intMaxValue + 4, new string('.', 3000), token: token);
+		await WriteSingleEvent(StreamName, intMaxValue + 5, new string('.', 3000), token: token);
 	}
 
 	public override async Task Given()
@@ -29,7 +30,7 @@ public class append_to_stream_with_event_numbers_greater_than_2_billion<TLogForm
 		_store = BuildConnection(Node);
 		await _store.ConnectAsync();
 		await _store.SetStreamMetadataAsync(StreamName, EventStore.ClientAPI.ExpectedVersion.Any,
-			EventStore.ClientAPI.StreamMetadata.Create(truncateBefore: intMaxValue + 1));
+			StreamMetadata.Create(truncateBefore: intMaxValue + 1));
 	}
 
 	[Test]
@@ -49,7 +50,7 @@ public class append_to_stream_with_event_numbers_greater_than_2_billion<TLogForm
 	public async Task should_throw_wrong_expected_version_when_version_incorrect()
 	{
 		var evnt = new EventData(Guid.NewGuid(), "EventType", false, new byte[10], new byte[15]);
-		await AssertEx.ThrowsAsync<WrongExpectedVersionException>(
-			() => _store.AppendToStreamAsync(StreamName, intMaxValue + 15, evnt));
+		await AssertEx.ThrowsAsync<WrongExpectedVersionException>(() =>
+			_store.AppendToStreamAsync(StreamName, intMaxValue + 15, evnt));
 	}
 }

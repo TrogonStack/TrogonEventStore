@@ -80,7 +80,7 @@ public sealed class
 		_mainBus = new SynchronousScheduler(nameof(WhenStartingHavingTfLogWithNoEpochs<TLogFormat, TStreamId>));
 		_mainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(m => _published.Add(m)));
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
-		_db.Open();
+		await _db.Open();
 		_reader = new TFChunkReader(_db, _db.Config.WriterCheckpoint);
 		_writer = new TFChunkWriter(_db);
 		_writer.Open();
@@ -128,6 +128,7 @@ public sealed class
 			//workaround for TearDown error
 		}
 
-		_db?.Dispose();
+		using var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask;
+		task.Wait();
 	}
 }

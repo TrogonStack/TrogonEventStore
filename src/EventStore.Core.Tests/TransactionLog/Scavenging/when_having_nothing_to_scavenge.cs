@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -9,7 +10,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_having_nothing_to_scavenge<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "bla"),
@@ -20,7 +21,7 @@ public class when_having_nothing_to_scavenge<TLogFormat, TStreamId> : ScavengeTe
 				Rec.Commit(1, "bla"),
 				Rec.Commit(2, "bla3"))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

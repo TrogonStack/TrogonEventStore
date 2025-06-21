@@ -12,27 +12,27 @@ namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_building_an_index_off_tfile_with_multiple_events_in_a_stream<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	WhenBuildingAnIndexOffTfileWithMultipleEventsInAStream<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat, TStreamId>
 {
 	private Guid _id1;
 	private Guid _id2;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		_id1 = Guid.NewGuid();
 		_id2 = Guid.NewGuid();
-		long pos0, pos1, pos2, pos3, pos4;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 
-		GetOrReserve("test1", out var streamId, out pos0);
+		var (streamId, pos0) = await GetOrReserve("test1", token);
 
-		Writer.Write(LogRecord.SingleWrite(_recordFactory, pos0, _id1, _id1, streamId, ExpectedVersion.NoStream,
-			eventTypeId, new byte[0], new byte[0], DateTime.UtcNow), out pos1);
-		Writer.Write(LogRecord.SingleWrite(_recordFactory, pos1, _id2, _id2, streamId, 0,
-			eventTypeId, new byte[0], new byte[0]), out pos2);
-		Writer.Write(new CommitLogRecord(pos2, _id1, pos0, DateTime.UtcNow, 0), out pos3);
-		Writer.Write(new CommitLogRecord(pos3, _id2, pos1, DateTime.UtcNow, 1), out pos4);
+		var (_, pos1) = await Writer.Write(LogRecord.SingleWrite(_recordFactory, pos0, _id1, _id1, streamId,
+		ExpectedVersion.NoStream,
+		eventTypeId, new byte[0], new byte[0], DateTime.UtcNow), token);
+		var (_, pos2) = await Writer.Write(LogRecord.SingleWrite(_recordFactory, pos1, _id2, _id2, streamId, 0,
+			eventTypeId, new byte[0], new byte[0]), token);
+		var (_, pos3) = await Writer.Write(new CommitLogRecord(pos2, _id1, pos0, DateTime.UtcNow, 0), token);
+		await Writer.Write(new CommitLogRecord(pos3, _id2, pos1, DateTime.UtcNow, 1), token);
 	}
 
 	[Test]

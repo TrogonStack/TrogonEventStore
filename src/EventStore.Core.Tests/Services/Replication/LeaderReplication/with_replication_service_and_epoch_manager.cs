@@ -61,7 +61,7 @@ public abstract class
 
 		DbConfig = CreateDbConfig();
 		Db = new TFChunkDb(DbConfig);
-		Db.Open();
+		await Db.Open();
 
 		Writer = new TFChunkWriter(Db);
 		Writer.Open();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Net;
 using System.Runtime.CompilerServices;
+using DotNext.Runtime.CompilerServices;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Metrics;
@@ -13,7 +14,7 @@ namespace EventStore.Core.XUnit.Tests.Metrics;
 
 public class ElectionsCounterTrackerTests : IDisposable
 {
-	private readonly Disposables _disposables = new();
+	private Scope _disposables = new();
 	private readonly ElectionMessage.ElectionsDone _electionsDoneMessage;
 
 	public ElectionsCounterTrackerTests()
@@ -28,15 +29,18 @@ public class ElectionsCounterTrackerTests : IDisposable
 
 	public void Dispose()
 	{
-		_disposables?.Dispose();
+		_disposables.Dispose();
 	}
 
 	private (ElectionsCounterTracker, TestMeterListener<long>) GenSut(
 		[CallerMemberName] string callerName = "")
 	{
 
-		var meter = new Meter($"{typeof(ElectionsCounterTrackerTests)}--{callerName}").DisposeWith(_disposables);
-		var listener = new TestMeterListener<long>(meter).DisposeWith(_disposables);
+		var meter = new Meter($"{typeof(ElectionsCounterTrackerTests)}--{callerName}");
+		_disposables.RegisterForDispose(meter);
+
+		var listener = new TestMeterListener<long>(meter);
+		_disposables.RegisterForDispose(meter);
 		var metric = new CounterMetric(meter, "test-metric", unit: "");
 		var sut = new ElectionsCounterTracker(new CounterSubMetric(metric, []));
 

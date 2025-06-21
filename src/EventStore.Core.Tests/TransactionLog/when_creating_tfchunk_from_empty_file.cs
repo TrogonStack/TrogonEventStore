@@ -9,15 +9,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_creating_tfchunk_from_empty_file : SpecificationWithFile
+public class WhenCreatingTfchunkFromEmptyFile : SpecificationWithFile
 {
 	private TFChunk _chunk;
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename, 1024);
+		await base.SetUp();
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1024);
 	}
 
 	[TearDown]
