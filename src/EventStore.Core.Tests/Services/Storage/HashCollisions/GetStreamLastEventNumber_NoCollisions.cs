@@ -6,7 +6,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 
 [TestFixture]
-public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScenario<LogFormat.V2, string>
+public abstract class GetStreamLastEventNumber_NoCollisions() : ReadIndexTestScenario<LogFormat.V2, string>(
+	maxEntriesInMemTable: 3,
+	lowHasher: new ConstantHasher(0),
+	highHasher: new HumanReadableHasher32())
 {
 	private const string Stream = "ab-1";
 	private const ulong Hash = 98;
@@ -14,16 +17,8 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 
 	private string GetStreamId(ulong hash) => hash == Hash ? Stream : throw new ArgumentException();
 
-	protected GetStreamLastEventNumber_NoCollisions() : base(
-		maxEntriesInMemTable: 3,
-		lowHasher: new ConstantHasher(0),
-		highHasher: new HumanReadableHasher32())
-	{ }
-
 	public class VerifyNoCollision : GetStreamLastEventNumber_NoCollisions
 	{
-		protected override void WriteTestScenario() { }
-
 		[Test]
 		public void verify_that_streams_do_not_collide()
 		{
@@ -33,8 +28,6 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 
 	public class WithNoEvents : GetStreamLastEventNumber_NoCollisions
 	{
-		protected override void WriteTestScenario() { }
-
 		[Test]
 		public void with_no_events()
 		{

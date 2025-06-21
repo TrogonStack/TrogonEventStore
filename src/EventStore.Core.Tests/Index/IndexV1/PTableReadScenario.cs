@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 using NUnit.Framework;
 
@@ -19,15 +20,16 @@ public abstract class PTableReadScenario : SpecificationWithFile
 	}
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
+		await base.SetUp();
 
 		var table = new HashListMemTable(_ptableVersion, maxSize: 50);
 
 		AddItemsForScenario(table);
 
-		PTable = PTable.FromMemtable(table, Filename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, cacheDepth: _midpointCacheDepth,
+		PTable = PTable.FromMemtable(table, Filename, Constants.PTableInitialReaderCount,
+			Constants.PTableMaxReaderCountDefault, cacheDepth: _midpointCacheDepth,
 			skipIndexVerify: _skipIndexVerify);
 	}
 

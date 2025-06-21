@@ -13,8 +13,8 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 [Category("ClientAPI"), Category("LongRunning")]
 public class
-	subscribe_to_stream_with_link_to_event_with_event_number_greater_than_int_maxvalue<TLogFormat, TStreamId> :
-		MiniNodeWithExistingRecords<TLogFormat, TStreamId>
+	SubscribeToStreamWithLinkToEventWithEventNumberGreaterThanIntMaxvalue<TLogFormat, TStreamId> :
+	MiniNodeWithExistingRecords<TLogFormat, TStreamId>
 {
 	private const string StreamName =
 		"subscribe_to_stream_with_link_to_event_with_event_number_greater_than_int_maxvalue";
@@ -27,10 +27,10 @@ public class
 	private readonly AutoResetEvent _resetEvent = new AutoResetEvent(false);
 	private ResolvedEvent _receivedEvent;
 
-	public override void WriteTestScenario()
+	public override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		var event1 = WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000));
-		WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000));
+		var event1 = await WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000), token: token);
+		await WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000), token: token);
 		_event1Id = event1.EventId;
 	}
 
@@ -43,7 +43,7 @@ public class
 		await _store.AppendToStreamAsync(_linkedStreamName, ExpectedVersion.NoStream,
 			new EventData(Guid.NewGuid(),
 				SystemEventTypes.LinkTo, false, Helper.UTF8NoBom.GetBytes(
-					string.Format("{0}@{1}", intMaxValue + 1, StreamName)
+					$"{intMaxValue + 1}@{StreamName}"
 				), null));
 	}
 

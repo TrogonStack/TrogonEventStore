@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Caching;
@@ -82,7 +83,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new LogFormatAbstractorOptions
 		{
 			IndexDirectory = indexDirectory,
 		});
@@ -103,7 +104,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		// create db
 		Writer = new TFChunkWriter(Db);
 		Writer.Open();
-		WriteTestScenario();
+		await WriteTestScenario(CancellationToken.None);
 		Writer.Close();
 		Writer = null;
 
@@ -183,7 +184,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return tableIndex;
 	}
 
-	protected abstract void WriteTestScenario();
+	protected virtual ValueTask WriteTestScenario(CancellationToken token)
+		=> token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;
 
 	protected void GetOrReserve(string eventStreamName, out TStreamId eventStreamId, out long newPos)
 	{
