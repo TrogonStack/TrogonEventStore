@@ -65,6 +65,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.SystemRuntime", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.Projections.Core.XUnit.Tests", "EventStore.Projections.Core.XUnit.Tests\EventStore.Projections.Core.XUnit.Tests.csproj", "{41EEB66F-D77B-4FF3-BF68-DA3748C80BB5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.SystemRuntime.Tests", "EventStore.SystemRuntime.Tests\EventStore.SystemRuntime.Tests.csproj", "{CA966906-51C8-4520-924E-988FA396B712}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -387,6 +389,18 @@ Global
 		{41EEB66F-D77B-4FF3-BF68-DA3748C80BB5}.Release|ARM64.Build.0 = Release|ARM64
 		{41EEB66F-D77B-4FF3-BF68-DA3748C80BB5}.Release|x64.ActiveCfg = Release|x64
 		{41EEB66F-D77B-4FF3-BF68-DA3748C80BB5}.Release|x64.Build.0 = Release|x64
+		{CA966906-51C8-4520-924E-988FA396B712}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA966906-51C8-4520-924E-988FA396B712}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA966906-51C8-4520-924E-988FA396B712}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{CA966906-51C8-4520-924E-988FA396B712}.Debug|ARM64.Build.0 = Debug|ARM64
+		{CA966906-51C8-4520-924E-988FA396B712}.Debug|x64.ActiveCfg = Debug|x64
+		{CA966906-51C8-4520-924E-988FA396B712}.Debug|x64.Build.0 = Debug|x64
+		{CA966906-51C8-4520-924E-988FA396B712}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA966906-51C8-4520-924E-988FA396B712}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA966906-51C8-4520-924E-988FA396B712}.Release|ARM64.ActiveCfg = Release|ARM64
+		{CA966906-51C8-4520-924E-988FA396B712}.Release|ARM64.Build.0 = Release|ARM64
+		{CA966906-51C8-4520-924E-988FA396B712}.Release|x64.ActiveCfg = Release|x64
+		{CA966906-51C8-4520-924E-988FA396B712}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
