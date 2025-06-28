@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.trogondb.com/">
-    <img src="./trogon-bird-logo.png" width="120px" alt="TrogonDB" />
+    <img src="./trogon-logo.png" width="240px" alt="TrogonDB" />
   </a>
 </p>
 
@@ -132,4 +132,3 @@ You can verify the built image by running:
 ```
 docker run --rm myeventstore --insecure --what-if
 ```
-
