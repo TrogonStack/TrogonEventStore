@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
@@ -17,12 +19,13 @@ public class TracingChunkManagerForChunkExecutor<TStreamId, TRecord> :
 		_tracer = tracer;
 	}
 
-	public IChunkWriterForExecutor<TStreamId, TRecord> CreateChunkWriter(
-		IChunkReaderForExecutor<TStreamId, TRecord> sourceChunk)
+	public async ValueTask<IChunkWriterForExecutor<TStreamId, TRecord>> CreateChunkWriter(
+		IChunkReaderForExecutor<TStreamId, TRecord> sourceChunk,
+		CancellationToken token)
 	{
 
 		return new TracingChunkWriterForExecutor<TStreamId, TRecord>(
-			_wrapped.CreateChunkWriter(sourceChunk),
+			await _wrapped.CreateChunkWriter(sourceChunk, token),
 			_tracer);
 	}
 

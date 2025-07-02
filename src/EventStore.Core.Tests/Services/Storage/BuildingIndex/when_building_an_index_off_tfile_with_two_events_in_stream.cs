@@ -12,9 +12,9 @@ namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_building_an_index_off_tfile_with_two_events_in_stream<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat
-	,
-	TStreamId>
+	WhenBuildingAnIndexOffTfileWithTwoEventsInStream<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	TLogFormat
+	, TStreamId>
 {
 	private Guid _id1;
 	private Guid _id2;
@@ -22,22 +22,20 @@ public class
 	private IPrepareLogRecord<TStreamId> _prepare1;
 	private IPrepareLogRecord<TStreamId> _prepare2;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		_id1 = Guid.NewGuid();
 		_id2 = Guid.NewGuid();
 
-		long pos0, pos1, pos2, pos3, pos4;
-		GetOrReserve("test1", out var streamId1, out pos0);
-		GetOrReserveEventType("eventType", out var eventTypeId, out pos0);
+		var (streamId1, _) = await GetOrReserve("test1", token);
+		var (eventTypeId, pos0) = await GetOrReserveEventType("eventType", token);
 		_prepare1 = LogRecord.SingleWrite(_recordFactory, pos0, _id1, _id1, streamId1, ExpectedVersion.NoStream,
-			eventTypeId, new byte[0], new byte[0]);
-		Writer.Write(_prepare1, out pos1);
-		_prepare2 = LogRecord.SingleWrite(_recordFactory, pos1, _id2, _id2, streamId1, 0, eventTypeId, new byte[0],
-			new byte[0]);
-		Writer.Write(_prepare2, out pos2);
-		Writer.Write(new CommitLogRecord(pos2, _id1, pos0, DateTime.UtcNow, 0), out pos3);
-		Writer.Write(new CommitLogRecord(pos3, _id2, pos1, DateTime.UtcNow, 1), out pos4);
+			eventTypeId, Array.Empty<byte>(), Array.Empty<byte>());
+		var (_, pos1) = await Writer.Write(_prepare1, token);
+		_prepare2 = LogRecord.SingleWrite(_recordFactory, pos1, _id2, _id2, streamId1, 0, eventTypeId, new byte[0], Array.Empty<byte>());
+		var (_, pos2) = await Writer.Write(_prepare2, token);
+		var (_, pos3) = await Writer.Write(new CommitLogRecord(pos2, _id1, pos0, DateTime.UtcNow, 0), token);
+		await Writer.Write(new CommitLogRecord(pos3, _id2, pos1, DateTime.UtcNow, 1), token);
 	}
 
 	[Test]

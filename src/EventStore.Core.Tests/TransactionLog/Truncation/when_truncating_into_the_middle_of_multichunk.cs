@@ -38,18 +38,18 @@ public class when_truncating_into_the_middle_of_multichunk : SpecificationWithDi
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
-		using (var db = new TFChunkDb(_config))
+		await using (var db = new TFChunkDb(_config))
 		{
-			Assert.DoesNotThrow(() => db.Open(verifyHash: false));
+			Assert.DoesNotThrowAsync(async () => await db.Open(verifyHash: false));
 		}
 
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000000.000002")));
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000003.000000")));
 		Assert.AreEqual(2, Directory.GetFiles(PathName, "*").Length);
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

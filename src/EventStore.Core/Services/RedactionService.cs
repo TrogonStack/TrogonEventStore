@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data.Redaction;
@@ -20,9 +22,9 @@ namespace EventStore.Core.Services {
 
 	public class RedactionService<TStreamId> :
 		RedactionService,
-		IHandle<RedactionMessage.GetEventPosition>,
+		IAsyncHandle<RedactionMessage.GetEventPosition>,
 		IHandle<RedactionMessage.AcquireChunksLock>,
-		IHandle<RedactionMessage.SwitchChunk>,
+		IAsyncHandle<RedactionMessage.SwitchChunk>,
 		IHandle<RedactionMessage.ReleaseChunksLock>,
 		IHandle<SystemMessage.BecomeShuttingDown> {
 
@@ -49,18 +51,18 @@ namespace EventStore.Core.Services {
 			_switchChunksLock = switchChunksLock;
 		}
 
-		public void Handle(RedactionMessage.GetEventPosition message) {
+		async ValueTask IAsyncHandle<RedactionMessage.GetEventPosition>.HandleAsync(RedactionMessage.GetEventPosition message, CancellationToken token) {
 			try {
-				GetEventPosition(message.EventStreamId, message.EventNumber, message.Envelope);
+				await GetEventPosition(message.EventStreamId, message.EventNumber, message.Envelope, token);
 			} catch (Exception ex) {
 				Log.Error(ex, "REDACTION: An error has occurred when getting position for stream: {stream}, event number: {eventNumber}.",
 					message.EventStreamId, message.EventNumber);
 				message.Envelope.ReplyWith(
-					new RedactionMessage.GetEventPositionCompleted(GetEventPositionResult.UnexpectedError, Array.Empty<EventPosition>()));
+					new RedactionMessage.GetEventPositionCompleted(GetEventPositionResult.UnexpectedError, []));
 			}
 		}
 
-		private void GetEventPosition(string streamName, long eventNumber, IEnvelope envelope) {
+		private async ValueTask GetEventPosition(string streamName, long eventNumber, IEnvelope envelope, CancellationToken token) {
 			var streamId = _readIndex.GetStreamId(streamName);
 			var result = _readIndex.ReadEventInfo_KeepDuplicates(streamId, eventNumber);
 
@@ -117,7 +119,7 @@ namespace EventStore.Core.Services {
 			}
 		}
 
-		public void Handle(RedactionMessage.SwitchChunk message) {
+		async ValueTask IAsyncHandle<RedactionMessage.SwitchChunk>.HandleAsync(RedactionMessage.SwitchChunk message, CancellationToken token) {
 			var currentAcquisitionId = _switchChunksLock.CurrentAcquisitionId;
 			if (currentAcquisitionId != message.AcquisitionId) {
 				Log.Error("REDACTION: Skipping switching of chunk: {targetChunk} with chunk: {newChunk} " +
@@ -131,7 +133,7 @@ namespace EventStore.Core.Services {
 
 			try {
 				Log.Information("REDACTION: Replacing chunk {targetChunk} with {newChunk}", message.TargetChunkFile, message.NewChunkFile);
-				SwitchChunk(message.TargetChunkFile, message.NewChunkFile, message.Envelope);
+				await SwitchChunk(message.TargetChunkFile, message.NewChunkFile, message.Envelope, token);
 			} catch (Exception ex) {
 				Log.Error(ex, "REDACTION: An error has occurred when trying to switch chunk: {targetChunk} with chunk: {newChunk}.",
 					message.TargetChunkFile, message.NewChunkFile);
@@ -140,16 +142,17 @@ namespace EventStore.Core.Services {
 			}
 		}
 
-		private void SwitchChunk(string targetChunkFile, string newChunkFile, IEnvelope envelope) {
+		private async ValueTask SwitchChunk(string targetChunkFile, string newChunkFile, IEnvelope envelope, CancellationToken token) {
 			if (!IsValidSwitchChunkRequest(targetChunkFile, newChunkFile, out var newChunk, out var failReason)) {
 				envelope.ReplyWith(new RedactionMessage.SwitchChunkCompleted(failReason));
 				return;
 			}
 
-			_db.Manager.SwitchChunk(
+			await _db.Manager.SwitchChunk(
 				chunk: newChunk,
 				verifyHash: false,
-				removeChunksWithGreaterNumbers: false);
+				removeChunksWithGreaterNumbers: false,
+				token);
 
 			envelope.ReplyWith(new RedactionMessage.SwitchChunkCompleted(SwitchChunkResult.Success));
 		}

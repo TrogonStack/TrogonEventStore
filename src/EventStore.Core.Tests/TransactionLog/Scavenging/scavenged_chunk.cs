@@ -17,10 +17,11 @@ public class ScavengedChunk : SpecificationWithFile
 	public async Task is_fully_resident_in_memory_when_cached()
 	{
 		var map = new List<PosMap>();
-		var chunk = TFChunk.CreateNew(Filename, 1024 * 1024, 0, 0, true, false, false, false,
+		var chunk = await TFChunk.CreateNew(Filename, 1024 * 1024, 0, 0, true, false, false, false,
 			false,
 			new TFChunkTracker.NoOp(),
-			new IdentityChunkTransformFactory());
+			new IdentityChunkTransformFactory(),
+			CancellationToken.None);
 		long logPos = 0;
 		for (int i = 0, n = ChunkFooter.Size / PosMap.FullSize + 1; i < n; ++i)
 		{
@@ -32,7 +33,7 @@ public class ScavengedChunk : SpecificationWithFile
 
 		await chunk.CompleteScavenge(map, CancellationToken.None);
 
-		chunk.CacheInMemory();
+		await chunk.CacheInMemory(CancellationToken.None);
 
 		Assert.IsTrue(chunk.IsCached);
 

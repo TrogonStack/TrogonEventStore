@@ -188,7 +188,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 			TFChunk.TFChunk newChunk;
 			try {
-				newChunk = TFChunk.TFChunk.CreateNew(tmpChunkPath,
+				newChunk = await TFChunk.TFChunk.CreateNew(tmpChunkPath,
 					_db.Config.ChunkSize,
 					chunkStartNumber,
 					chunkEndNumber,
@@ -198,7 +198,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 					writethrough: _db.Config.WriteThrough,
 					reduceFileCachePressure: _db.Config.ReduceFileCachePressure,
 					tracker: new TFChunkTracker.NoOp(),
-					transformFactory: _db.TransformManager.GetFactoryForNewChunk());
+					transformFactory: _db.TransformManager.GetFactoryForNewChunk(),
+					ct);
 			} catch (IOException exc) {
 				_logger.Error(exc,
 					"IOException during creating new chunk for scavenging purposes. Stopping scavenging process...");
@@ -285,8 +286,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 						_logger.Debug("Forcing scavenged chunk to be kept as old chunk is a previous version.");
 					}
 
-					var chunk = _db.Manager.SwitchChunk(newChunk, verifyHash: false,
-						removeChunksWithGreaterNumbers: false);
+					var chunk = await _db.Manager.SwitchChunk(newChunk, verifyHash: false,
+						removeChunksWithGreaterNumbers: false, ct);
 					if (chunk != null) {
 						_logger.Debug("Scavenging of chunks:"
 						          + "\n{oldChunkName}"
@@ -422,7 +423,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 			TFChunk.TFChunk newChunk;
 			try {
-				newChunk = TFChunk.TFChunk.CreateNew(tmpChunkPath,
+				newChunk = await TFChunk.TFChunk.CreateNew(tmpChunkPath,
 					db.Config.ChunkSize,
 					chunkStartNumber,
 					chunkEndNumber,
@@ -432,7 +433,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 					writethrough: db.Config.WriteThrough,
 					reduceFileCachePressure: db.Config.ReduceFileCachePressure,
 					tracker: new TFChunkTracker.NoOp(),
-					transformFactory: db.TransformManager.GetFactoryForNewChunk());
+					transformFactory: db.TransformManager.GetFactoryForNewChunk(),
+					ct);
 			} catch (IOException exc) {
 				logger.Error(exc,
 					"IOException during creating new chunk for scavenging merge purposes. Stopping scavenging merge process...");
@@ -464,7 +466,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 					logger.Debug("Forcing merged chunk to be kept as old chunk is a previous version.");
 				}
 
-				var chunk = db.Manager.SwitchChunk(newChunk, verifyHash: false, removeChunksWithGreaterNumbers: false);
+				var chunk = await db.Manager.SwitchChunk(newChunk, verifyHash: false, removeChunksWithGreaterNumbers: false, ct);
 				if (chunk != null) {
 					logger.Debug(
 						"Merging of chunks:"

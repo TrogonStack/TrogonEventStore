@@ -13,34 +13,31 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
-public class when_hard_deleting_stream_with_log_version_0<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenHardDeletingStreamWithLogVersion0<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
-
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent("ES1", 0, new string('.', 3000));
-		WriteSingleEvent("ES1", 1, new string('.', 3000));
+		await WriteSingleEvent("ES1", 0, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES1", 1, new string('.', 3000), token: token);
 
-		WriteV0HardDelete("ES1");
+		await WriteV0HardDelete("ES1", token);
 	}
 
-	private void WriteV0HardDelete(string eventStreamId)
+	private async ValueTask WriteV0HardDelete(string eventStreamId, CancellationToken token)
 	{
-		long pos;
 		var logPosition = Writer.Position;
 		var prepare = new PrepareLogRecord(logPosition, Guid.NewGuid(), Guid.NewGuid(), logPosition, 0,
 			eventStreamId, null,
 			int.MaxValue - 1, DateTime.UtcNow,
 			PrepareFlags.StreamDelete | PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd,
-			SystemEventTypes.StreamDeleted, null,
-			new byte[0], new byte[0],
+			SystemEventTypes.StreamDeleted, null, Array.Empty<byte>(), Array.Empty<byte>(),
 			prepareRecordVersion: LogRecordVersion.LogRecordV0);
-		Writer.Write(prepare, out pos);
+		var (_, pos) = await Writer.Write(prepare, token);
 
 		var commit = new CommitLogRecord(pos, prepare.CorrelationId,
 			prepare.LogPosition, DateTime.UtcNow, int.MaxValue,
 			commitRecordVersion: LogRecordVersion.LogRecordV0);
-		Writer.Write(commit, out pos);
+		await Writer.Write(commit, token);
 	}
 
 	[Test]

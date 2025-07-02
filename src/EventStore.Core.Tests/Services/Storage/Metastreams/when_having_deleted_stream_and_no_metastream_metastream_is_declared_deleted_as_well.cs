@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -9,16 +11,17 @@ namespace EventStore.Core.Tests.Services.Storage.Metastreams;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_having_deleted_stream_and_no_metastream_metastream_is_declared_deleted_as_well<TLogFormat, TStreamId>
+	WhenHavingDeletedStreamAndNoMetastreamMetastreamIsDeclaredDeletedAsWell<TLogFormat, TStreamId>
 	: SimpleDbTestScenario<TLogFormat, TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,
+		CancellationToken token)
 	{
 		return dbCreator.Chunk(Rec.Prepare(0, "test"),
 				Rec.Commit(0, "test"),
 				Rec.Delete(2, "test"),
 				Rec.Commit(2, "test"))
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	[Test]

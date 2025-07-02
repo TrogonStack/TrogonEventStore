@@ -31,13 +31,13 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 	{
 		await base.TestFixtureSetUp();
 
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new LogFormatAbstractorOptions
 		{
 			IndexDirectory = GetFilePathFor("index"),
 		});
 
 		_db = new TFChunkDb(TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 16 * 1024));
-		_db.Open();
+		await _db.Open();
 
 		var chunk = _db.Manager.GetChunkFor(0);
 		var streamName = "es-to-scavenge";
@@ -96,12 +96,12 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 		_scavengedChunk = _db.Manager.GetChunk(0);
 	}
 
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
 		_logFormat?.Dispose();
-		_db.Dispose();
+		await _db.DisposeAsync();
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

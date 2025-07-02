@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -8,14 +9,10 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_metastream_is_scavenged_and_read_index_is_set_to_keep_last_3_metaevents<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
+public class when_metastream_is_scavenged_and_read_index_is_set_to_keep_last_3_metaevents<TLogFormat, TStreamId>()
+	: ScavengeTestScenario<TLogFormat, TStreamId>(metastreamMaxCount: 3)
 {
-	public when_metastream_is_scavenged_and_read_index_is_set_to_keep_last_3_metaevents() :
-		base(metastreamMaxCount: 3)
-	{
-	}
-
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "$$bla"),
@@ -25,7 +22,7 @@ public class when_metastream_is_scavenged_and_read_index_is_set_to_keep_last_3_m
 				Rec.Prepare(0, "$$bla"),
 				Rec.Commit(0, "$$bla"))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

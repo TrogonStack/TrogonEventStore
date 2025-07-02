@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using EventStore.Core.Data;
@@ -11,7 +12,7 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 [Category("ClientAPI"), Category("LongRunning")]
-public class read_stream_with_event_numbers_greater_than_2_billion<TLogFormat, TStreamId>
+public class ReadStreamWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
 	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
 {
 	private const string StreamName = "read_stream_with_event_numbers_greater_than_2_billion";
@@ -19,13 +20,13 @@ public class read_stream_with_event_numbers_greater_than_2_billion<TLogFormat, T
 
 	private EventRecord _r1, _r2, _r3, _r4, _r5;
 
-	public override void WriteTestScenario()
+	public override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		_r1 = WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000));
-		_r2 = WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000));
-		_r3 = WriteSingleEvent(StreamName, intMaxValue + 3, new string('.', 3000));
-		_r4 = WriteSingleEvent(StreamName, intMaxValue + 4, new string('.', 3000));
-		_r5 = WriteSingleEvent(StreamName, intMaxValue + 5, new string('.', 3000));
+		_r1 = await WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000), token: token);
+		_r2 = await WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000), token: token);
+		_r3 = await WriteSingleEvent(StreamName, intMaxValue + 3, new string('.', 3000), token: token);
+		_r4 = await WriteSingleEvent(StreamName, intMaxValue + 4, new string('.', 3000), token: token);
+		_r5 = await WriteSingleEvent(StreamName, intMaxValue + 5, new string('.', 3000), token: token);
 	}
 
 	public override async Task Given()
