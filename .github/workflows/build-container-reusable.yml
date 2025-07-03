@@ -9,8 +9,6 @@ on:
 
 jobs:
   build-container:
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-latest
     name: ci/github/build-${{ inputs.container-runtime }}
     steps:
@@ -70,10 +68,20 @@ jobs:
             CONTAINER_RUNTIME=${{ inputs.container-runtime }}
             RUNTIME=${{ steps.variables.outputs.runtime }}
       - name: Run Tests
-        run: |
-          docker run \
-          --volume $(pwd)/test-results:/build/test-results \
-          --rm \
+        run: >
+          docker run
+          --env TERM=dumb
+          --env DOTNET_NOLOGO=true
+          --env DOTNET_CLI_TELEMETRY_OPTOUT=true
+          --env LANG=C.UTF-8
+          --volume $(pwd)/test-results:/build/test-results
+          --volume ${{ github.step_summary }}:/build/step-summary
+          --rm
+          --env GITHUB_STEP_SUMMARY=/build/step-summary
+          --env GITHUB_SERVER_URL=${{ github.server_url }}
+          --env GITHUB_REPOSITORY=${{ github.repository }}
+          --env GITHUB_WORKSPACE=${{ github.workspace }}
+          --env GITHUB_SHA=${{ github.sha }}
           eventstore-test
       - name: Publish Test Results (HTML)
         uses: actions/upload-artifact@v4
