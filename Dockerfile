@@ -20,7 +20,7 @@ WORKDIR /build/.git
 COPY ./.git/ .
 
 WORKDIR /build/src
-RUN find /build/src -maxdepth 1 -type d -name "*.Tests" -print0 | xargs -I{} -0 -n1 sh -c \
+RUN find /build/src -maxdepth 1 -type d -name "*.Tests" -print0 | xargs -r -I{} -0 -n1 sh -c \
     'dotnet publish --runtime=${RUNTIME} --no-self-contained --configuration Release --output /build/published-tests/`basename $1` $1' - '{}'
 
 # "test" image
@@ -32,9 +32,9 @@ COPY --from=build ./build/src/EventStore.Core.Tests/Services/Transport/Tcp/test_
 RUN mkdir ./test-results
 RUN printf '#!/usr/bin/env sh\n\
 update-ca-certificates\n\
-find /build/published-tests -maxdepth 1 -type d -name "*.Tests" -print0 | xargs -I{} -0 -n1 sh -c '"'"'proj=`basename $1` && dotnet test --blame --blame-hang-timeout 5min --settings /build/ci/ci.runsettings --logger:"GitHubActions;report-warnings=false" --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory /build/test-results/$proj $1/$proj.dll'"'"' - '"'"'{}'"'"'\n\
+find /build/published-tests -maxdepth 1 -type d -name "*.Tests" -print0 | xargs -r -I{} -0 -n1 sh -c '"'"'proj=`basename $1` && dotnet test --blame --blame-hang-timeout 5min --settings /build/ci/ci.runsettings --logger:"GitHubActions;report-warnings=false" --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory /build/test-results/$proj $1/$proj.dll'"'"' - '"'"'{}'"'"'\n\
 exit_code=$?\n\
-echo $(find /build/test-results -name "*.html" | xargs cat) > /build/test-results/test-results.html\n\
+echo $(find /build/test-results -name "*.html" | xargs -r cat) > /build/test-results/test-results.html\n\
 exit $exit_code' \
     >> /build/test.sh && \
     chmod +x /build/test.sh
