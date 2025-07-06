@@ -17,28 +17,24 @@ jobs:
       matrix:
         configuration: [release]
     runs-on: ${{ inputs.os }}
-    name: ci/github/build-${{ inputs.os }}
+    name: ${{ inputs.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install netcoreapp3.1
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 3.1.x
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
       - name: Install net8.0
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Clear Nuget Cache
-        shell: powershell
-        if: inputs.os == 'windows-2019'
-        run: |
-          if (-not(Test-Path $env:APPDATA\NuGet\NuGet.Config -PathType Leaf)) {
-            return;
-          }
-          Remove-Item $env:APPDATA\NuGet\NuGet.Config
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
       - name: Compile
         shell: bash
         run: |
@@ -52,7 +48,7 @@ jobs:
         run: |
           find ./src -maxdepth 1 -type d -name "*.Tests"  -print0 \
             | xargs -r -I{} -0 -n1 bash -c \
-            'dotnet test --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} --blame --blame-hang-timeout 5min --blame-hang-dump-type mini --settings ./ci/ci.runsettings --logger:GitHubActions --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory=$(pwd)/test-results/$1 $1' - '{}'
+            'dotnet test --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} -p:ContinuousIntegrationBuild=true --blame --blame-hang-timeout 5min --blame-hang-dump-type mini --settings ./ci/ci.runsettings --logger:GitHubActions --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory=$(pwd)/test-results/$1 $1' - '{}'
       - name: Collect Test Results
         shell: bash
         if: always()
