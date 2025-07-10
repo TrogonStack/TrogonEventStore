@@ -43,6 +43,8 @@ public static class RuntimeInformation
 		IsRunningInKubernetes = !IsNullOrEmpty(GetEnvironmentVariable("KUBERNETES_SERVICE_HOST"));
 
 		Host = DotNetHostInfo.Collect();
+		RuntimeVersion = Host.RuntimeVersion;
+		RuntimeMode = Host.Mode;
 
 		HomeFolder = GetFolderPath(SpecialFolder.UserProfile);
 	}
@@ -104,12 +106,12 @@ public static class RuntimeInformation
 	/// <summary>
 	/// Custom runtime version of the .NET host.
 	/// </summary>
-	public static readonly string RuntimeVersion = Host.RuntimeVersion;
+	public static readonly string RuntimeVersion;
 
 	/// <summary>
 	/// The mode of the .NET runtime, represented as the size of a pointer (e.g., 64 for a 64-bit runtime).
 	/// </summary>
-	public static readonly int RuntimeMode = Host.Mode;
+	public static readonly int RuntimeMode;
 }
 
 /// <summary>
@@ -120,7 +122,12 @@ public static class RuntimeInformation
 /// <param name="Mode">The mode of the .NET runtime, represented as the size of a pointer (e.g., 64 for a 64-bit runtime).</param>
 /// <param name="Commit">The commit hash of the .NET runtime.</param>
 /// <param name="RuntimeVersion">Custom runtime version of the .NET host.</param>
-public readonly record struct DotNetHostInfo(string Version, Architecture Architecture, int Mode, string Commit, string RuntimeVersion)
+public readonly record struct DotNetHostInfo(
+	string Version,
+	Architecture Architecture,
+	int Mode,
+	string Commit,
+	string RuntimeVersion)
 {
 	public override string ToString() => RuntimeVersion;
 
@@ -132,7 +139,7 @@ public readonly record struct DotNetHostInfo(string Version, Architecture Archit
 
 		var commit = assemblyVersion.Substring(assemblyVersion.IndexOf('+') + 1, 9);
 
-		return new()
+		return new DotNetHostInfo
 		{
 			Version = Environment.Version.ToString(),
 			Architecture = OSArchitecture,

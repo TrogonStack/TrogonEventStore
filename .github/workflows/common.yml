@@ -21,23 +21,25 @@ on:
 jobs:
   vulnerability-scan:
     runs-on: ubuntu-latest
-    name: ci/github/scan-vulnerabilities
+    name: Scan for Vulnerabilities
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install net8.0
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
       - name: Scan for Vulnerabilities
         run: |
           cd src
-          dotnet restore
+          dotnet restore --locked-mode
           dotnet list package --vulnerable --include-transitive | tee vulnerabilities.txt
           ! cat vulnerabilities.txt | grep -q "has the following vulnerable packages"
   protolock:
     runs-on: ubuntu-latest
-    name: ci/github/protolock
+    name: Protolock Status
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,14 +49,17 @@ jobs:
           ./protolock.sh status --uptodate
   docker-compose:
     runs-on: ubuntu-latest
-    name: ci/github/docker-compose
+    name: Docker Compose Smoke Test
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Github Registry Docker Login
-        uses: azure/docker-login@v1
+        uses: docker/login-action@v3
         with:
-          login-server: docker.pkg.github.com/eventstore
+          registry: docker.pkg.github.com
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker Compose Smoke Test
