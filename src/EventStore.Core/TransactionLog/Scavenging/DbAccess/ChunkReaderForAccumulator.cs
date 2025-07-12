@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -12,8 +15,7 @@ using EventStore.LogCommon;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<TStreamId>
-{
+public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<TStreamId> {
 	private readonly TFChunkManager _manager;
 	private readonly IMetastreamLookup<TStreamId> _metaStreamLookup;
 	private readonly IStreamIdConverter<TStreamId> _streamIdConverter;
@@ -28,8 +30,7 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 		IMetastreamLookup<TStreamId> metastreamLookup,
 		IStreamIdConverter<TStreamId> streamIdConverter,
 		ICheckpoint replicationChk,
-		int chunkSize)
-	{
+		int chunkSize) {
 
 		_manager = manager;
 		_metaStreamLookup = metastreamLookup;
@@ -47,8 +48,7 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 		RecordForAccumulator<TStreamId>.OriginalStreamRecord originalStreamRecord,
 		RecordForAccumulator<TStreamId>.MetadataStreamRecord metadataStreamRecord,
 		RecordForAccumulator<TStreamId>.TombStoneRecord tombStoneRecord,
-		[EnumeratorCancellation] CancellationToken cancellationToken)
-	{
+		[EnumeratorCancellation] CancellationToken token) {
 
 		// the physical chunk might contain several logical chunks, we are only interested in one of them
 		var chunk = _manager.GetChunk(logicalChunkNumber);
@@ -58,8 +58,7 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 
 		var replicationChk = _replicationChk.ReadNonFlushed();
 
-		while (true)
-		{
+		while (true) {
 			if (nextPos >= chunkEndPos) // reached the end of this logical chunk
 				break;
 
@@ -70,10 +69,9 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 
 			var localPos = chunk.ChunkHeader.GetLocalLogPosition(nextPos);
 
-			var result = await chunk.TryReadClosestForwardRaw(localPos, _getBuffer, cancellationToken);
+			var result = await chunk.TryReadClosestForwardRaw(localPos, _getBuffer, token);
 
-			if (!result.Success)
-			{
+			if (!result.Success) {
 				// there is no need to release the reusable buffer here since result.Success is false
 				// when attempting to read outside the bounds of a chunk and thus, the buffer will not
 				// have been acquired. in other words, whenever the buffer is acquired, either result.Success
@@ -81,14 +79,12 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 				break;
 			}
 
-			switch (result.RecordType)
-			{
+			switch (result.RecordType) {
 				case LogRecordType.Prepare:
 					var prepareView = new PrepareLogRecordView(result.RecordBuffer, result.RecordLength);
 					var streamId = _streamIdConverter.ToStreamId(prepareView.EventStreamId);
 
-					if (prepareView.Flags.HasAnyOf(PrepareFlags.StreamDelete))
-					{
+					if (prepareView.Flags.HasAnyOf(PrepareFlags.StreamDelete)) {
 						tombStoneRecord.Reset(
 							streamId,
 							prepareView.LogPosition,
@@ -96,9 +92,7 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 							prepareView.ExpectedVersion + 1);
 						yield return AccumulatorRecordType.TombstoneRecord;
 
-					}
-					else if (_metaStreamLookup.IsMetaStream(streamId))
-					{
+					} else if (_metaStreamLookup.IsMetaStream(streamId)) {
 						metadataStreamRecord.Reset(
 							streamId,
 							prepareView.LogPosition,
@@ -107,9 +101,7 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 							StreamMetadata.TryFromJsonBytes(prepareView.Version, prepareView.Data));
 						yield return AccumulatorRecordType.MetadataStreamRecord;
 
-					}
-					else
-					{
+					} else {
 						originalStreamRecord.Reset(
 							streamId,
 							prepareView.LogPosition,
