@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,28 +9,26 @@ using EventStore.Core.Caching;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
 using EventStore.Core.Index;
+using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
+using EventStore.Core.LogV3;
 using EventStore.Core.Messaging;
+using EventStore.Core.Metrics;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.Fakes;
 using EventStore.Core.Tests.TransactionLog;
+using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.LogRecords;
-using NUnit.Framework;
 using EventStore.Core.Util;
-using EventStore.Core.Index.Hashes;
-using EventStore.Core.LogV3;
-using EventStore.Core.Metrics;
-using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.LogCommon;
+using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage;
-
-public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected readonly int MaxEntriesInMemTable;
 	protected readonly int StreamInfoCacheCapacity;
 	protected readonly long MetastreamMaxCount;
@@ -64,8 +65,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		bool performAdditionalChecks = true,
 		int chunkSize = 10_000,
 		IHasher<TStreamId> lowHasher = null,
-		IHasher<TStreamId> highHasher = null)
-	{
+		IHasher<TStreamId> highHasher = null) {
 
 		Ensure.Positive(maxEntriesInMemTable, "maxEntriesInMemTable");
 		MaxEntriesInMemTable = maxEntriesInMemTable;
@@ -78,13 +78,13 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		_chunkSize = chunkSize;
 	}
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = indexDirectory,
+		});
 		_recordFactory = _logFormat.RecordFactory;
 		_streamNameIndex = _logFormat.StreamNameIndex;
 		_eventTypeIndex = _logFormat.EventTypeIndex;
@@ -134,8 +134,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 			_logFormat.StreamExistenceFilter,
 			_logFormat.StreamExistenceFilterReader,
 			_logFormat.EventTypeIndexConfirmer,
-			new LRUCache<TStreamId, IndexBackend<TStreamId>.EventNumberCached>("LastEventNumber",
-				StreamInfoCacheCapacity),
+			new LRUCache<TStreamId, IndexBackend<TStreamId>.EventNumberCached>("LastEventNumber", StreamInfoCacheCapacity),
 			new LRUCache<TStreamId, IndexBackend<TStreamId>.MetadataCached>("StreamMetadata", StreamInfoCacheCapacity),
 			additionalCommitChecks: PerformAdditionalCommitChecks,
 			metastreamMaxCount: MetastreamMaxCount,
@@ -154,19 +153,16 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		TableIndex.WaitForBackgroundTasks(16_000);
 
 		// scavenge must run after readIndex is built
-		if (_scavenge)
-		{
+		if (_scavenge) {
 			if (_completeLastChunkOnScavenge)
 				Db.Manager.GetChunk(Db.Manager.ChunksCount - 1).Complete();
-			_scavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, Db, new FakeTFScavengerLog(), TableIndex,
-				ReadIndex, _logFormat.Metastreams);
+			_scavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, Db, new FakeTFScavengerLog(), TableIndex, ReadIndex, _logFormat.Metastreams);
 			await _scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: _mergeChunks,
 				scavengeIndex: _scavengeIndex);
 		}
 	}
 
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		ReadIndex?.Close();
 		ReadIndex?.Dispose();
@@ -177,34 +173,27 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		await base.TestFixtureTearDown();
 	}
 
-	protected virtual ITableIndex<TStreamId> TransformTableIndex(ITableIndex<TStreamId> tableIndex)
-	{
+	protected virtual ITableIndex<TStreamId> TransformTableIndex(ITableIndex<TStreamId> tableIndex) {
 		return tableIndex;
 	}
 
 	protected virtual ValueTask WriteTestScenario(CancellationToken token)
 		=> token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;
 
-	protected async ValueTask<(TStreamId, long)> GetOrReserve(string eventStreamName, CancellationToken token)
-	{
+	protected async ValueTask<(TStreamId, long)> GetOrReserve(string eventStreamName, CancellationToken token) {
 		var newPos = Writer.Position;
-		_streamNameIndex.GetOrReserve(_logFormat.RecordFactory, eventStreamName, newPos, out var eventStreamId,
-			out var streamRecord);
-		if (streamRecord is not null)
-		{
+		_streamNameIndex.GetOrReserve(_logFormat.RecordFactory, eventStreamName, newPos, out var eventStreamId, out var streamRecord);
+		if (streamRecord is not null) {
 			(_, newPos) = await Writer.Write(streamRecord, token);
 		}
 
 		return (eventStreamId, newPos);
 	}
 
-	protected async ValueTask<(TStreamId, long)> GetOrReserveEventType(string eventType, CancellationToken token)
-	{
+	protected async ValueTask<(TStreamId, long)> GetOrReserveEventType(string eventType, CancellationToken token) {
 		var newPos = Writer.Position;
-		_eventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, eventType, newPos, out var eventTypeId,
-			out var eventTypeRecord);
-		if (eventTypeRecord is not null)
-		{
+		_eventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, eventType, newPos, out var eventTypeId, out var eventTypeRecord);
+		if (eventTypeRecord is not null) {
 			(_, newPos) = await Writer.Write(eventTypeRecord, token);
 		}
 
@@ -218,8 +207,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		Guid eventId = default,
 		bool retryOnFail = false,
 		string eventType = "some-type",
-		CancellationToken token = default)
-	{
+		CancellationToken token = default) {
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (eventTypeId, pos) = await GetOrReserveEventType(eventType, token);
 
@@ -233,16 +221,12 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 			null,
 			timestamp);
 
-		if (!retryOnFail)
-		{
+		if (!retryOnFail) {
 			Assert.IsTrue(await Writer.Write(prepare, token) is (true, _));
-		}
-		else
-		{
+		} else {
 			long firstPos = prepare.LogPosition;
 			(var success, pos) = await Writer.Write(prepare, token);
-			if (!success)
-			{
+			if (!success) {
 				prepare = LogRecord.SingleWrite(_recordFactory, pos,
 					prepare.CorrelationId,
 					prepare.EventId,
@@ -262,16 +246,12 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 
 		var commit = LogRecord.Commit(Writer.Position, prepare.CorrelationId, prepare.LogPosition,
 			eventNumber);
-		if (!retryOnFail)
-		{
+		if (!retryOnFail) {
 			Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
-		}
-		else
-		{
+		} else {
 			var firstPos = commit.LogPosition;
 			(var success, pos) = await Writer.Write(commit, token);
-			if (!success)
-			{
+			if (!success) {
 				commit = LogRecord.Commit(pos, prepare.CorrelationId, prepare.LogPosition,
 					eventNumber);
 				if (await Writer.Write(commit, token) is (false, _))
@@ -279,18 +259,15 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 						prepare.LogPosition);
 			}
 		}
-
 		Assert.AreEqual(eventStreamId, prepare.EventStreamId);
 
 		var eventRecord = new EventRecord(eventNumber, prepare, eventStreamName, eventType);
 		return eventRecord;
 	}
 
-	protected async ValueTask<EventRecord> WriteStreamMetadata(string eventStreamName, long eventNumber,
-		string metadata,
+	protected async ValueTask<EventRecord> WriteStreamMetadata(string eventStreamName, long eventNumber, string metadata,
 		DateTime? timestamp = null,
-		CancellationToken token = default)
-	{
+		CancellationToken token = default) {
 		var (eventStreamId, _) = await GetOrReserve(SystemStreams.MetastreamOf(eventStreamName), token);
 		var (eventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamMetadata, token);
 		var prepare = LogRecord.SingleWrite(_recordFactory, pos,
@@ -310,15 +287,12 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
 		Assert.AreEqual(eventStreamId, prepare.EventStreamId);
 
-		var eventRecord = new EventRecord(eventNumber, prepare, SystemStreams.MetastreamOf(eventStreamName),
-			SystemEventTypes.StreamMetadata);
+		var eventRecord = new EventRecord(eventNumber, prepare, SystemStreams.MetastreamOf(eventStreamName), SystemEventTypes.StreamMetadata);
 		return eventRecord;
 	}
 
-	protected async ValueTask<EventRecord> WriteTransactionBegin(string eventStreamName, long expectedVersion,
-		long eventNumber,
-		string eventData, CancellationToken token)
-	{
+	protected async ValueTask<EventRecord> WriteTransactionBegin(string eventStreamName, long expectedVersion, long eventNumber,
+		string eventData, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (eventTypeId, pos) = await GetOrReserveEventType("some-type", token);
@@ -339,9 +313,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return new EventRecord(eventNumber, prepare, eventStreamName, "some-type");
 	}
 
-	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionBegin(string eventStreamName,
-		long expectedVersion, CancellationToken token)
-	{
+	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionBegin(string eventStreamName, long expectedVersion, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, pos) = await GetOrReserve(eventStreamName, token);
 		var prepare = LogRecord.TransactionBegin(_recordFactory, pos, Guid.NewGuid(), eventStreamId,
@@ -359,8 +331,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		PrepareFlags flags,
 		bool retryOnFail = false,
 		string eventType = "some-type",
-		CancellationToken token = default)
-	{
+		CancellationToken token = default) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
@@ -378,12 +349,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 			Helper.UTF8NoBom.GetBytes(eventData),
 			null);
 
-		if (retryOnFail)
-		{
+		if (retryOnFail) {
 			long firstPos = prepare.LogPosition;
 			var (success, newPos) = await Writer.Write(prepare, token);
-			if (!success)
-			{
+			if (!success) {
 				var tPos = prepare.TransactionPosition == prepare.LogPosition
 					? newPos
 					: prepare.TransactionPosition;
@@ -405,17 +374,13 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return new EventRecord(eventNumber, prepare, eventStreamName, eventType);
 	}
 
-	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionEnd(Guid correlationId, long transactionId,
-		string eventStreamName, CancellationToken token)
-	{
+	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionEnd(Guid correlationId, long transactionId, string eventStreamName, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		return await WriteTransactionEnd(correlationId, transactionId, eventStreamId, token);
 	}
 
-	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionEnd(Guid correlationId, long transactionId,
-		TStreamId eventStreamId, CancellationToken token)
-	{
+	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionEnd(Guid correlationId, long transactionId, TStreamId eventStreamId, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var prepare = LogRecord.TransactionEnd(_recordFactory, Writer.Position,
 			correlationId,
@@ -432,11 +397,9 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		string eventType = null,
 		string data = null,
 		PrepareFlags additionalFlags = PrepareFlags.None,
-		CancellationToken token = default)
-	{
+		CancellationToken token = default) {
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
-		var (eventTypeId, pos) =
-			await GetOrReserveEventType(eventType.IsEmptyString() ? "some-type" : eventType, token);
+		var (eventTypeId, pos) = await GetOrReserveEventType(eventType.IsEmptyString() ? "some-type" : eventType, token);
 		var prepare = LogRecord.SingleWrite(_recordFactory, pos,
 			Guid.NewGuid(),
 			eventId == default ? Guid.NewGuid() : eventId,
@@ -452,9 +415,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return prepare;
 	}
 
-	protected async ValueTask<CommitLogRecord> WriteCommit(long preparePos, string eventStreamName, long eventNumber,
-		CancellationToken token)
-	{
+	protected async ValueTask<CommitLogRecord> WriteCommit(long preparePos, string eventStreamName, long eventNumber, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var commit = LogRecord.Commit(Writer.Position, Guid.NewGuid(), preparePos, eventNumber);
 		Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
@@ -462,24 +423,20 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	protected async ValueTask<long> WriteCommit(Guid correlationId, long transactionId, string eventStreamName,
-		long eventNumber, CancellationToken token)
-	{
+		long eventNumber, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		return await WriteCommit(correlationId, transactionId, eventStreamId, eventNumber, token);
 	}
 
-	protected async ValueTask<long> WriteCommit(Guid correlationId, long transactionId, TStreamId eventStreamId,
-		long eventNumber, CancellationToken token)
-	{
+	protected async ValueTask<long> WriteCommit(Guid correlationId, long transactionId, TStreamId eventStreamId, long eventNumber, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var commit = LogRecord.Commit(Writer.Position, correlationId, transactionId, eventNumber);
 		Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
 		return commit.LogPosition;
 	}
 
-	protected async ValueTask<EventRecord> WriteDelete(string eventStreamName, CancellationToken token)
-	{
+	protected async ValueTask<EventRecord> WriteDelete(string eventStreamName, CancellationToken token) {
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (streamDeletedEventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamDeleted, token);
 		var prepare = LogRecord.DeleteTombstone(_recordFactory, pos,
@@ -495,9 +452,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return new EventRecord(EventNumber.DeletedStream, prepare, eventStreamName, SystemEventTypes.StreamDeleted);
 	}
 
-	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteDeletePrepare(string eventStreamName,
-		CancellationToken token)
-	{
+	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteDeletePrepare(string eventStreamName, CancellationToken token) {
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (streamDeletedEventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamDeleted, token);
 		var prepare = LogRecord.DeleteTombstone(_recordFactory, pos,
@@ -507,8 +462,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return prepare;
 	}
 
-	protected async ValueTask<CommitLogRecord> WriteDeleteCommit(IPrepareLogRecord prepare, CancellationToken token)
-	{
+	protected async ValueTask<CommitLogRecord> WriteDeleteCommit(IPrepareLogRecord prepare, CancellationToken token) {
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var commit = LogRecord.Commit(Writer.Position,
 			prepare.CorrelationId,
@@ -523,10 +477,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	protected async ValueTask<PrepareLogRecord> WriteSingleEventWithLogVersion0(Guid id, string streamId,
 		long position,
 		long expectedVersion, PrepareFlags? flags = null,
-		CancellationToken token = default)
-	{
-		if (!flags.HasValue)
-		{
+		CancellationToken token = default) {
+		if (!flags.HasValue) {
 			flags = PrepareFlags.SingleWrite;
 		}
 
@@ -540,14 +492,12 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return record;
 	}
 
-	protected TFPos GetBackwardReadPos()
-	{
+	protected TFPos GetBackwardReadPos() {
 		var pos = new TFPos(WriterCheckpoint.ReadNonFlushed(), WriterCheckpoint.ReadNonFlushed());
 		return pos;
 	}
 
-	protected void Scavenge(bool completeLast, bool mergeChunks, bool scavengeIndex = true)
-	{
+	protected void Scavenge(bool completeLast, bool mergeChunks, bool scavengeIndex = true) {
 		if (_scavenge)
 			throw new InvalidOperationException("Scavenge can be executed only once in ReadIndexTestScenario");
 		_scavenge = true;

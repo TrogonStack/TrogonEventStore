@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -14,9 +17,7 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Chaser;
-
-public abstract class with_storage_chaser_service<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class with_storage_chaser_service<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	readonly ICheckpoint _writerChk = new InMemoryCheckpoint(Checkpoint.Writer);
 	readonly ICheckpoint _chaserChk = new InMemoryCheckpoint(Checkpoint.Chaser);
 	readonly ICheckpoint _epochChk = new InMemoryCheckpoint(Checkpoint.Epoch, initValue: -1);
@@ -38,8 +39,7 @@ public abstract class with_storage_chaser_service<TLogFormat, TStreamId> : Speci
 	protected ConcurrentQueue<StorageMessage.CommitAck> CommitAcks = new();
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		Db = new TFChunkDb(CreateDbConfig());
 		await Db.Open();
@@ -69,8 +69,7 @@ public abstract class with_storage_chaser_service<TLogFormat, TStreamId> : Speci
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		await base.TestFixtureTearDown();
 		Service.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), true, true));
 	}
@@ -78,8 +77,7 @@ public abstract class with_storage_chaser_service<TLogFormat, TStreamId> : Speci
 
 	public abstract ValueTask When(CancellationToken token);
 
-	private TFChunkDbConfig CreateDbConfig()
-	{
+	private TFChunkDbConfig CreateDbConfig() {
 
 		var nodeConfig = new TFChunkDbConfig(
 			PathName,

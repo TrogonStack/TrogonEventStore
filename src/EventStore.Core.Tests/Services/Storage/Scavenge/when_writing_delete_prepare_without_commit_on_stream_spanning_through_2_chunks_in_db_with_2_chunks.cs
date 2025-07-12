@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Linq;
 using System.Threading;
@@ -9,18 +12,13 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class
-	WhenWritingDeletePrepareWithoutCommitAndScavenging<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat,
-	TStreamId>
-{
+public class when_writing_delete_prepare_without_commit_and_scavenging<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _event0;
 	private EventRecord _event1;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		_event0 = await WriteSingleEvent("ES", 0, "bla1", token: token);
 		var (esStreamId, _) = await GetOrReserve("ES", token);
 		var (streamDeletedEventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamDeleted, token);
@@ -33,8 +31,7 @@ public class
 	}
 
 	[Test]
-	public void read_one_by_one_returns_all_commited_events()
-	{
+	public void read_one_by_one_returns_all_commited_events() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_event0, result.Record);
@@ -45,8 +42,7 @@ public class
 	}
 
 	[Test]
-	public void read_stream_events_forward_should_return_all_events()
-	{
+	public void read_stream_events_forward_should_return_all_events() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -55,8 +51,7 @@ public class
 	}
 
 	[Test]
-	public void read_stream_events_backward_should_return_stream_deleted()
-	{
+	public void read_stream_events_backward_should_return_stream_deleted() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -65,8 +60,7 @@ public class
 	}
 
 	[Test]
-	public void read_all_forward_returns_all_events()
-	{
+	public void read_all_forward_returns_all_events() {
 		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
@@ -76,8 +70,7 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_returns_all_events()
-	{
+	public async Task read_all_backward_returns_all_events() {
 		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords()
 			.Select(r => r.Event)

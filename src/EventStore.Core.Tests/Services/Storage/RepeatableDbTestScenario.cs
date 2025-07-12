@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,10 +23,8 @@ using EventStore.Core.Util;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage;
-
 [TestFixture]
-public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected readonly int MaxEntriesInMemTable;
 	protected TableIndex<TStreamId> TableIndex;
 	protected IReadIndex<TStreamId> ReadIndex;
@@ -34,23 +35,19 @@ public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : Specific
 
 	private readonly int _metastreamMaxCount;
 
-	protected RepeatableDbTestScenario(int maxEntriesInMemTable = 20, int metastreamMaxCount = 1)
-	{
+	protected RepeatableDbTestScenario(int maxEntriesInMemTable = 20, int metastreamMaxCount = 1) {
 		Ensure.Positive(maxEntriesInMemTable, "maxEntriesInMemTable");
 		MaxEntriesInMemTable = maxEntriesInMemTable;
 		_metastreamMaxCount = metastreamMaxCount;
 	}
 
-	public async ValueTask CreateDb(Rec[] records, CancellationToken token = default)
-	{
-		if (DbRes is not null)
-		{
+	public async ValueTask CreateDb(Rec[] records, CancellationToken token = default) {
+		if (DbRes is not null) {
 			await DbRes.Db.DisposeAsync();
 		}
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = indexDirectory,
 		});
 
@@ -106,8 +103,7 @@ public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : Specific
 		ReadIndex = readIndex;
 	}
 
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		await DbRes.Db.DisposeAsync();
 		await base.TestFixtureTearDown();

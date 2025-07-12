@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
@@ -15,10 +18,8 @@ using EventStore.Core.Util;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage;
-
 [TestFixture]
-public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected readonly int MaxEntriesInMemTable;
 	protected LogFormatAbstractor<TStreamId> _logFormat;
 	protected TableIndex<TStreamId> TableIndex;
@@ -26,32 +27,26 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 
 	protected DbResult DbRes;
 
-	protected abstract ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,
-		CancellationToken token);
+	protected abstract ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token);
 
 	private readonly long _metastreamMaxCount;
 
-	protected SimpleDbTestScenario(int maxEntriesInMemTable = 20, long metastreamMaxCount = 1)
-	{
+	protected SimpleDbTestScenario(int maxEntriesInMemTable = 20, long metastreamMaxCount = 1) {
 		Ensure.Positive(maxEntriesInMemTable, "maxEntriesInMemTable");
 		MaxEntriesInMemTable = maxEntriesInMemTable;
 		_metastreamMaxCount = metastreamMaxCount;
 	}
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-			{
-				IndexDirectory = indexDirectory,
-			});
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = indexDirectory,
+		});
 
 		var dbConfig = TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 1024 * 1024);
-		var dbCreationHelper =
-			await TFChunkDbCreationHelper<TLogFormat, TStreamId>.CreateAsync(dbConfig, _logFormat);
+		var dbCreationHelper = await TFChunkDbCreationHelper<TLogFormat, TStreamId>.CreateAsync(dbConfig, _logFormat);
 
 		DbRes = await CreateDb(dbCreationHelper, CancellationToken.None);
 
@@ -102,8 +97,7 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 		ReadIndex = readIndex;
 	}
 
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		await DbRes.Db.DisposeAsync();
 

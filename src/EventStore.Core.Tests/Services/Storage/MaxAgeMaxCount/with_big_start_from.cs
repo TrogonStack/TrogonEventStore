@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,11 +10,9 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WithSoftdeleteTruncatebefore<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -33,16 +34,14 @@ public class WithSoftdeleteTruncatebefore<TLogFormat, TStreamId> : ReadIndexTest
 	}
 
 	[Test]
-	public void metastream_read_returns_metaevent()
-	{
+	public void metastream_read_returns_metaevent() {
 		var result = ReadIndex.ReadEvent(SystemStreams.MetastreamOf("ES"), 0);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r1, result.Record);
 	}
 
 	[Test]
-	public void single_event_read_returns_no_records()
-	{
+	public void single_event_read_returns_no_records() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
@@ -65,24 +64,21 @@ public class WithSoftdeleteTruncatebefore<TLogFormat, TStreamId> : ReadIndexTest
 	}
 
 	[Test]
-	public void forward_range_read_returns_no_records()
-	{
+	public void forward_range_read_returns_no_records() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void backward_range_read_returns_no_records()
-	{
+	public void backward_range_read_returns_no_records() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void read_all_forward_returns_all_records()
-	{
+	public void read_all_forward_returns_all_records() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords();
 		Assert.AreEqual(6, records.Count);
 		Assert.AreEqual(_r1, records[0].Event);
@@ -94,8 +90,7 @@ public class WithSoftdeleteTruncatebefore<TLogFormat, TStreamId> : ReadIndexTest
 	}
 
 	[Test]
-	public async Task read_all_backward_returns_all_records()
-	{
+	public async Task read_all_backward_returns_all_records() {
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);

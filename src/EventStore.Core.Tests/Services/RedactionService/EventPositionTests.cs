@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -11,16 +14,13 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.RedactionService;
 
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId>
-{
+public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId> {
 	private const string StreamId = nameof(EventPositionTests<TLogFormat, TStreamId>);
 	private readonly Dictionary<long, List<EventPosition>> _positions = new();
 
-	private async ValueTask WriteEvent(string streamId, long eventNumber, string data, CancellationToken token)
-	{
+	private async ValueTask WriteEvent(string streamId, long eventNumber, string data, CancellationToken token) {
 		var eventRecord = await WriteSingleEvent(streamId, eventNumber, data, token: token);
 		if (!_positions.ContainsKey(eventNumber))
 			_positions[eventNumber] = new();
@@ -28,21 +28,18 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 		var chunk = Db.Manager.GetChunkFor(eventRecord.LogPosition);
 		var eventOffset = chunk.GetActualRawPosition(eventRecord.LogPosition);
 		var eventPosition = new EventPosition(
-			eventRecord.LogPosition, Path.GetFileName(chunk.FileName), chunk.ChunkHeader.MinCompatibleVersion,
-			chunk.IsReadOnly, (uint)eventOffset);
+			eventRecord.LogPosition, Path.GetFileName(chunk.FileName), chunk.ChunkHeader.MinCompatibleVersion, chunk.IsReadOnly, (uint)eventOffset);
 		_positions[eventNumber].Add(eventPosition);
 	}
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
-		await WriteEvent(StreamId, 2, "data 2", token);
-		await WriteEvent(StreamId, 0, "data 0", token);
-		await WriteEvent(StreamId, 1, "data 1", token);
-		await WriteEvent(StreamId, 2, "data 2", token); // duplicate
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		await WriteEvent(StreamId, 2, "data 2", token: token);
+		await WriteEvent(StreamId, 0, "data 0", token: token);
+		await WriteEvent(StreamId, 1, "data 1", token: token);
+		await WriteEvent(StreamId, 2, "data 2", token: token); // duplicate
 	}
 
-	private async Task<RedactionMessage.GetEventPositionCompleted> GetEventPosition(long eventNumber)
-	{
+	private async Task<RedactionMessage.GetEventPositionCompleted> GetEventPosition(long eventNumber) {
 		var e = new TcsEnvelope<RedactionMessage.GetEventPositionCompleted>();
 		await RedactionService.As<IAsyncHandle<RedactionMessage.GetEventPosition>>()
 			.HandleAsync(new RedactionMessage.GetEventPosition(e, StreamId, eventNumber), CancellationToken.None);
@@ -50,8 +47,7 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	}
 
 	[Test]
-	public async Task can_get_positions_of_event_0()
-	{
+	public async Task can_get_positions_of_event_0() {
 		var msg = await GetEventPosition(0);
 		Assert.AreEqual(GetEventPositionResult.Success, msg.Result);
 		Assert.AreEqual(1, msg.EventPositions.Length);
@@ -59,8 +55,7 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	}
 
 	[Test]
-	public async Task can_get_positions_of_event_1()
-	{
+	public async Task can_get_positions_of_event_1() {
 		var msg = await GetEventPosition(1);
 		Assert.AreEqual(GetEventPositionResult.Success, msg.Result);
 		Assert.AreEqual(1, msg.EventPositions.Length);
@@ -68,8 +63,7 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	}
 
 	[Test]
-	public async Task can_get_positions_of_event_2()
-	{
+	public async Task can_get_positions_of_event_2() {
 		var msg = await GetEventPosition(2);
 		Assert.AreEqual(GetEventPositionResult.Success, msg.Result);
 		Assert.AreEqual(2, msg.EventPositions.Length);

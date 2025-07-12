@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,11 +13,9 @@ using EventStore.LogCommon;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
-public class WhenScavengingTfchunkWithVersion0LogRecordsAndDeletedRecords<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_scavenging_tfchunk_with_version0_log_records_and_deleted_records<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 
 	private const string _eventStreamId = "ES";
 	private const string _deletedEventStreamId = "Deleted-ES";
@@ -49,8 +50,7 @@ public class WhenScavengingTfchunkWithVersion0LogRecordsAndDeletedRecords<TLogFo
 	}
 
 	[Test]
-	public void should_be_able_to_read_the_all_stream()
-	{
+	public void should_be_able_to_read_the_all_stream() {
 		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).Records.Select(r => r.Event).ToArray();
 		Assert.AreEqual(5, events.Count());
 		Assert.AreEqual(_event1.EventId, events[0].EventId);
@@ -61,13 +61,11 @@ public class WhenScavengingTfchunkWithVersion0LogRecordsAndDeletedRecords<TLogFo
 	}
 
 	[Test]
-	public async Task should_have_updated_deleted_stream_event_number()
-	{
+	public async Task should_have_updated_deleted_stream_event_number() {
 		var chunk = Db.Manager.GetChunk(0);
 		var chunkRecords = new List<ILogRecord>();
 		RecordReadResult result = await chunk.TryReadFirst(CancellationToken.None);
-		while (result.Success)
-		{
+		while (result.Success) {
 			chunkRecords.Add(result.LogRecord);
 			result = chunk.TryReadClosestForward(result.NextPosition);
 		}
@@ -81,13 +79,11 @@ public class WhenScavengingTfchunkWithVersion0LogRecordsAndDeletedRecords<TLogFo
 	}
 
 	[Test]
-	public async Task the_log_records_are_still_version_0()
-	{
+	public async Task the_log_records_are_still_version_0() {
 		var chunk = Db.Manager.GetChunk(0);
 		var chunkRecords = new List<ILogRecord>();
 		RecordReadResult result = await chunk.TryReadFirst(CancellationToken.None);
-		while (result.Success)
-		{
+		while (result.Success) {
 			chunkRecords.Add(result.LogRecord);
 			result = chunk.TryReadClosestForward(result.NextPosition);
 		}
@@ -97,8 +93,7 @@ public class WhenScavengingTfchunkWithVersion0LogRecordsAndDeletedRecords<TLogFo
 	}
 
 	[Test]
-	public void should_be_able_to_read_the_stream()
-	{
+	public void should_be_able_to_read_the_stream() {
 		var events = ReadIndex.ReadStreamEventsForward(_eventStreamId, 0, 10);
 		Assert.AreEqual(4, events.Records.Length);
 		Assert.AreEqual(_event1.EventId, events.Records[0].EventId);
@@ -108,8 +103,7 @@ public class WhenScavengingTfchunkWithVersion0LogRecordsAndDeletedRecords<TLogFo
 	}
 
 	[Test]
-	public void the_deleted_stream_should_be_deleted()
-	{
+	public void the_deleted_stream_should_be_deleted() {
 		var lastNumber = ReadIndex.GetStreamLastEventNumber(_deletedEventStreamId);
 		Assert.AreEqual(EventNumber.DeletedStream, lastNumber);
 	}

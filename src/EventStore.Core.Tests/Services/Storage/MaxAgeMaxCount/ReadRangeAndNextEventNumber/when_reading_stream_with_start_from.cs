@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
@@ -5,17 +8,14 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNextEventNumber;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_reading_stream_with_truncatebefore<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _event3;
 	private EventRecord _event4;
 	private EventRecord _event5;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		await WriteStreamMetadata("ES", 0, @"{""$tb"":2}", token: token);
 		await WriteSingleEvent("ES", 0, "bla", token: token);
 		await WriteSingleEvent("ES", 1, "bla", token: token);
@@ -26,8 +26,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_forward_from_start_to_expired_next_event_number_is_first_active_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_start_to_expired_next_event_number_is_first_active_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 0, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(2, res.NextEventNumber);
@@ -40,8 +39,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_forward_from_start_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_start_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 0, 4);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(4, res.NextEventNumber);
@@ -56,8 +54,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_forward_from_expired_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_expired_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 1, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(3, res.NextEventNumber);
@@ -70,8 +67,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 	}
 
 	[Test]
-	public void on_read_forward_from_expired_to_end_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+	public void on_read_forward_from_expired_to_end_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 1, 4);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -87,8 +83,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_forward_from_expired_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+		on_read_forward_from_expired_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 1, 6);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -104,8 +99,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_forward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+		on_read_forward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 7, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -119,8 +113,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_backward_from_end_to_active_next_event_number_is_last_read_event_minus_1_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_end_to_active_next_event_number_is_last_read_event_minus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 4, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(2, res.NextEventNumber);
@@ -134,8 +127,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 	}
 
 	[Test]
-	public void on_read_backward_from_end_to_maxcount_bound_its_end_of_stream()
-	{
+	public void on_read_backward_from_end_to_maxcount_bound_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 4, 3);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -150,8 +142,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 	}
 
 	[Test]
-	public void on_read_backward_from_active_to_expired_its_end_of_stream()
-	{
+	public void on_read_backward_from_active_to_expired_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 3, 3);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -165,8 +156,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 	}
 
 	[Test]
-	public void on_read_backward_from_expired_to_expired_its_end_of_stream()
-	{
+	public void on_read_backward_from_expired_to_expired_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 1, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -178,8 +168,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 	}
 
 	[Test]
-	public void on_read_backward_from_expired_to_before_start_its_end_of_stream()
-	{
+	public void on_read_backward_from_expired_to_before_start_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 1, 5);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -192,8 +181,7 @@ public class WhenReadingStreamWithTruncatebefore<TLogFormat, TStreamId> : ReadIn
 
 	[Test]
 	public void
-		on_read_backward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 10, 3);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(4, res.NextEventNumber);

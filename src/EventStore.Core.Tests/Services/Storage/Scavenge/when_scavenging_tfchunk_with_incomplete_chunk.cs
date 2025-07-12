@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -6,16 +9,13 @@ using EventStore.LogCommon;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string), LogRecordVersion.LogRecordV0)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), LogRecordVersion.LogRecordV1)]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), LogRecordVersion.LogRecordV1)]
-public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
+public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
 	private readonly byte _version = LogRecordVersion.LogRecordV0;
 
-	public when_scavenging_tfchunk_with_incomplete_chunk(byte version)
-	{
+	public when_scavenging_tfchunk_with_incomplete_chunk(byte version) {
 		_version = version;
 	}
 
@@ -35,10 +35,8 @@ public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
-		{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
 			return new[] {
 				new[] {
 					dbResult.Recs[0][0],
@@ -74,8 +72,7 @@ public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId
 	}
 
 	[Test]
-	public async Task should_not_have_changed_any_records()
-	{
+	public async Task should_not_have_changed_any_records() {
 		await CheckRecords();
 	}
 }

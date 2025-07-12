@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,12 +28,10 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WhenBuildingAnIndexOffTfileWithDuplicateEventsInAStream<TLogFormat, TStreamId>()
-	: DuplicateReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 3)
-{
+public class when_building_an_index_off_tfile_with_duplicate_events_in_a_stream<TLogFormat, TStreamId>
+	: DuplicateReadIndexTestScenario<TLogFormat, TStreamId> {
 	private Guid _id1;
 	private Guid _id2;
 	private Guid _id3;
@@ -38,15 +39,16 @@ public class WhenBuildingAnIndexOffTfileWithDuplicateEventsInAStream<TLogFormat,
 
 	private long pos0, pos1, pos2, pos3, pos4, pos5, pos6, pos7;
 
-	protected override async ValueTask SetupDB(CancellationToken token)
-	{
+	public when_building_an_index_off_tfile_with_duplicate_events_in_a_stream() : base(maxEntriesInMemTable: 3) {
+	}
+
+	protected override async ValueTask SetupDB(CancellationToken token) {
 		_id1 = Guid.NewGuid();
 		_id2 = Guid.NewGuid();
 		_id3 = Guid.NewGuid();
 
 		_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, "duplicate_stream", 0, out var streamId, out var streamRecord);
-		if (streamRecord != null)
-		{
+		if (streamRecord is not null) {
 			(_, pos0) = await Writer.Write(streamRecord, token);
 		}
 
@@ -60,7 +62,7 @@ public class WhenBuildingAnIndexOffTfileWithDuplicateEventsInAStream<TLogFormat,
 
 		//stream id: duplicate_stream at version: 1
 		(_, pos3) = await Writer.Write(LogRecord.Prepare(_logFormat.RecordFactory, pos2, _id2, _id2, pos2, 0, streamId, expectedVersion++,
-		PrepareFlags.SingleWrite, eventTypeId, new byte[0], new byte[0], DateTime.UtcNow), token);
+			PrepareFlags.SingleWrite, eventTypeId, new byte[0], new byte[0], DateTime.UtcNow), token);
 		(_, pos4) = await Writer.Write(new CommitLogRecord(pos3, _id2, pos2, DateTime.UtcNow, 1), token);
 
 		//stream id: duplicate_stream at version: 2
@@ -69,8 +71,7 @@ public class WhenBuildingAnIndexOffTfileWithDuplicateEventsInAStream<TLogFormat,
 		(_, pos6) = await Writer.Write(new CommitLogRecord(pos5, _id3, pos4, DateTime.UtcNow, 2), token);
 	}
 
-	protected override async ValueTask Given(CancellationToken token)
-	{
+	protected override async ValueTask Given(CancellationToken token) {
 		_id4 = Guid.NewGuid();
 
 		var streamId = _logFormat.StreamIds.LookupValue("duplicate_stream");
@@ -83,15 +84,13 @@ public class WhenBuildingAnIndexOffTfileWithDuplicateEventsInAStream<TLogFormat,
 	}
 
 	[Test]
-	public void should_read_the_correct_last_event_number()
-	{
+	public void should_read_the_correct_last_event_number() {
 		var result = ReadIndex.GetStreamLastEventNumber("duplicate_stream");
 		Assert.AreEqual(2, result);
 	}
 }
 
-public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected readonly int MaxEntriesInMemTable;
 	protected readonly int MetastreamMaxCount;
 	protected readonly bool PerformAdditionalCommitChecks;
@@ -104,8 +103,7 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 	private TableIndex<TStreamId> _tableIndex;
 
 	protected DuplicateReadIndexTestScenario(int maxEntriesInMemTable = 20, int metastreamMaxCount = 1,
-		byte indexBitnessVersion = Opts.IndexBitnessVersionDefault, bool performAdditionalChecks = false)
-	{
+		byte indexBitnessVersion = Opts.IndexBitnessVersionDefault, bool performAdditionalChecks = false) {
 		Ensure.Positive(maxEntriesInMemTable, "maxEntriesInMemTable");
 		MaxEntriesInMemTable = maxEntriesInMemTable;
 		MetastreamMaxCount = metastreamMaxCount;
@@ -113,13 +111,11 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 		PerformAdditionalCommitChecks = performAdditionalChecks;
 	}
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = indexDirectory,
 		});
 
@@ -233,8 +229,7 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 		ReadIndex = readIndex;
 	}
 
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		ReadIndex.Close();
 		ReadIndex.Dispose();

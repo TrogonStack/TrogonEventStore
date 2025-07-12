@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -5,13 +8,9 @@ using EventStore.Core.Data;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
-	: ReadIndexTestScenario<TLogFormat, TStreamId>(indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV1,
-		performAdditionalChecks: false)
-{
+public class when_deleting_duplicate_events<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _event1;
 	private EventRecord _event2;
 	private EventRecord _event3;
@@ -21,49 +20,43 @@ public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
 	private EventRecord _event7;
 	private EventRecord _event8;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
-		_event1 = await WriteSingleEvent("account--696193173", 0, new string('.', 3000), retryOnFail: true,
-			token: token);
+	public when_deleting_duplicate_events() : base(
+		indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV1, performAdditionalChecks: false) {
+	}
+
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		_event1 = await WriteSingleEvent("account--696193173", 0, new string('.', 3000), retryOnFail: true, token: token);
 		await WriteSingleEvent("account--696193173", 0, new string('.', 3000), retryOnFail: true, token: token);
 
-		_event2 = await WriteSingleEvent("LPN-FC002_LPK51001", 0, new string('.', 3000), retryOnFail: true,
-			token: token);
+		_event2 = await WriteSingleEvent("LPN-FC002_LPK51001", 0, new string('.', 3000), retryOnFail: true, token: token);
 		await WriteSingleEvent("LPN-FC002_LPK51001", 0, new string('.', 3000), retryOnFail: true, token: token);
 
-		_event3 = await WriteSingleEvent("account--696193173", 1, new string('.', 3000), retryOnFail: true,
-			token: token);
+		_event3 = await WriteSingleEvent("account--696193173", 1, new string('.', 3000), retryOnFail: true, token: token);
 		await WriteSingleEvent("account--696193173", 1, new string('.', 3000), retryOnFail: true, token: token);
 
-		_event4 = await WriteSingleEvent("LPN-FC002_LPK51001", 1, new string('.', 3000), retryOnFail: true,
-			token: token);
+		_event4 = await WriteSingleEvent("LPN-FC002_LPK51001", 1, new string('.', 3000), retryOnFail: true, token: token);
 		await WriteSingleEvent("LPN-FC002_LPK51001", 1, new string('.', 3000), retryOnFail: true, token: token);
 
-		_event5 = await WriteSingleEvent("account--696193173", 2, new string('.', 3000), retryOnFail: true,
-			token: token);
+		_event5 = await WriteSingleEvent("account--696193173", 2, new string('.', 3000), retryOnFail: true, token: token);
 		await WriteSingleEvent("account--696193173", 2, new string('.', 3000), retryOnFail: true, token: token);
 
-		_event6 = await WriteSingleEvent("LPN-FC002_LPK51001", 2, new string('.', 3000), retryOnFail: true,
-			token: token);
-		await WriteSingleEvent("LPN-FC002_LPK51001", 2, new string('.', 3000), retryOnFail: true, token: token);
+		_event6 = await WriteSingleEvent("LPN-FC002_LPK51001", 2, new string('.', 3000), retryOnFail: true);
+		await WriteSingleEvent("LPN-FC002_LPK51001", 2, new string('.', 3000), retryOnFail: true);
 
-		_event7 = await WriteSingleEvent("account--696193173", 3, new string('.', 3000), retryOnFail: true,
-			token: token);
-		await WriteSingleEvent("account--696193173", 3, new string('.', 3000), retryOnFail: true, token: token);
+		_event7 = await WriteSingleEvent("account--696193173", 3, new string('.', 3000), retryOnFail: true);
+		await WriteSingleEvent("account--696193173", 3, new string('.', 3000), retryOnFail: true);
 
-		_event8 = await WriteSingleEvent("LPN-FC002_LPK51001", 3, new string('.', 3000), retryOnFail: true,
-			token: token);
-		await WriteSingleEvent("LPN-FC002_LPK51001", 3, new string('.', 3000), retryOnFail: true, token: token);
+		_event8 = await WriteSingleEvent("LPN-FC002_LPK51001", 3, new string('.', 3000), retryOnFail: true);
+		await WriteSingleEvent("LPN-FC002_LPK51001", 3, new string('.', 3000), retryOnFail: true);
 
-		await WriteSingleEvent("RandomStream", 0, new string('.', 3000), retryOnFail: true, token: token);
-		await WriteSingleEvent("RandomStream", 1, new string('.', 3000), retryOnFail: true, token: token);
+		await WriteSingleEvent("RandomStream", 0, new string('.', 3000), retryOnFail: true);
+		await WriteSingleEvent("RandomStream", 1, new string('.', 3000), retryOnFail: true);
 
 		Scavenge(completeLast: false, mergeChunks: false);
 	}
 
 	[Test]
-	public void read_all_events_forward_does_not_return_duplicate()
-	{
+	public void read_all_events_forward_does_not_return_duplicate() {
 		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
 			.Select(r => r.Event)
 			.ToArray();

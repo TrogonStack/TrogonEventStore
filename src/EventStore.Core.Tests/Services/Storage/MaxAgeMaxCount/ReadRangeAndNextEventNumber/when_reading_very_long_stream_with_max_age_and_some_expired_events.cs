@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -6,33 +9,30 @@ using EventStore.Core.TransactionLog.Chunks;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNextEventNumber;
-
 // test the binary chop where it has to repeatedly lower the high bound
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	WhenReadingVeryLongStreamWithMaxAgeAndSomeExpiredEvents<TLogFormat, TStreamId>()
-	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize)
-{
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	when_reading_very_long_stream_with_max_age_and_some_expired_events<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+	public when_reading_very_long_stream_with_max_age_and_some_expired_events() : base(
+		maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize) {
+	}
+
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var now = DateTime.UtcNow;
-		var metadata = $@"{{""$maxAge"":{(int)TimeSpan.FromMinutes(20).TotalSeconds}}}";
+		var metadata = string.Format(@"{{""$maxAge"":{0}}}", (int)TimeSpan.FromMinutes(20).TotalSeconds);
 		await WriteStreamMetadata("ES", 0, metadata, now.AddMinutes(-100), token: token);
-		for (int i = 0; i < 20; i++)
-		{
+		for (int i = 0; i < 20; i++) {
 			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-50), retryOnFail: true, token: token);
 		}
 
-		for (int i = 20; i < 1_000_000; i++)
-		{
+		for (int i = 20; i < 1_000_000; i++) {
 			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-1), retryOnFail: true, token: token);
 		}
 	}
 
 	[Test, Explicit, Category("LongRunning")]
-	public void on_read_from_beginning()
-	{
+	public void on_read_from_beginning() {
 		Stopwatch sw = Stopwatch.StartNew();
 		var res = ReadIndex.ReadStreamEventsForward("ES", 1, 10);
 		var elapsed = sw.Elapsed;

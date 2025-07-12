@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.IO;
 using System.Threading;
@@ -10,15 +13,12 @@ using EventStore.Core.Messaging;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.RedactionService;
-
-public abstract class SwitchChunkTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId>
-{
+public abstract class SwitchChunkTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId> {
 	private const string StreamId = nameof(SwitchChunkTests<TLogFormat, TStreamId>);
 	protected const string FakeChunk = "fake_chunk.tmp";
 	private Guid _lockId;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		// the writes below create 3 chunks for both V2 & V3 log formats
 		await WriteSingleEvent(StreamId, 0, new string('0', 50), retryOnFail: true, token: token);
 		await WriteSingleEvent(StreamId, 1, new string('1', 50), retryOnFail: true, token: token);
@@ -40,8 +40,7 @@ public abstract class SwitchChunkTests<TLogFormat, TStreamId> : RedactionService
 	}
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 		var e = new TcsEnvelope<RedactionMessage.AcquireChunksLockCompleted>();
 		RedactionService.Handle(new RedactionMessage.AcquireChunksLock(e));
@@ -52,8 +51,7 @@ public abstract class SwitchChunkTests<TLogFormat, TStreamId> : RedactionService
 	}
 
 	[TearDown]
-	public override async Task TearDown()
-	{
+	public override async Task TearDown() {
 		var e = new TcsEnvelope<RedactionMessage.ReleaseChunksLockCompleted>();
 		RedactionService.Handle(new RedactionMessage.ReleaseChunksLock(e, _lockId));
 		await e.Task;
@@ -61,14 +59,12 @@ public abstract class SwitchChunkTests<TLogFormat, TStreamId> : RedactionService
 		await base.TearDown();
 	}
 
-	protected string GetChunk(int chunkNum, int chunkVersion, bool fullPath = false)
-	{
+	protected string GetChunk(int chunkNum, int chunkVersion, bool fullPath = false) {
 		var chunkPath = Db.Config.FileNamingStrategy.GetFilenameFor(chunkNum, chunkVersion);
 		return fullPath ? chunkPath : Path.GetFileName(chunkPath);
 	}
 
-	protected async Task<RedactionMessage.SwitchChunkCompleted> SwitchChunk(string targetChunk, string newChunk)
-	{
+	protected async Task<RedactionMessage.SwitchChunkCompleted> SwitchChunk(string targetChunk, string newChunk) {
 		var e = new TcsEnvelope<RedactionMessage.SwitchChunkCompleted>();
 		await RedactionService.As<IAsyncHandle<RedactionMessage.SwitchChunk>>()
 			.HandleAsync(new(e, _lockId, targetChunk, newChunk), CancellationToken.None);

@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Storage.ReaderIndex;
@@ -5,11 +8,9 @@ using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.CheckCommitStartingAt;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class when_writing_few_prepares_and_committing_one<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_writing_few_prepares_and_committing_one<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private IPrepareLogRecord _prepare0;
 	private IPrepareLogRecord _prepare1;
 	private IPrepareLogRecord _prepare2;
@@ -22,8 +23,7 @@ public class when_writing_few_prepares_and_committing_one<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void check_commmit_on_2nd_prepare_should_return_ok_decision()
-	{
+	public void check_commmit_on_2nd_prepare_should_return_ok_decision() {
 		var res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare1.LogPosition,
 			WriterCheckpoint.ReadNonFlushed());
 
@@ -35,8 +35,7 @@ public class when_writing_few_prepares_and_committing_one<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void check_commmit_on_3rd_prepare_should_return_wrong_expected_version()
-	{
+	public void check_commmit_on_3rd_prepare_should_return_wrong_expected_version() {
 		var res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare2.LogPosition,
 			WriterCheckpoint.ReadNonFlushed());
 

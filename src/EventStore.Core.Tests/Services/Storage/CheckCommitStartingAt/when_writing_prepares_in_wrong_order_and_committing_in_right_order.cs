@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Storage.ReaderIndex;
@@ -5,19 +8,16 @@ using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.CheckCommitStartingAt;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class WhenWritingPreparesInWrongOrderAndCommittingInRightOrder<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_writing_prepares_in_wrong_order_and_committing_in_right_order<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private IPrepareLogRecord _prepare0;
 	private IPrepareLogRecord _prepare1;
 	private IPrepareLogRecord _prepare2;
 	private IPrepareLogRecord _prepare3;
 	private IPrepareLogRecord _prepare4;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		_prepare0 = await WritePrepare("ES", expectedVersion: -1, token: token);
 		_prepare1 = await WritePrepare("ES", expectedVersion: 2, token: token);
 		_prepare2 = await WritePrepare("ES", expectedVersion: 0, token: token);
@@ -29,8 +29,7 @@ public class WhenWritingPreparesInWrongOrderAndCommittingInRightOrder<TLogFormat
 	}
 
 	[Test]
-	public void check_commmit_on_expected_prepare_should_return_ok_decision()
-	{
+	public void check_commmit_on_expected_prepare_should_return_ok_decision() {
 		var res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare1.LogPosition,
 			WriterCheckpoint.ReadNonFlushed());
 
@@ -42,8 +41,7 @@ public class WhenWritingPreparesInWrongOrderAndCommittingInRightOrder<TLogFormat
 	}
 
 	[Test]
-	public void check_commmit_on_not_expected_prepare_should_return_wrong_expected_version()
-	{
+	public void check_commmit_on_not_expected_prepare_should_return_wrong_expected_version() {
 		var res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare4.LogPosition,
 			WriterCheckpoint.ReadNonFlushed());
 

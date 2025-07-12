@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,44 +12,38 @@ using EventStore.Core.Tests.Index.Hashers;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
-
 [TestFixture]
-public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenario<LogFormat.V2, string>(
-	maxEntriesInMemTable: 3,
-	lowHasher: new ConstantHasher(0),
-	highHasher: new HumanReadableHasher32())
-{
+public abstract class ReadEventInfoBackward_NoCollisions : ReadIndexTestScenario<LogFormat.V2, string> {
 	private const string Stream = "ab-1";
 	private const ulong Hash = 98;
 	private const string NonCollidingStream = "cd-1";
 
 	private string GetStreamId(ulong hash) => hash == Hash ? Stream : throw new ArgumentException();
 
-	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result)
-	{
+	protected ReadEventInfoBackward_NoCollisions() : base(
+		maxEntriesInMemTable: 3,
+		lowHasher: new ConstantHasher(0),
+		highHasher: new HumanReadableHasher32()) { }
+
+	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result) {
 		var eventInfos = result.EventInfos.Reverse().ToArray();
 		Assert.AreEqual(events.Length, eventInfos.Length);
-		for (int i = 0; i < events.Length; i++)
-		{
+		for (int i = 0; i < events.Length; i++) {
 			Assert.AreEqual(events[i].EventNumber, eventInfos[i].EventNumber);
 			Assert.AreEqual(events[i].LogPosition, eventInfos[i].LogPosition);
 		}
 	}
 
-	public class VerifyNoCollision : ReadEventInfoBackward_NoCollisions
-	{
+	public class VerifyNoCollision : ReadEventInfoBackward_NoCollisions {
 		[Test]
-		public void verify_that_streams_do_not_collide()
-		{
+		public void verify_that_streams_do_not_collide() {
 			Assert.AreNotEqual(Hasher.Hash(Stream), Hasher.Hash(NonCollidingStream));
 		}
 	}
 
-	public class WithNoEvents : ReadEventInfoBackward_NoCollisions
-	{
+	public class WithNoEvents : ReadEventInfoBackward_NoCollisions {
 		[Test]
-		public void with_no_events()
-		{
+		public void with_no_events() {
 			var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 				Hash,
 				GetStreamId,
@@ -69,18 +66,15 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 	}
 
-	public class WithOneEvent : ReadEventInfoBackward_NoCollisions
-	{
+	public class WithOneEvent : ReadEventInfoBackward_NoCollisions {
 		private EventRecord _event;
 
-		protected override async ValueTask WriteTestScenario(CancellationToken token)
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			_event = await WriteSingleEvent(Stream, 0, "test data", token: token);
 		}
 
 		[Test]
-		public void with_one_event()
-		{
+		public void with_one_event() {
 			var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 				Hash,
 				GetStreamId,
@@ -115,12 +109,10 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 	}
 
-	public class WithMultipleEvents : ReadEventInfoBackward_NoCollisions
-	{
-		private readonly List<EventRecord> _events = [];
+	public class WithMultipleEvents : ReadEventInfoBackward_NoCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override async ValueTask WriteTestScenario(CancellationToken token)
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
 			await WriteSingleEvent(NonCollidingStream, 0, string.Empty, token: token);
 			await WriteSingleEvent(NonCollidingStream, 1, string.Empty, token: token);
@@ -137,10 +129,8 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void with_multiple_events()
-		{
-			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++)
-			{
+		public void with_multiple_events() {
+			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++) {
 				var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 					Hash,
 					GetStreamId,
@@ -154,10 +144,8 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void with_multiple_events_and_max_count()
-		{
-			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++)
-			{
+		public void with_multiple_events_and_max_count() {
+			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++) {
 				var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 					Hash,
 					GetStreamId,
@@ -174,10 +162,8 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void with_multiple_events_and_before_position()
-		{
-			for (int fromEventNumber = 0; fromEventNumber + 1 < _events.Count; fromEventNumber++)
-			{
+		public void with_multiple_events_and_before_position() {
+			for (int fromEventNumber = 0; fromEventNumber + 1 < _events.Count; fromEventNumber++) {
 				var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 					Hash,
 					GetStreamId,
@@ -201,12 +187,10 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 	}
 
-	public class WithDeletedStream : ReadEventInfoBackward_NoCollisions
-	{
-		private readonly List<EventRecord> _events = [];
+	public class WithDeletedStream : ReadEventInfoBackward_NoCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override async ValueTask WriteTestScenario(CancellationToken token)
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			_events.Add(await WriteSingleEvent(Stream, 0, "test data", token: token));
 			_events.Add(await WriteSingleEvent(Stream, 1, "test data", token: token));
 
@@ -215,8 +199,7 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void can_read_events()
-		{
+		public void can_read_events() {
 			var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 				Hash,
 				GetStreamId,
@@ -229,8 +212,7 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void can_read_tombstone_event()
-		{
+		public void can_read_tombstone_event() {
 			var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 				Hash,
 				GetStreamId,
@@ -265,12 +247,10 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 	}
 
-	public class WithGapsBetweenEvents : ReadEventInfoBackward_NoCollisions
-	{
-		private readonly List<EventRecord> _events = [];
+	public class WithGapsBetweenEvents : ReadEventInfoBackward_NoCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override async ValueTask WriteTestScenario(CancellationToken token)
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
 			await WriteSingleEvent(NonCollidingStream, 0, string.Empty, token: token);
 			await WriteSingleEvent(NonCollidingStream, 1, string.Empty, token: token);
@@ -287,8 +267,7 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void strictly_returns_up_to_max_count_consecutive_events_from_start_event_number()
-		{
+		public void strictly_returns_up_to_max_count_consecutive_events_from_start_event_number() {
 			var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 				Hash,
 				GetStreamId,
@@ -323,12 +302,10 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 	}
 
 
-	public class WithDuplicateEvents : ReadEventInfoBackward_NoCollisions
-	{
-		private readonly List<EventRecord> _events = [];
+	public class WithDuplicateEvents : ReadEventInfoBackward_NoCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override async ValueTask WriteTestScenario(CancellationToken token)
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
 			await WriteSingleEvent(NonCollidingStream, 0, string.Empty, token: token);
 			await WriteSingleEvent(NonCollidingStream, 1, string.Empty, token: token);
@@ -346,8 +323,7 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void result_is_deduplicated_keeping_oldest_duplicates()
-		{
+		public void result_is_deduplicated_keeping_oldest_duplicates() {
 			var result = ReadIndex.ReadEventInfoBackward_NoCollisions(
 				Hash,
 				GetStreamId,

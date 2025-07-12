@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
@@ -5,20 +8,16 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.AfterScavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class
-	WhenHavingStreamWithMaxcountSpecified<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_having_stream_with_maxcount_specified<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _r1;
 	private EventRecord _r3;
 	private EventRecord _r4;
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		const string metadata = @"{""$maxCount"":4}";
 
 		_r1 = await WriteStreamMetadata("ES", 0, metadata, token: token);
@@ -32,8 +31,7 @@ public class
 	}
 
 	[Test]
-	public void single_event_read_doesnt_return_old_events_and_return_actual_ones()
-	{
+	public void single_event_read_doesnt_return_old_events_and_return_actual_ones() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
@@ -56,8 +54,7 @@ public class
 	}
 
 	[Test]
-	public void forward_range_read_doesnt_return_old_records()
-	{
+	public void forward_range_read_doesnt_return_old_records() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(4, result.Records.Length);
@@ -68,8 +65,7 @@ public class
 	}
 
 	[Test]
-	public void backward_range_read_doesnt_return_expired_records()
-	{
+	public void backward_range_read_doesnt_return_expired_records() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(4, result.Records.Length);
@@ -80,8 +76,7 @@ public class
 	}
 
 	[Test]
-	public void read_all_forward_doesnt_return_expired_records()
-	{
+	public void read_all_forward_doesnt_return_expired_records() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords();
 		Assert.AreEqual(5, records.Count);
 		Assert.AreEqual(_r1, records[0].Event);
@@ -92,8 +87,7 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_doesnt_return_expired_records()
-	{
+	public async Task read_all_backward_doesnt_return_expired_records() {
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(5, records.Count);

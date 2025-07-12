@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,25 +11,20 @@ using NUnit.Framework;
 
 
 namespace EventStore.Core.Tests.Services.Storage.AllReader;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_reading_all_with_filtering<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	TFPos _forwardReadPos;
 	TFPos _backwardReadPos;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var firstEvent = await WriteSingleEvent("ES1", 1, new string('.', 3000), eventId: Guid.NewGuid(),
 			eventType: "event-type-1", retryOnFail: true, token: token);
-		await WriteSingleEvent("ES2", 1, new string('.', 3000), eventId: Guid.NewGuid(),
-			eventType: "other-event-type-2",
+		await WriteSingleEvent("ES2", 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "other-event-type-2",
 			retryOnFail: true, token: token);
 		await WriteSingleEvent("ES3", 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "event-type-3",
 			retryOnFail: true, token: token);
-		await WriteSingleEvent("ES4", 1, new string('.', 3000), eventId: Guid.NewGuid(),
-			eventType: "other-event-type-4",
+		await WriteSingleEvent("ES4", 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "other-event-type-4",
 			retryOnFail: true, token: token);
 
 		_forwardReadPos = new TFPos(firstEvent.LogPosition, firstEvent.LogPosition);
@@ -34,11 +32,10 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public void should_read_only_events_forward_with_event_type_prefix()
-	{
+	public void should_read_only_events_forward_with_event_type_prefix() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
-			Filter.Types.FilterType.Prefix, ["event-type"]);
+			Filter.Types.FilterType.Prefix, new[] { "event-type" });
 		var eventFilter = EventFilter.Get(true, filter);
 
 		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
@@ -46,94 +43,79 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public void should_read_only_events_forward_with_event_type_regex()
-	{
-		var filter = new Filter(
-			Filter.Types.FilterContext.EventType,
-			Filter.Types.FilterType.Regex, [@"^.*other-event.*$"]);
-		var eventFilter = EventFilter.Get(true, filter);
-
-		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
-		Assert.AreEqual(2, result.Records.Count);
-	}
-
-	[Test]
-	public void should_read_only_events_forward_with_stream_id_prefix()
-	{
-		var filter = new Filter(
-			Filter.Types.FilterContext.StreamId,
-			Filter.Types.FilterType.Prefix, ["ES2"]);
-		var eventFilter = EventFilter.Get(true, filter);
-
-		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
-		Assert.AreEqual(1, result.Records.Count);
-	}
-
-	[Test]
-	public void should_read_only_events_forward_with_stream_id_regex()
-	{
-		var filter = new Filter(
-			Filter.Types.FilterContext.StreamId,
-			Filter.Types.FilterType.Regex, [@"^.*ES2.*$"]);
-		var eventFilter = EventFilter.Get(true, filter);
-
-		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
-		Assert.AreEqual(1, result.Records.Count);
-	}
-
-	[Test]
-	public async Task should_read_only_events_backward_with_event_type_prefix()
-	{
-		var filter = new Filter(
-			Filter.Types.FilterContext.EventType,
-			Filter.Types.FilterType.Prefix, ["event-type"]);
-		var eventFilter = EventFilter.Get(true, filter);
-
-		var result =
-			await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter,
-				CancellationToken.None);
-		Assert.AreEqual(2, result.Records.Count);
-	}
-
-	[Test]
-	public async Task should_read_only_events_backward_with_event_type_regex()
-	{
+	public void should_read_only_events_forward_with_event_type_regex() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Regex, new[] { @"^.*other-event.*$" });
 		var eventFilter = EventFilter.Get(true, filter);
 
-		var result =
-			await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter,
-				CancellationToken.None);
+		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
 		Assert.AreEqual(2, result.Records.Count);
 	}
 
 	[Test]
-	public async Task should_read_only_events_backward_with_stream_id_prefix()
-	{
+	public void should_read_only_events_forward_with_stream_id_prefix() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
-			Filter.Types.FilterType.Prefix, ["ES2"]);
+			Filter.Types.FilterType.Prefix, new[] { "ES2" });
 		var eventFilter = EventFilter.Get(true, filter);
 
-		var result =
-			await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter,
-				CancellationToken.None);
+		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
 		Assert.AreEqual(1, result.Records.Count);
 	}
 
 	[Test]
-	public async Task should_read_only_events_backward_with_stream_id_regex()
-	{
+	public void should_read_only_events_forward_with_stream_id_regex() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
-			Filter.Types.FilterType.Regex, [@"^.*ES2.*$"]);
+			Filter.Types.FilterType.Regex, new[] { @"^.*ES2.*$" });
 		var eventFilter = EventFilter.Get(true, filter);
 
-		var result =
-			await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter,
-				CancellationToken.None);
+		var result = ReadIndex.ReadAllEventsForwardFiltered(_forwardReadPos, 10, 10, eventFilter);
+		Assert.AreEqual(1, result.Records.Count);
+	}
+
+	[Test]
+	public async Task should_read_only_events_backward_with_event_type_prefix() {
+		var filter = new Filter(
+			Filter.Types.FilterContext.EventType,
+			Filter.Types.FilterType.Prefix, new[] { "event-type" });
+		var eventFilter = EventFilter.Get(true, filter);
+
+		var result = await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter, CancellationToken.None);
+		Assert.AreEqual(2, result.Records.Count);
+	}
+
+	[Test]
+	public async Task should_read_only_events_backward_with_event_type_regex() {
+		var filter = new Filter(
+			Filter.Types.FilterContext.EventType,
+			Filter.Types.FilterType.Regex, new[] { @"^.*other-event.*$" });
+		var eventFilter = EventFilter.Get(true, filter);
+
+		var result = await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter, CancellationToken.None);
+		Assert.AreEqual(2, result.Records.Count);
+	}
+
+	[Test]
+	public async Task should_read_only_events_backward_with_stream_id_prefix() {
+		var filter = new Filter(
+			Filter.Types.FilterContext.StreamId,
+			Filter.Types.FilterType.Prefix, new[] { "ES2" });
+		var eventFilter = EventFilter.Get(true, filter);
+
+		var result = await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter, CancellationToken.None);
+		Assert.AreEqual(1, result.Records.Count);
+	}
+
+	[Test]
+	public async Task should_read_only_events_backward_with_stream_id_regex() {
+		var filter = new Filter(
+			Filter.Types.FilterContext.StreamId,
+			Filter.Types.FilterType.Regex, new[] { @"^.*ES2.*$" });
+		var eventFilter = EventFilter.Get(true, filter);
+
+		var result = await ReadIndex.ReadAllEventsBackwardFiltered(_backwardReadPos, 10, 10, eventFilter, CancellationToken.None);
 		Assert.AreEqual(1, result.Records.Count);
 	}
 }

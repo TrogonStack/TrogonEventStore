@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -11,10 +14,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.EpochManager;
-
 public abstract class
-	WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(int numEpochs) : SpecificationWithDirectoryPerTestFixture
-{
+	when_truncating_the_epoch_checkpoint<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
 	private LogFormatAbstractor<TStreamId> _logFormat;
@@ -22,10 +23,10 @@ public abstract class
 	private SynchronousScheduler _mainBus;
 	private List<EpochRecord> _epochs;
 	private readonly Guid _instanceId = Guid.NewGuid();
+	private readonly int _numEpochs;
 	private const int CachedEpochCount = 10;
 
-	private async ValueTask<EpochRecord> WriteEpoch(int epochNumber, long lastPos, Guid instanceId, CancellationToken token)
-	{
+	private async ValueTask<EpochRecord> WriteEpoch(int epochNumber, long lastPos, Guid instanceId, CancellationToken token) {
 		long pos = _writer.Position;
 		var epoch = new EpochRecord(pos, epochNumber, Guid.NewGuid(), lastPos, DateTime.UtcNow, instanceId);
 		var rec = _logFormat.RecordFactory.CreateEpoch(epoch);
@@ -34,14 +35,18 @@ public abstract class
 		return epoch;
 	}
 
+	public when_truncating_the_epoch_checkpoint(int numEpochs) {
+		_numEpochs = numEpochs;
+	}
+
 	[SetUp]
-	public async Task SetUp()
-	{
-		_mainBus = new SynchronousScheduler(nameof(WhenHavingAnEpochManagerAndEmptyTfLog<TLogFormat, TStreamId>));
+	public async Task SetUp() {
+		_mainBus = new(nameof(when_having_an_epoch_manager_and_empty_tf_log<TLogFormat, TStreamId>));
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = indexDirectory,
+		});
 
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
 		await _db.Open();
@@ -64,11 +69,10 @@ public abstract class
 			_instanceId);
 
 		await _epochManager.Init(CancellationToken.None);
-		_epochs = [];
+		_epochs = new List<EpochRecord>();
 
 		var lastPos = 0L;
-		for (int i = 0; i < numEpochs; i++)
-		{
+		for (int i = 0; i < _numEpochs; i++) {
 			var epoch = await WriteEpoch(i, lastPos, _instanceId, CancellationToken.None);
 			await _epochManager.AddEpochToCache(epoch, CancellationToken.None);
 			_epochs.Add(epoch);
@@ -78,15 +82,11 @@ public abstract class
 
 
 	[TearDown]
-	public async Task TearDown()
-	{
-		try
-		{
+	public async Task TearDown() {
+		try {
 			_logFormat?.Dispose();
 			_writer?.Dispose();
-		}
-		catch
-		{
+		} catch {
 			//workaround for TearDown error
 		}
 
@@ -95,115 +95,100 @@ public abstract class
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class WithNoEpochs() : WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(0)
-	{
+	public class with_no_epochs : when_truncating_the_epoch_checkpoint<TLogFormat, TStreamId> {
+		public with_no_epochs() : base(0) { }
+
 		[Test]
-		public async Task cannot_truncate_before_position_zero()
-		{
+		public async Task cannot_truncate_before_position_zero() {
 			Assert.Null(await _epochManager.TryTruncateBefore(0, CancellationToken.None));
 		}
 
 		[Test]
-		public async Task cannot_truncate_before_arbitrary_position()
-		{
+		public async Task cannot_truncate_before_arbitrary_position() {
 			Assert.Null(await _epochManager.TryTruncateBefore(12, CancellationToken.None));
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class WithTwoEpochs() : WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(2)
-	{
+	public class with_two_epochs : when_truncating_the_epoch_checkpoint<TLogFormat, TStreamId> {
+		public with_two_epochs() : base(2) { }
+
 		[Test]
-		public async Task cannot_truncate_before_first_epoch_position()
-		{
+		public async Task cannot_truncate_before_first_epoch_position() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition, CancellationToken.None));
 		}
 
 		[Test]
-		public async Task can_truncate_before_first_epoch_position_plus_one()
-		{
+		public async Task can_truncate_before_first_epoch_position_plus_one() {
 			var epoch = await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None);
 			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[0].EpochNumber, epoch.EpochNumber);
 		}
 
 		[Test]
-		public async Task can_truncate_before_second_epoch_position()
-		{
+		public async Task can_truncate_before_second_epoch_position() {
 			var epoch = await _epochManager.TryTruncateBefore(_epochs[1].EpochPosition, CancellationToken.None);
 			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[0].EpochNumber, epoch.EpochNumber);
 		}
 
 		[Test]
-		public async Task can_truncate_before_second_epoch_position_plus_one()
-		{
+		public async Task can_truncate_before_second_epoch_position_plus_one() {
 			var epoch = await _epochManager.TryTruncateBefore(_epochs[1].EpochPosition + 1, CancellationToken.None);
 			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[1].EpochNumber, epoch.EpochNumber);
 		}
 
 		[Test]
-		public async Task checkpoint_is_changed_after_truncation()
-		{
-			Assert.NotNull(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None));
+		public async Task checkpoint_is_changed_after_truncation() {
+			var epoch = await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None);
+			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[0].EpochPosition, _db.Config.EpochCheckpoint.Read());
 		}
 
 		[Test]
-		public async Task checkpoint_is_unchanged_after_no_truncation()
-		{
+		public async Task checkpoint_is_unchanged_after_no_truncation() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition, CancellationToken.None));
 			Assert.AreEqual(_epochs[1].EpochPosition, _db.Config.EpochCheckpoint.Read());
 		}
 
 		[Test]
-		public async Task cannot_read_checkpoint_even_if_no_truncation()
-		{
+		public async Task cannot_read_checkpoint_even_if_no_truncation() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition, CancellationToken.None));
-			Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			{
+			Assert.ThrowsAsync<InvalidOperationException>(async () => {
 				await _epochManager.Init(CancellationToken.None); // triggers a checkpoint read internally
 			});
 		}
 
 		[Test]
-		public async Task cannot_read_checkpoint_after_truncation()
-		{
+		public async Task cannot_read_checkpoint_after_truncation() {
 			Assert.NotNull(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None));
-			Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			{
+			Assert.ThrowsAsync<InvalidOperationException>(async () => {
 				await _epochManager.Init(CancellationToken.None); // triggers a checkpoint read internally
 			});
 		}
 
 		[Test]
-		public async Task cannot_write_checkpoint_even_if_no_truncation()
-		{
+		public async Task cannot_write_checkpoint_even_if_no_truncation() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition, CancellationToken.None));
-			Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			{
+			Assert.ThrowsAsync<InvalidOperationException>(async () => {
 				await _epochManager.WriteNewEpoch(2, CancellationToken.None); // triggers a checkpoint write internally
 			});
 		}
 
 		[Test]
-		public async Task cannot_write_checkpoint_after_truncation()
-		{
+		public async Task cannot_write_checkpoint_after_truncation() {
 			Assert.NotNull(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None));
-			Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			{
+			Assert.ThrowsAsync<InvalidOperationException>(async () => {
 				await _epochManager.WriteNewEpoch(2, CancellationToken.None); // triggers a checkpoint write internally
 			});
 		}
 
 		[Test]
-		public async Task cannot_truncate_twice()
-		{
+		public async Task cannot_truncate_twice() {
 			Assert.NotNull(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None));
-			Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			{
+			Assert.ThrowsAsync<InvalidOperationException>(async () => {
 				await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None);
 			});
 		}
@@ -211,18 +196,16 @@ public abstract class
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class WithCacheSizeMinusThreeEpochs()
-		: WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(CachedEpochCount - 3)
-	{
+	public class with_cache_size_minus_three_epochs : when_truncating_the_epoch_checkpoint<TLogFormat, TStreamId> {
+		public with_cache_size_minus_three_epochs() : base(CachedEpochCount - 3) { }
+
 		[Test]
-		public async Task cannot_truncate_before_first_epoch_position()
-		{
+		public async Task cannot_truncate_before_first_epoch_position() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition, CancellationToken.None));
 		}
 
 		[Test]
-		public async Task can_truncate_before_first_epoch_position_plus_one()
-		{
+		public async Task can_truncate_before_first_epoch_position_plus_one() {
 			var epoch = await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None);
 			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[0].EpochNumber, epoch.EpochNumber);
@@ -231,17 +214,15 @@ public abstract class
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class WithCacheSizeEpochs() : WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(CachedEpochCount)
-	{
+	public class with_cache_size_epochs : when_truncating_the_epoch_checkpoint<TLogFormat, TStreamId> {
+		public with_cache_size_epochs() : base(CachedEpochCount) { }
 		[Test]
-		public async Task cannot_truncate_before_first_epoch_position()
-		{
+		public async Task cannot_truncate_before_first_epoch_position() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition, CancellationToken.None));
 		}
 
 		[Test]
-		public async Task can_truncate_before_first_epoch_position_plus_one()
-		{
+		public async Task can_truncate_before_first_epoch_position_plus_one() {
 			var epoch = await _epochManager.TryTruncateBefore(_epochs[0].EpochPosition + 1, CancellationToken.None);
 			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[0].EpochNumber, epoch.EpochNumber);
@@ -250,18 +231,16 @@ public abstract class
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class WithCacheSizePlusTwoEpochs()
-		: WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(CachedEpochCount + 2)
-	{
+	public class with_cache_size_plus_two_epochs : when_truncating_the_epoch_checkpoint<TLogFormat, TStreamId> {
+		public with_cache_size_plus_two_epochs() : base(CachedEpochCount + 2) { }
+
 		[Test]
-		public async Task cannot_truncate_before_third_epoch_position()
-		{
+		public async Task cannot_truncate_before_third_epoch_position() {
 			Assert.Null(await _epochManager.TryTruncateBefore(_epochs[2].EpochPosition, CancellationToken.None));
 		}
 
 		[Test]
-		public async Task can_truncate_before_third_epoch_position_plus_one()
-		{
+		public async Task can_truncate_before_third_epoch_position_plus_one() {
 			var epoch = await _epochManager.TryTruncateBefore(_epochs[2].EpochPosition + 1, CancellationToken.None);
 			Assert.NotNull(epoch);
 			Assert.AreEqual(_epochs[2].EpochNumber, epoch.EpochNumber);

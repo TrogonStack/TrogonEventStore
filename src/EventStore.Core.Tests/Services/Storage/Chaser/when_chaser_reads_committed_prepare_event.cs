@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -5,16 +8,13 @@ using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Chaser;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WhenChaserReadsCommittedPrepareEvent<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId>
-{
+public class when_chaser_reads_committed_prepare_event<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId> {
 	private Guid _eventId;
 	private Guid _transactionId;
 
-	public override async ValueTask When(CancellationToken token)
-	{
+	public override async ValueTask When(CancellationToken token) {
 		_eventId = Guid.NewGuid();
 		_transactionId = Guid.NewGuid();
 
@@ -41,8 +41,7 @@ public class WhenChaserReadsCommittedPrepareEvent<TLogFormat, TStreamId> : with_
 		Writer.Flush();
 	}
 	[Test]
-	public void commit_ack_should_be_published()
-	{
+	public void commit_ack_should_be_published() {
 		AssertEx.IsOrBecomesTrue(() => CommitAcks.Count >= 1, msg: "CommitAck msg not received");
 		Assert.True(CommitAcks.TryDequeue(out var commitAck));
 		Assert.AreEqual(_transactionId, commitAck.CorrelationId);

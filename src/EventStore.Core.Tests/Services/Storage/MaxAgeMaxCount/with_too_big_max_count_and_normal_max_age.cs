@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,12 +10,9 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class
-	WithTooBigMaxCountAndNormalMaxAge<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class with_too_big_max_count_and_normal_max_age<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -37,8 +37,7 @@ public class
 	}
 
 	[Test]
-	public void on_single_event_read_all_metadata_is_ignored()
-	{
+	public void on_single_event_read_all_metadata_is_ignored() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r2, result.Record);
@@ -61,8 +60,7 @@ public class
 	}
 
 	[Test]
-	public void on_forward_range_read_all_metadata_is_ignored()
-	{
+	public void on_forward_range_read_all_metadata_is_ignored() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
@@ -74,8 +72,7 @@ public class
 	}
 
 	[Test]
-	public void on_backward_range_read_all_metadata_is_ignored()
-	{
+	public void on_backward_range_read_all_metadata_is_ignored() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
@@ -87,8 +84,7 @@ public class
 	}
 
 	[Test]
-	public void on_read_all_forward_all_metadata_is_ignored()
-	{
+	public void on_read_all_forward_all_metadata_is_ignored() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords();
 		Assert.AreEqual(6, records.Count);
 		Assert.AreEqual(_r1, records[0].Event);
@@ -100,8 +96,7 @@ public class
 	}
 
 	[Test]
-	public async Task on_read_all_backward_all_metadata_is_ignored()
-	{
+	public async Task on_read_all_backward_all_metadata_is_ignored() {
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);

@@ -1,36 +1,38 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.AllReader;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string), "$persistentsubscription-$all::group-checkpoint")]
 [TestFixture(typeof(LogFormat.V2), typeof(string), "$persistentsubscription-$all::group-parked")]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), "$persistentsubscription-$all::group-checkpoint")]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), "$persistentsubscription-$all::group-parked")]
-public class WhenReadingFromStreamWhichIsDisallowedFromAll<TLogFormat, TStreamId>(string stream)
-	: ReadIndexTestScenario<TLogFormat, TStreamId>
-{
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
-		await WriteSingleEvent(stream, 1, new string('.', 3000), eventId: Guid.NewGuid(),
+public class when_reading_from_stream_which_is_disallowed_from_all<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+	private string _stream;
+	public when_reading_from_stream_which_is_disallowed_from_all(string stream) {
+		_stream = stream;
+	}
+
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		await WriteSingleEvent(_stream, 1, new string('.', 3000), eventId: Guid.NewGuid(),
 			eventType: "event-type-1", retryOnFail: true, token: token);
-		await WriteSingleEvent(stream, 2, new string('.', 3000), eventId: Guid.NewGuid(),
+		await WriteSingleEvent(_stream, 2, new string('.', 3000), eventId: Guid.NewGuid(),
 			eventType: "event-type-1", retryOnFail: true, token: token);
 	}
 
 	[Test]
-	public void should_be_able_to_read_stream_events_forward()
-	{
-		var result = ReadIndex.ReadStreamEventsForward(stream, 0L, 10);
+	public void should_be_able_to_read_stream_events_forward() {
+		var result = ReadIndex.ReadStreamEventsForward(_stream, 0L, 10);
 		Assert.AreEqual(2, result.Records.Length);
 	}
 
 	[Test]
-	public void should_be_able_to_read_stream_events_backward()
-	{
-		var result = ReadIndex.ReadStreamEventsBackward(stream, -1, 10);
+	public void should_be_able_to_read_stream_events_backward() {
+		var result = ReadIndex.ReadStreamEventsBackward(_stream, -1, 10);
 		Assert.AreEqual(2, result.Records.Length);
 	}
 }

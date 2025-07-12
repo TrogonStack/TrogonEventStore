@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -6,27 +9,21 @@ using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class
-	WhenHavingCommitSpanningMultipleChunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat,
-	TStreamId>
-{
+public class when_having_commit_spanning_multiple_chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private List<ILogRecord> _survivors;
 	private List<ILogRecord> _scavenged;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
-		_survivors = [];
-		_scavenged = [];
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		_survivors = new List<ILogRecord>();
+		_scavenged = new List<ILogRecord>();
 
 		var (s1StreamId, _) = await GetOrReserve("s1", token);
 		var (eventTypeId, _) = await GetOrReserveEventType("event-type", token);
 		var transPos = Writer.Position;
 
-		for (int i = 0; i < 10; ++i)
-		{
+		for (int i = 0; i < 10; ++i) {
 			var r = LogRecord.Prepare(_recordFactory, Writer.Position,
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -69,16 +66,13 @@ public class
 	}
 
 	[Test]
-	public void all_chunks_are_merged_and_scavenged()
-	{
-		foreach (var rec in _scavenged)
-		{
+	public void all_chunks_are_merged_and_scavenged() {
+		foreach (var rec in _scavenged) {
 			var chunk = Db.Manager.GetChunkFor(rec.LogPosition);
 			Assert.IsFalse(chunk.TryReadAt(rec.LogPosition, couldBeScavenged: true).Success);
 		}
 
-		foreach (var rec in _survivors)
-		{
+		foreach (var rec in _survivors) {
 			var chunk = Db.Manager.GetChunkFor(rec.LogPosition);
 			var res = chunk.TryReadAt(rec.LogPosition, couldBeScavenged: false);
 			Assert.IsTrue(res.Success);

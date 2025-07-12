@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.IO;
 using System.Threading.Tasks;
 using EventStore.Core.Data.Redaction;
@@ -8,16 +11,12 @@ using MD5 = EventStore.Core.Hashing.MD5;
 // successful chunk switching tests have individual classes as they modify the database and thus the test fixture cannot be reused
 
 namespace EventStore.Core.Tests.Services.RedactionService;
-
-public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFormat, TStreamId>
-{
+public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFormat, TStreamId> {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class CanSwitchWithExactCopy : SwitchChunkSuccess<TLogFormat, TStreamId>
-	{
+	public class CanSwitchWithExactCopy : SwitchChunkSuccess<TLogFormat, TStreamId> {
 		[Test]
-		public async Task can_switch_with_exact_copy()
-		{
+		public async Task can_switch_with_exact_copy() {
 			var newChunk = Path.Combine(PathName, $"{nameof(can_switch_with_exact_copy)}.tmp");
 
 			File.Copy(GetChunk(1, 0, true), newChunk);
@@ -44,19 +43,16 @@ public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFo
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class CanSwitchWithModifiedCopy : SwitchChunkSuccess<TLogFormat, TStreamId>
-	{
+	public class CanSwitchWithModifiedCopy : SwitchChunkSuccess<TLogFormat, TStreamId> {
 		[Test]
-		public async Task can_switch_with_modified_copy()
-		{
+		public async Task can_switch_with_modified_copy() {
 			var newChunk = Path.Combine(PathName, $"{nameof(can_switch_with_modified_copy)}.tmp");
 
 			File.Copy(GetChunk(1, 0, true), newChunk);
 
 			// edit the chunk file
 			File.SetAttributes(newChunk, FileAttributes.Normal);
-			await using (var fs = new FileStream(newChunk, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-			{
+			await using (var fs = new FileStream(newChunk, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
 				// jump in the data and make some modifications
 				fs.Seek(ChunkHeader.Size + 123, SeekOrigin.Begin);
 				fs.WriteByte(0xAB);

@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
@@ -6,16 +9,13 @@ using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.AllReader;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
-	: RepeatableDbTestScenario<TLogFormat, TStreamId>
-{
+public class when_reading_all_with_filtering_and_transactions<TLogFormat, TStreamId>
+	: RepeatableDbTestScenario<TLogFormat, TStreamId> {
 
 	[Test]
-	public async Task should_receive_all_events_forward()
-	{
+	public async Task should_receive_all_events_forward() {
 		// create a db with explicit transactions, some of which are filtered out on read.
 		// previously, a bug caused those filtered-out records to prevent the successful
 		// reading of subsequent events that are contained within an explicit transaction.
@@ -54,8 +54,7 @@ public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task should_receive_all_events_backward()
-	{
+	public async Task should_receive_all_events_backward() {
 		// create a db with explicit transactions, some of which are filtered out on read.
 		// previously, a bug caused those filtered-out records to prevent the successful
 		// reading of subsequent events that are contained within an explicit transaction.
