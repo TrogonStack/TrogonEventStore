@@ -1,13 +1,14 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using EventStore.Core.Messages;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.ReplicationTracking;
-
 [TestFixture]
 public class when_cluster_receives_multiple_stale_acks_and_continues :
-	with_clustered_replication_tracking_service
-{
+	with_clustered_replication_tracking_service {
 	private readonly long _firstLogPosition = 2000;
 	private readonly long _secondLogPosition = 4000;
 	private readonly Guid _replica1 = Guid.NewGuid();
@@ -15,8 +16,7 @@ public class when_cluster_receives_multiple_stale_acks_and_continues :
 
 	protected override int ClusterSize => 3;
 
-	public override void When()
-	{
+	public override void When() {
 		BecomeLeader();
 		// All of the nodes have acked the first write
 		WriterCheckpoint.Write(_firstLogPosition);
@@ -40,16 +40,14 @@ public class when_cluster_receives_multiple_stale_acks_and_continues :
 
 
 	[Test]
-	public void replicated_to_can_advance_to_second_position()
-	{
+	public void replicated_to_can_advance_to_second_position() {
 
 		Assert.True(ReplicatedTos.TryDequeue(out var msg));
 		Assert.AreEqual(_secondLogPosition, msg.LogPosition);
 	}
 
 	[Test]
-	public void replication_checkpoint_can_advance_to_second_position()
-	{
+	public void replication_checkpoint_can_advance_to_second_position() {
 
 		Assert.AreEqual(_secondLogPosition, ReplicationCheckpoint.Read());
 		Assert.AreEqual(_secondLogPosition, ReplicationCheckpoint.ReadNonFlushed());

@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Net;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
@@ -8,15 +11,12 @@ using EventStore.Core.Tests.Integration;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Replication.ReadOnlyReplica;
-
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
-{
+public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
 	protected override MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
-		bool wait = true)
-	{
+		bool wait = true) {
 		var isReadOnly = index == 2;
 		var node = new MiniClusterNode<TLogFormat, TStreamId>(
 			PathName, index, endpoints.InternalTcp,
@@ -27,8 +27,7 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 		return node;
 	}
 
-	protected override IEventStoreConnection CreateConnection()
-	{
+	protected override IEventStoreConnection CreateConnection() {
 		var settings = ConnectionSettings.Create()
 			.DisableServerCertificateValidation()
 			.PerformOnAnyNode();
@@ -36,24 +35,21 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 	}
 
 	[Test]
-	public async Task append_to_stream_should_fail_with_not_supported_exception()
-	{
+	public async Task append_to_stream_should_fail_with_not_supported_exception() {
 		const string stream = "append_to_stream_should_fail_with_not_supported_exception";
 		await AssertEx.ThrowsAsync<OperationNotSupportedException>(
 			() => _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent()));
 	}
 
 	[Test]
-	public async Task delete_stream_should_fail_with_not_supported_exception()
-	{
+	public async Task delete_stream_should_fail_with_not_supported_exception() {
 		const string stream = "delete_stream_should_fail_with_not_supported_exception";
 		await AssertEx.ThrowsAsync<OperationNotSupportedException>(() =>
 			_conn.DeleteStreamAsync(stream, ExpectedVersion.Any));
 	}
 
 	[Test]
-	public async Task start_transaction_should_fail_with_not_supported_exception()
-	{
+	public async Task start_transaction_should_fail_with_not_supported_exception() {
 		const string stream = "start_transaction_should_fail_with_not_supported_exception";
 		await AssertEx.ThrowsAsync<OperationNotSupportedException>(() =>
 			_conn.StartTransactionAsync(stream, ExpectedVersion.Any));

@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,9 +32,7 @@ namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public abstract class
-	WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class with_replication_service_and_epoch_manager<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private const int _connectionPendingSendBytesThreshold = 10 * 1024;
 	private const int _connectionQueueSizeThreshold = 50000;
 
@@ -49,13 +50,13 @@ public abstract class
 	protected TFChunkWriter Writer;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = indexDirectory,
+		});
 
 		TcpSendPublisher.Subscribe(new AdHocHandler<TcpMessage.TcpSend>(msg => TcpSends.Enqueue(msg)));
 
@@ -98,15 +99,13 @@ public abstract class
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		await base.TestFixtureTearDown();
 		Service.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), true, true));
 	}
 
-	public IPrepareLogRecord<TStreamId> CreateLogRecord(long eventNumber, string data = "*************")
-	{
+	public IPrepareLogRecord<TStreamId> CreateLogRecord(long eventNumber, string data = "*************") {
 		var tStreamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventType = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		return LogRecord.Prepare(_logFormat.RecordFactory, Writer.Position, Guid.NewGuid(), Guid.NewGuid(), 0, 0,
@@ -115,8 +114,7 @@ public abstract class
 	}
 
 	public async ValueTask<(Guid, TcpConnectionManager)> AddSubscription(Guid replicaId, bool isPromotable,
-		Epoch[] epochs, long logPosition, CancellationToken token = default)
-	{
+		Epoch[] epochs, long logPosition, CancellationToken token = default) {
 		var tcpConn = new DummyTcpConnection() { ConnectionId = replicaId };
 
 		var manager = new TcpConnectionManager(
@@ -147,11 +145,9 @@ public abstract class
 
 	public abstract Task When(CancellationToken token = default);
 
-	public TcpMessage.TcpSend[] GetTcpSendsFor(TcpConnectionManager connection)
-	{
+	public TcpMessage.TcpSend[] GetTcpSendsFor(TcpConnectionManager connection) {
 		var sentMessages = new List<TcpMessage.TcpSend>();
-		while (TcpSends.TryDequeue(out var msg))
-		{
+		while (TcpSends.TryDequeue(out var msg)) {
 			if (msg.ConnectionManager == connection)
 				sentMessages.Add(msg);
 		}
@@ -159,8 +155,7 @@ public abstract class
 		return sentMessages.ToArray();
 	}
 
-	private TFChunkDbConfig CreateDbConfig()
-	{
+	private TFChunkDbConfig CreateDbConfig() {
 		ICheckpoint writerChk = new InMemoryCheckpoint(Checkpoint.Writer);
 		ICheckpoint chaserChk = new InMemoryCheckpoint(Checkpoint.Chaser);
 		ICheckpoint epochChk = new InMemoryCheckpoint(Checkpoint.Epoch, initValue: -1);
