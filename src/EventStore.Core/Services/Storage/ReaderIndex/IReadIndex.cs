@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,8 +9,7 @@ using EventStore.Core.Messages;
 
 namespace EventStore.Core.Services.Storage.ReaderIndex;
 
-public interface IReadIndex
-{
+public interface IReadIndex {
 	long LastIndexedPosition { get; }
 
 	ReadIndexStats GetStatistics();
@@ -42,8 +44,7 @@ public interface IReadIndex
 	void Dispose();
 }
 
-public interface IReadIndex<TStreamId> : IReadIndex
-{
+public interface IReadIndex<TStreamId> : IReadIndex {
 	IIndexWriter<TStreamId> IndexWriter { get; }
 
 	// ReadEvent() / ReadStreamEvents*() :
@@ -52,12 +53,8 @@ public interface IReadIndex<TStreamId> : IReadIndex
 	// - streamId drives the read, streamName is only for populating on the result.
 	//   this was less messy than safely adding the streamName to the EventRecord at some point after construction.
 	IndexReadEventResult ReadEvent(string streamName, TStreamId streamId, long eventNumber);
-
-	IndexReadStreamResult ReadStreamEventsBackward(string streamName, TStreamId streamId, long fromEventNumber,
-		int maxCount);
-
-	IndexReadStreamResult ReadStreamEventsForward(string streamName, TStreamId streamId, long fromEventNumber,
-		int maxCount);
+	IndexReadStreamResult ReadStreamEventsBackward(string streamName, TStreamId streamId, long fromEventNumber, int maxCount);
+	IndexReadStreamResult ReadStreamEventsForward(string streamName, TStreamId streamId, long fromEventNumber, int maxCount);
 
 	// ReadEventInfo_KeepDuplicates() :
 	// - deleted events are not filtered out
@@ -69,17 +66,10 @@ public interface IReadIndex<TStreamId> : IReadIndex
 	// - deleted events are not filtered out
 	// - duplicates are removed, keeping only the earliest event in the log
 	// - only events that are before "beforePosition" in the transaction log are returned
-	IndexReadEventInfoResult ReadEventInfoForward_KnownCollisions(TStreamId streamId, long fromEventNumber,
-		int maxCount, long beforePosition);
-
-	IndexReadEventInfoResult ReadEventInfoForward_NoCollisions(ulong stream, long fromEventNumber, int maxCount,
-		long beforePosition);
-
-	IndexReadEventInfoResult ReadEventInfoBackward_KnownCollisions(TStreamId streamId, long fromEventNumber,
-		int maxCount, long beforePosition);
-
-	IndexReadEventInfoResult ReadEventInfoBackward_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId,
-		long fromEventNumber, int maxCount, long beforePosition);
+	IndexReadEventInfoResult ReadEventInfoForward_KnownCollisions(TStreamId streamId, long fromEventNumber, int maxCount, long beforePosition);
+	IndexReadEventInfoResult ReadEventInfoForward_NoCollisions(ulong stream, long fromEventNumber, int maxCount, long beforePosition);
+	IndexReadEventInfoResult ReadEventInfoBackward_KnownCollisions(TStreamId streamId, long fromEventNumber, int maxCount, long beforePosition);
+	IndexReadEventInfoResult ReadEventInfoBackward_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId, long fromEventNumber, int maxCount, long beforePosition);
 
 	bool IsStreamDeleted(TStreamId streamId);
 	long GetStreamLastEventNumber(TStreamId streamId);
