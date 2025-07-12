@@ -3,11 +3,14 @@
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="System.ServiceModel.Http" Version="6.2.0" />
+		<PackageReference Include="System.ServiceModel.Http" Version="8.1.2" />
 		<!-- CVE-2023-29331 -->
 		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
 		<PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
 		<!-- upgrade because of transitive dependency vulnerability https://github.com/advisories/GHSA-447r-wph3-92pm -->
 		<PackageReference Include="System.Formats.Asn1" Version="8.0.2" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="packages.lock.json" />
 	</ItemGroup>
 </Project>

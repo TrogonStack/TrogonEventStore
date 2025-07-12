@@ -1,29 +1,28 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using EventStore.Core.Messages;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.ReplicationTracking;
 
-
 [TestFixture]
-public class when_5_node_cluster_has_2_lagging_nodes : with_clustered_replication_tracking_service
-{
+public class when_5_node_cluster_has_2_lagging_nodes : with_clustered_replication_tracking_service {
 	private readonly long _firstLogPosition = 2000;
 	private readonly long _secondLogPosition = 4000;
 	private Guid[] _followers;
 
 	protected override int ClusterSize => 5;
 
-	public override void When()
-	{
+	public override void When() {
 		_followers = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
 		BecomeLeader();
 		// All of the nodes have acked the first write
 		WriterCheckpoint.Write(_firstLogPosition);
 		WriterCheckpoint.Flush();
 		Service.Handle(new ReplicationTrackingMessage.WriterCheckpointFlushed());
-		foreach (var follower in _followers)
-		{
+		foreach (var follower in _followers) {
 			Service.Handle(new ReplicationTrackingMessage.ReplicaWriteAck(follower, _firstLogPosition));
 		}
 		AssertEx.IsOrBecomesTrue(() => Service.IsCurrent());
@@ -42,15 +41,13 @@ public class when_5_node_cluster_has_2_lagging_nodes : with_clustered_replicatio
 	}
 
 	[Test]
-	public void replicated_to_should_be_sent_for_the_second_position()
-	{
+	public void replicated_to_should_be_sent_for_the_second_position() {
 		Assert.True(ReplicatedTos.TryDequeue(out var msg));
 		Assert.AreEqual(_secondLogPosition, msg.LogPosition);
 	}
 
 	[Test]
-	public void replication_checkpoint_should_advance()
-	{
+	public void replication_checkpoint_should_advance() {
 		Assert.AreEqual(_secondLogPosition, ReplicationCheckpoint.Read());
 		Assert.AreEqual(_secondLogPosition, ReplicationCheckpoint.ReadNonFlushed());
 	}

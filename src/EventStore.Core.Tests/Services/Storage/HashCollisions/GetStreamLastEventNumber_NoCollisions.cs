@@ -1,13 +1,16 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.Index.Hashers;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
-
 [TestFixture]
-public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScenario<LogFormat.V2, string>
-{
+public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScenario<LogFormat.V2, string> {
 	private const string Stream = "ab-1";
 	private const ulong Hash = 98;
 	private const string NonCollidingStream = "cd-1";
@@ -17,27 +20,18 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 	protected GetStreamLastEventNumber_NoCollisions() : base(
 		maxEntriesInMemTable: 3,
 		lowHasher: new ConstantHasher(0),
-		highHasher: new HumanReadableHasher32())
-	{ }
+		highHasher: new HumanReadableHasher32()) { }
 
-	public class VerifyNoCollision : GetStreamLastEventNumber_NoCollisions
-	{
-		protected override void WriteTestScenario() { }
-
+	public class VerifyNoCollision : GetStreamLastEventNumber_NoCollisions {
 		[Test]
-		public void verify_that_streams_do_not_collide()
-		{
+		public void verify_that_streams_do_not_collide() {
 			Assert.AreNotEqual(Hasher.Hash(Stream), Hasher.Hash(NonCollidingStream));
 		}
 	}
 
-	public class WithNoEvents : GetStreamLastEventNumber_NoCollisions
-	{
-		protected override void WriteTestScenario() { }
-
+	public class WithNoEvents : GetStreamLastEventNumber_NoCollisions {
 		[Test]
-		public void with_no_events()
-		{
+		public void with_no_events() {
 			Assert.AreEqual(ExpectedVersion.NoStream,
 				ReadIndex.GetStreamLastEventNumber_NoCollisions(
 					Hash,
@@ -46,16 +40,13 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 		}
 	}
 
-	public class WithOneEvent : GetStreamLastEventNumber_NoCollisions
-	{
-		protected override void WriteTestScenario()
-		{
-			WriteSingleEvent(Stream, 0, "test data");
+	public class WithOneEvent : GetStreamLastEventNumber_NoCollisions {
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+			await WriteSingleEvent(Stream, 0, "test data", token: token);
 		}
 
 		[Test]
-		public void with_one_event()
-		{
+		public void with_one_event() {
 			Assert.AreEqual(0,
 				ReadIndex.GetStreamLastEventNumber_NoCollisions(
 					Hash,
@@ -64,30 +55,27 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 		}
 	}
 
-	public class WithMultipleEvents : GetStreamLastEventNumber_NoCollisions
-	{
+	public class WithMultipleEvents : GetStreamLastEventNumber_NoCollisions {
 		private EventRecord _zeroth, _first, _second, _third;
 
-		protected override void WriteTestScenario()
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
-			WriteSingleEvent(NonCollidingStream, 0, string.Empty);
-			WriteSingleEvent(NonCollidingStream, 1, string.Empty);
-			_zeroth = WriteSingleEvent(Stream, 0, string.Empty);
+			await WriteSingleEvent(NonCollidingStream, 0, string.Empty, token: token);
+			await WriteSingleEvent(NonCollidingStream, 1, string.Empty, token: token);
+			_zeroth = await WriteSingleEvent(Stream, 0, string.Empty, token: token);
 
 			// PTable 2
-			_first = WriteSingleEvent(Stream, 1, string.Empty);
-			_second = WriteSingleEvent(Stream, 2, string.Empty);
-			WriteSingleEvent(NonCollidingStream, 2, string.Empty);
+			_first = await WriteSingleEvent(Stream, 1, string.Empty, token: token);
+			_second = await WriteSingleEvent(Stream, 2, string.Empty, token: token);
+			await WriteSingleEvent(NonCollidingStream, 2, string.Empty, token: token);
 
 			// MemTable
-			_third = WriteSingleEvent(Stream, 3, string.Empty);
-			WriteSingleEvent(NonCollidingStream, 3, string.Empty);
+			_third = await WriteSingleEvent(Stream, 3, string.Empty, token: token);
+			await WriteSingleEvent(NonCollidingStream, 3, string.Empty, token: token);
 		}
 
 		[Test]
-		public void with_multiple_events()
-		{
+		public void with_multiple_events() {
 			Assert.AreEqual(3,
 				ReadIndex.GetStreamLastEventNumber_NoCollisions(
 					Hash,
@@ -96,8 +84,7 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 		}
 
 		[Test]
-		public void with_multiple_events_and_before_position()
-		{
+		public void with_multiple_events_and_before_position() {
 			Assert.AreEqual(3,
 				ReadIndex.GetStreamLastEventNumber_NoCollisions(
 					Hash,
@@ -130,20 +117,17 @@ public abstract class GetStreamLastEventNumber_NoCollisions : ReadIndexTestScena
 		}
 	}
 
-	public class WithDeletedStream : GetStreamLastEventNumber_NoCollisions
-	{
-		protected override void WriteTestScenario()
-		{
-			WriteSingleEvent(Stream, 0, "test data");
-			WriteSingleEvent(Stream, 1, "test data");
+	public class WithDeletedStream : GetStreamLastEventNumber_NoCollisions {
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+			await WriteSingleEvent(Stream, 0, "test data", token: token);
+			await WriteSingleEvent(Stream, 1, "test data", token: token);
 
-			var prepare = WriteDeletePrepare(Stream);
-			WriteDeleteCommit(prepare);
+			var prepare = await WriteDeletePrepare(Stream, token);
+			await WriteDeleteCommit(prepare, token);
 		}
 
 		[Test]
-		public void with_deleted_stream()
-		{
+		public void with_deleted_stream() {
 			Assert.AreEqual(EventNumber.DeletedStream,
 				ReadIndex.GetStreamLastEventNumber_NoCollisions(
 					Hash,

@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
@@ -18,11 +20,11 @@ public class when_writing_a_new_chunked_transaction_file<TLogFormat, TStreamId> 
 	private InMemoryCheckpoint _checkpoint;
 
 	[Test]
-	public void a_record_can_be_written()
+	public async Task a_record_can_be_written()
 	{
 		_checkpoint = new InMemoryCheckpoint(0);
 		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, _checkpoint, new InMemoryCheckpoint()));
-		db.Open();
+		await db.Open();
 		var tf = new TFChunkWriter(db);
 		tf.Open();
 
@@ -44,10 +46,9 @@ public class when_writing_a_new_chunked_transaction_file<TLogFormat, TStreamId> 
 			eventType: eventTypeId,
 			data: new byte[] { 1, 2, 3, 4, 5 },
 			metadata: new byte[] { 7, 17 });
-		long tmp;
-		tf.Write(record, out tmp);
+		await tf.Write(record, CancellationToken.None);
 		tf.Close();
-		db.Dispose();
+		await db.DisposeAsync();
 
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), _checkpoint.Read());
 		using (var filestream = File.Open(GetFilePathFor("chunk-000000.000000"), FileMode.Open, FileAccess.Read))

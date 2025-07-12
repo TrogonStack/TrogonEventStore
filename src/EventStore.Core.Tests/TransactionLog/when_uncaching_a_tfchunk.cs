@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Chunks;
@@ -30,14 +31,14 @@ public class when_uncaching_a_tfchunk<TLogFormat, TStreamId> : SpecificationWith
 
 		_record = LogRecord.Prepare(recordFactory, 0, _corrId, _eventId, 0, 0, streamId, 1,
 			PrepareFlags.None, eventTypeId, new byte[12], new byte[15], new DateTime(2000, 1, 1, 12, 0, 0));
-		_chunk = TFChunkHelper.CreateNewChunk(Filename);
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 		_result = _chunk.TryAppend(_record);
 		_chunk.Flush();
 		_chunk.Complete();
 		_uncachedChunk = TFChunk.FromCompletedFile(Filename, verifyHash: true, unbufferedRead: false,
 			reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
 			getTransformFactory: _ => new IdentityChunkTransformFactory());
-		_uncachedChunk.CacheInMemory();
+		await _uncachedChunk.CacheInMemory(CancellationToken.None);
 		_uncachedChunk.UnCacheFromMemory();
 	}
 

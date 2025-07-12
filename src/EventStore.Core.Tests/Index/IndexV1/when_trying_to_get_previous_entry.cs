@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 using NUnit.Framework;
 
@@ -9,36 +10,26 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class when_trying_to_get_previous_entry : SpecificationWithFile
+public class WhenTryingToGetPreviousEntry(byte version, bool skipIndexVerify) : SpecificationWithFile
 {
-	private readonly byte _pTableVersion;
-	private readonly bool _skipIndexVerify;
-
 	private HashListMemTable _memTable;
 	private PTable _pTable;
-	private readonly long _deletedStreamEventNumber;
+	private readonly long _deletedStreamEventNumber = version < PTableVersions.IndexV3 ? int.MaxValue : long.MaxValue;
 
 	private const ulong H1 = 0x01UL << 32;
 	private const ulong H2 = 0x02UL << 32;
 	private const ulong H3 = 0x03UL << 32;
 
-	public when_trying_to_get_previous_entry(byte version, bool skipIndexVerify)
-	{
-		_pTableVersion = version;
-		_skipIndexVerify = skipIndexVerify;
-		_deletedStreamEventNumber = version < PTableVersions.IndexV3 ? int.MaxValue : long.MaxValue;
-	}
-
 	private ulong GetHash(ulong value)
 	{
-		return _pTableVersion == PTableVersions.IndexV1 ? value >> 32 : value;
+		return version == PTableVersions.IndexV1 ? value >> 32 : value;
 	}
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
-		_memTable = new HashListMemTable(_pTableVersion, maxSize: 10);
+		await base.SetUp();
+		_memTable = new HashListMemTable(version, maxSize: 10);
 		_memTable.Add(H1, 0, 0);
 		_memTable.Add(H1, 1, 1);
 		_memTable.Add(H1, 2, 2);
@@ -54,7 +45,7 @@ public class when_trying_to_get_previous_entry : SpecificationWithFile
 			filename: Filename,
 			initialReaders: Constants.PTableInitialReaderCount,
 			maxReaders: Constants.PTableMaxReaderCountDefault,
-			skipIndexVerify: _skipIndexVerify);
+			skipIndexVerify: skipIndexVerify);
 	}
 
 	[TearDown]

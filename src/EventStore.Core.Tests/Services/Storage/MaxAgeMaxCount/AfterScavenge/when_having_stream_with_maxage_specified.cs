@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,35 +10,30 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.AfterScavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class
-	when_having_stream_with_maxage_specified<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_having_stream_with_maxage_specified<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _r1;
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override void WriteTestScenario()
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var now = DateTime.UtcNow;
 
 		var metadata = string.Format(@"{{""$maxAge"":{0}}}", (int)TimeSpan.FromMinutes(10).TotalSeconds);
 
-		_r1 = WriteStreamMetadata("ES", 0, metadata);
-		WriteSingleEvent("ES", 0, "bla1", now.AddMinutes(-50));
-		WriteSingleEvent("ES", 1, "bla1", now.AddMinutes(-20));
-		WriteSingleEvent("ES", 2, "bla1", now.AddMinutes(-11));
-		_r5 = WriteSingleEvent("ES", 3, "bla1", now.AddMinutes(-5));
-		_r6 = WriteSingleEvent("ES", 4, "bla1", now.AddMinutes(-1));
+		_r1 = await WriteStreamMetadata("ES", 0, metadata, token: token);
+		await WriteSingleEvent("ES", 0, "bla1", now.AddMinutes(-50), token: token);
+		await WriteSingleEvent("ES", 1, "bla1", now.AddMinutes(-20), token: token);
+		await WriteSingleEvent("ES", 2, "bla1", now.AddMinutes(-11), token: token);
+		_r5 = await WriteSingleEvent("ES", 3, "bla1", now.AddMinutes(-5), token: token);
+		_r6 = await WriteSingleEvent("ES", 4, "bla1", now.AddMinutes(-1), token: token);
 
 		Scavenge(completeLast: true, mergeChunks: false);
 	}
 
 	[Test]
-	public void single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones()
-	{
+	public void single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
@@ -58,8 +56,7 @@ public class
 	}
 
 	[Test]
-	public void forward_range_read_doesnt_return_expired_records()
-	{
+	public void forward_range_read_doesnt_return_expired_records() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -68,8 +65,7 @@ public class
 	}
 
 	[Test]
-	public void backward_range_read_doesnt_return_expired_records()
-	{
+	public void backward_range_read_doesnt_return_expired_records() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -78,8 +74,7 @@ public class
 	}
 
 	[Test]
-	public void read_all_forward_doesnt_return_expired_records()
-	{
+	public void read_all_forward_doesnt_return_expired_records() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords();
 		Assert.AreEqual(3, records.Count);
 		Assert.AreEqual(_r1, records[0].Event);
@@ -88,10 +83,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_doesnt_return_expired_records()
-	{
-		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
-			.EventRecords();
+	public async Task read_all_backward_doesnt_return_expired_records() {
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None)).EventRecords();
 		Assert.AreEqual(3, records.Count);
 		Assert.AreEqual(_r6, records[0].Event);
 		Assert.AreEqual(_r5, records[1].Event);

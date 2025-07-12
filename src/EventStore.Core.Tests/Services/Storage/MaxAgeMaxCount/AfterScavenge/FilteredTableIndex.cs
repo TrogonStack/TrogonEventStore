@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,14 +9,11 @@ using System.Threading.Tasks;
 using EventStore.Core.Index;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.AfterScavenge;
-
 // simulates particular entries having been removed from the index by scavenge
-public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
-{
+public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId> {
 	private readonly ITableIndex<TStreamId> _wrapped;
 	private readonly Func<IndexEntry, bool> _condition;
-	public FilteredTableIndex(ITableIndex<TStreamId> wrapped, Func<IndexEntry, bool> condition)
-	{
+	public FilteredTableIndex(ITableIndex<TStreamId> wrapped, Func<IndexEntry, bool> condition) {
 		_wrapped = wrapped;
 		_condition = condition;
 	}
@@ -24,64 +24,53 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 
 	public bool IsBackgroundTaskRunning => _wrapped.IsBackgroundTaskRunning;
 
-	public void Add(long commitPos, TStreamId streamId, long version, long position)
-	{
+	public void Add(long commitPos, TStreamId streamId, long version, long position) {
 		_wrapped.Add(commitPos, streamId, version, position);
 	}
 
-	public void AddEntries(long commitPos, IList<IndexKey<TStreamId>> entries)
-	{
+	public void AddEntries(long commitPos, IList<IndexKey<TStreamId>> entries) {
 		_wrapped.AddEntries(commitPos, entries);
 	}
 
-	public void Close(bool removeFiles = true)
-	{
+	public void Close(bool removeFiles = true) {
 		_wrapped.Close(removeFiles);
 	}
 
-	public IReadOnlyList<IndexEntry> GetRange(TStreamId streamId, long startVersion, long endVersion, int? limit = null)
-	{
+	public IReadOnlyList<IndexEntry> GetRange(TStreamId streamId, long startVersion, long endVersion, int? limit = null) {
 		return _wrapped
 			.GetRange(streamId, startVersion, endVersion, limit)
 			.Where(_condition)
 			.ToList();
 	}
 
-	public IReadOnlyList<IndexEntry> GetRange(ulong stream, long startVersion, long endVersion, int? limit = null)
-	{
+	public IReadOnlyList<IndexEntry> GetRange(ulong stream, long startVersion, long endVersion, int? limit = null) {
 		return _wrapped
 			.GetRange(stream, startVersion, endVersion, limit)
 			.Where(_condition)
 			.ToList();
 	}
 
-	public void Initialize(long chaserCheckpoint)
-	{
+	public void Initialize(long chaserCheckpoint) {
 		_wrapped.Initialize(chaserCheckpoint);
 	}
 
-	public IEnumerable<ISearchTable> IterateAllInOrder()
-	{
+	public IEnumerable<ISearchTable> IterateAllInOrder() {
 		return _wrapped.IterateAllInOrder();
 	}
 
-	public Task MergeIndexes()
-	{
+	public Task MergeIndexes() {
 		return _wrapped.MergeIndexes();
 	}
 
-	public void Scavenge(IIndexScavengerLog log, CancellationToken ct)
-	{
+	public void Scavenge(IIndexScavengerLog log, CancellationToken ct) {
 		throw new NotImplementedException();
 	}
 
-	public void Scavenge(Func<IndexEntry, bool> shouldKeep, IIndexScavengerLog log, CancellationToken ct)
-	{
+	public void Scavenge(Func<IndexEntry, bool> shouldKeep, IIndexScavengerLog log, CancellationToken ct) {
 		throw new NotImplementedException();
 	}
 
-	public bool TryGetLatestEntry(TStreamId streamId, out IndexEntry entry)
-	{
+	public bool TryGetLatestEntry(TStreamId streamId, out IndexEntry entry) {
 		var got = _wrapped.TryGetLatestEntry(streamId, out entry);
 		if (!got)
 			return false;
@@ -96,18 +85,15 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 		return true;
 	}
 
-	public bool TryGetLatestEntry(ulong stream, long beforePosition, Func<IndexEntry, bool> isForThisStream, out IndexEntry entry)
-	{
+	public bool TryGetLatestEntry(ulong stream, long beforePosition, Func<IndexEntry, bool> isForThisStream, out IndexEntry entry) {
 		throw new NotImplementedException();
 	}
 
-	public bool TryGetLatestEntry(TStreamId streamId, long beforePosition, Func<IndexEntry, bool> isForThisStream, out IndexEntry entry)
-	{
+	public bool TryGetLatestEntry(TStreamId streamId, long beforePosition, Func<IndexEntry, bool> isForThisStream, out IndexEntry entry) {
 		throw new NotImplementedException();
 	}
 
-	public bool TryGetNextEntry(TStreamId streamId, long afterVersion, out IndexEntry entry)
-	{
+	public bool TryGetNextEntry(TStreamId streamId, long afterVersion, out IndexEntry entry) {
 		var got = _wrapped.TryGetNextEntry(streamId, afterVersion, out entry);
 		if (!got)
 			return false;
@@ -122,8 +108,7 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 		return true;
 	}
 
-	public bool TryGetNextEntry(ulong stream, long afterVersion, out IndexEntry entry)
-	{
+	public bool TryGetNextEntry(ulong stream, long afterVersion, out IndexEntry entry) {
 		var got = _wrapped.TryGetNextEntry(stream, afterVersion, out entry);
 		if (!got)
 			return false;
@@ -138,8 +123,7 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 		return true;
 	}
 
-	public bool TryGetOldestEntry(TStreamId streamId, out IndexEntry entry)
-	{
+	public bool TryGetOldestEntry(TStreamId streamId, out IndexEntry entry) {
 		var got = _wrapped.TryGetOldestEntry(streamId, out entry);
 		if (!got)
 			return false;
@@ -154,23 +138,19 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 		return true;
 	}
 
-	public bool TryGetOneValue(TStreamId streamId, long version, out long position)
-	{
+	public bool TryGetOneValue(TStreamId streamId, long version, out long position) {
 		throw new NotImplementedException();
 	}
 
-	public bool TryGetPreviousEntry(TStreamId streamId, long beforeVersion, out IndexEntry entry)
-	{
+	public bool TryGetPreviousEntry(TStreamId streamId, long beforeVersion, out IndexEntry entry) {
 		throw new NotImplementedException();
 	}
 
-	public bool TryGetPreviousEntry(ulong stream, long beforeVersion, out IndexEntry entry)
-	{
+	public bool TryGetPreviousEntry(ulong stream, long beforeVersion, out IndexEntry entry) {
 		throw new NotImplementedException();
 	}
 
-	public void WaitForBackgroundTasks(int millisecondsTimeout)
-	{
+	public void WaitForBackgroundTasks(int millisecondsTimeout) {
 		_wrapped.WaitForBackgroundTasks(millisecondsTimeout);
 	}
 }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Caching;
 using EventStore.Core.DataStructures;
@@ -17,25 +18,22 @@ using EventStore.Core.Util;
 
 namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
-public abstract class TruncateAndReOpenDbScenario<TLogFormat, TStreamId> : TruncateScenario<TLogFormat, TStreamId>
+public abstract class TruncateAndReOpenDbScenario<TLogFormat, TStreamId>(
+	int maxEntriesInMemTable = 100,
+	int metastreamMaxCount = 1) : TruncateScenario<TLogFormat, TStreamId>(maxEntriesInMemTable, metastreamMaxCount)
 {
-	protected TruncateAndReOpenDbScenario(int maxEntriesInMemTable = 100, int metastreamMaxCount = 1)
-		: base(maxEntriesInMemTable, metastreamMaxCount)
-	{
-	}
-
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
 
-		ReOpenDb();
+		await ReOpenDb(CancellationToken.None);
 	}
 
-	private void ReOpenDb()
+	private async ValueTask ReOpenDb(CancellationToken token)
 	{
 		Db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, WriterCheckpoint, ChaserCheckpoint));
 
-		Db.Open();
+		await Db.Open();
 
 		var indexDirectory = GetFilePathFor("index");
 		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()

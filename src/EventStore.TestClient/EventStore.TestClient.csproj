@@ -31,5 +31,6 @@
 			<Link>logconfig.json</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Remove="packages.lock.json" />
 	</ItemGroup>
 </Project>

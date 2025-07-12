@@ -29,7 +29,7 @@ public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLo
 
 		_db = new TFChunkDb(
 			TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 4096));
-		_db.Open();
+		await _db.Open();
 
 		var chunk = _db.Manager.GetChunk(0);
 
@@ -75,11 +75,11 @@ public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLo
 		_db.Config.WriterCheckpoint.Flush();
 	}
 
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
-		_db.Dispose();
+		await _db.DisposeAsync();
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

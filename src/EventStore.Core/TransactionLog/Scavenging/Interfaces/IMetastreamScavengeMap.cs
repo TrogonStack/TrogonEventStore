@@ -1,11 +1,13 @@
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public interface IMetastreamScavengeMap<TKey> :
-		IScavengeMap<TKey, MetastreamData> {
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
 
-		void SetTombstone(TKey key);
+namespace EventStore.Core.TransactionLog.Scavenging;
+public interface IMetastreamScavengeMap<TKey> :
+	IScavengeMap<TKey, MetastreamData> {
 
-		void SetDiscardPoint(TKey key, DiscardPoint discardPoint);
+	void SetTombstone(TKey key);
 
-		void DeleteAll();
-	}
+	void SetDiscardPoint(TKey key, DiscardPoint discardPoint);
+
+	void DeleteAll();
 }

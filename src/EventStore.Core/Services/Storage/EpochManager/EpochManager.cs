@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,24 +9,24 @@ using System.Threading.Tasks;
 using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
-using EventStore.Core.Messages;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
-using EventStore.Core.LogAbstraction;
 using EventStore.Core.Exceptions;
+using EventStore.Core.LogAbstraction;
+using EventStore.Core.Messages;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.LogRecords;
-using ILogger = Serilog.ILogger;
 using EventStore.LogCommon;
+using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage.EpochManager;
 
-public abstract class Epochmanager;
+public abstract class Epochmanager {
+}
 
-public class EpochManager<TStreamId> : IEpochManager
-{
+public class EpochManager<TStreamId> : IEpochManager {
 	private static readonly ILogger Log = Serilog.Log.ForContext<Epochmanager>();
 	private readonly IPublisher _bus;
 
@@ -42,7 +45,7 @@ public class EpochManager<TStreamId> : IEpochManager
 	// 3. Combine two locks by writing a custom sync primitive using QueuedSynchronizer<T>
 	private readonly AsyncExclusiveLock _locker = new();
 	private readonly int _cacheSize;
-	private readonly LinkedList<EpochRecord> _epochs = [];
+	private readonly LinkedList<EpochRecord> _epochs = new();
 
 	private LinkedListNode<EpochRecord> _firstCachedEpoch;
 	private LinkedListNode<EpochRecord> _lastCachedEpoch;
@@ -58,33 +61,25 @@ public class EpochManager<TStreamId> : IEpochManager
 	// 1)  _locker
 	// 2) _truncateLock
 
-	private async ValueTask<long> GetCheckpointAsync(CancellationToken token)
-	{
+	private async ValueTask<long> GetCheckpointAsync(CancellationToken token) {
 		await _truncateLock.AcquireAsync(token);
-		try
-		{
+		try {
 			if (_truncated)
 				throw new InvalidOperationException("Cannot read checkpoint since it has been truncated.");
 			return _checkpoint.Read();
-		}
-		finally
-		{
+		} finally {
 			_truncateLock.Release();
 		}
 	}
 
-	private async ValueTask SetCheckpointAsync(long value, CancellationToken token)
-	{
+	private async ValueTask SetCheckpointAsync(long value, CancellationToken token) {
 		await _truncateLock.AcquireAsync(token);
-		try
-		{
+		try {
 			if (_truncated)
 				throw new InvalidOperationException("Cannot write checkpoint since it has been truncated.");
 			_checkpoint.Write(value);
 			_checkpoint.Flush();
-		}
-		finally
-		{
+		} finally {
 			_truncateLock.Release();
 		}
 	}
@@ -100,8 +95,7 @@ public class EpochManager<TStreamId> : IEpochManager
 		INameIndex<TStreamId> streamNameIndex,
 		INameIndex<TStreamId> eventTypeIndex,
 		IPartitionManager partitionManager,
-		Guid instanceId)
-	{
+		Guid instanceId) {
 		Ensure.NotNull(bus, "bus");
 		Ensure.Nonnegative(cachedEpochCount, "cachedEpochCount");
 		Ensure.NotNull(checkpoint, "checkpoint");
@@ -129,28 +123,23 @@ public class EpochManager<TStreamId> : IEpochManager
 	public ValueTask Init(CancellationToken token)
 		=> ReadEpochs(_cacheSize, token);
 
-	private async ValueTask ReadEpochs(int maxEpochCount, CancellationToken token)
-	{
+	private async ValueTask ReadEpochs(int maxEpochCount, CancellationToken token) {
 		await _locker.AcquireAsync(token);
-		try
-		{
+		try {
 			var reader = _readers.Get();
-			try
-			{
+			try {
 				long epochPos = await GetCheckpointAsync(token);
-				if (epochPos < 0)
-				{
+				if (epochPos < 0) {
 					// we probably have lost/uninitialized epoch checkpoint scan back to find the most recent epoch in the log
 					Log.Information("No epoch checkpoint. Scanning log backwards for most recent epoch...");
 					reader.Reposition(_writer.FlushedPosition);
 
 					for (SeqReadResult result;
-					     (result = await reader.TryReadPrev(token)).Success;
-					     token.ThrowIfCancellationRequested())
-					{
+						 (result = await reader.TryReadPrev(token)).Success;
+						 token.ThrowIfCancellationRequested()) {
 						var rec = result.LogRecord;
 						if (rec.RecordType is not LogRecordType.System ||
-						    ((ISystemLogRecord)rec).SystemRecordType is not SystemRecordType.Epoch)
+							((ISystemLogRecord)rec).SystemRecordType is not SystemRecordType.Epoch)
 							continue;
 						epochPos = rec.LogPosition;
 						break;
@@ -161,8 +150,7 @@ public class EpochManager<TStreamId> : IEpochManager
 
 				//read back down the chain of epochs in the log until the cache is full
 				int cnt = 0;
-				while (epochPos >= 0 && cnt < maxEpochCount)
-				{
+				while (epochPos >= 0 && cnt < maxEpochCount) {
 					var epoch = ReadEpochAt(reader, epochPos);
 					_epochs.AddFirst(epoch);
 					if (epoch.EpochPosition == 0) { break; }
@@ -173,20 +161,14 @@ public class EpochManager<TStreamId> : IEpochManager
 
 				_lastCachedEpoch = _epochs.Last;
 				_firstCachedEpoch = _epochs.First;
-			}
-			finally
-			{
+			} finally {
 				_readers.Return(reader);
 			}
-		}
-		finally
-		{
+		} finally {
 			_locker.Release();
 		}
 	}
-
-	private EpochRecord ReadEpochAt(ITransactionFileReader reader, long epochPos)
-	{
+	private EpochRecord ReadEpochAt(ITransactionFileReader reader, long epochPos) {
 		var result = reader.TryReadAt(epochPos, couldBeScavenged: false);
 		if (!result.Success)
 			throw new Exception($"Could not find Epoch record at LogPosition {epochPos}.");
@@ -199,33 +181,24 @@ public class EpochManager<TStreamId> : IEpochManager
 
 		return sysRec.GetEpochRecord();
 	}
-
-	public async ValueTask<IReadOnlyList<EpochRecord>> GetLastEpochs(int maxCount, CancellationToken token)
-	{
+	public async ValueTask<IReadOnlyList<EpochRecord>> GetLastEpochs(int maxCount, CancellationToken token) {
 		await _locker.AcquireAsync(token);
-		try
-		{
+		try {
 			var res = new List<EpochRecord>();
 			var node = _epochs.Last;
-			while (node != null && res.Count < maxCount)
-			{
+			while (node != null && res.Count < maxCount) {
 				res.Add(node.Value);
 				node = node.Previous;
 			}
 
 			return res;
-		}
-		finally
-		{
+		} finally {
 			_locker.Release();
 		}
 	}
 
-	public async ValueTask<EpochRecord> GetEpochAfter(int epochNumber, bool throwIfNotFound,
-		CancellationToken token)
-	{
-		if (epochNumber >= LastEpochNumber)
-		{
+	public async ValueTask<EpochRecord> GetEpochAfter(int epochNumber, bool throwIfNotFound, CancellationToken token) {
+		if (epochNumber >= LastEpochNumber) {
 			if (!throwIfNotFound)
 				return null;
 			throw new ArgumentOutOfRangeException(
@@ -235,35 +208,27 @@ public class EpochManager<TStreamId> : IEpochManager
 
 		EpochRecord epoch;
 		await _locker.AcquireAsync(token);
-		try
-		{
+		try {
 			var epochNode = _epochs.Last;
-			while (epochNode != null && epochNode.Value.EpochNumber != epochNumber)
-			{
+			while (epochNode != null && epochNode.Value.EpochNumber != epochNumber) {
 				epochNode = epochNode.Previous;
 			}
 
 			epoch = epochNode?.Next?.Value;
-		}
-		finally
-		{
+		} finally {
 			_locker.Release();
 		}
 
-		if (epoch is not null)
-		{
+		if (epoch is not null) {
 			return epoch; //got it
 		}
 
 		var firstEpoch = _firstCachedEpoch?.Value;
-		if (firstEpoch != null && firstEpoch.PrevEpochPosition != -1)
-		{
+		if (firstEpoch != null && firstEpoch.PrevEpochPosition != -1) {
 			var reader = _readers.Get();
-			try
-			{
+			try {
 				epoch = firstEpoch;
-				do
-				{
+				do {
 					var result = reader.TryReadAt(epoch.PrevEpochPosition, couldBeScavenged: false);
 					if (!result.Success)
 						throw new Exception(
@@ -276,32 +241,26 @@ public class EpochManager<TStreamId> : IEpochManager
 						throw new Exception($"SystemLogRecord is not of Epoch sub-type: {result.LogRecord}.");
 
 					var nextEpoch = sysRec.GetEpochRecord();
-					if (nextEpoch.EpochNumber == epochNumber)
-					{
+					if (nextEpoch.EpochNumber == epochNumber) {
 						return epoch; //got it
 					}
 
 					epoch = nextEpoch;
 				} while (epoch.PrevEpochPosition != -1 && epoch.EpochNumber > epochNumber);
 
-			}
-			finally
-			{
+			} finally {
 				_readers.Return(reader);
 			}
 		}
 
-		if (epoch is null && throwIfNotFound)
-		{
+		if (epoch is null && throwIfNotFound) {
 			throw new Exception($"Concurrency failure, epoch #{epochNumber} should not be null.");
 		}
 
 		return epoch;
 	}
 
-	public async ValueTask<bool> IsCorrectEpochAt(long epochPosition, int epochNumber, Guid epochId,
-		CancellationToken token)
-	{
+	public async ValueTask<bool> IsCorrectEpochAt(long epochPosition, int epochNumber, Guid epochId, CancellationToken token) {
 		Ensure.Nonnegative(epochPosition, "logPosition");
 		Ensure.Nonnegative(epochNumber, "epochNumber");
 		Ensure.NotEmptyGuid(epochId, "epochId");
@@ -311,27 +270,22 @@ public class EpochManager<TStreamId> : IEpochManager
 
 		EpochRecord epoch;
 		await _locker.AcquireAsync(token);
-		try
-		{
+		try {
 			epoch = _epochs.FirstOrDefault(e => e.EpochNumber == epochNumber);
-			if (epoch != null)
-			{
+			if (epoch != null) {
 				return epoch.EpochId == epochId && epoch.EpochPosition == epochPosition;
 			}
 
 			if (_firstCachedEpoch.Value is not null && epochNumber > _firstCachedEpoch.Value.EpochNumber)
 				// This isn't a cache miss, we don't have that epoch on this node
 				return false;
-		}
-		finally
-		{
+		} finally {
 			_locker.Release();
 		}
 
 		// epochNumber < _minCachedEpochNumber
 		var reader = _readers.Get();
-		try
-		{
+		try {
 			var res = reader.TryReadAt(epochPosition, couldBeScavenged: false);
 			if (!res.Success || res.LogRecord.RecordType != LogRecordType.System)
 				return false;
@@ -341,117 +295,109 @@ public class EpochManager<TStreamId> : IEpochManager
 
 			epoch = sysRec.GetEpochRecord();
 			return epoch.EpochNumber == epochNumber && epoch.EpochId == epochId;
-		}
-		catch (Exception ex) when (ex is InvalidReadException or UnableToReadPastEndOfStreamException)
-		{
-			Log.Information(ex, "Failed to read epoch {epochNumber} at {epochPosition}.", epochNumber,
-				epochPosition);
+		} catch (Exception ex) when (ex is InvalidReadException || ex is UnableToReadPastEndOfStreamException) {
+			Log.Information(ex, "Failed to read epoch {epochNumber} at {epochPosition}.", epochNumber, epochPosition);
 			return false;
-		}
-		finally
-		{
+		} finally {
 			_readers.Return(reader);
 		}
 	}
 
 	// This method should be called from single thread.
-	public async ValueTask WriteNewEpoch(int epochNumber, CancellationToken token)
-	{
+	public async ValueTask WriteNewEpoch(int epochNumber, CancellationToken token) {
 		// Now we write epoch record (with possible retry, if we are at the end of chunk)
 		// and update EpochManager's state, by adjusting cache of records, epoch count and un-caching
 		// excessive record, if present.
 		// If we are writing the very first epoch, last position will be -1.
-		if (epochNumber < 0)
-		{
+		if (epochNumber < 0) {
 			throw new ArgumentException($"Cannot write an Epoch with a negative Epoch Number {epochNumber}.",
 				nameof(epochNumber));
 		}
 
-		if (epochNumber <= LastEpochNumber)
-		{
+		if (epochNumber <= LastEpochNumber) {
 			throw new ArgumentException(
 				$"Cannot add Epoch {epochNumber}, new Epoch numbers must be greater than the Last Epoch  {LastEpochNumber}.",
 				nameof(epochNumber));
 		}
 
-		var epoch = WriteEpochRecordWithRetry(epochNumber, Guid.NewGuid(),
-			_lastCachedEpoch?.Value.EpochPosition ?? -1, _instanceId);
+		var epoch = await WriteEpochRecordWithRetry(epochNumber, Guid.NewGuid(),
+			_lastCachedEpoch?.Value.EpochPosition ?? -1, _instanceId, token);
 
 		await AddEpochToCache(epoch, token);
 	}
 
-	private EpochRecord WriteEpochRecordWithRetry(int epochNumber, Guid epochId, long lastEpochPosition,
-		Guid instanceId)
-	{
+	private async ValueTask<EpochRecord> WriteEpochRecordWithRetry(int epochNumber, Guid epochId, long lastEpochPosition,
+		Guid instanceId, CancellationToken token) {
 		long pos = _writer.Position;
 		var epoch = new EpochRecord(pos, epochNumber, epochId, lastEpochPosition, DateTime.UtcNow, instanceId);
 		var rec = _recordFactory.CreateEpoch(epoch);
 
 		Log.Debug(
-			"=== Writing E{epochNumber}@{epochPosition}:{epochId:B} (previous epoch at {lastEpochPosition}). L={leaderId:B}.",
-			epochNumber, epoch.EpochPosition, epochId, lastEpochPosition, epoch.LeaderInstanceId);
-		if (!_writer.Write(rec, out pos))
-		{
+						"=== Writing E{epochNumber}@{epochPosition}:{epochId:B} (previous epoch at {lastEpochPosition}). L={leaderId:B}.",
+						epochNumber, epoch.EpochPosition, epochId, lastEpochPosition, epoch.LeaderInstanceId);
+
+		(var written, pos) = await _writer.Write(rec, token);
+		if (!written) {
 			epoch = new EpochRecord(pos, epochNumber, epochId, lastEpochPosition, DateTime.UtcNow, instanceId);
 			rec = _recordFactory.CreateEpoch(epoch);
 
-			if (!_writer.Write(rec, out pos))
+			if (await _writer.Write(rec, token) is (false, _))
 				throw new Exception($"Second write try failed at {epoch.EpochPosition}.");
 		}
 
-		_partitionManager.Initialize();
-		WriteEpochInformationWithRetry(epoch);
+		await _partitionManager.Initialize(token);
+		await WriteEpochInformationWithRetry(epoch, token);
 		_writer.Flush();
 		_bus.Publish(new ReplicationTrackingMessage.WriterCheckpointFlushed());
 		_bus.Publish(new SystemMessage.EpochWritten(epoch));
 		return epoch;
 	}
 
-	private TStreamId GetEpochInformationStream()
-	{
+	private TStreamId GetEpochInformationStream() {
 		if (!_streamNameIndex.GetOrReserve(SystemStreams.EpochInformationStream, out var streamId, out _, out _))
 			throw new Exception($"{SystemStreams.EpochInformationStream} stream does not exist");
 		return streamId;
 	}
 
-	private TStreamId GetEpochInformationEventType()
-	{
+	private TStreamId GetEpochInformationEventType() {
 		if (!_eventTypeIndex.GetOrReserve(SystemEventTypes.EpochInformation, out var eventTypeId, out _, out _))
 			throw new Exception($"{SystemEventTypes.EpochInformation} event type does not exist");
 		return eventTypeId;
 	}
 
-	void WriteEpochInformationWithRetry(EpochRecord epoch)
-	{
+	async ValueTask WriteEpochInformationWithRetry(EpochRecord epoch, CancellationToken token) {
 		if (!TryGetExpectedVersionForEpochInformation(epoch, out var expectedVersion))
 			expectedVersion = ExpectedVersion.NoStream;
 
 		var originalLogPosition = _writer.Position;
 
 		var epochInformation = LogRecord.Prepare(
-			factory: _recordFactory,
-			logPosition: originalLogPosition,
-			correlationId: Guid.NewGuid(),
-			eventId: Guid.NewGuid(),
-			transactionPos: originalLogPosition,
-			transactionOffset: 0,
-			eventStreamId: GetEpochInformationStream(),
-			expectedVersion: expectedVersion,
-			flags: PrepareFlags.SingleWrite | PrepareFlags.IsCommitted | PrepareFlags.IsJson,
-			eventType: GetEpochInformationEventType(),
-			data: epoch.AsSerialized(),
-			metadata: Empty.ByteArray);
+				factory: _recordFactory,
+				logPosition: originalLogPosition,
+				correlationId: Guid.NewGuid(),
+				eventId: Guid.NewGuid(),
+				transactionPos: originalLogPosition,
+				transactionOffset: 0,
+				eventStreamId: GetEpochInformationStream(),
+				expectedVersion: expectedVersion,
+				flags: PrepareFlags.SingleWrite | PrepareFlags.IsCommitted | PrepareFlags.IsJson,
+				eventType: GetEpochInformationEventType(),
+				data: epoch.AsSerialized(),
+				metadata: Empty.ByteArray);
 
-		if (_writer.Write(epochInformation, out var retryLogPosition))
+		var (written, retryLogPosition) = await _writer.Write(epochInformation, token);
+		if (written)
 			return;
 
 		epochInformation = epochInformation.CopyForRetry(retryLogPosition, retryLogPosition);
 
-		if (_writer.Write(epochInformation, out _))
+		if (await _writer.Write(epochInformation, token) is (true, _))
 			return;
 
 		throw new Exception(
-			$"Second write try failed when first writing $epoch-information at {originalLogPosition}, then at {retryLogPosition}.");
+			string.Format("Second write try failed when first writing $epoch-information at {0}, then at {1}.",
+				originalLogPosition,
+				retryLogPosition));
 	}
 
 	// we have just written epoch. about to write the $epoch-information for it.
@@ -460,16 +406,14 @@ public class EpochManager<TStreamId> : IEpochManager
 	// (which immediately follows it) and gets its event number.
 	// except the first epoch in logv3, which is followed by the root partition
 	// initialization before the epochinfo.
-	bool TryGetExpectedVersionForEpochInformation(EpochRecord epoch, out long expectedVersion)
-	{
-		expectedVersion = 0;
+	bool TryGetExpectedVersionForEpochInformation(EpochRecord epoch, out long expectedVersion) {
+		expectedVersion = default;
 
 		if (epoch.PrevEpochPosition < 0)
 			return false;
 
 		var reader = _readers.Get();
-		try
-		{
+		try {
 			reader.Reposition(epoch.PrevEpochPosition);
 
 			// read the epoch
@@ -478,25 +422,22 @@ public class EpochManager<TStreamId> : IEpochManager
 				return false;
 
 			// read the epoch-information (if there is one)
-			while (true)
-			{
+			while (true) {
 				result = reader.TryReadNext();
 				if (!result.Success)
 					return false;
 
 				if (result.LogRecord is IPrepareLogRecord<TStreamId> prepare &&
-				    EqualityComparer<TStreamId>.Default.Equals(prepare.EventStreamId, GetEpochInformationStream()))
-				{
+					EqualityComparer<TStreamId>.Default.Equals(prepare.EventStreamId, GetEpochInformationStream())) {
 					// found the epoch information
 					expectedVersion = prepare.ExpectedVersion + 1;
 					return true;
 				}
 
 				if (result.LogRecord.RecordType == LogRecordType.Prepare ||
-				    result.LogRecord.RecordType == LogRecordType.Commit ||
-				    result.LogRecord.RecordType == LogRecordType.System ||
-				    result.LogRecord.RecordType == LogRecordType.StreamWrite)
-				{
+					result.LogRecord.RecordType == LogRecordType.Commit ||
+					result.LogRecord.RecordType == LogRecordType.System ||
+					result.LogRecord.RecordType == LogRecordType.StreamWrite) {
 					// definitely not reading the root partition initialization;
 					// there is no epochinfo for this epoch (probably the epoch is older
 					// than the epochinfo mechanism.
@@ -506,26 +447,20 @@ public class EpochManager<TStreamId> : IEpochManager
 				// could be reading the root partition initialization; skip over it.
 			}
 
-		}
-		catch (Exception)
-		{
+		} catch (Exception) {
 			return false;
-		}
-		finally
-		{
+		} finally {
 			_readers.Return(reader);
 		}
 	}
 
-	public async ValueTask CacheEpoch(EpochRecord epoch, CancellationToken token)
-	{
+	public async ValueTask CacheEpoch(EpochRecord epoch, CancellationToken token) {
 		var added = await AddEpochToCache(epoch, token);
 
 		// Check each epoch as it is added to the cache for the first time from the chaser.
 		// n.b.: added will be false for idempotent CacheRequests
 		// If this check fails, then there is something very wrong with epochs, data corruption is possible.
-		if (added && !await IsCorrectEpochAt(epoch.EpochPosition, epoch.EpochNumber, epoch.EpochId, token))
-		{
+		if (added && !await IsCorrectEpochAt(epoch.EpochPosition, epoch.EpochNumber, epoch.EpochId, token)) {
 			throw new Exception(
 				$"Not found epoch at {epoch.EpochPosition} with epoch number: {epoch.EpochNumber} and epoch ID: {epoch.EpochId}. " +
 				"SetLastEpoch FAILED! Data corruption risk!");
@@ -538,36 +473,30 @@ public class EpochManager<TStreamId> : IEpochManager
 	/// <param name="epoch">the epoch to add</param>
 	/// <param name="token">The token that can be used to cancel the operation.</param>
 	/// <returns>if the submitted epoch was added to the cache, false if already present</returns>
-	public async ValueTask<bool> AddEpochToCache(EpochRecord epoch, CancellationToken token)
-	{
+	public async ValueTask<bool> AddEpochToCache(EpochRecord epoch, CancellationToken token) {
 		Ensure.NotNull(epoch, "epoch");
 
 		await _locker.AcquireAsync(token);
-		try
-		{
+		try {
 
 			// if it's already cached, just return false to indicate idempotent add
 			if (_epochs.Contains(ep => ep.EpochNumber == epoch.EpochNumber)) { return false; }
 
 			//new last epoch written or received, this is the normal case
 			//if the list is empty Last will be null
-			if (_epochs.Last is null || _epochs.Last.Value.EpochNumber < epoch.EpochNumber)
-			{
+			if (_epochs.Last is null || _epochs.Last.Value.EpochNumber < epoch.EpochNumber) {
 				_epochs.AddLast(epoch);
 				_lastCachedEpoch = _epochs.Last;
 				// in some race conditions we might have a gap in the epoch list
 				//read the epochs from the TFLog to fill in the gaps
 				if (epoch.EpochPosition > 0 &&
-				    epoch.PrevEpochPosition >= 0 &&
-				    epoch.PrevEpochPosition > (_epochs.Last?.Previous?.Value?.EpochPosition ?? -1))
-				{
+					epoch.PrevEpochPosition >= 0 &&
+					epoch.PrevEpochPosition > (_epochs.Last?.Previous?.Value?.EpochPosition ?? -1)) {
 					var reader = _readers.Get();
 					var previous = _epochs.Last;
 					var count = 1; //include last
-					try
-					{
-						do
-						{
+					try {
+						do {
 							epoch = ReadEpochAt(reader, epoch.PrevEpochPosition);
 							previous = _epochs.AddBefore(previous, epoch);
 							count++;
@@ -576,9 +505,7 @@ public class EpochManager<TStreamId> : IEpochManager
 							epoch.PrevEpochPosition >= 0 &&
 							count <= _cacheSize &&
 							epoch.PrevEpochPosition > (previous?.Previous?.Value?.EpochPosition ?? -1));
-					}
-					finally
-					{
+					} finally {
 						_readers.Return(reader);
 					}
 				}
@@ -595,18 +522,15 @@ public class EpochManager<TStreamId> : IEpochManager
 				return true;
 			}
 
-			if (epoch.EpochNumber < _epochs.First.Value.EpochNumber)
-			{
+			if (epoch.EpochNumber < _epochs.First.Value.EpochNumber) {
 				return false;
 			}
 
 			//this should never happen
 			Log.Error(
 				"=== Unable to cache Epoch E{epochNumber}@{epochPosition}:{epochId:B} (previous epoch at {lastEpochPosition}) L={leaderId:B}.",
-				epoch.EpochNumber, epoch.EpochPosition, epoch.EpochId, epoch.PrevEpochPosition,
-				epoch.LeaderInstanceId);
-			foreach (var epochRecord in _epochs)
-			{
+				epoch.EpochNumber, epoch.EpochPosition, epoch.EpochId, epoch.PrevEpochPosition, epoch.LeaderInstanceId);
+			foreach (var epochRecord in _epochs) {
 				Log.Error(
 					"====== Epoch E{epochNumber}@{epochPosition}:{epochId:B} (previous epoch at {lastEpochPosition}) L={leaderId:B}.",
 					epochRecord.EpochNumber, epochRecord.EpochPosition, epochRecord.EpochId,
@@ -626,45 +550,34 @@ public class EpochManager<TStreamId> : IEpochManager
 
 			throw new Exception(
 				$"This should never happen: Unable to find correct position to cache Epoch E{epoch.EpochNumber}@{epoch.EpochPosition}:{epoch.EpochId:B} (previous epoch at {epoch.PrevEpochPosition}) L={epoch.LeaderInstanceId:B}");
-		}
-		finally
-		{
+		} finally {
 			_locker.Release();
 		}
 	}
 
-	private async ValueTask<EpochRecord> TryGetEpochBefore(long position, CancellationToken token)
-	{
+	private async ValueTask<EpochRecord> TryGetEpochBefore(long position, CancellationToken token) {
 		await _locker.AcquireAsync(token);
-		try
-		{
+		try {
 			LinkedListNode<EpochRecord> node;
 			for (node = _epochs.Last;
-			     node is not null && node.Value.EpochPosition >= position;
-			     token.ThrowIfCancellationRequested())
-			{
+				 node is not null && node.Value.EpochPosition >= position;
+				 token.ThrowIfCancellationRequested()) {
 				node = node.Previous;
 			}
 
 			return node?.Value;
-		}
-		finally
-		{
+		} finally {
 			_locker.Release();
 		}
 	}
 
-	public async ValueTask<EpochRecord> TryTruncateBefore(long position, CancellationToken token)
-	{
+	public async ValueTask<EpochRecord> TryTruncateBefore(long position, CancellationToken token) {
 		await _truncateLock.AcquireAsync(token);
-		try
-		{
+		try {
 			if (_truncated)
 				throw new InvalidOperationException("Checkpoint has already been truncated.");
 			_truncated = true;
-		}
-		finally
-		{
+		} finally {
 			_truncateLock.Release();
 		}
 

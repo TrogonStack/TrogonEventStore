@@ -1,4 +1,8 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Caching;
@@ -16,17 +20,13 @@ using EventStore.Core.Util;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.Transactions;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class when_rebuilding_index_for_partially_persisted_transaction<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
-	public when_rebuilding_index_for_partially_persisted_transaction() : base(maxEntriesInMemTable: 10)
-	{
+public class when_rebuilding_index_for_partially_persisted_transaction<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+	public when_rebuilding_index_for_partially_persisted_transaction() : base(maxEntriesInMemTable: 10) {
 	}
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		ReadIndex.Close();
@@ -71,23 +71,19 @@ public class when_rebuilding_index_for_partially_persisted_transaction<TLogForma
 		ReadIndex = readIndex;
 	}
 
-	protected override void WriteTestScenario()
-	{
-		var begin = WriteTransactionBegin("ES", ExpectedVersion.Any);
-		for (int i = 0; i < 15; ++i)
-		{
-			WriteTransactionEvent(Guid.NewGuid(), begin.LogPosition, i, "ES", i, "data" + i, PrepareFlags.Data);
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		var begin = await WriteTransactionBegin("ES", ExpectedVersion.Any, token);
+		for (int i = 0; i < 15; ++i) {
+			await WriteTransactionEvent(Guid.NewGuid(), begin.LogPosition, i, "ES", i, "data" + i, PrepareFlags.Data, token: token);
 		}
 
-		WriteTransactionEnd(Guid.NewGuid(), begin.LogPosition, "ES");
-		WriteCommit(Guid.NewGuid(), begin.LogPosition, "ES", 0);
+		await WriteTransactionEnd(Guid.NewGuid(), begin.LogPosition, "ES", token);
+		await WriteCommit(Guid.NewGuid(), begin.LogPosition, "ES", 0, token);
 	}
 
 	[Test]
-	public void sequence_numbers_are_not_broken()
-	{
-		for (int i = 0; i < 15; ++i)
-		{
+	public void sequence_numbers_are_not_broken() {
+		for (int i = 0; i < 15; ++i) {
 			var result = ReadIndex.ReadEvent("ES", i);
 			Assert.AreEqual(ReadEventResult.Success, result.Result);
 			Assert.AreEqual(Helper.UTF8NoBom.GetBytes("data" + i), result.Record.Data.ToArray());

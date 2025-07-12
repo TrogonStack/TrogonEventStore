@@ -1,15 +1,18 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.Index.Hashers;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
-
 [TestFixture]
-public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenario<LogFormat.V2, string>
-{
+public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenario<LogFormat.V2, string> {
 	private const string Stream = "ab-1";
 	private const string CollidingStream = "cb-1";
 	private const string CollidingStream1 = "db-1";
@@ -17,42 +20,32 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 	protected ReadEventInfoForward_KnownCollisions() : base(
 		maxEntriesInMemTable: 3,
 		lowHasher: new ConstantHasher(0),
-		highHasher: new HumanReadableHasher32())
-	{ }
+		highHasher: new HumanReadableHasher32()) { }
 
-	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result)
-	{
+	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result) {
 		Assert.AreEqual(events.Length, result.EventInfos.Length);
-		for (int i = 0; i < events.Length; i++)
-		{
+		for (int i = 0; i < events.Length; i++) {
 			Assert.AreEqual(events[i].EventNumber, result.EventInfos[i].EventNumber);
 			Assert.AreEqual(events[i].LogPosition, result.EventInfos[i].LogPosition);
 		}
 	}
 
-	public class VerifyCollision : ReadEventInfoForward_KnownCollisions
-	{
-		protected override void WriteTestScenario() { }
-
+	public class VerifyCollision : ReadEventInfoForward_KnownCollisions {
 		[Test]
-		public void verify_that_streams_collide()
-		{
+		public void verify_that_streams_collide() {
 			Assert.AreEqual(Hasher.Hash(Stream), Hasher.Hash(CollidingStream));
 			Assert.AreEqual(Hasher.Hash(Stream), Hasher.Hash(CollidingStream1));
 		}
 	}
 
-	public class WithNoEvents : ReadEventInfoForward_KnownCollisions
-	{
-		protected override void WriteTestScenario()
-		{
-			WriteSingleEvent(CollidingStream, 0, "test data");
-			WriteSingleEvent(CollidingStream1, 0, "test data");
+	public class WithNoEvents : ReadEventInfoForward_KnownCollisions {
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+			await WriteSingleEvent(CollidingStream, 0, "test data", token: token);
+			await WriteSingleEvent(CollidingStream1, 0, "test data", token: token);
 		}
 
 		[Test]
-		public void with_no_events()
-		{
+		public void with_no_events() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				0,
@@ -64,19 +57,16 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 	}
 
-	public class WithOneEvent : ReadEventInfoForward_KnownCollisions
-	{
+	public class WithOneEvent : ReadEventInfoForward_KnownCollisions {
 		private EventRecord _event, _collidingEvent;
 
-		protected override void WriteTestScenario()
-		{
-			_event = WriteSingleEvent(Stream, 0, "test data");
-			_collidingEvent = WriteSingleEvent(CollidingStream, 0, "test data");
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+			_event = await WriteSingleEvent(Stream, 0, "test data", token: token);
+			_collidingEvent = await WriteSingleEvent(CollidingStream, 0, "test data", token: token);
 		}
 
 		[Test]
-		public void with_one_event()
-		{
+		public void with_one_event() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				0,
@@ -117,32 +107,28 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 	}
 
-	public class WithMultipleEvents : ReadEventInfoForward_KnownCollisions
-	{
-		private readonly List<EventRecord> _events = new List<EventRecord>();
+	public class WithMultipleEvents : ReadEventInfoForward_KnownCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override void WriteTestScenario()
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
-			WriteSingleEvent(CollidingStream, 0, string.Empty);
-			WriteSingleEvent(CollidingStream, 1, string.Empty);
-			_events.Add(WriteSingleEvent(Stream, 0, string.Empty));
+			await WriteSingleEvent(CollidingStream, 0, string.Empty);
+			await WriteSingleEvent(CollidingStream, 1, string.Empty);
+			_events.Add(await WriteSingleEvent(Stream, 0, string.Empty));
 
 			// PTable 2
-			_events.Add(WriteSingleEvent(Stream, 1, string.Empty));
-			_events.Add(WriteSingleEvent(Stream, 2, string.Empty));
-			WriteSingleEvent(CollidingStream, 2, string.Empty);
+			_events.Add(await WriteSingleEvent(Stream, 1, string.Empty, token: token));
+			_events.Add(await WriteSingleEvent(Stream, 2, string.Empty, token: token));
+			await WriteSingleEvent(CollidingStream, 2, string.Empty, token: token);
 
 			// MemTable
-			_events.Add(WriteSingleEvent(Stream, 3, string.Empty));
-			WriteSingleEvent(CollidingStream, 3, string.Empty);
+			_events.Add(await WriteSingleEvent(Stream, 3, string.Empty, token: token));
+			await WriteSingleEvent(CollidingStream, 3, string.Empty, token: token);
 		}
 
 		[Test]
-		public void with_multiple_events()
-		{
-			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++)
-			{
+		public void with_multiple_events() {
+			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++) {
 				var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 					Stream,
 					fromEventNumber,
@@ -158,10 +144,8 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void with_multiple_events_and_max_count()
-		{
-			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++)
-			{
+		public void with_multiple_events_and_max_count() {
+			for (int fromEventNumber = 0; fromEventNumber <= 4; fromEventNumber++) {
 				var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 					Stream,
 					fromEventNumber,
@@ -177,10 +161,8 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void with_multiple_events_and_before_position()
-		{
-			for (int fromEventNumber = 0; fromEventNumber + 1 < _events.Count; fromEventNumber++)
-			{
+		public void with_multiple_events_and_before_position() {
+			for (int fromEventNumber = 0; fromEventNumber + 1 < _events.Count; fromEventNumber++) {
 				var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 					Stream,
 					fromEventNumber,
@@ -193,23 +175,20 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 	}
 
-	public class WithDeletedStream : ReadEventInfoForward_KnownCollisions
-	{
-		private readonly List<EventRecord> _events = new List<EventRecord>();
+	public class WithDeletedStream : ReadEventInfoForward_KnownCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override void WriteTestScenario()
-		{
-			_events.Add(WriteSingleEvent(Stream, 0, "test data"));
-			WriteSingleEvent(CollidingStream, 1, "test data");
-			_events.Add(WriteSingleEvent(Stream, 1, "test"));
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+			_events.Add(await WriteSingleEvent(Stream, 0, "test data", token: token));
+			await WriteSingleEvent(CollidingStream, 1, "test data", token: token);
+			_events.Add(await WriteSingleEvent(Stream, 1, "test", token: token));
 
-			var prepare = WriteDeletePrepare(Stream);
-			WriteDeleteCommit(prepare);
+			var prepare = await WriteDeletePrepare(Stream, token);
+			await WriteDeleteCommit(prepare, token);
 		}
 
 		[Test]
-		public void can_read_events_and_tombstone_event_not_returned()
-		{
+		public void can_read_events_and_tombstone_event_not_returned() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				0,
@@ -221,8 +200,7 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void next_event_number_set_correctly()
-		{
+		public void next_event_number_set_correctly() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				2,
@@ -234,8 +212,7 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 
 		[Test]
-		public void can_read_tombstone_event()
-		{
+		public void can_read_tombstone_event() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				EventNumber.DeletedStream,
@@ -248,31 +225,28 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 		}
 	}
 
-	public class WithGapsBetweenEvents : ReadEventInfoForward_KnownCollisions
-	{
-		private readonly List<EventRecord> _events = new List<EventRecord>();
+	public class WithGapsBetweenEvents : ReadEventInfoForward_KnownCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override void WriteTestScenario()
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
-			WriteSingleEvent(CollidingStream, 0, string.Empty);
-			WriteSingleEvent(CollidingStream, 1, string.Empty);
-			_events.Add(WriteSingleEvent(Stream, 0, string.Empty));
+			await WriteSingleEvent(CollidingStream, 0, string.Empty, token: token);
+			await WriteSingleEvent(CollidingStream, 1, string.Empty, token: token);
+			_events.Add(await WriteSingleEvent(Stream, 0, string.Empty, token: token));
 
 			// PTable 2
-			_events.Add(WriteSingleEvent(Stream, 4, string.Empty));
-			_events.Add(WriteSingleEvent(Stream, 5, string.Empty));
-			WriteSingleEvent(CollidingStream, 2, string.Empty);
+			_events.Add(await WriteSingleEvent(Stream, 4, string.Empty, token: token));
+			_events.Add(await WriteSingleEvent(Stream, 5, string.Empty, token: token));
+			await WriteSingleEvent(CollidingStream, 2, string.Empty, token: token);
 
 			// MemTable
-			_events.Add(WriteSingleEvent(Stream, 11, string.Empty));
-			WriteSingleEvent(CollidingStream, 3, string.Empty);
-			WriteSingleEvent(CollidingStream1, 15, string.Empty);
+			_events.Add(await WriteSingleEvent(Stream, 11, string.Empty, token: token));
+			await WriteSingleEvent(CollidingStream, 3, string.Empty, token: token);
+			await WriteSingleEvent(CollidingStream1, 15, string.Empty, token: token);
 		}
 
 		[Test]
-		public void strictly_returns_up_to_max_count_consecutive_events_from_start_event_number()
-		{
+		public void strictly_returns_up_to_max_count_consecutive_events_from_start_event_number() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				0,
@@ -339,31 +313,28 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 	}
 
 
-	public class WithDuplicateEvents : ReadEventInfoForward_KnownCollisions
-	{
-		private readonly List<EventRecord> _events = new List<EventRecord>();
+	public class WithDuplicateEvents : ReadEventInfoForward_KnownCollisions {
+		private readonly List<EventRecord> _events = new();
 
-		protected override void WriteTestScenario()
-		{
+		protected override async ValueTask WriteTestScenario(CancellationToken token) {
 			// PTable 1
-			WriteSingleEvent(CollidingStream, 0, string.Empty);
-			WriteSingleEvent(CollidingStream, 1, string.Empty);
-			_events.Add(WriteSingleEvent(Stream, 0, string.Empty));
+			await WriteSingleEvent(CollidingStream, 0, string.Empty, token: token);
+			await WriteSingleEvent(CollidingStream, 1, string.Empty, token: token);
+			_events.Add(await WriteSingleEvent(Stream, 0, string.Empty, token: token));
 
 			// PTable 2
-			_events.Add(WriteSingleEvent(Stream, 1, string.Empty));
-			_events.Add(WriteSingleEvent(Stream, 1, string.Empty));
-			WriteSingleEvent(CollidingStream, 2, string.Empty);
+			_events.Add(await WriteSingleEvent(Stream, 1, string.Empty, token: token));
+			_events.Add(await WriteSingleEvent(Stream, 1, string.Empty, token: token));
+			await WriteSingleEvent(CollidingStream, 2, string.Empty, token: token);
 
 			// MemTable
-			_events.Add(WriteSingleEvent(Stream, 2, string.Empty));
-			_events.Add(WriteSingleEvent(Stream, 2, string.Empty));
-			_events.Add(WriteSingleEvent(Stream, 2, string.Empty));
+			_events.Add(await WriteSingleEvent(Stream, 2, string.Empty, token: token));
+			_events.Add(await WriteSingleEvent(Stream, 2, string.Empty, token: token));
+			_events.Add(await WriteSingleEvent(Stream, 2, string.Empty, token: token));
 		}
 
 		[Test]
-		public void result_is_deduplicated_keeping_oldest_duplicates()
-		{
+		public void result_is_deduplicated_keeping_oldest_duplicates() {
 			var result = ReadIndex.ReadEventInfoForward_KnownCollisions(
 				Stream,
 				0,

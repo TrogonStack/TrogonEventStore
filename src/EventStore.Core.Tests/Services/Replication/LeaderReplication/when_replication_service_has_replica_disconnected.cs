@@ -1,14 +1,14 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using EventStore.Core.Messages;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
-
 [TestFixture]
-public class when_replication_service_has_replica_disconnected : WithReplicationService
-{
+public class when_replication_service_has_replica_disconnected : with_replication_service {
 
-	public override void When()
-	{
+	public override void When() {
 		ReplicaManager1.Stop();
 		AssertEx.IsOrBecomesTrue(() => ReplicaManager1.IsClosed);
 
@@ -19,8 +19,7 @@ public class when_replication_service_has_replica_disconnected : WithReplication
 	}
 
 	[Test]
-	public void vnode_disconnected_should_be_published()
-	{
+	public void vnode_disconnected_should_be_published() {
 		AssertEx.IsOrBecomesTrue(() => ReplicaLostMessages.Count == 1, msg: "ReplicaLost msg not received");
 		Assert.True(ReplicaLostMessages.TryDequeue(out var lost));
 
@@ -28,8 +27,7 @@ public class when_replication_service_has_replica_disconnected : WithReplication
 	}
 
 	[Test]
-	public void post_disconnect_replica_Log_written_to_should_not_be_published()
-	{
+	public void post_disconnect_replica_Log_written_to_should_not_be_published() {
 		AssertEx.IsOrBecomesTrue(() => ReplicaLostMessages.Count == 1, msg: "ReplicaLost msg not received");
 		var replicationLogPosition = DbConfig.WriterCheckpoint.Read() + 200;
 		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaId, replicationLogPosition, replicationLogPosition));

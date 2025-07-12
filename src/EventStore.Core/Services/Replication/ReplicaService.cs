@@ -1,6 +1,11 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -22,13 +27,11 @@ using EndPoint = System.Net.EndPoint;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Replication;
-
 public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 	IHandle<ReplicationMessage.ReconnectToLeader>,
 	IAsyncHandle<ReplicationMessage.SubscribeToLeader>,
 	IHandle<ReplicationMessage.AckLogPosition>,
-	IHandle<ClientMessage.TcpForwardMessage>
-{
+	IHandle<ClientMessage.TcpForwardMessage> {
 	private static readonly ILogger Log = Serilog.Log.ForContext<ReplicaService>();
 
 	private readonly TcpClientConnector _connector;
@@ -64,8 +67,7 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 		Func<X509Certificate> sslClientCertificateSelector,
 		TimeSpan heartbeatTimeout,
 		TimeSpan heartbeatInterval,
-		TimeSpan writeTimeout)
-	{
+		TimeSpan writeTimeout) {
 		Ensure.NotNull(publisher, "publisher");
 		Ensure.NotNull(db, "db");
 		Ensure.NotNull(epochManager, "epochManager");
@@ -93,12 +95,10 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 		_tcpDispatcher = new InternalTcpDispatcher(writeTimeout);
 	}
 
-	public void Handle(SystemMessage.StateChangeMessage message)
-	{
+	public void Handle(SystemMessage.StateChangeMessage message) {
 		_state = message.State;
 
-		switch (message.State)
-		{
+		switch (message.State) {
 			case VNodeState.Initializing:
 			case VNodeState.DiscoverLeader:
 			case VNodeState.Unknown:
@@ -107,68 +107,57 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 			case VNodeState.Leader:
 			case VNodeState.ResigningLeader:
 			case VNodeState.ShuttingDown:
-			case VNodeState.Shutdown:
-			{
-				Disconnect();
-				break;
-			}
-			case VNodeState.PreReplica:
-			{
-				var m = (SystemMessage.BecomePreReplica)message;
-				ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
-				break;
-			}
-			case VNodeState.PreReadOnlyReplica:
-			{
-				var m = (SystemMessage.BecomePreReadOnlyReplica)message;
-				ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
-				break;
-			}
+			case VNodeState.Shutdown: {
+					Disconnect();
+					break;
+				}
+			case VNodeState.PreReplica: {
+					var m = (SystemMessage.BecomePreReplica)message;
+					ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
+					break;
+				}
+			case VNodeState.PreReadOnlyReplica: {
+					var m = (SystemMessage.BecomePreReadOnlyReplica)message;
+					ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
+					break;
+				}
 			case VNodeState.CatchingUp:
 			case VNodeState.Clone:
 			case VNodeState.Follower:
-			case VNodeState.ReadOnlyReplica:
-			{
-				// nothing changed, essentially
-				break;
-			}
+			case VNodeState.ReadOnlyReplica: {
+					// nothing changed, essentially
+					break;
+				}
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
 	}
 
-	private void Disconnect()
-	{
-		if (_connection != null)
-		{
+	private void Disconnect() {
+		if (_connection != null) {
 			_connection.Stop(string.Format("Node state changed to {0}. Closing replication connection.", _state));
 			_connection = null;
 		}
 	}
 
-	private void OnConnectionEstablished(TcpConnectionManager manager)
-	{
+	private void OnConnectionEstablished(TcpConnectionManager manager) {
 		_publisher.Publish(
 			new SystemMessage.VNodeConnectionEstablished(manager.RemoteEndPoint, manager.ConnectionId));
 	}
 
-	private void OnConnectionClosed(TcpConnectionManager manager, SocketError socketError)
-	{
+	private void OnConnectionClosed(TcpConnectionManager manager, SocketError socketError) {
 		_publisher.Publish(new SystemMessage.VNodeConnectionLost(manager.RemoteEndPoint, manager.ConnectionId));
 	}
 
-	public void Handle(ReplicationMessage.ReconnectToLeader message)
-	{
+	public void Handle(ReplicationMessage.ReconnectToLeader message) {
 		ConnectToLeader(message.ConnectionCorrelationId, message.Leader);
 	}
 
-	private void ConnectToLeader(Guid leaderConnectionCorrelationId, MemberInfo leader)
-	{
+	private void ConnectToLeader(Guid leaderConnectionCorrelationId, MemberInfo leader) {
 		Debug.Assert(_state == VNodeState.PreReplica || _state == VNodeState.PreReadOnlyReplica);
 
 		var leaderEndPoint = GetLeaderEndPoint(leader, _useSsl);
-		if (leaderEndPoint == null)
-		{
+		if (leaderEndPoint == null) {
 			Log.Error("No valid endpoint found to connect to the Leader. Aborting connection operation to Leader.");
 			return;
 		}
@@ -177,8 +166,7 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 			_connection.Stop(string.Format("Reconnecting from old leader [{0}] to new leader: [{1}].",
 				_connection.RemoteEndPoint, leaderEndPoint));
 
-		try
-		{
+		try {
 			_connection = new TcpConnectionManager(_useSsl ? "leader-secure" : "leader-normal",
 				Guid.NewGuid(),
 				_tcpDispatcher,
@@ -189,8 +177,7 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 				_connector,
 				_useSsl,
 				_sslServerCertValidator,
-				() =>
-				{
+				() => {
 					var cert = _sslClientCertificateSelector();
 					return new X509CertificateCollection { cert };
 				},
@@ -202,16 +189,13 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 				OnConnectionEstablished,
 				OnConnectionClosed);
 			_connection.StartReceiving();
-		}
-		catch (Exception ex)
-		{
+		} catch (Exception ex) {
 			Log.Error(ex, "Failed to connect to leader [{leader}]. This will be retried.", leader);
 			_publisher.Publish(new ReplicationMessage.LeaderConnectionFailed(leaderConnectionCorrelationId, leader));
 		}
 	}
 
-	private static EndPoint GetLeaderEndPoint(MemberInfo leader, bool useSsl)
-	{
+	private static EndPoint GetLeaderEndPoint(MemberInfo leader, bool useSsl) {
 		Ensure.NotNull(leader, "leader");
 		if (useSsl && leader.InternalSecureTcpEndPoint == null)
 			Log.Error(
@@ -224,17 +208,13 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 		return useSsl ? leader.InternalSecureTcpEndPoint : leader.InternalTcpEndPoint;
 	}
 
-	async ValueTask IAsyncHandle<ReplicationMessage.SubscribeToLeader>.HandleAsync(
-		ReplicationMessage.SubscribeToLeader message, CancellationToken token)
-	{
+	async ValueTask IAsyncHandle<ReplicationMessage.SubscribeToLeader>.HandleAsync(ReplicationMessage.SubscribeToLeader message, CancellationToken token) {
 		if (_state is not VNodeState.PreReplica and not VNodeState.PreReadOnlyReplica)
 			throw new Exception(string.Format("_state is {0}, but is expected to be {1} or {2}", _state,
 				VNodeState.PreReplica, VNodeState.PreReadOnlyReplica));
-		if (_connection is null)
-		{
+		if (_connection is null) {
 			Log.Warning(
-				"Attempted to subscribe to LEADER [{leaderId:B}], but no connection has been established. This will be retried.",
-				message.LeaderId);
+				"Attempted to subscribe to LEADER [{leaderId:B}], but no connection has been established. This will be retried.", message.LeaderId);
 			return;
 		}
 
@@ -261,46 +241,41 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 				message.LeaderId, message.SubscriptionId, isPromotable: !_isReadOnlyReplica));
 	}
 
-	public void Handle(ReplicationMessage.AckLogPosition message)
-	{
-		if (!_state.IsReplica()) throw new Exception("!_state.IsReplica()");
-		if (_connection == null) throw new Exception("_connection == null");
+	public void Handle(ReplicationMessage.AckLogPosition message) {
+		if (!_state.IsReplica())
+			throw new Exception("!_state.IsReplica()");
+		if (_connection == null)
+			throw new Exception("_connection == null");
 		SendTcpMessage(_connection, message);
 	}
 
-	public void Handle(ClientMessage.TcpForwardMessage message)
-	{
-		switch (_state)
-		{
-			case VNodeState.PreReplica:
-			{
-				if (_connection != null)
-					SendTcpMessage(_connection, message.Message);
-				break;
-			}
-			case VNodeState.PreReadOnlyReplica:
-			{
-				if (_connection != null)
-					SendTcpMessage(_connection, message.Message);
-				break;
-			}
+	public void Handle(ClientMessage.TcpForwardMessage message) {
+		switch (_state) {
+			case VNodeState.PreReplica: {
+					if (_connection != null)
+						SendTcpMessage(_connection, message.Message);
+					break;
+				}
+			case VNodeState.PreReadOnlyReplica: {
+					if (_connection != null)
+						SendTcpMessage(_connection, message.Message);
+					break;
+				}
 			case VNodeState.CatchingUp:
 			case VNodeState.Clone:
 			case VNodeState.Follower:
-			case VNodeState.ReadOnlyReplica:
-			{
-				Debug.Assert(_connection != null, "Connection manager is null in follower/clone/catching up state");
-				SendTcpMessage(_connection, message.Message);
-				break;
-			}
+			case VNodeState.ReadOnlyReplica: {
+					Debug.Assert(_connection != null, "Connection manager is null in follower/clone/catching up state");
+					SendTcpMessage(_connection, message.Message);
+					break;
+				}
 
 			default:
 				throw new Exception(string.Format("Unexpected state: {0}", _state));
 		}
 	}
 
-	private void SendTcpMessage(TcpConnectionManager manager, Message msg)
-	{
+	private void SendTcpMessage(TcpConnectionManager manager, Message msg) {
 		_networkSendQueue.Publish(new TcpMessage.TcpSend(manager, msg));
 	}
 }

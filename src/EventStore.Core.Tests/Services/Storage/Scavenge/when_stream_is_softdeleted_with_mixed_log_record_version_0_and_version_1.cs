@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,17 +12,14 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
-public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_version_1<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
+public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_version_1<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
 	private const string _deletedStream = "test";
 	private const string _deletedMetaStream = "$$test";
 	private const string _keptStream = "other";
 
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
-	{
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator.Chunk(
 				Rec.Prepare(0, _deletedMetaStream, metadata: new StreamMetadata(tempStream: true),
 					version: LogRecordVersion.LogRecordV0),
@@ -39,11 +39,10 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 					version: LogRecordVersion.LogRecordV1),
 				Rec.Commit(6, _deletedMetaStream, version: LogRecordVersion.LogRecordV0))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
 		return new[] {
 			new[] {
 				dbResult.Recs[0][2],
@@ -57,14 +56,12 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 	}
 
 	[Test]
-	public async Task scavenging_goes_as_expected()
-	{
+	public async Task scavenging_goes_as_expected() {
 		await CheckRecords();
 	}
 
 	[Test]
-	public void the_stream_is_absent_logically()
-	{
+	public void the_stream_is_absent_logically() {
 		Assert.AreEqual(ReadEventResult.NoStream, ReadIndex.ReadEvent(_deletedStream, 0).Result);
 		Assert.AreEqual(ReadStreamResult.NoStream,
 			ReadIndex.ReadStreamEventsForward(_deletedStream, 0, 100).Result);
@@ -73,8 +70,7 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 	}
 
 	[Test]
-	public void the_metastream_is_absent_logically()
-	{
+	public void the_metastream_is_absent_logically() {
 		Assert.AreEqual(ReadEventResult.NotFound, ReadIndex.ReadEvent(_deletedMetaStream, 0).Result);
 		Assert.AreEqual(ReadStreamResult.Success,
 			ReadIndex.ReadStreamEventsForward(_deletedMetaStream, 0, 100).Result);
@@ -83,8 +79,7 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 	}
 
 	[Test]
-	public async Task the_stream_is_absent_physically()
-	{
+	public async Task the_stream_is_absent_physically() {
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 			.Where(x => x.Event.EventStreamId == _deletedStream));
@@ -93,8 +88,7 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 	}
 
 	[Test]
-	public async Task the_metastream_is_absent_physically()
-	{
+	public async Task the_metastream_is_absent_physically() {
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
 			.Where(x => x.Event.EventStreamId == _deletedMetaStream));
@@ -103,8 +97,7 @@ public class when_stream_is_softdeleted_with_mixed_log_record_version_0_and_vers
 	}
 
 	[Test]
-	public void the_kept_stream_is_present()
-	{
+	public void the_kept_stream_is_present() {
 		Assert.AreEqual(ReadEventResult.Success, ReadIndex.ReadEvent(_keptStream, 0).Result);
 		Assert.AreEqual(ReadStreamResult.Success, ReadIndex.ReadStreamEventsForward(_keptStream, 0, 100).Result);
 		Assert.AreEqual(ReadStreamResult.Success, ReadIndex.ReadStreamEventsBackward(_keptStream, -1, 100).Result);

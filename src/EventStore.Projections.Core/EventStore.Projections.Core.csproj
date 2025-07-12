@@ -7,6 +7,7 @@
 		<None Remove="Prelude\Modules.js" />
 		<None Remove="Prelude\ModulesExecuted.js" />
 		<None Remove="Prelude\Projections.js" />
+		<None Remove="packages.lock.json" />
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="Prelude\1Prelude.js">
@@ -30,7 +31,7 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 	<ItemGroup>
-    <PackageReference Include="Jint" Version="4.2.2" />
+    <PackageReference Include="Jint" Version="4.3.0" />
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
 		<ProjectReference Include="..\EventStore.Core\EventStore.Core.csproj" />
 		<ProjectReference Include="..\EventStore.Transport.Http\EventStore.Transport.Http.csproj" />

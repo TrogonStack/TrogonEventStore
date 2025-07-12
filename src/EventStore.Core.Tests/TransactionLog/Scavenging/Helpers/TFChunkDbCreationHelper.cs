@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.LogAbstraction;
@@ -19,14 +21,14 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 	private readonly TFChunkDbConfig _dbConfig;
 	private readonly TFChunkDb _db;
 
-	private readonly List<Rec[]> _chunkRecs = new List<Rec[]>();
+	private readonly List<Rec[]> _chunkRecs = new();
 
 	private bool _completeLast;
 
 	private readonly LogFormatAbstractor<TStreamId> _logFormat;
 	private readonly TStreamId _scavengePointEventTypeId;
 
-	public TFChunkDbCreationHelper(TFChunkDbConfig dbConfig, LogFormatAbstractor<TStreamId> logFormat)
+	private TFChunkDbCreationHelper(TFChunkDbConfig dbConfig, LogFormatAbstractor<TStreamId> logFormat)
 	{
 		Ensure.NotNull(dbConfig, "dbConfig");
 		_dbConfig = dbConfig;
@@ -34,10 +36,19 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		_scavengePointEventTypeId = logFormat.EventTypeIndex.GetExisting(SystemEventTypes.ScavengePoint);
 
 		_db = new TFChunkDb(_dbConfig);
-		_db.Open();
+	}
 
-		if (_db.Config.WriterCheckpoint.ReadNonFlushed() > 0)
+	public static async ValueTask<TFChunkDbCreationHelper<TLogFormat, TStreamId>> CreateAsync(TFChunkDbConfig dbConfig,
+		LogFormatAbstractor<TStreamId> logFormat, CancellationToken token = default)
+	{
+		var result = new TFChunkDbCreationHelper<TLogFormat, TStreamId>(dbConfig, logFormat);
+
+		await result._db.Open(token: token);
+
+		if (result._db.Config.WriterCheckpoint.ReadNonFlushed() > 0)
 			throw new Exception("The DB already contains some data.");
+
+		return result;
 	}
 
 	public TFChunkDbCreationHelper<TLogFormat, TStreamId> Chunk(params Rec[] records)
@@ -52,7 +63,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		return this;
 	}
 
-	public DbResult CreateDb(bool commit = false)
+	public async ValueTask<DbResult> CreateDb(bool commit = false, CancellationToken token = default)
 	{
 		var records = new List<ILogRecord>[_chunkRecs.Count];
 		for (int i = 0; i < records.Length; ++i)
@@ -114,7 +125,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		// for each chunk i
 		for (int i = 0; i < _chunkRecs.Count; ++i)
 		{
-			var chunk = i == 0 ? _db.Manager.GetChunk(0) : _db.Manager.AddNewChunk();
+			var chunk = i == 0 ? _db.Manager.GetChunk(0) : await _db.Manager.AddNewChunk(token);
 			logPos = i * (long)_db.Config.ChunkSize;
 
 			var completedChunk = false;
@@ -126,14 +137,16 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				var rec = _chunkRecs[i][j];
 				var transInfo = transactions[rec.Transaction];
 
-				_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, rec.StreamId, logPos, out var streamNumber, out var streamRecord);
+				_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, rec.StreamId, logPos,
+					out var streamNumber, out var streamRecord);
 				if (streamRecord != null)
 				{
 					Write(i, chunk, streamRecord, false, out logPos);
 					records[i].Add(streamRecord);
 				}
 
-				_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, rec.EventType, logPos, out var eventTypeNumber, out var eventTypeRecord);
+				_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, rec.EventType, logPos,
+					out var eventTypeNumber, out var eventTypeRecord);
 				if (eventTypeRecord != null)
 				{
 					Write(i, chunk, eventTypeRecord, false, out logPos);
@@ -150,9 +163,9 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				}
 
 				if (streamVersion == -1
-					&& rec.Type != Rec.RecType.TransStart
-					&& rec.Type != Rec.RecType.Prepare
-					&& rec.Type != Rec.RecType.Delete)
+				    && rec.Type != Rec.RecType.TransStart
+				    && rec.Type != Rec.RecType.Prepare
+				    && rec.Type != Rec.RecType.Delete)
 				{
 					throw new Exception(string.Format("Stream {0} is empty.", rec.StreamId));
 				}
@@ -175,74 +188,78 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					: ExpectedVersion.NoStream; // V3 doesn't have transactions so cant have a negative event number
 
 				var expectedVersion =
-				  (rec.EventNumber - 1) ??
-				  (transInfo.FirstPrepareId == rec.Id ? streamVersion : logFormatDefaultExpectedVersion);
+					(rec.EventNumber - 1) ??
+					(transInfo.FirstPrepareId == rec.Id ? streamVersion : logFormatDefaultExpectedVersion);
 
 				switch (rec.Type)
 				{
 					case Rec.RecType.Prepare:
-						{
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
+					{
+						record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+							expectedVersion);
 
-							if (SystemStreams.IsMetastream(rec.StreamId))
-								transInfo.StreamMetadata = rec.Metadata;
+						if (SystemStreams.IsMetastream(rec.StreamId))
+							transInfo.StreamMetadata = rec.Metadata;
 
-							streamUncommitedVersion[rec.StreamId] += 1;
-							break;
-						}
+						streamUncommitedVersion[rec.StreamId] += 1;
+						break;
+					}
 
 					case Rec.RecType.Delete:
+					{
+						if (rec.PrepareFlags.HasAnyOf(PrepareFlags.IsCommitted))
 						{
-							if (rec.PrepareFlags.HasAnyOf(PrepareFlags.IsCommitted))
-							{
-								// modern style tombstone has IsCommitted flag and max event number.
-								// introduced in 19f7cd351329f7bd2be0f6c00b4beee45e2a4777
-								expectedVersion = rec.Version == LogRecordVersion.LogRecordV0
-									? int.MaxValue - 1
-									: EventNumber.DeletedStream - 1;
-							}
-							else
-							{
-								// legacy style tombstone has 'normal' expected version in the log record
-								// (probably -1 because it is committed separately)
-								// a subsequent commit record to commit it
-								// special handling in indexcommitter to give it a max event number in
-								// the index.
-							}
-
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
-
-							streamUncommitedVersion[rec.StreamId] = rec.Version == LogRecordVersion.LogRecordV0
-								? int.MaxValue
-								: EventNumber.DeletedStream;
-							break;
+							// modern style tombstone has IsCommitted flag and max event number.
+							// introduced in 19f7cd351329f7bd2be0f6c00b4beee45e2a4777
+							expectedVersion = rec.Version == LogRecordVersion.LogRecordV0
+								? int.MaxValue - 1
+								: EventNumber.DeletedStream - 1;
 						}
+						else
+						{
+							// legacy style tombstone has 'normal' expected version in the log record
+							// (probably -1 because it is committed separately)
+							// a subsequent commit record to commit it
+							// special handling in indexcommitter to give it a max event number in
+							// the index.
+						}
+
+						record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+							expectedVersion);
+
+						streamUncommitedVersion[rec.StreamId] = rec.Version == LogRecordVersion.LogRecordV0
+							? int.MaxValue
+							: EventNumber.DeletedStream;
+						break;
+					}
 
 					case Rec.RecType.TransStart:
 					case Rec.RecType.TransEnd:
-						{
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
-							break;
-						}
+					{
+						record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+							expectedVersion);
+						break;
+					}
 					case Rec.RecType.Commit:
+					{
+						record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+							expectedVersion);
+
+						if (transInfo.StreamMetadata != null)
 						{
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
-
-							if (transInfo.StreamMetadata != null)
-							{
-								var streamId = SystemStreams.OriginalStreamOf(rec.StreamId);
-								if (!streams.ContainsKey(streamId))
-									streams.Add(streamId, new StreamInfo(-1));
-								streams[streamId].StreamMetadata = transInfo.StreamMetadata;
-							}
-
-							if (transInfo.IsDelete)
-								streams[rec.StreamId].StreamVersion = EventNumber.DeletedStream;
-							else
-								streams[rec.StreamId].StreamVersion =
-									transInfo.TransactionEventNumber + transInfo.TransactionOffset - 1;
-							break;
+							var streamId = SystemStreams.OriginalStreamOf(rec.StreamId);
+							if (!streams.ContainsKey(streamId))
+								streams.Add(streamId, new StreamInfo(-1));
+							streams[streamId].StreamMetadata = transInfo.StreamMetadata;
 						}
+
+						if (transInfo.IsDelete)
+							streams[rec.StreamId].StreamVersion = EventNumber.DeletedStream;
+						else
+							streams[rec.StreamId].StreamVersion =
+								transInfo.TransactionEventNumber + transInfo.TransactionOffset - 1;
+						break;
+					}
 					default:
 						throw new ArgumentOutOfRangeException();
 				}
@@ -250,7 +267,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				Write(i, chunk, record, rec.CommitWrite, out logPos);
 				records[i].Add(record);
 				if (record is IPrepareLogRecord<TStreamId> prepare &&
-					StreamIdComparer.Equals(prepare.EventType, _scavengePointEventTypeId))
+				    StreamIdComparer.Equals(prepare.EventType, _scavengePointEventTypeId))
 				{
 					chunk.Complete();
 					completedChunk = true;
@@ -294,111 +311,112 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		return rec.Data ?? rec.Metadata?.ToJsonBytes() ?? rec.Id.ToByteArray();
 	}
 
-	private ILogRecord CreateLogRecord(Rec rec, TStreamId streamId, TStreamId eventTypeId, TransactionInfo transInfo, long logPos, long expectedVersion)
+	private ILogRecord CreateLogRecord(Rec rec, TStreamId streamId, TStreamId eventTypeId, TransactionInfo transInfo,
+		long logPos, long expectedVersion)
 	{
 		switch (rec.Type)
 		{
 			case Rec.RecType.Prepare:
+			{
+				int transOffset = transInfo.TransactionOffset;
+				transInfo.TransactionOffset += 1;
+
+				if (rec.Version == LogRecordVersion.LogRecordV0)
 				{
-					int transOffset = transInfo.TransactionOffset;
-					transInfo.TransactionOffset += 1;
-
-					if (rec.Version == LogRecordVersion.LogRecordV0)
-					{
-						return CreateLogRecordV0(rec, transInfo, transOffset, logPos, expectedVersion,
-							FormatData(rec),
-							rec.PrepareFlags
-							| PrepareFlags.Data
-							| (transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
-							| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None)
-							| (rec.Metadata == null ? PrepareFlags.None : PrepareFlags.IsJson));
-					}
-
-					return LogRecord.Prepare(_logFormat.RecordFactory, logPos,
-						Guid.NewGuid(),
-						rec.Id,
-						transInfo.TransactionPosition,
-						transOffset,
-						streamId,
-						expectedVersion,
+					return CreateLogRecordV0(rec, transInfo, transOffset, logPos, expectedVersion,
+						FormatData(rec),
 						rec.PrepareFlags
+						| PrepareFlags.Data
 						| (transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
 						| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None)
-						| (rec.Metadata == null ? PrepareFlags.None : PrepareFlags.IsJson),
-						eventTypeId,
-						FormatData(rec),
-						null,
-						rec.TimeStamp);
+						| (rec.Metadata == null ? PrepareFlags.None : PrepareFlags.IsJson));
 				}
 
+				return LogRecord.Prepare(_logFormat.RecordFactory, logPos,
+					Guid.NewGuid(),
+					rec.Id,
+					transInfo.TransactionPosition,
+					transOffset,
+					streamId,
+					expectedVersion,
+					rec.PrepareFlags
+					| (transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
+					| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None)
+					| (rec.Metadata == null ? PrepareFlags.None : PrepareFlags.IsJson),
+					eventTypeId,
+					FormatData(rec),
+					null,
+					rec.TimeStamp);
+			}
+
 			case Rec.RecType.Delete:
+			{
+				int transOffset = transInfo.TransactionOffset;
+				transInfo.TransactionOffset += 1;
+
+				if (rec.Version == LogRecordVersion.LogRecordV0)
 				{
-					int transOffset = transInfo.TransactionOffset;
-					transInfo.TransactionOffset += 1;
-
-					if (rec.Version == LogRecordVersion.LogRecordV0)
-					{
-						return CreateLogRecordV0(rec, transInfo, transOffset, logPos, expectedVersion,
-							LogRecord.NoData,
-							rec.PrepareFlags
-							| PrepareFlags.StreamDelete
-							| (transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
-							| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None));
-					}
-
-					return LogRecord.Prepare(_logFormat.RecordFactory, logPos,
-						Guid.NewGuid(),
-						rec.Id,
-						transInfo.TransactionPosition,
-						transOffset,
-						streamId,
-						expectedVersion,
+					return CreateLogRecordV0(rec, transInfo, transOffset, logPos, expectedVersion,
+						LogRecord.NoData,
 						rec.PrepareFlags
 						| PrepareFlags.StreamDelete
 						| (transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
-						| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None),
-						eventTypeId,
-						LogRecord.NoData,
-						null,
-						rec.TimeStamp);
+						| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None));
 				}
+
+				return LogRecord.Prepare(_logFormat.RecordFactory, logPos,
+					Guid.NewGuid(),
+					rec.Id,
+					transInfo.TransactionPosition,
+					transOffset,
+					streamId,
+					expectedVersion,
+					rec.PrepareFlags
+					| PrepareFlags.StreamDelete
+					| (transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
+					| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None),
+					eventTypeId,
+					LogRecord.NoData,
+					null,
+					rec.TimeStamp);
+			}
 
 			case Rec.RecType.TransStart:
 			case Rec.RecType.TransEnd:
+			{
+				if (rec.Version == LogRecordVersion.LogRecordV0)
 				{
-					if (rec.Version == LogRecordVersion.LogRecordV0)
-					{
-						return CreateLogRecordV0(rec, transInfo, -1, logPos, expectedVersion,
-							LogRecord.NoData,
-							(transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
-							| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None));
-					}
-
-					return LogRecord.Prepare(_logFormat.RecordFactory, logPos,
-						Guid.NewGuid(),
-						rec.Id,
-						transInfo.TransactionPosition,
-						-1,
-						streamId,
-						expectedVersion,
-						(transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
-						| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None),
-						eventTypeId,
+					return CreateLogRecordV0(rec, transInfo, -1, logPos, expectedVersion,
 						LogRecord.NoData,
-						null,
-						rec.TimeStamp);
+						(transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
+						| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None));
 				}
-			case Rec.RecType.Commit:
-				{
-					if (rec.Version == LogRecordVersion.LogRecordV0)
-					{
-						return new CommitLogRecord(logPos, Guid.NewGuid(), transInfo.TransactionPosition,
-							DateTime.UtcNow, transInfo.TransactionEventNumber, LogRecordVersion.LogRecordV0);
-					}
 
-					return LogRecord.Commit(logPos, Guid.NewGuid(), transInfo.TransactionPosition,
-						transInfo.TransactionEventNumber);
+				return LogRecord.Prepare(_logFormat.RecordFactory, logPos,
+					Guid.NewGuid(),
+					rec.Id,
+					transInfo.TransactionPosition,
+					-1,
+					streamId,
+					expectedVersion,
+					(transInfo.FirstPrepareId == rec.Id ? PrepareFlags.TransactionBegin : PrepareFlags.None)
+					| (transInfo.LastPrepareId == rec.Id ? PrepareFlags.TransactionEnd : PrepareFlags.None),
+					eventTypeId,
+					LogRecord.NoData,
+					null,
+					rec.TimeStamp);
+			}
+			case Rec.RecType.Commit:
+			{
+				if (rec.Version == LogRecordVersion.LogRecordV0)
+				{
+					return new CommitLogRecord(logPos, Guid.NewGuid(), transInfo.TransactionPosition,
+						DateTime.UtcNow, transInfo.TransactionEventNumber, LogRecordVersion.LogRecordV0);
 				}
+
+				return LogRecord.Commit(logPos, Guid.NewGuid(), transInfo.TransactionPosition,
+					transInfo.TransactionEventNumber);
+			}
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
@@ -428,34 +446,22 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 	}
 }
 
-public class TransactionInfo
+public class TransactionInfo(string streamId, Guid firstPrepareId, Guid lastPrepareId)
 {
-	public readonly string StreamId;
-	public readonly Guid FirstPrepareId;
-	public Guid LastPrepareId;
+	public readonly string StreamId = streamId;
+	public readonly Guid FirstPrepareId = firstPrepareId;
+	public Guid LastPrepareId = lastPrepareId;
 	public long TransactionPosition = -1;
 	public int TransactionOffset = 0;
 	public long TransactionEventNumber = -1;
 	public bool IsDelete = false;
 	public StreamMetadata StreamMetadata;
-
-	public TransactionInfo(string streamId, Guid firstPrepareId, Guid lastPrepareId)
-	{
-		StreamId = streamId;
-		FirstPrepareId = firstPrepareId;
-		LastPrepareId = lastPrepareId;
-	}
 }
 
-public class StreamInfo
+public class StreamInfo(long streamVersion)
 {
-	public long StreamVersion;
+	public long StreamVersion = streamVersion;
 	public StreamMetadata StreamMetadata;
-
-	public StreamInfo(long streamVersion)
-	{
-		StreamVersion = streamVersion;
-	}
 }
 
 public class DbResult
@@ -501,8 +507,8 @@ public class Rec
 
 	// commit all writes except incomplete implicit transactions
 	public bool CommitWrite => !(Type == RecType.Prepare &&
-								 PrepareFlags.HasFlag(PrepareFlags.IsCommitted) &&
-								 !PrepareFlags.HasFlag(PrepareFlags.TransactionEnd));
+	                             PrepareFlags.HasFlag(PrepareFlags.IsCommitted) &&
+	                             !PrepareFlags.HasFlag(PrepareFlags.TransactionEnd));
 
 	public Rec(RecType type, int transaction, string streamId, string eventType, DateTime? timestamp, byte version,
 		long? eventNumber = null,
@@ -553,7 +559,8 @@ public class Rec
 		StreamMetadata metadata = null, PrepareFlags prepareFlags = PrepareFlags.Data,
 		byte version = PrepareLogRecord.PrepareRecordVersion)
 	{
-		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata, prepareFlags);
+		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata,
+			prepareFlags);
 	}
 
 	public static Rec Write(int transaction, string stream, string eventType = null, DateTime? timestamp = null,
@@ -562,7 +569,8 @@ public class Rec
 		StreamMetadata metadata = null, PrepareFlags prepareFlags = PrepareFlags.SingleWrite | PrepareFlags.IsCommitted,
 		byte version = PrepareLogRecord.PrepareRecordVersion)
 	{
-		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata, prepareFlags);
+		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata,
+			prepareFlags);
 	}
 
 	public static Rec TransEnd(int transaction, string stream, DateTime? timestamp = null,

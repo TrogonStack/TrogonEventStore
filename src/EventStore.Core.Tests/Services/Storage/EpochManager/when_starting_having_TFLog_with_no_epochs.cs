@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,12 +23,9 @@ using NUnit.Framework;
 using NUnit.Framework.Internal;
 
 namespace EventStore.Core.Tests.Services.Storage;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public sealed class
-	WhenStartingHavingTfLogWithNoEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture, IDisposable
-{
+public sealed class when_starting_having_TFLog_with_no_epochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture, IDisposable {
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
 	private LogFormatAbstractor<TStreamId> _logFormat;
@@ -34,15 +34,15 @@ public sealed class
 	private TFChunkWriter _writer;
 	private SynchronousScheduler _mainBus;
 	private readonly Guid _instanceId = Guid.NewGuid();
-	private readonly List<Message> _published = [];
+	private readonly List<Message> _published = new List<Message>();
+	public when_starting_having_TFLog_with_no_epochs() {
+	}
 
-	private static int GetNextEpoch() =>
-		(int)Interlocked.Increment(ref _currentEpoch);
-
+	private static int GetNextEpoch() {
+		return (int)Interlocked.Increment(ref _currentEpoch);
+	}
 	private static long _currentEpoch = -1;
-
-	private EpochManager<TStreamId> GetManager()
-	{
+	private EpochManager<TStreamId> GetManager() {
 		return new EpochManager<TStreamId>(_mainBus,
 			10,
 			_db.Config.EpochCheckpoint,
@@ -59,43 +59,37 @@ public sealed class
 				writer: _writer),
 			_instanceId);
 	}
-
-	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager)
-	{
-		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>)
-			.GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
+	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager) {
+		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>).GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
 			.GetValue(_epochManager);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(
-				new LogFormatAbstractorOptions { IndexDirectory = indexDirectory, });
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = indexDirectory,
+		});
 
-		_mainBus = new SynchronousScheduler(nameof(WhenStartingHavingTfLogWithNoEpochs<TLogFormat, TStreamId>));
+		_mainBus = new(nameof(when_starting_having_TFLog_with_no_epochs<TLogFormat, TStreamId>));
 		_mainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(m => _published.Add(m)));
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
-		_db.Open();
+		await _db.Open();
 		_reader = new TFChunkReader(_db, _db.Config.WriterCheckpoint);
 		_writer = new TFChunkWriter(_db);
 		_writer.Open();
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
-		Dispose();
+	public override async Task TestFixtureTearDown() {
+		this.Dispose();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public async Task starting_epoch_manager_loads_without_epochs()
-	{
+	public async Task starting_epoch_manager_loads_without_epochs() {
 
 		_epochManager = GetManager();
 		await _epochManager.Init(CancellationToken.None);
@@ -114,20 +108,17 @@ public sealed class
 
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		//epochManager?.Dispose();
 		//reader?.Dispose();
-		try
-		{
+		try {
 			_logFormat?.Dispose();
 			_writer?.Dispose();
-		}
-		catch
-		{
+		} catch {
 			//workaround for TearDown error
 		}
 
-		_db?.Dispose();
+		using var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask;
+		task.Wait();
 	}
 }

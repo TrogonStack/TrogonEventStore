@@ -3,6 +3,9 @@
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	</PropertyGroup>
 	<ItemGroup>
-	  <PackageReference Include="Serilog" Version="4.0.1" />
+	  <PackageReference Include="Serilog" Version="4.3.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="packages.lock.json" />
 	</ItemGroup>
 </Project>

@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
@@ -7,14 +10,9 @@ using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.Transactions;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class
-	when_having_two_intermingled_transactions_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<
-	TLogFormat,
-	TStreamId>
-{
+public class when_having_two_intermingled_transactions_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _p1;
 	private EventRecord _p2;
 	private EventRecord _p3;
@@ -24,73 +22,66 @@ public class
 	private long _t1CommitPos;
 	private long _t2CommitPos;
 
-	protected override void WriteTestScenario()
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		const string streamId1 = "ES";
 		const string streamId2 = "ABC";
 
-		var t1 = WriteTransactionBegin(streamId1, ExpectedVersion.NoStream);
-		var t2 = WriteTransactionBegin(streamId2, ExpectedVersion.NoStream);
+		var t1 = await WriteTransactionBegin(streamId1, ExpectedVersion.NoStream, token);
+		var t2 = await WriteTransactionBegin(streamId2, ExpectedVersion.NoStream, token);
 
-		_p1 = WriteTransactionEvent(t1.CorrelationId, t1.LogPosition, 0, streamId1, 0, "es1",
-			PrepareFlags.Data);
-		_p2 = WriteTransactionEvent(t2.CorrelationId, t2.LogPosition, 0, streamId2, 0, "abc1",
-			PrepareFlags.Data);
-		_p3 = WriteTransactionEvent(t1.CorrelationId, t1.LogPosition, 1, streamId1, 1, "es1",
-			PrepareFlags.Data);
-		_p4 = WriteTransactionEvent(t2.CorrelationId, t2.LogPosition, 1, streamId2, 1, "abc1",
-			PrepareFlags.Data);
-		_p5 = WriteTransactionEvent(t1.CorrelationId, t1.LogPosition, 2, streamId1, 2, "es1",
-			PrepareFlags.Data);
+		_p1 = await WriteTransactionEvent(t1.CorrelationId, t1.LogPosition, 0, streamId1, 0, "es1",
+			PrepareFlags.Data, token: token);
+		_p2 = await WriteTransactionEvent(t2.CorrelationId, t2.LogPosition, 0, streamId2, 0, "abc1",
+			PrepareFlags.Data, token: token);
+		_p3 = await WriteTransactionEvent(t1.CorrelationId, t1.LogPosition, 1, streamId1, 1, "es1",
+			PrepareFlags.Data, token: token);
+		_p4 = await WriteTransactionEvent(t2.CorrelationId, t2.LogPosition, 1, streamId2, 1, "abc1",
+			PrepareFlags.Data, token: token);
+		_p5 = await WriteTransactionEvent(t1.CorrelationId, t1.LogPosition, 2, streamId1, 2, "es1",
+			PrepareFlags.Data, token: token);
 
-		WriteTransactionEnd(t2.CorrelationId, t2.TransactionPosition, streamId2);
-		WriteTransactionEnd(t1.CorrelationId, t1.TransactionPosition, streamId1);
+		await WriteTransactionEnd(t2.CorrelationId, t2.TransactionPosition, streamId2, token: token);
+		await WriteTransactionEnd(t1.CorrelationId, t1.TransactionPosition, streamId1, token: token);
 
-		_t2CommitPos = WriteCommit(t2.CorrelationId, t2.TransactionPosition, streamId2, _p2.EventNumber);
-		_t1CommitPos = WriteCommit(t1.CorrelationId, t1.TransactionPosition, streamId1, _p1.EventNumber);
+		_t2CommitPos = await WriteCommit(t2.CorrelationId, t2.TransactionPosition, streamId2, _p2.EventNumber, token);
+		_t1CommitPos = await WriteCommit(t1.CorrelationId, t1.TransactionPosition, streamId1, _p1.EventNumber, token);
 	}
 
 	[Test]
-	public void return_correct_last_event_version_for_larger_stream()
-	{
+	public void return_correct_last_event_version_for_larger_stream() {
 		Assert.AreEqual(2, ReadIndex.GetStreamLastEventNumber("ES"));
 	}
 
 	[Test]
-	public void return_correct_first_record_for_larger_stream()
-	{
+	public void return_correct_first_record_for_larger_stream() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p1, result.Record);
 	}
 
 	[Test]
-	public void return_correct_second_record_for_larger_stream()
-	{
+	public void return_correct_second_record_for_larger_stream() {
 		var result = ReadIndex.ReadEvent("ES", 1);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p3, result.Record);
 	}
 
 	[Test]
-	public void return_correct_third_record_for_larger_stream()
-	{
+	public void return_correct_third_record_for_larger_stream() {
 		var result = ReadIndex.ReadEvent("ES", 2);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p5, result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_nonexistent_version_for_larger_stream()
-	{
+	public void not_find_record_with_nonexistent_version_for_larger_stream() {
 		var result = ReadIndex.ReadEvent("ES", 3);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_start_range_query_for_larger_stream()
-	{
+	public void return_correct_range_on_from_start_range_query_for_larger_stream() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 3);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -100,8 +91,7 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_larger_stream_with_specific_version()
-	{
+	public void return_correct_range_on_from_end_range_query_for_larger_stream_with_specific_version() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", 2, 3);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -111,8 +101,7 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_larger_stream_with_from_end_version()
-	{
+	public void return_correct_range_on_from_end_range_query_for_larger_stream_with_from_end_version() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 3);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -122,38 +111,33 @@ public class
 	}
 
 	[Test]
-	public void return_correct_last_event_version_for_smaller_stream()
-	{
+	public void return_correct_last_event_version_for_smaller_stream() {
 		Assert.AreEqual(1, ReadIndex.GetStreamLastEventNumber("ABC"));
 	}
 
 	[Test]
-	public void return_correct_first_record_for_smaller_stream()
-	{
+	public void return_correct_first_record_for_smaller_stream() {
 		var result = ReadIndex.ReadEvent("ABC", 0);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p2, result.Record);
 	}
 
 	[Test]
-	public void return_correct_second_record_for_smaller_stream()
-	{
+	public void return_correct_second_record_for_smaller_stream() {
 		var result = ReadIndex.ReadEvent("ABC", 1);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p4, result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_nonexistent_version_for_smaller_stream()
-	{
+	public void not_find_record_with_nonexistent_version_for_smaller_stream() {
 		var result = ReadIndex.ReadEvent("ABC", 2);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_start_range_query_for_smaller_stream()
-	{
+	public void return_correct_range_on_from_start_range_query_for_smaller_stream() {
 		var result = ReadIndex.ReadStreamEventsForward("ABC", 0, 2);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -162,8 +146,7 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_smaller_stream_with_specific_version()
-	{
+	public void return_correct_range_on_from_end_range_query_for_smaller_stream_with_specific_version() {
 		var result = ReadIndex.ReadStreamEventsBackward("ABC", 1, 2);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -172,8 +155,7 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_smaller_stream_with_from_end_version()
-	{
+	public void return_correct_range_on_from_end_range_query_for_smaller_stream_with_from_end_version() {
 		var result = ReadIndex.ReadStreamEventsBackward("ABC", -1, 2);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -182,8 +164,7 @@ public class
 	}
 
 	[Test]
-	public void read_all_events_forward_returns_all_events_in_correct_order()
-	{
+	public void read_all_events_forward_returns_all_events_in_correct_order() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10).Records;
 
 		Assert.AreEqual(5, records.Count);
@@ -195,8 +176,7 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_events_backward_returns_all_events_in_correct_order()
-	{
+	public async Task read_all_events_backward_returns_all_events_in_correct_order() {
 		var pos = GetBackwardReadPos();
 		var records = (await ReadIndex.ReadAllEventsBackward(pos, 10, CancellationToken.None)).Records;
 
@@ -210,24 +190,21 @@ public class
 
 	[Test]
 	public void
-		read_all_events_forward_returns_nothing_when_prepare_position_is_greater_than_last_prepare_in_commit()
-	{
+		read_all_events_forward_returns_nothing_when_prepare_position_is_greater_than_last_prepare_in_commit() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(_t1CommitPos, _t1CommitPos), 10).Records;
 		Assert.AreEqual(0, records.Count);
 	}
 
 	[Test]
 	public async Task
-		read_all_events_backwards_returns_nothing_when_prepare_position_is_smaller_than_first_prepare_in_commit()
-	{
-		var records = (await ReadIndex.ReadAllEventsBackward(new TFPos(_t2CommitPos, 0), 10, CancellationToken.None))
-			.Records;
+		read_all_events_backwards_returns_nothing_when_prepare_position_is_smaller_than_first_prepare_in_commit() {
+		var records =
+			(await ReadIndex.ReadAllEventsBackward(new TFPos(_t2CommitPos, 0), 10, CancellationToken.None)).Records;
 		Assert.AreEqual(0, records.Count);
 	}
 
 	[Test]
-	public async Task read_all_events_forward_returns_correct_events_starting_in_the_middle_of_tf()
-	{
+	public async Task read_all_events_forward_returns_correct_events_starting_in_the_middle_of_tf() {
 		var res1 = ReadIndex.ReadAllEventsForward(new TFPos(_t2CommitPos, _p4.LogPosition), 10);
 
 		Assert.AreEqual(4, res1.Records.Count);
@@ -242,8 +219,7 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_events_backward_returns_correct_events_starting_in_the_middle_of_tf()
-	{
+	public async Task read_all_events_backward_returns_correct_events_starting_in_the_middle_of_tf() {
 		var pos = new TFPos(Db.Config.WriterCheckpoint.Read(), _p4.LogPosition); // p3 post-pos
 		var res1 = await ReadIndex.ReadAllEventsBackward(pos, 10, CancellationToken.None);
 
@@ -259,15 +235,13 @@ public class
 	}
 
 	[Test]
-	public void all_records_can_be_read_sequentially_page_by_page_in_forward_pass()
-	{
+	public void all_records_can_be_read_sequentially_page_by_page_in_forward_pass() {
 		var recs = new[] { _p2, _p4, _p1, _p3, _p5 }; // in committed order
 
 		int count = 0;
 		var pos = new TFPos(0, 0);
 		IndexReadAllResult result;
-		while ((result = ReadIndex.ReadAllEventsForward(pos, 1)).Records.Count != 0)
-		{
+		while ((result = ReadIndex.ReadAllEventsForward(pos, 1)).Records.Count != 0) {
 			Assert.AreEqual(1, result.Records.Count);
 			Assert.AreEqual(recs[count], result.Records[0].Event);
 			pos = result.NextPos;
@@ -278,15 +252,13 @@ public class
 	}
 
 	[Test]
-	public async Task all_records_can_be_read_sequentially_page_by_page_in_backward_pass()
-	{
+	public async Task all_records_can_be_read_sequentially_page_by_page_in_backward_pass() {
 		var recs = new[] { _p5, _p3, _p1, _p4, _p2 }; // in reverse committed order
 
 		int count = 0;
 		var pos = GetBackwardReadPos();
 		IndexReadAllResult result;
-		while ((result = await ReadIndex.ReadAllEventsBackward(pos, 1, CancellationToken.None)).Records.Count != 0)
-		{
+		while ((result = await ReadIndex.ReadAllEventsBackward(pos, 1, CancellationToken.None)).Records.Count != 0) {
 			Assert.AreEqual(1, result.Records.Count);
 			Assert.AreEqual(recs[count], result.Records[0].Event);
 			pos = result.NextPos;
@@ -297,24 +269,20 @@ public class
 	}
 
 	[Test]
-	public async Task position_returned_for_prev_page_when_traversing_forward_allow_to_traverse_backward_correctly()
-	{
+	public async Task position_returned_for_prev_page_when_traversing_forward_allow_to_traverse_backward_correctly() {
 		var recs = new[] { _p2, _p4, _p1, _p3, _p5 }; // in committed order
 
 		int count = 0;
 		var pos = new TFPos(0, 0);
 		IndexReadAllResult result;
-		while ((result = ReadIndex.ReadAllEventsForward(pos, 1)).Records.Count != 0)
-		{
+		while ((result = ReadIndex.ReadAllEventsForward(pos, 1)).Records.Count != 0) {
 			Assert.AreEqual(1, result.Records.Count);
 			Assert.AreEqual(recs[count], result.Records[0].Event);
 
 			var localPos = result.PrevPos;
 			int localCount = 0;
 			IndexReadAllResult localResult;
-			while ((localResult = await ReadIndex.ReadAllEventsBackward(localPos, 1, CancellationToken.None)).Records
-			       .Count != 0)
-			{
+			while ((localResult = await ReadIndex.ReadAllEventsBackward(localPos, 1, CancellationToken.None)).Records.Count != 0) {
 				Assert.AreEqual(1, localResult.Records.Count);
 				Assert.AreEqual(recs[count - 1 - localCount], localResult.Records[0].Event);
 				localPos = localResult.NextPos;
@@ -329,23 +297,20 @@ public class
 	}
 
 	[Test]
-	public async Task position_returned_for_prev_page_when_traversing_backward_allow_to_traverse_forward_correctly()
-	{
+	public async Task position_returned_for_prev_page_when_traversing_backward_allow_to_traverse_forward_correctly() {
 		var recs = new[] { _p5, _p3, _p1, _p4, _p2 }; // in reverse committed order
 
 		int count = 0;
 		var pos = GetBackwardReadPos();
 		IndexReadAllResult result;
-		while ((result = await ReadIndex.ReadAllEventsBackward(pos, 1, CancellationToken.None)).Records.Count != 0)
-		{
+		while ((result = await ReadIndex.ReadAllEventsBackward(pos, 1, CancellationToken.None)).Records.Count != 0) {
 			Assert.AreEqual(1, result.Records.Count);
 			Assert.AreEqual(recs[count], result.Records[0].Event);
 
 			var localPos = result.PrevPos;
 			int localCount = 0;
 			IndexReadAllResult localResult;
-			while ((localResult = ReadIndex.ReadAllEventsForward(localPos, 1)).Records.Count != 0)
-			{
+			while ((localResult = ReadIndex.ReadAllEventsForward(localPos, 1)).Records.Count != 0) {
 				Assert.AreEqual(1, localResult.Records.Count);
 				Assert.AreEqual(recs[count - 1 - localCount], localResult.Records[0].Event);
 				localPos = localResult.NextPos;

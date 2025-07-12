@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,10 +19,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage;
-
 [TestFixture]
-public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected SynchronousScheduler _publisher;
 	protected ITransactionFileReader _tfReader;
 	protected ITableIndex<TStreamId> _tableIndex;
@@ -36,8 +37,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 	protected ObjectPool<ITransactionFileReader> _readerPool;
 	protected LogFormatAbstractor<TStreamId> _logFormat;
 	protected const int RecordOffset = 1000;
-	public IList<IPrepareLogRecord<TStreamId>> CreatePrepareLogRecord(TStreamId streamId, int expectedVersion, TStreamId eventType, Guid eventId, long transactionPosition)
-	{
+	public IList<IPrepareLogRecord<TStreamId>> CreatePrepareLogRecord(TStreamId streamId, int expectedVersion, TStreamId eventType, Guid eventId, long transactionPosition) {
 		return new[]{
 			PrepareLogRecord.SingleWrite (
 				_logFormat.RecordFactory,
@@ -55,8 +55,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 		};
 	}
 
-	public IList<IPrepareLogRecord<TStreamId>> CreatePrepareLogRecords(TStreamId streamId, int expectedVersion, IList<TStreamId> eventTypes, IList<Guid> eventIds, long transactionPosition)
-	{
+	public IList<IPrepareLogRecord<TStreamId>> CreatePrepareLogRecords(TStreamId streamId, int expectedVersion, IList<TStreamId> eventTypes, IList<Guid> eventIds, long transactionPosition) {
 		if (eventIds.Count != eventTypes.Count)
 			throw new Exception("eventType and eventIds length mismatch!");
 		if (eventIds.Count == 0)
@@ -68,8 +67,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 
 		var prepares = new List<IPrepareLogRecord<TStreamId>>();
-		for (var i = 0; i < numEvents; i++)
-		{
+		for (var i = 0; i < numEvents; i++) {
 			PrepareFlags flags = PrepareFlags.Data | PrepareFlags.IsCommitted;
 			if (i == 0)
 				flags |= PrepareFlags.TransactionBegin;
@@ -97,52 +95,42 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 		return prepares;
 	}
 
-	public CommitLogRecord CreateCommitLogRecord(long logPosition, long transactionPosition, long firstEventNumber)
-	{
+	public CommitLogRecord CreateCommitLogRecord(long logPosition, long transactionPosition, long firstEventNumber) {
 		return new CommitLogRecord(logPosition, Guid.NewGuid(), transactionPosition, DateTime.Now, 0);
 	}
 
-	public void WriteToDB(IList<IPrepareLogRecord<TStreamId>> prepares)
-	{
-		foreach (var prepare in prepares)
-		{
+	public void WriteToDB(IList<IPrepareLogRecord<TStreamId>> prepares) {
+		foreach (var prepare in prepares) {
 			((FakeInMemoryTfReader)_tfReader).AddRecord(prepare, prepare.LogPosition);
 		}
 	}
 
-	public void WriteToDB(CommitLogRecord commit)
-	{
+	public void WriteToDB(CommitLogRecord commit) {
 		((FakeInMemoryTfReader)_tfReader).AddRecord(commit, commit.LogPosition);
 	}
 
-	public void PreCommitToIndex(IList<IPrepareLogRecord<TStreamId>> prepares)
-	{
+	public void PreCommitToIndex(IList<IPrepareLogRecord<TStreamId>> prepares) {
 		_indexWriter.PreCommit(prepares.ToArray());
 	}
 
-	public void PreCommitToIndex(CommitLogRecord commitLogRecord)
-	{
+	public void PreCommitToIndex(CommitLogRecord commitLogRecord) {
 		_indexWriter.PreCommit(commitLogRecord);
 	}
 
-	public void CommitToIndex(IList<IPrepareLogRecord<TStreamId>> prepares)
-	{
+	public void CommitToIndex(IList<IPrepareLogRecord<TStreamId>> prepares) {
 		_indexCommitter.Commit(prepares, false, false);
 	}
 
-	public void CommitToIndex(CommitLogRecord commitLogRecord)
-	{
+	public void CommitToIndex(CommitLogRecord commitLogRecord) {
 		_indexCommitter.Commit(commitLogRecord, false, false);
 	}
 
 	public abstract void WriteEvents();
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = GetFilePathFor("index"),
 		});
 		_provider = _logFormat.StreamNamesProvider;
@@ -173,8 +161,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 		WriteEvents();
 	}
 
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		_readerPool.Dispose();
 		return base.TestFixtureTearDown();

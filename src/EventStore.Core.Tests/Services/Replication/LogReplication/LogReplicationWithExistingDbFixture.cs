@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -11,21 +14,18 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId>
-{
+public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId> {
 	private readonly Random _random = new();
 	protected LogFormatAbstractor<TStreamId> LogFormat;
 	protected const int DataSize = 3333;
 
-	protected override async Task SetUpDbs(TFChunkDb leaderDb, TFChunkDb replicaDb)
-	{
+	protected override async Task SetUpDbs(TFChunkDb leaderDb, TFChunkDb replicaDb) {
 		await CreateChunks(leaderDb);
 	}
 
 	protected abstract Task CreateChunks(TFChunkDb leaderDb);
 
-	protected static async Task CreateChunk(TFChunkDb db, bool raw, bool complete, int chunkStartNumber, int chunkEndNumber, ILogRecord[] logRecords)
-	{
+	protected static async Task CreateChunk(TFChunkDb db, bool raw, bool complete, int chunkStartNumber, int chunkEndNumber, ILogRecord[] logRecords, CancellationToken token = default) {
 		var filename = db.Config.FileNamingStrategy.GetFilenameFor(chunkStartNumber, raw ? 1 : 0);
 
 		if (raw && !complete)
@@ -45,7 +45,7 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 			chunkId: Guid.NewGuid(),
 			transformType: TransformType.Identity);
 
-		var chunk = TFChunk.CreateWithHeader(
+		var chunk = await TFChunk.CreateWithHeader(
 			filename: filename,
 			header: header,
 			fileSize: TFChunk.GetAlignedSize(db.Config.ChunkSize + ChunkHeader.Size + ChunkFooter.Size),
@@ -55,12 +55,12 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 			reduceFileCachePressure: db.Config.ReduceFileCachePressure,
 			tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new IdentityChunkTransformFactory(),
-			transformHeader: ReadOnlyMemory<byte>.Empty);
+			transformHeader: ReadOnlyMemory<byte>.Empty,
+			token);
 
 		var posMaps = new List<PosMap>();
 
-		for (var i = 0; i < logRecords.Length; i++)
-		{
+		for (var i = 0; i < logRecords.Length; i++) {
 			var logRecord = logRecords[i];
 			var logicalPos = chunk.ChunkHeader.GetLocalLogPosition(logRecord.LogPosition);
 			var actualPos = chunk.RawWriterPosition - ChunkHeader.Size;
@@ -82,7 +82,7 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 		}
 
 		if (raw)
-			await chunk.CompleteScavenge(posMaps, CancellationToken.None);
+			await chunk.CompleteScavenge(posMaps, token);
 		else if (complete)
 			chunk.Complete();
 		else
@@ -95,8 +95,7 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 		chunk.WaitForDestroy(0);
 	}
 
-	private ILogRecord CreatePrepare(long logPosition, PrepareFlags flags)
-	{
+	private ILogRecord CreatePrepare(long logPosition, PrepareFlags flags) {
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 
@@ -119,19 +118,16 @@ public abstract class LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 		);
 	}
 
-	protected ILogRecord[] GenerateLogRecords(int chunkNumber, int[] transactionSizes, out long writerPos)
-	{
+	protected ILogRecord[] GenerateLogRecords(int chunkNumber, int[] transactionSizes, out long writerPos) {
 		var logPosition = chunkNumber * ChunkSize;
 
 		var logRecords = new List<ILogRecord>();
-		foreach (var transactionSize in transactionSizes)
-		{
+		foreach (var transactionSize in transactionSizes) {
 			// a negative transaction size represents an incomplete transaction
 			var incomplete = transactionSize < 0;
 			var txSize = Math.Abs(transactionSize);
 
-			for (var i = 0; i < txSize; i++)
-			{
+			for (var i = 0; i < txSize; i++) {
 				var flags = PrepareFlags.Data | PrepareFlags.IsCommitted;
 				if (i == 0)
 					flags |= PrepareFlags.TransactionBegin;

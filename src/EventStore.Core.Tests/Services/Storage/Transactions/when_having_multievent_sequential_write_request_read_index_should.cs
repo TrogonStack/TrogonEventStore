@@ -1,75 +1,66 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
-using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.Transactions;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class
-	when_having_multievent_sequential_write_request_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<
-	TLogFormat, TStreamId>
-{
+public class when_having_multievent_sequential_write_request_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _p1;
 	private EventRecord _p2;
 	private EventRecord _p3;
 
-	protected override void WriteTestScenario()
-	{
-		_p1 = WriteTransactionBegin("ES", ExpectedVersion.NoStream, 0, "test1");
-		_p2 = WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 1, _p1.EventStreamId, 1, "test2",
-			PrepareFlags.Data);
-		_p3 = WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 2, _p1.EventStreamId, 2, "test3",
-			PrepareFlags.TransactionEnd | PrepareFlags.Data);
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		_p1 = await WriteTransactionBegin("ES", ExpectedVersion.NoStream, 0, "test1", token: token);
+		_p2 = await WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 1, _p1.EventStreamId, 1, "test2",
+			PrepareFlags.Data, token: token);
+		_p3 = await WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 2, _p1.EventStreamId, 2, "test3",
+			PrepareFlags.TransactionEnd | PrepareFlags.Data, token: token);
 
-		WriteCommit(_p1.CorrelationId, _p1.LogPosition, _p1.EventStreamId, _p1.EventNumber);
+		await WriteCommit(_p1.CorrelationId, _p1.LogPosition, _p1.EventStreamId, _p1.EventNumber, token);
 	}
 
 	[Test]
-	public void return_correct_last_event_version_for_stream()
-	{
+	public void return_correct_last_event_version_for_stream() {
 		Assert.AreEqual(2, ReadIndex.GetStreamLastEventNumber("ES"));
 	}
 
 	[Test]
-	public void return_correct_first_record_for_stream()
-	{
+	public void return_correct_first_record_for_stream() {
 		var result = ReadIndex.ReadEvent("ES", 0);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p1, result.Record);
 	}
 
 	[Test]
-	public void return_correct_second_record_for_stream()
-	{
+	public void return_correct_second_record_for_stream() {
 		var result = ReadIndex.ReadEvent("ES", 1);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p2, result.Record);
 	}
 
 	[Test]
-	public void return_correct_third_record_for_stream()
-	{
+	public void return_correct_third_record_for_stream() {
 		var result = ReadIndex.ReadEvent("ES", 2);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p3, result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_nonexistent_version()
-	{
+	public void not_find_record_with_nonexistent_version() {
 		var result = ReadIndex.ReadEvent("ES", 3);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_start_range_query_for_stream()
-	{
+	public void return_correct_range_on_from_start_range_query_for_stream() {
 		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 3);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -79,8 +70,7 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_stream_with_specific_event_version()
-	{
+	public void return_correct_range_on_from_end_range_query_for_stream_with_specific_event_version() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", 2, 3);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -90,8 +80,7 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_stream_with_from_end_version()
-	{
+	public void return_correct_range_on_from_end_range_query_for_stream_with_from_end_version() {
 		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 3);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -101,8 +90,7 @@ public class
 	}
 
 	[Test]
-	public void read_all_events_forward_returns_all_events_in_correct_order()
-	{
+	public void read_all_events_forward_returns_all_events_in_correct_order() {
 		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10).Records;
 
 		Assert.AreEqual(3, records.Count);
@@ -112,8 +100,7 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_events_backward_returns_all_events_in_correct_order()
-	{
+	public async Task read_all_events_backward_returns_all_events_in_correct_order() {
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.Records;
 

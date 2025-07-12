@@ -1,40 +1,41 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNextEventNumber;
-
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_strict<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_strict<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _event3;
 	private EventRecord _event4;
 	private EventRecord _event5;
 
 
-	protected override void WriteTestScenario()
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var now = DateTime.UtcNow;
 
 		var metadata = string.Format(@"{{""$maxAge"":{0},""$maxCount"":5}}",
 			(int)TimeSpan.FromMinutes(20).TotalSeconds);
 
-		WriteStreamMetadata("ES", 0, metadata);
-		WriteSingleEvent("ES", 0, "bla", now.AddMinutes(-100)); // expired: maxcount & maxage
-		WriteSingleEvent("ES", 1, "bla", now.AddMinutes(-50)); // expired: maxage
-		WriteSingleEvent("ES", 2, "bla", now.AddMinutes(-25)); // expired: maxage
-		_event3 = WriteSingleEvent("ES", 3, "bla", now.AddMinutes(-15)); // active
-		_event4 = WriteSingleEvent("ES", 4, "bla", now.AddMinutes(-11)); // active
-		_event5 = WriteSingleEvent("ES", 5, "bla", now.AddMinutes(-3)); // active
+		await WriteStreamMetadata("ES", 0, metadata, token: token);
+		await WriteSingleEvent("ES", 0, "bla", now.AddMinutes(-100), token: token); // expired: maxcount & maxage
+		await WriteSingleEvent("ES", 1, "bla", now.AddMinutes(-50), token: token); // expired: maxage
+		await WriteSingleEvent("ES", 2, "bla", now.AddMinutes(-25), token: token); // expired: maxage
+		_event3 = await WriteSingleEvent("ES", 3, "bla", now.AddMinutes(-15), token: token); // active
+		_event4 = await WriteSingleEvent("ES", 4, "bla", now.AddMinutes(-11), token: token); // active
+		_event5 = await WriteSingleEvent("ES", 5, "bla", now.AddMinutes(-3), token: token); // active
 	}
 
 	[Test]
 	public void
-		on_read_forward_from_start_to_expired_next_event_number_is_expired_by_age_plus_1_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_start_to_expired_next_event_number_is_expired_by_age_plus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 0, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(3, res.NextEventNumber); // new path fast forwards to here
@@ -47,8 +48,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 
 	[Test]
 	public void
-		on_read_forward_from_start_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_start_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 0, 5);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -63,8 +63,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 
 	[Test]
 	public void
-		on_read_forward_from_expired_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_expired_to_active_next_event_number_is_last_read_event_plus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 2, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(4, res.NextEventNumber);
@@ -77,8 +76,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 	}
 
 	[Test]
-	public void on_read_forward_from_expired_to_end_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+	public void on_read_forward_from_expired_to_end_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 2, 4);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(6, res.NextEventNumber);
@@ -94,8 +92,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 
 	[Test]
 	public void
-		on_read_forward_from_expired_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+		on_read_forward_from_expired_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 2, 6);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(6, res.NextEventNumber);
@@ -111,8 +108,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 
 	[Test]
 	public void
-		on_read_forward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+		on_read_forward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsForward("ES", 7, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(6, res.NextEventNumber);
@@ -126,8 +122,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 
 	[Test]
 	public void
-		on_read_backward_from_end_to_active_next_event_number_is_last_read_event_minus_1_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_end_to_active_next_event_number_is_last_read_event_minus_1_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 5, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(3, res.NextEventNumber);
@@ -158,8 +153,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 	}
 
 	[Test]
-	public void on_read_backward_from_active_to_expired_its_end_of_stream()
-	{
+	public void on_read_backward_from_active_to_expired_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 4, 3);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -173,8 +167,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 	}
 
 	[Test]
-	public void on_read_backward_from_expired_to_expired_its_end_of_stream()
-	{
+	public void on_read_backward_from_expired_to_expired_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 2, 2);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -186,8 +179,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 	}
 
 	[Test]
-	public void on_read_backward_from_expired_to_before_start_its_end_of_stream()
-	{
+	public void on_read_backward_from_expired_to_before_start_its_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 2, 5);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -200,8 +192,7 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 
 	[Test]
 	public void
-		on_read_backward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_and_its_not_end_of_stream() {
 		var res = ReadIndex.ReadStreamEventsBackward("ES", 10, 3);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -217,50 +208,42 @@ public class when_reading_stream_with_max_age_and_max_count_and_max_age_is_more_
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	when_reading_stream_with_max_age_and_a_mostly_expired<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat,
-		TStreamId>
-{
+		TStreamId> {
 
 	public when_reading_stream_with_max_age_and_a_mostly_expired() : base(maxEntriesInMemTable: 50,
-		chunkSize: 100000)
-	{
+		chunkSize: 100000) {
 
 	}
 
-	protected override void WriteTestScenario()
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var now = DateTime.UtcNow;
 
 		var metadata = string.Format(@"{{""$maxAge"":{0}}}",
 			(int)TimeSpan.FromMinutes(20).TotalSeconds);
 
-		WriteStreamMetadata("ES", 0, metadata);
+		await WriteStreamMetadata("ES", 0, metadata, token: token);
 		var start = 0;
 		var end = 1008;
-		for (int i = start; i < end; i++)
-		{
-			WriteSingleEvent("ES", i, "bla", now.AddMinutes(-100), retryOnFail: true);
+		for (int i = start; i < end; i++) {
+			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-100), retryOnFail: true, token: token);
 		}
 
 		start = end;
 		end += 5;
-		for (int i = start; i < end; i++)
-		{
-			WriteSingleEvent("ES", i, "bla", now, retryOnFail: true);
+		for (int i = start; i < end; i++) {
+			await WriteSingleEvent("ES", i, "bla", now, retryOnFail: true, token: token);
 		}
 
 	}
 
 	[Test]
-	public void reading_forward_should_match_reading_backwards_in_reverse()
-	{
+	public void reading_forward_should_match_reading_backwards_in_reverse() {
 		var backwardsCollected = new List<EventRecord>();
 		var forwardsCollected = new List<EventRecord>();
 		var from = long.MaxValue;
-		while (true)
-		{
+		while (true) {
 			var backwards = ReadIndex.ReadStreamEventsBackward("ES", from, 7);
-			for (int i = 0; i < backwards.Records.Length; i++)
-			{
+			for (int i = 0; i < backwards.Records.Length; i++) {
 				backwardsCollected.Add(backwards.Records[i]);
 			}
 
@@ -270,11 +253,9 @@ public class
 		}
 
 		from = 0;
-		while (true)
-		{
+		while (true) {
 			var forwards = ReadIndex.ReadStreamEventsForward("ES", from, 7);
-			for (int i = 0; i < forwards.Records.Length; i++)
-			{
+			for (int i = 0; i < forwards.Records.Length; i++) {
 				forwardsCollected.Add(forwards.Records[i]);
 			}
 
@@ -285,8 +266,7 @@ public class
 
 		Assert.AreEqual(forwardsCollected.Count, backwardsCollected.Count);
 		backwardsCollected.Reverse();
-		for (int i = 0; i < backwardsCollected.Count; i++)
-		{
+		for (int i = 0; i < backwardsCollected.Count; i++) {
 			Assert.AreEqual(backwardsCollected[i].EventId, forwardsCollected[i].EventId);
 			Assert.AreEqual(backwardsCollected[i].EventType, forwardsCollected[i].EventType);
 			Assert.AreEqual(backwardsCollected[i].ExpectedVersion, forwardsCollected[i].ExpectedVersion);

@@ -1,16 +1,18 @@
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class InMemoryTransactionFactory : ITransactionFactory<int> {
-		public InMemoryTransactionFactory() {
-		}
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
 
-		public int Begin() {
-			return 5;
-		}
+namespace EventStore.Core.TransactionLog.Scavenging;
+public class InMemoryTransactionFactory : ITransactionFactory<int> {
+	public InMemoryTransactionFactory() {
+	}
 
-		public void Commit(int transasction) {
-		}
+	public int Begin() {
+		return 5;
+	}
 
-		public void Rollback(int transaction) {
-		}
+	public void Commit(int transasction) {
+	}
+
+	public void Rollback(int transaction) {
 	}
 }

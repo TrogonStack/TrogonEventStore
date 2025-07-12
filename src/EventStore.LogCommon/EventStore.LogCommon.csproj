@@ -2,4 +2,7 @@
 	<PropertyGroup>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="packages.lock.json" />
+	</ItemGroup>
 </Project>
