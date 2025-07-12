@@ -1,30 +1,28 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-internal class ReplicationInterceptor : WriterInterceptor
-{
-	private record DataChunkInterceptionInfo
-	{
+internal class ReplicationInterceptor : WriterInterceptor {
+	private record DataChunkInterceptionInfo {
 		public long MaxLogPosition { get; init; }
 	}
 
-	private static readonly DataChunkInterceptionInfo DefaultDataInfo = new()
-	{
+	private static readonly DataChunkInterceptionInfo DefaultDataInfo = new() {
 		MaxLogPosition = long.MaxValue
 	};
 
-	private record RawChunkInterceptionInfo
-	{
+	private record RawChunkInterceptionInfo {
 		public int ChunkStartNumber { get; init; }
 		public int ChunkEndNumber { get; init; }
 		public int MaxRawPosition { get; init; }
 	}
 
-	private static readonly RawChunkInterceptionInfo DefaultRawInfo = new()
-	{
+	private static readonly RawChunkInterceptionInfo DefaultRawInfo = new() {
 		ChunkStartNumber = -1,
 		ChunkEndNumber = -1,
 		MaxRawPosition = -1
@@ -38,13 +36,11 @@ internal class ReplicationInterceptor : WriterInterceptor
 
 	public ReplicationInterceptor(ISubscriber subscriber) : base(subscriber) { }
 
-	private void PauseIfConditionsAreMet(Message message, int bytesToAdd)
-	{
+	private void PauseIfConditionsAreMet(Message message, int bytesToAdd) {
 		if (Paused)
 			return;
 
-		switch (message)
-		{
+		switch (message) {
 			case ReplicationMessage.DataChunkBulk dataChunkBulk:
 				if (dataChunkBulk.SubscriptionPosition + dataChunkBulk.DataBytes.Length + bytesToAdd >
 					_dataInfo.MaxLogPosition)
@@ -58,44 +54,34 @@ internal class ReplicationInterceptor : WriterInterceptor
 				break;
 		}
 	}
-	protected override void Process(Message message)
-	{
-		lock (_lock)
-		{
+	protected override void Process(Message message) {
+		lock (_lock) {
 			PauseIfConditionsAreMet(message, bytesToAdd: 0);
 			base.Process(message);
 			PauseIfConditionsAreMet(message, bytesToAdd: 1);
 		}
 	}
 
-	public override void Resume()
-	{
-		lock (_lock)
-		{
+	public override void Resume() {
+		lock (_lock) {
 			_dataInfo = DefaultDataInfo;
 			_rawInfo = DefaultRawInfo;
 			base.Resume();
 		}
 	}
 
-	public void ResumeUntil(long maxLogPosition)
-	{
-		lock (_lock)
-		{
-			_dataInfo = new DataChunkInterceptionInfo
-			{
+	public void ResumeUntil(long maxLogPosition) {
+		lock (_lock) {
+			_dataInfo = new DataChunkInterceptionInfo {
 				MaxLogPosition = maxLogPosition
 			};
 			base.Resume();
 		}
 	}
 
-	public void ResumeUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition)
-	{
-		lock (_lock)
-		{
-			_rawInfo = new RawChunkInterceptionInfo
-			{
+	public void ResumeUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition) {
+		lock (_lock) {
+			_rawInfo = new RawChunkInterceptionInfo {
 				ChunkStartNumber = rawChunkStartNumber,
 				ChunkEndNumber = rawChunkEndNumber,
 				MaxRawPosition = maxRawPosition
@@ -104,10 +90,8 @@ internal class ReplicationInterceptor : WriterInterceptor
 		}
 	}
 
-	public void Reset(bool pauseReplication = false)
-	{
-		lock (_lock)
-		{
+	public void Reset(bool pauseReplication = false) {
+		lock (_lock) {
 			_dataInfo = DefaultDataInfo;
 			_rawInfo = DefaultRawInfo;
 

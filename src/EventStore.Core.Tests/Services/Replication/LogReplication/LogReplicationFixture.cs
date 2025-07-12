@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.IO;
 using System.Linq;
@@ -31,8 +34,7 @@ using Serilog.Events;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-public abstract class LogReplicationFixture<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class LogReplicationFixture<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private const int ClusterSize = 3;
 	private readonly EndPoint FakeEndPoint = new IPEndPoint(IPAddress.Loopback, 5555);
 
@@ -44,8 +46,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 	protected long LeaderWriterCheckpoint => _leaderInfo.Db.Config.WriterCheckpoint.ReadNonFlushed();
 	protected long ReplicaWriterCheckpoint => _replicaInfo.Db.Config.WriterCheckpoint.ReadNonFlushed();
 
-	private TFChunkDb CreateDb(string path)
-	{
+	private TFChunkDb CreateDb(string path) {
 		var dbPath = Path.Combine(PathName, path);
 		Directory.CreateDirectory(dbPath);
 
@@ -66,20 +67,15 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		return new TFChunkDb(config: dbConfig);
 	}
 
-	private class ZeroDurationTracker : IDurationMaxTracker
-	{
+	private class ZeroDurationTracker : IDurationMaxTracker {
 		public Instant RecordNow(Instant start) => start;
 	}
 
-	private StorageWriterService<TStreamId> CreateStorageWriter(TFChunkDb db, ISubscriber inputBus,
-		IPublisher outputBus)
-	{
+	private StorageWriterService<TStreamId> CreateStorageWriter(TFChunkDb db, ISubscriber inputBus, IPublisher outputBus) {
 		var writer = new TFChunkWriter(db);
-		var logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-			{
-				IndexDirectory = Path.Combine(db.Config.Path, "index")
-			});
+		var logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = Path.Combine(db.Config.Path, "index")
+		});
 		logFormat.StreamNamesProvider.SetReader(new FakeIndexReader<TStreamId>());
 		logFormat.StreamNamesProvider.SetTableIndex(new FakeInMemoryTableIndex<TStreamId>());
 
@@ -109,8 +105,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		return storageWriterService;
 	}
 
-	private async ValueTask<LeaderInfo<TStreamId>> CreateLeader(TFChunkDb db, CancellationToken token)
-	{
+	private async ValueTask<LeaderInfo<TStreamId>> CreateLeader(TFChunkDb db, CancellationToken token) {
 		await db.Open(createNewChunks: true, token: token);
 
 		// we don't need a controller here, so we use the same bus for subscribing and publishing
@@ -170,8 +165,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		subscribeBus.Subscribe<ReplicationMessage.ReplicaLogPositionAck>(leaderReplicationService);
 		subscribeBus.Subscribe<ReplicationTrackingMessage.ReplicatedTo>(leaderReplicationService);
 
-		return new LeaderInfo<TStreamId>()
-		{
+		return new LeaderInfo<TStreamId>() {
 			Db = db,
 			Publisher = publishBus,
 			ReplicationService = leaderReplicationService,
@@ -201,9 +195,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		};
 	}
 
-	private async ValueTask<ReplicaInfo<TStreamId>> CreateReplica(TFChunkDb db, LeaderInfo<TStreamId> leaderInfo,
-		CancellationToken token)
-	{
+	private async ValueTask<ReplicaInfo<TStreamId>> CreateReplica(TFChunkDb db, LeaderInfo<TStreamId> leaderInfo, CancellationToken token) {
 		await db.Open(createNewChunks: false, token: token);
 
 		var subscribeBus = new SynchronousScheduler("subscribeBus");
@@ -245,8 +237,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		subscribeBus.Subscribe<ReplicationMessage.AckLogPosition>(replicaService);
 		subscribeBus.Subscribe<ClientMessage.TcpForwardMessage>(replicaService);
 
-		return new ReplicaInfo<TStreamId>
-		{
+		return new ReplicaInfo<TStreamId> {
 			Db = db,
 			Publisher = publishBus,
 			ReplicaService = replicaService,
@@ -260,15 +251,13 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		};
 	}
 
-	private void StartLeader()
-	{
+	private void StartLeader() {
 		_leaderInfo.Publisher.Publish(new SystemMessage.SystemInit());
 		_leaderInfo.Publisher.Publish(new SystemMessage.SystemStart());
 		_leaderInfo.Publisher.Publish(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 	}
 
-	private void StartReplica(bool pauseReplication = true)
-	{
+	private void StartReplica(bool pauseReplication = true) {
 		_replicaInfo.ResetSubscription();
 		_replicaInfo.ReplicationInterceptor.Reset(pauseReplication: pauseReplication);
 		_replicaInfo.Publisher.Publish(new SystemMessage.BecomePreReplica(
@@ -282,8 +271,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			subscriptionId: Guid.NewGuid()));
 	}
 
-	private void SetUpLogging()
-	{
+	private void SetUpLogging() {
 		Log.Logger = new LoggerConfiguration()
 			//.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose) // uncomment to enable console logging
 			.MinimumLevel.Verbose()
@@ -291,8 +279,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 	}
 
 	[OneTimeSetUp]
-	public override Task TestFixtureSetUp()
-	{
+	public override Task TestFixtureSetUp() {
 		base.TestFixtureSetUp();
 		SetUpLogging();
 
@@ -300,8 +287,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 	}
 
 	[SetUp]
-	public virtual async Task SetUp()
-	{
+	public virtual async Task SetUp() {
 		var runId = Guid.NewGuid();
 
 		var leaderDb = CreateDb($"leader-{runId}");
@@ -320,8 +306,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 
 	protected virtual Task SetUpDbs(TFChunkDb leaderDb, TFChunkDb replicaDb) => Task.CompletedTask;
 
-	private async ValueTask AddEpoch(int epochNumber, long epochPosition, CancellationToken token = default)
-	{
+	private async ValueTask AddEpoch(int epochNumber, long epochPosition, CancellationToken token = default) {
 		var epoch = new EpochRecord(
 			epochPosition: epochPosition,
 			epochNumber: epochNumber,
@@ -334,8 +319,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		await _replicaInfo.EpochManager.CacheEpoch(epoch, token);
 	}
 
-	private Event[] CreateEvents(string streamId, string[] eventDatas)
-	{
+	private Event[] CreateEvents(string streamId, string[] eventDatas) {
 		var events = new Event[eventDatas.Length];
 		for (var i = 0; i < events.Length; i++)
 			events[i] = new Event(Guid.NewGuid(), "type", false, eventDatas[i], null);
@@ -343,8 +327,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		return events;
 	}
 
-	protected Task<long> WriteEvents(string streamId, params string[] eventDatas)
-	{
+	protected Task<long> WriteEvents(string streamId, params string[] eventDatas) {
 		var events = CreateEvents(streamId, eventDatas);
 		return WriteEvents(
 			streamId: streamId,
@@ -354,8 +337,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			chunkSize: _leaderInfo.Db.Config.ChunkSize);
 	}
 
-	protected Task<long> WriteEventsToReplica(string streamId, params string[] eventDatas)
-	{
+	protected Task<long> WriteEventsToReplica(string streamId, params string[] eventDatas) {
 		var events = CreateEvents(streamId, eventDatas);
 		return WriteEvents(
 			streamId: streamId,
@@ -370,8 +352,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		Event[] events,
 		IPublisher publisher,
 		InterceptorCheckpoint writerChk,
-		int chunkSize)
-	{
+		int chunkSize) {
 		// we keep track of write completion by verifying if the list of writer checkpoints has changed.
 		// we cannot simply wait for a single checkpoint change as some writes may move the writer checkpoint multiple times.
 		// since chunk completion also moves the writer checkpoint, we need to keep track of it.
@@ -380,10 +361,8 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		var flushedWriterPos = writerChk.Read();
 		var writerChks = writerChk.Values.ToArray();
 
-		if (flushedWriterPos > 0)
-		{
-			Assert.Greater(writerChks.Length, 0,
-				"The writer checkpoint has been flushed but the list of writer checkpoints is empty");
+		if (flushedWriterPos > 0) {
+			Assert.Greater(writerChks.Length, 0, "The writer checkpoint has been flushed but the list of writer checkpoints is empty");
 			Assert.AreEqual(flushedWriterPos, writerChks[^1], "There are pending writer checkpoint flushes");
 		}
 
@@ -397,12 +376,10 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 
 		long[] newWriterChks = null;
 		AssertEx.IsOrBecomesTrue(
-			func: () =>
-			{
+			func: () => {
 				newWriterChks = writerChk.Values.ToArray();
 
-				if (newWriterChks.Length == writerChks.Length + 1)
-				{
+				if (newWriterChks.Length == writerChks.Length + 1) {
 					if (newWriterChks[^1] % chunkSize == 0)
 						return false; // chunk has been completed
 
@@ -425,19 +402,16 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		return Task.FromResult(flushedWriterPos);
 	}
 
-	protected Task ConnectReplica(bool pauseReplication = false)
-	{
+	protected Task ConnectReplica(bool pauseReplication = false) {
 		StartReplica(pauseReplication: pauseReplication);
 		return Task.CompletedTask;
 	}
 
-	protected async Task ReconnectReplica(bool pauseReplication = false)
-	{
+	protected async Task ReconnectReplica(bool pauseReplication = false) {
 		await ConnectReplica(pauseReplication: pauseReplication);
 	}
 
-	protected Task ReplicaBecomesLeader()
-	{
+	protected Task ReplicaBecomesLeader() {
 		_replicaInfo.ResetSubscription();
 		_replicaInfo.ReplicationInterceptor.Reset(pauseReplication: false);
 		_replicaInfo.Publisher.Publish(new SystemMessage.BecomePreLeader(
@@ -448,41 +422,35 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		return Task.CompletedTask;
 	}
 
-	protected async Task ResumeReplicationUntil(long maxLogPosition, int expectedFlushes)
-	{
+	protected async Task ResumeReplicationUntil(long maxLogPosition, int expectedFlushes) {
 		var initialFlushes = _replicaInfo.GetNumWriterFlushes();
 		_replicaInfo.ReplicationInterceptor.ResumeUntil(maxLogPosition);
 		await ReplicationPaused();
 		await ReplicaWriterFlushed(initialFlushes, expectedFlushes);
 	}
 
-	protected async Task ResumeReplicationUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition,
-		int expectedFlushes)
-	{
+	protected async Task ResumeReplicationUntil(int rawChunkStartNumber, int rawChunkEndNumber, int maxRawPosition, int expectedFlushes) {
 		var initialFlushes = _replicaInfo.GetNumWriterFlushes();
 		_replicaInfo.ReplicationInterceptor.ResumeUntil(rawChunkStartNumber, rawChunkEndNumber, maxRawPosition);
 		await ReplicationPaused();
 		await ReplicaWriterFlushed(initialFlushes, expectedFlushes);
 	}
 
-	private Task ReplicationPaused()
-	{
+	private Task ReplicationPaused() {
 		AssertEx.IsOrBecomesTrue(
 			func: () => _replicaInfo.ReplicationInterceptor.Paused,
 			timeout: TimeSpan.FromSeconds(5));
 		return Task.CompletedTask;
 	}
 
-	private Task ReplicaWriterFlushed(int initialFlushes, int expectedFlushes)
-	{
+	private Task ReplicaWriterFlushed(int initialFlushes, int expectedFlushes) {
 		AssertEx.IsOrBecomesTrue(
 			func: () => _replicaInfo.GetNumWriterFlushes() >= initialFlushes + expectedFlushes,
 			timeout: TimeSpan.FromSeconds(5));
 		return Task.CompletedTask;
 	}
 
-	protected Task Replicated(TimeSpan? timeout = null)
-	{
+	protected Task Replicated(TimeSpan? timeout = null) {
 		var writerPos = _leaderInfo.Db.Config.WriterCheckpoint.ReadNonFlushed();
 
 		AssertEx.IsOrBecomesTrue(
@@ -497,8 +465,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			expectedLeaderCheckpoints: expectedCheckpoints,
 			expectedReplicaCheckpoints: expectedCheckpoints);
 
-	protected void VerifyCheckpoints(int expectedLeaderCheckpoints, int expectedReplicaCheckpoints)
-	{
+	protected void VerifyCheckpoints(int expectedLeaderCheckpoints, int expectedReplicaCheckpoints) {
 		var leaderCheckpoints = ((InterceptorCheckpoint)_leaderInfo.Db.Config.WriterCheckpoint).Values.ToArray();
 		var replicaCheckpoints = ((InterceptorCheckpoint)_replicaInfo.Db.Config.WriterCheckpoint).Values.ToArray();
 
@@ -508,8 +475,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		Assert.AreEqual(leaderCheckpoints[..replicaCheckpoints.Length], replicaCheckpoints);
 	}
 
-	protected void VerifyDB(int expectedLogicalChunks)
-	{
+	protected void VerifyDB(int expectedLogicalChunks) {
 		var numChunksOnLeader = _leaderInfo.Db.Manager.ChunksCount;
 		var numChunksOnReplica = _replicaInfo.Db.Manager.ChunksCount;
 		var atChunkBoundary = _leaderInfo.Db.Config.WriterCheckpoint.Read() % _leaderInfo.Db.Config.ChunkSize == 0;
@@ -521,8 +487,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 
 		Assert.AreEqual(expectedLogicalChunks, numChunksOnReplica);
 
-		for (var chunkNum = 0; chunkNum < expectedLogicalChunks;)
-		{
+		for (var chunkNum = 0; chunkNum < expectedLogicalChunks;) {
 			var leaderChunk = _leaderInfo.Db.Manager.GetChunk(chunkNum);
 			var replicaChunk = _replicaInfo.Db.Manager.GetChunk(chunkNum);
 
@@ -534,8 +499,7 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 			chunkNum = leaderChunk.ChunkHeader.ChunkEndNumber + 1;
 		}
 
-		if (atChunkBoundary)
-		{
+		if (atChunkBoundary) {
 			// verify that the chunk data is empty on the leader
 			var leaderChunk = _leaderInfo.Db.Manager.GetChunk(expectedLogicalChunks);
 			var leaderData = ReadChunkData(leaderChunk.FileName, excludeChecksum: false);
@@ -543,15 +507,12 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		}
 	}
 
-	private void VerifyHeader(ChunkHeader header1, ChunkHeader header2)
-	{
+	private void VerifyHeader(ChunkHeader header1, ChunkHeader header2) {
 		Assert.True(header1.AsByteArray().SequenceEqual(header2.AsByteArray()));
 	}
 
-	private static ReadOnlySpan<byte> ReadChunkData(string fileName, bool excludeChecksum)
-	{
-		using var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096,
-			FileOptions.SequentialScan);
+	private static ReadOnlySpan<byte> ReadChunkData(string fileName, bool excludeChecksum) {
+		using var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
 		var fi = new FileInfo(fileName);
 		var data = new byte[fi.Length].AsSpan();
 
@@ -560,14 +521,11 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		while ((read = fs.Read(data[pos..])) > 0)
 			pos += read;
 
-		return excludeChecksum
-			? data[TFConsts.ChunkHeaderSize..^ChunkFooter.ChecksumSize]
-			: data[TFConsts.ChunkHeaderSize..];
+		return excludeChecksum ? data[TFConsts.ChunkHeaderSize..^ChunkFooter.ChecksumSize] : data[TFConsts.ChunkHeaderSize..];
 	}
 
 	[TearDown]
-	public virtual Task TearDown()
-	{
+	public virtual Task TearDown() {
 		var shutdownMsg = new SystemMessage.BecomeShuttingDown(
 			correlationId: Guid.NewGuid(),
 			exitProcess: false,

@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -8,18 +11,15 @@ namespace EventStore.Core.Tests.Services.Replication.LogReplication.Tests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
-{
+public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> {
 	private const int NumCheckpoints = 5 + /* chunk 0-0 (non-raw): 3 complete transactions, 1 incomplete transaction
 	                                          at end (checkpointed for backwards compatibility), 1 chunk completion */
 									   0   /* chunk 1-1 (non-raw): 0 complete transactions */;
 
 	private const int NumLogicalChunks = 2;
 
-	protected override async Task CreateChunks(TFChunkDb db)
-	{
-		LogFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+	protected override async Task CreateChunks(TFChunkDb db) {
+		LogFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = Path.Combine(db.Config.Path, "index")
 		});
 
@@ -34,8 +34,7 @@ public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : Lo
 
 
 	[Test]
-	public async Task can_replicate()
-	{
+	public async Task can_replicate() {
 		await ConnectReplica();
 		await Replicated();
 
