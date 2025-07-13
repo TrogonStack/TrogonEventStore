@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
@@ -12,12 +14,12 @@ public class when_writing_few_prepares_and_committing_one<TLogFormat, TStreamId>
 	private IPrepareLogRecord _prepare1;
 	private IPrepareLogRecord _prepare2;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		_prepare0 = WritePrepare("ES", expectedVersion: -1);
-		_prepare1 = WritePrepare("ES", expectedVersion: 0);
-		_prepare2 = WritePrepare("ES", expectedVersion: 1);
-		WriteCommit(_prepare0.LogPosition, "ES", eventNumber: 0);
+		_prepare0 = await WritePrepare("ES", expectedVersion: -1, token: token);
+		_prepare1 = await WritePrepare("ES", expectedVersion: 0, token: token);
+		_prepare2 = await WritePrepare("ES", expectedVersion: 1, token: token);
+		await WriteCommit(_prepare0.LogPosition, "ES", eventNumber: 0, token: token);
 	}
 
 	[Test]

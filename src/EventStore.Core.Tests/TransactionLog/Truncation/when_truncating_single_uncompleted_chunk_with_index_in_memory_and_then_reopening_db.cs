@@ -9,23 +9,18 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_truncating_single_uncompleted_chunk_with_index_in_memory_and_then_reopening_db<TLogFormat, TStreamId> :
-		TruncateAndReOpenDbScenario<TLogFormat, TStreamId>
+	when_truncating_single_uncompleted_chunk_with_index_in_memory_and_then_reopening_db<TLogFormat, TStreamId>() :
+	TruncateAndReOpenDbScenario<TLogFormat, TStreamId>(20000)
 {
 	private EventRecord _event1;
 	private EventRecord _event2;
 	private EventRecord _event3;
 
-	public when_truncating_single_uncompleted_chunk_with_index_in_memory_and_then_reopening_db()
-		: base(20000)
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-	}
-
-	protected override void WriteTestScenario()
-	{
-		_event1 = WriteSingleEvent("ES", 0, new string('.', 500));
-		_event2 = WriteSingleEvent("ES", 1, new string('.', 500)); // truncated
-		_event3 = WriteSingleEvent("ES", 2, new string('.', 500)); // truncated
+		_event1 = await WriteSingleEvent("ES", 0, new string('.', 500), token: token);
+		_event2 = await WriteSingleEvent("ES", 1, new string('.', 500), token: token); // truncated
+		_event3 = await WriteSingleEvent("ES", 2, new string('.', 500), token: token); // truncated
 
 		TruncateCheckpoint = _event2.LogPosition;
 	}

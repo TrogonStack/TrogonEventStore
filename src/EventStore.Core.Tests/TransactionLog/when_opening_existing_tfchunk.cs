@@ -9,7 +9,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_opening_existing_tfchunk : SpecificationWithFilePerTestFixture
+public class WhenOpeningExistingTfchunk : SpecificationWithFilePerTestFixture
 {
 	private TFChunk _chunk;
 	private TFChunk _testChunk;
@@ -18,7 +18,7 @@ public class when_opening_existing_tfchunk : SpecificationWithFilePerTestFixture
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename);
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 		_chunk.Complete();
 		_testChunk = TFChunk.FromCompletedFile(Filename, true, false,
 			reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),

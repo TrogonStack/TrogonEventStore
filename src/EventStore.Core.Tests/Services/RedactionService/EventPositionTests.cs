@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Bus;
 using EventStore.Core.Data.Redaction;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
@@ -17,31 +19,33 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	private const string StreamId = nameof(EventPositionTests<TLogFormat, TStreamId>);
 	private readonly Dictionary<long, List<EventPosition>> _positions = new();
 
-	private void WriteEvent(string streamId, long eventNumber, string data)
+	private async ValueTask WriteEvent(string streamId, long eventNumber, string data, CancellationToken token)
 	{
-		var eventRecord = WriteSingleEvent(streamId, eventNumber, data);
+		var eventRecord = await WriteSingleEvent(streamId, eventNumber, data, token: token);
 		if (!_positions.ContainsKey(eventNumber))
 			_positions[eventNumber] = new();
 
 		var chunk = Db.Manager.GetChunkFor(eventRecord.LogPosition);
 		var eventOffset = chunk.GetActualRawPosition(eventRecord.LogPosition);
 		var eventPosition = new EventPosition(
-			eventRecord.LogPosition, Path.GetFileName(chunk.FileName), chunk.ChunkHeader.MinCompatibleVersion, chunk.IsReadOnly, (uint)eventOffset);
+			eventRecord.LogPosition, Path.GetFileName(chunk.FileName), chunk.ChunkHeader.MinCompatibleVersion,
+			chunk.IsReadOnly, (uint)eventOffset);
 		_positions[eventNumber].Add(eventPosition);
 	}
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteEvent(StreamId, 2, "data 2");
-		WriteEvent(StreamId, 0, "data 0");
-		WriteEvent(StreamId, 1, "data 1");
-		WriteEvent(StreamId, 2, "data 2"); // duplicate
+		await WriteEvent(StreamId, 2, "data 2", token);
+		await WriteEvent(StreamId, 0, "data 0", token);
+		await WriteEvent(StreamId, 1, "data 1", token);
+		await WriteEvent(StreamId, 2, "data 2", token); // duplicate
 	}
 
 	private async Task<RedactionMessage.GetEventPositionCompleted> GetEventPosition(long eventNumber)
 	{
 		var e = new TcsEnvelope<RedactionMessage.GetEventPositionCompleted>();
-		RedactionService.Handle(new RedactionMessage.GetEventPosition(e, StreamId, eventNumber));
+		await RedactionService.As<IAsyncHandle<RedactionMessage.GetEventPosition>>()
+			.HandleAsync(new RedactionMessage.GetEventPosition(e, StreamId, eventNumber), CancellationToken.None);
 		return await e.Task;
 	}
 

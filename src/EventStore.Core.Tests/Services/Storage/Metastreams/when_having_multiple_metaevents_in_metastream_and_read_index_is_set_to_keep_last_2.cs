@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -9,14 +11,10 @@ namespace EventStore.Core.Tests.Services.Storage.Metastreams;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_having_multiple_metaevents_in_metastream_and_read_index_is_set_to_keep_last_2<TLogFormat, TStreamId> : SimpleDbTestScenario<TLogFormat, TStreamId>
+	WhenHavingMultipleMetaeventsInMetastreamAndReadIndexIsSetToKeepLast2<TLogFormat, TStreamId>()
+	: SimpleDbTestScenario<TLogFormat, TStreamId>(metastreamMaxCount: 2)
 {
-	public when_having_multiple_metaevents_in_metastream_and_read_index_is_set_to_keep_last_2()
-		: base(metastreamMaxCount: 2)
-	{
-	}
-
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator.Chunk(
 				Rec.Prepare(0, "$$test", "0", metadata: new StreamMetadata(10, null, null, null, null)),
@@ -25,7 +23,7 @@ public class
 				Rec.Prepare(0, "$$test", "3", metadata: new StreamMetadata(7, null, null, null, null)),
 				Rec.Prepare(0, "$$test", "4", metadata: new StreamMetadata(6, null, null, null, null)),
 				Rec.Commit(0, "$$test"))
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	[Test]

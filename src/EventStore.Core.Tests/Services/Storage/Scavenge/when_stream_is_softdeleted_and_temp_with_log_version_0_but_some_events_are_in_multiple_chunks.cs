@@ -14,10 +14,10 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
 public class
-	when_stream_is_softdeleted_and_temp_with_log_version_0_but_some_events_are_in_multiple_chunks<TLogFormat, TStreamId> :
+	WhenStreamIsSoftdeletedAndTempWithLogVersion0ButSomeEventsAreInMultipleChunks<TLogFormat, TStreamId> :
 		ScavengeTestScenario<TLogFormat, TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		var version = LogRecordVersion.LogRecordV0;
 		return dbCreator.Chunk(Rec.Prepare(0, "test", version: version),
@@ -31,7 +31,7 @@ public class
 				Rec.Prepare(3, "random",
 					version: version), // Need an incomplete chunk to ensure writer checkpoints are correct
 				Rec.Commit(3, "random", version: version))
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

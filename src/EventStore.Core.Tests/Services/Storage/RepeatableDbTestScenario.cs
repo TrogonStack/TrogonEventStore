@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Caching;
@@ -40,11 +41,11 @@ public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : Specific
 		_metastreamMaxCount = metastreamMaxCount;
 	}
 
-	public void CreateDb(params Rec[] records)
+	public async ValueTask CreateDb(Rec[] records, CancellationToken token = default)
 	{
-		if (DbRes != null)
+		if (DbRes is not null)
 		{
-			DbRes.Db.Close();
+			await DbRes.Db.DisposeAsync();
 		}
 
 		var indexDirectory = GetFilePathFor("index");
@@ -54,9 +55,9 @@ public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : Specific
 		});
 
 		var dbConfig = TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 1024 * 1024);
-		var dbHelper = new TFChunkDbCreationHelper<TLogFormat, TStreamId>(dbConfig, _logFormat);
+		var dbHelper = await TFChunkDbCreationHelper<TLogFormat, TStreamId>.CreateAsync(dbConfig, _logFormat, token);
 
-		DbRes = dbHelper.Chunk(records).CreateDb();
+		DbRes = await dbHelper.Chunk(records).CreateDb(token: token);
 
 		DbRes.Db.Config.WriterCheckpoint.Flush();
 		DbRes.Db.Config.ChaserCheckpoint.Write(DbRes.Db.Config.WriterCheckpoint.Read());
@@ -105,10 +106,10 @@ public abstract class RepeatableDbTestScenario<TLogFormat, TStreamId> : Specific
 		ReadIndex = readIndex;
 	}
 
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
 		_logFormat?.Dispose();
-		DbRes.Db.Close();
-		return base.TestFixtureTearDown();
+		await DbRes.Db.DisposeAsync();
+		await base.TestFixtureTearDown();
 	}
 }

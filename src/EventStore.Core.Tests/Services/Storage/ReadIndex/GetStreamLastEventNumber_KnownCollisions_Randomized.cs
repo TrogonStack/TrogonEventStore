@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.Index.Hashers;
 using NUnit.Framework;
@@ -29,7 +31,7 @@ public class GetStreamLastEventNumber_KnownCollisions_Randomized : ReadIndexTest
 		_events = new List<EventRecord>(_numEvents);
 	}
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var streamLast = 0L;
 		var collidingStreamLast = 0L;
@@ -38,11 +40,11 @@ public class GetStreamLastEventNumber_KnownCollisions_Randomized : ReadIndexTest
 		{
 			if (_random.Next(2) == 0)
 			{
-				_events.Add(WriteSingleEvent(Stream, streamLast++, "test data"));
+				_events.Add(await WriteSingleEvent(Stream, streamLast++, "test data", token: token));
 			}
 			else
 			{
-				_events.Add(WriteSingleEvent(CollidingStream, collidingStreamLast++, "testing"));
+				_events.Add(await WriteSingleEvent(CollidingStream, collidingStreamLast++, "testing", token: token));
 			}
 		}
 	}

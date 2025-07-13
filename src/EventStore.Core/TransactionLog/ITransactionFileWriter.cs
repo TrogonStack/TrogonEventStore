@@ -1,11 +1,13 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.TransactionLog {
 	public interface ITransactionFileWriter : IDisposable {
 		void Open();
 		bool CanWrite(int numBytes);
-		bool Write(ILogRecord record, out long newPos);
+		ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token);
 		void OpenTransaction();
 		void WriteToTransaction(ILogRecord record, out long newPos);
 		bool TryWriteToTransaction(ILogRecord record, out long newPos);

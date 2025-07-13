@@ -12,8 +12,6 @@ namespace EventStore.Core.Tests.Services.RedactionService;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class LockTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId>
 {
-	protected override void WriteTestScenario() { }
-
 	private async Task<RedactionMessage.AcquireChunksLockCompleted> TryLock()
 	{
 		var e = new TcsEnvelope<RedactionMessage.AcquireChunksLockCompleted>();

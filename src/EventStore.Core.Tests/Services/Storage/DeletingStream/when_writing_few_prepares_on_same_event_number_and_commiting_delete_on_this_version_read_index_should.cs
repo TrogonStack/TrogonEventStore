@@ -13,18 +13,18 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_writing_few_prepares_with_same_event_number_and_commiting_delete_on_this_version_read_index_should<TLogFormat, TStreamId> :
-		ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenWritingFewPreparesWithSameEventNumberAndCommitingDeleteOnThisVersionReadIndexShould<
+		TLogFormat, TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _deleteTombstone;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		long pos;
 		string stream = "ES";
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		GetOrReserve(stream, out var streamId, out pos);
-		GetOrReserveEventType(SystemEventTypes.StreamDeleted, out var streamDeletedEventTypeId, out pos);
+		var (streamId, _) = await GetOrReserve(stream, token);
+		var (streamDeletedEventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamDeleted, token);
 
 		var prepare1 = LogRecord.SingleWrite(_recordFactory, pos, // prepare1
 			Guid.NewGuid(),
@@ -35,7 +35,9 @@ public class
 			LogRecord.NoData,
 			null,
 			DateTime.UtcNow);
-		Assert.IsTrue(Writer.Write(prepare1, out pos));
+
+		(var written, pos) = await Writer.Write(prepare1, token);
+		Assert.IsTrue(written);
 
 		var prepare2 = LogRecord.SingleWrite(_recordFactory, pos, // prepare2
 			Guid.NewGuid(),
@@ -46,13 +48,18 @@ public class
 			LogRecord.NoData,
 			null,
 			DateTime.UtcNow);
-		Assert.IsTrue(Writer.Write(prepare2, out pos));
+
+		(written, pos) = await Writer.Write(prepare2, token);
+		Assert.IsTrue(written);
 
 
 		var deletePrepare = LogRecord.DeleteTombstone(_recordFactory, pos, // delete prepare
 			Guid.NewGuid(), Guid.NewGuid(), streamId, streamDeletedEventTypeId, -1);
-		_deleteTombstone = new EventRecord(EventNumber.DeletedStream, deletePrepare, stream, SystemEventTypes.StreamDeleted);
-		Assert.IsTrue(Writer.Write(deletePrepare, out pos));
+		_deleteTombstone = new EventRecord(EventNumber.DeletedStream, deletePrepare, stream,
+			SystemEventTypes.StreamDeleted);
+
+		(written, pos) = await Writer.Write(deletePrepare, token);
+		Assert.IsTrue(written);
 
 		var prepare3 = LogRecord.SingleWrite(_recordFactory, pos, // prepare3
 			Guid.NewGuid(),
@@ -63,13 +70,15 @@ public class
 			LogRecord.NoData,
 			null,
 			DateTime.UtcNow);
-		Assert.IsTrue(Writer.Write(prepare3, out pos));
+
+		(written, pos) = await Writer.Write(prepare3, token);
+		Assert.IsTrue(written);
 
 		var commit = LogRecord.Commit(pos, // committing delete
 			deletePrepare.CorrelationId,
 			deletePrepare.LogPosition,
 			EventNumber.DeletedStream);
-		Assert.IsTrue(Writer.Write(commit, out pos));
+		Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
 	}
 
 	[Test]

@@ -19,11 +19,11 @@ public class WhenReplicaSubscribesWithNoCommonEpochs<TLogFormat, TStreamId>
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out _);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		await Writer.Write(CreateLogRecord(2), token);
+		await Writer.Write(CreateLogRecord(3), token);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(1, token);
 
 		var epochs = new[] {
@@ -57,11 +57,11 @@ public class WhenReplicaWithSameEpochsSubscribesFromLastEpochPosition<TLogFormat
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out _);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		await Writer.Write(CreateLogRecord(2), token);
+		await Writer.Write(CreateLogRecord(3), token);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(1, token);
 
 		_lastEpoch = EpochManager.GetLastEpoch();
@@ -95,11 +95,11 @@ public class WhenReplicaWithSameEpochsSubscribesFromPositionLessThanLastEpochPos
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out _);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _subscribedPosition);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		await Writer.Write(CreateLogRecord(2), token);
+		await Writer.Write(CreateLogRecord(3), token);
+		(_, _subscribedPosition) = await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(1, token);
 
 		_lastEpoch = EpochManager.GetLastEpoch();
@@ -132,28 +132,28 @@ public class WhenReplicaWithAdditionalEpochsSubscribesToPositionPastLeadersLastE
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out _);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		await Writer.Write(CreateLogRecord(2), token);
+		await Writer.Write(CreateLogRecord(3), token);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(1, token);
-		Writer.Write(CreateLogRecord(5), out _);
-		Writer.Write(CreateLogRecord(6), out _);
-		Writer.Write(CreateLogRecord(7), out var lastWritePosition);
+		await Writer.Write(CreateLogRecord(5), token);
+		await Writer.Write(CreateLogRecord(6), token);
+		var (_, lastWritePosition) = await Writer.Write(CreateLogRecord(7), token);
 		Writer.Flush();
 
 		_replicaEpochs =
 		[
 			new Epoch(lastWritePosition + 2000, 4, Guid.NewGuid()),
 			new Epoch(lastWritePosition + 1000, 3, Guid.NewGuid()),
-			new Epoch(lastWritePosition, 2, Guid.NewGuid())
+			new Epoch(lastWritePosition, 2, Guid.NewGuid()),
 		];
 		_replicaEpochs.AddRange((await EpochManager.GetLastEpochs(10, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToList());
 
 		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(),
-		lastWritePosition + 2000, token);
+			lastWritePosition + 2000, token);
 	}
 
 	[Test]
@@ -179,18 +179,19 @@ public class WhenReplicaSubscribesWithEpochThatDoesntExistOnLeaderButIsBeforeLea
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out var otherEpochLogPosition);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		var (_, otherEpochLogPosition) = await Writer.Write(CreateLogRecord(2), token);
+		await Writer.Write(CreateLogRecord(3), token);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(2, token);
 
 		var firstEpoch = (await EpochManager.GetLastEpochs(10, token)).First(e => e.EpochNumber == 0);
-		_replicaEpochs = new List<Epoch> {
+		_replicaEpochs =
+		[
 			new Epoch(otherEpochLogPosition, 1, Guid.NewGuid()),
 			new Epoch(firstEpoch.EpochPosition, firstEpoch.EpochNumber, firstEpoch.EpochId)
-		};
+		];
 
 		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(),
 		_replicaEpochs[1].EpochPosition, token);
@@ -219,11 +220,11 @@ public class WhenReplicaSubscribesWithAdditionalEpochPastLeadersWriterCheckpoint
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out _);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		await Writer.Write(CreateLogRecord(2), token);
+		await Writer.Write(CreateLogRecord(3), token);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(1, token);
 
 		var subscribePosition = Writer.Position + 1000;
@@ -260,12 +261,12 @@ public class WhenReplicaSubscribesWithAdditionalEpochAndLeaderHasEpochAfterCommo
 	public override async Task When(CancellationToken token = default)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
-		Writer.Write(CreateLogRecord(1), out _);
-		Writer.Write(CreateLogRecord(2), out _);
+		await Writer.Write(CreateLogRecord(0), token);
+		await Writer.Write(CreateLogRecord(1), token);
+		await Writer.Write(CreateLogRecord(2), token);
 		await EpochManager.WriteNewEpoch(1, token);
-		Writer.Write(CreateLogRecord(3), out _);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(3), token);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(4, token);
 
 		var subscribePosition = Writer.Position + 1000;
@@ -299,22 +300,22 @@ public class WhenReplicaSubscribesWithUncachedEpoch<TLogFormat, TStreamId>
 	public override async Task When(CancellationToken token)
 	{
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
+		await Writer.Write(CreateLogRecord(0), token);
 		await EpochManager.WriteNewEpoch(1, token);
 
 		// The EpochManager for these tests only caches 5 epochs
 		_replicaEpochs = (await EpochManager.GetLastEpochs(2, token))
 			.Select(e => new Epoch(e.EpochPosition, e.EpochNumber, e.EpochId)).ToList();
 
-		Writer.Write(CreateLogRecord(1), out _);
+		await Writer.Write(CreateLogRecord(1), token);
 		await EpochManager.WriteNewEpoch(2, token);
-		Writer.Write(CreateLogRecord(2), out _);
+		await Writer.Write(CreateLogRecord(2), token);
 		await EpochManager.WriteNewEpoch(3, token);
-		Writer.Write(CreateLogRecord(3), out _);
+		await Writer.Write(CreateLogRecord(3), token);
 		await EpochManager.WriteNewEpoch(4, token);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(5, token);
-		Writer.Write(CreateLogRecord(5), out _);
+		await Writer.Write(CreateLogRecord(5), token);
 		await EpochManager.WriteNewEpoch(6, token);
 
 		(_, _replicaManager) = await AddSubscription(_replicaId, true, _replicaEpochs.ToArray(),
@@ -347,20 +348,20 @@ public class WhenReplicaSubscribesWithUncachedEpochThatDoesNotExistOnLeader<TLog
 		// The EpochManager for these tests only caches 5 epochs
 		// Epochs 2 and 3 don't exist
 		await EpochManager.WriteNewEpoch(0, token);
-		Writer.Write(CreateLogRecord(0), out _);
+		await Writer.Write(CreateLogRecord(0), token);
 		await EpochManager.WriteNewEpoch(1, token);
-		Writer.Write(CreateLogRecord(1), out _);
+		await Writer.Write(CreateLogRecord(1), token);
 
 		_uncachedLeaderEpochs = (await EpochManager.GetLastEpochs(2, token)).ToArray();
 
 		await EpochManager.WriteNewEpoch(4, token);
-		Writer.Write(CreateLogRecord(2), out _);
+		await Writer.Write(CreateLogRecord(2), token);
 		await EpochManager.WriteNewEpoch(5, token);
-		Writer.Write(CreateLogRecord(3), out _);
+		await Writer.Write(CreateLogRecord(3), token);
 		await EpochManager.WriteNewEpoch(6, token);
-		Writer.Write(CreateLogRecord(4), out _);
+		await Writer.Write(CreateLogRecord(4), token);
 		await EpochManager.WriteNewEpoch(7, token);
-		Writer.Write(CreateLogRecord(5), out _);
+		await Writer.Write(CreateLogRecord(5), token);
 		await EpochManager.WriteNewEpoch(8, token);
 
 		_replicaEpochs =

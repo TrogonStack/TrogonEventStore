@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.LogAbstraction;
@@ -19,14 +21,14 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 	private readonly TFChunkDbConfig _dbConfig;
 	private readonly TFChunkDb _db;
 
-	private readonly List<Rec[]> _chunkRecs = new List<Rec[]>();
+	private readonly List<Rec[]> _chunkRecs = new();
 
 	private bool _completeLast;
 
 	private readonly LogFormatAbstractor<TStreamId> _logFormat;
 	private readonly TStreamId _scavengePointEventTypeId;
 
-	public TFChunkDbCreationHelper(TFChunkDbConfig dbConfig, LogFormatAbstractor<TStreamId> logFormat)
+	private TFChunkDbCreationHelper(TFChunkDbConfig dbConfig, LogFormatAbstractor<TStreamId> logFormat)
 	{
 		Ensure.NotNull(dbConfig, "dbConfig");
 		_dbConfig = dbConfig;
@@ -34,10 +36,19 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		_scavengePointEventTypeId = logFormat.EventTypeIndex.GetExisting(SystemEventTypes.ScavengePoint);
 
 		_db = new TFChunkDb(_dbConfig);
-		_db.Open();
+	}
 
-		if (_db.Config.WriterCheckpoint.ReadNonFlushed() > 0)
+	public static async ValueTask<TFChunkDbCreationHelper<TLogFormat, TStreamId>> CreateAsync(TFChunkDbConfig dbConfig,
+		LogFormatAbstractor<TStreamId> logFormat, CancellationToken token = default)
+	{
+		var result = new TFChunkDbCreationHelper<TLogFormat, TStreamId>(dbConfig, logFormat);
+
+		await result._db.Open(token: token);
+
+		if (result._db.Config.WriterCheckpoint.ReadNonFlushed() > 0)
 			throw new Exception("The DB already contains some data.");
+
+		return result;
 	}
 
 	public TFChunkDbCreationHelper<TLogFormat, TStreamId> Chunk(params Rec[] records)
@@ -52,7 +63,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		return this;
 	}
 
-	public DbResult CreateDb(bool commit = false)
+	public async ValueTask<DbResult> CreateDb(bool commit = false, CancellationToken token = default)
 	{
 		var records = new List<ILogRecord>[_chunkRecs.Count];
 		for (int i = 0; i < records.Length; ++i)
@@ -114,7 +125,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		// for each chunk i
 		for (int i = 0; i < _chunkRecs.Count; ++i)
 		{
-			var chunk = i == 0 ? _db.Manager.GetChunk(0) : _db.Manager.AddNewChunk();
+			var chunk = i == 0 ? _db.Manager.GetChunk(0) : await _db.Manager.AddNewChunk(token);
 			logPos = i * (long)_db.Config.ChunkSize;
 
 			var completedChunk = false;
@@ -126,14 +137,16 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				var rec = _chunkRecs[i][j];
 				var transInfo = transactions[rec.Transaction];
 
-				_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, rec.StreamId, logPos, out var streamNumber, out var streamRecord);
+				_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, rec.StreamId, logPos,
+					out var streamNumber, out var streamRecord);
 				if (streamRecord != null)
 				{
 					Write(i, chunk, streamRecord, false, out logPos);
 					records[i].Add(streamRecord);
 				}
 
-				_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, rec.EventType, logPos, out var eventTypeNumber, out var eventTypeRecord);
+				_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, rec.EventType, logPos,
+					out var eventTypeNumber, out var eventTypeRecord);
 				if (eventTypeRecord != null)
 				{
 					Write(i, chunk, eventTypeRecord, false, out logPos);
@@ -175,14 +188,15 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					: ExpectedVersion.NoStream; // V3 doesn't have transactions so cant have a negative event number
 
 				var expectedVersion =
-				  (rec.EventNumber - 1) ??
-				  (transInfo.FirstPrepareId == rec.Id ? streamVersion : logFormatDefaultExpectedVersion);
+					(rec.EventNumber - 1) ??
+					(transInfo.FirstPrepareId == rec.Id ? streamVersion : logFormatDefaultExpectedVersion);
 
 				switch (rec.Type)
 				{
 					case Rec.RecType.Prepare:
 						{
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
+							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+								expectedVersion);
 
 							if (SystemStreams.IsMetastream(rec.StreamId))
 								transInfo.StreamMetadata = rec.Metadata;
@@ -210,7 +224,8 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 								// the index.
 							}
 
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
+							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+								expectedVersion);
 
 							streamUncommitedVersion[rec.StreamId] = rec.Version == LogRecordVersion.LogRecordV0
 								? int.MaxValue
@@ -221,12 +236,14 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					case Rec.RecType.TransStart:
 					case Rec.RecType.TransEnd:
 						{
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
+							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+								expectedVersion);
 							break;
 						}
 					case Rec.RecType.Commit:
 						{
-							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos, expectedVersion);
+							record = CreateLogRecord(rec, streamNumber, eventTypeNumber, transInfo, logPos,
+								expectedVersion);
 
 							if (transInfo.StreamMetadata != null)
 							{
@@ -294,7 +311,8 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		return rec.Data ?? rec.Metadata?.ToJsonBytes() ?? rec.Id.ToByteArray();
 	}
 
-	private ILogRecord CreateLogRecord(Rec rec, TStreamId streamId, TStreamId eventTypeId, TransactionInfo transInfo, long logPos, long expectedVersion)
+	private ILogRecord CreateLogRecord(Rec rec, TStreamId streamId, TStreamId eventTypeId, TransactionInfo transInfo,
+		long logPos, long expectedVersion)
 	{
 		switch (rec.Type)
 		{
@@ -428,34 +446,22 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 	}
 }
 
-public class TransactionInfo
+public class TransactionInfo(string streamId, Guid firstPrepareId, Guid lastPrepareId)
 {
-	public readonly string StreamId;
-	public readonly Guid FirstPrepareId;
-	public Guid LastPrepareId;
+	public readonly string StreamId = streamId;
+	public readonly Guid FirstPrepareId = firstPrepareId;
+	public Guid LastPrepareId = lastPrepareId;
 	public long TransactionPosition = -1;
 	public int TransactionOffset = 0;
 	public long TransactionEventNumber = -1;
 	public bool IsDelete = false;
 	public StreamMetadata StreamMetadata;
-
-	public TransactionInfo(string streamId, Guid firstPrepareId, Guid lastPrepareId)
-	{
-		StreamId = streamId;
-		FirstPrepareId = firstPrepareId;
-		LastPrepareId = lastPrepareId;
-	}
 }
 
-public class StreamInfo
+public class StreamInfo(long streamVersion)
 {
-	public long StreamVersion;
+	public long StreamVersion = streamVersion;
 	public StreamMetadata StreamMetadata;
-
-	public StreamInfo(long streamVersion)
-	{
-		StreamVersion = streamVersion;
-	}
 }
 
 public class DbResult
@@ -553,7 +559,8 @@ public class Rec
 		StreamMetadata metadata = null, PrepareFlags prepareFlags = PrepareFlags.Data,
 		byte version = PrepareLogRecord.PrepareRecordVersion)
 	{
-		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata, prepareFlags);
+		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata,
+			prepareFlags);
 	}
 
 	public static Rec Write(int transaction, string stream, string eventType = null, DateTime? timestamp = null,
@@ -562,7 +569,8 @@ public class Rec
 		StreamMetadata metadata = null, PrepareFlags prepareFlags = PrepareFlags.SingleWrite | PrepareFlags.IsCommitted,
 		byte version = PrepareLogRecord.PrepareRecordVersion)
 	{
-		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata, prepareFlags);
+		return new Rec(RecType.Prepare, transaction, stream, eventType, timestamp, version, eventNumber, data, metadata,
+			prepareFlags);
 	}
 
 	public static Rec TransEnd(int transaction, string stream, DateTime? timestamp = null,

@@ -34,17 +34,17 @@ public class when_truncating_to_the_very_beginning_of_multichunk_db : Specificat
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
-		using (var db = new TFChunkDb(_config))
+		await using (var db = new TFChunkDb(_config))
 		{
-			Assert.DoesNotThrow(() => db.Open(verifyHash: false));
+			Assert.DoesNotThrowAsync(async () => await db.Open(verifyHash: false));
 		}
 
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000000.000000")));
 		Assert.AreEqual(1, Directory.GetFiles(PathName, "*").Length);
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using NUnit.Framework;
@@ -9,30 +11,30 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	with_three_collisioned_streams_with_different_number_of_events_each_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	WithThreeCollisionedStreamsWithDifferentNumberOfEventsEachReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord[] _prepares1;
 	private EventRecord[] _prepares2;
 	private EventRecord[] _prepares3;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		_prepares1 = new EventRecord[3];
 		for (int i = 0; i < _prepares1.Length; i++)
 		{
-			_prepares1[i] = WriteSingleEvent("AB", i, "test" + i);
+			_prepares1[i] = await WriteSingleEvent("AB", i, "test" + i, token: token);
 		}
 
 		_prepares2 = new EventRecord[5];
 		for (int i = 0; i < _prepares2.Length; i++)
 		{
-			_prepares2[i] = WriteSingleEvent("CD", i, "test" + i);
+			_prepares2[i] = await WriteSingleEvent("CD", i, "test" + i, token: token);
 		}
 
 		_prepares3 = new EventRecord[7];
 		for (int i = 0; i < _prepares3.Length; i++)
 		{
-			_prepares3[i] = WriteSingleEvent("EF", i, "test" + i);
+			_prepares3[i] = await WriteSingleEvent("EF", i, "test" + i, token: token);
 		}
 	}
 

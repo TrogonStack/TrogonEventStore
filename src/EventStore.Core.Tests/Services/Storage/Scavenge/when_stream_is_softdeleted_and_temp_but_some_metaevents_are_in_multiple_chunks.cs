@@ -16,7 +16,7 @@ public class
 	WhenStreamIsSoftdeletedAndTempButSomeMetaeventsAreInMultipleChunks<TLogFormat, TStreamId> :
 	ScavengeTestScenario<TLogFormat, TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(
@@ -27,11 +27,10 @@ public class
 				Rec.Commit(1, "test"),
 				Rec.Prepare(2, "test"),
 				Rec.Commit(2, "test"),
-				Rec.Prepare(3, "$$test",
-					metadata: new StreamMetadata(truncateBefore: EventNumber.DeletedStream, tempStream: true)),
+				Rec.Prepare(3, "$$test", metadata: new StreamMetadata(truncateBefore: EventNumber.DeletedStream, tempStream: true)),
 				Rec.Commit(3, "$$test"))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

@@ -11,7 +11,7 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 [Category("ClientAPI"), Category("LongRunning")]
-public class catchup_subscription_to_all_with_event_numbers_greater_than_2_billion<TLogFormat, TStreamId>
+public class CatchupSubscriptionToAllWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
 	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
 {
 	private const long intMaxValue = (long)int.MaxValue;
@@ -20,10 +20,10 @@ public class catchup_subscription_to_all_with_event_numbers_greater_than_2_billi
 
 	private EventRecord _r1, _r2;
 
-	public override void WriteTestScenario()
+	public override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		_r1 = WriteSingleEvent(_streamId, intMaxValue + 1, new string('.', 3000));
-		_r2 = WriteSingleEvent(_streamId, intMaxValue + 2, new string('.', 3000));
+		_r1 = await WriteSingleEvent(_streamId, intMaxValue + 1, new string('.', 3000), token: token);
+		_r2 = await WriteSingleEvent(_streamId, intMaxValue + 2, new string('.', 3000), token: token);
 	}
 
 	public override async Task Given()

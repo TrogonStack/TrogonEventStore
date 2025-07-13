@@ -134,7 +134,7 @@ internal static class Program
 				var result =
 					manager.EnsureDevelopmentCertificate(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMonths(1));
 				if (result is not (EnsureCertificateResult.Succeeded
-				    or EnsureCertificateResult.ValidCertificatePresent))
+					or EnsureCertificateResult.ValidCertificatePresent))
 				{
 					Log.Fatal("Could not ensure dev certificate is available. Reason: {result}", result);
 					return 1;
@@ -158,7 +158,7 @@ internal static class Program
 				else
 				{
 					Log.Warning("Automatically trusting dev certs is only supported on Windows.\n" +
-					            "Please trust certificate {cert} if it's not trusted already.", certs[0]);
+								"Please trust certificate {cert} if it's not trusted already.", certs[0]);
 				}
 
 				Log.Information("Running in dev mode using certificate '{cert}'", certs[0]);

@@ -1,9 +1,8 @@
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
-using EventStore.Core.Caching;
 using EventStore.Core.DataStructures;
 using EventStore.Core.Index;
-using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services.Storage.ReaderIndex;
@@ -11,9 +10,7 @@ using EventStore.Core.Tests.Fakes;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog;
-using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
-using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Core.Util;
 using NUnit.Framework;
 
@@ -29,7 +26,8 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 
 	protected DbResult DbRes;
 
-	protected abstract DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator);
+	protected abstract ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,
+		CancellationToken token);
 
 	private readonly long _metastreamMaxCount;
 
@@ -45,15 +43,17 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
-			IndexDirectory = indexDirectory,
-		});
+		_logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+			{
+				IndexDirectory = indexDirectory,
+			});
 
 		var dbConfig = TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 1024 * 1024);
-		var dbCreationHelper = new TFChunkDbCreationHelper<TLogFormat, TStreamId>(dbConfig, _logFormat);
+		var dbCreationHelper =
+			await TFChunkDbCreationHelper<TLogFormat, TStreamId>.CreateAsync(dbConfig, _logFormat);
 
-		DbRes = CreateDb(dbCreationHelper);
+		DbRes = await CreateDb(dbCreationHelper, CancellationToken.None);
 
 		DbRes.Db.Config.WriterCheckpoint.Flush();
 		DbRes.Db.Config.ChaserCheckpoint.Write(DbRes.Db.Config.WriterCheckpoint.Read());
@@ -102,11 +102,11 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 		ReadIndex = readIndex;
 	}
 
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
 		_logFormat?.Dispose();
-		DbRes.Db.Close();
+		await DbRes.Db.DisposeAsync();
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 }

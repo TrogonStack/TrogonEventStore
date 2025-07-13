@@ -18,7 +18,7 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
 public class
-	when_scavenging_tfchunk_with_version0_log_records_using_transactions<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	WhenScavengingTfchunkWithVersion0LogRecordsUsingTransactions<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat, TStreamId>
 {
 
@@ -27,89 +27,92 @@ public class
 	private PrepareLogRecord _p1, _p2, _p3, _p4, _p5, _random1;
 	private long _t2CommitPos, _t1CommitPos, _postCommitPos;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		var t1 = WriteTransactionBeginV0(Guid.NewGuid(), Writer.Position, _streamIdOne,
-			ExpectedVersion.NoStream);
-		var t2 = WriteTransactionBeginV0(Guid.NewGuid(), Writer.Position, _streamIdTwo,
-			ExpectedVersion.NoStream);
+		var t1 = await WriteTransactionBeginV0(Guid.NewGuid(), Writer.Position, _streamIdOne,
+			ExpectedVersion.NoStream, token);
+		var t2 = await WriteTransactionBeginV0(Guid.NewGuid(), Writer.Position, _streamIdTwo,
+			ExpectedVersion.NoStream, token);
 
-		_p1 = WriteTransactionEventV0(t1.CorrelationId, Writer.Position, t1.LogPosition, 0,
-			t1.EventStreamId, 0, "es1", PrepareFlags.Data);
-		_p2 = WriteTransactionEventV0(t2.CorrelationId, Writer.Position, t2.LogPosition, 0,
-			t2.EventStreamId, 0, "abc1", PrepareFlags.Data);
-		_p3 = WriteTransactionEventV0(t1.CorrelationId, Writer.Position, t1.LogPosition, 1,
-			t1.EventStreamId, 1, "es1", PrepareFlags.Data);
-		_p4 = WriteTransactionEventV0(t2.CorrelationId, Writer.Position, t2.LogPosition, 1,
-			t2.EventStreamId, 1, "abc1", PrepareFlags.Data);
-		_p5 = WriteTransactionEventV0(t1.CorrelationId, Writer.Position, t1.LogPosition, 2,
-			t1.EventStreamId, 2, "es1", PrepareFlags.Data);
+		_p1 = await WriteTransactionEventV0(t1.CorrelationId, Writer.Position, t1.LogPosition, 0,
+			t1.EventStreamId, 0, "es1", PrepareFlags.Data, token);
+		_p2 = await WriteTransactionEventV0(t2.CorrelationId, Writer.Position, t2.LogPosition, 0,
+			t2.EventStreamId, 0, "abc1", PrepareFlags.Data, token);
+		_p3 = await WriteTransactionEventV0(t1.CorrelationId, Writer.Position, t1.LogPosition, 1,
+			t1.EventStreamId, 1, "es1", PrepareFlags.Data, token);
+		_p4 = await WriteTransactionEventV0(t2.CorrelationId, Writer.Position, t2.LogPosition, 1,
+			t2.EventStreamId, 1, "abc1", PrepareFlags.Data, token);
+		_p5 = await WriteTransactionEventV0(t1.CorrelationId, Writer.Position, t1.LogPosition, 2,
+			t1.EventStreamId, 2, "es1", PrepareFlags.Data, token);
 
-		WriteTransactionEndV0(t2.CorrelationId, Writer.Position, t2.TransactionPosition,
-			t2.EventStreamId);
-		WriteTransactionEndV0(t1.CorrelationId, Writer.Position, t1.TransactionPosition,
-			t1.EventStreamId);
+		await WriteTransactionEndV0(t2.CorrelationId, Writer.Position, t2.TransactionPosition,
+			t2.EventStreamId, token);
+		await WriteTransactionEndV0(t1.CorrelationId, Writer.Position, t1.TransactionPosition,
+			t1.EventStreamId, token);
 
-		_t2CommitPos = WriteCommitV0(t2.CorrelationId, Writer.Position, t2.TransactionPosition,
-			t2.EventStreamId, 0, out _postCommitPos);
-		_t1CommitPos = WriteCommitV0(t1.CorrelationId, Writer.Position, t1.TransactionPosition,
-			t1.EventStreamId, 0, out _postCommitPos);
+		(_t2CommitPos, _postCommitPos) = await WriteCommitV0(t2.CorrelationId, Writer.Position, t2.TransactionPosition,
+			t2.EventStreamId, 0, token);
+		(_t1CommitPos, _postCommitPos) = await WriteCommitV0(t1.CorrelationId, Writer.Position, t1.TransactionPosition,
+			t1.EventStreamId, 0, token);
 
 		Writer.CompleteChunk();
-		Writer.AddNewChunk();
+		await Writer.AddNewChunk(token: token);
 
 		// Need to have a second chunk as otherwise the checkpoints will be off
-		_random1 = WriteSingleEventWithLogVersion0(Guid.NewGuid(), "random-stream",
-			Writer.Position, 0);
+		_random1 = await WriteSingleEventWithLogVersion0(Guid.NewGuid(), "random-stream",
+			Writer.Position, 0, token: token);
 
 		Scavenge(completeLast: false, mergeChunks: true);
 	}
 
-	private PrepareLogRecord WriteTransactionBeginV0(Guid id, long logPosition, string eventStreamId,
-		long expectedVersion)
+	private async ValueTask<PrepareLogRecord> WriteTransactionBeginV0(Guid id, long logPosition, string eventStreamId,
+		long expectedVersion, CancellationToken token)
 	{
 		var prepare = new PrepareLogRecord(logPosition, id, Guid.NewGuid(), logPosition, -1,
 			eventStreamId, null, expectedVersion,
-			DateTime.UtcNow, PrepareFlags.TransactionBegin, null, null, new byte[0], new byte[0],
+			DateTime.UtcNow, PrepareFlags.TransactionBegin, null, null, Array.Empty<byte>(), Array.Empty<byte>(),
 			LogRecordVersion.LogRecordV0);
-		long pos;
-		Assert.IsTrue(Writer.Write(prepare, out pos));
+
+		Assert.IsTrue(await Writer.Write(prepare, token) is (true, _));
 		return prepare;
 	}
 
-	private PrepareLogRecord WriteTransactionEventV0(Guid correlationId, long logPosition, long transactionPosition,
-		int transactionOffset, string eventStreamId, long eventNumber, string eventData, PrepareFlags flags)
+	private async ValueTask<PrepareLogRecord> WriteTransactionEventV0(Guid correlationId, long logPosition,
+		long transactionPosition,
+		int transactionOffset, string eventStreamId, long eventNumber, string eventData, PrepareFlags flags,
+		CancellationToken token)
 	{
 		var prepare = new PrepareLogRecord(logPosition, correlationId, Guid.NewGuid(), transactionPosition,
 			transactionOffset,
 			eventStreamId, null, ExpectedVersion.Any, DateTime.UtcNow, flags,
-			"testEventType", null, Encoding.UTF8.GetBytes(eventData), new byte[0],
+			"testEventType", null, Encoding.UTF8.GetBytes(eventData), Array.Empty<byte>(),
 			LogRecordVersion.LogRecordV0);
-		long pos;
-		Writer.Write(prepare, out pos);
+
+		await Writer.Write(prepare, token);
 		return prepare;
 	}
 
-	private void WriteTransactionEndV0(Guid correlationId, long logPosition, long transactionId,
-		string eventStreamId)
+	private async ValueTask WriteTransactionEndV0(Guid correlationId, long logPosition, long transactionId,
+		string eventStreamId, CancellationToken token)
 	{
 		var prepare = new PrepareLogRecord(logPosition, correlationId, Guid.NewGuid(), transactionId, -1,
 			eventStreamId, null, ExpectedVersion.Any,
 			DateTime.UtcNow, PrepareFlags.TransactionEnd, null, null, new byte[0], new byte[0],
 			LogRecordVersion.LogRecordV0);
-		long pos;
-		Writer.Write(prepare, out pos);
+
+		await Writer.Write(prepare, token);
 	}
 
-	private long WriteCommitV0(Guid correlationId, long logPosition, long transactionPosition, string eventStreamId,
-		long eventNumber, out long pos)
+	private async ValueTask<(long, long)> WriteCommitV0(Guid correlationId, long logPosition, long transactionPosition,
+		string eventStreamId,
+		long eventNumber, CancellationToken token)
 	{
 		var commit = new CommitLogRecord(logPosition, correlationId, transactionPosition, DateTime.UtcNow,
 			eventNumber,
 			LogRecordVersion.LogRecordV0);
 
-		Writer.Write(commit, out pos);
-		return commit.LogPosition;
+		var (_, pos) = await Writer.Write(commit, token);
+		return (commit.LogPosition, pos);
 	}
 
 	[Test]
@@ -411,7 +414,7 @@ public class
 			int localCount = 0;
 			IndexReadAllResult localResult;
 			while ((localResult = await ReadIndex.ReadAllEventsBackward(localPos, 1, CancellationToken.None)).Records
-			       .Count != 0)
+				   .Count != 0)
 			{
 				Assert.AreEqual(1, localResult.Records.Count);
 				Assert.AreEqual(recs[count - 1 - localCount].EventId, localResult.Records[0].Event.EventId);

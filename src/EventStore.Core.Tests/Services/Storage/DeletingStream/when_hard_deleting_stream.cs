@@ -13,13 +13,13 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_hard_deleting_stream<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenHardDeletingStream<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent("ES1", 0, new string('.', 3000));
-		WriteSingleEvent("ES1", 1, new string('.', 3000));
-		WriteDelete("ES1");
+		await WriteSingleEvent("ES1", 0, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES1", 1, new string('.', 3000), token: token);
+		await WriteDelete("ES1", token);
 	}
 
 	[Test]

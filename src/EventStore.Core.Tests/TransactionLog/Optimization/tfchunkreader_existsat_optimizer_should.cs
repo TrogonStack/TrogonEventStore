@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Optimization;
 
 [TestFixture]
-public class tfchunkreader_existsat_optimizer_should : SpecificationWithDirectoryPerTestFixture
+public class TfchunkreaderExistsatOptimizerShould : SpecificationWithDirectoryPerTestFixture
 {
 	[Test]
 	public void have_a_single_instance()
@@ -30,7 +30,7 @@ public class tfchunkreader_existsat_optimizer_should : SpecificationWithDirector
 
 		for (int i = 0; i < 7; i++)
 		{
-			var chunk = await CreateChunk(i, true);
+			var chunk = await CreateChunk(i, true, CancellationToken.None);
 			chunks.Add(chunk);
 			Assert.IsFalse(_existsAtOptimizer.IsOptimized(chunk));
 			_existsAtOptimizer.Optimize(chunk);
@@ -63,7 +63,7 @@ public class tfchunkreader_existsat_optimizer_should : SpecificationWithDirector
 	public async Task optimize_only_scavenged_chunks()
 	{
 		TFChunkReaderExistsAtOptimizer _existsAtOptimizer = new TFChunkReaderExistsAtOptimizer(3);
-		var chunk = await CreateChunk(0, false);
+		var chunk = await CreateChunk(0, false, CancellationToken.None);
 		_existsAtOptimizer.Optimize(chunk);
 		Assert.AreEqual(false, _existsAtOptimizer.IsOptimized(chunk));
 
@@ -76,7 +76,7 @@ public class tfchunkreader_existsat_optimizer_should : SpecificationWithDirector
 	{
 		TFChunkReaderExistsAtOptimizer _existsAtOptimizer = new TFChunkReaderExistsAtOptimizer(3);
 		List<PosMap> posmap = new();
-		var chunk = await CreateChunk(0, true, posmap);
+		var chunk = await CreateChunk(0, true, posmap, CancellationToken.None);
 
 		//before optimization
 		Assert.AreEqual(false, _existsAtOptimizer.IsOptimized(chunk));
@@ -97,20 +97,23 @@ public class tfchunkreader_existsat_optimizer_should : SpecificationWithDirector
 		chunk.WaitForDestroy(5000);
 	}
 
-	private ValueTask<TFChunk> CreateChunk(int chunkNumber, bool scavenged)
+	private ValueTask<TFChunk> CreateChunk(int chunkNumber, bool scavenged, CancellationToken token)
 	{
 		List<PosMap> posmap = new();
-		return CreateChunk(chunkNumber, scavenged, posmap);
+		return CreateChunk(chunkNumber, scavenged, posmap, token);
 	}
 
-	private async ValueTask<TFChunk> CreateChunk(int chunkNumber, bool scavenged, List<PosMap> posmap)
+	private async ValueTask<TFChunk> CreateChunk(int chunkNumber, bool scavenged, List<PosMap> posmap,
+		CancellationToken token)
 	{
 		var map = new List<PosMap>();
-		var chunk = TFChunk.CreateNew(GetFilePathFor("chunk-" + chunkNumber + "-" + Guid.NewGuid()), 1024 * 1024,
+		var chunk = await TFChunk.CreateNew(GetFilePathFor("chunk-" + chunkNumber + "-" + Guid.NewGuid()),
+			1024 * 1024,
 			chunkNumber, chunkNumber, scavenged, false, false, false,
 			false,
 			new TFChunkTracker.NoOp(),
-			new IdentityChunkTransformFactory());
+			new IdentityChunkTransformFactory(),
+			token);
 		long offset = chunkNumber * 1024 * 1024;
 		long logPos = 0 + offset;
 		for (int i = 0, n = ChunkFooter.Size / PosMap.FullSize + 1; i < n; ++i)

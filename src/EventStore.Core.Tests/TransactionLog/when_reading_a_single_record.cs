@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.LogV2;
@@ -25,7 +26,7 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 	{
 		await base.TestFixtureSetUp();
 		_db = new TFChunkDb(TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 4096));
-		_db.Open();
+		await _db.Open();
 
 		var chunk = _db.Manager.GetChunk(0);
 		_records = new ILogRecord[RecordsCount];
@@ -42,7 +43,7 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 			{
 				pos = i / 3 * _db.Config.ChunkSize;
 				chunk.Complete();
-				chunk = _db.Manager.AddNewChunk();
+				chunk = await _db.Manager.AddNewChunk(CancellationToken.None);
 			}
 
 			_records[i] = LogRecord.SingleWrite(recordFactory, pos,
@@ -59,11 +60,11 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 		_db.Config.WriterCheckpoint.Flush();
 	}
 
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
-		_db.Dispose();
+		await _db.DisposeAsync();
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	private TFChunkReader GetTFChunkReader(long from)

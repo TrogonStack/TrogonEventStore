@@ -1,19 +1,20 @@
 using System.IO;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_marking_for_deletion_a_tfchunk_that_has_been_locked_and_unlocked : SpecificationWithFile
+public class WhenMarkingForDeletionATfchunkThatHasBeenLockedAndUnlocked : SpecificationWithFile
 {
 	private TFChunk _chunk;
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename, 1000);
+		await base.SetUp();
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
 		var reader = _chunk.AcquireRawReader();
 		_chunk.MarkForDeletion();
 		reader.Release();

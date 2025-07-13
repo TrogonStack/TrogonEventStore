@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using NUnit.Framework;
@@ -12,10 +13,10 @@ public class when_destroying_a_tfchunk_that_is_locked : SpecificationWithFile
 	private TFChunkBulkReader _reader;
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename, 1000);
+		await base.SetUp();
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
 		_chunk.Complete();
 		_chunk.UnCacheFromMemory();
 		_reader = _chunk.AcquireRawReader();

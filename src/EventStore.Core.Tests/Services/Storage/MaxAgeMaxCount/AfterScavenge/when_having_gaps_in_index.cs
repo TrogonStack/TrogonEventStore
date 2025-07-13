@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 using NUnit.Framework;
 
@@ -12,26 +14,26 @@ public abstract class MaxAgeIterationTests : ReadIndexTestScenario<LogFormat.V2,
 
 	protected abstract long[] ExtantIndexEntries { get; }
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var now = DateTime.UtcNow;
 		var expired = now.AddMinutes(-50);
 
 		var metadata = string.Format(@"{{""$maxAge"":{0}}}", (int)TimeSpan.FromMinutes(10).TotalSeconds);
 
-		WriteStreamMetadata("ES", 0, metadata);
+		await WriteStreamMetadata("ES", 0, metadata, token: token);
 
 		// the stream had ten events in it but 8 of them have expired leaving only the last two.
-		WriteSingleEvent("ES", 0, "data", expired);
-		WriteSingleEvent("ES", 1, "data", expired);
-		WriteSingleEvent("ES", 2, "data", expired);
-		WriteSingleEvent("ES", 3, "data", expired);
-		WriteSingleEvent("ES", 4, "data", expired);
-		WriteSingleEvent("ES", 5, "data", expired);
-		WriteSingleEvent("ES", 6, "data", expired);
-		WriteSingleEvent("ES", 7, "data", expired);
-		WriteSingleEvent("ES", 8, "data", now);
-		WriteSingleEvent("ES", 9, "data", now);
+		await WriteSingleEvent("ES", 0, "data", expired, token: token);
+		await WriteSingleEvent("ES", 1, "data", expired, token: token);
+		await WriteSingleEvent("ES", 2, "data", expired, token: token);
+		await WriteSingleEvent("ES", 3, "data", expired, token: token);
+		await WriteSingleEvent("ES", 4, "data", expired, token: token);
+		await WriteSingleEvent("ES", 5, "data", expired, token: token);
+		await WriteSingleEvent("ES", 6, "data", expired, token: token);
+		await WriteSingleEvent("ES", 7, "data", expired, token: token);
+		await WriteSingleEvent("ES", 8, "data", now, token: token);
+		await WriteSingleEvent("ES", 9, "data", now, token: token);
 		_esHash = Hasher.Hash("ES");
 
 		// dont scavenge the index because we want to keep most of the entries

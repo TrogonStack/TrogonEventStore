@@ -11,19 +11,19 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	with_two_collisioned_streams_one_event_each_first_stream_deleted_read_index_should<TLogFormat, TStreamId> :
+	WithTwoCollisionedStreamsOneEventEachFirstStreamDeletedReadIndexShould<TLogFormat, TStreamId> :
 	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _prepare1;
 	private EventRecord _delete1;
 	private EventRecord _prepare2;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		_prepare1 = WriteSingleEvent("AB", 0, "test1");
-		_delete1 = WriteDelete("AB");
+		_prepare1 = await WriteSingleEvent("AB", 0, "test1", token: token);
+		_delete1 = await WriteDelete("AB", token);
 
-		_prepare2 = WriteSingleEvent("CD", 0, "test2");
+		_prepare2 = await WriteSingleEvent("CD", 0, "test2", token: token);
 	}
 
 	[Test]

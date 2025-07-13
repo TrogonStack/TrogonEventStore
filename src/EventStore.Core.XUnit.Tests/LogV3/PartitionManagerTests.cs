@@ -17,14 +17,14 @@ public class PartitionManagerTests
 {
 
 	[Fact]
-	public void creates_new_root_partition_on_first_epoch()
+	public async Task creates_new_root_partition_on_first_epoch()
 	{
 		var reader = new FakeReader(withoutRecords: true);
 		var writer = new FakeWriter();
 
 		IPartitionManager partitionManager = new PartitionManager(reader, writer, new LogV3RecordFactory());
 
-		partitionManager.Initialize();
+		await partitionManager.Initialize(CancellationToken.None);
 
 		Assert.Collection(writer.WrittenRecords,
 			r =>
@@ -49,21 +49,21 @@ public class PartitionManagerTests
 	}
 
 	[Fact]
-	public void configures_record_factory_with_root_partition_id()
+	public async Task configures_record_factory_with_root_partition_id()
 	{
 		var reader = new FakeReader();
 		var recordFactory = new LogV3RecordFactory();
 
 		IPartitionManager partitionManager = new PartitionManager(reader, new FakeWriter(), recordFactory);
 
-		partitionManager.Initialize();
+		await partitionManager.Initialize(CancellationToken.None);
 
 		var streamRecord = (LogV3StreamRecord)recordFactory.CreateStreamRecord(Guid.NewGuid(), 1, DateTime.UtcNow, 1, "stream-1");
 		Assert.Equal(partitionManager.RootId, streamRecord.Record.SubHeader.PartitionId);
 	}
 
 	[Fact]
-	public void reads_root_partition_once_initialized()
+	public async Task reads_root_partition_once_initialized()
 	{
 		var rootPartitionId = Guid.NewGuid();
 		var rootPartitionTypeId = Guid.NewGuid();
@@ -72,7 +72,7 @@ public class PartitionManagerTests
 
 		IPartitionManager partitionManager = new PartitionManager(reader, writer, new LogV3RecordFactory());
 
-		partitionManager.Initialize();
+		await partitionManager.Initialize(CancellationToken.None);
 
 		Assert.Empty(writer.WrittenRecords);
 		Assert.Equal(rootPartitionId, partitionManager.RootId);
@@ -80,22 +80,22 @@ public class PartitionManagerTests
 	}
 
 	[Fact]
-	public void reads_root_partition_only_once()
+	public async Task reads_root_partition_only_once()
 	{
 		var reader = new FakeReader();
 		var writer = new FakeWriter();
 
 		IPartitionManager partitionManager = new PartitionManager(reader, writer, new LogV3RecordFactory());
 
-		partitionManager.Initialize();
-		partitionManager.Initialize();
+		await partitionManager.Initialize(CancellationToken.None);
+		await partitionManager.Initialize(CancellationToken.None);
 
 		Assert.Empty(writer.WrittenRecords);
 		Assert.Equal(2, reader.ReadCount);
 	}
 
 	[Fact]
-	public void creates_root_partition_in_case_it_partially_failed_previously()
+	public async Task creates_root_partition_in_case_it_partially_failed_previously()
 	{
 		var rootPartitionTypeId = Guid.NewGuid();
 		var reader = new FakeReader(rootPartitionId: null, rootPartitionTypeId);
@@ -103,7 +103,7 @@ public class PartitionManagerTests
 
 		IPartitionManager partitionManager = new PartitionManager(reader, writer, new LogV3RecordFactory());
 
-		partitionManager.Initialize();
+		await partitionManager.Initialize(CancellationToken.None);
 
 		Assert.True(partitionManager.RootId.HasValue);
 		Assert.Equal(rootPartitionTypeId, partitionManager.RootTypeId);
@@ -120,23 +120,23 @@ public class PartitionManagerTests
 	}
 
 	[Fact]
-	public void throws_on_unexpected_log_record_type()
+	public async Task throws_on_unexpected_log_record_type()
 	{
 		var reader = new FakeReader(UnexpectedLogRecord);
 
 		IPartitionManager partitionManager = new PartitionManager(reader, new FakeWriter(), new LogV3RecordFactory());
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => partitionManager.Initialize());
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => partitionManager.Initialize(CancellationToken.None).AsTask());
 	}
 
 	[Fact]
-	public void throws_on_unexpected_system_log_record_type()
+	public async Task throws_on_unexpected_system_log_record_type()
 	{
 		var reader = new FakeReader(UnexpectedSystemLogRecord);
 
 		IPartitionManager partitionManager = new PartitionManager(reader, new FakeWriter(), new LogV3RecordFactory());
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => partitionManager.Initialize());
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => partitionManager.Initialize(CancellationToken.None).AsTask());
 	}
 
 	private LogV3StreamRecord UnexpectedLogRecord => new LogV3StreamRecord(
@@ -165,11 +165,10 @@ class FakeWriter : ITransactionFileWriter
 
 	public void Open() { }
 	public bool CanWrite(int numBytes) => true;
-	public bool Write(ILogRecord record, out long newPos)
+	public ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token)
 	{
 		WrittenRecords.Add(record);
-		newPos = record.LogPosition + 1;
-		return true;
+		return new((true, record.LogPosition + 1));
 	}
 
 	public void OpenTransaction() => throw new NotImplementedException();
@@ -225,8 +224,9 @@ class FakeReader : ITransactionFileReader
 			_results.Add(new SeqReadResult(true, false, rootPartitionType, 0, 0, 0));
 		}
 
-		if (!rootPartitionId.HasValue || !rootPartitionTypeId.HasValue) return;
-		
+		if (!rootPartitionId.HasValue || !rootPartitionTypeId.HasValue)
+			return;
+
 		var rootPartition = new PartitionLogRecord(
 			DateTime.UtcNow, 3, rootPartitionId.Value, rootPartitionTypeId.Value, Guid.Empty, 0, 0, "Root");
 

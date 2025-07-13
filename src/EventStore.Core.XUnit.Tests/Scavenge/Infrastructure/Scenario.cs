@@ -24,8 +24,10 @@ using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.Scavenging;
 using EventStore.Core.Transforms;
 using EventStore.Core.Util;
+using Google.Protobuf.WellKnownTypes;
 using Xunit;
 using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
+using Type = System.Type;
 
 #pragma warning disable CS0162 // Unreachable code detected
 
@@ -43,7 +45,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 	private static EqualityComparer<TStreamId> StreamIdComparer { get; } =
 		EqualityComparer<TStreamId>.Default;
 
-	private Func<TFChunkDbConfig, LogFormatAbstractor<TStreamId>, DbResult> _getDb;
+	private Func<TFChunkDbConfig, LogFormatAbstractor<TStreamId>, ValueTask<DbResult>> _getDb;
 	private Func<ScavengeStateBuilder<TStreamId>, ScavengeStateBuilder<TStreamId>> _stateTransform;
 	private Action<ScavengeState<TStreamId>> _assertState;
 	private List<ScavengePoint> _newScavengePoint;
@@ -92,9 +94,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 
 	public Scenario<TLogFormat, TStreamId> WithDb(DbResult db)
 	{
-		_getDb = (_, _) =>
+		_getDb = async (_, _) =>
 		{
-			db.Db.Open();
+			await db.Db.Open();
 			return db;
 		};
 		return this;
@@ -106,8 +108,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			TFChunkDbCreationHelper<TLogFormat, TStreamId>> f)
 	{
 
-		_getDb = (dbConfig, logFormat) =>
-			f(new TFChunkDbCreationHelper<TLogFormat, TStreamId>(dbConfig, logFormat)).CreateDb();
+		_getDb = async (dbConfig, logFormat) =>
+			await f(await TFChunkDbCreationHelper<TLogFormat, TStreamId>.CreateAsync(dbConfig, logFormat,
+				CancellationToken.None)).CreateDb();
 		return this;
 	}
 
@@ -230,15 +233,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			throw new Exception("call WithDbPath");
 
 		var indexPath = Path.Combine(_dbPath, "index");
-		var logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
-			IndexDirectory = indexPath,
-		});
+		var logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexPath, });
 
 		var dbConfig = TFChunkHelper.CreateSizedDbConfig(_dbPath, 0, chunkSize: 1024 * 1024);
 		var dbTransformManager = DbTransformManager.Default;
 
-		var dbResult = _getDb(dbConfig, logFormat);
+		var dbResult = await _getDb(dbConfig, logFormat);
 		var keptRecords = getExpectedKeptRecords != null
 			? getExpectedKeptRecords(dbResult)
 			: null;
@@ -334,7 +335,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			}
 		}
 
-		await EmptyRequestedChunks(dbResult.Db);
+		await EmptyRequestedChunks(dbResult.Db, CancellationToken.None);
 
 		Scavenger<TStreamId> sut = null;
 		try
@@ -374,12 +375,15 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				(f, handle, from, maxCount, x) =>
 				{
 					if (_calculatingCancellationTrigger != null)
-						if ((handle.Kind == StreamHandle.Kind.Hash && handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
-							(handle.Kind == StreamHandle.Kind.Id && StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
+						if ((handle.Kind == StreamHandle.Kind.Hash &&
+							 handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
+							(handle.Kind == StreamHandle.Kind.Id &&
+							 StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
 						{
 
 							cancellationTokenSource.Cancel();
 						}
+
 					return f(handle, from, maxCount, x);
 				});
 
@@ -403,6 +407,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 
 						cancellationTokenSource.Cancel();
 					}
+
 					return f(entry);
 				});
 
@@ -624,12 +629,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 		{
 			sut?.Dispose();
 			readIndex.Close();
-			dbResult.Db.Close();
+			await dbResult.Db.DisposeAsync();
 		}
 	}
 
 	// nicked from scavengetestscenario
-	private static async ValueTask CheckRecords(ILogRecord[][] expected, DbResult actual, CancellationToken token = default)
+	private static async ValueTask CheckRecords(ILogRecord[][] expected, DbResult actual,
+		CancellationToken token = default)
 	{
 		Assert.True(
 			expected.Length == actual.Db.Manager.ChunksCount,
@@ -718,12 +724,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 						stream: hasher.Hash(streamId),
 						fromEventNumber: eventNumber,
 						maxCount: 1,
-					beforePosition: long.MaxValue);
+						beforePosition: long.MaxValue);
 
 				if (result.EventInfos.Length != 1)
 				{
 					// remember this applies metadata, so is of limited use
-					var wholeStream = actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0, maxCount: 100);
+					var wholeStream = actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0,
+						maxCount: 100);
 					Assert.True(result.EventInfos.Length == 1, $"Couldn't find {streamId}:{eventNumber} in index.");
 				}
 
@@ -767,7 +774,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 		}
 	}
 
-	private async ValueTask EmptyRequestedChunks(TFChunkDb db)
+	private async ValueTask EmptyRequestedChunks(TFChunkDb db, CancellationToken token)
 	{
 		foreach (var chunkNum in _chunkNumsToEmpty)
 		{
@@ -785,7 +792,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				transformType: header.TransformType);
 
 			var transformFactory = db.TransformManager.GetFactoryForExistingChunk(header.TransformType);
-			var newChunk = TFChunk.CreateWithHeader(
+			var newChunk = await TFChunk.CreateWithHeader(
 				filename: $"{chunk.FileName}.tmp",
 				header: newChunkHeader,
 				fileSize: ChunkHeader.Size,
@@ -795,11 +802,12 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				reduceFileCachePressure: false,
 				tracker: new TFChunkTracker.NoOp(),
 				transformFactory: transformFactory,
-				transformHeader: transformFactory.CreateTransformHeader());
+				transformHeader: transformFactory.CreateTransformHeader(),
+				token);
 
-			await newChunk.CompleteScavenge(null, CancellationToken.None);
+			await newChunk.CompleteScavenge(null, token);
 
-			db.Manager.SwitchChunk(newChunk, false, false);
+			await db.Manager.SwitchChunk(newChunk, false, false, token);
 		}
 	}
 }

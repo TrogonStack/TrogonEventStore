@@ -8,12 +8,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RedactionService;
 
 [TestFixture]
-public abstract class RedactionServiceTestFixture<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public abstract class RedactionServiceTestFixture<TLogFormat, TStreamId>()
+	: ReadIndexTestScenario<TLogFormat, TStreamId>(chunkSize: 1024)
 {
 	private SemaphoreSlimLock _switchChunksLock;
 	public RedactionService<TStreamId> RedactionService { get; private set; }
-
-	public RedactionServiceTestFixture() : base(chunkSize: 1024) { }
 
 	[SetUp]
 	public virtual Task SetUp()

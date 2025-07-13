@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
@@ -7,18 +9,18 @@ namespace EventStore.Core.Tests.Services.Storage.CheckCommitStartingAt;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class
-	when_writing_few_prepares_with_same_expected_version_and_committing_one_of_them<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenWritingFewPreparesWithSameExpectedVersionAndCommittingOneOfThem<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private IPrepareLogRecord _prepare0;
 	private IPrepareLogRecord _prepare1;
 	private IPrepareLogRecord _prepare2;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		_prepare0 = WritePrepare("ES", expectedVersion: -1);
-		_prepare1 = WritePrepare("ES", expectedVersion: -1);
-		_prepare2 = WritePrepare("ES", expectedVersion: -1);
-		WriteCommit(_prepare1.LogPosition, "ES", eventNumber: 0);
+		_prepare0 = await WritePrepare("ES", expectedVersion: -1, token: token);
+		_prepare1 = await WritePrepare("ES", expectedVersion: -1, token: token);
+		_prepare2 = await WritePrepare("ES", expectedVersion: -1, token: token);
+		await WriteCommit(_prepare1.LogPosition, "ES", eventNumber: 0, token: token);
 	}
 
 	[Test]

@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -18,7 +19,7 @@ public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId
 		_version = version;
 	}
 
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(
@@ -32,7 +33,7 @@ public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId
 				Rec.Prepare(3, "ES2", version: _version),
 				Rec.Commit(3, "ES2", version: _version))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
