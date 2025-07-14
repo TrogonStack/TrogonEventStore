@@ -788,10 +788,10 @@ public class
 	private bool _set = false;
 	private Guid _event1Id;
 
-	public override void WriteTestScenario()
+	public override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		var event1 = WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000));
-		WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000));
+		var event1 = await WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000), token: token);
+		await WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000), token: token);
 		_event1Id = event1.EventId;
 	}
 
@@ -910,7 +910,7 @@ public class connect_to_persistent_subscription_with_retries<TLogFormat, TStream
                     (sub, e) => Console.Write("appeared"),
                     (sub, reason, ex) =>
                     {
-                    }, 
+                    },
                     DefaultData.AdminCredentials);
                 throw new Exception("should have thrown");
             }

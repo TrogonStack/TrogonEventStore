@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Caching;
@@ -19,12 +20,9 @@ namespace EventStore.Core.Tests.Services.Storage.Transactions;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class when_rebuilding_index_for_partially_persisted_transaction<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenRebuildingIndexForPartiallyPersistedTransaction<TLogFormat, TStreamId>()
+	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 10)
 {
-	public when_rebuilding_index_for_partially_persisted_transaction() : base(maxEntriesInMemTable: 10)
-	{
-	}
-
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
@@ -71,16 +69,17 @@ public class when_rebuilding_index_for_partially_persisted_transaction<TLogForma
 		ReadIndex = readIndex;
 	}
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		var begin = WriteTransactionBegin("ES", ExpectedVersion.Any);
+		var begin = await WriteTransactionBegin("ES", ExpectedVersion.Any, token);
 		for (int i = 0; i < 15; ++i)
 		{
-			WriteTransactionEvent(Guid.NewGuid(), begin.LogPosition, i, "ES", i, "data" + i, PrepareFlags.Data);
+			await WriteTransactionEvent(Guid.NewGuid(), begin.LogPosition, i, "ES", i, "data" + i, PrepareFlags.Data,
+				token: token);
 		}
 
-		WriteTransactionEnd(Guid.NewGuid(), begin.LogPosition, "ES");
-		WriteCommit(Guid.NewGuid(), begin.LogPosition, "ES", 0);
+		await WriteTransactionEnd(Guid.NewGuid(), begin.LogPosition, "ES", token);
+		await WriteCommit(Guid.NewGuid(), begin.LogPosition, "ES", 0, token);
 	}
 
 	[Test]

@@ -15,7 +15,7 @@ public class WhenReadingUncachedEmptyScavengedTfchunk : SpecificationWithFilePer
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename, isScavenged: true);
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename, isScavenged: true);
 		await _chunk.CompleteScavenge([], CancellationToken.None);
 	}
 

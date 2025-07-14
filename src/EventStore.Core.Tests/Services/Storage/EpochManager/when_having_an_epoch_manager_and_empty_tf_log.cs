@@ -81,7 +81,7 @@ public class
 		_mainBus = new(nameof(WhenHavingAnEpochManagerAndEmptyTfLog<TLogFormat, TStreamId>));
 		_mainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(m => _published.Add(m)));
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
-		_db.Open();
+		await _db.Open();
 		_reader = new TFChunkReader(_db, _db.Config.WriterCheckpoint);
 		_writer = new TFChunkWriter(_db);
 		_writer.Open();
@@ -97,7 +97,7 @@ public class
 	{
 		_logFormat?.Dispose();
 		_writer?.Dispose();
-		_db?.Dispose();
+		await (_db?.DisposeAsync() ?? ValueTask.CompletedTask);
 		await base.TestFixtureTearDown();
 	}
 

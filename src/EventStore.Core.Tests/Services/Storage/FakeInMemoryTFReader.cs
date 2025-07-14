@@ -21,7 +21,8 @@ public class FakeInMemoryTfReader(int recordOffset) : ITransactionFileReader
 	public SeqReadResult TryReadNext()
 	{
 		NumReads++;
-		if (!_records.ContainsKey(_curPosition)) return new SeqReadResult(false, false, null, 0, 0, 0);
+		if (!_records.ContainsKey(_curPosition))
+			return new SeqReadResult(false, false, null, 0, 0, 0);
 
 		var pos = _curPosition;
 		_curPosition += recordOffset;
@@ -36,7 +37,7 @@ public class FakeInMemoryTfReader(int recordOffset) : ITransactionFileReader
 		NumReads++;
 		return _records.TryGetValue(position, out var record) ?
 			new RecordReadResult(true, 0, record, 0) :
-			new RecordReadResult(false, 0, null, 0);
+			new RecordReadResult(false, 0, _records[position], 0);
 	}
 
 	public bool ExistsAt(long position) => _records.ContainsKey(position);

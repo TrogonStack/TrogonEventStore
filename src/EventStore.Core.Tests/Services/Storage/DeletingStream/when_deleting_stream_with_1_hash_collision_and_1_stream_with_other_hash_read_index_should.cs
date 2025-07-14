@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
@@ -5,19 +7,19 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_deleting_stream_with_1_hash_collision_and_1_stream_with_other_hash_read_index_should<TLogFormat, TStreamId> :
-		ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenDeletingStreamWith1HashCollisionAnd1StreamWithOtherHashReadIndexShould<TLogFormat, TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent("S1", 0, "bla1");
-		WriteSingleEvent("S1", 1, "bla1");
-		WriteSingleEvent("S2", 0, "bla1");
-		WriteSingleEvent("S2", 1, "bla1");
-		WriteSingleEvent("S1", 2, "bla1");
-		WriteSingleEvent("SSS", 0, "bla1");
+		await WriteSingleEvent("S1", 0, "bla1", token: token);
+		await WriteSingleEvent("S1", 1, "bla1", token: token);
+		await WriteSingleEvent("S2", 0, "bla1", token: token);
+		await WriteSingleEvent("S2", 1, "bla1", token: token);
+		await WriteSingleEvent("S1", 2, "bla1", token: token);
+		await WriteSingleEvent("SSS", 0, "bla1", token: token);
 
-		WriteDelete("S1");
+		await WriteDelete("S1", token);
 	}
 
 	[Test]

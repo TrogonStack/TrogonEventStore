@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Data;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
@@ -6,20 +8,20 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNext
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_reading_stream_with_max_count<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenReadingStreamWithMaxCount<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _event3;
 	private EventRecord _event4;
 	private EventRecord _event5;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteStreamMetadata("ES", 0, @"{""$maxCount"":3}");
-		WriteSingleEvent("ES", 0, "bla");
-		WriteSingleEvent("ES", 1, "bla");
-		_event3 = WriteSingleEvent("ES", 2, "bla");
-		_event4 = WriteSingleEvent("ES", 3, "bla");
-		_event5 = WriteSingleEvent("ES", 4, "bla");
+		await WriteStreamMetadata("ES", 0, @"{""$maxCount"":3}", token: token);
+		await WriteSingleEvent("ES", 0, "bla", token: token);
+		await WriteSingleEvent("ES", 1, "bla", token: token);
+		_event3 = await WriteSingleEvent("ES", 2, "bla", token: token);
+		_event4 = await WriteSingleEvent("ES", 3, "bla", token: token);
+		_event5 = await WriteSingleEvent("ES", 4, "bla", token: token);
 	}
 
 	[Test]

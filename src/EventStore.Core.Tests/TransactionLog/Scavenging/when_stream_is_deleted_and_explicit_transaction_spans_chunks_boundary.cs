@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -9,7 +10,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class when_stream_is_deleted_and_explicit_transaction_spans_chunks_boundary<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "bla"),
@@ -29,7 +30,7 @@ public class when_stream_is_deleted_and_explicit_transaction_spans_chunks_bounda
 			.Chunk(Rec.Delete(2, "bla"),
 				Rec.Commit(2, "bla"))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

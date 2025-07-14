@@ -13,17 +13,22 @@ namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class tfchunk_get_actual_raw_position_should<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+public class
+	TfchunkGetActualRawPositionShould<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private readonly TStreamId _streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 	private readonly TStreamId _eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-	private readonly IRecordFactory<TStreamId> _recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
+
+	private readonly IRecordFactory<TStreamId>
+		_recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
+
 	private readonly Random _random = new();
 
 	private IPrepareLogRecord<TStreamId> CreateRecord(long logPosition, int dataSize)
 	{
 		return LogRecord.Prepare(_recordFactory, logPosition, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 1,
-			PrepareFlags.None, _eventTypeId, new byte[dataSize], Array.Empty<byte>(), new DateTime(2000, 1, 1, 12, 0, 0));
+			PrepareFlags.None, _eventTypeId, new byte[dataSize], Array.Empty<byte>(),
+			new DateTime(2000, 1, 1, 12, 0, 0));
 	}
 
 	private async ValueTask<TFChunk> CreateChunk(int numEvents, bool completed, bool scavenged,
@@ -32,7 +37,8 @@ public class tfchunk_get_actual_raw_position_should<TLogFormat, TStreamId> : Spe
 		if (scavenged && !completed)
 			throw new ArgumentException("scavenged chunk must be completed");
 
-		var chunk = TFChunkHelper.CreateNewChunk(Path.Combine(PathName, $"{Guid.NewGuid()}.chunk"), 4096, scavenged);
+		var chunk = await TFChunkHelper.CreateNewChunk(Path.Combine(PathName, $"{Guid.NewGuid()}.chunk"), 4096,
+			scavenged);
 
 		var actualPos = 0;
 		for (int i = 0; i < numEvents; i++)
@@ -47,9 +53,11 @@ public class tfchunk_get_actual_raw_position_should<TLogFormat, TStreamId> : Spe
 				logicalPos = actualPos + _random.Next(0, 100);
 				posMap.Add(new PosMap(logicalPos, actualPos));
 			}
+
 			logicalPositions.Add(logicalPos);
 
-			var result = chunk.TryAppend(CreateRecord(chunk.ChunkHeader.GetGlobalLogPosition(logicalPos), _random.Next(10, 100)));
+			var result = chunk.TryAppend(CreateRecord(chunk.ChunkHeader.GetGlobalLogPosition(logicalPos),
+				_random.Next(10, 100)));
 			Assert.True(result.Success);
 			actualPos = (int)result.NewPosition;
 		}
@@ -147,7 +155,8 @@ public class tfchunk_get_actual_raw_position_should<TLogFormat, TStreamId> : Spe
 		Assert.IsEmpty(posMap);
 
 		Assert.AreEqual(chunk.LogicalDataSize, chunk.PhysicalDataSize);
-		Assert.AreEqual(ChunkHeader.Size + chunk.LogicalDataSize - 1, chunk.GetActualRawPosition(chunk.LogicalDataSize - 1));
+		Assert.AreEqual(ChunkHeader.Size + chunk.LogicalDataSize - 1,
+			chunk.GetActualRawPosition(chunk.LogicalDataSize - 1));
 		Assert.AreEqual(-1, chunk.GetActualRawPosition(chunk.LogicalDataSize));
 		Assert.AreEqual(-1, chunk.GetActualRawPosition(chunk.LogicalDataSize + 1));
 	}

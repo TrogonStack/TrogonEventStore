@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 using NUnit.Framework;
 
@@ -9,14 +10,11 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class when_trying_to_get_latest_entry_before_position : SpecificationWithFile
+public class WhenTryingToGetLatestEntryBeforePosition(byte version, bool skipIndexVerify) : SpecificationWithFile
 {
-	private readonly byte _pTableVersion;
-	private readonly bool _skipIndexVerify;
-
 	private HashListMemTable _memTable;
 	private PTable _pTable;
-	private readonly long _deletedStreamEventNumber;
+	private readonly long _deletedStreamEventNumber = version < PTableVersions.IndexV3 ? int.MaxValue : long.MaxValue;
 
 	private const ulong HNormal = 0x01UL << 32;
 	private const ulong HTombstoned = 0x02UL << 32;
@@ -24,23 +22,16 @@ public class when_trying_to_get_latest_entry_before_position : SpecificationWith
 	private const ulong HOutOfOrder = 0x04UL << 32;
 	private const ulong HNotExists = 0x05UL << 32;
 
-	public when_trying_to_get_latest_entry_before_position(byte version, bool skipIndexVerify)
-	{
-		_pTableVersion = version;
-		_skipIndexVerify = skipIndexVerify;
-		_deletedStreamEventNumber = version < PTableVersions.IndexV3 ? int.MaxValue : long.MaxValue;
-	}
-
 	private ulong GetHash(ulong value)
 	{
-		return _pTableVersion == PTableVersions.IndexV1 ? value >> 32 : value;
+		return version == PTableVersions.IndexV1 ? value >> 32 : value;
 	}
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
-		_memTable = new HashListMemTable(_pTableVersion, maxSize: 10);
+		await base.SetUp();
+		_memTable = new HashListMemTable(version, maxSize: 10);
 		_memTable.Add(HNormal, 0, 0);
 		_memTable.Add(HNormal, 1, 1);
 		_memTable.Add(HNormal, 2, 2);
@@ -59,7 +50,7 @@ public class when_trying_to_get_latest_entry_before_position : SpecificationWith
 			filename: Filename,
 			initialReaders: Constants.PTableInitialReaderCount,
 			maxReaders: Constants.PTableMaxReaderCountDefault,
-			skipIndexVerify: _skipIndexVerify);
+			skipIndexVerify: skipIndexVerify);
 	}
 
 	[TearDown]

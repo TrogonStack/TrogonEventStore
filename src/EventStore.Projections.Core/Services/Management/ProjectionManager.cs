@@ -239,7 +239,7 @@ public class ProjectionManager
 		if (_instanceCorrelationId != message.InstanceCorrelationId)
 		{
 			_logger.Debug("PROJECTIONS: Projection Manager received stop request for incorrect correlation id." +
-			              "Current: {correlationId}. Requested: {requestedCorrelationId}", _instanceCorrelationId,
+						  "Current: {correlationId}. Requested: {requestedCorrelationId}", _instanceCorrelationId,
 				message.InstanceCorrelationId);
 			return;
 		}
@@ -351,11 +351,11 @@ public class ProjectionManager
 		foreach (var projection in projections)
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(
-				    projection.Mode,
-				    ReadWrite.Write,
-				    null,
-				    message,
-				    replace: projection.EnableRunAs))
+					projection.Mode,
+					ReadWrite.Write,
+					null,
+					message,
+					replace: projection.EnableRunAs))
 			{
 
 				_logger.Information("PROJECTIONS: Projections batch rejected due to invalid RunAs");
@@ -409,7 +409,7 @@ public class ProjectionManager
 		}
 
 		if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-			    message))
+				message))
 			return;
 		try
 		{
@@ -424,10 +424,10 @@ public class ProjectionManager
 	private bool IsSystemProjection(string name)
 	{
 		return name == ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection ||
-		       name == ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection ||
-		       name == ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection ||
-		       name == ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection ||
-		       name == ProjectionNamesBuilder.StandardProjections.EventByCorrIdStandardProjection;
+			   name == ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection ||
+			   name == ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection ||
+			   name == ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection ||
+			   name == ProjectionNamesBuilder.StandardProjections.EventByCorrIdStandardProjection;
 	}
 
 	public void Handle(ProjectionManagementMessage.Command.GetQuery message)
@@ -440,7 +440,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message);
 		}
@@ -461,7 +461,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message); // update query text
 		}
@@ -479,7 +479,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message);
 		}
@@ -500,7 +500,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message);
 		}
@@ -518,7 +518,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message);
 		}
@@ -563,7 +563,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message);
 		}
@@ -586,14 +586,14 @@ public class ProjectionManager
 		else
 		{
 			var statuses = (from projectionNameValue in _projections
-				let projection = projectionNameValue.Value
-				where !projection.Deleted
-				where
-					message.Mode == null || message.Mode == projection.Mode
-					                     || (message.Mode.GetValueOrDefault() == ProjectionMode.AllNonTransient
-					                         && projection.Mode != ProjectionMode.Transient)
-				let status = projection.GetStatistics()
-				select status).ToArray();
+							let projection = projectionNameValue.Value
+							where !projection.Deleted
+							where
+								message.Mode == null || message.Mode == projection.Mode
+													 || (message.Mode.GetValueOrDefault() == ProjectionMode.AllNonTransient
+														 && projection.Mode != ProjectionMode.Transient)
+							let status = projection.GetStatistics()
+							select status).ToArray();
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.Statistics(statuses));
 		}
 	}
@@ -630,7 +630,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
-				    message))
+					message))
 				return;
 			projection.Handle(message);
 		}
@@ -646,7 +646,7 @@ public class ProjectionManager
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
-				    message))
+					message))
 				return;
 			try
 			{
@@ -882,7 +882,7 @@ public class ProjectionManager
 
 					var projectionName = Helper.UTF8NoBom.GetString(evnt.Event.Data.Span);
 					if (string.IsNullOrEmpty(projectionName)
-					    || _projections.ContainsKey(projectionName))
+						|| _projections.ContainsKey(projectionName))
 					{
 						_logger.Warning(
 							"PROJECTIONS: The following projection: {projection} has a duplicate registration event.",
@@ -963,7 +963,7 @@ public class ProjectionManager
 		CreateSystemProjections(registeredProjections.Select(x => x.Key).ToList());
 
 		foreach (var projectionRegistration in registeredProjections.Where(x =>
-			         x.Key != ProjectionEventTypes.ProjectionsInitialized))
+					 x.Key != ProjectionEventTypes.ProjectionsInitialized))
 		{
 			int queueIndex = GetNextWorkerIndex();
 			var managedProjection = CreateManagedProjectionInstance(
@@ -980,7 +980,7 @@ public class ProjectionManager
 	private bool IsProjectionEnabledToRunByMode(string projectionName)
 	{
 		return _runProjections >= ProjectionType.All
-		       || _runProjections == ProjectionType.System && projectionName.StartsWith("$");
+			   || _runProjections == ProjectionType.System && projectionName.StartsWith("$");
 	}
 
 	private void WriteProjectionsInitialized(Action action, Guid registrationEventId)
@@ -1034,35 +1034,35 @@ public class ProjectionManager
 		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-			    .StreamsStandardProjection))
+				.StreamsStandardProjection))
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection,
 				typeof(IndexStreams),
 				""));
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-			    .StreamByCategoryStandardProjection))
+				.StreamByCategoryStandardProjection))
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection,
 				typeof(CategorizeStreamByPath),
 				"first\r\n-"));
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-			    .EventByCategoryStandardProjection))
+				.EventByCategoryStandardProjection))
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection,
 				typeof(CategorizeEventsByStreamPath),
 				"first\r\n-"));
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-			    .EventByTypeStandardProjection))
+				.EventByTypeStandardProjection))
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection,
 				typeof(IndexEventsByEventType),
 				""));
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-			    .EventByCorrIdStandardProjection))
+				.EventByCorrIdStandardProjection))
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByCorrIdStandardProjection,
 				typeof(ByCorrelationId),
@@ -1167,8 +1167,8 @@ public class ProjectionManager
 			Enum.GetName(typeof(OperationResult), completed.Result));
 
 		if (completed.Result == OperationResult.ForwardTimeout ||
-		    completed.Result == OperationResult.PrepareTimeout ||
-		    completed.Result == OperationResult.CommitTimeout)
+			completed.Result == OperationResult.PrepareTimeout ||
+			completed.Result == OperationResult.CommitTimeout)
 		{
 			if (retryCount > 0)
 			{
@@ -1296,9 +1296,9 @@ public class ProjectionManager
 			Enum.GetName(typeof(OperationResult), writeCompleted.Result));
 
 		if (writeCompleted.Result == OperationResult.CommitTimeout || writeCompleted.Result ==
-		                                                           OperationResult.ForwardTimeout
-		                                                           || writeCompleted.Result ==
-		                                                           OperationResult.PrepareTimeout)
+																   OperationResult.ForwardTimeout
+																   || writeCompleted.Result ==
+																   OperationResult.PrepareTimeout)
 		{
 			if (retryCount > 0)
 			{

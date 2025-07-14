@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using NUnit.Framework;
@@ -8,9 +9,9 @@ namespace EventStore.Core.Tests.TransactionLog;
 public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDirectory
 {
 	[Test]
-	public void the_file_will_not_be_deleted_until_reader_released()
+	public async Task the_file_will_not_be_deleted_until_reader_released()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
 		using (var reader = chunk.AcquireRawReader())
 		{
 			chunk.MarkForDeletion();
@@ -24,9 +25,9 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	}
 
 	[Test]
-	public void a_read_on_new_file_can_be_performed()
+	public async Task a_read_on_new_file_can_be_performed()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
 		using (var reader = chunk.AcquireRawReader())
 		{
 			var buffer = new byte[1024];
@@ -73,9 +74,9 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	*/
 
 	[Test]
-	public void if_asked_for_more_than_buffer_size_will_only_read_buffer_size()
+	public async Task if_asked_for_more_than_buffer_size_will_only_read_buffer_size()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 3000);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 3000);
 		using (var reader = chunk.AcquireRawReader())
 		{
 			var buffer = new byte[1024];
@@ -89,9 +90,9 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	}
 
 	[Test]
-	public void a_read_past_eof_returns_eof_and_no_footer()
+	public async Task a_read_past_eof_returns_eof_and_no_footer()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		using (var reader = chunk.AcquireRawReader())
 		{
 			var buffer = new byte[8092];

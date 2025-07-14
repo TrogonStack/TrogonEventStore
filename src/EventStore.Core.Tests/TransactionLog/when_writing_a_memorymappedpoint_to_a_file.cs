@@ -9,9 +9,9 @@ namespace EventStore.Core.Tests.TransactionLog;
 [TestFixture]
 public class when_writing_a_memorymappedpoint_to_a_file : SpecificationWithFile
 {
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
+		await base.SetUp();
 		if (!RuntimeInformation.IsWindows)
 		{
 			Assert.Ignore($"{nameof(MemoryMappedFileCheckpoint)} is for windows only.");

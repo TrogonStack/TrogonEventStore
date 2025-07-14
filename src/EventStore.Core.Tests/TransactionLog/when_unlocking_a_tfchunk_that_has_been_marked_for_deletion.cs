@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using NUnit.Framework;
 
@@ -10,10 +11,10 @@ public class when_unlocking_a_tfchunk_that_has_been_marked_for_deletion : Specif
 	private TFChunk _chunk;
 
 	[SetUp]
-	public override void SetUp()
+	public override async Task SetUp()
 	{
-		base.SetUp();
-		_chunk = TFChunkHelper.CreateNewChunk(Filename, 1000);
+		await base.SetUp();
+		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
 		var reader = _chunk.AcquireRawReader();
 		_chunk.MarkForDeletion();
 		reader.Release();

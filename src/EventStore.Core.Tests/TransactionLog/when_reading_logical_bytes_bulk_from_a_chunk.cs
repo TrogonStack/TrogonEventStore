@@ -13,14 +13,10 @@ namespace EventStore.Core.Tests.TransactionLog;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
-	public when_reading_logical_bytes_bulk_from_a_chunk()
-	{
-	}
-
 	[Test]
-	public void the_file_will_not_be_deleted_until_reader_released()
+	public async Task the_file_will_not_be_deleted_until_reader_released()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
 		using (var reader = chunk.AcquireDataReader())
 		{
 			chunk.MarkForDeletion();
@@ -34,9 +30,9 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void a_read_on_new_file_can_be_performed_but_returns_nothing()
+	public async Task a_read_on_new_file_can_be_performed_but_returns_nothing()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
 		using (var reader = chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
@@ -50,9 +46,9 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void a_read_past_end_of_completed_chunk_does_not_include_footer()
+	public async Task a_read_past_end_of_completed_chunk_does_not_include_footer()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		chunk.Complete(); // chunk has 0 bytes of actual data
 		using (var reader = chunk.AcquireDataReader())
 		{
@@ -69,7 +65,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	[Test]
 	public async Task a_read_on_scavenged_chunk_does_not_include_map()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("afile"), 200, isScavenged: true);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("afile"), 200, isScavenged: true);
 		await chunk.CompleteScavenge([new PosMap(0, 0), new PosMap(1, 1)], CancellationToken.None);
 		using (var reader = chunk.AcquireDataReader())
 		{
@@ -84,9 +80,9 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void if_asked_for_more_than_buffer_size_will_only_read_buffer_size()
+	public async Task if_asked_for_more_than_buffer_size_will_only_read_buffer_size()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 3000);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 3000);
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
@@ -108,9 +104,9 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void a_read_past_eof_doesnt_return_eof_if_chunk_is_not_yet_completed()
+	public async Task a_read_past_eof_doesnt_return_eof_if_chunk_is_not_yet_completed()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
 		Assert.IsTrue(chunk.TryAppend(rec).Success, "Record was not appended");
 		using (var reader = chunk.AcquireDataReader())
@@ -128,9 +124,9 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void a_read_past_eof_returns_eof_if_chunk_is_completed()
+	public async Task a_read_past_eof_returns_eof_if_chunk_is_completed()
 	{
-		var chunk = TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
+		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
 		Assert.IsTrue(chunk.TryAppend(rec).Success, "Record was not appended");

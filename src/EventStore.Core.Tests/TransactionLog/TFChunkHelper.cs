@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Settings;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
@@ -73,11 +75,12 @@ public static class TFChunkHelper
 			new InMemoryCheckpoint(-1));
 	}
 
-	public static TFChunk CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false)
+	public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
 	{
 		return TFChunk.CreateNew(fileName, chunkSize, 0, 0,
 			isScavenged: isScavenged, inMem: false, unbuffered: false,
 			writethrough: false, reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
-			transformFactory: new IdentityChunkTransformFactory());
+			transformFactory: new IdentityChunkTransformFactory(),
+			token);
 	}
 }

@@ -11,22 +11,22 @@ namespace EventStore.Core.Tests.Services.Storage.Transactions;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class
-	when_having_multievent_sequential_write_request_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	WhenHavingMultieventSequentialWriteRequestReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat, TStreamId>
 {
 	private EventRecord _p1;
 	private EventRecord _p2;
 	private EventRecord _p3;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		_p1 = WriteTransactionBegin("ES", ExpectedVersion.NoStream, 0, "test1");
-		_p2 = WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 1, _p1.EventStreamId, 1, "test2",
-			PrepareFlags.Data);
-		_p3 = WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 2, _p1.EventStreamId, 2, "test3",
-			PrepareFlags.TransactionEnd | PrepareFlags.Data);
+		_p1 = await WriteTransactionBegin("ES", ExpectedVersion.NoStream, 0, "test1", token: token);
+		_p2 = await WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 1, _p1.EventStreamId, 1, "test2",
+			PrepareFlags.Data, token: token);
+		_p3 = await WriteTransactionEvent(_p1.CorrelationId, _p1.LogPosition, 2, _p1.EventStreamId, 2, "test3",
+			PrepareFlags.TransactionEnd | PrepareFlags.Data, token: token);
 
-		WriteCommit(_p1.CorrelationId, _p1.LogPosition, _p1.EventStreamId, _p1.EventNumber);
+		await WriteCommit(_p1.CorrelationId, _p1.LogPosition, _p1.EventStreamId, _p1.EventNumber, token);
 	}
 
 	[Test]

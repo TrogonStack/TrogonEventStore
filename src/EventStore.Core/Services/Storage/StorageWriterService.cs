@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -32,12 +33,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	IHandle<SystemMessage.StateChangeMessage>,
 	IAsyncHandle<SystemMessage.WriteEpoch>,
 	IHandle<SystemMessage.WaitForChaserToCatchUp>,
-	IHandle<StorageMessage.WritePrepares>,
-	IHandle<StorageMessage.WriteDelete>,
-	IHandle<StorageMessage.WriteTransactionStart>,
+	IAsyncHandle<StorageMessage.WritePrepares>,
+	IAsyncHandle<StorageMessage.WriteDelete>,
+	IAsyncHandle<StorageMessage.WriteTransactionStart>,
 	IAsyncHandle<StorageMessage.WriteTransactionData>,
 	IAsyncHandle<StorageMessage.WriteTransactionEnd>,
-	IHandle<StorageMessage.WriteCommit>,
+	IAsyncHandle<StorageMessage.WriteCommit>,
 	IHandle<MonitoringMessage.InternalStatsRequest>
 {
 	private static readonly ILogger Log = Serilog.Log.ForContext<StorageWriterService>();
@@ -69,7 +70,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 	protected int FlushMessagesInQueue;
 	private VNodeState _vnodeState = VNodeState.Initializing;
-	protected bool BlockWriter;
+	protected bool BlockWriter = false;
 
 	private const int LastStatsCount = 1024;
 	private readonly long[] _lastFlushDelays = new long[LastStatsCount];
@@ -180,12 +181,13 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		StorageWriterQueue.Publish(message);
 
-		if (message is not SystemMessage.BecomeShuttingDown) return;
-
-		// we need to handle this message on main thread to stop StorageWriterQueue
-		StorageWriterQueue.Stop();
-		BlockWriter = true;
-		Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
+		if (message is SystemMessage.BecomeShuttingDown)
+			// we need to handle this message on main thread to stop StorageWriterQueue
+		{
+			StorageWriterQueue.Stop();
+			BlockWriter = true;
+			Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
+		}
 	}
 
 	private async ValueTask CommonHandle(Message message, CancellationToken token)
@@ -217,7 +219,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			BlockWriter = true;
 			Log.Fatal(exc, "Unexpected error in StorageWriterService. Terminating the process...");
 			Application.Exit(ExitCode.Error,
-				string.Format("Unexpected error in StorageWriterService: {0}", exc.Message));
+				$"Unexpected error in StorageWriterService: {exc.Message}");
 		}
 	}
 
@@ -254,7 +256,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			throw new Exception($"New Epoch request not in leader or preleader state. State: {_vnodeState}.");
 
 		if (Writer.NeedsNewChunk)
-			Writer.AddNewChunk();
+			await Writer.AddNewChunk(token: token);
 
 		await EpochManager.WriteNewEpoch(message.EpochNumber, token);
 		PurgeNotProcessedInfo();
@@ -296,13 +298,15 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		Bus.Publish(new SystemMessage.WaitForChaserToCatchUp(message.CorrelationId, totalTime));
 	}
 
-	void IHandle<StorageMessage.WritePrepares>.Handle(StorageMessage.WritePrepares msg)
+	async ValueTask IAsyncHandle<StorageMessage.WritePrepares>.HandleAsync(StorageMessage.WritePrepares msg,
+		CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 
+		var cts = token.LinkTo(msg.CancellationToken);
 		try
 		{
-			if (msg.CancellationToken.IsCancellationRequested)
+			if (token.IsCancellationRequested)
 				return;
 
 			var logPosition = Writer.Position;
@@ -336,10 +340,11 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				{
 					var evnt = msg.Events[i];
 					GetOrReserveEventType(evnt.EventType, logPosition, out eventTypes[i], out var eventTypeRecord);
-
-					if (eventTypeRecord == null) continue;
-					prepares.Add(eventTypeRecord);
-					logPosition += eventTypeRecord.SizeOnDisk;
+					if (eventTypeRecord != null)
+					{
+						prepares.Add(eventTypeRecord);
+						logPosition += eventTypeRecord.SizeOnDisk;
+					}
 				}
 
 				var transactionPosition = logPosition;
@@ -367,15 +372,13 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			else
 			{
 				prepares.Add(
-					LogRecord.Prepare(_recordFactory, logPosition, msg.CorrelationId, Guid.NewGuid(), logPosition,
-						-1,
+					LogRecord.Prepare(_recordFactory, logPosition, msg.CorrelationId, Guid.NewGuid(), logPosition, -1,
 						streamId, commitCheck.CurrentVersion,
 						PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd | PrepareFlags.IsCommitted,
 						_emptyEventTypeId, Empty.ByteArray, Empty.ByteArray));
 			}
 
-			var preparesSpan = CollectionsMarshal.AsSpan(prepares);
-			if (!TryWritePreparesWithRetry(preparesSpan))
+			if (!await TryWritePreparesWithRetry(prepares, token))
 			{
 				ActOnCommitCheckFailure(
 					envelope: msg.Envelope,
@@ -393,12 +396,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			                              && _indexWriter.IsSoftDeleted(_systemStreams.OriginalStreamOf(streamId));
 
 			// note: the stream & event type records are indexed separately and must not be pre-committed to the main index
-			_indexWriter.PreCommit(preparesSpan[^msg.Events.Length..]);
+			_indexWriter.PreCommit(CollectionsMarshal.AsSpan(prepares)[^msg.Events.Length..]);
 
 			if (commitCheck.IsSoftDeleted)
-				SoftUndeleteStream(streamId, commitCheck.CurrentVersion + 1);
+				await SoftUndeleteStream(streamId, commitCheck.CurrentVersion + 1, token);
 			if (softUndeleteMetastream)
-				SoftUndeleteMetastream(streamId);
+				await SoftUndeleteMetastream(streamId, token);
 		}
 		catch (Exception exc)
 		{
@@ -408,6 +411,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		finally
 		{
 			Flush();
+			cts?.Dispose();
 		}
 	}
 
@@ -422,68 +426,73 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			eventTypeRecord: out eventTypeRecord);
 	}
 
-	private TStreamId GetOrWriteEventType(string eventType, ref long logPosition)
+	private async ValueTask<(TStreamId, long)> GetOrWriteEventType(string eventType, long logPosition,
+		CancellationToken token)
 	{
 		GetOrReserveEventType(eventType, logPosition, out var eventTypeId, out var eventTypeRecord);
 
-		if (eventTypeRecord != null)
+		if (eventTypeRecord is not null)
 		{
-			var result = WritePrepareWithRetry(eventTypeRecord);
+			var result = await WritePrepareWithRetry(eventTypeRecord, token);
 			logPosition = result.NewPos;
 		}
 
-		return eventTypeId;
+		return (eventTypeId, logPosition);
 	}
 
-	private void SoftUndeleteMetastream(TStreamId metastreamId)
+	private async ValueTask SoftUndeleteMetastream(TStreamId metastreamId, CancellationToken token)
 	{
 		var origStreamId = _systemStreams.OriginalStreamOf(metastreamId);
 		var rawMetaInfo = _indexWriter.GetStreamRawMeta(origStreamId);
-		SoftUndeleteStream(origStreamId, rawMetaInfo.MetaLastEventNumber, rawMetaInfo.RawMeta,
-			recreateFrom: _indexWriter.GetStreamLastEventNumber(origStreamId) + 1);
+		await SoftUndeleteStream(origStreamId, rawMetaInfo.MetaLastEventNumber, rawMetaInfo.RawMeta,
+			recreateFrom: _indexWriter.GetStreamLastEventNumber(origStreamId) + 1, token);
 	}
 
-	private void SoftUndeleteStream(TStreamId streamId, long recreateFromEventNumber)
+	private async ValueTask SoftUndeleteStream(TStreamId streamId, long recreateFromEventNumber,
+		CancellationToken token)
 	{
 		var rawInfo = _indexWriter.GetStreamRawMeta(streamId);
-		SoftUndeleteStream(streamId, rawInfo.MetaLastEventNumber, rawInfo.RawMeta, recreateFromEventNumber);
+		await SoftUndeleteStream(streamId, rawInfo.MetaLastEventNumber, rawInfo.RawMeta, recreateFromEventNumber,
+			token);
 	}
 
-	private void SoftUndeleteStream(TStreamId streamId, long metaLastEventNumber, ReadOnlyMemory<byte> rawMeta,
-		long recreateFrom)
+	private async ValueTask SoftUndeleteStream(TStreamId streamId, long metaLastEventNumber,
+		ReadOnlyMemory<byte> rawMeta, long recreateFrom, CancellationToken token)
 	{
 		byte[] modifiedMeta;
 		if (!SoftUndeleteRawMeta(rawMeta, recreateFrom, out modifiedMeta))
 			return;
 
 		var logPosition = Writer.Position;
-		var streamMetadataEventTypeId = GetOrWriteEventType(SystemEventTypes.StreamMetadata, ref logPosition);
+		(var streamMetadataEventTypeId, logPosition) =
+			await GetOrWriteEventType(SystemEventTypes.StreamMetadata, logPosition, token);
 
-		var res = WritePrepareWithRetry(
+		var res = await WritePrepareWithRetry(
 			LogRecord.Prepare(_recordFactory, logPosition, Guid.NewGuid(), Guid.NewGuid(), logPosition, 0,
 				_systemStreams.MetaStreamOf(streamId), metaLastEventNumber,
 				PrepareFlags.SingleWrite | PrepareFlags.IsCommitted | PrepareFlags.IsJson,
-				streamMetadataEventTypeId, modifiedMeta, Empty.ByteArray));
+				streamMetadataEventTypeId, modifiedMeta, Empty.ByteArray),
+			token);
 
 		_indexWriter.PreCommit(new[] { res.Prepare });
 	}
 
-	public bool SoftUndeleteRawMeta(ReadOnlyMemory<byte> rawMeta, long recreateFromEventNumber,
-		out byte[] modifiedMeta)
+	public bool SoftUndeleteRawMeta(ReadOnlyMemory<byte> rawMeta, long recreateFromEventNumber, out byte[] modifiedMeta)
 	{
 		try
 		{
 			var jobj = JObject.Parse(Encoding.UTF8.GetString(rawMeta.Span));
 			jobj[SystemMetadata.TruncateBefore] = recreateFromEventNumber;
-
-			using var memoryStream = new MemoryStream();
-			using (var jsonWriter = new JsonTextWriter(new StreamWriter(memoryStream)))
+			using (var memoryStream = new MemoryStream())
 			{
-				jobj.WriteTo(jsonWriter);
-			}
+				using (var jsonWriter = new JsonTextWriter(new StreamWriter(memoryStream)))
+				{
+					jobj.WriteTo(jsonWriter);
+				}
 
-			modifiedMeta = memoryStream.ToArray();
-			return true;
+				modifiedMeta = memoryStream.ToArray();
+				return true;
+			}
 		}
 		catch (Exception)
 		{
@@ -492,7 +501,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 	}
 
-	void IHandle<StorageMessage.WriteDelete>.Handle(StorageMessage.WriteDelete message)
+	async ValueTask IAsyncHandle<StorageMessage.WriteDelete>.HandleAsync(StorageMessage.WriteDelete message,
+		CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
@@ -513,12 +523,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 			if (streamRecord != null)
 			{
-				var res = WritePrepareWithRetry(streamRecord);
+				var res = await WritePrepareWithRetry(streamRecord, token);
 				logPosition = res.NewPos;
 			}
 
 			var commitCheck = _indexWriter.CheckCommit(streamId, message.ExpectedVersion,
-				new[] { eventId }, streamMightExist: preExisting);
+				[eventId], streamMightExist: preExisting);
 			if (commitCheck.Decision != CommitDecision.Ok)
 			{
 				ActOnCommitCheckFailure(message.Envelope, message.CorrelationId, commitCheck);
@@ -529,12 +539,13 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			{
 				// HARD DELETE
 				const long expectedVersion = EventNumber.DeletedStream - 1;
-				var streamDeletedEventType = GetOrWriteEventType(SystemEventTypes.StreamDeleted, ref logPosition);
+				(var streamDeletedEventType, logPosition) =
+					await GetOrWriteEventType(SystemEventTypes.StreamDeleted, logPosition, token);
 				var record = LogRecord.DeleteTombstone(_recordFactory, logPosition, message.CorrelationId,
 					eventId, streamId, streamDeletedEventType,
 					expectedVersion, PrepareFlags.IsCommitted);
-				var res = WritePrepareWithRetry(record);
-				_indexWriter.PreCommit(new[] { res.Prepare });
+				var res = await WritePrepareWithRetry(record, token);
+				_indexWriter.PreCommit([res.Prepare]);
 			}
 			else
 			{
@@ -555,14 +566,14 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				                           PrepareFlags.IsJson;
 				var data = new StreamMetadata(truncateBefore: EventNumber.DeletedStream).ToJsonBytes();
 
-				var streamMetadataEventTypeId =
-					GetOrWriteEventType(SystemEventTypes.StreamMetadata, ref logPosition);
+				(var streamMetadataEventTypeId, logPosition) =
+					await GetOrWriteEventType(SystemEventTypes.StreamMetadata, logPosition, token);
 
-				var res = WritePrepareWithRetry(
+				var res = await WritePrepareWithRetry(
 					LogRecord.Prepare(_recordFactory, logPosition, message.CorrelationId, eventId, logPosition, 0,
 						metastreamId, expectedVersion, flags, streamMetadataEventTypeId,
-						data, null));
-				_indexWriter.PreCommit(new[] { res.Prepare });
+						data, null), token);
+				_indexWriter.PreCommit([res.Prepare]);
 			}
 		}
 		catch (Exception exc)
@@ -576,7 +587,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 	}
 
-	void IHandle<StorageMessage.WriteTransactionStart>.Handle(StorageMessage.WriteTransactionStart message)
+	async ValueTask IAsyncHandle<StorageMessage.WriteTransactionStart>.HandleAsync(
+		StorageMessage.WriteTransactionStart message, CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
@@ -589,7 +601,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				message.CorrelationId,
 				streamId,
 				message.ExpectedVersion);
-			var res = WritePrepareWithRetry(record);
+			var res = await WritePrepareWithRetry(record, token);
 
 			// we update cache to avoid non-cached look-up on next TransactionWrite
 			_indexWriter.UpdateTransactionInfo(res.WrittenPos, res.WrittenPos,
@@ -625,7 +637,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				{
 					var evnt = message.Events[i];
 					// safe, only v2 supports transactions and it doesnt write eventtype records.
-					var eventType = GetOrWriteEventType(evnt.EventType, ref logPosition);
+					(var eventType, logPosition) = await GetOrWriteEventType(evnt.EventType, logPosition, token);
 					var record = LogRecord.TransactionWrite(
 						_recordFactory,
 						logPosition,
@@ -638,13 +650,16 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 						evnt.Data,
 						evnt.Metadata,
 						evnt.IsJson);
-					var res = WritePrepareWithRetry(record);
+					var res = await WritePrepareWithRetry(record, token);
 					logPosition = res.NewPos;
 					lastLogPosition = res.WrittenPos;
 				}
 
-				var info = new TransactionInfo<TStreamId>(transactionInfo.TransactionOffset + message.Events.Length,
-					transactionInfo.EventStreamId);
+				var info = transactionInfo with
+				{
+					TransactionOffset = transactionInfo.TransactionOffset + message.Events.Length
+				};
+
 				_indexWriter.UpdateTransactionInfo(message.TransactionId, lastLogPosition, info);
 			}
 		}
@@ -678,7 +693,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				Guid.NewGuid(),
 				message.TransactionId,
 				transactionInfo.EventStreamId);
-			WritePrepareWithRetry(record);
+			await WritePrepareWithRetry(record, token);
 		}
 		catch (Exception exc)
 		{
@@ -708,7 +723,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		return true;
 	}
 
-	void IHandle<StorageMessage.WriteCommit>.Handle(StorageMessage.WriteCommit message)
+	async ValueTask IAsyncHandle<StorageMessage.WriteCommit>.HandleAsync(StorageMessage.WriteCommit message,
+		CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
@@ -722,10 +738,11 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			}
 
 
-			var commit = WriteCommitWithRetry(LogRecord.Commit(commitPos,
-				message.CorrelationId,
-				message.TransactionPosition,
-				commitCheck.CurrentVersion + 1));
+			var commit = await WriteCommitWithRetry(LogRecord.Commit(commitPos,
+					message.CorrelationId,
+					message.TransactionPosition,
+					commitCheck.CurrentVersion + 1),
+				token);
 
 			bool softUndeleteMetastream = _systemStreams.IsMetaStream(commitCheck.EventStreamId)
 			                              &&
@@ -735,9 +752,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			_indexWriter.PreCommit(commit);
 
 			if (commitCheck.IsSoftDeleted)
-				SoftUndeleteStream(commitCheck.EventStreamId, commitCheck.CurrentVersion + 1);
+				await SoftUndeleteStream(commitCheck.EventStreamId, commitCheck.CurrentVersion + 1, token);
 			if (softUndeleteMetastream)
-				SoftUndeleteMetastream(commitCheck.EventStreamId);
+				await SoftUndeleteMetastream(commitCheck.EventStreamId, token);
 		}
 		catch (Exception exc)
 		{
@@ -750,8 +767,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 	}
 
-	private void ActOnCommitCheckFailure(IEnvelope envelope, Guid correlationId,
-		CommitCheckResult<TStreamId> result)
+	private void ActOnCommitCheckFailure(IEnvelope envelope, Guid correlationId, CommitCheckResult<TStreamId> result)
 	{
 		switch (result.Decision)
 		{
@@ -789,13 +805,14 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 	}
 
-	private bool TryWritePreparesWithRetry(Span<IPrepareLogRecord<TStreamId>> prepares)
+	private async ValueTask<bool> TryWritePreparesWithRetry(IList<IPrepareLogRecord<TStreamId>> prepares,
+		CancellationToken token)
 	{
-		Ensure.Positive(prepares.Length, nameof(prepares.Length));
+		Ensure.Positive(prepares.Count, nameof(prepares.Count));
 
-		if (prepares.Length == 1)
+		if (prepares.Count is 1)
 		{
-			WritePrepareWithRetry(prepares[0]);
+			await WritePrepareWithRetry(prepares[0], token);
 			return true;
 		}
 
@@ -813,7 +830,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		if (!Writer.CanWrite(prepareSizes))
 		{
 			Writer.CompleteChunk();
-			Writer.AddNewChunk();
+			await Writer.AddNewChunk(token: token);
 			if (!Writer.CanWrite(prepareSizes))
 			{
 				throw new Exception(
@@ -823,11 +840,11 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			long logPos = Writer.Position;
 			long transactionPos = default;
 
-			for (int i = 0; i < prepares.Length; i++)
+			for (int i = 0; i < prepares.Count; i++)
 			{
 				// the prepares may be from different streams due to the stream & event type records
 				// we thus adjust the transaction position to the correct value on each stream id change
-				if (i == 0 || !StreamIdComparer.Equals(prepares[i].EventStreamId, prepares[i - 1].EventStreamId))
+				if (i is 0 || !StreamIdComparer.Equals(prepares[i].EventStreamId, prepares[i - 1].EventStreamId))
 					transactionPos = logPos;
 
 				prepares[i] = prepares[i].CopyForRetry(logPos, transactionPos);
@@ -852,13 +869,14 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		return true;
 	}
 
-	private WriteResult WritePrepareWithRetry(IPrepareLogRecord<TStreamId> prepare)
+	private async ValueTask<WriteResult> WritePrepareWithRetry(IPrepareLogRecord<TStreamId> prepare,
+		CancellationToken token)
 	{
 		long writtenPos = prepare.LogPosition;
-		long newPos;
 		var record = prepare;
 
-		if (!Writer.Write(prepare, out newPos))
+		var (written, newPos) = await Writer.Write(prepare, token);
+		if (!written)
 		{
 			var transactionPos = prepare.TransactionPosition == prepare.LogPosition
 				? newPos
@@ -869,7 +887,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				transactionPosition: transactionPos);
 
 			writtenPos = newPos;
-			if (!Writer.Write(record, out newPos))
+			(written, newPos) = await Writer.Write(record, token);
+			if (!written)
 			{
 				throw new Exception(
 					string.Format("Second write try failed when first writing prepare at {0}, then at {1}.",
@@ -882,16 +901,15 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		    StreamIdComparer.Equals(prepare.EventStreamId, _scavengePointsStreamId))
 		{
 			Writer.CompleteChunk();
-			Writer.AddNewChunk();
+			await Writer.AddNewChunk(token: token);
 		}
 
 		return new WriteResult(writtenPos, newPos, record);
 	}
 
-	private CommitLogRecord WriteCommitWithRetry(CommitLogRecord commit)
+	private async ValueTask<CommitLogRecord> WriteCommitWithRetry(CommitLogRecord commit, CancellationToken token)
 	{
-		long newPos;
-		if (!Writer.Write(commit, out newPos))
+		if (await Writer.Write(commit, token) is (false, var newPos))
 		{
 			var transactionPos = commit.TransactionPosition == commit.LogPosition
 				? newPos
@@ -902,7 +920,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				commit.TimeStamp,
 				commit.FirstEventNumber);
 			long writtenPos = newPos;
-			if (!Writer.Write(record, out newPos))
+			if (await Writer.Write(record, token) is (false, _))
 			{
 				throw new Exception(
 					string.Format("Second write try failed when first writing commit at {0}, then at {1}.",

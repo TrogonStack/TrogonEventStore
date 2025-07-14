@@ -27,9 +27,9 @@ public class ClusterStorageWriterService;
 
 public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStreamId>,
 	IAsyncHandle<ReplicationMessage.ReplicaSubscribed>,
-	IHandle<ReplicationMessage.CreateChunk>,
+	IAsyncHandle<ReplicationMessage.CreateChunk>,
 	IAsyncHandle<ReplicationMessage.RawChunkBulk>,
-	IHandle<ReplicationMessage.DataChunkBulk>
+	IAsyncHandle<ReplicationMessage.DataChunkBulk>
 {
 	private static readonly ILogger Log = Serilog.Log.ForContext<ClusterStorageWriterService>();
 
@@ -221,7 +221,8 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 		       lastCommitPosition >= lastEpoch.EpochPosition;
 	}
 
-	public void Handle(ReplicationMessage.CreateChunk message)
+	async ValueTask IAsyncHandle<ReplicationMessage.CreateChunk>.HandleAsync(ReplicationMessage.CreateChunk message,
+		CancellationToken token)
 	{
 		if (_subscriptionId != message.SubscriptionId) return;
 
@@ -243,13 +244,13 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 
 		if (message.IsScavengedChunk)
 		{
-			_activeChunk = Db.Manager.CreateTempChunk(message.ChunkHeader, message.FileSize);
+			_activeChunk = await Db.Manager.CreateTempChunk(message.ChunkHeader, message.FileSize, token);
 		}
 		else
 		{
 			if (message.ChunkHeader.ChunkStartNumber == Db.Manager.ChunksCount)
 			{
-				Writer.AddNewChunk(message.ChunkHeader, message.TransformHeader, message.FileSize);
+				await Writer.AddNewChunk(message.ChunkHeader, message.TransformHeader, message.FileSize, token);
 			}
 			else if (message.ChunkHeader.ChunkStartNumber + 1 == Db.Manager.ChunksCount)
 			{
@@ -335,7 +336,8 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 		}
 	}
 
-	public void Handle(ReplicationMessage.DataChunkBulk message)
+	async ValueTask IAsyncHandle<ReplicationMessage.DataChunkBulk>.HandleAsync(ReplicationMessage.DataChunkBulk message,
+		CancellationToken token)
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
@@ -349,7 +351,7 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 			if (Writer.NeedsNewChunk)
 			{
 				// for backwards compatibility with leaders running an old version (in case it doesn't send the CreateChunk message)
-				Writer.AddNewChunk();
+				await Writer.AddNewChunk(token: token);
 			}
 
 			var chunk = Writer.CurrentChunk;

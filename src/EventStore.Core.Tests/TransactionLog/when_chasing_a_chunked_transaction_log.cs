@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
@@ -34,12 +36,12 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 	private readonly Guid _eventId = Guid.NewGuid();
 
 	[Test]
-	public void try_read_returns_false_when_writer_checkpoint_is_zero()
+	public async Task try_read_returns_false_when_writer_checkpoint_is_zero()
 	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint();
-		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
-		db.Open();
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
+		await db.Open();
 
 		var chaser = new TFChunkChaser(db, writerchk, new InMemoryCheckpoint(), false);
 		chaser.Open();
@@ -48,16 +50,15 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		Assert.IsFalse(chaser.TryReadNext(out record));
 
 		chaser.Close();
-		db.Dispose();
 	}
 
 	[Test]
-	public void try_read_returns_false_when_writer_checksum_is_equal_to_reader_checksum()
+	public async Task try_read_returns_false_when_writer_checksum_is_equal_to_reader_checksum()
 	{
 		var writerchk = new InMemoryCheckpoint();
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
-		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
-		db.Open();
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
+		await db.Open();
 		writerchk.Write(12);
 		writerchk.Flush();
 		chaserchk.Write(12);
@@ -71,11 +72,10 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		Assert.AreEqual(12, chaserchk.Read());
 
 		chaser.Close();
-		db.Dispose();
 	}
 
 	[Test]
-	public void try_read_returns_record_when_writerchecksum_ahead()
+	public async Task try_read_returns_record_when_writerchecksum_ahead()
 	{
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
@@ -109,8 +109,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 
 		var writerchk = new InMemoryCheckpoint(recordToWrite.GetSizeWithLengthPrefixAndSuffix() + 16);
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
-		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
-		db.Open();
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
+		await db.Open();
 
 		var chaser = new TFChunkChaser(db, writerchk, chaserchk, false);
 		chaser.Open();
@@ -122,19 +122,17 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
 		Assert.IsTrue(recordRead);
 		Assert.AreEqual(recordToWrite, record);
-
-		db.Close();
 	}
 
 
 	[Test]
-	public void try_read_returns_record_when_record_bigger_than_internal_buffer()
+	public async Task try_read_returns_record_when_record_bigger_than_internal_buffer()
 	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
 
-		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
-		db.Open();
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
+		await db.Open();
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
@@ -156,8 +154,7 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 			metadata: new byte[] { 7, 17 });
 		var writer = new TFChunkWriter(db);
 		writer.Open();
-		long pos;
-		Assert.IsTrue(writer.Write(recordToWrite, out pos));
+		Assert.IsTrue(await writer.Write(recordToWrite, CancellationToken.None) is (true, _));
 		writer.Close();
 
 		writerchk.Write(recordToWrite.GetSizeWithLengthPrefixAndSuffix());
@@ -172,17 +169,15 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		Assert.IsTrue(readRecord);
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
 		Assert.AreEqual(recordToWrite, record);
-
-		db.Close();
 	}
 
 	[Test]
-	public void try_read_returns_record_when_writerchecksum_equal()
+	public async Task try_read_returns_record_when_writerchecksum_equal()
 	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
-		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
-		db.Open();
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
+		await db.Open();
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
@@ -204,8 +199,7 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 			metadata: new byte[] { 7, 17 });
 		var writer = new TFChunkWriter(db);
 		writer.Open();
-		long pos;
-		Assert.IsTrue(writer.Write(recordToWrite, out pos));
+		Assert.IsTrue(await writer.Write(recordToWrite, CancellationToken.None) is (true, _));
 		writer.Close();
 
 		writerchk.Write(recordToWrite.GetSizeWithLengthPrefixAndSuffix());
@@ -220,8 +214,6 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		Assert.IsTrue(readRecord);
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
 		Assert.AreEqual(recordToWrite, record);
-
-		db.Close();
 	}
 
 	/*   [Test]

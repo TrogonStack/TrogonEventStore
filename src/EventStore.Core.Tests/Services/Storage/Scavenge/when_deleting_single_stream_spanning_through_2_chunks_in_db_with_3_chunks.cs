@@ -8,23 +8,23 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_deleting_single_stream_spanning_through_2_chunks_in_db_with_3_chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class WhenDeletingSingleStreamSpanningThrough2ChunksInDbWith3Chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _event8;
 	private EventRecord _delete;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		WriteSingleEvent("ES", 0, new string('.', 3000));
-		WriteSingleEvent("ES", 1, new string('.', 3000));
-		WriteSingleEvent("ES", 2, new string('.', 3000));
+		await WriteSingleEvent("ES", 0, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES", 1, new string('.', 3000), token: token);
+		await WriteSingleEvent("ES", 2, new string('.', 3000), token: token);
 
-		WriteSingleEvent("ES", 3, new string('.', 3000), retryOnFail: true); // chunk 2
-		WriteSingleEvent("ES", 4, new string('.', 3000));
+		await WriteSingleEvent("ES", 3, new string('.', 3000), retryOnFail: true, token: token); // chunk 2
+		await WriteSingleEvent("ES", 4, new string('.', 3000), token: token);
 
-		_event8 = WriteSingleEvent("ES2", 0, new string('.', 5000), retryOnFail: true); //chunk 3
+		_event8 = await WriteSingleEvent("ES2", 0, new string('.', 5000), retryOnFail: true, token: token); //chunk 3
 
-		_delete = WriteDelete("ES");
+		_delete = await WriteDelete("ES", token: token);
 		Scavenge(completeLast: false, mergeChunks: false);
 	}
 

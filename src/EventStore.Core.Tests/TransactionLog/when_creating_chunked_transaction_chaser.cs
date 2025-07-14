@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
@@ -19,16 +20,16 @@ public class when_creating_chunked_transaction_chaser : SpecificationWithDirecto
 	}
 
 	[Test]
-	public void a_null_writer_checksum_throws_argument_null_exception()
+	public async Task a_null_writer_checksum_throws_argument_null_exception()
 	{
-		using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
 		Assert.Throws<ArgumentNullException>(() => new TFChunkChaser(db, null, new InMemoryCheckpoint(), false));
 	}
 
 	[Test]
-	public void a_null_chaser_checksum_throws_argument_null_exception()
+	public async Task a_null_chaser_checksum_throws_argument_null_exception()
 	{
-		using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, 0));
 		Assert.Throws<ArgumentNullException>(() => new TFChunkChaser(db, new InMemoryCheckpoint(), null, false));
 	}
 }

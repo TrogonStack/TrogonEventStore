@@ -22,14 +22,14 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	private string _allowedStream1 = "ES1";
 	private string _allowedStream2 = "$persistentsubscription-$all::group-somethingallowed";
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
-		var firstEvent = WriteSingleEvent(_allowedStream1, 1, new string('.', 3000), eventId: Guid.NewGuid(),
-			eventType: "event-type-1", retryOnFail: true);
-		WriteSingleEvent(disallowedStream, 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "event-type-2",
-			retryOnFail: true); //disallowed
-		WriteSingleEvent(_allowedStream2, 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "event-type-3",
-			retryOnFail: true); //allowed
+		var firstEvent = await WriteSingleEvent(_allowedStream1, 1, new string('.', 3000), eventId: Guid.NewGuid(),
+			eventType: "event-type-1", retryOnFail: true, token: token);
+		await WriteSingleEvent(disallowedStream, 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "event-type-2",
+			retryOnFail: true, token: token); //disallowed
+		await WriteSingleEvent(_allowedStream2, 1, new string('.', 3000), eventId: Guid.NewGuid(), eventType: "event-type-3",
+			retryOnFail: true, token: token); //allowed
 
 		_forwardReadPos = new TFPos(firstEvent.LogPosition, firstEvent.LogPosition);
 		_backwardReadPos = new TFPos(Writer.Position, Writer.Position);

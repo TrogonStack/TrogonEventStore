@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
@@ -11,7 +12,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_having_stream_with_truncatebefore_specified<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
 {
-	protected override DbResult CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "$$bla", metadata: new StreamMetadata(truncateBefore: 7)),
@@ -30,7 +31,7 @@ public class when_having_stream_with_truncatebefore_specified<TLogFormat, TStrea
 				Rec.Prepare(3, "bla"), // event 9
 				Rec.Commit(3, "bla"))
 			.CompleteLastChunk()
-			.CreateDb();
+			.CreateDb(token: token);
 	}
 
 	protected override ILogRecord[][] KeptRecords(DbResult dbResult)

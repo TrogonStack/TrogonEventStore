@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
@@ -22,12 +24,12 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 	private TFChunkDb _db;
 
 	[OneTimeSetUp]
-	public void SetUp()
+	public async Task SetUp()
 	{
 		_writerCheckpoint = new InMemoryCheckpoint();
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, _writerCheckpoint, new InMemoryCheckpoint(),
 			1024));
-		_db.Open();
+		await _db.Open();
 		_writer = new TFChunkWriter(_db);
 		_writer.Open();
 
@@ -49,16 +51,15 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 			eventType: eventTypeId,
 			data: new byte[] { 1, 2, 3, 4, 5 },
 			metadata: new byte[] { 7, 17 });
-		long newPos;
-		_writer.Write(_record, out newPos);
+		await _writer.Write(_record, CancellationToken.None);
 		_writer.Flush();
 	}
 
 	[OneTimeTearDown]
-	public void Teardown()
+	public async Task Teardown()
 	{
 		_writer.Close();
-		_db.Close();
+		await _db.DisposeAsync();
 	}
 
 	[Test]

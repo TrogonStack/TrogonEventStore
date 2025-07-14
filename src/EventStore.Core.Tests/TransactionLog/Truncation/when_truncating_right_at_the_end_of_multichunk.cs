@@ -35,11 +35,11 @@ public class when_truncating_right_at_the_end_of_multichunk : SpecificationWithD
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
-		using (var db = new TFChunkDb(_config))
+		await using (var db = new TFChunkDb(_config))
 		{
-			Assert.DoesNotThrow(() => db.Open(verifyHash: false));
+			Assert.DoesNotThrowAsync(async () => await db.Open(verifyHash: false));
 		}
 
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000000.000002")));
@@ -47,7 +47,7 @@ public class when_truncating_right_at_the_end_of_multichunk : SpecificationWithD
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000011.000000")));
 		Assert.AreEqual(3, Directory.GetFiles(PathName, "*").Length);
 
-		return base.TestFixtureTearDown();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

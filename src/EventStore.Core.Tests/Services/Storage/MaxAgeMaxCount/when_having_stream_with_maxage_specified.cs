@@ -11,7 +11,7 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	when_having_stream_with_maxage_specified<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenHavingStreamWithMaxageSpecified<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _r1;
 	private EventRecord _r2;
@@ -20,17 +20,17 @@ public class
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override void WriteTestScenario()
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
 	{
 		var now = DateTime.UtcNow;
 
-		var metadata = string.Format(@"{{""$maxAge"":{0}}}", (int)TimeSpan.FromMinutes(10).TotalSeconds);
-		_r1 = WriteStreamMetadata("ES", 0, metadata);
-		_r2 = WriteSingleEvent("ES", 0, "bla1", now.AddMinutes(-50));
-		_r3 = WriteSingleEvent("ES", 1, "bla1", now.AddMinutes(-20));
-		_r4 = WriteSingleEvent("ES", 2, "bla1", now.AddMinutes(-11));
-		_r5 = WriteSingleEvent("ES", 3, "bla1", now.AddMinutes(-5));
-		_r6 = WriteSingleEvent("ES", 4, "bla1", now.AddMinutes(-1));
+		var metadata = $@"{{""$maxAge"":{(int)TimeSpan.FromMinutes(10).TotalSeconds}}}";
+		_r1 = await WriteStreamMetadata("ES", 0, metadata, token: token);
+		_r2 = await WriteSingleEvent("ES", 0, "bla1", now.AddMinutes(-50), token: token);
+		_r3 = await WriteSingleEvent("ES", 1, "bla1", now.AddMinutes(-20), token: token);
+		_r4 = await WriteSingleEvent("ES", 2, "bla1", now.AddMinutes(-11), token: token);
+		_r5 = await WriteSingleEvent("ES", 3, "bla1", now.AddMinutes(-5), token: token);
+		_r6 = await WriteSingleEvent("ES", 4, "bla1", now.AddMinutes(-1), token: token);
 	}
 
 	[Test]
