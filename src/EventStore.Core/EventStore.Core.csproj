@@ -8,32 +8,32 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="EventStore.Plugins" Version="24.10.3" />
-		<PackageReference Include="Google.Protobuf" Version="3.27.2" />
-		<PackageReference Include="Grpc.AspNetCore" Version="2.64.0" />
-		<PackageReference Include="Grpc.Tools" Version="2.65.0">
+		<PackageReference Include="EventStore.Plugins" />
+		<PackageReference Include="Google.Protobuf" />
+		<PackageReference Include="Grpc.AspNetCore" />
+		<PackageReference Include="Grpc.Tools">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-		<PackageReference Include="librdkafka.redist" Version="2.5.3" />
-		<PackageReference Include="Microsoft.FASTER.Core" Version="1.9.16" />
-		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.4.0-rc.1" />
-		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.4.0-rc.1" />
-		<PackageReference Include="Quickenshtein" Version="1.5.1" />
-		<PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.1" />
-		<PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
-		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
-		<PackageReference Include="System.Net.Http" Version="4.3.4" />
-		<PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.621003" />
-		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.21" />
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.16" />
-		<PackageReference Include="DotNext" Version="5.22.0" />
-		<PackageReference Include="DotNext.IO" Version="5.22.0" />
-		<PackageReference Include="DotNext.Threading" Version="5.22.0" />
-		<PackageReference Include="DotNext.Unsafe" Version="5.22.0" />
-		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+		<PackageReference Include="JetBrains.Annotations" />
+		<PackageReference Include="librdkafka.redist" />
+		<PackageReference Include="Microsoft.FASTER.Core" />
+		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" VersionOverride="1.4.0-rc.1" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" VersionOverride="1.4.0-rc.1" />
+		<PackageReference Include="Quickenshtein" />
+		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
+		<PackageReference Include="System.IO.Pipelines" />
+		<PackageReference Include="System.Linq.Async" />
+		<PackageReference Include="System.Net.Http" />
+		<PackageReference Include="Microsoft.Diagnostics.NETCore.Client" />
+		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" />
+		<PackageReference Include="Microsoft.Data.Sqlite" />
+		<PackageReference Include="DotNext" />
+		<PackageReference Include="DotNext.IO" />
+		<PackageReference Include="DotNext.Threading" />
+		<PackageReference Include="DotNext.Unsafe" />
+		<PackageReference Include="System.Text.RegularExpressions" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />

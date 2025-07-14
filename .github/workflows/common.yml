@@ -29,12 +29,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          cache: true
-          cache-dependency-path: "**/packages.lock.json"
       - name: Scan for Vulnerabilities
         run: |
           cd src
-          dotnet restore --locked-mode
+          dotnet restore
           dotnet list package --vulnerable --include-transitive | tee vulnerabilities.txt
           ! cat vulnerabilities.txt | grep -q "has the following vulnerable packages"
   protolock:

@@ -11,9 +11,9 @@ WORKDIR /build/ci
 COPY ./ci ./
 
 WORKDIR /build/src
-COPY ./src/EventStore.sln ./src/*/*.csproj ./src/Directory.Build.* ./
+COPY ./src/EventStore.sln ./src/*/*.csproj ./src/Directory.Build.* ./src/Directory.Packages.* ./
 RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
-RUN dotnet restore --runtime=${RUNTIME} --locked-mode
+RUN dotnet restore --runtime=${RUNTIME}
 COPY ./src .
 
 WORKDIR /build/.git
