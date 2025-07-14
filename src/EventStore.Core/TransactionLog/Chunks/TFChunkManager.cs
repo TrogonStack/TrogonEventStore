@@ -302,9 +302,9 @@ public class TFChunkManager : IThreadPoolWorkItem
 				throw;
 			}
 
-			newChunk = TFChunk.TFChunk.FromCompletedFile(newFileName, verifyHash, _config.Unbuffered,
+			newChunk = await TFChunk.TFChunk.FromCompletedFile(newFileName, verifyHash, _config.Unbuffered,
 				_tracker, type => _transformManager.GetFactoryForExistingChunk(type),
-				_config.OptimizeReadSideCache, _config.ReduceFileCachePressure);
+				_config.OptimizeReadSideCache, _config.ReduceFileCachePressure, token: token);
 		}
 
 		bool triggerCaching;

@@ -20,7 +20,7 @@ public class WhenOpeningExistingTfchunk : SpecificationWithFilePerTestFixture
 		await base.TestFixtureSetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 		_chunk.Complete();
-		_testChunk = TFChunk.FromCompletedFile(Filename, true, false,
+		_testChunk = await TFChunk.FromCompletedFile(Filename, true, false,
 			reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
 			getTransformFactory: _ => new IdentityChunkTransformFactory());
 	}
