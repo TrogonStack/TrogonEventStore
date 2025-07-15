@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using EventStore.Core.Services.Archiver.Storage;
 using EventStore.Plugins;
 using EventStore.Plugins.Licensing;
 using Microsoft.AspNetCore.Builder;
@@ -9,7 +11,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Archiver;
 
-public class ArchiverService : IPlugableComponent {
+public class ArchiverService : IPlugableComponent
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<ArchiverService>();
 
 	public string Name => "Archiver";
@@ -24,14 +27,26 @@ public class ArchiverService : IPlugableComponent {
 
 	public string LicensePublicKey => LicenseConstants.LicensePublicKey;
 
-	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration) {
+	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
+	{
 		_ = LicenseMonitor.MonitorAsync(
 			featureName: Name,
-			requiredEntitlements: [],
+			requiredEntitlements: ["ARCHIVE"],
 			licenseService: builder.ApplicationServices.GetRequiredService<ILicenseService>(),
 			logger: builder.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger(GetType()));
+
+		var options = configuration.GetSection("EventStore:Archive").Get<ArchiverOptions>();
+		var storage = CreateStorage(options);
 	}
 
-	public void ConfigureServices(IServiceCollection services, IConfiguration configuration) {
-	}
+	public void ConfigureServices(IServiceCollection services, IConfiguration configuration) { }
+
+	static IArchiveStorage CreateStorage(ArchiverOptions options) =>
+		options.StorageType switch
+		{
+			StorageType.None => IArchiveStorage.None,
+			StorageType.FileSystem => new FileSystemArchiveStorage(options.FileSystem),
+			StorageType.S3 => new S3ArchiveStorage(options.S3),
+			_ => throw new InvalidOperationException(),
+		};
 }
