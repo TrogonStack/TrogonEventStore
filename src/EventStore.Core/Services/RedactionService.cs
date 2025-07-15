@@ -73,7 +73,7 @@ namespace EventStore.Core.Services {
 				var logPos = eventInfo.LogPosition;
 				var chunk = _db.Manager.GetChunkFor(logPos);
 				var localPosition = chunk.ChunkHeader.GetLocalLogPosition(logPos);
-				var chunkEventOffset = chunk.GetActualRawPosition(localPosition);
+				var chunkEventOffset = await chunk.GetActualRawPosition(localPosition, token);
 
 				// all the events returned by ReadEventInfo_KeepDuplicates() must exist in the log
 				// since the log record was read from the chunk to check for hash collisions.
