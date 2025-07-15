@@ -75,7 +75,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					return ValueTask.CompletedTask;
 				}
 
-				Log.Debug("Subscription {subscriptionId} to $all:{eventFilter} disposed.", _subscriptionId, _eventFilter);
+				Log.Verbose("Subscription {subscriptionId} to $all:{eventFilter} disposed.", _subscriptionId, _eventFilter);
 
 				_disposed = true;
 				Unsubscribe();
@@ -109,7 +109,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					Log.Verbose(
 						"Subscription {subscriptionId} to $all:{eventFilter} seen event {position}.",
 						_subscriptionId, _eventFilter, position);
-					
+
 					_currentPosition = position;
 				} else if (readResponse is ReadResponse.CheckpointReceived checkpointReceived) {
 					var checkpointPos = new Position(checkpointReceived.CommitPosition, checkpointReceived.PreparePosition);
@@ -151,7 +151,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 
 			private async Task MainLoop(Position? checkpointPosition, CancellationToken ct) {
 				try {
-					Log.Information("Subscription {subscriptionId} to $all:{eventFilter} has started at checkpoint {position}",
+					Log.Debug("Subscription {subscriptionId} to $all:{eventFilter} has started at checkpoint {position}",
 						_subscriptionId, _eventFilter, checkpointPosition?.ToString() ?? "Start");
 
 					var confirmationLastPos = await SubscribeToLive();
@@ -178,7 +178,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 							_subscriptionId, _eventFilter);
 					_channel.Writer.TryComplete(ex);
 				} finally {
-					Log.Information("Subscription {subscriptionId} to $all:{eventFilter} has ended.",
+					Log.Debug("Subscription {subscriptionId} to $all:{eventFilter} has ended.",
 						_subscriptionId, _eventFilter);
 				}
 			}
