@@ -255,7 +255,7 @@ namespace EventStore.Core.Index {
 				try {
 					Parallel.ForEach(
 						GetAllLines(reader)
-							.Reverse(), // Reverse so we load the highest levels (biggest files) first - ensures we use concurrency in the most efficient way. 
+							.Reverse(), // Reverse so we load the highest levels (biggest files) first - ensures we use concurrency in the most efficient way.
 						new ParallelOptions {MaxDegreeOfParallelism = threads},
 						indexMapEntry => {
 							if (checkpoints.PreparePosition < 0 || checkpoints.CommitPosition < 0)
@@ -489,9 +489,8 @@ namespace EventStore.Core.Index {
 			return new MergeResult(indexMap, toDelete, true, false);
 		}
 
-		public ScavengeResult Scavenge(Guid toScavenge, CancellationToken ct,
-			Func<IndexEntry, bool> shouldKeep,
-			IIndexFilenameProvider filenameProvider,
+		public async ValueTask<ScavengeResult> Scavenge(Guid toScavenge, CancellationToken ct,
+			Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
 			byte version,
 			int indexCacheDepth = 16,
 			bool skipIndexVerify = false,
@@ -502,16 +501,14 @@ namespace EventStore.Core.Index {
 			for (int level = 0; level < scavengedMap.Count; level++) {
 				for (int i = 0; i < scavengedMap[level].Count; i++) {
 					if (scavengedMap[level][i].Id == toScavenge) {
-						long spaceSaved;
 						var filename = filenameProvider.GetFilenameNewTable();
 						var oldTable = scavengedMap[level][i];
 
-						PTable scavenged = PTable.Scavenged(
+						var (scavenged, spaceSaved) = await PTable.Scavenged(
 							oldTable,
 							filename,
 							version,
 							shouldKeep,
-							out spaceSaved,
 							ESConsts.PTableInitialReaderCount,
 							_pTableMaxReaderCount,
 							indexCacheDepth,
@@ -520,7 +517,7 @@ namespace EventStore.Core.Index {
 							lruCacheSize,
 							ct);
 
-						if (scavenged == null) {
+						if (scavenged is null) {
 							return ScavengeResult.Failed(oldTable, level, i);
 						}
 

@@ -17,7 +17,7 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 namespace EventStore.Core.Authentication.InternalAuthentication;
 
 [PublicAPI]
-public class UserManagementService : 
+public class UserManagementService :
 	IHandle<UserManagementMessage.Get>,
 	IHandle<UserManagementMessage.GetAll>,
 	IHandle<UserManagementMessage.Create>,
@@ -31,7 +31,7 @@ public class UserManagementService :
 	IHandle<SystemMessage.BecomeFollower>,
 	IHandle<SystemMessage.BecomeReadOnlyReplica> {
 	static readonly ILogger Logger = Serilog.Log.ForContext<UserManagementService>();
-		
+
 	public const string UserUpdated = "$UserUpdated";
 	public const string PasswordChanged = "$PasswordChanged";
 	public const string UserPasswordNotificationsStreamId = "$users-password-notifications";
@@ -47,7 +47,7 @@ public class UserManagementService :
 
 	public UserManagementService(
 		IODispatcher ioDispatcher,
-		PasswordHashAlgorithm passwordHashAlgorithm, 
+		PasswordHashAlgorithm passwordHashAlgorithm,
 		bool skipInitializeStandardUsersCheck,
 		TaskCompletionSource<bool> tcs,
 		ClusterVNodeOptions.DefaultUserOptions defaultUserOptions
@@ -72,7 +72,7 @@ public class UserManagementService :
 
 		var userData = CreateUserData(message);
 		BeginReadUserDetails(message.LoginName, read => {
-			if (read.Events.Length > 0) {
+			if (read.Events.Count > 0) {
 				var data = read.Events[^1].Event.Data.ParseJson<UserData>();
 				if (VerifyPassword(message.Password, data)) {
 					ReplyUpdated(message);
@@ -136,14 +136,14 @@ public class UserManagementService :
 	public void Handle(UserManagementMessage.ChangePassword message) {
 		_passwordHashAlgorithm.Hash(message.NewPassword, out var hash, out var salt);
 		ReadUpdateWriteReply(
-			message, 
+			message,
 			data => {
 				if (_passwordHashAlgorithm.Verify(message.CurrentPassword, data.Hash, data.Salt))
 					return data.SetPassword(hash, salt);
 
 				ReplyUnauthorized(message);
 				return null;
-			}, 
+			},
 			resetPasswordCache: true
 		);
 	}
@@ -158,10 +158,10 @@ public class UserManagementService :
 			message,
 			(completed, _) =>
 				_ioDispatcher.DeleteStream(
-					$"$user-{message.LoginName}", 
-					completed.FromEventNumber, 
-					false, 
-					SystemAccounts.System, 
+					$"$user-{message.LoginName}",
+					completed.FromEventNumber,
+					false,
+					SystemAccounts.System,
 					streamCompleted => WritePasswordChangedEventConditionalAnd(message, true, () => ReplyByWriteResult(message, streamCompleted.Result))
 				)
 		);
@@ -170,7 +170,7 @@ public class UserManagementService :
 	public void Handle(UserManagementMessage.Get message) {
 		ReadUserDetailsAnd(
 			message, (completed, data) => {
-				if (completed.Result == ReadStreamResult.Success && completed.Events.Length == 1)
+				if (completed.Result == ReadStreamResult.Success && completed.Events.Count is 1)
 					message.Envelope.ReplyWith(
 						new UserManagementMessage.UserDetailsResult(
 							new UserManagementMessage.UserData(
@@ -223,10 +223,10 @@ public class UserManagementService :
 			_tcs.TrySetResult(true);
 	}
 
-	public void Handle(SystemMessage.BecomeFollower message) => 
+	public void Handle(SystemMessage.BecomeFollower message) =>
 		_tcs.TrySetResult(true);
 
-	public void Handle(SystemMessage.BecomeReadOnlyReplica message) => 
+	public void Handle(SystemMessage.BecomeReadOnlyReplica message) =>
 		_tcs.TrySetResult(true);
 
 	void NotifyInitialized() {
@@ -234,7 +234,7 @@ public class UserManagementService :
 		if (remainingUsers == 0) _tcs.TrySetResult(true);
 	}
 
-	UserData CreateUserData(UserManagementMessage.Create message) => 
+	UserData CreateUserData(UserManagementMessage.Create message) =>
 		CreateUserData(message.LoginName, message.FullName, message.Groups, message.Password);
 
 	UserData CreateUserData(string loginName, string fullName, string[] groups, string password) {
@@ -256,7 +256,7 @@ public class UserManagementService :
 						ReplyNotFound(message);
 						break;
 					case ReadStreamResult.Success:
-						if (completed.Events.Length == 0)
+						if (completed.Events is [])
 							ReplyNotFound(message);
 						else {
 							var data1 = completed.Events[0].Event.Data.ParseJson<UserData>();
@@ -271,7 +271,7 @@ public class UserManagementService :
 			});
 	}
 
-	void BeginReadUserDetails(string loginName, Action<ClientMessage.ReadStreamEventsBackwardCompleted> completed) => 
+	void BeginReadUserDetails(string loginName, Action<ClientMessage.ReadStreamEventsBackwardCompleted> completed) =>
 		_ioDispatcher.ReadBackward($"$user-{loginName}", -1, 1, false, SystemAccounts.System, completed);
 
 	void ReadUpdateWriteReply(UserManagementMessage.UserManagementRequestMessage message, Func<UserData, UserData> update, bool resetPasswordCache) {
@@ -295,12 +295,12 @@ public class UserManagementService :
 			);
 		else
 			onCompleted();
-		
+
 		return;
 
 		static void WritePasswordChangedEventCompleted(
-			UserManagementMessage.UserManagementRequestMessage message, 
-			ClientMessage.WriteEventsCompleted eventsCompleted, 
+			UserManagementMessage.UserManagementRequestMessage message,
+			ClientMessage.WriteEventsCompleted eventsCompleted,
 			Action onCompleted
 		) {
 			switch (eventsCompleted.Result) {
@@ -333,7 +333,7 @@ public class UserManagementService :
 		);
 	}
 
-	static Event CreatePasswordChangedEvent(string loginName) => 
+	static Event CreatePasswordChangedEvent(string loginName) =>
 		new(Guid.NewGuid(), PasswordChanged, true, new {LoginName = loginName}.ToJsonBytes(), null);
 
 	void ReadUpdateCheckAnd(UserManagementMessage.UserManagementRequestMessage message,
@@ -410,24 +410,24 @@ public class UserManagementService :
 		ReplyByWriteResult(message, completed.Result);
 	}
 
-	static void ReplyInternalError(UserManagementMessage.UserManagementRequestMessage message) => 
+	static void ReplyInternalError(UserManagementMessage.UserManagementRequestMessage message) =>
 		ReplyError(message, UserManagementMessage.Error.Error);
 
-	static void ReplyNotFound(UserManagementMessage.UserManagementRequestMessage message) => 
+	static void ReplyNotFound(UserManagementMessage.UserManagementRequestMessage message) =>
 		ReplyError(message, UserManagementMessage.Error.NotFound);
 
-	static void ReplyConflict(UserManagementMessage.UserManagementRequestMessage message) => 
+	static void ReplyConflict(UserManagementMessage.UserManagementRequestMessage message) =>
 		ReplyError(message, UserManagementMessage.Error.Conflict);
 
-	//NOTE: probably unauthorized iis not correct reply here.  
+	//NOTE: probably unauthorized iis not correct reply here.
 	// been converted to http 401 status code it will prompt for authorization
-	static void ReplyUnauthorized(UserManagementMessage.UserManagementRequestMessage message) => 
+	static void ReplyUnauthorized(UserManagementMessage.UserManagementRequestMessage message) =>
 		ReplyError(message, UserManagementMessage.Error.Unauthorized);
 
-	static void ReplyTryAgain(UserManagementMessage.UserManagementRequestMessage message) => 
+	static void ReplyTryAgain(UserManagementMessage.UserManagementRequestMessage message) =>
 		ReplyError(message, UserManagementMessage.Error.TryAgain);
 
-	static void ReplyUpdated(UserManagementMessage.UserManagementRequestMessage message) => 
+	static void ReplyUpdated(UserManagementMessage.UserManagementRequestMessage message) =>
 		message.Envelope.ReplyWith(new UserManagementMessage.UpdateResult(message.LoginName));
 
 	static void ReplyError(UserManagementMessage.UserManagementRequestMessage message, UserManagementMessage.Error error) {
@@ -460,12 +460,12 @@ public class UserManagementService :
 
 	void CreateAdminUser() {
 		var userData = CreateUserData(
-			SystemUsers.Admin, 
-			"Event Store Administrator", 
+			SystemUsers.Admin,
+			"Event Store Administrator",
 			[SystemRoles.Admins],
 			_defaultUserOptions.DefaultAdminPassword
 		);
-			
+
 		WriteStreamAcl(
 			SystemUsers.Admin, completed1 => {
 				switch (completed1.Result) {
@@ -511,12 +511,12 @@ public class UserManagementService :
 
 	void CreateOperationsUser() {
 		var userData = CreateUserData(
-			SystemUsers.Operations, 
-			"Event Store Operations", 
+			SystemUsers.Operations,
+			"Event Store Operations",
 			[SystemRoles.Operations],
 			_defaultUserOptions.DefaultOpsPassword
 		);
-			
+
 		WriteStreamAcl(
 			SystemUsers.Operations, completed1 => {
 				switch (completed1.Result) {
@@ -560,6 +560,6 @@ public class UserManagementService :
 			});
 	}
 
-	static bool IsAdmin(ClaimsPrincipal principal) => 
+	static bool IsAdmin(ClaimsPrincipal principal) =>
 		principal?.LegacyRoleCheck(SystemRoles.Admins) == true;
 }

@@ -705,7 +705,7 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 					{
 						case ReadStreamResult.Success:
 						case ReadStreamResult.NoStream:
-							if (completed.Events != null && completed.Events.Length > 0)
+							if (completed.Events is not null && completed.Events.Count > 0)
 								WriteEvents(streamId, expectedVersion, events, principal, action);
 							else
 								UpdateStreamAcl(

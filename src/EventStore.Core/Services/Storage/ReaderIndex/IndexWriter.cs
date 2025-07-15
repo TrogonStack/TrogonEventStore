@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
@@ -16,44 +17,40 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage.ReaderIndex;
 
-public interface IIndexWriter<TStreamId>
-{
+public interface IIndexWriter<TStreamId> {
 	long CachedTransInfo { get; }
 	long NotCachedTransInfo { get; }
 
 	void Reset();
-	CommitCheckResult<TStreamId> CheckCommitStartingAt(long transactionPosition, long commitPosition);
-
-	CommitCheckResult<TStreamId> CheckCommit(TStreamId streamId, long expectedVersion, IEnumerable<Guid> eventIds,
-		bool streamMightExist);
-
-	void PreCommit(CommitLogRecord commit);
+	ValueTask<CommitCheckResult<TStreamId>> CheckCommitStartingAt(long transactionPosition, long commitPosition, CancellationToken token);
+	ValueTask<CommitCheckResult<TStreamId>> CheckCommit(TStreamId streamId, long expectedVersion, IEnumerable<Guid> eventIds, bool streamMightExist, CancellationToken token);
+	ValueTask PreCommit(CommitLogRecord commit, CancellationToken token);
 	void PreCommit(ReadOnlySpan<IPrepareLogRecord<TStreamId>> commitedPrepares);
 	void UpdateTransactionInfo(long transactionId, long logPosition, TransactionInfo<TStreamId> transactionInfo);
-
-	ValueTask<TransactionInfo<TStreamId>> GetTransactionInfo(long writerCheckpoint, long transactionId,
-		CancellationToken token);
-
+	ValueTask<TransactionInfo<TStreamId>> GetTransactionInfo(long writerCheckpoint, long transactionId, CancellationToken token);
 	void PurgeNotProcessedCommitsTill(long checkpoint);
 	void PurgeNotProcessedTransactions(long checkpoint);
 
-	bool IsSoftDeleted(TStreamId streamId);
-	long GetStreamLastEventNumber(TStreamId streamId);
-	StreamMetadata GetStreamMetadata(TStreamId streamId);
-	RawMetaInfo GetStreamRawMeta(TStreamId streamId);
+	ValueTask<bool> IsSoftDeleted(TStreamId streamId, CancellationToken token);
+	ValueTask<long> GetStreamLastEventNumber(TStreamId streamId, CancellationToken token);
+	ValueTask<StreamMetadata> GetStreamMetadata(TStreamId streamId, CancellationToken token);
+	ValueTask<RawMetaInfo> GetStreamRawMeta(TStreamId streamId, CancellationToken token);
 
 	TStreamId GetStreamId(string streamName);
-	string GetStreamName(TStreamId streamId);
+	ValueTask<string> GetStreamName(TStreamId streamId, CancellationToken token);
 }
 
-public struct RawMetaInfo(long metaLastEventNumber, ReadOnlyMemory<byte> rawMeta)
-{
-	public readonly long MetaLastEventNumber = metaLastEventNumber;
-	public readonly ReadOnlyMemory<byte> RawMeta = rawMeta;
+public struct RawMetaInfo {
+	public readonly long MetaLastEventNumber;
+	public readonly ReadOnlyMemory<byte> RawMeta;
+
+	public RawMetaInfo(long metaLastEventNumber, ReadOnlyMemory<byte> rawMeta) {
+		MetaLastEventNumber = metaLastEventNumber;
+		RawMeta = rawMeta;
+	}
 }
 
-public abstract class IndexWriter
-{
+public abstract class IndexWriter {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<IndexWriter>();
 }
 
@@ -132,7 +129,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		_transactionInfoCache.Clear();
 	}
 
-	public CommitCheckResult<TStreamId> CheckCommitStartingAt(long transactionPosition, long commitPosition)
+	public async ValueTask<CommitCheckResult<TStreamId>> CheckCommitStartingAt(long transactionPosition,
+		long commitPosition, CancellationToken token)
 	{
 		TStreamId streamId;
 		long expectedVersion;
@@ -140,13 +138,12 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		{
 			try
 			{
-				var prepare = GetPrepare(reader, transactionPosition);
-				if (prepare == null)
+				if (await GetPrepare(reader, transactionPosition, token) is not { } prepare)
 				{
 					Log.Error("Could not read first prepare of to-be-committed transaction. "
 					          + "Transaction pos: {transactionPosition}, commit pos: {commitPosition}.",
 						transactionPosition, commitPosition);
-					var message = string.Format("Could not read first prepare of to-be-committed transaction. "
+					var message = String.Format("Could not read first prepare of to-be-committed transaction. "
 					                            + "Transaction pos: {0}, commit pos: {1}.",
 						transactionPosition, commitPosition);
 					throw new InvalidOperationException(message);
@@ -164,20 +161,22 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 		// we should skip prepares without data, as they don't mean anything for idempotency
 		// though we have to check deletes, otherwise they always will be considered idempotent :)
-		var eventIds = from prepare in GetTransactionPrepares(transactionPosition, commitPosition)
-			where prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete)
-			select prepare.EventId;
-		return CheckCommit(streamId, expectedVersion, eventIds, streamMightExist: true);
+		var eventIds = await GetTransactionPrepares(transactionPosition, commitPosition, token)
+			.Where(static prepare => prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
+			.Select(static prepare => prepare.EventId)
+			.ToListAsync(token);
+		return await CheckCommit(streamId, expectedVersion, eventIds, streamMightExist: true, token);
 	}
 
-	private static IPrepareLogRecord<TStreamId> GetPrepare(TFReaderLease reader, long logPosition)
+	private static async ValueTask<IPrepareLogRecord<TStreamId>> GetPrepare(TFReaderLease reader, long logPosition,
+		CancellationToken token)
 	{
-		RecordReadResult result = reader.TryReadAt(logPosition, couldBeScavenged: true);
+		RecordReadResult result = await reader.TryReadAt(logPosition, couldBeScavenged: true, token);
 		if (!result.Success)
 			return null;
 		if (result.LogRecord.RecordType != LogRecordType.Prepare)
-			throw new Exception(
-				$"Incorrect type of log record {result.LogRecord.RecordType}, expected Prepare record.");
+			throw new Exception(string.Format("Incorrect type of log record {0}, expected Prepare record.",
+				result.LogRecord.RecordType));
 		return (IPrepareLogRecord<TStreamId>)result.LogRecord;
 	}
 
@@ -192,8 +191,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		return new CommitCheckResult<TStreamId>(commitDecision, streamId, ExpectedVersion.NoStream, -1, -1, false);
 	}
 
-	public CommitCheckResult<TStreamId> CheckCommit(TStreamId streamId, long expectedVersion,
-		IEnumerable<Guid> eventIds, bool streamMightExist)
+	public async ValueTask<CommitCheckResult<TStreamId>> CheckCommit(TStreamId streamId, long expectedVersion,
+		IEnumerable<Guid> eventIds, bool streamMightExist, CancellationToken token)
 	{
 		if (!streamMightExist)
 		{
@@ -201,21 +200,21 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			return CheckCommitForNewStream(streamId, expectedVersion);
 		}
 
-		var curVersion = GetStreamLastEventNumber(streamId);
-		if (curVersion == EventNumber.DeletedStream)
+		var curVersion = await GetStreamLastEventNumber(streamId, token);
+		if (curVersion is EventNumber.DeletedStream)
 			return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, false);
-		if (curVersion == EventNumber.Invalid)
+		if (curVersion is EventNumber.Invalid)
 			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1, -1,
 				false);
 
-		if (expectedVersion == ExpectedVersion.StreamExists)
+		if (expectedVersion is ExpectedVersion.StreamExists)
 		{
-			if (IsSoftDeleted(streamId))
+			if (await IsSoftDeleted(streamId, token))
 				return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, true);
 
 			if (curVersion < 0)
 			{
-				var metadataVersion = GetStreamLastEventNumber(_systemStreams.MetaStreamOf(streamId));
+				var metadataVersion = await GetStreamLastEventNumber(_systemStreams.MetaStreamOf(streamId), token);
 				if (metadataVersion < 0)
 					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion,
 						-1, -1,
@@ -235,7 +234,7 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				    !StreamIdComparer.Equals(prepInfo.StreamId, streamId))
 					return new CommitCheckResult<TStreamId>(
 						first ? CommitDecision.Ok : CommitDecision.CorruptedIdempotency,
-						streamId, curVersion, -1, -1, first && IsSoftDeleted(streamId));
+						streamId, curVersion, -1, -1, first && await IsSoftDeleted(streamId, token));
 				if (first)
 					startEventNumber = prepInfo.EventNumber;
 				endEventNumber = prepInfo.EventNumber;
@@ -244,23 +243,25 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 			if (first) /*no data in transaction*/
 				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
-					IsSoftDeleted(streamId));
-
-			var isReplicated = _indexReader.GetStreamLastEventNumber(streamId) >= endEventNumber;
-			//TODO(clc): the new index should hold the log positions removing this read
-			//n.b. the index will never have the event in the case of NotReady as it only committed records are indexed
-			//in that case the position will need to come from the pre-index
-			var idempotentEvent =
-				_indexReader.ReadEvent(IndexReader.UnspecifiedStreamName, streamId, endEventNumber);
-			var logPos = idempotentEvent.Result == ReadEventResult.Success
-				? idempotentEvent.Record.LogPosition
-				: -1;
-			if (isReplicated)
-				return new CommitCheckResult<TStreamId>(CommitDecision.Idempotent, streamId, curVersion,
-					startEventNumber, endEventNumber, false, logPos);
-
-			return new CommitCheckResult<TStreamId>(CommitDecision.IdempotentNotReady, streamId, curVersion,
-				startEventNumber, endEventNumber, false, logPos);
+					await IsSoftDeleted(streamId, token));
+			else
+			{
+				var isReplicated = await _indexReader.GetStreamLastEventNumber(streamId, token) >= endEventNumber;
+				//TODO(clc): the new index should hold the log positions removing this read
+				//n.b. the index will never have the event in the case of NotReady as it only committed records are indexed
+				//in that case the position will need to come from the pre-index
+				var idempotentEvent = await _indexReader.ReadEvent(IndexReader.UnspecifiedStreamName, streamId,
+					endEventNumber, token);
+				var logPos = idempotentEvent.Result == ReadEventResult.Success
+					? idempotentEvent.Record.LogPosition
+					: -1;
+				if (isReplicated)
+					return new CommitCheckResult<TStreamId>(CommitDecision.Idempotent, streamId, curVersion,
+						startEventNumber, endEventNumber, false, logPos);
+				else
+					return new CommitCheckResult<TStreamId>(CommitDecision.IdempotentNotReady, streamId, curVersion,
+						startEventNumber, endEventNumber, false, logPos);
+			}
 		}
 
 		if (expectedVersion < curVersion)
@@ -275,44 +276,41 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				    && prepInfo.EventNumber == eventNumber)
 					continue;
 
-				var res = _indexReader.ReadPrepare(streamId, eventNumber);
-				if (res != null && res.EventId == eventId)
+				if (await _indexReader.ReadPrepare(streamId, eventNumber, token) is { } res && res.EventId == eventId)
 					continue;
 
 				var first = eventNumber == expectedVersion + 1;
 				if (!first)
-					return new CommitCheckResult<TStreamId>(CommitDecision.CorruptedIdempotency, streamId, curVersion,
+					return new(CommitDecision.CorruptedIdempotency, streamId, curVersion,
 						-1, -1,
 						false);
 
-				if (expectedVersion == ExpectedVersion.NoStream && IsSoftDeleted(streamId))
-					return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
+				if (expectedVersion is ExpectedVersion.NoStream && await IsSoftDeleted(streamId, token))
+					return new(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
 
-				return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
+				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
 					-1,
 					false);
 			}
 
 			if (eventNumber == expectedVersion) /* no data in transaction */
-				return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
+				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
 					-1, false);
-			else
-			{
-				var isReplicated = _indexReader.GetStreamLastEventNumber(streamId) >= eventNumber;
-				//TODO(clc): the new index should hold the log positions removing this read
-				//n.b. the index will never have the event in the case of NotReady as it only committed records are indexed
-				//in that case the position will need to come from the pre-index
-				var idempotentEvent = _indexReader.ReadEvent(IndexReader.UnspecifiedStreamName, streamId, eventNumber);
-				var logPos = idempotentEvent.Result == ReadEventResult.Success
-					? idempotentEvent.Record.LogPosition
-					: -1;
-				if (isReplicated)
-					return new CommitCheckResult<TStreamId>(CommitDecision.Idempotent, streamId, curVersion,
-						expectedVersion + 1, eventNumber, false, logPos);
-				else
-					return new CommitCheckResult<TStreamId>(CommitDecision.IdempotentNotReady, streamId, curVersion,
-						expectedVersion + 1, eventNumber, false, logPos);
-			}
+
+			var isReplicated = await _indexReader.GetStreamLastEventNumber(streamId, token) >= eventNumber;
+			//TODO(clc): the new index should hold the log positions removing this read
+			//n.b. the index will never have the event in the case of NotReady as it only committed records are indexed
+			//in that case the position will need to come from the pre-index
+			var idempotentEvent =
+				await _indexReader.ReadEvent(IndexReader.UnspecifiedStreamName, streamId, eventNumber, token);
+			var logPos = idempotentEvent.Result == ReadEventResult.Success
+				? idempotentEvent.Record.LogPosition
+				: -1;
+
+			return new(
+				isReplicated ? CommitDecision.Idempotent : CommitDecision.IdempotentNotReady, streamId,
+				curVersion,
+				expectedVersion + 1, eventNumber, false, logPos);
 		}
 
 		if (expectedVersion > curVersion)
@@ -321,16 +319,16 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 		// expectedVersion == currentVersion
 		return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
-			IsSoftDeleted(streamId));
+			await IsSoftDeleted(streamId, token));
 	}
 
-	public void PreCommit(CommitLogRecord commit)
+	public async ValueTask PreCommit(CommitLogRecord commit, CancellationToken token)
 	{
 		TStreamId streamId = default;
 		long eventNumber = EventNumber.Invalid;
 		IPrepareLogRecord<TStreamId> lastPrepare = null;
 
-		foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition))
+		await foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition, token))
 		{
 			if (prepare.Flags.HasNoneOf(PrepareFlags.StreamDelete | PrepareFlags.Data))
 				continue;
@@ -339,7 +337,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				streamId = prepare.EventStreamId;
 
 			if (!StreamIdComparer.Equals(prepare.EventStreamId, streamId))
-				throw new Exception($"Expected stream: {streamId}, actual: {prepare.EventStreamId}.");
+				throw new Exception(string.Format("Expected stream: {0}, actual: {1}.", streamId,
+					prepare.EventStreamId));
 
 			eventNumber = prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete)
 				? EventNumber.DeletedStream
@@ -352,9 +351,11 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		if (eventNumber != EventNumber.Invalid)
 			_streamVersions.Put(streamId, eventNumber, +1);
 
-		if (lastPrepare == null || !_systemStreams.IsMetaStream(streamId)) return;
-		var rawMeta = lastPrepare.Data;
-		_streamRawMetas.Put(_systemStreams.OriginalStreamOf(streamId), new StreamMeta(rawMeta, null), +1);
+		if (lastPrepare != null && _systemStreams.IsMetaStream(streamId))
+		{
+			var rawMeta = lastPrepare.Data;
+			_streamRawMetas.Put(_systemStreams.OriginalStreamOf(streamId), new StreamMeta(rawMeta, null), +1);
+		}
 	}
 
 	public void PreCommit(ReadOnlySpan<IPrepareLogRecord<TStreamId>> commitedPrepares)
@@ -371,7 +372,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				continue;
 
 			if (!StreamIdComparer.Equals(prepare.EventStreamId, streamId))
-				throw new Exception($"Expected stream: {streamId}, actual: {prepare.EventStreamId}.");
+				throw new Exception(string.Format("Expected stream: {0}, actual: {1}.", streamId,
+					prepare.EventStreamId));
 
 			eventNumber =
 				prepare.ExpectedVersion + 1; /* for committed prepare expected version is always explicit */
@@ -381,9 +383,11 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 		_notProcessedCommits.Enqueue(new CommitInfo(streamId, lastPrepare.LogPosition));
 		_streamVersions.Put(streamId, eventNumber, 1);
-		if (!_systemStreams.IsMetaStream(streamId)) return;
-		var rawMeta = lastPrepare.Data;
-		_streamRawMetas.Put(_systemStreams.OriginalStreamOf(streamId), new StreamMeta(rawMeta, null), +1);
+		if (_systemStreams.IsMetaStream(streamId))
+		{
+			var rawMeta = lastPrepare.Data;
+			_streamRawMetas.Put(_systemStreams.OriginalStreamOf(streamId), new StreamMeta(rawMeta, null), +1);
+		}
 	}
 
 	public void UpdateTransactionInfo(long transactionId, long logPosition, TransactionInfo<TStreamId> transactionInfo)
@@ -395,13 +399,15 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 	public async ValueTask<TransactionInfo<TStreamId>> GetTransactionInfo(long writerCheckpoint, long transactionId,
 		CancellationToken token)
 	{
-		if (!_transactionInfoCache.TryGet(transactionId, out var transactionInfo))
+		TransactionInfo<TStreamId> transactionInfo;
+		if (!_transactionInfoCache.TryGet(transactionId, out transactionInfo))
 		{
 			(var result, transactionInfo) = await GetTransactionInfoUncached(writerCheckpoint, transactionId, token);
 			if (result)
 				_transactionInfoCache.Put(transactionId, transactionInfo, 0);
 			else
 				transactionInfo = new TransactionInfo<TStreamId>(int.MinValue, default);
+
 			Interlocked.Increment(ref _notCachedTransInfo);
 		}
 		else
@@ -445,15 +451,26 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			// decrease stickiness
 			_streamVersions.Put(
 				commitInfo.StreamId,
-				x => throw new Exception($"CommitInfo for stream '{x}' is not present!"),
+				x =>
+				{
+					if (!Debugger.IsAttached) Debugger.Launch();
+					else Debugger.Break();
+					throw new Exception(string.Format("CommitInfo for stream '{0}' is not present!", x));
+				},
 				(streamId, oldVersion) => oldVersion,
 				stickiness: -1);
 			if (_systemStreams.IsMetaStream(commitInfo.StreamId))
 			{
 				_streamRawMetas.Put(
 					_systemStreams.OriginalStreamOf(commitInfo.StreamId),
-					x => throw new Exception(
-						$"Original stream CommitInfo for meta-stream '{_systemStreams.MetaStreamOf(x)}' is not present!"),
+					x =>
+					{
+						if (!Debugger.IsAttached) Debugger.Launch();
+						else Debugger.Break();
+						throw new Exception(string.Format(
+							"Original stream CommitInfo for meta-stream '{0}' is not present!",
+							_systemStreams.MetaStreamOf(x)));
+					},
 					(streamId, oldVersion) => oldVersion,
 					stickiness: -1);
 			}
@@ -468,91 +485,130 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			// decrease stickiness
 			_transactionInfoCache.Put(
 				transInfo.TransactionId,
-				x => throw new Exception($"TransInfo for transaction ID {x} is not present!"),
+				x => { throw new Exception(string.Format("TransInfo for transaction ID {0} is not present!", x)); },
 				(streamId, oldTransInfo) => oldTransInfo,
 				stickiness: -1);
 		}
 	}
 
-	private IEnumerable<IPrepareLogRecord<TStreamId>> GetTransactionPrepares(long transactionPos, long commitPos)
+	private async IAsyncEnumerable<IPrepareLogRecord<TStreamId>> GetTransactionPrepares(long transactionPos,
+		long commitPos, [EnumeratorCancellation] CancellationToken token)
 	{
 		using var reader = _indexBackend.BorrowReader();
 		reader.Reposition(transactionPos);
 
 		// in case all prepares were scavenged, we should not read past Commit LogPosition
 		SeqReadResult result;
-		while ((result = reader.TryReadNext()).Success && result.RecordPrePosition <= commitPos)
+		while ((result = await reader.TryReadNext(token)).Success && result.RecordPrePosition <= commitPos)
 		{
-			if (result.LogRecord.RecordType != LogRecordType.Prepare)
+			if (result.LogRecord.RecordType is not LogRecordType.Prepare)
 				continue;
 
 			var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
-			if (prepare.TransactionPosition != transactionPos) continue;
-			yield return prepare;
-			if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
-				yield break;
+			if (prepare.TransactionPosition == transactionPos)
+			{
+				yield return prepare;
+				if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
+					yield break;
+			}
 		}
 	}
 
-	public TStreamId GetStreamId(string streamName) =>
-		_streamIds.LookupValue(streamName);
+	public TStreamId GetStreamId(string streamName)
+	{
+		return _streamIds.LookupValue(streamName);
+	}
 
-	public string GetStreamName(TStreamId streamId) =>
-		_streamNames.LookupName(streamId);
+	public ValueTask<string> GetStreamName(TStreamId streamId, CancellationToken token)
+	{
+		return _streamNames.LookupName(streamId, token);
+	}
 
-	public bool IsSoftDeleted(TStreamId streamId) =>
-		GetStreamMetadata(streamId).TruncateBefore == EventNumber.DeletedStream;
+	public async ValueTask<bool> IsSoftDeleted(TStreamId streamId, CancellationToken token)
+	{
+		return (await GetStreamMetadata(streamId, token)).TruncateBefore is EventNumber.DeletedStream;
+	}
 
-	public long GetStreamLastEventNumber(TStreamId streamId)
+	public ValueTask<long> GetStreamLastEventNumber(TStreamId streamId, CancellationToken token)
 	{
 		return _streamVersions.TryGet(streamId, out var lastEventNumber)
-			? lastEventNumber
-			: _indexReader.GetStreamLastEventNumber(streamId);
+			? new(lastEventNumber)
+			: _indexReader.GetStreamLastEventNumber(streamId, token);
 	}
 
-	public StreamMetadata GetStreamMetadata(TStreamId streamId)
+	public ValueTask<StreamMetadata> GetStreamMetadata(TStreamId streamId, CancellationToken token)
 	{
-		if (!_streamRawMetas.TryGet(streamId, out var meta)) return _indexReader.GetStreamMetadata(streamId);
-		if (meta.Meta != null)
-			return meta.Meta;
-		var m = Helper.EatException(() => StreamMetadata.FromJsonBytes(meta.RawMeta), StreamMetadata.Empty);
-		_streamRawMetas.Put(streamId, new StreamMeta(meta.RawMeta, m), 0);
-		return m;
+		if (_streamRawMetas.TryGet(streamId, out var meta))
+		{
+			if (meta.Meta is not null)
+				return new(meta.Meta);
+
+			var m = Helper.EatException(() => StreamMetadata.FromJsonBytes(meta.RawMeta), StreamMetadata.Empty);
+			_streamRawMetas.Put(streamId, new StreamMeta(meta.RawMeta, m), 0);
+			return new(m);
+		}
+
+		return _indexReader.GetStreamMetadata(streamId, token);
 	}
 
-	public RawMetaInfo GetStreamRawMeta(TStreamId streamId)
+	public async ValueTask<RawMetaInfo> GetStreamRawMeta(TStreamId streamId, CancellationToken token)
 	{
 		var metastreamId = _systemStreams.MetaStreamOf(streamId);
-		var metaLastEventNumber = GetStreamLastEventNumber(metastreamId);
+		var metaLastEventNumber = await GetStreamLastEventNumber(metastreamId, token);
 
 		StreamMeta meta;
 		if (!_streamRawMetas.TryGet(streamId, out meta))
-			meta = new StreamMeta(_indexReader.ReadPrepare(metastreamId, metaLastEventNumber).Data, null);
+			meta = new StreamMeta((await _indexReader.ReadPrepare(metastreamId, metaLastEventNumber, token)).Data,
+				null);
 
-		return new RawMetaInfo(metaLastEventNumber, meta.RawMeta);
+		return new(metaLastEventNumber, meta.RawMeta);
 	}
 
-	private struct StreamMeta(ReadOnlyMemory<byte> rawMeta, StreamMetadata meta)
+	private struct StreamMeta
 	{
-		public readonly ReadOnlyMemory<byte> RawMeta = rawMeta;
-		public readonly StreamMetadata Meta = meta;
+		public readonly ReadOnlyMemory<byte> RawMeta;
+		public readonly StreamMetadata Meta;
+
+		public StreamMeta(ReadOnlyMemory<byte> rawMeta, StreamMetadata meta)
+		{
+			RawMeta = rawMeta;
+			Meta = meta;
+		}
 	}
 
-	private struct EventInfo(TStreamId streamId, long eventNumber)
+	private struct EventInfo
 	{
-		public readonly TStreamId StreamId = streamId;
-		public readonly long EventNumber = eventNumber;
+		public readonly TStreamId StreamId;
+		public readonly long EventNumber;
+
+		public EventInfo(TStreamId streamId, long eventNumber)
+		{
+			StreamId = streamId;
+			EventNumber = eventNumber;
+		}
 	}
 
-	private struct TransInfo(long transactionId, long logPosition)
+	private struct TransInfo
 	{
-		public readonly long TransactionId = transactionId;
-		public readonly long LogPosition = logPosition;
+		public readonly long TransactionId;
+		public readonly long LogPosition;
+
+		public TransInfo(long transactionId, long logPosition)
+		{
+			TransactionId = transactionId;
+			LogPosition = logPosition;
+		}
 	}
 
-	private struct CommitInfo(TStreamId streamId, long logPosition)
+	private struct CommitInfo
 	{
-		public readonly TStreamId StreamId = streamId;
-		public readonly long LogPosition = logPosition;
+		public readonly TStreamId StreamId;
+		public readonly long LogPosition;
+
+		public CommitInfo(TStreamId streamId, long logPosition)
+		{
+			StreamId = streamId;
+			LogPosition = logPosition;
+		}
 	}
 }

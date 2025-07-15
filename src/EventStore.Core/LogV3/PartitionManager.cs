@@ -24,14 +24,13 @@ public class PartitionManager(
 	public Guid? RootId { get; private set; }
 	public Guid? RootTypeId { get; private set; }
 
-	public ValueTask Initialize(CancellationToken token)
+	public async ValueTask Initialize(CancellationToken token)
 	{
 		if (RootId.HasValue)
-			return ValueTask.CompletedTask;
+			return;
 
-		ReadRootPartition();
-
-		return EnsureRootPartitionIsWritten(token);
+		await ReadRootPartition(token);
+		await EnsureRootPartitionIsWritten(token);
 	}
 
 	private async ValueTask EnsureRootPartitionIsWritten(CancellationToken token)
@@ -81,11 +80,11 @@ public class PartitionManager(
 		}
 	}
 
-	private void ReadRootPartition()
+	private async ValueTask ReadRootPartition(CancellationToken token)
 	{
 		SeqReadResult result;
 		reader.Reposition(0);
-		while ((result = reader.TryReadNext()).Success)
+		while ((result = await reader.TryReadNext(token)).Success)
 		{
 			var rec = result.LogRecord;
 			switch (rec.RecordType)

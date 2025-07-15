@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -33,9 +35,9 @@ public class PersistentSubscriptionService<TStreamId> :
 	IHandle<ClientMessage.ReplayParkedMessages>,
 	IHandle<ClientMessage.ReplayParkedMessage>,
 	IHandle<SystemMessage.StateChangeMessage>,
-	IHandle<ClientMessage.ConnectToPersistentSubscriptionToStream>,
-	IHandle<ClientMessage.ConnectToPersistentSubscriptionToAll>,
-	IHandle<StorageMessage.EventCommitted>,
+	IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToStream>,
+	IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToAll>,
+	IAsyncHandle<StorageMessage.EventCommitted>,
 	IHandle<ClientMessage.UnsubscribeFromStream>,
 	IHandle<ClientMessage.PersistentSubscriptionAckEvents>,
 	IHandle<ClientMessage.PersistentSubscriptionNackEvents>,
@@ -1044,7 +1046,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	public void ConnectToPersistentSubscription(
+	public async ValueTask ConnectToPersistentSubscription(
 		IPersistentSubscriptionEventSource eventSource,
 		string groupName,
 		int allowedInFlightMessages,
@@ -1053,13 +1055,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		string from,
 		Guid correlationId,
 		IEnvelope envelope,
-		string user)
+		string user,
+		CancellationToken token)
 	{
 		if (!_started) return;
 
 		var stream = eventSource.ToString();
-		List<PersistentSubscription> subscribers;
-		if (!_subscriptionTopics.TryGetValue(stream, out subscribers))
+		if (!_subscriptionTopics.TryGetValue(stream, out _))
 		{
 			envelope.ReplyWith(new ClientMessage.SubscriptionDropped(correlationId,
 				SubscriptionDropReason.NotFound));
@@ -1086,7 +1088,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		if (eventSource.FromStream)
 		{
 			var streamId = _readIndex.GetStreamId(eventSource.EventStreamId);
-			lastEventNumber = _readIndex.GetStreamLastEventNumber(streamId);
+			lastEventNumber = await _readIndex.GetStreamLastEventNumber(streamId, token);
 		}
 
 		var lastCommitPos = _readIndex.LastIndexedPosition;
@@ -1099,9 +1101,9 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	}
 
-	public void Handle(ClientMessage.ConnectToPersistentSubscriptionToStream message)
+	ValueTask IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToStream>.HandleAsync(ClientMessage.ConnectToPersistentSubscriptionToStream message, CancellationToken token)
 	{
-		ConnectToPersistentSubscription(
+		return ConnectToPersistentSubscription(
 			new PersistentSubscriptionSingleStreamEventSource(message.EventStreamId),
 			message.GroupName,
 			message.AllowedInFlightMessages,
@@ -1110,12 +1112,13 @@ public class PersistentSubscriptionService<TStreamId> :
 			message.From,
 			message.CorrelationId,
 			message.Envelope,
-			message.User?.Identity?.Name);
+			message.User?.Identity?.Name,
+			token);
 	}
 
-	public void Handle(ClientMessage.ConnectToPersistentSubscriptionToAll message)
+	ValueTask IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToAll>.HandleAsync(ClientMessage.ConnectToPersistentSubscriptionToAll message, CancellationToken token)
 	{
-		ConnectToPersistentSubscription(
+		return ConnectToPersistentSubscription(
 			new PersistentSubscriptionAllStreamEventSource(),
 			message.GroupName,
 			message.AllowedInFlightMessages,
@@ -1124,7 +1127,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			message.From,
 			message.CorrelationId,
 			message.Envelope,
-			message.User?.Identity?.Name);
+			message.User?.Identity?.Name, token);
 	}
 
 	private static string BuildSubscriptionGroupKey(string stream, string groupName)
@@ -1132,13 +1135,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		return stream + "::" + groupName;
 	}
 
-	public void Handle(StorageMessage.EventCommitted message)
-	{
-		if (!_started) return;
-		ProcessEventCommited(message.Event.EventStreamId, message.CommitPosition, message.Event);
+	ValueTask IAsyncHandle<StorageMessage.EventCommitted>.HandleAsync(StorageMessage.EventCommitted message, CancellationToken token) {
+		return _started
+			? ProcessEventCommited(message.Event.EventStreamId, message.CommitPosition, message.Event, token)
+			: ValueTask.CompletedTask;
 	}
 
-	private void ProcessEventCommited(string eventStreamId, long commitPosition, EventRecord evnt)
+	private async ValueTask ProcessEventCommited(string eventStreamId, long commitPosition, EventRecord evnt, CancellationToken token)
 	{
 		var subscriptions = new List<PersistentSubscription>();
 		if (EventFilter.DefaultStreamFilter.IsEventAllowed(evnt)
@@ -1158,14 +1161,14 @@ public class PersistentSubscriptionService<TStreamId> :
 			var subscr = subscriptions[i];
 			var pair = ResolvedEvent.ForUnresolvedEvent(evnt, commitPosition);
 			if (subscr.ResolveLinkTos)
-				pair = ResolveLinkToEvent(evnt, commitPosition); //TODO this can be cached
+				pair = await ResolveLinkToEvent(evnt, commitPosition, token);  //TODO this can be cached
 			subscr.NotifyLiveSubscriptionMessage(pair);
 		}
 	}
 
-	private ResolvedEvent ResolveLinkToEvent(EventRecord eventRecord, long commitPosition)
+	private async ValueTask<ResolvedEvent> ResolveLinkToEvent(EventRecord eventRecord, long commitPosition, CancellationToken token)
 	{
-		if (eventRecord.EventType == SystemEventTypes.LinkTo)
+		if (eventRecord.EventType is SystemEventTypes.LinkTo)
 		{
 			try
 			{
@@ -1173,8 +1176,8 @@ public class PersistentSubscriptionService<TStreamId> :
 				long eventNumber = long.Parse(parts[0]);
 				string streamName = parts[1];
 				var streamId = _readIndex.GetStreamId(streamName);
-				var res = _readIndex.ReadEvent(streamName, streamId, eventNumber);
-				if (res.Result == ReadEventResult.Success)
+				var res = await _readIndex.ReadEvent(streamName, streamId, eventNumber, token);
+				if (res.Result is ReadEventResult.Success)
 					return ResolvedEvent.ForResolvedLink(res.Record, eventRecord, commitPosition);
 
 				return ResolvedEvent.ForFailedResolvedLink(eventRecord, res.Result, commitPosition);
