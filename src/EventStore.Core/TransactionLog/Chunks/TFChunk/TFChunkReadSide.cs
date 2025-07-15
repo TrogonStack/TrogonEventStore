@@ -186,7 +186,7 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk {
 						return null;
 
 					// want midpoints but don't have them, get them. synchronization is ok here because rare
-					_midpoints = PopulateMidpoints(Chunk.MidpointsDepth, workItem);
+					_midpoints = PopulateMidpoints(Chunk._midpointsDepth, workItem);
 					return _midpoints;
 				}
 			}
