@@ -165,6 +165,7 @@ class FakeWriter : ITransactionFileWriter
 
 	public void Open() { }
 	public bool CanWrite(int numBytes) => true;
+
 	public ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token)
 	{
 		WrittenRecords.Add(record);
@@ -181,14 +182,13 @@ class FakeWriter : ITransactionFileWriter
 
 	public bool HasOpenTransaction() => throw new NotImplementedException();
 
-	public void Flush()
+	public ValueTask Flush(CancellationToken token)
 	{
 		IsFlushed = true;
+		return ValueTask.CompletedTask;
 	}
 
-	public void Close() { }
-
-	public void Dispose() { }
+	public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 class FakeReader : ITransactionFileReader
@@ -235,17 +235,21 @@ class FakeReader : ITransactionFileReader
 
 	public void Reposition(long position) => _resultIndex = (int)position;
 
-	public SeqReadResult TryReadNext()
+	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token)
 	{
 		_readCount++;
 
-		return _resultIndex < _results.Count ? _results[_resultIndex++] : SeqReadResult.Failure;
+		return new ValueTask<SeqReadResult>(_resultIndex < _results.Count
+			? _results[_resultIndex++]
+			: SeqReadResult.Failure);
 	}
 
 	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
 		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
-	public RecordReadResult TryReadAt(long position, bool couldBeScavenged) => throw new NotImplementedException();
+	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
+		=> ValueTask.FromException<RecordReadResult>(new NotImplementedException());
 
-	public bool ExistsAt(long position) => true;
+	public ValueTask<bool> ExistsAt(long position, CancellationToken token)
+		=> new(true);
 }

@@ -33,8 +33,8 @@ public class when_uncaching_a_tfchunk<TLogFormat, TStreamId> : SpecificationWith
 			PrepareFlags.None, eventTypeId, new byte[12], new byte[15], new DateTime(2000, 1, 1, 12, 0, 0));
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 		_result = _chunk.TryAppend(_record);
-		_chunk.Flush();
-		_chunk.Complete();
+		await _chunk.Flush(CancellationToken.None);
+		await _chunk.Complete(CancellationToken.None);
 		_uncachedChunk = await TFChunk.FromCompletedFile(Filename, verifyHash: true, unbufferedRead: false,
 			reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
 			getTransformFactory: _ => new IdentityChunkTransformFactory());
@@ -77,9 +77,9 @@ public class when_uncaching_a_tfchunk<TLogFormat, TStreamId> : SpecificationWith
 	}
 
 	[Test]
-	public void the_record_can_be_read()
+	public async Task the_record_can_be_read()
 	{
-		var res = _uncachedChunk.TryReadAt(0, couldBeScavenged: true);
+		var res = await _uncachedChunk.TryReadAt(0, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_record, res.LogRecord);
 		Assert.AreEqual(_result.OldPosition, res.LogRecord.LogPosition);

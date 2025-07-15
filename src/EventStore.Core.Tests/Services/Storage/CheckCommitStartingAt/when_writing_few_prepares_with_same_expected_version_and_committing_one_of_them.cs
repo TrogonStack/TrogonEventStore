@@ -9,7 +9,8 @@ namespace EventStore.Core.Tests.Services.Storage.CheckCommitStartingAt;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class
-	WhenWritingFewPreparesWithSameExpectedVersionAndCommittingOneOfThem<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	WhenWritingFewPreparesWithSameExpectedVersionAndCommittingOneOfThem<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	TLogFormat, TStreamId>
 {
 	private IPrepareLogRecord _prepare0;
 	private IPrepareLogRecord _prepare1;
@@ -24,10 +25,10 @@ public class
 	}
 
 	[Test]
-	public void other_prepares_cannot_be_committed()
+	public async Task other_prepares_cannot_be_committed()
 	{
-		var res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare0.LogPosition,
-			WriterCheckpoint.ReadNonFlushed());
+		var res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare0.LogPosition,
+			WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.WrongExpectedVersion, res.Decision);
 		Assert.AreEqual("ES", res.EventStreamId);
@@ -35,7 +36,8 @@ public class
 		Assert.AreEqual(-1, res.StartEventNumber);
 		Assert.AreEqual(-1, res.EndEventNumber);
 
-		res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare2.LogPosition, WriterCheckpoint.ReadNonFlushed());
+		res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare2.LogPosition,
+			WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.WrongExpectedVersion, res.Decision);
 		Assert.AreEqual("ES", res.EventStreamId);

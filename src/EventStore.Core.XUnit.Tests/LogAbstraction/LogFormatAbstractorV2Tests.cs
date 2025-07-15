@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -32,16 +34,16 @@ public class LogFormatAbstractorV2Tests :
 	}
 
 	[Fact]
-	public void can_init()
+	public async Task can_init()
 	{
-		_sut.StreamExistenceFilter.Initialize(new MockExistenceFilterInitializer("1"), 0);
+		await _sut.StreamExistenceFilter.Initialize(new MockExistenceFilterInitializer("1"), 0, CancellationToken.None);
 		Assert.True(_sut.StreamExistenceFilterReader.MightContain("1"));
 	}
 
 	[Fact]
-	public void can_confirm()
+	public async Task can_confirm()
 	{
-		_sut.StreamExistenceFilter.Initialize(new MockExistenceFilterInitializer(), 0);
+		await _sut.StreamExistenceFilter.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
 
 		var prepare = LogRecord.SingleWrite(
 			factory: _sut.RecordFactory,

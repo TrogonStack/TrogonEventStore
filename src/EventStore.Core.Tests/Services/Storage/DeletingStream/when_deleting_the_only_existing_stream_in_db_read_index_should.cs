@@ -16,20 +16,20 @@ public class WhenDeletingTheOnlyExistingStreamInDbReadIndexShould<TLogFormat, TS
 	}
 
 	[Test]
-	public void indicate_that_stream_is_deleted()
+	public async Task indicate_that_stream_is_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("ES"));
+		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void indicate_that_nonexisting_stream_with_same_hash_is_not_deleted()
+	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("ZZ"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("ZZ", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public void indicate_that_nonexisting_stream_with_different_hash_is_not_deleted()
+	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("XXX"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("XXX", CancellationToken.None), Is.False);
 	}
 }

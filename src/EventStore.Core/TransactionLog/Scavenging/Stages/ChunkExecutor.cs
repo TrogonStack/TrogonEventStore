@@ -224,11 +224,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 							discardedCount++;
 						} else {
 							keptCount++;
-							outputChunk.WriteRecord(prepareRecord);
+							await outputChunk.WriteRecord(prepareRecord, cancellationToken);
 						}
 					} else {
 						keptCount++;
-						outputChunk.WriteRecord(nonPrepareRecord);
+						await outputChunk.WriteRecord(nonPrepareRecord, cancellationToken);
 					}
 
 					if (++cancellationCheckCounter == _cancellationCheckPeriod) {

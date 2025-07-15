@@ -83,9 +83,9 @@ public class WhenBuildingAnIndexOffTfileWithDuplicateEventsInAStream<TLogFormat,
 	}
 
 	[Test]
-	public void should_read_the_correct_last_event_number()
+	public async Task should_read_the_correct_last_event_number()
 	{
-		var result = ReadIndex.GetStreamLastEventNumber("duplicate_stream");
+		var result = await ReadIndex.GetStreamLastEventNumber("duplicate_stream", CancellationToken.None);
 		Assert.AreEqual(2, result);
 	}
 }
@@ -136,7 +136,7 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 		Writer = new TFChunkWriter(_db);
 		Writer.Open();
 		await SetupDB(CancellationToken.None);
-		Writer.Close();
+		await Writer.DisposeAsync();
 		Writer = null;
 
 		writerCheckpoint.Flush();
@@ -182,7 +182,7 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 			cacheTracker: new CacheHitsMissesTracker.NoOp());
 
 
-		readIndex.IndexCommitter.Init(chaserCheckpoint.Read());
+		await readIndex.IndexCommitter.Init(chaserCheckpoint.Read(), CancellationToken.None);
 		ReadIndex = readIndex;
 
 		_tableIndex.Close(false);
@@ -190,7 +190,7 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 		Writer = new TFChunkWriter(_db);
 		Writer.Open();
 		await Given(CancellationToken.None);
-		Writer.Close();
+		await Writer.DisposeAsync();
 		Writer = null;
 
 		writerCheckpoint.Flush();
@@ -229,7 +229,7 @@ public abstract class DuplicateReadIndexTestScenario<TLogFormat, TStreamId> : Sp
 			indexTracker: new IndexTracker.NoOp(),
 			cacheTracker: new CacheHitsMissesTracker.NoOp());
 
-		readIndex.IndexCommitter.Init(chaserCheckpoint.Read());
+		await readIndex.IndexCommitter.Init(chaserCheckpoint.Read(), CancellationToken.None);
 		ReadIndex = readIndex;
 	}
 

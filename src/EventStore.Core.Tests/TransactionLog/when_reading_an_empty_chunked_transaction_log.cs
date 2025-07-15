@@ -25,7 +25,7 @@ public class WhenReadingAnEmptyChunkedTransactionLog<TLogFormat, TStreamId> : Sp
 		await db.Open();
 
 		var reader = new TFChunkReader(db, writerchk, 0);
-		Assert.IsFalse(reader.TryReadNext().Success);
+		Assert.IsTrue(await reader.TryReadNext(CancellationToken.None) is { Success: false });
 	}
 
 	[Test]
@@ -41,7 +41,7 @@ public class WhenReadingAnEmptyChunkedTransactionLog<TLogFormat, TStreamId> : Sp
 
 		var reader = new TFChunkReader(db, writerchk, 0);
 
-		Assert.IsFalse(reader.TryReadNext().Success);
+		Assert.IsTrue(await reader.TryReadNext(CancellationToken.None) is { Success: false });
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
@@ -50,10 +50,9 @@ public class WhenReadingAnEmptyChunkedTransactionLog<TLogFormat, TStreamId> : Sp
 			new byte[] { 7 }, null);
 
 		Assert.IsTrue(await writer.Write(rec, CancellationToken.None) is (true, _));
-		writer.Flush();
-		writer.Close();
+		await writer.DisposeAsync();
 
-		var res = reader.TryReadNext();
+		var res = await reader.TryReadNext(CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(rec, res.LogRecord);
 	}

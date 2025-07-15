@@ -30,7 +30,7 @@ namespace EventStore.Core.Services.Transport.Http {
 			feed.SetTitle(string.Format("Event stream '{0}'", msg.EventStreamId));
 			feed.StreamId = msg.EventStreamId;
 			feed.SetId(self);
-			feed.SetUpdated(msg.Events.Length > 0 && msg.Events[0].Event != null
+			feed.SetUpdated(msg.Events.Count > 0 && msg.Events[0].Event != null
 				? msg.Events[0].Event.TimeStamp
 				: DateTime.MinValue.ToUniversalTime());
 			feed.SetAuthor(AtomSpecs.Author);
@@ -50,13 +50,13 @@ namespace EventStore.Core.Services.Transport.Http {
 						msg.MaxCount));
 			}
 
-			if (!msg.IsEndOfStream || msg.Events.Length > 0)
+			if (!msg.IsEndOfStream || msg.Events.Count > 0)
 				feed.AddLink("previous",
 					HostName.Combine(requestedUrl, "/streams/{0}/{1}/forward/{2}", escapedStreamId, prevEventNumber,
 						msg.MaxCount));
 			if (!escapedStreamId.StartsWith("$$"))
 				feed.AddLink("metadata", HostName.Combine(requestedUrl, "/streams/{0}/metadata", escapedStreamId));
-			for (int i = msg.Events.Length - 1; i >= 0; --i) {
+			for (int i = msg.Events.Count - 1; i >= 0; --i) {
 				feed.AddEntry(ToEntry(msg.Events[i], requestedUrl, embedContent));
 			}
 
@@ -73,7 +73,7 @@ namespace EventStore.Core.Services.Transport.Http {
 			feed.SetTitle(string.Format("Event stream '{0}'", msg.EventStreamId));
 			feed.StreamId = msg.EventStreamId;
 			feed.SetId(self);
-			feed.SetUpdated(msg.Events.Length > 0 && msg.Events[0].Event != null
+			feed.SetUpdated(msg.Events.Count > 0 && msg.Events[0].Event != null
 				? msg.Events[0].Event.TimeStamp
 				: DateTime.MinValue.ToUniversalTime());
 			feed.SetAuthor(AtomSpecs.Author);
@@ -104,7 +104,7 @@ namespace EventStore.Core.Services.Transport.Http {
 				HostName.Combine(requestedUrl, "/streams/{0}/{1}/forward/{2}", escapedStreamId, prevEventNumber,
 					msg.MaxCount));
 			feed.AddLink("metadata", HostName.Combine(requestedUrl, "/streams/{0}/metadata", escapedStreamId));
-			for (int i = 0; i < msg.Events.Length; ++i) {
+			for (int i = 0; i < msg.Events.Count; ++i) {
 				feed.AddEntry(ToEntry(msg.Events[i], requestedUrl, embedContent));
 			}
 
@@ -117,8 +117,8 @@ namespace EventStore.Core.Services.Transport.Http {
 			var feed = new FeedElement();
 			feed.SetTitle("All events");
 			feed.SetId(self);
-			feed.SetUpdated(msg.Events.Length > 0 && msg.Events[0].Event != null
-				? msg.Events[msg.Events.Length - 1].Event.TimeStamp
+			feed.SetUpdated(msg.Events.Count > 0 && msg.Events[0].Event != null
+				? msg.Events[msg.Events.Count - 1].Event.TimeStamp
 				: DateTime.MinValue.ToUniversalTime());
 			feed.SetAuthor(AtomSpecs.Author);
 
@@ -134,26 +134,26 @@ namespace EventStore.Core.Services.Transport.Http {
 						msg.MaxCount));
 			}
 
-			if (!msg.IsEndOfStream || msg.Events.Length > 0)
+			if (!msg.IsEndOfStream || msg.Events.Count > 0)
 				feed.AddLink("previous",
 					HostName.Combine(requestedUrl, "/streams/{0}/{1}/forward/{2}", AllEscaped, msg.NextPos.AsString(),
 						msg.MaxCount));
 			feed.AddLink("metadata", HostName.Combine(requestedUrl, "/streams/{0}/metadata", AllEscaped));
-			for (int i = msg.Events.Length - 1; i >= 0; --i) {
+			for (int i = msg.Events.Count - 1; i >= 0; --i) {
 				feed.AddEntry(ToEntry(msg.Events[i].WithoutPosition(), requestedUrl, embedContent));
 			}
 
 			return feed;
 		}
-		
+
 		public static FeedElement ToAllEventsForwardFilteredFeed(ClientMessage.FilteredReadAllEventsForwardCompleted msg,
 			Uri requestedUrl, EmbedLevel embedContent) {
 			var self = HostName.Combine(requestedUrl, "/streams/{0}", AllFilteredEscaped);
 			var feed = new FeedElement();
 			feed.SetTitle("All events");
 			feed.SetId(self);
-			feed.SetUpdated(msg.Events.Length > 0 && msg.Events[0].Event != null
-				? msg.Events[msg.Events.Length - 1].Event.TimeStamp
+			feed.SetUpdated(msg.Events.Count > 0 && msg.Events[0].Event != null
+				? msg.Events[msg.Events.Count - 1].Event.TimeStamp
 				: DateTime.MinValue.ToUniversalTime());
 			feed.SetAuthor(AtomSpecs.Author);
 
@@ -169,11 +169,11 @@ namespace EventStore.Core.Services.Transport.Http {
 						msg.MaxCount));
 			}
 
-			if (!msg.IsEndOfStream || msg.Events.Length > 0)
+			if (!msg.IsEndOfStream || msg.Events.Count > 0)
 				feed.AddLink("previous",
 					HostName.Combine(requestedUrl, "/streams/{0}/{1}/forward/{2}", AllFilteredEscaped, msg.NextPos.AsString(),
 						msg.MaxCount));
-			for (int i = msg.Events.Length - 1; i >= 0; --i) {
+			for (int i = msg.Events.Count - 1; i >= 0; --i) {
 				feed.AddEntry(ToEntry(msg.Events[i].WithoutPosition(), requestedUrl, embedContent));
 			}
 
@@ -186,7 +186,7 @@ namespace EventStore.Core.Services.Transport.Http {
 			var feed = new FeedElement();
 			feed.SetTitle(string.Format("All events"));
 			feed.SetId(self);
-			feed.SetUpdated(msg.Events.Length > 0 && msg.Events[0].Event != null
+			feed.SetUpdated(msg.Events.Count > 0 && msg.Events[0].Event != null
 				? msg.Events[0].Event.TimeStamp
 				: DateTime.MinValue.ToUniversalTime());
 			feed.SetAuthor(AtomSpecs.Author);
@@ -207,20 +207,20 @@ namespace EventStore.Core.Services.Transport.Http {
 				HostName.Combine(requestedUrl, "/streams/{0}/{1}/forward/{2}", AllEscaped, msg.PrevPos.AsString(),
 					msg.MaxCount));
 			feed.AddLink("metadata", HostName.Combine(requestedUrl, "/streams/{0}/metadata", AllEscaped));
-			for (int i = 0; i < msg.Events.Length; ++i) {
+			for (int i = 0; i < msg.Events.Count; ++i) {
 				feed.AddEntry(ToEntry(msg.Events[i].WithoutPosition(), requestedUrl, embedContent));
 			}
 
 			return feed;
 		}
-		
+
 		public static FeedElement ToFilteredAllEventsBackwardFeed(ClientMessage.FilteredReadAllEventsBackwardCompleted msg,
 			Uri requestedUrl, EmbedLevel embedContent) {
 			var self = HostName.Combine(requestedUrl, "/streams/{0}", AllFilteredEscaped);
 			var feed = new FeedElement();
 			feed.SetTitle(string.Format("All events"));
 			feed.SetId(self);
-			feed.SetUpdated(msg.Events.Length > 0 && msg.Events[0].Event != null
+			feed.SetUpdated(msg.Events.Count > 0 && msg.Events[0].Event != null
 				? msg.Events[0].Event.TimeStamp
 				: DateTime.MinValue.ToUniversalTime());
 			feed.SetAuthor(AtomSpecs.Author);
@@ -240,7 +240,7 @@ namespace EventStore.Core.Services.Transport.Http {
 			feed.AddLink("previous",
 				HostName.Combine(requestedUrl, "/streams/{0}/{1}/forward/{2}", AllFilteredEscaped, msg.PrevPos.AsString(),
 					msg.MaxCount));
-			for (int i = 0; i < msg.Events.Length; ++i) {
+			for (int i = 0; i < msg.Events.Count; ++i) {
 				feed.AddEntry(ToEntry(msg.Events[i].WithoutPosition(), requestedUrl, embedContent));
 			}
 

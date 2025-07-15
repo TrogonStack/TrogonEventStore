@@ -8,7 +8,10 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WhenDeletingSingleStreamSpanningThrough2ChunksInDbWith2Chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class
+	when_deleting_single_stream_spanning_through_2_chunks_in_db_with_2_chunks<TLogFormat, TStreamId> :
+	ReadIndexTestScenario
+	<TLogFormat, TStreamId>
 {
 	private EventRecord _event3;
 	private EventRecord _event4;
@@ -28,9 +31,10 @@ public class WhenDeletingSingleStreamSpanningThrough2ChunksInDbWith2Chunks<TLogF
 	}
 
 	[Test]
-	public void read_all_forward_returns_events_only_from_uncompleted_chunk_and_delete_record()
+	public async Task read_all_forward_returns_events_only_from_uncompleted_chunk_and_delete_record()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(3, events.Length);
@@ -63,9 +67,10 @@ public class WhenDeletingSingleStreamSpanningThrough2ChunksInDbWith2Chunks<TLogF
 	}
 
 	[Test]
-	public void read_all_forward_from_beginning_of_second_chunk_with_max_1_record_returns_5th_record()
+	public async Task read_all_forward_from_beginning_of_second_chunk_with_max_1_record_returns_5th_record()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(10000, 10000), 1).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(10000, 10000), 1, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(1, events.Length);
@@ -73,9 +78,10 @@ public class WhenDeletingSingleStreamSpanningThrough2ChunksInDbWith2Chunks<TLogF
 	}
 
 	[Test]
-	public void read_all_forward_with_max_5_records_returns_3_records_from_second_chunk_and_delete_record()
+	public async Task read_all_forward_with_max_5_records_returns_3_records_from_second_chunk_and_delete_record()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 5).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 5, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(3, events.Length);
@@ -85,14 +91,15 @@ public class WhenDeletingSingleStreamSpanningThrough2ChunksInDbWith2Chunks<TLogF
 	}
 
 	[Test]
-	public void is_stream_deleted_returns_true()
+	public async Task is_stream_deleted_returns_true()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("ES"));
+		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void last_event_number_returns_stream_deleted()
+	public async Task last_event_number_returns_stream_deleted()
 	{
-		Assert.AreEqual(EventNumber.DeletedStream, ReadIndex.GetStreamLastEventNumber("ES"));
+		Assert.AreEqual(EventNumber.DeletedStream,
+			await ReadIndex.GetStreamLastEventNumber("ES", CancellationToken.None));
 	}
 }

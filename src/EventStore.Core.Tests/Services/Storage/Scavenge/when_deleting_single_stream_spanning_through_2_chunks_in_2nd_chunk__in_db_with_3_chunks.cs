@@ -11,7 +11,8 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	WhenDeletingSingleStreamSpanningThrough2ChunksIn2NdChunkInDbWith3Chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+	when_deleting_single_stream_spanning_through_2_chunks_in_2nd_chunk_in_db_with_3_chunks<TLogFormat, TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _event7;
 	private EventRecord _event9;
@@ -32,9 +33,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_forward_does_not_return_scavenged_deleted_stream_events_and_return_remaining()
+	public async Task read_all_forward_does_not_return_scavenged_deleted_stream_events_and_return_remaining()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(2, events.Length);
@@ -65,10 +67,11 @@ public class
 	}
 
 	[Test]
-	public void
+	public async Task
 		read_all_forward_from_beginning_of_2nd_chunk_with_max_2_record_returns_delete_record_and_record_from_3rd_chunk()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(10000, 10000), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(10000, 10000), 100, CancellationToken.None))
+			.EventRecords()
 			.Take(2)
 			.Select(r => r.Event)
 			.ToArray();
@@ -78,9 +81,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_forward_with_max_5_records_returns_2_records_from_2nd_chunk()
+	public async Task read_all_forward_with_max_5_records_returns_2_records_from_2nd_chunk()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 5).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 5, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(2, events.Length);
@@ -89,25 +93,26 @@ public class
 	}
 
 	[Test]
-	public void is_stream_deleted_returns_true()
+	public async Task is_stream_deleted_returns_true()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("ES"));
+		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void last_event_number_returns_stream_deleted()
+	public async Task last_event_number_returns_stream_deleted()
 	{
-		Assert.AreEqual(EventNumber.DeletedStream, ReadIndex.GetStreamLastEventNumber("ES"));
+		Assert.AreEqual(EventNumber.DeletedStream,
+			await ReadIndex.GetStreamLastEventNumber("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void last_physical_record_from_scavenged_stream_should_remain()
+	public async Task last_physical_record_from_scavenged_stream_should_remain()
 	{
 		// cannot use readIndex here as it doesn't return deleteTombstone
 
 		var chunk = Db.Manager.GetChunk(1);
 		var chunkPos = (int)(_event7.LogPosition % Db.Config.ChunkSize);
-		var res = chunk.TryReadAt(chunkPos, couldBeScavenged: false);
+		var res = await chunk.TryReadAt(chunkPos, couldBeScavenged: false, CancellationToken.None);
 
 		Assert.IsTrue(res.Success);
 	}

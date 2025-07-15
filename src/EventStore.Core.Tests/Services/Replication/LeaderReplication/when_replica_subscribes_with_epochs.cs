@@ -141,7 +141,7 @@ public class WhenReplicaWithAdditionalEpochsSubscribesToPositionPastLeadersLastE
 		await Writer.Write(CreateLogRecord(5), token);
 		await Writer.Write(CreateLogRecord(6), token);
 		var (_, lastWritePosition) = await Writer.Write(CreateLogRecord(7), token);
-		Writer.Flush();
+		await Writer.Flush(token);
 
 		_replicaEpochs =
 		[

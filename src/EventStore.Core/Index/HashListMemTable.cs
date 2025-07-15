@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Exceptions;
@@ -40,11 +41,11 @@ public class HashListMemTable : IMemTable
 	public HashListMemTable(byte version, int maxSize)
 	{
 		_version = version;
-		_hash = new();
+		_hash = new ConcurrentDictionary<ulong, EntryList>();
 	}
 
 	public bool MarkForConversion() =>
-		Interlocked.CompareExchange(ref _isConverting, 1, 0) is 0;
+		Interlocked.CompareExchange(ref _isConverting, 1, 0) == 0;
 
 	public void Add(ulong stream, long version, long position) =>
 		AddEntries([new IndexEntry(stream, version, position)]);
@@ -66,11 +67,14 @@ public class HashListMemTable : IMemTable
 
 			if (!_hash.TryGetValue(stream, out list))
 			{
-				list = new EntryList(MemTableComparer);
+				list = new(MemTableComparer);
 				if (!list.Lock.TryEnterWriteLock(DefaultLockTimeout))
 					throw new UnableToAcquireLockInReasonableTimeException();
 				_hash.AddOrUpdate(stream, list,
-					(x, y) => throw new Exception("This should never happen as MemTable updates are single-threaded."));
+					(x, y) =>
+					{
+						throw new Exception("This should never happen as MemTable updates are single-threaded.");
+					});
 			}
 			else
 			{
@@ -97,31 +101,31 @@ public class HashListMemTable : IMemTable
 	public bool TryGetOneValue(ulong stream, long number, out long position)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(number);
-
 		ulong hash = GetHash(stream);
+
 		position = 0;
 
-		if (!_hash.TryGetValue(hash, out var list)) return false;
-
-		if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
-			throw new UnableToAcquireLockInReasonableTimeException();
-
-		try
+		if (_hash.TryGetValue(hash, out var list))
 		{
-			int endIdx = list.UpperBound(new Entry(number, long.MaxValue));
-			if (endIdx is -1)
-				return false;
-
-			var key = list.Keys[endIdx];
-			if (key.EvNum == number)
+			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+				throw new UnableToAcquireLockInReasonableTimeException();
+			try
 			{
-				position = key.LogPos;
-				return true;
+				int endIdx = list.UpperBound(new Entry(number, long.MaxValue));
+				if (endIdx is -1)
+					return false;
+
+				var key = list.Keys[endIdx];
+				if (key.EvNum == number)
+				{
+					position = key.LogPos;
+					return true;
+				}
 			}
-		}
-		finally
-		{
-			list.Lock.Release();
+			finally
+			{
+				list.Lock.Release();
+			}
 		}
 
 		return false;
@@ -151,49 +155,48 @@ public class HashListMemTable : IMemTable
 		return false;
 	}
 
-	public bool TryGetLatestEntry(ulong stream, long beforePosition, Func<IndexEntry, bool> isForThisStream,
-		out IndexEntry entry)
+	public async ValueTask<IndexEntry?> TryGetLatestEntry(ulong stream, long beforePosition,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(beforePosition);
 
 		ulong hash = GetHash(stream);
-		entry = TableIndex.InvalidIndexEntry;
 
 		if (!_hash.TryGetValue(hash, out var list))
-			return false;
+			return null;
 
-		if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+		if (!await list.Lock.TryEnterReadLockAsync(DefaultLockTimeout, token))
 			throw new UnableToAcquireLockInReasonableTimeException();
 
 		try
 		{
 			// we use LogPosComparer here so that it only compares the position part of the key we
 			// are passing in and not the evNum (maxvalue) which is meaningless
-			int endIdx = list.UpperBound(
+			int endIdx = await list.UpperBound(
 				key: new Entry(long.MaxValue, beforePosition - 1),
 				comparer: LogPosComparer,
-				continueSearch: e => isForThisStream(new IndexEntry(hash, e.EvNum, e.LogPos)));
+				continueSearch: (e, token) => isForThisStream(new IndexEntry(hash, e.EvNum, e.LogPos), token),
+				token);
 
 			if (endIdx is -1)
-				return false;
+				return null;
 
 			var latestBeforePosition = list.Keys[endIdx];
-			entry = new IndexEntry(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
-			return true;
+			return new(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
 		}
 		catch (SearchStoppedException)
 		{
 			// fall back to linear search if there was a hash collision
-			int maxIdx = list.FindMax(e =>
-				e.LogPos < beforePosition &&
-				isForThisStream(new IndexEntry(hash, e.EvNum, e.LogPos)));
+			int maxIdx = await list.FindMax(async (e, token) =>
+					e.LogPos < beforePosition &&
+					await isForThisStream(new IndexEntry(hash, e.EvNum, e.LogPos), token),
+				token);
 
 			if (maxIdx is -1)
-				return false;
+				return null;
 
 			var latestBeforePosition = list.Keys[maxIdx];
-			entry = new IndexEntry(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
-			return true;
+			return new(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
 		}
 		finally
 		{
@@ -345,12 +348,15 @@ public class HashListMemTable : IMemTable
 		return ret;
 	}
 
-	private ulong GetHash(ulong hash) =>
-		_version is PTableVersions.IndexV1 ? hash >> 32 : hash;
+	private ulong GetHash(ulong hash)
+	{
+		return _version is PTableVersions.IndexV1 ? hash >> 32 : hash;
+	}
 
 	private readonly record struct Entry(long EvNum, long LogPos);
 
-	private sealed class EntryList(IComparer<Entry> comparer) : SortedList<Entry, byte>(comparer) {
+	private sealed class EntryList(IComparer<Entry> comparer) : SortedList<Entry, byte>(comparer)
+	{
 		internal readonly AsyncReaderWriterLock Lock = new();
 	}
 
@@ -379,5 +385,8 @@ public class HashListMemTable : IMemTable
 
 public class ReverseComparer<T> : IComparer<T> where T : IComparable
 {
-	public int Compare(T x, T y) => -x.CompareTo(y);
+	public int Compare(T x, T y)
+	{
+		return -x.CompareTo(y);
+	}
 }

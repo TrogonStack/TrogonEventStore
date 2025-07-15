@@ -19,7 +19,7 @@ public abstract class MaxAgeIterationTests : ReadIndexTestScenario<LogFormat.V2,
 		var now = DateTime.UtcNow;
 		var expired = now.AddMinutes(-50);
 
-		var metadata = string.Format(@"{{""$maxAge"":{0}}}", (int)TimeSpan.FromMinutes(10).TotalSeconds);
+		var metadata = $$"""{"$maxAge":{{(int)TimeSpan.FromMinutes(10).TotalSeconds}}}""";
 
 		await WriteStreamMetadata("ES", 0, metadata, token: token);
 
@@ -51,13 +51,12 @@ public abstract class MaxAgeIterationTests : ReadIndexTestScenario<LogFormat.V2,
 
 	// repeatedly issue reads, each one starting from the previous `nextEventNumber`
 	// until we find the event we are looking for.
-	protected void ReadOneStartingFrom(long fromEventNumber, long expectedEventNumber)
+	protected async ValueTask ReadOneStartingFrom(long fromEventNumber, long expectedEventNumber,
+		CancellationToken token)
 	{
-		var attempts = new List<long>();
 		for (int i = 0; i < 20; i++)
 		{
-			attempts.Add(fromEventNumber);
-			var result = ReadIndex.ReadStreamEventsForward("ES", fromEventNumber, maxCount: 1);
+			var result = await ReadIndex.ReadStreamEventsForward("ES", fromEventNumber, maxCount: 1, token);
 
 			if (result.Records.Length != 0)
 			{
@@ -71,18 +70,18 @@ public abstract class MaxAgeIterationTests : ReadIndexTestScenario<LogFormat.V2,
 		throw new Exception("iterated too many times. infinite loop?");
 	}
 
-	protected void ReadOneStartingFromEach()
+	protected async ValueTask ReadOneStartingFromEach(CancellationToken token = default)
 	{
-		ReadOneStartingFrom(0, 8);
-		ReadOneStartingFrom(1, 8);
-		ReadOneStartingFrom(2, 8);
-		ReadOneStartingFrom(3, 8);
-		ReadOneStartingFrom(4, 8);
-		ReadOneStartingFrom(5, 8);
-		ReadOneStartingFrom(6, 8);
-		ReadOneStartingFrom(7, 8);
-		ReadOneStartingFrom(8, 8);
-		ReadOneStartingFrom(9, 9);
+		await ReadOneStartingFrom(0, 8, token);
+		await ReadOneStartingFrom(1, 8, token);
+		await ReadOneStartingFrom(2, 8, token);
+		await ReadOneStartingFrom(3, 8, token);
+		await ReadOneStartingFrom(4, 8, token);
+		await ReadOneStartingFrom(5, 8, token);
+		await ReadOneStartingFrom(6, 8, token);
+		await ReadOneStartingFrom(7, 8, token);
+		await ReadOneStartingFrom(8, 8, token);
+		await ReadOneStartingFrom(9, 9, token);
 	}
 }
 
@@ -91,7 +90,7 @@ public class when_having_gaps_in_index_on_maxage_fast_path : MaxAgeIterationTest
 	protected override long[] ExtantIndexEntries { get; } = new long[] { 0, 1, 2, 3, 4, 5, 6, 8, 9 };
 
 	[Test]
-	public void works() => ReadOneStartingFromEach();
+	public async Task works() => await ReadOneStartingFromEach();
 }
 
 public class when_having_gaps_in_index_on_maxage_fast_path2 : MaxAgeIterationTests
@@ -99,7 +98,7 @@ public class when_having_gaps_in_index_on_maxage_fast_path2 : MaxAgeIterationTes
 	protected override long[] ExtantIndexEntries { get; } = new long[] { 0, 8, 9 };
 
 	[Test]
-	public void works() => ReadOneStartingFromEach();
+	public async Task works() => await ReadOneStartingFromEach();
 }
 
 public class when_having_gaps_in_index_on_maxage_fast_path3 : MaxAgeIterationTests
@@ -107,7 +106,7 @@ public class when_having_gaps_in_index_on_maxage_fast_path3 : MaxAgeIterationTes
 	protected override long[] ExtantIndexEntries { get; } = new long[] { 2, 8, 9 };
 
 	[Test]
-	public void works() => ReadOneStartingFromEach();
+	public async Task works() => await ReadOneStartingFromEach();
 }
 
 public class when_having_gaps_in_index_on_maxage_fast_path4 : MaxAgeIterationTests
@@ -115,7 +114,7 @@ public class when_having_gaps_in_index_on_maxage_fast_path4 : MaxAgeIterationTes
 	protected override long[] ExtantIndexEntries { get; } = new long[] { 1, 3, 5, 7, 8, 9 };
 
 	[Test]
-	public void works() => ReadOneStartingFromEach();
+	public async Task works() => await ReadOneStartingFromEach();
 }
 
 public class when_having_gaps_in_index_on_maxage_fast_path5 : MaxAgeIterationTests
@@ -123,5 +122,5 @@ public class when_having_gaps_in_index_on_maxage_fast_path5 : MaxAgeIterationTes
 	protected override long[] ExtantIndexEntries { get; } = new long[] { 0, 2, 4, 6, 8, 9 };
 
 	[Test]
-	public void works() => ReadOneStartingFromEach();
+	public async Task works() => await ReadOneStartingFromEach();
 }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -17,7 +18,7 @@ public class when_destroying_a_tfchunk_that_is_locked : SpecificationWithFile
 	{
 		await base.SetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
-		_chunk.Complete();
+		await _chunk.Complete(CancellationToken.None);
 		_chunk.UnCacheFromMemory();
 		_reader = _chunk.AcquireRawReader();
 		_chunk.MarkForDeletion();

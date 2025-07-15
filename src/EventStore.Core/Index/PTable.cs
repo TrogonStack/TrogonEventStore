@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.DataStructures;
@@ -12,6 +13,7 @@ using Range = EventStore.Core.Data.Range;
 using EventStore.Core.DataStructures.ProbabilisticFilter;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using MD5 = EventStore.Core.Hashing.MD5;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
 
@@ -105,7 +107,7 @@ public partial class PTable : ISearchTable, IDisposable
 	private readonly int _indexEntrySize;
 	private readonly int _indexKeySize;
 
-	private readonly ManualResetEventSlim _destroyEvent = new ManualResetEventSlim(false);
+	private readonly ManualResetEventSlim _destroyEvent = new(false);
 	private volatile bool _deleteFile;
 	private bool _disposed;
 
@@ -207,8 +209,8 @@ public partial class PTable : ISearchTable, IDisposable
 				var footer = PTableFooter.FromStream(readerWorkItem.Stream);
 				if (footer.Version != header.Version)
 					throw new CorruptIndexException(
-						String.Format("PTable header/footer version mismatch: {0}/{1}", header.Version,
-							footer.Version), new InvalidFileException("Invalid PTable file."));
+						$"PTable header/footer version mismatch: {header.Version}/{footer.Version}",
+						new InvalidFileException("Invalid PTable file."));
 
 				if (_version == PTableVersions.IndexV4)
 				{
@@ -228,16 +230,13 @@ public partial class PTable : ISearchTable, IDisposable
 
 			if (indexEntriesTotalSize < 0)
 			{
-				throw new CorruptIndexException(String.Format(
-					"Total size of index entries < 0: {0}. _size: {1}, header size: {2}, _midpointsCacheSize: {3}, footer size: {4}, md5 size: {5}",
-					indexEntriesTotalSize, _size, PTableHeader.Size, _midpointsCacheSize,
-					PTableFooter.GetSize(_version), MD5Size));
+				throw new CorruptIndexException(
+					$"Total size of index entries < 0: {indexEntriesTotalSize}. _size: {_size}, header size: {PTableHeader.Size}, _midpointsCacheSize: {_midpointsCacheSize}, footer size: {PTableFooter.GetSize(_version)}, md5 size: {MD5Size}");
 			}
 			else if (indexEntriesTotalSize % _indexEntrySize != 0)
 			{
-				throw new CorruptIndexException(String.Format(
-					"Total size of index entries: {0} is not divisible by index entry size: {1}",
-					indexEntriesTotalSize, _indexEntrySize));
+				throw new CorruptIndexException(
+					$"Total size of index entries: {indexEntriesTotalSize} is not divisible by index entry size: {_indexEntrySize}");
 			}
 
 			_count = indexEntriesTotalSize / _indexEntrySize;
@@ -245,16 +244,14 @@ public partial class PTable : ISearchTable, IDisposable
 			if (_version >= PTableVersions.IndexV4 && _count > 0 && _midpointsCached > 0 && _midpointsCached < 2)
 			{
 				//if there is at least 1 index entry with version>=4 and there are cached midpoints, there should always be at least 2 midpoints cached
-				throw new CorruptIndexException(String.Format(
-					"Less than 2 midpoints cached in PTable. Index entries: {0}, Midpoints cached: {1}", _count,
-					_midpointsCached));
+				throw new CorruptIndexException(
+					$"Less than 2 midpoints cached in PTable. Index entries: {_count}, Midpoints cached: {_midpointsCached}");
 			}
 			else if (_count >= 2 && _midpointsCached > _count)
 			{
 				//if there are at least 2 index entries, midpoints count should be at most the number of index entries
-				throw new CorruptIndexException(String.Format(
-					"More midpoints cached in PTable than index entries. Midpoints: {0} , Index entries: {1}",
-					_midpointsCached, _count));
+				throw new CorruptIndexException(
+					$"More midpoints cached in PTable than index entries. Midpoints: {_midpointsCached} , Index entries: {_count}");
 			}
 
 			if (Count == 0)
@@ -302,8 +299,8 @@ public partial class PTable : ISearchTable, IDisposable
 			{
 				if (_bloomFilter is not null)
 				{
-					_lruCache = new("ConfirmedPresent", lruCacheSize);
-					_lruConfirmedNotPresent = new("ConfirmedNotPresent", lruCacheSize);
+					_lruCache = new LRUCache<StreamHash, CacheEntry>("ConfirmedPresent", lruCacheSize);
+					_lruConfirmedNotPresent = new LRUCache<StreamHash, bool>("ConfirmedNotPresent", lruCacheSize);
 				}
 				else
 				{
@@ -329,7 +326,7 @@ public partial class PTable : ISearchTable, IDisposable
 	internal UnmanagedMemoryAppendOnlyList<Midpoint> CacheMidpointsAndVerifyHash(int depth, bool skipIndexVerify)
 	{
 		var buffer = new byte[4096];
-		if (depth < 0 || depth > 30)
+		if (depth is < 0 or > 30)
 			throw new ArgumentOutOfRangeException("depth");
 		var count = Count;
 		if (count == 0 || depth == 0)
@@ -568,8 +565,7 @@ public partial class PTable : ISearchTable, IDisposable
 		}
 		catch (Exception ex)
 		{
-			Log.Error(ex,
-				"Unexpected error opening bloom filter for index file {file}. Performance will be degraded",
+			Log.Error(ex, "Unexpected error opening bloom filter for index file {file}. Performance will be degraded",
 				_filename);
 			return null;
 		}
@@ -601,22 +597,13 @@ public partial class PTable : ISearchTable, IDisposable
 		if (computed.Length != fromFile.Length)
 			throw new CorruptIndexException(
 				new HashValidationException(
-					string.Format(
-						"Hash sizes differ! FileHash({0}): {1}, hash({2}): {3}.",
-						computed.Length,
-						BitConverter.ToString(computed),
-						fromFile.Length,
-						BitConverter.ToString(fromFile))));
+					$"Hash sizes differ! FileHash({computed.Length}): {BitConverter.ToString(computed)}, hash({fromFile.Length}): {BitConverter.ToString(fromFile)}."));
 
-		for (int i = 0; i < fromFile.Length; i++)
+		if (fromFile.Where((t, i) => t != computed[i]).Any())
 		{
-			if (fromFile[i] != computed[i])
-				throw new CorruptIndexException(
-					new HashValidationException(
-						string.Format(
-							"Hashes are different! computed: {0}, hash: {1}.",
-							BitConverter.ToString(computed),
-							BitConverter.ToString(fromFile))));
+			throw new CorruptIndexException(
+				new HashValidationException(
+					$"Hashes are different! computed: {BitConverter.ToString(computed)}, hash: {BitConverter.ToString(fromFile)}."));
 		}
 	}
 
@@ -667,26 +654,24 @@ public partial class PTable : ISearchTable, IDisposable
 		return true;
 	}
 
-	public bool TryGetLatestEntry(
+	public async ValueTask<IndexEntry?> TryGetLatestEntry(
 		ulong stream,
 		long beforePosition,
-		Func<IndexEntry, bool> isForThisStream,
-		out IndexEntry entry)
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream,
+		CancellationToken token)
 	{
 
 		Ensure.Nonnegative(beforePosition, nameof(beforePosition));
 		var streamHash = GetHash(stream);
 
-		entry = TableIndex.InvalidIndexEntry;
-
 		var startKey = BuildKey(streamHash, 0);
 		var endKey = BuildKey(streamHash, long.MaxValue);
 
 		if (startKey.GreaterThan(_maxEntry) || endKey.SmallerThan(_minEntry))
-			return false;
+			return null;
 
 		if (!MightContainStream(streamHash))
-			return false;
+			return null;
 
 		var workItem = GetWorkItem();
 		try
@@ -695,33 +680,29 @@ public partial class PTable : ISearchTable, IDisposable
 
 			try
 			{
-				if (!TryGetLatestEntryFast(
-					    streamHash,
-					    beforePosition,
-					    isForThisStream,
-					    recordRange,
-					    lowBoundsCheck,
-					    highBoundsCheck,
-					    workItem,
-					    out entry))
-					return false;
+				return await TryGetLatestEntryFast(
+					streamHash,
+					beforePosition,
+					isForThisStream,
+					recordRange,
+					lowBoundsCheck,
+					highBoundsCheck,
+					workItem,
+					token);
 			}
 			catch (HashCollisionException)
 			{
 				// fall back to linear search if there's a hash collision
-				if (!TryGetLatestEntrySlow(
-					    streamHash,
-					    beforePosition,
-					    isForThisStream,
-					    recordRange,
-					    lowBoundsCheck,
-					    highBoundsCheck,
-					    workItem,
-					    out entry))
-					return false;
+				return await TryGetLatestEntrySlow(
+					streamHash,
+					beforePosition,
+					isForThisStream,
+					recordRange,
+					lowBoundsCheck,
+					highBoundsCheck,
+					workItem,
+					token);
 			}
-
-			return true;
 		}
 		finally
 		{
@@ -731,15 +712,15 @@ public partial class PTable : ISearchTable, IDisposable
 
 	// linearly search the whole range for the entry with the greatest position that
 	// is for this stream and before the beforePosition.
-	private bool TryGetLatestEntrySlow(
+	private async ValueTask<IndexEntry?> TryGetLatestEntrySlow(
 		StreamHash stream,
 		long beforePosition,
-		Func<IndexEntry, bool> isForThisStream,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream,
 		Range recordRange,
 		IndexEntryKey lowBoundsCheck,
 		IndexEntryKey highBoundsCheck,
 		WorkItem workItem,
-		out IndexEntry entry)
+		CancellationToken token)
 	{
 
 		long maxBeforePosition = long.MinValue;
@@ -767,7 +748,7 @@ public partial class PTable : ISearchTable, IDisposable
 			if (candidateEntry.Stream == stream.Hash &&
 			    candidateEntry.Position < beforePosition &&
 			    candidateEntry.Position > maxBeforePosition &&
-			    isForThisStream(candidateEntry))
+			    await isForThisStream(candidateEntry, token))
 			{
 
 				maxBeforePosition = candidateEntry.Position;
@@ -775,25 +756,18 @@ public partial class PTable : ISearchTable, IDisposable
 			}
 		}
 
-		if (maxBeforePosition != long.MinValue)
-		{
-			entry = maxEntry;
-			return true;
-		}
-
-		entry = TableIndex.InvalidIndexEntry;
-		return false;
+		return maxBeforePosition is not long.MinValue ? maxEntry : null;
 	}
 
-	private bool TryGetLatestEntryFast(
+	private async ValueTask<IndexEntry?> TryGetLatestEntryFast(
 		StreamHash stream,
 		long beforePosition,
-		Func<IndexEntry, bool> isForThisStream,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream,
 		Range recordRange,
 		IndexEntryKey lowBoundsCheck,
 		IndexEntryKey highBoundsCheck,
 		WorkItem workItem,
-		out IndexEntry entry)
+		CancellationToken token)
 	{
 
 		var startKey = BuildKey(stream, 0);
@@ -844,7 +818,7 @@ public partial class PTable : ISearchTable, IDisposable
 				continue;
 			}
 
-			if (!isForThisStream(midpoint))
+			if (!await isForThisStream(midpoint, token))
 				throw new HashCollisionException();
 
 			if (midpoint.Position >= beforePosition)
@@ -863,25 +837,20 @@ public partial class PTable : ISearchTable, IDisposable
 
 		// index entry is for a different hash
 		if (candidateEntry.Stream != stream.Hash)
-		{
-			entry = TableIndex.InvalidIndexEntry;
-			return false;
-		}
+			return null;
 
 		// index entry is for the correct hash but for a colliding stream
-		if (!isForThisStream(candidateEntry))
+		if (!await isForThisStream(candidateEntry, token))
 			throw new HashCollisionException();
 
 		// index entry is for the correct stream but does not respect the position limit
 		if (candidateEntry.Position >= beforePosition)
 		{
-			entry = TableIndex.InvalidIndexEntry;
-			return false;
+			return null;
 		}
 
 		// index entry is for the correct stream and respects the position limit
-		entry = candidateEntry;
-		return true;
+		return candidateEntry;
 	}
 
 	private bool TryGetLatestEntryNoCache(StreamHash stream, long startNumber, long endNumber, out IndexEntry entry)
@@ -1041,7 +1010,7 @@ public partial class PTable : ISearchTable, IDisposable
 		Ensure.Nonnegative(startNumber, "startNumber");
 		Ensure.Nonnegative(endNumber, "endNumber");
 
-		return _lruCache == null
+		return _lruCache is null
 			? GetRangeNoCache(GetHash(stream), startNumber, endNumber, limit)
 			: GetRangeWithCache(GetHash(stream), startNumber, endNumber, limit);
 	}
@@ -1231,8 +1200,7 @@ public partial class PTable : ISearchTable, IDisposable
 			throw new TimeoutException();
 	}
 
-	public List<IndexEntry> GetRangeWithCache(StreamHash stream, long startNumber, long endNumber,
-		int? limit = null)
+	public List<IndexEntry> GetRangeWithCache(StreamHash stream, long startNumber, long endNumber, int? limit = null)
 	{
 		if (!OverlapsRange(stream, startNumber, endNumber, out var tableLatestNumber, out var tableLatestOffset))
 			return new List<IndexEntry>();
@@ -1242,8 +1210,7 @@ public partial class PTable : ISearchTable, IDisposable
 		// then we can jump to tableLatestOffset and read the file forwards from there without binary chopping.
 		if (endNumber >= tableLatestNumber)
 		{
-			return PositionAndReadForward(stream, startNumber, endNumber, limit,
-				tableLatestOffset: tableLatestOffset);
+			return PositionAndReadForward(stream, startNumber, endNumber, limit, tableLatestOffset: tableLatestOffset);
 		}
 		// todo: else if the requested start version is less than or equal to what we have in this ptable
 		// then we could jump to tableStartOffset and read the file backwards.

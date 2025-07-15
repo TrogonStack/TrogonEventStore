@@ -103,7 +103,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		Writer = new TFChunkWriter(Db);
 		Writer.Open();
 		await WriteTestScenario(CancellationToken.None);
-		Writer.Close();
+		await Writer.DisposeAsync();
 		Writer = null;
 
 		WriterCheckpoint.Flush();
@@ -147,7 +147,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 			indexTracker: new IndexTracker.NoOp(),
 			cacheTracker: new CacheHitsMissesTracker.NoOp());
 
-		readIndex.IndexCommitter.Init(ChaserCheckpoint.Read());
+		await readIndex.IndexCommitter.Init(ChaserCheckpoint.Read(), CancellationToken.None);
 		ReadIndex = readIndex;
 
 		// wait for tables to be merged
@@ -157,7 +157,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		if (_scavenge)
 		{
 			if (_completeLastChunkOnScavenge)
-				Db.Manager.GetChunk(Db.Manager.ChunksCount - 1).Complete();
+				await Db.Manager.GetChunk(Db.Manager.ChunksCount - 1).Complete(CancellationToken.None);
 			_scavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, Db, new FakeTFScavengerLog(), TableIndex,
 				ReadIndex, _logFormat.Metastreams);
 			await _scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: _mergeChunks,

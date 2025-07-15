@@ -52,45 +52,46 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 			data: new byte[] { 1, 2, 3, 4, 5 },
 			metadata: new byte[] { 7, 17 });
 		await _writer.Write(_record, CancellationToken.None);
-		_writer.Flush();
+		await _writer.Flush(CancellationToken.None);
 	}
 
 	[OneTimeTearDown]
 	public async Task Teardown()
 	{
-		_writer.Close();
+		await _writer.DisposeAsync();
 		await _db.DisposeAsync();
 	}
 
 	[Test]
-	public void the_data_is_written()
+	public async Task the_data_is_written()
 	{
 		//TODO MAKE THIS ACTUALLY ASSERT OFF THE FILE AND READER FROM KNOWN FILE
-		using (var reader = new TFChunkChaser(_db, _writerCheckpoint, _db.Config.ChaserCheckpoint, false))
-		{
-			reader.Open();
-			ILogRecord r;
-			Assert.IsTrue(reader.TryReadNext(out r));
+		using var reader = new TFChunkChaser(_db, _writerCheckpoint, _db.Config.ChaserCheckpoint);
+		reader.Open();
+		ILogRecord r = await reader.TryReadNext(CancellationToken.None) is { Success: true } res
+			? res.LogRecord
+			: null;
 
-			var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
-			var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
+		Assert.NotNull(r);
 
-			Assert.True(r is IPrepareLogRecord<TStreamId>);
-			var p = (IPrepareLogRecord<TStreamId>)r;
-			Assert.AreEqual(p.RecordType, LogRecordType.Prepare);
-			Assert.AreEqual(p.LogPosition, 0);
-			Assert.AreEqual(p.TransactionPosition, 0xDEAD);
-			Assert.AreEqual(p.TransactionOffset, 0xBEEF);
-			Assert.AreEqual(p.CorrelationId, _correlationId);
-			Assert.AreEqual(p.EventId, _eventId);
-			Assert.AreEqual(p.EventStreamId, streamId);
-			Assert.AreEqual(p.ExpectedVersion, 1234);
-			Assert.That(p.TimeStamp, Is.EqualTo(new DateTime(2012, 12, 21)).Within(7).Milliseconds);
-			Assert.AreEqual(p.Flags, PrepareFlags.SingleWrite);
-			Assert.AreEqual(p.EventType, eventTypeId);
-			Assert.AreEqual(p.Data.Length, 5);
-			Assert.AreEqual(p.Metadata.Length, 2);
-		}
+		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
+		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
+
+		Assert.True(r is IPrepareLogRecord<TStreamId>);
+		var p = (IPrepareLogRecord<TStreamId>)r;
+		Assert.AreEqual(p.RecordType, LogRecordType.Prepare);
+		Assert.AreEqual(p.LogPosition, 0);
+		Assert.AreEqual(p.TransactionPosition, 0xDEAD);
+		Assert.AreEqual(p.TransactionOffset, 0xBEEF);
+		Assert.AreEqual(p.CorrelationId, _correlationId);
+		Assert.AreEqual(p.EventId, _eventId);
+		Assert.AreEqual(p.EventStreamId, streamId);
+		Assert.AreEqual(p.ExpectedVersion, 1234);
+		Assert.That(p.TimeStamp, Is.EqualTo(new DateTime(2012, 12, 21)).Within(7).Milliseconds);
+		Assert.AreEqual(p.Flags, PrepareFlags.SingleWrite);
+		Assert.AreEqual(p.EventType, eventTypeId);
+		Assert.AreEqual(p.Data.Length, 5);
+		Assert.AreEqual(p.Metadata.Length, 2);
 	}
 
 	[Test]
@@ -100,9 +101,10 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test]
-	public void trying_to_read_past_writer_checksum_returns_false()
+	public async Task trying_to_read_past_writer_checksum_returns_false()
 	{
 		var reader = new TFChunkReader(_db, _writerCheckpoint);
-		Assert.IsFalse(reader.TryReadAt(_writerCheckpoint.Read(), couldBeScavenged: true).Success);
+		Assert.IsFalse(
+			(await reader.TryReadAt(_writerCheckpoint.Read(), couldBeScavenged: true, CancellationToken.None)).Success);
 	}
 }

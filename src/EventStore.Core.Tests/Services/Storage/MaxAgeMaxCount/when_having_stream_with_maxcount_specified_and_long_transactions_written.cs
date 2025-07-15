@@ -11,7 +11,9 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
-public class WhenHavingStreamWithMaxcountSpecifiedAndLongTransactionsWritten<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class
+	WhenHavingStreamWithMaxcountSpecifiedAndLongTransactionsWritten<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	TLogFormat, TStreamId>
 {
 	private EventRecord[] _records;
 
@@ -42,9 +44,9 @@ public class WhenHavingStreamWithMaxcountSpecifiedAndLongTransactionsWritten<TLo
 	}
 
 	[Test]
-	public void forward_range_read_returns_last_transaction_events_and_doesnt_return_expired_ones()
+	public async Task forward_range_read_returns_last_transaction_events_and_doesnt_return_expired_ones()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
+		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
 		Assert.AreEqual(_records[7], result.Records[0]);

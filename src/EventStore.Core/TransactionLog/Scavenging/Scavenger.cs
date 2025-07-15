@@ -153,68 +153,53 @@ public class Scavenger<TStreamId>(
 			// the other cases are continuing an incomplete scavenge
 			logger.Debug("SCAVENGING: Continuing a scavenge from {checkpoint}", checkpoint);
 
-			if (checkpoint is ScavengeCheckpoint.Accumulating accumulating)
+			switch (checkpoint)
 			{
-				await Time(stopwatch, "Accumulation", cancellationToken =>
-						accumulator.Accumulate(accumulating, state, cancellationToken)
-					, cancellationToken);
-				await AfterAccumulation(
-					accumulating.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
-
-			}
-			else if (checkpoint is ScavengeCheckpoint.Calculating<TStreamId> calculating)
-			{
-				await Time(stopwatch, "Calculation", cancellationToken =>
-				{
-					calculator.Calculate(calculating, state, cancellationToken);
-					return ValueTask.CompletedTask;
-				}, cancellationToken);
-				await AfterCalculation(
-					calculating.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
-
-			}
-			else if (checkpoint is ScavengeCheckpoint.ExecutingChunks executingChunks)
-			{
-				await Time(stopwatch, "Chunk execution", cancellationToken =>
-						chunkExecutor.Execute(executingChunks, state, scavengerLogger, cancellationToken),
-					cancellationToken);
-				await AfterChunkExecution(
-					executingChunks.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
-
-			}
-			else if (checkpoint is ScavengeCheckpoint.MergingChunks mergingChunks)
-			{
-				await Time(stopwatch, "Chunk merging", cancellationToken =>
-						chunkMerger.MergeChunks(mergingChunks, state, scavengerLogger, cancellationToken),
-					cancellationToken);
-				await AfterChunkMerging(
-					mergingChunks.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
-
-			}
-			else if (checkpoint is ScavengeCheckpoint.ExecutingIndex executingIndex)
-			{
-				await Time(stopwatch, "Index execution", cancellationToken =>
-				{
-					indexExecutor.Execute(executingIndex, state, scavengerLogger, cancellationToken);
-					return ValueTask.CompletedTask;
-				}, cancellationToken);
-				await AfterIndexExecution(
-					executingIndex.ScavengePoint, stopwatch, cancellationToken);
-
-			}
-			else if (checkpoint is ScavengeCheckpoint.Cleaning cleaning)
-			{
-				await Time(stopwatch, "Cleaning", cancellationToken =>
-				{
-					cleaner.Clean(cleaning, state, cancellationToken);
-					return ValueTask.CompletedTask;
-				}, cancellationToken);
-				AfterCleaning(cleaning.ScavengePoint);
-
-			}
-			else
-			{
-				throw new Exception($"Unexpected checkpoint: {checkpoint}");
+				case ScavengeCheckpoint.Accumulating accumulating:
+					await Time(stopwatch, "Accumulation", cancellationToken =>
+							accumulator.Accumulate(accumulating, state, cancellationToken)
+						, cancellationToken);
+					await AfterAccumulation(
+						accumulating.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
+					break;
+				case ScavengeCheckpoint.Calculating<TStreamId> calculating:
+					await Time(stopwatch, "Calculation", cancellationToken =>
+							calculator.Calculate(calculating, state, cancellationToken),
+						cancellationToken);
+					await AfterCalculation(
+						calculating.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
+					break;
+				case ScavengeCheckpoint.ExecutingChunks executingChunks:
+					await Time(stopwatch, "Chunk execution", cancellationToken =>
+							chunkExecutor.Execute(executingChunks, state, scavengerLogger, cancellationToken),
+						cancellationToken);
+					await AfterChunkExecution(
+						executingChunks.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
+					break;
+				case ScavengeCheckpoint.MergingChunks mergingChunks:
+					await Time(stopwatch, "Chunk merging", cancellationToken =>
+							chunkMerger.MergeChunks(mergingChunks, state, scavengerLogger, cancellationToken),
+						cancellationToken);
+					await AfterChunkMerging(
+						mergingChunks.ScavengePoint, scavengerLogger, stopwatch, cancellationToken);
+					break;
+				case ScavengeCheckpoint.ExecutingIndex executingIndex:
+					await Time(stopwatch, "Index execution", cancellationToken =>
+							indexExecutor.Execute(executingIndex, state, scavengerLogger, cancellationToken),
+						cancellationToken);
+					await AfterIndexExecution(
+						executingIndex.ScavengePoint, stopwatch, cancellationToken);
+					break;
+				case ScavengeCheckpoint.Cleaning cleaning:
+					await Time(stopwatch, "Cleaning", cancellationToken =>
+					{
+						cleaner.Clean(cleaning, state, cancellationToken);
+						return ValueTask.CompletedTask;
+					}, cancellationToken);
+					AfterCleaning(cleaning.ScavengePoint);
+					break;
+				default:
+					throw new Exception($"Unexpected checkpoint: {checkpoint}");
 			}
 		}
 	}
@@ -325,10 +310,8 @@ public class Scavenger<TStreamId>(
 
 		LogCollisions();
 		await Time(stopwatch, "Calculation", cancellationToken =>
-		{
-			calculator.Calculate(scavengepoint, state, cancellationToken);
-			return ValueTask.CompletedTask;
-		}, cancellationToken);
+				calculator.Calculate(scavengepoint, state, cancellationToken),
+			cancellationToken);
 		await AfterCalculation(scavengepoint, scavengerLogger, stopwatch, cancellationToken);
 	}
 
@@ -362,12 +345,9 @@ public class Scavenger<TStreamId>(
 		Stopwatch stopwatch,
 		CancellationToken cancellationToken)
 	{
-
 		await Time(stopwatch, "Index execution", cancellationToken =>
-		{
-			indexExecutor.Execute(scavengePoint, state, scavengerLogger, cancellationToken);
-			return ValueTask.CompletedTask;
-		}, cancellationToken);
+				indexExecutor.Execute(scavengePoint, state, scavengerLogger, cancellationToken),
+			cancellationToken);
 		await AfterIndexExecution(scavengePoint, stopwatch, cancellationToken);
 	}
 

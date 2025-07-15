@@ -22,10 +22,10 @@ public class WhenWritingFewPreparesWithSameExpectedVersionAndNotCommittingThem<T
 	}
 
 	[Test]
-	public void every_prepare_can_be_commited()
+	public async Task every_prepare_can_be_commited()
 	{
-		var res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare0.LogPosition,
-			WriterCheckpoint.ReadNonFlushed());
+		var res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare0.LogPosition,
+			WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 
 		var streamId = _logFormat.StreamIds.LookupValue("ES");
 
@@ -35,7 +35,7 @@ public class WhenWritingFewPreparesWithSameExpectedVersionAndNotCommittingThem<T
 		Assert.AreEqual(-1, res.StartEventNumber);
 		Assert.AreEqual(-1, res.EndEventNumber);
 
-		res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare1.LogPosition, WriterCheckpoint.ReadNonFlushed());
+		res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare1.LogPosition, WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.Ok, res.Decision);
 		Assert.AreEqual(streamId, res.EventStreamId);
@@ -43,7 +43,7 @@ public class WhenWritingFewPreparesWithSameExpectedVersionAndNotCommittingThem<T
 		Assert.AreEqual(-1, res.StartEventNumber);
 		Assert.AreEqual(-1, res.EndEventNumber);
 
-		res = ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare2.LogPosition, WriterCheckpoint.ReadNonFlushed());
+		res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare2.LogPosition, WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.Ok, res.Decision);
 		Assert.AreEqual(streamId, res.EventStreamId);

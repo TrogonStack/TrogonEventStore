@@ -94,7 +94,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					switch (completed.Result) {
 						case ReadStreamResult.Success:
 							if (readCount == 0 && _compatibility >= 1) {
-								if (completed.Events.Length == 0) {
+								if (completed.Events.Count == 0) {
 									var firstStreamPosition = StreamRevision.FromInt64(completed.NextEventNumber);
 									if (startRevision != firstStreamPosition) {
 										await _channel.Writer

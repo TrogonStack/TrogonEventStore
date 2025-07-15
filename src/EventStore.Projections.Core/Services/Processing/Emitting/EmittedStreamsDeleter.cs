@@ -45,7 +45,7 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 		int deleteFromPosition = 0;
 		if (onReadCompleted.Result == ReadStreamResult.Success)
 		{
-			if (onReadCompleted.Events.Length > 0)
+			if (onReadCompleted.Events.Count > 0)
 			{
 				var checkpoint = onReadCompleted.Events
 					.Where(v => v.Event.EventType == ProjectionEventTypes.ProjectionCheckpoint).Select(x => x.Event)
@@ -74,13 +74,13 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 		if (onReadCompleted.Result == ReadStreamResult.Success ||
 			onReadCompleted.Result == ReadStreamResult.NoStream)
 		{
-			if (onReadCompleted.Events.Length == 0 && !onReadCompleted.IsEndOfStream)
+			if (onReadCompleted.Events.Count == 0 && !onReadCompleted.IsEndOfStream)
 			{
 				DeleteEmittedStreamsFrom(onReadCompleted.NextEventNumber, onEmittedStreamsDeleted);
 				return;
 			}
 
-			if (onReadCompleted.Events.Length == 0)
+			if (onReadCompleted.Events.Count == 0)
 			{
 				_ioDispatcher.DeleteStream(_emittedStreamsCheckpointStreamId, ExpectedVersion.Any, false,
 					SystemAccounts.System, x =>

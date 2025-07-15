@@ -10,7 +10,7 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class WithTooBigMaxAge<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+public class with_too_big_max_age<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _r1;
 	private EventRecord _r2;
@@ -34,33 +34,33 @@ public class WithTooBigMaxAge<TLogFormat, TStreamId> : ReadIndexTestScenario<TLo
 	}
 
 	[Test]
-	public void single_event_read_returns_all_records()
+	public async Task single_event_read_returns_all_records()
 	{
-		var result = ReadIndex.ReadEvent("ES", 0);
+		var result = (await ReadIndex.ReadEvent("ES", 0, CancellationToken.None));
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r2, result.Record);
 
-		result = ReadIndex.ReadEvent("ES", 1);
+		result = await ReadIndex.ReadEvent("ES", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r3, result.Record);
 
-		result = ReadIndex.ReadEvent("ES", 2);
+		result = await ReadIndex.ReadEvent("ES", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r4, result.Record);
 
-		result = ReadIndex.ReadEvent("ES", 3);
+		result = await ReadIndex.ReadEvent("ES", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r5, result.Record);
 
-		result = ReadIndex.ReadEvent("ES", 4);
+		result = await ReadIndex.ReadEvent("ES", 4, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r6, result.Record);
 	}
 
 	[Test]
-	public void forward_range_read_returns_all_records()
+	public async Task forward_range_read_returns_all_records()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
+		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
 		Assert.AreEqual(_r2, result.Records[0]);
@@ -71,9 +71,9 @@ public class WithTooBigMaxAge<TLogFormat, TStreamId> : ReadIndexTestScenario<TLo
 	}
 
 	[Test]
-	public void backward_range_read_returns_all_records()
+	public async Task backward_range_read_returns_all_records()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
 		Assert.AreEqual(_r2, result.Records[4]);
@@ -84,9 +84,10 @@ public class WithTooBigMaxAge<TLogFormat, TStreamId> : ReadIndexTestScenario<TLo
 	}
 
 	[Test]
-	public void read_all_forward_returns_all_records()
+	public async Task read_all_forward_returns_all_records()
 	{
-		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords();
 		Assert.AreEqual(6, records.Count);
 		Assert.AreEqual(_r1, records[0].Event);
 		Assert.AreEqual(_r2, records[1].Event);

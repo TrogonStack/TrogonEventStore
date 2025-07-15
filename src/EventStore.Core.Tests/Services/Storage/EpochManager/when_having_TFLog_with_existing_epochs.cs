@@ -55,8 +55,7 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 			_writer,
 			initialReaderCount: 1,
 			maxReaderCount: 5,
-			readerFactory: () => new TFChunkReader(_db, _db.Config.WriterCheckpoint,
-				optimizeReadSideCache: _db.Config.OptimizeReadSideCache),
+			readerFactory: () => new TFChunkReader(_db, _db.Config.WriterCheckpoint),
 			_logFormat.RecordFactory,
 			_logFormat.StreamNameIndex,
 			_logFormat.EventTypeIndex,
@@ -73,13 +72,14 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 			.GetValue(_epochManager);
 	}
 
-	private async ValueTask<EpochRecord> WriteEpoch(int epochNumber, long lastPos, Guid instanceId, CancellationToken token)
+	private async ValueTask<EpochRecord> WriteEpoch(int epochNumber, long lastPos, Guid instanceId,
+		CancellationToken token)
 	{
 		long pos = _writer.Position;
 		var epoch = new EpochRecord(pos, epochNumber, Guid.NewGuid(), lastPos, DateTime.UtcNow, instanceId);
 		var rec = _logFormat.RecordFactory.CreateEpoch(epoch);
 		await _writer.Write(rec, token);
-		_writer.Flush();
+		await _writer.Flush(token);
 		return epoch;
 	}
 
@@ -279,11 +279,11 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 		for (int i = 0; i < epochsWritten.Length; i++)
 		{
 			_reader.Reposition(epochsWritten[i].Epoch.EpochPosition);
-			_reader.TryReadNext(); // read epoch
+			await _reader.TryReadNext(CancellationToken.None); // read epoch
 			IPrepareLogRecord<TStreamId> epochInfo;
 			while (true)
 			{
-				var result = _reader.TryReadNext();
+				var result = await _reader.TryReadNext(CancellationToken.None);
 				Assert.True(result.Success);
 				if (result.LogRecord is IPrepareLogRecord<TStreamId> prepare)
 				{
@@ -317,14 +317,17 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 		try
 		{
 			_logFormat?.Dispose();
-			_writer?.Dispose();
+			using var task = _writer?.DisposeAsync().AsTask() ?? Task.CompletedTask;
+			task.Wait();
 		}
 		catch
 		{
 			//workaround for TearDown error
 		}
 
-		using var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask;
-		task.Wait();
+		using (var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask)
+		{
+			task.Wait();
+		}
 	}
 }

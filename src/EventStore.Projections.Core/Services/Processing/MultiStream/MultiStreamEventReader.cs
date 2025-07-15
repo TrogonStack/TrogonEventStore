@@ -137,7 +137,7 @@ public class MultiStreamEventReader : EventReader,
 				CheckEof();
 				break;
 			case ReadStreamResult.Success:
-				if ((message.Events.Length == 0) && message.IsEndOfStream)
+				if ((message.Events.Count == 0) && message.IsEndOfStream)
 				{
 					// the end
 					_eofs[message.EventStreamId] = true;
@@ -148,11 +148,11 @@ public class MultiStreamEventReader : EventReader,
 				else
 				{
 					_eofs[message.EventStreamId] = false;
-					if (message.Events.Length == 0)
+					if (message.Events.Count == 0)
 					{
 						_fromPositions.Streams[message.EventStreamId] = message.NextEventNumber;
 					}
-					for (int index = 0; index < message.Events.Length; index++)
+					for (int index = 0; index < message.Events.Count; index++)
 					{
 						var @event = message.Events[index].Event;
 						var @link = message.Events[index].Link;

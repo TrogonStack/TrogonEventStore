@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Services;
 
@@ -15,8 +17,8 @@ namespace EventStore.Core.LogV3 {
 			set => _wrapped.CurrentCheckpoint = value;
 		}
 
-		public void Initialize(INameExistenceFilterInitializer source, long truncateToPosition) =>
-			_wrapped.Initialize(source, truncateToPosition);
+		public ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition, CancellationToken token)
+			=> _wrapped.Initialize(source, truncateToPosition, token);
 
 		public void TruncateTo(long checkpoint) =>
 			_wrapped.TruncateTo(checkpoint);

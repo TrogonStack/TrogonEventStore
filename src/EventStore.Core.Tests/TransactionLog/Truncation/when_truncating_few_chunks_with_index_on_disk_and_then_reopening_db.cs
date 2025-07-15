@@ -9,8 +9,10 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db<TLogFormat, TStreamId>()
-	: TruncateAndReOpenDbScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 3)
+public class
+	when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db<TLogFormat, TStreamId>() :
+	TruncateAndReOpenDbScenario
+	<TLogFormat, TStreamId>(maxEntriesInMemTable: 3)
 {
 	private EventRecord _event1;
 	private EventRecord _event2;
@@ -78,39 +80,39 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 	}
 
 	[Test]
-	public void read_one_by_one_doesnt_return_truncated_records()
+	public async Task read_one_by_one_doesnt_return_truncated_records()
 	{
-		var res = ReadIndex.ReadEvent("ES", 0);
+		var res = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, res.Result);
 		Assert.AreEqual(_event1, res.Record);
-		res = ReadIndex.ReadEvent("ES", 1);
+		res = await ReadIndex.ReadEvent("ES", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, res.Result);
 		Assert.AreEqual(_event2, res.Record);
-		res = ReadIndex.ReadEvent("ES", 2);
+		res = await ReadIndex.ReadEvent("ES", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, res.Result);
 		Assert.AreEqual(_event3, res.Record);
 
-		res = ReadIndex.ReadEvent("ES", 3);
+		res = await ReadIndex.ReadEvent("ES", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, res.Result);
 		Assert.IsNull(res.Record);
-		res = ReadIndex.ReadEvent("ES", 4);
+		res = await ReadIndex.ReadEvent("ES", 4, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, res.Result);
 		Assert.IsNull(res.Record);
-		res = ReadIndex.ReadEvent("ES", 5);
+		res = await ReadIndex.ReadEvent("ES", 5, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, res.Result);
 		Assert.IsNull(res.Record);
-		res = ReadIndex.ReadEvent("ES", 6);
+		res = await ReadIndex.ReadEvent("ES", 6, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, res.Result);
 		Assert.IsNull(res.Record);
-		res = ReadIndex.ReadEvent("ES", 7);
+		res = await ReadIndex.ReadEvent("ES", 7, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, res.Result);
 		Assert.IsNull(res.Record);
 	}
 
 	[Test]
-	public void read_stream_forward_doesnt_return_truncated_records()
+	public async Task read_stream_forward_doesnt_return_truncated_records()
 	{
-		var res = ReadIndex.ReadStreamEventsForward("ES", 0, 100);
+		var res = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		var records = res.Records;
 		Assert.AreEqual(3, records.Length);
 		Assert.AreEqual(_event1, records[0]);
@@ -119,9 +121,9 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 	}
 
 	[Test]
-	public void read_stream_backward_doesnt_return_truncated_records()
+	public async Task read_stream_backward_doesnt_return_truncated_records()
 	{
-		var res = ReadIndex.ReadStreamEventsBackward("ES", -1, 100);
+		var res = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		var records = res.Records;
 		Assert.AreEqual(3, records.Length);
 		Assert.AreEqual(_event1, records[2]);
@@ -130,9 +132,9 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 	}
 
 	[Test]
-	public void read_all_returns_only_survived_events()
+	public async Task read_all_returns_only_survived_events()
 	{
-		var res = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100);
+		var res = await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None);
 		var records = res.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
@@ -146,7 +148,7 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 	[Test]
 	public async Task read_all_backward_doesnt_return_truncated_records()
 	{
-		var res = await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None);
+		var res = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None));
 		var records = res.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
@@ -157,10 +159,10 @@ public class when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db
 	}
 
 	[Test]
-	public void read_all_backward_from_last_truncated_record_returns_no_records()
+	public async Task read_all_backward_from_last_truncated_record_returns_no_records()
 	{
 		var pos = new TFPos(_event7.LogPosition, _event3.LogPosition);
-		var res = ReadIndex.ReadAllEventsForward(pos, 100);
+		var res = await ReadIndex.ReadAllEventsForward(pos, 100, CancellationToken.None);
 		var records = res.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();

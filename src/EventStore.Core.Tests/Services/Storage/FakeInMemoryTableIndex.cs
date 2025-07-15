@@ -14,7 +14,9 @@ public class FakeInMemoryTableIndex<TStreamId> : ITableIndex<TStreamId>
 
 	public bool IsBackgroundTaskRunning => throw new NotImplementedException();
 
-	private Dictionary<TStreamId, List<IndexKey<TStreamId>>> _indexEntries = new Dictionary<TStreamId, List<IndexKey<TStreamId>>>();
+	private Dictionary<TStreamId, List<IndexKey<TStreamId>>> _indexEntries =
+		new Dictionary<TStreamId, List<IndexKey<TStreamId>>>();
+
 	public void Add(long commitPos, TStreamId streamId, long version, long position)
 	{
 		throw new NotImplementedException();
@@ -47,6 +49,7 @@ public class FakeInMemoryTableIndex<TStreamId> : ITableIndex<TStreamId>
 					entries.Add(new IndexEntry(entry.Hash, entry.Version, entry.Position));
 			}
 		}
+
 		return entries;
 	}
 
@@ -64,18 +67,14 @@ public class FakeInMemoryTableIndex<TStreamId> : ITableIndex<TStreamId>
 		throw new NotImplementedException();
 	}
 
-	public void Scavenge(IIndexScavengerLog log, CancellationToken ct)
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask Scavenge(IIndexScavengerLog log, CancellationToken ct)
+		=> ValueTask.FromException(new NotImplementedException());
 
-	public void Scavenge(
-		Func<IndexEntry, bool> shouldKeep,
+	public ValueTask Scavenge(
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
 		IIndexScavengerLog log,
 		CancellationToken ct)
-	{
-		throw new NotImplementedException();
-	}
+		=> ValueTask.FromException(new NotImplementedException());
 
 	public bool TryGetLatestEntry(TStreamId streamId, out IndexEntry entry)
 	{
@@ -93,15 +92,13 @@ public class FakeInMemoryTableIndex<TStreamId> : ITableIndex<TStreamId>
 		}
 	}
 
-	public bool TryGetLatestEntry(ulong stream, long beforePosition, Func<IndexEntry, bool> isForThisStream, out IndexEntry entry)
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<IndexEntry?> TryGetLatestEntry(ulong stream, long beforePosition,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token)
+		=> ValueTask.FromException<IndexEntry?>(new NotImplementedException());
 
-	public bool TryGetLatestEntry(TStreamId streamId, long beforePosition, Func<IndexEntry, bool> isForThisStream, out IndexEntry entry)
-	{
-		throw new NotImplementedException();
-	}
+	public ValueTask<IndexEntry?> TryGetLatestEntry(TStreamId stream, long beforePosition,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token)
+		=> ValueTask.FromException<IndexEntry?>(new NotImplementedException());
 
 	public bool TryGetNextEntry(TStreamId streamId, long afterVersion, out IndexEntry entry)
 	{

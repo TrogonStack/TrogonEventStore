@@ -47,7 +47,7 @@ public class when_writing_a_new_chunked_transaction_file<TLogFormat, TStreamId> 
 			data: new byte[] { 1, 2, 3, 4, 5 },
 			metadata: new byte[] { 7, 17 });
 		await tf.Write(record, CancellationToken.None);
-		tf.Close();
+		await tf.DisposeAsync();
 		await db.DisposeAsync();
 
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), _checkpoint.Read());

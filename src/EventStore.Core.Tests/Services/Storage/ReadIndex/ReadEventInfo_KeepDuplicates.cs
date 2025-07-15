@@ -19,7 +19,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	private const string SoftDeletedStream = "de-1";
 	private const string HardDeletedStream = "fg-1";
 
-	private readonly List<EventRecord> _events = [];
+	private readonly List<EventRecord> _events = new();
 
 	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result)
 	{
@@ -54,9 +54,9 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public void returns_correct_info_for_normal_event()
+	public async Task returns_correct_info_for_normal_event()
 	{
-		var result = ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 1);
+		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 1, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 1)
 			.ToArray();
@@ -68,9 +68,9 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public void returns_correct_info_for_duplicate_events()
+	public async Task returns_correct_info_for_duplicate_events()
 	{
-		var result = ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 2);
+		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 2, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 2)
 			.ToArray();
@@ -82,9 +82,9 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public void returns_correct_info_for_colliding_stream()
+	public async Task returns_correct_info_for_colliding_stream()
 	{
-		var result = ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 3);
+		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 3, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 3)
 			.ToArray();
@@ -94,7 +94,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 		Assert.AreEqual(true, result.IsEndOfStream);
 		CheckResult(events, result);
 
-		result = ReadIndex.ReadEventInfo_KeepDuplicates(CollidingStream, 3);
+		result = await ReadIndex.ReadEventInfo_KeepDuplicates(CollidingStream, 3, CancellationToken.None);
 		events = _events
 			.Where(x => x.EventStreamId == CollidingStream && x.EventNumber == 3)
 			.ToArray();
@@ -106,9 +106,9 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public void returns_correct_info_for_soft_deleted_stream()
+	public async Task returns_correct_info_for_soft_deleted_stream()
 	{
-		var result = ReadIndex.ReadEventInfo_KeepDuplicates(SoftDeletedStream, 10);
+		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(SoftDeletedStream, 10, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == SoftDeletedStream && x.EventNumber == 10)
 			.ToArray();
@@ -120,9 +120,9 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public void returns_correct_info_for_hard_deleted_stream()
+	public async Task returns_correct_info_for_hard_deleted_stream()
 	{
-		var result = ReadIndex.ReadEventInfo_KeepDuplicates(HardDeletedStream, 20);
+		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(HardDeletedStream, 20, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == HardDeletedStream && x.EventNumber == 20)
 			.ToArray();
@@ -134,9 +134,9 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public void returns_empty_info_when_event_does_not_exist()
+	public async Task returns_empty_info_when_event_does_not_exist()
 	{
-		var result = ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 6);
+		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 6, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 6)
 			.ToArray();
@@ -145,7 +145,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 		Assert.AreEqual(-1, result.NextEventNumber);
 		Assert.AreEqual(true, result.IsEndOfStream);
 
-		result = ReadIndex.ReadEventInfo_KeepDuplicates(CollidingStream, 4);
+		result = await ReadIndex.ReadEventInfo_KeepDuplicates(CollidingStream, 4, CancellationToken.None);
 		events = _events
 			.Where(x => x.EventStreamId == CollidingStream && x.EventNumber == 4)
 			.ToArray();

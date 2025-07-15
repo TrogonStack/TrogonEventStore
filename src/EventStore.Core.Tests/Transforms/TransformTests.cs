@@ -64,7 +64,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		}
 	}
 
-	private async ValueTask VerifyChecksums(MiniNode<TLogFormat,TStreamId> node, CancellationToken token = default)
+	private async ValueTask VerifyChecksums(MiniNode<TLogFormat, TStreamId> node, CancellationToken token = default)
 	{
 		var completedChunks = new List<TFChunk>();
 		for (var i = 0; ; i++)

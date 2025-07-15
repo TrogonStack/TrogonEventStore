@@ -11,8 +11,9 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	WithThreeCollisionedStreamsWithDifferentNumberOfEventsThirdOneDeletedEachReadIndexShould<TLogFormat, TStreamId> :
-		ReadIndexTestScenario<TLogFormat, TStreamId>
+	with_three_collisioned_streams_with_different_number_of_events_third_one_deleted_each_read_index_should<TLogFormat,
+		TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord[] _prepares1;
 	private EventRecord[] _prepares2;
@@ -45,69 +46,69 @@ public class
 	#region first
 
 	[Test]
-	public void return_correct_last_event_version_for_first_stream()
+	public async Task return_correct_last_event_version_for_first_stream()
 	{
-		Assert.AreEqual(2, ReadIndex.GetStreamLastEventNumber("AB"));
+		Assert.AreEqual(2, await ReadIndex.GetStreamLastEventNumber("AB", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_minus_one_when_asked_for_last_version_for_stream_with_same_hash_as_first()
+	public async Task return_minus_one_when_asked_for_last_version_for_stream_with_same_hash_as_first()
 	{
-		Assert.AreEqual(-1, ReadIndex.GetStreamLastEventNumber("FY"));
+		Assert.AreEqual(-1, await ReadIndex.GetStreamLastEventNumber("FY", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_correct_first_record_for_first_stream()
+	public async Task return_correct_first_record_for_first_stream()
 	{
-		var result = ReadIndex.ReadEvent("AB", 0);
+		var result = await ReadIndex.ReadEvent("AB", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_prepares1[0], result.Record);
 	}
 
 	[Test]
-	public void return_correct_last_log_record_for_first_stream()
+	public async Task return_correct_last_log_record_for_first_stream()
 	{
-		var result = ReadIndex.ReadEvent("AB", 2);
+		var result = await ReadIndex.ReadEvent("AB", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_prepares1[2], result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_version_3_in_first_stream()
+	public async Task not_find_record_with_version_3_in_first_stream()
 	{
-		var result = ReadIndex.ReadEvent("AB", 3);
+		var result = await ReadIndex.ReadEvent("AB", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_3_for_stream_with_same_hash_as_first_stream()
+	public async Task return_not_found_for_record_version_3_for_stream_with_same_hash_as_first_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 3);
+		var result = await ReadIndex.ReadEvent("FY", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_2_for_stream_with_same_hash_as_first_stream()
+	public async Task return_not_found_for_record_version_2_for_stream_with_same_hash_as_first_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 2);
+		var result = await ReadIndex.ReadEvent("FY", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_0_for_stream_with_same_hash_as_first_stream()
+	public async Task return_not_found_for_record_version_0_for_stream_with_same_hash_as_first_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 0);
+		var result = await ReadIndex.ReadEvent("FY", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_start_range_query_for_first_stream()
+	public async Task return_correct_range_on_from_start_range_query_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("AB", 0, 3);
+		var result = await ReadIndex.ReadStreamEventsForward("AB", 0, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
 
@@ -118,9 +119,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_0_1_range_on_from_start_range_query_for_first_stream()
+	public async Task return_correct_0_1_range_on_from_start_range_query_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("AB", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("AB", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -128,9 +129,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_1_1_range_on_from_start_range_query_for_first_stream()
+	public async Task return_correct_1_1_range_on_from_start_range_query_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("AB", 1, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("AB", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -138,43 +139,43 @@ public class
 	}
 
 	[Test]
-	public void return_empty_range_for_3_1_range_on_from_start_range_query_request_for_first_stream()
+	public async Task return_empty_range_for_3_1_range_on_from_start_range_query_request_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("AB", 3, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("AB", 3, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_first_one()
+	public async Task return_empty_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_first_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("FY", 0, 3);
+		var result = await ReadIndex.ReadStreamEventsForward("FY", 0, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_1_1_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_first_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("FY", 1, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("FY", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_3_1_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_first_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("FY", 3, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("FY", 3, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_first_stream_with_specific_version()
+	public async Task return_correct_range_on_from_end_range_query_for_first_stream_with_specific_version()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("AB", 2, 3);
+		var result = await ReadIndex.ReadStreamEventsBackward("AB", 2, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
 
@@ -187,9 +188,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_first_stream_with_from_end_version()
+	public async Task return_correct_range_on_from_end_range_query_for_first_stream_with_from_end_version()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("AB", -1, 3);
+		var result = await ReadIndex.ReadStreamEventsBackward("AB", -1, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
 
@@ -202,9 +203,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_0_1_range_on_from_end_range_query_for_first_stream()
+	public async Task return_correct_0_1_range_on_from_end_range_query_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("AB", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("AB", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -212,9 +213,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_from_end_1_range_on_from_end_range_query_for_first_stream()
+	public async Task return_correct_from_end_1_range_on_from_end_range_query_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("AB", -1, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("AB", -1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -222,9 +223,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_1_1_range_on_from_end_range_query_for_first_stream()
+	public async Task return_correct_1_1_range_on_from_end_range_query_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("AB", 1, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("AB", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -232,35 +233,35 @@ public class
 	}
 
 	[Test]
-	public void return_empty_range_for_3_1_range_on_from_end_range_query_request_for_first_stream()
+	public async Task return_empty_range_for_3_1_range_on_from_end_range_query_request_for_first_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("AB", 3, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("AB", 3, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_first_one()
+	public async Task return_empty_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_first_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("FY", 0, 3);
+		var result = await ReadIndex.ReadStreamEventsBackward("FY", 0, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_1_1_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_first_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("FY", 1, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("FY", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_3_1_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_first_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("FY", 3, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("FY", 3, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
@@ -270,69 +271,69 @@ public class
 	#region second
 
 	[Test]
-	public void return_correct_last_event_version_for_second_stream()
+	public async Task return_correct_last_event_version_for_second_stream()
 	{
-		Assert.AreEqual(4, ReadIndex.GetStreamLastEventNumber("CD"));
+		Assert.AreEqual(4, await ReadIndex.GetStreamLastEventNumber("CD", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_minus_one_when_aked_for_last_version_for_stream_with_same_hash_as_second()
+	public async Task return_minus_one_when_aked_for_last_version_for_stream_with_same_hash_as_second()
 	{
-		Assert.AreEqual(-1, ReadIndex.GetStreamLastEventNumber("FY"));
+		Assert.AreEqual(-1, await ReadIndex.GetStreamLastEventNumber("FY", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_correct_first_record_for_second_stream()
+	public async Task return_correct_first_record_for_second_stream()
 	{
-		var result = ReadIndex.ReadEvent("CD", 0);
+		var result = await ReadIndex.ReadEvent("CD", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_prepares2[0], result.Record);
 	}
 
 	[Test]
-	public void return_correct_last_log_record_for_second_stream()
+	public async Task return_correct_last_log_record_for_second_stream()
 	{
-		var result = ReadIndex.ReadEvent("CD", 4);
+		var result = await ReadIndex.ReadEvent("CD", 4, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_prepares2[4], result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_version_5_in_second_stream()
+	public async Task not_find_record_with_version_5_in_second_stream()
 	{
-		var result = ReadIndex.ReadEvent("CD", 5);
+		var result = await ReadIndex.ReadEvent("CD", 5, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_5_for_stream_with_same_hash_as_second_stream()
+	public async Task return_not_found_for_record_version_5_for_stream_with_same_hash_as_second_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 5);
+		var result = await ReadIndex.ReadEvent("FY", 5, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_4_for_stream_with_same_hash_as_second_stream()
+	public async Task return_not_found_for_record_version_4_for_stream_with_same_hash_as_second_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 4);
+		var result = await ReadIndex.ReadEvent("FY", 4, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_0_for_stream_with_same_hash_as_second_stream()
+	public async Task return_not_found_for_record_version_0_for_stream_with_same_hash_as_second_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 0);
+		var result = await ReadIndex.ReadEvent("FY", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_start_range_query_for_second_stream()
+	public async Task return_correct_range_on_from_start_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("CD", 0, 5);
+		var result = await ReadIndex.ReadStreamEventsForward("CD", 0, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
 
@@ -343,9 +344,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_0_2_range_on_from_start_range_query_for_second_stream()
+	public async Task return_correct_0_2_range_on_from_start_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("CD", 0, 2);
+		var result = await ReadIndex.ReadStreamEventsForward("CD", 0, 2, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
 
@@ -354,9 +355,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_2_2_range_on_from_start_range_query_for_second_stream()
+	public async Task return_correct_2_2_range_on_from_start_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("CD", 2, 2);
+		var result = await ReadIndex.ReadStreamEventsForward("CD", 2, 2, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
 
@@ -365,35 +366,35 @@ public class
 	}
 
 	[Test]
-	public void return_empty_range_for_5_1_range_on_from_start_range_query_request_for_second_stream()
+	public async Task return_empty_range_for_5_1_range_on_from_start_range_query_request_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("CD", 5, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("CD", 5, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_second_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("FY", 0, 5);
+		var result = await ReadIndex.ReadStreamEventsForward("FY", 0, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_5_1_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_second_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("FY", 5, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("FY", 5, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_second_stream_with_specific_version()
+	public async Task return_correct_range_on_from_end_range_query_for_second_stream_with_specific_version()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", 4, 5);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", 4, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
 
@@ -406,9 +407,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_second_stream_with_from_end_version()
+	public async Task return_correct_range_on_from_end_range_query_for_second_stream_with_from_end_version()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", -1, 5);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", -1, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
 
@@ -421,9 +422,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_0_1_range_on_from_end_range_query_for_second_stream()
+	public async Task return_correct_0_1_range_on_from_end_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -431,9 +432,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_from_end_1_range_on_from_end_range_query_for_second_stream()
+	public async Task return_correct_from_end_1_range_on_from_end_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", -1, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", -1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -441,9 +442,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_1_1_range_on_from_end_range_query_for_second_stream()
+	public async Task return_correct_1_1_range_on_from_end_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", 1, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
 
@@ -451,9 +452,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_from_end_2_range_on_from_end_range_query_for_second_stream()
+	public async Task return_correct_from_end_2_range_on_from_end_range_query_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", -1, 2);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", -1, 2, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
 
@@ -462,26 +463,26 @@ public class
 	}
 
 	[Test]
-	public void return_empty_range_for_5_1_range_on_from_end_range_query_request_for_second_stream()
+	public async Task return_empty_range_for_5_1_range_on_from_end_range_query_request_for_second_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("CD", 5, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("CD", 5, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_second_one()
+	public async Task return_empty_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_second_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("FY", 0, 5);
+		var result = await ReadIndex.ReadStreamEventsBackward("FY", 0, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_5_1_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_second_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("FY", 5, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("FY", 5, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
@@ -491,140 +492,141 @@ public class
 	#region third
 
 	[Test]
-	public void return_correct_last_event_version_for_third_stream()
+	public async Task return_correct_last_event_version_for_third_stream()
 	{
-		Assert.AreEqual(EventNumber.DeletedStream, ReadIndex.GetStreamLastEventNumber("EF"));
+		Assert.AreEqual(EventNumber.DeletedStream,
+			await ReadIndex.GetStreamLastEventNumber("EF", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_minus_one_when_aked_for_last_version_for_stream_with_same_hash_as_third()
+	public async Task return_minus_one_when_aked_for_last_version_for_stream_with_same_hash_as_third()
 	{
-		Assert.AreEqual(-1, ReadIndex.GetStreamLastEventNumber("FY"));
+		Assert.AreEqual(-1, await ReadIndex.GetStreamLastEventNumber("FY", CancellationToken.None));
 	}
 
 	[Test]
-	public void not_find_first_record_for_third_stream()
+	public async Task not_find_first_record_for_third_stream()
 	{
-		var result = ReadIndex.ReadEvent("EF", 0);
+		var result = await ReadIndex.ReadEvent("EF", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void not_find_last_log_record_for_third_stream()
+	public async Task not_find_last_log_record_for_third_stream()
 	{
-		var result = ReadIndex.ReadEvent("EF", 6);
+		var result = await ReadIndex.ReadEvent("EF", 6, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 	}
 
 	[Test]
-	public void not_find_record_with_version_7_in_third_stream()
+	public async Task not_find_record_with_version_7_in_third_stream()
 	{
-		var result = ReadIndex.ReadEvent("EF", 7);
+		var result = await ReadIndex.ReadEvent("EF", 7, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 	}
 
 	[Test]
-	public void return_not_found_for_record_version_7_for_stream_with_same_hash_as_third_stream()
+	public async Task return_not_found_for_record_version_7_for_stream_with_same_hash_as_third_stream()
 	{
-		var result = ReadIndex.ReadEvent("FY", 7);
+		var result = await ReadIndex.ReadEvent("FY", 7, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_start_range_query_for_third_stream()
+	public async Task return_empty_range_on_from_start_range_query_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("EF", 0, 7);
+		var result = await ReadIndex.ReadStreamEventsForward("EF", 0, 7, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_0_7_range_on_from_start_range_query_for_third_stream()
+	public async Task return_empty_0_7_range_on_from_start_range_query_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("EF", 0, 7);
+		var result = await ReadIndex.ReadStreamEventsForward("EF", 0, 7, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_2_3_range_on_from_start_range_query_for_third_stream()
+	public async Task return_empty_2_3_range_on_from_start_range_query_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("EF", 2, 3);
+		var result = await ReadIndex.ReadStreamEventsForward("EF", 2, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_for_7_1_range_on_from_start_range_query_request_for_third_stream()
+	public async Task return_empty_range_for_7_1_range_on_from_start_range_query_request_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("EF", 7, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("EF", 7, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_third_one()
+	public async Task return_empty_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_third_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("FY", 0, 7);
+		var result = await ReadIndex.ReadStreamEventsForward("FY", 0, 7, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_7_1_range_on_from_start_range_query_for_non_existing_stream_with_same_hash_as_third_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("EF", 7, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("EF", 7, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_end_range_query_for_third_stream()
+	public async Task return_empty_range_on_from_end_range_query_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("EF", 0, 7);
+		var result = await ReadIndex.ReadStreamEventsBackward("EF", 0, 7, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_0_1_range_on_from_end_range_query_for_third_stream()
+	public async Task return_empty_0_1_range_on_from_end_range_query_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("EF", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("EF", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_1_1_range_on_from_end_range_query_for_third_stream()
+	public async Task return_empty_1_1_range_on_from_end_range_query_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("EF", 1, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("EF", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_for_7_1_range_on_from_end_range_query_request_for_third_stream()
+	public async Task return_empty_range_for_7_1_range_on_from_end_range_query_request_for_third_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("EF", 7, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("EF", 7, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_third_one()
+	public async Task return_empty_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_third_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("FY", 0, 7);
+		var result = await ReadIndex.ReadStreamEventsBackward("FY", 0, 7, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_7_1_range_on_from_end_range_query_for_non_existing_stream_with_same_hash_as_third_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("EF", 7, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("EF", 7, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
@@ -634,9 +636,10 @@ public class
 	#region all
 
 	[Test]
-	public void return_all_prepares_on_read_all_forward()
+	public async Task return_all_prepares_on_read_all_forward()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(3 + 5 + 7 + 1, events.Length);

@@ -1,23 +1,20 @@
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 
 namespace EventStore.Core.XUnit.Tests.LogAbstraction;
 
-public class MockExistenceFilterInitializer : INameExistenceFilterInitializer
+public class MockExistenceFilterInitializer(params string[] names) : INameExistenceFilterInitializer
 {
-	private readonly string[] _names;
-
-	public MockExistenceFilterInitializer(params string[] names)
-	{
-		_names = names;
-	}
-
-	public void Initialize(INameExistenceFilter filter, long truncateToPosition)
+	public ValueTask Initialize(INameExistenceFilter filter, long truncateToPosition, CancellationToken token)
 	{
 		int checkpoint = 0;
-		foreach (var name in _names)
+		foreach (var name in names)
 		{
 			filter.Add(name);
 			filter.CurrentCheckpoint = checkpoint++;
 		}
+
+		return ValueTask.CompletedTask;
 	}
 }

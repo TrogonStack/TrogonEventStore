@@ -54,7 +54,7 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 					yield return true;
 				}
 
-				result = _chunk.TryReadClosestForward(result.NextPosition);
+				result = await _chunk.TryReadClosestForward(result.NextPosition, token);
 			}
 		}
 	}

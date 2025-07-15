@@ -17,14 +17,14 @@ public interface IAllReader
 	/// Returns event records in the sequence they were committed into TF.
 	/// Positions is specified as pre-positions (pointer at the beginning of the record).
 	/// </summary>
-	IndexReadAllResult ReadAllEventsForward(TFPos pos, int maxCount);
+	ValueTask<IndexReadAllResult> ReadAllEventsForward(TFPos pos, int maxCount, CancellationToken token);
 
 	/// <summary>
 	/// Returns event records whose eventType matches the given <see cref="EventFilter"/> in the sequence they were committed into TF.
 	/// Positions is specified as pre-positions (pointer at the beginning of the record).
 	/// </summary>
-	IndexReadAllResult FilteredReadAllEventsForward(TFPos pos, int maxCount, int maxSearchWindow,
-		IEventFilter eventFilter);
+	ValueTask<IndexReadAllResult> FilteredReadAllEventsForward(TFPos pos, int maxCount, int maxSearchWindow,
+		IEventFilter eventFilter, CancellationToken token);
 
 	/// <summary>
 	/// Returns event records in the reverse sequence they were committed into TF.
@@ -60,19 +60,16 @@ public class AllReader<TStreamId> : IAllReader
 		_eventTypes = eventTypes;
 	}
 
-	public IndexReadAllResult ReadAllEventsForward(TFPos pos, int maxCount)
-		=> ReadAllEventsForwardInternal(pos, maxCount, int.MaxValue, EventFilter.DefaultAllFilter);
+	public ValueTask<IndexReadAllResult> ReadAllEventsForward(TFPos pos, int maxCount, CancellationToken token)
+		=> ReadAllEventsForwardInternal(pos, maxCount, int.MaxValue, EventFilter.DefaultAllFilter, token);
 
-	public IndexReadAllResult FilteredReadAllEventsForward(
-		TFPos pos,
-		int maxCount,
-		int maxSearchWindow,
-		IEventFilter eventFilter)
-		=> ReadAllEventsForwardInternal(pos, maxCount, maxSearchWindow, eventFilter);
+	public ValueTask<IndexReadAllResult> FilteredReadAllEventsForward(TFPos pos, int maxCount, int maxSearchWindow,
+		IEventFilter eventFilter, CancellationToken token)
+		=> ReadAllEventsForwardInternal(pos, maxCount, maxSearchWindow, eventFilter, token);
 
 
-	private IndexReadAllResult ReadAllEventsForwardInternal(TFPos pos, int maxCount, int maxSearchWindow,
-		IEventFilter eventFilter)
+	private async ValueTask<IndexReadAllResult> ReadAllEventsForwardInternal(TFPos pos, int maxCount, int maxSearchWindow,
+		IEventFilter eventFilter, CancellationToken token)
 	{
 		var records = new List<CommitEventRecord>();
 		var nextPos = pos;
@@ -97,7 +94,7 @@ public class AllReader<TStreamId> : IAllReader
 			reader.Reposition(nextCommitPos);
 
 			SeqReadResult result;
-			while ((result = reader.TryReadNext()).Success && !IsCommitAlike(result.LogRecord))
+			while ((result = await reader.TryReadNext(token)).Success && !IsCommitAlike(result.LogRecord))
 			{
 				// skip until commit
 			}
@@ -123,8 +120,8 @@ public class AllReader<TStreamId> : IAllReader
 					if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete)
 					    && new TFPos(prepare.LogPosition, prepare.LogPosition) >= pos)
 					{
-						var streamName = _streamNames.LookupName(prepare.EventStreamId);
-						var eventType = _eventTypes.LookupName(prepare.EventType);
+						var streamName = await _streamNames.LookupName(prepare.EventStreamId, token);
+						var eventType = await _eventTypes.LookupName(prepare.EventType, token);
 						var eventRecord = new EventRecord(eventNumber: prepare.ExpectedVersion + 1,
 							prepare, streamName, eventType);
 						consideredEventsCount++;
@@ -153,7 +150,7 @@ public class AllReader<TStreamId> : IAllReader
 					reader.Reposition(commit.TransactionPosition);
 					while (records.Count < maxCount && consideredEventsCount < maxSearchWindow)
 					{
-						result = reader.TryReadNext();
+						result = await reader.TryReadNext(token);
 						if (!result.Success) // no more records in TF
 							break;
 						// prepare with TransactionEnd could be scavenged already
@@ -171,8 +168,8 @@ public class AllReader<TStreamId> : IAllReader
 						if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete)
 						    && new TFPos(commit.LogPosition, prepare.LogPosition) >= pos)
 						{
-							var streamName = _streamNames.LookupName(prepare.EventStreamId);
-							var eventType = _eventTypes.LookupName(prepare.EventType);
+							var streamName = await _streamNames.LookupName(prepare.EventStreamId, token);
+							var eventType = await _eventTypes.LookupName(prepare.EventType, token);
 							var eventRecord =
 								new EventRecord(commit.FirstEventNumber + prepare.TransactionOffset,
 									prepare, streamName, eventType);
@@ -266,8 +263,8 @@ public class AllReader<TStreamId> : IAllReader
 					if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete)
 					    && new TFPos(result.RecordPostPosition, result.RecordPostPosition) <= pos)
 					{
-						var streamName = _streamNames.LookupName(prepare.EventStreamId);
-						var eventType = _eventTypes.LookupName(prepare.EventType);
+						var streamName = await _streamNames.LookupName(prepare.EventStreamId, token);
+						var eventType = await _eventTypes.LookupName(prepare.EventType, token);
 						var eventRecord = new EventRecord(eventNumber: prepare.ExpectedVersion + 1,
 							prepare, streamName, eventType);
 						consideredEventsCount++;
@@ -321,8 +318,8 @@ public class AllReader<TStreamId> : IAllReader
 						if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete)
 						    && new TFPos(commitPostPos, result.RecordPostPosition) <= pos)
 						{
-							var streamName = _streamNames.LookupName(prepare.EventStreamId);
-							var eventType = _eventTypes.LookupName(prepare.EventType);
+							var streamName = await _streamNames.LookupName(prepare.EventStreamId, token);
+							var eventType = await _eventTypes.LookupName(prepare.EventType, token);
 							var eventRecord =
 								new EventRecord(commit.FirstEventNumber + prepare.TransactionOffset,
 									prepare, streamName, eventType);

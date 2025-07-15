@@ -32,18 +32,13 @@ namespace EventStore.Core.Services {
 		public const string NodeStateStream = "$mem-node-state";
 		public const string GossipStream = "$mem-gossip";
 
-		public static bool IsSystemStream(string streamId) {
-			return streamId.Length != 0 && streamId[0] == '$';
-		}
+		public static bool IsSystemStream(string streamId) => streamId is ['$', ..];
 
 		public static string MetastreamOf(string streamId) {
 			return "$$" + streamId;
 		}
 
-		public static bool IsMetastream(string streamId) {
-			return streamId.Length >= 2 && streamId[0] == '$' && streamId[1] == '$';
-		}
-
+		public static bool IsMetastream(string streamId) => streamId is ['$', '$', ..];
 		public static string OriginalStreamOf(string metastreamId) {
 			return metastreamId.Substring(2);
 		}
@@ -164,13 +159,13 @@ namespace EventStore.Core.Services {
 		public const string RoundRobin = "RoundRobin";
 
 		/// <summary>
-		/// Distribute events of the same streamId to the same client until it disconnects on a best efforts basis. 
+		/// Distribute events of the same streamId to the same client until it disconnects on a best efforts basis.
 		/// Designed to be used with indexes such as the category projection.
 		/// </summary>
 		public const string Pinned = "Pinned";
 
 		/// <summary>
-		/// Distribute events of the same correlationId to the same client until it disconnects on a best efforts basis. 
+		/// Distribute events of the same correlationId to the same client until it disconnects on a best efforts basis.
 		/// </summary>
 		public const string PinnedByCorrelation = "PinnedByCorrelation";
 	}

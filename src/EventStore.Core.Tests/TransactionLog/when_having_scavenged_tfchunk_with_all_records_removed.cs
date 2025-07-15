@@ -16,7 +16,9 @@ namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+public class
+	when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, TStreamId> :
+	SpecificationWithDirectoryPerTestFixture
 {
 	private LogFormatAbstractor<TStreamId> _logFormat;
 	private TFChunkDb _db;
@@ -31,10 +33,11 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 	{
 		await base.TestFixtureSetUp();
 
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new LogFormatAbstractorOptions
-		{
-			IndexDirectory = GetFilePathFor("index"),
-		});
+		_logFormat =
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+			{
+				IndexDirectory = GetFilePathFor("index"),
+			});
 
 		_db = new TFChunkDb(TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 16 * 1024));
 		await _db.Open();
@@ -42,14 +45,16 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 		var chunk = _db.Manager.GetChunkFor(0);
 		var streamName = "es-to-scavenge";
 		var pos = 0L;
-		_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, streamName, 0, out var streamId, out var streamRecord);
+		_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, streamName, 0, out var streamId,
+			out var streamRecord);
 		if (streamRecord is not null)
 		{
 			var res = chunk.TryAppend(streamRecord);
 			pos = res.NewPosition;
 		}
 
-		_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, "et1", pos, out var eventTypeId, out var eventTypeRecord);
+		_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, "et1", pos, out var eventTypeId,
+			out var eventTypeRecord);
 		if (eventTypeRecord is not null)
 		{
 			var res = chunk.TryAppend(eventTypeRecord);
@@ -57,7 +62,8 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 		}
 
 		var expectedVersion = ExpectedVersion.NoStream;
-		_p1 = LogRecord.SingleWrite(_logFormat.RecordFactory, pos, Guid.NewGuid(), Guid.NewGuid(), streamId, expectedVersion++, eventTypeId,
+		_p1 = LogRecord.SingleWrite(_logFormat.RecordFactory, pos, Guid.NewGuid(), Guid.NewGuid(), streamId,
+			expectedVersion++, eventTypeId,
 			new byte[2048], new byte[] { 5, 7 });
 		_res1 = chunk.TryAppend(_p1);
 
@@ -80,7 +86,7 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 		_c3 = LogRecord.Commit(_res3.NewPosition, Guid.NewGuid(), _p3.LogPosition, 2);
 		_cres3 = chunk.TryAppend(_c3);
 
-		chunk.Complete();
+		await chunk.Complete(CancellationToken.None);
 		_originalFileSize = chunk.FileSize;
 
 		_db.Config.WriterCheckpoint.Write(chunk.ChunkHeader.ChunkEndPosition);
@@ -88,8 +94,10 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 		_db.Config.ChaserCheckpoint.Write(chunk.ChunkHeader.ChunkEndPosition);
 		_db.Config.ChaserCheckpoint.Flush();
 
-		var scavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, _db, new FakeTFScavengerLog(), new FakeTableIndex<TStreamId>(),
-			new FakeReadIndex<TLogFormat, TStreamId>(x => EqualityComparer<TStreamId>.Default.Equals(x, streamId), _logFormat.Metastreams),
+		var scavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, _db, new FakeTFScavengerLog(),
+			new FakeTableIndex<TStreamId>(),
+			new FakeReadIndex<TLogFormat, TStreamId>(x => EqualityComparer<TStreamId>.Default.Equals(x, streamId),
+				_logFormat.Metastreams),
 			_logFormat.Metastreams);
 		await scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: false);
 
@@ -126,44 +134,44 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 	}
 
 	[Test]
-	public void prepare1_cant_be_read_at_position()
+	public async Task prepare1_cant_be_read_at_position()
 	{
-		var res = _scavengedChunk.TryReadAt((int)_p1.LogPosition, couldBeScavenged: true);
+		var res = await _scavengedChunk.TryReadAt((int)_p1.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void commit1_cant_be_read_at_position()
+	public async Task commit1_cant_be_read_at_position()
 	{
-		var res = _scavengedChunk.TryReadAt((int)_c1.LogPosition, couldBeScavenged: true);
+		var res = await _scavengedChunk.TryReadAt((int)_c1.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void prepare2_cant_be_read_at_position()
+	public async Task prepare2_cant_be_read_at_position()
 	{
-		var res = _scavengedChunk.TryReadAt((int)_p2.LogPosition, couldBeScavenged: true);
+		var res = await _scavengedChunk.TryReadAt((int)_p2.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void commit2_cant_be_read_at_position()
+	public async Task commit2_cant_be_read_at_position()
 	{
-		var res = _scavengedChunk.TryReadAt((int)_c2.LogPosition, couldBeScavenged: true);
+		var res = await _scavengedChunk.TryReadAt((int)_c2.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void prepare3_cant_be_read_at_position()
+	public async Task prepare3_cant_be_read_at_position()
 	{
-		var res = _scavengedChunk.TryReadAt((int)_p3.LogPosition, couldBeScavenged: true);
+		var res = await _scavengedChunk.TryReadAt((int)_p3.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void commit3_cant_be_read_at_position()
+	public async Task commit3_cant_be_read_at_position()
 	{
-		var res = _scavengedChunk.TryReadAt((int)_c3.LogPosition, couldBeScavenged: true);
+		var res = await _scavengedChunk.TryReadAt((int)_c3.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
@@ -175,7 +183,7 @@ public class when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, 
 		while (res.Success)
 		{
 			records.Add(res.LogRecord);
-			res = _scavengedChunk.TryReadClosestForward((int)res.NextPosition);
+			res = await _scavengedChunk.TryReadClosestForward((int)res.NextPosition, CancellationToken.None);
 		}
 
 		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)

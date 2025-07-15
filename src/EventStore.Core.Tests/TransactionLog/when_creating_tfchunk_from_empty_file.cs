@@ -52,9 +52,9 @@ public class WhenCreatingTfchunkFromEmptyFile : SpecificationWithFile
 	}
 
 	[Test]
-	public void there_is_no_record_at_pos_zero()
+	public async Task there_is_no_record_at_pos_zero()
 	{
-		var res = _chunk.TryReadAt(0, couldBeScavenged: true);
+		var res = await _chunk.TryReadAt(0, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
@@ -66,16 +66,16 @@ public class WhenCreatingTfchunkFromEmptyFile : SpecificationWithFile
 	}
 
 	[Test]
-	public void there_is_no_closest_forward_record_to_pos_zero()
+	public async Task there_is_no_closest_forward_record_to_pos_zero()
 	{
-		var res = _chunk.TryReadClosestForward(0);
+		var res = await _chunk.TryReadClosestForward(0, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public void there_is_no_closest_backward_record_from_end()
+	public async Task there_is_no_closest_backward_record_from_end()
 	{
-		var res = _chunk.TryReadClosestForward(0);
+		var res = await _chunk.TryReadClosestForward(0, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 

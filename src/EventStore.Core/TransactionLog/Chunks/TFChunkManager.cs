@@ -304,7 +304,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 			newChunk = await TFChunk.TFChunk.FromCompletedFile(newFileName, verifyHash, _config.Unbuffered,
 				_tracker, type => _transformManager.GetFactoryForExistingChunk(type),
-				_config.OptimizeReadSideCache, _config.ReduceFileCachePressure, token: token);
+				_config.ReduceFileCachePressure, token: token);
 		}
 
 		bool triggerCaching;

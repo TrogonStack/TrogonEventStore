@@ -32,9 +32,10 @@ public class WhenReadingAll<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogF
 	}
 
 	[Test]
-	public void should_be_able_to_read_all_forwards()
+	public async Task should_be_able_to_read_all_forwards()
 	{
-		var result = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10).EventRecords();
+		var result = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10, CancellationToken.None))
+			.EventRecords();
 		Assert.AreEqual(3, result.Count);
 	}
 }

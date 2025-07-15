@@ -100,7 +100,7 @@ public class StreamEventReader : EventReader,
 			case ReadStreamResult.Success:
 				var oldFromSequenceNumber = StartFrom(message, _fromSequenceNumber);
 				_fromSequenceNumber = message.NextEventNumber;
-				var eof = (message.Events.Length == 0) && message.IsEndOfStream;
+				var eof = (message.Events.Count == 0) && message.IsEndOfStream;
 				_eof = eof;
 				var willDispose = eof && _stopOnEof;
 
@@ -118,7 +118,7 @@ public class StreamEventReader : EventReader,
 				}
 				else
 				{
-					for (int index = 0; index < message.Events.Length; index++)
+					for (int index = 0; index < message.Events.Count; index++)
 					{
 						var @event = message.Events[index].Event;
 						var @link = message.Events[index].Link;
@@ -155,7 +155,7 @@ public class StreamEventReader : EventReader,
 	{
 		if (fromSequenceNumber != 0)
 			return fromSequenceNumber;
-		if (message.Events.Length > 0)
+		if (message.Events.Count > 0)
 		{
 			return message.Events[0].OriginalEventNumber;
 		}

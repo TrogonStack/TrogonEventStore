@@ -1,27 +1,26 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using DotNext;
 using EventStore.Core.LogAbstraction;
 using StreamId = System.UInt32;
 
 namespace EventStore.Core.XUnit.Tests.LogV3;
 
-class MockNameLookup : INameLookup<StreamId>
+class MockNameLookup(Dictionary<StreamId, string> dict) : INameLookup<StreamId>
 {
-	private readonly Dictionary<StreamId, string> _dict;
-
-	public MockNameLookup(Dictionary<StreamId, string> dict)
+	public ValueTask<Optional<StreamId>> TryGetLastValue(CancellationToken token)
 	{
-		_dict = dict;
+		return new ValueTask<Optional<StreamId>>(dict.Count > 0
+			? dict.Keys.Max()
+			: Optional.None<StreamId>());
 	}
 
-	public bool TryGetLastValue(out StreamId last)
+	public ValueTask<string> LookupName(StreamId key, CancellationToken token)
 	{
-		last = _dict.Count != 0 ? _dict.Keys.Max() : 0;
-		return _dict.Count != 0;
-	}
-
-	public bool TryGetName(StreamId key, out string name)
-	{
-		return _dict.TryGetValue(key, out name);
+		return new ValueTask<string>(dict.TryGetValue(key, out var name)
+			? name
+			: null);
 	}
 }

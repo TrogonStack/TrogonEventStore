@@ -24,116 +24,118 @@ public class
 	}
 
 	[Test]
-	public void return_minus_one_for_nonexistent_stream_as_last_event_version()
+	public async Task return_minus_one_for_nonexistent_stream_as_last_event_version()
 	{
-		Assert.AreEqual(-1, ReadIndex.GetStreamLastEventNumber("ES-NONEXISTENT"));
+		Assert.AreEqual(-1, await ReadIndex.GetStreamLastEventNumber("ES-NONEXISTENT", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_empty_range_on_from_start_range_query_for_non_existing_stream()
+	public async Task return_empty_range_on_from_start_range_query_for_non_existing_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES-NONEXISTING", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("ES-NONEXISTING", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_end_range_query_for_non_existing_stream()
+	public async Task return_empty_range_on_from_end_range_query_for_non_existing_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES-NONEXISTING", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES-NONEXISTING", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_not_found_for_get_record_from_non_existing_stream()
+	public async Task return_not_found_for_get_record_from_non_existing_stream()
 	{
-		var result = ReadIndex.ReadEvent("ES-NONEXISTING", 0);
+		var result = await ReadIndex.ReadEvent("ES-NONEXISTING", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_event_version_for_deleted_stream()
+	public async Task return_correct_event_version_for_deleted_stream()
 	{
-		Assert.AreEqual(EventNumber.DeletedStream, ReadIndex.GetStreamLastEventNumber("ES"));
+		Assert.AreEqual(EventNumber.DeletedStream,
+			await ReadIndex.GetStreamLastEventNumber("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_stream_deleted_result_for_deleted_event_stream()
+	public async Task return_stream_deleted_result_for_deleted_event_stream()
 	{
-		var result = ReadIndex.ReadEvent("ES", 0);
+		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_start_range_query_for_deleted_event_stream()
+	public async Task return_empty_range_on_from_start_range_query_for_deleted_event_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_range_on_from_end_range_query_for_deleted_event_stream()
+	public async Task return_empty_range_on_from_end_range_query_for_deleted_event_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_correct_last_event_version_for_nonexistent_stream_with_same_hash_as_deleted_one()
+	public async Task return_correct_last_event_version_for_nonexistent_stream_with_same_hash_as_deleted_one()
 	{
-		Assert.AreEqual(-1, ReadIndex.GetStreamLastEventNumber("AB"));
+		Assert.AreEqual(-1, await ReadIndex.GetStreamLastEventNumber("AB", CancellationToken.None));
 	}
 
 	[Test]
-	public void not_find_record_for_nonexistent_event_stream_with_same_hash_as_deleted_one()
+	public async Task not_find_record_for_nonexistent_event_stream_with_same_hash_as_deleted_one()
 	{
-		var result = ReadIndex.ReadEvent("AB", 0);
+		var result = await ReadIndex.ReadEvent("AB", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void
+	public async Task
 		return_empty_range_on_from_start_query_for_nonexisting_event_stream_with_same_hash_as_deleted_one()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("HG", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsForward("HG", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void return_empty_on_from_end_query_for_nonexisting_event_stream_with_same_hash_as_deleted_one()
+	public async Task return_empty_on_from_end_query_for_nonexisting_event_stream_with_same_hash_as_deleted_one()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("HG", 0, 1);
+		var result = await ReadIndex.ReadStreamEventsBackward("HG", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public void not_find_record_with_nonexistent_version_for_deleted_event_stream()
+	public async Task not_find_record_with_nonexistent_version_for_deleted_event_stream()
 	{
-		var result = ReadIndex.ReadEvent("ES", 1);
+		var result = await ReadIndex.ReadEvent("ES", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_non_existing_version_for_event_stream_with_same_hash_as_deleted_one()
+	public async Task not_find_record_with_non_existing_version_for_event_stream_with_same_hash_as_deleted_one()
 	{
-		var result = ReadIndex.ReadEvent("CL", 1);
+		var result = await ReadIndex.ReadEvent("CL", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_all_events_on_read_all_forward()
+	public async Task return_all_events_on_read_all_forward()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(2, events.Length);

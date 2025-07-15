@@ -43,11 +43,10 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
 		await db.Open();
 
-		var chaser = new TFChunkChaser(db, writerchk, new InMemoryCheckpoint(), false);
+		var chaser = new TFChunkChaser(db, writerchk, new InMemoryCheckpoint());
 		chaser.Open();
 
-		ILogRecord record;
-		Assert.IsFalse(chaser.TryReadNext(out record));
+		Assert.IsTrue(await chaser.TryReadNext(CancellationToken.None) is { LogRecord: null });
 
 		chaser.Close();
 	}
@@ -64,11 +63,10 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		chaserchk.Write(12);
 		chaserchk.Flush();
 
-		var chaser = new TFChunkChaser(db, writerchk, chaserchk, false);
+		var chaser = new TFChunkChaser(db, writerchk, chaserchk);
 		chaser.Open();
 
-		ILogRecord record;
-		Assert.IsFalse(chaser.TryReadNext(out record));
+		Assert.IsTrue(await chaser.TryReadNext(CancellationToken.None) is { LogRecord: null });
 		Assert.AreEqual(12, chaserchk.Read());
 
 		chaser.Close();
@@ -112,16 +110,15 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
 		await db.Open();
 
-		var chaser = new TFChunkChaser(db, writerchk, chaserchk, false);
+		var chaser = new TFChunkChaser(db, writerchk, chaserchk);
 		chaser.Open();
 
-		ILogRecord record;
-		var recordRead = chaser.TryReadNext(out record);
+		var recordRead = await chaser.TryReadNext(CancellationToken.None);
 		chaser.Close();
 
-		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
-		Assert.IsTrue(recordRead);
-		Assert.AreEqual(recordToWrite, record);
+		Assert.AreEqual(recordRead.LogRecord.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
+		Assert.IsTrue(recordRead.Success);
+		Assert.AreEqual(recordToWrite, recordRead.LogRecord);
 	}
 
 
@@ -155,20 +152,19 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		var writer = new TFChunkWriter(db);
 		writer.Open();
 		Assert.IsTrue(await writer.Write(recordToWrite, CancellationToken.None) is (true, _));
-		writer.Close();
+		await writer.DisposeAsync();
 
 		writerchk.Write(recordToWrite.GetSizeWithLengthPrefixAndSuffix());
 
-		var reader = new TFChunkChaser(db, writerchk, chaserchk, false);
+		var reader = new TFChunkChaser(db, writerchk, chaserchk);
 		reader.Open();
 
-		ILogRecord record;
-		var readRecord = reader.TryReadNext(out record);
+		var readRecord = await reader.TryReadNext(CancellationToken.None);
 		reader.Close();
 
-		Assert.IsTrue(readRecord);
-		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
-		Assert.AreEqual(recordToWrite, record);
+		Assert.IsTrue(readRecord.Success);
+		Assert.AreEqual(readRecord.LogRecord.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
+		Assert.AreEqual(recordToWrite, readRecord.LogRecord);
 	}
 
 	[Test]
@@ -200,20 +196,19 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 		var writer = new TFChunkWriter(db);
 		writer.Open();
 		Assert.IsTrue(await writer.Write(recordToWrite, CancellationToken.None) is (true, _));
-		writer.Close();
+		await writer.DisposeAsync();
 
 		writerchk.Write(recordToWrite.GetSizeWithLengthPrefixAndSuffix());
 
-		var chaser = new TFChunkChaser(db, writerchk, chaserchk, false);
+		var chaser = new TFChunkChaser(db, writerchk, chaserchk);
 		chaser.Open();
 
-		ILogRecord record;
-		var readRecord = chaser.TryReadNext(out record);
+		var readRecord = await chaser.TryReadNext(CancellationToken.None);
 		chaser.Close();
 
-		Assert.IsTrue(readRecord);
-		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
-		Assert.AreEqual(recordToWrite, record);
+		Assert.IsTrue(readRecord.Success);
+		Assert.AreEqual(readRecord.LogRecord.GetSizeWithLengthPrefixAndSuffix(), chaserchk.Read());
+		Assert.AreEqual(recordToWrite, readRecord.LogRecord);
 	}
 
 	/*   [Test]

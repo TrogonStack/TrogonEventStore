@@ -65,12 +65,12 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 
 	public string FileName => _outputChunk.FileName;
 
-	public void WriteRecord(RecordForExecutor<TStreamId, ILogRecord> record)
+	public async ValueTask WriteRecord(RecordForExecutor<TStreamId, ILogRecord> record, CancellationToken token)
 	{
 		var posMap = TFChunkScavenger<TStreamId>.WriteRecord(_outputChunk, record.Record);
 
 		// add the posmap in memory so we can write it when we complete
-		var lastBatch = _posMapss[_posMapss.Count - 1];
+		var lastBatch = _posMapss[^1];
 		if (lastBatch.Count >= BatchLength)
 		{
 			lastBatch = new List<PosMap>(capacity: BatchLength);
@@ -83,7 +83,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		var currentPage = _outputChunk.RawWriterPosition / 4046;
 		if (currentPage - _lastFlushedPage > TFChunkScavenger.FlushPageInterval)
 		{
-			_outputChunk.Flush();
+			await _outputChunk.Flush(token);
 			_lastFlushedPage = currentPage;
 		}
 	}

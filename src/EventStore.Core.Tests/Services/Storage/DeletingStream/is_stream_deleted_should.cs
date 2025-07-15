@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
@@ -10,12 +11,12 @@ public class IsStreamDeletedShould<TLogFormat, TStreamId> : ReadIndexTestScenari
 	[Test]
 	public void crash_on_null_stream_argument()
 	{
-		Assert.Throws<ArgumentNullException>(() => ReadIndex.IsStreamDeleted(null));
+		Assert.ThrowsAsync<ArgumentNullException>(async () => await ReadIndex.IsStreamDeleted(null, CancellationToken.None));
 	}
 
 	[Test]
 	public void throw_on_empty_stream_argument()
 	{
-		Assert.Throws<ArgumentNullException>(() => ReadIndex.IsStreamDeleted(string.Empty));
+		Assert.ThrowsAsync<ArgumentNullException>(async () => await ReadIndex.IsStreamDeleted(string.Empty, CancellationToken.None));
 	}
 }

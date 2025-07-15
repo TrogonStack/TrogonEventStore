@@ -12,17 +12,22 @@ public class FakeIndexReader(Func<long, bool> existsAt = null) : ITransactionFil
 
 	public void Reposition(long position) => throw new NotImplementedException();
 
-	public SeqReadResult TryReadNext() => throw new NotImplementedException();
+	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token)
+		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
 	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
 		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
-	public RecordReadResult TryReadAt(long position, bool couldBeScavenged)
+	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
 	{
 		var record = (LogRecord)new PrepareLogRecord(position, Guid.NewGuid(), Guid.NewGuid(), 0, 0,
-			position.ToString(), null, -1, DateTime.UtcNow, PrepareFlags.None, "type", null, Array.Empty<byte>(), null);
-		return new RecordReadResult(true, position + 1, record, 1);
+			position.ToString(), null, -1, DateTime.UtcNow, PrepareFlags.None, "type", null,
+			Array.Empty<byte>(), null);
+		return new ValueTask<RecordReadResult>(new RecordReadResult(true, position + 1, record, 1));
 	}
 
-	public bool ExistsAt(long position) => _existsAt(position);
+	public ValueTask<bool> ExistsAt(long position, CancellationToken token)
+		=> token.IsCancellationRequested
+			? ValueTask.FromCanceled<bool>(token)
+			: ValueTask.FromResult(_existsAt(position));
 }

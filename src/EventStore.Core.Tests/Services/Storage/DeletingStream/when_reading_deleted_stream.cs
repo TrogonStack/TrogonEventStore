@@ -39,14 +39,14 @@ public class WhenReadingDeletedStream<TLogFormat, TStreamId> : ReadIndexTestScen
 	}
 
 	[Test]
-	public void the_stream_is_deleted()
+	public async Task the_stream_is_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("ES"));
+		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void the_last_event_number_is_deleted_stream()
+	public async Task the_last_event_number_is_deleted_stream()
 	{
-		Assert.AreEqual(EventNumber.DeletedStream, ReadIndex.GetStreamLastEventNumber("ES"));
+		Assert.AreEqual(EventNumber.DeletedStream, await ReadIndex.GetStreamLastEventNumber("ES", CancellationToken.None));
 	}
 }

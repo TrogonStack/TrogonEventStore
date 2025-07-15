@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.LogAbstraction.Common;
 using EventStore.Core.TransactionLog.Checkpoint;
@@ -11,6 +12,7 @@ namespace EventStore.Core.XUnit.Tests.LogAbstraction.Common;
 
 public class StreamExistenceFilterTests :
 	INameExistenceFilterTests,
+	IAsyncLifetime,
 	IClassFixture<DirectoryFixture<StreamExistenceFilterTests>>
 {
 	private readonly DirectoryFixture<StreamExistenceFilterTests> _fixture;
@@ -18,14 +20,34 @@ public class StreamExistenceFilterTests :
 	public StreamExistenceFilterTests(DirectoryFixture<StreamExistenceFilterTests> fixture)
 	{
 		_fixture = fixture;
+	}
+
+	async Task IAsyncLifetime.InitializeAsync()
+	{
 		Sut = GenSut();
-		Sut.Initialize(new MockExistenceFilterInitializer(), 0);
+		await Sut.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
+	}
+
+	Task IAsyncLifetime.DisposeAsync()
+	{
+		var task = Task.CompletedTask;
+		try
+		{
+			Dispose();
+		}
+		catch (Exception e)
+		{
+			task = Task.FromException(e);
+		}
+
+		return task;
 	}
 
 	protected override INameExistenceFilter Sut { get; set; }
 
 	private StreamExistenceFilter GenSut(
-		[System.Runtime.CompilerServices.CallerMemberName] string name = "",
+		[System.Runtime.CompilerServices.CallerMemberName]
+		string name = "",
 		TimeSpan? checkpointInterval = null,
 		long size = 10_000,
 		bool useHasher = true)
@@ -58,10 +80,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void can_add_without_hasher()
+	public async Task can_add_without_hasher()
 	{
 		var sut = GenSut(useHasher: false);
-		sut.Initialize(new MockExistenceFilterInitializer(), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
 		var name = "can_add_without_hasher";
 		Assert.False(sut.MightContain(name));
 		sut.Add(name);
@@ -81,10 +103,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void can_truncate()
+	public async Task can_truncate()
 	{
 		var sut = GenSut();
-		sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0, CancellationToken.None);
 		Assert.Equal(2L, sut.CurrentCheckpoint);
 		// wait for flush so that we have something to truncate (or it will do nothing)
 		AssertEx.IsOrBecomesTrue(() => sut.CurrentCheckpointFlushed == 2, TimeSpan.FromSeconds(20));
@@ -102,10 +124,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void on_restart_checkpoint_does_not_exceed_data()
+	public async Task on_restart_checkpoint_does_not_exceed_data()
 	{
 		var sut = GenSut();
-		sut.Initialize(new MockExistenceFilterInitializer(), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
 
 		Assert.Equal(-1, sut.CurrentCheckpoint);
 		Assert.False(sut.MightContain("0"));
@@ -133,9 +155,9 @@ public class StreamExistenceFilterTests :
 		// when restart
 		sut.Dispose();
 		sut = GenSut();
-		sut.Initialize(new MockExistenceFilterInitializer(), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
 
-		// then 
+		// then
 		Assert.Equal(0, sut.CurrentCheckpoint);
 		Assert.True(sut.MightContain("0"));
 		// "1" will have been flushed when disposing
@@ -144,10 +166,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void when_flushed_then_checkpoint_is_persisted()
+	public async Task when_flushed_then_checkpoint_is_persisted()
 	{
 		var sut = GenSut();
-		sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0, CancellationToken.None);
 
 		// wait for flush, then close
 		AssertEx.IsOrBecomesTrue(() => sut.CurrentCheckpointFlushed == 2, TimeSpan.FromSeconds(20));
@@ -160,10 +182,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void when_missing_dat_then_reset_checkpoint()
+	public async Task when_missing_dat_then_reset_checkpoint()
 	{
 		var sut = GenSut();
-		sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0, CancellationToken.None);
 
 		// wait for flush, then close
 		AssertEx.IsOrBecomesTrue(() => sut.CurrentCheckpointFlushed == 2, TimeSpan.FromSeconds(20));
@@ -177,10 +199,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void when_changing_size_then_reset_checkpoint()
+	public async Task when_changing_size_then_reset_checkpoint()
 	{
 		var sut = GenSut(size: 10_000);
-		sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer("0", "1", "2"), 0, CancellationToken.None);
 
 		// wait for flush, then close
 		AssertEx.IsOrBecomesTrue(() => sut.CurrentCheckpointFlushed == 2, TimeSpan.FromSeconds(20));
@@ -193,10 +215,10 @@ public class StreamExistenceFilterTests :
 	}
 
 	[Fact]
-	public void writes_can_be_read_by_another_thread()
+	public async Task writes_can_be_read_by_another_thread()
 	{
 		var sut = GenSut();
-		sut.Initialize(new MockExistenceFilterInitializer(), 0);
+		await sut.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
 
 		var theValue = 12345;
 

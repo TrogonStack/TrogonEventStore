@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
@@ -18,7 +19,7 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 
 		logger.Information("SCAVENGING: Getting latest scavenge point...");
 
-		var readTcs = new TaskCompletionSource<ResolvedEvent[]>(
+		var readTcs = new TaskCompletionSource<IReadOnlyList<ResolvedEvent>>(
 			TaskCreationOptions.RunContinuationsAsynchronously);
 		var endStreamPosition = -1;
 
@@ -47,20 +48,21 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 			},
 			corrId: Guid.NewGuid());
 
-		ResolvedEvent[] events;
+		IReadOnlyList<ResolvedEvent> events;
 		await using (cancellationToken.Register(() => readTcs.TrySetCanceled()))
 		{
 			events = await readTcs.Task;
 		}
 
-		if (events.Length == 0)
+		if (events is [])
 		{
 			logger.Information("SCAVENGING: No scavenge points exist");
 			return null;
 		}
-		else if (events.Length != 1)
+
+		if (events.Count is not 1)
 		{
-			throw new Exception($"Expected 1 event but got {events.Length}");
+			throw new Exception($"Expected 1 event but got {events.Count}");
 		}
 
 		var scavengePointEvent = events[0].Event;

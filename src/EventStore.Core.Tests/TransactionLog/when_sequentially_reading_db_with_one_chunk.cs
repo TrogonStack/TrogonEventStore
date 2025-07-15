@@ -16,7 +16,7 @@ namespace EventStore.Core.Tests.TransactionLog;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	WhenSequentiallyReadingDbWithOneChunk<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+	when_sequentially_reading_db_with_one_chunk<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private const int RecordsCount = 3;
 
@@ -49,7 +49,7 @@ public class
 			_results[i] = chunk.TryAppend(_records[i]);
 		}
 
-		chunk.Flush();
+		await chunk.Flush(CancellationToken.None);
 		_db.Config.WriterCheckpoint.Write(_results[RecordsCount - 1].NewPosition);
 		_db.Config.WriterCheckpoint.Flush();
 	}
@@ -76,13 +76,12 @@ public class
 	}
 
 	[Test]
-	public void all_records_could_be_read_with_forward_pass()
+	public async Task all_records_could_be_read_with_forward_pass()
 	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
-		SeqReadResult res;
 		int count = 0;
-		while ((res = seqReader.TryReadNext()).Success)
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
 		{
 			var rec = _records[count];
 			Assert.AreEqual(rec, res.LogRecord);
@@ -96,13 +95,12 @@ public class
 	}
 
 	[Test]
-	public void only_the_last_record_is_marked_eof()
+	public async Task only_the_last_record_is_marked_eof()
 	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
-		SeqReadResult res;
 		int count = 0;
-		while ((res = seqReader.TryReadNext()).Success)
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
 		{
 			++count;
 			Assert.AreEqual(count == RecordsCount, res.Eof);
@@ -136,9 +134,8 @@ public class
 	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
-		SeqReadResult res;
 		int count1 = 0;
-		while ((res = seqReader.TryReadNext()).Success)
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
 		{
 			var rec = _records[count1];
 			Assert.AreEqual(rec, res.LogRecord);
@@ -151,7 +148,7 @@ public class
 		Assert.AreEqual(RecordsCount, count1);
 
 		int count2 = 0;
-		while ((res = await seqReader.TryReadPrev(CancellationToken.None)).Success)
+		while (await seqReader.TryReadPrev(CancellationToken.None) is { Success: true } res)
 		{
 			var rec = _records[RecordsCount - count2 - 1];
 			Assert.AreEqual(rec, res.LogRecord);
@@ -165,15 +162,14 @@ public class
 	}
 
 	[Test]
-	public void records_can_be_read_forward_starting_from_any_position()
+	public async Task records_can_be_read_forward_starting_from_any_position()
 	{
 		for (int i = 0; i < RecordsCount; ++i)
 		{
 			var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, _records[i].LogPosition);
 
-			SeqReadResult res;
 			int count = 0;
-			while ((res = seqReader.TryReadNext()).Success)
+			while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
 			{
 				var rec = _records[i + count];
 				Assert.AreEqual(rec, res.LogRecord);

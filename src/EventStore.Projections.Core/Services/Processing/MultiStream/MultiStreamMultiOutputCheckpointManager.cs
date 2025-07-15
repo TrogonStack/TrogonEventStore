@@ -190,7 +190,7 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 				case ReadStreamResult.Success:
 				case ReadStreamResult.NoStream:
 				case ReadStreamResult.StreamDeleted:
-					if (completed.Events.Length == 1)
+					if (completed.Events.Count == 1)
 						item.SetLoadedEvent(completed.Events[0]);
 					_loadingItemsCount--;
 					CheckAllEventsLoaded();

@@ -22,7 +22,7 @@ public class WhenChaserReadsSystemEvent<TLogFormat, TStreamId> : with_storage_ch
 			SystemRecordSerialization.Json, epoch.AsSerialized());
 
 		Assert.True(await Writer.Write(rec, token) is (true, _));
-		Writer.Flush();
+		await Writer.Flush(token);
 	}
 	[Test]
 	public void epoch_should_be_updated()

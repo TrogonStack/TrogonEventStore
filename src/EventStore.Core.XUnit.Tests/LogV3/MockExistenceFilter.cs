@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 
 namespace EventStore.Core.XUnit.Tests.LogV3;
@@ -23,10 +25,9 @@ public class MockExistenceFilter : INameExistenceFilter
 	{
 	}
 
-	public void Initialize(INameExistenceFilterInitializer source, long truncateToPosition)
-	{
-		source.Initialize(this, truncateToPosition);
-	}
+	public ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition,
+		CancellationToken token)
+		=> source.Initialize(this, truncateToPosition, token);
 
 	public void TruncateTo(long checkpoint)
 	{

@@ -21,16 +21,16 @@ public class WhenReadingFromStreamWhichIsDisallowedFromAll<TLogFormat, TStreamId
 	}
 
 	[Test]
-	public void should_be_able_to_read_stream_events_forward()
+	public async Task should_be_able_to_read_stream_events_forward()
 	{
-		var result = ReadIndex.ReadStreamEventsForward(stream, 0L, 10);
+		var result = await ReadIndex.ReadStreamEventsForward(stream, 0L, 10, CancellationToken.None);
 		Assert.AreEqual(2, result.Records.Length);
 	}
 
 	[Test]
-	public void should_be_able_to_read_stream_events_backward()
+	public async Task should_be_able_to_read_stream_events_backward()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward(stream, -1, 10);
+		var result = await ReadIndex.ReadStreamEventsBackward(stream, -1, 10, CancellationToken.None);
 		Assert.AreEqual(2, result.Records.Length);
 	}
 }
