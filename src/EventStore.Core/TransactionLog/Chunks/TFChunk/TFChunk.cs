@@ -685,10 +685,11 @@ public partial class TFChunk : IDisposable
 	// (d) raw (byte offset in file, which is actual - header size)
 	//
 	// this method takes (b) and returns (d)
-	public long GetActualRawPosition(long logicalPosition)
+	public async ValueTask<long> GetActualRawPosition(long logicalPosition, CancellationToken token)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(logicalPosition);
 
+		token.ThrowIfCancellationRequested();
 		var actualPosition = _readSide.GetActualPosition(logicalPosition);
 
 		if (actualPosition < 0)
@@ -948,8 +949,9 @@ public partial class TFChunk : IDisposable
 		return RecordWriteResult.Successful(oldPosition, _physicalDataSize);
 	}
 
-	public bool TryAppendRawData(ReadOnlyMemory<byte> buffer)
+	public async ValueTask<bool> TryAppendRawData(ReadOnlyMemory<byte> buffer, CancellationToken token)
 	{
+		token.ThrowIfCancellationRequested();
 		var workItem = _writerWorkItem;
 		if (workItem.WorkingStream.Position + buffer.Length > workItem.WorkingStream.Length)
 			return false;
