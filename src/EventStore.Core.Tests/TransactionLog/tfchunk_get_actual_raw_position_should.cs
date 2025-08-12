@@ -89,7 +89,7 @@ public class
 
 		Assert.AreEqual(numEvents, logPositions.Count);
 		foreach (var logPos in logPositions)
-			Assert.AreEqual(ChunkHeader.Size + logPos, chunk.GetActualRawPosition(logPos));
+			Assert.AreEqual(ChunkHeader.Size + logPos, await chunk.GetActualRawPosition(logPos, CancellationToken.None));
 		Assert.IsEmpty(posMap);
 	}
 
@@ -110,7 +110,7 @@ public class
 
 		Assert.AreEqual(numEvents, logPositions.Count);
 		foreach (var logPos in logPositions)
-			Assert.AreEqual(ChunkHeader.Size + logPos, chunk.GetActualRawPosition(logPos));
+			Assert.AreEqual(ChunkHeader.Size + logPos, await chunk.GetActualRawPosition(logPos, CancellationToken.None));
 		Assert.IsEmpty(posMap);
 	}
 
@@ -134,7 +134,7 @@ public class
 		for (int i = 0; i < numEvents; i++)
 		{
 			Assert.AreEqual(posMap[i].LogPos, logPositions[i]);
-			Assert.AreEqual(ChunkHeader.Size + posMap[i].ActualPos, chunk.GetActualRawPosition(logPositions[i]));
+			Assert.AreEqual(ChunkHeader.Size + posMap[i].ActualPos, await chunk.GetActualRawPosition(logPositions[i], CancellationToken.None));
 		}
 	}
 
@@ -155,10 +155,9 @@ public class
 		Assert.IsEmpty(posMap);
 
 		Assert.AreEqual(chunk.LogicalDataSize, chunk.PhysicalDataSize);
-		Assert.AreEqual(ChunkHeader.Size + chunk.LogicalDataSize - 1,
-			chunk.GetActualRawPosition(chunk.LogicalDataSize - 1));
-		Assert.AreEqual(-1, chunk.GetActualRawPosition(chunk.LogicalDataSize));
-		Assert.AreEqual(-1, chunk.GetActualRawPosition(chunk.LogicalDataSize + 1));
+		Assert.AreEqual(ChunkHeader.Size + chunk.LogicalDataSize - 1, await chunk.GetActualRawPosition(chunk.LogicalDataSize - 1, CancellationToken.None));
+		Assert.AreEqual(-1, await chunk.GetActualRawPosition(chunk.LogicalDataSize, CancellationToken.None));
+		Assert.AreEqual(-1, await chunk.GetActualRawPosition(chunk.LogicalDataSize + 1, CancellationToken.None));
 	}
 
 	[Test]
@@ -177,8 +176,8 @@ public class
 		Assert.AreEqual(1, logPositions.Count);
 		Assert.AreEqual(1, posMap.Count);
 
-		Assert.AreEqual(ChunkHeader.Size + posMap[0].ActualPos, chunk.GetActualRawPosition(logPositions[0]));
-		Assert.AreEqual(-1, chunk.GetActualRawPosition(logPositions[0] + 1));
+		Assert.AreEqual(ChunkHeader.Size + posMap[0].ActualPos, await chunk.GetActualRawPosition(logPositions[0], CancellationToken.None));
+		Assert.AreEqual(-1, await chunk.GetActualRawPosition(logPositions[0] + 1, CancellationToken.None));
 	}
 
 	[Test]
@@ -194,6 +193,6 @@ public class
 			logPositions,
 			posMap);
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => chunk.GetActualRawPosition(-1));
+		Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await chunk.GetActualRawPosition(-1, CancellationToken.None));
 	}
 }
