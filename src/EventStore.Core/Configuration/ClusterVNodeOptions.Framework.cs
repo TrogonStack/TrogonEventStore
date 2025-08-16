@@ -85,14 +85,13 @@ namespace EventStore.Core {
 			// because we always start with defaults, we can just add them all first.
 			// then we can override them with the actual values.
 			foreach (var provider in configurationRoot.Providers) {
-				var providerType = provider.GetType();
 
 				foreach (var option in Metadata.SelectMany(x => x.Options)) {
 					if (!provider.TryGet(option.Value.Key, out var value)) continue;
 
 					var title = GetTitle(option);
-					var sourceDisplayName = GetSourceDisplayName(providerType);
-					var isDefault = providerType == typeof(EventStoreDefaultValuesConfigurationProvider);
+					var sourceDisplayName = GetSourceDisplayName(option.Value.Key, provider);
+					var isDefault = provider.GetType() == typeof(EventStoreDefaultValuesConfigurationProvider);
 
 					loadedOptions[option.Value.Key] = new(
 						metadata: option.Value,
@@ -110,16 +109,18 @@ namespace EventStore.Core {
 				CombineByPascalCase(EventStoreConfigurationKeys.StripConfigurationPrefix(option.Value.Key)).ToUpper();
 		}
 
-		public static string GetSourceDisplayName(Type source) {
-			var name = source == typeof(EventStoreDefaultValuesConfigurationProvider)
-				? "<DEFAULT>"
-				: CombineByPascalCase(
-					source.Name
-						.Replace("EventStore", "")
-						.Replace("ConfigurationProvider", "")
-				);
-
-			return name;
+		public static string GetSourceDisplayName(string key, IConfigurationProvider provider)
+		{
+			return provider switch
+			{
+				EventStoreDefaultValuesConfigurationProvider => "<DEFAULT>",
+				SectionProvider sectionProvider => sectionProvider.TryGetProviderFor(key, out var innerProvider)
+					? GetSourceDisplayName(key, innerProvider)
+					: "<UNKNOWN>",
+				_ => CombineByPascalCase(provider.GetType()
+					.Name.Replace("EventStore", "")
+					.Replace("ConfigurationProvider", ""))
+			};
 		}
 
 		private static string GetHelpText() {
@@ -130,7 +131,7 @@ namespace EventStore.Core {
 				OptionHeaderColumnWidth(o.Name, DefaultValue(o)));
 
 			var header = $"{OPTION.PadRight(optionColumnWidth, ' ')}{DESCRIPTION}";
-			
+
 			var environmentOnlyOptions = OptionSections.SelectMany(section => section.GetProperties())
 				.Where(option => option.GetCustomAttribute<EnvironmentOnlyAttribute>() != null)
 				.Select(option => option)
@@ -154,7 +155,7 @@ namespace EventStore.Core {
 						(stringBuilder, property) => stringBuilder.Append(Line(property)).AppendLine()))
 				.AppendLine().AppendLine("EnvironmentOnly Options").Append(environmentOnlyOptionsBuilder)
 				.ToString();
-			
+
 
 			string Line(PropertyInfo property) {
 				var description = property.GetCustomAttribute<DescriptionAttribute>()?.Description;
@@ -176,7 +177,7 @@ namespace EventStore.Core {
 
 				return builder.ToString();
 			}
-			
+
 			static IEnumerable<PropertyInfo> Options() => OptionSections.SelectMany(type => type.GetProperties());
 
 			static int OptionWidth(string name, string @default) =>
