@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using EventStore.Core.Messages;
 using EventStore.Core.TransactionLog.Checkpoint;
 using NUnit.Framework;
@@ -13,10 +14,10 @@ public class when_index_committer_service_receives_replicated_to_prepare_post_po
 	private readonly long _logPrePosition = 4000;
 	private readonly long _logPostPosition = 4001;
 
-	public override void TestFixtureSetUp()
+	public override Task TestFixtureSetUp()
 	{
 		ReplicationCheckpoint = new InMemoryCheckpoint(0);
-		base.TestFixtureSetUp();
+		return base.TestFixtureSetUp();
 	}
 	public override void Given() { }
 	public override void When()

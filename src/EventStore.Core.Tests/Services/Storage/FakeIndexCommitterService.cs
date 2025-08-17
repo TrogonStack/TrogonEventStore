@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Services.Storage;
 using EventStore.Core.TransactionLog.LogRecords;
 
@@ -10,9 +12,9 @@ namespace EventStore.Core.Tests.Services.Storage;
 
 public class FakeIndexCommitterService<TStreamId> : IIndexCommitterService<TStreamId>
 {
-	public Dictionary<Guid, Transaction> Transactions = new Dictionary<Guid, Transaction>();
-	public List<ILogRecord> Records = new List<ILogRecord>();
-	public long PostPosition;
+	public Dictionary<Guid, Transaction> Transactions = new();
+	public List<ILogRecord> Records = new();
+
 	public void AddPendingCommit(CommitLogRecord commit, long postPosition)
 	{
 		if (commit == null)
@@ -26,7 +28,6 @@ public class FakeIndexCommitterService<TStreamId> : IIndexCommitterService<TStre
 		{
 			throw new InvalidOperationException("Cannot commit an unknown transaction");
 		}
-		PostPosition = postPosition;
 	}
 
 	public void AddPendingPrepare(IPrepareLogRecord<TStreamId>[] prepares, long postPosition)
@@ -41,23 +42,24 @@ public class FakeIndexCommitterService<TStreamId> : IIndexCommitterService<TStre
 			Transactions.Add(prepares[0].CorrelationId, transaction);
 			Records.AddRange(prepares);
 		}
+
 		transaction.AddPrepares(prepares);
-		PostPosition = postPosition;
 	}
 
-	public long GetCommitLastEventNumber(CommitLogRecord record)
+	public ValueTask<long> GetCommitLastEventNumber(CommitLogRecord record, CancellationToken token)
 	{
 		if (Transactions.TryGetValue(record.CorrelationId, out var transaction))
 		{
-			return record.FirstEventNumber + transaction.Prepares.Count;
+			return ValueTask.FromResult(record.FirstEventNumber + transaction.Prepares.Count);
 		}
 		else
 		{
-			throw new InvalidOperationException("Cannot get last event number for an unknown transaction");
+			return ValueTask.FromException<long>(
+				new InvalidOperationException("Cannot get last event number for an unknown transaction"));
 		}
 	}
 
-	public void Init(long checkpointPosition) { }
+	public ValueTask Init(long checkpointPosition, CancellationToken token) => ValueTask.CompletedTask;
 
 	public void Stop() { }
 
@@ -73,16 +75,23 @@ public class FakeIndexCommitterService<TStreamId> : IIndexCommitterService<TStre
 		{
 			Id = id;
 			if (prepares != null)
-			{ AddPrepares(prepares); }
+			{
+				AddPrepares(prepares);
+			}
 		}
+
 		public void CommitTransaction(CommitLogRecord commit)
 		{
 			Commit = commit;
 		}
+
 		public void AddPrepares(ICollection<IPrepareLogRecord<TStreamId>> prepares)
 		{
 			if (IsCommitted)
-			{ throw new InvalidOperationException("Cannot add data to a committed transation"); }
+			{
+				throw new InvalidOperationException("Cannot add data to a committed transation");
+			}
+
 			_prepares.AddRange(prepares);
 		}
 	}

@@ -71,7 +71,7 @@ public class TransactionFileEventReader : EventReader,
 			return;
 		}
 
-		var eof = (message.Events.Length == 0) && message.IsEndOfStream;
+		var eof = (message.Events.Count == 0) && message.IsEndOfStream;
 		_eof = eof;
 		var willDispose = _stopOnEof && eof;
 		var oldFrom = _from;
@@ -93,9 +93,8 @@ public class TransactionFileEventReader : EventReader,
 		}
 		else
 		{
-			for (int index = 0; index < message.Events.Length; index++)
+			foreach (var @event in message.Events)
 			{
-				var @event = message.Events[index];
 				DeliverEvent(@event, message.TfLastCommitPosition, oldFrom);
 			}
 		}

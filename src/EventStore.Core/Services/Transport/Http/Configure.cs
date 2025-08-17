@@ -263,7 +263,7 @@ namespace EventStore.Core.Services.Transport.Http {
 				return HandleNotHandled(entity.RequestedUrl, notHandled);
 			return InternalServerError();
 		}
-		
+
 		public static ResponseConfiguration ReadAllEventsBackwardFilteredCompleted(HttpResponseConfiguratorArgs entity,
 			Message message, bool headOfTf) {
 			var msg = message as ClientMessage.FilteredReadAllEventsBackwardCompleted;
@@ -296,12 +296,11 @@ namespace EventStore.Core.Services.Transport.Http {
 
 		public static ResponseConfiguration ReadAllEventsForwardCompleted(HttpResponseConfiguratorArgs entity,
 			Message message, bool headOfTf) {
-			var msg = message as ClientMessage.ReadAllEventsForwardCompleted;
-			if (msg != null) {
+			if (message is ClientMessage.ReadAllEventsForwardCompleted msg) {
 				switch (msg.Result) {
 					case ReadAllResult.Success:
 						var codec = entity.ResponseCodec;
-						if (!headOfTf && msg.Events.Length == msg.MaxCount)
+						if (!headOfTf && msg.Events.Count == msg.MaxCount)
 							return Ok(codec.ContentType, codec.Encoding, null, MaxPossibleAge, msg.IsCachePublic);
 						var etag = GetPositionETag(msg.TfLastCommitPosition, codec.ContentType);
 						var cacheSeconds = GetCacheSeconds(msg.StreamMetadata);
@@ -318,20 +317,18 @@ namespace EventStore.Core.Services.Transport.Http {
 				}
 			}
 
-			var notHandled = message as ClientMessage.NotHandled;
-			if (notHandled != null)
+			if (message is ClientMessage.NotHandled notHandled)
 				return HandleNotHandled(entity.RequestedUrl, notHandled);
 			return InternalServerError();
 		}
-		
+
 		public static ResponseConfiguration ReadAllEventsForwardFilteredCompleted(HttpResponseConfiguratorArgs entity,
 			Message message, bool headOfTf) {
-			var msg = message as ClientMessage.FilteredReadAllEventsForwardCompleted;
-			if (msg != null) {
+			if (message is ClientMessage.FilteredReadAllEventsForwardCompleted msg)  {
 				switch (msg.Result) {
 					case FilteredReadAllResult.Success:
 						var codec = entity.ResponseCodec;
-						if (!headOfTf && msg.Events.Length == msg.MaxCount)
+						if (!headOfTf && msg.Events.Count == msg.MaxCount)
 							return Ok(codec.ContentType, codec.Encoding, null, MaxPossibleAge, msg.IsCachePublic);
 						var etag = GetPositionETag(msg.TfLastCommitPosition, codec.ContentType);
 						var cacheSeconds = GetCacheSeconds(msg.StreamMetadata);
@@ -348,8 +345,7 @@ namespace EventStore.Core.Services.Transport.Http {
 				}
 			}
 
-			var notHandled = message as ClientMessage.NotHandled;
-			if (notHandled != null)
+			if (message is ClientMessage.NotHandled notHandled)
 				return HandleNotHandled(entity.RequestedUrl, notHandled);
 			return InternalServerError();
 		}

@@ -321,7 +321,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			indexTracker: new IndexTracker.NoOp(),
 			cacheTracker: new CacheHitsMissesTracker.NoOp());
 
-		readIndex.IndexCommitter.Init(dbResult.Db.Config.WriterCheckpoint.Read());
+		await readIndex.IndexCommitter.Init(dbResult.Db.Config.WriterCheckpoint.Read(), CancellationToken.None);
 		// wait for tables to be merged. for one of the tests this takes a while
 		for (int i = 0; i < 10; i++)
 		{
@@ -372,7 +372,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 					readIndex,
 					() => new TFReaderLease(readerPool),
 					scavengeState.LookupUniqueHashUser),
-				(f, handle, from, maxCount, x) =>
+				(f, handle, from, maxCount, x, token) =>
 				{
 					if (_calculatingCancellationTrigger != null)
 						if ((handle.Kind == StreamHandle.Kind.Hash &&
@@ -384,7 +384,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 							cancellationTokenSource.Cancel();
 						}
 
-					return f(handle, from, maxCount, x);
+					return f(handle, from, maxCount, x, token);
 				});
 
 			var chunkExecutorMetastreamLookup = new AdHocMetastreamLookupInterceptor<TStreamId>(
@@ -399,16 +399,19 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			var indexScavenger = new IndexScavenger(tableIndex);
 			var cancellationWrappedIndexScavenger = new AdHocIndexScavengerInterceptor(
 				indexScavenger,
-				f => entry =>
+				f => (entry, token) =>
 				{
-					if (_executingIndexEntryCancellationTrigger != null &&
+					if (token.IsCancellationRequested)
+						return ValueTask.FromCanceled<bool>(token);
+
+					if (_executingIndexEntryCancellationTrigger is not null &&
 						entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger))
 					{
 
 						cancellationTokenSource.Cancel();
 					}
 
-					return f(entry);
+					return f(entry, token);
 				});
 
 			var cancellationCheckPeriod = 1;
@@ -617,7 +620,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			if (keptRecords != null)
 			{
 				await CheckRecords(keptRecords, dbResult, cancellationTokenSource.Token);
-				CheckIndex(keptIndexEntries, readIndex, collidingStreams, hasher);
+				await CheckIndex(keptIndexEntries, readIndex, collidingStreams, hasher, cancellationTokenSource.Token);
 			}
 
 			_assertState?.Invoke(scavengeState);
@@ -651,7 +654,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			while (result.Success)
 			{
 				chunkRecords.Add(result.LogRecord);
-				result = chunk.TryReadClosestForward((int)result.NextPosition);
+				result = await chunk.TryReadClosestForward((int)result.NextPosition, token);
 			}
 
 			Assert.True(
@@ -672,11 +675,12 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 
 	// we want to check that the index contains everything it is supposed to
 	// and we want to check that the index doesn't contain anything extra.
-	private static void CheckIndex(
+	private static async ValueTask CheckIndex(
 		ILogRecord[][] expected,
 		IReadIndex<TStreamId> actual,
 		HashSet<TStreamId> collisions,
-		ILongHasher<TStreamId> hasher)
+		ILongHasher<TStreamId> hasher,
+		CancellationToken token)
 	{
 
 		if (expected == null)
@@ -714,23 +718,24 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 					max = eventNumber;
 				maxEventNumbers[streamId] = Math.Max(eventNumber, max);
 
-				var result = collisions.Contains(streamId)
+				var result = await (collisions.Contains(streamId)
 					? actual.ReadEventInfoForward_KnownCollisions(
 						streamId: streamId,
 						fromEventNumber: eventNumber,
 						maxCount: 1,
-						beforePosition: long.MaxValue)
+						beforePosition: long.MaxValue,
+						token)
 					: actual.ReadEventInfoForward_NoCollisions(
 						stream: hasher.Hash(streamId),
 						fromEventNumber: eventNumber,
 						maxCount: 1,
-						beforePosition: long.MaxValue);
+					beforePosition: long.MaxValue,
+						token));
 
 				if (result.EventInfos.Length != 1)
 				{
 					// remember this applies metadata, so is of limited use
-					var wholeStream = actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0,
-						maxCount: 100);
+					var wholeStream = await actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0, maxCount: 100, token);
 					Assert.True(result.EventInfos.Length == 1, $"Couldn't find {streamId}:{eventNumber} in index.");
 				}
 
@@ -751,17 +756,19 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			var min = kvp.Value;
 			var max = maxEventNumbers[streamId];
 
-			var result = collisions.Contains(streamId)
+			var result = await (collisions.Contains(streamId)
 				? actual.ReadEventInfoForward_KnownCollisions(
 					streamId: streamId,
 					fromEventNumber: 0,
 					maxCount: 1000,
-					beforePosition: long.MaxValue)
+					beforePosition: long.MaxValue,
+					token)
 				: actual.ReadEventInfoForward_NoCollisions(
 					stream: hasher.Hash(streamId),
 					fromEventNumber: 0,
 					maxCount: 1000,
-					beforePosition: long.MaxValue);
+					beforePosition: long.MaxValue,
+					token));
 
 			if (result.EventInfos.Length > 100)
 				throw new Exception("wasn't expecting a stream this long in the tests");

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.LogV2;
@@ -70,7 +71,7 @@ public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLo
 			new byte[] { 5, 7 });
 		_results[_records.Length - 1] = chunk.TryAppend(_records[_records.Length - 1]);
 
-		chunk.Flush();
+		await chunk.Flush(CancellationToken.None);
 		_db.Config.WriterCheckpoint.Write(_results[RecordsCount - 1].NewPosition);
 		_db.Config.WriterCheckpoint.Flush();
 	}
@@ -83,13 +84,12 @@ public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLo
 	}
 
 	[Test]
-	public void only_the_last_record_is_marked_eof()
+	public async Task only_the_last_record_is_marked_eof()
 	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
-		SeqReadResult res;
 		int count = 0;
-		while ((res = seqReader.TryReadNext()).Success)
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
 		{
 			++count;
 			Assert.AreEqual(count == RecordsCount, res.Eof);

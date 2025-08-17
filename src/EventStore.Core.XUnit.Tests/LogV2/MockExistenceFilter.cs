@@ -1,36 +1,28 @@
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
 
 namespace EventStore.Core.XUnit.Tests.LogV2;
 
-public class MockExistenceFilter : INameExistenceFilter
+public class MockExistenceFilter(ILongHasher<string> hasher, int addDelayMs = 0) : INameExistenceFilter
 {
-	private readonly ILongHasher<string> _hasher;
-	private readonly int _addDelayMs;
-
-	public MockExistenceFilter(ILongHasher<string> hasher, int addDelayMs = 0)
-	{
-		_hasher = hasher;
-		_addDelayMs = addDelayMs;
-	}
-
 	public HashSet<ulong> Hashes { get; } = new();
 
 	public long CurrentCheckpoint { get; set; } = -1;
 
 	public void Add(string name)
 	{
-		if (_addDelayMs > 0)
-			Thread.Sleep(_addDelayMs);
-		Hashes.Add(_hasher.Hash(name));
+		if (addDelayMs > 0)
+			Thread.Sleep(addDelayMs);
+		Hashes.Add(hasher.Hash(name));
 	}
 
 	public void Add(ulong hash)
 	{
-		if (_addDelayMs > 0)
-			Thread.Sleep(_addDelayMs);
+		if (addDelayMs > 0)
+			Thread.Sleep(addDelayMs);
 		Hashes.Add(hash);
 	}
 
@@ -38,10 +30,9 @@ public class MockExistenceFilter : INameExistenceFilter
 	{
 	}
 
-	public void Initialize(INameExistenceFilterInitializer source, long truncateToPosition)
-	{
-		source.Initialize(this, truncateToPosition);
-	}
+	public ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition,
+		CancellationToken token)
+		=> source.Initialize(this, truncateToPosition, token);
 
 	public void TruncateTo(long checkpoint)
 	{
@@ -52,6 +43,6 @@ public class MockExistenceFilter : INameExistenceFilter
 
 	public bool MightContain(string name)
 	{
-		return Hashes.Contains(_hasher.Hash(name));
+		return Hashes.Contains(hasher.Hash(name));
 	}
 }

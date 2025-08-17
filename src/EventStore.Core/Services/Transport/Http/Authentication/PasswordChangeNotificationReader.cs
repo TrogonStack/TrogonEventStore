@@ -33,7 +33,7 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 							ReadNotificationsFrom(0);
 							break;
 						case ReadStreamResult.Success:
-							if (completed.Events.Length == 0)
+							if (completed.Events.Count == 0)
 								ReadNotificationsFrom(0);
 							else
 								ReadNotificationsFrom(completed.Events[0].Event.EventNumber + 1);

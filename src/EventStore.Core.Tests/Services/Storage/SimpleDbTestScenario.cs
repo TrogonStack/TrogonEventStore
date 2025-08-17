@@ -44,10 +44,7 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 
 		var indexDirectory = GetFilePathFor("index");
 		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-			{
-				IndexDirectory = indexDirectory,
-			});
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() { IndexDirectory = indexDirectory, });
 
 		var dbConfig = TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 1024 * 1024);
 		var dbCreationHelper =
@@ -98,7 +95,7 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 			indexTracker: new IndexTracker.NoOp(),
 			cacheTracker: new CacheHitsMissesTracker.NoOp());
 
-		readIndex.IndexCommitter.Init(DbRes.Db.Config.ChaserCheckpoint.Read());
+		await readIndex.IndexCommitter.Init(DbRes.Db.Config.ChaserCheckpoint.Read(), CancellationToken.None);
 		ReadIndex = readIndex;
 	}
 

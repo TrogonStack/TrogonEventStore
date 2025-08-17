@@ -126,7 +126,7 @@ public class DefaultCheckpointManager : CoreProjectionCheckpointManager,
 		_loadStateRequests.Remove(message.CorrelationId);
 
 		_readRequestsInProgress--;
-		if (message.Events.Length == 1)
+		if (message.Events.Count == 1)
 		{
 			EventRecord @event = message.Events[0].Event;
 			if (@event.EventType == stateEventType)

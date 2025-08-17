@@ -717,7 +717,7 @@ public class ManagedProjection : IDisposable
 
 	private void PersistedStateReadCompleted(ClientMessage.ReadStreamEventsBackwardCompleted completed)
 	{
-		if (completed.Result == ReadStreamResult.Success && completed.Events.Length == 1)
+		if (completed.Result == ReadStreamResult.Success && completed.Events.Count == 1)
 		{
 			var persistedState = completed.Events[0].Event.Data.ParseJson<PersistedState>();
 

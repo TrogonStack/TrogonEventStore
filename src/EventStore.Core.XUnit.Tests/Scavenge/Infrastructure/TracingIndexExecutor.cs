@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 using EventStore.Core.TransactionLog.Scavenging;
 
@@ -15,7 +16,7 @@ public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
 		_tracer = tracer;
 	}
 
-	public void Execute(
+	public async ValueTask Execute(
 		ScavengePoint scavengePoint,
 		IScavengeStateForIndexExecutor<TStreamId> state,
 		IIndexScavengerLog scavengerLogger,
@@ -25,7 +26,7 @@ public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
 		_tracer.TraceIn($"Executing index for {scavengePoint.GetName()}");
 		try
 		{
-			_wrapped.Execute(scavengePoint, state, scavengerLogger, cancellationToken);
+			await _wrapped.Execute(scavengePoint, state, scavengerLogger, cancellationToken);
 			_tracer.TraceOut("Done");
 		}
 		catch
@@ -35,7 +36,7 @@ public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
 		}
 	}
 
-	public void Execute(
+	public async ValueTask Execute(
 		ScavengeCheckpoint.ExecutingIndex checkpoint,
 		IScavengeStateForIndexExecutor<TStreamId> state,
 		IIndexScavengerLog scavengerLogger,
@@ -45,7 +46,7 @@ public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
 		_tracer.TraceIn($"Executing index from checkpoint: {checkpoint}");
 		try
 		{
-			_wrapped.Execute(checkpoint, state, scavengerLogger, cancellationToken);
+			await _wrapped.Execute(checkpoint, state, scavengerLogger, cancellationToken);
 			_tracer.TraceOut("Done");
 		}
 		catch

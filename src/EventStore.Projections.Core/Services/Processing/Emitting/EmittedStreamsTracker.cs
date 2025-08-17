@@ -42,9 +42,9 @@ public class EmittedStreamsTracker : IEmittedStreamsTracker
 		_ioDispatcher.ReadForward(_projectionNamesBuilder.GetEmittedStreamsName(), position, 1, false,
 			SystemAccounts.System, x =>
 			{
-				if (x.Events.Length > 0)
+				if (x.Events.Count > 0)
 				{
-					for (int i = 0; i < x.Events.Length; i++)
+					for (int i = 0; i < x.Events.Count; i++)
 					{
 						var streamId = Helper.UTF8NoBom.GetString(x.Events[i].Event.Data.Span);
 						lock (_locker)

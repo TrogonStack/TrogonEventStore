@@ -12,10 +12,11 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	WhenStreamIsSoftdeletedAndTempAndAllEventsAndMetaeventsAreInOneChunk<TLogFormat, TStreamId> :
+	when_stream_is_softdeleted_and_temp_and_all_events_and_metaevents_are_in_one_chunk<TLogFormat, TStreamId> :
 	ScavengeTestScenario<TLogFormat, TStreamId>
 {
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,
+		CancellationToken token)
 	{
 		return dbCreator
 			.Chunk(
@@ -55,26 +56,32 @@ public class
 	}
 
 	[Test]
-	public void the_stream_is_absent_logically()
+	public async Task the_stream_is_absent_logically()
 	{
-		Assert.AreEqual(ReadEventResult.NoStream, ReadIndex.ReadEvent("test", 0).Result);
-		Assert.AreEqual(ReadStreamResult.NoStream, ReadIndex.ReadStreamEventsForward("test", 0, 100).Result);
-		Assert.AreEqual(ReadStreamResult.NoStream, ReadIndex.ReadStreamEventsBackward("test", -1, 100).Result);
+		Assert.AreEqual(ReadEventResult.NoStream,
+			(await ReadIndex.ReadEvent("test", 0, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.NoStream,
+			(await ReadIndex.ReadStreamEventsForward("test", 0, 100, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.NoStream,
+			(await ReadIndex.ReadStreamEventsBackward("test", -1, 100, CancellationToken.None)).Result);
 	}
 
 	[Test]
-	public void the_metastream_is_absent_logically()
+	public async Task the_metastream_is_absent_logically()
 	{
-		Assert.AreEqual(ReadEventResult.NotFound, ReadIndex.ReadEvent("$$test", 0).Result);
-		Assert.AreEqual(ReadStreamResult.Success, ReadIndex.ReadStreamEventsForward("$$test", 0, 100).Result);
-		Assert.AreEqual(ReadStreamResult.Success, ReadIndex.ReadStreamEventsBackward("$$test", -1, 100).Result);
+		Assert.AreEqual(ReadEventResult.NotFound,
+			(await ReadIndex.ReadEvent("$$test", 0, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.Success,
+			(await ReadIndex.ReadStreamEventsForward("$$test", 0, 100, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.Success,
+			(await ReadIndex.ReadStreamEventsBackward("$$test", -1, 100, CancellationToken.None)).Result);
 	}
 
 	[Test]
 	public async Task the_stream_is_absent_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
-		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
+		Assert.IsEmpty((await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == "test"));
 		Assert.IsEmpty((await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == "test"));
@@ -84,7 +91,7 @@ public class
 	public async Task the_metastream_is_absent_physically()
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
-		Assert.IsEmpty(ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
+		Assert.IsEmpty((await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == "$$test"));
 		Assert.IsEmpty((await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records
 			.Where(x => x.Event.EventStreamId == "$$test"));

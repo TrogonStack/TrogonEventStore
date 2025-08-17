@@ -269,7 +269,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				if (record is IPrepareLogRecord<TStreamId> prepare &&
 					StreamIdComparer.Equals(prepare.EventType, _scavengePointEventTypeId))
 				{
-					chunk.Complete();
+					await chunk.Complete(token);
 					completedChunk = true;
 				}
 			}
@@ -278,11 +278,11 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 			{
 				if (i < _chunkRecs.Count - 1 || (_completeLast && i == _chunkRecs.Count - 1))
 				{
-					chunk.Complete();
+					await chunk.Complete(token);
 				}
 				else
 				{
-					chunk.Flush();
+					await chunk.Complete(token);
 				}
 			}
 		}

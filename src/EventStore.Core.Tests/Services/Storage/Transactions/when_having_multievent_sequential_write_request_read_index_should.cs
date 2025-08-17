@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
-using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStreamResult;
@@ -11,7 +10,7 @@ namespace EventStore.Core.Tests.Services.Storage.Transactions;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class
-	WhenHavingMultieventSequentialWriteRequestReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<
+	when_having_multievent_sequential_write_request_read_index_should<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat, TStreamId>
 {
 	private EventRecord _p1;
@@ -30,47 +29,47 @@ public class
 	}
 
 	[Test]
-	public void return_correct_last_event_version_for_stream()
+	public async Task return_correct_last_event_version_for_stream()
 	{
-		Assert.AreEqual(2, ReadIndex.GetStreamLastEventNumber("ES"));
+		Assert.AreEqual(2, await ReadIndex.GetStreamLastEventNumber("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public void return_correct_first_record_for_stream()
+	public async Task return_correct_first_record_for_stream()
 	{
-		var result = ReadIndex.ReadEvent("ES", 0);
+		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p1, result.Record);
 	}
 
 	[Test]
-	public void return_correct_second_record_for_stream()
+	public async Task return_correct_second_record_for_stream()
 	{
-		var result = ReadIndex.ReadEvent("ES", 1);
+		var result = await ReadIndex.ReadEvent("ES", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p2, result.Record);
 	}
 
 	[Test]
-	public void return_correct_third_record_for_stream()
+	public async Task return_correct_third_record_for_stream()
 	{
-		var result = ReadIndex.ReadEvent("ES", 2);
+		var result = await ReadIndex.ReadEvent("ES", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_p3, result.Record);
 	}
 
 	[Test]
-	public void not_find_record_with_nonexistent_version()
+	public async Task not_find_record_with_nonexistent_version()
 	{
-		var result = ReadIndex.ReadEvent("ES", 3);
+		var result = await ReadIndex.ReadEvent("ES", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void return_correct_range_on_from_start_range_query_for_stream()
+	public async Task return_correct_range_on_from_start_range_query_for_stream()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES", 0, 3);
+		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
 		Assert.AreEqual(_p1, result.Records[0]);
@@ -79,9 +78,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_stream_with_specific_event_version()
+	public async Task return_correct_range_on_from_end_range_query_for_stream_with_specific_event_version()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES", 2, 3);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES", 2, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
 		Assert.AreEqual(_p3, result.Records[0]);
@@ -90,9 +89,9 @@ public class
 	}
 
 	[Test]
-	public void return_correct_range_on_from_end_range_query_for_stream_with_from_end_version()
+	public async Task return_correct_range_on_from_end_range_query_for_stream_with_from_end_version()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES", -1, 3);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
 		Assert.AreEqual(_p3, result.Records[0]);
@@ -101,9 +100,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_events_forward_returns_all_events_in_correct_order()
+	public async Task read_all_events_forward_returns_all_events_in_correct_order()
 	{
-		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10).Records;
+		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10, CancellationToken.None))
+			.Records;
 
 		Assert.AreEqual(3, records.Count);
 		Assert.AreEqual(_p1, records[0].Event);

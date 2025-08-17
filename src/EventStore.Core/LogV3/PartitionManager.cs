@@ -24,14 +24,13 @@ public class PartitionManager(
 	public Guid? RootId { get; private set; }
 	public Guid? RootTypeId { get; private set; }
 
-	public ValueTask Initialize(CancellationToken token)
+	public async ValueTask Initialize(CancellationToken token)
 	{
 		if (RootId.HasValue)
-			return ValueTask.CompletedTask;
+			return;
 
-		ReadRootPartition();
-
-		return EnsureRootPartitionIsWritten(token);
+		await ReadRootPartition(token);
+		await EnsureRootPartitionIsWritten(token);
 	}
 
 	private async ValueTask EnsureRootPartitionIsWritten(CancellationToken token)
@@ -51,7 +50,7 @@ public class PartitionManager(
 			if (await writer.Write(rootPartitionType, token) is (false, _))
 				throw new Exception($"Failed to write root partition type!");
 
-			writer.Flush();
+			await writer.Flush(token);
 
 			_log.Debug("Root partition type created, id: {id}", RootTypeId);
 		}
@@ -73,7 +72,7 @@ public class PartitionManager(
 			if (await writer.Write(rootPartition, token) is (false, _))
 				throw new Exception($"Failed to write root partition!");
 
-			writer.Flush();
+			await writer.Flush(token);
 
 			recordFactory.SetRootPartitionId(RootId.Value);
 
@@ -81,11 +80,11 @@ public class PartitionManager(
 		}
 	}
 
-	private void ReadRootPartition()
+	private async ValueTask ReadRootPartition(CancellationToken token)
 	{
 		SeqReadResult result;
 		reader.Reposition(0);
-		while ((result = reader.TryReadNext()).Success)
+		while ((result = await reader.TryReadNext(token)).Success)
 		{
 			var rec = result.LogRecord;
 			switch (rec.RecordType)

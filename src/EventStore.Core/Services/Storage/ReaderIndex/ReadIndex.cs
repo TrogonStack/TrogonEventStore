@@ -104,79 +104,85 @@ public sealed class ReadIndex<TStreamId> : IDisposable, IReadIndex<TStreamId>
 		RegisterHitsMisses(cacheTracker);
 	}
 
-	IndexReadEventResult IReadIndex<TStreamId>.ReadEvent(string streamName, TStreamId streamId, long eventNumber) =>
-		_indexReader.ReadEvent(streamName, streamId, eventNumber);
+	ValueTask<IndexReadEventResult> IReadIndex<TStreamId>.ReadEvent(string streamName, TStreamId streamId,
+		long eventNumber, CancellationToken token)
+		=> _indexReader.ReadEvent(streamName, streamId, eventNumber, token);
 
-	IndexReadStreamResult IReadIndex<TStreamId>.ReadStreamEventsForward(string streamName, TStreamId streamId,
-		long fromEventNumber, int maxCount) =>
-		_indexReader.ReadStreamEventsForward(streamName, streamId, fromEventNumber, maxCount);
+	ValueTask<IndexReadStreamResult> IReadIndex<TStreamId>.ReadStreamEventsForward(string streamName,
+		TStreamId streamId, long fromEventNumber, int maxCount, CancellationToken token)
+		=> _indexReader.ReadStreamEventsForward(streamName, streamId, fromEventNumber, maxCount, token);
 
-	IndexReadStreamResult IReadIndex<TStreamId>.ReadStreamEventsBackward(string streamName, TStreamId streamId,
-		long fromEventNumber, int maxCount) =>
-		_indexReader.ReadStreamEventsBackward(streamName, streamId, fromEventNumber, maxCount);
+	ValueTask<IndexReadStreamResult> IReadIndex<TStreamId>.ReadStreamEventsBackward(string streamName,
+		TStreamId streamId, long fromEventNumber, int maxCount, CancellationToken token)
+		=> _indexReader.ReadStreamEventsBackward(streamName, streamId, fromEventNumber, maxCount, token);
 
-	TStreamId IReadIndex<TStreamId>.GetStreamId(string streamName) =>
-		_streamIds.LookupValue(streamName);
+	TStreamId IReadIndex<TStreamId>.GetStreamId(string streamName)
+		=> _streamIds.LookupValue(streamName);
 
-	public IndexReadEventInfoResult ReadEventInfo_KeepDuplicates(TStreamId streamId, long eventNumber) =>
-		_indexReader.ReadEventInfo_KeepDuplicates(streamId, eventNumber);
+	public ValueTask<IndexReadEventInfoResult> ReadEventInfo_KeepDuplicates(TStreamId streamId, long eventNumber,
+		CancellationToken token)
+		=> _indexReader.ReadEventInfo_KeepDuplicates(streamId, eventNumber, token);
 
-	public IndexReadEventInfoResult ReadEventInfoForward_KnownCollisions(TStreamId streamId, long fromEventNumber,
-		int maxCount, long beforePosition) =>
-		_indexReader.ReadEventInfoForward_KnownCollisions(streamId, fromEventNumber, maxCount, beforePosition);
+	public ValueTask<IndexReadEventInfoResult> ReadEventInfoForward_KnownCollisions(TStreamId streamId,
+		long fromEventNumber, int maxCount, long beforePosition, CancellationToken token)
+		=> _indexReader.ReadEventInfoForward_KnownCollisions(streamId, fromEventNumber, maxCount, beforePosition,
+			token);
 
-	public IndexReadEventInfoResult ReadEventInfoForward_NoCollisions(ulong stream, long fromEventNumber, int maxCount,
-		long beforePosition) =>
-		_indexReader.ReadEventInfoForward_NoCollisions(stream, fromEventNumber, maxCount, beforePosition);
+	public ValueTask<IndexReadEventInfoResult> ReadEventInfoForward_NoCollisions(ulong stream, long fromEventNumber,
+		int maxCount, long beforePosition, CancellationToken token)
+		=> _indexReader.ReadEventInfoForward_NoCollisions(stream, fromEventNumber, maxCount, beforePosition, token);
 
-	public IndexReadEventInfoResult ReadEventInfoBackward_KnownCollisions(TStreamId streamId, long fromEventNumber,
-		int maxCount,
-		long beforePosition) =>
-		_indexReader.ReadEventInfoBackward_KnownCollisions(streamId, fromEventNumber, maxCount, beforePosition);
+	public ValueTask<IndexReadEventInfoResult> ReadEventInfoBackward_KnownCollisions(TStreamId streamId,
+		long fromEventNumber, int maxCount, long beforePosition, CancellationToken token)
+		=> _indexReader.ReadEventInfoBackward_KnownCollisions(streamId, fromEventNumber, maxCount, beforePosition,
+			token);
 
-	public IndexReadEventInfoResult ReadEventInfoBackward_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId,
-		long fromEventNumber, int maxCount, long beforePosition) =>
-		_indexReader.ReadEventInfoBackward_NoCollisions(stream, getStreamId, fromEventNumber, maxCount,
-			beforePosition);
+	public ValueTask<IndexReadEventInfoResult> ReadEventInfoBackward_NoCollisions(ulong stream,
+		Func<ulong, TStreamId> getStreamId, long fromEventNumber, int maxCount, long beforePosition,
+		CancellationToken token)
+		=> _indexReader.ReadEventInfoBackward_NoCollisions(stream, getStreamId, fromEventNumber, maxCount,
+			beforePosition, token);
 
-	string IReadIndex<TStreamId>.GetStreamName(TStreamId streamId) =>
-		_streamNames.LookupName(streamId);
+	ValueTask<string> IReadIndex<TStreamId>.GetStreamName(TStreamId streamId, CancellationToken token)
+		=> _streamNames.LookupName(streamId, token);
 
-	bool IReadIndex<TStreamId>.IsStreamDeleted(TStreamId streamId) =>
-		_indexReader.GetStreamLastEventNumber(streamId) == EventNumber.DeletedStream;
+	async ValueTask<bool> IReadIndex<TStreamId>.IsStreamDeleted(TStreamId streamId, CancellationToken token)
+		=> await _indexReader.GetStreamLastEventNumber(streamId, token) is EventNumber.DeletedStream;
 
-	long IReadIndex<TStreamId>.GetStreamLastEventNumber(TStreamId streamId) =>
-		_indexReader.GetStreamLastEventNumber(streamId);
+	ValueTask<long> IReadIndex<TStreamId>.GetStreamLastEventNumber(TStreamId streamId, CancellationToken token)
+		=> _indexReader.GetStreamLastEventNumber(streamId, token);
 
-	public long GetStreamLastEventNumber_KnownCollisions(TStreamId streamId, long beforePosition) =>
-		_indexReader.GetStreamLastEventNumber_KnownCollisions(streamId, beforePosition);
+	public ValueTask<long> GetStreamLastEventNumber_KnownCollisions(TStreamId streamId, long beforePosition,
+		CancellationToken token)
+		=> _indexReader.GetStreamLastEventNumber_KnownCollisions(streamId, beforePosition, token);
 
-	public long GetStreamLastEventNumber_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId,
-		long beforePosition) =>
-		_indexReader.GetStreamLastEventNumber_NoCollisions(stream, getStreamId, beforePosition);
+	public ValueTask<long> GetStreamLastEventNumber_NoCollisions(ulong stream, Func<ulong, TStreamId> getStreamId,
+		long beforePosition, CancellationToken token)
+		=> _indexReader.GetStreamLastEventNumber_NoCollisions(stream, getStreamId, beforePosition, token);
 
-	StreamMetadata IReadIndex<TStreamId>.GetStreamMetadata(TStreamId streamId) =>
-		_indexReader.GetStreamMetadata(streamId);
+	ValueTask<StreamMetadata> IReadIndex<TStreamId>.GetStreamMetadata(TStreamId streamId, CancellationToken token)
+		=> _indexReader.GetStreamMetadata(streamId, token);
 
-	public TStreamId GetEventStreamIdByTransactionId(long transactionId) =>
-		_indexReader.GetEventStreamIdByTransactionId(transactionId);
+	public ValueTask<TStreamId> GetEventStreamIdByTransactionId(long transactionId, CancellationToken token)
+		=> _indexReader.GetEventStreamIdByTransactionId(transactionId, token);
 
-	IndexReadAllResult IReadIndex.ReadAllEventsForward(TFPos pos, int maxCount) =>
-		_allReader.ReadAllEventsForward(pos, maxCount);
+	ValueTask<IndexReadAllResult> IReadIndex.ReadAllEventsForward(TFPos pos, int maxCount, CancellationToken token)
+		=> _allReader.ReadAllEventsForward(pos, maxCount, token);
 
-	IndexReadAllResult IReadIndex.ReadAllEventsForwardFiltered(TFPos pos, int maxCount, int maxSearchWindow,
-		IEventFilter eventFilter) =>
-		_allReader.FilteredReadAllEventsForward(pos, maxCount, maxSearchWindow, eventFilter);
+	ValueTask<IndexReadAllResult> IReadIndex.ReadAllEventsForwardFiltered(TFPos pos, int maxCount, int maxSearchWindow,
+		IEventFilter eventFilter, CancellationToken token)
+		=> _allReader.FilteredReadAllEventsForward(pos, maxCount, maxSearchWindow, eventFilter, token);
 
 	ValueTask<IndexReadAllResult> IReadIndex.ReadAllEventsBackwardFiltered(TFPos pos, int maxCount, int maxSearchWindow,
-		IEventFilter eventFilter, CancellationToken token) =>
-		_allReader.FilteredReadAllEventsBackward(pos, maxCount, maxSearchWindow, eventFilter, token);
+		IEventFilter eventFilter, CancellationToken token)
+		=> _allReader.FilteredReadAllEventsBackward(pos, maxCount, maxSearchWindow, eventFilter, token);
 
-	ValueTask<IndexReadAllResult> IReadIndex.ReadAllEventsBackward(TFPos pos, int maxCount, CancellationToken token) =>
-		_allReader.ReadAllEventsBackward(pos, maxCount, token);
+	ValueTask<IndexReadAllResult> IReadIndex.ReadAllEventsBackward(TFPos pos, int maxCount, CancellationToken token)
+		=> _allReader.ReadAllEventsBackward(pos, maxCount, token);
 
-	public StorageMessage.EffectiveAcl GetEffectiveAcl(TStreamId streamId) =>
-		_indexReader.GetEffectiveAcl(streamId);
+	public ValueTask<StorageMessage.EffectiveAcl> GetEffectiveAcl(TStreamId streamId, CancellationToken token)
+		=> _indexReader.GetEffectiveAcl(streamId, token);
+
 
 	void RegisterHitsMisses(ICacheHitsMissesTracker tracker)
 	{

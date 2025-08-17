@@ -60,21 +60,29 @@ public class
 	}
 
 	[Test]
-	public void the_stream_is_absent_logically()
+	public async Task the_stream_is_absent_logically()
 	{
-		Assert.AreEqual(ReadEventResult.NoStream, ReadIndex.ReadEvent("test", 0).Result);
-		Assert.AreEqual(ReadStreamResult.NoStream, ReadIndex.ReadStreamEventsForward("test", 0, 100).Result);
-		Assert.AreEqual(ReadStreamResult.NoStream, ReadIndex.ReadStreamEventsBackward("test", -1, 100).Result);
+		Assert.AreEqual(ReadEventResult.NoStream,
+			(await ReadIndex.ReadEvent("test", 0, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.NoStream,
+			(await ReadIndex.ReadStreamEventsForward("test", 0, 100, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.NoStream,
+			(await ReadIndex.ReadStreamEventsBackward("test", -1, 100, CancellationToken.None)).Result);
 	}
 
 	[Test]
-	public void the_metastream_is_present_logically()
+	public async Task the_metastream_is_present_logically()
 	{
-		Assert.AreEqual(ReadEventResult.Success, ReadIndex.ReadEvent("$$test", -1).Result);
-		Assert.AreEqual(ReadStreamResult.Success, ReadIndex.ReadStreamEventsForward("$$test", 0, 100).Result);
-		Assert.AreEqual(1, ReadIndex.ReadStreamEventsForward("$$test", 0, 100).Records.Length);
-		Assert.AreEqual(ReadStreamResult.Success, ReadIndex.ReadStreamEventsBackward("$$test", -1, 100).Result);
-		Assert.AreEqual(1, ReadIndex.ReadStreamEventsBackward("$$test", -1, 100).Records.Length);
+		Assert.AreEqual(ReadEventResult.Success,
+			(await ReadIndex.ReadEvent("$$test", -1, CancellationToken.None)).Result);
+		Assert.AreEqual(ReadStreamResult.Success,
+			(await ReadIndex.ReadStreamEventsForward("$$test", 0, 100, CancellationToken.None)).Result);
+		Assert.AreEqual(1,
+			(await ReadIndex.ReadStreamEventsForward("$$test", 0, 100, CancellationToken.None)).Records.Length);
+		Assert.AreEqual(ReadStreamResult.Success,
+			(await ReadIndex.ReadStreamEventsBackward("$$test", -1, 100, CancellationToken.None)).Result);
+		Assert.AreEqual(1,
+			(await ReadIndex.ReadStreamEventsBackward("$$test", -1, 100, CancellationToken.None)).Records.Length);
 	}
 
 	[Test]
@@ -82,7 +90,7 @@ public class
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.AreEqual(1,
-			ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
+			(await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000, CancellationToken.None)).Records
 				.Count(x => x.Event.EventStreamId == "test"));
 		Assert.AreEqual(1,
 			(await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records.Count(x =>
@@ -94,7 +102,7 @@ public class
 	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.AreEqual(1,
-			ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000).Records
+			(await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000, CancellationToken.None)).Records
 				.Count(x => x.Event.EventStreamId == "$$test"));
 		Assert.AreEqual(1,
 			(await ReadIndex.ReadAllEventsBackward(headOfTf, 1000, CancellationToken.None)).Records.Count(x =>

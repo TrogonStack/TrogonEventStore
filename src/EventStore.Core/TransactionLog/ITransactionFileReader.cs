@@ -9,11 +9,11 @@ public interface ITransactionFileReader
 {
 	void Reposition(long position);
 
-	SeqReadResult TryReadNext();
+	ValueTask<SeqReadResult> TryReadNext(CancellationToken token);
 	ValueTask<SeqReadResult> TryReadPrev(CancellationToken token);
 
-	RecordReadResult TryReadAt(long position, bool couldBeScavenged);
-	bool ExistsAt(long position);
+	ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token);
+	ValueTask<bool> ExistsAt(long position, CancellationToken token);
 }
 
 public struct TFReaderLease : IDisposable
@@ -33,19 +33,16 @@ public struct TFReaderLease : IDisposable
 		Reader = reader;
 	}
 
-	void IDisposable.Dispose()
-	{
-		if (_pool != null)
-			_pool.Return(Reader);
-	}
+	void IDisposable.Dispose() => _pool?.Return(Reader);
 
 	public void Reposition(long position) => Reader.Reposition(position);
 
-	public SeqReadResult TryReadNext() => Reader.TryReadNext();
+	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token) => Reader.TryReadNext(token);
 
 	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token) => Reader.TryReadPrev(token);
-	public bool ExistsAt(long position) => Reader.ExistsAt(position);
 
-	public RecordReadResult TryReadAt(long position, bool couldBeScavenged) =>
-		Reader.TryReadAt(position, couldBeScavenged);
+	public ValueTask<bool> ExistsAt(long position, CancellationToken token) => Reader.ExistsAt(position, token);
+
+	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
+		=> Reader.TryReadAt(position, couldBeScavenged, token);
 }

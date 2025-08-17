@@ -69,7 +69,7 @@ public class RedactionService<TStreamId> :
 				message.EventStreamId, message.EventNumber);
 			message.Envelope.ReplyWith(
 				new RedactionMessage.GetEventPositionCompleted(GetEventPositionResult.UnexpectedError,
-					[]));
+					Array.Empty<EventPosition>()));
 		}
 	}
 
@@ -77,7 +77,7 @@ public class RedactionService<TStreamId> :
 		CancellationToken token)
 	{
 		var streamId = _readIndex.GetStreamId(streamName);
-		var result = _readIndex.ReadEventInfo_KeepDuplicates(streamId, eventNumber);
+		var result = await _readIndex.ReadEventInfo_KeepDuplicates(streamId, eventNumber, token);
 
 		var eventPositions = new EventPosition[result.EventInfos.Length];
 
@@ -207,12 +207,12 @@ public class RedactionService<TStreamId> :
 	{
 		if (IsUnsafeFileName(targetChunkFile))
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkFileNameInvalid);
+			return new(SwitchChunkResult.TargetChunkFileNameInvalid);
 		}
 
 		if (IsUnsafeFileName(newChunkFile))
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkFileNameInvalid);
+			return new(SwitchChunkResult.NewChunkFileNameInvalid);
 		}
 
 		int targetChunkNumber;
@@ -222,23 +222,23 @@ public class RedactionService<TStreamId> :
 		}
 		catch
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkFileNameInvalid);
+			return new(SwitchChunkResult.TargetChunkFileNameInvalid);
 		}
 
 		if (Path.GetExtension(newChunkFile) != NewChunkFileExtension)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkFileNameInvalid);
+			return new(SwitchChunkResult.NewChunkFileNameInvalid);
 		}
 
 		if (!File.Exists(Path.Combine(_db.Config.Path, targetChunkFile)))
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkFileNotFound);
+			return new(SwitchChunkResult.TargetChunkFileNotFound);
 		}
 
 		var newChunkPath = Path.Combine(_db.Config.Path, newChunkFile);
 		if (!File.Exists(newChunkPath))
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkFileNotFound);
+			return new(SwitchChunkResult.NewChunkFileNotFound);
 		}
 
 		TFChunk targetChunk;
@@ -248,29 +248,29 @@ public class RedactionService<TStreamId> :
 		}
 		catch (ArgumentOutOfRangeException)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkExcessive);
+			return new(SwitchChunkResult.TargetChunkExcessive);
 		}
 
 		if (Path.GetFileName(targetChunk.FileName) != targetChunkFile)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkInactive);
+			return new(SwitchChunkResult.TargetChunkInactive);
 		}
 
 		if (targetChunk.ChunkFooter is not { IsCompleted: true })
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkNotCompleted);
+			return new(SwitchChunkResult.TargetChunkNotCompleted);
 		}
 
 		if (targetChunk.ChunkHeader.TransformType is not TransformType.Identity)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.TargetChunkFormatNotSupported);
+			return new(SwitchChunkResult.TargetChunkFormatNotSupported);
 		}
 
 		ChunkHeader newChunkHeader;
 		ChunkFooter newChunkFooter;
 		try
 		{
-			await using var fs = new FileStream(newChunkPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+			using var fs = new FileStream(newChunkPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 			try
 			{
 				newChunkHeader = ChunkHeader.FromStream(fs);
@@ -279,23 +279,23 @@ public class RedactionService<TStreamId> :
 			}
 			catch
 			{
-				return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkHeaderOrFooterInvalid);
+				return new(SwitchChunkResult.NewChunkHeaderOrFooterInvalid);
 			}
 		}
 		catch
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkOpenFailed);
+			return new(SwitchChunkResult.NewChunkOpenFailed);
 		}
 
 		if (newChunkHeader.ChunkStartNumber != targetChunk.ChunkHeader.ChunkStartNumber ||
 		    newChunkHeader.ChunkEndNumber != targetChunk.ChunkHeader.ChunkEndNumber)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.ChunkRangeDoesNotMatch);
+			return new(SwitchChunkResult.ChunkRangeDoesNotMatch);
 		}
 
 		if (!newChunkFooter.IsCompleted)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkNotCompleted);
+			return new(SwitchChunkResult.NewChunkNotCompleted);
 		}
 
 		try
@@ -305,7 +305,6 @@ public class RedactionService<TStreamId> :
 				filename: newChunkPath,
 				verifyHash: true,
 				unbufferedRead: _db.Config.Unbuffered,
-				optimizeReadSideCache: false,
 				reduceFileCachePressure: true,
 				tracker: new TFChunkTracker.NoOp(),
 				getTransformFactory: _db.TransformManager.GetFactoryForExistingChunk,
@@ -313,11 +312,11 @@ public class RedactionService<TStreamId> :
 		}
 		catch (HashValidationException)
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkHashInvalid);
+			return new(SwitchChunkResult.NewChunkHashInvalid);
 		}
 		catch
 		{
-			return new Result<TFChunk, SwitchChunkResult>(SwitchChunkResult.NewChunkOpenFailed);
+			return new(SwitchChunkResult.NewChunkOpenFailed);
 		}
 	}
 

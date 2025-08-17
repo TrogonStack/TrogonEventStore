@@ -1,3 +1,6 @@
+// Copyright (c) Event Store Ltd and/or licensed to Event Store Ltd under one or more agreements.
+// Event Store Ltd licenses this file to you under the Event Store License v2 (see LICENSE.md).
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,9 +22,9 @@ public class TFChunkWriter : ITransactionFileWriter
 		get { return _currentChunk; }
 	}
 
-	public bool NeedsNewChunk =>
-		CurrentChunk == null || // new database
-		CurrentChunk.IsReadOnly; // database is at a chunk boundary
+	public bool NeedsNewChunk => CurrentChunk is
+		null or // new database
+		{ IsReadOnly: true }; // database is at a chunk boundary
 
 	private readonly TFChunkDb _db;
 	private readonly ICheckpoint _writerCheckpoint;
@@ -71,10 +74,10 @@ public class TFChunkWriter : ITransactionFileWriter
 
 		if (!TryWriteToTransaction(record, out var newPos))
 		{
-			CompleteChunkInTransaction();
+			await CompleteChunkInTransaction(token);
 			await AddNewChunk(token: token);
 			CommitTransaction();
-			Flush();
+			await Flush(token);
 			newPos = _nextRecordPosition;
 			return (false, newPos);
 		}
@@ -135,18 +138,18 @@ public class TFChunkWriter : ITransactionFileWriter
 			: _db.Manager.AddNewChunk(chunkHeader, transformHeader, chunkSize!.Value, token));
 	}
 
-	private void CompleteChunkInTransaction()
+	private async ValueTask CompleteChunkInTransaction(CancellationToken token)
 	{
-		_currentChunk.Complete();
+		await _currentChunk.Complete(token);
 		_nextRecordPosition = _currentChunk.ChunkHeader.ChunkEndPosition;
 	}
 
-	public void CompleteChunk()
+	public async ValueTask CompleteChunk(CancellationToken token)
 	{
 		OpenTransaction();
-		CompleteChunkInTransaction();
+		await CompleteChunkInTransaction(token);
 		CommitTransaction();
-		Flush();
+		await Flush(token);
 	}
 
 	private async ValueTask CompleteReplicatedRawChunkInTransaction(TFChunk.TFChunk rawChunk,
@@ -164,7 +167,7 @@ public class TFChunkWriter : ITransactionFileWriter
 		OpenTransaction();
 		await CompleteReplicatedRawChunkInTransaction(rawChunk, token);
 		CommitTransaction();
-		Flush();
+		await Flush(token);
 	}
 
 	private static void VerifyChunkNumberLimits(int chunkNumber)
@@ -186,21 +189,14 @@ public class TFChunkWriter : ITransactionFileWriter
 		}
 	}
 
-	public void Dispose()
-	{
-		Close();
-	}
+	public ValueTask DisposeAsync() => Flush(CancellationToken.None);
 
-	public void Close()
+	public async ValueTask Flush(CancellationToken token)
 	{
-		Flush();
-	}
-
-	public void Flush()
-	{
-		if (_currentChunk == null) // the last chunk allocation failed
+		if (_currentChunk is null) // the last chunk allocation failed
 			return;
-		_currentChunk.Flush();
+
+		await _currentChunk.Flush(token);
 		_writerCheckpoint.Flush();
 	}
 }

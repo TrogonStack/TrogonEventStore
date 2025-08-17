@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
@@ -7,10 +9,10 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 public class WithEmptyDbReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	[Test]
-	public void indicate_that_any_stream_is_not_deleted()
+	public async Task indicate_that_any_stream_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("X"), Is.False);
-		Assert.That(ReadIndex.IsStreamDeleted("YY"), Is.False);
-		Assert.That(ReadIndex.IsStreamDeleted("ZZZ"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("X", CancellationToken.None), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("YY", CancellationToken.None), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("ZZZ", CancellationToken.None), Is.False);
 	}
 }

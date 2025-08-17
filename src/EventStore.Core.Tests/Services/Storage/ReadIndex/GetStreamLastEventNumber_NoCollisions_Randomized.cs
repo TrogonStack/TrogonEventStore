@@ -46,20 +46,22 @@ public class GetStreamLastEventNumber_NoCollisions_Randomized : ReadIndexTestSce
 			}
 			else
 			{
-				_events.Add(await WriteSingleEvent(NonCollidingStream, nonCollidingStreamLast++, "testing", token: token));
+				_events.Add(await WriteSingleEvent(NonCollidingStream, nonCollidingStreamLast++, "testing",
+					token: token));
 			}
 		}
 	}
 
 	[Test]
-	public void returns_correct_last_event_number_before_position()
+	public async Task returns_correct_last_event_number_before_position()
 	{
 		var expectedLastEventNumber = ExpectedVersion.NoStream;
 
 		foreach (var @event in _events)
 		{
 			Assert.AreEqual(expectedLastEventNumber,
-				ReadIndex.GetStreamLastEventNumber_NoCollisions(Hash, GetStreamId, @event.LogPosition));
+				await ReadIndex.GetStreamLastEventNumber_NoCollisions(Hash, GetStreamId, @event.LogPosition,
+					CancellationToken.None));
 
 			if (@event.EventStreamId == Stream)
 				expectedLastEventNumber = @event.EventNumber;

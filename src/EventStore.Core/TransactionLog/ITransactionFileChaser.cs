@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
 
@@ -8,8 +10,7 @@ namespace EventStore.Core.TransactionLog {
 
 		void Open();
 
-		SeqReadResult TryReadNext();
-		bool TryReadNext(out ILogRecord record);
+		ValueTask<SeqReadResult> TryReadNext(CancellationToken token);
 
 		void Close();
 		void Flush();

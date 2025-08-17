@@ -30,7 +30,7 @@ public class when_appending_to_a_tfchunk_and_flushing<TLogFormat, TStreamId> : S
 			PrepareFlags.None, eventTypeId, new byte[12], new byte[15], new DateTime(2000, 1, 1, 12, 0, 0));
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 		_result = _chunk.TryAppend(_record);
-		_chunk.Flush();
+		await _chunk.Flush(CancellationToken.None);
 	}
 
 	[OneTimeTearDown]
@@ -69,9 +69,9 @@ public class when_appending_to_a_tfchunk_and_flushing<TLogFormat, TStreamId> : S
 	}
 
 	[Test]
-	public void the_record_can_be_read_at_exact_position()
+	public async Task the_record_can_be_read_at_exact_position()
 	{
-		var res = _chunk.TryReadAt(0, couldBeScavenged: false);
+		var res = await _chunk.TryReadAt(0, couldBeScavenged: false, CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_record, res.LogRecord);
 		Assert.AreEqual(_result.OldPosition, res.LogRecord.LogPosition);
@@ -87,9 +87,9 @@ public class when_appending_to_a_tfchunk_and_flushing<TLogFormat, TStreamId> : S
 	}
 
 	[Test]
-	public void the_record_can_be_read_as_closest_forward_to_pos_zero()
+	public async Task the_record_can_be_read_as_closest_forward_to_pos_zero()
 	{
-		var res = _chunk.TryReadClosestForward(0);
+		var res = await _chunk.TryReadClosestForward(0, CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_record, res.LogRecord);
 		Assert.AreEqual(_record.GetSizeWithLengthPrefixAndSuffix(), res.NextPosition);

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Index;
 using EventStore.Core.Messages;
@@ -30,7 +32,7 @@ public abstract class with_index_committer_service<TLogFormat, TStreamId>
 	protected ITFChunkScavengerLogManager TfChunkScavengerLogManager;
 
 	[OneTimeSetUp]
-	public virtual void TestFixtureSetUp()
+	public virtual async Task TestFixtureSetUp()
 	{
 		IndexCommitter = new FakeIndexCommitter<TStreamId>();
 		ReplicationCheckpoint = new InMemoryCheckpoint();
@@ -38,7 +40,7 @@ public abstract class with_index_committer_service<TLogFormat, TStreamId>
 		TableIndex = new FakeTableIndex<TStreamId>();
 		TfChunkScavengerLogManager = new FakeTfChunkLogManager();
 		Service = new IndexCommitterService<TStreamId>(IndexCommitter, Publisher, WriterCheckpoint, ReplicationCheckpoint, TableIndex, new QueueStatsManager());
-		Service.Init(0);
+		await Service.Init(0, CancellationToken.None);
 		Publisher.Subscribe(new AdHocHandler<StorageMessage.CommitIndexed>(m => CommitReplicatedMgs.Enqueue(m)));
 		Publisher.Subscribe(new AdHocHandler<ReplicationTrackingMessage.IndexedTo>(m => IndexWrittenMgs.Enqueue(m)));
 		Publisher.Subscribe<ReplicationTrackingMessage.ReplicatedTo>(Service);
@@ -99,31 +101,30 @@ public class FakeIndexCommitter<TStreamId> : IIndexCommitter<TStreamId>
 
 	public long LastIndexedPosition { get; set; }
 
-	public void Init(long buildToPosition)
-	{
-	}
+	public ValueTask Init(long buildToPosition, CancellationToken token)
+		=> ValueTask.CompletedTask;
 
 	public void Dispose()
 	{
 	}
 
-	public long Commit(CommitLogRecord commit, bool isTfEof, bool cacheLastEventNumber)
+	public ValueTask<long> Commit(CommitLogRecord commit, bool isTfEof, bool cacheLastEventNumber,
+		CancellationToken token)
 	{
 		CommittedCommits.Enqueue(commit);
-		return 0;
+		return new(0L);
 	}
 
-	public long Commit(IList<IPrepareLogRecord<TStreamId>> committedPrepares, bool isTfEof, bool cacheLastEventNumber)
+	public ValueTask<long> Commit(IReadOnlyList<IPrepareLogRecord<TStreamId>> committedPrepares, bool isTfEof,
+		bool cacheLastEventNumber, CancellationToken token)
 	{
 		foreach (var prepare in committedPrepares)
 		{
 			CommittedPrepares.Enqueue(prepare);
 		}
-		return 0;
+
+		return new ValueTask<long>(0L);
 	}
 
-	public long GetCommitLastEventNumber(CommitLogRecord commit)
-	{
-		return 0;
-	}
+	public ValueTask<long> GetCommitLastEventNumber(CommitLogRecord commit, CancellationToken token) => new(0L);
 }

@@ -39,7 +39,7 @@ public class when_chaser_reads_commit_event<TLogFormat, TStreamId> : with_storag
 			metadata: new byte[] { 7, 17 });
 		(var written, _logPosition) = await Writer.Write(record, token);
 		Assert.True(written);
-		Writer.Flush();
+		await Writer.Flush(token);
 
 		IndexCommitter.AddPendingPrepare(new[] { record }, _logPosition);
 		var record2 = new CommitLogRecord(
@@ -51,7 +51,7 @@ public class when_chaser_reads_commit_event<TLogFormat, TStreamId> : with_storag
 
 		(written, _) = await Writer.Write(record2, token);
 		Assert.True(written);
-		Writer.Flush();
+		await Writer.Flush(token);
 	}
 	[Test]
 	public void commit_ack_should_be_published()

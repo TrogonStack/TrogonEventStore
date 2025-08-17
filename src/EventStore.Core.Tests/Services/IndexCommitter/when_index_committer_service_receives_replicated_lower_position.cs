@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using EventStore.Core.Messages;
 using EventStore.Core.TransactionLog.Checkpoint;
 using NUnit.Framework;
@@ -15,10 +16,10 @@ public class
 	private readonly long _logPosition = 2000;
 
 	[OneTimeSetUp]
-	public override void TestFixtureSetUp()
+	public override Task TestFixtureSetUp()
 	{
 		ReplicationCheckpoint = new InMemoryCheckpoint(100);
-		base.TestFixtureSetUp();
+		return base.TestFixtureSetUp();
 	}
 	public override void Given() { }
 	public override void When()

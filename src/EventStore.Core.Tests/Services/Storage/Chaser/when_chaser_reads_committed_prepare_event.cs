@@ -38,7 +38,7 @@ public class WhenChaserReadsCommittedPrepareEvent<TLogFormat, TStreamId> : with_
 			metadata: new byte[] { 7, 17 });
 
 		Assert.True(await Writer.Write(record, token) is (true, _));
-		Writer.Flush();
+		await Writer.Flush(token);
 	}
 	[Test]
 	public void commit_ack_should_be_published()

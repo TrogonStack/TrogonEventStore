@@ -1,53 +1,45 @@
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TracingCalculator<TStreamId> : ICalculator<TStreamId>
+public class TracingCalculator<TStreamId>(ICalculator<TStreamId> wrapped, Tracer tracer) : ICalculator<TStreamId>
 {
-	private readonly ICalculator<TStreamId> _wrapped;
-	private readonly Tracer _tracer;
-
-	public TracingCalculator(ICalculator<TStreamId> wrapped, Tracer tracer)
-	{
-		_wrapped = wrapped;
-		_tracer = tracer;
-	}
-
-	public void Calculate(
+	public async ValueTask Calculate(
 		ScavengePoint scavengePoint,
 		IScavengeStateForCalculator<TStreamId> source,
 		CancellationToken cancellationToken)
 	{
 
-		_tracer.TraceIn($"Calculating {scavengePoint.GetName()}");
+		tracer.TraceIn($"Calculating {scavengePoint.GetName()}");
 		try
 		{
-			_wrapped.Calculate(scavengePoint, source, cancellationToken);
-			_tracer.TraceOut("Done");
+			await wrapped.Calculate(scavengePoint, source, cancellationToken);
+			tracer.TraceOut("Done");
 		}
 		catch
 		{
-			_tracer.TraceOut("Exception calculating");
+			tracer.TraceOut("Exception calculating");
 			throw;
 		}
 	}
 
-	public void Calculate(
+	public async ValueTask Calculate(
 		ScavengeCheckpoint.Calculating<TStreamId> checkpoint,
 		IScavengeStateForCalculator<TStreamId> source,
 		CancellationToken cancellationToken)
 	{
 
-		_tracer.TraceIn($"Calculating from checkpoint: {checkpoint}");
+		tracer.TraceIn($"Calculating from checkpoint: {checkpoint}");
 		try
 		{
-			_wrapped.Calculate(checkpoint, source, cancellationToken);
-			_tracer.TraceOut("Done");
+			await wrapped.Calculate(checkpoint, source, cancellationToken);
+			tracer.TraceOut("Done");
 		}
 		catch
 		{
-			_tracer.TraceOut("Exception calculating");
+			tracer.TraceOut("Exception calculating");
 			throw;
 		}
 	}

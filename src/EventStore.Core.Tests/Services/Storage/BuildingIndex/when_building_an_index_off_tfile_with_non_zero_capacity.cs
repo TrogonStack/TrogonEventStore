@@ -17,9 +17,10 @@ public class WhenBuildingAnIndexOffTfileWithNonZeroCapacity<TLogFormat, TStreamI
 	}
 
 	[Test]
-	public void the_stream_created_records_can_be_read()
+	public async Task the_stream_created_records_can_be_read()
 	{
-		var records = ReadIndex.ReadStreamEventsForward(SystemStreams.StreamsCreatedStream, 0, 20).Records;
+		var records = (await ReadIndex.ReadStreamEventsForward(SystemStreams.StreamsCreatedStream, 0, 20, CancellationToken.None))
+			.Records;
 		Assert.AreEqual(3, records.Length);
 	}
 }

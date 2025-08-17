@@ -62,9 +62,10 @@ public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
 	}
 
 	[Test]
-	public void read_all_events_forward_does_not_return_duplicate()
+	public async Task read_all_events_forward_does_not_return_duplicate()
 	{
-		var events = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords()
+		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
 		Assert.AreEqual(11, events.Length);

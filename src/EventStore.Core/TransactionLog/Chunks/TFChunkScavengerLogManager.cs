@@ -51,7 +51,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 			_ioDispatcher.ReadBackward(metaStreamId, -1, 1, false, SystemAccounts.System, readResult => {
 				if (readResult.Result == ReadStreamResult.Success || readResult.Result == ReadStreamResult.NoStream) {
-					if (readResult.Events.Length == 1) {
+					if (readResult.Events.Count == 1) {
 						var currentMetadata = StreamMetadata.FromJsonBytes(readResult.Events[0].Event.Data);
 						var hasProperACL = currentMetadata.Acl != null
 										&& currentMetadata.Acl.ReadRoles != null
@@ -132,7 +132,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 						}
 					}
 
-					if (readResult.IsEndOfStream || readResult.Events.Length == 0) {
+					if (readResult.IsEndOfStream || readResult.Events.Count == 0) {
 						SetOpsPermissions(recentScavenges);
 						CompleteInterruptedScavenges(incompleteScavenges);
 					} else {
@@ -228,7 +228,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 						}
 					}
 
-					if (readResult.IsEndOfStream || readResult.Events.Length == 0) {
+					if (readResult.IsEndOfStream || readResult.Events.Count == 0) {
 						CompleteScavengeWithStats(incompleteScavengeStats);
 					} else {
 						GatherIncompleteScavengeStats(readResult.NextEventNumber, incompleteScavengeStats);

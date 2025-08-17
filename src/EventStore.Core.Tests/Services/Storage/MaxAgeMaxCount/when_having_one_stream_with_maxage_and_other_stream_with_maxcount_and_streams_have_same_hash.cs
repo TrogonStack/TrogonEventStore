@@ -11,8 +11,9 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
-	WhenHavingOneStreamWithMaxageAndOtherStreamWithMaxcountAndStreamsHaveSameHash<TLogFormat, TStreamId> :
-		ReadIndexTestScenario<TLogFormat, TStreamId>
+	when_having_one_stream_with_maxage_and_other_stream_with_maxcount_and_streams_have_same_hash<TLogFormat,
+		TStreamId> :
+	ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private EventRecord _r11;
 	private EventRecord _r12;
@@ -55,69 +56,69 @@ public class
 	}
 
 	[Test]
-	public void single_event_read_doesnt_return_stream_created_event_for_both_streams()
+	public async Task single_event_read_doesnt_return_stream_created_event_for_both_streams()
 	{
-		var result = ReadIndex.ReadEvent("ES1", 0);
+		var result = await ReadIndex.ReadEvent("ES1", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 
-		result = ReadIndex.ReadEvent("ES2", 0);
+		result = await ReadIndex.ReadEvent("ES2", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public void single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones_for_stream_1()
+	public async Task single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones_for_stream_1()
 	{
-		var result = ReadIndex.ReadEvent("ES1", 0);
+		var result = await ReadIndex.ReadEvent("ES1", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 
-		result = ReadIndex.ReadEvent("ES1", 1);
+		result = await ReadIndex.ReadEvent("ES1", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r13, result.Record);
 
-		result = ReadIndex.ReadEvent("ES1", 2);
+		result = await ReadIndex.ReadEvent("ES1", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r14, result.Record);
 
-		result = ReadIndex.ReadEvent("ES1", 3);
+		result = await ReadIndex.ReadEvent("ES1", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r15, result.Record);
 
-		result = ReadIndex.ReadEvent("ES1", 4);
+		result = await ReadIndex.ReadEvent("ES1", 4, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r16, result.Record);
 	}
 
 	[Test]
-	public void single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones_for_stream_2()
+	public async Task single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones_for_stream_2()
 	{
-		var result = ReadIndex.ReadEvent("ES2", 0);
+		var result = await ReadIndex.ReadEvent("ES2", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 
-		result = ReadIndex.ReadEvent("ES2", 1);
+		result = await ReadIndex.ReadEvent("ES2", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 
-		result = ReadIndex.ReadEvent("ES2", 2);
+		result = await ReadIndex.ReadEvent("ES2", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
 
-		result = ReadIndex.ReadEvent("ES2", 3);
+		result = await ReadIndex.ReadEvent("ES2", 3, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r25, result.Record);
 
-		result = ReadIndex.ReadEvent("ES2", 4);
+		result = await ReadIndex.ReadEvent("ES2", 4, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r26, result.Record);
 	}
 
 	[Test]
-	public void forward_range_read_doesnt_return_expired_records_for_stream_1()
+	public async Task forward_range_read_doesnt_return_expired_records_for_stream_1()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES1", 0, 100);
+		var result = await ReadIndex.ReadStreamEventsForward("ES1", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(4, result.Records.Length);
 		Assert.AreEqual(_r13, result.Records[0]);
@@ -127,9 +128,9 @@ public class
 	}
 
 	[Test]
-	public void forward_range_read_doesnt_return_expired_records_for_stream_2()
+	public async Task forward_range_read_doesnt_return_expired_records_for_stream_2()
 	{
-		var result = ReadIndex.ReadStreamEventsForward("ES2", 0, 100);
+		var result = await ReadIndex.ReadStreamEventsForward("ES2", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
 		Assert.AreEqual(_r25, result.Records[0]);
@@ -137,9 +138,9 @@ public class
 	}
 
 	[Test]
-	public void backward_range_read_doesnt_return_expired_records_for_stream_1()
+	public async Task backward_range_read_doesnt_return_expired_records_for_stream_1()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES1", -1, 100);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES1", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(4, result.Records.Length);
 		Assert.AreEqual(_r16, result.Records[0]);
@@ -149,9 +150,9 @@ public class
 	}
 
 	[Test]
-	public void backward_range_read_doesnt_return_expired_records_for_stream_2()
+	public async Task backward_range_read_doesnt_return_expired_records_for_stream_2()
 	{
-		var result = ReadIndex.ReadStreamEventsBackward("ES2", -1, 100);
+		var result = await ReadIndex.ReadStreamEventsBackward("ES2", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
 		Assert.AreEqual(_r26, result.Records[0]);
@@ -159,9 +160,10 @@ public class
 	}
 
 	[Test]
-	public void read_all_forward_returns_all_records_including_expired_ones()
+	public async Task read_all_forward_returns_all_records_including_expired_ones()
 	{
-		var records = ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
+			.EventRecords();
 		Assert.AreEqual(12, records.Count);
 		Assert.AreEqual(_r11, records[0].Event);
 		Assert.AreEqual(_r21, records[1].Event);
@@ -185,7 +187,8 @@ public class
 	[Test]
 	public async Task read_all_backward_returns_all_records_including_expired_ones()
 	{
-		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None)).EventRecords();
+		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
+			.EventRecords();
 		Assert.AreEqual(12, records.Count);
 		Assert.AreEqual(_r11, records[11].Event);
 		Assert.AreEqual(_r21, records[10].Event);

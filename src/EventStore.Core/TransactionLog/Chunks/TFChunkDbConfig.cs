@@ -19,7 +19,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 		public readonly bool InMemDb;
 		public readonly bool Unbuffered;
 		public readonly bool WriteThrough;
-		public readonly bool OptimizeReadSideCache;
 		public readonly bool ReduceFileCachePressure;
 		public readonly long MaxTruncation;
 
@@ -38,7 +37,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			bool inMemDb = false,
 			bool unbuffered = false,
 			bool writethrough = false,
-			bool optimizeReadSideCache = false,
 			bool reduceFileCachePressure = false,
 			long maxTruncation = 256 * 1024 * 1024) {
 			Ensure.NotNullOrEmpty(path, "path");
@@ -69,7 +67,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			InMemDb = inMemDb;
 			Unbuffered = unbuffered;
 			WriteThrough = writethrough;
-			OptimizeReadSideCache = optimizeReadSideCache;
 			ReduceFileCachePressure = reduceFileCachePressure;
 			MaxTruncation = maxTruncation;
 		}

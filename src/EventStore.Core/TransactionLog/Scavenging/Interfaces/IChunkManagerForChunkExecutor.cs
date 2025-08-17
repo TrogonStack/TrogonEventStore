@@ -14,7 +14,7 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	public interface IChunkWriterForExecutor<TStreamId, TRecord> {
 		string FileName { get; }
 
-		void WriteRecord(RecordForExecutor<TStreamId, TRecord> record);
+		ValueTask WriteRecord(RecordForExecutor<TStreamId, TRecord> record, CancellationToken token);
 
 		ValueTask<(string NewFileName, long NewFileSize)> Complete(CancellationToken token);
 

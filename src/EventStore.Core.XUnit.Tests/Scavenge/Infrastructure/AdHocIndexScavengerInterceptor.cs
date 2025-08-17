@@ -1,31 +1,23 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class AdHocIndexScavengerInterceptor : IIndexScavenger
+public class AdHocIndexScavengerInterceptor(
+	IIndexScavenger wrapped,
+	Func<Func<IndexEntry, CancellationToken, ValueTask<bool>>, Func<IndexEntry, CancellationToken, ValueTask<bool>>> f)
+	: IIndexScavenger
 {
-	private readonly IIndexScavenger _wrapped;
-	private readonly Func<Func<IndexEntry, bool>, Func<IndexEntry, bool>> _f;
-
-	public AdHocIndexScavengerInterceptor(
-		IIndexScavenger wrapped,
-		Func<Func<IndexEntry, bool>, Func<IndexEntry, bool>> f)
-	{
-
-		_wrapped = wrapped;
-		_f = f;
-	}
-
-	public void ScavengeIndex(
+	public ValueTask ScavengeIndex(
 		long scavengePoint,
-		Func<IndexEntry, bool> shouldKeep,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
 		IIndexScavengerLog log,
 		CancellationToken cancellationToken)
 	{
 
-		_wrapped.ScavengeIndex(scavengePoint, _f(shouldKeep), log, cancellationToken);
+		return wrapped.ScavengeIndex(scavengePoint, f(shouldKeep), log, cancellationToken);
 	}
 }

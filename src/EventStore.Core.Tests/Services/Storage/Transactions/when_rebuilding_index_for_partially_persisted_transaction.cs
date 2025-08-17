@@ -65,7 +65,7 @@ public class WhenRebuildingIndexForPartiallyPersistedTransaction<TLogFormat, TSt
 			indexStatusTracker: new IndexStatusTracker.NoOp(),
 			indexTracker: new IndexTracker.NoOp(),
 			cacheTracker: new CacheHitsMissesTracker.NoOp());
-		readIndex.IndexCommitter.Init(ChaserCheckpoint.Read());
+		await readIndex.IndexCommitter.Init(ChaserCheckpoint.Read(), CancellationToken.None);
 		ReadIndex = readIndex;
 	}
 
@@ -83,11 +83,11 @@ public class WhenRebuildingIndexForPartiallyPersistedTransaction<TLogFormat, TSt
 	}
 
 	[Test]
-	public void sequence_numbers_are_not_broken()
+	public async Task sequence_numbers_are_not_broken()
 	{
 		for (int i = 0; i < 15; ++i)
 		{
-			var result = ReadIndex.ReadEvent("ES", i);
+			var result = await ReadIndex.ReadEvent("ES", i, CancellationToken.None);
 			Assert.AreEqual(ReadEventResult.Success, result.Result);
 			Assert.AreEqual(Helper.UTF8NoBom.GetBytes("data" + i), result.Record.Data.ToArray());
 		}

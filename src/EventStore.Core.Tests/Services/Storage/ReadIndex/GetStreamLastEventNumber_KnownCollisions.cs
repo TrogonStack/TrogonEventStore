@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
 
-public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestScenario<LogFormat.V2, string>(
+public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTestScenario<LogFormat.V2, string>(
 	maxEntriesInMemTable: 3,
 	lowHasher: new ConstantHasher(0),
 	highHasher: new HumanReadableHasher32())
@@ -15,7 +15,7 @@ public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestS
 	private const string CollidingStream = "cb-1";
 	private const string CollidingStream1 = "db-1";
 
-	public class VerifyCollision : GetStreamLastEventNumberKnownCollisions
+	public class VerifyCollision : GetStreamLastEventNumber_KnownCollisions
 	{
 		[Test]
 		public void verify_that_streams_collide()
@@ -25,7 +25,7 @@ public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestS
 		}
 	}
 
-	public class WithNoEvents : GetStreamLastEventNumberKnownCollisions
+	public class WithNoEvents : GetStreamLastEventNumber_KnownCollisions
 	{
 		protected override async ValueTask WriteTestScenario(CancellationToken token)
 		{
@@ -34,16 +34,17 @@ public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestS
 		}
 
 		[Test]
-		public void with_no_events()
+		public async Task with_no_events()
 		{
 			Assert.AreEqual(ExpectedVersion.NoStream,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 		}
 	}
 
-	public class WithOneEvent : GetStreamLastEventNumberKnownCollisions
+	public class WithOneEvent : GetStreamLastEventNumber_KnownCollisions
 	{
 		protected override async ValueTask WriteTestScenario(CancellationToken token)
 		{
@@ -52,22 +53,24 @@ public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestS
 		}
 
 		[Test]
-		public void with_one_event()
+		public async Task with_one_event()
 		{
 			Assert.AreEqual(2,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 
 			Assert.AreEqual(3,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					CollidingStream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 
 		}
 	}
 
-	public class WithMultipleEvents : GetStreamLastEventNumberKnownCollisions
+	public class WithMultipleEvents : GetStreamLastEventNumber_KnownCollisions
 	{
 		private EventRecord _zeroth, _first, _second, _third;
 
@@ -89,55 +92,63 @@ public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestS
 		}
 
 		[Test]
-		public void with_multiple_events()
+		public async Task with_multiple_events()
 		{
 			Assert.AreEqual(3,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 
 			Assert.AreEqual(2,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					CollidingStream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 
 			Assert.AreEqual(0,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					CollidingStream1,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 		}
 
 		[Test]
-		public void with_multiple_events_and_before_position()
+		public async Task with_multiple_events_and_before_position()
 		{
 			Assert.AreEqual(3,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					_third.LogPosition + 1));
+					_third.LogPosition + 1,
+					CancellationToken.None));
 
 			Assert.AreEqual(2,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					_third.LogPosition));
+					_third.LogPosition,
+					CancellationToken.None));
 
 			Assert.AreEqual(1,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					_second.LogPosition));
+					_second.LogPosition,
+					CancellationToken.None));
 
 			Assert.AreEqual(0,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					_first.LogPosition));
+					_first.LogPosition,
+					CancellationToken.None));
 
 			Assert.AreEqual(ExpectedVersion.NoStream,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					_zeroth.LogPosition));
+					_zeroth.LogPosition,
+					CancellationToken.None));
 		}
 	}
 
-	public class WithDeletedStream : GetStreamLastEventNumberKnownCollisions
+	public class WithDeletedStream : GetStreamLastEventNumber_KnownCollisions
 	{
 		protected override async ValueTask WriteTestScenario(CancellationToken token)
 		{
@@ -149,17 +160,19 @@ public abstract class GetStreamLastEventNumberKnownCollisions() : ReadIndexTestS
 		}
 
 		[Test]
-		public void with_deleted_stream()
+		public async Task with_deleted_stream()
 		{
 			Assert.AreEqual(EventNumber.DeletedStream,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 
 			Assert.AreEqual(1,
-				ReadIndex.GetStreamLastEventNumber_KnownCollisions(
+				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					CollidingStream,
-					long.MaxValue));
+					long.MaxValue,
+					CancellationToken.None));
 		}
 	}
 }

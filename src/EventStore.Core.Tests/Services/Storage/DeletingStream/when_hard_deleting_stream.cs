@@ -31,7 +31,7 @@ public class WhenHardDeletingStream<TLogFormat, TStreamId> : ReadIndexTestScenar
 		while (result.Success)
 		{
 			chunkRecords.Add(result.LogRecord);
-			result = chunk.TryReadClosestForward(result.NextPosition);
+			result = await chunk.TryReadClosestForward(result.NextPosition, CancellationToken.None);
 		}
 
 		Assert.That(chunkRecords.Any(x =>

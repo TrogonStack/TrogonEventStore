@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -19,7 +20,7 @@ public class WhenOpeningExistingTfchunk : SpecificationWithFilePerTestFixture
 	{
 		await base.TestFixtureSetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
-		_chunk.Complete();
+		await _chunk.Complete(CancellationToken.None);
 		_testChunk = await TFChunk.FromCompletedFile(Filename, true, false,
 			reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
 			getTransformFactory: _ => new IdentityChunkTransformFactory());
@@ -55,6 +56,6 @@ public class WhenOpeningExistingTfchunk : SpecificationWithFilePerTestFixture
 	[Test]
 	public void flush_does_not_throw_any_exception()
 	{
-		Assert.DoesNotThrow(() => _testChunk.Flush());
+		Assert.DoesNotThrowAsync(async () => await _testChunk.Flush(CancellationToken.None));
 	}
 }

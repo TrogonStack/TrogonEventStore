@@ -1,22 +1,16 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Index;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class IndexScavenger : IIndexScavenger {
-		private readonly ITableIndex _tableIndex;
+namespace EventStore.Core.TransactionLog.Scavenging;
 
-		public IndexScavenger(ITableIndex tableIndex) {
-			_tableIndex = tableIndex;
-		}
-
-		public void ScavengeIndex(
-			long scavengePoint,
-			Func<IndexEntry, bool> shouldKeep,
-			IIndexScavengerLog log,
-			CancellationToken cancellationToken) {
-
-			_tableIndex.Scavenge(shouldKeep, log, cancellationToken);
-		}
-	}
+public class IndexScavenger(ITableIndex tableIndex) : IIndexScavenger
+{
+	public ValueTask ScavengeIndex(
+		long scavengePoint,
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
+		IIndexScavengerLog log,
+		CancellationToken cancellationToken) =>
+		tableIndex.Scavenge(shouldKeep, log, cancellationToken);
 }

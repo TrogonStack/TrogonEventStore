@@ -23,32 +23,32 @@ public class
 	}
 
 	[Test]
-	public void indicate_that_stream_is_deleted()
+	public async Task indicate_that_stream_is_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("S1"));
+		Assert.That(await ReadIndex.IsStreamDeleted("S1", CancellationToken.None));
 	}
 
 	[Test]
-	public void indicate_that_other_stream_with_same_hash_is_not_deleted()
+	public async Task indicate_that_other_stream_with_same_hash_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("S2"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("S2", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public void indicate_that_other_stream_with_different_hash_is_not_deleted()
+	public async Task indicate_that_other_stream_with_different_hash_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("SSS"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("SSS", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public void indicate_that_not_existing_stream_with_same_hash_is_not_deleted()
+	public async Task indicate_that_not_existing_stream_with_same_hash_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("XX"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("XX", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public void indicate_that_not_existing_stream_with_different_hash_is_not_deleted()
+	public async Task indicate_that_not_existing_stream_with_different_hash_is_not_deleted()
 	{
-		Assert.That(ReadIndex.IsStreamDeleted("XXX"), Is.False);
+		Assert.That(await ReadIndex.IsStreamDeleted("XXX", CancellationToken.None), Is.False);
 	}
 }
