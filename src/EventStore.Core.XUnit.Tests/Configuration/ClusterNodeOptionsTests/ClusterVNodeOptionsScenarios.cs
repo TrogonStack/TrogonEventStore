@@ -1,9 +1,9 @@
-using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Authorization;
+using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Certificates;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Tests;
@@ -13,24 +13,18 @@ using NUnit.Framework;
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests;
 
 [TestFixture]
-public abstract class SingleNodeScenario<TLogFormat, TStreamId>
+public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemoryOptimization = false)
 {
 	protected ClusterVNode _node;
 	protected ClusterVNodeOptions _options;
 	private ILogFormatAbstractorFactory<TStreamId> _logFormatFactory;
-	private readonly bool _disableMemoryOptimization;
-
-	public SingleNodeScenario(bool disableMemoryOptimization = false)
-	{
-		_disableMemoryOptimization = disableMemoryOptimization;
-	}
 
 	[OneTimeSetUp]
 	public virtual void TestFixtureSetUp()
 	{
 		_logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 
-		var options = _disableMemoryOptimization
+		var options = disableMemoryOptimization
 			? new ClusterVNodeOptions()
 			: new ClusterVNodeOptions().ReduceMemoryUsageForTests();
 
@@ -41,11 +35,11 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>
 		_node = new ClusterVNode<TStreamId>(_options, _logFormatFactory,
 			new AuthenticationProviderFactory(c =>
 				new InternalAuthenticationProviderFactory(c, _options.DefaultUser)),
-			new AuthorizationProviderFactory(c => new InternalAuthorizationProviderFactory([
-			new LegacyPolicySelectorFactory(
-				_options.Application.AllowAnonymousEndpointAccess,
-				_options.Application.AllowAnonymousStreamAccess,
-				_options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue, c.MainBus)])),
+			new AuthorizationProviderFactory(c => new InternalAuthorizationProviderFactory(
+				new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
+					options.Application.AllowAnonymousEndpointAccess,
+					options.Application.AllowAnonymousStreamAccess,
+					options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue)]))),
 			certificateProvider: new OptionsCertificateProvider());
 		_node.Start();
 	}
@@ -81,11 +75,11 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId>
 		_node = new ClusterVNode<TStreamId>(_options, _logFormatFactory,
 			new AuthenticationProviderFactory(_ =>
 				new InternalAuthenticationProviderFactory(_, _options.DefaultUser)),
-			new AuthorizationProviderFactory(c => new InternalAuthorizationProviderFactory([
-				new LegacyPolicySelectorFactory(
-						_options.Application.AllowAnonymousEndpointAccess,
-						_options.Application.AllowAnonymousStreamAccess,
-						_options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue, c.MainBus)])),
+			new AuthorizationProviderFactory(c => new InternalAuthorizationProviderFactory(
+				new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
+					_options.Application.AllowAnonymousEndpointAccess,
+					_options.Application.AllowAnonymousStreamAccess,
+					_options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue)]))),
 			certificateProvider: new OptionsCertificateProvider());
 		_node.Start();
 	}

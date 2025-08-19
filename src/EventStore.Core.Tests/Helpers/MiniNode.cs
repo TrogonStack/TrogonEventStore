@@ -11,6 +11,7 @@ using EventStore.Common.Utils;
 using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Authorization;
+using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Bus;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration.Sources;
@@ -215,11 +216,11 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 					c,
 					options.DefaultUser)),
 			new AuthorizationProviderFactory(
-				c => authorizationProviderFactory ?? new InternalAuthorizationProviderFactory([
-				new LegacyPolicySelectorFactory(
-					options.Application.AllowAnonymousEndpointAccess,
-					options.Application.AllowAnonymousStreamAccess,
-					options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue, default)])),
+				c => authorizationProviderFactory ?? new InternalAuthorizationProviderFactory(
+					new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
+						options.Application.AllowAnonymousEndpointAccess,
+						options.Application.AllowAnonymousStreamAccess,
+						options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue)]))),
 			expiryStrategy: expiryStrategy,
 			certificateProvider: new OptionsCertificateProvider(),
 			configuration: inMemConf,

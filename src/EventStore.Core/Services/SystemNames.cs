@@ -27,6 +27,7 @@ namespace EventStore.Core.Services {
 		public const string ScavengesStream = "$scavenges";
 		public const string EpochInformationStream = "$epoch-information";
 		public const string ScavengePointsStream = "$scavengePoints";
+		public const string AuthorizationPolicyRegistryStream = "$authorization-policy-settings";
 
 		// mem streams
 		public const string NodeStateStream = "$mem-node-state";
@@ -89,6 +90,7 @@ namespace EventStore.Core.Services {
 		public const string EmptyEventType = "";
 		public const string EventTypeDefined = "$event-type";
 		public const string ScavengePoint = "$scavengePoint";
+		public const string AuthorizationPolicyChanged = "$authorization-policy-changed";
 
 		public static string StreamReferenceEventToStreamId(string eventType, ReadOnlyMemory<byte> data) {
 			string streamId = null;

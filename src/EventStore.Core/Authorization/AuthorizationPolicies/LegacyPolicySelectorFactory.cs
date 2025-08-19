@@ -1,40 +1,41 @@
 using System;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Services;
 using EventStore.Core.Services.UserManagement;
 using EventStore.Plugins.Authorization;
 
-namespace EventStore.Core.Authorization;
+namespace EventStore.Core.Authorization.AuthorizationPolicies;
 
-public class LegacyPolicySelectorFactory : IPolicySelectorFactory {
-	public string CommandLineName { get; } = "legacy";
-	public string Name { get; } = "legacy";
-	public string Version { get; } = "1";
-	private readonly bool _allowAnonymousEndpointAccess;
-	private readonly bool _allowAnonymousStreamAccess;
-	private readonly bool _overrideAnonymousGossipEndpointAccess;
+public class LegacyPolicySelectorFactory(
+	bool allowAnonymousEndpointAccess,
+	bool allowAnonymousStreamAccess,
+	bool overrideAnonymousGossipEndpointAccess)
+	: IPolicySelectorFactory
+{
+	public const string LegacyPolicySelectorName = "acl";
+	public string CommandLineName => LegacyPolicySelectorName;
 
 	private static readonly Claim[] Admins =
-		{new Claim(ClaimTypes.Role, SystemRoles.Admins), new Claim(ClaimTypes.Name, SystemUsers.Admin)};
+	{
+		new Claim(ClaimTypes.Role, SystemRoles.Admins), new Claim(ClaimTypes.Name, SystemUsers.Admin)
+	};
 
-	private static readonly Claim[] OperationsOrAdmins = {
+	private static readonly Claim[] OperationsOrAdmins =
+	{
 		new Claim(ClaimTypes.Role, SystemRoles.Admins), new Claim(ClaimTypes.Name, SystemUsers.Admin),
 		new Claim(ClaimTypes.Role, SystemRoles.Operations), new Claim(ClaimTypes.Name, SystemUsers.Operations)
 	};
 
-	public LegacyPolicySelectorFactory(
-		bool allowAnonymousEndpointAccess,
-		bool allowAnonymousStreamAccess,
-		bool overrideAnonymousGossipEndpointAccess) {
-		_allowAnonymousEndpointAccess = allowAnonymousEndpointAccess;
-		_allowAnonymousStreamAccess = allowAnonymousStreamAccess;
-		_overrideAnonymousGossipEndpointAccess = overrideAnonymousGossipEndpointAccess;
-	}
+	public Task<bool> Enable() => Task.FromResult(true);
 
-	public IPolicySelector Create(IPublisher publisher, ISubscriber subscriber) {
-		var policy = new Policy("Legacy", 1, DateTimeOffset.MinValue);
+	public Task Disable() => Task.CompletedTask;
+
+	public IPolicySelector Create(IPublisher publisher)
+	{
+		var policy = new Policy(LegacyPolicySelectorName, 1, DateTimeOffset.MinValue);
 		var legacyStreamAssertion = new LegacyStreamPermissionAssertion(publisher);
 
 		// The Node.Ping is set to allow anonymous as it does not disclose any secure information.
@@ -46,13 +47,16 @@ public class LegacyPolicySelectorFactory : IPolicySelectorFactory {
 		policy.AllowAnonymous(Operations.Node.StaticContent);
 		policy.AllowAnonymous(Operations.Node.Redirect);
 
-		Action<OperationDefinition> addToPolicy = _allowAnonymousEndpointAccess
+		Action<OperationDefinition> addToPolicy = allowAnonymousEndpointAccess
 			? op => policy.AllowAnonymous(op)
 			: op => policy.RequireAuthenticated(op);
 
-		if (_overrideAnonymousGossipEndpointAccess) {
+		if (overrideAnonymousGossipEndpointAccess)
+		{
 			policy.AllowAnonymous(Operations.Node.Gossip.ClientRead);
-		} else {
+		}
+		else
+		{
 			addToPolicy(Operations.Node.Gossip.ClientRead);
 		}
 
@@ -104,7 +108,7 @@ public class LegacyPolicySelectorFactory : IPolicySelectorFactory {
 		policy.Add(Operations.Subscriptions.ProcessMessages, subscriptionAccess);
 		policy.AddMatchAnyAssertion(Operations.Subscriptions.ReplayParked, Grant.Allow, OperationsOrAdmins);
 
-		IAssertion streamAssertion = _allowAnonymousStreamAccess
+		IAssertion streamAssertion = allowAnonymousStreamAccess
 			? legacyStreamAssertion
 			: new AndAssertion(
 				new RequireAuthenticatedAssertion(),
