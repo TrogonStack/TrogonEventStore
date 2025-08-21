@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Authorization;
+using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Plugins.Authorization;
 using Xunit;
 
@@ -20,7 +21,7 @@ public class MultiPolicyEvaluatorTests
 		var selectors = policies
 			.Select(x => new StaticPolicySelector(x.AsReadOnly()))
 			.ToArray<IPolicySelector>();
-		return new MultiPolicyEvaluator(selectors);
+		return new MultiPolicyEvaluator(new StaticAuthorizationPolicyRegistry(selectors));
 	}
 
 	private Policy CreatePolicy(string policyName, TestAssertion[] assertions)

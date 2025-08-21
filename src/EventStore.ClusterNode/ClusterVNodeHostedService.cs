@@ -15,7 +15,6 @@ using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Authentication.PassthroughAuthentication;
 using EventStore.Core.Authorization;
-using EventStore.Core.Bus;
 using EventStore.Core.Certificates;
 using EventStore.Core.Hashing;
 using EventStore.Core.LogAbstraction;
@@ -110,12 +109,12 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			? _options.Application.Config
 			: _options.Auth.AuthenticationConfig;
 
-		(_options, var policySelectorsFactory) = ConfigurePolicySelectorsFactory();
+		(_options, var authProviderFactory) = GetAuthorizationProviderFactory();
 		if (_options.Database.DbLogFormat == DbLogFormat.V2)
 		{
 			var logFormatFactory = new LogV2FormatAbstractorFactory();
 			Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
-				GetAuthorizationProviderFactory(policySelectorsFactory),
+				authProviderFactory,
 				GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
 				configuration);
 		}
@@ -123,7 +122,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 		{
 			var logFormatFactory = new LogV3FormatAbstractorFactory();
 			Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
-				GetAuthorizationProviderFactory(policySelectorsFactory),
+				authProviderFactory,
 				GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
 				configuration);
 		}
@@ -139,81 +138,26 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 		RegisterWebControllers(enabledNodeSubsystems);
 		return;
 
-		(ClusterVNodeOptions, PolicySelectorsFactory) ConfigurePolicySelectorsFactory()
+		(ClusterVNodeOptions, AuthorizationProviderFactory) GetAuthorizationProviderFactory()
 		{
 			if (_options.Application.Insecure)
 			{
-				return (_options, new PolicySelectorsFactory());
+				return (_options, new AuthorizationProviderFactory(_ => new PassthroughAuthorizationProviderFactory()));
 			}
 
-			var defaultPolicySelector = new LegacyPolicySelectorFactory(
-				_options.Application.AllowAnonymousEndpointAccess,
-				_options.Application.AllowAnonymousStreamAccess,
-				_options.Application.OverrideAnonymousEndpointAccessForGossip);
-
-			// Temporary: get the policy plugin configuration
-			// TODO: Allow specifying multiple policy selectors
-			var policyPluginType =
-				_options.ConfigurationRoot!.GetValue<string>("EventStore:Plugins:Authorization:PolicyType") ??
-				string.Empty;
-
-			var policyPlugins = pluginLoader.Load<IPolicySelectorFactory>().ToArray();
-			var policySelectors = new Dictionary<string, IPolicySelectorFactory>();
-			foreach (var policyPlugin in policyPlugins)
-			{
-				try
-				{
-					var commandLine = policyPlugin.Name.Replace("Plugin", "").ToLowerInvariant();
-					Log.Information(
-						"Loaded authorization policy plugin: {plugin} version {version} (Command Line: {commandLine})",
-						policyPlugin.Name, policyPlugin.Version, commandLine);
-					policySelectors.Add(commandLine, policyPlugin);
+			var modifiedOptions = _options;
+			if (_options.Auth.AuthorizationType.Equals("internal", StringComparison.InvariantCultureIgnoreCase)) {
+				var registryFactory = new AuthorizationPolicyRegistryFactory(_options, configuration, pluginLoader);
+				foreach (var authSubsystem in registryFactory.GetSubsystems()) {
+					modifiedOptions = modifiedOptions.WithPlugableComponent(authSubsystem);
 				}
-				catch (CompositionException ex)
-				{
-					Log.Error(ex, "Error loading authorization policy plugin.");
-				}
+
+				var internalFactory = new AuthorizationProviderFactory(components =>
+					new InternalAuthorizationProviderFactory(registryFactory.Create(components.MainQueue)));
+				return (modifiedOptions, internalFactory);
 			}
 
-			if (policyPluginType == string.Empty)
-			{
-				Log.Information("Using default authorization policy");
-				return (_options, new PolicySelectorsFactory(defaultPolicySelector));
-			}
-			if (!policySelectors.TryGetValue(policyPluginType, out var selectedPolicy))
-			{
-				throw new ApplicationInitializationException(
-					$"The authorization policy plugin type {policyPluginType} is not recognised. If this is supposed " +
-					$"to be provided by an authorization policy plugin, confirm the plugin DLL is located in {Locations.PluginsDirectory}." +
-					Environment.NewLine +
-					$"Valid options for authorization policies are: {string.Join(", ", policySelectors.Keys)}.");
-			}
-
-			Log.Information("Using authorization policy plugin: {plugin} version {version}", selectedPolicy.Name,
-				selectedPolicy.Version);
-			// Policies will be applied in order, so the default should always be last
-			var factory = new PolicySelectorsFactory([selectedPolicy, defaultPolicySelector]);
-
-			if (selectedPolicy is IPlugableComponent plugablePolicy)
-			{
-				return (_options.WithPlugableComponent(plugablePolicy), factory);
-			}
-			return (_options, factory);
-		}
-
-		AuthorizationProviderFactory GetAuthorizationProviderFactory(PolicySelectorsFactory policySelectorsFactory)
-		{
-			if (_options.Application.Insecure)
-			{
-				return new AuthorizationProviderFactory(_ => new PassthroughAuthorizationProviderFactory());
-			}
-			var authorizationTypeToPlugin = new Dictionary<string, AuthorizationProviderFactory> {
-				{
-					"internal", new AuthorizationProviderFactory(components =>
-						new InternalAuthorizationProviderFactory(policySelectorsFactory.Create(components))
-					)
-				}
-			};
+			var authorizationTypeToPlugin = new Dictionary<string, AuthorizationProviderFactory> { };
 
 			foreach (var potentialPlugin in pluginLoader.Load<IAuthorizationPlugin>())
 			{
@@ -224,8 +168,9 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 						"Loaded authorization plugin: {plugin} version {version} (Command Line: {commandLine})",
 						potentialPlugin.Name, potentialPlugin.Version, commandLine);
 					authorizationTypeToPlugin.Add(commandLine,
-						new AuthorizationProviderFactory(_ =>
-							potentialPlugin.GetAuthorizationProviderFactory(authorizationConfig)));
+						new AuthorizationProviderFactory(
+							_ => potentialPlugin.GetAuthorizationProviderFactory(authorizationConfig)
+						));
 				}
 				catch (CompositionException ex)
 				{
@@ -243,7 +188,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 					$"Valid options for authorization are: {string.Join(", ", authorizationTypeToPlugin.Keys)}.");
 			}
 
-			return factory;
+			return (modifiedOptions, factory);
 		}
 
 		static CompositionContainer FindPlugins()

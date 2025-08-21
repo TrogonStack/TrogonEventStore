@@ -1,16 +1,13 @@
 using EventStore.Plugins.Authorization;
+using EventStore.Core.Authorization.AuthorizationPolicies;
 
-namespace EventStore.Core.Authorization {
-	public class InternalAuthorizationProviderFactory : IAuthorizationProviderFactory {
-		private readonly IPolicySelector[] _policySelectors;
+namespace EventStore.Core.Authorization;
 
-		public InternalAuthorizationProviderFactory(IPolicySelector[] policySelectors) {
-			_policySelectors = policySelectors;
-		}
-
-		public IAuthorizationProvider Build() {
-			return new PolicyAuthorizationProvider(
-			new MultiPolicyEvaluator(_policySelectors), logAuthorization: true, logSuccesses: false);
-		}
+public class InternalAuthorizationProviderFactory(IAuthorizationPolicyRegistry registry) : IAuthorizationProviderFactory
+{
+	public IAuthorizationProvider Build()
+	{
+		return new PolicyAuthorizationProvider(
+			new MultiPolicyEvaluator(registry), logAuthorization: true, logSuccesses: false);
 	}
 }

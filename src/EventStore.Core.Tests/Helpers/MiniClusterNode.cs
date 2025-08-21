@@ -11,6 +11,7 @@ using EventStore.Common.Utils;
 using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Authorization;
+using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Bus;
 using EventStore.Core.Certificates;
 using EventStore.Core.Data;
@@ -191,11 +192,12 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				components =>
 					new InternalAuthenticationProviderFactory(components, options.DefaultUser)),
 			new AuthorizationProviderFactory(components =>
-				new InternalAuthorizationProviderFactory([new LegacyPolicySelectorFactory(
-					options.Application.AllowAnonymousEndpointAccess,
-					options.Application.AllowAnonymousStreamAccess,
-					options.Application.OverrideAnonymousEndpointAccessForGossip).Create(components.MainQueue, default)])),
-			Array.Empty<IPersistentSubscriptionConsumerStrategyFactory>(),
+				new InternalAuthorizationProviderFactory(
+					new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
+						options.Application.AllowAnonymousEndpointAccess,
+						options.Application.AllowAnonymousStreamAccess,
+						options.Application.OverrideAnonymousEndpointAccessForGossip).Create(components.MainQueue)]))),
+			[],
 			new OptionsCertificateProvider(),
 			configuration: inMemConf,
 			expiryStrategy,

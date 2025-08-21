@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Authorization;
+using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
@@ -41,10 +42,11 @@ public class LegacyPolicyVerification
 		_allowAnonymousEndpointAccess = allowAnonymousEndpointAccess;
 		_allowAnonymousStreamAccess = allowAnonymousStreamAccess;
 		_overrideAnonymousGossipEndpointAccess = overrideAnonymousGossipEndpointAccess;
-		_authorizationProvider = new InternalAuthorizationProviderFactory([new LegacyPolicySelectorFactory(
-			allowAnonymousEndpointAccess,
-			allowAnonymousStreamAccess,
-			overrideAnonymousGossipEndpointAccess).Create(_aclResponder, default)])
+		_authorizationProvider = new InternalAuthorizationProviderFactory(
+				new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
+					allowAnonymousEndpointAccess,
+					allowAnonymousStreamAccess,
+					overrideAnonymousGossipEndpointAccess).Create(_aclResponder)]))
 			.Build();
 	}
 
