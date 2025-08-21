@@ -93,6 +93,23 @@ namespace EventStore.Core {
 					var sourceDisplayName = GetSourceDisplayName(option.Value.Key, provider);
 					var isDefault = provider.GetType() == typeof(EventStoreDefaultValuesConfigurationProvider);
 
+					// Handle array-style options; currently only GossipSeed uses this
+					if (sourceDisplayName is "<UNKNOWN>" && value is null)
+					{
+						var parentPath = option.Value.Key;
+						var childValues = new List<string>();
+
+						foreach (var childKey in provider.GetChildKeys([], parentPath))
+						{
+							var absoluteChildKey = parentPath + ":" + childKey;
+							if (!provider.TryGet(absoluteChildKey, out var childValue) || childValue is null) continue;
+							childValues.Add(childValue);
+							sourceDisplayName = GetSourceDisplayName(absoluteChildKey, provider);
+						}
+
+						value = string.Join(", ", childValues);
+					}
+
 					loadedOptions[option.Value.Key] = new(
 						metadata: option.Value,
 						title: title,
