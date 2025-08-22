@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -19,6 +20,7 @@ using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Plugins.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Serilog;
 using static EventStore.Plugins.Diagnostics.PluginDiagnosticsDataCollectionMode;
 
@@ -38,6 +40,7 @@ public sealed class TelemetryService :
 	private static readonly TimeSpan FlushDelay = TimeSpan.FromSeconds(10);
 
 	private readonly ClusterVNodeOptions _nodeOptions;
+	private readonly IConfiguration _configuration;
 	private readonly Task _task;
 	private readonly IPublisher _publisher;
 	private readonly IReadOnlyCheckpoint _writerCheckpoint;
@@ -55,6 +58,7 @@ public sealed class TelemetryService :
 	public TelemetryService(
 		TFChunkManager manager,
 		ClusterVNodeOptions nodeOptions,
+		IConfiguration configuration,
 		IPublisher publisher,
 		ITelemetrySink sink,
 		IReadOnlyCheckpoint writerCheckpoint,
@@ -63,6 +67,7 @@ public sealed class TelemetryService :
 	{
 		_manager = manager;
 		_nodeOptions = nodeOptions;
+		_configuration = configuration;
 		_publisher = publisher;
 		_writerCheckpoint = writerCheckpoint;
 		_nodeId = nodeId;
@@ -248,8 +253,9 @@ public sealed class TelemetryService :
 			{
 				try
 				{
-					var payload = JsonSerializer.SerializeToNode(evt.Data);
-					message.Envelope.ReplyWith(new TelemetryMessage.Response("plugins", evt.Source, payload));
+					var payload = JsonSerializer.SerializeToNode(
+						evt.Data.ToDictionary(kvp => LowerFirstLetter(kvp.Key), kvp => kvp.Value));
+					message.Envelope.ReplyWith(new TelemetryMessage.Response(LowerFirstLetter(evt.Source), payload));
 				}
 				catch (Exception ex)
 				{
@@ -259,6 +265,23 @@ public sealed class TelemetryService :
 
 		_publisher.Publish(
 			new GossipMessage.ReadGossip(new CallbackEnvelope(resp => OnGossipReceived(message.Envelope, resp))));
+		{
+			var extraTelemetry = _configuration.GetSection("EventStore:Telemetry").Get<Dictionary<string, string>>() ??
+			                     [];
+			var payload =
+				JsonSerializer.SerializeToNode(extraTelemetry.ToDictionary(kvp => LowerFirstLetter(kvp.Key),
+					kvp => kvp.Value));
+			message.Envelope.ReplyWith(new TelemetryMessage.Response(
+				"telemetry", payload));
+		}
+	}
+
+	private static string LowerFirstLetter(string x)
+	{
+		if (string.IsNullOrEmpty(x) || char.IsLower(x[0]))
+			return x;
+
+		return $"{char.ToLower(x[0])}{x[1..]}";
 	}
 
 	private static void OnGossipReceived(IEnvelope<TelemetryMessage.Response> envelope, Message message)
