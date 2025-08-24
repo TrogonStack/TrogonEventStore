@@ -18,6 +18,10 @@ on:
       - "samples/**"
       - "**.md"
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   vulnerability-scan:
     runs-on: ubuntu-latest
@@ -35,6 +39,12 @@ jobs:
           dotnet restore
           dotnet list package --vulnerable --include-transitive | tee vulnerabilities.txt
           ! cat vulnerabilities.txt | grep -q "has the following vulnerable packages"
+  nuget-source:
+    name: Auth with GitHub Packages
+    uses: ./.github/workflows/nuget-auth.yml
+    with:
+      working-directory: src
+
   protolock:
     runs-on: ubuntu-latest
     name: Protolock Status
@@ -48,9 +58,7 @@ jobs:
   docker-compose:
     runs-on: ubuntu-latest
     name: Docker Compose Smoke Test
-    permissions:
-      contents: read
-      packages: read
+    needs: nuget-source
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,6 +69,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker Compose Smoke Test
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker compose build
           docker compose up --detach

@@ -141,7 +141,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					out var streamNumber, out var streamRecord);
 				if (streamRecord != null)
 				{
-					Write(i, chunk, streamRecord, false, out logPos);
+					logPos = await Write(i, chunk, streamRecord, false, token);
 					records[i].Add(streamRecord);
 				}
 
@@ -149,7 +149,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					out var eventTypeNumber, out var eventTypeRecord);
 				if (eventTypeRecord != null)
 				{
-					Write(i, chunk, eventTypeRecord, false, out logPos);
+					logPos = await Write(i, chunk, eventTypeRecord, false, token);
 					records[i].Add(eventTypeRecord);
 				}
 
@@ -264,7 +264,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 						throw new ArgumentOutOfRangeException();
 				}
 
-				Write(i, chunk, record, rec.CommitWrite, out logPos);
+				logPos = await Write(i, chunk, record, rec.CommitWrite, token);
 				records[i].Add(record);
 				if (record is IPrepareLogRecord<TStreamId> prepare &&
 					StreamIdComparer.Equals(prepare.EventType, _scavengePointEventTypeId))
@@ -294,16 +294,19 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		return new DbResult(_db, records.Select(rs => rs.ToArray()).ToArray(), streams);
 	}
 
-	void Write(int chunkNum, TFChunk chunk, ILogRecord record, bool commitWrite, out long newPos)
+	async ValueTask<long> Write(int chunkNum, TFChunk chunk, ILogRecord record, bool commitWrite,
+		CancellationToken token)
 	{
-		var writerRes = chunk.TryAppend(record);
+		var writerRes = await chunk.TryAppend(record, token);
 		if (!writerRes.Success)
 			throw new Exception(string.Format("Could not write log record: {0}", record));
 
-		newPos = chunkNum * (long)_db.Config.ChunkSize + writerRes.NewPosition;
+		var newPos = chunkNum * (long)_db.Config.ChunkSize + writerRes.NewPosition;
 
 		if (commitWrite)
 			_db.Config.WriterCheckpoint.Write(newPos);
+
+		return newPos;
 	}
 
 	private byte[] FormatData(Rec rec)

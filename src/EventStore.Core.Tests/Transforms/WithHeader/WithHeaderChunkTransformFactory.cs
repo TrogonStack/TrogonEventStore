@@ -1,9 +1,12 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.WithHeader;
+
 public class WithHeaderChunkTransformFactory : IChunkTransformFactory
 {
 	private const int TransformHeaderSize = 133;
@@ -18,15 +21,15 @@ public class WithHeaderChunkTransformFactory : IChunkTransformFactory
 		RandomNumberGenerator.Fill(_header);
 	}
 
-	public ReadOnlyMemory<byte> CreateTransformHeader() => _header;
+	public void CreateTransformHeader(Span<byte> transformHeader) => _header.CopyTo(transformHeader);
 
-	public ReadOnlyMemory<byte> ReadTransformHeader(Stream stream)
+	public ValueTask ReadTransformHeader(Stream stream, Memory<byte> transformHeader, CancellationToken token)
 	{
-		var buffer = new byte[TransformHeaderSize];
-		stream.ReadExactly(buffer);
-		return buffer.AsMemory();
+		return stream.ReadExactlyAsync(transformHeader, token);
 	}
 
-	public IChunkTransform CreateTransform(ReadOnlyMemory<byte> transformHeader) =>
+	public IChunkTransform CreateTransform(ReadOnlySpan<byte> transformHeader) =>
 		new WithHeaderChunkTransform(transformHeader.Length);
+
+	public int TransformHeaderLength => _header.Length;
 }

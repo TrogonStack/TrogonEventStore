@@ -799,6 +799,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				transformType: header.TransformType);
 
 			var transformFactory = db.TransformManager.GetFactoryForExistingChunk(header.TransformType);
+
+			var transformHeader = transformFactory.TransformHeaderLength > 0
+				? new byte[transformFactory.TransformHeaderLength]
+				: [];
+
+			transformFactory.CreateTransformHeader(transformHeader);
+
 			var newChunk = await TFChunk.CreateWithHeader(
 				filename: $"{chunk.FileName}.tmp",
 				header: newChunkHeader,
@@ -809,7 +816,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				reduceFileCachePressure: false,
 				tracker: new TFChunkTracker.NoOp(),
 				transformFactory: transformFactory,
-				transformHeader: transformFactory.CreateTransformHeader(),
+				transformHeader: transformHeader,
 				token);
 
 			await newChunk.CompleteScavenge(null, token);

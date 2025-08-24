@@ -11,7 +11,7 @@ WORKDIR /build/ci
 COPY ./ci ./
 
 WORKDIR /build/src
-COPY ./src/EventStore.sln ./src/*/*.csproj ./src/Directory.Build.* ./src/Directory.Packages.* ./
+COPY ./src/EventStore.sln ./src/*/*.csproj ./src/Directory.Build.* ./src/Directory.Packages.* ./src/NuGet.Config ./
 RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
 RUN dotnet restore --runtime=${RUNTIME}
 COPY ./src .

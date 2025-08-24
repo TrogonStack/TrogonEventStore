@@ -1,30 +1,39 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Plugins.Transforms;
 
-namespace EventStore.Core.Transforms.Identity;
+namespace EventStore.Core.Tests.Transforms.BitFlip;
 
-public sealed class IdentityChunkWriteTransform : IChunkWriteTransform {
-	private ChunkDataWriteStream _stream;
+public class BitFlipChunkWriteTransform : IChunkWriteTransform
+{
+	private BitFlipChunkWriteStream _transformedStream;
 
-	public ChunkDataWriteStream TransformData(ChunkDataWriteStream stream) {
-		_stream = stream;
-		return _stream;
+	public ChunkDataWriteStream TransformData(ChunkDataWriteStream dataStream)
+	{
+		_transformedStream = new BitFlipChunkWriteStream(dataStream);
+		return _transformedStream;
 	}
 
-	public void CompleteData(int footerSize, int alignmentSize) {
-		var chunkHeaderAndDataSize = (int)_stream.Position;
+	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token = default)
+	{
+		var chunkHeaderAndDataSize = (int)_transformedStream.ChunkFileStream.Position;
 		var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
 		var paddingSize = alignedSize - chunkHeaderAndDataSize - footerSize;
-		if (paddingSize > 0)
-			_stream.Write(new byte[paddingSize]);
+
+		return paddingSize > 0
+			? _transformedStream.WriteAsync(new byte[paddingSize], token)
+			: ValueTask.CompletedTask;
 	}
 
-	public void WriteFooter(ReadOnlySpan<byte> footer, out int fileSize) {
-		_stream.ChunkFileStream.Write(footer);
-		fileSize = (int)_stream.Length;
+	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
+	{
+		await _transformedStream.ChunkFileStream.WriteAsync(footer, token);
+		return (int)_transformedStream.ChunkFileStream.Length;
 	}
 
-	private static int GetAlignedSize(int size, int alignmentSize) {
+	private static int GetAlignedSize(int size, int alignmentSize)
+	{
 		if (size % alignmentSize == 0) return size;
 		return (size / alignmentSize + 1) * alignmentSize;
 	}
