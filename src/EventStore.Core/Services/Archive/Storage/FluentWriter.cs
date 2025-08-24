@@ -1,0 +1,42 @@
+using System;
+using System.IO;
+using System.Threading;
+using EventStore.Core.Services.Archive.Storage.Exceptions;
+using System.Threading.Tasks;
+using Serilog;
+using FluentStorage.Blobs;
+
+namespace EventStore.Core.Services.Archive.Storage;
+
+public abstract class FluentWriter
+{
+	protected abstract ILogger Log { get; }
+	protected abstract IBlobStorage BlobStorage { get; }
+
+	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
+	{
+		throw new NotImplementedException();
+	}
+
+	public async ValueTask<bool> StoreChunk(string chunkPath, string destinationFile, CancellationToken ct)
+	{
+		try
+		{
+			await BlobStorage.WriteFileAsync(destinationFile, filePath: chunkPath, ct);
+			return true;
+		}
+		catch (FileNotFoundException)
+		{
+			throw new ChunkDeletedException();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Log.Error(ex, "Error while storing chunk: {chunkFile}", destinationFile);
+			return false;
+		}
+	}
+}

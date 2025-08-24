@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.IO;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
@@ -98,12 +99,13 @@ public class
 		await db.DisposeAsync();
 
 		Assert.AreEqual(record3.GetSizeWithLengthPrefixAndSuffix() + 10000, _checkpoint.Read());
-		using (var filestream = File.Open(filename2, FileMode.Open, FileAccess.Read))
-		{
-			filestream.Seek(ChunkHeader.Size + sizeof(int), SeekOrigin.Begin);
-			var reader = new BinaryReader(filestream);
-			var read = LogRecord.ReadFrom(reader, (int)reader.BaseStream.Length);
-			Assert.AreEqual(record3, read);
-		}
+		await using var filestream = File.Open(filename2, new FileStreamOptions
+			{ Mode = FileMode.Open, Access = FileAccess.Read, Options = FileOptions.Asynchronous });
+		filestream.Seek(ChunkHeader.Size + sizeof(int), SeekOrigin.Begin);
+		var reader = IAsyncBinaryReader.Create(filestream, new byte[128]);
+
+		Assert.True(reader.TryGetRemainingBytesCount(out var recordLength));
+		var read = await LogRecord.ReadFrom(reader, (int)recordLength, CancellationToken.None);
+		Assert.AreEqual(record3, read);
 	}
 }

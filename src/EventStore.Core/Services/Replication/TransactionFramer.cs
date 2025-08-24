@@ -1,17 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Transport.Tcp.Framing;
 
-namespace EventStore.Core.Services.Replication; 
+namespace EventStore.Core.Services.Replication;
 
-public class TransactionFramer : IMessageFramer<IEnumerable<ILogRecord>> {
+internal sealed class TransactionFramer : IAsyncMessageFramer<IEnumerable<ILogRecord>>
+{
 	private readonly List<ILogRecord> _records;
-	private readonly IMessageFramer<ILogRecord> _inner;
-	private Action<IEnumerable<ILogRecord>> _handler = _ => { };
+	private readonly IAsyncMessageFramer<ILogRecord> _inner;
 
-	public TransactionFramer(IMessageFramer<ILogRecord> inner) {
+	private Func<IEnumerable<ILogRecord>, CancellationToken, ValueTask> _handler = static (_, _) =>
+		ValueTask.CompletedTask;
+
+	public TransactionFramer(IAsyncMessageFramer<ILogRecord> inner)
+	{
 		_records = new List<ILogRecord>(capacity: 1024);
 		_inner = inner;
 		_inner.RegisterMessageArrivedCallback(OnLogRecordUnframed);
@@ -19,36 +25,42 @@ public class TransactionFramer : IMessageFramer<IEnumerable<ILogRecord>> {
 
 	public bool HasData => _records.Count > 0 || _inner.HasData;
 	public IEnumerable<ArraySegment<byte>> FrameData(ArraySegment<byte> data) => _inner.FrameData(data);
-	public void UnFrameData(IEnumerable<ArraySegment<byte>> data) => _inner.UnFrameData(data);
-	public void UnFrameData(ArraySegment<byte> data) => _inner.UnFrameData(data);
 
-	public void Reset() {
+	public ValueTask UnFrameData(IEnumerable<ArraySegment<byte>> data, CancellationToken token) =>
+		_inner.UnFrameData(data, token);
+
+	public ValueTask UnFrameData(ArraySegment<byte> data, CancellationToken token) => _inner.UnFrameData(data, token);
+
+	public void Reset()
+	{
 		_records.Clear();
 		_inner.Reset();
 	}
 
-	private void OnLogRecordUnframed(ILogRecord record) {
+	private async ValueTask OnLogRecordUnframed(ILogRecord record, CancellationToken token)
+	{
 		_records.Add(record);
-		if (record.IsTransactionBoundary()) {
-			_handler(_records);
+		if (record.IsTransactionBoundary())
+		{
+			await _handler(_records, token);
 			_records.Clear();
 		}
 	}
 
-	public void RegisterMessageArrivedCallback(Action<IEnumerable<ILogRecord>> handler) {
+	public void RegisterMessageArrivedCallback(Func<IEnumerable<ILogRecord>, CancellationToken, ValueTask> handler)
+	{
 		Ensure.NotNull(handler, nameof(handler));
 		_handler = handler;
 	}
 
-	public bool UnFramePendingLogRecords(out int numLogRecordsUnframed) {
-		if (_records.Count == 0) {
-			numLogRecordsUnframed = 0;
-			return false;
-		}
+	public async ValueTask<int?> UnFramePendingLogRecords(CancellationToken token)
+	{
+		if (_records is [])
+			return null;
 
-		numLogRecordsUnframed = _records.Count;
-		_handler(_records);
+		var numLogRecordsUnframed = _records.Count;
+		await _handler(_records, token);
 		_records.Clear();
-		return true;
+		return numLogRecordsUnframed;
 	}
 }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using DotNext.Buffers;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
@@ -168,15 +169,14 @@ public class prepare_log_record_should<TLogFormat, TStreamId>
 			return;
 		}
 
-		var memStream = new MemoryStream();
-		var binaryWriter = new BinaryWriter(memStream);
+		var binaryWriter = new BufferWriterSlim<byte>();
 
 		const int dataSize = 10000;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		var prepare = LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 0,
 			PrepareFlags.IsRedacted, eventTypeId, new byte[dataSize], null, DateTime.UtcNow);
 
-		prepare.WriteTo(binaryWriter);
-		Assert.True(memStream.Length >= dataSize);
+		prepare.WriteTo(ref binaryWriter);
+		Assert.True(binaryWriter.WrittenCount >= dataSize);
 	}
 }

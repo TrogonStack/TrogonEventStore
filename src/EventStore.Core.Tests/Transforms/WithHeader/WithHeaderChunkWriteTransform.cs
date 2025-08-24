@@ -1,40 +1,48 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using DotNext.Buffers;
 using EventStore.Plugins.Transforms;
 
-namespace EventStore.Core.Tests.Transforms.WithHeader;
-public class WithHeaderChunkWriteTransform(int transformHeaderSize) : IChunkWriteTransform
+namespace EventStore.Core.Transforms.Identity;
+
+public sealed class IdentityChunkWriteTransform : IChunkWriteTransform
 {
-	private ChunkDataWriteStream _transformedStream;
+	private ChunkDataWriteStream _stream;
 
 	public ChunkDataWriteStream TransformData(ChunkDataWriteStream stream)
 	{
-		_transformedStream = new WithHeaderChunkWriteStream(stream, transformHeaderSize);
-		return _transformedStream;
+		_stream = stream;
+		return _stream;
 	}
 
-	public void CompleteData(int footerSize, int alignmentSize)
+	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token)
 	{
-		var chunkHeaderAndDataSize = (int)_transformedStream.ChunkFileStream.Position;
+		var chunkHeaderAndDataSize = (int)_stream.Position;
 		var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
 		var paddingSize = alignedSize - chunkHeaderAndDataSize - footerSize;
-		if (paddingSize > 0)
+		return paddingSize > 0
+			? WritePaddingAsync(_stream, paddingSize, token)
+			: ValueTask.CompletedTask;
+
+		static async ValueTask WritePaddingAsync(ChunkDataWriteStream stream, int paddingSize, CancellationToken token)
 		{
-			var padding = new byte[paddingSize];
-			_transformedStream.ChunkFileStream.Write(padding);
-			_transformedStream.ChecksumAlgorithm.TransformBlock(padding, 0, padding.Length, null, 0);
+			using var buffer = Memory.AllocateExactly<byte>(paddingSize);
+			buffer.Span.Clear(); // ensure that the padding is zeroed
+			await stream.WriteAsync(buffer.Memory, token);
 		}
 	}
 
-	public void WriteFooter(ReadOnlySpan<byte> footer, out int fileSize)
+	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
 	{
-		_transformedStream.ChunkFileStream.Write(footer);
-		fileSize = (int)_transformedStream.ChunkFileStream.Length;
+		await _stream.ChunkFileStream.WriteAsync(footer, token);
+		return (int)_stream.Length;
 	}
 
 	private static int GetAlignedSize(int size, int alignmentSize)
 	{
-		if (size % alignmentSize == 0)
-			return size;
-		return (size / alignmentSize + 1) * alignmentSize;
+		var quotient = Math.DivRem(size, alignmentSize, out var remainder);
+
+		return remainder is 0 ? size : (quotient + 1) * alignmentSize;
 	}
 }
