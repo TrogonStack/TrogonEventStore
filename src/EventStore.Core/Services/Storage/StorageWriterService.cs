@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -306,12 +305,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	{
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 
-		var lifetimeToken = token;
-		var cts = token.LinkTo(msg.CancellationToken);
 		try
 		{
-			if (token.IsCancellationRequested)
+			if (msg.CancellationToken.IsCancellationRequested || token.IsCancellationRequested)
 				return;
+
+			token = CancellationToken.None;
 
 			var logPosition = Writer.Position;
 			var prepares = new List<IPrepareLogRecord<TStreamId>>();
@@ -416,8 +415,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 		finally
 		{
-			await Flush(token: lifetimeToken);
-			cts?.Dispose();
+			await Flush(token: token);
 		}
 	}
 
@@ -859,11 +857,16 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			}
 		}
 
+		token.ThrowIfCancellationRequested();
+		token = CancellationToken.None;
+
 		Writer.OpenTransaction();
 		var writerPos = Writer.Position;
 		foreach (var prepare in prepares)
 		{
-			Writer.WriteToTransaction(prepare, out var newWriterPos);
+			long newWriterPos = await Writer.WriteToTransaction(prepare, token)
+			                    ?? throw new InvalidOperationException(
+				                    "The transaction does not fit in the current chunk.");
 			if (newWriterPos - writerPos != prepare.SizeOnDisk)
 				throw new Exception(
 					$"Expected writer position to be at: {writerPos + prepare.SizeOnDisk} but it was at {newWriterPos}");

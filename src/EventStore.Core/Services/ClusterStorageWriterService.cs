@@ -372,13 +372,13 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 				return;
 			}
 
-			_framer.UnFrameData(new ArraySegment<byte>(message.DataBytes));
+			await _framer.UnFrameData(new ArraySegment<byte>(message.DataBytes), token);
 			_subscriptionPos += message.DataBytes.Length;
 
 			if (message.CompleteChunk)
 			{
 				// for backwards compatibility with logs having incomplete transactions at the end of a chunk
-				if (_framer.UnFramePendingLogRecords(out var numRecordsUnframed))
+				if (await _framer.UnFramePendingLogRecords(token) is { } numRecordsUnframed)
 					Log.Warning(
 						"Incomplete transaction consisting of {numRecords} log records was found at the end of chunk: {chunkStartNumber}-{chunkEndNumber}.",
 						numRecordsUnframed, message.ChunkStartNumber, message.ChunkEndNumber);
@@ -416,11 +416,14 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 			writerLogPosition: Writer.Position));
 	}
 
-	private void OnTransactionUnframed(IEnumerable<ILogRecord> records)
+	private async ValueTask OnTransactionUnframed(IEnumerable<ILogRecord> records, CancellationToken token)
 	{
+		token.ThrowIfCancellationRequested();
+		token = CancellationToken.None;
+
 		Writer.OpenTransaction();
 		foreach (var record in records)
-			if (!Writer.TryWriteToTransaction(record, out _))
+			if (await Writer.WriteToTransaction(record, token) is null)
 				ReplicationFail(
 					"Failed to write replicated log record at position: {0}. Writer's position: {1}.",
 					"Failed to write replicated log record at position: {recordPos}. Writer's position: {writerPos}.",

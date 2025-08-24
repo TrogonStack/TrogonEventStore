@@ -54,7 +54,7 @@ public class
 			_records[i] = LogRecord.SingleWrite(recordFactory, pos,
 				Guid.NewGuid(), Guid.NewGuid(), streamId, expectedVersion++, eventTypeId,
 				new byte[1200], new byte[] { 5, 7 });
-			_results[i] = chunk.TryAppend(_records[i]);
+			_results[i] = await chunk.TryAppend(_records[i], CancellationToken.None);
 
 			pos += _records[i].GetSizeWithLengthPrefixAndSuffix();
 		}

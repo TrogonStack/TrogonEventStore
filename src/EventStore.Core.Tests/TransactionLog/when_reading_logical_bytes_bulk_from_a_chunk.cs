@@ -89,7 +89,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		var rec = LogRecord.Prepare(recordFactory, 0, Guid.NewGuid(),
 			Guid.NewGuid(), 0, 0, streamId, -1, PrepareFlags.None, eventTypeId,
 			new byte[2000], null);
-		Assert.IsTrue(chunk.TryAppend(rec).Success, "Record was not appended");
+		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 
 		using (var reader = chunk.AcquireDataReader())
 		{
@@ -108,7 +108,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
-		Assert.IsTrue(chunk.TryAppend(rec).Success, "Record was not appended");
+		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 		using (var reader = chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
@@ -129,7 +129,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
-		Assert.IsTrue(chunk.TryAppend(rec).Success, "Record was not appended");
+		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 		await chunk.Complete(CancellationToken.None);
 
 		using (var reader = chunk.AcquireDataReader())
