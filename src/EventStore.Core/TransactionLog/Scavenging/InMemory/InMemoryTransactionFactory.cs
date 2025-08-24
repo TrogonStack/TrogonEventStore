@@ -1,16 +1,20 @@
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class InMemoryTransactionFactory : ITransactionFactory<int> {
-		public InMemoryTransactionFactory() {
-		}
+using System;
 
-		public int Begin() {
-			return 5;
-		}
+namespace EventStore.Core.TransactionLog.Scavenging.InMemory;
 
-		public void Commit(int transasction) {
-		}
+public class InMemoryTransactionFactory : ITransactionFactory<int>
+{
+	int _transactionNumber;
 
-		public void Rollback(int transaction) {
-		}
+	public InMemoryTransactionFactory()
+	{
 	}
+
+	public int Begin() => _transactionNumber++;
+
+	public void Commit(int transasction)
+	{
+	}
+
+	public void Rollback(int transaction) => throw new NotImplementedException();
 }

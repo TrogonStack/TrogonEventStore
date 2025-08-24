@@ -1,3 +1,8 @@
+using System;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
+using DotNext.Buffers;
 using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.BitFlip;
@@ -5,12 +10,26 @@ namespace EventStore.Core.Tests.Transforms.BitFlip;
 public class BitFlipChunkWriteStream(ChunkDataWriteStream stream) :
 	ChunkDataWriteStream(stream.ChunkFileStream, stream.ChecksumAlgorithm)
 {
-	public override void Write(byte[] buffer, int offset, int count)
+
+	public override void Write(ReadOnlySpan<byte> buffer)
 	{
-		var buf = new byte[count];
-		for (int i = 0; i < count; i++)
-			buf[i] = (byte)(buffer[i + offset] ^ 0xFF);
-		ChunkFileStream.Write(buf, 0, buf.Length);
-		ChecksumAlgorithm.TransformBlock(buf, 0, buf.Length, null, 0);
+		var tmp = new byte[buffer.Length];
+		FlipBits(buffer, tmp);
+
+		base.Write(tmp);
+	}
+
+	public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken token = default)
+	{
+		var tmp = new byte[buffer.Length];
+		FlipBits(buffer.Span, tmp);
+
+		return base.WriteAsync(tmp, token);
+	}
+
+	private static void FlipBits(ReadOnlySpan<byte> source, Span<byte> destination)
+	{
+		for (int i = 0; i < source.Length; i++)
+			destination[i] = (byte)(source[i] ^ 0xFF);
 	}
 }

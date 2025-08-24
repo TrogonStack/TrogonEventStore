@@ -24,3 +24,4 @@ jobs:
     with:
       container-runtime: noble
       runtime: linux-x64
+    secrets: inherit

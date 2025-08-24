@@ -24,7 +24,10 @@ services:
       - volumes-provisioner
 
   esdb-node1:
-    build: ./
+    build: 
+      context: ./
+      secrets:
+        - nuget_auth_token
     env_file:
       - shared.env
     environment:
@@ -46,7 +49,10 @@ services:
       - cert-gen
 
   esdb-node2:
-    build: ./
+    build: 
+      context: ./
+      secrets:
+        - nuget_auth_token
     env_file:
       - shared.env
     environment:
@@ -68,7 +74,10 @@ services:
       - cert-gen
 
   esdb-node3:
-    build: ./
+    build: 
+      context: ./
+      secrets:
+        - nuget_auth_token
     env_file:
       - shared.env
     environment:
@@ -97,3 +106,7 @@ networks:
       driver: default
       config:
         - subnet: 172.30.240.0/24
+
+secrets:
+  nuget_auth_token:
+    environment: NUGET_AUTH_TOKEN

@@ -22,6 +22,7 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public int ChunkEndNumber => _chunk.ChunkHeader.ChunkEndNumber;
 
 		public bool IsReadOnly => _chunk.IsReadOnly;
+		public bool IsRemote => _chunk.IsRemote;
 
 		public long ChunkStartPosition => _chunk.ChunkHeader.ChunkStartPosition;
 
