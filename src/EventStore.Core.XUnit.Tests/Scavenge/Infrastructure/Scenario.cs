@@ -22,6 +22,7 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.Scavenging;
+using EventStore.Core.TransactionLog.Scavenging.Stages;
 using EventStore.Core.Transforms;
 using EventStore.Core.Util;
 using Google.Protobuf.WellKnownTypes;
@@ -35,7 +36,6 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 public class Scenario
 {
-	protected const int Threads = 1;
 	public const bool CollideEverything = false;
 }
 
@@ -51,9 +51,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 	private List<ScavengePoint> _newScavengePoint;
 	private ITFChunkScavengerLog _logger;
 
+	private int _threads = 1;
 	private bool _mergeChunks;
 	private bool _syncOnly;
 	private string _dbPath;
+	private long _archiveCheckpoint;
+	private int _retainDays = TimeSpan.MaxValue.Days;
+	private long _retainBytes = long.MaxValue;
 	private TStreamId _accumulatingCancellationTrigger;
 	private TStreamId _calculatingCancellationTrigger;
 	private TStreamId _executingChunkCancellationTrigger;
@@ -86,6 +90,24 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 		return this;
 	}
 
+	public Scenario<TLogFormat, TStreamId> WithArchive(
+		long chunksInArchive,
+		long? retainBytes = null,
+		int? retainDays = null)
+	{
+
+		_archiveCheckpoint = chunksInArchive * ChunkSize;
+		_retainBytes = retainBytes ?? 0;
+		_retainDays = retainDays ?? 0;
+		return this;
+	}
+
+	public Scenario<TLogFormat, TStreamId> WithThreads(int threads)
+	{
+		_threads = threads;
+		return this;
+	}
+
 	public Scenario<TLogFormat, TStreamId> WithDbPath(string path)
 	{
 		_dbPath = path;
@@ -94,11 +116,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 
 	public Scenario<TLogFormat, TStreamId> WithDb(DbResult db)
 	{
-		_getDb = async (_, _) =>
-		{
-			await db.Db.Open();
-			return db;
-		};
+		_getDb = (_, _) => new(db);
 		return this;
 	}
 
@@ -214,7 +232,18 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 		return this;
 	}
 
-	public async Task<DbResult> RunAsync(
+	public async Task RunAsync(
+		Func<DbResult, ILogRecord[][]> getExpectedKeptRecords = null,
+		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries = null)
+	{
+
+		await using var x = await RunInternalAsync(
+			getExpectedKeptRecords,
+			getExpectedKeptIndexEntries);
+	}
+
+	// caller disposes DbResult
+	public async Task<DbResult> RunAndKeepDbAsync(
 		Func<DbResult, ILogRecord[][]> getExpectedKeptRecords = null,
 		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries = null)
 	{
@@ -376,9 +405,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				{
 					if (_calculatingCancellationTrigger != null)
 						if ((handle.Kind == StreamHandle.Kind.Hash &&
-							 handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
-							(handle.Kind == StreamHandle.Kind.Id &&
-							 StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
+						     handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
+						    (handle.Kind == StreamHandle.Kind.Id &&
+						     StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
 						{
 
 							cancellationTokenSource.Cancel();
@@ -405,7 +434,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 						return ValueTask.FromCanceled<bool>(token);
 
 					if (_executingIndexEntryCancellationTrigger is not null &&
-						entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger))
+					    entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger))
 					{
 
 						cancellationTokenSource.Cancel();
@@ -449,17 +478,25 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			IChunkExecutor<TStreamId> chunkExecutor = new ChunkExecutor<TStreamId, ILogRecord>(
 				logger: logger,
 				metastreamLookup: chunkExecutorMetastreamLookup,
+				chunkDeleter: new TracingChunkDeleter<TStreamId, ILogRecord>(
+					new ChunkDeleter<TStreamId, ILogRecord>(
+						logger: logger,
+						archiveCheckpoint: new AdvancingCheckpoint(_ => new(_archiveCheckpoint)),
+						retainPeriod: TimeSpan.FromDays(_retainDays),
+						retainBytes: _retainBytes),
+					Tracer),
 				chunkManager: new TracingChunkManagerForChunkExecutor<TStreamId, ILogRecord>(
 					new ChunkManagerForExecutor<TStreamId>(
 						logger,
 						dbResult.Db.Manager,
 						dbConfig,
 						dbTransformManager),
+					dbResult.RemoteChunks,
 					Tracer),
 				chunkSize: dbConfig.ChunkSize,
 				unsafeIgnoreHardDeletes: _unsafeIgnoreHardDeletes,
 				cancellationCheckPeriod: cancellationCheckPeriod,
-				threads: Threads,
+				threads: _threads,
 				throttle: throttle);
 
 			IChunkMerger chunkMerger = new ChunkMerger(
@@ -523,7 +560,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 
 			// check the trace. only when Threads == 1 or the order isn't guaranteed.
 			// only when not colliding everything, because the collisions will change the trace
-			if (_expectedTrace != null && Threads == 1 && !CollideEverything)
+			if (_expectedTrace != null && _threads == 1 && !CollideEverything)
 			{
 				var expected = _expectedTrace;
 				var actual = Tracer.ToArray();
@@ -632,7 +669,6 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 		{
 			sut?.Dispose();
 			readIndex.Close();
-			await dbResult.Db.DisposeAsync();
 		}
 	}
 
@@ -707,7 +743,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				// indexcommitter blesses tombstones with EventNumber.DeletedStream when they are
 				// committed with an explicit commit record
 				if (prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete) &&
-					prepare.Flags.HasNoneOf(PrepareFlags.IsCommitted))
+				    prepare.Flags.HasNoneOf(PrepareFlags.IsCommitted))
 					eventNumber = EventNumber.DeletedStream;
 
 				if (!minEventNumbers.TryGetValue(streamId, out var min))
@@ -729,13 +765,14 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 						stream: hasher.Hash(streamId),
 						fromEventNumber: eventNumber,
 						maxCount: 1,
-					beforePosition: long.MaxValue,
+						beforePosition: long.MaxValue,
 						token));
 
 				if (result.EventInfos.Length != 1)
 				{
 					// remember this applies metadata, so is of limited use
-					var wholeStream = await actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0, maxCount: 100, token);
+					var wholeStream = await actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0,
+						maxCount: 100, token);
 					Assert.True(result.EventInfos.Length == 1, $"Couldn't find {streamId}:{eventNumber} in index.");
 				}
 
@@ -799,6 +836,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				transformType: header.TransformType);
 
 			var transformFactory = db.TransformManager.GetFactoryForExistingChunk(header.TransformType);
+
+			var transformHeader = transformFactory.TransformHeaderLength > 0
+				? new byte[transformFactory.TransformHeaderLength]
+				: [];
+
+			transformFactory.CreateTransformHeader(transformHeader);
+
 			var newChunk = await TFChunk.CreateWithHeader(
 				filename: $"{chunk.FileName}.tmp",
 				header: newChunkHeader,
@@ -809,7 +853,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				reduceFileCachePressure: false,
 				tracker: new TFChunkTracker.NoOp(),
 				transformFactory: transformFactory,
-				transformHeader: transformFactory.CreateTransformHeader(),
+				transformHeader: transformHeader,
 				token);
 
 			await newChunk.CompleteScavenge(null, token);

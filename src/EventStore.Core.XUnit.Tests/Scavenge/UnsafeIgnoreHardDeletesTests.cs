@@ -65,7 +65,7 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 						eventNumber: 0),
 					doneLogicalChunkNumber: null));
 			})
-			.RunAsync(x => new[] {
+			.RunAndKeepDbAsync(x => new[] {
 				x.Recs[0].KeepIndexes(3), // only the tombstone is kept
 				x.Recs[1],
 				x.Recs[2],
@@ -123,7 +123,7 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 				Tracer.Line("Accumulating from checkpoint: Accumulating SP-0 done None"),
 				Tracer.AnythingElse)
 			// result of scavenging SP-0
-			.RunAsync(x => new[] {
+			.RunAndKeepDbAsync(x => new[] {
 				x.Recs[0].KeepIndexes(0, 2),
 				x.Recs[1],
 				x.Recs[2],

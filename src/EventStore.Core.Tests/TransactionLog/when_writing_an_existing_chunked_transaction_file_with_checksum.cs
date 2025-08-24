@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.IO;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
@@ -15,7 +16,8 @@ namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class when_writing_an_existing_chunked_transaction_file_with_checksum<TLogFormat, TStreamId> : SpecificationWithDirectory
+public class
+	when_writing_an_existing_chunked_transaction_file_with_checksum<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private readonly Guid _correlationId = Guid.NewGuid();
 	private readonly Guid _eventId = Guid.NewGuid();
@@ -25,7 +27,8 @@ public class when_writing_an_existing_chunked_transaction_file_with_checksum<TLo
 	public async Task a_record_can_be_written()
 	{
 		var filename = GetFilePathFor("chunk-000000.000000");
-		var chunkHeader = new ChunkHeader(TFChunk.CurrentChunkVersion, TFChunk.CurrentChunkVersion, 10000, 0, 0, false, chunkId: Guid.NewGuid(), TransformType.Identity);
+		var chunkHeader = new ChunkHeader(TFChunk.CurrentChunkVersion, TFChunk.CurrentChunkVersion, 10000, 0, 0, false,
+			chunkId: Guid.NewGuid(), TransformType.Identity);
 		var chunkBytes = chunkHeader.AsByteArray();
 		var bytes = new byte[ChunkHeader.Size + 10000 + ChunkFooter.Size];
 		Buffer.BlockCopy(chunkBytes, 0, bytes, 0, chunkBytes.Length);
@@ -61,12 +64,20 @@ public class when_writing_an_existing_chunked_transaction_file_with_checksum<TLo
 
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix() + 137,
 			_checkpoint.Read()); //137 is fluff assigned to beginning of checkpoint
-		using (var filestream = File.Open(filename, FileMode.Open, FileAccess.Read))
-		{
-			filestream.Seek(ChunkHeader.Size + 137 + sizeof(int), SeekOrigin.Begin);
-			var reader = new BinaryReader(filestream);
-			var read = LogRecord.ReadFrom(reader, (int)reader.BaseStream.Length);
-			Assert.AreEqual(record, read);
-		}
+
+		await using var filestream = File.Open(filename,
+			new FileStreamOptions
+			{
+				Mode = FileMode.Open, Access = FileAccess.Read, Options = FileOptions.Asynchronous
+			});
+		filestream.Seek(ChunkHeader.Size + 137 + sizeof(int), SeekOrigin.Begin);
+		var recordLength = filestream.Length - filestream.Position;
+
+		var buffer = new byte[recordLength];
+		await filestream.ReadExactlyAsync(buffer);
+
+		var reader = new SequenceReader(new(buffer));
+		var read = LogRecord.ReadFrom(ref reader);
+		Assert.AreEqual(record, read);
 	}
 }

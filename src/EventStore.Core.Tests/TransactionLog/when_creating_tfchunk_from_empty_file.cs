@@ -48,7 +48,9 @@ public class WhenCreatingTfchunkFromEmptyFile : SpecificationWithFile
 	[Test]
 	public void append_does_not_throw_exception()
 	{
-		Assert.DoesNotThrow(() => _chunk.TryAppend(new CommitLogRecord(0, Guid.NewGuid(), 0, DateTime.UtcNow, 0)));
+		Assert.DoesNotThrowAsync(async () =>
+			await _chunk.TryAppend(new CommitLogRecord(0, Guid.NewGuid(), 0, DateTime.UtcNow, 0),
+				CancellationToken.None));
 	}
 
 	[Test]

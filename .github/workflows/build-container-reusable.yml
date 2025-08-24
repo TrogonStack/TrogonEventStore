@@ -44,6 +44,8 @@ jobs:
           build-args: |
             CONTAINER_RUNTIME=${{ inputs.container-runtime }}
             RUNTIME=${{ inputs.runtime }}
+          secrets: |
+            nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Verify Build
         run: |
           docker run --rm eventstore --insecure --what-if
@@ -57,6 +59,8 @@ jobs:
           build-args: |
             CONTAINER_RUNTIME=${{ inputs.container-runtime }}
             RUNTIME=${{ inputs.runtime }}
+          secrets: |
+            nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Run Tests
         run: |
           docker run \

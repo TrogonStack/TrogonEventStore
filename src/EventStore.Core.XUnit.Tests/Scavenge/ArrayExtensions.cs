@@ -16,7 +16,7 @@ public static class ArrayExtensions
 		return self.Where((x, i) => indexes.Contains(i)).ToArray();
 	}
 
-	public static T[] KeepNone<T>(this T[] self) => Array.Empty<T>();
+	public static T[] KeepNone<T>(this T[] _) => [];
 
 	public static T[] KeepAll<T>(this T[] self) => self;
 }
