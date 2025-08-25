@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
@@ -14,6 +15,7 @@ using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 using static EventStore.Plugins.Diagnostics.PluginDiagnosticsDataCollectionMode;
 
@@ -37,6 +39,7 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		{
 			task.Wait();
 		}
+
 		var channel = Channel.CreateUnbounded<Message>();
 		_channelReader = channel.Reader;
 		_sink = new InMemoryTelemetrySink();
@@ -46,6 +49,9 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		_sut = new TelemetryService(
 			_db.Manager,
 			new ClusterVNodeOptions().WithPlugableComponent(_plugin),
+			new ConfigurationBuilder()
+				.AddInMemoryCollection(
+					new Dictionary<string, string>() { { "EventStore:Telemetry:CloudIdentifier", "abc" }, }).Build(),
 			new EnvelopePublisher(new ChannelEnvelope(channel)),
 			_sink,
 			new InMemoryCheckpoint(0),
@@ -67,26 +73,26 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		static int random() => Random.Shared.Next(65000);
 
 		var memberInfo = MemberInfo.ForVNode(
-				instanceId: instanceId,
-				timeStamp: DateTime.Now,
-				state: state,
-				isAlive: true,
-				internalTcpEndPoint: default,
-				internalSecureTcpEndPoint: new DnsEndPoint("myhost", random()),
-				externalTcpEndPoint: default,
-				externalSecureTcpEndPoint: new DnsEndPoint("myhost", random()),
-				httpEndPoint: new DnsEndPoint("myhost", random()),
-				advertiseHostToClientAs: "advertiseHostToClientAs",
-				advertiseHttpPortToClientAs: random(),
-				advertiseTcpPortToClientAs: random(),
-				lastCommitPosition: random(),
-				writerCheckpoint: random(),
-				chaserCheckpoint: random(),
-				epochPosition: random(),
-				epochNumber: random(),
-				epochId: Guid.NewGuid(),
-				nodePriority: random(),
-				isReadOnlyReplica: isReadOnly);
+			instanceId: instanceId,
+			timeStamp: DateTime.Now,
+			state: state,
+			isAlive: true,
+			internalTcpEndPoint: default,
+			internalSecureTcpEndPoint: new DnsEndPoint("myhost", random()),
+			externalTcpEndPoint: default,
+			externalSecureTcpEndPoint: new DnsEndPoint("myhost", random()),
+			httpEndPoint: new DnsEndPoint("myhost", random()),
+			advertiseHostToClientAs: "advertiseHostToClientAs",
+			advertiseHttpPortToClientAs: random(),
+			advertiseTcpPortToClientAs: random(),
+			lastCommitPosition: random(),
+			writerCheckpoint: random(),
+			chaserCheckpoint: random(),
+			epochPosition: random(),
+			epochNumber: random(),
+			epochId: Guid.NewGuid(),
+			nodePriority: random(),
+			isReadOnlyReplica: isReadOnly);
 
 		return memberInfo;
 	}
@@ -113,10 +119,7 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		var request = Assert.IsType<TelemetryMessage.Request>(await _channelReader.ReadAsync());
 		request.Envelope.ReplyWith(new TelemetryMessage.Response(
 			"foo",
-			new JsonObject
-			{
-				["bar"] = 42,
-			}));
+			new JsonObject { ["bar"] = 42, }));
 
 		// receive schedule of flush and trigger it
 		schedule = Assert.IsType<TimerMessage.Schedule>(await _channelReader.ReadAsync());
@@ -131,17 +134,23 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		Assert.NotNull(_sink.Data["foo"]);
 		Assert.Equal(new JsonObject { ["bar"] = 42 }.ToString(), _sink.Data["foo"].ToString());
 
-		Assert.NotNull(_sink.Data["plugins"]);
+		Assert.NotNull(_sink.Data["fakeComponent"]);
 		Assert.Equal("""
-			{
-			  "fakeComponent": {
-			    "foo": "bar"
-			  }
-			}
-			""",
-			_sink.Data["plugins"].ToString());
+		             {
+		               "baz": "qux"
+		             }
+		             """,
+			_sink.Data["fakeComponent"].ToString());
 
 		Assert.Equal(_sink.Data["environment"]!["os"]!.ToString(), RuntimeInformation.OSDescription);
+
+		Assert.NotNull(_sink.Data["telemetry"]);
+		Assert.Equal("""
+		             {
+		               "cloudIdentifier": "abc"
+		             }
+		             """,
+			_sink.Data["telemetry"].ToString());
 	}
 
 	[Fact]
@@ -173,10 +182,7 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		var request = Assert.IsType<TelemetryMessage.Request>(await _channelReader.ReadAsync());
 		request.Envelope.ReplyWith(new TelemetryMessage.Response(
 			"foo",
-			new JsonObject
-			{
-				["bar"] = 42,
-			}));
+			new JsonObject { ["bar"] = 42, }));
 
 		// receive schedule of flush and trigger it
 		schedule = Assert.IsType<TimerMessage.Schedule>(await _channelReader.ReadAsync());
@@ -190,30 +196,27 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		// check sink has received the data
 		Assert.NotNull(_sink.Data);
 		Assert.Equal(Guid.Parse(_sink.Data["cluster"]["leaderId"].ToString()), _electionsDoneMessage.Leader.InstanceId);
-		Assert.Equal(Int32.Parse(_sink.Data["database"]["epochNumber"].ToString()), _electionsDoneMessage.ProposalNumber);
+		Assert.Equal(Int32.Parse(_sink.Data["database"]["epochNumber"].ToString()),
+			_electionsDoneMessage.ProposalNumber);
 
 		Assert.Equal(Guid.Parse(_sink.Data["cluster"]["leaderId"].ToString()), _leaderFoundMessage.Leader.InstanceId);
-		Assert.Equal(Int32.Parse(_sink.Data["database"]["epochNumber"].ToString()), _leaderFoundMessage.Leader.EpochNumber);
+		Assert.Equal(Int32.Parse(_sink.Data["database"]["epochNumber"].ToString()),
+			_leaderFoundMessage.Leader.EpochNumber);
 
 		Assert.Equal(Guid.Parse(_sink.Data["cluster"]["leaderId"].ToString()), _replicaStateMessage.Leader.InstanceId);
-		Assert.Equal(Int32.Parse(_sink.Data["database"]["epochNumber"].ToString()), _replicaStateMessage.Leader.EpochNumber);
+		Assert.Equal(Int32.Parse(_sink.Data["database"]["epochNumber"].ToString()),
+			_replicaStateMessage.Leader.EpochNumber);
 
-		Assert.NotNull(_sink.Data["plugins"]);
+		Assert.NotNull(_sink.Data["fakeComponent"]);
 	}
 
-	class FakePlugableComponent(string name = "fakeComponent") : Plugin(name)
+	class FakePlugableComponent(string name = "FakeComponent") : Plugin(name)
 	{
 		public void PublishSomeTelemetry()
 		{
-			PublishDiagnosticsData(new()
-			{
-				["enabled"] = Enabled
-			}, Snapshot);
+			PublishDiagnosticsData(new() { ["enabled"] = Enabled }, Snapshot);
 
-			PublishDiagnosticsData(new()
-			{
-				["foo"] = "bar"
-			}, Snapshot);
+			PublishDiagnosticsData(new() { ["Baz"] = "qux" }, Snapshot);
 		}
 	}
 }
