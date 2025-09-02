@@ -70,6 +70,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker Compose Smoke Test
         env:
+          DOCKER_BUILDKIT: 1
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker compose build
