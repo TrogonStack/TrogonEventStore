@@ -30,3 +30,17 @@ jobs:
             --username "${{ github.actor }}" \
             --password "${{ secrets.GITHUB_TOKEN }}" \
             --store-password-in-clear-text
+
+      - name: Verify NuGet Source Configuration
+        run: |
+          echo "Listing configured NuGet sources:"
+          dotnet nuget list source
+          echo ""
+          echo "Verifying GitHub Packages authentication:"
+          dotnet nuget verify --source github || echo "Verification failed, but continuing..."
+
+      - name: Test Package Restore
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          echo "Testing package restore with authenticated source:"
+          dotnet restore --verbosity normal
