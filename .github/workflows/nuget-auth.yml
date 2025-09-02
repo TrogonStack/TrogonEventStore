@@ -3,7 +3,7 @@ name: NuGet Auth + Restore
 on:
   pull_request:
     branches:
-      - main
+      - master
   # workflow_call:
   #   inputs:
   #     working-directory:
