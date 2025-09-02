@@ -1,40 +1,48 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.Buffers;
 using EventStore.Plugins.Transforms;
 
-namespace EventStore.Core.Tests.Transforms.BitFlip;
+namespace EventStore.Core.Transforms.Identity;
 
-public class BitFlipChunkWriteTransform : IChunkWriteTransform
+public sealed class IdentityChunkWriteTransform : IChunkWriteTransform
 {
-	private BitFlipChunkWriteStream _transformedStream;
+	private ChunkDataWriteStream _stream;
 
-	public ChunkDataWriteStream TransformData(ChunkDataWriteStream dataStream)
+	public ChunkDataWriteStream TransformData(ChunkDataWriteStream stream)
 	{
-		_transformedStream = new BitFlipChunkWriteStream(dataStream);
-		return _transformedStream;
+		_stream = stream;
+		return _stream;
 	}
 
-	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token = default)
+	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token)
 	{
-		var chunkHeaderAndDataSize = (int)_transformedStream.ChunkFileStream.Position;
+		var chunkHeaderAndDataSize = (int)_stream.Position;
 		var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
 		var paddingSize = alignedSize - chunkHeaderAndDataSize - footerSize;
-
 		return paddingSize > 0
-			? _transformedStream.WriteAsync(new byte[paddingSize], token)
+			? WritePaddingAsync(_stream, paddingSize, token)
 			: ValueTask.CompletedTask;
+
+		static async ValueTask WritePaddingAsync(ChunkDataWriteStream stream, int paddingSize, CancellationToken token)
+		{
+			using var buffer = Memory.AllocateExactly<byte>(paddingSize);
+			buffer.Span.Clear(); // ensure that the padding is zeroed
+			await stream.WriteAsync(buffer.Memory, token);
+		}
 	}
 
 	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
 	{
-		await _transformedStream.ChunkFileStream.WriteAsync(footer, token);
-		return (int)_transformedStream.ChunkFileStream.Length;
+		await _stream.ChunkFileStream.WriteAsync(footer, token);
+		return (int)_stream.Length;
 	}
 
 	private static int GetAlignedSize(int size, int alignmentSize)
 	{
-		if (size % alignmentSize == 0) return size;
-		return (size / alignmentSize + 1) * alignmentSize;
+		var quotient = Math.DivRem(size, alignmentSize, out var remainder);
+
+		return remainder is 0 ? size : (quotient + 1) * alignmentSize;
 	}
 }
