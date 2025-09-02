@@ -25,7 +25,6 @@ jobs:
 
       - name: Authenticate NuGet GitHub Packages
         run: |
-          dotnet nuget remove source github
           dotnet nuget add source https://nuget.pkg.github.com/TrogonStack/index.json \
             --name github \
             --username "${{ github.actor }}" \
