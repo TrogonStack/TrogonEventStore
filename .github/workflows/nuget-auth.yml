@@ -1,11 +1,14 @@
 name: NuGet Auth + Restore
 
 on:
-  workflow_call:
-    inputs:
-      working-directory:
-        required: true
-        type: string
+  pull_request:
+    branches:
+      - main
+  # workflow_call:
+  #   inputs:
+  #     working-directory:
+  #       required: true
+  #       type: string
 
 permissions:
   contents: read
@@ -40,7 +43,6 @@ jobs:
           dotnet nuget verify --source github || echo "Verification failed, but continuing..."
 
       - name: Test Package Restore
-        working-directory: ${{ inputs.working-directory }}
         run: |
           echo "Testing package restore with authenticated source:"
-          dotnet restore --verbosity normal
+          dotnet restore src/EventStore.sln --verbosity normal
