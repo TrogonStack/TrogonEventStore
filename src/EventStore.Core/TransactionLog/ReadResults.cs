@@ -1,86 +1,53 @@
-using System;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.LogCommon;
 
-namespace EventStore.Core.TransactionLog {
-	public struct RecordReadResult {
-		public static readonly RecordReadResult Failure = new RecordReadResult(false, -1, null, 0);
+namespace EventStore.Core.TransactionLog;
 
-		public readonly bool Success;
-		public readonly long NextPosition;
-		public readonly ILogRecord LogRecord;
-		public readonly int RecordLength;
+public readonly struct RecordReadResult(bool success, long nextPosition, ILogRecord logRecord, int recordLength)
+{
+	public static readonly RecordReadResult Failure = new(false, -1, null, 0);
 
-		public RecordReadResult(bool success, long nextPosition, ILogRecord logRecord, int recordLength) {
-			Success = success;
-			LogRecord = logRecord;
-			NextPosition = nextPosition;
-			RecordLength = recordLength;
-		}
+	public readonly bool Success = success;
+	public readonly long NextPosition = nextPosition;
+	public readonly ILogRecord LogRecord = logRecord;
+	public readonly int RecordLength = recordLength;
 
-		public override string ToString() {
-			return string.Format("Success: {0}, NextPosition: {1}, RecordLength: {2}, LogRecord: {3}",
-				Success,
-				NextPosition,
-				RecordLength,
-				LogRecord);
-		}
-	}
+	public override string ToString() =>
+		$"Success: {Success}, NextPosition: {NextPosition}, RecordLength: {RecordLength}, LogRecord: {LogRecord}";
+}
 
-	public struct RawReadResult {
-		public static readonly RawReadResult Failure = new RawReadResult(false, -1, null, 0);
+public readonly struct RawReadResult(bool success, long nextPosition, byte[] record, int recordLength)
+{
+	public static readonly RawReadResult Failure = new RawReadResult(false, -1, null, 0);
 
-		public readonly bool Success;
-		public readonly long NextPosition;
-		public readonly byte[] RecordBuffer; // can be longer than the record
-		public readonly int RecordLength;
+	public readonly bool Success = success;
+	public readonly long NextPosition = nextPosition;
+	public readonly byte[] RecordBuffer = record; // can be longer than the record
+	public readonly int RecordLength = recordLength;
 
-		public LogRecordType RecordType => (LogRecordType)RecordBuffer[0];
+	public LogRecordType RecordType => (LogRecordType)RecordBuffer[0];
 
-		public RawReadResult(bool success, long nextPosition, byte[] record, int recordLength) {
-			Success = success;
-			RecordBuffer = record;
-			NextPosition = nextPosition;
-			RecordLength = recordLength;
-		}
+	public override string ToString() =>
+		$"Success: {Success}, NextPosition: {NextPosition}, Record Length: {RecordLength}";
+}
 
-		public override string ToString() {
-			return $"Success: {Success}, NextPosition: {NextPosition}, Record Length: {RecordLength}";
-		}
-	}
+public readonly struct SeqReadResult(
+	bool success,
+	bool eof,
+	ILogRecord logRecord,
+	int recordLength,
+	long recordPrePosition,
+	long recordPostPosition)
+{
+	public static readonly SeqReadResult Failure = new SeqReadResult(false, true, null, 0, -1, -1);
 
-	public struct SeqReadResult {
-		public static readonly SeqReadResult Failure = new SeqReadResult(false, true, null, 0, -1, -1);
+	public readonly bool Success = success;
+	public readonly bool Eof = eof;
+	public readonly ILogRecord LogRecord = logRecord;
+	public readonly int RecordLength = recordLength;
+	public readonly long RecordPrePosition = recordPrePosition;
+	public readonly long RecordPostPosition = recordPostPosition;
 
-		public readonly bool Success;
-		public readonly bool Eof;
-		public readonly ILogRecord LogRecord;
-		public readonly int RecordLength;
-		public readonly long RecordPrePosition;
-		public readonly long RecordPostPosition;
-
-		public SeqReadResult(bool success,
-			bool eof,
-			ILogRecord logRecord,
-			int recordLength,
-			long recordPrePosition,
-			long recordPostPosition) {
-			Success = success;
-			Eof = eof;
-			LogRecord = logRecord;
-			RecordLength = recordLength;
-			RecordPrePosition = recordPrePosition;
-			RecordPostPosition = recordPostPosition;
-		}
-
-		public override string ToString() {
-			return string.Format(
-				"Success: {0}, RecordLength: {1}, RecordPrePosition: {2}, RecordPostPosition: {3}, LogRecord: {4}",
-				Success,
-				RecordLength,
-				RecordPrePosition,
-				RecordPostPosition,
-				LogRecord);
-		}
-	}
+	public override string ToString() =>
+		$"Success: {Success}, RecordLength: {RecordLength}, RecordPrePosition: {RecordPrePosition}, RecordPostPosition: {RecordPostPosition}, LogRecord: {LogRecord}";
 }

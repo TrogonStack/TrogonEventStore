@@ -10,7 +10,16 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
+  nuget-source:
+    name: Auth with GitHub Packages
+    uses: ./.github/workflows/nuget-auth.yml
+    with:
+      working-directory: src
   build:
     strategy:
       fail-fast: false
@@ -33,6 +42,8 @@ jobs:
           dotnet-version: 8.0.x
       - name: Compile
         shell: bash
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet build --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} src/EventStore.sln
       - name: Verify Build

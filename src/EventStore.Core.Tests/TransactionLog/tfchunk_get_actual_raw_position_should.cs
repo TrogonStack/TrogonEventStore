@@ -55,8 +55,10 @@ public class
 
 			logicalPositions.Add(logicalPos);
 
-			var result = chunk.TryAppend(CreateRecord(chunk.ChunkHeader.GetGlobalLogPosition(logicalPos),
-				_random.Next(10, 100)));
+			var result =
+				await chunk.TryAppend(
+					CreateRecord(chunk.ChunkHeader.GetGlobalLogPosition(logicalPos), _random.Next(10, 100)),
+					CancellationToken.None);
 			Assert.True(result.Success);
 			actualPos = (int)result.NewPosition;
 		}

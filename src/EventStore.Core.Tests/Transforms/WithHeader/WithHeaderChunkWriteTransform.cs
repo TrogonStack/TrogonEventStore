@@ -1,7 +1,10 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.WithHeader;
+
 public class WithHeaderChunkWriteTransform(int transformHeaderSize) : IChunkWriteTransform
 {
 	private ChunkDataWriteStream _transformedStream;
@@ -12,7 +15,7 @@ public class WithHeaderChunkWriteTransform(int transformHeaderSize) : IChunkWrit
 		return _transformedStream;
 	}
 
-	public void CompleteData(int footerSize, int alignmentSize)
+	public async ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token)
 	{
 		var chunkHeaderAndDataSize = (int)_transformedStream.ChunkFileStream.Position;
 		var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
@@ -20,21 +23,20 @@ public class WithHeaderChunkWriteTransform(int transformHeaderSize) : IChunkWrit
 		if (paddingSize > 0)
 		{
 			var padding = new byte[paddingSize];
-			_transformedStream.ChunkFileStream.Write(padding);
-			_transformedStream.ChecksumAlgorithm.TransformBlock(padding, 0, padding.Length, null, 0);
+			await _transformedStream.ChunkFileStream.WriteAsync(padding, token);
+			_transformedStream.ChecksumAlgorithm.AppendData(padding);
 		}
 	}
 
-	public void WriteFooter(ReadOnlySpan<byte> footer, out int fileSize)
+	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
 	{
-		_transformedStream.ChunkFileStream.Write(footer);
-		fileSize = (int)_transformedStream.ChunkFileStream.Length;
+		await _transformedStream.ChunkFileStream.WriteAsync(footer, token);
+		return (int)_transformedStream.ChunkFileStream.Length;
 	}
 
 	private static int GetAlignedSize(int size, int alignmentSize)
 	{
-		if (size % alignmentSize == 0)
-			return size;
+		if (size % alignmentSize == 0) return size;
 		return (size / alignmentSize + 1) * alignmentSize;
 	}
 }
