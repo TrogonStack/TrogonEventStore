@@ -18,8 +18,7 @@ RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.
 RUN --mount=type=secret,id=nuget_auth_token \
     if [ -f /run/secrets/nuget_auth_token ]; then \
         NUGET_AUTH_TOKEN=$(cat /run/secrets/nuget_auth_token) && \
-        dotnet nuget add source https://nuget.pkg.github.com/TrogonStack/index.json \
-        --name github \
+        dotnet nuget update source github \
         --username docker \
         --password "$NUGET_AUTH_TOKEN" \
         --store-password-in-clear-text; \
