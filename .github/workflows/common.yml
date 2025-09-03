@@ -20,7 +20,7 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  packages: read
 
 jobs:
   vulnerability-scan:
@@ -33,17 +33,19 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Set up .NET NuGet authentication
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
+            --name "github" \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text
       - name: Scan for Vulnerabilities
         run: |
           cd src
           dotnet restore
           dotnet list package --vulnerable --include-transitive | tee vulnerabilities.txt
           ! cat vulnerabilities.txt | grep -q "has the following vulnerable packages"
-  nuget-source:
-    name: Auth with GitHub Packages
-    uses: ./.github/workflows/nuget-auth.yml
-    with:
-      working-directory: src
 
   protolock:
     runs-on: ubuntu-latest
@@ -58,7 +60,6 @@ jobs:
   docker-compose:
     runs-on: ubuntu-latest
     name: Docker Compose Smoke Test
-    needs: nuget-source
     steps:
       - name: Checkout
         uses: actions/checkout@v4
