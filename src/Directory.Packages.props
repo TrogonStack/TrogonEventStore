@@ -12,9 +12,9 @@
     <PackageVersion Include="DotNext.Unsafe" Version="5.22.0" />
     <PackageVersion Include="EventStore.Client" Version="21.2.0" />
     <PackageVersion Include="EventStore.Client.Grpc.Streams" Version="23.3.3" />
-    <PackageVersion Include="EventStore.Plugins" Version="24.10.3" />
     <!--Version 8 and beyond are free for open-source projects and non-commercial use, but commercial use requires a paid license-->
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
+    <PackageVersion Include="FluentStorage.AWS" Version="5.5.0" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -49,6 +49,7 @@
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Composite" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.18" />
     <PackageVersion Include="Microsoft.FASTER.Core" Version="1.9.16" />
+    <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.18" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Microsoft.OpenApi.Readers" Version="1.6.24" />
@@ -62,7 +63,7 @@
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.4.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.4.0" />
     <PackageVersion Include="Quickenshtein" Version="1.5.1" />
-    <PackageVersion Include="Scrutor" Version="4.2.2" />
+    <PackageVersion Include="Scrutor" Version="5.1.2" />
     <PackageVersion Include="Serilog" Version="4.3.0" />
     <PackageVersion Include="Serilog.Enrichers.Process" Version="3.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
@@ -83,11 +84,14 @@
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.3" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
+    <PackageVersion Include="System.Private.Uri" Version="4.3.2" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="8.0.2" />
     <PackageVersion Include="System.ServiceModel.Http" Version="6.2.0" />
     <PackageVersion Include="System.Text.Json" Version="8.0.6" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <PackageVersion Include="System.Threading.Channels" Version="9.0.8" />
+    <PackageVersion Include="TrogonEventStore.Plugins" Version="24.10.9" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.2">
       <PrivateAssets>all</PrivateAssets>

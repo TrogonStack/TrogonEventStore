@@ -1,5 +1,6 @@
 using System;
 using EventStore.Core.TransactionLog.Scavenging;
+using EventStore.Core.TransactionLog.Scavenging.InMemory;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;

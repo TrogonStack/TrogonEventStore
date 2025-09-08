@@ -174,24 +174,29 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-2 done None"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 0-0"),
 				Tracer.Line("    Opening Chunk 0-0"),
 				Tracer.Line("    Switched in chunk-000000.000001"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-2 done Chunk 0"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 1-1"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-2 done Chunk 1"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 2-2"),
 				Tracer.Line("    Opening Chunk 2-2"),
 				Tracer.Line("    Switched in chunk-000002.000001"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-2 done Chunk 2"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 3-3"),
 				Tracer.Line("    Opening Chunk 3-3"),
 				Tracer.Line("    Switched in chunk-000003.000001"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-2 done Chunk 3"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 4-4"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-2 done Chunk 4"),
 				Tracer.Line("    Commit"),
@@ -221,13 +226,10 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-2"),
 				Tracer.Line("Commit"))
-			.RunAsync(x => new[] {
-				x.Recs[0].KeepIndexes(0),
-				x.Recs[1].KeepIndexes(0),
-				x.Recs[2].KeepIndexes(),
-				x.Recs[3].KeepIndexes(1),
-				x.Recs[4].KeepIndexes(0, 1),
-				x.Recs[5].KeepIndexes(0),
+			.RunAsync(x => new[]
+			{
+				x.Recs[0].KeepIndexes(0), x.Recs[1].KeepIndexes(0), x.Recs[2].KeepIndexes(),
+				x.Recs[3].KeepIndexes(1), x.Recs[4].KeepIndexes(0, 1), x.Recs[5].KeepIndexes(0),
 			});
 	}
 
@@ -252,10 +254,7 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				.Chunk(ScavengePointRec(t++))) // SP-0
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
 			.WithSyncOnly(true)
-			.RunAsync(x => new[] {
-				x.Recs[0].KeepIndexes(0, 2),
-				x.Recs[1],
-			});
+			.RunAsync(x => new[] { x.Recs[0].KeepIndexes(0, 2), x.Recs[1], });
 	}
 
 	[Fact]
@@ -272,7 +271,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
 			.WithSyncOnly(true)
 			.AssertTrace()
-			.RunAsync(x => new[] {
+			.RunAsync(x => new[]
+			{
 				x.Recs[0], // not scavenged
 			});
 	}
@@ -299,9 +299,9 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 			})
 			.WithSyncOnly(true)
 			.AssertTrace()
-			.RunAsync(x => new[] {
-				x.Recs[0],
-				x.Recs[1], // not scavenged
+			.RunAsync(x => new[]
+			{
+				x.Recs[0], x.Recs[1], // not scavenged
 			});
 	}
 
@@ -337,13 +337,10 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 			.MutateState(x =>
 			{
 			})
-			.RunAsync(x => new[] {
-				x.Recs[0].KeepIndexes(0),
-				x.Recs[1].KeepIndexes(0),
-				x.Recs[2].KeepIndexes(),
-				x.Recs[3].KeepIndexes(1),
-				x.Recs[4].KeepIndexes(0, 1),
-				x.Recs[5].KeepIndexes(0),
+			.RunAsync(x => new[]
+			{
+				x.Recs[0].KeepIndexes(0), x.Recs[1].KeepIndexes(0), x.Recs[2].KeepIndexes(),
+				x.Recs[3].KeepIndexes(1), x.Recs[4].KeepIndexes(0, 1), x.Recs[5].KeepIndexes(0),
 			});
 	}
 
@@ -386,6 +383,7 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-1 done None"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 0-0"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-1 done Chunk 0"),
 				Tracer.Line("    Commit"),
@@ -415,10 +413,7 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-1"),
 				Tracer.Line("Commit"))
-			.RunAsync(x => new[] {
-				x.Recs[0],
-				x.Recs[1],
-			});
+			.RunAsync(x => new[] { x.Recs[0], x.Recs[1], });
 	}
 
 	[Fact]
@@ -462,12 +457,15 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-3 done None"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 0-0"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-3 done Chunk 0"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 1-1"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-3 done Chunk 1"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 2-2"),
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-3 done Chunk 2"),
 				Tracer.Line("    Commit"),
@@ -497,12 +495,7 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-3"),
 				Tracer.Line("Commit"))
-			.RunAsync(x => new[] {
-				x.Recs[0],
-				x.Recs[1],
-				x.Recs[2],
-				x.Recs[3],
-			});
+			.RunAsync(x => new[] { x.Recs[0], x.Recs[1], x.Recs[2], x.Recs[3], });
 	}
 
 	[Fact]
@@ -554,12 +547,7 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 				Assert.Equal(DiscardPoint.DiscardBefore(2), data.DiscardPoint);
 				Assert.Equal(DiscardPoint.DiscardBefore(2), data.MaybeDiscardPoint);
 			})
-			.RunAsync(x => new[] {
-				x.Recs[0].KeepIndexes(3),
-				x.Recs[1],
-				x.Recs[2],
-				x.Recs[3],
-			});
+			.RunAsync(x => new[] { x.Recs[0].KeepIndexes(3), x.Recs[1], x.Recs[2], x.Recs[3], });
 	}
 
 	[Fact]
@@ -576,9 +564,6 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 					Rec.Write(t++, "ab-1"),
 					Rec.Write(t++, "ab-1")))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.RunAsync(x => new[] {
-				x.Recs[0],
-				x.Recs[1],
-			});
+			.RunAsync(x => new[] { x.Recs[0], x.Recs[1], });
 	}
 }

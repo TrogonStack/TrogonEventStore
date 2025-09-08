@@ -39,6 +39,7 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.Scavenging;
 using EventStore.Core.TransactionLog.Scavenging.Sqlite;
+using EventStore.Core.TransactionLog.Scavenging.Stages;
 using EventStore.Core.Authentication;
 using EventStore.Core.Helpers;
 using EventStore.Core.Services.PersistentSubscription;
@@ -53,6 +54,7 @@ using EventStore.Core.Authorization;
 using EventStore.Core.Caching;
 using EventStore.Core.Certificates;
 using EventStore.Core.Cluster;
+using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.PeriodicLogs;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
@@ -75,7 +77,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ILogger = Serilog.ILogger;
 using LogLevel = EventStore.Common.Options.LogLevel;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
-using EventStore.Core.Services.Archiver;
+using EventStore.Core.Services.Archive.Storage;
 
 namespace EventStore.Core;
 
@@ -173,6 +175,7 @@ public class ClusterVNode<TStreamId> :
 	private readonly ISubscriber _mainBus;
 
 	private readonly ClusterVNodeController<TStreamId> _controller;
+	private IVersionedFileNamingStrategy _fileNamingStrategy;
 	private readonly TimerService _timerService;
 	private readonly KestrelHttpService _httpService;
 	private readonly ITimeProvider _timeProvider;
@@ -269,6 +272,8 @@ public class ClusterVNode<TStreamId> :
 		AddTask(_taskAddedTrigger.Task);
 #endif
 
+		var archiveOptions = configuration.GetSection("EventStore:Archive").Get<ArchiveOptions>() ?? new();
+
 		var disableInternalTcpTls = options.Application.Insecure;
 		var disableExternalTcpTls = options.Application.Insecure;
 		var nodeTcpOptions = configuration.GetSection("EventStore:TcpPlugin").Get<NodeTcpOptions>() ?? new();
@@ -320,8 +325,19 @@ public class ClusterVNode<TStreamId> :
 		var metricsConfiguration = MetricsConfiguration.Get((configuration));
 		MetricsBootstrapper.Bootstrap(metricsConfiguration, dbConfig, trackers);
 
-		Db = new TFChunkDb(dbConfig, tracker: trackers.TransactionFileTracker,
-			transformManager: new DbTransformManager());
+		Db = new TFChunkDb(
+			dbConfig,
+			tracker: trackers.TransactionFileTracker,
+			transformManager: new DbTransformManager(),
+			onChunkLoaded: chunkInfo => {
+				_mainQueue.Publish(new SystemMessage.ChunkLoaded(chunkInfo));
+			},
+			onChunkCompleted: chunkInfo => {
+				_mainQueue.Publish(new SystemMessage.ChunkCompleted(chunkInfo));
+			},
+			onChunkSwitched: chunkInfo => {
+				_mainQueue.Publish(new SystemMessage.ChunkSwitched(chunkInfo));
+			});
 
 		TFChunkDbConfig CreateDbConfig(
 			out SystemStatsHelper statsHelper,
@@ -442,8 +458,9 @@ public class ClusterVNode<TStreamId> :
 				ThreadCountCalculator.CalculateWorkerThreadCount(options.Application.WorkerThreads,
 					readerThreadsCount, isRunningInContainer);
 
+			_fileNamingStrategy = new VersionedPatternFileNamingStrategy(dbPath, "chunk-");
 			return new TFChunkDbConfig(dbPath,
-				new VersionedPatternFileNamingStrategy(dbPath, "chunk-"),
+				_fileNamingStrategy,
 				options.Database.ChunkSize,
 				cache,
 				writerChk,
@@ -971,7 +988,8 @@ public class ClusterVNode<TStreamId> :
 
 		var modifiedOptions = options
 			.WithPlugableComponent(_authorizationProvider)
-			.WithPlugableComponent(_authenticationProvider);
+			.WithPlugableComponent(_authenticationProvider)
+			.WithPlugableComponent(new ArchivePlugableComponent(options.Cluster.Archiver));
 
 		var authorizationGateway = new AuthorizationGateway(_authorizationProvider);
 		{
@@ -1064,7 +1082,7 @@ public class ClusterVNode<TStreamId> :
 
 		if (options.Cluster.Archiver)
 		{
-			modifiedOptions = modifiedOptions.WithPlugableComponent(new ArchiverService());
+			//modifiedOptions = modifiedOptions.WithPlugableComponent(new ArchivePlugableComponent());
 		}
 
 		var adminController = new AdminController(_mainQueue, _workersHandler);
@@ -1273,6 +1291,8 @@ public class ClusterVNode<TStreamId> :
 		scavengerFactory = new ScavengerFactory((message, scavengerLogger, logger) =>
 		{
 			// currently on the main queue
+			var optionsCalculator = new ScavengeOptionsCalculator(options, message);
+
 			var throttle = new Throttle(
 				logger: logger,
 				minimumRest: TimeSpan.FromMilliseconds(1000),
@@ -1348,9 +1368,21 @@ public class ClusterVNode<TStreamId> :
 				buffer: calculatorBuffer,
 				throttle: throttle);
 
+			var chunkDeleter = IChunkDeleter<TStreamId, ILogRecord>.NoOp;
+			if (archiveOptions.Enabled) {
+				// todo: consider if we can/should reuse the same reader elsewhere
+				var archiveReader = new ArchiveStorageFactory(archiveOptions, _fileNamingStrategy).CreateReader();
+				chunkDeleter = new ChunkDeleter<TStreamId, ILogRecord>(
+					logger: logger,
+					archiveCheckpoint: new AdvancingCheckpoint(archiveReader.GetCheckpoint),
+					retainPeriod: TimeSpan.FromDays(archiveOptions.RetainAtLeast.Days),
+					retainBytes: archiveOptions.RetainAtLeast.LogicalBytes);
+			}
+
 			var chunkExecutor = new ChunkExecutor<TStreamId, ILogRecord>(
 				logger,
 				logFormat.Metastreams,
+				chunkDeleter,
 				new ChunkManagerForExecutor<TStreamId>(logger, Db.Manager, Db.Config, Db.TransformManager),
 				chunkSize: Db.Config.ChunkSize,
 				unsafeIgnoreHardDeletes: options.Database.UnsafeIgnoreHardDelete,
@@ -1360,7 +1392,7 @@ public class ClusterVNode<TStreamId> :
 
 			var chunkMerger = new ChunkMerger(
 				logger: logger,
-				mergeChunks: !options.Database.DisableScavengeMerging,
+				mergeChunks: optionsCalculator.MergeChunks,
 				backend: new OldScavengeChunkMergerBackend(logger, db: Db),
 				throttle: throttle);
 
@@ -1402,7 +1434,7 @@ public class ClusterVNode<TStreamId> :
 				// threshold < 0: execute all chunks, even those with no weight
 				// threshold = 0: execute all chunks with weight greater than 0
 				// threshold > 0: execute all chunks above a certain weight
-				thresholdForNewScavenge: message.Threshold ?? 0,
+				thresholdForNewScavenge: optionsCalculator.ChunkExecutionThreshold,
 				syncOnly: message.SyncOnly,
 				getThrottleStats: () => throttle.PrettyPrint());
 		});
@@ -1608,11 +1640,13 @@ public class ClusterVNode<TStreamId> :
 				.AddSingleton(authorizationGateway)
 				.AddSingleton(certificateProvider)
 				.AddSingleton<IReadOnlyList<IDbTransform>>(new List<IDbTransform> { new IdentityDbTransform() })
+				.AddSingleton<IReadOnlyList<IClusterVNodeStartupTask>>(new List<IClusterVNodeStartupTask> { })
 				.AddSingleton<IReadOnlyList<IHttpAuthenticationProvider>>(httpAuthenticationProviders)
 				.AddSingleton<Func<(X509Certificate2 Node, X509Certificate2Collection Intermediates,
 						X509Certificate2Collection Roots)>>
 					(() => (_certificateSelector(), _intermediateCertsSelector(), _trustedRootCertsSelector()))
-				.AddSingleton(_nodeHttpClientFactory);
+				.AddSingleton(_nodeHttpClientFactory)
+				.AddSingleton(_fileNamingStrategy);
 
 			configureAdditionalNodeServices?.Invoke(services);
 			return services;
@@ -1626,8 +1660,10 @@ public class ClusterVNode<TStreamId> :
 			if (!Db.TransformManager.TrySetActiveTransform(options.Database.Transform))
 				throw new InvalidConfigurationException(
 					$"Unknown {nameof(options.Database.Transform)} specified: {options.Database.Transform}");
+		}
 
-			// TRUNCATE IF NECESSARY
+		void StartNode(IApplicationBuilder app) {
+		// TRUNCATE IF NECESSARY
 			var truncPos = Db.Config.TruncateCheckpoint.Read();
 			if (truncPos != -1)
 			{
@@ -1637,22 +1673,33 @@ public class ClusterVNode<TStreamId> :
 					epochCheckpoint, epochCheckpoint);
 				var truncator = new TFChunkDbTruncator(Db.Config,
 					type => Db.TransformManager.GetFactoryForExistingChunk(type));
-				truncator.TruncateDb(truncPos);
+				using (var task = truncator.TruncateDb(truncPos, CancellationToken.None).AsTask()) {
+					task.Wait(DefaultShutdownTimeout);
+				}
 
 				// The truncator has moved the checkpoints but it is possible that other components in the startup have
 				// already read the old values. If we ensure all checkpoint reads are performed after the truncation
 				// then we can remove this extra restart
 				Log.Information("Truncation successful. Shutting down.");
 				var shutdownGuid = Guid.NewGuid();
-				using var task = HandleAsync(
-					new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
-					CancellationToken.None).AsTask();
+				using (var task = HandleAsync(
+					       new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
+					       CancellationToken.None).AsTask())
+				{
+					task.Wait(DefaultShutdownTimeout);
+				}
 
-				task.Wait(DefaultShutdownTimeout);
 				Handle(new SystemMessage.BecomeShutdown(shutdownGuid));
 				Application.Exit(0, "Shutting down after successful truncation.");
 				return;
 			}
+
+			var startupTasks = (app.ApplicationServices.GetRequiredService<IReadOnlyList<IClusterVNodeStartupTask>>())
+				.Select(x => x.Run())
+				.ToArray();
+			Task.WaitAll(startupTasks);
+
+			AddTask(_controller.Start());
 
 			using (var task = Db.Open(!options.Database.SkipDbVerify, threads: options.Database.InitializationThreads,
 				       createNewChunks: false).AsTask())
@@ -1666,7 +1713,6 @@ public class ClusterVNode<TStreamId> :
 			AddTasks(storageWriter.Tasks);
 
 			AddTasks(_workersHandler.Start());
-			AddTask(_controller.Start());
 			AddTask(monitoringQueue.Start());
 			AddTask(subscrQueue.Start());
 			AddTask(perSubscrQueue.Start());
@@ -1687,7 +1733,8 @@ public class ClusterVNode<TStreamId> :
 			trackers,
 			options.Cluster.DiscoverViaDns ? options.Cluster.ClusterDns : null,
 			ConfigureNodeServices,
-			ConfigureNode);
+			ConfigureNode,
+			StartNode);
 
 		_mainBus.Subscribe<SystemMessage.SystemReady>(_startup);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(_startup);

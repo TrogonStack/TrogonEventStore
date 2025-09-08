@@ -270,16 +270,20 @@ public class RedactionService<TStreamId> :
 		ChunkFooter newChunkFooter;
 		try
 		{
-			using var fs = new FileStream(newChunkPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+			var fs = new FileStream(newChunkPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 128, FileOptions.Asynchronous);
 			try
 			{
-				newChunkHeader = ChunkHeader.FromStream(fs);
+				newChunkHeader = await ChunkHeader.FromStream(fs, token);
 				fs.Seek(-ChunkFooter.Size, SeekOrigin.End);
-				newChunkFooter = ChunkFooter.FromStream(fs);
+				newChunkFooter = await ChunkFooter.FromStream(fs, token);
 			}
 			catch
 			{
 				return new(SwitchChunkResult.NewChunkHeaderOrFooterInvalid);
+			}
+			finally
+			{
+				await fs.DisposeAsync();
 			}
 		}
 		catch

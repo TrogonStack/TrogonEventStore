@@ -10,7 +10,6 @@
 	<ItemGroup>
 		<PackageReference Include="EventStore.Client" />
 		<PackageReference Include="EventStore.Client.Grpc.Streams" />
-		<PackageReference Include="EventStore.Plugins" />
 		<PackageReference Include="Google.Protobuf" />
 		<PackageReference Include="Grpc.Net.Client" />
 		<PackageReference Include="Grpc.Tools">
@@ -18,6 +17,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="System.CommandLine.DragonFruit" />
+		<PackageReference Include="TrogonEventStore.Plugins" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\EventStore.BufferManagement\EventStore.BufferManagement.csproj" />

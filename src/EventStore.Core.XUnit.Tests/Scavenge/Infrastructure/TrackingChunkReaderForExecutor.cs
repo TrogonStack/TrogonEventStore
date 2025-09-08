@@ -4,35 +4,27 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TrackingChunkReaderForExecutor<TStreamId, TRecord> :
-	IChunkReaderForExecutor<TStreamId, TRecord>
+public class TrackingChunkReaderForExecutor<TStreamId, TRecord>(
+	IChunkReaderForExecutor<TStreamId, TRecord> wrapped,
+	bool isRemote,
+	Tracer tracer)
+	:
+		IChunkReaderForExecutor<TStreamId, TRecord>
 {
+	public string Name => wrapped.Name;
 
-	private readonly IChunkReaderForExecutor<TStreamId, TRecord> _wrapped;
-	private readonly Tracer _tracer;
+	public int FileSize => wrapped.FileSize;
 
-	public TrackingChunkReaderForExecutor(
-		IChunkReaderForExecutor<TStreamId, TRecord> wrapped,
-		Tracer tracer)
-	{
+	public int ChunkStartNumber => wrapped.ChunkStartNumber;
 
-		_wrapped = wrapped;
-		_tracer = tracer;
-	}
+	public int ChunkEndNumber => wrapped.ChunkEndNumber;
 
-	public string Name => _wrapped.Name;
+	public bool IsReadOnly => wrapped.IsReadOnly;
+	public bool IsRemote => isRemote;
 
-	public int FileSize => _wrapped.FileSize;
+	public long ChunkStartPosition => wrapped.ChunkStartPosition;
 
-	public int ChunkStartNumber => _wrapped.ChunkStartNumber;
-
-	public int ChunkEndNumber => _wrapped.ChunkEndNumber;
-
-	public bool IsReadOnly => _wrapped.IsReadOnly;
-
-	public long ChunkStartPosition => _wrapped.ChunkStartPosition;
-
-	public long ChunkEndPosition => _wrapped.ChunkEndPosition;
+	public long ChunkEndPosition => wrapped.ChunkEndPosition;
 
 	public IAsyncEnumerable<bool> ReadInto(
 		RecordForExecutor<TStreamId, TRecord>.NonPrepare nonPrepare,
@@ -40,7 +32,7 @@ public class TrackingChunkReaderForExecutor<TStreamId, TRecord> :
 		CancellationToken token)
 	{
 
-		_tracer.Trace($"Opening Chunk {ChunkStartNumber}-{ChunkEndNumber}");
-		return _wrapped.ReadInto(nonPrepare, prepare, token);
+		tracer.Trace($"Opening Chunk {ChunkStartNumber}-{ChunkEndNumber}");
+		return wrapped.ReadInto(nonPrepare, prepare, token);
 	}
 }

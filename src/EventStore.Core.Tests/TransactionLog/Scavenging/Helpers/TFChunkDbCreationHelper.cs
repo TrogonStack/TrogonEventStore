@@ -21,7 +21,8 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 	private readonly TFChunkDbConfig _dbConfig;
 	private readonly TFChunkDb _db;
 
-	private readonly List<Rec[]> _chunkRecs = new();
+	private readonly List<Rec[]> _chunkRecs = [];
+	private readonly HashSet<int> _remoteChunks = [];
 
 	private bool _completeLast;
 
@@ -53,6 +54,13 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 
 	public TFChunkDbCreationHelper<TLogFormat, TStreamId> Chunk(params Rec[] records)
 	{
+		_chunkRecs.Add(records);
+		return this;
+	}
+
+	public TFChunkDbCreationHelper<TLogFormat, TStreamId> RemoteChunk(params Rec[] records)
+	{
+		_remoteChunks.Add(_chunkRecs.Count);
 		_chunkRecs.Add(records);
 		return this;
 	}
@@ -141,7 +149,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					out var streamNumber, out var streamRecord);
 				if (streamRecord != null)
 				{
-					Write(i, chunk, streamRecord, false, out logPos);
+					logPos = await Write(i, chunk, streamRecord, false, token);
 					records[i].Add(streamRecord);
 				}
 
@@ -149,7 +157,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 					out var eventTypeNumber, out var eventTypeRecord);
 				if (eventTypeRecord != null)
 				{
-					Write(i, chunk, eventTypeRecord, false, out logPos);
+					logPos = await Write(i, chunk, eventTypeRecord, false, token);
 					records[i].Add(eventTypeRecord);
 				}
 
@@ -264,7 +272,7 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 						throw new ArgumentOutOfRangeException();
 				}
 
-				Write(i, chunk, record, rec.CommitWrite, out logPos);
+				logPos = await Write(i, chunk, record, rec.CommitWrite, token);
 				records[i].Add(record);
 				if (record is IPrepareLogRecord<TStreamId> prepare &&
 					StreamIdComparer.Equals(prepare.EventType, _scavengePointEventTypeId))
@@ -291,19 +299,22 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 			_db.Config.WriterCheckpoint.Write(logPos);
 
 		_db.Config.WriterCheckpoint.Flush();
-		return new DbResult(_db, records.Select(rs => rs.ToArray()).ToArray(), streams);
+		return new DbResult(_db, records.Select(rs => rs.ToArray()).ToArray(), _remoteChunks, streams);
 	}
 
-	void Write(int chunkNum, TFChunk chunk, ILogRecord record, bool commitWrite, out long newPos)
+	async ValueTask<long> Write(int chunkNum, TFChunk chunk, ILogRecord record, bool commitWrite,
+		CancellationToken token)
 	{
-		var writerRes = chunk.TryAppend(record);
+		var writerRes = await chunk.TryAppend(record, token);
 		if (!writerRes.Success)
 			throw new Exception(string.Format("Could not write log record: {0}", record));
 
-		newPos = chunkNum * (long)_db.Config.ChunkSize + writerRes.NewPosition;
+		var newPos = chunkNum * (long)_db.Config.ChunkSize + writerRes.NewPosition;
 
 		if (commitWrite)
 			_db.Config.WriterCheckpoint.Write(newPos);
+
+		return newPos;
 	}
 
 	private byte[] FormatData(Rec rec)
@@ -464,21 +475,32 @@ public class StreamInfo(long streamVersion)
 	public StreamMetadata StreamMetadata;
 }
 
-public class DbResult
+public sealed class DbResult : IAsyncDisposable
 {
 	public TFChunkDb Db { get; }
 	public ILogRecord[][] Recs { get; }
+	public HashSet<int> RemoteChunks { get; }
 	public Dictionary<string, StreamInfo> Streams { get; }
 
-	public DbResult(TFChunkDb db, ILogRecord[][] recs, Dictionary<string, StreamInfo> streams)
+	public DbResult(TFChunkDb db, ILogRecord[][] recs,
+		HashSet<int> remoteChunks,
+		Dictionary<string, StreamInfo> streams)
 	{
+
 		Ensure.NotNull(db, "db");
 		Ensure.NotNull(recs, "recs");
+		Ensure.NotNull(remoteChunks, nameof(remoteChunks));
 		Ensure.NotNull(streams, "streams");
 
 		Db = db;
 		Recs = recs;
+		RemoteChunks = remoteChunks;
 		Streams = streams;
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		await Db.DisposeAsync();
 	}
 }
 

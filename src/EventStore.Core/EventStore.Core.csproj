@@ -2,13 +2,12 @@
 	<PropertyGroup>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<NoWarn>CS1998</NoWarn> <!--Temporary solution to migrate TFChunk API to async-->
 	</PropertyGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="EventStore.Plugins" />
+		<PackageReference Include="FluentStorage.AWS" />
 		<PackageReference Include="Google.Protobuf" />
 		<PackageReference Include="Grpc.AspNetCore" />
 		<PackageReference Include="Grpc.Tools">
@@ -18,9 +17,11 @@
 		<PackageReference Include="JetBrains.Annotations" />
 		<PackageReference Include="librdkafka.redist" />
 		<PackageReference Include="Microsoft.FASTER.Core" />
+		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
 		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" VersionOverride="1.4.0-rc.1" />
 		<PackageReference Include="OpenTelemetry.Extensions.Hosting" VersionOverride="1.4.0-rc.1" />
 		<PackageReference Include="Quickenshtein" />
+		<PackageReference Include="Scrutor" />
 		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
 		<PackageReference Include="System.IO.Pipelines" />
@@ -34,6 +35,8 @@
 		<PackageReference Include="DotNext.Threading" />
 		<PackageReference Include="DotNext.Unsafe" />
 		<PackageReference Include="System.Text.RegularExpressions" />
+		<PackageReference Include="System.Threading.Channels" />
+		<PackageReference Include="TrogonEventStore.Plugins" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />

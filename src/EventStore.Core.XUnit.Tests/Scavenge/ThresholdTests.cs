@@ -64,18 +64,21 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests>
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done None"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 0-0"),
 				Tracer.Line("    Opening Chunk 0-0"),
 				Tracer.Line("    Switched in chunk-000000.000001"), // executed
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done Chunk 0"),
 				Tracer.Line("    Commit"),
 
+				Tracer.Line("    Retained Chunk 1-1"),
 				Tracer.Line("    Opening Chunk 1-1"),
 				Tracer.Line("    Switched in chunk-000001.000001"), // executed
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done Chunk 1"),
 				Tracer.Line("    Commit"),
 
+				Tracer.Line("    Retained Chunk 2-2"),
 				Tracer.Line("    Opening Chunk 2-2"),
 				Tracer.Line("    Switched in chunk-000002.000001"), // executed
 				Tracer.Line("    Begin"),
@@ -85,16 +88,13 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests>
 
 				Tracer.AnythingElse)
 			.RunAsync(
-				x => new[] {
+				x => new[]
+				{
 					x.Recs[0].KeepIndexes(), // executed
 					x.Recs[1].KeepIndexes(), // executed
 					x.Recs[2], // executed
 				},
-				x => new[] {
-					x.Recs[0].KeepIndexes(),
-					x.Recs[1].KeepIndexes(),
-					x.Recs[2],
-				});
+				x => new[] { x.Recs[0].KeepIndexes(), x.Recs[1].KeepIndexes(), x.Recs[2], });
 	}
 
 	[Fact]
@@ -152,18 +152,21 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests>
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done None"),
 				Tracer.Line("    Commit"),
+				Tracer.Line("    Retained Chunk 0-0"),
 				Tracer.Line("    Opening Chunk 0-0"),
 				Tracer.Line("    Switched in chunk-000000.000001"), // executed
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done Chunk 0"),
 				Tracer.Line("    Commit"),
 
+				Tracer.Line("    Retained Chunk 1-1"),
 				Tracer.Line("    Opening Chunk 1-1"),
 				Tracer.Line("    Switched in chunk-000001.000001"), // executed
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done Chunk 1"),
 				Tracer.Line("    Commit"),
 
+				Tracer.Line("    Retained Chunk 2-2"),
 				//               no opening or switch, not executed.
 				Tracer.Line("    Begin"),
 				Tracer.Line("        Checkpoint: Executing chunks for SP-0 done Chunk 2"),
@@ -172,16 +175,13 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests>
 
 				Tracer.AnythingElse)
 			.RunAsync(
-				x => new[] {
+				x => new[]
+				{
 					x.Recs[0].KeepIndexes(), // executed
 					x.Recs[1].KeepIndexes(), // executed
 					x.Recs[2], // not executed
 				},
-				x => new[] {
-					x.Recs[0].KeepIndexes(),
-					x.Recs[1].KeepIndexes(),
-					x.Recs[2],
-				});
+				x => new[] { x.Recs[0].KeepIndexes(), x.Recs[1].KeepIndexes(), x.Recs[2], });
 	}
 
 	[Fact]
@@ -207,15 +207,12 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests>
 				.CompleteLastChunk())
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
 			.RunAsync(
-				x => new[] {
+				x => new[]
+				{
 					x.Recs[0], // not executed so still has its records
 					x.Recs[1].KeepIndexes(), // executed
 					x.Recs[2], // not executed
 				},
-				x => new[] {
-					x.Recs[0].KeepIndexes(),
-					x.Recs[1].KeepIndexes(),
-					x.Recs[2],
-				});
+				x => new[] { x.Recs[0].KeepIndexes(), x.Recs[1].KeepIndexes(), x.Recs[2], });
 	}
 }
