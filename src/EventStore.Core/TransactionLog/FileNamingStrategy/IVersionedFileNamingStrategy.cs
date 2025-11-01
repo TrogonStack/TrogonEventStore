@@ -8,5 +8,6 @@ namespace EventStore.Core.TransactionLog.FileNamingStrategy {
 		string[] GetAllTempFiles();
 		int GetIndexFor(string fileName);
 		int GetVersionFor(string fileName);
+		string GetPrefixFor(int? index, int? version);
 	}
 }

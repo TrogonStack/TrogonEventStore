@@ -1,50 +1,59 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-namespace EventStore.Core.TransactionLog.Chunks {
-	public abstract class TFChunkBulkReader : IDisposable {
-		public TFChunk.TFChunk Chunk {
-			get { return _chunk; }
-		}
+namespace EventStore.Core.TransactionLog.Chunks;
 
-		internal Stream Stream {
-			get { return _stream; }
-		}
+public abstract class TFChunkBulkReader : IDisposable
+{
+	public TFChunk.TFChunk Chunk
+	{
+		get { return _chunk; }
+	}
 
-		private readonly TFChunk.TFChunk _chunk;
-		private readonly Stream _stream;
-		private bool _disposed;
-		public bool IsMemory { get; init; }
+	internal Stream Stream
+	{
+		get { return _stream; }
+	}
 
-		internal TFChunkBulkReader(TFChunk.TFChunk chunk, Stream streamToUse, bool isMemory) {
-			Ensure.NotNull(chunk, "chunk");
-			Ensure.NotNull(streamToUse, "stream");
-			_chunk = chunk;
-			_stream = streamToUse;
-			IsMemory = isMemory;
-		}
+	private readonly TFChunk.TFChunk _chunk;
+	private readonly Stream _stream;
+	private bool _disposed;
+	public bool IsMemory { get; }
 
-		public abstract void SetPosition(long position);
-		public abstract BulkReadResult ReadNextBytes(int count, byte[] buffer);
+	internal TFChunkBulkReader(TFChunk.TFChunk chunk, Stream streamToUse, bool isMemory)
+	{
+		Ensure.NotNull(chunk, "chunk");
+		Ensure.NotNull(streamToUse, "stream");
+		_chunk = chunk;
+		_stream = streamToUse;
+		IsMemory = isMemory;
+	}
 
-		~TFChunkBulkReader() {
-			Dispose();
-		}
+	public abstract void SetPosition(long position);
+	public abstract ValueTask<BulkReadResult> ReadNextBytes(Memory<byte> buffer, CancellationToken token);
 
-		public void Release() {
-			_stream.Close();
-			_stream.Dispose();
-			_disposed = true;
-			_chunk.ReleaseReader(this);
-		}
+	~TFChunkBulkReader()
+	{
+		Dispose();
+	}
 
-		public void Dispose() {
-			if (_disposed)
-				return;
-			Release();
-			GC.SuppressFinalize(this);
-		}
+	public void Release()
+	{
+		_stream.Close();
+		_stream.Dispose();
+		_disposed = true;
+		_chunk.ReleaseReader(this);
+	}
+
+	public void Dispose()
+	{
+		if (_disposed)
+			return;
+		Release();
+		GC.SuppressFinalize(this);
 	}
 }

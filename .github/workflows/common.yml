@@ -18,6 +18,10 @@ on:
       - "samples/**"
       - "**.md"
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   vulnerability-scan:
     runs-on: ubuntu-latest
@@ -29,12 +33,20 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Set up .NET NuGet authentication
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
+            --name "github" \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text
       - name: Scan for Vulnerabilities
         run: |
           cd src
           dotnet restore
           dotnet list package --vulnerable --include-transitive | tee vulnerabilities.txt
           ! cat vulnerabilities.txt | grep -q "has the following vulnerable packages"
+
   protolock:
     runs-on: ubuntu-latest
     name: Protolock Status
@@ -48,9 +60,6 @@ jobs:
   docker-compose:
     runs-on: ubuntu-latest
     name: Docker Compose Smoke Test
-    permissions:
-      contents: read
-      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,6 +70,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker Compose Smoke Test
+        env:
+          DOCKER_BUILDKIT: 1
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker compose build
           docker compose up --detach

@@ -1,31 +1,48 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using DotNext.Buffers;
 using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Transforms.Identity;
 
-public sealed class IdentityChunkWriteTransform : IChunkWriteTransform {
+public sealed class IdentityChunkWriteTransform : IChunkWriteTransform
+{
 	private ChunkDataWriteStream _stream;
 
-	public ChunkDataWriteStream TransformData(ChunkDataWriteStream stream) {
+	public ChunkDataWriteStream TransformData(ChunkDataWriteStream stream)
+	{
 		_stream = stream;
 		return _stream;
 	}
 
-	public void CompleteData(int footerSize, int alignmentSize) {
+	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token)
+	{
 		var chunkHeaderAndDataSize = (int)_stream.Position;
 		var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
 		var paddingSize = alignedSize - chunkHeaderAndDataSize - footerSize;
-		if (paddingSize > 0)
-			_stream.Write(new byte[paddingSize]);
+		return paddingSize > 0
+			? WritePaddingAsync(_stream, paddingSize, token)
+			: ValueTask.CompletedTask;
+
+		static async ValueTask WritePaddingAsync(ChunkDataWriteStream stream, int paddingSize, CancellationToken token)
+		{
+			using var buffer = Memory.AllocateExactly<byte>(paddingSize);
+			buffer.Span.Clear(); // ensure that the padding is zeroed
+			await stream.WriteAsync(buffer.Memory, token);
+		}
 	}
 
-	public void WriteFooter(ReadOnlySpan<byte> footer, out int fileSize) {
-		_stream.ChunkFileStream.Write(footer);
-		fileSize = (int)_stream.Length;
+	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
+	{
+		await _stream.ChunkFileStream.WriteAsync(footer, token);
+		return (int)_stream.Length;
 	}
 
-	private static int GetAlignedSize(int size, int alignmentSize) {
-		if (size % alignmentSize == 0) return size;
-		return (size / alignmentSize + 1) * alignmentSize;
+	private static int GetAlignedSize(int size, int alignmentSize)
+	{
+		var quotient = Math.DivRem(size, alignmentSize, out var remainder);
+
+		return remainder is 0 ? size : (quotient + 1) * alignmentSize;
 	}
 }

@@ -323,11 +323,12 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 	// in the chunk executor each worker gets its own state so that it has its own dbconnection and
 	// prepared commands.
-	public struct ScavengeStateForChunkWorker<TStreamId> : 
+	public readonly struct ScavengeStateForChunkWorker<TStreamId> :
 		IScavengeStateForChunkExecutorWorker<TStreamId>{
 
 		private readonly MetastreamCollisionMap<TStreamId> _metastreamDatas;
 		private readonly OriginalStreamCollisionMap<TStreamId> _originalStreamDatas;
+		private readonly IScavengeMap<int, ChunkTimeStampRange> _chunkTimeStampRanges;
 		private readonly IChunkWeightScavengeMap _chunkWeights;
 		private readonly Action _onDispose;
 
@@ -349,6 +350,7 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				backend.OriginalStorage,
 				backend.OriginalCollisionStorage);
 
+			_chunkTimeStampRanges = backend.ChunkTimeStampRanges;
 			_chunkWeights = backend.ChunkWeights;
 
 			_onDispose = onDispose;
@@ -366,6 +368,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		public bool TryGetMetastreamData(TStreamId streamId, out MetastreamData data) =>
 			_metastreamDatas.TryGetValue(streamId, out data);
+
+		public bool TryGetChunkTimeStampRange(int logicalChunkNumber, out ChunkTimeStampRange range) =>
+			_chunkTimeStampRanges.TryGetValue(logicalChunkNumber, out range);
 
 		public void Dispose() {
 			_onDispose();
