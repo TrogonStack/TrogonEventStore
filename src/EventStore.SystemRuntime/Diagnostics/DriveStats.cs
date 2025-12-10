@@ -1,14 +1,38 @@
 // ReSharper disable CheckNamespace
 
+using Serilog;
+
 namespace System.Diagnostics;
 
-public static class DriveStats
+public class DriveStats
 {
+	public static readonly ILogger Log = Serilog.Log.ForContext<DriveStats>();
+
 	public static DriveData GetDriveInfo(string path)
 	{
-		var info = new DriveInfo(Directory.GetDirectoryRoot(path));
-		var data = new DriveData(info.Name, info.TotalSize, info.AvailableFreeSpace);
-		return data;
+		try
+		{
+			var info = new DriveInfo(Path.GetFullPath(path));
+			var target = info.Name;
+			var diskName = "";
+
+			foreach (var candidate in DriveInfo.GetDrives())
+			{
+				if (target.StartsWith(candidate.Name, StringComparison.InvariantCultureIgnoreCase) &&
+				    candidate.Name.StartsWith(diskName, StringComparison.InvariantCultureIgnoreCase))
+				{
+					diskName = candidate.Name;
+				}
+			}
+
+			return new DriveData(diskName, info.TotalSize, info.AvailableFreeSpace);
+
+		}
+		catch (Exception ex)
+		{
+			Log.Warning(ex, "Failed to retrieve drive stats for {Path}", path);
+			return new DriveData("Unknown", 0, 0);
+		}
 	}
 }
 
