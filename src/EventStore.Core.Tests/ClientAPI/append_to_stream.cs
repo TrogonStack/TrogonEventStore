@@ -398,10 +398,27 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 		{
 			await store.ConnectAsync();
 
-			var largeData = new string(' ', 20000);
-			var events = Enumerable.Range(0, 100).Select(i => TestEvent.NewTestEvent(largeData, i.ToString()));
-			Assert.ThrowsAsync<InvalidTransactionException>(async () =>
-				await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, events));
+			// Create events with large payloads (20KB each) to exceed chunk size when combined
+			const int eventPayloadSize = 20_000; // 20KB per event
+			const int eventCount = 100; // Total: ~2MB, exceeding default 256MB chunk only if chunk is very small
+			var largeEventData = new string('X', eventPayloadSize);
+			var events = Enumerable.Range(0, eventCount).Select(i => TestEvent.NewTestEvent(largeEventData, $"event-{i}"));
+
+			// First, write a small batch successfully (4 events)
+			const int initialBatchSize = 4;
+			var firstWriteResult = await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, events.Take(initialBatchSize));
+			Assert.AreEqual(initialBatchSize - 1, firstWriteResult.NextExpectedVersion, "First write should succeed");
+
+			// Attempt to write a transaction that's too large - should fail
+			await AssertEx.ThrowsAsync<InvalidTransactionException>(async () =>
+				await store.AppendToStreamAsync(stream, firstWriteResult.NextExpectedVersion, events));
+
+			// Verify that subsequent writes still work correctly with the expected version
+			// This tests that the missing return statement bug is fixed - without the fix,
+			// the expected version would be corrupted and this write would fail
+			var subsequentWriteResult = await store.AppendToStreamAsync(stream, firstWriteResult.NextExpectedVersion, events.Take(initialBatchSize));
+			Assert.AreEqual(firstWriteResult.NextExpectedVersion + initialBatchSize, subsequentWriteResult.NextExpectedVersion,
+				"Subsequent write should succeed with correct expected version after failed large transaction");
 		}
 	}
 
@@ -704,10 +721,27 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 		{
 			await store.ConnectAsync();
 
-			var largeData = new string(' ', 20000);
-			var events = Enumerable.Range(0, 100).Select(i => TestEvent.NewTestEvent(largeData, i.ToString()));
-			Assert.ThrowsAsync<InvalidTransactionException>(async () =>
-				await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, events));
+			// Create events with large payloads (20KB each) to exceed chunk size when combined
+			const int eventPayloadSize = 20_000; // 20KB per event
+			const int eventCount = 100; // Total: ~2MB, exceeding default 256MB chunk only if chunk is very small
+			var largeEventData = new string('X', eventPayloadSize);
+			var events = Enumerable.Range(0, eventCount).Select(i => TestEvent.NewTestEvent(largeEventData, $"event-{i}"));
+
+			// First, write a small batch successfully (4 events)
+			const int initialBatchSize = 4;
+			var firstWriteResult = await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, events.Take(initialBatchSize));
+			Assert.AreEqual(initialBatchSize - 1, firstWriteResult.NextExpectedVersion, "First write should succeed");
+
+			// Attempt to write a transaction that's too large - should fail
+			await AssertEx.ThrowsAsync<InvalidTransactionException>(async () =>
+				await store.AppendToStreamAsync(stream, firstWriteResult.NextExpectedVersion, events));
+
+			// Verify that subsequent writes still work correctly with the expected version
+			// This tests that the missing return statement bug is fixed - without the fix,
+			// the expected version would be corrupted and this write would fail
+			var subsequentWriteResult = await store.AppendToStreamAsync(stream, firstWriteResult.NextExpectedVersion, events.Take(initialBatchSize));
+			Assert.AreEqual(firstWriteResult.NextExpectedVersion + initialBatchSize, subsequentWriteResult.NextExpectedVersion,
+				"Subsequent write should succeed with correct expected version after failed large transaction");
 		}
 	}
 
