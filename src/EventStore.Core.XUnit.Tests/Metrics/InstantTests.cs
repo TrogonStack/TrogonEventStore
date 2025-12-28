@@ -14,6 +14,25 @@ public class InstantTests
 		Assert.Equal(2, y.ElapsedSecondsSince(x));
 	}
 
+	[Theory]
+	[InlineData(10, 10, 0)]
+	[InlineData(5, 8, 3_000_000)]
+	[InlineData(100, 2_000_000_000, 1_999_999_900_000_000)]
+	public void can_measure_elapsed_time(int startSecs, int endSecs, long elapsedMicroseconds)
+	{
+		var x = Instant.FromSeconds(startSecs);
+		var y = Instant.FromSeconds(endSecs);
+		Assert.Equal(elapsedMicroseconds, y.ElapsedTimeSince(x).TotalMicroseconds);
+	}
+
+	[Fact]
+	public void rounds_up_elapsed_time()
+	{
+		var x = Instant.Now;
+		var y = new Instant(x.Ticks + 1);
+		Assert.True(y.ElapsedTimeSince(x).Ticks > 0);
+	}
+
 	[Fact]
 	public void add()
 	{

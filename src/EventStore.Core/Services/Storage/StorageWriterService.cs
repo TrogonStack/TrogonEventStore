@@ -383,6 +383,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 			if (!await TryWritePreparesWithRetry(prepares, token))
 			{
+				// Transaction is too large to fit in a chunk - send error response to client
 				await ActOnCommitCheckFailure(
 					envelope: msg.Envelope,
 					correlationId: msg.CorrelationId,
@@ -394,6 +395,10 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 						endEventNumber: -1,
 						isSoftDeleted: false),
 					token);
+				// CRITICAL: Return immediately to prevent processing a failed transaction.
+				// Without this return, the code would continue to execute PreCommit, soft undelete logic,
+				// and other write operations, corrupting the expected version state for subsequent writes.
+				return;
 			}
 
 			bool softUndeleteMetastream = _systemStreams.IsMetaStream(streamId)

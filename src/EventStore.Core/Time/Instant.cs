@@ -8,17 +8,19 @@ namespace EventStore.Core.Time;
 public struct Instant : IEquatable<Instant> {
 	public static readonly long TicksPerSecond;
 	private static readonly double SecondsPerTick;
-	private static readonly long TicksPerTimeSpanTick;
+	// Conversion factor from Stopwatch ticks to TimeSpan ticks.
+	// Changed from 'long' to 'double' to handle cases where Stopwatch.Frequency is not
+	// divisible by TimeSpan.TicksPerSecond (e.g., Windows high-resolution timers).
+	// This prevents startup exceptions on systems where the frequencies don't align exactly.
+	private static readonly double TicksPerTimeSpanTick;
 
 	static Instant() {
 		TicksPerSecond = Stopwatch.Frequency;
 		SecondsPerTick =  1 / (double)TicksPerSecond;
-
-		if (TicksPerSecond % TimeSpan.TicksPerSecond != 0)
-			throw new Exception($"Expected {nameof(TicksPerSecond)} ({TicksPerSecond}) to be an exact multiple" +
-			                    $" of {nameof(TimeSpan)}.{nameof(TimeSpan.TicksPerSecond)} ({TimeSpan.TicksPerSecond})");
-
-		TicksPerTimeSpanTick = TicksPerSecond / TimeSpan.TicksPerSecond;
+		// Use floating-point division to handle non-divisible frequencies gracefully.
+		// Previously threw an exception if TicksPerSecond % TimeSpan.TicksPerSecond != 0,
+		// which could occur on Windows systems with high-resolution timers.
+		TicksPerTimeSpanTick = (double)TicksPerSecond / TimeSpan.TicksPerSecond;
 	}
 
 	public static Instant Now => new(Stopwatch.GetTimestamp());
@@ -36,7 +38,7 @@ public struct Instant : IEquatable<Instant> {
 	private readonly long _ticks;
 
 	// Stopwatch Ticks, not DateTime Ticks - these can be different.
-	private Instant(long stopwatchTicks) {
+	public Instant(long stopwatchTicks) {
 		_ticks = stopwatchTicks;
 	}
 
@@ -63,9 +65,11 @@ public struct Instant : IEquatable<Instant> {
 
 	public TimeSpan ElapsedTimeSince(Instant since) {
 		var elapsedTicks = ElapsedTicksSince(since);
-		// since we're decreasing the resolution when converting to TimeSpan, we round up to make sure that something
+		// Since we're decreasing the resolution when converting to TimeSpan, we round up to make sure that something
 		// using the TimeSpan doesn't wait for less time than it should.
-		elapsedTicks = (elapsedTicks + TicksPerTimeSpanTick - 1) / TicksPerTimeSpanTick;
-		return new TimeSpan(elapsedTicks);
+		// Changed from integer division trick ((elapsedTicks + TicksPerTimeSpanTick - 1) / TicksPerTimeSpanTick)
+		// to Math.Ceiling to properly handle the double conversion factor.
+		var timeSpanTicks = (long)Math.Ceiling(elapsedTicks / TicksPerTimeSpanTick);
+		return new TimeSpan(timeSpanTicks);
 	}
 }
