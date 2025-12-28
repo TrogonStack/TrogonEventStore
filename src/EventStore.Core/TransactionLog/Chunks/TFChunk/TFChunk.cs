@@ -293,6 +293,11 @@ public partial class TFChunk : IDisposable
 		var transformHeader = transformFactory.TransformHeaderLength > 0
 			? new byte[transformFactory.TransformHeaderLength]
 			: [];
+
+		// Initialize transform header to prevent corruption when using transforms with custom headers.
+		// Without this, the header would be uninitialized (all zeros), causing transform failures.
+		transformFactory.CreateTransformHeader(transformHeader);
+
 		return await CreateWithHeader(filename, chunkHeader, fileSize, inMem, unbuffered, writethrough,
 			reduceFileCachePressure, tracker, transformFactory, transformHeader, token);
 	}
