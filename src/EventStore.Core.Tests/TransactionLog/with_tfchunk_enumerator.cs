@@ -38,8 +38,10 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		var chunkEnumerator = new TFChunkEnumerator(strategy);
 		var result = new List<string>();
-		ValueTask<int> GetNextFileNumber(string chunk, int chunkNumber, int chunkVersion, CancellationToken token) {
-			return Path.GetFileName(chunk) switch {
+		ValueTask<int> GetNextFileNumber(string chunk, int chunkNumber, int chunkVersion, CancellationToken token)
+		{
+			return Path.GetFileName(chunk) switch
+			{
 				"chunk-000001.000000" => new(2),
 				"chunk-000002.000001" => new(3),
 				"chunk-000005.000000" => new(6),

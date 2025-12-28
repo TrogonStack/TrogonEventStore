@@ -1,6 +1,7 @@
 using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.ByteDup;
+
 public class ByteDupDbTransform : IDbTransform
 {
 	public string Name => "bytedup";
