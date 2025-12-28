@@ -69,7 +69,10 @@ internal sealed class WriterWorkItem : Disposable
 	public void ResizeStream(int fileSize)
 	{
 		_fileStream?.SetLength(fileSize);
-		_memStream?.SetLength(fileSize);
+		// REMOVED: Memory stream should not be resized here.
+		// The memory stream is managed separately and resizing it here was causing issues
+		// with chunk transformations. Only the file stream needs to be resized at this point.
+		// _memStream?.SetLength(fileSize);
 	}
 
 	protected override void Dispose(bool disposing)
