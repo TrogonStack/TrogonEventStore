@@ -203,7 +203,7 @@ public partial class TFChunk
 
 		private async ValueTask<Midpoint[]> GetOrCreateMidPoints(ReaderWorkItem workItem, CancellationToken token)
 		{
-			// don't use mipoints when reading from memory
+			// don't use midpoints when reading from memory
 			if (workItem.IsMemory)
 				return null;
 
@@ -221,8 +221,14 @@ public partial class TFChunk
 			await _lock.AcquireAsync(token);
 			try
 			{
-				// guaranteed up to date. we don't want to assign to _midpoints if we aren't supposed to
-				// because the midpoints will take up memory unnecessarily.
+				// Double-checked locking pattern: After acquiring the lock, check again if midpoints
+				// were created by another thread while we were waiting. This prevents unnecessary
+				// recreation of midpoints when multiple threads race to create them.
+				// Without this check, Thread A could create midpoints, release the lock, and Thread B
+				// (which was waiting) would then recreate them unnecessarily, wasting CPU and memory.
+				if (_midpoints is { } midpointsDouble)
+					return midpointsDouble;
+
 				if (!_wantMidpoints)
 					return null;
 
