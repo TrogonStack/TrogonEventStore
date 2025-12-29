@@ -57,6 +57,11 @@ public partial class EnumeratorTests
 
 		private const int NumEventsToFallBehind = 3 * 32;
 
+		// Delay to wait for max age expiration in tests. Set to 2500ms (2.5 seconds) to account for
+		// timing variations, especially on Windows where expiration checks may not be perfectly synchronized.
+		// This reduces test flakiness by ensuring events are fully expired before verification.
+		private const int ExpirationDelayMs = 2500;
+
 		public static object[] TestCases = {
 			// NON-EXISTENT STREAM
 			CreateTestData(
@@ -687,8 +692,15 @@ public partial class EnumeratorTests
 		private Task MaxCount(long maxCount) => WriteMetadata(@$"{{""$maxCount"":{maxCount}}}");
 		private async Task ExpiredMaxAge()
 		{
+			// Set max age to 1 second - events older than this will be expired/truncated.
+			// Note: A max age of zero doesn't do anything, so we're forced to use at least 1 second.
 			await WriteMetadata(@"{""$maxAge"": 1 }"); // seconds
-			await Task.Delay(TimeSpan.FromMilliseconds(2000));
+
+			// Wait for events to expire. Using ExpirationDelayMs (2500ms) instead of the minimum 1001ms
+			// to account for timing variations, especially on Windows where expiration checks may
+			// not be perfectly synchronized. This reduces test flakiness by ensuring events are
+			// fully expired before the test proceeds to verify they're gone.
+			await Task.Delay(TimeSpan.FromMilliseconds(ExpirationDelayMs));
 		}
 
 		private Task ApplyTruncation()
@@ -890,6 +902,8 @@ public partial class EnumeratorTests
 				return;
 			}
 
+			// Verify subscription confirmation message. Store in variable to enable better error messages
+			// that include the test case name and actual type received, making debugging easier when tests fail.
 			var current = await sub.GetNext();
 			Assert.True(
 				current is SubscriptionConfirmation,
@@ -899,6 +913,8 @@ public partial class EnumeratorTests
 
 			_nextEventNumber = await ReadExpectedEvents(sub, _nextEventNumber, LastEventNumber);
 
+			// Verify caught-up message with descriptive error message for easier debugging.
+			// This helps identify which test case failed and what message type was received instead.
 			current = await sub.GetNext();
 			Assert.True(
 				current is CaughtUp,

@@ -20,13 +20,16 @@ public static class LogRecordExtensions
 	public static void WriteWithLengthPrefixAndSuffixTo(this ILogRecord record, BinaryWriter writer)
 	{
 		var localWriter = new BufferWriterSlim<byte>();
-		try {
+		try
+		{
 			record.WriteTo(ref localWriter);
 
 			writer.Write(localWriter.WrittenCount);
 			writer.Write(localWriter.WrittenSpan);
 			writer.Write(localWriter.WrittenCount);
-		} finally {
+		}
+		finally
+		{
 			localWriter.Dispose();
 		}
 	}
