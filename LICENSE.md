@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 
-Copyright (c) 2011-2024, Event Store Ltd. All rights reserved.
+Copyright (c) 2011-2026, Event Store Ltd. All rights reserved.
 Copyright (c) 2025, Straw Hat, LLC. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
