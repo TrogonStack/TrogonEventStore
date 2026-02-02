@@ -91,62 +91,54 @@ public class TFChunkDb : IAsyncDisposable
 		var lastChunkVersions = Config.FileNamingStrategy.GetAllVersionsFor(lastChunkNum);
 		var chunkEnumerator = new TFChunkEnumerator(Config.FileNamingStrategy);
 
-		try
-		{
-			await Parallel.ForEachAsync(
-				GetAllLatestChunksExceptLast(chunkEnumerator, lastChunkNum,
-					token), // the last chunk is dealt with separately
-				new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = token },
-				async (chunkInfo, token) =>
+		await Parallel.ForEachAsync(
+			GetAllLatestChunksExceptLast(chunkEnumerator, lastChunkNum,
+				token), // the last chunk is dealt with separately
+			new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = token },
+			async (chunkInfo, token) =>
+			{
+				TFChunk.TFChunk chunk;
+				if (lastChunkVersions.Length == 0 &&
+				    (chunkInfo.ChunkStartNumber + 1) * (long)Config.ChunkSize == checkpoint)
 				{
-					TFChunk.TFChunk chunk;
-					if (lastChunkVersions.Length == 0 &&
-					    (chunkInfo.ChunkStartNumber + 1) * (long)Config.ChunkSize == checkpoint)
-					{
-						// The situation where the logical data size is exactly divisible by ChunkSize,
-						// so it might happen that we have checkpoint indicating one more chunk should exist,
-						// but the actual last chunk is (lastChunkNum-1) one and it could be not completed yet -- perfectly valid situation.
-						var footer = await ReadChunkFooter(chunkInfo.ChunkFileName, token);
-						if (footer.IsCompleted)
-							chunk = await TFChunk.TFChunk.FromCompletedFile(chunkInfo.ChunkFileName, verifyHash: false,
-								unbufferedRead: Config.Unbuffered,
-								tracker: _tracker,
-								reduceFileCachePressure: Config.ReduceFileCachePressure,
-								getTransformFactory: TransformManager.GetFactoryForExistingChunk,
-								token: token);
-						else
-						{
-							chunk = await TFChunk.TFChunk.FromOngoingFile(chunkInfo.ChunkFileName, Config.ChunkSize,
-								unbuffered: Config.Unbuffered,
-								writethrough: Config.WriteThrough,
-								reduceFileCachePressure: Config.ReduceFileCachePressure,
-								tracker: _tracker,
-								getTransformFactory: TransformManager.GetFactoryForExistingChunk,
-								token);
-							// chunk is full with data, we should complete it right here
-							if (!readOnly)
-								await chunk.Complete(token);
-						}
-					}
-					else
-					{
+					// The situation where the logical data size is exactly divisible by ChunkSize,
+					// so it might happen that we have checkpoint indicating one more chunk should exist,
+					// but the actual last chunk is (lastChunkNum-1) one and it could be not completed yet -- perfectly valid situation.
+					var footer = await ReadChunkFooter(chunkInfo.ChunkFileName, token);
+					if (footer.IsCompleted)
 						chunk = await TFChunk.TFChunk.FromCompletedFile(chunkInfo.ChunkFileName, verifyHash: false,
 							unbufferedRead: Config.Unbuffered,
+							tracker: _tracker,
+							reduceFileCachePressure: Config.ReduceFileCachePressure,
+							getTransformFactory: TransformManager.GetFactoryForExistingChunk,
+							token: token);
+					else
+					{
+						chunk = await TFChunk.TFChunk.FromOngoingFile(chunkInfo.ChunkFileName, Config.ChunkSize,
+							unbuffered: Config.Unbuffered,
+							writethrough: Config.WriteThrough,
 							reduceFileCachePressure: Config.ReduceFileCachePressure,
 							tracker: _tracker,
 							getTransformFactory: TransformManager.GetFactoryForExistingChunk,
-							token: token);
+							token);
+						// chunk is full with data, we should complete it right here
+						if (!readOnly)
+							await chunk.Complete(token);
 					}
+				}
+				else
+				{
+					chunk = await TFChunk.TFChunk.FromCompletedFile(chunkInfo.ChunkFileName, verifyHash: false,
+						unbufferedRead: Config.Unbuffered,
+						reduceFileCachePressure: Config.ReduceFileCachePressure,
+						tracker: _tracker,
+						getTransformFactory: TransformManager.GetFactoryForExistingChunk,
+						token: token);
+				}
 
-					// This call is theadsafe.
-					await Manager.AddChunk(chunk, token);
-				});
-		}
-		catch (AggregateException aggEx)
-		{
-			// We only really care that *something* is wrong - throw the first inner exception.
-			throw aggEx.InnerException;
-		}
+				// This call is theadsafe.
+				await Manager.AddChunk(chunk, token);
+			});
 
 		if (lastChunkVersions.Length == 0)
 		{
