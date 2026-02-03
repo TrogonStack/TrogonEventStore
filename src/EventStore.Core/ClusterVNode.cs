@@ -1664,6 +1664,15 @@ public class ClusterVNode<TStreamId> :
 		}
 
 		void StartNode(IApplicationBuilder app) {
+			try {
+				StartNodeCore(app);
+			} catch (AggregateException aggEx) when (aggEx.InnerException is { } innerEx) {
+				// We only really care that *something* is wrong - throw the first inner exception.
+				throw innerEx;
+			}
+		}
+
+		void StartNodeCore(IApplicationBuilder app) {
 		// TRUNCATE IF NECESSARY
 			var truncPos = Db.Config.TruncateCheckpoint.Read();
 			if (truncPos != -1)
