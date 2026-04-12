@@ -367,36 +367,14 @@ public class ClusterVNode<TStreamId> :
 			}
 			else
 			{
-				try
-				{
-					if (!Directory.Exists(dbPath)) // mono crashes without this check
-						Directory.CreateDirectory(dbPath);
-				}
-				catch (UnauthorizedAccessException)
-				{
-					if (dbPath == Locations.DefaultDataDirectory)
-					{
-						Log.Information(
-							"Access to path {dbPath} denied. The Event Store database will be created in {fallbackDefaultDataDirectory}",
-							dbPath, Locations.FallbackDefaultDataDirectory);
-						dbPath = Locations.FallbackDefaultDataDirectory;
-						Log.Information("Defaulting DB Path to {dbPath}", dbPath);
-
-						if (!Directory.Exists(dbPath)) // mono crashes without this check
-							Directory.CreateDirectory(dbPath);
-					}
-					else
-					{
-						throw;
-					}
-				}
+				dbPath = EnsureWritableDbPath(
+					dbPath,
+					Locations.DefaultDataDirectory,
+					Locations.FallbackDefaultDataDirectory);
 
 				var indexPath = options.Database.Index ?? Path.Combine(dbPath, ESConsts.DefaultIndexDirectoryName);
 				var streamExistencePath = Path.Combine(indexPath, ESConsts.StreamExistenceFilterDirectoryName);
-				if (!Directory.Exists(streamExistencePath))
-				{
-					Directory.CreateDirectory(streamExistencePath);
-				}
+				Directory.CreateDirectory(streamExistencePath);
 
 				var writerCheckFilename = Path.Combine(dbPath, Checkpoint.Writer + ".chk");
 				var chaserCheckFilename = Path.Combine(dbPath, Checkpoint.Chaser + ".chk");
@@ -1756,6 +1734,63 @@ public class ClusterVNode<TStreamId> :
 		var periodicLogging = new PeriodicallyLoggingService(_mainQueue, VersionInfo.Version, Log);
 		_mainBus.Subscribe<SystemMessage.SystemStart>(periodicLogging);
 		_mainBus.Subscribe<MonitoringMessage.CheckEsVersion>(periodicLogging);
+	}
+
+	private static string EnsureWritableDbPath(
+		string dbPath,
+		string defaultDataDirectory,
+		string fallbackDefaultDataDirectory)
+		=> EnsureWritableDbPath(
+			dbPath,
+			defaultDataDirectory,
+			fallbackDefaultDataDirectory,
+			ProbeWriteAccess);
+
+	private static string EnsureWritableDbPath(
+		string dbPath,
+		string defaultDataDirectory,
+		string fallbackDefaultDataDirectory,
+		Action<string> probeWriteAccess)
+	{
+		try
+		{
+			Directory.CreateDirectory(dbPath);
+			probeWriteAccess(dbPath);
+
+			return dbPath;
+		}
+		catch (Exception ex) when (dbPath == defaultDataDirectory && (ex is UnauthorizedAccessException || ex is IOException))
+		{
+			return FallBackToDefaultDbPath(fallbackDefaultDataDirectory, probeWriteAccess, dbPath);
+		}
+	}
+
+	private static string FallBackToDefaultDbPath(
+		string fallbackDefaultDataDirectory,
+		Action<string> probeWriteAccess,
+		string dbPath)
+	{
+		Log.Information(
+			"Access to path {dbPath} denied. The Event Store database will be created in {fallbackDefaultDataDirectory}",
+			dbPath,
+			fallbackDefaultDataDirectory);
+		Log.Information("Defaulting DB Path to {dbPath}", fallbackDefaultDataDirectory);
+
+		Directory.CreateDirectory(fallbackDefaultDataDirectory);
+		probeWriteAccess(fallbackDefaultDataDirectory);
+		return fallbackDefaultDataDirectory;
+	}
+
+	private static void ProbeWriteAccess(string dbPath)
+	{
+		var writeProbePath = Path.Combine(dbPath, $"write-access-{Guid.NewGuid():N}.tmp");
+		using var writeProbe = new FileStream(
+			writeProbePath,
+			FileMode.CreateNew,
+			FileAccess.Write,
+			FileShare.None,
+			bufferSize: 1,
+			FileOptions.DeleteOnClose);
 	}
 
 	static int GetPTableMaxReaderCount(int readerThreadsCount)
