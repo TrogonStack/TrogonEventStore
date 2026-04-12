@@ -417,7 +417,7 @@ public class ClusterVNode<TStreamId> :
 			}
 
 			var cache = options.Database.CachedChunks >= 0
-				? options.Database.CachedChunks * (long)(TFConsts.ChunkSize + ChunkHeader.Size + ChunkFooter.Size)
+				? options.Database.CachedChunks * ((long)options.Database.ChunkSize + ChunkHeader.Size + ChunkFooter.Size)
 				: options.Database.ChunksCacheSize;
 
 			// Calculate automatic configuration changes
@@ -1323,14 +1323,14 @@ public class ClusterVNode<TStreamId> :
 
 			var accumulator = new Accumulator<TStreamId>(
 				logger: logger,
-				chunkSize: TFConsts.ChunkSize,
+				chunkSize: options.Database.ChunkSize,
 				metastreamLookup: logFormat.Metastreams,
 				chunkReader: new ChunkReaderForAccumulator<TStreamId>(
 					Db.Manager,
 					logFormat.Metastreams,
 					logFormat.StreamIdConverter,
 					Db.Config.ReplicationCheckpoint,
-					TFConsts.ChunkSize),
+					options.Database.ChunkSize),
 				index: new IndexReaderForAccumulator<TStreamId>(readIndex),
 				cancellationCheckPeriod: cancellationCheckPeriod,
 				throttle: throttle);
@@ -1341,7 +1341,7 @@ public class ClusterVNode<TStreamId> :
 					readIndex,
 					() => new TFReaderLease(readerPool),
 					state.LookupUniqueHashUser),
-				chunkSize: TFConsts.ChunkSize,
+				chunkSize: options.Database.ChunkSize,
 				cancellationCheckPeriod: cancellationCheckPeriod,
 				buffer: calculatorBuffer,
 				throttle: throttle);
