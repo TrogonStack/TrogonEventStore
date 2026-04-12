@@ -140,7 +140,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 
 			private static TFPos ConvertCheckpoint(Position? checkpoint, TFPos lastLivePos) {
 				if (!checkpoint.HasValue)
-					return new TFPos(-1, -1);
+					return TFPos.HeadOfTf;
 
 				if (checkpoint == Position.End)
 					return lastLivePos;
@@ -298,6 +298,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 									_subscriptionId, _eventFilter, completed.ConsideredEventsCount, _checkpointInterval, checkpointIntervalCounter);
 
 								if (completed.IsEndOfStream) {
+									if (checkpoint < completed.CurrentPos)
+										checkpoint = completed.CurrentPos;
+
 									// issue a checkpoint when going live to make sure that at least
 									// one checkpoint is issued within the checkpoint interval
 									await SendCheckpointToSubscription(checkpoint, ct);
@@ -342,6 +345,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			}
 
 			private async Task SendCheckpointToSubscription(TFPos checkpoint, CancellationToken ct) {
+				if (checkpoint == TFPos.HeadOfTf)
+					return;
+
 				var checkpointPos = Position.FromInt64(checkpoint.CommitPosition, checkpoint.PreparePosition);
 				await _channel.Writer.WriteAsync(new ReadResponse.CheckpointReceived(
 					commitPosition: checkpointPos.CommitPosition,

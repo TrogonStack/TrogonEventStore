@@ -62,7 +62,22 @@ public partial class EnumeratorTests
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			Assert.AreEqual(_eventIds[0], ((Event)await sub.GetNext()).Id);
-			Assert.True(await sub.GetNext() is Checkpoint);
+			var response = await sub.GetNext();
+			Assert.IsInstanceOf<Checkpoint>(response);
+			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
+			Assert.True(await sub.GetNext() is CaughtUp);
+		}
+
+		[Test]
+		public async Task should_receive_a_valid_checkpoint_when_no_events_match_from_start()
+		{
+			await using var sub = CreateAllSubscriptionFiltered(
+				_publisher, null, EventFilter.EventType.Prefixes(false, "match-nothing"));
+
+			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
+			var response = await sub.GetNext();
+			Assert.IsInstanceOf<Checkpoint>(response);
+			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
 			Assert.True(await sub.GetNext() is CaughtUp);
 		}
 	}
@@ -118,7 +133,24 @@ public partial class EnumeratorTests
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			Assert.AreEqual(_eventIds[0], ((Event)await sub.GetNext()).Id);
-			Assert.True(await sub.GetNext() is Checkpoint);
+			var response = await sub.GetNext();
+			Assert.IsInstanceOf<Checkpoint>(response);
+			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
+			Assert.True(await sub.GetNext() is CaughtUp);
+		}
+
+		[Test]
+		public async Task should_receive_a_valid_checkpoint_when_no_events_match_after_the_start_position()
+		{
+			await using var sub = CreateAllSubscriptionFiltered(
+				_publisher,
+				new Position((ulong)_subscribeFrom.CommitPosition, (ulong)_subscribeFrom.PreparePosition),
+				EventFilter.EventType.Prefixes(false, "match-nothing"));
+
+			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
+			var response = await sub.GetNext();
+			Assert.IsInstanceOf<Checkpoint>(response);
+			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
 			Assert.True(await sub.GetNext() is CaughtUp);
 		}
 	}
