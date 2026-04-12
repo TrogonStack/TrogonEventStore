@@ -185,6 +185,7 @@ public class ClusterVNode<TStreamId> :
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly IReadIndex<TStreamId> _readIndex;
 	private readonly SemaphoreSlimLock _switchChunksLock = new();
+	private readonly object _systemInitGate = new();
 
 	private readonly InMemoryBus[] _workerBuses;
 	private readonly MultiQueuedHandler _workersHandler;
@@ -1915,13 +1916,17 @@ public class ClusterVNode<TStreamId> :
 
 	private void PublishSystemInitIfNeeded()
 	{
-		if (Volatile.Read(ref _shutdownStarted) != 0 || IsShutdown)
-			return;
+		lock (_systemInitGate)
+		{
+			if (_shutdownStarted != 0 || IsShutdown)
+				return;
 
-		if (Interlocked.CompareExchange(ref _systemInitPublished, 1, 0) != 0)
-			return;
+			if (_systemInitPublished != 0)
+				return;
 
-		_mainQueue.Publish(new SystemMessage.SystemInit());
+			_systemInitPublished = 1;
+			_mainQueue.Publish(new SystemMessage.SystemInit());
+		}
 	}
 
 	public override async Task StopAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
@@ -1949,7 +1954,9 @@ public class ClusterVNode<TStreamId> :
 
 	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
 	{
-		Interlocked.Exchange(ref _shutdownStarted, 1);
+		lock (_systemInitGate)
+			_shutdownStarted = 1;
+
 		Log.Information("========== [{httpEndPoint}] Is shutting down subsystems", NodeInfo.HttpEndPoint);
 
 		_reloadConfigSignalRegistration?.Dispose();
