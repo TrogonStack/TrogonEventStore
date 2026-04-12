@@ -312,6 +312,7 @@ public class ManagedProjection : IDisposable
 		{
 			status = new ProjectionStatistics
 			{
+				EffectiveName = _name,
 				Name = _name,
 				ProjectionId = _projectionId,
 				Epoch = -1,
