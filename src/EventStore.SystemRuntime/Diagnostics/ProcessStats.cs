@@ -26,41 +26,11 @@ public static class ProcessStats
 
 			try
 			{
-				var result = new DiskIoData();
-
-				foreach (var line in File.ReadLines(procIoFile))
-				{
-					if (TryExtractIoValue(line, "read_bytes", out var readBytes))
-						result = result with { ReadBytes = readBytes };
-					else if (TryExtractIoValue(line, "write_bytes", out var writeBytes))
-						result = result with { WrittenBytes = writeBytes };
-					else if (TryExtractIoValue(line, "syscr", out var readOps))
-						result = result with { ReadOps = readOps };
-					else if (TryExtractIoValue(line, "syscw", out var writeOps))
-					{
-						result = result with { WriteOps = writeOps };
-						break;
-					}
-				}
-
-				return result;
+				return ParseLinuxDiskIo(File.ReadLines(procIoFile));
 			}
 			catch (Exception ex)
 			{
 				throw new ApplicationException("Failed to get Linux process I/O info", ex);
-			}
-
-			static bool TryExtractIoValue(string line, string key, out ulong value)
-			{
-				if (line.StartsWith(key))
-				{
-					var rawValue = line[(key.Length + 1)..].Trim(); // handle the `:` character
-					value = Convert.ToUInt64(rawValue);
-					return true;
-				}
-
-				value = 0;
-				return false;
 			}
 		}
 
@@ -73,6 +43,44 @@ public static class ProcessStats
 
 	public static DiskIoData GetDiskIo() =>
 		GetDiskIo(Process.GetCurrentProcess());
+
+	internal static DiskIoData ParseLinuxDiskIo(IEnumerable<string> lines)
+	{
+		var result = new DiskIoData();
+
+		foreach (var line in lines)
+		{
+			if (TryExtractIoValue(line, "read_bytes", out var readBytes))
+				result = result with { ReadBytes = readBytes };
+			else if (TryExtractIoValue(line, "write_bytes", out var writeBytes))
+				result = result with { WrittenBytes = writeBytes };
+			else if (TryExtractIoValue(line, "syscr", out var readOps))
+				result = result with { ReadOps = readOps };
+			else if (TryExtractIoValue(line, "syscw", out var writeOps))
+				result = result with { WriteOps = writeOps };
+
+			if (result.ReadBytes is not 0 &&
+				result.WrittenBytes is not 0 &&
+				result.ReadOps is not 0 &&
+				result.WriteOps is not 0)
+				break;
+		}
+
+		return result;
+	}
+
+	private static bool TryExtractIoValue(string line, string key, out ulong value)
+	{
+		if (line.StartsWith(key))
+		{
+			var rawValue = line[(key.Length + 1)..].Trim(); // handle the `:` character
+			value = Convert.ToUInt64(rawValue);
+			return true;
+		}
+
+		value = 0;
+		return false;
+	}
 }
 
 /// <summary>
