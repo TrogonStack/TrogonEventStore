@@ -48,7 +48,7 @@ internal partial class ProjectionManagement
 			EventsProcessedAfterRestart = s.EventsProcessedAfterRestart,
 			LastCheckpoint = s.LastCheckpoint ?? string.Empty,
 			Mode = s.Mode.ToString(),
-			Name = s.Name,
+			Name = s.Name ?? string.Empty,
 			ReadsInProgress = s.ReadsInProgress,
 			PartitionsCached = s.PartitionsCached,
 			Position = s.Position ?? string.Empty,
