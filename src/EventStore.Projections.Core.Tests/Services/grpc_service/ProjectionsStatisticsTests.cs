@@ -16,6 +16,8 @@ namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId>
 {
+	private const string ExpectedRunningProjectionPosition = "C:0/P:-1";
+
 	private GrpcChannel _channel;
 	private Client.Projections.Projections.ProjectionsClient _client;
 	private StatisticsResp.Types.Details _faultedProjection;
@@ -57,7 +59,10 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	{
 		for (var attempt = 0; attempt < 20; attempt++) {
 			(_faultedProjection, _runningProjection) = await ReadStatisticsAsync();
-			if (_faultedProjection?.Status == "Faulted" && _runningProjection is not null)
+			if (_faultedProjection?.Status == "Faulted"
+				&& _runningProjection?.Status == "Running"
+				&& _runningProjection.Position == ExpectedRunningProjectionPosition
+				&& _runningProjection.LastCheckpoint == ExpectedRunningProjectionPosition)
 				return;
 
 			await Task.Delay(250);
@@ -84,8 +89,8 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 		Assert.AreEqual("running-projection", _runningProjection.EffectiveName);
 		Assert.AreEqual("Running", _runningProjection.Status);
 		Assert.AreEqual(string.Empty, _runningProjection.CheckpointStatus);
-		Assert.AreEqual("C:0/P:-1", _runningProjection.Position);
-		Assert.AreEqual("C:0/P:-1", _runningProjection.LastCheckpoint);
+		Assert.AreEqual(ExpectedRunningProjectionPosition, _runningProjection.Position);
+		Assert.AreEqual(ExpectedRunningProjectionPosition, _runningProjection.LastCheckpoint);
 	}
 
 	[OneTimeTearDown]
