@@ -17,6 +17,7 @@ namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId>
 {
 	private const string ExpectedRunningProjectionPosition = "C:0/P:-1";
+	private static readonly TimeSpan StatisticsCallDeadline = TimeSpan.FromSeconds(10);
 
 	private GrpcChannel _channel;
 	private Client.Projections.Projections.ProjectionsClient _client;
@@ -58,12 +59,18 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	public override async Task When()
 	{
 		for (var attempt = 0; attempt < 20; attempt++) {
-			(_faultedProjection, _runningProjection) = await ReadStatisticsAsync();
-			if (_faultedProjection?.Status == "Faulted"
-				&& _runningProjection?.Status == "Running"
-				&& _runningProjection.Position == ExpectedRunningProjectionPosition
-				&& _runningProjection.LastCheckpoint == ExpectedRunningProjectionPosition)
-				return;
+			try
+			{
+				(_faultedProjection, _runningProjection) = await ReadStatisticsAsync();
+				if (_faultedProjection?.Status == "Faulted"
+					&& _runningProjection?.Status == "Running"
+					&& _runningProjection.Position == ExpectedRunningProjectionPosition
+					&& _runningProjection.LastCheckpoint == ExpectedRunningProjectionPosition)
+					return;
+			}
+			catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
+			{
+			}
 
 			await Task.Delay(250);
 		}
@@ -100,7 +107,7 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 		return base.TestFixtureTearDown();
 	}
 
-	private static CallOptions GetCallOptions() {
+	private static CallOptions GetCallOptions(TimeSpan? deadline = null) {
 		var credentials = CallCredentials.FromInterceptor((_, metadata) => {
 			metadata.Add("authorization",
 				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
@@ -111,7 +118,9 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 			credentials: credentials,
 			deadline: Debugger.IsAttached
 				? DateTime.UtcNow.AddDays(1)
-				: null);
+				: deadline is { } value
+					? DateTime.UtcNow.Add(value)
+					: null);
 	}
 
 	private async Task<(StatisticsResp.Types.Details faultedProjection, StatisticsResp.Types.Details runningProjection)>
@@ -124,7 +133,7 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 			Options = new StatisticsReq.Types.Options {
 				All = new Empty()
 			}
-		}, GetCallOptions());
+		}, GetCallOptions(StatisticsCallDeadline));
 
 		while (await statistics.ResponseStream.MoveNext(CancellationToken.None)) {
 			var details = statistics.ResponseStream.Current.Details;
