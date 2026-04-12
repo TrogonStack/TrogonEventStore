@@ -63,11 +63,12 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 		{
 			options = options.WithPlugableComponent(ConfigureMD5());
 		}
-		catch
+		catch (Exception ex)
 		{
 			throw new
 				InvalidConfigurationException(
-					"Failed to configure MD5. If FIPS mode is enabled, please use the FIPS commercial plugin or disable FIPS mode.");
+					"Failed to configure MD5. If FIPS mode is enabled, please use the FIPS commercial plugin or disable FIPS mode.",
+					ex);
 		}
 
 		var projectionMode = options.DevMode.Dev && options.Projection.RunProjections == ProjectionType.None
@@ -302,10 +303,40 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			return options;
 		}
 
+		// TODO: Revisit whether MD5 selection should stay built-in-first, go back to plugin-first
+		// when a plugin is installed, or become an explicit provider-selection setting.
 		IPlugableComponent ConfigureMD5()
 		{
-			var md5Provider = GetMD5ProviderFactories().FirstOrDefault()?.Build() ?? new NetMD5Provider();
-			MD5.UseProvider(md5Provider);
+			IMD5Provider md5Provider;
+
+			try
+			{
+				md5Provider = new NetMD5Provider();
+				MD5.UseProvider(md5Provider);
+			}
+			catch (Exception ex)
+			{
+				Log.Information(ex, "Built-in MD5 provider could not be activated. Trying plugin provider.");
+
+				var md5ProviderFactory = GetMD5ProviderFactories().FirstOrDefault()
+					?? throw new ApplicationInitializationException(
+						"Built-in MD5 provider could not be activated and no MD5 plugin provider was available.",
+						ex);
+
+				try
+				{
+					md5Provider = md5ProviderFactory.Build();
+					MD5.UseProvider(md5Provider);
+				}
+				catch (Exception pluginEx)
+				{
+					throw new ApplicationInitializationException(
+						"Both the built-in MD5 provider and the plugin MD5 provider failed to activate.",
+						new AggregateException(ex, pluginEx));
+				}
+			}
+
+			Log.Information("Using {name} FileHashProvider.", md5Provider.Name);
 			return md5Provider;
 		}
 
