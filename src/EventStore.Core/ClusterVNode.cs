@@ -205,6 +205,7 @@ public class ClusterVNode<TStreamId> :
 
 	private int _stopCalled;
 	private int _systemInitPublished;
+	private int _shutdownStarted;
 	private int _reloadingConfig;
 	private PosixSignalRegistration _reloadConfigSignalRegistration;
 
@@ -1909,12 +1910,14 @@ public class ClusterVNode<TStreamId> :
 
 	public override void Start()
 	{
-		if (!IsShutdown)
-			PublishSystemInitIfNeeded();
+		PublishSystemInitIfNeeded();
 	}
 
 	private void PublishSystemInitIfNeeded()
 	{
+		if (Volatile.Read(ref _shutdownStarted) != 0 || IsShutdown)
+			return;
+
 		if (Interlocked.CompareExchange(ref _systemInitPublished, 1, 0) != 0)
 			return;
 
@@ -1946,6 +1949,7 @@ public class ClusterVNode<TStreamId> :
 
 	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
 	{
+		Interlocked.Exchange(ref _shutdownStarted, 1);
 		Log.Information("========== [{httpEndPoint}] Is shutting down subsystems", NodeInfo.HttpEndPoint);
 
 		_reloadConfigSignalRegistration?.Dispose();
