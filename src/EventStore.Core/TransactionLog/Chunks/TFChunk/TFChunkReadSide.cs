@@ -269,14 +269,20 @@ public partial class TFChunk
 					midpoints = new Midpoint[1 + (mapCount + segmentSize - 1) / segmentSize];
 				}
 
-				for (int x = 0, i = 0, xN = mapCount - 1; x < xN; x += segmentSize, i++)
+				var i = 0;
+				for (int x = 0, xN = mapCount - 1; x < xN; x += segmentSize, i++)
 				{
 					midpoints[i] = new Midpoint(x, await ReadPosMap(workItem, x, buffer.Memory, token));
 				}
 
-				// add the very last item as the last midpoint (possibly it is done twice)
-				midpoints[^1] = new Midpoint(mapCount - 1,
+				var lastMidpoint = new Midpoint(mapCount - 1,
 					await ReadPosMap(workItem, mapCount - 1, buffer.Memory, token));
+				while (i < midpoints.Length)
+				{
+					midpoints[i] = lastMidpoint;
+					i++;
+				}
+
 				return midpoints;
 			}
 			catch (FileBeingDeletedException)
