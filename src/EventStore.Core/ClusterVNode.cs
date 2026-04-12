@@ -185,6 +185,7 @@ public class ClusterVNode<TStreamId> :
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly IReadIndex<TStreamId> _readIndex;
 	private readonly SemaphoreSlimLock _switchChunksLock = new();
+	private readonly object _systemInitGate = new();
 
 	private readonly InMemoryBus[] _workerBuses;
 	private readonly MultiQueuedHandler _workersHandler;
@@ -204,6 +205,8 @@ public class ClusterVNode<TStreamId> :
 	private readonly EventStoreClusterClientCache _eventStoreClusterClientCache;
 
 	private int _stopCalled;
+	private int _systemInitPublished;
+	private int _shutdownStarted;
 	private int _reloadingConfig;
 	private PosixSignalRegistration _reloadConfigSignalRegistration;
 
@@ -1707,6 +1710,7 @@ public class ClusterVNode<TStreamId> :
 			AddTask(redactionQueue.Start());
 
 			dynamicCacheManager.Start();
+			PublishSystemInitIfNeeded();
 		}
 
 		_startup = new ClusterVNodeStartup<TStreamId>(
@@ -1907,7 +1911,22 @@ public class ClusterVNode<TStreamId> :
 
 	public override void Start()
 	{
-		_mainQueue.Publish(new SystemMessage.SystemInit());
+		PublishSystemInitIfNeeded();
+	}
+
+	private void PublishSystemInitIfNeeded()
+	{
+		lock (_systemInitGate)
+		{
+			if (_shutdownStarted != 0 || IsShutdown)
+				return;
+
+			if (_systemInitPublished != 0)
+				return;
+
+			_systemInitPublished = 1;
+			_mainQueue.Publish(new SystemMessage.SystemInit());
+		}
 	}
 
 	public override async Task StopAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
@@ -1935,6 +1954,9 @@ public class ClusterVNode<TStreamId> :
 
 	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
 	{
+		lock (_systemInitGate)
+			_shutdownStarted = 1;
+
 		Log.Information("========== [{httpEndPoint}] Is shutting down subsystems", NodeInfo.HttpEndPoint);
 
 		_reloadConfigSignalRegistration?.Dispose();
