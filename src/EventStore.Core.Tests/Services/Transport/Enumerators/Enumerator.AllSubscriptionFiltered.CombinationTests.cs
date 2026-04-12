@@ -580,6 +580,7 @@ public partial class EnumeratorTests
 						// not always straightforward to calculate how many checkpoints we will receive.
 						numResponsesExpected++;
 
+						Assert.True(checkpoint.CheckpointPosition < Position.End);
 						var checkpointPos = checkpoint.CheckpointPosition.ToInt64();
 						var checkpointTfPos = new TFPos(checkpointPos.commitPosition, checkpointPos.preparePosition);
 
@@ -609,7 +610,9 @@ public partial class EnumeratorTests
 			// then expect a final checkpoint
 			if (shouldCheckpoint)
 			{
-				Assert.True(await sub.GetNext() is Checkpoint);
+				var response = await sub.GetNext();
+				Assert.IsInstanceOf<Checkpoint>(response);
+				Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
 				numEventsSinceLastCheckpoint = 0;
 			}
 
