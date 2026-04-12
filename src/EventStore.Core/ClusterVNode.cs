@@ -204,6 +204,7 @@ public class ClusterVNode<TStreamId> :
 	private readonly EventStoreClusterClientCache _eventStoreClusterClientCache;
 
 	private int _stopCalled;
+	private int _systemInitPublished;
 	private int _reloadingConfig;
 	private PosixSignalRegistration _reloadConfigSignalRegistration;
 
@@ -1707,6 +1708,7 @@ public class ClusterVNode<TStreamId> :
 			AddTask(redactionQueue.Start());
 
 			dynamicCacheManager.Start();
+			PublishSystemInitIfNeeded();
 		}
 
 		_startup = new ClusterVNodeStartup<TStreamId>(
@@ -1907,6 +1909,15 @@ public class ClusterVNode<TStreamId> :
 
 	public override void Start()
 	{
+		if (!IsShutdown)
+			PublishSystemInitIfNeeded();
+	}
+
+	private void PublishSystemInitIfNeeded()
+	{
+		if (Interlocked.CompareExchange(ref _systemInitPublished, 1, 0) != 0)
+			return;
+
 		_mainQueue.Publish(new SystemMessage.SystemInit());
 	}
 
