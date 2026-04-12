@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client;
 using EventStore.Client.Projections;
+using EventStore.Core.Tests;
 using EventStore.Projections.Core.Tests.ClientAPI.projectionsManager;
 using Grpc.Core;
 using Grpc.Net.Client;
