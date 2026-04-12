@@ -198,13 +198,8 @@ internal static class Program
 			{
 				// add a small delay to allow the host to start up in case there's a premature shutdown
 				cts.CancelAfter(TimeSpan.FromSeconds(1));
-				exitCodeSource.SetResult(code);
+				exitCodeSource.TrySetResult(code);
 			});
-
-			Console.CancelKeyPress += delegate
-			{
-				Application.Exit(0, "Cancelled.");
-			};
 
 			using (var hostedService = new ClusterVNodeHostedService(options, certificateProvider, configuration))
 			{
@@ -261,6 +256,10 @@ internal static class Program
 						.ConfigureServices(services => services.AddSingleton<IHostedService>(hostedService))
 						.RunConsoleAsync(x => x.SuppressStatusMessages = true, cts.Token);
 
+					exitCodeSource.TrySetResult(0);
+				}
+				catch (OperationCanceledException) when (cts.IsCancellationRequested)
+				{
 					exitCodeSource.TrySetResult(0);
 				}
 				catch (Exception ex)
