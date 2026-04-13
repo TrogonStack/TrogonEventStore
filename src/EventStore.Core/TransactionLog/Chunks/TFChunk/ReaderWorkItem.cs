@@ -11,7 +11,9 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
 internal sealed class ReaderWorkItem : Disposable
 {
-	private const int BufferSize = 512;
+	// Chunk reads sit on a hot path during scavenging, so a larger buffer avoids
+	// turning filesystem buffering overhead into the bottleneck.
+	private const int BufferSize = 8192;
 
 	// if item was taken from the pool, the field contains position within the array (>= 0)
 	private readonly int _positionInPool = -1;
