@@ -96,7 +96,8 @@ public partial class TFChunk : IDisposable
 			ChunkEndNumber = _chunkHeader.ChunkEndNumber,
 			ChunkStartPosition = _chunkHeader.ChunkStartPosition,
 			ChunkEndPosition = _chunkHeader.ChunkEndPosition,
-			IsCompleted = IsReadOnly
+			IsCompleted = IsReadOnly,
+			IsRemote = IsRemote
 		};
 	}
 
