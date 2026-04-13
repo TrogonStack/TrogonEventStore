@@ -9,6 +9,17 @@ namespace System.Diagnostics;
 [PublicAPI]
 public static class ProcessStats
 {
+	[Flags]
+	private enum LinuxIoField
+	{
+		None = 0,
+		ReadBytes = 1,
+		WrittenBytes = 2,
+		ReadOps = 4,
+		WriteOps = 8,
+		All = ReadBytes | WrittenBytes | ReadOps | WriteOps,
+	}
+
 	public static DiskIoData GetDiskIo(Process process)
 	{
 		return RuntimeInformation.OsPlatform switch
@@ -47,22 +58,32 @@ public static class ProcessStats
 	internal static DiskIoData ParseLinuxDiskIo(IEnumerable<string> lines)
 	{
 		var result = new DiskIoData();
+		var seenFields = LinuxIoField.None;
 
 		foreach (var line in lines)
 		{
 			if (TryExtractIoValue(line, "read_bytes", out var readBytes))
+			{
 				result = result with { ReadBytes = readBytes };
+				seenFields |= LinuxIoField.ReadBytes;
+			}
 			else if (TryExtractIoValue(line, "write_bytes", out var writeBytes))
+			{
 				result = result with { WrittenBytes = writeBytes };
+				seenFields |= LinuxIoField.WrittenBytes;
+			}
 			else if (TryExtractIoValue(line, "syscr", out var readOps))
+			{
 				result = result with { ReadOps = readOps };
+				seenFields |= LinuxIoField.ReadOps;
+			}
 			else if (TryExtractIoValue(line, "syscw", out var writeOps))
+			{
 				result = result with { WriteOps = writeOps };
+				seenFields |= LinuxIoField.WriteOps;
+			}
 
-			if (result.ReadBytes is not 0 &&
-				result.WrittenBytes is not 0 &&
-				result.ReadOps is not 0 &&
-				result.WriteOps is not 0)
+			if (seenFields == LinuxIoField.All)
 				break;
 		}
 
