@@ -1,5 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Tests.Transforms.WithHeader;
+using EventStore.Core.TransactionLog.Chunks;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.TransactionLog;
@@ -98,6 +101,38 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsTrue(result.IsEOF);
 			Assert.AreEqual(4096, result.BytesRead); //does not includes header and footer space
+		}
+
+		chunk.MarkForDeletion();
+		chunk.WaitForDestroy(5000);
+	}
+
+	[Test]
+	public async Task a_raw_read_on_completed_transformed_chunk_falls_back_from_stale_cache()
+	{
+		var chunk = await TFChunk.CreateNew(
+			GetFilePathFor("file1"),
+			2000,
+			0,
+			0,
+			isScavenged: false,
+			inMem: false,
+			unbuffered: false,
+			writethrough: false,
+			reduceFileCachePressure: false,
+			tracker: new TFChunkTracker.NoOp(),
+			transformFactory: new WithHeaderChunkTransformFactory(),
+			token: CancellationToken.None);
+		await chunk.Complete(CancellationToken.None);
+
+		using (var reader = chunk.AcquireRawReader())
+		{
+			Assert.IsFalse(reader.IsMemory);
+
+			var buffer = new byte[1024];
+			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
+			Assert.IsFalse(result.IsEOF);
+			Assert.Greater(result.BytesRead, 0);
 		}
 
 		chunk.MarkForDeletion();

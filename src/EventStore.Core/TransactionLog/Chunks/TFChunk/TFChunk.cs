@@ -1567,6 +1567,12 @@ public partial class TFChunk : IDisposable
 			return false;
 		}
 
+		if (raw && IsReadOnly && !_cachedDataTransformed)
+		{
+			reader = null;
+			return false;
+		}
+
 		if (_cachedData is 0)
 			throw new Exception("Unexpected error: a cached chunk had no cached data");
 
