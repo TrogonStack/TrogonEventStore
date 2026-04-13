@@ -93,6 +93,10 @@ internal static class Program
 				GCSettings.IsServerGC,
 				GCSettings.LatencyMode);
 			Log.Information("{description,-25} {logsDirectory}", "LOGS:", logsDirectory);
+			var gcSettings = string.Join(
+				$"{Environment.NewLine}    ",
+				GC.GetConfigurationVariables().Select(kvp => $"{kvp.Key}: {kvp.Value}"));
+			Log.Information($"GC Configuration settings:{Environment.NewLine}    {{settings}}", gcSettings);
 			Log.Information(options.DumpOptions());
 
 			var level = options.Application.AllowUnknownOptions
