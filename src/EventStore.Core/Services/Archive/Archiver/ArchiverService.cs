@@ -97,6 +97,9 @@ public class ArchiverService :
 
 	public void Handle(SystemMessage.ChunkSwitched message)
 	{
+		if (message.ChunkInfo.IsRemote)
+			return;
+
 		ScheduleChunkForArchiving(message.ChunkInfo, "changed");
 	}
 

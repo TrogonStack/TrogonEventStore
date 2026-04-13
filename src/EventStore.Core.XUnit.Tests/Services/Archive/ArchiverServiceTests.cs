@@ -32,14 +32,15 @@ public class ArchiverServiceTests {
 		return (service, archive);
 	}
 
-	private static ChunkInfo GetChunkInfo(int chunkStartNumber, int chunkEndNumber, bool complete = true) {
+	private static ChunkInfo GetChunkInfo(int chunkStartNumber, int chunkEndNumber, bool complete = true, bool remote = false) {
 		return new ChunkInfo {
 			ChunkStartNumber = chunkStartNumber,
 			ChunkEndNumber = chunkEndNumber,
 			ChunkStartPosition = (long) chunkStartNumber * ChunkSize,
 			ChunkEndPosition = (long) (chunkEndNumber + 1) * ChunkSize,
 			IsCompleted = complete,
-			ChunkFileName = $"{chunkStartNumber}-{chunkEndNumber}"
+			ChunkFileName = $"{chunkStartNumber}-{chunkEndNumber}",
+			IsRemote = remote
 		};
 	}
 
@@ -131,6 +132,19 @@ public class ArchiverServiceTests {
 		await WaitFor(archive, numStores: 1);
 
 		Assert.Equal(["0-0.renamed"], archive.Chunks);
+	}
+
+	[Fact]
+	public async Task doesnt_archive_a_remote_switched_chunk() {
+		var (sut, archive) = CreateSut();
+
+		var chunkInfo = GetChunkInfo(0, 0, complete: true, remote: true);
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(0));
+		sut.Handle(new SystemMessage.ChunkSwitched(chunkInfo));
+
+		await WaitFor(archive, numStores: 0);
+
+		Assert.Equal([], archive.Chunks);
 	}
 
 	[Fact]

@@ -8,4 +8,5 @@ public record ChunkInfo
 	public long ChunkStartPosition;
 	public long ChunkEndPosition;
 	public bool IsCompleted;
+	public bool IsRemote;
 }
