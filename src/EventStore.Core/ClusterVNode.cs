@@ -276,6 +276,7 @@ public class ClusterVNode<TStreamId> :
 #endif
 
 		var archiveOptions = configuration.GetSection("EventStore:Archive").Get<ArchiveOptions>() ?? new();
+		archiveOptions.Validate();
 
 		var disableInternalTcpTls = options.Application.Insecure;
 		var disableExternalTcpTls = options.Application.Insecure;
