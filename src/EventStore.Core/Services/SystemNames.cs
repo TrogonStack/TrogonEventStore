@@ -35,6 +35,9 @@ namespace EventStore.Core.Services {
 
 		public static bool IsSystemStream(string streamId) => streamId is ['$', ..];
 
+		public static bool IsInvalidStream(string streamId) =>
+			string.IsNullOrEmpty(streamId) || streamId == "$$";
+
 		public static string MetastreamOf(string streamId) {
 			return "$$" + streamId;
 		}
