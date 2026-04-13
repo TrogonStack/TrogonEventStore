@@ -166,9 +166,8 @@ public partial class TFChunk
 
 	private class TFChunkReadSideScavenged : TFChunkReadSide, IChunkReadSide
 	{
-		// must hold _lock to assign to _wantMidpoints and _midpoints
+		// must hold _lock to assign to _midpoints
 		private readonly AsyncExclusiveLock _lock = new();
-		private bool _wantMidpoints;
 		private Midpoint[] _midpoints;
 
 		public TFChunkReadSideScavenged(TFChunk chunk, ITransactionFileTracker tracker)
@@ -180,47 +179,20 @@ public partial class TFChunk
 
 		public void Uncache()
 		{
-			_lock.TryAcquire(InfiniteTimeSpan);
-			try
-			{
-				_wantMidpoints = false;
-				_midpoints = null;
-			}
-			finally
-			{
-				_lock.Release();
-			}
+			// keep midpoints available even when the chunk itself transitions between cached and uncached.
 		}
 
 		public void RequestCaching()
 		{
-			_lock.TryAcquire(InfiniteTimeSpan);
-			try
-			{
-				_wantMidpoints = true;
-			}
-			finally
-			{
-				_lock.Release();
-			}
+			// midpoints are created lazily on first use.
 		}
 
 		private async ValueTask<Midpoint[]> GetOrCreateMidPoints(ReaderWorkItem workItem, CancellationToken token)
 		{
-			// don't use midpoints when reading from memory
-			if (workItem.IsMemory)
-				return null;
-
 			// if we have midpoints we are happy. no synchronization required.
 			// this value may be stale but the midpoints are still valid
 			if (_midpoints is { } midpoints)
 				return midpoints;
-
-			// if we don't want midpoints we are happy. no synchronization required.
-			// this value may be stale but this is rare and worst case we will perform the read
-			// without the midpoints which will still work.
-			if (!_wantMidpoints)
-				return null;
 
 			await _lock.AcquireAsync(token);
 			try
@@ -232,11 +204,6 @@ public partial class TFChunk
 				// (which was waiting) would then recreate them unnecessarily, wasting CPU and memory.
 				if (_midpoints is { } midpointsDouble)
 					return midpointsDouble;
-
-				if (!_wantMidpoints)
-					return null;
-
-				// want midpoints but don't have them, get them. synchronization is ok here because rare
 				_midpoints = await PopulateMidpoints(Chunk._midpointsDepth, workItem, token);
 				return _midpoints;
 			}
@@ -253,7 +220,7 @@ public partial class TFChunk
 				throw new ArgumentOutOfRangeException(nameof(depth), "Depth too for midpoints.");
 
 			if (Chunk.ChunkFooter.MapCount is 0) // empty chunk
-				return null;
+				return [];
 
 			var buffer = Memory.AllocateAtLeast<byte>(PosMap.FullSize);
 			try
@@ -384,7 +351,7 @@ public partial class TFChunk
 
 		private async ValueTask<int> TranslateExactPosition(ReaderWorkItem workItem, long pos, CancellationToken token)
 		{
-			return await GetOrCreateMidPoints(workItem, token) is { } midpoints
+			return await GetOrCreateMidPoints(workItem, token) is { Length: > 0 } midpoints
 				? await TranslateExactWithMidpoints(workItem, midpoints, pos, token)
 				: await TranslateExactWithoutMidpoints(workItem, pos, 0, Chunk.ChunkFooter.MapCount - 1, token);
 		}
@@ -520,7 +487,7 @@ public partial class TFChunk
 		private async ValueTask<int> TranslateClosestForwardPosition(ReaderWorkItem workItem, long logicalPosition,
 			CancellationToken token)
 		{
-			return await GetOrCreateMidPoints(workItem, token) is { } midpoints
+			return await GetOrCreateMidPoints(workItem, token) is { Length: > 0 } midpoints
 				? await TranslateClosestForwardWithMidpoints(workItem, midpoints, logicalPosition, token)
 				: await TranslateClosestForwardWithoutMidpoints(workItem, logicalPosition, 0,
 					Chunk.ChunkFooter.MapCount - 1, token);
