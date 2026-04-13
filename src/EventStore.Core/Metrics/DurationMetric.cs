@@ -25,5 +25,15 @@ namespace EventStore.Core.Metrics {
 			_histogram.Record(elapsedSeconds, tag1, tag2);
 			return now;
 		}
+
+		public Instant Record(
+			Instant start,
+			KeyValuePair<string, object> tag1) {
+
+			var now = _clock.Now;
+			var elapsedSeconds = now.ElapsedSecondsSince(start);
+			_histogram.Record(elapsedSeconds, tag1);
+			return now;
+		}
 	}
 }

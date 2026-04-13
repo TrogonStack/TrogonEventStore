@@ -8,6 +8,7 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.XUnit.Tests.Metrics;
 using Xunit;
+using static EventStore.Core.TransactionLog.ITransactionFileTracker;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
 
@@ -18,11 +19,14 @@ public class TFChunkTrackerTests : IDisposable
 
 	private readonly TFChunkTracker _sut;
 	private readonly TestMeterListener<long> _listener;
+	private readonly TestMeterListener<double> _doubleListener;
+	private readonly FakeClock _clock = new();
 
 	public TFChunkTrackerTests()
 	{
 		var meter = new Meter($"{typeof(TFChunkTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
+		_doubleListener = new TestMeterListener<double>(meter);
 		var byteMetric = new CounterMetric(meter, "eventstore-io", unit: "bytes");
 		var eventMetric = new CounterMetric(meter, "eventstore-io", unit: "events");
 		var writerCheckpoint = new InMemoryCheckpoint(WriterCheckpoint);
@@ -30,6 +34,7 @@ public class TFChunkTrackerTests : IDisposable
 		var readTag = new KeyValuePair<string, object>("activity", "read");
 		_sut = new TFChunkTracker(
 			readDistribution: new LogicalChunkReadDistributionMetric(meter, "chunk-read-distribution", writerCheckpoint, ChunkSize),
+			readDurationMetric: new DurationMetric(meter, "eventstore-io-record-read-duration", _clock),
 			readBytes: new CounterSubMetric(byteMetric, [readTag]),
 			readEvents: new CounterSubMetric(eventMetric, [readTag]));
 	}
@@ -37,6 +42,7 @@ public class TFChunkTrackerTests : IDisposable
 	public void Dispose()
 	{
 		_listener.Dispose();
+		_doubleListener.Dispose();
 	}
 
 	[Fact]
@@ -46,7 +52,7 @@ public class TFChunkTrackerTests : IDisposable
 			data: new byte[5],
 			meta: new byte[5]);
 
-		_sut.OnRead(prepare);
+		_sut.OnRead(_clock.Now, prepare, Source.Unknown);
 		_listener.Observe();
 
 		AssertEventsRead(1);
@@ -57,7 +63,7 @@ public class TFChunkTrackerTests : IDisposable
 	public void disregard_system_log()
 	{
 		var system = CreateSystemRecord();
-		_sut.OnRead(system);
+		_sut.OnRead(_clock.Now, system, Source.Unknown);
 		_listener.Observe();
 
 		AssertEventsRead(0);
@@ -68,11 +74,42 @@ public class TFChunkTrackerTests : IDisposable
 	public void disregard_commit_log()
 	{
 		var system = CreateCommit();
-		_sut.OnRead(system);
+		_sut.OnRead(_clock.Now, system, Source.Unknown);
 		_listener.Observe();
 
 		AssertEventsRead(0);
 		AssertBytesRead(0);
+	}
+
+	[Theory]
+	[InlineData(Source.ChunkCache)]
+	[InlineData(Source.FileSystem)]
+	public void records_record_read_duration(Source source)
+	{
+		var prepare = CreatePrepare(
+			data: new byte[5],
+			meta: new byte[5]);
+
+		var start = _clock.Now;
+		_clock.AdvanceSeconds(3);
+
+		_sut.OnRead(start, prepare, source);
+		_doubleListener.Observe();
+
+		var actual = _doubleListener.RetrieveMeasurements("eventstore-io-record-read-duration-seconds");
+		Assert.Collection(
+			actual,
+			m =>
+			{
+				Assert.Equal(3, m.Value);
+				Assert.Collection(
+					m.Tags.ToArray(),
+					t =>
+					{
+						Assert.Equal("source", t.Key);
+						Assert.Equal(source, t.Value);
+					});
+			});
 	}
 
 	[Theory]
@@ -89,7 +126,10 @@ public class TFChunkTrackerTests : IDisposable
 	[InlineData(0, 4)]
 	public void records_read_distribution(long logPosition, long expectedChunk)
 	{
-		_sut.OnRead(CreatePrepare(data: new byte[5], meta: new byte[5], logPosition: logPosition));
+		_sut.OnRead(
+			_clock.Now,
+			CreatePrepare(data: new byte[5], meta: new byte[5], logPosition: logPosition),
+			Source.Unknown);
 
 		_listener.Observe();
 		var actual = _listener.RetrieveMeasurements("chunk-read-distribution");
