@@ -1,11 +1,6 @@
 name: Debian LTS Container
 
 on:
-  pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
   push:
     branches:
       - master

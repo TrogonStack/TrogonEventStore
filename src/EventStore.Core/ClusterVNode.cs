@@ -1369,6 +1369,7 @@ public class ClusterVNode<TStreamId> :
 				chunkSize: Db.Config.ChunkSize,
 				unsafeIgnoreHardDeletes: options.Database.UnsafeIgnoreHardDelete,
 				cancellationCheckPeriod: cancellationCheckPeriod,
+				isArchiver: options.Cluster.Archiver,
 				threads: message.Threads,
 				throttle: throttle);
 

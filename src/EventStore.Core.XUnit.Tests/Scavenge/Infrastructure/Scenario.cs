@@ -55,6 +55,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 	private ITFChunkScavengerLog _logger;
 
 	private int _threads = 1;
+	private bool _isArchiver;
 	private bool _skipIndexCheck;
 	private bool _mergeChunks;
 	private bool _syncOnly;
@@ -109,6 +110,12 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 	public Scenario<TLogFormat, TStreamId> WithThreads(int threads)
 	{
 		_threads = threads;
+		return this;
+	}
+
+	public Scenario<TLogFormat, TStreamId> IsArchiver(bool isArchiver = true)
+	{
+		_isArchiver = isArchiver;
 		return this;
 	}
 
@@ -508,6 +515,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				chunkSize: dbConfig.ChunkSize,
 				unsafeIgnoreHardDeletes: _unsafeIgnoreHardDeletes,
 				cancellationCheckPeriod: cancellationCheckPeriod,
+				isArchiver: _isArchiver,
 				threads: _threads,
 				throttle: throttle);
 
