@@ -106,7 +106,7 @@ run_project() {
     local proj="$1"
     local testdir="$2"
 
-    dotnet test --blame --blame-hang-timeout 5min \
+    dotnet test --blame --blame-hang-timeout 1min \
         --settings /build/ci/ci.runsettings \
         --logger:html --logger:trx \
         --logger:"console;verbosity=minimal" \
