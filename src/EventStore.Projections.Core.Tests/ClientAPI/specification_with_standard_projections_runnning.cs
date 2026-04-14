@@ -71,10 +71,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			await EnableStandardProjections();
 
 		WaitIdle();
-		_conn = EventStoreConnection.Create(new ConnectionSettingsBuilder()
-			.DisableServerCertificateValidation()
-			.Build(), _node.TcpEndPoint);
-		await _conn.ConnectAsync().WithTimeout(TimeSpan.FromSeconds(20));
+		await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
 		try
 		{
 			await Given().WithTimeout(TimeSpan.FromSeconds(10));
@@ -169,25 +166,51 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected virtual Task Given() => Task.CompletedTask;
 
-	protected Task PostEvent(string stream, string eventType, string data)
-	{
-		return _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(eventType, data));
-	}
+	protected Task PostEvent(string stream, string eventType, string data) =>
+		RetryOnTransientConnectionFailure(
+			conn => conn.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(eventType, data)));
 
-	protected Task HardDeleteStream(string stream)
-	{
-		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, true, _admin);
-	}
+	protected Task HardDeleteStream(string stream) =>
+		RetryOnTransientConnectionFailure(
+			conn => conn.DeleteStreamAsync(stream, ExpectedVersion.Any, true, _admin));
 
-	protected Task SoftDeleteStream(string stream)
-	{
-		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, false, _admin);
-	}
+	protected Task SoftDeleteStream(string stream) =>
+		RetryOnTransientConnectionFailure(
+			conn => conn.DeleteStreamAsync(stream, ExpectedVersion.Any, false, _admin));
 
 	protected static EventData CreateEvent(string type, string data)
 	{
 		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), new byte[0]);
 	}
+
+	private async Task RetryOnTransientConnectionFailure(Func<IEventStoreConnection, Task> operation)
+	{
+		for (var attempt = 1; ; attempt++)
+		{
+			try
+			{
+				await operation(_conn);
+				return;
+			}
+			catch (Exception ex) when (attempt < 5 && IsTransientConnectionFailure(ex))
+			{
+				await Task.Delay(500);
+				await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
+			}
+		}
+	}
+
+	private async Task Reconnect()
+	{
+		_conn?.Close();
+		_conn = EventStoreConnection.Create(new ConnectionSettingsBuilder()
+			.DisableServerCertificateValidation()
+			.Build(), _node.TcpEndPoint);
+		await _conn.ConnectAsync();
+	}
+
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException" or "RetriesLimitReachedException";
 
 	protected void WaitIdle(int multiplier = 1)
 	{
