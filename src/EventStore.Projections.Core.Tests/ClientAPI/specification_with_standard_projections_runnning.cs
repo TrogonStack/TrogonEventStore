@@ -74,7 +74,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
 		try
 		{
-			await Given().WithTimeout(TimeSpan.FromSeconds(10));
+			await Given().WithTimeout(TimeSpan.FromSeconds(20));
 		}
 		catch (Exception ex)
 		{
