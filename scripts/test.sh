@@ -152,10 +152,10 @@ project_timeout() {
         core-rest:EventStore.Core.Tests)
             printf '%s\n' "25m"
             ;;
-        EventStore.Core.Tests)
+        *:EventStore.Core.Tests)
             printf '%s\n' "30m"
             ;;
-        EventStore.Core.XUnit.Tests|EventStore.Projections.Core.Tests)
+        *:EventStore.Core.XUnit.Tests|*:EventStore.Projections.Core.Tests)
             printf '%s\n' "15m"
             ;;
         *)
