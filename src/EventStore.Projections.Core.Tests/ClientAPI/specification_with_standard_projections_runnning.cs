@@ -52,8 +52,6 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		await _node.Start();
 		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(20));
-		_conn = TestConnection.Create(_node.TcpEndPoint);
-		await _conn.ConnectAsync().WithTimeout(TimeSpan.FromSeconds(20));
 
 		_manager = new ProjectionsManager(
 			new ConsoleLogger(),
@@ -74,6 +72,8 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			await EnableStandardProjections();
 
 		WaitIdle();
+		_conn = TestConnection.Create(_node.TcpEndPoint);
+		await _conn.ConnectAsync().WithTimeout(TimeSpan.FromSeconds(20));
 		try
 		{
 			await Given().WithTimeout(TimeSpan.FromSeconds(10));
