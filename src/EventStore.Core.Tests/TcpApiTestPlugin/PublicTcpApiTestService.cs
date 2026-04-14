@@ -21,13 +21,15 @@ public class PublicTcpApiTestService : IHostedService
 {
 	static readonly ILogger Logger = Log.ForContext<PublicTcpApiTestService>();
 	private readonly TcpService _tcpService;
-	private int _systemInitialized;
+	private int _initialized;
+	private int _started;
 
 	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus)
 	{
 		_tcpService = tcpService;
 
-		bus.Subscribe<SystemMessage.SystemInit>(new AdHocHandler<SystemMessage.SystemInit>(_ => StartTcpService()));
+		bus.Subscribe<SystemMessage.SystemInit>(new AdHocHandler<SystemMessage.SystemInit>(_ => InitializeTcpService()));
+		bus.Subscribe<SystemMessage.SystemStart>(new AdHocHandler<SystemMessage.SystemStart>(_ => StartTcpService()));
 		bus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
 
 		_ = Task.Run(async () =>
@@ -104,17 +106,39 @@ public class PublicTcpApiTestService : IHostedService
 
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
-		StartTcpService();
+		_ = Task.Run(async () =>
+		{
+			try
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+				InitializeTcpService();
+				StartTcpService();
+			}
+			catch (OperationCanceledException)
+			{
+			}
+		}, CancellationToken.None);
+
 		return Task.CompletedTask;
 	}
 
 	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-	private void StartTcpService()
+	private void InitializeTcpService()
 	{
-		if (Interlocked.Exchange(ref _systemInitialized, 1) == 1)
+		if (Interlocked.Exchange(ref _initialized, 1) == 1)
 			return;
 
 		_tcpService.Handle(new SystemMessage.SystemInit());
+	}
+
+	private void StartTcpService()
+	{
+		InitializeTcpService();
+
+		if (Interlocked.Exchange(ref _started, 1) == 1)
+			return;
+
+		_tcpService.Handle(new SystemMessage.SystemStart());
 	}
 }

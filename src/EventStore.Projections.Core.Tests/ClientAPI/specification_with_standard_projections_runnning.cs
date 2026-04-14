@@ -33,17 +33,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
-		MiniNodeLogging.Setup();
-
-		try
-		{
-			await base.TestFixtureSetUp();
-		}
-		catch (Exception ex)
-		{
-			MiniNodeLogging.WriteLogs();
-			throw new Exception("TestFixtureSetUp Failed", ex);
-		}
+		await base.TestFixtureSetUp();
 
 		var projectionWorkerThreadCount = GivenWorkerThreadCount();
 		var configuration = new ProjectionSubsystemOptions(
@@ -60,46 +50,34 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			subsystems: [_projections]);
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
+		await _node.Start();
+		await ReconnectUntilReady();
+
+		_manager = new ProjectionsManager(
+			new ConsoleLogger(),
+			_node.HttpEndPoint,
+			TimeSpan.FromMilliseconds(20000),
+			_node.HttpMessageHandler);
+
+		_queryManager = new QueryManager(
+			new ConsoleLogger(),
+			_node.HttpEndPoint,
+			TimeSpan.FromMilliseconds(20000),
+			TimeSpan.FromMilliseconds(20000),
+			_node.HttpMessageHandler);
+
+		WaitIdle();
+
+		if (GivenStandardProjectionsRunning())
+			await EnableStandardProjections();
+
+		WaitIdle();
 		try
 		{
-			await _node.Start();
-			await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(20));
-			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(20));
-
-			_manager = new ProjectionsManager(
-				new ConsoleLogger(),
-				_node.HttpEndPoint,
-				TimeSpan.FromMilliseconds(20000),
-				_node.HttpMessageHandler);
-
-			_queryManager = new QueryManager(
-				new ConsoleLogger(),
-				_node.HttpEndPoint,
-				TimeSpan.FromMilliseconds(20000),
-				TimeSpan.FromMilliseconds(20000),
-				_node.HttpMessageHandler);
-
-			WaitIdle();
-
-			if (GivenStandardProjectionsRunning())
-				await EnableStandardProjections();
-
-			WaitIdle();
-			await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
-			await EnsureClientReady().WithTimeout(TimeSpan.FromSeconds(20));
-		}
-		catch
-		{
-			MiniNodeLogging.WriteLogs();
-			throw;
-		}
-		try
-		{
-			await Given().WithTimeout(TimeSpan.FromSeconds(20));
+			await Given().WithTimeout(TimeSpan.FromSeconds(10));
 		}
 		catch (Exception ex)
 		{
-			MiniNodeLogging.WriteLogs();
 			throw new Exception("Given Failed", ex);
 		}
 
@@ -109,7 +87,6 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		}
 		catch (Exception ex)
 		{
-			MiniNodeLogging.WriteLogs();
 			throw new Exception("When Failed", ex);
 		}
 	}
@@ -134,7 +111,6 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
-		await Task.Delay(1000);
 	}
 
 	protected async Task DisableStandardProjections()
@@ -150,22 +126,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		return true;
 	}
 
-	protected async Task EnableProjection(string name)
+	protected Task EnableProjection(string name)
 	{
-		for (int i = 1; i <= 10; i++)
-		{
-			try
-			{
-				await _manager.EnableAsync(name, _admin);
-				return;
-			}
-			catch (Exception)
-			{
-				if (i == 10)
-					throw;
-				await Task.Delay(5000);
-			}
-		}
+		return _manager.EnableAsync(name, _admin);
 	}
 
 	protected Task DisableProjection(string name)
@@ -177,66 +140,99 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	public override async Task TestFixtureTearDown()
 	{
 		if (_conn != null)
-			_conn.Close();
+			await CloseConnectionAndWait(_conn);
+
+		DisposeIfNeeded(_queryManager);
+		DisposeIfNeeded(_manager);
 
 		if (_node != null)
 			await _node.Shutdown();
+		await Task.Delay(1000);
 
 		await base.TestFixtureTearDown();
-		MiniNodeLogging.Clear();
 	}
 
 	protected virtual Task When() => Task.CompletedTask;
 
 	protected virtual Task Given() => Task.CompletedTask;
 
-	protected Task PostEvent(string stream, string eventType, string data) =>
-		RetryOnTransientConnectionFailure(
-			conn => conn.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(eventType, data)));
+	protected Task PostEvent(string stream, string eventType, string data)
+	{
+		return _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(eventType, data));
+	}
 
-	protected Task HardDeleteStream(string stream) =>
-		RetryOnTransientConnectionFailure(
-			conn => conn.DeleteStreamAsync(stream, ExpectedVersion.Any, true, _admin));
+	protected Task HardDeleteStream(string stream)
+	{
+		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, true, _admin);
+	}
 
-	protected Task SoftDeleteStream(string stream) =>
-		RetryOnTransientConnectionFailure(
-			conn => conn.DeleteStreamAsync(stream, ExpectedVersion.Any, false, _admin));
+	protected Task SoftDeleteStream(string stream)
+	{
+		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, false, _admin);
+	}
 
 	protected static EventData CreateEvent(string type, string data)
 	{
 		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), new byte[0]);
 	}
 
-	private async Task RetryOnTransientConnectionFailure(Func<IEventStoreConnection, Task> operation)
+	private static async Task CloseConnectionAndWait(IEventStoreConnection connection)
 	{
-		for (var attempt = 1; ; attempt++)
+		var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		connection.Closed += (_, _) => closed.TrySetResult();
+		connection.Close();
+		await closed.Task.WithTimeout(TimeSpan.FromSeconds(20));
+	}
+
+	private IEventStoreConnection CreateConnection()
+	{
+		return TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
+	}
+
+	private async Task ReconnectUntilReady()
+	{
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+
+		while (true)
 		{
 			try
 			{
-				await operation(_conn);
+				_conn = CreateConnection();
+				await _conn.ConnectAsync();
+				await _conn.ReadAllEventsForwardAsync(Position.Start, 1, false, _admin);
 				return;
 			}
-			catch (Exception ex) when (attempt < 5 && IsTransientConnectionFailure(ex))
+			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
 			{
-				await Task.Delay(500);
-				await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
+				if (_conn != null)
+					TryCloseConnection(_conn);
+				await Task.Delay(250);
 			}
 		}
 	}
 
-	private Task EnsureClientReady() =>
-		RetryOnTransientConnectionFailure(
-			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, _admin));
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException"
+			or "RetriesLimitReachedException"
+			or "NotAuthenticatedException"
+			or "AccessDeniedException";
 
-	private async Task Reconnect()
+	private static void TryCloseConnection(IEventStoreConnection connection)
 	{
-		_conn?.Close();
-		_conn = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
-		await _conn.ConnectAsync();
+		try
+		{
+			connection.Close();
+		}
+		catch
+		{
+		}
 	}
 
-	private static bool IsTransientConnectionFailure(Exception ex) =>
-		ex.GetType().Name is "ConnectionClosedException" or "RetriesLimitReachedException";
+	private static void DisposeIfNeeded(object candidate)
+	{
+		if (candidate is IDisposable disposable)
+			disposable.Dispose();
+	}
 
 	protected void WaitIdle(int multiplier = 1)
 	{

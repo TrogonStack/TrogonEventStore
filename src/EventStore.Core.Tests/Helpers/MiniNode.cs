@@ -320,8 +320,8 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			_started.TrySetResult(true);
 
 		await Node.StartAsync(true).WithTimeout(TimeSpan.FromSeconds(60));
-
-		await Started.WithTimeout(TimeSpan.FromSeconds(60));
+		await WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+		_started.TrySetResult(true);
 
 		StartingTime.Stop();
 		Log.Information("MiniNode successfully started!");

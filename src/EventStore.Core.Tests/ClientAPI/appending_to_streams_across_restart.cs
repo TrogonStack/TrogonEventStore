@@ -31,6 +31,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 
 	[Test]
 	[Category("Network")]
+	[Timeout(80000)]
 	public async Task detect_existing_streams_flush()
 	{
 		void CreateNode()

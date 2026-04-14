@@ -33,40 +33,18 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
-		MiniNodeLogging.Setup();
-
-		try
-		{
-			await base.TestFixtureSetUp();
-		}
-		catch (Exception ex)
-		{
-			MiniNodeLogging.WriteLogs();
-			throw new Exception("TestFixtureSetUp Failed", ex);
-		}
+		await base.TestFixtureSetUp();
 		_credentials = new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword);
 		_timeout = TimeSpan.FromSeconds(20);
 		// Check if a node is running in ProjectionsManagerTestSuiteMarkerBase
 		_tag = "_1";
 
-		try
-		{
-			_node = CreateNode();
-			await _node.Start().WithTimeout(_timeout);
-			await _node.AdminUserCreated.WithTimeout(_timeout);
-			await _node.WaitForTcpEndPoint().WithTimeout(_timeout);
+		_node = CreateNode();
+		await _node.Start();
 
-			await _systemProjectionsCreated.WithTimeout(_timeout);
+		await _systemProjectionsCreated.WithTimeout(_timeout);
 
-			_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
-			await _connection.ConnectAsync();
-			await EnsureClientReady().WithTimeout(_timeout);
-		}
-		catch
-		{
-			MiniNodeLogging.WriteLogs();
-			throw;
-		}
+		await ReconnectUntilReady();
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try
@@ -75,7 +53,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		}
 		catch (Exception ex)
 		{
-			MiniNodeLogging.WriteLogs();
 			throw new Exception("Given Failed", ex);
 		}
 
@@ -85,7 +62,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		}
 		catch (Exception ex)
 		{
-			MiniNodeLogging.WriteLogs();
 			throw new Exception("When Failed", ex);
 		}
 	}
@@ -93,11 +69,15 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		_connection.Close();
+		if (_connection != null)
+			await CloseConnectionAndWait(_connection);
+
+		DisposeIfNeeded(_projManager);
+
 		await _node.Shutdown();
+		await Task.Delay(1000);
 
 		await base.TestFixtureTearDown();
-		MiniNodeLogging.Clear();
 	}
 
 	public abstract Task Given();
@@ -122,9 +102,57 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		return _connection.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
 	}
 
-	private Task EnsureClientReady()
+	private async Task CloseConnectionAndWait(IEventStoreConnection connection)
 	{
-		return _connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials);
+		var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		connection.Closed += (_, _) => closed.TrySetResult();
+		connection.Close();
+		await closed.Task.WithTimeout(_timeout);
+	}
+
+	private async Task ReconnectUntilReady()
+	{
+		var deadline = DateTime.UtcNow + _timeout;
+
+		while (true)
+		{
+			try
+			{
+				_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
+				await _connection.ConnectAsync();
+				await _connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials);
+				return;
+			}
+			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+			{
+				if (_connection != null)
+					TryCloseConnection(_connection);
+				await Task.Delay(250);
+			}
+		}
+	}
+
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException"
+			or "RetriesLimitReachedException"
+			or "NotAuthenticatedException"
+			or "AccessDeniedException";
+
+	private static void TryCloseConnection(IEventStoreConnection connection)
+	{
+		try
+		{
+			connection.Close();
+		}
+		catch
+		{
+		}
+	}
+
+	private static void DisposeIfNeeded(object candidate)
+	{
+		if (candidate is IDisposable disposable)
+			disposable.Dispose();
 	}
 
 	protected Task CreateOneTimeProjection()
