@@ -105,11 +105,38 @@ validate_shard_coverage() {
 run_project() {
     local proj="$1"
     local testdir="$2"
+    local timeout_window
 
-    dotnet test \
+    timeout_window="$(project_timeout "$proj")"
+
+    timeout --signal=TERM --kill-after=30s "$timeout_window" dotnet test \
         --settings /build/ci/ci.runsettings \
         --logger:"console;verbosity=minimal" \
         "$testdir/$proj.dll"
+
+    local exit_code=$?
+
+    if [ "$exit_code" -eq 124 ]; then
+        echo "Test project '$proj' exceeded its ${timeout_window} limit." >&2
+    fi
+
+    return "$exit_code"
+}
+
+project_timeout() {
+    local proj="$1"
+
+    case "$proj" in
+        EventStore.Core.Tests)
+            printf '%s\n' "30m"
+            ;;
+        EventStore.Core.XUnit.Tests|EventStore.Projections.Core.Tests)
+            printf '%s\n' "15m"
+            ;;
+        *)
+            printf '%s\n' "10m"
+            ;;
+    esac
 }
 
 run_project_or_stop() {
