@@ -57,6 +57,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		{
 			_node = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: _chunkSize);
 			await _node.Start();
+			await _node.AdminUserCreated.WithTimeout(Timeout);
 			_conn = BuildConnection(_node);
 			await _conn.ConnectAsync();
 		}

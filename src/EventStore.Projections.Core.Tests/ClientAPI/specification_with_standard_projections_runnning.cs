@@ -9,6 +9,7 @@ using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Options;
 using EventStore.Core.Tests;
+using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Util;
 using EventStore.Projections.Core.Services.Processing;
@@ -50,10 +51,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
 		await _node.Start();
-		_conn = EventStoreConnection.Create(new ConnectionSettingsBuilder()
-			.DisableServerCertificateValidation()
-			.Build(), _node.TcpEndPoint);
-		await _conn.ConnectAsync();
+		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(20));
+		_conn = TestConnection.Create(_node.TcpEndPoint);
+		await _conn.ConnectAsync().WithTimeout(TimeSpan.FromSeconds(20));
 
 		_manager = new ProjectionsManager(
 			new ConsoleLogger(),
