@@ -4,6 +4,7 @@
 		<DefaultTestNamePattern>{C}.{m}</DefaultTestNamePattern>
 		<DefaultTimeout>20000</DefaultTimeout>
 		<AssemblySelectLimit>2147483647</AssemblySelectLimit>
+		<StopOnError>true</StopOnError>
 	</NUnit>
 	<RunConfiguration>
 		<TestCaseFilter>FullyQualifiedName!~EventStore.Core.Tests.LogFormat+V3</TestCaseFilter>

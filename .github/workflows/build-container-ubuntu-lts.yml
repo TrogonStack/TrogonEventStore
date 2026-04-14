@@ -17,11 +17,23 @@ on:
       - "samples/**"
       - "**.md"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    name: Build
+    name: Build (${{ matrix.test-group-name }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - test-group-name: core
+          - test-group-name: projections
+          - test-group-name: misc
     uses: ./.github/workflows/build-container-reusable.yml
     with:
       container-runtime: noble
       runtime: linux-x64
+      test-group-name: ${{ matrix.test-group-name }}
     secrets: inherit
