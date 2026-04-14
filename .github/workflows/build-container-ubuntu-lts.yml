@@ -28,7 +28,8 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - test-group-name: core
+          - test-group-name: core-clientapi
+          - test-group-name: core-rest
           - test-group-name: projections
           - test-group-name: misc
     uses: ./.github/workflows/build-container-reusable.yml

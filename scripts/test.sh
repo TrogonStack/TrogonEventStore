@@ -5,7 +5,11 @@ set -o xtrace
 
 update-ca-certificates
 
-core_projects=(
+core_clientapi_projects=(
+    EventStore.Core.Tests
+)
+
+core_rest_projects=(
     EventStore.Core.Tests
     EventStore.Core.XUnit.Tests
 )
@@ -31,8 +35,11 @@ load_requested_projects() {
         all)
             requested_projects=()
             ;;
-        core)
-            requested_projects=("${core_projects[@]}")
+        core-clientapi)
+            requested_projects=("${core_clientapi_projects[@]}")
+            ;;
+        core-rest)
+            requested_projects=("${core_rest_projects[@]}")
             ;;
         projections)
             requested_projects=("${projections_projects[@]}")
@@ -48,23 +55,16 @@ load_requested_projects() {
 }
 
 validate_shard_coverage() {
-    local declared_projects actual_projects duplicate_projects missing_assignments stale_assignments
+    local declared_projects actual_projects missing_assignments stale_assignments
 
     declared_projects="$(
         printf '%s\n' \
-            "${core_projects[@]}" \
-            "${projections_projects[@]}" \
-            "${misc_projects[@]}" \
-            | sort
-    )"
-
-    duplicate_projects="$(
-        printf '%s\n' \
-            "${core_projects[@]}" \
+            "${core_clientapi_projects[@]}" \
+            "${core_rest_projects[@]}" \
             "${projections_projects[@]}" \
             "${misc_projects[@]}" \
             | sort \
-            | uniq -d
+            | uniq
     )"
 
     actual_projects="$(
@@ -83,12 +83,6 @@ validate_shard_coverage() {
             <(printf '%s\n' "$declared_projects")
     )"
 
-    if [ -n "$duplicate_projects" ]; then
-        echo "Shard definitions contain duplicate test projects:" >&2
-        printf '%s\n' "$duplicate_projects" >&2
-        exit 1
-    fi
-
     if [ -n "$missing_assignments" ]; then
         echo "Published test projects are missing shard assignments:" >&2
         printf '%s\n' "$missing_assignments" >&2
@@ -105,14 +99,26 @@ validate_shard_coverage() {
 run_project() {
     local proj="$1"
     local testdir="$2"
+    local -a dotnet_args
+    local test_filter
     local timeout_window
 
+    test_filter="$(project_filter "$proj")"
     timeout_window="$(project_timeout "$proj")"
 
-    timeout --signal=TERM --kill-after=30s "$timeout_window" dotnet test \
-        --settings /build/ci/ci.runsettings \
-        --logger:"console;verbosity=minimal" \
-        "$testdir/$proj.dll"
+    dotnet_args=(
+        test
+        --settings /build/ci/ci.runsettings
+        --logger:"console;verbosity=minimal"
+    )
+
+    if [ -n "$test_filter" ]; then
+        dotnet_args+=(--filter "$test_filter")
+    fi
+
+    dotnet_args+=("$testdir/$proj.dll")
+
+    timeout --signal=TERM --kill-after=30s "$timeout_window" dotnet "${dotnet_args[@]}"
 
     local exit_code=$?
 
@@ -123,10 +129,29 @@ run_project() {
     return "$exit_code"
 }
 
+project_filter() {
+    local proj="$1"
+
+    case "${TEST_GROUP:-all}:$proj" in
+        core-clientapi:EventStore.Core.Tests)
+            printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI"
+            ;;
+        core-rest:EventStore.Core.Tests)
+            printf '%s\n' "FullyQualifiedName!~EventStore.Core.Tests.ClientAPI"
+            ;;
+    esac
+}
+
 project_timeout() {
     local proj="$1"
 
-    case "$proj" in
+    case "${TEST_GROUP:-all}:$proj" in
+        core-clientapi:EventStore.Core.Tests)
+            printf '%s\n' "15m"
+            ;;
+        core-rest:EventStore.Core.Tests)
+            printf '%s\n' "25m"
+            ;;
         EventStore.Core.Tests)
             printf '%s\n' "30m"
             ;;
