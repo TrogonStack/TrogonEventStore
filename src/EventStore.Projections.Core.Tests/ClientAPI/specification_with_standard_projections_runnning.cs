@@ -113,6 +113,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
+		await Task.Delay(1000);
 	}
 
 	protected async Task DisableStandardProjections()
@@ -128,9 +129,22 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		return true;
 	}
 
-	protected Task EnableProjection(string name)
+	protected async Task EnableProjection(string name)
 	{
-		return _manager.EnableAsync(name, _admin);
+		for (int i = 1; i <= 10; i++)
+		{
+			try
+			{
+				await _manager.EnableAsync(name, _admin);
+				return;
+			}
+			catch (Exception)
+			{
+				if (i == 10)
+					throw;
+				await Task.Delay(5000);
+			}
+		}
 	}
 
 	protected Task DisableProjection(string name)
