@@ -682,6 +682,13 @@ public partial class TFChunk : IDisposable
 		if (!IsReadOnly)
 			throw new InvalidOperationException("You can't verify hash of not-completed TFChunk.");
 
+		if (IsRemote)
+		{
+			token.ThrowIfCancellationRequested();
+			Log.Debug("Skipping hash verification for remote TFChunk '{chunk}'.", _filename);
+			return;
+		}
+
 		Log.Debug("Verifying hash for TFChunk '{chunk}'...", _filename);
 		using var reader = AcquireRawReader();
 		reader.Stream.Seek(0, SeekOrigin.Begin);
