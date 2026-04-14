@@ -21,6 +21,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 	private readonly long _chunkSize;
 	private readonly bool _unsafeIgnoreHardDeletes;
 	private readonly int _cancellationCheckPeriod;
+	private readonly bool _isArchiver;
 	private readonly int _threads;
 	private readonly Throttle _throttle;
 
@@ -32,6 +33,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		long chunkSize,
 		bool unsafeIgnoreHardDeletes,
 		int cancellationCheckPeriod,
+		bool isArchiver,
 		int threads,
 		Throttle throttle)
 	{
@@ -43,6 +45,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		_chunkSize = chunkSize;
 		_unsafeIgnoreHardDeletes = unsafeIgnoreHardDeletes;
 		_cancellationCheckPeriod = cancellationCheckPeriod;
+		_isArchiver = isArchiver;
 		_threads = Math.Clamp(threads, TFChunkScavenger.MinThreadCount, TFChunkScavenger.MaxThreadCount);
 		_throttle = throttle;
 
@@ -142,6 +145,14 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 							physicalChunk.ChunkStartNumber,
 							physicalChunk.ChunkEndNumber);
 
+					}
+					else if (_isArchiver)
+					{
+						_logger.Debug(
+							"SCAVENGING: Skipped physical chunk: {oldChunkName} " +
+							"with weight {physicalWeight:N0} because we are the archiver.",
+							physicalChunk.Name,
+							physicalWeight);
 					}
 					else if (physicalWeight > scavengePoint.Threshold || _unsafeIgnoreHardDeletes)
 					{
