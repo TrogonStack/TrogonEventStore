@@ -47,6 +47,7 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 
 		_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
+		await EnsureClientReady().WithTimeout(_timeout);
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try
@@ -97,6 +98,11 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	protected Task PostEvent(string stream, string eventType, string data)
 	{
 		return _connection.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
+	}
+
+	private Task EnsureClientReady()
+	{
+		return _connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials);
 	}
 
 	protected Task CreateOneTimeProjection()

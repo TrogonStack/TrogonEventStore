@@ -23,6 +23,25 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		return TestConnection.CreateMiniNodeClient(node.TcpEndPoint, TcpType.Ssl);
 	}
 
+	protected virtual async Task EnsureClientReady()
+	{
+		for (var attempt = 1; ; attempt++)
+		{
+			try
+			{
+				await _conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials);
+				return;
+			}
+			catch (Exception ex) when (attempt < 10 && IsTransientConnectionFailure(ex))
+			{
+				_conn.Close();
+				_conn = BuildConnection(_node);
+				await _conn.ConnectAsync();
+				await Task.Delay(100);
+			}
+		}
+	}
+
 	protected async Task CloseConnectionAndWait(IEventStoreConnection conn)
 	{
 		TaskCompletionSource closed = new TaskCompletionSource();
@@ -60,6 +79,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 			await _node.AdminUserCreated.WithTimeout(Timeout);
 			_conn = BuildConnection(_node);
 			await _conn.ConnectAsync();
+			await EnsureClientReady().WithTimeout(Timeout);
 		}
 		catch (Exception ex)
 		{
@@ -97,4 +117,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 
 		MiniNodeLogging.Clear();
 	}
+
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException" or "RetriesLimitReachedException";
 }

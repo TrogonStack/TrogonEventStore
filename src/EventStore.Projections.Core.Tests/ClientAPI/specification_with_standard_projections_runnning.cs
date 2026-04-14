@@ -73,6 +73,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		WaitIdle();
 		await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
+		await EnsureClientReady().WithTimeout(TimeSpan.FromSeconds(20));
 		try
 		{
 			await Given().WithTimeout(TimeSpan.FromSeconds(20));
@@ -200,6 +201,10 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			}
 		}
 	}
+
+	private Task EnsureClientReady() =>
+		RetryOnTransientConnectionFailure(
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, _admin));
 
 	private async Task Reconnect()
 	{
