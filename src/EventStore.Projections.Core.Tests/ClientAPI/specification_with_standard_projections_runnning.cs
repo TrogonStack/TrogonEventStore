@@ -33,7 +33,17 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
-		await base.TestFixtureSetUp();
+		MiniNodeLogging.Setup();
+
+		try
+		{
+			await base.TestFixtureSetUp();
+		}
+		catch (Exception ex)
+		{
+			MiniNodeLogging.WriteLogs();
+			throw new Exception("TestFixtureSetUp Failed", ex);
+		}
 
 		var projectionWorkerThreadCount = GivenWorkerThreadCount();
 		var configuration = new ProjectionSubsystemOptions(
@@ -50,36 +60,46 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			subsystems: [_projections]);
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
-		await _node.Start();
-		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(20));
+		try
+		{
+			await _node.Start();
+			await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(20));
+			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(20));
 
-		_manager = new ProjectionsManager(
-			new ConsoleLogger(),
-			_node.HttpEndPoint,
-			TimeSpan.FromMilliseconds(20000),
-			_node.HttpMessageHandler);
+			_manager = new ProjectionsManager(
+				new ConsoleLogger(),
+				_node.HttpEndPoint,
+				TimeSpan.FromMilliseconds(20000),
+				_node.HttpMessageHandler);
 
-		_queryManager = new QueryManager(
-			new ConsoleLogger(),
-			_node.HttpEndPoint,
-			TimeSpan.FromMilliseconds(20000),
-			TimeSpan.FromMilliseconds(20000),
-			_node.HttpMessageHandler);
+			_queryManager = new QueryManager(
+				new ConsoleLogger(),
+				_node.HttpEndPoint,
+				TimeSpan.FromMilliseconds(20000),
+				TimeSpan.FromMilliseconds(20000),
+				_node.HttpMessageHandler);
 
-		WaitIdle();
+			WaitIdle();
 
-		if (GivenStandardProjectionsRunning())
-			await EnableStandardProjections();
+			if (GivenStandardProjectionsRunning())
+				await EnableStandardProjections();
 
-		WaitIdle();
-		await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
-		await EnsureClientReady().WithTimeout(TimeSpan.FromSeconds(20));
+			WaitIdle();
+			await Reconnect().WithTimeout(TimeSpan.FromSeconds(20));
+			await EnsureClientReady().WithTimeout(TimeSpan.FromSeconds(20));
+		}
+		catch
+		{
+			MiniNodeLogging.WriteLogs();
+			throw;
+		}
 		try
 		{
 			await Given().WithTimeout(TimeSpan.FromSeconds(20));
 		}
 		catch (Exception ex)
 		{
+			MiniNodeLogging.WriteLogs();
 			throw new Exception("Given Failed", ex);
 		}
 
@@ -89,6 +109,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		}
 		catch (Exception ex)
 		{
+			MiniNodeLogging.WriteLogs();
 			throw new Exception("When Failed", ex);
 		}
 	}
@@ -162,6 +183,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			await _node.Shutdown();
 
 		await base.TestFixtureTearDown();
+		MiniNodeLogging.Clear();
 	}
 
 	protected virtual Task When() => Task.CompletedTask;

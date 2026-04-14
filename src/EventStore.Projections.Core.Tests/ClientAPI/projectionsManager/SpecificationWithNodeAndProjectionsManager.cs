@@ -33,21 +33,40 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
-		await base.TestFixtureSetUp();
+		MiniNodeLogging.Setup();
+
+		try
+		{
+			await base.TestFixtureSetUp();
+		}
+		catch (Exception ex)
+		{
+			MiniNodeLogging.WriteLogs();
+			throw new Exception("TestFixtureSetUp Failed", ex);
+		}
 		_credentials = new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword);
 		_timeout = TimeSpan.FromSeconds(20);
 		// Check if a node is running in ProjectionsManagerTestSuiteMarkerBase
 		_tag = "_1";
 
-		_node = CreateNode();
-		await _node.Start().WithTimeout(_timeout);
-		await _node.AdminUserCreated.WithTimeout(_timeout);
+		try
+		{
+			_node = CreateNode();
+			await _node.Start().WithTimeout(_timeout);
+			await _node.AdminUserCreated.WithTimeout(_timeout);
+			await _node.WaitForTcpEndPoint().WithTimeout(_timeout);
 
-		await _systemProjectionsCreated.WithTimeout(_timeout);
+			await _systemProjectionsCreated.WithTimeout(_timeout);
 
-		_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
-		await _connection.ConnectAsync();
-		await EnsureClientReady().WithTimeout(_timeout);
+			_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
+			await _connection.ConnectAsync();
+			await EnsureClientReady().WithTimeout(_timeout);
+		}
+		catch
+		{
+			MiniNodeLogging.WriteLogs();
+			throw;
+		}
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try
@@ -56,6 +75,7 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		}
 		catch (Exception ex)
 		{
+			MiniNodeLogging.WriteLogs();
 			throw new Exception("Given Failed", ex);
 		}
 
@@ -65,6 +85,7 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		}
 		catch (Exception ex)
 		{
+			MiniNodeLogging.WriteLogs();
 			throw new Exception("When Failed", ex);
 		}
 	}
@@ -76,6 +97,7 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		await _node.Shutdown();
 
 		await base.TestFixtureTearDown();
+		MiniNodeLogging.Clear();
 	}
 
 	public abstract Task Given();

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
@@ -320,10 +321,29 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 
 		await Node.StartAsync(true).WithTimeout(TimeSpan.FromSeconds(60));
 
-		await Started.WithTimeout();
+		await Started.WithTimeout(TimeSpan.FromSeconds(60));
 
 		StartingTime.Stop();
 		Log.Information("MiniNode successfully started!");
+	}
+
+	public async Task WaitForTcpEndPoint()
+	{
+		while (true)
+		{
+			using var client = new TcpClient();
+
+			try
+			{
+				await client.ConnectAsync(TcpEndPoint.Address, TcpEndPoint.Port)
+					.WaitAsync(TimeSpan.FromMilliseconds(250));
+				return;
+			}
+			catch (Exception ex) when (ex is SocketException or TimeoutException)
+			{
+				await Task.Delay(100);
+			}
+		}
 	}
 
 	public async Task Shutdown(bool keepDb = false)
