@@ -150,8 +150,4 @@ else
     done < <(find /build/published-tests -maxdepth 1 -type d -name "*.Tests" -print0)
 fi
 
-if [ -d "/build/test-results" ]; then
-    find /build/test-results -name "*.html" -exec cat {} \; > /build/test-results/test-results.html 2>/dev/null || true
-fi
-
 exit ${exit_code:-0}
