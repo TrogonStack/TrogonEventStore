@@ -9,6 +9,7 @@ using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Options;
 using EventStore.Core.Tests;
+using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Util;
 using EventStore.Projections.Core.Services.Processing;
@@ -203,9 +204,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	private async Task Reconnect()
 	{
 		_conn?.Close();
-		_conn = EventStoreConnection.Create(new ConnectionSettingsBuilder()
-			.DisableServerCertificateValidation()
-			.Build(), _node.TcpEndPoint);
+		_conn = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
 		await _conn.ConnectAsync();
 	}
 

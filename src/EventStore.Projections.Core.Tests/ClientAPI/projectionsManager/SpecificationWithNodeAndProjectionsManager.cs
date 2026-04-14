@@ -41,10 +41,11 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 
 		_node = CreateNode();
 		await _node.Start().WithTimeout(_timeout);
+		await _node.AdminUserCreated.WithTimeout(_timeout);
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 
-		_connection = TestConnection.Create(_node.TcpEndPoint);
+		_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);

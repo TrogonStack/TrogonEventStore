@@ -20,7 +20,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 
 	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
-		return TestConnection.Create(node.TcpEndPoint, TcpType.Ssl);
+		return TestConnection.CreateMiniNodeClient(node.TcpEndPoint, TcpType.Ssl);
 	}
 
 	protected async Task CloseConnectionAndWait(IEventStoreConnection conn)

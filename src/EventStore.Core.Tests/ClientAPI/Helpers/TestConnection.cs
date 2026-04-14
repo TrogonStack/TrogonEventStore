@@ -22,6 +22,18 @@ public static class TestConnection
 			$"ESC-{Interlocked.Increment(ref _nextConnId)}");
 	}
 
+	public static IEventStoreConnection CreateMiniNodeClient(IPEndPoint endPoint, TcpType tcpType = TcpType.Ssl,
+		UserCredentials userCredentials = null)
+	{
+		return EventStoreConnection.Create(Settings(
+				tcpType,
+				userCredentials,
+				limitAttemptsForOperationTo: 10,
+				reconnectionDelay: TimeSpan.FromMilliseconds(100)),
+			endPoint.ToESTcpUri(),
+			$"ESC-{Interlocked.Increment(ref _nextConnId)}");
+	}
+
 	public static IEventStoreConnection To(MiniNode miniNode, TcpType tcpType,
 		UserCredentials userCredentials = null)
 	{
@@ -30,16 +42,20 @@ public static class TestConnection
 			$"ESC-{Interlocked.Increment(ref _nextConnId)}");
 	}
 
-	private static ConnectionSettingsBuilder Settings(TcpType tcpType, UserCredentials userCredentials)
+	private static ConnectionSettingsBuilder Settings(
+		TcpType tcpType,
+		UserCredentials userCredentials,
+		int limitAttemptsForOperationTo = 1,
+		TimeSpan? reconnectionDelay = null)
 	{
 		var settings = ConnectionSettings.Create()
 			.SetDefaultUserCredentials(userCredentials)
 			.UseCustomLogger(ClientApiLoggerBridge.Default)
 			.EnableVerboseLogging()
 			.LimitReconnectionsTo(10)
-			.LimitAttemptsForOperationTo(1)
+			.LimitAttemptsForOperationTo(limitAttemptsForOperationTo)
 			.SetTimeoutCheckPeriodTo(TimeSpan.FromMilliseconds(100))
-			.SetReconnectionDelayTo(TimeSpan.Zero)
+			.SetReconnectionDelayTo(reconnectionDelay ?? TimeSpan.Zero)
 			.FailOnNoServerResponse()
 			//.SetOperationTimeoutTo(TimeSpan.FromDays(1))
 			;
