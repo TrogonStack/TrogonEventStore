@@ -20,16 +20,11 @@ namespace EventStore.TcpUnitTestPlugin;
 public class PublicTcpApiTestService : IHostedService
 {
 	static readonly ILogger Logger = Log.ForContext<PublicTcpApiTestService>();
-	private readonly TcpService _tcpService;
-	private int _initialized;
-	private int _started;
 
 	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus)
 	{
-		_tcpService = tcpService;
-
-		bus.Subscribe<SystemMessage.SystemInit>(new AdHocHandler<SystemMessage.SystemInit>(_ => InitializeTcpService()));
-		bus.Subscribe<SystemMessage.SystemStart>(new AdHocHandler<SystemMessage.SystemStart>(_ => StartTcpService()));
+		bus.Subscribe<SystemMessage.SystemInit>(tcpService);
+		bus.Subscribe<SystemMessage.SystemStart>(tcpService);
 		bus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
 
 		_ = Task.Run(async () =>
@@ -104,41 +99,7 @@ public class PublicTcpApiTestService : IHostedService
 		return new(tcpService, components.MainBus);
 	}
 
-	public Task StartAsync(CancellationToken cancellationToken)
-	{
-		_ = Task.Run(async () =>
-		{
-			try
-			{
-				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
-				InitializeTcpService();
-				StartTcpService();
-			}
-			catch (OperationCanceledException)
-			{
-			}
-		}, CancellationToken.None);
-
-		return Task.CompletedTask;
-	}
+	public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
 	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-	private void InitializeTcpService()
-	{
-		if (Interlocked.Exchange(ref _initialized, 1) == 1)
-			return;
-
-		_tcpService.Handle(new SystemMessage.SystemInit());
-	}
-
-	private void StartTcpService()
-	{
-		InitializeTcpService();
-
-		if (Interlocked.Exchange(ref _started, 1) == 1)
-			return;
-
-		_tcpService.Handle(new SystemMessage.SystemStart());
-	}
 }
