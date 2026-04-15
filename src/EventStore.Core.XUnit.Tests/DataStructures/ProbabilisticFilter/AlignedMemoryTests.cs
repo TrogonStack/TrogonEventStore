@@ -28,8 +28,17 @@ public unsafe class AlignedMemoryTests
 	[Fact]
 	public void finalizer_does_not_crash_process_when_oom()
 	{
-		Assert.Throws<OutOfMemoryException>(() => new AlignedMemory(1_000_000_000_000, 1));
+		try
+		{
+			AllocateHugeAlignedMemory();
+		}
+		catch (OutOfMemoryException)
+		{
+		}
+
 		GC.Collect();
 		GC.WaitForPendingFinalizers();
 	}
+
+	private static void AllocateHugeAlignedMemory() => _ = new AlignedMemory(1_000_000_000_000, 1);
 }

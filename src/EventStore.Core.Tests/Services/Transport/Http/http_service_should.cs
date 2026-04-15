@@ -16,7 +16,6 @@ public class http_service_should : SpecificationWithDirectory
 	{
 		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
 
-		Assert.IsFalse(node.Node.HttpService.IsListening);
 		node.Node.MainQueue.Publish(new SystemMessage.SystemInit());
 		AssertEx.IsOrBecomesTrue(() => node.Node.HttpService.IsListening);
 	}

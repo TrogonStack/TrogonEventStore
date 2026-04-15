@@ -14,7 +14,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientAPI;
 
-[Category("LongRunning"), Category("ClientAPI")]
+[Category("LongRunning"), Category("ClientAPI"), NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class catchup_filtered_subscription<TLogFormat, TStreamId> : SpecificationWithDirectory

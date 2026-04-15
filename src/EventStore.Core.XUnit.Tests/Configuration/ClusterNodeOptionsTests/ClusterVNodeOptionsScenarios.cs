@@ -1,3 +1,4 @@
+using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using EventStore.Core.Authentication;
@@ -45,7 +46,7 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 	}
 
 	[OneTimeTearDown]
-	public virtual Task TestFixtureTearDown() => _node?.StopAsync() ?? Task.CompletedTask;
+	public virtual Task TestFixtureTearDown() => _node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask;
 
 	protected abstract ClusterVNodeOptions WithOptions(ClusterVNodeOptions options);
 
@@ -85,7 +86,7 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId>
 	}
 
 	[OneTimeTearDown]
-	public virtual Task TestFixtureTearDown() => _node?.StopAsync() ?? Task.CompletedTask;
+	public virtual Task TestFixtureTearDown() => _node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask;
 
 	protected abstract ClusterVNodeOptions WithOptions(ClusterVNodeOptions options);
 }

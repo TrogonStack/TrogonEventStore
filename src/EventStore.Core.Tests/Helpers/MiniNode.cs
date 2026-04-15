@@ -292,7 +292,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		return transforms;
 	}
 
-	public async Task Start()
+	public async Task Start(TimeSpan? startupTimeout = null)
 	{
 		StartingTime.Start();
 		Node.MainBus.Subscribe(
@@ -319,7 +319,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		if (Node.IsShutdown)
 			_started.TrySetResult(true);
 
-		await Node.StartAsync(true).WithTimeout(TimeSpan.FromSeconds(60));
+		await Node.StartAsync(true).WithTimeout(startupTimeout ?? TimeSpan.FromSeconds(60));
 
 		StartingTime.Stop();
 		Log.Information("MiniNode successfully started!");

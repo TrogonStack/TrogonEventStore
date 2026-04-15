@@ -44,12 +44,12 @@ public partial class EnumeratorTests
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class subscribe_filtered_all_from_start<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
-		private readonly List<Guid> _eventIds = new();
+		private Guid _eventId;
 
 		protected override void Given()
 		{
 			EnableReadAll();
-			_eventIds.Add(WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId);
+			_eventId = WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId;
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
 			WriteEvent("test-stream", "type3", "{}", "{Data: 3}");
 		}
@@ -61,7 +61,7 @@ public partial class EnumeratorTests
 				_publisher, null, EventFilter.EventType.Prefixes(false, "type1"));
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
-			Assert.AreEqual(_eventIds[0], ((Event)await sub.GetNext()).Id);
+			Assert.AreEqual(_eventId, ((Event)await sub.GetNext()).Id);
 			var response = await sub.GetNext();
 			Assert.IsInstanceOf<Checkpoint>(response);
 			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
@@ -109,7 +109,7 @@ public partial class EnumeratorTests
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class subscribe_filtered_all_from_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
-		private readonly List<Guid> _eventIds = new();
+		private Guid _eventId;
 		private TFPos _subscribeFrom;
 
 		protected override void Given()
@@ -118,7 +118,7 @@ public partial class EnumeratorTests
 			WriteEvent("test-stream", "theType", "{}", "{Data: 1}");
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
 			(_, _subscribeFrom) = WriteEvent("test-stream", "theType", "{}", "{Data: 2}");
-			_eventIds.Add(WriteEvent("test-stream", "theType", "{}", "{Data: 3}").Item1.EventId);
+			_eventId = WriteEvent("test-stream", "theType", "{}", "{Data: 3}").Item1.EventId;
 			WriteEvent("test-stream", "type3", "{}", "{Data: 3}");
 			WriteEvent("test-stream", "type4", "{}", "{Data: 4}");
 		}
@@ -132,7 +132,7 @@ public partial class EnumeratorTests
 				EventFilter.EventType.Prefixes(false, "theType"));
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
-			Assert.AreEqual(_eventIds[0], ((Event)await sub.GetNext()).Id);
+			Assert.AreEqual(_eventId, ((Event)await sub.GetNext()).Id);
 			var response = await sub.GetNext();
 			Assert.IsInstanceOf<Checkpoint>(response);
 			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);

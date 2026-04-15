@@ -14,6 +14,10 @@ core_rest_projects=(
     EventStore.Core.XUnit.Tests
 )
 
+core_http_projects=(
+    EventStore.Core.Tests
+)
+
 projections_projects=(
     EventStore.Projections.Core.Javascript.Tests
     EventStore.Projections.Core.Tests
@@ -41,6 +45,9 @@ load_requested_projects() {
         core-rest)
             requested_projects=("${core_rest_projects[@]}")
             ;;
+        core-http)
+            requested_projects=("${core_http_projects[@]}")
+            ;;
         projections)
             requested_projects=("${projections_projects[@]}")
             ;;
@@ -61,6 +68,7 @@ validate_shard_coverage() {
         printf '%s\n' \
             "${core_clientapi_projects[@]}" \
             "${core_rest_projects[@]}" \
+            "${core_http_projects[@]}" \
             "${projections_projects[@]}" \
             "${misc_projects[@]}" \
             | sort \
@@ -136,8 +144,11 @@ project_filter() {
         core-clientapi:EventStore.Core.Tests)
             printf '%s\n' "FullyQualifiedName~EventStore.Core.Tests.ClientAPI"
             ;;
+        core-http:EventStore.Core.Tests)
+            printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Http|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Http)&FullyQualifiedName!~EventStore.Core.Tests.ClientAPI"
+            ;;
         core-rest:EventStore.Core.Tests)
-            printf '%s\n' "FullyQualifiedName!~EventStore.Core.Tests.ClientAPI"
+            printf '%s\n' "FullyQualifiedName!~EventStore.Core.Tests.ClientAPI&FullyQualifiedName!~EventStore.Core.Tests.Http&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http"
             ;;
     esac
 }
@@ -151,6 +162,9 @@ project_timeout() {
             ;;
         core-rest:EventStore.Core.Tests)
             printf '%s\n' "25m"
+            ;;
+        core-http:EventStore.Core.Tests)
+            printf '%s\n' "15m"
             ;;
         *:EventStore.Core.Tests)
             printf '%s\n' "30m"
