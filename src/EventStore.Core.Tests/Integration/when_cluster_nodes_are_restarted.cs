@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
+using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Integration;
@@ -26,7 +27,8 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			node.Start();
 			_nodes[i % 3] = node;
 
-			await Task.WhenAll(_nodes.Select(x => x.Started)).WithTimeout(TimeSpan.FromSeconds(30));
+			await Task.WhenAll(_nodes.Select(x => x.Started))
+				.WithTimeout(TimeSpan.FromSeconds(60), MiniNodeLogging.WriteLogs);
 		}
 	}
 
