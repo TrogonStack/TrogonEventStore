@@ -44,9 +44,6 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 
 		_node = CreateMiniNode();
 		await _node.Start();
-		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(60));
-		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
-
 		_connection = TestConnection.Create(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
 

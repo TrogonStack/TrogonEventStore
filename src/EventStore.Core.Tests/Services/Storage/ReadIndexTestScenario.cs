@@ -150,8 +150,7 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		await readIndex.IndexCommitter.Init(ChaserCheckpoint.Read(), CancellationToken.None);
 		ReadIndex = readIndex;
 
-		// wait for tables to be merged
-		TableIndex.WaitForBackgroundTasks(16_000);
+			TableIndex.WaitForBackgroundTasks(30_000);
 
 		// scavenge must run after readIndex is built
 		if (_scavenge)

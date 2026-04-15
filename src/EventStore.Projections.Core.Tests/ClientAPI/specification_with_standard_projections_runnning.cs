@@ -51,7 +51,6 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
 		await _node.Start();
-		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(60));
 		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 		await ReconnectUntilReady();
 

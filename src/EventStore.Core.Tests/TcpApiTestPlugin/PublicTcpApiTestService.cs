@@ -28,6 +28,7 @@ public class PublicTcpApiTestService : IHostedService
 		_tcpService = tcpService;
 
 		bus.Subscribe<SystemMessage.SystemInit>(new AdHocHandler<SystemMessage.SystemInit>(_ => StartTcpService()));
+		bus.Subscribe<SystemMessage.SystemStart>(new AdHocHandler<SystemMessage.SystemStart>(_ => StartTcpService()));
 		bus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
 
 		_ = Task.Run(async () =>

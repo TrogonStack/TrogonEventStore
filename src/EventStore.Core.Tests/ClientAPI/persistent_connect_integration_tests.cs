@@ -21,7 +21,7 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -78,7 +78,7 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -133,7 +133,7 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 
 	[Test]
@@ -191,7 +191,7 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 
 	[Test]
@@ -248,7 +248,7 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -310,7 +310,7 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -370,7 +370,7 @@ public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogForma
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -424,7 +424,7 @@ public class when_connection_drops_messages_that_have_run_out_of_retries_are_not
 	private readonly TaskCompletionSource<bool> _eventReceived = new TaskCompletionSource<bool>();
 	private ResolvedEvent _receivedEvent;
 
-	protected override Task When() => _node.Started;
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	[Retry(10)]

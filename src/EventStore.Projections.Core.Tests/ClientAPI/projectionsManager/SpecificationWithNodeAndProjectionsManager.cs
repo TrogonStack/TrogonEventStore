@@ -41,8 +41,7 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 
 		_node = CreateNode();
 		await _node.Start();
-		await _node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(60));
-		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 
