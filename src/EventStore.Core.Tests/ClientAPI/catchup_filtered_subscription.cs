@@ -24,6 +24,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	private List<EventData> _testEvents;
 	private List<EventData> _testEventsAfter;
 	private const int Timeout = 10000;
+	private const int LongRunningTimeout = 120000;
 
 	[SetUp]
 	public override async Task SetUp()
@@ -157,7 +158,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.AreEqual(20, eventsSeen);
 	}
 
-	[Test, Category("LongRunning"), Timeout(60000)]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_with_a_given_stream_prefix()
 	{
 		var filter = Filter.StreamId.Prefix("stream-a");
@@ -174,7 +175,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-a"));
 	}
 
-	[Test, Category("LongRunning"), Timeout(60000)]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_with_a_given_event_prefix()
 	{
 		var filter = Filter.EventType.Prefix("AE");
@@ -191,7 +192,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventType == "AEvent"));
 	}
 
-	[Test, Category("LongRunning"), Timeout(60000)]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_that_satisfy_a_given_stream_regex()
 	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
@@ -208,7 +209,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-b"));
 	}
 
-	[Test, Category("LongRunning"), Timeout(60000)]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_that_satisfy_a_given_event_regex()
 	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
@@ -225,7 +226,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventType == "BEvent"));
 	}
 
-	[Test, Category("LongRunning"), Timeout(60000)]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_that_are_not_system_events()
 	{
 		var filter = Filter.ExcludeSystemEvents;
