@@ -24,11 +24,18 @@ public static class TestConnectionLifecycle
 				await readinessProbe(connection);
 				return connection;
 			}
-			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+			catch (Exception ex)
 			{
 				if (connection != null)
 					TryCloseConnection(connection);
-				await Task.Delay(250);
+
+				if (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+				{
+					await Task.Delay(250);
+					continue;
+				}
+
+				throw;
 			}
 		}
 	}
