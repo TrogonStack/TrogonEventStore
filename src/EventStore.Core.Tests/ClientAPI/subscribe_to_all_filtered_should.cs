@@ -20,6 +20,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private const int Timeout = 10000;
+	private const int LongRunningTimeout = 300000;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private IEventStoreConnection _conn;
@@ -31,10 +33,13 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
-		_conn = BuildConnection(_node);
-		await _conn.ConnectAsync();
+		_conn = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			StartupTimeout);
 		await _conn.SetStreamMetadataAsync("$all", -1,
 			StreamMetadata.Build().SetReadRole(SystemRoles.All),
 			new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword));
@@ -55,7 +60,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 			.ToList();
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task only_return_events_with_a_given_stream_prefix()
 	{
 		var filter = Filter.StreamId.Prefix("stream-a");
@@ -86,7 +91,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task only_return_events_with_a_given_event_prefix()
 	{
 		var filter = Filter.EventType.Prefix("AE");
@@ -120,7 +125,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task only_return_events_that_satisfy_a_given_stream_regex()
 	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
@@ -151,7 +156,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task only_return_events_that_satisfy_a_given_event_regex()
 	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
@@ -182,7 +187,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task only_return_events_that_are_not_system_events()
 	{
 		var filter = Filter.ExcludeSystemEvents;
@@ -233,7 +238,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task calls_checkpoint_reached_according_to_checkpoint_message_count()
 	{
 		var filter = Filter.ExcludeSystemEvents;
