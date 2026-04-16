@@ -156,34 +156,11 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 	private async Task WaitForNodeReadiness()
 	{
 		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
-		await ReconnectUntilReady();
+		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			ReadinessTimeout);
 	}
-
-	private async Task ReconnectUntilReady()
-	{
-		var deadline = DateTime.UtcNow + ReadinessTimeout;
-
-		while (true)
-		{
-			try
-			{
-				using var connection = BuildConnection(_node);
-				await connection.ConnectAsync();
-				await connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials);
-				return;
-			}
-			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
-			{
-				await Task.Delay(250);
-			}
-		}
-	}
-
-	private static bool IsTransientConnectionFailure(Exception ex) =>
-		ex.GetType().Name is "ConnectionClosedException"
-			or "RetriesLimitReachedException"
-			or "NotAuthenticatedException"
-			or "AccessDeniedException";
 }
 
 public static class Extensions
