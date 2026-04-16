@@ -87,21 +87,45 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 	private async Task WaitForNodeReadiness()
 	{
 		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
-		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
+		var connection = await TestConnectionLifecycle.ReconnectUntilReady(
 			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
 			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
 			ReadinessTimeout);
+		try
+		{
+			await TestConnectionLifecycle.CloseConnectionAndWait(connection, ReadinessTimeout);
+		}
+		catch
+		{
+			TestConnectionLifecycle.TryCloseConnection(connection);
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(connection);
 	}
 
 	public override async Task TestFixtureTearDown()
 	{
-		_connection.Close();
-		await _node.Shutdown();
-		await base.TestFixtureTearDown();
-		foreach (var response in _allResponses)
+		if (_connection != null)
 		{
-			response?.Dispose();
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(_connection, ReadinessTimeout);
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(_connection);
+			}
+			finally
+			{
+				TestConnectionLifecycle.DisposeIfNeeded(_connection);
+			}
 		}
+
+		await _node.Shutdown();
+		foreach (var response in _allResponses)
+			response?.Dispose();
+
+		await base.TestFixtureTearDown();
 	}
 
 	protected HttpRequestMessage CreateRequest(
