@@ -16,6 +16,7 @@ namespace EventStore.Core.Tests.ClientAPI;
 public class appending_to_streams_across_restart<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private MiniNode<TLogFormat, TStreamId> _node;
+	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 
 	virtual protected IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
@@ -47,6 +48,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 
 		CreateNode();
 		await _node.Start();
+		await WaitForNodeReadiness();
 
 		// GIVEN some streams
 		var normal = "detect_existing_streams_normal";
@@ -104,6 +106,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 		await _node.Shutdown(keepDb: true);
 		CreateNode();
 		await _node.Start();
+		await WaitForNodeReadiness();
 
 		// THEN the streams all exist
 		using (var store = BuildConnection(_node))
@@ -149,6 +152,38 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 			}
 		}
 	}
+
+	private async Task WaitForNodeReadiness()
+	{
+		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
+		await ReconnectUntilReady();
+	}
+
+	private async Task ReconnectUntilReady()
+	{
+		var deadline = DateTime.UtcNow + ReadinessTimeout;
+
+		while (true)
+		{
+			try
+			{
+				using var connection = BuildConnection(_node);
+				await connection.ConnectAsync();
+				await connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials);
+				return;
+			}
+			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+			{
+				await Task.Delay(250);
+			}
+		}
+	}
+
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException"
+			or "RetriesLimitReachedException"
+			or "NotAuthenticatedException"
+			or "AccessDeniedException";
 }
 
 public static class Extensions
