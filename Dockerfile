@@ -59,10 +59,19 @@ ARG RUNTIME=linux-x64
 ARG UID=10000
 ARG GID=10000
 
-RUN apt update && \
-    apt install -y \
-    curl && \
-    rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    for attempt in 1 2 3; do \
+        rm -rf /var/lib/apt/lists/*; \
+        if apt-get update -o Acquire::Retries=3 && \
+            apt-get install -y --no-install-recommends curl; then \
+            rm -rf /var/lib/apt/lists/*; \
+            break; \
+        fi; \
+        if [ "$attempt" -eq 3 ]; then \
+            exit 1; \
+        fi; \
+        sleep 5; \
+    done
 
 WORKDIR /opt/eventstore
 
