@@ -23,13 +23,8 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		return TestConnection.CreateMiniNodeClient(node.TcpEndPoint, TcpType.Ssl);
 	}
 
-	protected async Task CloseConnectionAndWait(IEventStoreConnection conn)
-	{
-		TaskCompletionSource closed = new TaskCompletionSource();
-		conn.Closed += (_, _) => closed.SetResult();
-		conn.Close();
-		await closed.Task.WithTimeout(Timeout);
-	}
+	protected Task CloseConnectionAndWait(IEventStoreConnection connection) =>
+		TestConnectionLifecycle.CloseConnectionAndWait(connection, Timeout);
 
 	protected SpecificationWithMiniNode() : this(chunkSize: 1024 * 1024) { }
 
@@ -57,8 +52,11 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		{
 			_node = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: _chunkSize);
 			await _node.Start();
-				await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
-				await ReconnectUntilReady();
+			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+			_conn = await TestConnectionLifecycle.ReconnectUntilReady(
+				() => BuildConnection(_node),
+				connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+				Timeout);
 		}
 		catch (Exception ex)
 		{
@@ -91,50 +89,11 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 	public override async Task TestFixtureTearDown()
 	{
 		if (_conn != null)
-			await CloseConnectionAndWait(_conn);
+			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, Timeout);
 		await _node.Shutdown();
 		await Task.Delay(1000);
 		await base.TestFixtureTearDown();
 
 		MiniNodeLogging.Clear();
-	}
-
-	private async Task ReconnectUntilReady()
-	{
-		var deadline = DateTime.UtcNow + Timeout;
-
-		while (true)
-		{
-			try
-			{
-				_conn = BuildConnection(_node);
-				await _conn.ConnectAsync();
-				await _conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials);
-				return;
-			}
-			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
-			{
-				if (_conn != null)
-					TryCloseConnection(_conn);
-				await Task.Delay(250);
-			}
-		}
-	}
-
-	private static bool IsTransientConnectionFailure(Exception ex) =>
-		ex.GetType().Name is "ConnectionClosedException"
-			or "RetriesLimitReachedException"
-			or "NotAuthenticatedException"
-			or "AccessDeniedException";
-
-	private static void TryCloseConnection(IEventStoreConnection connection)
-	{
-		try
-		{
-			connection.Close();
-		}
-		catch
-		{
-		}
 	}
 }

@@ -41,11 +41,14 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 
 		_node = CreateNode();
 		await _node.Start();
-			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 
-		await ReconnectUntilReady();
+		_connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
+			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials),
+			_timeout);
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try
@@ -71,9 +74,9 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	public override async Task TestFixtureTearDown()
 	{
 		if (_connection != null)
-			await CloseConnectionAndWait(_connection);
+			await TestConnectionLifecycle.CloseConnectionAndWait(_connection, _timeout);
 
-		DisposeIfNeeded(_projManager);
+		TestConnectionLifecycle.DisposeIfNeeded(_projManager);
 
 		await _node.Shutdown();
 		await Task.Delay(1000);
@@ -101,59 +104,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	protected Task PostEvent(string stream, string eventType, string data)
 	{
 		return _connection.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
-	}
-
-	private async Task CloseConnectionAndWait(IEventStoreConnection connection)
-	{
-		var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-		connection.Closed += (_, _) => closed.TrySetResult();
-		connection.Close();
-		await closed.Task.WithTimeout(_timeout);
-	}
-
-	private async Task ReconnectUntilReady()
-	{
-		var deadline = DateTime.UtcNow + _timeout;
-
-		while (true)
-		{
-			try
-			{
-				_connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
-				await _connection.ConnectAsync();
-				await _connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials);
-				return;
-			}
-			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
-			{
-				if (_connection != null)
-					TryCloseConnection(_connection);
-				await Task.Delay(250);
-			}
-		}
-	}
-
-	private static bool IsTransientConnectionFailure(Exception ex) =>
-		ex.GetType().Name is "ConnectionClosedException"
-			or "RetriesLimitReachedException"
-			or "NotAuthenticatedException"
-			or "AccessDeniedException";
-
-	private static void TryCloseConnection(IEventStoreConnection connection)
-	{
-		try
-		{
-			connection.Close();
-		}
-		catch
-		{
-		}
-	}
-
-	private static void DisposeIfNeeded(object candidate)
-	{
-		if (candidate is IDisposable disposable)
-			disposable.Dispose();
 	}
 
 	protected Task CreateOneTimeProjection()
