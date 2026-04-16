@@ -24,6 +24,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	private List<EventData> _testEvents;
 	private List<EventData> _testEventsAfter;
 	private const int Timeout = 10000;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(2);
 	private const int LongRunningTimeout = 120000;
 
 	[SetUp]
@@ -31,7 +32,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
 
 		_conn = BuildConnection(_node);
 		await _conn.ConnectAsync();

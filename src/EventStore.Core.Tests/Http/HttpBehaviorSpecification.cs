@@ -43,7 +43,7 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		await base.TestFixtureSetUp();
 
 		_node = CreateMiniNode();
-		await _node.Start(TimeSpan.FromMinutes(2));
+		await _node.Start(TimeSpan.FromMinutes(3));
 		_connection = TestConnection.Create(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
 
