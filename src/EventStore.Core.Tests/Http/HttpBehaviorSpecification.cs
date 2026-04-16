@@ -24,6 +24,7 @@ namespace EventStore.Core.Tests.Http;
 
 public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _connection;
 	protected HttpResponseMessage _lastResponse;
@@ -44,6 +45,7 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 
 		_node = CreateMiniNode();
 		await _node.Start(TimeSpan.FromMinutes(10));
+		await WaitForNodeReadiness();
 		_connection = TestConnection.Create(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
 
@@ -81,6 +83,38 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		new(PathName);
 
 	protected virtual bool GivenSkipInitializeStandardUsersCheck() => false;
+
+	private async Task WaitForNodeReadiness()
+	{
+		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
+		await ReconnectUntilReady();
+	}
+
+	private async Task ReconnectUntilReady()
+	{
+		var deadline = DateTime.UtcNow + ReadinessTimeout;
+
+		while (true)
+		{
+			try
+			{
+				using var connection = TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
+				await connection.ConnectAsync();
+				await connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials);
+				return;
+			}
+			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+			{
+				await Task.Delay(250);
+			}
+		}
+	}
+
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException"
+			or "RetriesLimitReachedException"
+			or "NotAuthenticatedException"
+			or "AccessDeniedException";
 
 	public override async Task TestFixtureTearDown()
 	{
