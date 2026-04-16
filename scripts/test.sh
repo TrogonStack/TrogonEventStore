@@ -109,12 +109,10 @@ run_project() {
     local testdir="$2"
     local -a dotnet_args
     local test_filter
-    local hang_timeout
     local timeout_window
     local results_dir
 
     test_filter="$(project_filter "$proj")"
-    hang_timeout="$(project_blame_hang_timeout "$proj")"
     timeout_window="$(project_timeout "$proj")"
     results_dir="/build/test-results/$proj"
 
@@ -123,8 +121,6 @@ run_project() {
     dotnet_args=(
         test
         --blame
-        --blame-hang-timeout "$hang_timeout"
-        --blame-hang-dump-type mini
         --settings /build/ci/ci.runsettings
         --logger:trx
         --logger:"console;verbosity=minimal"
@@ -187,10 +183,6 @@ project_timeout() {
             printf '%s\n' "10m"
             ;;
     esac
-}
-
-project_blame_hang_timeout() {
-    printf '%s\n' "5m"
 }
 
 run_project_or_stop() {
