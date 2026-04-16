@@ -242,11 +242,20 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	public async Task calls_checkpoint_reached_according_to_checkpoint_message_count()
 	{
 		var filter = Filter.ExcludeSystemEvents;
+		const int expectedEvents = 10;
+		const int expectedCheckpoints = 5;
+		var store = BuildConnection(_node);
 
-		using (var store = BuildConnection(_node))
+		void TryComplete(TaskCompletionSource<bool> appeared, List<ResolvedEvent> eventsSeen, int checkpointsSeen)
+		{
+			if (checkpointsSeen >= expectedCheckpoints && eventsSeen.Count >= expectedEvents)
+				appeared.TrySetResult(true);
+		}
+
+		try
 		{
 			await store.ConnectAsync();
-			var appeared = new TaskCompletionSource<bool>();
+			var appeared = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 			var eventsSeen = new List<ResolvedEvent>();
 			var checkpointsSeen = 0;
 
@@ -262,26 +271,38 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 				(s, e) =>
 				{
 					eventsSeen.Add(e);
+					TryComplete(appeared, eventsSeen, checkpointsSeen);
 					return Task.CompletedTask;
 				},
 				(s, p) =>
 				{
-					if (++checkpointsSeen == 5)
-					{
-						appeared.TrySetResult(true);
-					}
+					checkpointsSeen++;
+					TryComplete(appeared, eventsSeen, checkpointsSeen);
 					return Task.CompletedTask;
 				},
-				checkpointInterval: 2))
+				checkpointInterval: 2,
+				(_, reason, ex) => appeared.TrySetException(ex ?? new InvalidOperationException($"Subscription dropped: {reason}"))))
 			{
-
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _testEvents);
 
 				await appeared.Task.WithTimeout(Timeout);
 
-				Assert.AreEqual(5 /*checkpoints*/ * 2 /*considered events*/, eventsSeen.Count);
+				Assert.AreEqual(expectedCheckpoints * 2 /*considered events*/, eventsSeen.Count);
 				Assert.True(eventsSeen.All(x => x.Event.EventStreamId == "stream-a"));
 			}
+		}
+		finally
+		{
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(store, TimeSpan.FromSeconds(10));
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(store);
+			}
+
+			TestConnectionLifecycle.DisposeIfNeeded(store);
 		}
 	}
 
