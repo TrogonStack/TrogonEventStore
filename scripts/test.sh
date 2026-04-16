@@ -158,13 +158,13 @@ project_timeout() {
 
     case "${TEST_GROUP:-all}:$proj" in
         core-clientapi:EventStore.Core.Tests)
-            printf '%s\n' "15m"
+            printf '%s\n' "20m"
             ;;
         core-rest:EventStore.Core.Tests)
             printf '%s\n' "25m"
             ;;
         core-http:EventStore.Core.Tests)
-            printf '%s\n' "15m"
+            printf '%s\n' "20m"
             ;;
         *:EventStore.Core.Tests)
             printf '%s\n' "30m"

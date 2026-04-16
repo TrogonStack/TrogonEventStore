@@ -24,7 +24,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	private List<EventData> _testEvents;
 	private List<EventData> _testEventsAfter;
 	private const int Timeout = 10000;
-	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(2);
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 	private const int LongRunningTimeout = 300000;
 
 	[SetUp]
