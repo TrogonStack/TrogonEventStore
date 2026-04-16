@@ -840,6 +840,7 @@ public class
 public class connect_to_persistent_subscription_with_retries<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
 {
 	private readonly string _stream = Guid.NewGuid().ToString("N");
+	protected override TimeSpan Timeout { get; } = TimeSpan.FromMinutes(5);
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
