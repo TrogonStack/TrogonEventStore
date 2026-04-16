@@ -72,15 +72,17 @@ jobs:
           --volume $(pwd)/test-results:/build/test-results \
           --rm \
           eventstore-test
-      # - name: Publish Test Results (HTML)
-      #   uses: actions/upload-artifact@v4
-      #   if: always()
-      #   with:
-      #     path: test-results/test-results.html
-      #     name: test-results-${{ inputs.container-runtime }}.html
-      # - name: Publish Test Results (All)
-      #   uses: actions/upload-artifact@v4
-      #   if: always()
-      #   with:
-      #     name: test-results-${{ inputs.container-runtime }}
-      #     path: test-results
+      - name: Normalize Test Result Permissions
+        if: failure()
+        run: |
+          if [ -d test-results ]; then
+            sudo chown -R "$(id -u):$(id -g)" test-results
+            sudo chmod -R u+rwX,go+rX test-results
+          fi
+      - name: Publish Test Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-${{ inputs.container-runtime }}-${{ inputs.test-group-name }}
+          path: test-results
+          if-no-files-found: ignore

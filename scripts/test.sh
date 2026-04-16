@@ -110,14 +110,23 @@ run_project() {
     local -a dotnet_args
     local test_filter
     local timeout_window
+    local results_dir
 
     test_filter="$(project_filter "$proj")"
     timeout_window="$(project_timeout "$proj")"
+    results_dir="/build/test-results/$proj"
+
+    mkdir -p "$results_dir"
 
     dotnet_args=(
         test
+        --blame
+        --blame-hang-timeout 1m
+        --blame-hang-dump-type mini
         --settings /build/ci/ci.runsettings
+        --logger:trx
         --logger:"console;verbosity=minimal"
+        --results-directory "$results_dir"
     )
 
     if [ -n "$test_filter" ]; then
