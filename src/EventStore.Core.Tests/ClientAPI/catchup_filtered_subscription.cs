@@ -33,12 +33,12 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
-		_conn = BuildConnection(_node);
-		await _conn.ConnectAsync();
-		_conn.SetStreamMetadataAsync(SystemStreams.AllStream, -1,
+		await ReconnectUntilReady();
+		await _conn.SetStreamMetadataAsync(SystemStreams.AllStream, -1,
 			StreamMetadata.Build().SetReadRole(SystemRoles.All),
-			new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword)).Wait();
+			new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword));
 
 		_testEvents = Enumerable
 			.Range(0, 10)
@@ -67,6 +67,46 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
 		return TestConnection.Create(node.TcpEndPoint);
+	}
+
+	private async Task ReconnectUntilReady()
+	{
+		var deadline = DateTime.UtcNow + StartupTimeout;
+
+		while (true)
+		{
+			try
+			{
+				_conn = BuildConnection(_node);
+				await _conn.ConnectAsync();
+				await _conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials);
+				return;
+			}
+			catch (Exception ex) when (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+			{
+				if (_conn != null)
+					TryCloseConnection(_conn);
+
+				await Task.Delay(250);
+			}
+		}
+	}
+
+	private static bool IsTransientConnectionFailure(Exception ex) =>
+		ex.GetType().Name is "ConnectionClosedException"
+			or "RetriesLimitReachedException"
+			or "NotAuthenticatedException"
+			or "AccessDeniedException";
+
+	private static void TryCloseConnection(IEventStoreConnection connection)
+	{
+		try
+		{
+			connection.Close();
+		}
+		catch
+		{
+		}
 	}
 
 	[Test]
