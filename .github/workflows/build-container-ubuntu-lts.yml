@@ -41,7 +41,10 @@ jobs:
         include:
           - test-group-name: core-clientapi
           - test-group-name: core-http
+          - test-group-name: core-services
+          - test-group-name: core-storage
           - test-group-name: core-rest
+          - test-group-name: core-xunit
           - test-group-name: projections
           - test-group-name: misc
     uses: ./.github/workflows/build-container-reusable.yml
