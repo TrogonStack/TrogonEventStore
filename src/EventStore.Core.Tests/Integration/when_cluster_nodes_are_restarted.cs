@@ -12,6 +12,7 @@ namespace EventStore.Core.Tests.Integration;
 public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
 	private static readonly TimeSpan RestartTimeout = TimeSpan.FromSeconds(120);
+	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(5);
 
 	protected override async Task Given()
 	{

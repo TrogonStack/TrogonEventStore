@@ -17,6 +17,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	protected readonly MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
 	protected readonly Endpoints[] _nodeEndpoints = new Endpoints[3];
 	protected IEventStoreConnection _conn;
+	protected virtual TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(2);
 
 	private readonly Dictionary<int, Func<bool, MiniClusterNode<TLogFormat, TStreamId>>> _nodeCreationFactory = new();
 
@@ -143,7 +144,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		_conn = CreateConnection();
 		await _conn.ConnectAsync();
 
-		await Given().WithTimeout(TimeSpan.FromMinutes(2), onFail: MiniNodeLogging.WriteLogs);
+		await Given().WithTimeout(GivenTimeout, onFail: MiniNodeLogging.WriteLogs);
 	}
 
 	protected virtual IEventStoreConnection CreateConnection() =>
