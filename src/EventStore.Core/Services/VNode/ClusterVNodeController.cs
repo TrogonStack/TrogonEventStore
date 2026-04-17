@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -19,11 +20,11 @@ namespace EventStore.Core.Services.VNode;
 
 public abstract class ClusterVNodeController {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<ClusterVNodeController>();
+	public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
 }
 
 public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 {
-	public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
 	public static readonly TimeSpan LeaderReconnectionDelay = TimeSpan.FromMilliseconds(500);
 	private static readonly TimeSpan LeaderSubscriptionRetryDelay = TimeSpan.FromMilliseconds(500);
 	private static readonly TimeSpan LeaderSubscriptionTimeout = TimeSpan.FromMilliseconds(1000);
@@ -63,19 +64,16 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	private readonly Action _startSubsystems;
 
 	private int _subSystemInitsToExpect;
-
-	private int _serviceInitsToExpect = 1 /* StorageChaser */
-	                                    + 1 /* StorageReader */
-	                                    + 1 /* StorageWriter */;
-
-	private int _serviceShutdownsToExpect = 1 /* StorageChaser */
-	                                        + 1 /* StorageReader */
-	                                        + 1 /* StorageWriter */
-	                                        + 1 /* IndexCommitterService */
-	                                        + 1 /* LeaderReplicationService */
-	                                        + 1 /* HttpService */;
+	private readonly Dictionary<string, ServiceState> _initializedServices = [];
+	private bool _publishedSystemStart;
 
 	private bool _exitProcessOnShutdown;
+
+	private enum ServiceState
+	{
+		Initialized,
+		Shutdown
+	}
 
 	public ClusterVNodeController(
 		QueueStatsManager statsManager,
@@ -100,15 +98,6 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_subsystemCount = options.Subsystems.Count;
 		_subSystemInitsToExpect = _subsystemCount;
 		_clusterSize = options.Cluster.ClusterSize;
-		if (_clusterSize == 1)
-		{
-			_serviceShutdownsToExpect = 1 /* StorageChaser */
-			                            + 1 /* StorageReader */
-			                            + 1 /* StorageWriter */
-			                            + 1 /* IndexCommitterService */
-			                            + 1 /* HttpService */;
-		}
-
 
 		_forwardingProxy = forwardingProxy;
 		_forwardingTimeout = TimeSpan.FromMilliseconds(options.Database.PrepareTimeoutMs +
@@ -636,10 +625,15 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	{
 		Log.Information("========== [{httpEndPoint}] Service '{service}' initialized.", _nodeInfo.HttpEndPoint,
 			message.ServiceName);
-		_serviceInitsToExpect -= 1;
+
+		_initializedServices[message.ServiceName] = ServiceState.Initialized;
 		await _outputBus.DispatchAsync(message, token);
-		if (_serviceInitsToExpect == 0)
+
+		if (!_publishedSystemStart && CoreServicesInitialized())
+		{
 			_mainQueue.Publish(new SystemMessage.SystemStart());
+			_publishedSystemStart = true;
+		}
 	}
 
 	private async ValueTask Handle(AuthenticationMessage.AuthenticationProviderInitialized message,
@@ -1479,8 +1473,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		Log.Information("========== [{httpEndPoint}] Service '{service}' has shut down.", _nodeInfo.HttpEndPoint,
 			message.ServiceName);
 
-		_serviceShutdownsToExpect -= 1;
-		if (_serviceShutdownsToExpect is 0)
+		_initializedServices[message.ServiceName] = ServiceState.Shutdown;
+		if (_initializedServices.Count > 0 && _initializedServices.All(kvp => kvp.Value is ServiceState.Shutdown))
 		{
 			Log.Information("========== [{httpEndPoint}] All Services Shutdown.", _nodeInfo.HttpEndPoint);
 			await Shutdown(token);
@@ -1493,7 +1487,19 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	{
 		Debug.Assert(State is VNodeState.ShuttingDown);
 
-		Log.Error("========== [{httpEndPoint}] Shutdown Timeout.", _nodeInfo.HttpEndPoint);
+		var pendingServices = string.Join(", ", _initializedServices
+			.Where(kvp => kvp.Value is not ServiceState.Shutdown)
+			.Select(kvp => kvp.Key));
+
+		if (string.IsNullOrEmpty(pendingServices))
+		{
+			Log.Error("========== [{httpEndPoint}] Shutdown Timeout.", _nodeInfo.HttpEndPoint);
+		}
+		else
+		{
+			Log.Error("========== [{httpEndPoint}] Shutdown Timeout. Gave up waiting for services: [{services}]",
+				_nodeInfo.HttpEndPoint, pendingServices);
+		}
 		await Shutdown(token);
 		await _outputBus.DispatchAsync(message, token);
 	}
@@ -1505,6 +1511,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _db.Close(token);
 		await _fsm.HandleAsync(new SystemMessage.BecomeShutdown(_stateCorrelationId), token);
 	}
+
+	private bool CoreServicesInitialized()
+		=> HasInitialized("StorageChaser")
+		   && HasInitialized("StorageReader")
+		   && HasInitialized("StorageWriter");
+
+	private bool HasInitialized(string serviceName)
+		=> _initializedServices.TryGetValue(serviceName, out var state) && state is ServiceState.Initialized;
 
 	private static bool IsAliveLeader(MemberInfo member)
 		=> member is { IsAlive: true, State: VNodeState.Leader };

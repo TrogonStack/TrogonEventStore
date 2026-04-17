@@ -229,7 +229,7 @@ internal static class Program
 							.Configure<KestrelServerOptions>(configuration.GetSection("Kestrel"))
 							.Configure<HostOptions>(x =>
 							{
-								x.ShutdownTimeout = TimeSpan.FromSeconds(5);
+								x.ShutdownTimeout = ClusterVNode.ShutdownTimeout + TimeSpan.FromSeconds(1);
 #if DEBUG
 								x.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
 #endif

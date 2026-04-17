@@ -494,6 +494,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 	{
 		try
 		{
+			_publisher.Publish(new SystemMessage.ServiceInitialized(Name));
 			_queueStats.Start();
 			QueueMonitor.Default.Register(this);
 

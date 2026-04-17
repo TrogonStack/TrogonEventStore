@@ -72,6 +72,7 @@ namespace EventStore.Core.Services.Replication {
 		private void TrackReplication() {
 
 			try {
+				_publisher.Publish(new SystemMessage.ServiceInitialized(nameof(ReplicationTrackingService)));
 				while (!_stop) {
 					_replicationChange.Reset();
 					if (_state == VNodeState.Leader || _state == VNodeState.PreLeader) {

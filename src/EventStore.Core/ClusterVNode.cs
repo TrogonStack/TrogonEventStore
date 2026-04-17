@@ -84,6 +84,7 @@ namespace EventStore.Core;
 public abstract class ClusterVNode
 {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<ClusterVNode>();
+	public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(6);
 
 	public static ClusterVNode<TStreamId> Create<TStreamId>(
 		ClusterVNodeOptions options,
@@ -137,8 +138,6 @@ public class ClusterVNode<TStreamId> :
 	IHandle<SystemMessage.SystemStart>,
 	IHandle<ClientMessage.ReloadConfig>
 {
-	private static readonly TimeSpan DefaultShutdownTimeout = TimeSpan.FromSeconds(5);
-
 	private readonly ClusterVNodeOptions _options;
 
 	public override TFChunkDb Db { get; }
@@ -1664,23 +1663,23 @@ public class ClusterVNode<TStreamId> :
 					"Truncate checkpoint is present. Truncate: {truncatePosition} (0x{truncatePosition:X}), Writer: {writerCheckpoint} (0x{writerCheckpoint:X}), Chaser: {chaserCheckpoint} (0x{chaserCheckpoint:X}), Epoch: {epochCheckpoint} (0x{epochCheckpoint:X})",
 					truncPos, truncPos, writerCheckpoint, writerCheckpoint, chaserCheckpoint, chaserCheckpoint,
 					epochCheckpoint, epochCheckpoint);
-				var truncator = new TFChunkDbTruncator(Db.Config,
-					type => Db.TransformManager.GetFactoryForExistingChunk(type));
-				using (var task = truncator.TruncateDb(truncPos, CancellationToken.None).AsTask()) {
-					task.Wait(DefaultShutdownTimeout);
-				}
+					var truncator = new TFChunkDbTruncator(Db.Config,
+						type => Db.TransformManager.GetFactoryForExistingChunk(type));
+					using (var task = truncator.TruncateDb(truncPos, CancellationToken.None).AsTask()) {
+						task.Wait(ShutdownTimeout);
+					}
 
 				// The truncator has moved the checkpoints but it is possible that other components in the startup have
 				// already read the old values. If we ensure all checkpoint reads are performed after the truncation
 				// then we can remove this extra restart
 				Log.Information("Truncation successful. Shutting down.");
 				var shutdownGuid = Guid.NewGuid();
-				using (var task = HandleAsync(
-					       new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
-					       CancellationToken.None).AsTask())
-				{
-					task.Wait(DefaultShutdownTimeout);
-				}
+					using (var task = HandleAsync(
+						       new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
+						       CancellationToken.None).AsTask())
+					{
+						task.Wait(ShutdownTimeout);
+					}
 
 				Handle(new SystemMessage.BecomeShutdown(shutdownGuid));
 				Application.Exit(0, "Shutting down after successful truncation.");
@@ -1943,15 +1942,17 @@ public class ClusterVNode<TStreamId> :
 
 		try
 		{
-			await _shutdownSource.Task.WaitAsync(timeout ?? DefaultShutdownTimeout, cancellationToken);
+			await _shutdownSource.Task.WaitAsync(timeout ?? ShutdownTimeout, cancellationToken);
 		}
 		catch (Exception)
 		{
 			Log.Error("Graceful shutdown not complete. Forcing shutdown now.");
 			throw;
 		}
-
-		_switchChunksLock?.Dispose();
+		finally
+		{
+			_switchChunksLock?.Dispose();
+		}
 	}
 
 	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
