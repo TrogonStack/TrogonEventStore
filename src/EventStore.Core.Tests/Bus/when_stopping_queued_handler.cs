@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Tests.Bus.Helpers;
@@ -95,6 +96,57 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 			waitHandle.Dispose();
 			handledEvent.Dispose();
 			consumer.Dispose();
+		}
+	}
+
+	[Test]
+	public void while_processing_message_cancelled_by_queue_stop_should_not_timeout()
+	{
+		var started = new ManualResetEventSlim(false);
+		var cancelled = new ManualResetEventSlim(false);
+		var queue = new QueuedHandlerThreadPool(
+			new AdHocHandler<Message>(async (_, token) =>
+			{
+				started.Set();
+
+				try
+				{
+					await Task.Delay(Timeout.Infinite, token);
+				}
+				catch (OperationCanceledException ex) when (ex.CancellationToken == token)
+				{
+					cancelled.Set();
+					throw;
+				}
+			}),
+			"cancelled_test_queue",
+			new QueueStatsManager(),
+			new(),
+			watchSlowMsg: false,
+			threadStopWaitTimeout: TimeSpan.FromMilliseconds(500));
+
+		try
+		{
+			var startTask = queue.Start();
+			queue.Publish(new TestMessage());
+
+			Assert.IsTrue(started.Wait(5000), "Consumer never started handling the message.");
+			Assert.DoesNotThrow(() => queue.Stop());
+			Assert.IsTrue(cancelled.Wait(5000), "Consumer never observed queue cancellation.");
+			Assert.That(startTask.IsCanceled, Is.True, "Queue lifecycle task should be cancelled after stop.");
+		}
+		finally
+		{
+			try
+			{
+				queue.Stop();
+			}
+			catch (TimeoutException)
+			{
+			}
+
+			started.Dispose();
+			cancelled.Dispose();
 		}
 	}
 }

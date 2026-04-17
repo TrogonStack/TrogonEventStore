@@ -60,7 +60,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	protected readonly IEpochManager EpochManager;
 	protected readonly IPublisher Bus;
 	private readonly ISubscriber _subscribeToBus;
-	protected readonly IQueuedHandler StorageWriterQueue;
+	private readonly QueuedHandlerThreadPool _writerQueue;
 	private readonly InMemoryBus _writerBus;
 
 	private readonly Clock _clock = Clock.Instance;
@@ -143,7 +143,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		Writer = writer;
 
 		_writerBus = new InMemoryBus("StorageWriterBus", watchSlowMsg: false);
-		StorageWriterQueue = new QueuedHandlerThreadPool(new AdHocHandler<Message>(CommonHandle),
+		_writerQueue = new QueuedHandlerThreadPool(new AdHocHandler<Message>(CommonHandle),
 			"StorageWriterQueue",
 			queueStatsManager,
 			queueTrackers,
@@ -165,7 +165,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	public void Start()
 	{
 		Writer.Open();
-		_tasks.Add(StorageWriterQueue.Start());
+		_tasks.Add(_writerQueue.Start());
 	}
 
 	protected void SubscribeToMessage<T>() where T : Message
@@ -179,15 +179,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		if (message is StorageMessage.IFlushableMessage)
 			Interlocked.Increment(ref FlushMessagesInQueue);
 
-		StorageWriterQueue.Publish(message);
-
-		if (message is SystemMessage.BecomeShuttingDown)
-			// we need to handle this message on main thread to stop StorageWriterQueue
-		{
-			StorageWriterQueue.Stop();
-			BlockWriter = true;
-			Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
-		}
+		_writerQueue.Publish(message);
 	}
 
 	private async ValueTask CommonHandle(Message message, CancellationToken token)
@@ -244,6 +236,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			case VNodeState.ShuttingDown:
 			{
 				await Writer.Flush(token);
+				_writerQueue.RequestStop();
+				BlockWriter = true;
+				Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
 				break;
 			}
 		}
