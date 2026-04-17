@@ -161,6 +161,7 @@ namespace EventStore.Core.Bus;
 
 							_queueStats.ProcessingEnded(1);
 						} catch (OperationCanceledException ex) when (ex.CancellationToken == _lifetimeToken) {
+							_tcs.TrySetCanceled(ex.CancellationToken);
 							break;
 						} catch (Exception ex) {
 							Log.Error(ex,

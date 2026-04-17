@@ -127,12 +127,13 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 
 		try
 		{
-			queue.Start();
+			var startTask = queue.Start();
 			queue.Publish(new TestMessage());
 
 			Assert.IsTrue(started.Wait(5000), "Consumer never started handling the message.");
 			Assert.DoesNotThrow(() => queue.Stop());
 			Assert.IsTrue(cancelled.Wait(5000), "Consumer never observed queue cancellation.");
+			Assert.That(startTask.IsCanceled, Is.True, "Queue lifecycle task should be cancelled after stop.");
 		}
 		finally
 		{
