@@ -72,7 +72,7 @@ public class http_service_should : SpecificationWithDirectory
 public class kestrel_http_service_should
 {
 	[Test]
-	public void not_publish_service_shutdown_when_http_shutdown_is_disabled()
+	public void publish_service_shutdown_without_stopping_http_when_http_shutdown_is_disabled()
 	{
 		var inputBus = new FakeQueuedHandler();
 		var sut = new KestrelHttpService(
@@ -91,7 +91,8 @@ public class kestrel_http_service_should
 
 		sut.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), exitProcess: false, shutdownHttp: false));
 
-		Assert.That(inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>(), Is.Empty);
+		Assert.That(inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>(), Has.Exactly(1).Items);
+		Assert.That(sut.IsListening, Is.True);
 	}
 
 	[Test]
@@ -115,6 +116,7 @@ public class kestrel_http_service_should
 		sut.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), exitProcess: false, shutdownHttp: true));
 
 		Assert.That(inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>(), Has.Exactly(1).Items);
+		Assert.That(sut.IsListening, Is.False);
 	}
 }
 

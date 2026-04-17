@@ -65,10 +65,12 @@ namespace EventStore.Core.Services.Transport.Http {
 		}
 
 		public void Handle(SystemMessage.BecomeShuttingDown message) {
-			if (!message.ShutdownHttp || !_isListening)
+			if (!_isListening)
 				return;
 
-			Shutdown();
+			if (message.ShutdownHttp)
+				Shutdown();
+
 			_inputBus.Publish(new SystemMessage.ServiceShutdown(ServiceName));
 		}
 
