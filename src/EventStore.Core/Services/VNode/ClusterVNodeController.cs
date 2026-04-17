@@ -66,6 +66,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	private int _subSystemInitsToExpect;
 	private readonly Dictionary<string, ServiceState> _initializedServices = [];
 	private bool _publishedSystemStart;
+	private bool _finalizingShutdown;
 
 	private bool _exitProcessOnShutdown;
 
@@ -127,7 +128,6 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			.InState(VNodeState.Initializing)
 			.When<SystemMessage.SystemInit>().Do(Handle)
 			.When<SystemMessage.SystemStart>().Do(Handle)
-			.When<SystemMessage.ServiceInitialized>().Do(Handle)
 			.When<SystemMessage.BecomeReadOnlyLeaderless>().Do(Handle)
 			.When<SystemMessage.BecomeDiscoverLeader>().Do(Handle)
 			.When<ClientMessage.ScavengeDatabase>().Ignore()
@@ -243,6 +243,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			.When<ClientMessage.TransactionCommitCompleted>().ForwardTo(_outputBus)
 			.When<ClientMessage.DeleteStreamCompleted>().ForwardTo(_outputBus)
 			.When<SystemMessage.BecomeShuttingDown>().Do(Handle)
+			.InAllStatesExcept(VNodeState.ShuttingDown, VNodeState.Shutdown)
+			.When<SystemMessage.ServiceInitialized>().Do(Handle)
 			.InAllStatesExcept(VNodeState.Initializing, VNodeState.ShuttingDown, VNodeState.Shutdown,
 				VNodeState.ReadOnlyLeaderless, VNodeState.PreReadOnlyReplica, VNodeState.ReadOnlyReplica)
 			.When<ElectionMessage.ElectionsDone>().Do(Handle)
@@ -336,8 +338,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			.InState(VNodeState.ShuttingDown)
 			.When<SystemMessage.BecomeShutdown>().Do(Handle)
 			.When<SystemMessage.ShutdownTimeout>().Do(Handle)
-			.InStates(VNodeState.ShuttingDown, VNodeState.Shutdown)
 			.When<SystemMessage.ServiceShutdown>().Do(Handle)
+			.WhenOther().ForwardTo(_outputBus)
+			.InState(VNodeState.Shutdown)
+			.When<SystemMessage.ServiceShutdown>().Ignore()
 			.WhenOther().ForwardTo(_outputBus)
 			.InState(VNodeState.DiscoverLeader)
 			.When<GossipMessage.GossipUpdated>().Do(HandleAsDiscoverLeader)
@@ -559,6 +563,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_leader = null;
 		_stateCorrelationId = message.CorrelationId;
 		_exitProcessOnShutdown = message.ExitProcess;
+		_finalizingShutdown = false;
 		State = VNodeState.ShuttingDown;
 		_mainQueue.Publish(TimerMessage.Schedule.Create(ShutdownTimeout, _publishEnvelope,
 			new SystemMessage.ShutdownTimeout()));
@@ -1473,8 +1478,20 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		Log.Information("========== [{httpEndPoint}] Service '{service}' has shut down.", _nodeInfo.HttpEndPoint,
 			message.ServiceName);
 
-		_initializedServices[message.ServiceName] = ServiceState.Shutdown;
-		if (_initializedServices.Count > 0 && _initializedServices.All(kvp => kvp.Value is ServiceState.Shutdown))
+		if (_initializedServices.ContainsKey(message.ServiceName))
+		{
+			_initializedServices[message.ServiceName] = ServiceState.Shutdown;
+		}
+		else
+		{
+			Log.Debug(
+				"========== [{httpEndPoint}] Ignoring shutdown for untracked service '{service}'.",
+				_nodeInfo.HttpEndPoint, message.ServiceName);
+		}
+
+		if (_initializedServices.Count > 0
+		    && _initializedServices.All(kvp => kvp.Value is ServiceState.Shutdown)
+		    && TryFinalizeShutdown())
 		{
 			Log.Information("========== [{httpEndPoint}] All Services Shutdown.", _nodeInfo.HttpEndPoint);
 			await Shutdown(token);
@@ -1500,7 +1517,9 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			Log.Error("========== [{httpEndPoint}] Shutdown Timeout. Gave up waiting for services: [{services}]",
 				_nodeInfo.HttpEndPoint, pendingServices);
 		}
-		await Shutdown(token);
+		if (TryFinalizeShutdown())
+			await Shutdown(token);
+
 		await _outputBus.DispatchAsync(message, token);
 	}
 
@@ -1516,6 +1535,15 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		=> HasInitialized("StorageChaser")
 		   && HasInitialized("StorageReader")
 		   && HasInitialized("StorageWriter");
+
+	private bool TryFinalizeShutdown()
+	{
+		if (_finalizingShutdown)
+			return false;
+
+		_finalizingShutdown = true;
+		return true;
+	}
 
 	private bool HasInitialized(string serviceName)
 		=> _initializedServices.TryGetValue(serviceName, out var state) && state is ServiceState.Initialized;

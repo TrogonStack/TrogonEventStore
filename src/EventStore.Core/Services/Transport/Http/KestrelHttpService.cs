@@ -32,13 +32,13 @@ namespace EventStore.Core.Services.Transport.Http {
 		private readonly ServiceAccessibility _accessibility;
 		private readonly IPublisher _inputBus;
 		public IUriRouter UriRouter { get; }
-			public bool LogHttpRequests { get; }
+		public bool LogHttpRequests { get; }
 
-			public string AdvertiseAsHost { get; }
-			public int AdvertiseAsPort { get; }
-			private string ServiceName => $"HttpServer [{String.Join(", ", EndPoints)}]";
+		public string AdvertiseAsHost { get; }
+		public int AdvertiseAsPort { get; }
+		private string ServiceName => $"HttpServer [{string.Join(", ", EndPoints)}]";
 
-			private bool _isListening;
+		private bool _isListening;
 
 		public KestrelHttpService(ServiceAccessibility accessibility, IPublisher inputBus, IUriRouter uriRouter,
 			MultiQueuedHandler multiQueuedHandler, bool logHttpRequests, string advertiseAsHost,
@@ -59,18 +59,18 @@ namespace EventStore.Core.Services.Transport.Http {
 			EndPoints = endPoints;
 		}
 
-			public void Handle(SystemMessage.SystemInit message) {
-
-				_isListening = true;
-				_inputBus.Publish(new SystemMessage.ServiceInitialized(ServiceName));
-			}
+		public void Handle(SystemMessage.SystemInit message) {
+			_isListening = true;
+			_inputBus.Publish(new SystemMessage.ServiceInitialized(ServiceName));
+		}
 
 		public void Handle(SystemMessage.BecomeShuttingDown message) {
-				if (message.ShutdownHttp)
-					Shutdown();
-				_inputBus.Publish(
-					new SystemMessage.ServiceShutdown(ServiceName));
-			}
+			if (!message.ShutdownHttp || !_isListening)
+				return;
+
+			Shutdown();
+			_inputBus.Publish(new SystemMessage.ServiceShutdown(ServiceName));
+		}
 
 		public void Shutdown() {
 			_isListening = false;

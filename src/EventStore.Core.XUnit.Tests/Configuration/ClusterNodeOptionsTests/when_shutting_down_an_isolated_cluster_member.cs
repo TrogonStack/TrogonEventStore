@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.InternalAuthentication;
@@ -28,7 +29,16 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 		var shutdownComplete = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var startedServices = new HashSet<string>();
 		var shutdownServices = new HashSet<string>();
+		var shutdownSignals = 0;
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
+
+		static string[] Snapshot(HashSet<string> services)
+		{
+			lock (services)
+			{
+				return services.OrderBy(x => x).ToArray();
+			}
+		}
 
 		var options = new ClusterVNodeOptions()
 			.ReduceMemoryUsageForTests()
@@ -64,7 +74,10 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 		}));
 
 		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.BecomeShutdown>(_ =>
-			shutdownComplete.TrySetResult(true)));
+		{
+			Interlocked.Increment(ref shutdownSignals);
+			shutdownComplete.TrySetResult(true);
+		}));
 
 		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.ServiceShutdown>(message =>
 		{
@@ -85,11 +98,24 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 			catch (TimeoutException)
 			{
 				await shutdownComplete.Task.WithTimeout(TimeSpan.FromSeconds(10));
+				var startedServicesSnapshot = Snapshot(startedServices);
+				var shutdownServicesSnapshot = Snapshot(shutdownServices);
 				Assert.Fail(
-					$"Shutdown timed out. Started: [{string.Join(", ", startedServices.OrderBy(x => x))}] Shutdown: [{string.Join(", ", shutdownServices.OrderBy(x => x))}]");
+					$"Shutdown timed out. Started: [{string.Join(", ", startedServicesSnapshot)}] Shutdown: [{string.Join(", ", shutdownServicesSnapshot)}]");
 			}
 
 			await shutdownComplete.Task.WithTimeout(TimeSpan.FromSeconds(5));
+
+			var completedStartedServices = Snapshot(startedServices);
+			if (completedStartedServices.Contains("Leader Replication Service"))
+			{
+				AssertEx.IsOrBecomesTrue(
+					() => Snapshot(shutdownServices).Contains("Leader Replication Service"),
+					TimeSpan.FromSeconds(1),
+					"Timed out waiting for the leader replication service to report shutdown");
+			}
+
+			Assert.That(Volatile.Read(ref shutdownSignals), Is.EqualTo(1));
 		}
 		finally
 		{
