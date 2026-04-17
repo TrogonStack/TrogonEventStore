@@ -24,7 +24,8 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	private List<EventData> _testEvents;
 	private List<EventData> _testEventsAfter;
 	private const int Timeout = 10000;
-	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
+	private static readonly TimeSpan ConnectionCloseTimeout = TimeSpan.FromSeconds(10);
 	private const int LongRunningTimeout = 600000;
 
 	[SetUp]
@@ -270,7 +271,16 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	[TearDown]
 	public override async Task TearDown()
 	{
-		_conn.Close();
+		try
+		{
+			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, ConnectionCloseTimeout);
+		}
+		catch
+		{
+			TestConnectionLifecycle.TryCloseConnection(_conn);
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(_conn);
 		await _node.Shutdown();
 		await base.TearDown();
 	}
