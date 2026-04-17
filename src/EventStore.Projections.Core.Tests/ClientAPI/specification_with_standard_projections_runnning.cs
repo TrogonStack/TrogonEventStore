@@ -144,7 +144,20 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	public override async Task TestFixtureTearDown()
 	{
 		if (_conn != null)
-			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, TimeSpan.FromSeconds(20));
+		{
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(_conn, TimeSpan.FromSeconds(20));
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(_conn);
+			}
+			finally
+			{
+				TestConnectionLifecycle.DisposeIfNeeded(_conn);
+			}
+		}
 
 		TestConnectionLifecycle.DisposeIfNeeded(_queryManager);
 		TestConnectionLifecycle.DisposeIfNeeded(_manager);

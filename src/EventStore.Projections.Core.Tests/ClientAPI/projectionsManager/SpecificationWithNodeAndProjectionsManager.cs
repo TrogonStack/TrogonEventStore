@@ -74,7 +74,20 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	public override async Task TestFixtureTearDown()
 	{
 		if (_connection != null)
-			await TestConnectionLifecycle.CloseConnectionAndWait(_connection, _timeout);
+		{
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(_connection, _timeout);
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(_connection);
+			}
+			finally
+			{
+				TestConnectionLifecycle.DisposeIfNeeded(_connection);
+			}
+		}
 
 		TestConnectionLifecycle.DisposeIfNeeded(_projManager);
 
