@@ -292,7 +292,6 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 
 		try
 		{
-			await store.ConnectAsync();
 			var appeared = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 			var eventsSeen = new List<ResolvedEvent>();
 			var checkpointsSeen = 0;
