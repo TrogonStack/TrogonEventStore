@@ -841,6 +841,7 @@ public class connect_to_persistent_subscription_with_retries<TLogFormat, TStream
 {
 	private readonly string _stream = Guid.NewGuid().ToString("N");
 	protected override TimeSpan Timeout { get; } = TimeSpan.FromMinutes(5);
+	protected override TimeSpan StartupTimeout { get; } = TimeSpan.FromMinutes(10);
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()

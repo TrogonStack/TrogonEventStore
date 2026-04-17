@@ -13,6 +13,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _conn;
 	protected virtual TimeSpan Timeout { get; } = TimeSpan.FromMinutes(1);
+	protected virtual TimeSpan StartupTimeout => Timeout;
 
 	protected virtual Task Given() => Task.CompletedTask;
 
@@ -51,7 +52,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		try
 		{
 			_node = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: _chunkSize);
-			await _node.Start(Timeout);
+			await _node.Start(StartupTimeout);
 			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 			_conn = await TestConnectionLifecycle.ReconnectUntilReady(
 				() => BuildConnection(_node),

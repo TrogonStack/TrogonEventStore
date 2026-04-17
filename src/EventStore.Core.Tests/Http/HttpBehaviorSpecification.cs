@@ -25,6 +25,7 @@ namespace EventStore.Core.Tests.Http;
 public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
+	protected virtual TimeSpan StartupTimeout { get; } = TimeSpan.FromMinutes(15);
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _connection;
 	protected HttpResponseMessage _lastResponse;
@@ -44,7 +45,7 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		await base.TestFixtureSetUp();
 
 		_node = CreateMiniNode();
-		await _node.Start(TimeSpan.FromMinutes(10));
+		await _node.Start(StartupTimeout);
 		await WaitForNodeReadiness();
 		_connection = TestConnection.Create(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
@@ -122,6 +123,7 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		}
 
 		await _node.Shutdown();
+		await Task.Delay(1000);
 		foreach (var response in _allResponses)
 			response?.Dispose();
 
