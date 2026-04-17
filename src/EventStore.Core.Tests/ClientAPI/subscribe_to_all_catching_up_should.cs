@@ -13,13 +13,16 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Tests.ClientAPI;
 
-[Category("ClientAPI"), Category("LongRunning")]
+[Category("ClientAPI"), Category("LongRunning"), NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private static readonly ILogger Log = Serilog.Log.ForContext<subscribe_to_all_catching_up_should<TLogFormat, TStreamId>>();
 	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
+	private const int LongRunningTimeout = 300000;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
+	private static readonly TimeSpan ConnectionCloseTimeout = TimeSpan.FromSeconds(10);
 
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private IEventStoreConnection _conn;
@@ -29,10 +32,13 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
-		_conn = BuildConnection(_node);
-		await _conn.ConnectAsync();
+		_conn = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			StartupTimeout);
 		await _conn.SetStreamMetadataAsync("$all", -1,
 			StreamMetadata.Build().SetReadRole(SystemRoles.All),
 			new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword));
@@ -41,7 +47,21 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	[TearDown]
 	public override async Task TearDown()
 	{
-		_conn.Close();
+		try
+		{
+			if (_conn != null)
+				await TestConnectionLifecycle.CloseConnectionAndWait(_conn, ConnectionCloseTimeout);
+		}
+		catch
+		{
+			if (_conn != null)
+				TestConnectionLifecycle.TryCloseConnection(_conn);
+		}
+		finally
+		{
+			TestConnectionLifecycle.DisposeIfNeeded(_conn);
+		}
+
 		await _node.Shutdown();
 		await base.TearDown();
 	}
@@ -51,7 +71,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task call_dropped_callback_after_stop_method_call()
 	{
 		using (var store = BuildConnection(_node))
@@ -71,7 +91,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task call_dropped_callback_when_an_error_occurs_while_processing_an_event()
 	{
 		const string stream = "call_dropped_callback_when_an_error_occurs_while_processing_an_event";
@@ -90,7 +110,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task be_able_to_subscribe_to_empty_db()
 	{
 		using (var store = BuildConnection(_node))
@@ -121,7 +141,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task read_all_existing_events_and_keep_listening_to_new_ones()
 	{
 		using (var store = BuildConnection(_node))
@@ -176,7 +196,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task filter_events_and_keep_listening_to_new_ones()
 	{
 		using (var store = BuildConnection(_node))
@@ -243,7 +263,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task filter_events_and_work_if_nothing_was_written_after_subscription()
 	{
 		using (var store = BuildConnection(_node))
