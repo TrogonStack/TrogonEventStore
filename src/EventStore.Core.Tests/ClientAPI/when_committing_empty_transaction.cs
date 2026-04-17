@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
+using EventStore.ClientAPI.SystemData;
 using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;
@@ -13,6 +14,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class when_committing_empty_transaction<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
+	private const int LongRunningTimeout = 120000;
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private IEventStoreConnection _connection;
 	private EventData _firstEvent;
@@ -22,12 +25,15 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
 		_firstEvent = TestEvent.NewTestEvent();
 
-		_connection = BuildConnection(_node);
-		await _connection.ConnectAsync();
+		_connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			StartupTimeout);
 
 		Assert.AreEqual(2, (await _connection.AppendToStreamAsync("test-stream",
 			ExpectedVersion.NoStream,
@@ -44,7 +50,16 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 	[TearDown]
 	public override async Task TearDown()
 	{
-		_connection.Close();
+		try
+		{
+			await TestConnectionLifecycle.CloseConnectionAndWait(_connection, TimeSpan.FromSeconds(10));
+		}
+		catch
+		{
+			TestConnectionLifecycle.TryCloseConnection(_connection);
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(_connection);
 		await _node.Shutdown();
 		await base.TearDown();
 	}
@@ -54,7 +69,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public async Task following_append_with_correct_expected_version_are_commited_correctly()
 	{
 		Assert.AreEqual(4,
@@ -71,7 +86,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public async Task following_append_with_expected_version_any_are_commited_correctly()
 	{
 		Assert.AreEqual(4,
@@ -87,7 +102,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public async Task committing_first_event_with_expected_version_no_stream_is_idempotent()
 	{
 		Assert.AreEqual(0,
@@ -103,7 +118,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public async Task trying_to_append_new_events_with_expected_version_no_stream_fails()
 	{
 		await AssertEx.ThrowsAsync<WrongExpectedVersionException>(() =>

@@ -9,6 +9,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
+[NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLogFormat, TStreamId>
@@ -20,7 +21,7 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -66,6 +67,7 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 
 
 [Category("LongRunning")]
+[NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -76,7 +78,7 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -120,6 +122,7 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 
 
 [Category("LongRunning")]
+[NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -130,7 +133,7 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 
 	[Test]
@@ -177,6 +180,7 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 
 
 [Category("LongRunning")]
+[NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -187,7 +191,7 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 
 	[Test]
@@ -233,6 +237,7 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 
 
 [Category("LongRunning")]
+[NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -243,7 +248,7 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -294,6 +299,7 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 
 
 [Category("LongRunning")]
+[NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -304,7 +310,7 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -364,7 +370,7 @@ public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogForma
 	private readonly ManualResetEvent _eventsReceived = new ManualResetEvent(false);
 	private int _eventReceivedCount;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	public async Task Test()
@@ -418,7 +424,7 @@ public class when_connection_drops_messages_that_have_run_out_of_retries_are_not
 	private readonly TaskCompletionSource<bool> _eventReceived = new TaskCompletionSource<bool>();
 	private ResolvedEvent _receivedEvent;
 
-	protected override Task When() => Task.WhenAll(_node.Started, _node.AdminUserCreated);
+	protected override Task When() => Task.CompletedTask;
 
 	[Test]
 	[Retry(10)]

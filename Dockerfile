@@ -59,9 +59,8 @@ ARG RUNTIME=linux-x64
 ARG UID=10000
 ARG GID=10000
 
-RUN apt update && \
-    apt install -y \
-    curl && \
+RUN apt-get update -o Acquire::Retries=3 && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/eventstore

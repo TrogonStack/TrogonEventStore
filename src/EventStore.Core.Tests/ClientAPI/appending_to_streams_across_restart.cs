@@ -16,6 +16,7 @@ namespace EventStore.Core.Tests.ClientAPI;
 public class appending_to_streams_across_restart<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private MiniNode<TLogFormat, TStreamId> _node;
+	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 
 	virtual protected IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
@@ -31,6 +32,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 
 	[Test]
 	[Category("Network")]
+	[Timeout(80000)]
 	public async Task detect_existing_streams_flush()
 	{
 		void CreateNode()
@@ -46,6 +48,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 
 		CreateNode();
 		await _node.Start();
+		await WaitForNodeReadiness();
 
 		// GIVEN some streams
 		var normal = "detect_existing_streams_normal";
@@ -103,6 +106,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 		await _node.Shutdown(keepDb: true);
 		CreateNode();
 		await _node.Start();
+		await WaitForNodeReadiness();
 
 		// THEN the streams all exist
 		using (var store = BuildConnection(_node))
@@ -147,6 +151,15 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 					await EventsStream.Count(store, uncommitted));
 			}
 		}
+	}
+
+	private async Task WaitForNodeReadiness()
+	{
+		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
+		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			ReadinessTimeout);
 	}
 }
 

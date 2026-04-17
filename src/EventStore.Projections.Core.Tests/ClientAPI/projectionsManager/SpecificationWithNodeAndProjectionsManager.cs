@@ -40,12 +40,15 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		_tag = "_1";
 
 		_node = CreateNode();
-		await _node.Start().WithTimeout(_timeout);
+		await _node.Start();
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 
-		_connection = TestConnection.Create(_node.TcpEndPoint);
-		await _connection.ConnectAsync();
+		_connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
+			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials),
+			_timeout);
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try
@@ -70,8 +73,26 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		_connection.Close();
+		if (_connection != null)
+		{
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(_connection, _timeout);
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(_connection);
+			}
+			finally
+			{
+				TestConnectionLifecycle.DisposeIfNeeded(_connection);
+			}
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(_projManager);
+
 		await _node.Shutdown();
+		await Task.Delay(1000);
 
 		await base.TestFixtureTearDown();
 	}

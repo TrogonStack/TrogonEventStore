@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
+using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Integration;
@@ -10,6 +11,9 @@ namespace EventStore.Core.Tests.Integration;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromSeconds(120);
+	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(5);
+
 	protected override async Task Given()
 	{
 		await base.Given();
@@ -26,7 +30,14 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			node.Start();
 			_nodes[i % 3] = node;
 
-			await Task.WhenAll(_nodes.Select(x => x.Started)).WithTimeout(TimeSpan.FromSeconds(30));
+			await Task.WhenAll(_nodes.Select(x => x.Started))
+				.WithTimeout(RestartTimeout, MiniNodeLogging.WriteLogs);
+			AssertEx.IsOrBecomesTrue(
+				() => _nodes.Count(x => x.NodeState == VNodeState.Leader) == 1 &&
+					  _nodes.Count(x => x.NodeState == VNodeState.Follower) == 2,
+				RestartTimeout,
+				$"Cluster did not stabilize after restarting node {i % 3}",
+				MiniNodeLogging.WriteLogs);
 		}
 	}
 

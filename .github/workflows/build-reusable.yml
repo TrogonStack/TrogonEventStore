@@ -15,11 +15,6 @@ permissions:
   packages: read
 
 jobs:
-  nuget-source:
-    name: Auth with GitHub Packages
-    uses: ./.github/workflows/nuget-auth.yml
-    with:
-      working-directory: src
   build:
     strategy:
       fail-fast: false
@@ -40,6 +35,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      - name: Authenticate NuGet GitHub Packages
+        shell: bash
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
+            --name github \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
+            --store-password-in-clear-text
       - name: Compile
         shell: bash
         env:
@@ -55,7 +58,7 @@ jobs:
         run: |
           find ./src -maxdepth 1 -type d -name "*.Tests"  -print0 \
             | xargs -r -I{} -0 -n1 bash -c \
-            'dotnet test --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} -p:ContinuousIntegrationBuild=true --blame --blame-hang-timeout 5min --blame-hang-dump-type mini --settings ./ci/ci.runsettings --logger:GitHubActions --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory=$(pwd)/test-results/$1 $1' - '{}'
+            'timeout --signal=TERM --kill-after=30s 30m dotnet test --configuration ${{ matrix.configuration }} -p:Platform=${{ inputs.arch }} -p:ContinuousIntegrationBuild=true --blame --settings ./ci/ci.runsettings --logger:GitHubActions --logger:html --logger:trx --logger:"console;verbosity=normal" --results-directory=$(pwd)/test-results/$1 $1' - '{}'
       - name: Collect Test Results
         shell: bash
         if: always()

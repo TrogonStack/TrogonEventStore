@@ -24,6 +24,8 @@ namespace EventStore.Core.Tests.Http;
 
 public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
+	protected virtual TimeSpan StartupTimeout { get; } = TimeSpan.FromMinutes(15);
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _connection;
 	protected HttpResponseMessage _lastResponse;
@@ -43,8 +45,8 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		await base.TestFixtureSetUp();
 
 		_node = CreateMiniNode();
-		await _node.Start();
-
+		await _node.Start(StartupTimeout);
+		await WaitForNodeReadiness();
 		_connection = TestConnection.Create(_node.TcpEndPoint);
 		await _connection.ConnectAsync();
 
@@ -83,15 +85,49 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 
 	protected virtual bool GivenSkipInitializeStandardUsersCheck() => false;
 
+	private async Task WaitForNodeReadiness()
+	{
+		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
+		var connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			ReadinessTimeout);
+		try
+		{
+			await TestConnectionLifecycle.CloseConnectionAndWait(connection, ReadinessTimeout);
+		}
+		catch
+		{
+			TestConnectionLifecycle.TryCloseConnection(connection);
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(connection);
+	}
+
 	public override async Task TestFixtureTearDown()
 	{
-		_connection.Close();
-		await _node.Shutdown();
-		await base.TestFixtureTearDown();
-		foreach (var response in _allResponses)
+		if (_connection != null)
 		{
-			response?.Dispose();
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(_connection, ReadinessTimeout);
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(_connection);
+			}
+			finally
+			{
+				TestConnectionLifecycle.DisposeIfNeeded(_connection);
+			}
 		}
+
+		await _node.Shutdown();
+		await Task.Delay(1000);
+		foreach (var response in _allResponses)
+			response?.Dispose();
+
+		await base.TestFixtureTearDown();
 	}
 
 	protected HttpRequestMessage CreateRequest(

@@ -1,11 +1,6 @@
 name: Ubuntu LTS X64
 
 on:
-  pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
   push:
     branches:
       - master

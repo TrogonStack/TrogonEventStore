@@ -16,6 +16,7 @@ public class when_a_single_node_is_shutdown<TLogFormat, TStreamId> : Specificati
 		try
 		{
 			await node.Start();
+			await node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(60));
 
 			var shutdownTask = node.Node.StopAsync(TimeSpan.FromMilliseconds(1));
 			Assert.ThrowsAsync<TimeoutException>(() => shutdownTask);

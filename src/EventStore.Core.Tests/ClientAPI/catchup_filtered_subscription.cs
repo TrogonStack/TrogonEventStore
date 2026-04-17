@@ -14,7 +14,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientAPI;
 
-[Category("LongRunning"), Category("ClientAPI")]
+[Category("LongRunning"), Category("ClientAPI"), NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class catchup_filtered_subscription<TLogFormat, TStreamId> : SpecificationWithDirectory
@@ -24,19 +24,25 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	private List<EventData> _testEvents;
 	private List<EventData> _testEventsAfter;
 	private const int Timeout = 10000;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
+	private static readonly TimeSpan ConnectionCloseTimeout = TimeSpan.FromSeconds(10);
+	private const int LongRunningTimeout = 600000;
 
 	[SetUp]
 	public override async Task SetUp()
 	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
 
-		_conn = BuildConnection(_node);
-		await _conn.ConnectAsync();
-		_conn.SetStreamMetadataAsync(SystemStreams.AllStream, -1,
+		_conn = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			StartupTimeout);
+		await _conn.SetStreamMetadataAsync(SystemStreams.AllStream, -1,
 			StreamMetadata.Build().SetReadRole(SystemRoles.All),
-			new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword)).Wait();
+			new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword));
 
 		_testEvents = Enumerable
 			.Range(0, 10)
@@ -157,7 +163,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.AreEqual(20, eventsSeen);
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_with_a_given_stream_prefix()
 	{
 		var filter = Filter.StreamId.Prefix("stream-a");
@@ -174,7 +180,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-a"));
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_with_a_given_event_prefix()
 	{
 		var filter = Filter.EventType.Prefix("AE");
@@ -191,7 +197,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventType == "AEvent"));
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_that_satisfy_a_given_stream_regex()
 	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
@@ -208,7 +214,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-b"));
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_that_satisfy_a_given_event_regex()
 	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
@@ -225,7 +231,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		Assert.True(foundEvents.All(e => e.Event.EventType == "BEvent"));
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void only_return_events_that_are_not_system_events()
 	{
 		var filter = Filter.ExcludeSystemEvents;
@@ -265,7 +271,16 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	[TearDown]
 	public override async Task TearDown()
 	{
-		_conn.Close();
+		try
+		{
+			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, ConnectionCloseTimeout);
+		}
+		catch
+		{
+			TestConnectionLifecycle.TryCloseConnection(_conn);
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(_conn);
 		await _node.Shutdown();
 		await base.TearDown();
 	}

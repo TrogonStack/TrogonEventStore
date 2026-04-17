@@ -202,7 +202,7 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 		const int numTransactions = 4 * 128 / 2;
 
 		await ConnectReplica();
-		await Replicated();
+		await Replicated(TimeSpan.FromSeconds(15));
 		VerifyCheckpoints(numChunksToFill + numTransactions);
 		VerifyDB(4 + 1);
 	}

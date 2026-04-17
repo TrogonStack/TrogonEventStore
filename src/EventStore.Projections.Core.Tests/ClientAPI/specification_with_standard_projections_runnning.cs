@@ -9,6 +9,7 @@ using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Options;
 using EventStore.Core.Tests;
+using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Util;
 using EventStore.Projections.Core.Services.Processing;
@@ -50,10 +51,11 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
 		await _node.Start();
-		_conn = EventStoreConnection.Create(new ConnectionSettingsBuilder()
-			.DisableServerCertificateValidation()
-			.Build(), _node.TcpEndPoint);
-		await _conn.ConnectAsync();
+		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+		_conn = await TestConnectionLifecycle.ReconnectUntilReady(
+			CreateConnection,
+			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _admin),
+			TimeSpan.FromSeconds(20));
 
 		_manager = new ProjectionsManager(
 			new ConsoleLogger(),
@@ -142,10 +144,27 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	public override async Task TestFixtureTearDown()
 	{
 		if (_conn != null)
-			_conn.Close();
+		{
+			try
+			{
+				await TestConnectionLifecycle.CloseConnectionAndWait(_conn, TimeSpan.FromSeconds(20));
+			}
+			catch
+			{
+				TestConnectionLifecycle.TryCloseConnection(_conn);
+			}
+			finally
+			{
+				TestConnectionLifecycle.DisposeIfNeeded(_conn);
+			}
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(_queryManager);
+		TestConnectionLifecycle.DisposeIfNeeded(_manager);
 
 		if (_node != null)
 			await _node.Shutdown();
+		await Task.Delay(1000);
 
 		await base.TestFixtureTearDown();
 	}
@@ -172,6 +191,11 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected static EventData CreateEvent(string type, string data)
 	{
 		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), new byte[0]);
+	}
+
+	private IEventStoreConnection CreateConnection()
+	{
+		return TestConnection.CreateMiniNodeClient(_node.TcpEndPoint);
 	}
 
 	protected void WaitIdle(int multiplier = 1)

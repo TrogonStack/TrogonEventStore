@@ -20,11 +20,15 @@ namespace EventStore.TcpUnitTestPlugin;
 public class PublicTcpApiTestService : IHostedService
 {
 	static readonly ILogger Logger = Log.ForContext<PublicTcpApiTestService>();
+	private readonly TcpService _tcpService;
+	private int _systemInitialized;
 
 	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus)
 	{
-		bus.Subscribe<SystemMessage.SystemInit>(tcpService);
-		bus.Subscribe<SystemMessage.SystemStart>(tcpService);
+		_tcpService = tcpService;
+
+		bus.Subscribe<SystemMessage.SystemInit>(new AdHocHandler<SystemMessage.SystemInit>(_ => StartTcpService()));
+		bus.Subscribe<SystemMessage.SystemStart>(new AdHocHandler<SystemMessage.SystemStart>(_ => StartTcpService()));
 		bus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
 
 		_ = Task.Run(async () =>
@@ -99,7 +103,19 @@ public class PublicTcpApiTestService : IHostedService
 		return new(tcpService, components.MainBus);
 	}
 
-	public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+	public Task StartAsync(CancellationToken cancellationToken)
+	{
+		StartTcpService();
+		return Task.CompletedTask;
+	}
 
 	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+	private void StartTcpService()
+	{
+		if (Interlocked.Exchange(ref _systemInitialized, 1) == 1)
+			return;
+
+		_tcpService.Handle(new SystemMessage.SystemInit());
+	}
 }

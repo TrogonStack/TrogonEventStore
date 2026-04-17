@@ -7,6 +7,7 @@ namespace EventStore.Projections.Core.Tests.ClientAPI.event_by_type_index;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
+[NonParallelizable]
 public class when_reverting_after_index_catches_up<TLogFormat, TStreamId> : specification_with_standard_projections_runnning<TLogFormat, TStreamId>
 {
 	protected override bool GivenStandardProjectionsRunning()

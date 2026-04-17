@@ -9,34 +9,52 @@ on:
       runtime:
         required: true
         type: string
+      test-group-name:
+        required: false
+        type: string
+        default: all
+      mode:
+        required: false
+        type: string
+        default: build-and-test
+      test-image-artifact-name:
+        required: false
+        type: string
+        default: eventstore-test-image
 
 jobs:
   build-container:
     strategy:
       fail-fast: false
     runs-on: ubuntu-latest
-    name: ${{ inputs.container-runtime }}
+    name: ${{ format('{0} / {1}', inputs.container-runtime, inputs.test-group-name) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+        if: ${{ inputs.mode != 'test-only' }}
       - name: Install net8.0
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+        if: ${{ inputs.mode != 'test-only' }}
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
+        if: ${{ inputs.mode != 'test-only' }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        if: ${{ inputs.mode != 'test-only' }}
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
+        if: ${{ inputs.mode != 'test-only' }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         uses: docker/build-push-action@v5
+        if: ${{ inputs.mode != 'test-only' }}
         with:
           context: .
           load: true
@@ -44,13 +62,17 @@ jobs:
           build-args: |
             CONTAINER_RUNTIME=${{ inputs.container-runtime }}
             RUNTIME=${{ inputs.runtime }}
+          cache-from: type=gha,scope=${{ format('container-{0}-{1}', inputs.container-runtime, inputs.runtime) }}
+          cache-to: type=gha,mode=max,scope=${{ format('container-{0}-{1}', inputs.container-runtime, inputs.runtime) }}
           secrets: |
             nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
       - name: Verify Build
+        if: ${{ inputs.mode != 'test-only' }}
         run: |
           docker run --rm eventstore --insecure --what-if
       - name: Build Test Container
         uses: docker/build-push-action@v5
+        if: ${{ inputs.mode != 'test-only' }}
         with:
           context: .
           load: true
@@ -59,23 +81,49 @@ jobs:
           build-args: |
             CONTAINER_RUNTIME=${{ inputs.container-runtime }}
             RUNTIME=${{ inputs.runtime }}
+          cache-from: type=gha,scope=${{ format('container-{0}-{1}', inputs.container-runtime, inputs.runtime) }}
+          cache-to: type=gha,mode=max,scope=${{ format('container-{0}-{1}', inputs.container-runtime, inputs.runtime) }}
           secrets: |
             nuget_auth_token=${{ secrets.GITHUB_TOKEN }}
+      - name: Export Test Container
+        if: ${{ inputs.mode == 'build-only' }}
+        run: |
+          docker save eventstore-test -o eventstore-test.tar
+      - name: Publish Test Container
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.mode == 'build-only' }}
+        with:
+          name: ${{ inputs.test-image-artifact-name }}
+          path: eventstore-test.tar
+          if-no-files-found: error
+      - name: Download Test Container
+        uses: actions/download-artifact@v4
+        if: ${{ inputs.mode == 'test-only' }}
+        with:
+          name: ${{ inputs.test-image-artifact-name }}
+      - name: Load Test Container
+        if: ${{ inputs.mode == 'test-only' }}
+        run: |
+          docker load -i eventstore-test.tar
       - name: Run Tests
+        if: ${{ inputs.mode != 'build-only' }}
         run: |
           docker run \
+          --env TEST_GROUP="${{ inputs.test-group-name }}" \
           --volume $(pwd)/test-results:/build/test-results \
           --rm \
           eventstore-test
-      - name: Publish Test Results (HTML)
+      - name: Normalize Test Result Permissions
+        if: failure()
+        run: |
+          if [ -d test-results ]; then
+            sudo chown -R "$(id -u):$(id -g)" test-results
+            sudo chmod -R u+rwX,go+rX test-results
+          fi
+      - name: Publish Test Results
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
-          path: test-results/test-results.html
-          name: test-results-${{ inputs.container-runtime }}.html
-      - name: Publish Test Results (All)
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-${{ inputs.container-runtime }}
+          name: test-results-${{ inputs.container-runtime }}-${{ inputs.test-group-name }}
           path: test-results
+          if-no-files-found: ignore

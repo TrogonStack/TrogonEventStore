@@ -13,6 +13,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _conn;
 	protected virtual TimeSpan Timeout { get; } = TimeSpan.FromMinutes(1);
+	protected virtual TimeSpan StartupTimeout => Timeout;
 
 	protected virtual Task Given() => Task.CompletedTask;
 
@@ -20,16 +21,11 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 
 	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
-		return TestConnection.Create(node.TcpEndPoint, TcpType.Ssl);
+		return TestConnection.CreateMiniNodeClient(node.TcpEndPoint, TcpType.Ssl);
 	}
 
-	protected async Task CloseConnectionAndWait(IEventStoreConnection conn)
-	{
-		TaskCompletionSource closed = new TaskCompletionSource();
-		conn.Closed += (_, _) => closed.SetResult();
-		conn.Close();
-		await closed.Task.WithTimeout(Timeout);
-	}
+	protected Task CloseConnectionAndWait(IEventStoreConnection connection) =>
+		TestConnectionLifecycle.CloseConnectionAndWait(connection, Timeout);
 
 	protected SpecificationWithMiniNode() : this(chunkSize: 1024 * 1024) { }
 
@@ -56,9 +52,12 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		try
 		{
 			_node = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: _chunkSize);
-			await _node.Start();
-			_conn = BuildConnection(_node);
-			await _conn.ConnectAsync();
+			await _node.Start(StartupTimeout);
+			await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+			_conn = await TestConnectionLifecycle.ReconnectUntilReady(
+				() => BuildConnection(_node),
+				connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+				Timeout);
 		}
 		catch (Exception ex)
 		{
@@ -90,8 +89,10 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		_conn?.Close();
+		if (_conn != null)
+			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, Timeout);
 		await _node.Shutdown();
+		await Task.Delay(1000);
 		await base.TestFixtureTearDown();
 
 		MiniNodeLogging.Clear();

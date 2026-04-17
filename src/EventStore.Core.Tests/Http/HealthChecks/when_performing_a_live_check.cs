@@ -4,6 +4,8 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
+using EventStore.ClientAPI;
+using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
 using NUnit.Framework;
 
@@ -13,6 +15,7 @@ namespace EventStore.Core.Tests.Http.HealthChecks;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_performing_a_live_check<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private bool _nodeStarted;
 	[SetUp]
@@ -54,9 +57,7 @@ public class when_performing_a_live_check<TLogFormat, TStreamId> : Specification
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
 	public async Task after_start_returns_success(HttpMethod method)
 	{
-		await _node.Start()
-			.WithTimeout();
-		_nodeStarted = true;
+		await StartNodeAndWaitForReadiness();
 		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/health/live")
 		{
 			Version = new Version(2, 0)
@@ -69,9 +70,7 @@ public class when_performing_a_live_check<TLogFormat, TStreamId> : Specification
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
 	public async Task with_liveCode_parameter_returns_the_same_liveCode(HttpMethod method)
 	{
-		await _node.Start()
-			.WithTimeout();
-		_nodeStarted = true;
+		await StartNodeAndWaitForReadiness();
 		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/health/live?liveCode=200")
 		{
 			Version = new Version(2, 0)
@@ -83,9 +82,7 @@ public class when_performing_a_live_check<TLogFormat, TStreamId> : Specification
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
 	public async Task after_shutdown_returns_error(HttpMethod method)
 	{
-		await _node.Start()
-			.WithTimeout();
-		_nodeStarted = true;
+		await StartNodeAndWaitForReadiness();
 		await _node.Node.StopAsync()
 			.WithTimeout();
 
@@ -97,11 +94,21 @@ public class when_performing_a_live_check<TLogFormat, TStreamId> : Specification
 	[TestCaseSource(nameof(MethodNotAllowedTestCases))]
 	public async Task using_methods_other_than_get_or_head_returns_method_not_allowed(HttpMethod method)
 	{
-		await _node.Start()
-			.WithTimeout();
-		_nodeStarted = true;
+		await StartNodeAndWaitForReadiness();
 		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/health/live"));
 
 		Assert.AreEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+	}
+
+	private async Task StartNodeAndWaitForReadiness()
+	{
+		await _node.Start();
+		_nodeStarted = true;
+		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
+
+		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			ReadinessTimeout);
 	}
 }
