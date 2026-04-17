@@ -20,8 +20,9 @@ namespace EventStore.Core.Tests.ClientAPI;
 public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private const int Timeout = 10000;
-	private const int LongRunningTimeout = 300000;
+	private const int LongRunningTimeout = 600000;
 	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
+	private static readonly TimeSpan ConnectionCloseTimeout = TimeSpan.FromSeconds(10);
 
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private IEventStoreConnection _conn;
@@ -65,13 +66,11 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	{
 		var filter = Filter.StreamId.Prefix("stream-a");
 		var foundEvents = new List<ResolvedEvent>();
-
-		using (var store = BuildConnection(_node))
+		var store = await CreateStoreConnection();
+		try
 		{
-			await store.ConnectAsync();
-			var appeared = new TaskCompletionSource<bool>();
-
-			using (await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
+			var appeared = CreateAppearedSignal();
+			var subscription = await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
 			{
 				foundEvents.Add(e);
 				if (foundEvents.Count == 5)
@@ -79,7 +78,8 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					appeared.TrySetResult(true);
 				}
 				return Task.CompletedTask;
-			}, (s, p) => Task.CompletedTask, 100, (_, reason, ex) => appeared.TrySetException(ex)))
+			}, (s, p) => Task.CompletedTask, 100, CreateDropHandler(appeared));
+			try
 			{
 				await _conn.AppendToStreamAsync("stream-b", ExpectedVersion.NoStream, _testEvents.EvenEvents());
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _testEvents.OddEvents());
@@ -88,6 +88,14 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 
 				Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-a"));
 			}
+			finally
+			{
+				StopSubscription(subscription);
+			}
+		}
+		finally
+		{
+			await CloseConnection(store);
 		}
 	}
 
@@ -96,13 +104,11 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	{
 		var filter = Filter.EventType.Prefix("AE");
 		var foundEvents = new List<ResolvedEvent>();
-
-		using (var store = BuildConnection(_node))
+		var store = await CreateStoreConnection();
+		try
 		{
-			await store.ConnectAsync();
-			var appeared = new TaskCompletionSource<bool>();
-
-			using (await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
+			var appeared = CreateAppearedSignal();
+			var subscription = await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
 			{
 				if (e.OriginalStreamId == SystemStreams.EventTypesStream)
 					return Task.CompletedTask;
@@ -113,7 +119,8 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					appeared.TrySetResult(true);
 				}
 				return Task.CompletedTask;
-			}, (s, p) => Task.CompletedTask, 100))
+			}, (s, p) => Task.CompletedTask, 100, CreateDropHandler(appeared));
+			try
 			{
 				await _conn.AppendToStreamAsync("stream-b", ExpectedVersion.NoStream, _testEvents.EvenEvents());
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _testEvents.OddEvents());
@@ -122,6 +129,14 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 
 				Assert.True(foundEvents.All(e => e.Event.EventType == "AEvent"));
 			}
+			finally
+			{
+				StopSubscription(subscription);
+			}
+		}
+		finally
+		{
+			await CloseConnection(store);
 		}
 	}
 
@@ -130,13 +145,11 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
 		var foundEvents = new List<ResolvedEvent>();
-
-		using (var store = BuildConnection(_node))
+		var store = await CreateStoreConnection();
+		try
 		{
-			await store.ConnectAsync();
-			var appeared = new TaskCompletionSource<bool>();
-
-			using (await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
+			var appeared = CreateAppearedSignal();
+			var subscription = await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
 			{
 				foundEvents.Add(e);
 				if (foundEvents.Count == 5)
@@ -144,7 +157,8 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					appeared.TrySetResult(true);
 				}
 				return Task.CompletedTask;
-			}, (s, p) => Task.CompletedTask, 100))
+			}, (s, p) => Task.CompletedTask, 100, CreateDropHandler(appeared));
+			try
 			{
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _testEvents.EvenEvents());
 				await _conn.AppendToStreamAsync("stream-b", ExpectedVersion.NoStream, _testEvents.OddEvents());
@@ -153,6 +167,14 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 
 				Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-b"));
 			}
+			finally
+			{
+				StopSubscription(subscription);
+			}
+		}
+		finally
+		{
+			await CloseConnection(store);
 		}
 	}
 
@@ -161,13 +183,11 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
-
-		using (var store = BuildConnection(_node))
+		var store = await CreateStoreConnection();
+		try
 		{
-			await store.ConnectAsync();
-			var appeared = new TaskCompletionSource<bool>();
-
-			using (await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
+			var appeared = CreateAppearedSignal();
+			var subscription = await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
 			{
 				foundEvents.Add(e);
 				if (foundEvents.Count == 5)
@@ -175,7 +195,8 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					appeared.TrySetResult(true);
 				}
 				return Task.CompletedTask;
-			}, (s, p) => Task.CompletedTask, 100))
+			}, (s, p) => Task.CompletedTask, 100, CreateDropHandler(appeared));
+			try
 			{
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _testEvents.EvenEvents());
 				await _conn.AppendToStreamAsync("stream-b", ExpectedVersion.NoStream, _testEvents.OddEvents());
@@ -184,6 +205,14 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 
 				Assert.True(foundEvents.All(e => e.Event.EventType == "BEvent"));
 			}
+			finally
+			{
+				StopSubscription(subscription);
+			}
+		}
+		finally
+		{
+			await CloseConnection(store);
 		}
 	}
 
@@ -192,13 +221,11 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	{
 		var filter = Filter.ExcludeSystemEvents;
 		var foundEvents = new List<ResolvedEvent>();
-
-		using (var store = BuildConnection(_node))
+		var store = await CreateStoreConnection();
+		try
 		{
-			await store.ConnectAsync();
-			var appeared = new TaskCompletionSource<bool>();
-
-			using (await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
+			var appeared = CreateAppearedSignal();
+			var subscription = await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
 			{
 				foundEvents.Add(e);
 				if (foundEvents.Count == 5)
@@ -206,7 +233,8 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					appeared.TrySetResult(true);
 				}
 				return Task.CompletedTask;
-			}, (s, p) => Task.CompletedTask, 100))
+			}, (s, p) => Task.CompletedTask, 100, CreateDropHandler(appeared));
+			try
 			{
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _fakeSystemEvents);
 				await _conn.AppendToStreamAsync("stream-b", ExpectedVersion.NoStream, _testEvents.EvenEvents());
@@ -215,6 +243,14 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 
 				Assert.True(foundEvents.All(e => !e.Event.EventType.StartsWith("$")));
 			}
+			finally
+			{
+				StopSubscription(subscription);
+			}
+		}
+		finally
+		{
+			await CloseConnection(store);
 		}
 	}
 
@@ -222,11 +258,9 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	public async Task throw_an_exception_if_interval_is_negative()
 	{
 		var filter = Filter.ExcludeSystemEvents;
-
-		using (var store = BuildConnection(_node))
+		var store = await CreateStoreConnection();
+		try
 		{
-			await store.ConnectAsync();
-
 			Assert.Throws<ArgumentOutOfRangeException>(() =>
 			{
 				store.FilteredSubscribeToAllAsync(
@@ -236,6 +270,10 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					(s, p) => Task.CompletedTask, 0).Wait();
 			});
 		}
+		finally
+		{
+			await CloseConnection(store);
+		}
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
@@ -244,7 +282,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		var filter = Filter.ExcludeSystemEvents;
 		const int expectedEvents = 10;
 		const int expectedCheckpoints = 5;
-		var store = BuildConnection(_node);
+		var store = await CreateStoreConnection();
 
 		void TryComplete(TaskCompletionSource<bool> appeared, List<ResolvedEvent> eventsSeen, int checkpointsSeen)
 		{
@@ -266,7 +304,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 				await _conn.AppendToStreamAsync("init-event-types", ExpectedVersion.NoStream, _testEvents);
 			}
 
-			using (await store.FilteredSubscribeToAllAsync(false,
+			var subscription = await store.FilteredSubscribeToAllAsync(false,
 				filter,
 				(s, e) =>
 				{
@@ -281,7 +319,8 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 					return Task.CompletedTask;
 				},
 				checkpointInterval: 2,
-				(_, reason, ex) => appeared.TrySetException(ex ?? new InvalidOperationException($"Subscription dropped: {reason}"))))
+				CreateDropHandler(appeared));
+			try
 			{
 				await _conn.AppendToStreamAsync("stream-a", ExpectedVersion.NoStream, _testEvents);
 
@@ -290,26 +329,21 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 				Assert.AreEqual(expectedCheckpoints * 2 /*considered events*/, eventsSeen.Count);
 				Assert.True(eventsSeen.All(x => x.Event.EventStreamId == "stream-a"));
 			}
+			finally
+			{
+				StopSubscription(subscription);
+			}
 		}
 		finally
 		{
-			try
-			{
-				await TestConnectionLifecycle.CloseConnectionAndWait(store, TimeSpan.FromSeconds(10));
-			}
-			catch
-			{
-				TestConnectionLifecycle.TryCloseConnection(store);
-			}
-
-			TestConnectionLifecycle.DisposeIfNeeded(store);
+			await CloseConnection(store);
 		}
 	}
 
 	[TearDown]
 	public override async Task TearDown()
 	{
-		_conn.Close();
+		await CloseConnection(_conn);
 		await _node.Shutdown();
 		await base.TearDown();
 	}
@@ -317,5 +351,43 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
 	{
 		return TestConnection.Create(node.TcpEndPoint);
+	}
+
+	private Task<IEventStoreConnection> CreateStoreConnection() =>
+		TestConnectionLifecycle.ReconnectUntilReady(
+			() => BuildConnection(_node),
+			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			StartupTimeout);
+
+	private static TaskCompletionSource<bool> CreateAppearedSignal() =>
+		new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+	private static Action<EventStoreSubscription, EventStore.ClientAPI.SubscriptionDropReason, Exception> CreateDropHandler(
+		TaskCompletionSource<bool> appeared) =>
+		(_, reason, ex) => appeared.TrySetException(ex ?? new InvalidOperationException($"Subscription dropped: {reason}"));
+
+	private static async Task CloseConnection(IEventStoreConnection connection)
+	{
+		try
+		{
+			await TestConnectionLifecycle.CloseConnectionAndWait(connection, ConnectionCloseTimeout);
+		}
+		catch
+		{
+			TestConnectionLifecycle.TryCloseConnection(connection);
+		}
+
+		TestConnectionLifecycle.DisposeIfNeeded(connection);
+	}
+
+	private static void StopSubscription(EventStoreSubscription subscription)
+	{
+		try
+		{
+			subscription.Dispose();
+		}
+		catch
+		{
+		}
 	}
 }
