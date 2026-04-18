@@ -82,6 +82,19 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		Assert.That(_observingHandle.SawCancelableReadOnlyToken, Is.False);
 	}
 
+	[Test]
+	public async Task completes_even_if_cancellation_arrives_during_complete_data_after_the_no_rollback_boundary()
+	{
+		using var cancellationTokenSource = new CancellationTokenSource();
+		_writeState.OnCompleteDataObserved = cancellationTokenSource.Cancel;
+
+		Assert.DoesNotThrowAsync(async () => await _chunk.Complete(cancellationTokenSource.Token));
+		Assert.That(_chunk.IsReadOnly, Is.True);
+		Assert.That(_writeState.CompleteDataCalls, Is.EqualTo(1));
+		Assert.That(_writeState.FooterWriteCalls, Is.EqualTo(1));
+		Assert.That(_observingHandle.SetReadOnlyCalls, Is.EqualTo(1));
+	}
+
 	private sealed class ObservingWriteState
 	{
 		public int StreamWriteCalls { get; private set; }
@@ -90,6 +103,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		public bool SawCancelableStreamWriteToken { get; private set; }
 		public bool SawCancelableCompleteDataToken { get; private set; }
 		public bool SawCancelableFooterToken { get; private set; }
+		public Action OnCompleteDataObserved { get; set; }
+		public Action OnFooterWriteObserved { get; set; }
 
 		public void ObserveStreamWrite(CancellationToken token)
 		{
@@ -101,12 +116,14 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		{
 			CompleteDataCalls++;
 			SawCancelableCompleteDataToken |= token.CanBeCanceled;
+			OnCompleteDataObserved?.Invoke();
 		}
 
 		public void ObserveFooterWrite(CancellationToken token)
 		{
 			FooterWriteCalls++;
 			SawCancelableFooterToken |= token.CanBeCanceled;
+			OnFooterWriteObserved?.Invoke();
 		}
 
 		public void Reset()
@@ -117,6 +134,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 			SawCancelableStreamWriteToken = false;
 			SawCancelableCompleteDataToken = false;
 			SawCancelableFooterToken = false;
+			OnCompleteDataObserved = null;
+			OnFooterWriteObserved = null;
 		}
 	}
 
