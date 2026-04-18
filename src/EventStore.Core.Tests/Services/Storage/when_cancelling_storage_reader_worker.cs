@@ -22,7 +22,7 @@ public class when_cancelling_storage_reader_worker
 	[Test]
 	public void read_event_cancellation_from_message_token_is_rethrown_without_reply()
 	{
-		var readIndex = new BlockingReadIndex();
+		using var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
 		var reply = default(Message);
 		using var messageCancellation = new CancellationTokenSource();
@@ -53,7 +53,7 @@ public class when_cancelling_storage_reader_worker
 	[Test]
 	public async Task effective_stream_acl_cancellation_from_message_token_replies_with_operation_cancelled()
 	{
-		var readIndex = new BlockingReadIndex();
+		using var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
 		var reply = default(Message);
 		using var messageCancellation = new CancellationTokenSource();
@@ -78,7 +78,7 @@ public class when_cancelling_storage_reader_worker
 	[Test]
 	public void effective_stream_acl_cancellation_from_queue_token_is_rethrown_without_reply()
 	{
-		var readIndex = new BlockingReadIndex();
+		using var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
 		var reply = default(Message);
 		using var queueCancellation = new CancellationTokenSource();
@@ -110,7 +110,7 @@ public class when_cancelling_storage_reader_worker
 			new StubInMemoryStreamReader(),
 			queueId: 0);
 
-	private sealed class BlockingReadIndex : IReadIndex<string>
+	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable
 	{
 		public ManualResetEventSlim ReadEventStarted { get; } = new(false);
 		public ManualResetEventSlim EffectiveAclStarted { get; } = new(false);
