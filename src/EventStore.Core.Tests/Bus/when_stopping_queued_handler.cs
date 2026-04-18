@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Bus;
@@ -194,6 +195,39 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 			processedNext.Dispose();
 		}
 	}
+
+	[Test]
+	public void default_message_token_should_not_match_unrelated_cancellation()
+	{
+		using var lifetimeSource = new CancellationTokenSource();
+		var lifetimeToken = lifetimeSource.Token;
+		var result = IsExpectedCancellation(new OperationCanceledException(), new TestMessage(), lifetimeToken);
+
+		Assert.That(result, Is.False);
+	}
+
+	[Test]
+	public void explicit_message_token_should_match_its_own_cancellation()
+	{
+		using var cancellationTokenSource = new CancellationTokenSource();
+		using var lifetimeSource = new CancellationTokenSource();
+		var result = IsExpectedCancellation(
+			new OperationCanceledException(cancellationTokenSource.Token),
+			new CancelledMessage(cancellationTokenSource.Token),
+			lifetimeSource.Token);
+
+		Assert.That(result, Is.True);
+	}
+
+	private static bool IsExpectedCancellation(
+		OperationCanceledException exception,
+		Message message,
+		CancellationToken lifetimeToken) =>
+		(bool)typeof(QueuedHandlerThreadPool)
+			.GetMethod(
+				"IsExpectedCancellation",
+				BindingFlags.NonPublic | BindingFlags.Static)!
+			.Invoke(null, [exception, message, lifetimeToken])!;
 }
 
 file sealed class CancelledMessage : Message

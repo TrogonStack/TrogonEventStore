@@ -160,8 +160,7 @@ namespace EventStore.Core.Bus;
 							}
 
 							_queueStats.ProcessingEnded(1);
-						} catch (OperationCanceledException ex) when (
-							ex.CancellationToken == _lifetimeToken || ex.CancellationToken == msg.CancellationToken) {
+						} catch (OperationCanceledException ex) when (IsExpectedCancellation(ex, msg, _lifetimeToken)) {
 							if (ex.CancellationToken == _lifetimeToken)
 								_tcs.TrySetCanceled(ex.CancellationToken);
 							break;
@@ -196,6 +195,14 @@ namespace EventStore.Core.Bus;
 				throw;
 			}
 		}
+
+		private static bool IsExpectedCancellation(
+			OperationCanceledException exception,
+			Message message,
+			CancellationToken lifetimeToken) =>
+			exception.CancellationToken == lifetimeToken
+			|| message.CancellationToken.CanBeCanceled
+			&& exception.CancellationToken == message.CancellationToken;
 
 		public void Publish(Message message) {
 			//Ensure.NotNull(message, "message");
