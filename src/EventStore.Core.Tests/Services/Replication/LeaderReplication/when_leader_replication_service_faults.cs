@@ -23,7 +23,9 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 		var publisher = new SynchronousScheduler("publisher");
 		var shutdowns = new ConcurrentQueue<SystemMessage.ServiceShutdown>();
 		var initializations = new ConcurrentQueue<SystemMessage.ServiceInitialized>();
-		var writerCheckpoint = new ThrowingCheckpoint(Checkpoint.Writer);
+		var writerCheckpoint = new FaultingCheckpoint(Checkpoint.Writer) {
+			ThrowOnFlushedSubscription = true
+		};
 		var dbConfig = CreateDbConfig(writerCheckpoint);
 		var leaderId = Guid.NewGuid();
 
@@ -57,8 +59,6 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			service.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
 			AssertEx.IsOrBecomesTrue(() => initializations.Count == 1, TimeSpan.FromSeconds(5));
-
-			writerCheckpoint.ThrowOnRead = true;
 
 			AssertEx.IsOrBecomesTrue(() => service.Task.IsFaulted, TimeSpan.FromSeconds(5));
 			AssertEx.IsOrBecomesTrue(() => shutdowns.Count == 1, TimeSpan.FromSeconds(5));
@@ -95,19 +95,17 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			inMemDb: true);
 	}
 
-	private sealed class ThrowingCheckpoint(string name, long initialValue = 0) : ICheckpoint
+	private sealed class FaultingCheckpoint(string name, long initialValue = 0) : ICheckpoint
 	{
 		private long _last = initialValue;
 		private long _lastFlushed = initialValue;
+		private Action<long> _flushed;
 
-		public bool ThrowOnRead { get; set; }
+		public bool ThrowOnFlushedSubscription { get; set; }
 		public string Name => name;
 
 		public long Read()
 		{
-			if (ThrowOnRead)
-				throw new InvalidOperationException("writer checkpoint read failed");
-
 			return _lastFlushed;
 		}
 
@@ -124,10 +122,23 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 				return;
 
 			_lastFlushed = _last;
-			Flushed?.Invoke(_lastFlushed);
+			_flushed?.Invoke(_lastFlushed);
 		}
 
-		public event Action<long> Flushed;
+		public event Action<long> Flushed
+		{
+			add
+			{
+				if (ThrowOnFlushedSubscription)
+					throw new InvalidOperationException("writer checkpoint subscription failed");
+
+				_flushed += value;
+			}
+			remove
+			{
+				_flushed -= value;
+			}
+		}
 
 		public void Close(bool flush)
 		{
