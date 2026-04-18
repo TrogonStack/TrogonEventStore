@@ -19,6 +19,7 @@ public enum PersistenceStrategy
 [TestFixture(PersistenceStrategy.FileStream, PersistenceStrategy.FileStream)]
 public class persistent_stream_bloom_filter : SpecificationWithDirectoryPerTestFixture
 {
+	private const int LongRunningTimeout = 120000;
 	private readonly PersistenceStrategy _forCreate;
 	private readonly PersistenceStrategy _forOpen;
 
@@ -235,7 +236,7 @@ public class persistent_stream_bloom_filter : SpecificationWithDirectoryPerTestF
 		Assert.GreaterOrEqual(falsePositives, Math.Max(0, expectedFalsePositives - threeStandardDeviations));
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void always_returns_true_when_an_item_was_added([Range(10_000, 100_000, 13337)] long size)
 	{
 		using var filter = GenSut(GetTempFilePath(), create: true, size, hasher: null);

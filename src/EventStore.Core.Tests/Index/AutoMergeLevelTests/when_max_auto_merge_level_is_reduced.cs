@@ -10,7 +10,7 @@ public class when_max_auto_merge_level_is_reduced : when_max_auto_merge_level_is
 	{
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public void should_merge_levels_above_max_level()
 	{
 		AddTables(201); //gives 1 level 0, 1 level 3 and 6 level 5s

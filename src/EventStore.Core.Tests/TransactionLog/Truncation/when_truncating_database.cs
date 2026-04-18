@@ -13,7 +13,9 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
-	[Test, Category("LongRunning")]
+	private const int LongRunningTimeout = 120000;
+
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task everything_should_go_fine()
 	{
 		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, inMemDb: false);
@@ -68,7 +70,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown();
 	}
 
-	[Test, Category("LongRunning"), Category("Network")]
+	[Test, Category("LongRunning"), Category("Network"), Timeout(LongRunningTimeout)]
 	public async Task with_truncate_position_in_completed_chunk_everything_should_go_fine()
 	{
 		const int chunkSize = 1024 * 1024;
