@@ -155,6 +155,7 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 	public void while_processing_message_cancelled_by_message_token_should_continue_processing_queue()
 	{
 		var started = new ManualResetEventSlim(false);
+		var cancelled = new ManualResetEventSlim(false);
 		var processedNext = new ManualResetEventSlim(false);
 		using var cancellationTokenSource = new CancellationTokenSource();
 		var queue = new QueuedHandlerThreadPool(
@@ -163,7 +164,16 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 				if (message is CancelledMessage)
 				{
 					started.Set();
-					await Task.Delay(Timeout.Infinite, message.CancellationToken);
+					try
+					{
+						await Task.Delay(Timeout.Infinite, message.CancellationToken);
+					}
+					catch (OperationCanceledException ex) when (ex.CancellationToken == message.CancellationToken)
+					{
+						cancelled.Set();
+						throw;
+					}
+
 					return;
 				}
 
@@ -183,15 +193,27 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 			Assert.IsTrue(started.Wait(5000), "Consumer never started handling the cancelled message.");
 
 			cancellationTokenSource.Cancel();
+			Assert.IsTrue(cancelled.Wait(5000), "Consumer never observed message cancellation.");
+			Assert.IsTrue(SpinWait.SpinUntil(() =>
+			{
+				var stats = queue.GetStatistics();
+				return stats.CurrentIdleTime is not null
+				       && stats.InProgressMessageType is null
+				       && stats.TotalItemsProcessed == 0;
+			}, 5000), "Queue stats never cleared the cancelled message state.");
+
 			queue.Publish(new TestMessage());
 
 			Assert.IsTrue(processedNext.Wait(5000), "Queue never resumed processing after message cancellation.");
+			Assert.IsTrue(SpinWait.SpinUntil(() => queue.GetStatistics().TotalItemsProcessed == 1, 5000),
+				"Queue stats never counted the next completed message.");
 			Assert.That(startTask.IsCompleted, Is.False, "Message cancellation should not complete the queue lifecycle task.");
 		}
 		finally
 		{
 			queue.Stop();
 			started.Dispose();
+			cancelled.Dispose();
 			processedNext.Dispose();
 		}
 	}

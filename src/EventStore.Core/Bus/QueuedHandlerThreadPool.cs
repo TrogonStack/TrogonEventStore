@@ -161,6 +161,7 @@ namespace EventStore.Core.Bus;
 
 							_queueStats.ProcessingEnded(1);
 						} catch (OperationCanceledException ex) when (IsExpectedCancellation(ex, msg, _lifetimeToken)) {
+							_queueStats.ProcessingCancelled();
 							if (ex.CancellationToken == _lifetimeToken)
 								_tcs.TrySetCanceled(ex.CancellationToken);
 							break;

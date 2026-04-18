@@ -93,6 +93,10 @@ namespace EventStore.Core.Bus {
 			_inProgressMsgType = null;
 		}
 
+		public void ProcessingCancelled() {
+			_inProgressMsgType = null;
+		}
+
 		public void EnterIdle() {
 #if DEBUG
 			Debug.Assert(_started,
