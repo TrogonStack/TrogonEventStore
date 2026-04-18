@@ -20,7 +20,7 @@ namespace EventStore.Core.Tests.Services.Storage;
 public class when_cancelling_storage_reader_worker
 {
 	[Test]
-	public async Task read_event_cancellation_from_message_token_is_rethrown_without_reply()
+	public void read_event_cancellation_from_message_token_is_rethrown_without_reply()
 	{
 		var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
@@ -76,7 +76,7 @@ public class when_cancelling_storage_reader_worker
 	}
 
 	[Test]
-	public async Task effective_stream_acl_cancellation_from_queue_token_is_rethrown_without_reply()
+	public void effective_stream_acl_cancellation_from_queue_token_is_rethrown_without_reply()
 	{
 		var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
