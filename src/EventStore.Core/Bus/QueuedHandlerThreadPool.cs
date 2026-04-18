@@ -202,8 +202,8 @@ namespace EventStore.Core.Bus;
 			Message message,
 			CancellationToken lifetimeToken) =>
 			exception.CancellationToken == lifetimeToken
-			|| message.CancellationToken.CanBeCanceled
-			&& exception.CancellationToken == message.CancellationToken;
+			|| (message.CancellationToken.CanBeCanceled
+			    && exception.CancellationToken == message.CancellationToken);
 
 		public void Publish(Message message) {
 			//Ensure.NotNull(message, "message");
