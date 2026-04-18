@@ -77,7 +77,7 @@ public class TFChunkWriter : ITransactionFileWriter
 			await CompleteChunkInTransaction(CancellationToken.None);
 			await AddNewChunk(token: CancellationToken.None);
 			CommitTransaction();
-			await Flush(token);
+			await Flush(CancellationToken.None);
 			return (false, _nextRecordPosition);
 		}
 
@@ -135,7 +135,7 @@ public class TFChunkWriter : ITransactionFileWriter
 		OpenTransaction();
 		await CompleteChunkInTransaction(CancellationToken.None);
 		CommitTransaction();
-		await Flush(token);
+		await Flush(CancellationToken.None);
 	}
 
 	private async ValueTask CompleteReplicatedRawChunkInTransaction(TFChunk.TFChunk rawChunk,
@@ -155,7 +155,7 @@ public class TFChunkWriter : ITransactionFileWriter
 		OpenTransaction();
 		await CompleteReplicatedRawChunkInTransaction(rawChunk, CancellationToken.None);
 		CommitTransaction();
-		await Flush(token);
+		await Flush(CancellationToken.None);
 	}
 
 	private static void VerifyChunkNumberLimits(int chunkNumber)
