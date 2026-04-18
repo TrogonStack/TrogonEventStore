@@ -419,11 +419,10 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 	private async ValueTask OnTransactionUnframed(IEnumerable<ILogRecord> records, CancellationToken token)
 	{
 		token.ThrowIfCancellationRequested();
-		token = CancellationToken.None;
 
 		Writer.OpenTransaction();
 		foreach (var record in records)
-			if (await Writer.WriteToTransaction(record, token) is null)
+			if (await Writer.WriteToTransaction(record, CancellationToken.None) is null)
 				ReplicationFail(
 					"Failed to write replicated log record at position: {0}. Writer's position: {1}.",
 					"Failed to write replicated log record at position: {recordPos}. Writer's position: {writerPos}.",

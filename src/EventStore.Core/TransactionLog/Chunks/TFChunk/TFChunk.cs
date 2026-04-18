@@ -1101,6 +1101,8 @@ public partial class TFChunk : IDisposable
 
 	private async ValueTask<ChunkFooter> WriteFooter(IReadOnlyCollection<PosMap> mapping, CancellationToken token)
 	{
+		token.ThrowIfCancellationRequested();
+
 		var workItem = _writerWorkItem;
 		workItem.ResizeStream((int)workItem.WorkingStream.Position);
 
@@ -1131,7 +1133,7 @@ public partial class TFChunk : IDisposable
 
 			bufferFromPool = ArrayPool<byte>.Shared.Rent(Math.Max(mapSize, ChunkFooter.Size));
 			mapSize = WriteMapping(bufferFromPool, mapping);
-			await workItem.AppendData(bufferFromPool.AsMemory(0, mapSize), token);
+			await workItem.AppendData(bufferFromPool.AsMemory(0, mapSize), CancellationToken.None);
 		}
 
 		workItem.FlushToDisk();
@@ -1139,7 +1141,7 @@ public partial class TFChunk : IDisposable
 		await _transform.Write.CompleteData(
 			footerSize: ChunkFooter.Size,
 			alignmentSize: _chunkHeader.Version >= (byte)ChunkVersions.Aligned ? AlignmentSize : 1,
-			token);
+			CancellationToken.None);
 
 		await Flush(token);
 
@@ -1158,7 +1160,8 @@ public partial class TFChunk : IDisposable
 			footerWithHash = new ChunkFooter(true, true, _physicalDataSize, LogicalDataSize, mapSize, workItem.MD5);
 
 			footerWithHash.Format(bufferFromPool);
-			fileSize = await _transform.Write.WriteFooter(new(bufferFromPool, 0, ChunkFooter.Size), token);
+			fileSize = await _transform.Write.WriteFooter(new(bufferFromPool, 0, ChunkFooter.Size),
+				CancellationToken.None);
 		}
 		finally
 		{

@@ -302,10 +302,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		try
 		{
-			if (msg.CancellationToken.IsCancellationRequested || token.IsCancellationRequested)
+			if (msg.CancellationToken.IsCancellationRequested)
 				return;
-
-			token = CancellationToken.None;
 
 			var logPosition = Writer.Position;
 			var prepares = new List<IPrepareLogRecord<TStreamId>>();
@@ -858,13 +856,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 
 		token.ThrowIfCancellationRequested();
-		token = CancellationToken.None;
 
 		Writer.OpenTransaction();
 		var writerPos = Writer.Position;
 		foreach (var prepare in prepares)
 		{
-			long newWriterPos = await Writer.WriteToTransaction(prepare, token)
+			long newWriterPos = await Writer.WriteToTransaction(prepare, CancellationToken.None)
 			                    ?? throw new InvalidOperationException(
 				                    "The transaction does not fit in the current chunk.");
 			if (newWriterPos - writerPos != prepare.GetSizeWithLengthPrefixAndSuffix())
