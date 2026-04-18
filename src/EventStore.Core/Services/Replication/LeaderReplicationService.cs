@@ -563,33 +563,60 @@ public class LeaderReplicationService : IMonitoredQueue,
 		{
 			try
 			{
-				if (writerCheckpointSubscribed)
-					_db.Config.WriterCheckpoint.Flushed -= OnWriterFlushed;
+				try
+				{
+					if (writerCheckpointSubscribed)
+						_db.Config.WriterCheckpoint.Flushed -= OnWriterFlushed;
 
-				if (initialized)
-					_publisher.Publish(new SystemMessage.ServiceShutdown(Name));
-			}
-			catch (Exception cleanupException) when (error is null)
-			{
-				error = cleanupException;
-			}
-			catch (Exception cleanupException)
-			{
-				Log.Error(cleanupException, "Error while shutting down leader replication service.");
+					if (initialized)
+						_publisher.Publish(new SystemMessage.ServiceShutdown(Name));
+				}
+				catch (Exception cleanupException) when (error is null)
+				{
+					error = cleanupException;
+				}
+				catch (Exception cleanupException)
+				{
+					Log.Error(cleanupException, "Error while shutting down leader replication service.");
+				}
+				finally
+				{
+					try
+					{
+						if (queueStatsStarted)
+							_queueStats.Stop();
+					}
+					catch (Exception cleanupException) when (error is null)
+					{
+						error = cleanupException;
+					}
+					catch (Exception cleanupException)
+					{
+						Log.Error(cleanupException, "Error stopping queue stats for leader replication service.");
+					}
+
+					try
+					{
+						if (queueRegistered)
+							QueueMonitor.Default.Unregister(this);
+					}
+					catch (Exception cleanupException) when (error is null)
+					{
+						error = cleanupException;
+					}
+					catch (Exception cleanupException)
+					{
+						Log.Error(cleanupException, "Error unregistering queue monitor for leader replication service.");
+					}
+				}
 			}
 			finally
 			{
-				if (queueStatsStarted)
-					_queueStats.Stop();
-
-				if (queueRegistered)
-					QueueMonitor.Default.Unregister(this);
+				if (error is null)
+					_tcs.TrySetResult();
+				else
+					_tcs.TrySetException(error);
 			}
-
-			if (error is null)
-				_tcs.TrySetResult();
-			else
-				_tcs.TrySetException(error);
 		}
 	}
 
