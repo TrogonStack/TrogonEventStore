@@ -83,17 +83,16 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 	}
 
 	[Test]
-	public Task completes_even_if_cancellation_arrives_during_complete_data_after_the_no_rollback_boundary()
+	public async Task completes_even_if_cancellation_arrives_during_complete_data_after_the_no_rollback_boundary()
 	{
 		using var cancellationTokenSource = new CancellationTokenSource();
 		_writeState.OnCompleteDataObserved = cancellationTokenSource.Cancel;
 
-		Assert.DoesNotThrowAsync(async () => await _chunk.Complete(cancellationTokenSource.Token));
+		await _chunk.Complete(cancellationTokenSource.Token);
 		Assert.That(_chunk.IsReadOnly, Is.True);
 		Assert.That(_writeState.CompleteDataCalls, Is.EqualTo(1));
 		Assert.That(_writeState.FooterWriteCalls, Is.EqualTo(1));
 		Assert.That(_observingHandle.SetReadOnlyCalls, Is.EqualTo(1));
-		return Task.CompletedTask;
 	}
 
 	private sealed class ObservingWriteState
