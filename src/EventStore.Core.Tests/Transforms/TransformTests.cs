@@ -33,6 +33,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 	[TestCase("bytedup", true)]
 	[TestCase("withheader", false)]
 	[TestCase("withheader", true)]
+	[Timeout(60000)]
 	public async Task transform_works(string transform, bool memDb)
 	{
 		MiniNode<TLogFormat, TStreamId> node = null;
