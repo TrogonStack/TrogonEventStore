@@ -36,6 +36,7 @@ namespace EventStore.Core.Services.Transport.Http {
 
 		public string AdvertiseAsHost { get; }
 		public int AdvertiseAsPort { get; }
+		private string ServiceName => $"HttpServer [{string.Join(", ", EndPoints)}]";
 
 		private bool _isListening;
 
@@ -59,16 +60,18 @@ namespace EventStore.Core.Services.Transport.Http {
 		}
 
 		public void Handle(SystemMessage.SystemInit message) {
-
 			_isListening = true;
+			_inputBus.Publish(new SystemMessage.ServiceInitialized(ServiceName));
 		}
 
 		public void Handle(SystemMessage.BecomeShuttingDown message) {
+			if (!_isListening)
+				return;
+
 			if (message.ShutdownHttp)
 				Shutdown();
-			_inputBus.Publish(
-				new SystemMessage.ServiceShutdown(
-					$"HttpServer [{String.Join(", ", EndPoints)}]"));
+
+			_inputBus.Publish(new SystemMessage.ServiceShutdown(ServiceName));
 		}
 
 		public void Shutdown() {

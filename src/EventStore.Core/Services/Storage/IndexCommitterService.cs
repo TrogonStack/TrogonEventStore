@@ -113,6 +113,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 
 	async void IThreadPoolWorkItem.Execute()
 	{
+		_publisher.Publish(new SystemMessage.ServiceInitialized(Name));
 		try
 		{
 			_queueStats.Start();
