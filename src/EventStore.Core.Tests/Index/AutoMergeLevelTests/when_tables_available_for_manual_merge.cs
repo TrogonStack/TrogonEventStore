@@ -6,7 +6,7 @@ namespace EventStore.Core.Tests.Index.AutoMergeLevelTests;
 
 public class when_tables_available_for_manual_merge : when_max_auto_merge_level_is_set
 {
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public void should_merge_pending_tables_at_max_auto_merge_level()
 	{
 		AddTables(100);
