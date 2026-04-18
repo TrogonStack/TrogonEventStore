@@ -57,13 +57,13 @@ internal sealed class WriterWorkItem : Disposable
 			WorkingStream = memStream;
 	}
 
-	public ValueTask AppendData(ReadOnlyMemory<byte> buf, CancellationToken token)
+	public ValueTask AppendData(ReadOnlyMemory<byte> buf, CancellationToken _)
 	{
 		// MEMORY (in-memory write doesn't require async I/O)
 		_memStream?.Write(buf.Span);
 
 		// as we are always append-only, stream's position should be right here
-		return _fileStream?.WriteAsync(buf, token) ?? ValueTask.CompletedTask;
+		return _fileStream?.WriteAsync(buf, CancellationToken.None) ?? ValueTask.CompletedTask;
 	}
 
 	public void ResizeStream(int fileSize)

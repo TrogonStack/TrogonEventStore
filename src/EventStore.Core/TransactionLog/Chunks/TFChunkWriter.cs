@@ -69,16 +69,15 @@ public class TFChunkWriter : ITransactionFileWriter
 	public async ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token)
 	{
 		token.ThrowIfCancellationRequested();
-		token = CancellationToken.None;
 
 		OpenTransaction();
 
-		if (await WriteToTransaction(record, token) is not { } result)
+		if (await WriteToTransaction(record, CancellationToken.None) is not { } result)
 		{
-			await CompleteChunkInTransaction(token);
-			await AddNewChunk(token: token);
+			await CompleteChunkInTransaction(CancellationToken.None);
+			await AddNewChunk(token: CancellationToken.None);
 			CommitTransaction();
-			await Flush(token);
+			await Flush(CancellationToken.None);
 			return (false, _nextRecordPosition);
 		}
 
@@ -132,12 +131,11 @@ public class TFChunkWriter : ITransactionFileWriter
 	public async ValueTask CompleteChunk(CancellationToken token)
 	{
 		token.ThrowIfCancellationRequested();
-		token = CancellationToken.None;
 
 		OpenTransaction();
-		await CompleteChunkInTransaction(token);
+		await CompleteChunkInTransaction(CancellationToken.None);
 		CommitTransaction();
-		await Flush(token);
+		await Flush(CancellationToken.None);
 	}
 
 	private async ValueTask CompleteReplicatedRawChunkInTransaction(TFChunk.TFChunk rawChunk,
@@ -153,12 +151,11 @@ public class TFChunkWriter : ITransactionFileWriter
 	public async ValueTask CompleteReplicatedRawChunk(TFChunk.TFChunk rawChunk, CancellationToken token)
 	{
 		token.ThrowIfCancellationRequested();
-		token = CancellationToken.None;
 
 		OpenTransaction();
-		await CompleteReplicatedRawChunkInTransaction(rawChunk, token);
+		await CompleteReplicatedRawChunkInTransaction(rawChunk, CancellationToken.None);
 		CommitTransaction();
-		await Flush(token);
+		await Flush(CancellationToken.None);
 	}
 
 	private static void VerifyChunkNumberLimits(int chunkNumber)
