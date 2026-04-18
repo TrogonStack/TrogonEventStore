@@ -394,6 +394,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				return;
 			}
 
+			token = CancellationToken.None;
+
 			bool softUndeleteMetastream = _systemStreams.IsMetaStream(streamId)
 			                              && await _indexWriter.IsSoftDeleted(_systemStreams.OriginalStreamOf(streamId),
 				                              token);
