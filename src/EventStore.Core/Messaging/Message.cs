@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace EventStore.Core.Messaging;
 
@@ -18,4 +19,10 @@ public class DerivedMessageAttribute : Attribute {
 }
 
 [BaseMessage]
-public abstract partial class Message;
+public abstract partial class Message {
+	protected Message(CancellationToken cancellationToken = default) {
+		CancellationToken = cancellationToken;
+	}
+
+	public CancellationToken CancellationToken { get; }
+}
