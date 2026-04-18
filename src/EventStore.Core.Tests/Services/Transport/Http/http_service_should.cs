@@ -89,10 +89,18 @@ public class kestrel_http_service_should
 		sut.Handle(new SystemMessage.SystemInit());
 		inputBus.PublishedMessages.Clear();
 
-		sut.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), exitProcess: false, shutdownHttp: false));
+		try
+		{
+			sut.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), exitProcess: false, shutdownHttp: false));
 
-		Assert.That(inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>(), Has.Exactly(1).Items);
-		Assert.That(sut.IsListening, Is.True);
+			var shutdownMessage = inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>().Single();
+			Assert.That(shutdownMessage.ServiceName, Is.EqualTo("HttpServer [127.0.0.1:2113]"));
+			Assert.That(sut.IsListening, Is.True);
+		}
+		finally
+		{
+			sut.Shutdown();
+		}
 	}
 
 	[Test]
@@ -115,7 +123,8 @@ public class kestrel_http_service_should
 
 		sut.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), exitProcess: false, shutdownHttp: true));
 
-		Assert.That(inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>(), Has.Exactly(1).Items);
+		var shutdownMessage = inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>().Single();
+		Assert.That(shutdownMessage.ServiceName, Is.EqualTo("HttpServer [127.0.0.1:2113]"));
 		Assert.That(sut.IsListening, Is.False);
 	}
 }

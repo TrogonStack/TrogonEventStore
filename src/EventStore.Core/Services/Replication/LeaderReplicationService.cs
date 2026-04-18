@@ -492,13 +492,23 @@ public class LeaderReplicationService : IMonitoredQueue,
 
 	private async void MainLoop()
 	{
+		Exception error = null;
+		var initialized = false;
+		var queueStatsStarted = false;
+		var queueRegistered = false;
+		var writerCheckpointSubscribed = false;
+
 		try
 		{
 			_publisher.Publish(new SystemMessage.ServiceInitialized(Name));
+			initialized = true;
 			_queueStats.Start();
+			queueStatsStarted = true;
 			QueueMonitor.Default.Register(this);
+			queueRegistered = true;
 
 			_db.Config.WriterCheckpoint.Flushed += OnWriterFlushed;
+			writerCheckpointSubscribed = true;
 
 			while (!_stopToken.IsCancellationRequested)
 			{
@@ -544,20 +554,42 @@ public class LeaderReplicationService : IMonitoredQueue,
 			{
 				subscription.Dispose();
 			}
-
-			_db.Config.WriterCheckpoint.Flushed -= OnWriterFlushed;
-
-			_publisher.Publish(new SystemMessage.ServiceShutdown(Name));
-			_tcs.TrySetResult();
 		}
 		catch (Exception e)
 		{
-			_tcs.TrySetException(e);
+			error = e;
 		}
 		finally
 		{
-			_queueStats.Stop();
-			QueueMonitor.Default.Unregister(this);
+			try
+			{
+				if (writerCheckpointSubscribed)
+					_db.Config.WriterCheckpoint.Flushed -= OnWriterFlushed;
+
+				if (initialized)
+					_publisher.Publish(new SystemMessage.ServiceShutdown(Name));
+			}
+			catch (Exception cleanupException) when (error is null)
+			{
+				error = cleanupException;
+			}
+			catch (Exception cleanupException)
+			{
+				Log.Error(cleanupException, "Error while shutting down leader replication service.");
+			}
+			finally
+			{
+				if (queueStatsStarted)
+					_queueStats.Stop();
+
+				if (queueRegistered)
+					QueueMonitor.Default.Unregister(this);
+			}
+
+			if (error is null)
+				_tcs.TrySetResult();
+			else
+				_tcs.TrySetException(error);
 		}
 	}
 
