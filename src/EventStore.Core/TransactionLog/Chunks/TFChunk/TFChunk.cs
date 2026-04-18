@@ -1059,6 +1059,8 @@ public partial class TFChunk : IDisposable
 
 		_chunkFooter = await WriteFooter(mapping, token); // WriteFooter always calls Flush
 
+		await (_handle?.SetReadOnlyAsync(true, CancellationToken.None) ?? ValueTask.CompletedTask);
+
 		if (!_inMem)
 			CreateReaderStreams();
 
@@ -1066,8 +1068,6 @@ public partial class TFChunk : IDisposable
 
 		_writerWorkItem?.Dispose();
 		_writerWorkItem = null;
-
-		await (_handle?.SetReadOnlyAsync(true, token) ?? ValueTask.CompletedTask);
 	}
 
 	public async ValueTask CompleteRaw(CancellationToken token)
@@ -1080,14 +1080,6 @@ public partial class TFChunk : IDisposable
 		await Flush(token);
 
 		if (!_inMem)
-			CreateReaderStreams();
-
-		IsReadOnly = true;
-
-		_writerWorkItem?.Dispose();
-		_writerWorkItem = null;
-
-		if (!_inMem)
 		{
 			await _handle.SetReadOnlyAsync(true, token);
 			await using var stream = _handle.CreateStream();
@@ -1097,6 +1089,14 @@ public partial class TFChunk : IDisposable
 		{
 			_chunkFooter = await ReadFooter(_sharedMemStream, token);
 		}
+
+		if (!_inMem)
+			CreateReaderStreams();
+
+		IsReadOnly = true;
+
+		_writerWorkItem?.Dispose();
+		_writerWorkItem = null;
 	}
 
 	private async ValueTask<ChunkFooter> WriteFooter(IReadOnlyCollection<PosMap> mapping, CancellationToken token)
