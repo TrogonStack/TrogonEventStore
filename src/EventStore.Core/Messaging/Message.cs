@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace EventStore.Core.Messaging;
 
@@ -24,5 +25,6 @@ public abstract partial class Message {
 		CancellationToken = cancellationToken;
 	}
 
+	[JsonIgnore]
 	public CancellationToken CancellationToken { get; }
 }
