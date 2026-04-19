@@ -103,7 +103,7 @@ namespace EventStore.Core.Bus;
 		public void RequestStop() {
 			Cancel();
 			if (TryStopQueueStats()) {
-				_tcs.TrySetCanceled(_lifetimeToken);
+				_tcs.TrySetResult(null!);
 			}
 			_queueMonitor.Unregister(this);
 		}
@@ -165,7 +165,7 @@ namespace EventStore.Core.Bus;
 						} catch (OperationCanceledException ex) when (IsExpectedCancellation(ex, msg, _lifetimeToken)) {
 							_queueStats.ProcessingCancelled();
 							if (ex.CancellationToken == _lifetimeToken)
-								_tcs.TrySetCanceled(ex.CancellationToken);
+								_tcs.TrySetResult(null!);
 							break;
 						} catch (Exception ex) {
 							Log.Error(ex,
@@ -182,7 +182,7 @@ namespace EventStore.Core.Bus;
 					Interlocked.CompareExchange(ref _isRunning, 0, 1);
 					if (_lifetimeToken.IsCancellationRequested) {
 						TryStopQueueStats();
-						_tcs.TrySetCanceled(_lifetimeToken);
+						_tcs.TrySetResult(null!);
 					}
 
 					// try to reacquire lock if needed
@@ -191,7 +191,7 @@ namespace EventStore.Core.Bus;
 					          && Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0;
 				}
 			} catch (OperationCanceledException e) when (e.CancellationToken == _lifetimeToken) {
-				_tcs.TrySetCanceled(e.CancellationToken);
+				_tcs.TrySetResult(null!);
 			} catch (Exception ex) {
 				_tcs.TrySetException(ex);
 				throw;
