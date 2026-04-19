@@ -19,7 +19,8 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 	private static readonly TimeSpan RestartTimeout = TimeSpan.FromSeconds(30);
 	private readonly AutoResetEvent _waitForStart = new AutoResetEvent(false);
 
-	protected override TimeSpan Timeout { get; } = TimeSpan.FromMinutes(3);
+	protected override TimeSpan Timeout { get; } =
+		TimeSpan.FromSeconds((RestartTimeout.TotalSeconds * _numberOfNodeStarts) + 120);
 
 	protected override void BeforeNodeStarts()
 	{
