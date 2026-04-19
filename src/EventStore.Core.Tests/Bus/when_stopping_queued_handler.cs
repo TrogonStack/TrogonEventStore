@@ -190,6 +190,7 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 		}
 		finally
 		{
+			cancellationTokenSource.Cancel();
 			await queue.Stop();
 			started.Dispose();
 			cancelled.Dispose();
