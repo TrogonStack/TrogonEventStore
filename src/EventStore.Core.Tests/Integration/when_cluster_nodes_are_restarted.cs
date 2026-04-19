@@ -23,20 +23,25 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			var restartedNodeIndex = i % 3;
 
 			AssertEx.IsOrBecomesTrue(
-				() => _nodes.Count(x => x.NodeState == VNodeState.Leader) == 1 &&
-					  _nodes.Count(x => x.NodeState == VNodeState.Follower) == 2,
+				() => {
+					var states = _nodes.Select(x => x.NodeState).ToArray();
+					return states.Count(x => x == VNodeState.Leader) == 1 &&
+					       states.Count(x => x == VNodeState.Follower) == 2;
+				},
 				RestartTimeout,
 				$"Cluster did not stabilize before restarting node {restartedNodeIndex}",
 				MiniNodeLogging.WriteLogs);
 
 			await _nodes[restartedNodeIndex].Shutdown(keepDb: true);
 			AssertEx.IsOrBecomesTrue(
-				() => _nodes
-					.Where((_, index) => index != restartedNodeIndex)
-					.Count(x => x.NodeState == VNodeState.Leader) == 1 &&
-					  _nodes
-					.Where((_, index) => index != restartedNodeIndex)
-					.Count(x => x.NodeState == VNodeState.Follower) == 1,
+				() => {
+					var states = _nodes
+						.Where((_, index) => index != restartedNodeIndex)
+						.Select(x => x.NodeState)
+						.ToArray();
+					return states.Count(x => x == VNodeState.Leader) == 1 &&
+					       states.Count(x => x == VNodeState.Follower) == 1;
+				},
 				RestartTimeout,
 				$"Remaining cluster did not stabilize after shutting down node {restartedNodeIndex}",
 				MiniNodeLogging.WriteLogs);
@@ -49,8 +54,11 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			await Task.WhenAll(_nodes.Select(x => x.Started))
 				.WithTimeout(RestartTimeout, MiniNodeLogging.WriteLogs);
 			AssertEx.IsOrBecomesTrue(
-				() => _nodes.Count(x => x.NodeState == VNodeState.Leader) == 1 &&
-					  _nodes.Count(x => x.NodeState == VNodeState.Follower) == 2,
+				() => {
+					var states = _nodes.Select(x => x.NodeState).ToArray();
+					return states.Count(x => x == VNodeState.Leader) == 1 &&
+					       states.Count(x => x == VNodeState.Follower) == 2;
+				},
 				RestartTimeout,
 				$"Cluster did not stabilize after restarting node {restartedNodeIndex}",
 				MiniNodeLogging.WriteLogs);
