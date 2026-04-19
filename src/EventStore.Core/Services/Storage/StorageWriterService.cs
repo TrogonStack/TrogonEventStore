@@ -248,12 +248,13 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		try
 		{
 			await _writerQueue.Stop();
-			Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
 		}
 		catch (Exception exc)
 		{
 			Log.Error(exc, "Error when stopping StorageWriter queue.");
 		}
+
+		Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
 	}
 
 	async ValueTask IAsyncHandle<SystemMessage.WriteEpoch>.HandleAsync(SystemMessage.WriteEpoch message,
