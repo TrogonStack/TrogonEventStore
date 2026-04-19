@@ -56,8 +56,14 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 
 		async ValueTask StopAsync()
 		{
-			await subsystem.Stop();
-			await db.DisposeAsync();
+			try
+			{
+				await subsystem.Stop();
+			}
+			finally
+			{
+				await db.DisposeAsync();
+			}
 		}
 
 		return (StopAsync, subsystem.LeaderInputQueue);
