@@ -1531,12 +1531,15 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		var total = _sortedSubscriptionTopics.Count;
+		var total = _subscriptionsById.Count;
 		var pageOffset = Math.Clamp(message.Offset, 0, total);
 		var pageLength = Math.Clamp(message.Count, 0, total - pageOffset);
-		var stats = (from subscription in _sortedSubscriptionTopics.Values.Skip(pageOffset).Take(pageLength)
-			from sub in subscription
-			select sub.GetStatistics()).ToList();
+		var stats = _sortedSubscriptionTopics
+			.SelectMany(topic => topic.Value.OrderBy(sub => sub.GroupName, StringComparer.Ordinal))
+			.Skip(pageOffset)
+			.Take(pageLength)
+			.Select(sub => sub.GetStatistics())
+			.ToList();
 		message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success, stats,
 			message.Offset, message.Count, total)

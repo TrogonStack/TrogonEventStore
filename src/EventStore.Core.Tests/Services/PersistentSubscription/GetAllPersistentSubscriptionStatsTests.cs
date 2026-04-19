@@ -78,9 +78,10 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public async Task pages_by_stream_in_sorted_order() {
+	public async Task pages_by_subscription_in_stream_then_group_order() {
 		StartAsLeader();
 		await CreateSubscription("beta", "group-1");
+		await CreateSubscription("alpha", "group-2");
 		await CreateSubscription("alpha", "group-1");
 		await CreateSubscription("gamma", "group-1");
 
@@ -89,15 +90,16 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 		Assert.AreEqual(
 			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success,
 			response.Result);
-		Assert.That(response.Total, Is.EqualTo(3));
+		Assert.That(response.Total, Is.EqualTo(4));
 		Assert.That(response.RequestedOffset, Is.EqualTo(1));
 		Assert.That(response.RequestedCount, Is.EqualTo(1));
 		Assert.That(response.SubscriptionStats, Has.Count.EqualTo(1));
-		Assert.That(response.SubscriptionStats[0].EventSource, Is.EqualTo("beta"));
+		Assert.That(response.SubscriptionStats[0].EventSource, Is.EqualTo("alpha"));
+		Assert.That(response.SubscriptionStats[0].GroupName, Is.EqualTo("group-2"));
 	}
 
 	[Test]
-	public async Task counts_streams_when_returning_total_for_a_page() {
+	public async Task counts_subscription_records_when_returning_total_for_a_page() {
 		StartAsLeader();
 		await CreateSubscription("alpha", "group-1");
 		await CreateSubscription("alpha", "group-2");
@@ -108,10 +110,10 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 		Assert.AreEqual(
 			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success,
 			response.Result);
-		Assert.That(response.Total, Is.EqualTo(2));
-		Assert.That(response.SubscriptionStats, Has.Count.EqualTo(2));
-		Assert.That(response.SubscriptionStats, Has.All.Matches<MonitoringMessage.PersistentSubscriptionInfo>(
-			x => x.EventSource == "alpha"));
+		Assert.That(response.Total, Is.EqualTo(3));
+		Assert.That(response.SubscriptionStats, Has.Count.EqualTo(1));
+		Assert.That(response.SubscriptionStats[0].EventSource, Is.EqualTo("alpha"));
+		Assert.That(response.SubscriptionStats[0].GroupName, Is.EqualTo("group-1"));
 	}
 
 	private void StartAsLeader() {
