@@ -16,9 +16,10 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 {
 	private List<Guid> _epochIds = new List<Guid>();
 	private const int _numberOfNodeStarts = 5;
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromSeconds(30);
 	private readonly AutoResetEvent _waitForStart = new AutoResetEvent(false);
 
-	protected override TimeSpan Timeout { get; } = TimeSpan.FromMinutes(1);
+	protected override TimeSpan Timeout { get; } = TimeSpan.FromMinutes(3);
 
 	protected override void BeforeNodeStarts()
 	{
@@ -30,12 +31,18 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 	{
 		for (int i = 0; i < _numberOfNodeStarts - 1; i++)
 		{
-			_waitForStart.WaitOne(5000);
+			Assert.That(
+				_waitForStart.WaitOne(RestartTimeout),
+				Is.True,
+				$"Timed out waiting for epoch write before restart {i + 1}");
 			await ShutdownNode();
 			await StartNode();
 		}
 
-		_waitForStart.WaitOne(5000);
+		Assert.That(
+			_waitForStart.WaitOne(RestartTimeout),
+			Is.True,
+			"Timed out waiting for epoch write after final startup");
 		await base.Given();
 	}
 
