@@ -433,9 +433,14 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	{
 		if (_subsystemStarted)
 		{
-			await (_leaderInputQueue?.Stop() ?? Task.CompletedTask);
-			foreach (var queue in _coreWorkers)
-				await queue.Value.Stop();
+			var stopTasks = new List<Task>();
+			if (_leaderInputQueue is not null)
+				stopTasks.Add(_leaderInputQueue.Stop());
+			if (_leaderOutputQueue is not null)
+				stopTasks.Add(_leaderOutputQueue.Stop());
+			stopTasks.AddRange(_coreWorkers.Values.Select(worker => worker.Stop()));
+
+			await Task.WhenAll(stopTasks);
 		}
 
 		_subsystemStarted = false;
