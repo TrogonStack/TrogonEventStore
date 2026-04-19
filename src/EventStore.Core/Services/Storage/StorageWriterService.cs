@@ -237,10 +237,22 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			{
 				await Writer.Flush(token);
 				BlockWriter = true;
-				_writerQueue.Stop().GetAwaiter().OnCompleted(() =>
-					Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter")));
+				_ = StopWriterQueueAndPublishShutdown();
 				break;
 			}
+		}
+	}
+
+	private async Task StopWriterQueueAndPublishShutdown()
+	{
+		try
+		{
+			await _writerQueue.Stop();
+			Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
+		}
+		catch (Exception exc)
+		{
+			Log.Error(exc, "Error when stopping StorageWriter queue.");
 		}
 	}
 
