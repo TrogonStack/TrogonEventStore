@@ -80,6 +80,7 @@ namespace EventStore.Core.Services {
 		public const string Settings = "$settings";
 		public const string StreamCreated = "$stream";
 		public const string EpochInformation = "$epoch-information";
+		public const string PersistentSubscriptionConfig = "$PersistentConfig";
 
 		public const string V2__StreamCreated_InIndex = "StreamCreated";
 		public const string V1__StreamCreated__ = "$stream-created";
