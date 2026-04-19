@@ -39,6 +39,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		}
 
 		protected override void SubscribeCore(IHttpService service) {
+			Register(service, "/subscriptions?offset={offset}&count={count}", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions/restart", HttpMethod.Post, RestartPersistentSubscriptions, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Restart));
 			Register(service, "/subscriptions/{stream}", HttpMethod.Get, GetSubscriptionInfoForStream, Codec.NoCodecs,
@@ -725,6 +726,37 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		private void GetAllSubscriptionInfo(HttpEntityManager http, UriTemplateMatch match) {
 			if (_httpForwarder.ForwardRequest(http))
 				return;
+
+			var offsetValue = match.BoundVariables["offset"];
+			var countValue = match.BoundVariables["count"];
+			if (offsetValue.IsEmptyString() && countValue.IsEmptyString()) {
+				GetSubscriptionInfoUnpaged(http);
+				return;
+			}
+
+			if (offsetValue.IsEmptyString() || !int.TryParse(offsetValue, out var offset) || offset < 0) {
+				SendBadRequest(http,
+					string.Format("Offset must be a non-negative integer 'offset' ='{0}'", offsetValue));
+				return;
+			}
+
+			if (countValue.IsEmptyString() || !int.TryParse(countValue, out var count) || count < 1) {
+				SendBadRequest(http,
+					string.Format("Count must be a positive integer 'count' ='{0}'", countValue));
+				return;
+			}
+
+			var envelope = new SendToHttpEnvelope(
+				_networkSendQueue, http,
+				(args, message) =>
+					http.ResponseCodec.To(ToPagedSummaryDto(http,
+						message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted)),
+				(args, message) => StatsConfiguration(http, message));
+			var cmd = new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope, offset, count);
+			Publish(cmd);
+		}
+
+		private void GetSubscriptionInfoUnpaged(HttpEntityManager http) {
 			var envelope = new SendToHttpEnvelope(
 				_networkSendQueue, http,
 				(args, message) =>
@@ -1016,6 +1048,43 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			}
 		}
 
+		private PagedSubscriptionInfo ToPagedSummaryDto(HttpEntityManager manager,
+			MonitoringMessage.GetPersistentSubscriptionStatsCompleted message) {
+			var subscriptions = ToSummaryDto(manager, message).ToArray();
+			var offset = message?.RequestedOffset ?? 0;
+			var count = message?.RequestedCount ?? 0;
+			var total = message?.Total ?? subscriptions.Length;
+
+			var links = new List<RelLink> {
+				new RelLink(MakeUrl(manager, "/subscriptions", CreatePagingQuery(offset, count)), "self"),
+				new RelLink(MakeUrl(manager, "/subscriptions", CreatePagingQuery(0, count)), "first"),
+			};
+
+			if (offset > 0) {
+				links.Add(new RelLink(
+					MakeUrl(manager, "/subscriptions",
+						CreatePagingQuery(Math.Max(0, offset - count), count)),
+					"previous"));
+			}
+
+			if (offset + count < total) {
+				links.Add(new RelLink(
+					MakeUrl(manager, "/subscriptions", CreatePagingQuery(offset + count, count)),
+					"next"));
+			}
+
+			return new PagedSubscriptionInfo {
+				Links = links,
+				Offset = offset,
+				Count = count,
+				Total = total,
+				Subscriptions = subscriptions,
+			};
+		}
+
+		private static string CreatePagingQuery(int offset, int count) =>
+			string.Format(CultureInfo.InvariantCulture, "offset={0}&count={1}", offset, count);
+
 		public class SubscriptionConfigData {
 			public bool ResolveLinktos { get; set; }
 			[Obsolete] public long StartFrom { get; set; }
@@ -1050,6 +1119,14 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				LiveBufferSize = 500;
 				ReadBatchSize = 20;
 			}
+		}
+
+		public class PagedSubscriptionInfo {
+			public List<RelLink> Links { get; set; }
+			public int Offset { get; set; }
+			public int Count { get; set; }
+			public int Total { get; set; }
+			public SubscriptionSummary[] Subscriptions { get; set; }
 		}
 
 		public class SubscriptionSummary {

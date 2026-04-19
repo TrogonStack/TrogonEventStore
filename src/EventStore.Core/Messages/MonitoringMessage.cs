@@ -9,10 +9,21 @@ namespace EventStore.Core.Messages {
 		[DerivedMessage(CoreMessage.Monitoring)]
 		public partial class GetAllPersistentSubscriptionStats : Message {
 			public readonly IEnvelope Envelope;
+			public readonly int Offset;
+			public readonly int Count;
 
 			public GetAllPersistentSubscriptionStats(IEnvelope envelope) {
 				Ensure.NotNull(envelope, "envelope");
 				Envelope = envelope;
+				Offset = 0;
+				Count = int.MaxValue;
+			}
+
+			public GetAllPersistentSubscriptionStats(IEnvelope envelope, int offset, int count) {
+				Ensure.NotNull(envelope, "envelope");
+				Envelope = envelope;
+				Offset = offset;
+				Count = count;
 			}
 		}
 
@@ -58,12 +69,29 @@ namespace EventStore.Core.Messages {
 		public partial class GetPersistentSubscriptionStatsCompleted : Message {
 			public readonly OperationStatus Result;
 			public readonly List<PersistentSubscriptionInfo> SubscriptionStats;
+			public readonly int RequestedOffset;
+			public readonly int RequestedCount;
+			public readonly int Total;
 			public string ErrorString;
 
 			public GetPersistentSubscriptionStatsCompleted(OperationStatus result,
 				List<PersistentSubscriptionInfo> subscriptionStats, string errorString = "") {
 				Result = result;
 				SubscriptionStats = subscriptionStats;
+				RequestedOffset = 0;
+				RequestedCount = int.MaxValue;
+				Total = subscriptionStats?.Count ?? 0;
+				ErrorString = errorString;
+			}
+
+			public GetPersistentSubscriptionStatsCompleted(OperationStatus result,
+				List<PersistentSubscriptionInfo> subscriptionStats, int requestedOffset, int requestedCount,
+				int total, string errorString = "") {
+				Result = result;
+				SubscriptionStats = subscriptionStats;
+				RequestedOffset = requestedOffset;
+				RequestedCount = requestedCount;
+				Total = total;
 				ErrorString = errorString;
 			}
 

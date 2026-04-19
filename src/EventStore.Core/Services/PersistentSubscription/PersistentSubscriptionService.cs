@@ -55,6 +55,7 @@ public class PersistentSubscriptionService<TStreamId> :
 {
 
 	private Dictionary<string, List<PersistentSubscription>> _subscriptionTopics;
+	private SortedDictionary<string, List<PersistentSubscription>> _sortedSubscriptionTopics;
 	private Dictionary<string, PersistentSubscription> _subscriptionsById;
 
 	private readonly IQueuedHandler _queuedHandler;
@@ -120,6 +121,7 @@ public class PersistentSubscriptionService<TStreamId> :
 	{
 		_handleTick = false;
 		_subscriptionTopics = new Dictionary<string, List<PersistentSubscription>>();
+		_sortedSubscriptionTopics = new SortedDictionary<string, List<PersistentSubscription>>(StringComparer.Ordinal);
 		_subscriptionsById = new Dictionary<string, PersistentSubscription>();
 	}
 
@@ -971,6 +973,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		{
 			subscribers = new List<PersistentSubscription>();
 			_subscriptionTopics.Add(eventSource, subscribers);
+			_sortedSubscriptionTopics.Add(eventSource, subscribers);
 		}
 
 		// shut down any existing subscription
@@ -1011,6 +1014,11 @@ public class PersistentSubscriptionService<TStreamId> :
 				// delete
 				_subscriptionsById.Remove(key);
 				subscribers.RemoveAt(subscriptionIndex);
+				if (subscribers.Count == 0)
+				{
+					_subscriptionTopics.Remove(eventSource);
+					_sortedSubscriptionTopics.Remove(eventSource);
+				}
 			}
 		}
 		else
@@ -1420,7 +1428,7 @@ public class PersistentSubscriptionService<TStreamId> :
 	{
 		Log.Debug("Saving persistent subscription configuration");
 		var data = _config.GetSerializedForm();
-		var ev = new Event(Guid.NewGuid(), "$PersistentConfig", true, data, new byte[0]);
+		var ev = new Event(Guid.NewGuid(), SystemEventTypes.PersistentSubscriptionConfig, true, data, new byte[0]);
 		var metadata = new StreamMetadata(maxCount: 2);
 		Lazy<StreamMetadata> streamMetadata = new Lazy<StreamMetadata>(() => metadata);
 		Event[] events = new Event[] { ev };
@@ -1517,16 +1525,21 @@ public class PersistentSubscriptionService<TStreamId> :
 		if (!_started)
 		{
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
-				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotReady, null)
+				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotReady, null,
+				message.Offset, message.Count, 0)
 			);
 			return;
 		}
 
-		var stats = (from subscription in _subscriptionTopics.Values
+		var total = _sortedSubscriptionTopics.Count;
+		var pageOffset = Math.Clamp(message.Offset, 0, total);
+		var pageLength = Math.Clamp(message.Count, 0, total - pageOffset);
+		var stats = (from subscription in _sortedSubscriptionTopics.Values.Skip(pageOffset).Take(pageLength)
 			from sub in subscription
 			select sub.GetStatistics()).ToList();
 		message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
-			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success, stats)
+			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success, stats,
+			message.Offset, message.Count, total)
 		);
 	}
 
