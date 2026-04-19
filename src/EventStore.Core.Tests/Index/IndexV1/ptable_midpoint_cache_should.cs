@@ -13,6 +13,7 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV4, true)]
 public class ptable_midpoint_cache_should : SpecificationWithDirectory
 {
+	private const int LongRunningTimeout = 120000;
 	private static readonly ILogger Log = Serilog.Log.ForContext<ptable_midpoint_cache_should>();
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
@@ -99,7 +100,7 @@ public class ptable_midpoint_cache_should : SpecificationWithDirectory
 		construct_valid_cache_for_any_combination_of_params(4096);
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public void construct_valid_cache_for_any_combination_of_params_small()
 	{
 		construct_valid_cache_for_any_combination_of_params(20);

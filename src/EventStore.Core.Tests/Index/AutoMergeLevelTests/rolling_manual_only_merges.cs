@@ -11,7 +11,7 @@ public class rolling_manual_only_merges : when_max_auto_merge_level_is_set
 	{
 	}
 
-	[Test]
+	[Test, Timeout(LongRunningTimeout)]
 	public void alternating_table_dumps_and_manual_merges_should_merge_correctly()
 	{
 		AddTables(1);

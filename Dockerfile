@@ -14,17 +14,19 @@ WORKDIR /build/src
 COPY ./src/EventStore.sln ./src/*/*.csproj ./src/Directory.Build.* ./src/Directory.Packages.* ./src/NuGet.Config ./
 RUN for file in $(ls *.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
 
-# Configure NuGet authentication for GitHub Packages using Docker secrets
 RUN --mount=type=secret,id=nuget_auth_token \
+    NUGET_CONFIG=$(mktemp) && \
+    cp ./NuGet.Config "$NUGET_CONFIG" && \
     if [ -f /run/secrets/nuget_auth_token ]; then \
         NUGET_AUTH_TOKEN=$(cat /run/secrets/nuget_auth_token) && \
         dotnet nuget update source github \
+        --configfile "$NUGET_CONFIG" \
         --username docker \
         --password "$NUGET_AUTH_TOKEN" \
         --store-password-in-clear-text; \
-    fi
-
-RUN dotnet restore --runtime=${RUNTIME}
+    fi && \
+    dotnet restore --runtime=${RUNTIME} --configfile "$NUGET_CONFIG" && \
+    rm -f "$NUGET_CONFIG"
 COPY ./src .
 
 WORKDIR /build/.git

@@ -14,6 +14,7 @@ namespace EventStore.Core.Tests.Index.AutoMergeLevelTests;
 [TestFixture]
 public abstract class when_max_auto_merge_level_is_set : SpecificationWithDirectoryPerTestFixture
 {
+	protected const int LongRunningTimeout = 120000;
 	protected readonly int _maxAutoMergeLevel;
 	protected string _filename;
 	protected IndexMap _map;
