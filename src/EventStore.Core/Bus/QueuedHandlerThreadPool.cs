@@ -97,7 +97,6 @@ namespace EventStore.Core.Bus;
 			} catch (OperationCanceledException ex) when (ex.CancellationToken == timeoutSource.Token) {
 				throw new TimeoutException($"Unable to stop thread '{Name}'.");
 			} catch (OperationCanceledException) {
-			} catch (Exception) {
 			}
 		}
 
