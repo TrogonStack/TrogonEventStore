@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Http;
@@ -65,6 +66,23 @@ public class http_service_should : SpecificationWithDirectory
 
 		Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
 		Assert.IsEmpty(await result.Content.ReadAsStringAsync());
+	}
+
+	[Test]
+	[Category("Network")]
+	public async Task apply_cors_headers_to_cross_origin_stats_requests()
+	{
+		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
+		await node.Start();
+
+		var request = new HttpRequestMessage(HttpMethod.Get, "/stats/replication");
+		request.Headers.Add("Origin", "https://example.com");
+
+		var result = await node.HttpClient.SendAsync(request);
+
+		Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
+		Assert.That(result.Headers.TryGetValues("Access-Control-Allow-Origin", out var values), Is.True);
+		Assert.That(values, Is.EquivalentTo(new[] { "*" }));
 	}
 }
 
