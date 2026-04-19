@@ -10,6 +10,7 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Grpc.Cluster;
 using EventStore.Core.Services.Transport.Http;
+using EventStore.Transport.Http;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins;
 using EventStore.Plugins.Authentication;
@@ -130,6 +131,7 @@ public class ClusterVNodeStartup<TStreamId> : IStartup, IHandle<SystemMessage.Sy
 		_mainBus.Subscribe(internalDispatcher);
 
 		app = app.Map("/health", _statusCheck.Configure)
+			.UseCors("default")
 			// AuthenticationMiddleware uses _httpAuthenticationProviders and assigns
 			// the resulting ClaimsPrinciple to HttpContext.User
 			.UseMiddleware<AuthenticationMiddleware>()
@@ -290,6 +292,11 @@ public class ClusterVNodeStartup<TStreamId> : IStartup, IHandle<SystemMessage.Sy
 			.AddServiceOptions<Streams<TStreamId>>(options =>
 				options.MaxReceiveMessageSize = TFConsts.EffectiveMaxLogRecordSize)
 			.Services;
+
+		services.AddCors(o => o.AddPolicy(
+			"default",
+			b => b.AllowAnyOrigin().WithMethods(HttpMethod.Options, HttpMethod.Get).AllowAnyHeader())
+		);
 
 		services = _configureNodeServices(services);
 
