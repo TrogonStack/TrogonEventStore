@@ -585,7 +585,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 		try
 		{
-			_node.WorkersHandler.Stop();
+			await _node.WorkersHandler.Stop();
 			_mainQueue.RequestStop();
 		}
 		catch (Exception exc)

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Tests.Bus.Helpers;
@@ -23,11 +24,9 @@ public abstract class when_publishing_to_queued_handler : QueuedHandlerTestWithW
 		Queue.Start();
 	}
 
-	public override void TearDown()
+	public override async Task TearDown()
 	{
-		Consumer.Dispose();
-		Queue.Stop();
-		base.TearDown();
+		await base.TearDown();
 	}
 
 	[Test, Ignore("We do not check each message for null for performance reasons.")]

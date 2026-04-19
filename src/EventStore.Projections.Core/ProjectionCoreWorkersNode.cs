@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using EventStore.Common.Options;
 using EventStore.Core;
 using EventStore.Core.Bus;
@@ -119,9 +120,9 @@ public class CoreWorker
 		CoreOutputQueue.Start();
 	}
 
-	public void Stop()
+	public async Task Stop()
 	{
-		CoreInputQueue.Stop();
-		CoreOutputQueue.Stop();
+		await CoreInputQueue.Stop();
+		await CoreOutputQueue.Stop();
 	}
 }

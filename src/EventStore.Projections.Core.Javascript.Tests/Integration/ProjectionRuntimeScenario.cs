@@ -54,10 +54,12 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 		subsystem.ConfigureApplication(builder.Build().UseRouting(), EmptyConfiguration);
 		subsystem.Start();
 
-		return (() =>
+		async ValueTask StopAsync()
 		{
-			subsystem.Stop();
-			return db.DisposeAsync();
-		}, subsystem.LeaderInputQueue);
+			await subsystem.Stop();
+			await db.DisposeAsync();
+		}
+
+		return (StopAsync, subsystem.LeaderInputQueue);
 	}
 }

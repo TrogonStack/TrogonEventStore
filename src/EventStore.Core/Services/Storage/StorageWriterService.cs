@@ -236,9 +236,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			case VNodeState.ShuttingDown:
 			{
 				await Writer.Flush(token);
-				_writerQueue.RequestStop();
 				BlockWriter = true;
-				Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter"));
+				_writerQueue.Stop().GetAwaiter().OnCompleted(() =>
+					Bus.Publish(new SystemMessage.ServiceShutdown("StorageWriter")));
 				break;
 			}
 		}

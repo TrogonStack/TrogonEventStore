@@ -39,7 +39,7 @@ public class TestFixtureWithProjectionCoreService
 			throw new NotImplementedException();
 		}
 
-		public void Stop()
+		public Task Stop()
 		{
 			throw new NotImplementedException();
 		}

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
@@ -28,9 +29,9 @@ public abstract class QueuedHandlerTestWithWaitingConsumer
 	}
 
 	[TearDown]
-	public virtual void TearDown()
+	public virtual async Task TearDown()
 	{
-		Queue.Stop();
+		await Queue.Stop();
 		Queue = null;
 		Consumer.Dispose();
 		Consumer = null;
