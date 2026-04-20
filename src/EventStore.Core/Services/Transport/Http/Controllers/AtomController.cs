@@ -95,11 +95,13 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		};
 
 		private readonly IPublisher _networkSendQueue;
+		private readonly int _maxAppendSize;
 		private readonly TimeSpan _writeTimeout;
 
 		public AtomController(IPublisher publisher, IPublisher networkSendQueue,
-			bool disableHTTPCaching, TimeSpan writeTimeout) : base(publisher) {
+			bool disableHTTPCaching, int maxAppendSize, TimeSpan writeTimeout) : base(publisher) {
 			_networkSendQueue = networkSendQueue;
+			_maxAppendSize = maxAppendSize;
 			_writeTimeout = writeTimeout;
 
 			if (disableHTTPCaching) {
@@ -952,9 +954,12 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 						return;
 					}
 
+					var appendSize = 0;
 					foreach (var e in events) {
-						if (e.Data.Length + e.Metadata.Length > 4 * 1024 * 1024) {
-							SendTooBig(manager);
+						appendSize += Event.SizeOnDisk(e.EventType, e.Data, e.Metadata);
+						if (appendSize > _maxAppendSize) {
+							SendTooBig(manager, _maxAppendSize);
+							return;
 						}
 					}
 

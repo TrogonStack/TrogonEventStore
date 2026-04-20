@@ -1072,7 +1072,8 @@ public class ClusterVNode<TStreamId> :
 		var statController = new StatController(monitoringQueue, _workersHandler);
 		var metricsController = new MetricsController();
 		var atomController = new AtomController(_mainQueue, _workersHandler,
-			options.Application.DisableHttpCaching, TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
+			options.Application.DisableHttpCaching, options.Application.MaxAppendSize,
+			TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
 		var gossipController = new GossipController(_mainQueue, _workersHandler,
 			trackers.GossipTrackers.ProcessingRequestFromHttpClient);
 		var persistentSubscriptionController =
