@@ -48,7 +48,7 @@ public class when_completing_a_tfchunk_writer_with_a_cancelable_token : Specific
 		using var cancellationTokenSource = new CancellationTokenSource();
 		_chunk = await TFChunk.CreateNew(GetFilePathFor("chunk-000000.000000"), 4096, 0, 0,
 			isScavenged: false, inMem: false, unbuffered: false,
-			writethrough: false, reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
+			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new CancelDuringCompletionTransformFactory(cancellationTokenSource),
 			token: CancellationToken.None);
 		SetCurrentChunk(_writer, _chunk);

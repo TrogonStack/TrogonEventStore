@@ -78,6 +78,8 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 
 		public FileAccess Access => FileAccess.Read;
 
+		public string Name => "throwing-remote-handle";
+
 		public void Flush() {
 		}
 

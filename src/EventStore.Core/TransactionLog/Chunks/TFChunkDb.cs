@@ -110,6 +110,7 @@ public class TFChunkDb : IAsyncDisposable
 							unbufferedRead: Config.Unbuffered,
 							tracker: _tracker,
 							reduceFileCachePressure: Config.ReduceFileCachePressure,
+							asyncIO: Config.AsyncIO,
 							getTransformFactory: TransformManager.GetFactoryForExistingChunk,
 							token: token);
 					else
@@ -119,6 +120,7 @@ public class TFChunkDb : IAsyncDisposable
 							writethrough: Config.WriteThrough,
 							reduceFileCachePressure: Config.ReduceFileCachePressure,
 							tracker: _tracker,
+							asyncIO: Config.AsyncIO,
 							getTransformFactory: TransformManager.GetFactoryForExistingChunk,
 							token);
 						// chunk is full with data, we should complete it right here
@@ -131,6 +133,7 @@ public class TFChunkDb : IAsyncDisposable
 					chunk = await TFChunk.TFChunk.FromCompletedFile(chunkInfo.ChunkFileName, verifyHash: false,
 						unbufferedRead: Config.Unbuffered,
 						reduceFileCachePressure: Config.ReduceFileCachePressure,
+						asyncIO: Config.AsyncIO,
 						tracker: _tracker,
 						getTransformFactory: TransformManager.GetFactoryForExistingChunk,
 						token: token);
@@ -177,6 +180,7 @@ public class TFChunkDb : IAsyncDisposable
 				var lastChunk = await TFChunk.TFChunk.FromCompletedFile(chunkFileName, verifyHash: false,
 					unbufferedRead: Config.Unbuffered,
 					reduceFileCachePressure: Config.ReduceFileCachePressure,
+					asyncIO: Config.AsyncIO,
 					tracker: _tracker,
 					getTransformFactory: TransformManager.GetFactoryForExistingChunk,
 					token: token);
@@ -209,6 +213,7 @@ public class TFChunkDb : IAsyncDisposable
 					writethrough: Config.WriteThrough,
 					reduceFileCachePressure: Config.ReduceFileCachePressure,
 					tracker: _tracker,
+					asyncIO: Config.AsyncIO,
 					getTransformFactory: type => TransformManager.GetFactoryForExistingChunk(type),
 					token);
 				await Manager.AddChunk(lastChunk, token);

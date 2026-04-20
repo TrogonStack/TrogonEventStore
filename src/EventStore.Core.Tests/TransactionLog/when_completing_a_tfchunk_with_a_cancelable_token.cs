@@ -28,7 +28,7 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		_writeState = new ObservingWriteState();
 		_chunk = await TFChunk.CreateNew(Filename, 4096, 0, 0,
 			isScavenged: false, inMem: false, unbuffered: false,
-			writethrough: false, reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
+			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new ObservingChunkTransformFactory(_writeState),
 			token: CancellationToken.None);
 		var record = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
@@ -219,6 +219,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		}
 
 		public FileAccess Access => inner.Access;
+
+		public string Name => inner.Name;
 
 		public void Flush() => inner.Flush();
 

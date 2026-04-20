@@ -18,7 +18,7 @@ public class ScavengedChunk : SpecificationWithFile
 	{
 		var map = new List<PosMap>();
 		var chunk = await TFChunk.CreateNew(Filename, 1024 * 1024, 0, 0, true, false, false, false,
-			false,
+			false, false,
 			new TFChunkTracker.NoOp(),
 			new IdentityChunkTransformFactory(),
 			CancellationToken.None);

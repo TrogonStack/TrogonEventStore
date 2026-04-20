@@ -310,6 +310,7 @@ public class RedactionService<TStreamId> :
 				verifyHash: true,
 				unbufferedRead: _db.Config.Unbuffered,
 				reduceFileCachePressure: true,
+				asyncIO: _db.Config.AsyncIO,
 				tracker: new TFChunkTracker.NoOp(),
 				getTransformFactory: _db.TransformManager.GetFactoryForExistingChunk,
 				token: token);

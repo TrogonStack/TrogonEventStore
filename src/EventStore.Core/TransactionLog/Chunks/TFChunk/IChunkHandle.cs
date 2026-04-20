@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DotNext;
 using DotNext.Buffers;
 using DotNext.IO;
+using Serilog;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
@@ -27,6 +28,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 		set;
 	}
 
+	string Name { get; }
+
 	/// <summary>
 	/// Gets access mode for this handle.
 	/// </summary>
@@ -41,11 +44,15 @@ public interface IChunkHandle : IFlushable, IDisposable
 	Stream CreateStream() => CreateStream(this, 60_000);
 
 	protected static Stream CreateStream(IChunkHandle handle, int synchronousTimeout)
-		=> new UnbufferedStream(handle) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
+		=> handle is ChunkFileHandle { Asynchronous: false } chunkFileHandle
+			? chunkFileHandle.CreateSynchronousStream()
+			: new UnbufferedStream(handle) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
 
 	private sealed class UnbufferedStream(IChunkHandle handle) : RandomAccessStream
 	{
 		private int _readTimeout, _writeTimeout;
+		private int _readWarningLogged;
+		private int _writeWarningLogged;
 		private CancellationTokenSource _timeoutSource;
 
 		public override void Flush() => handle.Flush();
@@ -81,6 +88,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 			// leave fast without sync over async
 			if (buffer.IsEmpty)
 				return;
+
+			LogSynchronousWriteOnce();
 
 			// Do sync over async without any optimizations to make it just works.
 			// In practice, no one should call synchronous write
@@ -118,6 +127,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 			}
 			else
 			{
+				LogSynchronousReadOnce();
+
 				// Do sync over async without any optimizations to make it just works.
 				// In practice, no one should call synchronous write
 				var bufferCopy = Memory.AllocateExactly<byte>(buffer.Length);
@@ -127,6 +138,7 @@ public interface IChunkHandle : IFlushable, IDisposable
 				{
 					task.Wait();
 					bytesRead = task.Result;
+					bufferCopy.Span.Slice(0, bytesRead).CopyTo(buffer);
 				}
 				catch (AggregateException e) when (e.InnerExceptions is [OperationCanceledException canceledEx] &&
 				                                   canceledEx.CancellationToken == timeoutToken)
@@ -140,7 +152,6 @@ public interface IChunkHandle : IFlushable, IDisposable
 					bufferCopy.Dispose();
 				}
 
-				bufferCopy.Span.Slice(0, bytesRead).CopyTo(buffer);
 			}
 
 			return bytesRead;
@@ -148,6 +159,22 @@ public interface IChunkHandle : IFlushable, IDisposable
 
 		protected override ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
 			=> handle.ReadAsync(buffer, offset, token);
+
+		private void LogSynchronousReadOnce()
+		{
+			if (Interlocked.Exchange(ref _readWarningLogged, 1) != 0)
+				return;
+
+			Log.Warning("Synchronous reads should be uncommon. Handle: {Handle}", handle.Name);
+		}
+
+		private void LogSynchronousWriteOnce()
+		{
+			if (Interlocked.Exchange(ref _writeWarningLogged, 1) != 0)
+				return;
+
+			Log.Warning("Synchronous writes should be uncommon. Handle: {Handle}", handle.Name);
+		}
 
 		private CancellationToken GetTimeoutToken(int timeout)
 		{

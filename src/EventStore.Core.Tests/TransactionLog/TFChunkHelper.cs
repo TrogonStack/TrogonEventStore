@@ -79,7 +79,7 @@ public static class TFChunkHelper
 	{
 		return TFChunk.CreateNew(fileName, chunkSize, 0, 0,
 			isScavenged: isScavenged, inMem: false, unbuffered: false,
-			writethrough: false, reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
+			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new IdentityChunkTransformFactory(),
 			token);
 	}

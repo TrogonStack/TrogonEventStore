@@ -42,6 +42,7 @@ public partial record ClusterVNodeOptions
 	[OptionGroup] public CertificateStoreOptions CertificateStore { get; init; } = new();
 	[OptionGroup] public ClusterOptions Cluster { get; init; } = new();
 	[OptionGroup] public DatabaseOptions Database { get; init; } = new();
+	[OptionGroup] public ExperimentalOptions Experimental { get; init; } = new();
 	[OptionGroup] public GrpcOptions Grpc { get; init; } = new();
 	[OptionGroup] public InterfaceOptions Interface { get; init; } = new();
 	[OptionGroup] public ProjectionOptions Projection { get; init; } = new();
@@ -82,6 +83,7 @@ public partial record ClusterVNodeOptions
 			CertificateStore = configuration.BindOptions<CertificateStoreOptions>(),
 			Cluster = configuration.BindOptions<ClusterOptions>(),
 			Database = configuration.BindOptions<DatabaseOptions>(),
+			Experimental = configuration.BindOptions<ExperimentalOptions>(),
 			Grpc = configuration.BindOptions<GrpcOptions>(),
 			Interface = configuration.BindOptions<InterfaceOptions>(),
 			Projection = configuration.BindOptions<ProjectionOptions>(),
@@ -207,6 +209,13 @@ public partial record ClusterVNodeOptions
 		public int LogFileRetentionCount { get; init; } = 31;
 
 		[Description("Disable log to disk.")] public bool DisableLogFile { get; init; } = false;
+	}
+
+	[Description("Experimental Options")]
+	public record ExperimentalOptions
+	{
+		[Description("Use asynchronous local chunk reads and writes. Disabled by default while local async I/O remains experimental.")]
+		public bool AsyncIO { get; init; } = false;
 	}
 
 	[Description("Authentication/Authorization Options")]

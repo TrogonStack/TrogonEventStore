@@ -260,6 +260,18 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void can_set_async_io_from_env_vars()
+	{
+		var config = new ConfigurationBuilder()
+			.AddEventStoreEnvironmentVariables(("EVENTSTORE_ASYNC_IO", "true"))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(config);
+
+		options.Experimental.AsyncIO.Should().BeTrue();
+	}
+
+	[Fact]
 	public void can_set_cluster_size_from_config_file()
 	{
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configuration", "test.eventstore.conf");

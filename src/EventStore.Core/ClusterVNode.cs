@@ -456,7 +456,8 @@ public class ClusterVNode<TStreamId> :
 				unbuffered: false,
 				options.Database.WriteThrough,
 				options.Database.ReduceFileCachePressure,
-				options.Database.MaxTruncation);
+				options.Database.MaxTruncation,
+				options.Experimental.AsyncIO);
 		}
 
 		var writerCheckpoint = Db.Config.WriterCheckpoint.Read();

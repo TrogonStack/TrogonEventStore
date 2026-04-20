@@ -873,6 +873,7 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				unbuffered: false,
 				writethrough: false,
 				reduceFileCachePressure: false,
+				asyncIO: false,
 				tracker: new TFChunkTracker.NoOp(),
 				transformFactory: transformFactory,
 				transformHeader: transformHeader,

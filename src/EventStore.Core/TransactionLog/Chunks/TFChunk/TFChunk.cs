@@ -184,6 +184,7 @@ public partial class TFChunk : IDisposable
 
 	// https://learn.microsoft.com/en-US/troubleshoot/windows-server/application-management/operating-system-performance-degrades
 	private readonly bool _reduceFileCachePressure;
+	private readonly bool _asyncIO;
 
 	private IChunkReadSide _readSide;
 
@@ -195,7 +196,8 @@ public partial class TFChunk : IDisposable
 		bool inMem,
 		bool unbuffered,
 		bool writethrough,
-		bool reduceFileCachePressure)
+		bool reduceFileCachePressure,
+		bool asyncIO)
 	{
 		Ensure.NotNullOrEmpty(filename, "filename");
 		Ensure.Nonnegative(midpointsDepth, "midpointsDepth");
@@ -206,6 +208,7 @@ public partial class TFChunk : IDisposable
 		_unbuffered = unbuffered;
 		_writeThrough = writethrough;
 		_reduceFileCachePressure = reduceFileCachePressure;
+		_asyncIO = asyncIO;
 		_memStreams = new();
 		_fileStreams = new();
 
@@ -223,11 +226,11 @@ public partial class TFChunk : IDisposable
 	// local or remote
 	public static async ValueTask<TFChunk> FromCompletedFile(string filename, bool verifyHash, bool unbufferedRead,
 		ITransactionFileTracker tracker, Func<TransformType, IChunkTransformFactory> getTransformFactory,
-		bool reduceFileCachePressure = false, CancellationToken token = default)
+		bool reduceFileCachePressure = false, bool asyncIO = false, CancellationToken token = default)
 	{
 
 		var chunk = new TFChunk(filename,
-			TFConsts.MidpointsDepth, false, unbufferedRead, false, reduceFileCachePressure);
+			TFConsts.MidpointsDepth, false, unbufferedRead, false, reduceFileCachePressure, asyncIO);
 		try
 		{
 			await chunk.InitCompleted(verifyHash, tracker, getTransformFactory, token);
@@ -244,6 +247,7 @@ public partial class TFChunk : IDisposable
 	// always local
 	public static async ValueTask<TFChunk> FromOngoingFile(string filename, int writePosition, bool unbuffered,
 		bool writethrough, bool reduceFileCachePressure, ITransactionFileTracker tracker,
+		bool asyncIO,
 		Func<TransformType, IChunkTransformFactory> getTransformFactory,
 		CancellationToken token)
 	{
@@ -252,7 +256,8 @@ public partial class TFChunk : IDisposable
 			false,
 			unbuffered,
 			writethrough,
-			reduceFileCachePressure);
+			reduceFileCachePressure,
+			asyncIO);
 		try
 		{
 			await chunk.InitOngoing(writePosition, tracker, getTransformFactory, token);
@@ -276,6 +281,7 @@ public partial class TFChunk : IDisposable
 		bool unbuffered,
 		bool writethrough,
 		bool reduceFileCachePressure,
+		bool asyncIO,
 		ITransactionFileTracker tracker,
 		IChunkTransformFactory transformFactory,
 		CancellationToken token)
@@ -300,7 +306,7 @@ public partial class TFChunk : IDisposable
 		transformFactory.CreateTransformHeader(transformHeader);
 
 		return await CreateWithHeader(filename, chunkHeader, fileSize, inMem, unbuffered, writethrough,
-			reduceFileCachePressure, tracker, transformFactory, transformHeader, token);
+			reduceFileCachePressure, asyncIO, tracker, transformFactory, transformHeader, token);
 	}
 
 	// local only
@@ -311,6 +317,7 @@ public partial class TFChunk : IDisposable
 		bool unbuffered,
 		bool writethrough,
 		bool reduceFileCachePressure,
+		bool asyncIO,
 		ITransactionFileTracker tracker,
 		IChunkTransformFactory transformFactory,
 		ReadOnlyMemory<byte> transformHeader,
@@ -321,7 +328,8 @@ public partial class TFChunk : IDisposable
 			inMem,
 			unbuffered,
 			writethrough,
-			reduceFileCachePressure);
+			reduceFileCachePressure,
+			asyncIO);
 		try
 		{
 			await chunk.InitNew(header, fileSize, tracker, transformFactory, transformHeader, token);
@@ -346,9 +354,7 @@ public partial class TFChunk : IDisposable
 			Mode = FileMode.Open,
 			Access = FileAccess.Read,
 			Share = FileShare.ReadWrite,
-			Options = _reduceFileCachePressure
-				? FileOptions.Asynchronous
-				: FileOptions.RandomAccess | FileOptions.Asynchronous
+			Options = ReadOnlyHandleOptions
 		};
 		_handle = new ChunkFileHandle(_filename, options);
 		_fileSize = (int)_handle.Length;
@@ -525,19 +531,25 @@ public partial class TFChunk : IDisposable
 		return StreamSource.AsSharedStream(new(memoryView), compatWithAsync: true);
 	}
 
+	private FileOptions ReadOnlyHandleOptions =>
+		ComposeHandleOptions(_reduceFileCachePressure ? FileOptions.None : FileOptions.RandomAccess);
+
 	private FileOptions WritableHandleOptions
 	{
 		get
 		{
-			var options = _reduceFileCachePressure
-				? FileOptions.Asynchronous
-				: FileOptions.RandomAccess | FileOptions.Asynchronous;
+			var options = ComposeHandleOptions(_reduceFileCachePressure ? FileOptions.None : FileOptions.RandomAccess);
 			if (_writeThrough)
 				options |= FileOptions.WriteThrough;
 
 			return options;
 		}
 	}
+
+	private FileOptions TempFileOptions => ComposeHandleOptions(FileOptions.SequentialScan);
+
+	private FileOptions ComposeHandleOptions(FileOptions baseOptions) =>
+		_asyncIO ? baseOptions | FileOptions.Asynchronous : baseOptions;
 
 	private async ValueTask CreateWriterWorkItemForNewChunk(ChunkHeader chunkHeader, int fileSize,
 		ReadOnlyMemory<byte> transformHeader, CancellationToken token)
@@ -553,7 +565,7 @@ public partial class TFChunk : IDisposable
 			Mode = FileMode.CreateNew,
 			Access = FileAccess.ReadWrite,
 			Share = FileShare.Read,
-			Options = FileOptions.SequentialScan | FileOptions.Asynchronous,
+			Options = TempFileOptions,
 			PreallocationSize = fileSize, // avoid fragmentation of file
 			BufferSize = WriterWorkItem.BufferSize,
 		};

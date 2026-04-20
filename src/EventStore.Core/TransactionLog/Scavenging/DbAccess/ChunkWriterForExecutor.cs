@@ -56,6 +56,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 			unbuffered: dbConfig.Unbuffered,
 			writethrough: dbConfig.WriteThrough,
 			reduceFileCachePressure: dbConfig.ReduceFileCachePressure,
+			asyncIO: dbConfig.AsyncIO,
 			tracker: new TFChunkTracker.NoOp(),
 			transformFactory: transformManager.GetFactoryForNewChunk(),
 			token);
