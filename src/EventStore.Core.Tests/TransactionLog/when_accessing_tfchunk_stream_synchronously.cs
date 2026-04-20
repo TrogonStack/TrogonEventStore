@@ -15,6 +15,7 @@ using Serilog.Events;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
+[NonParallelizable]
 public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 {
 	private ILogger _originalLogger;
