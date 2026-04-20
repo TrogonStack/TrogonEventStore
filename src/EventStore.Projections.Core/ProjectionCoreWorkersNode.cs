@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
+using System.Threading.Tasks;
 using EventStore.Common.Options;
 using EventStore.Core;
 using EventStore.Core.Bus;
@@ -119,9 +121,41 @@ public class CoreWorker
 		CoreOutputQueue.Start();
 	}
 
-	public void Stop()
+	public async Task Stop()
 	{
-		CoreInputQueue.Stop();
-		CoreOutputQueue.Stop();
+		var inputStop = TryStop(CoreInputQueue);
+		var outputStop = TryStop(CoreOutputQueue);
+
+		try
+		{
+			await Task.WhenAll(inputStop, outputStop);
+		}
+		catch
+		{
+			var exceptions = new List<Exception>();
+			if (inputStop.IsFaulted)
+				exceptions.AddRange(inputStop.Exception!.Flatten().InnerExceptions);
+			if (outputStop.IsFaulted)
+				exceptions.AddRange(outputStop.Exception!.Flatten().InnerExceptions);
+
+			if (exceptions.Count == 0)
+				throw;
+			if (exceptions.Count == 1)
+				ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
+
+			throw new AggregateException(exceptions);
+		}
+	}
+
+	private static Task TryStop(IQueuedHandler queue)
+	{
+		try
+		{
+			return queue.Stop();
+		}
+		catch (Exception ex)
+		{
+			return Task.FromException(ex);
+		}
 	}
 }

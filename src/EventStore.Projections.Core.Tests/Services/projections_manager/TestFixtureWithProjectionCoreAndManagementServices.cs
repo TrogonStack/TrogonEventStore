@@ -42,7 +42,7 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 			throw new NotImplementedException();
 		}
 
-		public void Stop()
+		public Task Stop()
 		{
 			throw new NotImplementedException();
 		}

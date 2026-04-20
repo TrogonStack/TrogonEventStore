@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.LogAbstraction;
@@ -16,7 +18,7 @@ namespace EventStore.Core.Services.Storage {
 	}
 
 	public class StorageReaderService<TStreamId> : StorageReaderService, IHandle<SystemMessage.SystemInit>,
-		IHandle<SystemMessage.BecomeShuttingDown>,
+		IAsyncHandle<SystemMessage.BecomeShuttingDown>,
 		IHandle<SystemMessage.BecomeShutdown>,
 		IHandle<MonitoringMessage.InternalStatsRequest> {
 
@@ -90,9 +92,9 @@ namespace EventStore.Core.Services.Storage {
 			_bus.Publish(new SystemMessage.ServiceInitialized("StorageReader"));
 		}
 
-		void IHandle<SystemMessage.BecomeShuttingDown>.Handle(SystemMessage.BecomeShuttingDown message) {
+		async ValueTask IAsyncHandle<SystemMessage.BecomeShuttingDown>.HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token) {
 			try {
-				_workersMultiHandler.Stop();
+				await _workersMultiHandler.Stop();
 			} catch (Exception exc) {
 				Log.Error(exc, "Error while stopping readers multi handler.");
 			}

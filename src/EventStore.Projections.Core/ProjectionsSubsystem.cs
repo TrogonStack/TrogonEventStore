@@ -429,19 +429,21 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		return _subsystemInitialized.Task;
 	}
 
-	public Task Stop()
+	public async Task Stop()
 	{
 		if (_subsystemStarted)
 		{
-			if (_leaderInputQueue != null)
-				_leaderInputQueue.Stop();
-			foreach (var queue in _coreWorkers)
-				queue.Value.Stop();
+			var stopTasks = new List<Task>();
+			if (_leaderInputQueue is not null)
+				stopTasks.Add(_leaderInputQueue.Stop());
+			if (_leaderOutputQueue is not null)
+				stopTasks.Add(_leaderOutputQueue.Stop());
+			stopTasks.AddRange(_coreWorkers.Values.Select(worker => worker.Stop()));
+
+			await Task.WhenAll(stopTasks);
 		}
 
 		_subsystemStarted = false;
-
-		return Task.CompletedTask;
 	}
 
 	public void Handle(CoreProjectionStatusMessage.Stopped message)

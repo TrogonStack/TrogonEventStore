@@ -6,7 +6,7 @@ namespace EventStore.Core.Bus;
 public interface IQueuedHandler : IPublisher {
 	string Name { get; }
 	Task Start();
-	void Stop();
+	Task Stop();
 
 	void RequestStop();
 	

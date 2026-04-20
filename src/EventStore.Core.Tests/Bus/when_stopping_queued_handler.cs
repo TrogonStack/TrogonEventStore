@@ -20,51 +20,35 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 
 
 	[Test]
-	public void gracefully_should_not_throw()
+	public async Task gracefully_should_not_throw()
 	{
-		Queue.Start();
-		Assert.DoesNotThrow(() => Queue.Stop());
+		_ = Queue.Start();
+		await Queue.Stop();
 	}
 
 	[Test]
-	public void gracefully_and_queue_is_not_busy_should_not_take_much_time()
+	public async Task gracefully_and_queue_is_not_busy_should_not_take_much_time()
 	{
-		Queue.Start();
-
-		var wait = new ManualResetEventSlim(false);
-
-		ThreadPool.QueueUserWorkItem(_ =>
-		{
-			Queue.Stop();
-			wait.Set();
-		});
-
-		Assert.IsTrue(wait.Wait(5000), "Could not stop queue in time.");
+		_ = Queue.Start();
+		await Queue.Stop().WaitAsync(TimeSpan.FromMilliseconds(5000));
 	}
 
 	[Test]
-	public void second_time_should_not_throw()
+	public async Task second_time_should_not_throw()
 	{
-		Queue.Start();
-		Queue.Stop();
-		Assert.DoesNotThrow(() => Queue.Stop());
+		_ = Queue.Start();
+		await Queue.Stop();
+		await Queue.Stop();
 	}
 
 	[Test]
-	public void second_time_should_not_take_much_time()
+	public async Task second_time_should_not_take_much_time()
 	{
-		Queue.Start();
-		Queue.Stop();
-
-		var wait = new ManualResetEventSlim(false);
-
-		ThreadPool.QueueUserWorkItem(_ =>
-		{
-			Queue.Stop();
-			wait.Set();
-		});
-
-		Assert.IsTrue(wait.Wait(1000), "Could not stop queue in time.");
+		_ = Queue.Start();
+		await Queue.Stop();
+		var secondStop = Queue.Stop();
+		await secondStop.WaitAsync(TimeSpan.FromMilliseconds(1000));
+		Assert.That(secondStop.IsCompletedSuccessfully, Is.True);
 	}
 
 	[Test]
@@ -86,14 +70,14 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 			}));
 
 			handledEvent.WaitOne();
-			Assert.Throws<TimeoutException>(() => busyQueue.Stop());
+			Assert.ThrowsAsync<TimeoutException>(async () => await busyQueue.Stop());
 		}
 		finally
 		{
 			waitHandle.Set();
 			consumer.Wait();
 
-			busyQueue.Stop();
+			busyQueue.RequestStop();
 			waitHandle.Dispose();
 			handledEvent.Dispose();
 			consumer.Dispose();
@@ -101,7 +85,7 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 	}
 
 	[Test]
-	public void while_processing_message_cancelled_by_queue_stop_should_not_timeout()
+	public async Task while_processing_message_cancelled_by_queue_stop_should_not_timeout()
 	{
 		var started = new ManualResetEventSlim(false);
 		var cancelled = new ManualResetEventSlim(false);
@@ -132,19 +116,14 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 			queue.Publish(new TestMessage());
 
 			Assert.IsTrue(started.Wait(5000), "Consumer never started handling the message.");
-			Assert.DoesNotThrow(() => queue.Stop());
+			await queue.Stop();
 			Assert.IsTrue(cancelled.Wait(5000), "Consumer never observed queue cancellation.");
-			Assert.That(startTask.IsCanceled, Is.True, "Queue lifecycle task should be cancelled after stop.");
+			Assert.That(startTask.IsCompletedSuccessfully, Is.True,
+				"Queue lifecycle task should complete successfully after a graceful stop.");
 		}
 		finally
 		{
-			try
-			{
-				queue.Stop();
-			}
-			catch (TimeoutException)
-			{
-			}
+			queue.RequestStop();
 
 			started.Dispose();
 			cancelled.Dispose();
@@ -152,7 +131,7 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 	}
 
 	[Test]
-	public void while_processing_message_cancelled_by_message_token_should_continue_processing_queue()
+	public async Task while_processing_message_cancelled_by_message_token_should_continue_processing_queue()
 	{
 		var started = new ManualResetEventSlim(false);
 		var cancelled = new ManualResetEventSlim(false);
@@ -211,7 +190,8 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 		}
 		finally
 		{
-			queue.Stop();
+			cancellationTokenSource.Cancel();
+			await queue.Stop();
 			started.Dispose();
 			cancelled.Dispose();
 			processedNext.Dispose();

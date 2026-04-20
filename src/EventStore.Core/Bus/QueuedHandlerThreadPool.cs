@@ -37,7 +37,6 @@ namespace EventStore.Core.Bus;
 
 		private CancellationTokenSource _lifetimeSource;
 		private readonly CancellationToken _lifetimeToken; // cached to avoid ObjectDisposedException
-		private readonly ManualResetEventSlim _stopped = new(true);
 		private readonly TimeSpan _threadStopWaitTimeout;
 
 		// monitoring
@@ -48,7 +47,7 @@ namespace EventStore.Core.Bus;
 		private int _isRunning;
 		private int _queueStatsState; //0 - never started, 1 - started, 2 - stopped
 
-		private readonly TaskCompletionSource<object> _tcs = new();
+		private readonly TaskCompletionSource<object> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		public QueuedHandlerThreadPool(IAsyncHandle<Message> consumer,
 			string name,
@@ -89,30 +88,34 @@ namespace EventStore.Core.Bus;
 			}
 		}
 
-		public void Stop() {
-			Cancel();
-			WaitForStop();
-			TryStopQueueStats();
-			_queueMonitor.Unregister(this);
-		}
+		public async Task Stop() {
+			RequestStop();
 
-		public void WaitForStop() {
-			if (!_stopped.Wait(_threadStopWaitTimeout))
-				throw new TimeoutException(string.Format("Unable to stop thread '{0}'.", Name));
+			using var timeoutSource = new CancellationTokenSource(_threadStopWaitTimeout);
+			try {
+				await _tcs.Task.WaitAsync(timeoutSource.Token);
+			} catch (OperationCanceledException ex) when (ex.CancellationToken == timeoutSource.Token) {
+				throw new TimeoutException($"Unable to stop thread '{Name}'.");
+			} catch (OperationCanceledException) {
+			}
 		}
 
 		public void RequestStop() {
 			Cancel();
-			TryStopQueueStats();
+			if (TryStopQueueStats()) {
+				_tcs.TrySetResult(null!);
+			}
 			_queueMonitor.Unregister(this);
 		}
 
-		private void TryStopQueueStats() {
+		private bool TryStopQueueStats() {
 			if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0) {
 				if (Interlocked.CompareExchange(ref _queueStatsState, 2, 1) == 1)
 					_queueStats.Stop();
-				Interlocked.CompareExchange(ref _isRunning, 0, 1);
+				return Interlocked.CompareExchange(ref _isRunning, 0, 1) == 1;
 			}
+
+			return false;
 		}
 
 		async void IThreadPoolWorkItem.Execute() {
@@ -122,7 +125,6 @@ namespace EventStore.Core.Bus;
 
 				bool proceed = true;
 				while (proceed) {
-					_stopped.Reset();
 					_queueStats.EnterBusy();
 					_tracker.EnterBusy();
 
@@ -163,7 +165,7 @@ namespace EventStore.Core.Bus;
 						} catch (OperationCanceledException ex) when (IsExpectedCancellation(ex, msg, _lifetimeToken)) {
 							_queueStats.ProcessingCancelled();
 							if (ex.CancellationToken == _lifetimeToken)
-								_tcs.TrySetCanceled(ex.CancellationToken);
+								_tcs.TrySetResult(null!);
 							break;
 						} catch (Exception ex) {
 							Log.Error(ex,
@@ -180,9 +182,8 @@ namespace EventStore.Core.Bus;
 					Interlocked.CompareExchange(ref _isRunning, 0, 1);
 					if (_lifetimeToken.IsCancellationRequested) {
 						TryStopQueueStats();
+						_tcs.TrySetResult(null!);
 					}
-
-					_stopped.Set();
 
 					// try to reacquire lock if needed
 					proceed = !_lifetimeToken.IsCancellationRequested
@@ -190,7 +191,7 @@ namespace EventStore.Core.Bus;
 					          && Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0;
 				}
 			} catch (OperationCanceledException e) when (e.CancellationToken == _lifetimeToken) {
-				_tcs.TrySetCanceled(e.CancellationToken);
+				_tcs.TrySetResult(null!);
 			} catch (Exception ex) {
 				_tcs.TrySetException(ex);
 				throw;
