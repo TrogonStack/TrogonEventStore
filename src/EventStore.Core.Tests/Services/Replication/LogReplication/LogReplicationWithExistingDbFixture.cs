@@ -55,6 +55,7 @@ public abstract class
 			unbuffered: db.Config.Unbuffered,
 			writethrough: db.Config.WriteThrough,
 			reduceFileCachePressure: db.Config.ReduceFileCachePressure,
+			asyncIO: db.Config.AsyncIO,
 			tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new IdentityChunkTransformFactory(),
 			transformHeader: ReadOnlyMemory<byte>.Empty,

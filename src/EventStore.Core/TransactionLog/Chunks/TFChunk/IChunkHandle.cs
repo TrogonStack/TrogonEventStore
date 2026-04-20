@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DotNext;
 using DotNext.Buffers;
 using DotNext.IO;
+using Serilog;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
@@ -27,6 +28,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 		set;
 	}
 
+	string Name { get; }
+
 	/// <summary>
 	/// Gets access mode for this handle.
 	/// </summary>
@@ -41,7 +44,9 @@ public interface IChunkHandle : IFlushable, IDisposable
 	Stream CreateStream() => CreateStream(this, 60_000);
 
 	protected static Stream CreateStream(IChunkHandle handle, int synchronousTimeout)
-		=> new UnbufferedStream(handle) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
+		=> handle is ChunkFileHandle { Asynchronous: false } chunkFileHandle
+			? chunkFileHandle.CreateSynchronousStream()
+			: new UnbufferedStream(handle) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
 
 	private sealed class UnbufferedStream(IChunkHandle handle) : RandomAccessStream
 	{
@@ -82,6 +87,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 			if (buffer.IsEmpty)
 				return;
 
+			Log.Warning("Synchronous writes should be uncommon. Handle: {Handle}", handle.Name);
+
 			// Do sync over async without any optimizations to make it just works.
 			// In practice, no one should call synchronous write
 			var bufferCopy = buffer.Copy();
@@ -118,6 +125,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 			}
 			else
 			{
+				Log.Warning("Synchronous reads should be uncommon. Handle: {Handle}", handle.Name);
+
 				// Do sync over async without any optimizations to make it just works.
 				// In practice, no one should call synchronous write
 				var bufferCopy = Memory.AllocateExactly<byte>(buffer.Length);
@@ -127,6 +136,7 @@ public interface IChunkHandle : IFlushable, IDisposable
 				{
 					task.Wait();
 					bytesRead = task.Result;
+					bufferCopy.Span.Slice(0, bytesRead).CopyTo(buffer);
 				}
 				catch (AggregateException e) when (e.InnerExceptions is [OperationCanceledException canceledEx] &&
 				                                   canceledEx.CancellationToken == timeoutToken)
@@ -140,7 +150,6 @@ public interface IChunkHandle : IFlushable, IDisposable
 					bufferCopy.Dispose();
 				}
 
-				bufferCopy.Span.Slice(0, bytesRead).CopyTo(buffer);
 			}
 
 			return bytesRead;

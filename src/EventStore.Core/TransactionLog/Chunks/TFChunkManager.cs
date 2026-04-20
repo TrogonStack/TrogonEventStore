@@ -142,6 +142,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 			_config.Unbuffered,
 			_config.WriteThrough,
 			_config.ReduceFileCachePressure,
+			_config.AsyncIO,
 			_tracker,
 			// temporary chunks are used for replicating raw (scavenged) chunks.
 			// since the raw data being replicated is already transformed, we use
@@ -170,6 +171,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 				unbuffered: _config.Unbuffered,
 				writethrough: _config.WriteThrough,
 				reduceFileCachePressure: _config.ReduceFileCachePressure,
+				asyncIO: _config.AsyncIO,
 				tracker: _tracker,
 				transformFactory: _transformManager.GetFactoryForNewChunk(),
 				token);
@@ -211,6 +213,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 				unbuffered: _config.Unbuffered,
 				writethrough: _config.WriteThrough,
 				reduceFileCachePressure: _config.ReduceFileCachePressure,
+				asyncIO: _config.AsyncIO,
 				tracker: _tracker,
 				transformFactory: _transformManager.GetFactoryForExistingChunk(chunkHeader.TransformType),
 				transformHeader: transformHeader,
@@ -321,7 +324,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 			newChunk = await TFChunk.TFChunk.FromCompletedFile(newFileName, verifyHash, _config.Unbuffered,
 				_tracker, type => _transformManager.GetFactoryForExistingChunk(type),
-				_config.ReduceFileCachePressure, token: token);
+				_config.ReduceFileCachePressure, _config.AsyncIO, token: token);
 		}
 
 		bool triggerCaching;

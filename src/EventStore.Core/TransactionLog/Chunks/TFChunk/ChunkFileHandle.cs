@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext;
+using DotNext.IO;
 using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -11,6 +12,8 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 {
 	private readonly SafeFileHandle _handle;
+	private readonly string _path;
+	private readonly bool _asynchronous;
 
 	public ChunkFileHandle(string path, FileStreamOptions options)
 	{
@@ -19,6 +22,8 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 
 		_handle = File.OpenHandle(path, options.Mode, options.Access, options.Share, options.Options,
 			options.PreallocationSize);
+		_path = path;
+		_asynchronous = options.Options.HasFlag(FileOptions.Asynchronous);
 		Access = options.Access;
 
 		SetReadOnly(_handle, options.Access.HasFlag(FileAccess.Write) is false);
@@ -27,10 +32,41 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 	public void Flush() => RandomAccess.FlushToDisk(_handle);
 
 	public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token)
-		=> RandomAccess.WriteAsync(_handle, data, offset, token);
+	{
+		if (_asynchronous)
+			return RandomAccess.WriteAsync(_handle, data, offset, token);
+
+		if (token.IsCancellationRequested)
+			return ValueTask.FromCanceled(token);
+
+		try
+		{
+			Write(data.Span, offset);
+			return ValueTask.CompletedTask;
+		}
+		catch (Exception ex)
+		{
+			return ValueTask.FromException(ex);
+		}
+	}
 
 	public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
-		=> RandomAccess.ReadAsync(_handle, buffer, offset, token);
+	{
+		if (_asynchronous)
+			return RandomAccess.ReadAsync(_handle, buffer, offset, token);
+
+		if (token.IsCancellationRequested)
+			return ValueTask.FromCanceled<int>(token);
+
+		try
+		{
+			return new(Read(buffer.Span, offset));
+		}
+		catch (Exception ex)
+		{
+			return ValueTask.FromException<int>(ex);
+		}
+	}
 
 	public long Length
 	{
@@ -38,7 +74,11 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		set => RandomAccess.SetLength(_handle, value);
 	}
 
+	public string Name => _path;
+
 	public FileAccess Access { get; }
+
+	internal bool Asynchronous => _asynchronous;
 
 	public ValueTask SetReadOnlyAsync(bool value, CancellationToken token)
 	{
@@ -63,6 +103,12 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		return task;
 	}
 
+	internal void Write(ReadOnlySpan<byte> data, long offset) => RandomAccess.Write(_handle, data, offset);
+
+	internal int Read(Span<byte> buffer, long offset) => RandomAccess.Read(_handle, buffer, offset);
+
+	internal Stream CreateSynchronousStream() => new SynchronousStream(this);
+
 	private static void SetReadOnly(SafeFileHandle handle, bool value)
 	{
 		var flags = value
@@ -84,6 +130,40 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		{
 			File.SetAttributes(handle, flags);
 		}
+	}
+
+	private sealed class SynchronousStream(ChunkFileHandle handle) : RandomAccessStream
+	{
+		public override void Flush() => handle.Flush();
+
+		public override void SetLength(long value) => handle.Length = value;
+
+		public override bool CanRead => handle.Access.HasFlag(FileAccess.Read);
+
+		public override bool CanSeek => true;
+
+		public override bool CanWrite => handle.Access.HasFlag(FileAccess.Write);
+
+		public override bool CanTimeout => false;
+
+		public override long Length => handle.Length;
+
+		protected override void Write(ReadOnlySpan<byte> buffer, long offset)
+		{
+			if (buffer.IsEmpty)
+				return;
+
+			handle.Write(buffer, offset);
+		}
+
+		protected override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, long offset, CancellationToken token) =>
+			handle.WriteAsync(buffer, offset, token);
+
+		protected override int Read(Span<byte> buffer, long offset)
+			=> buffer.IsEmpty ? 0 : handle.Read(buffer, offset);
+
+		protected override ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) =>
+			handle.ReadAsync(buffer, offset, token);
 	}
 
 	protected override void Dispose(bool disposing)

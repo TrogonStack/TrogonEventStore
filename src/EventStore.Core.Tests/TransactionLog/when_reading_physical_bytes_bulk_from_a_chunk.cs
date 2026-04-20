@@ -120,6 +120,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
+			asyncIO: false,
 			tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new WithHeaderChunkTransformFactory(),
 			token: CancellationToken.None);

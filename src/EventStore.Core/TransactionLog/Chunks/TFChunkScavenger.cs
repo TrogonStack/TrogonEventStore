@@ -229,6 +229,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				unbuffered: _db.Config.Unbuffered,
 				writethrough: _db.Config.WriteThrough,
 				reduceFileCachePressure: _db.Config.ReduceFileCachePressure,
+				asyncIO: _db.Config.AsyncIO,
 				tracker: new TFChunkTracker.NoOp(),
 				transformFactory: _db.TransformManager.GetFactoryForNewChunk(),
 				ct);
@@ -498,6 +499,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				unbuffered: db.Config.Unbuffered,
 				writethrough: db.Config.WriteThrough,
 				reduceFileCachePressure: db.Config.ReduceFileCachePressure,
+				asyncIO: db.Config.AsyncIO,
 				tracker: new TFChunkTracker.NoOp(),
 				transformFactory: db.TransformManager.GetFactoryForNewChunk(),
 				ct);
