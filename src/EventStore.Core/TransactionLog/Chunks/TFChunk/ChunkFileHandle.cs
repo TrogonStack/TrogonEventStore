@@ -9,6 +9,12 @@ using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
+/// <summary>
+/// Wraps local chunk file access and makes the sync-vs-async file I/O choice explicit.
+/// When opened without <see cref="FileOptions.Asynchronous"/>, cancellation is only observed
+/// before the synchronous filesystem call starts; callers that need cooperative mid-operation
+/// cancellation should prefer asynchronous handles.
+/// </summary>
 internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 {
 	private readonly SafeFileHandle _handle;
@@ -31,6 +37,11 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 
 	public void Flush() => RandomAccess.FlushToDisk(_handle);
 
+	/// <summary>
+	/// Writes to the chunk handle at the requested offset.
+	/// For synchronous handles, <paramref name="token"/> is checked before the write begins but
+	/// cannot interrupt a blocking local filesystem write once it has started.
+	/// </summary>
 	public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token)
 	{
 		if (_asynchronous)
@@ -50,6 +61,11 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		}
 	}
 
+	/// <summary>
+	/// Reads from the chunk handle at the requested offset.
+	/// For synchronous handles, <paramref name="token"/> is checked before the read begins but
+	/// cannot interrupt a blocking local filesystem read once it has started.
+	/// </summary>
 	public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
 	{
 		if (_asynchronous)
