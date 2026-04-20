@@ -66,14 +66,15 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 	}
 
 	[Test]
-	public void generic_chunk_handles_warn_on_synchronous_reads()
+	public void generic_chunk_handles_warn_once_on_repeated_synchronous_reads()
 	{
 		var handle = new TestChunkHandle();
 
 		using var stream = ((IChunkHandle)handle).CreateStream();
 		ReadSingleByte(stream);
+		ReadSingleByte(stream);
 
-		Assert.That(LoggedWarnings(), Has.Some.Contains("Synchronous reads should be uncommon."));
+		Assert.That(LoggedWarnings().Count(x => x.Contains("Synchronous reads should be uncommon.")), Is.EqualTo(1));
 	}
 
 	private async Task CreateChunk(bool asyncIO)

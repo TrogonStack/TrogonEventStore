@@ -51,6 +51,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 	private sealed class UnbufferedStream(IChunkHandle handle) : RandomAccessStream
 	{
 		private int _readTimeout, _writeTimeout;
+		private int _readWarningLogged;
+		private int _writeWarningLogged;
 		private CancellationTokenSource _timeoutSource;
 
 		public override void Flush() => handle.Flush();
@@ -87,7 +89,7 @@ public interface IChunkHandle : IFlushable, IDisposable
 			if (buffer.IsEmpty)
 				return;
 
-			Log.Warning("Synchronous writes should be uncommon. Handle: {Handle}", handle.Name);
+			LogSynchronousWriteOnce();
 
 			// Do sync over async without any optimizations to make it just works.
 			// In practice, no one should call synchronous write
@@ -125,7 +127,7 @@ public interface IChunkHandle : IFlushable, IDisposable
 			}
 			else
 			{
-				Log.Warning("Synchronous reads should be uncommon. Handle: {Handle}", handle.Name);
+				LogSynchronousReadOnce();
 
 				// Do sync over async without any optimizations to make it just works.
 				// In practice, no one should call synchronous write
@@ -157,6 +159,22 @@ public interface IChunkHandle : IFlushable, IDisposable
 
 		protected override ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
 			=> handle.ReadAsync(buffer, offset, token);
+
+		private void LogSynchronousReadOnce()
+		{
+			if (Interlocked.Exchange(ref _readWarningLogged, 1) != 0)
+				return;
+
+			Log.Warning("Synchronous reads should be uncommon. Handle: {Handle}", handle.Name);
+		}
+
+		private void LogSynchronousWriteOnce()
+		{
+			if (Interlocked.Exchange(ref _writeWarningLogged, 1) != 0)
+				return;
+
+			Log.Warning("Synchronous writes should be uncommon. Handle: {Handle}", handle.Name);
+		}
 
 		private CancellationToken GetTimeoutToken(int timeout)
 		{
