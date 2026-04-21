@@ -37,7 +37,7 @@ abstract class specification_with_multi_phase_core_projection<TLogFormat, TStrea
 		public FakeProjectionProcessingStrategy(
 			string name, ProjectionVersion projectionVersion, ILogger logger, FakeProjectionProcessingPhase phase1,
 			FakeProjectionProcessingPhase phase2)
-			: base(name, projectionVersion, logger)
+			: base(name, projectionVersion, logger, int.MaxValue)
 		{
 			_phase1 = phase1;
 			_phase2 = phase2;

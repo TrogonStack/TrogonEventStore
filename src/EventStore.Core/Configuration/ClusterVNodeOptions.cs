@@ -624,6 +624,9 @@ public partial record ClusterVNodeOptions
 			 "The maximum execution time in milliseconds for executing a handler in a user projection. It can be overridden for a specific projection by setting ProjectionExecutionTimeout config for that projection"),
 		 Unit("ms")]
 		public int ProjectionExecutionTimeout { get; set; } = DefaultProjectionExecutionTimeout;
+
+		[Description("The maximum size, in bytes, of a projection's state and result. A projection faults when its state grows beyond this limit.")]
+		public int MaxProjectionStateSize { get; set; } = Opts.MaxProjectionStateSizeDefault;
 	}
 
 	public record UnknownOptions(IReadOnlyList<(string, string)> Options)

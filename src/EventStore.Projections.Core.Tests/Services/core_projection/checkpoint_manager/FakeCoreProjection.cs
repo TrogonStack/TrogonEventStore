@@ -22,6 +22,9 @@ public class FakeCoreProjection : ICoreProjection,
 	public readonly List<CoreProjectionProcessingMessage.PrerecordedEventsLoaded> _prerecordedEventsLoadedMessages =
 		new List<CoreProjectionProcessingMessage.PrerecordedEventsLoaded>();
 
+	public readonly List<CoreProjectionProcessingMessage.Failed> _failedMessages =
+		new List<CoreProjectionProcessingMessage.Failed>();
+
 	public void Handle(CoreProjectionProcessingMessage.CheckpointCompleted message)
 	{
 		_checkpointCompletedMessages.Add(message);
@@ -39,7 +42,7 @@ public class FakeCoreProjection : ICoreProjection,
 
 	public void Handle(CoreProjectionProcessingMessage.Failed message)
 	{
-		throw new System.NotImplementedException();
+		_failedMessages.Add(message);
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message)
