@@ -42,6 +42,7 @@ jobs:
           - test-group-name: core-clientapi
           - test-group-name: core-http
           - test-group-name: core-services
+          - test-group-name: core-cluster-services
           - test-group-name: core-storage
           - test-group-name: core-hash-collisions
           - test-group-name: core-transforms

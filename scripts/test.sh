@@ -17,6 +17,10 @@ core_services_projects=(
     EventStore.Core.Tests
 )
 
+core_cluster_services_projects=(
+    EventStore.Core.Tests
+)
+
 core_storage_projects=(
     EventStore.Core.Tests
 )
@@ -67,6 +71,9 @@ load_requested_projects() {
         core-services)
             requested_projects=("${core_services_projects[@]}")
             ;;
+        core-cluster-services)
+            requested_projects=("${core_cluster_services_projects[@]}")
+            ;;
         core-storage)
             requested_projects=("${core_storage_projects[@]}")
             ;;
@@ -103,6 +110,7 @@ validate_shard_coverage() {
             "${core_clientapi_projects[@]}" \
             "${core_rest_projects[@]}" \
             "${core_services_projects[@]}" \
+            "${core_cluster_services_projects[@]}" \
             "${core_storage_projects[@]}" \
             "${core_hash_collisions_projects[@]}" \
             "${core_transforms_projects[@]}" \
@@ -194,7 +202,10 @@ project_filter() {
             printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Http|FullyQualifiedName~EventStore.Core.Tests.Services.Transport.Http)&FullyQualifiedName!~EventStore.Core.Tests.ClientAPI"
             ;;
         core-services:EventStore.Core.Tests)
-            printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http)|FullyQualifiedName~EventStore.Core.Tests.Integration|FullyQualifiedName~EventStore.Core.Tests.Cluster|FullyQualifiedName~EventStore.Core.Tests.Bus|FullyQualifiedName~EventStore.Core.Tests.Helpers|FullyQualifiedName~EventStore.Core.Tests.ClientOperations|FullyQualifiedName~EventStore.Core.Tests.Authentication|FullyQualifiedName~EventStore.Core.Tests.Authorization|FullyQualifiedName~EventStore.Core.Tests.Certificates|FullyQualifiedName~EventStore.Core.Tests.AwakeService|FullyQualifiedName~EventStore.Core.Tests.Replication|FullyQualifiedName~EventStore.Core.Tests.Settings|FullyQualifiedName~EventStore.Core.Tests.Synchronization|FullyQualifiedName~EventStore.Core.Tests.TcpApiTestPlugin)"
+            printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Transport.Http&FullyQualifiedName!~EventStore.Core.Tests.Services.ElectionsService)|FullyQualifiedName~EventStore.Core.Tests.Bus|FullyQualifiedName~EventStore.Core.Tests.Helpers|FullyQualifiedName~EventStore.Core.Tests.ClientOperations|FullyQualifiedName~EventStore.Core.Tests.Authentication|FullyQualifiedName~EventStore.Core.Tests.Authorization|FullyQualifiedName~EventStore.Core.Tests.Certificates|FullyQualifiedName~EventStore.Core.Tests.AwakeService|FullyQualifiedName~EventStore.Core.Tests.Settings|FullyQualifiedName~EventStore.Core.Tests.TcpApiTestPlugin)"
+            ;;
+        core-cluster-services:EventStore.Core.Tests)
+            printf '%s\n' "(FullyQualifiedName~EventStore.Core.Tests.Integration|FullyQualifiedName~EventStore.Core.Tests.Cluster|FullyQualifiedName~EventStore.Core.Tests.Replication|FullyQualifiedName~EventStore.Core.Tests.Synchronization|FullyQualifiedName~EventStore.Core.Tests.Services.ElectionsService)"
             ;;
         core-storage:EventStore.Core.Tests)
             printf '%s\n' "((FullyQualifiedName~EventStore.Core.Tests.Services.Storage&FullyQualifiedName!~EventStore.Core.Tests.Services.Storage.HashCollisions)|FullyQualifiedName~EventStore.Core.Tests.Index|FullyQualifiedName~EventStore.Core.Tests.TransactionLog|FullyQualifiedName~EventStore.Core.Tests.Caching|FullyQualifiedName~EventStore.Core.Tests.DataStructures)&FullyQualifiedName!~EventStore.Core.Tests.Hashes&FullyQualifiedName!~EventStore.Core.Tests.Transforms"
@@ -222,7 +233,10 @@ project_timeout() {
             printf '%s\n' "15m"
             ;;
         core-services:EventStore.Core.Tests)
-            printf '%s\n' "20m"
+            printf '%s\n' "15m"
+            ;;
+        core-cluster-services:EventStore.Core.Tests)
+            printf '%s\n' "25m"
             ;;
         core-storage:EventStore.Core.Tests)
             printf '%s\n' "20m"
