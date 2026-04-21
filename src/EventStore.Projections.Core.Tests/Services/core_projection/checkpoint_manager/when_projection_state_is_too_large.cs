@@ -51,7 +51,7 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 			newState = new PartitionState(
 				$"{{ \"state\": \"{new string('*', _maxProjectionStateSize)}\"}}",
 				"",
-				firstEventCheckpointTag);
+				secondEventCheckpointTag);
 			_manager.StateUpdated("", oldState, newState);
 			_manager.EventProcessed(secondEventCheckpointTag, 77.7f);
 		}
