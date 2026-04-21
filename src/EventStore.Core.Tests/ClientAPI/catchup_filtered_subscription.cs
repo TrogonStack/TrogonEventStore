@@ -107,11 +107,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 				return Task.CompletedTask;
 			}, 1);
 
-		var completed = false;
 		try
 		{
-			completed = checkpointReached.Wait(Timeout);
-			if (!completed)
+			if (!checkpointReached.Wait(Timeout))
 			{
 				Assert.Fail("Checkpoint reached not called enough times within time limit.");
 			}
@@ -120,10 +118,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
@@ -167,11 +162,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 				_conn.AppendToStreamAsync("stream-a", ExpectedVersion.Any, _testEventsAfter.EvenEvents()).Wait();
 			});
 
-		var completed = false;
 		try
 		{
-			completed = appeared.Wait(Timeout);
-			if (!completed)
+			if (!appeared.Wait(Timeout))
 			{
 				Assert.Fail("Checkpoint appeared not called enough times within time limit.");
 			}
@@ -180,10 +173,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
@@ -194,12 +184,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		var completed = false;
-
 		try
 		{
-			completed = appeared.Wait(Timeout);
-			if (!completed)
+			if (!appeared.Wait(Timeout))
 			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
@@ -208,10 +195,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
@@ -222,12 +206,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		var completed = false;
-
 		try
 		{
-			completed = appeared.Wait(Timeout);
-			if (!completed)
+			if (!appeared.Wait(Timeout))
 			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
@@ -236,10 +217,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
@@ -250,12 +228,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		var completed = false;
-
 		try
 		{
-			completed = appeared.Wait(Timeout);
-			if (!completed)
+			if (!appeared.Wait(Timeout))
 			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
@@ -264,10 +239,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
@@ -278,12 +250,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		var completed = false;
-
 		try
 		{
-			completed = appeared.Wait(Timeout);
-			if (!completed)
+			if (!appeared.Wait(Timeout))
 			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
@@ -292,10 +261,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
@@ -306,12 +272,9 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		var completed = false;
-
 		try
 		{
-			completed = appeared.Wait(Timeout);
-			if (!completed)
+			if (!appeared.Wait(Timeout))
 			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
@@ -320,10 +283,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 		finally
 		{
-			if (completed)
-			{
-				StopSubscription(subscription);
-			}
+			StopSubscription(subscription);
 		}
 	}
 
