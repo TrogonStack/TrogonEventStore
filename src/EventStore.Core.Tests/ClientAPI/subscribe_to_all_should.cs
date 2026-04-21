@@ -16,6 +16,7 @@ namespace EventStore.Core.Tests.ClientAPI;
 public class subscribe_to_all_should<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	private const int Timeout = 10000;
+	private const int LongRunningTimeout = 120000;
 
 	private MiniNode<TLogFormat, TStreamId> _node;
 
@@ -76,7 +77,7 @@ public class subscribe_to_all_should<TLogFormat, TStreamId> : SpecificationWithD
 		}
 	}
 
-	[Test, Category("LongRunning")]
+	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task catch_deleted_events_as_well()
 	{
 		const string stream = "subscribe_to_all_should_catch_created_and_deleted_events_as_well";
@@ -86,16 +87,33 @@ public class subscribe_to_all_should<TLogFormat, TStreamId> : SpecificationWithD
 			var appeared = new CountdownEvent(1);
 			var dropped = new CountdownEvent(1);
 
-			using (await store.SubscribeToAllAsync(false, (s, x) =>
+			var completed = false;
+			var subscription = await store.SubscribeToAllAsync(false, (s, x) =>
 			{
 				appeared.Signal();
 				return Task.CompletedTask;
 			},
-				(s, r, e) => dropped.Signal()))
+				(s, r, e) => dropped.Signal());
+
+			try
 			{
-				var delete = await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
+				await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
 
 				Assert.IsTrue(appeared.Wait(Timeout), "Appeared countdown event didn't fire in time.");
+				completed = true;
+			}
+			finally
+			{
+				subscription.Unsubscribe();
+
+				if (completed)
+				{
+					Assert.IsTrue(dropped.Wait(Timeout), "Dropped countdown event timed out.");
+				}
+				else
+				{
+					dropped.Wait(Timeout);
+				}
 			}
 		}
 	}
