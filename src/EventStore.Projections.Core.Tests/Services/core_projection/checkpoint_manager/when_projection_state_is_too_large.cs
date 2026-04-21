@@ -21,7 +21,7 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 		AllWritesSucceed();
 		base.Given();
 		_checkpointHandledThreshold = 2;
-		_maxProjectionStateSize = 1024 * 1024;
+		_maxProjectionStateSize = 1024;
 	}
 
 	protected override void When()
@@ -48,8 +48,9 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 
 			var secondEventCheckpointTag = CheckpointTag.FromStreamPosition(0, "stream", 12);
 			oldState = newState;
+			var unicodePayloadThatExceedsUtf8ByteLimit = new string('é', 600);
 			newState = new PartitionState(
-				$"{{ \"state\": \"{new string('*', _maxProjectionStateSize)}\"}}",
+				$"{{ \"state\": \"{unicodePayloadThatExceedsUtf8ByteLimit}\"}}",
 				"",
 				secondEventCheckpointTag);
 			_manager.StateUpdated("", oldState, newState);

@@ -70,7 +70,8 @@ public class PartitionState
 		_state = state;
 		_result = result;
 		_causedBy = causedBy;
-		_size = _state.Length + (_result?.Length ?? 0);
+		_size = Helper.UTF8NoBom.GetByteCount(_state)
+			+ (_result is null ? 0 : Helper.UTF8NoBom.GetByteCount(_result));
 	}
 
 	public string State
