@@ -17,7 +17,7 @@ namespace EventStore.Core.Data {
 		}
 
 		public static int SizeOnDisk(string eventType, byte[] data, byte[] metadata) =>
-			(data?.Length ?? 0) + (metadata?.Length ?? 0) + eventType.Length * 2;
+			(data?.Length ?? 0) + (metadata?.Length ?? 0) + (eventType?.Length ?? 0) * 2;
 
 		private static bool ExceedsMaximumSizeOnDisk(string eventType, byte[] data, byte[] metadata) =>
 			SizeOnDisk(eventType, data, metadata) > TFConsts.EffectiveMaxLogRecordSize;

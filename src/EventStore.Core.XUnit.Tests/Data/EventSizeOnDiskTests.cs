@@ -29,4 +29,15 @@ public class EventSizeOnDiskTests
 
 		Assert.Equal(expectedSize, size);
 	}
+
+	[Fact]
+	public void treats_missing_event_type_as_zero_bytes()
+	{
+		var size = Event.SizeOnDisk(
+			eventType: null,
+			data: [1, 2, 3],
+			metadata: [4, 5]);
+
+		Assert.Equal(5, size);
+	}
 }
