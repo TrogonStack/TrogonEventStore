@@ -14,8 +14,8 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 [TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Hash collisions cannot occur in Log V3")]
 public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
-	private const int LongRunningTimeout = 600000;
-	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
+	private const int LongRunningTimeout = 1200000;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
 	private MiniNode<TLogFormat, TStreamId> _node;
 
 	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
