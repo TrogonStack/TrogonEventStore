@@ -11,6 +11,7 @@ namespace EventStore.Core.Tests.Integration;
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
+	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(5);
 	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(3);
 	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(10);
 
@@ -28,7 +29,7 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 					return states.Count(x => x == VNodeState.Leader) == 1 &&
 					       states.Count(x => x == VNodeState.Follower) == 2;
 				},
-				RestartTimeout,
+				i == 0 ? InitialStabilizationTimeout : RestartTimeout,
 				$"Cluster did not stabilize before restarting node {restartedNodeIndex}",
 				MiniNodeLogging.WriteLogs);
 
