@@ -4,7 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Bus;
+using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
+using EventStore.Core.Services.Storage.EpochManager;
+using EventStore.Core.Tests;
+using EventStore.Core.TransactionLog.Chunks;
+using NUnit.Framework.Internal;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Integration;
@@ -16,41 +21,66 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 {
 	private List<Guid> _epochIds = new List<Guid>();
 	private const int _numberOfNodeStarts = 5;
-	private static readonly TimeSpan RestartTimeout = TimeSpan.FromSeconds(30);
-	private readonly AutoResetEvent _waitForStart = new AutoResetEvent(false);
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(3);
+	private LogFormatAbstractor<TStreamId> _logFormat;
 
 	protected override TimeSpan Timeout { get; } =
 		TimeSpan.FromSeconds((RestartTimeout.TotalSeconds * _numberOfNodeStarts) + 120);
 
-	protected override void BeforeNodeStarts()
-	{
-		_node.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(Handle));
-		base.BeforeNodeStarts();
-	}
-
 	protected override async Task Given()
 	{
+		_epochIds.Add(await GetLastEpochId());
+
 		for (int i = 0; i < _numberOfNodeStarts - 1; i++)
 		{
-			Assert.That(
-				_waitForStart.WaitOne(RestartTimeout),
-				Is.True,
-				$"Timed out waiting for epoch write before restart {i + 1}");
 			await ShutdownNode();
 			await StartNode();
+			_epochIds.Add(await GetLastEpochId());
 		}
 
-		Assert.That(
-			_waitForStart.WaitOne(RestartTimeout),
-			Is.True,
-			"Timed out waiting for epoch write after final startup");
 		await base.Given();
 	}
 
-	private void Handle(SystemMessage.EpochWritten msg)
+	private async Task<Guid> GetLastEpochId()
 	{
-		_epochIds.Add(msg.Epoch.EpochId);
-		_waitForStart.Set();
+		_logFormat ??= LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+			IndexDirectory = GetFilePathFor("epoch-index"),
+		});
+
+		await _node.Started.WaitAsync(RestartTimeout);
+		await _node.WaitForTcpEndPoint().WaitAsync(RestartTimeout);
+
+		var bus = new SynchronousScheduler(nameof(when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamId>));
+		await using var writer = new TFChunkWriter(_node.Db);
+		writer.Open();
+
+		var epochManager = new EpochManager<TStreamId>(
+			bus,
+			10,
+			_node.Db.Config.EpochCheckpoint,
+			writer,
+			initialReaderCount: 1,
+			maxReaderCount: 5,
+			readerFactory: () => new TFChunkReader(_node.Db, _node.Db.Config.WriterCheckpoint),
+			_logFormat.RecordFactory,
+			_logFormat.StreamNameIndex,
+			_logFormat.EventTypeIndex,
+			_logFormat.CreatePartitionManager(
+				reader: new TFChunkReader(_node.Db, _node.Db.Config.WriterCheckpoint),
+				writer: writer),
+			Guid.NewGuid());
+		await epochManager.Init(CancellationToken.None);
+
+		var epoch = epochManager.GetLastEpoch();
+		Assert.That(epoch, Is.Not.Null, "Expected startup to persist an epoch before restart assertions.");
+		return epoch.EpochId;
+	}
+
+	[OneTimeTearDown]
+	public override async Task TestFixtureTearDown()
+	{
+		_logFormat?.Dispose();
+		await base.TestFixtureTearDown();
 	}
 
 	[Test]

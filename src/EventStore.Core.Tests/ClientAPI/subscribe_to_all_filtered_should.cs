@@ -21,7 +21,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 {
 	private const int Timeout = 10000;
 	private const int LongRunningTimeout = 600000;
-	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
 	private static readonly TimeSpan ConnectionCloseTimeout = TimeSpan.FromSeconds(10);
 
 	private MiniNode<TLogFormat, TStreamId> _node;

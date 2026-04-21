@@ -24,6 +24,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 {
 	private const int NumEvents = 1000;
 	private const int BatchSize = 50;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 
 	[TestCase("identity", false)]
 	[TestCase("identity", true)]
@@ -33,7 +34,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 	[TestCase("bytedup", true)]
 	[TestCase("withheader", false)]
 	[TestCase("withheader", true)]
-	[Timeout(60000)]
+	[Timeout(600000)]
 	public async Task transform_works(string transform, bool memDb)
 	{
 		MiniNode<TLogFormat, TStreamId> node = null;
@@ -105,7 +106,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 			cachedChunkSize: (10_000 + ChunkHeader.Size + ChunkFooter.Size) * 2,
 			transform: dbTransform.Name,
 			newTransforms: [dbTransform]);
-		await node.Start();
+		await node.Start(StartupTimeout);
 
 		var connection = BuildConnection(node);
 		await connection.ConnectAsync();

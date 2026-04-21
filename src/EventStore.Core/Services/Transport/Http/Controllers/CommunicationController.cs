@@ -42,9 +42,9 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			return new RequestParams(done: true);
 		}
 
-		protected RequestParams SendTooBig(HttpEntityManager httpEntityManager) {
+		protected RequestParams SendTooBig(HttpEntityManager httpEntityManager, int maxAppendSize) {
 			httpEntityManager.ReplyStatus(HttpStatusCode.RequestEntityTooLarge,
-				"Too large events received. Limit is 4mb",
+				$"Too large events received. Limit is {maxAppendSize} bytes",
 				e => Log.Debug("Too large events received over HTTP"));
 			return new RequestParams(done: true);
 		}

@@ -44,6 +44,18 @@ namespace EventStore.Core.Tests.Http.Streams
 				return GetRequestResponse(request);
 			}
 
+			public Task<HttpResponseMessage> PostEvent(byte[] data)
+			{
+				var request = CreateRequest(TestStream, "", "POST", "application/json");
+				request.Headers.Add("ES-EventType", "SomeType");
+				request.Headers.Add("ES-EventId", Guid.NewGuid().ToString());
+				request.Content = new ByteArrayContent(data)
+				{
+					Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+				};
+				return GetRequestResponse(request);
+			}
+
 			public Task TombstoneTestStream()
 			{
 				var deleteRequest = CreateRequest(TestStream, "", "DELETE", "application/json");
@@ -597,6 +609,74 @@ namespace EventStore.Core.Tests.Http.Streams
 			{
 				Assert.AreEqual(HttpStatusCode.Gone, _response.StatusCode);
 				// Assert.AreEqual(DeletedStreamDesc, _response.StatusDescription);
+			}
+		}
+
+		[Category("LongRunning")]
+		[TestFixture(typeof(LogFormat.V2), typeof(string))]
+		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
+		public class
+			should_reject_single_http_append_when_body_exceeds_configured_max_append_size<TLogFormat, TStreamId> :
+				ExpectedVersionSpecification<TLogFormat, TStreamId>
+		{
+			private HttpResponseMessage _response;
+			private List<JToken> _read;
+
+			protected override Task Given() => Task.CompletedTask;
+
+			protected override async Task When()
+			{
+				var payload = Encoding.UTF8.GetBytes("{\"payload\":\"" + new string('x', 2 * 1024 * 1024) + "\"}");
+				_response = await PostEvent(payload);
+				_read = await GetTestStream();
+			}
+
+			[Test]
+			public void should_return_request_entity_too_large()
+			{
+				Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, _response.StatusCode);
+			}
+
+			[Test]
+			public void should_not_append_to_stream()
+			{
+				Assert.AreEqual(0, _read.Count);
+			}
+		}
+
+		[Category("LongRunning")]
+		[TestFixture(typeof(LogFormat.V2), typeof(string))]
+		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
+		public class
+			should_reject_http_append_batch_when_total_body_exceeds_configured_max_append_size<TLogFormat, TStreamId> :
+				ExpectedVersionSpecification<TLogFormat, TStreamId>
+		{
+			private HttpResponseMessage _response;
+			private List<JToken> _read;
+
+			protected override Task Given() => Task.CompletedTask;
+
+			protected override async Task When()
+			{
+				_response = await MakeArrayEventsPost(
+					TestStream,
+					new[] {
+						new { EventId = Guid.NewGuid(), EventType = "event-type", Data = new string('x', 600_000) },
+						new { EventId = Guid.NewGuid(), EventType = "event-type", Data = new string('y', 600_000) },
+					});
+				_read = await GetTestStream();
+			}
+
+			[Test]
+			public void should_return_request_entity_too_large()
+			{
+				Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, _response.StatusCode);
+			}
+
+			[Test]
+			public void should_not_append_to_stream()
+			{
+				Assert.AreEqual(0, _read.Count);
 			}
 		}
 	}
