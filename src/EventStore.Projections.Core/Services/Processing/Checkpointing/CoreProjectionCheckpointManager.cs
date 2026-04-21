@@ -64,7 +64,10 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		if (name == "")
 			throw new ArgumentException("name");
 		if (maxProjectionStateSize <= 0)
-			throw new ArgumentException(nameof(maxProjectionStateSize));
+			throw new ArgumentOutOfRangeException(
+				nameof(maxProjectionStateSize),
+				maxProjectionStateSize,
+				"Max projection state size must be positive.");
 
 		_lastProcessedEventPosition = new PositionTracker(positionTagger);
 		_zeroTag = positionTagger.MakeZeroCheckpointTag();
