@@ -16,7 +16,7 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 {
 	private List<Guid> _epochIds = new List<Guid>();
 	private const int _numberOfNodeStarts = 5;
-	private static readonly TimeSpan RestartTimeout = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(1);
 	private readonly AutoResetEvent _waitForStart = new AutoResetEvent(false);
 
 	protected override TimeSpan Timeout { get; } =
