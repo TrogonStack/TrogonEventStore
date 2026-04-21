@@ -15,6 +15,7 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private const int LongRunningTimeout = 120000;
+	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 	private MiniNode<TLogFormat, TStreamId> _node;
 
 	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
@@ -33,7 +34,7 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 			indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV4,
 			hash32bit: true,
 			streamExistenceFilterSize: 0);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
 	}
 
 	[OneTimeTearDown]
@@ -74,7 +75,7 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 			indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV4,
 			hash32bit: true,
 			streamExistenceFilterSize: 0);
-		await _node.Start();
+		await _node.Start(StartupTimeout);
 		using (var store = BuildConnection(_node))
 		{
 			await store.ConnectAsync();
