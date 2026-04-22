@@ -306,23 +306,6 @@ public class TFChunkDb : IAsyncDisposable
 		return new(buffer.Span);
 	}
 
-	private static async ValueTask<ChunkFooter> ReadChunkFooter(string chunkFileName, CancellationToken token)
-	{
-		using var handle = File.OpenHandle(chunkFileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
-			FileOptions.Asynchronous);
-
-		var length = RandomAccess.GetLength(handle);
-		if (length < ChunkFooter.Size + ChunkHeader.Size)
-		{
-			throw new CorruptDatabaseException(new BadChunkInDatabaseException(
-				$"Chunk file '{chunkFileName}' is bad. It does not have enough size for header and footer. File size is {length} bytes."));
-		}
-
-		using var buffer = Memory.AllocateExactly<byte>(ChunkFooter.Size);
-		await RandomAccess.ReadAsync(handle, buffer.Memory, length - ChunkFooter.Size, token);
-		return new(buffer.Span);
-	}
-
 	private async ValueTask EnsureNoExcessiveChunks(IChunkEnumerator chunkEnumerator, int lastChunkNum,
 		CancellationToken token)
 	{
