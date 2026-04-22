@@ -57,5 +57,5 @@ public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStra
 		return new(buffer.Span);
 	}
 
-	public IChunkEnumerator CreateChunkEnumerator() => new TFChunkEnumerator(NamingStrategy);
+	public IChunkEnumerator CreateChunkEnumerator() => new TFChunkEnumerator(NamingStrategy, ReadHeaderAsync);
 }

@@ -4,7 +4,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using DotNext.Buffers;
 using EventStore.Common.Utils;
 using EventStore.Core.Exceptions;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -287,15 +286,6 @@ public class TFChunkDb : IAsyncDisposable
 			if (checkpoint.Read() > current)
 				throw new CorruptDatabaseException(new ReaderCheckpointHigherThanWriterException(checkpoint.Name));
 		}
-	}
-
-	internal static async ValueTask<ChunkHeader> ReadChunkHeader(string chunkFileName, CancellationToken token)
-	{
-		using var handle = ChunkFileReadHelper.OpenValidatedMetadataReadHandle(chunkFileName, out _);
-
-		using var buffer = Memory.AllocateExactly<byte>(ChunkHeader.Size);
-		await ChunkFileReadHelper.ReadExactlyAsync(handle, buffer.Memory, 0L, chunkFileName, token);
-		return new(buffer.Span);
 	}
 
 	private async ValueTask EnsureNoExcessiveChunks(IChunkEnumerator chunkEnumerator, int lastChunkNum,

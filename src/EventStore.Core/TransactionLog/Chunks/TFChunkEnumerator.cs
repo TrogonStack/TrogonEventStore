@@ -9,10 +9,19 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
-public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrategy) : IChunkEnumerator
+public class TFChunkEnumerator : IChunkEnumerator
 {
+	private readonly IVersionedFileNamingStrategy _chunkFileNamingStrategy;
+	private readonly Func<string, CancellationToken, ValueTask<ChunkHeader>> _readHeaderAsync;
 	private string[] _allFiles = null;
 	private readonly Dictionary<string, int> _nextChunkNumber = new();
+
+	public TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrategy,
+		Func<string, CancellationToken, ValueTask<ChunkHeader>> readHeaderAsync = null)
+	{
+		_chunkFileNamingStrategy = chunkFileNamingStrategy;
+		_readHeaderAsync = readHeaderAsync;
+	}
 
 	public IAsyncEnumerable<TFChunkInfo> EnumerateChunks(int lastChunkNumber, CancellationToken token) =>
 		EnumerateChunks(lastChunkNumber, getNextChunkNumber: null, token);
@@ -25,7 +34,7 @@ public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrat
 
 		if (_allFiles is null)
 		{
-			var allFiles = chunkFileNamingStrategy.GetAllPresentFiles();
+			var allFiles = _chunkFileNamingStrategy.GetAllPresentFiles();
 			Array.Sort(allFiles, StringComparer.CurrentCultureIgnoreCase);
 			_allFiles = allFiles;
 		}
@@ -34,10 +43,10 @@ public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrat
 		for (int i = 0; i < _allFiles.Length; i++)
 		{
 			var chunkFileName = _allFiles[i];
-			var chunkNumber = chunkFileNamingStrategy.GetIndexFor(Path.GetFileName(_allFiles[i]));
+			var chunkNumber = _chunkFileNamingStrategy.GetIndexFor(Path.GetFileName(_allFiles[i]));
 			var nextChunkNumber = -1;
 			if (i + 1 < _allFiles.Length)
-				nextChunkNumber = chunkFileNamingStrategy.GetIndexFor(Path.GetFileName(_allFiles[i + 1]));
+				nextChunkNumber = _chunkFileNamingStrategy.GetIndexFor(Path.GetFileName(_allFiles[i + 1]));
 
 			if (chunkNumber < expectedChunkNumber)
 			{
@@ -51,7 +60,7 @@ public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrat
 				// one or more chunks are missing
 				for (int j = expectedChunkNumber; j < chunkNumber; j++)
 				{
-					yield return new MissingVersion(chunkFileNamingStrategy.GetFilenameFor(j, 0), j);
+					yield return new MissingVersion(_chunkFileNamingStrategy.GetFilenameFor(j, 0), j);
 				}
 
 				// set the expected chunk number to prevent calling onFileMissing() again for the same chunk numbers
@@ -67,14 +76,14 @@ public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrat
 			{
 				// latest version of chunk with the expected chunk number
 				expectedChunkNumber = await getNextChunkNumber(chunkFileName, chunkNumber,
-					chunkFileNamingStrategy.GetVersionFor(Path.GetFileName(chunkFileName)), token);
+					_chunkFileNamingStrategy.GetVersionFor(Path.GetFileName(chunkFileName)), token);
 				yield return new LatestVersion(chunkFileName, chunkNumber, expectedChunkNumber - 1);
 			}
 		}
 
 		for (int i = expectedChunkNumber; i <= lastChunkNumber; i++)
 		{
-			yield return new MissingVersion(chunkFileNamingStrategy.GetFilenameFor(i, 0), i);
+			yield return new MissingVersion(_chunkFileNamingStrategy.GetFilenameFor(i, 0), i);
 		}
 	}
 
@@ -88,7 +97,10 @@ public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrat
 		if (_nextChunkNumber.TryGetValue(chunkFileName, out var nextChunkNumber))
 			return nextChunkNumber;
 
-		var header = await TFChunkDb.ReadChunkHeader(chunkFileName, token);
+		if (_readHeaderAsync is null)
+			throw new InvalidOperationException("No chunk header reader was provided for versioned chunk enumeration.");
+
+		var header = await _readHeaderAsync(chunkFileName, token);
 		_nextChunkNumber[chunkFileName] = header.ChunkEndNumber + 1;
 		return header.ChunkEndNumber + 1;
 	}
