@@ -176,11 +176,46 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			Assert.IsFalse(reader.IsMemory);
 			Assert.That(fileSystem.BulkReaderOpenHints.Count, Is.EqualTo(bulkReaderOpenCount + 1));
 			Assert.That(fileSystem.BulkReaderOpenHints[^1], Is.EqualTo(ReadOptimizationHint.SequentialScan));
+			Assert.That(fileSystem.BulkReaderOpenAsyncFlags[^1], Is.False);
 
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsFalse(result.IsEOF);
 			Assert.Greater(result.BytesRead, 0);
+		}
+
+		chunk.MarkForDeletion();
+		chunk.WaitForDestroy(5000);
+	}
+
+	[Test]
+	public async Task a_dedicated_raw_reader_on_completed_chunk_keeps_bulk_reader_opens_synchronous_even_when_async_io_is_enabled()
+	{
+		var fileSystem = new ObservingChunkFileSystem(
+			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")));
+		var chunk = await TFChunk.CreateNew(
+			fileSystem: fileSystem,
+			filename: GetFilePathFor("file1"),
+			chunkDataSize: 2000,
+			chunkStartNumber: 0,
+			chunkEndNumber: 0,
+			isScavenged: false,
+			inMem: false,
+			unbuffered: false,
+			writethrough: false,
+			reduceFileCachePressure: false,
+			asyncIO: true,
+			tracker: new TFChunkTracker.NoOp(),
+			transformFactory: new WithHeaderChunkTransformFactory(),
+			token: CancellationToken.None);
+		await chunk.Complete(CancellationToken.None);
+		chunk.UnCacheFromMemory();
+
+		using (var reader = await chunk.AcquireRawReader())
+		{
+			Assert.IsFalse(reader.IsMemory);
+			Assert.That(fileSystem.BulkReaderOpenHints[^1], Is.EqualTo(ReadOptimizationHint.SequentialScan));
+			Assert.That(fileSystem.BulkReaderOpenAsyncFlags[^1], Is.False);
 		}
 
 		chunk.MarkForDeletion();
@@ -269,6 +304,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	private sealed class ObservingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem
 	{
 		public List<ReadOptimizationHint> BulkReaderOpenHints { get; } = [];
+		public List<bool> BulkReaderOpenAsyncFlags { get; } = [];
 
 		public IVersionedFileNamingStrategy NamingStrategy => inner.NamingStrategy;
 
@@ -279,6 +315,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			if (readOptimizationHint == ReadOptimizationHint.SequentialScan)
 			{
 				BulkReaderOpenHints.Add(readOptimizationHint);
+				BulkReaderOpenAsyncFlags.Add(asyncIO);
 			}
 
 			return handle;

@@ -1554,7 +1554,7 @@ public partial class TFChunk : IDisposable
 	private async ValueTask<Stream> CreateOwnedReadStreamForBulkReader(CancellationToken token)
 	{
 		token.ThrowIfCancellationRequested();
-		var handle = await _fileSystem.OpenForReadAsync(_filename, ReadOptimizationHint.SequentialScan, _asyncIO,
+		var handle = await _fileSystem.OpenForReadAsync(_filename, ReadOptimizationHint.SequentialScan, asyncIO: false,
 			token);
 		try
 		{
