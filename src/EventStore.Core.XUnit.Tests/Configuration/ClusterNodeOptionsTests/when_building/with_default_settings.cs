@@ -6,6 +6,7 @@ using EventStore.Core.Authentication.DelegatedAuthentication;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Tests;
 using EventStore.Core.TransactionLog.Chunks;
+using EventStore.Core.Util;
 using NUnit.Framework;
 
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when_building;
@@ -66,6 +67,8 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 		Assert.AreEqual(2000, _options.Database.PrepareTimeoutMs, "PrepareTimeout");
 		Assert.AreEqual(2000, _options.Database.CommitTimeoutMs, "CommitTimeout");
 		Assert.AreEqual(2000, _options.Database.WriteTimeoutMs, "WriteTimeout");
+		Assert.AreEqual(Opts.MaxProjectionStateSizeDefault, _options.Projection.MaxProjectionStateSize,
+			"MaxProjectionStateSize");
 
 		Assert.AreEqual(700, _options.Interface.ReplicationHeartbeatInterval, "ReplicationHeartbeatInterval");
 

@@ -15,6 +15,8 @@ namespace EventStore.Core.Util {
 
 		public const int ProjectionsQueryExpiryDefault = 5;
 
+		public const int MaxProjectionStateSizeDefault = int.MaxValue;
+
 		public const byte IndexBitnessVersionDefault = Index.PTableVersions.IndexV4;
 
 		public static readonly string AuthenticationTypeDefault = "internal";

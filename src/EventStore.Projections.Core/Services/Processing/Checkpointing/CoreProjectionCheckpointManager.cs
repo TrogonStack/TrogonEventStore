@@ -16,6 +16,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	protected readonly ProjectionNamesBuilder _namingBuilder;
 	protected readonly ProjectionConfig _projectionConfig;
 	protected readonly ILogger _logger;
+	protected readonly int _maxProjectionStateSize;
 
 	private readonly bool _usePersistentCheckpoints;
 
@@ -39,7 +40,6 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	protected bool _stopped;
 
 	private PartitionState _currentProjectionState;
-	private bool _largeStateWarningLogged = false;
 
 	protected CoreProjectionCheckpointManager(
 		IPublisher publisher,
@@ -48,7 +48,8 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		string name,
 		PositionTagger positionTagger,
 		ProjectionNamesBuilder namingBuilder,
-		bool usePersistentCheckpoints)
+		bool usePersistentCheckpoints,
+		int maxProjectionStateSize)
 	{
 		if (publisher == null)
 			throw new ArgumentNullException("publisher");
@@ -62,6 +63,11 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 			throw new ArgumentNullException("namingBuilder");
 		if (name == "")
 			throw new ArgumentException("name");
+		if (maxProjectionStateSize <= 0)
+			throw new ArgumentOutOfRangeException(
+				nameof(maxProjectionStateSize),
+				maxProjectionStateSize,
+				"Max projection state size must be positive.");
 
 		_lastProcessedEventPosition = new PositionTracker(positionTagger);
 		_zeroTag = positionTagger.MakeZeroCheckpointTag();
@@ -74,6 +80,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		_usePersistentCheckpoints = usePersistentCheckpoints;
 		_requestedCheckpointState = new PartitionState("", null, _zeroTag);
 		_currentProjectionState = new PartitionState("", null, _zeroTag);
+		_maxProjectionStateSize = maxProjectionStateSize;
 	}
 
 	protected abstract ProjectionCheckpoint CreateProjectionCheckpoint(CheckpointTag checkpointPosition);
@@ -192,7 +199,8 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		if (partition == "" && newState.State == null) // ignore non-root partitions and non-changed states
 			throw new NotSupportedException("Internal check");
 
-		CheckStateSize(newState, partition);
+		if (!CheckStateSize(newState, partition))
+			return;
 
 		if (_usePersistentCheckpoints && partition != "")
 			CapturePartitionStateUpdated(partition, oldState, newState);
@@ -201,24 +209,18 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 			_currentProjectionState = newState;
 	}
 
-	private void CheckStateSize(PartitionState result, string partition)
+	private bool CheckStateSize(PartitionState result, string partition)
 	{
-		if (!_largeStateWarningLogged && result.Size >= 8_000_000 && !partition.Equals(""))
+		if (result.Size > _maxProjectionStateSize)
 		{
-			Log.Warning(
-				"State size for the Projection {projectionName} for Partition {partitionName} is greater than 8 MB. State size for a projection must be less than 16 MB. Current state size for Partition {partitionName} is {stateSize} MB.",
-				_namingBuilder.EffectiveProjectionName, partition, partition,
-				result.Size / Math.Pow(10, 6));
-			_largeStateWarningLogged = true;
+			var partitionMessage = partition == string.Empty ? string.Empty : $" in partition '{partition}'";
+			Failed(
+				$"The state size of projection '{_namingBuilder.EffectiveProjectionName}'{partitionMessage} is {result.Size:N0} bytes " +
+				$"which exceeds the configured MaxProjectionStateSize of {_maxProjectionStateSize:N0} bytes.");
+			return false;
 		}
-		else if (!_largeStateWarningLogged && result.Size >= 8_000_000 && partition.Equals(""))
-		{
-			Log.Warning(
-				"State size for the Projection {projectionName} is greater than 8 MB. State size for a projection must be less than 16 MB. Current state size for Projection {projectionName} is {stateSize} MB.",
-				_namingBuilder.EffectiveProjectionName, _namingBuilder.EffectiveProjectionName,
-				result.Size / Math.Pow(10, 6));
-			_largeStateWarningLogged = true;
-		}
+
+		return true;
 	}
 
 	public void EventProcessed(CheckpointTag checkpointTag, float progress)

@@ -1,4 +1,5 @@
 using System;
+using EventStore.Common.Utils;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Services.Processing.Checkpointing;
 using EventStore.Projections.Core.Services.Processing.Partitioning;
@@ -30,6 +31,19 @@ public static class partition_state
 		public void can_be_created()
 		{
 			new PartitionState("state", "result", CheckpointTag.FromPosition(0, 100, 50));
+		}
+
+		[Test]
+		public void size_is_measured_in_utf8_bytes()
+		{
+			var state = @"{""state"":""é""}";
+			var result = @"{""result"":""界""}";
+
+			var partitionState = new PartitionState(state, result, CheckpointTag.FromPosition(0, 100, 50));
+
+			Assert.AreEqual(
+				Helper.UTF8NoBom.GetByteCount(state) + Helper.UTF8NoBom.GetByteCount(result),
+				partitionState.Size);
 		}
 	}
 

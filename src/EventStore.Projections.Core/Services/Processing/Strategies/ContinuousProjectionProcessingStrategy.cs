@@ -14,10 +14,11 @@ public class ContinuousProjectionProcessingStrategy : DefaultProjectionProcessin
 	public ContinuousProjectionProcessingStrategy(
 		string name, ProjectionVersion projectionVersion, IProjectionStateHandler stateHandler,
 		ProjectionConfig projectionConfig, IQuerySources sourceDefinition, ILogger logger,
-		ReaderSubscriptionDispatcher subscriptionDispatcher, bool enableContentTypeValidation)
+		ReaderSubscriptionDispatcher subscriptionDispatcher, bool enableContentTypeValidation,
+		int maxProjectionStateSize = int.MaxValue)
 		: base(
 			name, projectionVersion, stateHandler, projectionConfig, sourceDefinition, logger,
-			subscriptionDispatcher, enableContentTypeValidation)
+			subscriptionDispatcher, enableContentTypeValidation, maxProjectionStateSize)
 	{
 	}
 
