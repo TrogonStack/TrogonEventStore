@@ -306,6 +306,7 @@ public class RedactionService<TStreamId> :
 		{
 			// temporarily open the chunk to verify its integrity
 			return await TFChunk.FromCompletedFile(
+				fileSystem: _db.Config.ChunkFileSystem,
 				filename: newChunkPath,
 				verifyHash: true,
 				unbufferedRead: _db.Config.Unbuffered,

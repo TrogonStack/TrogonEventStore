@@ -1,9 +1,11 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.Transforms.Identity;
 using NUnit.Framework;
@@ -35,7 +37,9 @@ public class when_reading_from_a_cached_tfchunk<TLogFormat, TStreamId> : Specifi
 		_result = await _chunk.TryAppend(_record, CancellationToken.None);
 		await _chunk.Flush(CancellationToken.None);
 		await _chunk.Complete(CancellationToken.None);
-		_cachedChunk = await TFChunk.FromCompletedFile(Filename, verifyHash: true, unbufferedRead: false,
+		_cachedChunk = await TFChunk.FromCompletedFile(
+			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(Path.GetDirectoryName(Filename), "chunk-")),
+			Filename, verifyHash: true, unbufferedRead: false,
 			reduceFileCachePressure: false, tracker: new TFChunkTracker.NoOp(),
 			getTransformFactory: _ => new IdentityChunkTransformFactory());
 		await _cachedChunk.CacheInMemory(CancellationToken.None);

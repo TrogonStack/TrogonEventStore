@@ -224,7 +224,8 @@ public partial class TFChunk : IDisposable
 	}
 
 	// local or remote
-	public static async ValueTask<TFChunk> FromCompletedFile(string filename, bool verifyHash, bool unbufferedRead,
+	public static async ValueTask<TFChunk> FromCompletedFile(IChunkFileSystem fileSystem, string filename,
+		bool verifyHash, bool unbufferedRead,
 		ITransactionFileTracker tracker, Func<TransformType, IChunkTransformFactory> getTransformFactory,
 		bool reduceFileCachePressure = false, bool asyncIO = false, CancellationToken token = default)
 	{
@@ -233,7 +234,7 @@ public partial class TFChunk : IDisposable
 			TFConsts.MidpointsDepth, false, unbufferedRead, false, reduceFileCachePressure, asyncIO);
 		try
 		{
-			await chunk.InitCompleted(verifyHash, tracker, getTransformFactory, token);
+			await chunk.InitCompleted(fileSystem, verifyHash, tracker, getTransformFactory, token);
 		}
 		catch
 		{
@@ -343,20 +344,10 @@ public partial class TFChunk : IDisposable
 		return chunk;
 	}
 
-	private async ValueTask InitCompleted(bool verifyHash, ITransactionFileTracker tracker,
+	private async ValueTask InitCompleted(IChunkFileSystem fileSystem, bool verifyHash, ITransactionFileTracker tracker,
 		Func<TransformType, IChunkTransformFactory> getTransformFactory, CancellationToken token)
 	{
-		if (!File.Exists(_filename))
-			throw new CorruptDatabaseException(new ChunkNotFoundException(_filename));
-
-		var options = new FileStreamOptions
-		{
-			Mode = FileMode.Open,
-			Access = FileAccess.Read,
-			Share = FileShare.ReadWrite,
-			Options = ReadOnlyHandleOptions
-		};
-		_handle = new ChunkFileHandle(_filename, options);
+		_handle = await fileSystem.OpenForReadAsync(_filename, _reduceFileCachePressure, _asyncIO, token);
 		_fileSize = (int)_handle.Length;
 
 		IsReadOnly = true;

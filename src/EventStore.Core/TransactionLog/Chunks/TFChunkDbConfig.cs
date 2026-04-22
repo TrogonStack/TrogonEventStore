@@ -1,5 +1,6 @@
 using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.Checkpoint;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.TransactionLog.Chunks {
@@ -15,7 +16,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 		public readonly ICheckpoint ReplicationCheckpoint;
 		public readonly ICheckpoint IndexCheckpoint;
 		public readonly ICheckpoint StreamExistenceFilterCheckpoint;
-		public readonly IVersionedFileNamingStrategy FileNamingStrategy;
+		public readonly IChunkFileSystem ChunkFileSystem;
 		public readonly bool InMemDb;
 		public readonly bool Unbuffered;
 		public readonly bool WriteThrough;
@@ -40,9 +41,48 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			bool writethrough = false,
 			bool reduceFileCachePressure = false,
 			long maxTruncation = 256 * 1024 * 1024,
+			bool asyncIO = false)
+			: this(
+				path,
+				new ChunkLocalFileSystem(fileNamingStrategy),
+				chunkSize,
+				maxChunksCacheSize,
+				writerCheckpoint,
+				chaserCheckpoint,
+				epochCheckpoint,
+				proposalCheckpoint,
+				truncateCheckpoint,
+				replicationCheckpoint,
+				indexCheckpoint,
+				streamExistenceFilterCheckpoint,
+				inMemDb,
+				unbuffered,
+				writethrough,
+				reduceFileCachePressure,
+				maxTruncation,
+				asyncIO) {
+		}
+
+		public TFChunkDbConfig(string path,
+			IChunkFileSystem chunkFileSystem,
+			int chunkSize,
+			long maxChunksCacheSize,
+			ICheckpoint writerCheckpoint,
+			ICheckpoint chaserCheckpoint,
+			ICheckpoint epochCheckpoint,
+			ICheckpoint proposalCheckpoint,
+			ICheckpoint truncateCheckpoint,
+			ICheckpoint replicationCheckpoint,
+			ICheckpoint indexCheckpoint,
+			ICheckpoint streamExistenceFilterCheckpoint,
+			bool inMemDb = false,
+			bool unbuffered = false,
+			bool writethrough = false,
+			bool reduceFileCachePressure = false,
+			long maxTruncation = 256 * 1024 * 1024,
 			bool asyncIO = false) {
 			Ensure.NotNullOrEmpty(path, "path");
-			Ensure.NotNull(fileNamingStrategy, "fileNamingStrategy");
+			Ensure.NotNull(chunkFileSystem, "chunkFileSystem");
 			Ensure.Positive(chunkSize, "chunkSize");
 			Ensure.Nonnegative(maxChunksCacheSize, "maxChunksCacheSize");
 			Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
@@ -65,7 +105,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			ReplicationCheckpoint = replicationCheckpoint;
 			IndexCheckpoint = indexCheckpoint;
 			StreamExistenceFilterCheckpoint = streamExistenceFilterCheckpoint;
-			FileNamingStrategy = fileNamingStrategy;
+			ChunkFileSystem = chunkFileSystem;
 			InMemDb = inMemDb;
 			Unbuffered = unbuffered;
 			WriteThrough = writethrough;
@@ -73,5 +113,7 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			MaxTruncation = maxTruncation;
 			AsyncIO = asyncIO;
 		}
+
+		public IVersionedFileNamingStrategy FileNamingStrategy => ChunkFileSystem.NamingStrategy;
 	}
 }
