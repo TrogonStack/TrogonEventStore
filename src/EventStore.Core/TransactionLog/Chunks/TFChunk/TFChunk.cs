@@ -1523,9 +1523,10 @@ public partial class TFChunk : IDisposable
 
 		// if we get here, then we reserved TFChunk for sure so no one should dispose of chunk file
 		// until client returns dedicated reader
+		Stream stream = null;
 		try
 		{
-			var stream = await CreateFileStreamForBulkReader(token);
+			stream = await CreateFileStreamForBulkReader(token);
 
 			if (raw)
 			{
@@ -1533,10 +1534,12 @@ public partial class TFChunk : IDisposable
 			}
 
 			var streamToUse = _transform.Read.TransformData(new ChunkDataReadStream(stream));
+			stream = null;
 			return new TFChunkBulkDataReader(this, streamToUse, isMemory: false);
 		}
 		catch
 		{
+			stream?.Dispose();
 			if (Interlocked.Decrement(ref _fileStreamCount) == 0 && _selfdestructin54321)
 				CleanUpFileStreamDestruction();
 			throw;

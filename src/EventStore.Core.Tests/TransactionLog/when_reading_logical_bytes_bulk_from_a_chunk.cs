@@ -1,10 +1,16 @@
 using System;
+using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.LogV2;
+using EventStore.Core.Transforms.Identity;
+using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.LogRecords;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
+using EventStore.Plugins.Transforms;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.TransactionLog;
@@ -144,5 +150,108 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 
 		chunk.MarkForDeletion();
 		chunk.WaitForDestroy(5000);
+	}
+
+	[Test]
+	public async Task a_failed_data_reader_wrap_disposes_the_owned_stream()
+	{
+		var fileSystem = new TrackingChunkFileSystem(
+			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")));
+		var chunk = await TFChunk.CreateNew(
+			fileSystem: fileSystem,
+			filename: GetFilePathFor("file1"),
+			chunkDataSize: 300,
+			chunkStartNumber: 0,
+			chunkEndNumber: 0,
+			isScavenged: false,
+			inMem: false,
+			unbuffered: false,
+			writethrough: false,
+			reduceFileCachePressure: false,
+			asyncIO: false,
+			tracker: new TFChunkTracker.NoOp(),
+			transformFactory: new IdentityChunkTransformFactory(),
+			token: CancellationToken.None);
+		await chunk.Complete(CancellationToken.None);
+		chunk.UnCacheFromMemory();
+		typeof(TFChunk)
+			.GetField("_transform", BindingFlags.Instance | BindingFlags.NonPublic)!
+			.SetValue(chunk, new ThrowingReadChunkTransform());
+
+		var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await chunk.AcquireDataReader());
+		Assert.That(exception!.Message, Is.EqualTo("boom"));
+		Assert.That(fileSystem.LastHandle, Is.Not.Null);
+		Assert.That(fileSystem.LastHandle!.IsDisposed, Is.True);
+
+		chunk.MarkForDeletion();
+		chunk.WaitForDestroy(5000);
+	}
+
+	private sealed class ThrowingReadChunkTransform : IChunkTransform
+	{
+		public IChunkReadTransform Read { get; } = new ThrowingReadChunkReadTransform();
+		public IChunkWriteTransform Write { get; } = new IdentityChunkWriteTransform();
+	}
+
+	private sealed class ThrowingReadChunkReadTransform : IChunkReadTransform
+	{
+		public ChunkDataReadStream TransformData(ChunkDataReadStream stream) =>
+			throw new InvalidOperationException("boom");
+	}
+
+	private sealed class TrackingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem
+	{
+		public TrackingChunkHandle LastHandle { get; private set; }
+
+		public IVersionedFileNamingStrategy NamingStrategy => inner.NamingStrategy;
+
+		public async ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
+			bool asyncIO, CancellationToken token)
+		{
+			LastHandle = new TrackingChunkHandle(await inner.OpenForReadAsync(fileName, readOptimizationHint, asyncIO, token));
+			return LastHandle;
+		}
+
+		public ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token) =>
+			inner.ReadHeaderAsync(fileName, token);
+
+		public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
+			inner.ReadFooterAsync(fileName, token);
+
+		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
+	}
+
+	private sealed class TrackingChunkHandle(IChunkHandle inner) : IChunkHandle
+	{
+		public bool IsDisposed { get; private set; }
+
+		public void Flush() => inner.Flush();
+
+		public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token) =>
+			inner.WriteAsync(data, offset, token);
+
+		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) =>
+			inner.ReadAsync(buffer, offset, token);
+
+		public long Length
+		{
+			get => inner.Length;
+			set => inner.Length = value;
+		}
+
+		public string Name => inner.Name;
+		public FileAccess Access => inner.Access;
+
+		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) =>
+			inner.SetReadOnlyAsync(value, token);
+
+		public void Dispose()
+		{
+			if (IsDisposed)
+				return;
+
+			IsDisposed = true;
+			inner.Dispose();
+		}
 	}
 }
