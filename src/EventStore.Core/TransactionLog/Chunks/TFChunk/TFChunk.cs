@@ -1549,7 +1549,7 @@ public partial class TFChunk : IDisposable
 	private unsafe ValueTask<Stream> CreateFileStreamForBulkReader(CancellationToken token)
 	{
 		if (_inMem)
-			return ValueTask.FromResult<Stream>(new UnmanagedMemoryStream((byte*)_cachedData, _fileSize));
+			throw new InvalidOperationException("In-memory chunks must use memory readers.");
 
 		return CreateOwnedReadStreamForBulkReader(token);
 	}
@@ -1580,6 +1580,9 @@ public partial class TFChunk : IDisposable
 
 		if (IsReadOnly)
 		{
+			if (_inMem)
+				return TryCreateBulkMemReader(raw, out reader);
+
 			// chunk is definitely readonly and will remain so, so a filestream would be acceptable.
 			// we might be able to get a memstream but we don't want to wait for the lock in case we
 			// are currently performing a slow operation with it such as caching.

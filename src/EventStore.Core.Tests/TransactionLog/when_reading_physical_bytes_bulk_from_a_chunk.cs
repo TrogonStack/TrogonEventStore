@@ -260,7 +260,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	}
 
 	[Test]
-	public async Task a_dedicated_raw_reader_on_completed_in_memory_chunk_can_fall_back_without_a_file()
+	public async Task a_dedicated_raw_reader_on_completed_in_memory_chunk_waits_for_a_real_mem_reader()
 	{
 		var chunk = await TFChunk.CreateNew(
 			fileSystem: TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("file1")),
@@ -286,8 +286,14 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 		cachedDataLock.TryAcquire(System.Threading.Timeout.InfiniteTimeSpan);
 		try
 		{
-			using var reader = await chunk.AcquireRawReader();
-			Assert.IsFalse(reader.IsMemory);
+			var acquireTask = Task.Run(async () => await chunk.AcquireRawReader());
+			await Task.Delay(100);
+			Assert.That(acquireTask.IsCompleted, Is.False);
+
+			cachedDataLock.Release();
+
+			using var reader = await acquireTask;
+			Assert.IsTrue(reader.IsMemory);
 
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -296,7 +302,8 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 		}
 		finally
 		{
-			cachedDataLock.Release();
+			if (cachedDataLock.IsLockHeld)
+				cachedDataLock.Release();
 			chunk.Dispose();
 		}
 	}
