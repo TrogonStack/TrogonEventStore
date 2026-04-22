@@ -1542,7 +1542,15 @@ public partial class TFChunk : IDisposable
 		}
 	}
 
-	private async ValueTask<Stream> CreateFileStreamForBulkReader()
+	private unsafe ValueTask<Stream> CreateFileStreamForBulkReader()
+	{
+		if (_inMem)
+			return ValueTask.FromResult<Stream>(new UnmanagedMemoryStream((byte*)_cachedData, _fileSize));
+
+		return CreateOwnedReadStreamForBulkReader();
+	}
+
+	private async ValueTask<Stream> CreateOwnedReadStreamForBulkReader()
 	{
 		var handle = await _fileSystem.OpenForReadAsync(_filename, ReadOptimizationHint.SequentialScan, _asyncIO,
 			CancellationToken.None);

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.Threading;
 using EventStore.Core.Tests.Transforms.WithHeader;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -183,6 +185,48 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 
 		chunk.MarkForDeletion();
 		chunk.WaitForDestroy(5000);
+	}
+
+	[Test]
+	public async Task a_dedicated_raw_reader_on_completed_in_memory_chunk_can_fall_back_without_a_file()
+	{
+		var chunk = await TFChunk.CreateNew(
+			fileSystem: TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("file1")),
+			filename: GetFilePathFor("file1"),
+			chunkDataSize: 2000,
+			chunkStartNumber: 0,
+			chunkEndNumber: 0,
+			isScavenged: false,
+			inMem: true,
+			unbuffered: false,
+			writethrough: false,
+			reduceFileCachePressure: false,
+			asyncIO: false,
+			tracker: new TFChunkTracker.NoOp(),
+			transformFactory: new WithHeaderChunkTransformFactory(),
+			token: CancellationToken.None);
+		await chunk.Complete(CancellationToken.None);
+
+		var cachedDataLock = (AsyncExclusiveLock)typeof(TFChunk)
+			.GetField("_cachedDataLock", BindingFlags.Instance | BindingFlags.NonPublic)!
+			.GetValue(chunk)!;
+
+		cachedDataLock.TryAcquire(System.Threading.Timeout.InfiniteTimeSpan);
+		try
+		{
+			using var reader = await chunk.AcquireRawReader();
+			Assert.IsFalse(reader.IsMemory);
+
+			var buffer = new byte[1024];
+			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
+			Assert.IsFalse(result.IsEOF);
+			Assert.Greater(result.BytesRead, 0);
+		}
+		finally
+		{
+			cachedDataLock.Release();
+			chunk.Dispose();
+		}
 	}
 
 	private sealed class ObservingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem
