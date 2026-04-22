@@ -41,14 +41,14 @@ public interface IChunkHandle : IFlushable, IDisposable
 	/// Creates an unbuffered stream for this handle.
 	/// </summary>
 	/// <returns>The unbuffered stream for this handle.</returns>
-	Stream CreateStream() => CreateStream(this, 60_000);
+	Stream CreateStream(bool leaveOpen = true) => CreateStream(this, leaveOpen, 60_000);
 
-	protected static Stream CreateStream(IChunkHandle handle, int synchronousTimeout)
+	protected static Stream CreateStream(IChunkHandle handle, bool leaveOpen, int synchronousTimeout)
 		=> handle is ChunkFileHandle { Asynchronous: false } chunkFileHandle
-			? chunkFileHandle.CreateSynchronousStream()
-			: new UnbufferedStream(handle) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
+			? chunkFileHandle.CreateSynchronousStream(leaveOpen)
+			: new UnbufferedStream(handle, leaveOpen) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
 
-	private sealed class UnbufferedStream(IChunkHandle handle) : RandomAccessStream
+	private sealed class UnbufferedStream(IChunkHandle handle, bool leaveOpen) : RandomAccessStream
 	{
 		private int _readTimeout, _writeTimeout;
 		private int _readWarningLogged;
@@ -198,6 +198,8 @@ public interface IChunkHandle : IFlushable, IDisposable
 			if (disposing)
 			{
 				_timeoutSource?.Dispose();
+				if (!leaveOpen)
+					handle.Dispose();
 			}
 
 			base.Dispose(disposing);

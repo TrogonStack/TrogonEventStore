@@ -119,6 +119,7 @@ public partial class TFChunk : IDisposable
 	}
 
 	private readonly bool _inMem;
+	private readonly IChunkFileSystem _fileSystem;
 	private readonly string _filename;
 	private IChunkHandle _handle;
 	private int _fileSize;
@@ -191,7 +192,8 @@ public partial class TFChunk : IDisposable
 	private IChunkTransform _transform;
 	private ReadOnlyMemory<byte> _transformHeader;
 
-	private TFChunk(string filename,
+	private TFChunk(IChunkFileSystem fileSystem,
+		string filename,
 		int midpointsDepth,
 		bool inMem,
 		bool unbuffered,
@@ -199,9 +201,11 @@ public partial class TFChunk : IDisposable
 		bool reduceFileCachePressure,
 		bool asyncIO)
 	{
+		Ensure.NotNull(fileSystem, nameof(fileSystem));
 		Ensure.NotNullOrEmpty(filename, "filename");
 		Ensure.Nonnegative(midpointsDepth, "midpointsDepth");
 
+		_fileSystem = fileSystem;
 		_filename = filename;
 		_midpointsDepth = midpointsDepth;
 		_inMem = inMem;
@@ -230,11 +234,12 @@ public partial class TFChunk : IDisposable
 		bool reduceFileCachePressure = false, bool asyncIO = false, CancellationToken token = default)
 	{
 
-		var chunk = new TFChunk(filename,
+		var chunk = new TFChunk(fileSystem,
+			filename,
 			TFConsts.MidpointsDepth, false, unbufferedRead, false, reduceFileCachePressure, asyncIO);
 		try
 		{
-			await chunk.InitCompleted(fileSystem, verifyHash, tracker, getTransformFactory, token);
+			await chunk.InitCompleted(verifyHash, tracker, getTransformFactory, token);
 		}
 		catch
 		{
@@ -246,13 +251,15 @@ public partial class TFChunk : IDisposable
 	}
 
 	// always local
-	public static async ValueTask<TFChunk> FromOngoingFile(string filename, int writePosition, bool unbuffered,
+	public static async ValueTask<TFChunk> FromOngoingFile(IChunkFileSystem fileSystem, string filename,
+		int writePosition, bool unbuffered,
 		bool writethrough, bool reduceFileCachePressure, ITransactionFileTracker tracker,
 		bool asyncIO,
 		Func<TransformType, IChunkTransformFactory> getTransformFactory,
 		CancellationToken token)
 	{
-		var chunk = new TFChunk(filename,
+		var chunk = new TFChunk(fileSystem,
+			filename,
 			TFConsts.MidpointsDepth,
 			false,
 			unbuffered,
@@ -273,7 +280,8 @@ public partial class TFChunk : IDisposable
 	}
 
 	// always local
-	public static async ValueTask<TFChunk> CreateNew(string filename,
+	public static async ValueTask<TFChunk> CreateNew(IChunkFileSystem fileSystem,
+		string filename,
 		int chunkDataSize,
 		int chunkStartNumber,
 		int chunkEndNumber,
@@ -306,12 +314,12 @@ public partial class TFChunk : IDisposable
 		// Without this, the header would be uninitialized (all zeros), causing transform failures.
 		transformFactory.CreateTransformHeader(transformHeader);
 
-		return await CreateWithHeader(filename, chunkHeader, fileSize, inMem, unbuffered, writethrough,
+		return await CreateWithHeader(fileSystem, filename, chunkHeader, fileSize, inMem, unbuffered, writethrough,
 			reduceFileCachePressure, asyncIO, tracker, transformFactory, transformHeader, token);
 	}
 
 	// local only
-	public static async ValueTask<TFChunk> CreateWithHeader(string filename,
+	public static async ValueTask<TFChunk> CreateWithHeader(IChunkFileSystem fileSystem, string filename,
 		ChunkHeader header,
 		int fileSize,
 		bool inMem,
@@ -324,7 +332,8 @@ public partial class TFChunk : IDisposable
 		ReadOnlyMemory<byte> transformHeader,
 		CancellationToken token)
 	{
-		var chunk = new TFChunk(filename,
+		var chunk = new TFChunk(fileSystem,
+			filename,
 			TFConsts.MidpointsDepth,
 			inMem,
 			unbuffered,
@@ -344,10 +353,10 @@ public partial class TFChunk : IDisposable
 		return chunk;
 	}
 
-	private async ValueTask InitCompleted(IChunkFileSystem fileSystem, bool verifyHash, ITransactionFileTracker tracker,
+	private async ValueTask InitCompleted(bool verifyHash, ITransactionFileTracker tracker,
 		Func<TransformType, IChunkTransformFactory> getTransformFactory, CancellationToken token)
 	{
-		_handle = await fileSystem.OpenForReadAsync(_filename, _reduceFileCachePressure, _asyncIO, token);
+		_handle = await _fileSystem.OpenForReadAsync(_filename, ReadOnlyReadOptimizationHint, _asyncIO, token);
 		_fileSize = (int)_handle.Length;
 
 		IsReadOnly = true;
@@ -525,6 +534,9 @@ public partial class TFChunk : IDisposable
 	private FileOptions ReadOnlyHandleOptions =>
 		ComposeHandleOptions(_reduceFileCachePressure ? FileOptions.None : FileOptions.RandomAccess);
 
+	private ReadOptimizationHint ReadOnlyReadOptimizationHint =>
+		_reduceFileCachePressure ? ReadOptimizationHint.None : ReadOptimizationHint.RandomAccess;
+
 	private FileOptions WritableHandleOptions
 	{
 		get
@@ -693,7 +705,7 @@ public partial class TFChunk : IDisposable
 		}
 
 		Log.Debug("Verifying hash for TFChunk '{chunk}'...", _filename);
-		using var reader = AcquireRawReader();
+		using var reader = await AcquireRawReader();
 		reader.Stream.Seek(0, SeekOrigin.Begin);
 		var stream = reader.Stream;
 		var footer = _chunkFooter;
@@ -797,7 +809,7 @@ public partial class TFChunk : IDisposable
 					// it's not necessary as the cache is used only for reading data.
 					await BuildCacheArray(
 						size: GetAlignedSize(ChunkHeader.Size + _chunkHeader.ChunkSize + ChunkFooter.Size),
-						reader: AcquireFileReader(raw: false),
+						reader: await AcquireFileReader(raw: false),
 						offset: ChunkHeader.Size,
 						count: _physicalDataSize,
 						transformed: false,
@@ -805,7 +817,7 @@ public partial class TFChunk : IDisposable
 				else
 					await BuildCacheArray(
 						size: _fileSize,
-						reader: AcquireFileReader(raw: true),
+						reader: await AcquireFileReader(raw: true),
 						offset: 0,
 						count: _fileSize,
 						transformed: true,
@@ -1479,23 +1491,23 @@ public partial class TFChunk : IDisposable
 		}
 	}
 
-	public TFChunkBulkReader AcquireDataReader()
+	public ValueTask<TFChunkBulkReader> AcquireDataReader()
 	{
 		if (TryAcquireBulkMemReader(raw: false, out var reader))
-			return reader;
+			return ValueTask.FromResult(reader);
 
 		return AcquireFileReader(raw: false);
 	}
 
-	public TFChunkBulkReader AcquireRawReader()
+	public ValueTask<TFChunkBulkReader> AcquireRawReader()
 	{
 		if (TryAcquireBulkMemReader(raw: true, out var reader))
-			return reader;
+			return ValueTask.FromResult(reader);
 
 		return AcquireFileReader(raw: true);
 	}
 
-	private TFChunkBulkReader AcquireFileReader(bool raw)
+	private async ValueTask<TFChunkBulkReader> AcquireFileReader(bool raw)
 	{
 		Interlocked.Increment(ref _fileStreamCount);
 		if (_selfdestructin54321)
@@ -1510,21 +1522,40 @@ public partial class TFChunk : IDisposable
 
 		// if we get here, then we reserved TFChunk for sure so no one should dispose of chunk file
 		// until client returns dedicated reader
-		var stream = CreateFileStreamForBulkReader();
-
-		if (raw)
+		try
 		{
-			return new TFChunkBulkRawReader(this, stream, isMemory: false);
-		}
+			var stream = await CreateFileStreamForBulkReader();
 
-		var streamToUse = _transform.Read.TransformData(new ChunkDataReadStream(stream));
-		return new TFChunkBulkDataReader(this, streamToUse, isMemory: false);
+			if (raw)
+			{
+				return new TFChunkBulkRawReader(this, stream, isMemory: false);
+			}
+
+			var streamToUse = _transform.Read.TransformData(new ChunkDataReadStream(stream));
+			return new TFChunkBulkDataReader(this, streamToUse, isMemory: false);
+		}
+		catch
+		{
+			if (Interlocked.Decrement(ref _fileStreamCount) == 0 && _selfdestructin54321)
+				CleanUpFileStreamDestruction();
+			throw;
+		}
 	}
 
-	private unsafe Stream CreateFileStreamForBulkReader() => _inMem
-		? new UnmanagedMemoryStream((byte*)_cachedData, _fileSize)
-		: new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 65536,
-			FileOptions.SequentialScan);
+	private async ValueTask<Stream> CreateFileStreamForBulkReader()
+	{
+		var handle = await _fileSystem.OpenForReadAsync(_filename, ReadOptimizationHint.SequentialScan, _asyncIO,
+			CancellationToken.None);
+		try
+		{
+			return handle.CreateStream(leaveOpen: false);
+		}
+		catch
+		{
+			handle.Dispose();
+			throw;
+		}
+	}
 
 	// tries to acquire a bulk reader over a memstream but
 	// (a) doesn't block if a file reader would be acceptable instead

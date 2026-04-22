@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Settings;
@@ -77,10 +78,13 @@ public static class TFChunkHelper
 
 	public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
 	{
-		return TFChunk.CreateNew(fileName, chunkSize, 0, 0,
+		return TFChunk.CreateNew(CreateLocalFileSystem(fileName), fileName, chunkSize, 0, 0,
 			isScavenged: isScavenged, inMem: false, unbuffered: false,
 			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new IdentityChunkTransformFactory(),
 			token);
 	}
+
+	public static IChunkFileSystem CreateLocalFileSystem(string fileName) =>
+		new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(Path.GetDirectoryName(fileName), "chunk-"));
 }

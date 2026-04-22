@@ -17,7 +17,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	public async Task the_file_will_not_be_deleted_until_reader_released()
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			chunk.MarkForDeletion();
 			var buffer = new byte[1024];
@@ -33,7 +33,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	public async Task a_read_on_new_file_can_be_performed_but_returns_nothing()
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -50,7 +50,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		await chunk.Complete(CancellationToken.None); // chunk has 0 bytes of actual data
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -67,7 +67,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("afile"), 200, isScavenged: true);
 		await chunk.CompleteScavenge([new PosMap(0, 0), new PosMap(1, 1)], CancellationToken.None);
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -91,7 +91,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 			new byte[2000], null);
 		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -109,7 +109,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
 		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -132,7 +132,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 		await chunk.Complete(CancellationToken.None);
 
-		using (var reader = chunk.AcquireDataReader())
+		using (var reader = await chunk.AcquireDataReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);

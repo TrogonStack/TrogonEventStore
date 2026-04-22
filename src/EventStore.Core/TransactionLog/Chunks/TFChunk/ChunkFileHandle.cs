@@ -123,7 +123,7 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 
 	internal int Read(Span<byte> buffer, long offset) => RandomAccess.Read(_handle, buffer, offset);
 
-	internal Stream CreateSynchronousStream() => new SynchronousStream(this);
+	internal Stream CreateSynchronousStream(bool leaveOpen) => new SynchronousStream(this, leaveOpen);
 
 	private static void SetReadOnly(SafeFileHandle handle, bool value)
 	{
@@ -148,7 +148,7 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		}
 	}
 
-	private sealed class SynchronousStream(ChunkFileHandle handle) : RandomAccessStream
+	private sealed class SynchronousStream(ChunkFileHandle handle, bool leaveOpen) : RandomAccessStream
 	{
 		public override void Flush() => handle.Flush();
 
@@ -180,6 +180,14 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 
 		protected override ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) =>
 			handle.ReadAsync(buffer, offset, token);
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing && !leaveOpen)
+				handle.Dispose();
+
+			base.Dispose(disposing);
+		}
 	}
 
 	protected override void Dispose(bool disposing)

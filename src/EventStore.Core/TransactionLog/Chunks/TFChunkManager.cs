@@ -137,7 +137,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 	public ValueTask<TFChunk.TFChunk> CreateTempChunk(ChunkHeader chunkHeader, int fileSize, CancellationToken token)
 	{
 		var chunkFileName = FileSystem.NamingStrategy.GetTempFilename();
-		return TFChunk.TFChunk.CreateWithHeader(chunkFileName,
+		return TFChunk.TFChunk.CreateWithHeader(FileSystem, chunkFileName,
 			chunkHeader,
 			fileSize,
 			_config.InMemDb,
@@ -164,7 +164,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 		{
 			var chunkNumber = _chunksCount;
 			var chunkName = FileSystem.NamingStrategy.GetFilenameFor(chunkNumber, 0);
-			chunk = await TFChunk.TFChunk.CreateNew(chunkName,
+			chunk = await TFChunk.TFChunk.CreateNew(FileSystem, chunkName,
 				_config.ChunkSize,
 				chunkNumber,
 				chunkNumber,
@@ -208,7 +208,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 					chunkHeader.ChunkStartNumber, chunkHeader.ChunkEndNumber, _chunksCount));
 
 			var chunkName = FileSystem.NamingStrategy.GetFilenameFor(chunkHeader.ChunkStartNumber, 0);
-			chunk = await TFChunk.TFChunk.CreateWithHeader(chunkName,
+			chunk = await TFChunk.TFChunk.CreateWithHeader(FileSystem, chunkName,
 				chunkHeader,
 				fileSize,
 				_config.InMemDb,

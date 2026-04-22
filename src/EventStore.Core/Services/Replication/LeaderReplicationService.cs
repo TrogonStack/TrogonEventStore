@@ -287,7 +287,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 
 			var epochCorrectedLogPos =
 				await GetValidLogPosition(logPosition, epochs, replica.ReplicaEndPoint, replica.SubscriptionId, token);
-			var subscriptionPos = SetSubscriptionPosition(replica, epochCorrectedLogPos, chunkId,
+			var subscriptionPos = await SetSubscriptionPosition(replica, epochCorrectedLogPos, chunkId,
 				replicationStart: true, verbose: true, trial: 0);
 			Interlocked.Exchange(ref replica.AckedLogPosition, subscriptionPos);
 
@@ -403,7 +403,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 		return Math.Min(replicaPosition, nextEpoch.EpochPosition);
 	}
 
-	private long SetSubscriptionPosition(ReplicaSubscription sub,
+	private async ValueTask<long> SetSubscriptionPosition(ReplicaSubscription sub,
 		long logPosition,
 		Guid chunkId,
 		bool replicationStart,
@@ -420,7 +420,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 				"Chunk for LogPosition {0} (0x{0:X}) is null in LeaderReplicationService! Replica: [{1},C:{2},S:{3}]",
 				logPosition, sub.ReplicaEndPoint, sub.ConnectionId, sub.SubscriptionId));
 			var rawSend = chunk.ChunkHeader.IsScavenged;
-			var bulkReader = rawSend ? chunk.AcquireRawReader() : chunk.AcquireDataReader();
+			var bulkReader = rawSend ? await chunk.AcquireRawReader() : await chunk.AcquireDataReader();
 			if (rawSend)
 			{
 				var chunkStartPos = chunk.ChunkHeader.ChunkStartPosition;
@@ -486,7 +486,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 		}
 		catch (FileBeingDeletedException)
 		{
-			return SetSubscriptionPosition(sub, logPosition, chunkId, replicationStart, verbose, trial + 1);
+			return await SetSubscriptionPosition(sub, logPosition, chunkId, replicationStart, verbose, trial + 1);
 		}
 	}
 
@@ -748,7 +748,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 			if (newLogPosition < leaderCheckpoint)
 			{
 				dataFound = true;
-				SetSubscriptionPosition(subscription, newLogPosition, Guid.Empty, replicationStart: false,
+				await SetSubscriptionPosition(subscription, newLogPosition, Guid.Empty, replicationStart: false,
 					verbose: true, trial: 0);
 			}
 		}

@@ -220,7 +220,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 		TFChunk.TFChunk newChunk;
 		try
 		{
-			newChunk = await TFChunk.TFChunk.CreateNew(tmpChunkPath,
+			newChunk = await TFChunk.TFChunk.CreateNew(_db.Manager.FileSystem, tmpChunkPath,
 				_db.Config.ChunkSize,
 				chunkStartNumber,
 				chunkEndNumber,
@@ -490,7 +490,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 		TFChunk.TFChunk newChunk;
 		try
 		{
-			newChunk = await TFChunk.TFChunk.CreateNew(tmpChunkPath,
+			newChunk = await TFChunk.TFChunk.CreateNew(db.Manager.FileSystem, tmpChunkPath,
 				db.Config.ChunkSize,
 				chunkStartNumber,
 				chunkEndNumber,

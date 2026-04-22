@@ -1,8 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.Transforms.WithHeader;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.TransactionLog;
@@ -14,7 +18,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	public async Task the_file_will_not_be_deleted_until_reader_released()
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
-		using (var reader = chunk.AcquireRawReader())
+		using (var reader = await chunk.AcquireRawReader())
 		{
 			chunk.MarkForDeletion();
 			var buffer = new byte[1024];
@@ -30,7 +34,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	public async Task a_read_on_new_file_can_be_performed()
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
-		using (var reader = chunk.AcquireRawReader())
+		using (var reader = await chunk.AcquireRawReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -79,7 +83,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	public async Task if_asked_for_more_than_buffer_size_will_only_read_buffer_size()
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 3000);
-		using (var reader = chunk.AcquireRawReader())
+		using (var reader = await chunk.AcquireRawReader())
 		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -95,7 +99,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	public async Task a_read_past_eof_returns_eof_and_no_footer()
 	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
-		using (var reader = chunk.AcquireRawReader())
+		using (var reader = await chunk.AcquireRawReader())
 		{
 			var buffer = new byte[8092];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -111,10 +115,11 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	public async Task a_raw_read_on_completed_transformed_chunk_falls_back_from_stale_cache()
 	{
 		var chunk = await TFChunk.CreateNew(
-			GetFilePathFor("file1"),
-			2000,
-			0,
-			0,
+			fileSystem: TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("file1")),
+			filename: GetFilePathFor("file1"),
+			chunkDataSize: 2000,
+			chunkStartNumber: 0,
+			chunkEndNumber: 0,
 			isScavenged: false,
 			inMem: false,
 			unbuffered: false,
@@ -126,7 +131,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			token: CancellationToken.None);
 		await chunk.Complete(CancellationToken.None);
 
-		using (var reader = chunk.AcquireRawReader())
+		using (var reader = await chunk.AcquireRawReader())
 		{
 			Assert.IsFalse(reader.IsMemory);
 
@@ -138,5 +143,72 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 
 		chunk.MarkForDeletion();
 		chunk.WaitForDestroy(5000);
+	}
+
+	[Test]
+	public async Task a_dedicated_raw_reader_on_completed_chunk_uses_the_chunk_file_system()
+	{
+		var fileSystem = new ObservingChunkFileSystem(
+			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")));
+		var chunk = await TFChunk.CreateNew(
+			fileSystem: fileSystem,
+			filename: GetFilePathFor("file1"),
+			chunkDataSize: 2000,
+			chunkStartNumber: 0,
+			chunkEndNumber: 0,
+			isScavenged: false,
+			inMem: false,
+			unbuffered: false,
+			writethrough: false,
+			reduceFileCachePressure: false,
+			asyncIO: false,
+			tracker: new TFChunkTracker.NoOp(),
+			transformFactory: new WithHeaderChunkTransformFactory(),
+			token: CancellationToken.None);
+		await chunk.Complete(CancellationToken.None);
+		chunk.UnCacheFromMemory();
+		var bulkReaderOpenCount = fileSystem.BulkReaderOpenHints.Count;
+
+		using (var reader = await chunk.AcquireRawReader())
+		{
+			Assert.IsFalse(reader.IsMemory);
+			Assert.That(fileSystem.BulkReaderOpenHints.Count, Is.EqualTo(bulkReaderOpenCount + 1));
+			Assert.That(fileSystem.BulkReaderOpenHints[^1], Is.EqualTo(ReadOptimizationHint.SequentialScan));
+
+			var buffer = new byte[1024];
+			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
+			Assert.IsFalse(result.IsEOF);
+			Assert.Greater(result.BytesRead, 0);
+		}
+
+		chunk.MarkForDeletion();
+		chunk.WaitForDestroy(5000);
+	}
+
+	private sealed class ObservingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem
+	{
+		public List<ReadOptimizationHint> BulkReaderOpenHints { get; } = [];
+
+		public IVersionedFileNamingStrategy NamingStrategy => inner.NamingStrategy;
+
+		public async ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
+			bool asyncIO, CancellationToken token)
+		{
+			var handle = await inner.OpenForReadAsync(fileName, readOptimizationHint, asyncIO, token);
+			if (readOptimizationHint == ReadOptimizationHint.SequentialScan)
+			{
+				BulkReaderOpenHints.Add(readOptimizationHint);
+			}
+
+			return handle;
+		}
+
+		public ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token) =>
+			inner.ReadHeaderAsync(fileName, token);
+
+		public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
+			inner.ReadFooterAsync(fileName, token);
+
+		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
 	}
 }
