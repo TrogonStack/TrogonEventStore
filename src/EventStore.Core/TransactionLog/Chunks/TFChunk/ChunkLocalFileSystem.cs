@@ -32,7 +32,7 @@ public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStra
 				Options = options,
 			}));
 		}
-		catch (FileNotFoundException)
+		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
 		{
 			return ValueTask.FromException<IChunkHandle>(
 				new CorruptDatabaseException(new ChunkNotFoundException(fileName)));
