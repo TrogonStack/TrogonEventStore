@@ -222,13 +222,18 @@ public partial class TFChunk
 			if (Chunk.ChunkFooter.MapCount is 0) // empty chunk
 				return [];
 
-			var buffer = Memory.AllocateAtLeast<byte>(PosMap.FullSize);
+			var posMapSize = Chunk.ChunkFooter.IsMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
+			var posMapsBuffer = Memory.AllocateAtLeast<byte>(checked(Chunk.ChunkFooter.MapSize));
 			try
 			{
 				int midPointsCnt = 1 << depth;
 				int segmentSize;
 				Midpoint[] midpoints;
 				var mapCount = Chunk.ChunkFooter.MapCount;
+				var posMaps = posMapsBuffer.Memory[..checked(mapCount * posMapSize)];
+				workItem.BaseStream.Seek(ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize, SeekOrigin.Begin);
+				await workItem.BaseStream.ReadExactlyAsync(posMaps, token);
+
 				if (mapCount < midPointsCnt)
 				{
 					segmentSize = 1; // we cache all items
@@ -243,11 +248,10 @@ public partial class TFChunk
 				var i = 0;
 				for (int x = 0, xN = mapCount - 1; x < xN; x += segmentSize, i++)
 				{
-					midpoints[i] = new Midpoint(x, await ReadPosMap(workItem, x, buffer.Memory, token));
+					midpoints[i] = new Midpoint(x, ReadPosMap(posMaps.Span, x));
 				}
 
-				var lastMidpoint = new Midpoint(mapCount - 1,
-					await ReadPosMap(workItem, mapCount - 1, buffer.Memory, token));
+				var lastMidpoint = new Midpoint(mapCount - 1, ReadPosMap(posMaps.Span, mapCount - 1));
 				while (i < midpoints.Length)
 				{
 					midpoints[i] = lastMidpoint;
@@ -266,8 +270,18 @@ public partial class TFChunk
 			}
 			finally
 			{
-				buffer.Dispose();
+				posMapsBuffer.Dispose();
 			}
+		}
+
+		private PosMap ReadPosMap(ReadOnlySpan<byte> posMaps, int index)
+		{
+			var posMapSize = Chunk.ChunkFooter.IsMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
+			var start = checked(index * posMapSize);
+			var buffer = posMaps.Slice(start, posMapSize);
+			return Chunk.ChunkFooter.IsMap12Bytes
+				? PosMap.FromNewFormat(buffer)
+				: PosMap.FromOldFormat(buffer);
 		}
 
 		private ValueTask<PosMap> ReadPosMap(ReaderWorkItem workItem, long index, Memory<byte> buffer,

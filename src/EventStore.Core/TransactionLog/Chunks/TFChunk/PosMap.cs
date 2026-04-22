@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -40,6 +41,16 @@ public struct PosMap : IBinaryFormattable<PosMap>
 
 	public static PosMap FromNewFormat(ReadOnlySpan<byte> source)
 		=> new(source);
+
+	public static PosMap FromOldFormat(ReadOnlySpan<byte> source)
+	{
+		Debug.Assert(source.Length >= DeprecatedSize);
+
+		var posmap = BinaryPrimitives.ReadUInt64LittleEndian(source);
+		var logPos = (int)(posmap >>> 32);
+		var actualPos = (int)(posmap & 0xFFFFFFFF);
+		return new(logPos, actualPos);
+	}
 
 	public static async ValueTask<PosMap> FromOldFormat(Stream stream, Memory<byte> buffer, CancellationToken token)
 	{
