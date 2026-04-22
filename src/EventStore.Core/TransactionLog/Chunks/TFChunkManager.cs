@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DotNext.Threading;
 using EventStore.Core.Transforms;
 using EventStore.Core.Transforms.Identity;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using ChunkInfo = EventStore.Core.Data.ChunkInfo;
 using ILogger = Serilog.ILogger;
 
@@ -30,6 +31,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 	private readonly TFChunk.TFChunk[] _chunks = new TFChunk.TFChunk[MaxChunksCount];
 	private readonly ITransactionFileTracker _tracker;
 	private readonly DbTransformManager _transformManager;
+	public IChunkFileSystem FileSystem => _config.ChunkFileSystem;
 
 	private volatile int _chunksCount;
 	private volatile bool _cachingEnabled;
@@ -134,7 +136,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 	public ValueTask<TFChunk.TFChunk> CreateTempChunk(ChunkHeader chunkHeader, int fileSize, CancellationToken token)
 	{
-		var chunkFileName = _config.FileNamingStrategy.GetTempFilename();
+		var chunkFileName = FileSystem.NamingStrategy.GetTempFilename();
 		return TFChunk.TFChunk.CreateWithHeader(chunkFileName,
 			chunkHeader,
 			fileSize,
@@ -161,7 +163,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 		try
 		{
 			var chunkNumber = _chunksCount;
-			var chunkName = _config.FileNamingStrategy.GetFilenameFor(chunkNumber, 0);
+			var chunkName = FileSystem.NamingStrategy.GetFilenameFor(chunkNumber, 0);
 			chunk = await TFChunk.TFChunk.CreateNew(chunkName,
 				_config.ChunkSize,
 				chunkNumber,
@@ -205,7 +207,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 					"Received request to create a new ongoing chunk #{0}-{1}, but current chunks count is {2}.",
 					chunkHeader.ChunkStartNumber, chunkHeader.ChunkEndNumber, _chunksCount));
 
-			var chunkName = _config.FileNamingStrategy.GetFilenameFor(chunkHeader.ChunkStartNumber, 0);
+			var chunkName = FileSystem.NamingStrategy.GetFilenameFor(chunkHeader.ChunkStartNumber, 0);
 			chunk = await TFChunk.TFChunk.CreateWithHeader(chunkName,
 				chunkHeader,
 				fileSize,
@@ -307,7 +309,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 			}
 
 			var newFileName =
-				_config.FileNamingStrategy.DetermineBestVersionFilenameFor(chunkHeader.ChunkStartNumber,
+				FileSystem.NamingStrategy.DetermineBestVersionFilenameFor(chunkHeader.ChunkStartNumber,
 					initialVersion: 1);
 			Log.Information("File {oldFileName} will be moved to file {newFileName}", Path.GetFileName(oldFileName),
 				Path.GetFileName(newFileName));
@@ -322,7 +324,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 				throw;
 			}
 
-			newChunk = await TFChunk.TFChunk.FromCompletedFile(newFileName, verifyHash, _config.Unbuffered,
+			newChunk = await TFChunk.TFChunk.FromCompletedFile(FileSystem, newFileName, verifyHash, _config.Unbuffered,
 				_tracker, type => _transformManager.GetFactoryForExistingChunk(type),
 				_config.ReduceFileCachePressure, _config.AsyncIO, token: token);
 		}

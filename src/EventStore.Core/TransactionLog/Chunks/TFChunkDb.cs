@@ -4,9 +4,9 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using DotNext.Buffers;
 using EventStore.Common.Utils;
 using EventStore.Core.Exceptions;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.Transforms;
 using ILogger = Serilog.ILogger;
 
@@ -50,10 +50,11 @@ public class TFChunkDb : IAsyncDisposable
 		public string ChunkFileName;
 	}
 
-	private async IAsyncEnumerable<ChunkInfo> GetAllLatestChunksExceptLast(TFChunkEnumerator chunkEnumerator,
-		int lastChunkNum, [EnumeratorCancellation] CancellationToken token)
+	private async IAsyncEnumerable<ChunkInfo> GetAllLatestChunksExceptLast(IChunkEnumerator chunkEnumerator, int lastChunkNum,
+		[EnumeratorCancellation] CancellationToken token)
 	{
-		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token: token))
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token)
+			               .WithCancellation(token))
 		{
 			switch (chunkInfo)
 			{
@@ -88,8 +89,8 @@ public class TFChunkDb : IAsyncDisposable
 		}
 
 		var lastChunkNum = (int)(checkpoint / Config.ChunkSize);
-		var lastChunkVersions = Config.FileNamingStrategy.GetAllVersionsFor(lastChunkNum);
-		var chunkEnumerator = new TFChunkEnumerator(Config.FileNamingStrategy);
+		var chunkEnumerator = Manager.FileSystem.CreateChunkEnumerator();
+		var lastChunkVersions = Manager.FileSystem.NamingStrategy.GetAllVersionsFor(lastChunkNum);
 
 		await Parallel.ForEachAsync(
 			GetAllLatestChunksExceptLast(chunkEnumerator, lastChunkNum,
@@ -104,9 +105,10 @@ public class TFChunkDb : IAsyncDisposable
 					// The situation where the logical data size is exactly divisible by ChunkSize,
 					// so it might happen that we have checkpoint indicating one more chunk should exist,
 					// but the actual last chunk is (lastChunkNum-1) one and it could be not completed yet -- perfectly valid situation.
-					var footer = await ReadChunkFooter(chunkInfo.ChunkFileName, token);
+					var footer = await Manager.FileSystem.ReadFooterAsync(chunkInfo.ChunkFileName, token);
 					if (footer.IsCompleted)
-						chunk = await TFChunk.TFChunk.FromCompletedFile(chunkInfo.ChunkFileName, verifyHash: false,
+						chunk = await TFChunk.TFChunk.FromCompletedFile(Manager.FileSystem, chunkInfo.ChunkFileName,
+							verifyHash: false,
 							unbufferedRead: Config.Unbuffered,
 							tracker: _tracker,
 							reduceFileCachePressure: Config.ReduceFileCachePressure,
@@ -130,7 +132,8 @@ public class TFChunkDb : IAsyncDisposable
 				}
 				else
 				{
-					chunk = await TFChunk.TFChunk.FromCompletedFile(chunkInfo.ChunkFileName, verifyHash: false,
+					chunk = await TFChunk.TFChunk.FromCompletedFile(Manager.FileSystem, chunkInfo.ChunkFileName,
+						verifyHash: false,
 						unbufferedRead: Config.Unbuffered,
 						reduceFileCachePressure: Config.ReduceFileCachePressure,
 						asyncIO: Config.AsyncIO,
@@ -156,7 +159,7 @@ public class TFChunkDb : IAsyncDisposable
 		else
 		{
 			var chunkFileName = lastChunkVersions[0];
-			var chunkHeader = await ReadChunkHeader(chunkFileName, token);
+			var chunkHeader = await Manager.FileSystem.ReadHeaderAsync(chunkFileName, token);
 			var chunkLocalPos = chunkHeader.GetLocalLogPosition(checkpoint);
 			if (chunkHeader.IsScavenged)
 			{
@@ -177,7 +180,8 @@ public class TFChunkDb : IAsyncDisposable
 						$"Writer checkpoint: {checkpoint}."));
 				}
 
-				var lastChunk = await TFChunk.TFChunk.FromCompletedFile(chunkFileName, verifyHash: false,
+				var lastChunk = await TFChunk.TFChunk.FromCompletedFile(Manager.FileSystem, chunkFileName,
+					verifyHash: false,
 					unbufferedRead: Config.Unbuffered,
 					reduceFileCachePressure: Config.ReduceFileCachePressure,
 					asyncIO: Config.AsyncIO,
@@ -284,46 +288,13 @@ public class TFChunkDb : IAsyncDisposable
 		}
 	}
 
-	internal static async ValueTask<ChunkHeader> ReadChunkHeader(string chunkFileName, CancellationToken token)
-	{
-		using var handle = File.OpenHandle(chunkFileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
-			FileOptions.Asynchronous);
-
-		var length = RandomAccess.GetLength(handle);
-		if (length < ChunkFooter.Size + ChunkHeader.Size)
-		{
-			throw new CorruptDatabaseException(new BadChunkInDatabaseException(
-				$"Chunk file '{chunkFileName}' is bad. It does not have enough size for header and footer. File size is {length} bytes."));
-		}
-
-		using var buffer = Memory.AllocateExactly<byte>(ChunkHeader.Size);
-		await RandomAccess.ReadAsync(handle, buffer.Memory, 0L, token);
-		return new(buffer.Span);
-	}
-
-	private static async ValueTask<ChunkFooter> ReadChunkFooter(string chunkFileName, CancellationToken token)
-	{
-		using var handle = File.OpenHandle(chunkFileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
-			FileOptions.Asynchronous);
-
-		var length = RandomAccess.GetLength(handle);
-		if (length < ChunkFooter.Size + ChunkHeader.Size)
-		{
-			throw new CorruptDatabaseException(new BadChunkInDatabaseException(
-				$"Chunk file '{chunkFileName}' is bad. It does not have enough size for header and footer. File size is {length} bytes."));
-		}
-
-		using var buffer = Memory.AllocateExactly<byte>(ChunkFooter.Size);
-		await RandomAccess.ReadAsync(handle, buffer.Memory, length - ChunkFooter.Size, token);
-		return new(buffer.Span);
-	}
-
-	private async ValueTask EnsureNoExcessiveChunks(TFChunkEnumerator chunkEnumerator, int lastChunkNum,
+	private async ValueTask EnsureNoExcessiveChunks(IChunkEnumerator chunkEnumerator, int lastChunkNum,
 		CancellationToken token)
 	{
 		var extraneousFiles = new List<string>();
 
-		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token: token))
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token)
+			               .WithCancellation(token))
 		{
 			switch (chunkInfo)
 			{
@@ -351,10 +322,11 @@ public class TFChunkDb : IAsyncDisposable
 		}
 	}
 
-	private async ValueTask RemoveOldChunksVersions(TFChunkEnumerator chunkEnumerator, int lastChunkNum,
+	private async ValueTask RemoveOldChunksVersions(IChunkEnumerator chunkEnumerator, int lastChunkNum,
 		CancellationToken token)
 	{
-		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token: token))
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token)
+			               .WithCancellation(token))
 		{
 			switch (chunkInfo)
 			{
