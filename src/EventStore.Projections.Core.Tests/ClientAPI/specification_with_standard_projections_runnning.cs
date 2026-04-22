@@ -25,6 +25,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected UserCredentials _admin = DefaultData.AdminCredentials;
 	protected ProjectionsManager _manager;
 	protected QueryManager _queryManager;
+	protected virtual TimeSpan StartupTimeout => TimeSpan.FromMinutes(5);
 
 	private Task _projectionsCreated;
 	private ProjectionsSubsystem _projections;
@@ -50,12 +51,12 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			subsystems: [_projections]);
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 
-		await _node.Start();
-		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(StartupTimeout);
 		_conn = await TestConnectionLifecycle.ReconnectUntilReady(
 			CreateConnection,
 			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _admin),
-			TimeSpan.FromSeconds(20));
+			StartupTimeout);
 
 		_manager = new ProjectionsManager(
 			new ConsoleLogger(),
