@@ -291,18 +291,10 @@ public class TFChunkDb : IAsyncDisposable
 
 	internal static async ValueTask<ChunkHeader> ReadChunkHeader(string chunkFileName, CancellationToken token)
 	{
-		using var handle = File.OpenHandle(chunkFileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
-			FileOptions.Asynchronous);
-
-		var length = RandomAccess.GetLength(handle);
-		if (length < ChunkFooter.Size + ChunkHeader.Size)
-		{
-			throw new CorruptDatabaseException(new BadChunkInDatabaseException(
-				$"Chunk file '{chunkFileName}' is bad. It does not have enough size for header and footer. File size is {length} bytes."));
-		}
+		using var handle = ChunkFileReadHelper.OpenValidatedMetadataReadHandle(chunkFileName, out _);
 
 		using var buffer = Memory.AllocateExactly<byte>(ChunkHeader.Size);
-		await RandomAccess.ReadAsync(handle, buffer.Memory, 0L, token);
+		await ChunkFileReadHelper.ReadExactlyAsync(handle, buffer.Memory, 0L, chunkFileName, token);
 		return new(buffer.Span);
 	}
 
