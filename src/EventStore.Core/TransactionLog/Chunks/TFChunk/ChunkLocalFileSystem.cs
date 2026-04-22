@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,8 +56,7 @@ public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStra
 		return new(buffer.Span);
 	}
 
-	public IAsyncEnumerable<TFChunkInfo> EnumerateChunks(int lastChunkNumber, CancellationToken token) =>
-		new TFChunkEnumerator(NamingStrategy).EnumerateChunks(lastChunkNumber, token: token);
+	public IChunkEnumerator CreateChunkEnumerator() => new TFChunkEnumerator(NamingStrategy);
 
 	private static SafeFileHandle OpenValidatedReadHandle(string fileName, out long length)
 	{

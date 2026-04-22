@@ -46,12 +46,13 @@ public class TFChunkDbTruncator
 		if (excessiveChunks.Length > 0)
 			throw new Exception(
 				$"During truncation of DB excessive TFChunks were found:\n{string.Join("\n", excessiveChunks)}.");
+		var chunkEnumerator = _config.ChunkFileSystem.CreateChunkEnumerator();
 
 		ChunkHeader newLastChunkHeader = null;
 		string newLastChunkFilename = null;
 
 		// find the chunk to truncate to
-		await foreach (var chunkInfo in _config.ChunkFileSystem.EnumerateChunks(oldLastChunkNum, token)
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(oldLastChunkNum, token)
 			               .WithCancellation(token))
 		{
 			switch (chunkInfo)
@@ -86,7 +87,7 @@ public class TFChunkDbTruncator
 				chunkNumToDeleteFrom--;
 			}
 
-			await foreach (var chunkInfo in _config.ChunkFileSystem.EnumerateChunks(oldLastChunkNum, token)
+			await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(oldLastChunkNum, token)
 				               .WithCancellation(token))
 			{
 				switch (chunkInfo)

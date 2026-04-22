@@ -9,10 +9,13 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
-public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrategy)
+public class TFChunkEnumerator(IVersionedFileNamingStrategy chunkFileNamingStrategy) : IChunkEnumerator
 {
 	private string[] _allFiles = null;
 	private readonly Dictionary<string, int> _nextChunkNumber = new();
+
+	public IAsyncEnumerable<TFChunkInfo> EnumerateChunks(int lastChunkNumber, CancellationToken token) =>
+		EnumerateChunks(lastChunkNumber, getNextChunkNumber: null, token);
 
 	public async IAsyncEnumerable<TFChunkInfo> EnumerateChunks(int lastChunkNumber,
 		Func<string, int, int, CancellationToken, ValueTask<int>> getNextChunkNumber = null,

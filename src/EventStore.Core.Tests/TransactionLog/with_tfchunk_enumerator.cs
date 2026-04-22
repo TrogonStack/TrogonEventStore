@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 using NUnit.Framework;
 
@@ -12,6 +13,27 @@ namespace EventStore.Core.Tests.TransactionLog;
 [TestFixture]
 public class with_tfchunk_enumerator : SpecificationWithDirectory
 {
+	private sealed class CountingNamingStrategy(IVersionedFileNamingStrategy inner) : IVersionedFileNamingStrategy
+	{
+		public int GetAllPresentFilesCalls { get; private set; }
+
+		public string GetFilenameFor(int index, int version) => inner.GetFilenameFor(index, version);
+		public string DetermineBestVersionFilenameFor(int index, int initialVersion) =>
+			inner.DetermineBestVersionFilenameFor(index, initialVersion);
+		public string[] GetAllVersionsFor(int index) => inner.GetAllVersionsFor(index);
+
+		public string[] GetAllPresentFiles()
+		{
+			GetAllPresentFilesCalls++;
+			return inner.GetAllPresentFiles();
+		}
+
+		public string GetTempFilename() => inner.GetTempFilename();
+		public string[] GetAllTempFiles() => inner.GetAllTempFiles();
+		public int GetIndexFor(string fileName) => inner.GetIndexFor(fileName);
+		public int GetVersionFor(string fileName) => inner.GetVersionFor(fileName);
+		public string GetPrefixFor(int? index, int? version) => inner.GetPrefixFor(index, version);
+	}
 
 	[Test]
 	public async Task iterates_chunks_with_correct_callback_order()
@@ -89,5 +111,31 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 			"missing chunk-000016.000000 16"
 		};
 		Assert.AreEqual(expectedResult, result);
+	}
+
+	[Test]
+	public async Task reuses_directory_listing_cache_within_the_same_enumerator_session()
+	{
+		File.Create(GetFilePathFor("chunk-000001.000000")).Close();
+		File.Create(GetFilePathFor("chunk-000002.000000")).Close();
+
+		var strategy = new CountingNamingStrategy(new VersionedPatternFileNamingStrategy(PathName, "chunk-"));
+		var chunkFileSystem = new ChunkLocalFileSystem(strategy);
+		var chunkEnumerator = chunkFileSystem.CreateChunkEnumerator();
+
+		var firstPass = new List<TFChunkInfo>();
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(2, CancellationToken.None))
+		{
+			firstPass.Add(chunkInfo);
+		}
+
+		var secondPass = new List<TFChunkInfo>();
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(2, CancellationToken.None))
+		{
+			secondPass.Add(chunkInfo);
+		}
+
+		Assert.That(strategy.GetAllPresentFilesCalls, Is.EqualTo(1));
+		Assert.That(secondPass, Is.EqualTo(firstPass));
 	}
 }

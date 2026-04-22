@@ -51,10 +51,10 @@ public class TFChunkDb : IAsyncDisposable
 		public string ChunkFileName;
 	}
 
-	private async IAsyncEnumerable<ChunkInfo> GetAllLatestChunksExceptLast(int lastChunkNum,
+	private async IAsyncEnumerable<ChunkInfo> GetAllLatestChunksExceptLast(IChunkEnumerator chunkEnumerator, int lastChunkNum,
 		[EnumeratorCancellation] CancellationToken token)
 	{
-		await foreach (var chunkInfo in Manager.FileSystem.EnumerateChunks(lastChunkNum, token)
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token)
 			               .WithCancellation(token))
 		{
 			switch (chunkInfo)
@@ -90,10 +90,11 @@ public class TFChunkDb : IAsyncDisposable
 		}
 
 		var lastChunkNum = (int)(checkpoint / Config.ChunkSize);
+		var chunkEnumerator = Manager.FileSystem.CreateChunkEnumerator();
 		var lastChunkVersions = Manager.FileSystem.NamingStrategy.GetAllVersionsFor(lastChunkNum);
 
 		await Parallel.ForEachAsync(
-			GetAllLatestChunksExceptLast(lastChunkNum,
+			GetAllLatestChunksExceptLast(chunkEnumerator, lastChunkNum,
 				token), // the last chunk is dealt with separately
 			new ParallelOptions { MaxDegreeOfParallelism = threads, CancellationToken = token },
 			async (chunkInfo, token) =>
@@ -225,13 +226,13 @@ public class TFChunkDb : IAsyncDisposable
 		}
 
 		_log.Information("Ensuring no excessive chunks...");
-		await EnsureNoExcessiveChunks(lastChunkNum, token);
+			await EnsureNoExcessiveChunks(chunkEnumerator, lastChunkNum, token);
 		_log.Information("Done ensuring no excessive chunks.");
 
 		if (!readOnly)
 		{
 			_log.Information("Removing old chunk versions...");
-			await RemoveOldChunksVersions(lastChunkNum, token);
+				await RemoveOldChunksVersions(chunkEnumerator, lastChunkNum, token);
 			_log.Information("Done removing old chunk versions.");
 
 			_log.Information("Cleaning up temp files...");
@@ -322,12 +323,12 @@ public class TFChunkDb : IAsyncDisposable
 		return new(buffer.Span);
 	}
 
-	private async ValueTask EnsureNoExcessiveChunks(int lastChunkNum,
+	private async ValueTask EnsureNoExcessiveChunks(IChunkEnumerator chunkEnumerator, int lastChunkNum,
 		CancellationToken token)
 	{
 		var extraneousFiles = new List<string>();
 
-		await foreach (var chunkInfo in Manager.FileSystem.EnumerateChunks(lastChunkNum, token)
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token)
 			               .WithCancellation(token))
 		{
 			switch (chunkInfo)
@@ -356,10 +357,10 @@ public class TFChunkDb : IAsyncDisposable
 		}
 	}
 
-	private async ValueTask RemoveOldChunksVersions(int lastChunkNum,
+	private async ValueTask RemoveOldChunksVersions(IChunkEnumerator chunkEnumerator, int lastChunkNum,
 		CancellationToken token)
 	{
-		await foreach (var chunkInfo in Manager.FileSystem.EnumerateChunks(lastChunkNum, token)
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(lastChunkNum, token)
 			               .WithCancellation(token))
 		{
 			switch (chunkInfo)

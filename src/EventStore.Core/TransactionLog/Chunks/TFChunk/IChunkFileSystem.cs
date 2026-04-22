@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
@@ -17,5 +16,5 @@ public interface IChunkFileSystem
 
 	ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token);
 
-	IAsyncEnumerable<TFChunkInfo> EnumerateChunks(int lastChunkNumber, CancellationToken token);
+	IChunkEnumerator CreateChunkEnumerator();
 }
