@@ -188,6 +188,43 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	}
 
 	[Test]
+	public async Task a_dedicated_raw_reader_on_completed_chunk_propagates_open_cancellation()
+	{
+		var openStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var fileSystem = new BlockingBulkReaderOpenChunkFileSystem(
+			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")),
+			openStarted);
+		var chunk = await TFChunk.CreateNew(
+			fileSystem: fileSystem,
+			filename: GetFilePathFor("file1"),
+			chunkDataSize: 2000,
+			chunkStartNumber: 0,
+			chunkEndNumber: 0,
+			isScavenged: false,
+			inMem: false,
+			unbuffered: false,
+			writethrough: false,
+			reduceFileCachePressure: false,
+			asyncIO: false,
+			tracker: new TFChunkTracker.NoOp(),
+			transformFactory: new WithHeaderChunkTransformFactory(),
+			token: CancellationToken.None);
+		await chunk.Complete(CancellationToken.None);
+		chunk.UnCacheFromMemory();
+		fileSystem.BlockSequentialScanOpens = true;
+
+		using var cancellationTokenSource = new CancellationTokenSource();
+		var acquireTask = chunk.AcquireRawReader(cancellationTokenSource.Token).AsTask();
+		await openStarted.Task;
+		cancellationTokenSource.Cancel();
+
+		Assert.That(async () => await acquireTask, Throws.InstanceOf<OperationCanceledException>());
+
+		chunk.MarkForDeletion();
+		chunk.WaitForDestroy(5000);
+	}
+
+	[Test]
 	public async Task a_dedicated_raw_reader_on_completed_in_memory_chunk_can_fall_back_without_a_file()
 	{
 		var chunk = await TFChunk.CreateNew(
@@ -245,6 +282,35 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			}
 
 			return handle;
+		}
+
+		public ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token) =>
+			inner.ReadHeaderAsync(fileName, token);
+
+		public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
+			inner.ReadFooterAsync(fileName, token);
+
+		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
+	}
+
+	private sealed class BlockingBulkReaderOpenChunkFileSystem(
+		IChunkFileSystem inner,
+		TaskCompletionSource openStarted) : IChunkFileSystem
+	{
+		public bool BlockSequentialScanOpens { get; set; }
+
+		public IVersionedFileNamingStrategy NamingStrategy => inner.NamingStrategy;
+
+		public async ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
+			bool asyncIO, CancellationToken token)
+		{
+			if (BlockSequentialScanOpens && readOptimizationHint == ReadOptimizationHint.SequentialScan)
+			{
+				openStarted.TrySetResult();
+				await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, token);
+			}
+
+			return await inner.OpenForReadAsync(fileName, readOptimizationHint, asyncIO, token);
 		}
 
 		public ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token) =>

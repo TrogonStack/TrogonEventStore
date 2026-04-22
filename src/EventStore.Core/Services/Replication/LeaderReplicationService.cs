@@ -288,7 +288,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 			var epochCorrectedLogPos =
 				await GetValidLogPosition(logPosition, epochs, replica.ReplicaEndPoint, replica.SubscriptionId, token);
 			var subscriptionPos = await SetSubscriptionPosition(replica, epochCorrectedLogPos, chunkId,
-				replicationStart: true, verbose: true, trial: 0);
+				replicationStart: true, verbose: true, trial: 0, token);
 			Interlocked.Exchange(ref replica.AckedLogPosition, subscriptionPos);
 
 			if (subscriptionPos != logPosition)
@@ -408,7 +408,8 @@ public class LeaderReplicationService : IMonitoredQueue,
 		Guid chunkId,
 		bool replicationStart,
 		bool verbose,
-		int trial)
+		int trial,
+		CancellationToken token)
 	{
 		if (trial >= 10)
 			throw new Exception("Too many retrials to acquire reader for subscriber.");
@@ -420,7 +421,9 @@ public class LeaderReplicationService : IMonitoredQueue,
 				"Chunk for LogPosition {0} (0x{0:X}) is null in LeaderReplicationService! Replica: [{1},C:{2},S:{3}]",
 				logPosition, sub.ReplicaEndPoint, sub.ConnectionId, sub.SubscriptionId));
 			var rawSend = chunk.ChunkHeader.IsScavenged;
-			var bulkReader = rawSend ? await chunk.AcquireRawReader() : await chunk.AcquireDataReader();
+			var bulkReader = rawSend
+				? await chunk.AcquireRawReader(token)
+				: await chunk.AcquireDataReader(token);
 			if (rawSend)
 			{
 				var chunkStartPos = chunk.ChunkHeader.ChunkStartPosition;
@@ -486,7 +489,8 @@ public class LeaderReplicationService : IMonitoredQueue,
 		}
 		catch (FileBeingDeletedException)
 		{
-			return await SetSubscriptionPosition(sub, logPosition, chunkId, replicationStart, verbose, trial + 1);
+			return await SetSubscriptionPosition(sub, logPosition, chunkId, replicationStart, verbose, trial + 1,
+				token);
 		}
 	}
 
@@ -749,7 +753,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 			{
 				dataFound = true;
 				await SetSubscriptionPosition(subscription, newLogPosition, Guid.Empty, replicationStart: false,
-					verbose: true, trial: 0);
+					verbose: true, trial: 0, token);
 			}
 		}
 

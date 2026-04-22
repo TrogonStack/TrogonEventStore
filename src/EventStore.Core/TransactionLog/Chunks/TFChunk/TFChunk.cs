@@ -705,7 +705,7 @@ public partial class TFChunk : IDisposable
 		}
 
 		Log.Debug("Verifying hash for TFChunk '{chunk}'...", _filename);
-		using var reader = await AcquireRawReader();
+		using var reader = await AcquireRawReader(token);
 		reader.Stream.Seek(0, SeekOrigin.Begin);
 		var stream = reader.Stream;
 		var footer = _chunkFooter;
@@ -809,7 +809,7 @@ public partial class TFChunk : IDisposable
 					// it's not necessary as the cache is used only for reading data.
 					await BuildCacheArray(
 						size: GetAlignedSize(ChunkHeader.Size + _chunkHeader.ChunkSize + ChunkFooter.Size),
-						reader: await AcquireFileReader(raw: false),
+						reader: await AcquireFileReader(raw: false, token),
 						offset: ChunkHeader.Size,
 						count: _physicalDataSize,
 						transformed: false,
@@ -817,7 +817,7 @@ public partial class TFChunk : IDisposable
 				else
 					await BuildCacheArray(
 						size: _fileSize,
-						reader: await AcquireFileReader(raw: true),
+						reader: await AcquireFileReader(raw: true, token),
 						offset: 0,
 						count: _fileSize,
 						transformed: true,
@@ -1491,24 +1491,25 @@ public partial class TFChunk : IDisposable
 		}
 	}
 
-	public ValueTask<TFChunkBulkReader> AcquireDataReader()
+	public ValueTask<TFChunkBulkReader> AcquireDataReader(CancellationToken token = default)
 	{
 		if (TryAcquireBulkMemReader(raw: false, out var reader))
 			return ValueTask.FromResult(reader);
 
-		return AcquireFileReader(raw: false);
+		return AcquireFileReader(raw: false, token);
 	}
 
-	public ValueTask<TFChunkBulkReader> AcquireRawReader()
+	public ValueTask<TFChunkBulkReader> AcquireRawReader(CancellationToken token = default)
 	{
 		if (TryAcquireBulkMemReader(raw: true, out var reader))
 			return ValueTask.FromResult(reader);
 
-		return AcquireFileReader(raw: true);
+		return AcquireFileReader(raw: true, token);
 	}
 
-	private async ValueTask<TFChunkBulkReader> AcquireFileReader(bool raw)
+	private async ValueTask<TFChunkBulkReader> AcquireFileReader(bool raw, CancellationToken token)
 	{
+		token.ThrowIfCancellationRequested();
 		Interlocked.Increment(ref _fileStreamCount);
 		if (_selfdestructin54321)
 		{
@@ -1524,7 +1525,7 @@ public partial class TFChunk : IDisposable
 		// until client returns dedicated reader
 		try
 		{
-			var stream = await CreateFileStreamForBulkReader();
+			var stream = await CreateFileStreamForBulkReader(token);
 
 			if (raw)
 			{
@@ -1542,18 +1543,19 @@ public partial class TFChunk : IDisposable
 		}
 	}
 
-	private unsafe ValueTask<Stream> CreateFileStreamForBulkReader()
+	private unsafe ValueTask<Stream> CreateFileStreamForBulkReader(CancellationToken token)
 	{
 		if (_inMem)
 			return ValueTask.FromResult<Stream>(new UnmanagedMemoryStream((byte*)_cachedData, _fileSize));
 
-		return CreateOwnedReadStreamForBulkReader();
+		return CreateOwnedReadStreamForBulkReader(token);
 	}
 
-	private async ValueTask<Stream> CreateOwnedReadStreamForBulkReader()
+	private async ValueTask<Stream> CreateOwnedReadStreamForBulkReader(CancellationToken token)
 	{
+		token.ThrowIfCancellationRequested();
 		var handle = await _fileSystem.OpenForReadAsync(_filename, ReadOptimizationHint.SequentialScan, _asyncIO,
-			CancellationToken.None);
+			token);
 		try
 		{
 			return handle.CreateStream(leaveOpen: false);
