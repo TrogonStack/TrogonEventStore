@@ -24,6 +24,7 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 	public S3Reader(S3Options options, Func<int?, int?, string> getChunkPrefix, string archiveCheckpointFile) : base(
 		archiveCheckpointFile)
 	{
+		AwsTraceLogging.Configure();
 		_options = options;
 		_getChunkPrefix = getChunkPrefix;
 
