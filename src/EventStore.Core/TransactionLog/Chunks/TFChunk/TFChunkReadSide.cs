@@ -223,9 +223,9 @@ public partial class TFChunk
 				return [];
 
 			var posMapSize = Chunk.ChunkFooter.IsMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
-			var posMapsBuffer = Memory.AllocateAtLeast<byte>(checked(Chunk.ChunkFooter.MapSize));
 			try
 			{
+				using var posMapsBuffer = Memory.AllocateAtLeast<byte>(checked(Chunk.ChunkFooter.MapSize));
 				int midPointsCnt = 1 << depth;
 				int segmentSize;
 				Midpoint[] midpoints;
@@ -267,10 +267,6 @@ public partial class TFChunk
 			catch (OutOfMemoryException)
 			{
 				return null;
-			}
-			finally
-			{
-				posMapsBuffer.Dispose();
 			}
 		}
 
