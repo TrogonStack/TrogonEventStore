@@ -226,13 +226,13 @@ public class TFChunkDb : IAsyncDisposable
 		}
 
 		_log.Information("Ensuring no excessive chunks...");
-			await EnsureNoExcessiveChunks(chunkEnumerator, lastChunkNum, token);
+		await EnsureNoExcessiveChunks(chunkEnumerator, lastChunkNum, token);
 		_log.Information("Done ensuring no excessive chunks.");
 
 		if (!readOnly)
 		{
 			_log.Information("Removing old chunk versions...");
-				await RemoveOldChunksVersions(chunkEnumerator, lastChunkNum, token);
+			await RemoveOldChunksVersions(chunkEnumerator, lastChunkNum, token);
 			_log.Information("Done removing old chunk versions.");
 
 			_log.Information("Cleaning up temp files...");
