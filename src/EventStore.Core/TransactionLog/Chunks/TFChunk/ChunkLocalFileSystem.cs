@@ -13,14 +13,21 @@ public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStra
 	public IVersionedFileNamingStrategy NamingStrategy { get; } =
 		namingStrategy ?? throw new ArgumentNullException(nameof(namingStrategy));
 
-	public ValueTask<IChunkHandle> OpenForReadAsync(string fileName, bool reduceFileCachePressure, bool asyncIO,
+	public ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
+		bool asyncIO,
 		CancellationToken token)
 	{
 		token.ThrowIfCancellationRequested();
 
 		try
 		{
-			var options = reduceFileCachePressure ? FileOptions.None : FileOptions.RandomAccess;
+			var options = readOptimizationHint switch
+			{
+				ReadOptimizationHint.None => FileOptions.None,
+				ReadOptimizationHint.RandomAccess => FileOptions.RandomAccess,
+				ReadOptimizationHint.SequentialScan => FileOptions.SequentialScan,
+				_ => throw new ArgumentOutOfRangeException(nameof(readOptimizationHint), readOptimizationHint, null)
+			};
 			if (asyncIO)
 				options |= FileOptions.Asynchronous;
 

@@ -93,7 +93,7 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 
 		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) => ValueTask.CompletedTask;
 
-		public Stream CreateStream() {
+		public Stream CreateStream(bool leaveOpen = true) {
 			StreamRequests++;
 			throw new AssertionException("Remote hash verification should not acquire a stream.");
 		}

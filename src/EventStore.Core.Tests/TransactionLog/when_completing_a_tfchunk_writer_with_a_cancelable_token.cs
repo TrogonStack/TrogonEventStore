@@ -46,7 +46,8 @@ public class when_completing_a_tfchunk_writer_with_a_cancelable_token : Specific
 	public async Task complete_chunk_flushes_the_writer_checkpoint_even_if_cancellation_arrives_after_completion()
 	{
 		using var cancellationTokenSource = new CancellationTokenSource();
-		_chunk = await TFChunk.CreateNew(GetFilePathFor("chunk-000000.000000"), 4096, 0, 0,
+		_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("chunk-000000.000000")),
+			GetFilePathFor("chunk-000000.000000"), 4096, 0, 0,
 			isScavenged: false, inMem: false, unbuffered: false,
 			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new CancelDuringCompletionTransformFactory(cancellationTokenSource),

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EventStore.Core.Data.Redaction;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Core.Transforms.Identity;
 using EventStore.Plugins.Transforms;
 using NUnit.Framework;
@@ -151,7 +152,9 @@ public class SwitchChunkFailureTests<TLogFormat, TStreamId> : SwitchChunkTests<T
 
 		newChunk = $"{nameof(cannot_switch_with_chunk_having_mismatched_range)}-chunk-0-2.tmp";
 		var chunkHeader = new ChunkHeader(1, 1, 1024, 0, 2, true, Guid.NewGuid(), TransformType.Identity);
-		var chunk = await TFChunk.CreateWithHeader(Path.Combine(PathName, newChunk), chunkHeader, 1024, false, false,
+		var chunk = await TFChunk.CreateWithHeader(
+			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")),
+			Path.Combine(PathName, newChunk), chunkHeader, 1024, false, false,
 			false, false, false,
 			new TFChunkTracker.NoOp(), new IdentityChunkTransformFactory(), ReadOnlyMemory<byte>.Empty,
 			CancellationToken.None);

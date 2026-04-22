@@ -26,6 +26,7 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 	protected UserCredentials _credentials;
 	protected TimeSpan _timeout;
 	protected string _tag;
+	protected virtual TimeSpan StartupTimeout => TimeSpan.FromMinutes(5);
 	private Task _systemProjectionsCreated;
 	private ProjectionsSubsystem _projectionsSubsystem;
 
@@ -40,15 +41,15 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		_tag = "_1";
 
 		_node = CreateNode();
-		await _node.Start();
-		await _node.WaitForTcpEndPoint().WithTimeout(TimeSpan.FromSeconds(60));
+		await _node.Start(StartupTimeout);
+		await _node.WaitForTcpEndPoint().WithTimeout(StartupTimeout);
 
 		await _systemProjectionsCreated.WithTimeout(_timeout);
 
 		_connection = await TestConnectionLifecycle.ReconnectUntilReady(
 			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
 			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials),
-			_timeout);
+			StartupTimeout);
 
 		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try

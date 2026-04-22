@@ -15,7 +15,7 @@ public class when_unlocking_a_tfchunk_that_has_been_marked_for_deletion : Specif
 	{
 		await base.SetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
-		var reader = _chunk.AcquireRawReader();
+		var reader = await _chunk.AcquireRawReader();
 		_chunk.MarkForDeletion();
 		reader.Release();
 	}

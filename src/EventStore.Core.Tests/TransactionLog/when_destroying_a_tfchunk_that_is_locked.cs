@@ -20,7 +20,7 @@ public class when_destroying_a_tfchunk_that_is_locked : SpecificationWithFile
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
 		await _chunk.Complete(CancellationToken.None);
 		_chunk.UnCacheFromMemory();
-		_reader = _chunk.AcquireRawReader();
+		_reader = await _chunk.AcquireRawReader();
 		_chunk.MarkForDeletion();
 	}
 

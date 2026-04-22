@@ -80,6 +80,7 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 	private async Task CreateChunk(bool asyncIO)
 	{
 		_chunk = await TFChunk.CreateNew(
+			fileSystem: TFChunkHelper.CreateLocalFileSystem(Filename),
 			filename: Filename,
 			chunkDataSize: 4096,
 			chunkStartNumber: 0,

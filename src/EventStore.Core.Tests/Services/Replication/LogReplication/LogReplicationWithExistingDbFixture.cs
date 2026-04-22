@@ -48,6 +48,7 @@ public abstract class
 			transformType: TransformType.Identity);
 
 		var chunk = await TFChunk.CreateWithHeader(
+			fileSystem: db.Config.ChunkFileSystem,
 			filename: filename,
 			header: header,
 			fileSize: TFChunk.GetAlignedSize(db.Config.ChunkSize + ChunkHeader.Size + ChunkFooter.Size),
