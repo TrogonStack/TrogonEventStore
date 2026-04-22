@@ -80,7 +80,7 @@ public class ArchiverService :
 		if (!message.ChunkInfo.IsCompleted)
 			return;
 
-		_existingChunks[Path.GetFileName(message.ChunkInfo.ChunkFileName)!] = message.ChunkInfo;
+		_existingChunks[Path.GetFileName(message.ChunkInfo.ChunkLocator)!] = message.ChunkInfo;
 	}
 
 	public void Handle(SystemMessage.ChunkCompleted message)
@@ -165,7 +165,7 @@ public class ArchiverService :
 	{
 		var writeResult = _archiveChunkCommands.Writer.TryWrite(new Commands.ArchiveChunk
 		{
-			ChunkPath = chunkInfo.ChunkFileName,
+			ChunkPath = chunkInfo.ChunkLocator,
 			ChunkStartNumber = chunkInfo.ChunkStartNumber,
 			ChunkEndNumber = chunkInfo.ChunkEndNumber,
 			ChunkEndPosition = chunkInfo.ChunkEndPosition
@@ -174,7 +174,7 @@ public class ArchiverService :
 		Debug.Assert(writeResult); // writes should never fail as the channel's length is unbounded
 
 		Log.Information("Scheduled archiving of {chunkFile} ({chunkType})",
-			Path.GetFileName(chunkInfo.ChunkFileName), chunkType);
+			Path.GetFileName(chunkInfo.ChunkLocator), chunkType);
 	}
 
 	private async Task ArchiveChunks(CancellationToken ct)
