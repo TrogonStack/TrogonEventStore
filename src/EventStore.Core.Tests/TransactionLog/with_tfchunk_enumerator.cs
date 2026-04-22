@@ -32,7 +32,14 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 		public string[] GetAllTempFiles() => inner.GetAllTempFiles();
 		public int GetIndexFor(string fileName) => inner.GetIndexFor(fileName);
 		public int GetVersionFor(string fileName) => inner.GetVersionFor(fileName);
-		public string GetPrefixFor(int? index, int? version) => inner.GetPrefixFor(index, version);
+			public string GetPrefixFor(int? index, int? version) => inner.GetPrefixFor(index, version);
+		}
+
+	[Test]
+	public void throws_argumentnullexception_when_constructed_with_null_naming_strategy()
+	{
+		var ex = Assert.Throws<ArgumentNullException>(() => new ChunkLocalFileSystem(null));
+		Assert.That(ex.ParamName, Is.EqualTo("namingStrategy"));
 	}
 
 	[Test]

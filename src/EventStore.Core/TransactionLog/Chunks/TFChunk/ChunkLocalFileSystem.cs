@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +11,8 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
 public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStrategy) : IChunkFileSystem
 {
-	public IVersionedFileNamingStrategy NamingStrategy { get; } = namingStrategy;
+	public IVersionedFileNamingStrategy NamingStrategy { get; } =
+		namingStrategy ?? throw new ArgumentNullException(nameof(namingStrategy));
 
 	public ValueTask<IChunkHandle> OpenForReadAsync(string fileName, bool reduceFileCachePressure, bool asyncIO,
 		CancellationToken token)
