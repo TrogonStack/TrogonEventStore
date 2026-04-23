@@ -56,7 +56,7 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 		}
 		catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey" || ex.StatusCode == HttpStatusCode.NotFound)
 		{
-			throw new ChunkDeletedException();
+			throw new ChunkDeletedException(ex);
 		}
 	}
 
@@ -85,13 +85,13 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 			var response = await client.GetObjectAsync(request, ct);
 			return response.ResponseStream;
 		}
-		catch (AmazonS3Exception ex)
+		catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey" || ex.StatusCode == HttpStatusCode.NotFound)
 		{
-			if (ex.ErrorCode == "NoSuchKey")
-				throw new ChunkDeletedException();
-			if (ex.ErrorCode == "InvalidRange")
-				return Stream.Null;
-			throw;
+			throw new ChunkDeletedException(ex);
+		}
+		catch (AmazonS3Exception ex) when (ex.ErrorCode == "InvalidRange")
+		{
+			return Stream.Null;
 		}
 	}
 
