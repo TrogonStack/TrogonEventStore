@@ -270,8 +270,29 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	{
 		var filter = Filter.ExcludeSystemEvents;
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
-		var appeared = new CountdownEvent(20);
-		var subscription = Subscribe(filter, foundEvents, appeared);
+		using var appeared = new ManualResetEventSlim();
+		const int requiredEvents = 20;
+		var foundEventsCount = 0;
+		var subscription = _conn.FilteredSubscribeToAllFrom(
+			Position.Start,
+			filter,
+			CatchUpSubscriptionFilteredSettings.Default,
+			(s, e) =>
+			{
+				foundEvents.Add(e);
+				if (Interlocked.Increment(ref foundEventsCount) >= requiredEvents)
+				{
+					appeared.Set();
+				}
+
+				return Task.CompletedTask;
+			},
+			(s, p) => Task.CompletedTask, 5,
+			s =>
+			{
+				_conn.AppendToStreamAsync("stream-a", ExpectedVersion.Any, _testEventsAfter.EvenEvents()).Wait();
+				_conn.AppendToStreamAsync("stream-b", ExpectedVersion.Any, _testEventsAfter.OddEvents()).Wait();
+			});
 		try
 		{
 			if (!appeared.Wait(Timeout))
