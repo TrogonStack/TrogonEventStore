@@ -103,9 +103,15 @@ public class TestFixtureWithProjectionSubsystem
 	[OneTimeTearDown]
 	public async Task TearDown()
 	{
-		_standardComponents.TimerService.Dispose();
-		if (_dbPath is not null)
-			await DirectoryDeleter.TryForceDeleteDirectoryAsync(_dbPath, retries: 10);
+		try
+		{
+			_standardComponents?.TimerService.Dispose();
+		}
+		finally
+		{
+			if (_dbPath is not null)
+				await DirectoryDeleter.TryForceDeleteDirectoryAsync(_dbPath, retries: 10);
+		}
 	}
 
 	protected virtual void Given()
