@@ -65,6 +65,11 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 		return ValueTask.FromResult(_checkpoint);
 	}
 
+	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
+	{
+		return ValueTask.FromResult((long)(ChunkHeader.Size + _chunkSize));
+	}
+
 	private ChunkHeader CreateChunkHeader(int chunkStartNumber, int chunkEndNumber)
 	{
 		return new ChunkHeader(

@@ -72,6 +72,25 @@ public class FileSystemReader(
 		return task;
 	}
 
+	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
+	{
+		ct.ThrowIfCancellationRequested();
+
+		try
+		{
+			var chunkPath = Path.Combine(_archivePath, chunkFile);
+			return ValueTask.FromResult(new FileInfo(chunkPath).Length);
+		}
+		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+		{
+			return ValueTask.FromException<long>(new ChunkDeletedException());
+		}
+		catch (Exception e)
+		{
+			return ValueTask.FromException<long>(e);
+		}
+	}
+
 	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
 	{
 		ValueTask<Stream> task;

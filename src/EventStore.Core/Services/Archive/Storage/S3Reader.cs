@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +43,22 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 	protected override ILogger Log { get; } = Serilog.Log.ForContext<S3Reader>();
 
 	protected override IBlobStorage BlobStorage => _awsBlobStorage;
+
+	public async ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
+	{
+		try
+		{
+			var response = await _awsBlobStorage.NativeBlobClient.GetObjectMetadataAsync(
+				_options.Bucket,
+				chunkFile,
+				ct);
+			return response.ContentLength;
+		}
+		catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey" || ex.StatusCode == HttpStatusCode.NotFound)
+		{
+			throw new ChunkDeletedException();
+		}
+	}
 
 	public async ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
 	{
