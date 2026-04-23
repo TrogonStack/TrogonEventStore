@@ -69,7 +69,8 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 		newStartupTasks.Add(new ArchiveCatchup.ArchiveCatchup(
 			dbPath: standardComponents.DbConfig.Path,
 			writerCheckpoint: standardComponents.DbConfig.WriterCheckpoint,
-			replicationCheckpoint: standardComponents.DbConfig.ReplicationCheckpoint,
+			chaserCheckpoint: standardComponents.DbConfig.ChaserCheckpoint,
+			epochCheckpoint: standardComponents.DbConfig.EpochCheckpoint,
 			chunkSize: standardComponents.DbConfig.ChunkSize,
 			serviceProvider.GetRequiredService<IVersionedFileNamingStrategy>(),
 			serviceProvider.GetRequiredService<IArchiveStorageFactory>()));

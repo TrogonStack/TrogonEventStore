@@ -153,6 +153,7 @@ public class EpochManager<TStreamId> : IEpochManager
 						    ((ISystemLogRecord)rec).SystemRecordType is not SystemRecordType.Epoch)
 							continue;
 						epochPos = rec.LogPosition;
+						await SetCheckpointAsync(epochPos, token);
 						break;
 					}
 

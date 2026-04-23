@@ -127,6 +127,7 @@ public sealed class
 		Assert.That(_cache.Count == 10);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[20].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[29].EpochNumber);
+		Assert.That(_db.Config.EpochCheckpoint.Read() == _epochs[29].EpochPosition);
 
 	}
 
@@ -155,6 +156,7 @@ public sealed class
 		Assert.That(_cache.Count == 30);
 		Assert.That(_cache.First.Value.EpochNumber == _epochs[0].EpochNumber);
 		Assert.That(_cache.Last.Value.EpochNumber == _epochs[29].EpochNumber);
+		Assert.That(_db.Config.EpochCheckpoint.Read() == _epochs[29].EpochPosition);
 
 	}
 

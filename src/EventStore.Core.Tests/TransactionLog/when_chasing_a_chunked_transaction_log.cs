@@ -80,6 +80,51 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 	}
 
 	[Test]
+	public async Task open_starts_from_the_latest_chaser_checkpoint()
+	{
+		var writerchk = new InMemoryCheckpoint(0);
+		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
+		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
+		await db.Open();
+
+		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
+		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
+		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
+		var recordToWrite = LogRecord.Prepare(
+			factory: recordFactory,
+			logPosition: 0,
+			correlationId: _correlationId,
+			eventId: _eventId,
+			transactionPos: 0,
+			transactionOffset: 0,
+			eventStreamId: streamId,
+			expectedVersion: 1234,
+			timeStamp: new DateTime(2012, 12, 21),
+			flags: PrepareFlags.None,
+			eventType: eventTypeId,
+			data: new byte[] { 1, 2, 3, 4, 5 },
+			metadata: new byte[] { 7, 17 });
+		var writer = new TFChunkWriter(db);
+		writer.Open();
+		Assert.IsTrue(await writer.Write(recordToWrite, CancellationToken.None) is (true, _));
+		await writer.DisposeAsync();
+
+		var endPosition = recordToWrite.GetSizeWithLengthPrefixAndSuffix();
+		writerchk.Write(endPosition);
+		writerchk.Flush();
+
+		var chaser = new TFChunkChaser(db, writerchk, chaserchk);
+		chaserchk.Write(endPosition);
+		chaserchk.Flush();
+		chaser.Open();
+
+		Assert.IsTrue(await chaser.TryReadNext(CancellationToken.None) is { LogRecord: null });
+		Assert.AreEqual(endPosition, chaserchk.Read());
+
+		chaser.Close();
+	}
+
+	[Test]
 	public async Task try_read_returns_record_when_writerchecksum_ahead()
 	{
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;

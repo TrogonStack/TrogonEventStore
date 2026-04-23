@@ -29,7 +29,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		public string[] DbChunks { get; init; }
 		public string[] ArchiveChunks { get; init; }
 		public ICheckpoint WriterCheckpoint { get; init; }
-		public ICheckpoint ReplicationCheckpoint { get; init; }
+		public ICheckpoint ChaserCheckpoint { get; init; }
+		public ICheckpoint EpochCheckpoint { get; init; }
 	}
 
 	private Sut CreateSut(
@@ -56,11 +57,13 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			onGetChunk);
 
 		var writerCheckpoint = new InMemoryCheckpoint(dbCheckpoint.Value);
-		var replicationCheckpoint = new InMemoryCheckpoint(dbCheckpoint.Value);
+		var chaserCheckpoint = new InMemoryCheckpoint(dbCheckpoint.Value);
+		var epochCheckpoint = new InMemoryCheckpoint(123);
 		var catchup = new ArchiveCatchup(
 			dbPath: DbPath,
 			writerCheckpoint: writerCheckpoint,
-			replicationCheckpoint: replicationCheckpoint,
+			chaserCheckpoint: chaserCheckpoint,
+			epochCheckpoint: epochCheckpoint,
 			chunkSize: ChunkSize,
 			fileNamingStrategy: new CustomNamingStrategy(),
 			archiveStorageFactory: archive
@@ -73,7 +76,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 			DbChunks = dbChunks,
 			ArchiveChunks = archiveChunks,
 			WriterCheckpoint = writerCheckpoint,
-			ReplicationCheckpoint = replicationCheckpoint
+			ChaserCheckpoint = chaserCheckpoint,
+			EpochCheckpoint = epochCheckpoint
 		};
 	}
 
@@ -109,7 +113,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		Assert.Equal(0, sut.Archive.NumListings);
 		Assert.Empty(sut.Archive.ChunkGets);
 		Assert.Equal(dbCheckpoint, sut.WriterCheckpoint.Read());
-		Assert.Equal(dbCheckpoint, sut.ReplicationCheckpoint.Read());
+		Assert.Equal(dbCheckpoint, sut.ChaserCheckpoint.Read());
+		Assert.Equal(123, sut.EpochCheckpoint.Read());
 		Assert.Equal(archiveCheckpoint, await sut.Archive.GetCheckpoint(CancellationToken.None));
 	}
 
@@ -196,7 +201,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 
 		Assert.Equal(2, sut.Archive.NumListings);
 		Assert.Equal(2000L, sut.WriterCheckpoint.Read());
-		Assert.Equal(2000L, sut.ReplicationCheckpoint.Read());
+		Assert.Equal(2000L, sut.ChaserCheckpoint.Read());
+		Assert.Equal(-1, sut.EpochCheckpoint.Read());
 
 		return;
 
@@ -225,11 +231,14 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		// moves the writer checkpoint
 		Assert.Equal(archiveCheckpoint, sut.WriterCheckpoint.Read());
 
-		// moves the replication checkpoint
-		Assert.Equal(archiveCheckpoint, sut.ReplicationCheckpoint.Read());
+		// moves the chaser checkpoint
+		Assert.Equal(archiveCheckpoint, sut.ChaserCheckpoint.Read());
 
 		// doesn't move the archive checkpoint
 		Assert.Equal(archiveCheckpoint, await sut.Archive.GetCheckpoint(CancellationToken.None));
+
+		// resets the epoch checkpoint
+		Assert.Equal(-1, sut.EpochCheckpoint.Read());
 
 		// backs up the expected chunks
 		Assert.Equal(expectedChunkBackups, ListBackedUpChunks());
