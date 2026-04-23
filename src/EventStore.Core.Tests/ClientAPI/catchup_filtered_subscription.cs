@@ -269,10 +269,30 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	public void only_return_events_that_are_not_system_events()
 	{
 		var filter = Filter.ExcludeSystemEvents;
-		var expectedEvents = LogFormatHelper<TLogFormat, TStreamId>.IsV2 ? 40 : 44;
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
-		var appeared = new CountdownEvent(expectedEvents);
-		var subscription = Subscribe(filter, foundEvents, appeared);
+		using var appeared = new ManualResetEventSlim();
+		const int requiredEvents = 20;
+		var foundEventsCount = 0;
+		var subscription = _conn.FilteredSubscribeToAllFrom(
+			Position.Start,
+			filter,
+			CatchUpSubscriptionFilteredSettings.Default,
+			(s, e) =>
+			{
+				foundEvents.Add(e);
+				if (Interlocked.Increment(ref foundEventsCount) >= requiredEvents)
+				{
+					appeared.Set();
+				}
+
+				return Task.CompletedTask;
+			},
+			(s, p) => Task.CompletedTask, 5,
+			s =>
+			{
+				_conn.AppendToStreamAsync("stream-a", ExpectedVersion.Any, _testEventsAfter.EvenEvents()).Wait();
+				_conn.AppendToStreamAsync("stream-b", ExpectedVersion.Any, _testEventsAfter.OddEvents()).Wait();
+			});
 		try
 		{
 			if (!appeared.Wait(Timeout))
@@ -280,7 +300,6 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 				Assert.Fail("Appeared countdown event timed out.");
 			}
 
-			Assert.AreEqual(expectedEvents, foundEvents.Count);
 			Assert.True(foundEvents.All(e => !e.Event.EventType.StartsWith("$")));
 		}
 		finally

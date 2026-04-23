@@ -8,6 +8,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.TimerService;
 using EventStore.Core.Services.Transport.Http;
+using EventStore.Core.Tests;
 using EventStore.Core.Tests.TransactionLog;
 using EventStore.Projections.Core.Messages;
 using Microsoft.AspNetCore.Builder;
@@ -20,6 +21,7 @@ namespace EventStore.Projections.Core.Tests.Subsystem;
 public class TestFixtureWithProjectionSubsystem
 {
 	private StandardComponents _standardComponents;
+	private string _dbPath;
 
 	protected ProjectionsSubsystem Subsystem;
 	protected const int WaitTimeoutMs = 3000;
@@ -36,7 +38,9 @@ public class TestFixtureWithProjectionSubsystem
 
 	private StandardComponents CreateStandardComponents()
 	{
-		var dbConfig = TFChunkHelper.CreateDbConfig(Path.GetTempPath(), 0);
+		_dbPath = Path.Combine(Path.GetTempPath(), $"ES-Projections-{Guid.NewGuid()}");
+		Directory.CreateDirectory(_dbPath);
+		var dbConfig = TFChunkHelper.CreateDbConfig(_dbPath, 0);
 		var mainQueue = new QueuedHandlerThreadPool
 		(new AdHocHandler<Message>(msg =>
 		{
@@ -97,9 +101,17 @@ public class TestFixtureWithProjectionSubsystem
 	}
 
 	[OneTimeTearDown]
-	public void TearDown()
+	public async Task TearDown()
 	{
-		_standardComponents.TimerService.Dispose();
+		try
+		{
+			_standardComponents?.TimerService.Dispose();
+		}
+		finally
+		{
+			if (_dbPath is not null)
+				await DirectoryDeleter.TryForceDeleteDirectoryAsync(_dbPath, retries: 10);
+		}
 	}
 
 	protected virtual void Given()
