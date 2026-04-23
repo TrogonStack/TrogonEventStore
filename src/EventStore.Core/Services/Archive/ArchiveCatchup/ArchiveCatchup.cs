@@ -49,9 +49,7 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		_archiveReader = archiveStorageFactory.CreateReader();
 	}
 
-	public Task Run() => Run(CancellationToken.None);
-
-	private async Task Run(CancellationToken ct)
+	public async Task Run(CancellationToken ct = default)
 	{
 		var writerChk = _writerCheckpoint.Read();
 		var archiveChk = await GetArchiveCheckpoint(ct);
