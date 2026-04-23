@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -53,6 +54,85 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 
 		// then
 		Assert.Equal(localContent[start..end], chunkStreamContent);
+	}
+
+	[Fact]
+	public async Task can_read_chunk_subrange_without_including_the_end_position()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunkPath = CreateLocalChunk(0, 0);
+		var chunkFile = Path.GetFileName(chunkPath);
+		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
+
+		var localContent = await File.ReadAllBytesAsync(chunkPath);
+
+		var start = localContent.Length / 4;
+		var end = start + (localContent.Length / 4);
+		using var chunkStream = await sut.GetChunk(chunkFile, start, end, CancellationToken.None);
+		var chunkStreamContent = chunkStream.ToByteArray();
+
+		Assert.Equal(localContent[start..end], chunkStreamContent);
+	}
+
+	[Fact]
+	public async Task can_read_empty_range()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunkPath = CreateLocalChunk(0, 0);
+		var chunkFile = Path.GetFileName(chunkPath);
+		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
+
+		using var chunkStream = await sut.GetChunk(chunkFile, 10, 10, CancellationToken.None);
+		Assert.Empty(chunkStream.ToByteArray());
+	}
+
+	[Fact]
+	public async Task reading_beyond_the_end_returns_an_empty_stream()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunkPath = CreateLocalChunk(0, 0);
+		var chunkFile = Path.GetFileName(chunkPath);
+		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
+
+		var localContent = await File.ReadAllBytesAsync(chunkPath);
+		var start = localContent.Length + 25;
+		using var chunkStream = await sut.GetChunk(chunkFile, start, start + 50, CancellationToken.None);
+
+		Assert.Empty(chunkStream.ToByteArray());
+	}
+
+	[Fact]
+	public async Task reading_a_range_that_partially_overlaps_the_end_returns_available_bytes()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunkPath = CreateLocalChunk(0, 0);
+		var chunkFile = Path.GetFileName(chunkPath);
+		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
+
+		var localContent = await File.ReadAllBytesAsync(chunkPath);
+		var start = localContent.Length - 25;
+		using var chunkStream = await sut.GetChunk(chunkFile, start, localContent.Length + 50, CancellationToken.None);
+
+		Assert.Equal(localContent[start..], chunkStream.ToByteArray());
+	}
+
+	[Fact]
+	public async Task reading_with_a_negative_start_throws_ArgumentOutOfRangeException()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunkPath = CreateLocalChunk(0, 0);
+		var chunkFile = Path.GetFileName(chunkPath);
+		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
+
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+		{
+			using var _ = await sut.GetChunk(chunkFile, -1, 10, CancellationToken.None);
+		});
 	}
 
 	[Fact]

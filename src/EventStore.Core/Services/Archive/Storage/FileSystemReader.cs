@@ -86,7 +86,11 @@ public class FileSystemReader(
 
 	public ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
 	{
+		ArgumentOutOfRangeException.ThrowIfNegative(start);
+
 		var length = end - start;
+		if (length == 0)
+			return ValueTask.FromResult<Stream>(Stream.Null);
 
 		ValueTask<Stream> task;
 		if (length < 0)
@@ -100,8 +104,15 @@ public class FileSystemReader(
 			{
 				var chunkPath = Path.Combine(_archivePath, chunkFile);
 				var fileStream = File.Open(chunkPath, _fileStreamOptions);
+				if (start >= fileStream.Length)
+				{
+					fileStream.Dispose();
+					return ValueTask.FromResult<Stream>(Stream.Null);
+				}
+
+				var available = fileStream.Length - start;
 				var segment = new StreamSegment(fileStream, leaveOpen: false);
-				segment.Adjust(start, length);
+				segment.Adjust(start, Math.Min(length, available));
 				task = ValueTask.FromResult<Stream>(segment);
 
 			}

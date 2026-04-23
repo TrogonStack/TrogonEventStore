@@ -45,9 +45,21 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 
 	public async ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
 	{
+		ArgumentOutOfRangeException.ThrowIfNegative(start);
+
+		var length = end - start;
+		if (length < 0)
+		{
+			throw new InvalidOperationException(
+				$"Attempted to read negative amount from chunk {chunkFile}. Start: {start}. End {end}");
+		}
+
+		if (length == 0)
+			return Stream.Null;
+
 		var request = new GetObjectRequest
 		{
-			BucketName = _options.Bucket, Key = chunkFile, ByteRange = new ByteRange(start, end),
+			BucketName = _options.Bucket, Key = chunkFile, ByteRange = new ByteRange(start, end - 1),
 		};
 
 		try
@@ -60,6 +72,8 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 		{
 			if (ex.ErrorCode == "NoSuchKey")
 				throw new ChunkDeletedException();
+			if (ex.ErrorCode == "InvalidRange")
+				return Stream.Null;
 			throw;
 		}
 	}
