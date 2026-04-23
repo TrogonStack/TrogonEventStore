@@ -16,7 +16,15 @@ public class FileSystemWriter(
 {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<FileSystemWriter>();
 
-	private readonly string _archivePath = options.Path;
+	private readonly string _archivePath = ResolveArchivePath(options.Path);
+
+	private static string ResolveArchivePath(string path)
+	{
+		var fullPath = Path.GetFullPath(path);
+		Serilog.Log.ForContext<FileSystemWriter>()
+			.Information("Using file system archive storage at {archivePath}", fullPath);
+		return fullPath;
+	}
 
 	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
 	{

@@ -47,11 +47,17 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 
 		if (!ShouldDeleteForBytes(scavengePoint, physicalChunk))
 		{
+			_logger.Debug(
+				"SCAVENGING: Keeping physical chunk {physicalChunk} because it is still within the logical bytes retention window.",
+				physicalChunk.Name);
 			return false;
 		}
 
 		if (!ShouldDeleteForPeriod(scavengePoint, concurrentState, physicalChunk))
 		{
+			_logger.Debug(
+				"SCAVENGING: Keeping physical chunk {physicalChunk} because it is still within the retention period window.",
+				physicalChunk.Name);
 			return false;
 		}
 
