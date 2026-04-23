@@ -12,9 +12,10 @@ internal static class ChunkFileReadHelper
 {
 	public static SafeFileHandle OpenValidatedMetadataReadHandle(string fileName, out long length)
 	{
+		SafeFileHandle handle = null;
 		try
 		{
-			var handle = File.OpenHandle(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
+			handle = File.OpenHandle(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
 				FileOptions.Asynchronous);
 			length = RandomAccess.GetLength(handle);
 			ValidateMetadataLength(length, fileName);
@@ -22,8 +23,14 @@ internal static class ChunkFileReadHelper
 		}
 		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
 		{
+			handle?.Dispose();
 			length = 0;
 			throw new CorruptDatabaseException(new ChunkNotFoundException(fileName));
+		}
+		catch
+		{
+			handle?.Dispose();
+			throw;
 		}
 	}
 

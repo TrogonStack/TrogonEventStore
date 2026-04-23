@@ -49,4 +49,17 @@ public class WhenOpeningTfchunkFromNonExistingFile : SpecificationWithFile
 
 		Assert.That(ex?.InnerException, Is.TypeOf<ChunkNotFoundException>());
 	}
+
+	[Test]
+	public void it_should_throw_when_metadata_file_is_too_small()
+	{
+		File.WriteAllBytes(Filename, new byte[ChunkHeader.Size]);
+		var fileSystem = new ChunkLocalFileSystem(
+			new VersionedPatternFileNamingStrategy(Path.GetDirectoryName(Filename)!, "chunk-"));
+
+		var ex = Assert.ThrowsAsync<CorruptDatabaseException>(async () =>
+			await fileSystem.ReadHeaderAsync(Filename, CancellationToken.None));
+
+		Assert.That(ex?.InnerException, Is.TypeOf<BadChunkInDatabaseException>());
+	}
 }
