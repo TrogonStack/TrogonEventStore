@@ -50,8 +50,14 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
-		await (_node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask);
-		await base.TestFixtureTearDown();
+		try
+		{
+			await (_node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask);
+		}
+		finally
+		{
+			await base.TestFixtureTearDown();
+		}
 	}
 
 	protected abstract ClusterVNodeOptions WithOptions(ClusterVNodeOptions options);
