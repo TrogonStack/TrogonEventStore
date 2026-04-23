@@ -105,6 +105,22 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
+	public async Task reading_a_range_that_partially_overlaps_the_end_returns_available_bytes()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunkPath = CreateLocalChunk(0, 0);
+		var chunkFile = Path.GetFileName(chunkPath);
+		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
+
+		var localContent = await File.ReadAllBytesAsync(chunkPath);
+		var start = localContent.Length - 25;
+		using var chunkStream = await sut.GetChunk(chunkFile, start, localContent.Length + 50, CancellationToken.None);
+
+		Assert.Equal(localContent[start..], chunkStream.ToByteArray());
+	}
+
+	[Fact]
 	public async Task reading_with_a_negative_start_throws_ArgumentOutOfRangeException()
 	{
 		var sut = CreateReaderSut(StorageType);

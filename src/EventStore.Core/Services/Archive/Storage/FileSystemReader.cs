@@ -110,8 +110,9 @@ public class FileSystemReader(
 					return ValueTask.FromResult<Stream>(Stream.Null);
 				}
 
+				var available = fileStream.Length - start;
 				var segment = new StreamSegment(fileStream, leaveOpen: false);
-				segment.Adjust(start, length);
+				segment.Adjust(start, Math.Min(length, available));
 				task = ValueTask.FromResult<Stream>(segment);
 
 			}
