@@ -37,6 +37,31 @@ public class OptionsFormatterTests : IDisposable
 		Assert.DoesNotContain("\"Ignored\"", message, StringComparison.Ordinal);
 	}
 
+	[Fact]
+	public void redacts_sensitive_values()
+	{
+		OptionsFormatter.LogConfig("Archive", new SampleOptions
+		{
+			Mode = SampleMode.FileSystem,
+			Path = "/tmp/archive",
+			Password = "secret-password",
+			Nested = new NestedOptions
+			{
+				AccessKey = "abc123",
+				ApiToken = "token-value",
+			}
+		});
+
+		var logEvent = Assert.Single(_sink.Events);
+		var message = logEvent.RenderMessage();
+		Assert.DoesNotContain("secret-password", message, StringComparison.Ordinal);
+		Assert.DoesNotContain("abc123", message, StringComparison.Ordinal);
+		Assert.DoesNotContain("token-value", message, StringComparison.Ordinal);
+		Assert.Contains("\"Password\": \"***REDACTED***\"", message, StringComparison.Ordinal);
+		Assert.Contains("\"AccessKey\": \"***REDACTED***\"", message, StringComparison.Ordinal);
+		Assert.Contains("\"ApiToken\": \"***REDACTED***\"", message, StringComparison.Ordinal);
+	}
+
 	public void Dispose()
 	{
 		Log.Logger = _previousLogger;
@@ -55,6 +80,14 @@ public class OptionsFormatterTests : IDisposable
 		public SampleMode Mode { get; init; }
 		public string Path { get; init; } = "";
 		public string Ignored { get; init; }
+		public string Password { get; init; }
+		public NestedOptions Nested { get; init; }
+	}
+
+	private sealed class NestedOptions
+	{
+		public string AccessKey { get; init; }
+		public string ApiToken { get; init; }
 	}
 
 	private enum SampleMode
