@@ -136,7 +136,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 	public ValueTask<TFChunk.TFChunk> CreateTempChunk(ChunkHeader chunkHeader, int fileSize, CancellationToken token)
 	{
-		var chunkFileName = FileSystem.NamingStrategy.GetTempFilename();
+		var chunkFileName = FileSystem.NamingStrategy.CreateTempFilename();
 		return TFChunk.TFChunk.CreateWithHeader(FileSystem, chunkFileName,
 			chunkHeader,
 			fileSize,
@@ -309,8 +309,8 @@ public class TFChunkManager : IThreadPoolWorkItem
 			}
 
 			var newFileName =
-				FileSystem.NamingStrategy.DetermineBestVersionFilenameFor(chunkHeader.ChunkStartNumber,
-					initialVersion: 1);
+				FileSystem.NamingStrategy.DetermineNewVersionFilenameForIndex(chunkHeader.ChunkStartNumber,
+					defaultVersion: 1);
 			Log.Information("File {oldFileName} will be moved to file {newFileName}", Path.GetFileName(oldFileName),
 				Path.GetFileName(newFileName));
 			try

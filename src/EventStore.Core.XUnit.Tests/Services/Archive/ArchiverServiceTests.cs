@@ -309,6 +309,8 @@ internal class FakeUnmerger : IChunkUnmerger {
 }
 
 internal class FakeArchiveChunkNamer : IArchiveChunkNamer {
+	public string Prefix => string.Empty;
+
 	public string GetFileNameFor(int logicalChunkNumber) => $"{logicalChunkNumber}-{logicalChunkNumber}.renamed";
 }
 
@@ -331,6 +333,8 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 		_checkpoint = existingCheckpoint;
 		Chunks = new List<string>(existingChunks);
 	}
+
+	public IArchiveChunkNamer ChunkNamer { get; } = new FakeArchiveChunkNamer();
 
 	public IArchiveStorageReader CreateReader() => this;
 	public IArchiveStorageWriter CreateWriter() => this;

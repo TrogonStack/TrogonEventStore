@@ -98,4 +98,18 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 			Path.GetFileName(chunk2)
 		], archivedChunks);
 	}
+
+	[Fact]
+	public async Task listing_ignores_files_outside_the_chunk_prefix()
+	{
+		var sut = CreateReaderSut(StorageType);
+
+		var chunk = CreateLocalChunk(0, 0);
+		var writerSut = CreateWriterSut(StorageType);
+		await writerSut.StoreChunk(chunk, Path.GetFileName(chunk), CancellationToken.None);
+		await writerSut.StoreChunk(chunk, "other-000000.000000", CancellationToken.None);
+
+		var archivedChunks = sut.ListChunks(CancellationToken.None).ToEnumerable();
+		Assert.Equal([Path.GetFileName(chunk)], archivedChunks);
+	}
 }

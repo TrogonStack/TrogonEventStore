@@ -55,6 +55,7 @@ using EventStore.Core.Caching;
 using EventStore.Core.Certificates;
 using EventStore.Core.Cluster;
 using EventStore.Core.Services.Archive;
+using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.PeriodicLogs;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
@@ -1357,7 +1358,9 @@ public class ClusterVNode<TStreamId> :
 			var chunkDeleter = IChunkDeleter<TStreamId, ILogRecord>.NoOp;
 			if (archiveOptions.Enabled) {
 				// todo: consider if we can/should reuse the same reader elsewhere
-				var archiveReader = new ArchiveStorageFactory(archiveOptions, _fileNamingStrategy).CreateReader();
+				var archiveReader = new ArchiveStorageFactory(
+					archiveOptions,
+					new ArchiveChunkNamer(_fileNamingStrategy)).CreateReader();
 				chunkDeleter = new ChunkDeleter<TStreamId, ILogRecord>(
 					logger: logger,
 					archiveCheckpoint: new AdvancingCheckpoint(archiveReader.GetCheckpoint),

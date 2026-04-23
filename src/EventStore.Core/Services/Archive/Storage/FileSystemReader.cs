@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext.IO;
+using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage.Exceptions;
 using Microsoft.Win32.SafeHandles;
 using Serilog;
@@ -14,7 +15,7 @@ namespace EventStore.Core.Services.Archive.Storage;
 
 public class FileSystemReader(
 	FileSystemOptions options,
-	Func<int?, int?, string> getChunkPrefix,
+	IArchiveChunkNamer chunkNamer,
 	string archiveCheckpointFile)
 	: IArchiveStorageReader
 {
@@ -26,6 +27,8 @@ public class FileSystemReader(
 	{
 		Access = FileAccess.Read, Mode = FileMode.Open, Options = FileOptions.Asynchronous,
 	};
+
+	public IArchiveChunkNamer ChunkNamer { get; } = chunkNamer;
 
 	public ValueTask<long> GetCheckpoint(CancellationToken ct)
 	{
@@ -118,7 +121,7 @@ public class FileSystemReader(
 	public IAsyncEnumerable<string> ListChunks(CancellationToken ct)
 	{
 		return new DirectoryInfo(_archivePath)
-			.EnumerateFiles($"{getChunkPrefix(null, null)}*")
+			.EnumerateFiles($"{ChunkNamer.Prefix}*")
 			.Select(chunk => chunk.Name)
 			.Order()
 			.ToAsyncEnumerable();
