@@ -65,7 +65,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		return new(logger, manager, chunk);
 	}
 
-	public string FileName => _outputChunk.FileName;
+	public string LocalFileName => _outputChunk.LocalFileName;
 
 	public async ValueTask WriteRecord(RecordForExecutor<TStreamId, ILogRecord> record, CancellationToken token)
 	{
@@ -113,7 +113,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		if (deleteImmediately)
 		{
 			_outputChunk.Dispose();
-			TFChunkScavenger<TStreamId>.DeleteTempChunk(_logger, FileName, TFChunkScavenger.MaxRetryCount);
+			TFChunkScavenger<TStreamId>.DeleteTempChunk(_logger, LocalFileName, TFChunkScavenger.MaxRetryCount);
 		}
 		else
 		{

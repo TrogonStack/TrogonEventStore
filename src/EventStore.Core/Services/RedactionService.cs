@@ -100,7 +100,7 @@ public class RedactionService<TStreamId> :
 
 			eventPositions[i] = new EventPosition(
 				logPosition: logPos,
-				chunkFile: Path.GetFileName(chunk.FileName),
+				chunkFile: Path.GetFileName(chunk.LocalFileName),
 				chunkVersion: chunk.ChunkHeader.MinCompatibleVersion,
 				chunkComplete: chunk.ChunkFooter is { IsCompleted: true },
 				chunkEventOffset: (uint)chunkEventOffset);
@@ -251,7 +251,7 @@ public class RedactionService<TStreamId> :
 			return new(SwitchChunkResult.TargetChunkExcessive);
 		}
 
-		if (Path.GetFileName(targetChunk.FileName) != targetChunkFile)
+		if (Path.GetFileName(targetChunk.LocalFileName) != targetChunkFile)
 		{
 			return new(SwitchChunkResult.TargetChunkInactive);
 		}

@@ -53,6 +53,6 @@ public class ChunkManagerForExecutor<TStreamId> : IChunkManagerForChunkExecutor<
 			throw new Exception("Unexpected error: new chunk is null after switch");
 		}
 
-		return tfChunk.FileName;
+		return tfChunk.LocalFileName;
 	}
 }

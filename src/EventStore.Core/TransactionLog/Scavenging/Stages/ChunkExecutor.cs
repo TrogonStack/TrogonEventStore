@@ -270,7 +270,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			outputChunk = await _chunkManager.CreateChunkWriter(sourceChunk, cancellationToken);
 			_logger.Debug(
 				"SCAVENGING: Resulting temp chunk file: {tmpChunkPath}.",
-				Path.GetFileName(outputChunk.FileName));
+				Path.GetFileName(outputChunk.LocalFileName));
 
 		}
 		catch (IOException ex)
@@ -335,7 +335,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 				+ "\nOld chunk total size: {oldSize}, scavenged chunk size: {newSize}.",
 				oldChunkName,
 				elapsed,
-				Path.GetFileName(outputChunk.FileName), chunkStartNumber, chunkEndNumber,
+				Path.GetFileName(outputChunk.LocalFileName), chunkStartNumber, chunkEndNumber,
 				Path.GetFileName(newFileName),
 				sourceChunk.FileSize, newFileSize);
 
@@ -349,7 +349,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 				"SCAVENGING: Got FileBeingDeletedException exception during scavenging, that probably means some chunks were re-replicated."
 				+ "\nStopping scavenging and removing temp chunk '{tmpChunkPath}'..."
 				+ "\nException message: {e}.",
-				outputChunk.FileName,
+				outputChunk.LocalFileName,
 				exc.Message);
 
 			outputChunk.Abort(deleteImmediately: true);

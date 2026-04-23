@@ -284,10 +284,10 @@ public class TFChunkManager : IThreadPoolWorkItem
 	{
 		Ensure.NotNull(chunk, "chunk");
 		if (!chunk.IsReadOnly)
-			throw new ArgumentException(string.Format("Passed TFChunk is not completed: {0}.", chunk.FileName));
+			throw new ArgumentException(string.Format("Passed TFChunk is not completed: {0}.", chunk.ChunkLocator));
 
 		var chunkHeader = chunk.ChunkHeader;
-		var oldFileName = chunk.FileName;
+		var oldFileName = chunk.LocalFileName;
 
 		Log.Information("Switching chunk #{chunkStartNumber}-{chunkEndNumber} ({oldFileName})...",
 			chunkHeader.ChunkStartNumber, chunkHeader.ChunkEndNumber, Path.GetFileName(oldFileName));

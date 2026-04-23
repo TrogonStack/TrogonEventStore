@@ -12,7 +12,7 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	}
 
 	public interface IChunkWriterForExecutor<TStreamId, TRecord> {
-		string FileName { get; }
+		string LocalFileName { get; }
 
 		ValueTask WriteRecord(RecordForExecutor<TStreamId, TRecord> record, CancellationToken token);
 

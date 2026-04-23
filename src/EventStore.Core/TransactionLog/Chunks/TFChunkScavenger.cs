@@ -344,7 +344,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 					              + "\nNew chunk: {tmpChunkPath} --> #{chunkStartNumber}-{chunkEndNumber} ({newChunk})."
 					              + "\nOld chunk total size: {oldSize}, scavenged chunk size: {newSize}.",
 						oldChunkName, sw.Elapsed, Path.GetFileName(tmpChunkPath), chunkStartNumber, chunkEndNumber,
-						Path.GetFileName(chunk.FileName), oldSize, newSize);
+						Path.GetFileName(chunk.LocalFileName), oldSize, newSize);
 					var spaceSaved = oldSize - newSize;
 					_scavengerLog.ChunksScavenged(chunkStartNumber, chunkEndNumber, sw.Elapsed, spaceSaved);
 				}
@@ -551,7 +551,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 					+ "\ncompleted in {elapsed}."
 					+ "\nNew chunk: {tmpChunkPath} --> #{chunkStartNumber}-{chunkEndNumber} ({newChunk}).",
 					oldChunksList, sw.Elapsed, Path.GetFileName(tmpChunkPath), chunkStartNumber, chunkEndNumber,
-					Path.GetFileName(chunk.FileName));
+					Path.GetFileName(chunk.LocalFileName));
 				var spaceSaved = oldChunks.Sum(_ => _.FileSize) - newChunk.FileSize;
 				scavengerLog.ChunksMerged(chunkStartNumber, chunkEndNumber, sw.Elapsed, spaceSaved);
 				return true;
