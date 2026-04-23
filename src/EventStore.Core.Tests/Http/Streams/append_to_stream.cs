@@ -32,49 +32,49 @@ namespace EventStore.Core.Tests.Http.Streams
 
 			public Task<HttpResponseMessage> PostEventWithExpectedVersion(long expectedVersion)
 			{
-				var request = CreateRequest(TestStream, "", "POST", "application/json");
-				request.Headers.Add("ES-EventType", "SomeType");
-				request.Headers.Add("ES-ExpectedVersion", expectedVersion.ToString());
-				request.Headers.Add("ES-EventId", Guid.NewGuid().ToString());
+				var request = CreateRequest(TestStream, "", "POST", ContentType.Json);
+				request.Headers.Add(SystemHeaders.EventType, "SomeType");
+				request.Headers.Add(SystemHeaders.ExpectedVersion, expectedVersion.ToString());
+				request.Headers.Add(SystemHeaders.EventId, Guid.NewGuid().ToString());
 				var data = Encoding.UTF8.GetBytes("{a : \"1\", b:\"3\", c:\"5\" }");
 				request.Content = new ByteArrayContent(data)
 				{
-					Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+					Headers = { ContentType = new MediaTypeHeaderValue(ContentType.Json) }
 				};
 				return GetRequestResponse(request);
 			}
 
 			public Task<HttpResponseMessage> PostEvent(byte[] data)
 			{
-				var request = CreateRequest(TestStream, "", "POST", "application/json");
-				request.Headers.Add("ES-EventType", "SomeType");
-				request.Headers.Add("ES-EventId", Guid.NewGuid().ToString());
+				var request = CreateRequest(TestStream, "", "POST", ContentType.Json);
+				request.Headers.Add(SystemHeaders.EventType, "SomeType");
+				request.Headers.Add(SystemHeaders.EventId, Guid.NewGuid().ToString());
 				request.Content = new ByteArrayContent(data)
 				{
-					Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+					Headers = { ContentType = new MediaTypeHeaderValue(ContentType.Json) }
 				};
 				return GetRequestResponse(request);
 			}
 
 			public Task TombstoneTestStream()
 			{
-				var deleteRequest = CreateRequest(TestStream, "", "DELETE", "application/json");
-				deleteRequest.Headers.Add("ES-ExpectedVersion", ExpectedVersion.Any.ToString());
-				deleteRequest.Headers.Add("ES-HardDelete", bool.TrueString);
+				var deleteRequest = CreateRequest(TestStream, "", "DELETE", ContentType.Json);
+				deleteRequest.Headers.Add(SystemHeaders.ExpectedVersion, ExpectedVersion.Any.ToString());
+				deleteRequest.Headers.Add(SystemHeaders.HardDelete, bool.TrueString);
 				return GetRequestResponse(deleteRequest);
 			}
 
 			public Task SoftDeleteTestStream()
 			{
-				var deleteRequest = CreateRequest(TestMetadataStream, "", "POST", "application/json");
-				deleteRequest.Headers.Add("ES-EventType", SystemEventTypes.StreamMetadata);
-				deleteRequest.Headers.Add("ES-ExpectedVersion", ExpectedVersion.Any.ToString());
-				deleteRequest.Headers.Add("ES-EventId", Guid.NewGuid().ToString());
+				var deleteRequest = CreateRequest(TestMetadataStream, "", "POST", ContentType.Json);
+				deleteRequest.Headers.Add(SystemHeaders.EventType, SystemEventTypes.StreamMetadata);
+				deleteRequest.Headers.Add(SystemHeaders.ExpectedVersion, ExpectedVersion.Any.ToString());
+				deleteRequest.Headers.Add(SystemHeaders.EventId, Guid.NewGuid().ToString());
 				deleteRequest.Content = new ByteArrayContent(StreamMetadata
 					.Create(truncateBefore: long.MaxValue)
 					.AsJsonBytes())
 				{
-					Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+					Headers = { ContentType = new MediaTypeHeaderValue(ContentType.Json) }
 				};
 				return GetRequestResponse(deleteRequest);
 			}
@@ -490,14 +490,14 @@ namespace EventStore.Core.Tests.Http.Streams
 
 			protected override async Task Given()
 			{
-				var request = CreateRequest(TestMetadataStream, "", "POST", "application/json");
-				request.Headers.Add("ES-EventType", "$user-created");
-				request.Headers.Add("ES-ExpectedVersion", ExpectedVersion.Any.ToString());
-				request.Headers.Add("ES-EventId", Guid.NewGuid().ToString());
+				var request = CreateRequest(TestMetadataStream, "", "POST", ContentType.Json);
+				request.Headers.Add(SystemHeaders.EventType, "$user-created");
+				request.Headers.Add(SystemHeaders.ExpectedVersion, ExpectedVersion.Any.ToString());
+				request.Headers.Add(SystemHeaders.EventId, Guid.NewGuid().ToString());
 				var data = Encoding.UTF8.GetBytes("{a : \"1\", b:\"3\", c:\"5\" }");
 				request.Content = new ByteArrayContent(data)
 				{
-					Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+					Headers = { ContentType = new MediaTypeHeaderValue(ContentType.Json) }
 				};
 				await GetRequestResponse(request);
 			}

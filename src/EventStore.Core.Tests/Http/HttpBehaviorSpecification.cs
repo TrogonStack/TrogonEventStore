@@ -15,6 +15,7 @@ using EventStore.ClientAPI.Transport.Http;
 using EventStore.Common.Utils;
 using EventStore.Core.Tests.ClientAPI.Helpers;
 using EventStore.Core.Tests.Helpers;
+using HttpTransportContentType = EventStore.Transport.Http.ContentType;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -278,14 +279,14 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 	protected async Task<XDocument> GetAtomXml(Uri uri, NetworkCredential credentials = null, string extra = null)
 	{
 		credentials ??= _defaultCredentials;
-		await Get(uri.ToString(), extra, ContentType.Atom, credentials);
+		await Get(uri.ToString(), extra, HttpTransportContentType.Atom, credentials);
 		return XDocument.Parse(_lastResponseBody);
 	}
 
 	protected async Task<XDocument> GetXml(Uri uri, NetworkCredential credentials = null, string extra = null)
 	{
 		credentials ??= _defaultCredentials;
-		await Get(uri.ToString(), null, ContentType.Xml, credentials);
+		await Get(uri.ToString(), null, HttpTransportContentType.Xml, credentials);
 		return XDocument.Parse(_lastResponseBody);
 	}
 
@@ -346,7 +347,7 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		var request = CreateRequest(path, extra, "GET", null, credentials, headers);
 		if (setAcceptHeader)
 		{
-			request.Headers.Add("accept", accept ?? "application/json");
+			request.Headers.Add("accept", accept ?? HttpTransportContentType.Json);
 		}
 
 		_lastResponse = await GetRequestResponse(request);
@@ -412,10 +413,10 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		string path, string method, T body, NetworkCredential credentials = null, string extra = null)
 	{
 		credentials = credentials ?? _defaultCredentials;
-		var request = CreateRequest(path, extra, method, "application/vnd.eventstore.events+json", credentials);
+		var request = CreateRequest(path, extra, method, HttpTransportContentType.EventsJson, credentials);
 		request.Content = new ByteArrayContent(ToJsonBytes(body))
 		{
-			Headers = { ContentType = new MediaTypeHeaderValue("application/vnd.eventstore.events+json") }
+			Headers = { ContentType = new MediaTypeHeaderValue(HttpTransportContentType.EventsJson) }
 		};
 		return request;
 	}
@@ -424,10 +425,10 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		string path, string method, T body, NetworkCredential credentials = null, string extra = null)
 	{
 		credentials ??= _defaultCredentials;
-		var request = CreateRequest(path, extra, method, "application/json", credentials);
+		var request = CreateRequest(path, extra, method, HttpTransportContentType.Json, credentials);
 		request.Content = new ByteArrayContent(ToJsonBytes(body))
 		{
-			Headers = { ContentType = new MediaTypeHeaderValue("application/json") }
+			Headers = { ContentType = new MediaTypeHeaderValue(HttpTransportContentType.Json) }
 		};
 		return request;
 	}

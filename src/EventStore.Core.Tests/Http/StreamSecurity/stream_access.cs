@@ -9,6 +9,7 @@ using EventStore.Core.Services;
 using EventStore.Core.Tests.Http.Users;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using EventStoreHttpContentType = EventStore.Transport.Http.ContentType;
 
 namespace EventStore.Core.Tests.Http.StreamSecurity
 {
@@ -69,13 +70,13 @@ namespace EventStore.Core.Tests.Http.StreamSecurity
 
 				var request = new HttpRequestMessage(HttpMethod.Post, uri)
 				{
-					Headers = { { "ES-TrustedAuth", "root; admin, other" } },
+					Headers = { { SystemHeaders.TrustedAuth, "root; admin, other" } },
 					Content = new ByteArrayContent(
 						new[] { new { EventId = Guid.NewGuid(), EventType = "event-type", Data = new { Some = "Data" } } }
 							.ToJsonBytes())
 					{
 						Headers = {
-							ContentType = MediaTypeHeaderValue.Parse("application/vnd.eventstore.events+json")
+							ContentType = MediaTypeHeaderValue.Parse(EventStoreHttpContentType.EventsJson)
 						}
 					}
 				};
