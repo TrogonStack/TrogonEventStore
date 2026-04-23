@@ -6,6 +6,8 @@ namespace EventStore.Core.Services.Archive.Naming;
 
 public class ArchiveChunkNamer(IVersionedFileNamingStrategy namingStrategy) : IArchiveChunkNamer
 {
+	public string Prefix => namingStrategy.Prefix;
+
 	public string GetFileNameFor(int logicalChunkNumber)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(logicalChunkNumber);

@@ -65,7 +65,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 1);
 
-		Assert.Equal(["0-0.renamed"], archive.Chunks);
+		Assert.Equal(["chunk-0-0.renamed"], archive.Chunks);
 	}
 
 	[Fact]
@@ -93,7 +93,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 1);
 
-		Assert.Equal(["0-0.renamed"], archive.Chunks);
+		Assert.Equal(["chunk-0-0.renamed"], archive.Chunks);
 	}
 
 	[Fact]
@@ -131,7 +131,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 1);
 
-		Assert.Equal(["0-0.renamed"], archive.Chunks);
+		Assert.Equal(["chunk-0-0.renamed"], archive.Chunks);
 	}
 
 	[Fact]
@@ -163,7 +163,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 5);
 
-		Assert.Equal(["0-0.renamed", "1-1.renamed", "2-2.renamed", "3-3.renamed", "4-4.renamed"], archive.Chunks);
+		Assert.Equal(["chunk-0-0.renamed", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed", "chunk-4-4.renamed"], archive.Chunks);
 	}
 
 	[Fact]
@@ -185,12 +185,12 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 5);
 
-		Assert.Equal(["3-3.renamed", "4-4.renamed", "1-1.renamed", "2-2.renamed", "5-5.renamed"], archive.Chunks);
+		Assert.Equal(["chunk-3-3.renamed", "chunk-4-4.renamed", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-5-5.renamed"], archive.Chunks);
 	}
 
 	[Fact]
 	public async Task doesnt_archive_existing_chunks_that_were_already_archived() {
-		var (sut, archive) = CreateSut(existingChunks:	[ "0-0", "1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
+		var (sut, archive) = CreateSut(existingChunks:	[ "chunk-0-0", "chunk-1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
 
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(0, 0, complete: true)));
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(1, 1, complete: true)));
@@ -200,12 +200,12 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 2);
 
-		Assert.Equal([ "0-0", "1-1", "2-2.renamed", "3-3.renamed" ], archive.Chunks);
+		Assert.Equal([ "chunk-0-0", "chunk-1-1", "chunk-2-2.renamed", "chunk-3-3.renamed" ], archive.Chunks);
 	}
 
 	[Fact]
 	public async Task archives_an_existing_chunk_if_it_starts_before_but_ends_after_the_checkpoint() {
-		var (sut, archive) = CreateSut(existingChunks:	[ "0-0", "1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
+		var (sut, archive) = CreateSut(existingChunks:	[ "chunk-0-0", "chunk-1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
 
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(0, 0, complete: true)));
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(1, 2, complete: true))); // <-- the chunk being tested
@@ -214,7 +214,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 3);
 
-		Assert.Equal([ "0-0", "1-1", "1-1.renamed", "2-2.renamed", "3-3.renamed" ], archive.Chunks);
+		Assert.Equal([ "chunk-0-0", "chunk-1-1", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed" ], archive.Chunks);
 	}
 
 	[Fact]
@@ -289,7 +289,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 8);
 
-		Assert.Equal(["0-0.renamed", "1-1.renamed", "2-2.renamed", "3-3.renamed", "4-4.renamed", "5-5.renamed", "6-6.renamed", "7-7.renamed"],
+		Assert.Equal(["chunk-0-0.renamed", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed", "chunk-4-4.renamed", "chunk-5-5.renamed", "chunk-6-6.renamed", "chunk-7-7.renamed"],
 			archive.Chunks);
 	}
 }
@@ -309,7 +309,9 @@ internal class FakeUnmerger : IChunkUnmerger {
 }
 
 internal class FakeArchiveChunkNamer : IArchiveChunkNamer {
-	public string GetFileNameFor(int logicalChunkNumber) => $"{logicalChunkNumber}-{logicalChunkNumber}.renamed";
+	public string Prefix => "chunk-";
+
+	public string GetFileNameFor(int logicalChunkNumber) => $"{Prefix}{logicalChunkNumber}-{logicalChunkNumber}.renamed";
 }
 
 internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader, IArchiveStorageFactory
@@ -331,6 +333,8 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 		_checkpoint = existingCheckpoint;
 		Chunks = new List<string>(existingChunks);
 	}
+
+	public IArchiveChunkNamer ChunkNamer { get; } = new FakeArchiveChunkNamer();
 
 	public IArchiveStorageReader CreateReader() => this;
 	public IArchiveStorageWriter CreateWriter() => this;

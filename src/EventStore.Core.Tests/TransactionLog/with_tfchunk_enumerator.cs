@@ -17,9 +17,10 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 	{
 		public int GetAllPresentFilesCalls { get; private set; }
 
+		public string Prefix => inner.Prefix;
 		public string GetFilenameFor(int index, int version) => inner.GetFilenameFor(index, version);
-		public string DetermineBestVersionFilenameFor(int index, int initialVersion) =>
-			inner.DetermineBestVersionFilenameFor(index, initialVersion);
+		public string DetermineNewVersionFilenameForIndex(int index, int defaultVersion) =>
+			inner.DetermineNewVersionFilenameForIndex(index, defaultVersion);
 		public string[] GetAllVersionsFor(int index) => inner.GetAllVersionsFor(index);
 
 		public string[] GetAllPresentFiles()
@@ -28,12 +29,11 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 			return inner.GetAllPresentFiles();
 		}
 
-		public string GetTempFilename() => inner.GetTempFilename();
+		public string CreateTempFilename() => inner.CreateTempFilename();
 		public string[] GetAllTempFiles() => inner.GetAllTempFiles();
 		public int GetIndexFor(string fileName) => inner.GetIndexFor(fileName);
 		public int GetVersionFor(string fileName) => inner.GetVersionFor(fileName);
-			public string GetPrefixFor(int? index, int? version) => inner.GetPrefixFor(index, version);
-		}
+	}
 
 	[Test]
 	public void throws_argumentnullexception_when_constructed_with_null_naming_strategy()

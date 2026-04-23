@@ -1,5 +1,6 @@
 using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.Services.Archive;
+using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 using System.IO;
 using System.Security.Cryptography;
@@ -22,6 +23,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 	protected IArchiveStorageFactory CreateSutFactory(StorageType storageType)
 	{
 		var namingStrategy = new VersionedPatternFileNamingStrategy(ArchivePath, ChunkPrefix);
+		var chunkNamer = new ArchiveChunkNamer(namingStrategy);
 		var factory = new ArchiveStorageFactory(
 			new()
 			{
@@ -29,7 +31,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 				FileSystem = new() { Path = ArchivePath },
 				S3 = new() { AwsCliProfileName = "default", Bucket = "archiver-unit-tests", Region = "eu-west-1", }
 			},
-			namingStrategy);
+			chunkNamer);
 		return factory;
 	}
 

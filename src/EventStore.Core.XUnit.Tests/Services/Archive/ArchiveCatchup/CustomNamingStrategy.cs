@@ -5,13 +5,15 @@ namespace EventStore.Core.XUnit.Tests.Services.Archive.ArchiveCatchup;
 
 internal class CustomNamingStrategy : IVersionedFileNamingStrategy
 {
+	public string Prefix => "chunk-";
+
 	public string GetFilenameFor(int chunkStartNumber, int chunkEndNumber) =>
 		$"chunk-{chunkStartNumber}.{chunkEndNumber}";
 
-	public string DetermineBestVersionFilenameFor(int index, int initialVersion) => throw new NotImplementedException();
+	public string DetermineNewVersionFilenameForIndex(int index, int defaultVersion) => throw new NotImplementedException();
 	public string[] GetAllVersionsFor(int index) => throw new NotImplementedException();
 	public string[] GetAllPresentFiles() => throw new NotImplementedException();
-	public string GetTempFilename() => throw new NotImplementedException();
+	public string CreateTempFilename() => throw new NotImplementedException();
 	public string[] GetAllTempFiles() => throw new NotImplementedException();
 
 	public int GetIndexFor(string fileName)
@@ -26,6 +28,4 @@ internal class CustomNamingStrategy : IVersionedFileNamingStrategy
 		var idx = fileName.IndexOf('.') + 1;
 		return int.Parse(fileName[idx..]);
 	}
-
-	public string GetPrefixFor(int? index, int? version) => throw new NotImplementedException();
 }

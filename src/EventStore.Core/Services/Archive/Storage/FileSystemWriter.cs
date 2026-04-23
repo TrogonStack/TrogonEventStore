@@ -11,14 +11,12 @@ namespace EventStore.Core.Services.Archive.Storage;
 
 public class FileSystemWriter(
 	FileSystemOptions options,
-	Func<int?, int?, string> getChunkPrefix,
 	string archiveCheckpointFile)
 	: IArchiveStorageWriter
 {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<FileSystemWriter>();
 
 	private readonly string _archivePath = options.Path;
-	private readonly Func<int?, int?, string> _getChunkPrefix = getChunkPrefix;
 
 	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
 	{

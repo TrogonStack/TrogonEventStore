@@ -5,16 +5,18 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext.Buffers;
+using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage.Exceptions;
 using FluentStorage.Blobs;
 using Serilog;
 
 namespace EventStore.Core.Services.Archive.Storage;
 
-public abstract class FluentReader(string archiveCheckpointFile)
+public abstract class FluentReader(IArchiveChunkNamer chunkNamer, string archiveCheckpointFile)
 {
 	protected abstract ILogger Log { get; }
 	protected abstract IBlobStorage BlobStorage { get; }
+	public IArchiveChunkNamer ChunkNamer { get; } = chunkNamer;
 
 	public async ValueTask<long> GetCheckpoint(CancellationToken ct)
 	{

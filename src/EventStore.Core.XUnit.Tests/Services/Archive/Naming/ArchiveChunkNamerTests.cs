@@ -24,6 +24,13 @@ public class ArchiveChunkNamerTests
 	}
 
 	[Fact]
+	public void exposes_chunk_prefix()
+	{
+		var sut = CreateSut();
+		Assert.Equal("chunk-", sut.Prefix);
+	}
+
+	[Fact]
 	public void throws_if_chunk_number_is_negative()
 	{
 		var sut = CreateSut();

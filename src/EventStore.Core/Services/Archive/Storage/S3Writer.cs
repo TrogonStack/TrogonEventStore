@@ -1,4 +1,3 @@
-using System;
 using FluentStorage;
 using FluentStorage.Blobs;
 using Serilog;
@@ -7,7 +6,7 @@ namespace EventStore.Core.Services.Archive.Storage;
 
 public class S3Writer : FluentWriter, IArchiveStorageWriter
 {
-	public S3Writer(S3Options options, Func<int?, int?, string> getChunkPrefix, string archiveCheckpointFile) : base(
+	public S3Writer(S3Options options, string archiveCheckpointFile) : base(
 		archiveCheckpointFile)
 	{
 		AwsTraceLogging.Configure();
