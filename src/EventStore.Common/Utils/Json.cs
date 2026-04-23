@@ -116,8 +116,13 @@ public static class Json
 		try
 		{
 			var reader = new Utf8JsonReader(value.Span, Utf8JsonReaderOptions);
-			while (reader.Read())
+			if (!reader.Read())
+				return false;
+
+			do
 				reader.Skip();
+			while (reader.Read());
+
 			return true;
 		}
 		catch

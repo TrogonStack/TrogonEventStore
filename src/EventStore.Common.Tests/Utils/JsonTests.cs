@@ -26,6 +26,9 @@ public class JsonTests {
 
 	[Theory]
 	[InlineData("")]
+	[InlineData(" ")]
+	[InlineData("\t")]
+	[InlineData("\n")]
 	[InlineData("{} invalid")]
 	[InlineData("""{ "foo": "bar", invalid }""")]
 	[InlineData("""
