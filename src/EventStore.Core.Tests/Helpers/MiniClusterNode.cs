@@ -286,7 +286,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		}
 
 		_host.Start();
-		Node.Start();
+		Node.StartAsync(false).GetAwaiter().GetResult();
 	}
 
 	public HttpClient CreateHttpClient()
