@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using EventStore.Common.Utils;
 
@@ -32,15 +33,9 @@ public abstract class EventFilter
 				   && (!isStreamDeletedEvent || _includeDeletedStreamEvents));
 	}
 
-	public bool PassesValidation(bool isJson, string data)
+	public bool PassesValidation(bool isJson, ReadOnlyMemory<byte> data)
 	{
-		if (!isJson)
-			return true;
-		if (data is null)
-		{
-			return false;
-		}
-		return data.IsValidJson();
+		return !isJson || data.IsValidUtf8Json();
 	}
 
 	protected abstract bool DeletedNotificationPasses(string positionStreamId);

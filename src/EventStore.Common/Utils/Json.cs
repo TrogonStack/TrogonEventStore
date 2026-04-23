@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Xml;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -19,6 +20,12 @@ public static class Json
 		MissingMemberHandling = MissingMemberHandling.Ignore,
 		TypeNameHandling = TypeNameHandling.None,
 		Converters = new JsonConverter[] { new StringEnumConverter() }
+	};
+
+	private static readonly JsonReaderOptions Utf8JsonReaderOptions = new() {
+		AllowTrailingCommas = true,
+		CommentHandling = JsonCommentHandling.Skip,
+		MaxDepth = 64,
 	};
 
 	public static byte[] ToJsonBytes(this object source)
@@ -59,7 +66,7 @@ public static class Json
 
 	public static object DeserializeObject(JObject value, Type type, JsonSerializerSettings settings)
 	{
-		JsonSerializer jsonSerializer = JsonSerializer.Create(settings);
+		Newtonsoft.Json.JsonSerializer jsonSerializer = Newtonsoft.Json.JsonSerializer.Create(settings);
 		return jsonSerializer.Deserialize(new JTokenReader(value), type);
 	}
 
@@ -98,17 +105,29 @@ public static class Json
 
 	public static bool IsValidJson(this ReadOnlyMemory<byte> value)
 	{
+		return value.IsValidUtf8Json();
+	}
+
+	public static bool IsValidUtf8Json(this ReadOnlyMemory<byte> value)
+	{
 		if (value.IsEmpty)
-			return false;  //Don't bother letting an Exception getting thrown.
+			return false;
+
 		try
 		{
-			JToken.Parse(Helper.UTF8NoBom.GetString(value.Span));
+			var reader = new Utf8JsonReader(value.Span, Utf8JsonReaderOptions);
+			if (!reader.Read())
+				return false;
+
+			do
+				reader.Skip();
+			while (reader.Read());
+
+			return true;
 		}
 		catch
 		{
 			return false;
 		}
-
-		return true;
 	}
 }
