@@ -1673,11 +1673,20 @@ public class ClusterVNode<TStreamId> :
 				// then we can remove this extra restart
 				Log.Information("Truncation successful. Shutting down.");
 				var shutdownGuid = Guid.NewGuid();
-				using var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-				linkedTokenSource.CancelAfter(ShutdownTimeout);
-				await HandleAsync(
-					new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
-					linkedTokenSource.Token);
+				try
+				{
+					await HandleAsync(
+						new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
+						token)
+						.AsTask()
+						.WaitAsync(ShutdownTimeout, token);
+				}
+				catch (TimeoutException)
+				{
+					Log.Warning(
+						"Graceful shutdown did not complete within {shutdownTimeout} after truncation. Continuing with forced shutdown.",
+						ShutdownTimeout);
+				}
 
 				Handle(new SystemMessage.BecomeShutdown(shutdownGuid));
 				Application.Exit(0, "Shutting down after successful truncation.");
