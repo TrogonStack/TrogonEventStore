@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Threading;
 using Amazon;
 using Amazon.Runtime;
+using Amazon.Runtime.Internal;
+using Amazon.S3;
 using Serilog.Events;
 
 namespace EventStore.Core.Services.Archive.Storage;
@@ -82,7 +84,7 @@ public sealed class AwsTraceSerilogListener : TraceListener
 			return;
 
 		var exception = data.Length > 1 ? data[1] as Exception : null;
-		var logLevel = GetLogLevel(eventType);
+		var logLevel = AdjustDefaultLevel(GetLogLevel(eventType), exception);
 
 		switch (data[0])
 		{
@@ -104,6 +106,14 @@ public sealed class AwsTraceSerilogListener : TraceListener
 
 	private void WritePlainMessage(LogEventLevel logLevel, string message) =>
 		_logger.Write(logLevel, "{AwsTraceMessage:l}", message);
+
+	internal static LogEventLevel AdjustDefaultLevel(LogEventLevel logLevel, Exception exception) =>
+		exception is AmazonS3Exception { ErrorCode: "NoSuchKey" or "InvalidRange" }
+			or HttpErrorResponseException
+			? LogEventLevel.Verbose
+			: logLevel == LogEventLevel.Error
+				? LogEventLevel.Warning
+				: logLevel;
 
 	private static LogEventLevel GetLogLevel(TraceEventType eventType) =>
 		eventType switch
