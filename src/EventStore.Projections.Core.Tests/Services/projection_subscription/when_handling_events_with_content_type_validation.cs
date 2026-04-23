@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using EventStore.Core.Data;
 using EventStore.Projections.Core.Messages;
@@ -27,6 +28,17 @@ public class when_handling_events_with_content_type_validation
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(300, 300), "test-stream", 2, false, Guid.NewGuid(),
 					"valid-json", true, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
+			_subscription.Handle(
+				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
+					Guid.NewGuid(), new TFPos(400, 400), "test-stream", 3, false, Guid.NewGuid(),
+					"commented-json", true,
+					Encoding.UTF8.GetBytes("""
+						// comment
+						{
+							"foo": "bar",
+						}
+						"""),
+					new byte[0]));
 		}
 
 		protected override IReaderSubscription CreateProjectionSubscription()
@@ -49,8 +61,9 @@ public class when_handling_events_with_content_type_validation
 		[Test]
 		public void only_the_valid_json_is_handled()
 		{
-			Assert.AreEqual(1, _eventHandler.HandledMessages.Count);
-			Assert.AreEqual("valid-json", _eventHandler.HandledMessages[0].Data.EventType);
+			Assert.AreEqual(2, _eventHandler.HandledMessages.Count);
+			Assert.That(_eventHandler.HandledMessages.Select(x => x.Data.EventType),
+				Is.EquivalentTo(new[] { "valid-json", "commented-json" }));
 		}
 	}
 
