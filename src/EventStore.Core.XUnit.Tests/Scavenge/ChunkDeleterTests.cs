@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.Index.Hashers;
@@ -7,6 +8,9 @@ using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.Scavenging;
 using EventStore.Core.TransactionLog.Scavenging.InMemory;
 using EventStore.Core.TransactionLog.Scavenging.Stages;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
@@ -30,11 +34,11 @@ public class ChunkDeleterTests
 		int retainDays,
 		long retainBytes,
 		Func<long> readArchiveCheckpoint,
-		int maxAttempts = 1)
+		int maxAttempts = 1,
+		ILogger logger = null)
 	{
-
 		var sut = new ChunkDeleter<string, ILogRecord>(
-			logger: Serilog.Log.Logger,
+			logger: logger ?? Serilog.Log.Logger,
 			archiveCheckpoint: new AdvancingCheckpoint(_ => new(readArchiveCheckpoint())),
 			retainPeriod: TimeSpan.FromDays(retainDays),
 			retainBytes: retainBytes,
@@ -120,6 +124,68 @@ public class ChunkDeleterTests
 			Assert.False(deleted);
 		else
 			throw new InvalidOperationException();
+	}
+
+	[Fact]
+	public async Task logs_when_retained_by_logical_bytes()
+	{
+		var sink = new CollectingSink();
+		var logger = new LoggerConfiguration()
+			.MinimumLevel.Verbose()
+			.WriteTo.Sink(sink)
+			.CreateLogger();
+		var minDateInChunk = new DateTime(2024, 1, 1);
+		var maxDateInChunk = new DateTime(2024, 12, 1);
+		_backend.ChunkTimeStampRanges[0] = new(minDateInChunk, maxDateInChunk);
+		var chunk = new FakeChunk(chunkStartNumber: 0, chunkEndNumber: 1, chunkSize: 1_000);
+		var sut = GenSut(
+			retainDays: 10,
+			retainBytes: 1001,
+			readArchiveCheckpoint: () => chunk.ChunkEndPosition,
+			logger: logger);
+
+		var deleted = await sut.DeleteIfNotRetained(
+			scavengePoint: GenScavengePoint(
+				position: chunk.ChunkEndPosition + 1001,
+				effectiveNow: maxDateInChunk + TimeSpan.FromDays(10.1)),
+			concurrentState: _scavengeState,
+			physicalChunk: chunk,
+			CancellationToken.None);
+
+		Assert.False(deleted);
+		Assert.Contains(sink.Events.Select(x => x.RenderMessage()),
+			x => x.Contains("logical bytes retention window", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task logs_when_retained_by_period()
+	{
+		var sink = new CollectingSink();
+		var logger = new LoggerConfiguration()
+			.MinimumLevel.Verbose()
+			.WriteTo.Sink(sink)
+			.CreateLogger();
+		var minDateInChunk = new DateTime(2024, 1, 1);
+		var maxDateInChunk = new DateTime(2024, 12, 1);
+		_backend.ChunkTimeStampRanges[0] = new(minDateInChunk, maxDateInChunk);
+		var chunk = new FakeChunk(chunkStartNumber: 0, chunkEndNumber: 1, chunkSize: 1_000);
+		var sut = GenSut(
+			retainDays: 11,
+			retainBytes: 1000,
+			readArchiveCheckpoint: () => chunk.ChunkEndPosition,
+			logger: logger);
+
+		var deleted = await sut.DeleteIfNotRetained(
+			scavengePoint: GenScavengePoint(
+				position: chunk.ChunkEndPosition + 1001,
+				effectiveNow: maxDateInChunk + TimeSpan.FromDays(10.1)),
+			concurrentState: _scavengeState,
+			physicalChunk: chunk,
+			CancellationToken.None);
+
+		Assert.False(deleted);
+		Assert.Contains(sink.Events.Select(x => x.RenderMessage()),
+			x => x.Contains("retention period window", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -245,5 +311,13 @@ public class ChunkDeleterTests
 		{
 			throw new NotImplementedException();
 		}
+	}
+
+	private sealed class CollectingSink : ILogEventSink
+	{
+		public List<LogEvent> Events { get; } = [];
+
+		public void Emit(LogEvent logEvent) =>
+			Events.Add(logEvent);
 	}
 }

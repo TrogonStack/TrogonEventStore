@@ -21,7 +21,7 @@ public class FileSystemReader(
 {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<FileSystemReader>();
 
-	private readonly string _archivePath = options.Path;
+	private readonly string _archivePath = ResolveArchivePath(options.Path);
 
 	private readonly FileStreamOptions _fileStreamOptions = new()
 	{
@@ -29,6 +29,14 @@ public class FileSystemReader(
 	};
 
 	public IArchiveChunkNamer ChunkNamer { get; } = chunkNamer;
+
+	private static string ResolveArchivePath(string path)
+	{
+		var fullPath = Path.GetFullPath(path);
+		Serilog.Log.ForContext<FileSystemReader>()
+			.Information("Using file system archive storage at {archivePath}", fullPath);
+		return fullPath;
+	}
 
 	public ValueTask<long> GetCheckpoint(CancellationToken ct)
 	{
