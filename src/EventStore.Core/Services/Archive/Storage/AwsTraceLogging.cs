@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Net;
 using System.Threading;
 using Amazon;
 using Amazon.Runtime;
@@ -109,8 +110,11 @@ public sealed class AwsTraceSerilogListener : TraceListener
 
 	internal static LogEventLevel AdjustDefaultLevel(LogEventLevel logLevel, Exception exception) =>
 		exception is AmazonS3Exception { ErrorCode: "NoSuchKey" or "InvalidRange" }
-			or HttpErrorResponseException
 			? LogEventLevel.Verbose
+			: exception is HttpErrorResponseException {
+				Response.StatusCode: HttpStatusCode.NotFound or HttpStatusCode.RequestedRangeNotSatisfiable
+			}
+				? LogEventLevel.Verbose
 			: logLevel == LogEventLevel.Error
 				? LogEventLevel.Warning
 				: logLevel;
