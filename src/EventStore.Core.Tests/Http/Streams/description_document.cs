@@ -59,7 +59,7 @@ public class when_getting_a_stream_with_description_document_media_type<TLogForm
 
 	protected override async Task When()
 	{
-		_descriptionDocument = await GetJson<JObject>(TestStream, "application/vnd.eventstore.streamdesc+json", null);
+		_descriptionDocument = await GetJson<JObject>(TestStream, ContentType.DescriptionDocJson, null);
 	}
 
 	[Test]
@@ -89,7 +89,7 @@ public class when_getting_description_document<TLogFormat, TStreamId> : with_adm
 
 	protected override async Task When()
 	{
-		_descriptionDocument = await GetJson<JObject>(TestStream, "application/vnd.eventstore.streamdesc+json", null);
+		_descriptionDocument = await GetJson<JObject>(TestStream, ContentType.DescriptionDocJson, null);
 		_links = _descriptionDocument != null ? _descriptionDocument["_links"].ToList() : new List<JToken>();
 	}
 
@@ -118,7 +118,7 @@ public class when_getting_description_document<TLogFormat, TStreamId> : with_adm
 		var supportedContentTypes = _descriptionDocument["_links"]["self"]["supportedContentTypes"].Values<string>()
 			.ToArray();
 		Assert.AreEqual(1, supportedContentTypes.Length);
-		Assert.AreEqual("application/vnd.eventstore.streamdesc+json", supportedContentTypes[0]);
+		Assert.AreEqual(ContentType.DescriptionDocJson, supportedContentTypes[0]);
 	}
 
 	[Test]
@@ -135,7 +135,7 @@ public class when_getting_description_document<TLogFormat, TStreamId> : with_adm
 			.Values<string>().ToArray();
 		Assert.AreEqual(2, supportedContentTypes.Length);
 		Assert.Contains("application/atom+xml", supportedContentTypes);
-		Assert.Contains("application/vnd.eventstore.atom+json", supportedContentTypes);
+		Assert.Contains(ContentType.AtomJson, supportedContentTypes);
 	}
 }
 
@@ -162,7 +162,7 @@ public class when_getting_description_document_and_subscription_exists_for_strea
 
 	protected override async Task When()
 	{
-		_descriptionDocument = await GetJson<JObject>(TestStream, "application/vnd.eventstore.streamdesc+json", null);
+		_descriptionDocument = await GetJson<JObject>(TestStream, ContentType.DescriptionDocJson, null);
 		_links = _descriptionDocument != null ? _descriptionDocument["_links"].ToList() : new List<JToken>();
 		_subscriptions = _descriptionDocument["_links"]["streamSubscription"].Values<JToken>().ToArray();
 	}
@@ -197,7 +197,7 @@ public class when_getting_description_document_and_subscription_exists_for_strea
 	{
 		var supportedContentTypes = _subscriptions[0]["supportedContentTypes"].Values<string>().ToArray();
 		Assert.AreEqual(2, supportedContentTypes.Length);
-		Assert.Contains("application/vnd.eventstore.competingatom+xml", supportedContentTypes);
-		Assert.Contains("application/vnd.eventstore.competingatom+json", supportedContentTypes);
+		Assert.Contains(ContentType.Competing, supportedContentTypes);
+		Assert.Contains(ContentType.CompetingJson, supportedContentTypes);
 	}
 }
