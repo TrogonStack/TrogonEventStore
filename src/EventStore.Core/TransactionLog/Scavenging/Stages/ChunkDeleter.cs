@@ -73,8 +73,7 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		if (!await IsConfirmedPresentInArchive(physicalChunk, ct))
 			return false;
 
-		await SwitchOutPhysicalChunk(physicalChunk, ct);
-		return true;
+		return await SwitchOutPhysicalChunk(physicalChunk, ct);
 	}
 
 	private async ValueTask<bool> IsConfirmedPresentInArchive(
@@ -149,7 +148,7 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		return true;
 	}
 
-	private async ValueTask SwitchOutPhysicalChunk(
+	private async ValueTask<bool> SwitchOutPhysicalChunk(
 		IChunkReaderForExecutor<TStreamId, TRecord> physicalChunk,
 		CancellationToken ct)
 	{
@@ -169,12 +168,13 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		}
 
 		if (await _chunkManager.SwitchInChunks(locators, ct))
-			return;
+			return true;
 
 		_logger.Warning(
 			"SCAVENGING: Did not delete physical chunk: {oldChunkName} {chunkStartNumber} => {chunkEndNumber}. This will be retried next scavenge.",
 			physicalChunk.Name,
 			chunkStartNumber,
 			chunkEndNumber);
+		return false;
 	}
 }

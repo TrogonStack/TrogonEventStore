@@ -275,6 +275,32 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
+	public async Task when_switch_in_is_rejected()
+	{
+		var minDateInChunk = new DateTime(2024, 1, 1);
+		var maxDateInChunk = new DateTime(2024, 12, 1);
+		_backend.ChunkTimeStampRanges[1] = new(minDateInChunk, maxDateInChunk);
+		var chunk = new FakeChunk(chunkStartNumber: 1, chunkEndNumber: 2, chunkSize: 1_000);
+
+		var sut = GenSut(
+			retainDays: 10,
+			retainBytes: 1000,
+			readArchiveCheckpoint: () => chunk.ChunkEndPosition);
+		_chunkManager.ShouldSucceed = false;
+
+		var deleted = await sut.DeleteIfNotRetained(
+			scavengePoint: GenScavengePoint(
+				position: chunk.ChunkEndPosition + 1001,
+				effectiveNow: maxDateInChunk + TimeSpan.FromDays(10.1)),
+			concurrentState: _scavengeState,
+			physicalChunk: chunk,
+			CancellationToken.None);
+
+		Assert.False(deleted);
+		Assert.Equal(new[] { "archived-chunk-1", "archived-chunk-2" }, _chunkManager.InterceptedLocators);
+	}
+
+	[Fact]
 	public async Task when_chunk_has_no_prepares()
 	{
 		// chunk 1 contains records with positions 1000-2000
@@ -303,15 +329,19 @@ public class ChunkDeleterTests
 	sealed class FakeChunkManager : IChunkManagerForChunkDeleter
 	{
 		public IReadOnlyList<string> InterceptedLocators { get; private set; } = [];
+		public bool ShouldSucceed { get; set; } = true;
 
-		public void Reset() =>
+		public void Reset()
+		{
 			InterceptedLocators = [];
+			ShouldSucceed = true;
+		}
 
 		public ValueTask<bool> SwitchInChunks(IReadOnlyList<string> locators, CancellationToken token)
 		{
 			token.ThrowIfCancellationRequested();
 			InterceptedLocators = locators.ToArray();
-			return ValueTask.FromResult(true);
+			return ValueTask.FromResult(ShouldSucceed);
 		}
 	}
 
