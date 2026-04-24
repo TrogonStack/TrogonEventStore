@@ -222,7 +222,11 @@ internal static class Program
 				try
 				{
 					var builder = WebApplication.CreateBuilder(args);
-					builder.Configuration.AddConfiguration(configuration);
+					builder.Configuration.Sources.Clear();
+					builder.Configuration
+						.AddEnvironmentVariables("DOTNET_")
+						.AddCommandLine(args)
+						.AddConfiguration(configuration);
 					builder.Logging.ClearProviders().AddSerilog();
 					builder.Services
 						.Configure<KestrelServerOptions>(configuration.GetSection("Kestrel"))
