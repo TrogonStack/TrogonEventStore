@@ -16,6 +16,7 @@ using EventStore.Core;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
 using EventStore.Core.Services.Transport.Http;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
@@ -220,45 +221,42 @@ internal static class Program
 			{
 				try
 				{
-					await new HostBuilder()
-						.ConfigureHostConfiguration(builder =>
-							builder.AddEnvironmentVariables("DOTNET_").AddCommandLine(args))
-						.ConfigureAppConfiguration(builder => builder.AddConfiguration(configuration))
-						.ConfigureLogging(logging => logging.ClearProviders().AddSerilog())
-						.ConfigureServices(services => services
-							.Configure<KestrelServerOptions>(configuration.GetSection("Kestrel"))
-							.Configure<HostOptions>(x =>
-							{
-								x.ShutdownTimeout = ClusterVNode.ShutdownTimeout + TimeSpan.FromSeconds(1);
+					var builder = WebApplication.CreateBuilder(args);
+					builder.Configuration.AddConfiguration(configuration);
+					builder.Logging.ClearProviders().AddSerilog();
+					builder.Services
+						.Configure<KestrelServerOptions>(configuration.GetSection("Kestrel"))
+						.Configure<HostOptions>(x =>
+						{
+							x.ShutdownTimeout = ClusterVNode.ShutdownTimeout + TimeSpan.FromSeconds(1);
 #if DEBUG
-								x.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
+							x.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
 #endif
-							})
-						)
-						.ConfigureWebHostDefaults(builder => builder
-							.UseKestrel(server =>
-							{
-								server.Limits.Http2.KeepAlivePingDelay =
-									TimeSpan.FromMilliseconds(options.Grpc.KeepAliveInterval);
-								server.Limits.Http2.KeepAlivePingTimeout =
-									TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
+						});
 
-								server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
-									ConfigureHttpOptions(listenOptions, hostedService,
-										useHttps: !hostedService.Node.DisableHttps));
+					builder.WebHost.UseSetting(WebHostDefaults.SuppressStatusMessagesKey, "true");
+					builder.WebHost.ConfigureKestrel(server =>
+					{
+						server.Limits.Http2.KeepAlivePingDelay =
+							TimeSpan.FromMilliseconds(options.Grpc.KeepAliveInterval);
+						server.Limits.Http2.KeepAlivePingTimeout =
+							TimeSpan.FromMilliseconds(options.Grpc.KeepAliveTimeout);
 
-								if (hostedService.Node.EnableUnixSocket)
-									TryListenOnUnixSocket(hostedService, server);
-							})
-							.ConfigureServices(services => hostedService.Node.Startup.ConfigureServices(services))
-							.Configure(hostedService.Node.Startup.Configure)
-						)
-						// Order is important, configure IHostedService after the WebHost to make the sure
-						// ClusterVNodeHostedService and the subsystems are started after configuration is finished.
-						// Allows the subsystems to resolve dependencies out of the DI in Configure() before being started.
-						// Later it may be possible to use constructor injection instead if it fits with the bootstrapping strategy.
-						.ConfigureServices(services => services.AddSingleton<IHostedService>(hostedService))
-						.RunConsoleAsync(x => x.SuppressStatusMessages = true, cts.Token);
+						server.Listen(options.Interface.NodeIp, options.Interface.NodePort, listenOptions =>
+							ConfigureHttpOptions(listenOptions, hostedService,
+								useHttps: !hostedService.Node.DisableHttps));
+
+						if (hostedService.Node.EnableUnixSocket)
+							TryListenOnUnixSocket(hostedService, server);
+					});
+
+					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
+					builder.Services.AddSingleton<IHostedService>(hostedService);
+
+					var app = builder.Build();
+					hostedService.Node.Startup.Configure(app);
+
+					await app.RunAsync(cts.Token);
 
 					exitCodeSource.TrySetResult(0);
 				}

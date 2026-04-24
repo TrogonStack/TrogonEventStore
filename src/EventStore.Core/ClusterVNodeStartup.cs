@@ -37,7 +37,7 @@ using ServerFeatures = EventStore.Core.Services.Transport.Grpc.ServerFeatures;
 #nullable enable
 namespace EventStore.Core;
 
-public class ClusterVNodeStartup<TStreamId> : IStartup, IHandle<SystemMessage.SystemReady>,
+public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMessage.SystemReady>,
 	IHandle<SystemMessage.BecomeShuttingDown>
 {
 
@@ -191,6 +191,12 @@ public class ClusterVNodeStartup<TStreamId> : IStartup, IHandle<SystemMessage.Sy
 
 	public IServiceProvider ConfigureServices(IServiceCollection services)
 	{
+		ConfigureServicesOnly(services);
+		return services.BuildServiceProvider();
+	}
+
+	public void ConfigureServicesOnly(IServiceCollection services)
+	{
 		var metricsConfiguration = MetricsConfiguration.Get(_configuration);
 
 		services = services
@@ -297,8 +303,6 @@ public class ClusterVNodeStartup<TStreamId> : IStartup, IHandle<SystemMessage.Sy
 
 		foreach (var component in _plugableComponents)
 			component.ConfigureServices(services, _configuration);
-
-		return services.BuildServiceProvider();
 	}
 
 	public void Handle(SystemMessage.SystemReady _) => _ready = true;
