@@ -248,6 +248,8 @@ public class ClusterVNode<TStreamId> :
 
 		configuration ??= new ConfigurationBuilder().Build();
 
+		LogPluginSubsectionWarnings(configuration);
+
 		_certificateProvider = certificateProvider;
 
 		ClusterVNodeOptionsValidator.Validate(options);
@@ -2214,6 +2216,26 @@ public class ClusterVNode<TStreamId> :
 		{
 			throw new InvalidConfigurationException("Aborting certificate loading due to verification errors.");
 		}
+	}
+
+	private static void LogPluginSubsectionWarnings(IConfiguration configuration)
+	{
+		var ignoredOptions = configuration.GetSection("EventStore:Plugins")
+			.AsEnumerable()
+			.Where(kvp => kvp.Value is not null)
+			.ToList();
+
+		if (ignoredOptions.Count == 0)
+			return;
+
+		var log = Serilog.Log.ForContext<ClusterVNode>();
+		log.Warning(
+			"The \"Plugins\" configuration subsection has been removed. " +
+			"The following settings will be ignored. " +
+			"Move them directly under the \"EventStore\" root.");
+
+		foreach (var kvp in ignoredOptions)
+			log.Warning("Ignoring option nested in \"Plugins\" subsection: {IgnoredOption}", kvp.Key);
 	}
 
 	public override string ToString() =>
