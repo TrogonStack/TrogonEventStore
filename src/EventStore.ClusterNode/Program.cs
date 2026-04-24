@@ -232,9 +232,12 @@ internal static class Program
 #if DEBUG
 							x.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
 #endif
+						})
+						.Configure<ConsoleLifetimeOptions>(x =>
+						{
+							x.SuppressStatusMessages = true;
 						});
 
-					builder.WebHost.UseSetting(WebHostDefaults.SuppressStatusMessagesKey, "true");
 					builder.WebHost.ConfigureKestrel(server =>
 					{
 						server.Limits.Http2.KeepAlivePingDelay =
