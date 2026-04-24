@@ -446,6 +446,7 @@ public class ClusterVNode<TStreamId> :
 					readerThreadsCount, isRunningInContainer);
 
 			_fileNamingStrategy = new VersionedPatternFileNamingStrategy(dbPath, "chunk-");
+			var locatorCodec = new PrefixingLocatorCodec();
 			IChunkFileSystem chunkFileSystem = new ChunkLocalFileSystem(_fileNamingStrategy);
 			if (archiveOptions.Enabled)
 			{
@@ -456,7 +457,7 @@ public class ClusterVNode<TStreamId> :
 
 				chunkFileSystem = new FileSystemWithArchive(
 					options.Database.ChunkSize,
-					new PrefixingLocatorCodec(),
+					locatorCodec,
 					chunkFileSystem,
 					archiveReader);
 			}
@@ -1372,6 +1373,8 @@ public class ClusterVNode<TStreamId> :
 				buffer: calculatorBuffer,
 				throttle: throttle);
 
+			var chunkManager = new ChunkManagerForExecutor<TStreamId>(logger, Db.Manager, Db.Config,
+				Db.TransformManager);
 			var chunkDeleter = IChunkDeleter<TStreamId, ILogRecord>.NoOp;
 			if (archiveOptions.Enabled) {
 				// todo: consider if we can/should reuse the same reader elsewhere
@@ -1381,6 +1384,8 @@ public class ClusterVNode<TStreamId> :
 				chunkDeleter = new ChunkDeleter<TStreamId, ILogRecord>(
 					logger: logger,
 					archiveCheckpoint: new AdvancingCheckpoint(archiveReader.GetCheckpoint),
+					chunkManager: new ChunkManagerForChunkDeleter(Db.Manager),
+					locatorCodec: new PrefixingLocatorCodec(),
 					retainPeriod: TimeSpan.FromDays(archiveOptions.RetainAtLeast.Days),
 					retainBytes: archiveOptions.RetainAtLeast.LogicalBytes);
 			}
@@ -1389,7 +1394,7 @@ public class ClusterVNode<TStreamId> :
 				logger,
 				logFormat.Metastreams,
 				chunkDeleter,
-				new ChunkManagerForExecutor<TStreamId>(logger, Db.Manager, Db.Config, Db.TransformManager),
+				chunkManager,
 				chunkSize: Db.Config.ChunkSize,
 				unsafeIgnoreHardDeletes: options.Database.UnsafeIgnoreHardDelete,
 				cancellationCheckPeriod: cancellationCheckPeriod,

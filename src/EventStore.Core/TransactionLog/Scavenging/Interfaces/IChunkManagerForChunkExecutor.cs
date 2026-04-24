@@ -11,6 +11,10 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		IChunkReaderForExecutor<TStreamId, TRecord> GetChunkReaderFor(long position);
 	}
 
+	public interface IChunkManagerForChunkDeleter {
+		ValueTask<bool> SwitchInChunks(IReadOnlyList<string> locators, CancellationToken token);
+	}
+
 	public interface IChunkWriterForExecutor<TStreamId, TRecord> {
 		string LocalFileName { get; }
 

@@ -494,6 +494,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				buffer: new(checkpointPeriod),
 				throttle: throttle);
 
+			var locatorCodec = new PrefixingLocatorCodec();
+
 			IChunkExecutor<TStreamId> chunkExecutor = new ChunkExecutor<TStreamId, ILogRecord>(
 				logger: logger,
 				metastreamLookup: chunkExecutorMetastreamLookup,
@@ -501,6 +503,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 					new ChunkDeleter<TStreamId, ILogRecord>(
 						logger: logger,
 						archiveCheckpoint: new AdvancingCheckpoint(_ => new(_archiveCheckpoint)),
+						chunkManager: new TracingChunkManagerForChunkDeleter(
+							dbResult.RemoteChunks,
+							locatorCodec),
+						locatorCodec: locatorCodec,
 						retainPeriod: TimeSpan.FromDays(_retainDays),
 						retainBytes: _retainBytes),
 					Tracer),
