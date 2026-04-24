@@ -135,6 +135,11 @@ public class MetricsConfiguration
 		public string Label { get; set; } = "";
 	}
 
+	public class OtlpExporterConfiguration
+	{
+		public bool Enabled { get; set; }
+	}
+
 	public string[] Meters { get; set; } = Array.Empty<string>();
 
 	public Dictionary<StatusTracker, bool> Statuses { get; set; } = new();
@@ -169,6 +174,8 @@ public class MetricsConfiguration
 
 	// must be 0, 1, 5, 10 or a multiple of 15
 	public int ExpectedScrapeIntervalSeconds { get; set; }
+
+	public OtlpExporterConfiguration Otlp { get; set; } = new();
 
 	public Dictionary<QueueTracker, bool> Queues { get; set; } = new();
 
