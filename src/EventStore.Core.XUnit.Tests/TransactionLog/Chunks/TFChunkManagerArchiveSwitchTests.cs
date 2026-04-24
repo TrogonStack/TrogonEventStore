@@ -12,6 +12,7 @@ using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Core.Transforms;
 using EventStore.Core.Transforms.Identity;
+using EventStore.Plugins.Transforms;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
@@ -129,6 +130,33 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		}, ActualChunks);
 	}
 
+	[Fact]
+	public async Task switch_chunk_throws_when_the_replacement_range_is_rejected()
+	{
+		var chunk0 = await AddLocalChunk(0, 0);
+		var chunk13 = await AddLocalChunk(1, 3);
+		var chunk45 = await AddLocalChunk(4, 5);
+		using var newChunk = await CreateCompletedTempChunk(2, 3);
+
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+			await _sut.SwitchChunk(
+				newChunk,
+				verifyHash: false,
+				removeChunksWithGreaterNumbers: false,
+				CancellationToken.None));
+
+		Assert.Equal("Failed to switch in chunk #2-3.", ex.Message);
+		Assert.Equal(new[]
+		{
+			chunk0.ChunkLocator,
+			chunk13.ChunkLocator,
+			chunk13.ChunkLocator,
+			chunk13.ChunkLocator,
+			chunk45.ChunkLocator,
+			chunk45.ChunkLocator,
+		}, ActualChunks);
+	}
+
 	private string[] ActualChunks =>
 		Enumerable.Range(0, _sut.ChunksCount)
 			.Select(chunkNum => _sut.GetChunk(chunkNum).ChunkLocator)
@@ -154,6 +182,24 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 			token: CancellationToken.None);
 		await chunk.CompleteScavenge([], CancellationToken.None);
 		await _sut.AddChunk(chunk, CancellationToken.None);
+		return chunk;
+	}
+
+	private async ValueTask<TFChunk> CreateCompletedTempChunk(int start, int end)
+	{
+		var chunk = await _sut.CreateTempChunk(
+			new ChunkHeader(
+				version: (byte)TFChunk.ChunkVersions.Transformed,
+				minCompatibleVersion: (byte)TFChunk.ChunkVersions.Transformed,
+				chunkSize: ChunkSize,
+				chunkStartNumber: start,
+				chunkEndNumber: end,
+				isScavenged: true,
+				chunkId: Guid.NewGuid(),
+				transformType: TransformType.Identity),
+			fileSize: ChunkSize,
+			CancellationToken.None);
+		await chunk.CompleteScavenge([], CancellationToken.None);
 		return chunk;
 	}
 

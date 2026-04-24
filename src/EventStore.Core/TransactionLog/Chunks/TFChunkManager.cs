@@ -364,9 +364,14 @@ public class TFChunkManager : IThreadPoolWorkItem
 				_config.ReduceFileCachePressure, _config.AsyncIO, token: token);
 		}
 
-		await SwitchInChunks([newChunk],
+		if (!await SwitchInChunks([newChunk],
 			removeChunksWithGreaterNumbers ? chunkHeader.ChunkEndNumber : null,
-			token);
+			token))
+		{
+			throw new InvalidOperationException(
+				$"Failed to switch in chunk #{chunkHeader.ChunkStartNumber}-{chunkHeader.ChunkEndNumber}.");
+		}
+
 		return newChunk;
 	}
 
