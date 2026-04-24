@@ -18,8 +18,8 @@
 		<PackageReference Include="librdkafka.redist" />
 		<PackageReference Include="Microsoft.FASTER.Core" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
-		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" VersionOverride="1.4.0-rc.1" />
-		<PackageReference Include="OpenTelemetry.Extensions.Hosting" VersionOverride="1.4.0-rc.1" />
+		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" />
 		<PackageReference Include="Quickenshtein" />
 		<PackageReference Include="Scrutor" />
 		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
