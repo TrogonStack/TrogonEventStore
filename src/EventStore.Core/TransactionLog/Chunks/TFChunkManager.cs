@@ -284,6 +284,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 		Ensure.NotNull(locators, nameof(locators));
 		var getFactoryForExistingChunk = _transformManager.GetFactoryForExistingChunk;
 		var newChunks = new TFChunk.TFChunk[locators.Count];
+		var ownsNewChunks = true;
 		try
 		{
 			for (var i = 0; i < locators.Count; i++)
@@ -299,18 +300,17 @@ public class TFChunkManager : IThreadPoolWorkItem
 					asyncIO: _config.AsyncIO,
 					token: token);
 			}
+
+			return await SwitchInChunks(newChunks, removeChunksAfter: null, token,
+				onOwnershipTransferred: () => ownsNewChunks = false);
 		}
 		catch
 		{
-			for (var i = 0; i < newChunks.Length; i++)
-			{
-				newChunks[i]?.Dispose();
-			}
+			if (ownsNewChunks)
+				DisposeChunks(newChunks);
 
 			throw;
 		}
-
-		return await SwitchInChunks(newChunks, removeChunksAfter: null, token);
 	}
 
 	public async ValueTask<TFChunk.TFChunk> SwitchChunk(TFChunk.TFChunk chunk, bool verifyHash,
@@ -376,7 +376,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 	}
 
 	private async ValueTask<bool> SwitchInChunks(IReadOnlyList<TFChunk.TFChunk> newChunks, int? removeChunksAfter,
-		CancellationToken token)
+		CancellationToken token, Action onOwnershipTransferred = null)
 	{
 		Ensure.NotNull(newChunks, nameof(newChunks));
 		var ret = true;
@@ -387,6 +387,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 		{
 			if (ReplaceChunksWith(newChunks, "Old"))
 			{
+				onOwnershipTransferred?.Invoke();
 				foreach (var newChunk in newChunks)
 				{
 					OnChunkSwitched?.Invoke(newChunk.ChunkInfo);
@@ -424,6 +425,14 @@ public class TFChunkManager : IThreadPoolWorkItem
 			TriggerBackgroundCaching();
 
 		return ret;
+	}
+
+	private static void DisposeChunks(IReadOnlyList<TFChunk.TFChunk> chunks)
+	{
+		for (var i = 0; i < chunks.Count; i++)
+		{
+			chunks[i]?.Dispose();
+		}
 	}
 
 	private bool ReplaceChunksWith(IReadOnlyList<TFChunk.TFChunk> newChunks, string chunkExplanation)
