@@ -148,6 +148,32 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
+	public async Task doesnt_archive_a_remote_existing_chunk() {
+		var (sut, archive) = CreateSut();
+
+		var chunkInfo = GetChunkInfo(0, 0, complete: true, remote: true);
+		sut.Handle(new SystemMessage.ChunkLoaded(chunkInfo));
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+
+		await WaitFor(archive, numStores: 0);
+
+		Assert.Equal([], archive.Chunks);
+	}
+
+	[Fact]
+	public async Task doesnt_archive_a_remote_completed_chunk() {
+		var (sut, archive) = CreateSut();
+
+		var chunkInfo = GetChunkInfo(0, 0, complete: true, remote: true);
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
+
+		await WaitFor(archive, numStores: 0);
+
+		Assert.Equal([], archive.Chunks);
+	}
+
+	[Fact]
 	public async Task archives_chunks_in_order() {
 		var (sut, archive) = CreateSut(chunkStorageDelay: TimeSpan.FromMilliseconds(100));
 
