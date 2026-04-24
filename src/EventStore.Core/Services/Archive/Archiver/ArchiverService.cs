@@ -77,7 +77,7 @@ public class ArchiverService :
 
 	public void Handle(SystemMessage.ChunkLoaded message)
 	{
-		if (!message.ChunkInfo.IsCompleted)
+		if (!message.ChunkInfo.IsCompleted || message.ChunkInfo.IsRemote)
 			return;
 
 		_existingChunks[Path.GetFileName(message.ChunkInfo.ChunkLocator)!] = message.ChunkInfo;
@@ -86,6 +86,9 @@ public class ArchiverService :
 	public void Handle(SystemMessage.ChunkCompleted message)
 	{
 		var chunkInfo = message.ChunkInfo;
+		if (chunkInfo.IsRemote)
+			return;
+
 		if (chunkInfo.ChunkEndPosition > _replicationPosition)
 		{
 			_uncommittedChunks.Enqueue(chunkInfo);

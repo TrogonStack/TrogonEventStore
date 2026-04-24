@@ -219,6 +219,21 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 		}
 	}
 
+	[Fact]
+	public async Task propagates_cancellation_while_fetching_chunk()
+	{
+		var cancellation = new OperationCanceledException();
+		var sut = CreateSut(
+			dbCheckpoint: 0L,
+			archiveCheckpoint: 1000L,
+			archiveChunks: ["chunk-0.0"],
+			onGetChunk: _ => throw cancellation);
+
+		var ex = await Assert.ThrowsAsync<OperationCanceledException>(() => sut.Catchup.Run());
+
+		Assert.Same(cancellation, ex);
+	}
+
 	private async Task VerifyCatchUp(Sut sut, long dbCheckpoint, long archiveCheckpoint, string[] expectedChunkGets,
 		string[] expectedChunkBackups)
 	{

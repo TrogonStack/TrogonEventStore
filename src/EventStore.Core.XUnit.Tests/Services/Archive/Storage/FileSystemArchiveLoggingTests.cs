@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage;
@@ -13,7 +14,7 @@ using Xunit;
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
 
 [Collection("SerilogLoggingTests")]
-public class FileSystemArchiveLoggingTests : DirectoryPerTest<FileSystemArchiveLoggingTests>, IDisposable
+public class FileSystemArchiveLoggingTests : DirectoryPerTest<FileSystemArchiveLoggingTests>
 {
 	private readonly ILogger _previousLogger = Log.Logger;
 	private readonly CollectingSink _sink = new();
@@ -55,9 +56,16 @@ public class FileSystemArchiveLoggingTests : DirectoryPerTest<FileSystemArchiveL
 			x => x.RenderMessage().Contains(Path.GetFullPath(archivePath), StringComparison.Ordinal));
 	}
 
-	public void Dispose()
+	public override async Task DisposeAsync()
 	{
-		Log.Logger = _previousLogger;
+		try
+		{
+			Log.Logger = _previousLogger;
+		}
+		finally
+		{
+			await base.DisposeAsync();
+		}
 	}
 
 	private static IArchiveChunkNamer CreateChunkNamer(string archivePath)

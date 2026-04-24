@@ -138,6 +138,10 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 			{
 				return await _archiveReader.GetCheckpoint(ct);
 			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
 			catch (Exception ex)
 			{
 				Log.Error(ex, "Failed to get archive checkpoint. Retrying in: {interval}", RetryInterval);
@@ -205,6 +209,10 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 				"Failed to fetch {chunk} from the archive as it was deleted. This can happen if the archive is being scavenged.",
 				chunkFile);
 			return false;
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
 		}
 		catch (Exception ex)
 		{
