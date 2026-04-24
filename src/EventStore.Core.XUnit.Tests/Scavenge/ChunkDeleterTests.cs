@@ -256,6 +256,35 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
+	public async Task when_archive_presence_check_is_cancelled()
+	{
+		var minDateInChunk = new DateTime(2024, 1, 1);
+		var maxDateInChunk = new DateTime(2024, 12, 1);
+		_backend.ChunkTimeStampRanges[1] = new(minDateInChunk, maxDateInChunk);
+		var chunk = new FakeChunk(chunkStartNumber: 1, chunkEndNumber: 1, chunkSize: 1_000);
+		using var cts = new CancellationTokenSource();
+		var cancellation = new OperationCanceledException(cts.Token);
+
+		var sut = GenSut(
+			retainDays: 10,
+			retainBytes: 1000,
+			readArchiveCheckpoint: () => throw cancellation,
+			maxAttempts: 3);
+
+		var ex = await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+			await sut.DeleteIfNotRetained(
+				scavengePoint: GenScavengePoint(
+					position: chunk.ChunkEndPosition + 1001,
+					effectiveNow: maxDateInChunk + TimeSpan.FromDays(10.1)),
+				concurrentState: _scavengeState,
+				physicalChunk: chunk,
+				CancellationToken.None));
+
+		Assert.Same(cancellation, ex);
+		Assert.Empty(_chunkManager.InterceptedLocators);
+	}
+
+	[Fact]
 	public async Task when_chunk_is_remote()
 	{
 		var chunk = new FakeChunk(chunkStartNumber: 1, chunkEndNumber: 1, isRemote: true);

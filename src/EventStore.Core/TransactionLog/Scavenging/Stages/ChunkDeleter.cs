@@ -100,6 +100,10 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 						logicalChunkNumber);
 				}
 			}
+			catch (OperationCanceledException)
+			{
+				throw;
+			}
 			catch (Exception ex)
 			{
 				_logger.Warning(ex,
