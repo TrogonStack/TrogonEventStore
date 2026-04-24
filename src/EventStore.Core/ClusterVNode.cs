@@ -63,6 +63,7 @@ using EventStore.Core.Synchronization;
 using EventStore.Core.Telemetry;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.Transforms;
 using EventStore.Core.Transforms.Identity;
 using EventStore.Core.Util;
@@ -445,8 +446,23 @@ public class ClusterVNode<TStreamId> :
 					readerThreadsCount, isRunningInContainer);
 
 			_fileNamingStrategy = new VersionedPatternFileNamingStrategy(dbPath, "chunk-");
+			IChunkFileSystem chunkFileSystem = new ChunkLocalFileSystem(_fileNamingStrategy);
+			if (archiveOptions.Enabled)
+			{
+				var archiveReader = new ArchiveStorageFactory(
+					archiveOptions,
+					new ArchiveChunkNamer(_fileNamingStrategy))
+					.CreateReader();
+
+				chunkFileSystem = new FileSystemWithArchive(
+					options.Database.ChunkSize,
+					new PrefixingLocatorCodec(),
+					chunkFileSystem,
+					archiveReader);
+			}
+
 			return new TFChunkDbConfig(dbPath,
-				_fileNamingStrategy,
+				chunkFileSystem,
 				options.Database.ChunkSize,
 				cache,
 				writerChk,

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +44,22 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 
 	protected override IBlobStorage BlobStorage => _awsBlobStorage;
 
+	public async ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
+	{
+		try
+		{
+			var response = await _awsBlobStorage.NativeBlobClient.GetObjectMetadataAsync(
+				_options.Bucket,
+				chunkFile,
+				ct);
+			return response.ContentLength;
+		}
+		catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey" || ex.StatusCode == HttpStatusCode.NotFound)
+		{
+			throw new ChunkDeletedException(ex);
+		}
+	}
+
 	public async ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(start);
@@ -68,13 +85,13 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 			var response = await client.GetObjectAsync(request, ct);
 			return response.ResponseStream;
 		}
-		catch (AmazonS3Exception ex)
+		catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey" || ex.StatusCode == HttpStatusCode.NotFound)
 		{
-			if (ex.ErrorCode == "NoSuchKey")
-				throw new ChunkDeletedException();
-			if (ex.ErrorCode == "InvalidRange")
-				return Stream.Null;
-			throw;
+			throw new ChunkDeletedException(ex);
+		}
+		catch (AmazonS3Exception ex) when (ex.ErrorCode == "InvalidRange")
+		{
+			return Stream.Null;
 		}
 	}
 
