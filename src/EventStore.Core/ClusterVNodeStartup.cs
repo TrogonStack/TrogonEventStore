@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EventStore.Common.Configuration;
-using EventStore.Common.Exceptions;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
@@ -23,7 +22,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
-using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using MidFunc = System.Func<
@@ -317,71 +315,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		MetricsConfiguration metricsConfiguration)
 	{
 		var options = metricsConfiguration.Otlp;
-		if (!options.Enabled && !OtlpMetricExporterSelected())
+		if (!options.Enabled)
 			return;
 
-		meterOptions.AddOtlpExporter((exporterOptions, readerOptions) =>
-		{
-			ApplyMetricSpecificOtlpEnvironmentVariables(exporterOptions);
-
-			if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(OtelMetricExportInterval)) &&
-			    metricsConfiguration.ExpectedScrapeIntervalSeconds > 0)
-				readerOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds =
-					checked(metricsConfiguration.ExpectedScrapeIntervalSeconds * 1000);
-		});
-	}
-
-	private const string OtelMetricsExporter = "OTEL_METRICS_EXPORTER";
-	private const string OtelMetricExportInterval = "OTEL_METRIC_EXPORT_INTERVAL";
-	private const string OtelExporterOtlpMetricsEndpoint = "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT";
-	private const string OtelExporterOtlpMetricsHeaders = "OTEL_EXPORTER_OTLP_METRICS_HEADERS";
-	private const string OtelExporterOtlpMetricsTimeout = "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT";
-	private const string OtelExporterOtlpMetricsProtocol = "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL";
-
-	private static bool OtlpMetricExporterSelected()
-	{
-		var exporters = Environment.GetEnvironmentVariable(OtelMetricsExporter);
-		return exporters?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-			.Any(exporter => exporter.Equals("otlp", StringComparison.OrdinalIgnoreCase)) ?? false;
-	}
-
-	private static void ApplyMetricSpecificOtlpEnvironmentVariables(OtlpExporterOptions exporterOptions)
-	{
-		var endpoint = Environment.GetEnvironmentVariable(OtelExporterOtlpMetricsEndpoint);
-		if (!string.IsNullOrWhiteSpace(endpoint))
-		{
-			if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
-				throw new InvalidConfigurationException(
-					$"{OtelExporterOtlpMetricsEndpoint} must be an absolute URI.");
-
-			exporterOptions.Endpoint = endpointUri;
-		}
-
-		var headers = Environment.GetEnvironmentVariable(OtelExporterOtlpMetricsHeaders);
-		if (!string.IsNullOrWhiteSpace(headers))
-			exporterOptions.Headers = headers;
-
-		var timeout = Environment.GetEnvironmentVariable(OtelExporterOtlpMetricsTimeout);
-		if (!string.IsNullOrWhiteSpace(timeout))
-		{
-			if (!int.TryParse(timeout, out var timeoutMilliseconds) || timeoutMilliseconds <= 0)
-				throw new InvalidConfigurationException(
-					$"{OtelExporterOtlpMetricsTimeout} must be greater than zero.");
-
-			exporterOptions.TimeoutMilliseconds = timeoutMilliseconds;
-		}
-
-		var protocol = Environment.GetEnvironmentVariable(OtelExporterOtlpMetricsProtocol);
-		if (!string.IsNullOrWhiteSpace(protocol))
-		{
-			exporterOptions.Protocol = protocol.Trim().ToLowerInvariant() switch
-			{
-				"grpc" => OtlpExportProtocol.Grpc,
-				"http/protobuf" => OtlpExportProtocol.HttpProtobuf,
-				_ => throw new InvalidConfigurationException(
-					$"{OtelExporterOtlpMetricsProtocol} must be 'grpc' or 'http/protobuf'.")
-			};
-		}
+		meterOptions.AddOtlpExporter();
 	}
 
 	public void Handle(SystemMessage.SystemReady _) => _ready = true;

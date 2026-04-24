@@ -2,7 +2,8 @@
 	// must be 0, 1, 5, 10 or a multiple of 15
 	"ExpectedScrapeIntervalSeconds": 15,
 
-	// Endpoint, protocol, headers, and timeouts use the standard OTEL_* environment variables.
+	// Exporter options, including export interval, use the OTEL_* variables
+	// supported by the OpenTelemetry .NET metrics exporter.
 	"Otlp": {
 		"Enabled": false
 	},
