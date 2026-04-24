@@ -2,6 +2,12 @@
 	// must be 0, 1, 5, 10 or a multiple of 15
 	"ExpectedScrapeIntervalSeconds": 15,
 
+	// Exporter options, including export interval, use the OTEL_* variables
+	// supported by the OpenTelemetry .NET metrics exporter.
+	"Otlp": {
+		"Enabled": false
+	},
+
 	"Meters": [
 		"EventStore.Core",
 		"EventStore.Projections.Core"

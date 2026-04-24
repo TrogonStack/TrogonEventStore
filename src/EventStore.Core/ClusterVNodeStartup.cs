@@ -229,58 +229,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton(new Redaction(_mainQueue, _authorizationProvider))
 			.AddSingleton<ServerFeatures>()
 
-			// OpenTelemetry
 			.AddOpenTelemetry()
-			.WithMetrics(meterOptions => meterOptions
-				.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("eventstore"))
-				.AddMeter(metricsConfiguration.Meters)
-				.AddView(i =>
-				{
-					if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
-						// 20 buckets, 0, 1, 2, 4, 8, ...
-						return new ExplicitBucketHistogramConfiguration
-						{
-							Boundaries =
-							[
-								0,
-								.. Enumerable.Range(0, count: 19).Select(x => 1 << x)
-							]
-						};
-					else if (i.Name.StartsWith("eventstore-") &&
-					         i.Name.EndsWith("-latency-seconds"))
-						return new ExplicitBucketHistogramConfiguration
-						{
-							Boundaries =
-							[
-								0.001, //    1 ms
-								0.005, //    5 ms
-								0.01, //   10 ms
-								0.05, //   50 ms
-								0.1, //  100 ms
-								0.5, //  500 ms
-								1, // 1000 ms
-								5, // 5000 ms
-							]
-						};
-					else if (i.Name.StartsWith("eventstore-") &&
-					         i.Name.EndsWith("-seconds"))
-						return new ExplicitBucketHistogramConfiguration
-						{
-							Boundaries =
-							[
-								0.000_001, // 1 microsecond
-								0.000_01,
-								0.000_1,
-								0.001, // 1 millisecond
-								0.01,
-								0.1,
-								1, // 1 second
-								10,
-							]
-						};
-					return default;
-				})
-				.AddPrometheusExporter(options => options.ScrapeResponseCacheDurationMilliseconds = 1000))
+			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration))
 			.Services
 
 			// gRPC
@@ -302,6 +252,73 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		foreach (var component in _plugableComponents)
 			component.ConfigureServices(services, _configuration);
+	}
+
+	private static void ConfigureMetrics(MeterProviderBuilder meterOptions, MetricsConfiguration metricsConfiguration)
+	{
+		meterOptions
+			.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("eventstore"))
+			.AddMeter(metricsConfiguration.Meters)
+			.AddView(i =>
+			{
+				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
+					// 20 buckets, 0, 1, 2, 4, 8, ...
+					return new ExplicitBucketHistogramConfiguration
+					{
+						Boundaries =
+						[
+							0,
+							.. Enumerable.Range(0, count: 19).Select(x => 1 << x)
+						]
+					};
+				else if (i.Name.StartsWith("eventstore-") &&
+				         i.Name.EndsWith("-latency-seconds"))
+					return new ExplicitBucketHistogramConfiguration
+					{
+						Boundaries =
+						[
+							0.001, //    1 ms
+							0.005, //    5 ms
+							0.01, //   10 ms
+							0.05, //   50 ms
+							0.1, //  100 ms
+							0.5, //  500 ms
+							1, // 1000 ms
+							5, // 5000 ms
+						]
+					};
+				else if (i.Name.StartsWith("eventstore-") &&
+				         i.Name.EndsWith("-seconds"))
+					return new ExplicitBucketHistogramConfiguration
+					{
+						Boundaries =
+						[
+							0.000_001, // 1 microsecond
+							0.000_01,
+							0.000_1,
+							0.001, // 1 millisecond
+							0.01,
+							0.1,
+							1, // 1 second
+							10,
+						]
+					};
+				return default;
+			})
+			.AddPrometheusExporter(options => options.ScrapeResponseCacheDurationMilliseconds = 1000);
+
+		ConfigureOtlpMetrics(meterOptions, metricsConfiguration);
+	}
+
+	private static void ConfigureOtlpMetrics(
+		MeterProviderBuilder meterOptions,
+		MetricsConfiguration metricsConfiguration)
+	{
+		var options = metricsConfiguration.Otlp;
+		if (!options.Enabled)
+			return;
+
+		meterOptions.AddOtlpExporter();
 	}
 
 	public void Handle(SystemMessage.SystemReady _) => _ready = true;
