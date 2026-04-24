@@ -37,7 +37,7 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 			certificateProvider: new OptionsCertificateProvider());
 
 		var builder = WebApplication.CreateBuilder();
-		_node.Startup.ConfigureServices(builder.Services);
+		_node.Startup.ConfigureServicesOnly(builder.Services);
 		var app = builder.Build();
 		_node.Startup.Configure(app);
 

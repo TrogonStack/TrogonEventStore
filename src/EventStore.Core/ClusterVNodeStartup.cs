@@ -189,11 +189,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		});
 	}
 
-	public IServiceProvider ConfigureServices(IServiceCollection services)
-	{
-		ConfigureServicesOnly(services);
-		return services.BuildServiceProvider();
-	}
+	public IServiceProvider ConfigureServices(IServiceCollection services) =>
+		throw new NotSupportedException(
+			$"{nameof(ClusterVNodeStartup<TStreamId>)} is driven via {nameof(IInternalStartup)}.{nameof(ConfigureServicesOnly)} " +
+			$"and the host's service provider. Use {nameof(ConfigureServicesOnly)} instead.");
 
 	public void ConfigureServicesOnly(IServiceCollection services)
 	{

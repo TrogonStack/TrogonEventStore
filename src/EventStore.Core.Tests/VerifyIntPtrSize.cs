@@ -18,6 +18,13 @@ public class VerifyIntPtrSize
 public static class WebHostBuilderExtensions
 {
 	public static IWebHostBuilder UseStartup(this IWebHostBuilder builder, IStartup startup)
-		=> builder
+	{
+		if (startup is IInternalStartup internalStartup)
+			return builder
+				.ConfigureServices(internalStartup.ConfigureServicesOnly)
+				.Configure(startup.Configure);
+
+		return builder
 			.ConfigureServices(services => services.AddSingleton(startup));
+	}
 }
