@@ -139,7 +139,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			// is driven by the HttpContext.User established above
 			.UseAuthentication()
 			.UseRouting()
-			.UseAuthorization();
+			.UseAuthorization()
+			.UseAntiforgery();
 
 		// allow all subsystems to register their legacy controllers before calling MapLegacyHttp
 		foreach (var component in _plugableComponents)
@@ -204,6 +205,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				.AddScheme<EventStoreAuthenticationHandler>("es auth", displayName: null))
 			.Services
 			.AddAuthorization()
+			.AddAntiforgery()
 			.AddSingleton(_authenticationProvider)
 			.AddSingleton(_authorizationProvider)
 			.AddSingleton<ISubscriber>(_mainBus)
