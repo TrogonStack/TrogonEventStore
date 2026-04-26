@@ -12,6 +12,7 @@ using EventStore.Common.DevCertificates;
 using EventStore.Common.Exceptions;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
+using EventStore.ClusterNode.Components;
 using EventStore.Core;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
@@ -221,7 +222,11 @@ internal static class Program
 			{
 				try
 				{
-					var builder = WebApplication.CreateBuilder(args);
+					var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+					{
+						Args = args,
+						ContentRootPath = AppDomain.CurrentDomain.BaseDirectory,
+					});
 					builder.Configuration.Sources.Clear();
 					builder.Configuration
 						.AddEnvironmentVariables("DOTNET_")
@@ -258,10 +263,12 @@ internal static class Program
 					});
 
 					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
+					builder.Services.AddRazorComponents();
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
 					hostedService.Node.Startup.Configure(app);
+					app.MapRazorComponents<App>();
 
 					await app.RunAsync(cts.Token);
 

@@ -1,0 +1,22 @@
+@page "/ui"
+@page "/ui/cluster"
+
+<PageTitle>EventStore UI</PageTitle>
+
+<main class="min-h-screen bg-es-paper text-es-ink">
+	<section class="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-12">
+		<p class="mb-4 text-sm font-semibold uppercase tracking-[0.28em] text-es-green">EventStore</p>
+		<h1 class="max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">A new management surface is coming together.</h1>
+		<p class="mt-6 max-w-2xl text-lg leading-8 text-slate-700">
+			This route proves the server-rendered UI shell can be hosted by the node while the existing web UI remains available.
+		</p>
+		<div class="mt-10 flex flex-wrap gap-4">
+			<a class="rounded-full bg-es-green px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-es-green/90" href="/web/index.html">
+				Open current web UI
+			</a>
+			<a class="rounded-full border border-es-ink/20 px-5 py-3 text-sm font-semibold text-es-ink hover:border-es-green hover:text-es-green" href="/stats">
+				View stats endpoint
+			</a>
+		</div>
+	</section>
+</main>
