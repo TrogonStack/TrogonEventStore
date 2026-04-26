@@ -43,6 +43,13 @@ namespace EventStore.Core.Services.Transport.Http {
 				case HttpAuthenticationRequestStatus.Authenticated:
 					context.User = principal;
 					await next(context);
+					if (context.Response.StatusCode == StatusCodes.Status302Found &&
+					    principal.Identity?.IsAuthenticated == false &&
+					    !IsBrowserRequest(context) &&
+					    !context.Response.HasStarted) {
+						context.Response.Clear();
+						await AddHttp1ChallengeHeaders(context);
+					}
 					break;
 				case HttpAuthenticationRequestStatus.Error:
 					context.Response.StatusCode = HttpStatusCode.InternalServerError;
@@ -106,6 +113,12 @@ namespace EventStore.Core.Services.Transport.Http {
 
 			authenticationRequest = default;
 			return false;
+		}
+
+		private static bool IsBrowserRequest(HttpContext context) {
+			var userAgent = context.Request.Headers.UserAgent.FirstOrDefault();
+			return !string.IsNullOrEmpty(userAgent) &&
+			       userAgent.StartsWith("Mozilla", StringComparison.OrdinalIgnoreCase);
 		}
 
 		private async Task AddHttp1ChallengeHeaders(HttpContext context) {
