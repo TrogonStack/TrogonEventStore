@@ -1,0 +1,13 @@
+{
+  "name": "eventstore-clusternode-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:css": "tailwindcss -i ./styles/app.css -o ./clusternode-web/css/tailwind.generated.css --minify",
+    "watch:css": "tailwindcss -i ./styles/app.css -o ./clusternode-web/css/tailwind.generated.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.2.4",
+    "tailwindcss": "4.2.4"
+  }
+}
