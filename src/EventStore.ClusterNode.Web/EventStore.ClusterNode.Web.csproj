@@ -8,6 +8,9 @@
 		</Content>
 	</ItemGroup>
 	<ItemGroup>
+		<None Include="package.json" />
+		<None Include="package-lock.json" />
+		<None Include="styles\app.css" />
 		<None Include="clusternode-web\apple-touch-icon.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
@@ -24,6 +27,9 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Include="clusternode-web\css\main.min.css">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="clusternode-web\css\tailwind.generated.css">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Include="clusternode-web\images\logo.svg">

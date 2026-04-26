@@ -1,0 +1,12 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../clusternode-web/index.html";
+
+@theme {
+	--font-sans: Roboto, ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "Source Code Pro", ui-monospace, SFMono-Regular, monospace;
+	--color-es-green: #6ba300;
+	--color-es-ink: #172033;
+	--color-es-paper: #f6f8f4;
+}
