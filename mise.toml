@@ -1,0 +1,13 @@
+[tasks."ui:dev"]
+description = "Run a local file-backed node for Razor UI testing"
+run = '''
+mkdir -p "$PWD/tmp/db" "$PWD/tmp/log"
+
+DOTNET_ROLL_FORWARD=Major mise exec -- dotnet watch run \
+  --project src/EventStore.ClusterNode/EventStore.ClusterNode.csproj -- \
+  --insecure \
+  --db "$PWD/tmp/db" \
+  --disable-http-caching \
+  --log "$PWD/tmp/log" \
+  --log-console-format Plain
+'''
