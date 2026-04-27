@@ -31,12 +31,17 @@ internal sealed class TaskCompletionEnvelope<T> : IEnvelope where T : Message {
 		}
 
 		var failure = _mapFailure(message);
-		if (!string.IsNullOrWhiteSpace(failure)) {
-			_source.TrySetException(new InvalidOperationException(failure));
+		if (failure is not null) {
+			_source.TrySetException(new InvalidOperationException(FailureMessage(message, failure)));
 			return;
 		}
 
 		_source.TrySetException(new InvalidOperationException(
 			$"Expected {typeof(T).Name} but received {message.GetType().Name}."));
 	}
+
+	private static string FailureMessage(Message message, string failure) =>
+		string.IsNullOrWhiteSpace(failure)
+			? $"{message.GetType().Name} failed without a reason."
+			: failure;
 }
