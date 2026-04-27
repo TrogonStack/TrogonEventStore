@@ -29,24 +29,26 @@ public sealed class QueryBrowserService(
 		var projectionName = Guid.NewGuid().ToString("D");
 		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Updated>(
 			mapFailure: message => message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason : null);
-		publisher.Publish(new ProjectionManagementMessage.Command.Post(
-			envelope,
-			ProjectionMode.Transient,
-			projectionName,
-			new ProjectionManagementMessage.RunAs(CurrentUser),
-			"JS",
-			query,
-			enabled: true,
-			checkpointsEnabled: false,
-			emitEnabled: false,
-			trackEmittedStreams: false,
-			enableRunAs: true));
 
 		ProjectionManagementMessage.Updated completed;
 		try {
+			publisher.Publish(new ProjectionManagementMessage.Command.Post(
+				envelope,
+				ProjectionMode.Transient,
+				projectionName,
+				new ProjectionManagementMessage.RunAs(CurrentUser),
+				"JS",
+				query,
+				enabled: true,
+				checkpointsEnabled: false,
+				emitEnabled: false,
+				trackEmittedStreams: false,
+				enableRunAs: true));
+
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		} catch (TimeoutException) {
-			return QueryRunPage.Unavailable(query, "Timed out creating the transient query.");
+			return QueryRunPage.Unavailable(query,
+				$"Timed out creating transient query '{projectionName}'. It may still be visible temporarily before automatic expiry.");
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
