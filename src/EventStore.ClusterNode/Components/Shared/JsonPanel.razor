@@ -1,0 +1,27 @@
+<section class="rounded-[1.5rem] border border-es-ink/10 bg-es-ink text-white shadow-[0_18px_70px_rgba(23,32,51,0.18)]">
+	<div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+		<div>
+			<p class="text-xs font-black uppercase tracking-[0.24em] text-es-green">@Eyebrow</p>
+			<h3 class="mt-1 text-lg font-black tracking-tight">@Title</h3>
+		</div>
+		@if (!string.IsNullOrWhiteSpace(RawHref))
+		{
+			<a class="rounded-full border border-white/20 px-3 py-1 text-xs font-bold text-white/80 hover:border-es-green hover:text-white" href="@RawHref" target="_blank" rel="noopener noreferrer">Raw</a>
+		}
+	</div>
+	@if (string.IsNullOrWhiteSpace(Content))
+	{
+		<p class="px-5 py-6 text-sm text-white/60">No payload.</p>
+	}
+	else
+	{
+		<pre class="max-h-[36rem] overflow-auto whitespace-pre-wrap break-words px-5 py-5 font-mono text-sm leading-6 text-white/88">@Content</pre>
+	}
+</section>
+
+@code {
+	[Parameter] public string Eyebrow { get; set; } = "JSON";
+	[Parameter] public string Title { get; set; } = "Payload";
+	[Parameter] public string Content { get; set; } = "";
+	[Parameter] public string RawHref { get; set; } = "";
+}

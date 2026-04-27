@@ -1,0 +1,40 @@
+@using EventStore.ClusterNode.Components.Services
+
+@if (!Page.HasEvents)
+{
+	<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</div>
+}
+else
+{
+	<div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+		<div>
+			<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Events</p>
+			<h2 class="mt-2 break-words text-3xl font-black tracking-tight text-es-ink">@Page.StreamId</h2>
+			<p class="mt-2 text-sm text-es-muted">Last event #@Page.LastEventNumber. Showing from @Page.FromEventNumber.</p>
+		</div>
+		<div class="flex flex-wrap gap-3">
+			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)">Latest</a>
+			@if (Page.CanReadOlder)
+			{
+				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)?from=@Page.NextEventNumber">Older events</a>
+			}
+			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/streams/@Uri.EscapeDataString(Page.StreamId)" target="_blank" rel="noopener noreferrer">Raw stream</a>
+		</div>
+	</div>
+	<div class="grid gap-5">
+		@foreach (var ev in Page.Events)
+		{
+			<StreamEventCard Event="ev" />
+			<div class="grid gap-4 lg:grid-cols-2">
+				<JsonPanel Eyebrow="Data" Title="@($"{ev.EventType} data")" Content="@ev.DataForDisplay" RawHref="@ev.RawHref" />
+				<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@ev.MetadataForDisplay" />
+			</div>
+		}
+	</div>
+}
+
+@code {
+	[Parameter] public StreamReadPage Page { get; set; }
+}
