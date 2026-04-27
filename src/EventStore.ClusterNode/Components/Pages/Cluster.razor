@@ -1,45 +1,213 @@
 @page "/ui"
 @page "/ui/cluster"
+@inject QueueDashboardService QueueDashboard
+@using System.Globalization
 
-<PageTitle>EventStore UI</PageTitle>
+<PageTitle>EventStore Dashboard</PageTitle>
 
-<section class="grid gap-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-stretch">
-	<div class="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-es-ink p-8 text-white shadow-[0_28px_110px_rgba(23,32,51,0.22)] sm:p-10">
-		<div class="absolute -right-24 -top-24 size-72 rounded-full bg-es-green/30 blur-3xl"></div>
-		<div class="absolute -bottom-28 left-10 size-64 rounded-full bg-white/10 blur-3xl"></div>
-		<div class="relative">
-			<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Cluster overview</p>
-			<h1 class="mt-5 max-w-4xl text-5xl font-black tracking-tight sm:text-7xl">Operate the node without leaving the server.</h1>
-			<p class="mt-6 max-w-2xl text-lg leading-8 text-white/76">
-				The Blazor surface now groups the important node entry points into a single hosted workspace while the current web UI remains available for deeper workflows.
-			</p>
-			<div class="mt-10 flex flex-wrap gap-3">
-				<a class="rounded-full bg-es-green px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-green/25 hover:bg-white hover:text-es-ink" href="/ui/navigator">Explore tools</a>
-				<a class="rounded-full border border-white/30 px-5 py-3 text-sm font-black text-white hover:border-white hover:bg-white/10" href="/web/index.html" target="_blank" rel="noopener noreferrer">Open current web UI</a>
+<div data-queue-dashboard="home">
+<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+	<MetricCard Label="Runtime queues" Value="@(Page?.QueueCountLabel ?? "-")" QueueMetric="queue-count" />
+	<MetricCard Label="Busy queues" Value="@(Page?.BusyQueueCountLabel ?? "-")" Tone="muted" QueueMetric="busy-count" />
+	<MetricCard Label="Total backlog" Value="@(Page?.TotalBacklogLabel ?? "-")" Tone="muted" QueueMetric="backlog" />
+	<MetricCard Label="Items/s" Value="@(Page?.TotalRateLabel ?? "-")" QueueMetric="rate" />
+</section>
+
+<section class="mt-5 grid gap-5 xl:grid-cols-[1.4fr_0.6fr]">
+	<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<div class="flex flex-col gap-3 border-b border-es-ink/10 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Queue pressure</p>
+				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Live node workload</h2>
+				<p class="mt-2 text-sm text-es-muted">Updates every second from the node stats endpoint while this tab is visible.</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-queue-status>Connecting live stats...</span>
+				<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-queue-updated>Waiting for first update</span>
+				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/ui/observability">Open full dashboard</a>
+			</div>
+		</div>
+		<div class="grid gap-5 p-5 lg:grid-cols-[0.95fr_1.05fr]">
+			<div class="rounded-[1.5rem] border border-es-ink/10 bg-es-ink p-5 text-white">
+				<p class="text-xs font-black uppercase tracking-[0.22em] text-white/60">Throughput map</p>
+				<div class="mt-5 grid gap-4" data-queue-pressure-list>
+					@if (Page is null)
+					{
+						<p class="text-sm leading-6 text-white/70">Loading runtime statistics...</p>
+					}
+					else if (!Page.IsAvailable)
+					{
+						<p class="text-sm leading-6 text-white/70">@Page.Message</p>
+					}
+					else if (SpotlightQueues.Count == 0)
+					{
+						<p class="text-sm leading-6 text-white/70">No queue statistics are available yet.</p>
+					}
+					else
+					{
+						@foreach (var queue in SpotlightQueues)
+						{
+							<div>
+								<div class="flex items-center justify-between gap-3 text-xs font-bold">
+									<span class="truncate text-white/80">@queue.Name</span>
+									<span class="font-mono text-white">@queue.AvgItemsPerSecondLabel/s</span>
+								</div>
+								<div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+									<div class="h-full rounded-full bg-es-green" style="@PressureStyle(queue)"></div>
+								</div>
+							</div>
+						}
+					}
+				</div>
+			</div>
+
+			<div class="overflow-hidden rounded-[1.5rem] border border-es-ink/10 bg-white">
+				<div class="border-b border-es-ink/10 px-4 py-3">
+					<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Queue spotlight</p>
+				</div>
+				<div class="overflow-x-auto">
+					<table class="min-w-full text-left text-sm">
+						<thead class="border-b border-es-ink/10 bg-es-ink/5 text-xs font-black uppercase tracking-[0.16em] text-es-muted">
+							<tr>
+								<th class="px-4 py-3">Queue</th>
+								<th class="px-4 py-3 text-right">Length</th>
+								<th class="px-4 py-3 text-right">Rate</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-es-ink/10" data-queue-spotlight-body>
+							@if (SpotlightQueues.Count == 0)
+							{
+								<tr>
+									<td class="px-4 py-4 text-es-muted" colspan="3">Queue data is not available.</td>
+								</tr>
+							}
+							else
+							{
+								foreach (var queue in SpotlightQueues.Take(6))
+								{
+									<tr class="bg-white/70">
+										<td class="max-w-xs px-4 py-3">
+											<p class="truncate font-bold text-es-ink">@queue.Name</p>
+											<p class="mt-1 truncate text-xs text-es-muted">@queue.LastProcessedMessage</p>
+										</td>
+										<td class="px-4 py-3 text-right font-mono text-es-ink">@queue.LengthLabel</td>
+										<td class="px-4 py-3 text-right font-mono text-es-ink">@queue.AvgItemsPerSecondLabel</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 	</div>
 
-	<aside class="grid gap-4">
-		<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
-			<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Node probes</p>
-			<div class="mt-5 grid gap-3">
-				<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="/ping" target="_blank" rel="noopener noreferrer">Ping</a>
-				<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="/info" target="_blank" rel="noopener noreferrer">Node info</a>
-				<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="/gossip" target="_blank" rel="noopener noreferrer">Gossip</a>
+	<aside class="grid gap-5">
+		<div class="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="flex items-center justify-between gap-3">
+				<div>
+					<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Node probes</p>
+					<h2 class="mt-2 text-2xl font-black tracking-tight text-es-ink">Quick checks</h2>
+				</div>
+				<a class="text-sm font-black text-es-green hover:text-es-forest" href="/stats?format=json" target="_blank" rel="noopener noreferrer">Raw stats</a>
 			</div>
+			<div class="mt-5 grid gap-2">
+				@foreach (var probe in Probes)
+				{
+					<a class="@ProbeLinkClass(probe)" href="@($"/ui?probe={probe.Key}")">@probe.Title</a>
+				}
+			</div>
+			@if (SelectedProbe is not null)
+			{
+				<div class="mt-4 overflow-hidden rounded-[1.5rem] border border-es-ink/10 bg-white shadow-inner shadow-es-ink/5">
+					<div class="flex flex-wrap items-center justify-between gap-3 border-b border-es-ink/10 px-4 py-3">
+						<div>
+							<p class="text-xs font-black uppercase tracking-[0.2em] text-es-green">@SelectedProbe.Title</p>
+							<p class="mt-1 text-sm text-es-muted">@SelectedProbe.Description</p>
+						</div>
+						<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@SelectedProbe.Href" target="_blank" rel="noopener noreferrer">Open raw</a>
+					</div>
+					<iframe class="h-64 w-full bg-white" src="@SelectedProbe.Href" title="@($"{SelectedProbe.Title} response")"></iframe>
+				</div>
+			}
 		</div>
-		<div class="rounded-[2rem] bg-es-green p-6 text-white shadow-[0_20px_70px_rgba(107,163,0,0.20)]">
-			<p class="text-sm font-black uppercase tracking-[0.24em] text-white/70">Status</p>
-			<p class="mt-4 text-3xl font-black tracking-tight">Server-rendered</p>
-			<p class="mt-3 leading-7 text-white/78">The shell works without client-side state, so the page remains useful before we make deeper product calls on interactive management flows.</p>
+
+		<div class="rounded-[2rem] bg-es-green p-5 text-white shadow-[0_20px_70px_rgba(107,163,0,0.20)]">
+			<p class="text-xs font-black uppercase tracking-[0.22em] text-white/70">Operator flow</p>
+			<h2 class="mt-3 text-2xl font-black tracking-tight">One dashboard, raw endpoints nearby.</h2>
+			<p class="mt-3 text-sm leading-6 text-white/80">The new surface makes routine checks readable while keeping the low-level HTTP endpoints available when you need exact payloads.</p>
 		</div>
 	</aside>
 </section>
 
-<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-	<SurfaceCard Eyebrow="Explore" Title="Navigator" Description="Jump into streams, subscriptions, projections, user management, and the existing browser tools from one place." Href="/ui/navigator" LinkText="Open navigator" />
-	<SurfaceCard Eyebrow="Run" Title="Operations" Description="Reach the operational endpoints for scavenging, shutdown, reload, and node-level actions that require privileged access." Href="/ui/operations" LinkText="Open operations" />
-	<SurfaceCard Eyebrow="Watch" Title="Observability" Description="Inspect stats, replication, TCP, metrics, and health endpoints through a curated operator map." Href="/ui/observability" LinkText="Open observability" />
-	<SurfaceCard Eyebrow="Review" Title="Configuration" Description="Find runtime information, loaded options, and subsystem metadata without memorizing endpoint paths." Href="/ui/configuration" LinkText="Open configuration" />
+<section class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+	<SurfaceCard Eyebrow="Explore" Title="Navigator" Description="Jump into streams, subscriptions, projections, user management, and browser tools from one place." Href="/ui/navigator" LinkText="Open" />
+	<SurfaceCard Eyebrow="Run" Title="Operations" Description="Reach privileged actions for scavenging, shutdown, reload, and node-level workflows." Href="/ui/operations" LinkText="Open" />
+	<SurfaceCard Eyebrow="Watch" Title="Observability" Description="Inspect queues, replication, TCP, metrics, and health through a curated operator map." Href="/ui/observability" LinkText="Open" />
+	<SurfaceCard Eyebrow="Review" Title="Configuration" Description="Find runtime information, loaded options, and subsystem metadata without memorizing endpoints." Href="/ui/configuration" LinkText="Open" />
 </section>
+</div>
+
+@code {
+	private QueueDashboardPage Page { get; set; }
+
+	[SupplyParameterFromQuery(Name = "probe")]
+	private string Probe { get; set; } = "";
+
+	private static readonly ProbeLink[] Probes = [
+		new("ping", "Ping", "/ping?format=json", "Process availability probe."),
+		new("info", "Node info", "/info?format=json", "Version, state, feature, and authentication metadata."),
+		new("gossip", "Gossip", "/gossip?format=json", "Current cluster membership view.")
+	];
+
+	private IReadOnlyList<QueueDashboardRow> SpotlightQueues =>
+		Page?.Queues
+			.Where(x => !x.IsGroupSummary)
+			.OrderByDescending(x => x.LengthCurrentTryPeak + x.AvgItemsPerSecond)
+			.ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+			.Take(8)
+			.ToArray() ?? Array.Empty<QueueDashboardRow>();
+
+	private long MaxPressure =>
+		Math.Max(1, SpotlightQueues.Select(x => x.LengthCurrentTryPeak + x.AvgItemsPerSecond).DefaultIfEmpty(1).Max());
+
+	private ProbeLink SelectedProbe =>
+		Probes.FirstOrDefault(x => string.Equals(x.Key, Probe, StringComparison.OrdinalIgnoreCase));
+
+	protected override async Task OnParametersSetAsync() {
+		Page = null;
+
+		try
+		{
+			Page = await QueueDashboard.Read();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Page = QueueDashboardPage.Unavailable($"Failed to load queue statistics: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private string PressureStyle(QueueDashboardRow queue) {
+		var pressure = queue.LengthCurrentTryPeak + queue.AvgItemsPerSecond;
+		var width = Math.Clamp(pressure * 100d / MaxPressure, 6d, 100d);
+		return string.Format(CultureInfo.InvariantCulture, "width: {0:0.##}%", width);
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private string ProbeLinkClass(ProbeLink probe) =>
+		string.Equals(probe.Key, Probe, StringComparison.OrdinalIgnoreCase)
+			? "rounded-2xl border border-es-green bg-es-green px-4 py-3 font-bold text-white shadow-lg shadow-es-green/20 hover:bg-es-forest hover:text-white focus:text-white"
+			: "rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest";
+
+	private sealed record ProbeLink(
+		string Key,
+		string Title,
+		string Href,
+		string Description);
+}

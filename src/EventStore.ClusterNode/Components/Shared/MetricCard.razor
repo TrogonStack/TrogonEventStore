@@ -1,4 +1,4 @@
-<div class="@CssClass">
+<div class="@CssClass" data-queue-metric="@QueueMetricAttribute">
 	<p class="text-xs font-black uppercase tracking-[0.18em]">@Label</p>
 	<p class="mt-2 text-3xl font-black tracking-tight">@Value</p>
 </div>
@@ -7,6 +7,9 @@
 	[Parameter] public string Label { get; set; } = "";
 	[Parameter] public string Value { get; set; } = "";
 	[Parameter] public string Tone { get; set; } = "";
+	[Parameter] public string QueueMetric { get; set; } = "";
+
+	private string QueueMetricAttribute => string.IsNullOrWhiteSpace(QueueMetric) ? null : QueueMetric;
 
 	private string CssClass => Tone.ToLowerInvariant() switch {
 		"bad" => "rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800",

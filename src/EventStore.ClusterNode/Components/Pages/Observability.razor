@@ -1,11 +1,133 @@
 @page "/ui/observability"
+@inject QueueDashboardService QueueDashboard
+@using System.Globalization
 
 <PageTitle>Observability - EventStore UI</PageTitle>
 
-<section class="max-w-4xl">
-	<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Observability</p>
-	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">A map of the signals the node already emits.</h1>
-	<p class="mt-5 text-lg leading-8 text-es-muted">Use these entry points to inspect health, metrics, replication, TCP, and grouped runtime statistics without hunting through endpoint names.</p>
+<div data-queue-dashboard="observability" data-queue-expanded="@Expanded">
+<section class="grid gap-8 xl:grid-cols-[0.95fr_1.05fr] xl:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Observability</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">A map of the signals the node already emits.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Inspect live queue pressure, processing throughput, health, metrics, replication, TCP, and grouped runtime statistics.</p>
+	</div>
+	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-2">
+		<MetricCard Label="Queues" Value="@(Page?.QueueCountLabel ?? "-")" QueueMetric="queue-count" />
+		<MetricCard Label="Busy" Value="@(Page?.BusyQueueCountLabel ?? "-")" Tone="muted" QueueMetric="busy-count" />
+		<MetricCard Label="Backlog" Value="@(Page?.TotalBacklogLabel ?? "-")" Tone="muted" QueueMetric="backlog" />
+		<MetricCard Label="Items/s" Value="@(Page?.TotalRateLabel ?? "-")" QueueMetric="rate" />
+	</div>
+</section>
+
+<section class="mt-8">
+	<details id="dashboard-snapshot" class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<summary class="cursor-pointer text-sm font-black uppercase tracking-[0.22em] text-es-green">Dashboard snapshot</summary>
+		<p class="mt-3 text-sm text-es-muted">Plain-text queue state for incident notes, support handoff, or comparing two moments in time.</p>
+		<pre class="mt-4 overflow-x-auto rounded-[1.25rem] bg-es-ink p-5 font-mono text-xs leading-6 text-white" data-dashboard-snapshot>Waiting for queue statistics...</pre>
+	</details>
+</section>
+
+<section class="mt-8">
+	<div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+		<div>
+			<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Queue dashboard</p>
+			<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Realtime queues</h2>
+			<p class="mt-2 text-sm text-es-muted">Updates every second from the node stats endpoint while this tab is visible.</p>
+		</div>
+		<div class="flex flex-wrap gap-2">
+			<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-queue-status>Connecting live stats...</span>
+			<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-queue-updated>Waiting for first update</span>
+			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/stats?format=json" target="_blank" rel="noopener noreferrer">Open raw stats</a>
+		</div>
+	</div>
+
+	@if (Page is null)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading queue statistics...
+		</div>
+	}
+	else if (!Page.IsAvailable || !Page.HasRows)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@(string.IsNullOrWhiteSpace(Page.Message) ? "No queue statistics are available." : Page.Message)
+		</div>
+	}
+	else
+	{
+		<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="overflow-x-auto">
+				<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
+					<thead class="bg-es-ink/5 text-xs font-black uppercase tracking-[0.18em] text-es-muted">
+						<tr>
+							<th class="px-5 py-4">Queue Name</th>
+							<th class="px-5 py-4 text-right">Length</th>
+							<th class="px-5 py-4 text-right">Rate (items/s)</th>
+							<th class="px-5 py-4 text-right">Time (ms/item)</th>
+							<th class="px-5 py-4 text-right">Items Processed</th>
+							<th class="px-5 py-4">Current / Last Message</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-es-ink/10" data-queue-table-body>
+						@foreach (var block in Page.Blocks)
+						{
+							@RenderQueueRow(block.Summary, block)
+							@if (block.HasChildren && IsExpanded(block.Name))
+							{
+								foreach (var child in block.Children)
+								{
+									@RenderQueueRow(child)
+								}
+							}
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+</section>
+
+<section class="mt-8">
+	<div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+		<div>
+			<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">TCP dashboard</p>
+			<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Realtime connections</h2>
+			<p class="mt-2 text-sm text-es-muted">Matches the legacy dashboard connection view with per-second sent and received byte rates.</p>
+		</div>
+		<div class="flex flex-wrap gap-2">
+			<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-tcp-status>Connecting TCP stats...</span>
+			<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-tcp-page-status>No pages</span>
+			<button type="button" class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-green disabled:cursor-not-allowed disabled:opacity-40" data-tcp-page="previous" disabled>Previous</button>
+			<button type="button" class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-green disabled:cursor-not-allowed disabled:opacity-40" data-tcp-page="next" disabled>Next</button>
+			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/stats/tcp?format=json" target="_blank" rel="noopener noreferrer">Open raw TCP</a>
+		</div>
+	</div>
+
+	<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<div class="overflow-x-auto">
+			<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
+				<thead class="bg-es-ink/5 text-xs font-black uppercase tracking-[0.18em] text-es-muted">
+					<tr>
+						<th class="px-5 py-4">Connection</th>
+						<th class="px-5 py-4">Client</th>
+						<th class="px-5 py-4">Type</th>
+						<th class="px-5 py-4">IP Address</th>
+						<th class="px-5 py-4 text-right">Sent rate</th>
+						<th class="px-5 py-4 text-right">Sent current</th>
+						<th class="px-5 py-4 text-right">Sent pending</th>
+						<th class="px-5 py-4 text-right">Received rate</th>
+						<th class="px-5 py-4 text-right">Received current</th>
+						<th class="px-5 py-4 text-right">Received pending</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-es-ink/10" data-tcp-table-body>
+					<tr>
+						<td class="px-5 py-4 text-es-muted" colspan="10">Loading TCP connection statistics...</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
 </section>
 
 <section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -16,3 +138,82 @@
 	<SurfaceCard Eyebrow="Stats" Title="TCP stats" Description="Inspect TCP connection statistics when troubleshooting network behavior." Href="/stats/tcp" LinkText="Open TCP stats" Target="_blank" />
 	<SurfaceCard Eyebrow="Metrics" Title="Metrics endpoint" Description="Open the metrics endpoint used by external monitoring systems." Href="/metrics" LinkText="Open metrics" Target="_blank" />
 </section>
+</div>
+
+@code {
+	private QueueDashboardPage Page { get; set; }
+
+	[SupplyParameterFromQuery(Name = "expanded")]
+	private string Expanded { get; set; } = "";
+
+	protected override async Task OnParametersSetAsync() {
+		Page = null;
+
+		try
+		{
+			Page = await QueueDashboard.Read();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Page = QueueDashboardPage.Unavailable($"Failed to load queue statistics: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private RenderFragment RenderQueueRow(QueueDashboardRow row, QueueDashboardBlock block = null) => @<tr class="@row.RowClass">
+		<td class="px-5 py-4">
+			<div class="@row.NameClass">
+				@if (block?.HasChildren == true)
+				{
+					<a class="mr-2 inline-flex size-6 items-center justify-center rounded-full border border-es-green/25 bg-es-green/10 text-es-green transition hover:bg-es-green hover:text-white" href="@ToggleHref(block)" aria-label="@ToggleLabel(block)">
+						@(IsExpanded(block.Name) ? "-" : "+")
+					</a>
+				}
+				else if (row.IsGroupMember)
+				{
+					<span class="mr-2 text-es-muted">-</span>
+				}
+				@row.Name
+			</div>
+			<p class="mt-1 text-xs font-black uppercase tracking-[0.16em] text-es-muted">@row.KindLabel</p>
+		</td>
+		<td class="px-5 py-4 text-right">
+			<p class="font-mono text-es-ink">@row.LengthLabel</p>
+			<p class="mt-1 text-xs font-black uppercase tracking-[0.16em] text-es-muted">Peak @row.LengthPeakLabel</p>
+		</td>
+		<td class="px-5 py-4 text-right font-mono text-es-ink">@row.AvgItemsPerSecondLabel</td>
+		<td class="px-5 py-4 text-right font-mono text-es-ink">@row.AvgProcessingTimeLabel</td>
+		<td class="px-5 py-4 text-right font-mono text-es-ink">@row.TotalItemsProcessedLabel</td>
+		<td class="px-5 py-4 font-mono text-xs text-es-muted">@row.CurrentLastMessageLabel</td>
+	</tr>;
+
+	private bool IsExpanded(string groupName) =>
+		ParseExpandedGroups().Contains(groupName);
+
+	private string ToggleHref(QueueDashboardBlock block) {
+		var expanded = ParseExpandedGroups();
+		if (!expanded.Add(block.Name))
+			expanded.Remove(block.Name);
+
+		if (expanded.Count == 0)
+			return "/ui/observability";
+
+		return "/ui/observability?expanded=" + Uri.EscapeDataString(string.Join("|", expanded.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)));
+	}
+
+	private string ToggleLabel(QueueDashboardBlock block) =>
+		IsExpanded(block.Name)
+			? string.Format(CultureInfo.InvariantCulture, "Collapse {0}", block.Name)
+			: string.Format(CultureInfo.InvariantCulture, "Expand {0}", block.Name);
+
+	private HashSet<string> ParseExpandedGroups() =>
+		(Expanded ?? "")
+			.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+			.ToHashSet(StringComparer.OrdinalIgnoreCase);
+}
