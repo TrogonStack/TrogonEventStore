@@ -121,7 +121,7 @@ public sealed record SubscriptionView(
 	public string StatusTone => StatusLabel.Contains("live", StringComparison.OrdinalIgnoreCase)
 		? "good"
 		: StatusLabel.Contains("parked", StringComparison.OrdinalIgnoreCase) ||
-		  StatusLabel.Contains("catch", StringComparison.OrdinalIgnoreCase)
+		  StatusLabel.Contains("behind", StringComparison.OrdinalIgnoreCase)
 			? "warn"
 			: ConnectionCount == 0
 				? "muted"
