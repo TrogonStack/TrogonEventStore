@@ -28,7 +28,7 @@ public sealed class QueryBrowserService(
 
 		var projectionName = Guid.NewGuid().ToString("D");
 		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Updated>(
-			mapFailure: message => message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason : null);
+			mapFailure: message => message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason ?? "" : null);
 
 		ProjectionManagementMessage.Updated completed;
 		try {
