@@ -79,8 +79,7 @@
 			throw;
 		} catch (Exception ex) {
 			if (requested == LoginName) {
-				var current = CurrentUserView.From(new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity()));
-				Page = UserDetailPage.Unavailable(requested, current, $"Failed to load user: {FriendlyMessage(ex)}");
+				Page = UserDetailPage.Unavailable(requested, UserBrowser.ReadCurrentRequest(), $"Failed to load user: {FriendlyMessage(ex)}");
 			}
 		}
 	}

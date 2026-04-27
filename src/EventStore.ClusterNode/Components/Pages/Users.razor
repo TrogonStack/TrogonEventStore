@@ -101,8 +101,7 @@
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			var current = CurrentUserView.From(new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity()));
-			Page = UserListPage.Unavailable(current, $"Failed to load users: {FriendlyMessage(ex)}");
+			Page = UserListPage.Unavailable(UserBrowser.ReadCurrentRequest(), $"Failed to load users: {FriendlyMessage(ex)}");
 		}
 	}
 

@@ -20,6 +20,8 @@ public sealed class UserBrowserService(
 	private static readonly Operation ListOperation = new(Operations.Users.List);
 	private static readonly Operation ReadOperation = new(Operations.Users.Read);
 
+	public CurrentUserView ReadCurrentRequest() => CurrentUserView.From(CurrentUser);
+
 	public async Task<UserListPage> ReadAll(CancellationToken cancellationToken = default) {
 		var currentUser = CurrentUserView.From(CurrentUser);
 		if (!await HasAccess(ListOperation, cancellationToken))
