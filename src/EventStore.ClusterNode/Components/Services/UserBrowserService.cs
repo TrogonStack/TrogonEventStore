@@ -116,9 +116,10 @@ public sealed record UserListPage(
 	public static UserListPage Unavailable(CurrentUserView currentUser, string message) => new(currentUser, Array.Empty<UserView>(), message);
 }
 
+#nullable enable
 public sealed record UserDetailPage(
 	CurrentUserView CurrentUser,
-	UserView User,
+	UserView? User,
 	string LoginName,
 	string Message) {
 	public bool HasUser => User is not null;
@@ -126,6 +127,7 @@ public sealed record UserDetailPage(
 	public static UserDetailPage Success(CurrentUserView currentUser, UserView user) => new(currentUser, user, user.LoginName, "");
 	public static UserDetailPage Unavailable(string loginName, CurrentUserView currentUser, string message) => new(currentUser, null, loginName, message);
 }
+#nullable restore
 
 public sealed record CurrentUserView(
 	string Name,

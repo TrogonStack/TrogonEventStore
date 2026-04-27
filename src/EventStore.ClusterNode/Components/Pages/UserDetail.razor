@@ -26,7 +26,7 @@
 			Loading user...
 		</div>
 	}
-	else if (!Page.HasUser)
+	else if (Page.User is null)
 	{
 		<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
 			@Page.Message
@@ -34,28 +34,29 @@
 	}
 	else
 	{
+		var user = Page.User;
 		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 			<div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
 				<div class="min-w-0">
-					<StatusBadge Label="@Page.User.StatusLabel" Tone="@Page.User.StatusTone" />
-					<h2 class="mt-4 break-words text-3xl font-black tracking-tight text-es-ink">@Page.User.DisplayName</h2>
-					<p class="mt-2 break-words font-mono text-sm text-es-muted">@Page.User.LoginName</p>
+					<StatusBadge Label="@user.StatusLabel" Tone="@user.StatusTone" />
+					<h2 class="mt-4 break-words text-3xl font-black tracking-tight text-es-ink">@user.DisplayName</h2>
+					<p class="mt-2 break-words font-mono text-sm text-es-muted">@user.LoginName</p>
 				</div>
-				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.User.RawHref" target="_blank" rel="noopener noreferrer">Raw user</a>
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@user.RawHref" target="_blank" rel="noopener noreferrer">Raw user</a>
 			</div>
 
 			<div class="mt-6 grid gap-4 md:grid-cols-2">
 				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
 					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Full name</p>
-					<p class="mt-2 break-words text-es-ink">@(string.IsNullOrWhiteSpace(Page.User.FullName) ? "Not set" : Page.User.FullName)</p>
+					<p class="mt-2 break-words text-es-ink">@(string.IsNullOrWhiteSpace(user.FullName) ? "Not set" : user.FullName)</p>
 				</div>
 				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
 					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Last updated</p>
-					<p class="mt-2 font-mono text-sm text-es-ink">@Page.User.UpdatedLabel</p>
+					<p class="mt-2 font-mono text-sm text-es-ink">@user.UpdatedLabel</p>
 				</div>
 				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 md:col-span-2">
 					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Groups</p>
-					<p class="mt-2 break-words text-es-ink">@Page.User.GroupsLabel</p>
+					<p class="mt-2 break-words text-es-ink">@user.GroupsLabel</p>
 				</div>
 			</div>
 		</article>
