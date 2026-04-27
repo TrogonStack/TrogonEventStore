@@ -116,10 +116,14 @@ internal sealed record ProjectionStatisticsRead(
 public sealed record ProjectionListPage(
 	IReadOnlyList<ProjectionView> Projections,
 	string Message) {
+	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasProjections => Projections.Count > 0;
 	public int RunningCount => Projections.Count(x => x.IsRunning);
 	public int FaultedCount => Projections.Count(x => x.IsFaulted);
 	public int DisabledCount => Projections.Count(x => !x.Enabled);
+	public string RunningCountLabel => IsAvailable ? RunningCount.ToString() : "-";
+	public string FaultedCountLabel => IsAvailable ? FaultedCount.ToString() : "-";
+	public string DisabledCountLabel => IsAvailable ? DisabledCount.ToString() : "-";
 
 	public static ProjectionListPage Success(IReadOnlyList<ProjectionView> projections) => new(projections, "");
 	public static ProjectionListPage Unavailable(string message) => new(Array.Empty<ProjectionView>(), message);

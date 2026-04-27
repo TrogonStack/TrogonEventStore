@@ -10,9 +10,9 @@
 		<p class="mt-5 text-lg leading-8 text-es-muted">Start with read-only status, progress, checkpoints, and raw diagnostic handoffs before we introduce projection commands.</p>
 	</div>
 	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-3">
-		<MetricCard Label="Running" Value="@(Page?.RunningCount.ToString() ?? "-")" />
-		<MetricCard Label="Faulted" Value="@(Page?.FaultedCount.ToString() ?? "-")" Tone="bad" />
-		<MetricCard Label="Disabled" Value="@(Page?.DisabledCount.ToString() ?? "-")" Tone="muted" />
+		<MetricCard Label="Running" Value="@(Page?.RunningCountLabel ?? "-")" />
+		<MetricCard Label="Faulted" Value="@(Page?.FaultedCountLabel ?? "-")" Tone="bad" />
+		<MetricCard Label="Disabled" Value="@(Page?.DisabledCountLabel ?? "-")" Tone="muted" />
 	</div>
 </section>
 
