@@ -1,0 +1,163 @@
+@page "/ui/subscriptions"
+@inject SubscriptionBrowserService SubscriptionBrowser
+
+<PageTitle>Subscriptions - EventStore UI</PageTitle>
+
+<section class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Subscriptions</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Inspect consumer pressure before it turns into backlog.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Review persistent subscription groups, parked messages, in-flight work, and active consumers from the native workspace.</p>
+	</div>
+	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-2">
+		<MetricCard Label="Groups" Value="@(Page?.GroupCountLabel ?? "-")" />
+		<MetricCard Label="Connected" Value="@(Page?.ConnectedCountLabel ?? "-")" />
+		<MetricCard Label="Parked" Value="@(Page?.ParkedMessageCountLabel ?? "-")" Tone="bad" />
+		<MetricCard Label="In flight" Value="@(Page?.InFlightMessageCountLabel ?? "-")" Tone="muted" />
+	</div>
+</section>
+
+<section class="mt-8">
+	@if (Page is null)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading persistent subscriptions...
+		</div>
+	}
+	else if (!Page.HasSubscriptions)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@(string.IsNullOrWhiteSpace(Page.Message) ? "No persistent subscriptions are available." : Page.Message)
+		</div>
+	}
+	else
+	{
+		<div class="grid gap-5">
+			@foreach (var subscription in Page.Subscriptions)
+			{
+				<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+					<div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+						<div class="min-w-0">
+							<div class="flex flex-wrap items-center gap-2">
+								<StatusBadge Label="@subscription.StatusLabel" Tone="@subscription.StatusTone" />
+								<StatusBadge Label="@subscription.ConnectionLabel" Tone="muted" />
+							</div>
+							<h2 class="mt-4 break-words text-3xl font-black tracking-tight text-es-ink">@subscription.GroupName</h2>
+							<p class="mt-2 break-words font-mono text-sm text-es-muted">@subscription.StreamId</p>
+						</div>
+						<div class="flex flex-wrap gap-3">
+							<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@subscription.DetailHref" target="_blank" rel="noopener noreferrer">Raw details</a>
+							<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@subscription.ParkedHref" target="_blank" rel="noopener noreferrer">Parked</a>
+						</div>
+					</div>
+
+					<div class="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+						<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Checkpoint</p>
+							<p class="mt-2 break-words font-mono text-sm text-es-ink">@(string.IsNullOrWhiteSpace(subscription.LastCheckpointedEventPosition) ? "No checkpoint" : subscription.LastCheckpointedEventPosition)</p>
+						</div>
+						<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Known position</p>
+							<p class="mt-2 break-words font-mono text-sm text-es-ink">@(string.IsNullOrWhiteSpace(subscription.LastKnownEventPosition) ? "Unknown" : subscription.LastKnownEventPosition)</p>
+						</div>
+						<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Throughput</p>
+							<p class="mt-2 text-2xl font-black text-es-ink">@subscription.AveragePerSecond/s</p>
+							<p class="text-sm text-es-muted">@subscription.TotalItems total</p>
+						</div>
+						<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Pressure</p>
+							<p class="mt-2 text-2xl font-black text-es-ink">@subscription.TotalInFlightMessages in flight</p>
+							<p class="text-sm text-es-muted">@subscription.OutstandingMessagesCount outstanding</p>
+						</div>
+					</div>
+
+					<div class="mt-6 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
+						<div class="rounded-2xl border border-es-ink/10 bg-white/70 p-4">
+							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Configuration</p>
+							<dl class="mt-4 grid gap-3 text-sm">
+								<div class="flex justify-between gap-4">
+									<dt class="text-es-muted">Strategy</dt>
+									<dd class="font-bold text-es-ink">@(string.IsNullOrWhiteSpace(subscription.NamedConsumerStrategy) ? "Unknown" : subscription.NamedConsumerStrategy)</dd>
+								</div>
+								<div class="flex justify-between gap-4">
+									<dt class="text-es-muted">Start from</dt>
+									<dd class="font-mono text-es-ink">@(string.IsNullOrWhiteSpace(subscription.StartFrom) ? "Default" : subscription.StartFrom)</dd>
+								</div>
+								<div class="flex justify-between gap-4">
+									<dt class="text-es-muted">Max subscribers</dt>
+									<dd class="font-mono text-es-ink">@subscription.MaxSubscriberCount</dd>
+								</div>
+								<div class="flex justify-between gap-4">
+									<dt class="text-es-muted">Buffers</dt>
+									<dd class="font-mono text-es-ink">@subscription.ReadBufferCount read / @subscription.LiveBufferCount live / @subscription.RetryBufferCount retry</dd>
+								</div>
+							</dl>
+						</div>
+
+						<div class="rounded-2xl border border-es-ink/10 bg-white/70 p-4">
+							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Consumers</p>
+							@if (subscription.Connections.Count == 0)
+							{
+								<p class="mt-4 text-sm text-es-muted">No active consumers are connected.</p>
+							}
+							else
+							{
+								<div class="mt-4 overflow-x-auto">
+									<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
+										<thead class="text-xs font-black uppercase tracking-[0.16em] text-es-muted">
+											<tr>
+												<th class="py-2 pr-4">Connection</th>
+												<th class="py-2 pr-4">User</th>
+												<th class="py-2 pr-4">Rate</th>
+												<th class="py-2 pr-4">In flight</th>
+											</tr>
+										</thead>
+										<tbody class="divide-y divide-es-ink/10">
+											@foreach (var connection in subscription.Connections)
+											{
+												<tr>
+													<td class="py-3 pr-4">
+														<p class="font-bold text-es-ink">@connection.DisplayName</p>
+														<p class="text-xs text-es-muted">@connection.From</p>
+													</td>
+													<td class="py-3 pr-4 text-es-muted">@(string.IsNullOrWhiteSpace(connection.Username) ? "Unknown" : connection.Username)</td>
+													<td class="py-3 pr-4 font-mono text-es-ink">@connection.AverageItemsPerSecond/s</td>
+													<td class="py-3 pr-4 font-mono text-es-ink">@connection.InFlightMessages</td>
+												</tr>
+											}
+										</tbody>
+									</table>
+								</div>
+							}
+						</div>
+					</div>
+				</article>
+			}
+		</div>
+	}
+</section>
+
+@code {
+	private SubscriptionListPage Page { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		Page = null;
+
+		try
+		{
+			Page = await SubscriptionBrowser.ReadAll();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Page = SubscriptionListPage.Unavailable($"Failed to load persistent subscriptions: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+}
