@@ -53,7 +53,10 @@ public sealed class ProjectionBrowserService(
 		ProjectionMode? mode,
 		string name,
 		CancellationToken cancellationToken) {
-		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Statistics>();
+		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Statistics>(
+			mapReply: message => message is ProjectionManagementMessage.NotFound
+				? new ProjectionManagementMessage.Statistics(Array.Empty<ProjectionStatistics>())
+				: null);
 		publisher.Publish(new ProjectionManagementMessage.Command.GetStatistics(envelope, mode, name, includeDeleted: true));
 
 		ProjectionManagementMessage.Statistics completed;
@@ -83,31 +86,6 @@ public sealed class ProjectionBrowserService(
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
-	private sealed class TaskCompletionEnvelope<T> : IEnvelope where T : Message {
-		private readonly TaskCompletionSource<T> _source = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-		public Task<T> Task => _source.Task;
-
-		public void ReplyWith<U>(U message) where U : Message {
-			if (message is T typed) {
-				_source.TrySetResult(typed);
-				return;
-			}
-
-			if (message is ProjectionManagementMessage.NotFound) {
-				if (typeof(T) == typeof(ProjectionManagementMessage.Statistics)) {
-					_source.TrySetResult((T)(Message)new ProjectionManagementMessage.Statistics(Array.Empty<ProjectionStatistics>()));
-					return;
-				}
-
-				_source.TrySetException(new InvalidOperationException("Projection was not found."));
-				return;
-			}
-
-			_source.TrySetException(new InvalidOperationException(
-				$"Expected {typeof(T).Name} but received {message.GetType().Name}."));
-		}
-	}
 }
 
 internal sealed record ProjectionStatisticsRead(

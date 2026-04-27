@@ -267,8 +267,10 @@ internal static class Program
 					builder.Services.AddHttpContextAccessor();
 					builder.Services.AddRazorComponents();
 					builder.Services.AddScoped<ProjectionBrowserService>();
+					builder.Services.AddScoped<QueryBrowserService>();
 					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddScoped<SubscriptionBrowserService>();
+					builder.Services.AddScoped<UserBrowserService>();
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
