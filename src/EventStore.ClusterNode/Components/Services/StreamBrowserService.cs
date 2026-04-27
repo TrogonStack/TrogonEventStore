@@ -50,6 +50,10 @@ public sealed class StreamBrowserService(
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		} catch (TimeoutException) {
 			return StreamReadPage.Empty(streamId, $"Timed out reading '{streamId}'.");
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {FriendlyMessage(ex)}");
 		}
 
 		return completed.Result switch {
@@ -95,6 +99,10 @@ public sealed class StreamBrowserService(
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		} catch (TimeoutException) {
 			return RecentEventsPage.Unavailable("Timed out reading recent events.");
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			return RecentEventsPage.Unavailable($"Unable to read recent events: {FriendlyMessage(ex)}");
 		}
 
 		return completed.Result switch {
@@ -111,6 +119,9 @@ public sealed class StreamBrowserService(
 
 	private static int NormalizeCount(int count) =>
 		Math.Clamp(count <= 0 ? DefaultCount : count, 1, MaxCount);
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class TaskCompletionEnvelope<T> : IEnvelope where T : Message {
 		private readonly TaskCompletionSource<T> _source = new(TaskCreationOptions.RunContinuationsAsynchronously);
