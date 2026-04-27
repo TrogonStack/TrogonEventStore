@@ -1,0 +1,16 @@
+<div class="@CssClass">
+	<p class="text-xs font-black uppercase tracking-[0.18em]">@Label</p>
+	<p class="mt-2 text-3xl font-black tracking-tight">@Value</p>
+</div>
+
+@code {
+	[Parameter] public string Label { get; set; } = "";
+	[Parameter] public string Value { get; set; } = "";
+	[Parameter] public string Tone { get; set; } = "";
+
+	private string CssClass => Tone.ToLowerInvariant() switch {
+		"bad" => "rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800",
+		"muted" => "rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-es-muted",
+		_ => "rounded-2xl border border-es-green/20 bg-es-green/10 p-4 text-es-forest"
+	};
+}

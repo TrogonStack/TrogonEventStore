@@ -1,0 +1,17 @@
+<span class="@CssClass">@Label</span>
+
+@code {
+	[Parameter] public string Label { get; set; } = "";
+	[Parameter] public string Tone { get; set; } = "";
+
+	private string CssClass =>
+		$"inline-flex rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.18em] {ToneClass}";
+
+	private string ToneClass => Tone.ToLowerInvariant() switch {
+		"good" => "border-es-green/25 bg-es-green/10 text-es-forest",
+		"warn" => "border-amber-300 bg-amber-50 text-amber-800",
+		"bad" => "border-red-300 bg-red-50 text-red-800",
+		"muted" => "border-es-ink/10 bg-es-ink/5 text-es-muted",
+		_ => "border-es-ink/10 bg-white text-es-ink"
+	};
+}

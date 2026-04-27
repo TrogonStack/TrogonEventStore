@@ -1,0 +1,108 @@
+@page "/ui/projections"
+@inject ProjectionBrowserService ProjectionBrowser
+
+<PageTitle>Projections - EventStore UI</PageTitle>
+
+<section class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Projections</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Inspect projection health without leaving the workspace.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Start with read-only status, progress, checkpoints, and raw diagnostic handoffs before we introduce projection commands.</p>
+	</div>
+	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-3">
+		<MetricCard Label="Running" Value="@(Page?.RunningCountLabel ?? "-")" />
+		<MetricCard Label="Faulted" Value="@(Page?.FaultedCountLabel ?? "-")" Tone="bad" />
+		<MetricCard Label="Disabled" Value="@(Page?.DisabledCountLabel ?? "-")" Tone="muted" />
+	</div>
+</section>
+
+<section class="mt-8">
+	@if (Page is null)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading projections...
+		</div>
+	}
+	else if (!Page.HasProjections)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@(string.IsNullOrWhiteSpace(Page.Message) ? "No non-transient projections are available." : Page.Message)
+		</div>
+	}
+	else
+	{
+		<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="overflow-x-auto">
+				<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
+					<thead class="bg-es-ink/5 text-xs font-black uppercase tracking-[0.18em] text-es-muted">
+						<tr>
+							<th class="px-5 py-4">Projection</th>
+							<th class="px-5 py-4">Status</th>
+							<th class="px-5 py-4">Progress</th>
+							<th class="px-5 py-4">Checkpoint</th>
+							<th class="px-5 py-4">Work</th>
+							<th class="px-5 py-4">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-es-ink/10">
+						@foreach (var projection in Page.Projections)
+						{
+							<tr class="align-top">
+								<td class="px-5 py-4">
+									<a class="font-black text-es-ink hover:text-es-forest" href="@projection.DetailHref">@projection.Name</a>
+									<p class="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-es-muted">@projection.Mode</p>
+								</td>
+								<td class="px-5 py-4">
+									<div class="flex flex-wrap gap-2">
+										<StatusBadge Label="@projection.StatusLabel" Tone="@projection.StatusTone" />
+										<StatusBadge Label="@projection.EnabledLabel" Tone="@projection.EnabledTone" />
+									</div>
+									@if (!string.IsNullOrWhiteSpace(projection.StateReason))
+									{
+										<p class="mt-2 max-w-sm text-es-muted">@projection.StateReason</p>
+									}
+								</td>
+								<td class="px-5 py-4 font-mono text-es-ink">@projection.ProgressLabel</td>
+								<td class="px-5 py-4">
+									<p class="font-mono text-es-ink">@(string.IsNullOrWhiteSpace(projection.CheckpointStatus) ? "n/a" : projection.CheckpointStatus)</p>
+									<p class="mt-1 max-w-xs break-words font-mono text-xs text-es-muted">@(string.IsNullOrWhiteSpace(projection.LastCheckpoint) ? "No checkpoint" : projection.LastCheckpoint)</p>
+								</td>
+								<td class="px-5 py-4 text-es-muted">
+									<p><span class="font-black text-es-ink">@projection.EventsProcessedAfterRestart</span> events</p>
+									<p><span class="font-black text-es-ink">@projection.ReadsInProgress</span> reads / <span class="font-black text-es-ink">@projection.WritesInProgress</span> writes</p>
+								</td>
+								<td class="px-5 py-4">
+									<a class="rounded-full bg-es-ink px-4 py-2 text-xs font-black text-white transition hover:bg-es-green" href="@projection.DetailHref">Inspect</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+</section>
+
+@code {
+	private ProjectionListPage Page { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		Page = null;
+
+		try
+		{
+			Page = await ProjectionBrowser.ReadAllNonTransient();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Page = ProjectionListPage.Unavailable($"Failed to load projections: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+}
