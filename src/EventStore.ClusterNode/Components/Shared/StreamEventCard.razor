@@ -1,0 +1,38 @@
+<article class="rounded-[1.75rem] border border-white/80 bg-white/85 p-5 shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+	<div class="flex flex-wrap items-start justify-between gap-4">
+		<div>
+			<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">@Event.StreamId</p>
+			<h2 class="mt-2 text-2xl font-black tracking-tight text-es-ink">@Event.EventType</h2>
+		</div>
+		<div class="rounded-2xl bg-es-ink px-4 py-3 text-right text-white">
+			<p class="text-xs font-bold uppercase tracking-[0.18em] text-white/60">Event</p>
+			<p class="text-xl font-black">#@Event.EventNumber</p>
+		</div>
+	</div>
+	<dl class="mt-5 grid gap-3 text-sm text-es-muted sm:grid-cols-2 xl:grid-cols-4">
+		<div>
+			<dt class="font-black text-es-ink">Event id</dt>
+			<dd class="mt-1 break-all font-mono">@Event.EventId</dd>
+		</div>
+		<div>
+			<dt class="font-black text-es-ink">Created</dt>
+			<dd class="mt-1">@Event.TimeStamp.ToString("u")</dd>
+		</div>
+		<div>
+			<dt class="font-black text-es-ink">Commit</dt>
+			<dd class="mt-1 font-mono">@(Event.CommitPosition?.ToString() ?? "n/a")</dd>
+		</div>
+		<div>
+			<dt class="font-black text-es-ink">Prepare</dt>
+			<dd class="mt-1 font-mono">@(Event.PreparePosition?.ToString() ?? "n/a")</dd>
+		</div>
+	</dl>
+	<div class="mt-5 flex flex-wrap gap-3">
+		<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Event.DetailHref">Inspect</a>
+		<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Event.RawHref" target="_blank" rel="noopener noreferrer">Raw event</a>
+	</div>
+</article>
+
+@code {
+	[Parameter] public StreamViewEvent Event { get; set; }
+}

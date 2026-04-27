@@ -1,0 +1,74 @@
+@page "/ui/streams"
+@using EventStore.ClusterNode.Components.Services
+@inject StreamBrowserService StreamBrowser
+
+<PageTitle>Streams - EventStore UI</PageTitle>
+
+<section class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Streams</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Read event streams without leaving the workspace.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Open a stream by id, inspect recent events, and keep raw endpoint access close when troubleshooting needs the wire view.</p>
+	</div>
+	<form class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]" method="get" action="/ui/streams">
+		<label class="text-sm font-black uppercase tracking-[0.22em] text-es-green" for="streamId">Stream id</label>
+		<div class="mt-4 flex flex-col gap-3 sm:flex-row">
+			<input class="min-w-0 flex-1 rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" id="streamId" name="streamId" value="@StreamId" placeholder="$ce-category or my-stream" />
+			<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Open</button>
+		</div>
+		<p class="mt-3 text-sm leading-6 text-es-muted">The first native pass is read-only. Append, ACL, and metadata editing stay in the compatibility tools for now.</p>
+	</form>
+</section>
+
+@if (SelectedStream is not null)
+{
+	<section class="mt-8">
+		<StreamEventsSection Page="SelectedStream" />
+	</section>
+}
+else if (RecentEvents is not null)
+{
+	<section class="mt-8">
+		<div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+			<div>
+				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Recent</p>
+				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Latest readable events</h2>
+			</div>
+			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/web/index.html#/streams" target="_blank" rel="noopener noreferrer">Compatibility stream browser</a>
+		</div>
+		@if (!RecentEvents.HasEvents)
+		{
+			<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+				@RecentEvents.Message
+			</div>
+		}
+		else
+		{
+			<div class="grid gap-5">
+				@foreach (var ev in RecentEvents.Events)
+				{
+					<StreamEventCard Event="ev" />
+				}
+			</div>
+		}
+	</section>
+}
+
+@code {
+	[SupplyParameterFromQuery] public string StreamId { get; set; } = "";
+	[SupplyParameterFromQuery] public int Count { get; set; } = 20;
+
+	private StreamReadPage SelectedStream { get; set; }
+	private RecentEventsPage RecentEvents { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		if (!string.IsNullOrWhiteSpace(StreamId)) {
+			SelectedStream = await StreamBrowser.ReadStreamBackward(StreamId, count: Count);
+			RecentEvents = null;
+			return;
+		}
+
+		SelectedStream = null;
+		RecentEvents = await StreamBrowser.ReadRecentEvents(12);
+	}
+}

@@ -1,0 +1,37 @@
+@page "/ui/streams/{*StreamId}"
+@using EventStore.ClusterNode.Components.Services
+@inject StreamBrowserService Streams
+
+<PageTitle>@StreamId - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green hover:text-es-forest" href="/ui/streams">&lt;- Streams</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Stream detail</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@StreamId</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Read-only event inspection with raw endpoint handoffs kept nearby for troubleshooting.</p>
+</section>
+
+<section class="mt-8">
+	@if (Page is null)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading stream events...
+		</div>
+	}
+	else
+	{
+		<StreamEventsSection Page="Page" />
+	}
+</section>
+
+@code {
+	[Parameter] public string StreamId { get; set; } = "";
+	[SupplyParameterFromQuery] public long? From { get; set; }
+	[SupplyParameterFromQuery] public int Count { get; set; } = 20;
+
+	private StreamReadPage Page { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		Page = await Streams.ReadStreamBackward(StreamId, From ?? -1, Count);
+	}
+}

@@ -13,6 +13,7 @@ using EventStore.Common.Exceptions;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
 using EventStore.ClusterNode.Components;
+using EventStore.ClusterNode.Components.Services;
 using EventStore.Core;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
@@ -263,7 +264,9 @@ internal static class Program
 					});
 
 					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
+					builder.Services.AddHttpContextAccessor();
 					builder.Services.AddRazorComponents();
+					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
