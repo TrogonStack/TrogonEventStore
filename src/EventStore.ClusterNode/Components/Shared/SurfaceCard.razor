@@ -13,7 +13,7 @@
 	}
 	@if (!string.IsNullOrWhiteSpace(Href))
 	{
-		<a class="mt-6 inline-flex w-fit items-center rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition group-hover:bg-es-green" href="@Href">
+		<a class="mt-6 inline-flex w-fit items-center rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition group-hover:bg-es-green" href="@Href" target="@TargetAttribute" rel="@RelAttribute">
 			@LinkText
 			<span aria-hidden="true" class="ml-2">-&gt;</span>
 		</a>
@@ -26,5 +26,9 @@
 	[Parameter] public string Description { get; set; } = "";
 	[Parameter] public string Href { get; set; } = "";
 	[Parameter] public string LinkText { get; set; } = "Open";
+	[Parameter] public string Target { get; set; } = "";
 	[Parameter] public RenderFragment ChildContent { get; set; }
+
+	private string TargetAttribute => string.IsNullOrWhiteSpace(Target) ? null : Target;
+	private string RelAttribute => string.Equals(Target, "_blank", StringComparison.Ordinal) ? "noopener noreferrer" : null;
 }
