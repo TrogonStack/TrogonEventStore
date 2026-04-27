@@ -95,6 +95,11 @@ public sealed class ProjectionBrowserService(
 			}
 
 			if (message is ProjectionManagementMessage.NotFound) {
+				if (typeof(T) == typeof(ProjectionManagementMessage.Statistics)) {
+					_source.TrySetResult((T)(Message)new ProjectionManagementMessage.Statistics(Array.Empty<ProjectionStatistics>()));
+					return;
+				}
+
 				_source.TrySetException(new InvalidOperationException("Projection was not found."));
 				return;
 			}
