@@ -8,6 +8,7 @@ test-results/
 /Logs
 /Data
 /Data-logs
+/tmp/
 /src/EventStore/v8
 /v8/
 .gclient
