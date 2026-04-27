@@ -87,6 +87,22 @@
 	private ProjectionListPage Page { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
-		Page = await ProjectionBrowser.ReadAllNonTransient();
+		Page = null;
+
+		try
+		{
+			Page = await ProjectionBrowser.ReadAllNonTransient();
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			Page = ProjectionListPage.Unavailable($"Failed to load projections: {FriendlyMessage(ex)}");
+		}
 	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }
