@@ -86,8 +86,30 @@
 	[Parameter] public string Name { get; set; } = "";
 
 	private ProjectionDetailPage Page { get; set; }
+	private long _loadSequence;
 
 	protected override async Task OnParametersSetAsync() {
-		Page = await Projections.ReadProjection(Name);
+		var requestedName = Name;
+		var sequence = ++_loadSequence;
+		Page = null;
+
+		try
+		{
+			var page = await Projections.ReadProjection(requestedName);
+			if (sequence == _loadSequence)
+				Page = page;
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			if (sequence == _loadSequence)
+				Page = ProjectionDetailPage.Unavailable(requestedName, $"Failed to load projection: {FriendlyMessage(ex)}");
+		}
 	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }
