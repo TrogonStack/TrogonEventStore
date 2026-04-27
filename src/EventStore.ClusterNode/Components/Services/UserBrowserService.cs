@@ -96,21 +96,6 @@ public sealed class UserBrowserService(
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
-	private sealed class TaskCompletionEnvelope<T> : IEnvelope where T : Message {
-		private readonly TaskCompletionSource<T> _source = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-		public Task<T> Task => _source.Task;
-
-		public void ReplyWith<U>(U message) where U : Message {
-			if (message is T typed) {
-				_source.TrySetResult(typed);
-				return;
-			}
-
-			_source.TrySetException(new InvalidOperationException(
-				$"Expected {typeof(T).Name} but received {message.GetType().Name}."));
-		}
-	}
 }
 
 public sealed record UserListPage(

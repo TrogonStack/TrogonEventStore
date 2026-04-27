@@ -27,7 +27,8 @@ public sealed class QueryBrowserService(
 			return QueryRunPage.Unavailable(query, "Transient query access was denied.");
 
 		var projectionName = Guid.NewGuid().ToString("D");
-		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Updated>();
+		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Updated>(
+			mapFailure: message => message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason : null);
 		publisher.Publish(new ProjectionManagementMessage.Command.Post(
 			envelope,
 			ProjectionMode.Transient,
@@ -64,26 +65,6 @@ public sealed class QueryBrowserService(
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
-	private sealed class TaskCompletionEnvelope<T> : IEnvelope where T : Message {
-		private readonly TaskCompletionSource<T> _source = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-		public Task<T> Task => _source.Task;
-
-		public void ReplyWith<U>(U message) where U : Message {
-			if (message is T typed) {
-				_source.TrySetResult(typed);
-				return;
-			}
-
-			if (message is ProjectionManagementMessage.OperationFailed failed) {
-				_source.TrySetException(new InvalidOperationException(failed.Reason));
-				return;
-			}
-
-			_source.TrySetException(new InvalidOperationException(
-				$"Expected {typeof(T).Name} but received {message.GetType().Name}."));
-		}
-	}
 }
 
 public sealed record QueryRunPage(
