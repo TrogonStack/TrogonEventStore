@@ -8,6 +8,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Utils;
+using EventStore.Core;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
 using EventStore.Plugins.Authorization;
@@ -19,7 +21,8 @@ namespace EventStore.ClusterNode.Components.Services;
 public sealed class QueueDashboardService(
 	IAuthorizationProvider authorizationProvider,
 	IHttpContextAccessor httpContextAccessor,
-	INodeHttpClientFactory nodeHttpClientFactory) {
+	INodeHttpClientFactory nodeHttpClientFactory,
+	StandardComponents standardComponents) {
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation StatisticsOperation = new(Operations.Node.Statistics.Read);
 
@@ -34,8 +37,9 @@ public sealed class QueueDashboardService(
 
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
-			using var client = nodeHttpClientFactory.CreateHttpClient(new[] { context.Request.Host.Host });
-			using var request = new HttpRequestMessage(HttpMethod.Get, BuildStatsUri(context.Request));
+			var statsEndPoint = GetLocalStatsEndPoint();
+			using var client = nodeHttpClientFactory.CreateHttpClient(new[] { statsEndPoint.Host });
+			using var request = new HttpRequestMessage(HttpMethod.Get, BuildStatsUri(context.Request, statsEndPoint));
 			CopyHeader(context.Request, request, HeaderNames.Authorization);
 			CopyHeader(context.Request, request, HeaderNames.Cookie);
 
@@ -68,16 +72,31 @@ public sealed class QueueDashboardService(
 	private Task<bool> HasAccess(Operation operation, CancellationToken cancellationToken) =>
 		authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();
 
-	private static Uri BuildStatsUri(HttpRequest request) {
-		var builder = new UriBuilder(request.Scheme, request.Host.Host) {
+	private LocalHttpEndPoint GetLocalStatsEndPoint() {
+		var endPoint = standardComponents.HttpServices
+			.SelectMany(x => x.EndPoints)
+			.FirstOrDefault();
+
+		if (endPoint is null)
+			throw new InvalidOperationException("Node HTTP endpoint is unavailable.");
+
+		return new LocalHttpEndPoint(LocalHostFor(endPoint), endPoint.GetPort());
+	}
+
+	private static string LocalHostFor(EndPoint endPoint) =>
+		endPoint switch {
+			IPEndPoint { Address: var address } when IPAddress.Any.Equals(address) => IPAddress.Loopback.ToString(),
+			IPEndPoint { Address: var address } when IPAddress.IPv6Any.Equals(address) => IPAddress.Loopback.ToString(),
+			IPEndPoint { Address: var address } => address.ToString(),
+			DnsEndPoint { Host: var host } when !string.IsNullOrWhiteSpace(host) => host,
+			_ => endPoint.GetHost()
+		};
+
+	private static Uri BuildStatsUri(HttpRequest request, LocalHttpEndPoint statsEndPoint) {
+		var builder = new UriBuilder(request.Scheme, statsEndPoint.Host, statsEndPoint.Port) {
 			Path = $"{request.PathBase}/stats",
 			Query = "format=json"
 		};
-
-		if (request.Host.Port.HasValue)
-			builder.Port = request.Host.Port.Value;
-		else
-			builder.Port = -1;
 
 		return builder.Uri;
 	}
@@ -106,6 +125,8 @@ public sealed class QueueDashboardService(
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }
+
+internal readonly record struct LocalHttpEndPoint(string Host, int Port);
 
 public sealed record QueueDashboardPage(
 	IReadOnlyList<QueueDashboardBlock> Blocks,
