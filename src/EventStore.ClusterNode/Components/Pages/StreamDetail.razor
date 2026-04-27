@@ -26,12 +26,12 @@
 
 @code {
 	[Parameter] public string StreamId { get; set; } = "";
-	[SupplyParameterFromQuery] public long From { get; set; } = -1;
+	[SupplyParameterFromQuery] public long? From { get; set; }
 	[SupplyParameterFromQuery] public int Count { get; set; } = 20;
 
 	private StreamReadPage Page { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
-		Page = await Streams.ReadStreamBackward(StreamId, From, Count);
+		Page = await Streams.ReadStreamBackward(StreamId, From ?? -1, Count);
 	}
 }
