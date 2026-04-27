@@ -16,7 +16,7 @@ using ILogger = Serilog.ILogger;
 namespace EventStore.Core.Services.Transport.Http.Controllers {
 	public class InfoController : IHttpController, IHandle<SystemMessage.StateChangeMessage> {
 		private static readonly ILogger Log = Serilog.Log.ForContext<InfoController>();
-		private static readonly ICodec[] SupportedCodecs = { Codec.Json, Codec.Text };
+		private static readonly ICodec[] SupportedCodecs = { Codec.Json, Codec.Xml, Codec.ApplicationXml, Codec.Text };
 
 		private readonly ClusterVNodeOptions _options;
 		private readonly IDictionary<string, bool> _features;
