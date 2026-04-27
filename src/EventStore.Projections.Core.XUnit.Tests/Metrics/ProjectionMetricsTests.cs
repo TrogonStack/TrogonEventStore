@@ -44,7 +44,7 @@ public class ProjectionMetricsTests
 	[Fact]
 	public void ObserveRunningWithCompoundStatus()
 	{
-		_sut.OnNewStats([ProjectionWithStatus("Running/Writing results")]);
+		_sut.OnNewStats([ProjectionWithState(ManagedProjectionState.Running, "Running/Writing results")]);
 
 		var measurements = _sut.ObserveRunning();
 		var measurement = Assert.Single(measurements);
@@ -70,12 +70,13 @@ public class ProjectionMetricsTests
 	}
 
 	[Theory]
-	[InlineData("Running/Writing results", 1, 0, 0)]
-	[InlineData("Faulted (Enabled)", 0, 1, 0)]
-	[InlineData("Stopped (Enabled)", 0, 0, 1)]
-	public void ObserveStatusWithCompoundStatus(string status, long running, long faulted, long stopped)
+	[InlineData(ManagedProjectionState.Running, "Running/Writing results", 1, 0, 0)]
+	[InlineData(ManagedProjectionState.Faulted, "Faulted (Enabled)", 0, 1, 0)]
+	[InlineData(ManagedProjectionState.Stopped, "Stopped (Enabled)", 0, 0, 1)]
+	public void ObserveStatusWithCompoundStatus(ManagedProjectionState state, string status, long running,
+		long faulted, long stopped)
 	{
-		_sut.OnNewStats([ProjectionWithStatus(status)]);
+		_sut.OnNewStats([ProjectionWithState(state, status)]);
 
 		var measurements = _sut.ObserveStatus();
 		Assert.Collection(measurements,
@@ -98,7 +99,7 @@ public class ProjectionMetricsTests
 				actualMeasurement.Tags.ToArray().Select(tag => (tag.Key, tag.Value as string)));
 		};
 
-	private static ProjectionStatistics ProjectionWithStatus(string status) =>
+	private static ProjectionStatistics ProjectionWithState(ManagedProjectionState state, string status) =>
 		new() {
 			Name = "TestProjection",
 			ProjectionId = 1234,
@@ -106,6 +107,7 @@ public class ProjectionMetricsTests
 			Version = -1,
 			Mode = ProjectionMode.Continuous,
 			Status = status,
+			LeaderStatus = state,
 			Progress = 75,
 			EventsProcessedAfterRestart = 50,
 		};

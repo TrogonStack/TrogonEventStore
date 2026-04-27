@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Projections.Core.Services;
+using EventStore.Projections.Core.Services.Management;
 
 namespace EventStore.Projections.Core.Metrics;
 
@@ -34,7 +34,7 @@ public class ProjectionTracker : IProjectionTracker
 	public IEnumerable<Measurement<long>> ObserveRunning() =>
 		_currentStats.Select(x =>
 		{
-			var projectionRunning = HasStatus(x.Status, "running")
+			var projectionRunning = x.LeaderStatus == ManagedProjectionState.Running
 				? 1
 				: 0;
 
@@ -52,15 +52,15 @@ public class ProjectionTracker : IProjectionTracker
 			var projectionFaulted = 0;
 			var projectionStopped = 0;
 
-			if (HasStatus(statistics.Status, "running"))
+			if (statistics.LeaderStatus == ManagedProjectionState.Running)
 			{
 				projectionRunning = 1;
 			}
-			else if (HasStatus(statistics.Status, "stopped"))
+			else if (statistics.LeaderStatus == ManagedProjectionState.Stopped)
 			{
 				projectionStopped = 1;
 			}
-			else if (HasStatus(statistics.Status, "faulted"))
+			else if (statistics.LeaderStatus == ManagedProjectionState.Faulted)
 			{
 				projectionFaulted = 1;
 			}
@@ -81,7 +81,4 @@ public class ProjectionTracker : IProjectionTracker
 			]);
 		}
 	}
-
-	private static bool HasStatus(string status, string expected) =>
-		status?.StartsWith(expected, StringComparison.OrdinalIgnoreCase) == true;
 }
