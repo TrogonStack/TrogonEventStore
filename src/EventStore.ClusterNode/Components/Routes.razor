@@ -1,6 +1,16 @@
 <Router AppAssembly="typeof(Program).Assembly">
 	<Found Context="routeData">
-		<RouteView RouteData="routeData" />
+		<RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
 		<FocusOnNavigate RouteData="routeData" Selector="h1" />
 	</Found>
+	<NotFound>
+		<LayoutView Layout="typeof(MainLayout)">
+			<section class="mx-auto max-w-3xl rounded-[2rem] border border-white/80 bg-white/80 p-8 text-center shadow-[0_20px_80px_rgba(23,32,51,0.10)]">
+				<p class="text-sm font-black uppercase tracking-[0.26em] text-es-green">404</p>
+				<h1 class="mt-4 text-4xl font-black tracking-tight text-es-ink">This UI route is not available.</h1>
+				<p class="mt-4 text-lg leading-8 text-es-muted">Use the navigation to jump back into the management surface.</p>
+				<a class="mt-8 inline-flex rounded-full bg-es-green px-5 py-3 text-sm font-bold text-white shadow-lg shadow-es-green/20 hover:bg-es-forest" href="/ui">Return to cluster overview</a>
+			</section>
+		</LayoutView>
+	</NotFound>
 </Router>

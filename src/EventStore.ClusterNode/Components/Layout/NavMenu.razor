@@ -1,0 +1,19 @@
+<header class="sticky top-0 z-10 rounded-[2rem] border border-white/70 bg-white/85 px-4 py-3 shadow-[0_18px_70px_rgba(23,32,51,0.10)] backdrop-blur sm:px-5">
+	<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+		<a class="group flex items-center gap-3" href="/ui" aria-label="EventStore UI home">
+			<span class="flex size-12 items-center justify-center rounded-2xl bg-es-ink text-lg font-black tracking-tight text-white shadow-lg shadow-es-ink/15">ES</span>
+			<span>
+				<span class="block text-sm font-bold uppercase tracking-[0.24em] text-es-green">EventStore</span>
+				<span class="block text-xl font-black tracking-tight text-es-ink group-hover:text-es-forest">Operations UI</span>
+			</span>
+		</a>
+
+		<nav class="flex flex-wrap gap-2 text-sm font-bold text-es-muted" aria-label="UI sections">
+			<NavLink href="/ui/cluster" Match="NavLinkMatch.All" class="rounded-full px-4 py-2 transition hover:bg-es-green/10 hover:text-es-forest" ActiveClass="bg-es-green text-white shadow-lg shadow-es-green/20 hover:bg-es-green hover:text-white">Cluster</NavLink>
+			<NavLink href="/ui/navigator" class="rounded-full px-4 py-2 transition hover:bg-es-green/10 hover:text-es-forest" ActiveClass="bg-es-green text-white shadow-lg shadow-es-green/20 hover:bg-es-green hover:text-white">Navigator</NavLink>
+			<NavLink href="/ui/operations" class="rounded-full px-4 py-2 transition hover:bg-es-green/10 hover:text-es-forest" ActiveClass="bg-es-green text-white shadow-lg shadow-es-green/20 hover:bg-es-green hover:text-white">Operations</NavLink>
+			<NavLink href="/ui/observability" class="rounded-full px-4 py-2 transition hover:bg-es-green/10 hover:text-es-forest" ActiveClass="bg-es-green text-white shadow-lg shadow-es-green/20 hover:bg-es-green hover:text-white">Observability</NavLink>
+			<NavLink href="/ui/configuration" class="rounded-full px-4 py-2 transition hover:bg-es-green/10 hover:text-es-forest" ActiveClass="bg-es-green text-white shadow-lg shadow-es-green/20 hover:bg-es-green hover:text-white">Configuration</NavLink>
+		</nav>
+	</div>
+</header>
