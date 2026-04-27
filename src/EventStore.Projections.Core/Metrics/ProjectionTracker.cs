@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Projections.Core.Services;
+using EventStore.Projections.Core.Services.Management;
 
 namespace EventStore.Projections.Core.Metrics;
 
@@ -34,7 +34,7 @@ public class ProjectionTracker : IProjectionTracker
 	public IEnumerable<Measurement<long>> ObserveRunning() =>
 		_currentStats.Select(x =>
 		{
-			var projectionRunning = x.Status.Equals("running", StringComparison.CurrentCultureIgnoreCase)
+			var projectionRunning = x.LeaderStatus == ManagedProjectionState.Running
 				? 1
 				: 0;
 
@@ -52,17 +52,17 @@ public class ProjectionTracker : IProjectionTracker
 			var projectionFaulted = 0;
 			var projectionStopped = 0;
 
-			switch (statistics.Status.ToLower())
+			if (statistics.LeaderStatus == ManagedProjectionState.Running)
 			{
-				case "running":
-					projectionRunning = 1;
-					break;
-				case "stopped":
-					projectionStopped = 1;
-					break;
-				case "faulted":
-					projectionFaulted = 1;
-					break;
+				projectionRunning = 1;
+			}
+			else if (statistics.LeaderStatus == ManagedProjectionState.Stopped)
+			{
+				projectionStopped = 1;
+			}
+			else if (statistics.LeaderStatus == ManagedProjectionState.Faulted)
+			{
+				projectionFaulted = 1;
 			}
 
 			yield return new(projectionRunning, [
