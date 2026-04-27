@@ -72,9 +72,12 @@ public sealed class UserBrowserService(
 			return UserDetailPage.Unavailable(loginName, currentUser, $"Unable to read user '{loginName}': {FriendlyMessage(ex)}");
 		}
 
-		return completed.Success
-			? UserDetailPage.Success(currentUser, UserView.From(completed.Data))
-			: UserDetailPage.Unavailable(loginName, currentUser, FriendlyError(completed.Error));
+		if (!completed.Success)
+			return UserDetailPage.Unavailable(loginName, currentUser, FriendlyError(completed.Error));
+
+		return completed.Data is null
+			? UserDetailPage.Unavailable(loginName, currentUser, $"User '{loginName}' details were not returned.")
+			: UserDetailPage.Success(currentUser, UserView.From(completed.Data));
 	}
 
 	private ClaimsPrincipal CurrentUser =>
