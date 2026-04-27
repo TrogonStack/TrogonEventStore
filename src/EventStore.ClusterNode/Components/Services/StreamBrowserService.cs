@@ -29,6 +29,7 @@ public sealed class StreamBrowserService(
 			return StreamReadPage.Empty("", "Enter a stream id to inspect events.");
 
 		count = NormalizeCount(count);
+		fromEventNumber = NormalizeFromEventNumber(fromEventNumber);
 		var correlationId = Guid.NewGuid();
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ReadStreamEventsBackwardCompleted>();
 
@@ -119,6 +120,9 @@ public sealed class StreamBrowserService(
 
 	private static int NormalizeCount(int count) =>
 		Math.Clamp(count <= 0 ? DefaultCount : count, 1, MaxCount);
+
+	private static long NormalizeFromEventNumber(long fromEventNumber) =>
+		Math.Max(fromEventNumber, -1);
 
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
