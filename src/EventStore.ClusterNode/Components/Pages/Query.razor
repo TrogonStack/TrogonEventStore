@@ -79,8 +79,17 @@
 	private QueryRunPage Result { get; set; }
 
 	private async Task RunQuery() {
-		Result = await QueryBrowser.RunTransient(Input.Query);
+		try {
+			Result = await QueryBrowser.RunTransient(Input.Query);
+		} catch (OperationCanceledException) {
+			Result = QueryRunPage.Unavailable(Input.Query, "Query execution was canceled.");
+		} catch (Exception ex) {
+			Result = QueryRunPage.Unavailable(Input.Query, $"Failed to run query: {FriendlyMessage(ex)}");
+		}
 	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class QueryInput {
 		[Required(ErrorMessage = "Enter a query before running it.")]
