@@ -18,16 +18,15 @@ command line. For example:
 
 :::: code-group
 ::: code Linux
-```bash
 ```bash:no-line-numbers
 $ eventstored --version
-EventStoreDB version 24.6.0.0 (oss-v24.6.0-alpha-16-g8e06f9f77/8e06f9f77, 2023-10-24T22:05:57-05:00)
+EventStoreDB version 24.6.0.0 (v24.6.0-alpha-16-g8e06f9f77/8e06f9f77, 2023-10-24T22:05:57-05:00)
 ```
 :::
 ::: code Windows
-```
+```powershell:no-line-numbers
 > EventStore.ClusterNode.exe --version
-EventStoreDB version 24.6.0.0 (oss-v24.6.0-alpha-16-g8e06f9f77/8e06f9f77, 2023-10-24T22:05:57-05:00)
+EventStoreDB version 24.6.0.0 (v24.6.0-alpha-16-g8e06f9f77/8e06f9f77, 2023-10-24T22:05:57-05:00)
 ```
 :::
 ::::
