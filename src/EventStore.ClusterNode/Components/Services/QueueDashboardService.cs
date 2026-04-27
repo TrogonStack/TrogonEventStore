@@ -18,32 +18,42 @@ using Microsoft.Net.Http.Headers;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-public sealed class QueueDashboardService(
-	IAuthorizationProvider authorizationProvider,
-	IHttpContextAccessor httpContextAccessor,
-	INodeHttpClientFactory nodeHttpClientFactory,
-	StandardComponents standardComponents) {
+public sealed class QueueDashboardService : IDisposable {
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation StatisticsOperation = new(Operations.Node.Statistics.Read);
+
+	private readonly IAuthorizationProvider _authorizationProvider;
+	private readonly IHttpContextAccessor _httpContextAccessor;
+	private readonly HttpClient _client;
+	private readonly LocalHttpEndPoint _statsEndPoint;
+
+	public QueueDashboardService(
+		IAuthorizationProvider authorizationProvider,
+		IHttpContextAccessor httpContextAccessor,
+		INodeHttpClientFactory nodeHttpClientFactory,
+		StandardComponents standardComponents) {
+		_authorizationProvider = authorizationProvider;
+		_httpContextAccessor = httpContextAccessor;
+		_statsEndPoint = GetLocalStatsEndPoint(standardComponents);
+		_client = nodeHttpClientFactory.CreateHttpClient([_statsEndPoint.Host]);
+	}
 
 	public async Task<QueueDashboardPage> Read(CancellationToken cancellationToken = default) {
 		if (!await HasAccess(StatisticsOperation, cancellationToken))
 			return QueueDashboardPage.Unavailable("Runtime statistics access was denied.");
 
 		try {
-			var context = httpContextAccessor.HttpContext;
+			var context = _httpContextAccessor.HttpContext;
 			if (context is null)
 				return QueueDashboardPage.Unavailable("Runtime statistics are unavailable outside an HTTP request.");
 
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
-			var statsEndPoint = GetLocalStatsEndPoint();
-			using var client = nodeHttpClientFactory.CreateHttpClient(new[] { statsEndPoint.Host });
-			using var request = new HttpRequestMessage(HttpMethod.Get, BuildStatsUri(context.Request, statsEndPoint));
+			using var request = new HttpRequestMessage(HttpMethod.Get, BuildStatsUri(context.Request, _statsEndPoint));
 			CopyHeader(context.Request, request, HeaderNames.Authorization);
 			CopyHeader(context.Request, request, HeaderNames.Cookie);
 
-			using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+			using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
 			if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
 				return QueueDashboardPage.Unavailable("Runtime statistics access was denied.");
 
@@ -66,13 +76,16 @@ public sealed class QueueDashboardService(
 		}
 	}
 
+	public void Dispose() =>
+		_client.Dispose();
+
 	private ClaimsPrincipal CurrentUser =>
-		httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+		_httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
 	private Task<bool> HasAccess(Operation operation, CancellationToken cancellationToken) =>
-		authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();
+		_authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();
 
-	private LocalHttpEndPoint GetLocalStatsEndPoint() {
+	private static LocalHttpEndPoint GetLocalStatsEndPoint(StandardComponents standardComponents) {
 		var endPoint = standardComponents.HttpServices
 			.SelectMany(x => x.EndPoints)
 			.FirstOrDefault();

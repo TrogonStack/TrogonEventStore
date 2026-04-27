@@ -268,7 +268,7 @@ internal static class Program
 					builder.Services.AddRazorComponents();
 					builder.Services.AddScoped<ProjectionBrowserService>();
 					builder.Services.AddScoped<QueryBrowserService>();
-					builder.Services.AddScoped<QueueDashboardService>();
+					builder.Services.AddSingleton<QueueDashboardService>();
 					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddScoped<SubscriptionBrowserService>();
 					builder.Services.AddScoped<UserBrowserService>();
