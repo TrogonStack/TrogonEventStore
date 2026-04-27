@@ -9,9 +9,9 @@ on:
   push:
     branches:
       - master
-      - release/oss-v*
+      - release/v*
     tags:
-      - oss-v*
+      - v*
     paths-ignore:
       - "docs/**"
       - "samples/**"

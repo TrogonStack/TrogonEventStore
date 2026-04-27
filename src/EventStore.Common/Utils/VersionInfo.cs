@@ -41,13 +41,15 @@ public static class VersionInfo
 		if (properties.TryGetValue("version_suffix", out var versionSuffix))
 			VersionSuffix = versionSuffix;
 
+		BuildId = $"v{Version}";
+
 		if (properties.TryGetValue("commit_sha", out var commitSha))
 			CommitSha = commitSha;
 
 		if (properties.TryGetValue("timestamp", out var timestamp))
 			Timestamp = timestamp;
 
-		if (properties.TryGetValue("build_id", out var buildId))
+		if (properties.TryGetValue("build_id", out var buildId) && !string.IsNullOrWhiteSpace(buildId))
 			BuildId = buildId;
 
 		if (properties.TryGetValue("edition", out var edition))

@@ -15,5 +15,5 @@ jobs:
     - uses: FantasticFiasco/action-update-license-year@v2
       with:
         path: LICENSE.md
-        labels: 'cherry-pick:release/oss-v5,cherry-pick:release/oss-v20.10,cherry-pick:release/oss-v21.10'
+        labels: 'cherry-pick:release/v5,cherry-pick:release/v20.10,cherry-pick:release/v21.10'
         token: ${{ secrets.GITHUB_TOKEN }}
