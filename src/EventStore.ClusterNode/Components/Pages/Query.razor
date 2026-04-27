@@ -1,0 +1,89 @@
+@page "/ui/query"
+@inject QueryBrowserService QueryBrowser
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Query - EventStore UI</PageTitle>
+
+<section class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Query</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Run transient projection queries with the guardrails visible.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Submit JavaScript projection queries, inspect the created transient projection, and keep state/result endpoints one click away for troubleshooting.</p>
+	</div>
+	<div class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Execution model</p>
+		<p class="mt-4 leading-7 text-es-muted">Queries run as transient projections under the current authenticated user. They are suitable for inspection workflows, not as a substitute for permanent projection management.</p>
+		<div class="mt-5 flex flex-wrap gap-2">
+			<StatusBadge Label="Transient" Tone="good" />
+			<StatusBadge Label="JavaScript" Tone="muted" />
+			<StatusBadge Label="Read-oriented" Tone="muted" />
+		</div>
+	</div>
+</section>
+
+<section class="mt-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<EditForm Model="Input" FormName="transient-query" OnValidSubmit="RunQuery">
+			<AntiforgeryToken />
+			<DataAnnotationsValidator />
+			<label class="text-sm font-black uppercase tracking-[0.22em] text-es-green" for="queryText">Query text</label>
+			<textarea class="mt-4 min-h-80 w-full rounded-2xl border border-es-ink/10 bg-es-ink px-4 py-3 font-mono text-sm text-white outline-none transition placeholder:text-white/40 focus:border-es-green focus:ring-4 focus:ring-es-green/15" id="queryText" @bind="Input.Query"></textarea>
+			<ValidationMessage For="() => Input.Query" />
+			<div class="mt-4 flex flex-wrap items-center gap-3">
+				<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Run transient query</button>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/projections">Open projections</a>
+			</div>
+		</EditForm>
+	</article>
+
+	<div class="grid gap-5">
+		@if (Result is null)
+		{
+			<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+				Run a query to create a transient projection and reveal result links.
+			</div>
+		}
+		else if (!Result.IsAvailable)
+		{
+			<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+				@Result.Message
+			</div>
+		}
+		else
+		{
+			<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+				<div class="flex flex-wrap items-center gap-2">
+					<StatusBadge Label="Created" Tone="good" />
+					<StatusBadge Label="Transient projection" Tone="muted" />
+				</div>
+				<h2 class="mt-4 break-words font-mono text-xl font-black tracking-tight text-es-ink">@Result.ProjectionName</h2>
+				<p class="mt-3 text-sm leading-6 text-es-muted">The projection may still be processing. Use state/result links to inspect the latest server-side view.</p>
+				<div class="mt-5 flex flex-wrap gap-2">
+					<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Result.ProjectionHref">Projection detail</a>
+					<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Result.RawStateHref" target="_blank" rel="noopener noreferrer">State</a>
+					<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Result.RawResultHref" target="_blank" rel="noopener noreferrer">Result</a>
+					<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Result.RawStatisticsHref" target="_blank" rel="noopener noreferrer">Stats</a>
+				</div>
+			</article>
+		}
+	</div>
+</section>
+
+@code {
+	[SupplyParameterFromForm(FormName = "transient-query")]
+	private QueryInput Input { get; set; } = new() {
+		Query = "fromAll().when({\n  $init: function () { return { count: 0 }; },\n  $any: function (state, event) {\n    state.count += 1;\n  }\n});"
+	};
+
+	private QueryRunPage Result { get; set; }
+
+	private async Task RunQuery() {
+		Result = await QueryBrowser.RunTransient(Input.Query);
+	}
+
+	private sealed class QueryInput {
+		[Required(ErrorMessage = "Enter a query before running it.")]
+		public string Query { get; set; } = "";
+	}
+}

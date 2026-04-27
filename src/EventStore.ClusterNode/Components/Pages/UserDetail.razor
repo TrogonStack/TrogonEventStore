@@ -1,0 +1,90 @@
+@page "/ui/users/{LoginName}"
+@inject UserBrowserService UserBrowser
+
+<PageTitle>User - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="/ui/users">Back to users</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">User detail</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@(Page?.User?.DisplayName ?? LoginName)</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Review account metadata and authorization groups. Mutating account workflows stay behind explicit API calls until the UI has confirmation flows.</p>
+</section>
+
+<section class="mt-8 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<div class="flex flex-wrap items-center gap-2">
+			<StatusBadge Label="@(Page?.CurrentUser.AuthenticationLabel ?? "Loading")" Tone="@(Page?.CurrentUser.AuthenticationTone ?? "muted")" />
+			<StatusBadge Label="Current request" Tone="muted" />
+		</div>
+		<h2 class="mt-4 text-3xl font-black tracking-tight text-es-ink">@(Page?.CurrentUser.NameLabel ?? "Loading user")</h2>
+		<p class="mt-3 break-words text-sm text-es-muted">@(Page?.CurrentUser.RolesLabel ?? "Loading roles")</p>
+	</article>
+
+	@if (Page is null)
+	{
+		<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading user...
+		</div>
+	}
+	else if (!Page.HasUser)
+	{
+		<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@Page.Message
+		</div>
+	}
+	else
+	{
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+				<div class="min-w-0">
+					<StatusBadge Label="@Page.User.StatusLabel" Tone="@Page.User.StatusTone" />
+					<h2 class="mt-4 break-words text-3xl font-black tracking-tight text-es-ink">@Page.User.DisplayName</h2>
+					<p class="mt-2 break-words font-mono text-sm text-es-muted">@Page.User.LoginName</p>
+				</div>
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.User.RawHref" target="_blank" rel="noopener noreferrer">Raw user</a>
+			</div>
+
+			<div class="mt-6 grid gap-4 md:grid-cols-2">
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Full name</p>
+					<p class="mt-2 break-words text-es-ink">@(string.IsNullOrWhiteSpace(Page.User.FullName) ? "Not set" : Page.User.FullName)</p>
+				</div>
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Last updated</p>
+					<p class="mt-2 font-mono text-sm text-es-ink">@Page.User.UpdatedLabel</p>
+				</div>
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 md:col-span-2">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Groups</p>
+					<p class="mt-2 break-words text-es-ink">@Page.User.GroupsLabel</p>
+				</div>
+			</div>
+		</article>
+	}
+</section>
+
+@code {
+	[Parameter] public string LoginName { get; set; } = "";
+
+	private UserDetailPage Page { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		var requested = LoginName;
+		Page = null;
+
+		try {
+			var page = await UserBrowser.Read(requested);
+			if (requested == LoginName)
+				Page = page;
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			if (requested == LoginName) {
+				var current = CurrentUserView.From(new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity()));
+				Page = UserDetailPage.Unavailable(requested, current, $"Failed to load user: {FriendlyMessage(ex)}");
+			}
+		}
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+}
