@@ -42,6 +42,16 @@ public class ProjectionMetricsTests
 	}
 
 	[Fact]
+	public void ObserveRunningWithCompoundStatus()
+	{
+		_sut.OnNewStats([ProjectionWithStatus("Running/Writing results")]);
+
+		var measurements = _sut.ObserveRunning();
+		var measurement = Assert.Single(measurements);
+		AssertMeasurement(1L, ("projection", "TestProjection"))(measurement);
+	}
+
+	[Fact]
 	public void ObserveProgress()
 	{
 		var measurements = _sut.ObserveProgress();
@@ -59,6 +69,21 @@ public class ProjectionMetricsTests
 			AssertMeasurement(0L, ("projection", "TestProjection"), ("status", "Stopped")));
 	}
 
+	[Theory]
+	[InlineData("Running/Writing results", 1, 0, 0)]
+	[InlineData("Faulted (Enabled)", 0, 1, 0)]
+	[InlineData("Stopped (Enabled)", 0, 0, 1)]
+	public void ObserveStatusWithCompoundStatus(string status, long running, long faulted, long stopped)
+	{
+		_sut.OnNewStats([ProjectionWithStatus(status)]);
+
+		var measurements = _sut.ObserveStatus();
+		Assert.Collection(measurements,
+			AssertMeasurement(running, ("projection", "TestProjection"), ("status", "Running")),
+			AssertMeasurement(faulted, ("projection", "TestProjection"), ("status", "Faulted")),
+			AssertMeasurement(stopped, ("projection", "TestProjection"), ("status", "Stopped")));
+	}
+
 	static Action<Measurement<T>> AssertMeasurement<T>(
 		T expectedValue, params (string, string?)[] tags) where T : struct =>
 
@@ -71,5 +96,17 @@ public class ProjectionMetricsTests
 			Assert.Equal(
 				tags,
 				actualMeasurement.Tags.ToArray().Select(tag => (tag.Key, tag.Value as string)));
+		};
+
+	private static ProjectionStatistics ProjectionWithStatus(string status) =>
+		new() {
+			Name = "TestProjection",
+			ProjectionId = 1234,
+			Epoch = -1,
+			Version = -1,
+			Mode = ProjectionMode.Continuous,
+			Status = status,
+			Progress = 75,
+			EventsProcessedAfterRestart = 50,
 		};
 }

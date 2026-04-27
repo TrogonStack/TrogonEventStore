@@ -34,7 +34,7 @@ public class ProjectionTracker : IProjectionTracker
 	public IEnumerable<Measurement<long>> ObserveRunning() =>
 		_currentStats.Select(x =>
 		{
-			var projectionRunning = x.Status.Equals("running", StringComparison.CurrentCultureIgnoreCase)
+			var projectionRunning = HasStatus(x.Status, "running")
 				? 1
 				: 0;
 
@@ -52,17 +52,17 @@ public class ProjectionTracker : IProjectionTracker
 			var projectionFaulted = 0;
 			var projectionStopped = 0;
 
-			switch (statistics.Status.ToLower())
+			if (HasStatus(statistics.Status, "running"))
 			{
-				case "running":
-					projectionRunning = 1;
-					break;
-				case "stopped":
-					projectionStopped = 1;
-					break;
-				case "faulted":
-					projectionFaulted = 1;
-					break;
+				projectionRunning = 1;
+			}
+			else if (HasStatus(statistics.Status, "stopped"))
+			{
+				projectionStopped = 1;
+			}
+			else if (HasStatus(statistics.Status, "faulted"))
+			{
+				projectionFaulted = 1;
 			}
 
 			yield return new(projectionRunning, [
@@ -81,4 +81,7 @@ public class ProjectionTracker : IProjectionTracker
 			]);
 		}
 	}
+
+	private static bool HasStatus(string status, string expected) =>
+		status?.StartsWith(expected, StringComparison.OrdinalIgnoreCase) == true;
 }
