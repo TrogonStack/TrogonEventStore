@@ -1,0 +1,18 @@
+@page "/ui/navigator"
+
+<PageTitle>Navigator - EventStore UI</PageTitle>
+
+<section class="max-w-4xl">
+	<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Navigator</p>
+	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">One front door for the management workflows.</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">This page keeps the new UI honest by linking to the node surfaces that already exist today.</p>
+</section>
+
+<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+	<SurfaceCard Eyebrow="Data" Title="Streams" Description="Browse streams, inspect events, and use the current stream tooling." Href="/web/index.html#/streams" LinkText="Open streams" />
+	<SurfaceCard Eyebrow="Data" Title="Stream browser" Description="Open the current browser entry point for stream reads and event inspection." Href="/web/index.html#/dashboard" LinkText="Open dashboard" />
+	<SurfaceCard Eyebrow="Processing" Title="Projections" Description="Manage projection definitions and projection runtime state through the current tools." Href="/web/index.html#/projections" LinkText="Open projections" />
+	<SurfaceCard Eyebrow="Consumers" Title="Subscriptions" Description="Review persistent subscription groups, parked messages, and consumer progress." Href="/web/index.html#/subscriptions" LinkText="Open subscriptions" />
+	<SurfaceCard Eyebrow="Security" Title="Users" Description="Reach the user administration surface for accounts and access workflows." Href="/web/index.html#/users" LinkText="Open users" />
+	<SurfaceCard Eyebrow="API" Title="HTTP root" Description="Inspect the HTTP API root and discover links exposed by the node." Href="/" LinkText="Open root" />
+</section>

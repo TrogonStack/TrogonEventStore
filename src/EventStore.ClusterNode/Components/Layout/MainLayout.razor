@@ -1,0 +1,16 @@
+@inherits LayoutComponentBase
+
+<div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(107,163,0,0.16),_transparent_32rem),linear-gradient(135deg,_#fbfcf7_0%,_#eef4e8_42%,_#f8faf4_100%)] text-es-ink">
+	<div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
+		<NavMenu />
+		<main class="flex-1 py-8 sm:py-10">
+			@Body
+		</main>
+		<footer class="border-t border-es-ink/10 py-6 text-sm text-es-muted">
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+				<span>EventStore management surface</span>
+				<a class="font-semibold text-es-green hover:text-es-forest" href="/web/index.html">Open current web UI</a>
+			</div>
+		</footer>
+	</div>
+</div>

@@ -1,0 +1,18 @@
+@page "/ui/observability"
+
+<PageTitle>Observability - EventStore UI</PageTitle>
+
+<section class="max-w-4xl">
+	<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Observability</p>
+	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">A map of the signals the node already emits.</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Use these entry points to inspect health, metrics, replication, TCP, and grouped runtime statistics without hunting through endpoint names.</p>
+</section>
+
+<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+	<SurfaceCard Eyebrow="Health" Title="Health check" Description="Check whether the node health endpoint is responding." Href="/health/live" LinkText="Open health" />
+	<SurfaceCard Eyebrow="Health" Title="Ping" Description="Use the simplest HTTP probe for process availability." Href="/ping" LinkText="Open ping" />
+	<SurfaceCard Eyebrow="Stats" Title="Grouped stats" Description="Inspect grouped runtime statistics collected by the node." Href="/stats" LinkText="Open stats" />
+	<SurfaceCard Eyebrow="Stats" Title="Replication stats" Description="Review replication-specific statistics for diagnosing cluster movement." Href="/stats/replication" LinkText="Open replication" />
+	<SurfaceCard Eyebrow="Stats" Title="TCP stats" Description="Inspect TCP connection statistics when troubleshooting network behavior." Href="/stats/tcp" LinkText="Open TCP stats" />
+	<SurfaceCard Eyebrow="Metrics" Title="Metrics endpoint" Description="Open the metrics endpoint used by external monitoring systems." Href="/metrics" LinkText="Open metrics" />
+</section>

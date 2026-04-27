@@ -1,0 +1,18 @@
+@page "/ui/configuration"
+
+<PageTitle>Configuration - EventStore UI</PageTitle>
+
+<section class="max-w-4xl">
+	<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Configuration</p>
+	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Runtime context without guesswork.</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">The configuration workspace gathers read-only node metadata, loaded options, and subsystem details in one place.</p>
+</section>
+
+<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+	<SurfaceCard Eyebrow="Node" Title="Node information" Description="Read version, state, feature, and authentication metadata from the node." Href="/info" LinkText="Open info" />
+	<SurfaceCard Eyebrow="Node" Title="Loaded options" Description="Inspect the options that were loaded and their configuration sources." Href="/info/options" LinkText="Open options" />
+	<SurfaceCard Eyebrow="Cluster" Title="Gossip" Description="Review the node's current gossip view of the cluster." Href="/gossip" LinkText="Open gossip" />
+	<SurfaceCard Eyebrow="Features" Title="Subsystems" Description="Inspect the subsystems enabled for the hosted node." Href="/sys/subsystems" LinkText="Open subsystems" />
+	<SurfaceCard Eyebrow="UI" Title="Current web UI" Description="Return to the existing browser tools for workflows not yet rebuilt here." Href="/web/index.html" LinkText="Open current UI" />
+	<SurfaceCard Eyebrow="API" Title="HTTP API root" Description="Open the root HTTP surface for link discovery and API navigation." Href="/" LinkText="Open root" />
+</section>

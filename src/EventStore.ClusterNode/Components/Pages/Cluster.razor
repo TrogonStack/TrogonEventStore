@@ -3,20 +3,43 @@
 
 <PageTitle>EventStore UI</PageTitle>
 
-<main class="min-h-screen bg-es-paper text-es-ink">
-	<section class="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-12">
-		<p class="mb-4 text-sm font-semibold uppercase tracking-[0.28em] text-es-green">EventStore</p>
-		<h1 class="max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">A new management surface is coming together.</h1>
-		<p class="mt-6 max-w-2xl text-lg leading-8 text-slate-700">
-			This route proves the server-rendered UI shell can be hosted by the node while the existing web UI remains available.
-		</p>
-		<div class="mt-10 flex flex-wrap gap-4">
-			<a class="rounded-full bg-es-green px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-es-green/90" href="/web/index.html">
-				Open current web UI
-			</a>
-			<a class="rounded-full border border-es-ink/20 px-5 py-3 text-sm font-semibold text-es-ink hover:border-es-green hover:text-es-green" href="/stats">
-				View stats endpoint
-			</a>
+<section class="grid gap-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-stretch">
+	<div class="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-es-ink p-8 text-white shadow-[0_28px_110px_rgba(23,32,51,0.22)] sm:p-10">
+		<div class="absolute -right-24 -top-24 size-72 rounded-full bg-es-green/30 blur-3xl"></div>
+		<div class="absolute -bottom-28 left-10 size-64 rounded-full bg-white/10 blur-3xl"></div>
+		<div class="relative">
+			<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Cluster overview</p>
+			<h1 class="mt-5 max-w-4xl text-5xl font-black tracking-tight sm:text-7xl">Operate the node without leaving the server.</h1>
+			<p class="mt-6 max-w-2xl text-lg leading-8 text-white/76">
+				The Blazor surface now groups the important node entry points into a single hosted workspace while the current web UI remains available for deeper workflows.
+			</p>
+			<div class="mt-10 flex flex-wrap gap-3">
+				<a class="rounded-full bg-es-green px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-green/25 hover:bg-white hover:text-es-ink" href="/ui/navigator">Explore tools</a>
+				<a class="rounded-full border border-white/30 px-5 py-3 text-sm font-black text-white hover:border-white hover:bg-white/10" href="/web/index.html">Open current web UI</a>
+			</div>
 		</div>
-	</section>
-</main>
+	</div>
+
+	<aside class="grid gap-4">
+		<div class="rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Node probes</p>
+			<div class="mt-5 grid gap-3">
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="/ping">Ping</a>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="/info">Node info</a>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="/gossip">Gossip</a>
+			</div>
+		</div>
+		<div class="rounded-[2rem] bg-es-green p-6 text-white shadow-[0_20px_70px_rgba(107,163,0,0.20)]">
+			<p class="text-sm font-black uppercase tracking-[0.24em] text-white/70">Status</p>
+			<p class="mt-4 text-3xl font-black tracking-tight">Server-rendered</p>
+			<p class="mt-3 leading-7 text-white/78">The shell works without client-side state, so the page remains useful before we make deeper product calls on interactive management flows.</p>
+		</div>
+	</aside>
+</section>
+
+<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+	<SurfaceCard Eyebrow="Explore" Title="Navigator" Description="Jump into streams, subscriptions, projections, user management, and the existing browser tools from one place." Href="/ui/navigator" LinkText="Open navigator" />
+	<SurfaceCard Eyebrow="Run" Title="Operations" Description="Reach the operational endpoints for scavenging, shutdown, reload, and node-level actions that require privileged access." Href="/ui/operations" LinkText="Open operations" />
+	<SurfaceCard Eyebrow="Watch" Title="Observability" Description="Inspect stats, replication, TCP, metrics, and health endpoints through a curated operator map." Href="/ui/observability" LinkText="Open observability" />
+	<SurfaceCard Eyebrow="Review" Title="Configuration" Description="Find runtime information, loaded options, and subsystem metadata without memorizing endpoint paths." Href="/ui/configuration" LinkText="Open configuration" />
+</section>

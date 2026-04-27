@@ -1,0 +1,32 @@
+@page "/ui/operations"
+
+<PageTitle>Operations - EventStore UI</PageTitle>
+
+<section class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Operations</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Privileged actions, clearly separated.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">The UI groups node actions away from read-only pages so operators can move deliberately when a command changes node state.</p>
+	</div>
+	<div class="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-[0_20px_70px_rgba(146,64,14,0.10)]">
+		<p class="text-sm font-black uppercase tracking-[0.24em] text-amber-700">Protected endpoints</p>
+		<p class="mt-3 leading-7">These actions are intentionally exposed as endpoint handoffs for now. The node still owns authentication, authorization, and command execution.</p>
+	</div>
+</section>
+
+<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+	<SurfaceCard Eyebrow="Scavenge" Title="Current scavenge" Description="Inspect the active scavenge job and its latest reported progress." Href="/admin/scavenge/current" LinkText="View current" Target="_blank" />
+	<SurfaceCard Eyebrow="Scavenge" Title="Last scavenge" Description="Review the last scavenge result exposed by the node." Href="/admin/scavenge/last" LinkText="View last" Target="_blank" />
+	<SurfaceCard Eyebrow="Node" Title="Reload configuration" Description="Use the protected reload endpoint when configuration must be refreshed without a full process restart.">
+		<p class="rounded-2xl bg-es-ink/5 px-4 py-3 font-mono text-sm text-es-ink"><span class="font-black text-es-green">POST</span> /admin/reloadconfig</p>
+	</SurfaceCard>
+	<SurfaceCard Eyebrow="Node" Title="Merge indexes" Description="Reach the protected index merge action from the operations map.">
+		<p class="rounded-2xl bg-es-ink/5 px-4 py-3 font-mono text-sm text-es-ink"><span class="font-black text-es-green">POST</span> /admin/mergeindexes</p>
+	</SurfaceCard>
+	<SurfaceCard Eyebrow="Node" Title="Resign leader" Description="Access the protected leadership resignation endpoint when cluster operations require it.">
+		<p class="rounded-2xl bg-es-ink/5 px-4 py-3 font-mono text-sm text-es-ink"><span class="font-black text-es-green">POST</span> /admin/node/resign</p>
+	</SurfaceCard>
+	<SurfaceCard Eyebrow="Node" Title="Shutdown" Description="Keep the destructive shutdown endpoint visible but isolated from the read-only sections.">
+		<p class="rounded-2xl bg-es-ink/5 px-4 py-3 font-mono text-sm text-es-ink"><span class="font-black text-es-green">POST</span> /admin/shutdown</p>
+	</SurfaceCard>
+</section>
