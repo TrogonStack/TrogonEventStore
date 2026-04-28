@@ -472,7 +472,8 @@
 	}
 
 	function readFieldBoolean(row, names) {
-		return readField(row, names, false) === true;
+		var value = readField(row, names, false);
+		return value === true || String(value).toLowerCase() === "true";
 	}
 
 	function formatUtc(value) {
