@@ -1,0 +1,219 @@
+@page "/ui/users/{LoginName}/enable"
+@page "/ui/users/{LoginName}/disable"
+@page "/ui/users/{LoginName}/delete"
+@inject UserBrowserService UserBrowser
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>@Action.Title - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@($"/ui/users/{Uri.EscapeDataString(LoginName)}")">Back to user</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">@Action.Eyebrow</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@LoginName</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">@Action.Description</p>
+</section>
+
+@if (Page is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading user...
+	</section>
+}
+else if (Page.User is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</section>
+}
+else
+{
+	<section class="mt-8 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+		<article class="@Action.CardClass">
+			<StatusBadge Label="@Action.Badge" Tone="@Action.Tone" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight">@Action.Title</h2>
+			<p class="mt-3 text-sm leading-6">@Action.Warning</p>
+
+			@if (Result is not null)
+			{
+				<p class="mt-5 rounded-2xl border @(Result.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-4 text-sm font-bold">@Result.Message</p>
+			}
+			else if (!CanSubmit(Page.User))
+			{
+				<p class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">@AlreadyAppliedMessage(Page.User)</p>
+			}
+
+			<EditForm Model="Input" FormName="user-command-confirm" OnValidSubmit="Confirm">
+				<AntiforgeryToken />
+				<InputText type="hidden" @bind-Value="Input.LoginName" />
+				<div class="mt-5 flex flex-wrap gap-2">
+					<button class="@Action.ButtonClass" type="submit" disabled="@(!CanSubmit(Page.User))">@Action.ButtonText</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.User.DetailHref">Cancel</a>
+				</div>
+			</EditForm>
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="@Page.User.StatusLabel" Tone="@Page.User.StatusTone" />
+			<h2 class="mt-4 break-words text-2xl font-black tracking-tight text-es-ink">@Page.User.DisplayName</h2>
+			<p class="mt-2 break-words font-mono text-sm text-es-muted">@Page.User.LoginName</p>
+			<div class="mt-5 grid gap-3 text-sm">
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Groups</p>
+					<p class="mt-2 break-words text-es-ink">@Page.User.GroupsLabel</p>
+				</div>
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Last updated</p>
+					<p class="mt-2 font-mono text-xs text-es-ink">@Page.User.UpdatedLabel</p>
+				</div>
+			</div>
+			<a class="mt-5 inline-flex rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.User.RawHref" target="_blank" rel="noopener noreferrer">Raw user</a>
+		</article>
+	</section>
+}
+
+@code {
+	[Parameter] public string LoginName { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "user-command-confirm")]
+	private UserCommandInput Input { get; set; } = new();
+
+	private UserDetailPage Page { get; set; }
+	private UserCommandResult Result { get; set; }
+	private UserAction Action => ResolveAction();
+
+	protected override async Task OnParametersSetAsync() {
+		var requested = LoginName;
+		Page = null;
+		Result = null;
+		Input = new();
+
+		try {
+			var page = await UserBrowser.Read(requested);
+			if (requested != LoginName)
+				return;
+
+			Page = page;
+			if (Page.User is not null)
+				Input.LoginName = Page.User.LoginName;
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			if (requested == LoginName)
+				Page = UserDetailPage.Unavailable(requested, UserBrowser.ReadCurrentRequest(), $"Failed to load user: {UserInterfaceMessages.Friendly(ex)}");
+		}
+	}
+
+	private async Task Confirm() {
+		if (Page?.User is not { } user) {
+			Result = UserCommandResult.Failure(LoginName, "User details are not loaded.");
+			return;
+		}
+
+		var loginName = user.LoginName;
+		var redirectTo = "";
+		try {
+			Result = Action.Kind switch {
+				UserActionKind.Enable => await UserBrowser.Enable(loginName),
+				UserActionKind.Disable => await UserBrowser.Disable(loginName),
+				UserActionKind.Delete => await UserBrowser.Delete(loginName),
+				_ => UserCommandResult.Failure(loginName, "Unknown user command.")
+			};
+
+			if (Result.Success)
+				redirectTo = Action.Kind == UserActionKind.Delete ? "/ui/users" : $"/ui/users/{Uri.EscapeDataString(Result.LoginName)}";
+		} catch (OperationCanceledException) {
+			Result = UserCommandResult.Failure(loginName, $"{Action.Title} was canceled.");
+		} catch (Exception ex) {
+			Result = UserCommandResult.Failure(loginName, $"Failed to run user command: {UserInterfaceMessages.Friendly(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private bool CanSubmit(UserView user) =>
+		Action.Kind switch {
+			UserActionKind.Enable => user.Disabled,
+			UserActionKind.Disable => !user.Disabled,
+			UserActionKind.Delete => true,
+			_ => false
+		};
+
+	private string AlreadyAppliedMessage(UserView user) =>
+		Action.Kind switch {
+			UserActionKind.Enable when !user.Disabled => "This user is already enabled.",
+			UserActionKind.Disable when user.Disabled => "This user is already disabled.",
+			_ => "This command is not available for the current user state."
+		};
+
+	private UserAction ResolveAction() {
+		var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').ToLowerInvariant();
+		if (path.EndsWith("/enable", StringComparison.Ordinal))
+			return UserAction.Enable;
+		if (path.EndsWith("/delete", StringComparison.Ordinal))
+			return UserAction.Delete;
+		if (path.EndsWith("/disable", StringComparison.Ordinal))
+			return UserAction.Disable;
+
+		throw new InvalidOperationException($"Unsupported user command route '{path}'.");
+	}
+
+	private sealed class UserCommandInput {
+		public string LoginName { get; set; } = "";
+	}
+
+	private enum UserActionKind {
+		Enable,
+		Disable,
+		Delete
+	}
+
+	private sealed record UserAction(
+		UserActionKind Kind,
+		string Eyebrow,
+		string Title,
+		string Description,
+		string Badge,
+		string Tone,
+		string Warning,
+		string ButtonText,
+		string CardClass,
+		string ButtonClass) {
+		public static readonly UserAction Enable = new(
+			UserActionKind.Enable,
+			"Enable user",
+			"Enable account access",
+			"Re-enable this internal account so it can authenticate again.",
+			"Access restore",
+			"good",
+			"This restores sign-in access for the selected user.",
+			"Enable user",
+			"rounded-[2rem] border border-es-green/25 bg-es-green/10 p-6 text-es-forest shadow-[0_20px_70px_rgba(54,105,0,0.08)]",
+			"rounded-2xl bg-es-green px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-green/20 transition hover:bg-es-forest disabled:cursor-not-allowed disabled:bg-es-muted");
+
+		public static readonly UserAction Disable = new(
+			UserActionKind.Disable,
+			"Disable user",
+			"Disable account access",
+			"Prevent this internal account from authenticating without deleting its record.",
+			"Access change",
+			"warn",
+			"This blocks future sign-in for the selected user until the account is enabled again.",
+			"Disable user",
+			"rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-[0_20px_70px_rgba(146,64,14,0.08)]",
+			"rounded-2xl bg-amber-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-amber-900/15 transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-es-muted");
+
+		public static readonly UserAction Delete = new(
+			UserActionKind.Delete,
+			"Delete user",
+			"Delete account record",
+			"Remove this internal account and its user stream.",
+			"Destructive",
+			"bad",
+			"Deletion is permanent for this user record and should only be used when access must be removed entirely.",
+			"Delete user",
+			"rounded-[2rem] border border-red-200 bg-red-50 p-6 text-red-950 shadow-[0_20px_70px_rgba(153,27,27,0.08)]",
+			"rounded-2xl bg-red-700 px-5 py-3 text-sm font-black text-white shadow-lg shadow-red-900/15 transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-es-muted");
+	}
+}

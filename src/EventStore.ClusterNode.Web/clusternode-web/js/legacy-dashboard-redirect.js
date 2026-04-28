@@ -43,13 +43,31 @@
 				var query = destination.toString();
 				return query ? target + "?" + query : target;
 			}
+		},
+		{
+			pattern: /^#\/users(?:[/?].*)?$/i,
+			target: function (hash) {
+				var path = hash.replace(/^#\/users\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
+				if (!path)
+					return "/ui/users";
+
+				var parts = path.split("/");
+				if (parts[0].toLowerCase() === "new")
+					return "/ui/users/new";
+
+				var loginName = safeDecode(parts[0]);
+				var action = (parts[1] || "").toLowerCase();
+				var target = "/ui/users/" + encodeURIComponent(loginName);
+				return isUserAction(action) ? target + "/" + action : target;
+			}
 		}
 	];
 
 	var legacyNavLinks = [
 		{ selector: 'a[ui-sref="dashboard.list"]', text: "Dashboard" },
 		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" },
-		{ selector: 'a[ui-sref="admin"]', text: "Admin" }
+		{ selector: 'a[ui-sref="admin"]', text: "Admin" },
+		{ selector: 'a[ui-sref="users.list"]', text: "Users" }
 	];
 
 	function safeDecode(value) {
@@ -58,6 +76,14 @@
 		} catch (_) {
 			return value;
 		}
+	}
+
+	function isUserAction(action) {
+		return action === "edit" ||
+			action === "enable" ||
+			action === "disable" ||
+			action === "delete" ||
+			action === "reset";
 	}
 
 	function removeLegacyLinks() {
