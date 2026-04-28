@@ -486,7 +486,7 @@ public sealed class ProjectionBrowserService(
 		if (string.IsNullOrWhiteSpace(name))
 			return name;
 
-		var value = Uri.UnescapeDataString(name.Trim());
+		var value = name.Trim();
 		if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
 			value = absolute.AbsolutePath;
 
@@ -495,7 +495,7 @@ public sealed class ProjectionBrowserService(
 		if (value.StartsWith(projectionPrefix, StringComparison.OrdinalIgnoreCase))
 			value = value[projectionPrefix.Length..];
 
-		return Uri.UnescapeDataString(value);
+		return value;
 	}
 
 	private static string ActionPastTense(string action) =>

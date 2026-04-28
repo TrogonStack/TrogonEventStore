@@ -113,19 +113,20 @@
 					return "/ui/projections/standard";
 
 				var action = (parts[parts.length - 1] || "").toLowerCase();
-				var projectionPath = isProjectionAction(action)
+				var hasAction = parts.length >= 2 && isProjectionAction(action);
+				var projectionPath = hasAction
 					? parts.slice(0, -1).join("/")
 					: path;
 				var name = projectionNameFromLocation(projectionPath);
 				var target = "/ui/projections/" + encodeURIComponent(name);
 
-				if (action === "edit")
+				if (hasAction && action === "edit")
 					target = "/ui/projections/edit/" + encodeURIComponent(name);
-				else if (action === "config")
+				else if (hasAction && action === "config")
 					target = "/ui/projections/config/" + encodeURIComponent(name);
-				else if (action === "delete")
+				else if (hasAction && action === "delete")
 					target = "/ui/projections/delete/" + encodeURIComponent(name);
-				else if (action === "debug")
+				else if (hasAction && action === "debug")
 					target = "/ui/projections/debug/" + encodeURIComponent(name);
 
 				var query = new URLSearchParams(hash.split("?")[1] || "");
