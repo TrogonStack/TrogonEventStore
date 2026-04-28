@@ -303,8 +303,8 @@
 			padRight("Internal Tcp", 31) + " " +
 				padRight("External Tcp", 31) + " " +
 				padRight("Http", 23) + " " +
-				padRight("Status", 7) + " " +
-				padRight("State", 14) + " " +
+				padRight("Status", 11) + " " +
+				padRight("State", 18) + " " +
 				padRight("Timestamp (UTC)", 19) + " Checkpoints"
 		];
 
@@ -313,8 +313,8 @@
 				padRight(endpoint(member.internalTcpIp, member.internalTcpPort), 31) + " " +
 				padRight(endpoint(member.externalTcpIp, member.externalTcpPort), 31) + " " +
 				padRight(endpoint(member.httpHost, member.httpPort), 23) + " " +
-				padRight(member.isAlive ? "Alive" : "Unreachable", 7) + " " +
-				padRight(member.state, 14) + " " +
+				padRight(member.isAlive ? "Alive" : "Unreachable", 11) + " " +
+				padRight(member.state, 18) + " " +
 				padRight(formatUtc(member.timeStamp), 19) + " " +
 				checkpointSnapshot(member)
 			);
