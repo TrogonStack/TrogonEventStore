@@ -139,6 +139,7 @@ public sealed class ProjectionBrowserService(
 		var checkpointsEnabled = request.Mode == ProjectionCreateMode.Continuous || request.CheckpointsEnabled;
 		var emitEnabled = request.EmitEnabled;
 		var trackEmittedStreams = emitEnabled && request.TrackEmittedStreams;
+		var handlerType = NormalizeHandlerType(request.HandlerType);
 
 		if (!await HasAccess(operation, cancellationToken))
 			return ProjectionCommandResult.Failure(request.Name, "Projection creation access was denied.");
@@ -151,7 +152,7 @@ public sealed class ProjectionBrowserService(
 				mode,
 				request.Name.Trim(),
 				new ProjectionManagementMessage.RunAs(CurrentUser),
-				string.IsNullOrWhiteSpace(request.HandlerType) ? "JS" : request.HandlerType.Trim(),
+				handlerType,
 				request.Query,
 				request.Enabled,
 				checkpointsEnabled,
@@ -276,12 +277,6 @@ public sealed class ProjectionBrowserService(
 
 		if (!await HasAccess(DeleteOperation, cancellationToken))
 			return ProjectionCommandResult.Failure(name, "Projection delete access was denied.");
-
-		var disable = await Disable(name, cancellationToken);
-		if (!disable.Success && !disable.Message.Contains("not enabled", StringComparison.OrdinalIgnoreCase))
-			return ProjectionCommandResult.Failure(
-				name,
-				$"Projection must be stopped before deletion: {disable.Message}");
 
 		return await RunUpdated(
 			name,
@@ -522,8 +517,19 @@ public sealed class ProjectionBrowserService(
 			return "Enter projection source before creating it.";
 		if (request.EmitEnabled && !request.CheckpointsEnabled && request.Mode != ProjectionCreateMode.Continuous)
 			return "Emitting requires checkpoints.";
+		if (!IsKnownHandlerType(request.HandlerType))
+			return "Select a supported projection handler.";
 
 		return "";
+	}
+
+	private static string NormalizeHandlerType(string handlerType) =>
+		string.IsNullOrWhiteSpace(handlerType) ? "JS" : handlerType.Trim();
+
+	private static bool IsKnownHandlerType(string handlerType) {
+		var normalized = NormalizeHandlerType(handlerType);
+		return string.Equals(normalized, "JS", StringComparison.Ordinal) ||
+			StandardProjectionOptions.Any(option => string.Equals(option.HandlerType, normalized, StringComparison.Ordinal));
 	}
 
 	private static string ValidateConfig(ProjectionConfigRequest request) {
@@ -574,7 +580,8 @@ public sealed record ProjectionDataRead(
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasValue => IsAvailable && !string.IsNullOrWhiteSpace(Value);
 	public static ProjectionDataRead Success(string value, string position) => new(value, position, "");
-	public static ProjectionDataRead Unavailable(string message) => new("", "", message);
+	public static ProjectionDataRead Unavailable(string message) =>
+		new("", "", string.IsNullOrWhiteSpace(message) ? "Projection data is unavailable." : message);
 }
 
 public sealed record ProjectionListPage(
@@ -618,7 +625,7 @@ public sealed record ProjectionDetailPage(
 		new(projection, query, state, result, projection.Name, partition ?? "", "");
 
 	public static ProjectionDetailPage Unavailable(string name, string message) =>
-		new(null, null, ProjectionDataRead.Unavailable(""), ProjectionDataRead.Unavailable(""), name, "", message);
+		new(null, null, ProjectionDataRead.Unavailable(message), ProjectionDataRead.Unavailable(message), name, "", message);
 }
 
 public sealed record ProjectionQueryPage(

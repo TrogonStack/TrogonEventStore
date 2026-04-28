@@ -111,12 +111,13 @@
 
 	private ProjectionDetailPage Page { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }
-	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
-	private string EditHref => $"/ui/projections/edit/{Uri.EscapeDataString(Name)}";
-	private string QueryHref => $"/ui/query?location={Uri.EscapeDataString(Name)}";
-	private string RawStateHref => $"/projection/{Uri.EscapeDataString(Name)}/state";
-	private string RawResultHref => $"/projection/{Uri.EscapeDataString(Name)}/result";
-	private string RawStatsHref => $"/projection/{Uri.EscapeDataString(Name)}/statistics";
+	private string LinkName => Page?.Name ?? Name;
+	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(LinkName)}";
+	private string EditHref => $"/ui/projections/edit/{Uri.EscapeDataString(LinkName)}";
+	private string QueryHref => $"/ui/query?location={Uri.EscapeDataString(LinkName)}";
+	private string RawStateHref => $"/projection/{Uri.EscapeDataString(LinkName)}/state";
+	private string RawResultHref => $"/projection/{Uri.EscapeDataString(LinkName)}/result";
+	private string RawStatsHref => $"/projection/{Uri.EscapeDataString(LinkName)}/statistics";
 
 	protected override async Task OnParametersSetAsync() {
 		try {

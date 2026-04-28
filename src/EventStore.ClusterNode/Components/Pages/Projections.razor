@@ -159,22 +159,36 @@
 	private async Task EnableAll() {
 		try {
 			CommandResult = await ProjectionBrowser.EnableAll(IncludeQueries);
-			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
 			CommandResult = ProjectionBulkCommandResult.Failure($"Failed to enable projections: {UiMessages.Friendly(ex)}");
+			return;
 		}
+
+		await RefreshAfterBulkAction();
 	}
 
 	private async Task DisableAll() {
 		try {
 			CommandResult = await ProjectionBrowser.DisableAll(IncludeQueries);
-			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
 			CommandResult = ProjectionBulkCommandResult.Failure($"Failed to disable projections: {UiMessages.Friendly(ex)}");
+			return;
+		}
+
+		await RefreshAfterBulkAction();
+	}
+
+	private async Task RefreshAfterBulkAction() {
+		try {
+			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			Page = ProjectionListPage.Unavailable($"Projection command completed, but refresh failed: {UiMessages.Friendly(ex)}", IncludeQueries);
 		}
 	}
 

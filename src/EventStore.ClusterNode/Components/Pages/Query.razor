@@ -102,7 +102,7 @@
 	protected override async Task OnParametersSetAsync() {
 		if (!string.IsNullOrWhiteSpace(Location)) {
 			if (string.Equals(_lastLoadedLocation, Location, StringComparison.OrdinalIgnoreCase) ||
-				!CanSeedQuery())
+				(string.IsNullOrWhiteSpace(_lastLoadedLocation) && !CanSeedQuery()))
 				return;
 
 			try {
