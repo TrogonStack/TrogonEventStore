@@ -17,11 +17,14 @@ public static class UiCredentialCookie {
 	public static void AppendBasic(HttpResponse response, UiCredentials credentials) =>
 		AppendBasicValue(response, credentials.BasicValue);
 
-	public static bool TryAppendBasicValue(HttpResponse response, string raw) {
-		if (!TryExtractBasicValue(SafeDecode(raw), out var value) || !IsHeaderSafe(value) || !IsValidBasicValue(value))
+	public static bool TryParseBasicCredentials(string raw, out UiCredentials credentials) {
+		credentials = new UiCredentials("", "");
+		if (!TryExtractBasicValue(SafeDecode(raw), out var value) ||
+		    !IsHeaderSafe(value) ||
+		    !TryDecodeBasicValue(value, out var username, out var password))
 			return false;
 
-		AppendBasicValue(response, value);
+		credentials = new UiCredentials(username, password);
 		return true;
 	}
 
@@ -70,7 +73,7 @@ public static class UiCredentialCookie {
 		if (!TryExtractBasicValue(SafeDecode(raw), out value))
 			return false;
 
-		return IsHeaderSafe(value) && IsValidBasicValue(value);
+		return IsHeaderSafe(value) && TryDecodeBasicValue(value, out _, out _);
 	}
 
 	private static bool TryExtractBasicValue(string raw, out string value) {
@@ -94,10 +97,18 @@ public static class UiCredentialCookie {
 		}
 	}
 
-	private static bool IsValidBasicValue(string value) {
+	private static bool TryDecodeBasicValue(string value, out string username, out string password) {
+		username = "";
+		password = "";
 		try {
 			var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(value));
-			return decoded.Contains(':', StringComparison.Ordinal);
+			var separator = decoded.IndexOf(':', StringComparison.Ordinal);
+			if (separator < 0)
+				return false;
+
+			username = decoded[..separator];
+			password = decoded[(separator + 1)..];
+			return true;
 		} catch (FormatException) {
 			return false;
 		}

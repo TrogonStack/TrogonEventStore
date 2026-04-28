@@ -9,7 +9,7 @@ namespace EventStore.ClusterNode.Components.Services;
 
 internal static class SecurityEndpoints {
 	public static IEndpointRouteBuilder MapSecurityEndpoints(this IEndpointRouteBuilder app) {
-		app.MapPost("/ui/security/migrate-credentials", async (HttpContext context) => {
+		app.MapPost("/ui/security/migrate-credentials", async (HttpContext context, SecurityBrowserService security) => {
 			SecurityCredentialMigrationRequest request;
 			try {
 				request = await context.Request.ReadFromJsonAsync<SecurityCredentialMigrationRequest>(
@@ -21,10 +21,24 @@ internal static class SecurityEndpoints {
 			if (request is null || string.IsNullOrWhiteSpace(request.Credentials))
 				return Results.BadRequest();
 
-			return UiCredentialCookie.TryAppendBasicValue(context.Response, request.Credentials)
-				? Results.NoContent()
-				: Results.BadRequest();
-		}).AllowAnonymous();
+			if (!UiCredentialCookie.TryParseBasicCredentials(request.Credentials, out var credentials))
+				return Results.BadRequest();
+
+			SecurityCommandResult validation;
+			try {
+				validation = await security.Validate(credentials.Username, credentials.Password);
+			} catch (OperationCanceledException) {
+				throw;
+			} catch (Exception) {
+				return Results.Unauthorized();
+			}
+
+			if (!validation.Success)
+				return Results.Unauthorized();
+
+			UiCredentialCookie.AppendBasic(context.Response, credentials);
+			return Results.NoContent();
+		});
 
 		return app;
 	}

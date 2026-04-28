@@ -87,9 +87,15 @@
 		Authentication = Security.AuthenticationInfo();
 		var context = HttpContextAccessor.HttpContext;
 		if (string.Equals(context?.Request.Method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase) &&
-		    SecurityBrowserService.IsSignedIn(context.User))
+		    SecurityBrowserService.IsSignedIn(context.User) &&
+		    !IsOAuthCallback(context.Request))
 			Navigation.NavigateTo(Destination);
 	}
+
+	private static bool IsOAuthCallback(HttpRequest request) =>
+		request.Query.ContainsKey("code") ||
+		request.Query.ContainsKey("state") ||
+		request.Query.ContainsKey("error");
 
 	private async Task SignInUser() {
 		try {

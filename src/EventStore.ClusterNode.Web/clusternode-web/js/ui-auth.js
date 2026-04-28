@@ -120,11 +120,22 @@
 		if (document.querySelector("[data-ui-clear-auth]"))
 			clearAuthCookies();
 
+		if (window.location.pathname !== "/ui/signin")
+			return;
+
 		var returnUrl = sessionStorage.getItem("eventstore-ui-return-url");
-		if (returnUrl && readAuthorization() && window.location.pathname === "/ui/signin") {
+		if (!readAuthorization())
+			return;
+
+		if (returnUrl) {
 			sessionStorage.removeItem("eventstore-ui-return-url");
 			window.location.href = returnUrl;
+			return;
 		}
+
+		var query = new URLSearchParams(window.location.search);
+		if (query.has("code") || query.has("state"))
+			window.location.href = "/ui";
 	});
 
 	document.addEventListener("click", function (event) {
