@@ -164,22 +164,22 @@
 		}
 
 		var endpointValue = endpoint(leader.httpHost, leader.httpPort);
-		var requestEndpoint = endpointValue;
 		if (state.leaderEndpoint !== endpointValue) {
 			state.leaderEndpoint = endpointValue;
 			state.previousReplicas = new Map();
 			state.lastReplicaRefresh = null;
 		}
 
+		var requestLeaderEndpoint = endpointValue;
 		state.replicationInFlight = true;
 		try {
-			var response = await fetchWithTimeout(window.location.protocol + "//" + endpointValue + "/stats/replication?format=json");
+			var response = await fetchWithTimeout(window.location.protocol + "//" + requestLeaderEndpoint + "/stats/replication?format=json");
 
 			if (!response.ok)
 				throw new Error("Replication stats endpoint returned " + response.status + " " + response.statusText);
 
 			var payload = await response.json();
-			if (!isActive(state) || leaderEndpointChanged(state, requestEndpoint))
+			if (!isActive(state) || state.leaderEndpoint !== requestLeaderEndpoint)
 				return;
 
 			var now = Date.now();
@@ -189,7 +189,7 @@
 			state.lastReplicaRefresh = now;
 			renderReplicas(state);
 		} catch (error) {
-			if (!isActive(state) || leaderEndpointChanged(state, requestEndpoint))
+			if (!isActive(state) || state.leaderEndpoint !== requestLeaderEndpoint)
 				return;
 
 			clearReplicaState(state);
@@ -198,11 +198,6 @@
 		} finally {
 			state.replicationInFlight = false;
 		}
-	}
-
-	function leaderEndpointChanged(state, requestEndpoint) {
-		var leader = findLeader(state.members);
-		return !leader || endpoint(leader.httpHost, leader.httpPort) !== requestEndpoint;
 	}
 
 	function clearClusterState(state) {
