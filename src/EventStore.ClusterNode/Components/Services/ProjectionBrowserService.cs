@@ -221,9 +221,9 @@ public sealed class ProjectionBrowserService(
 			name,
 			EnableOperation,
 			"enable projection",
-			envelope => new ProjectionManagementMessage.Command.Enable(
+			(normalizedName, envelope) => new ProjectionManagementMessage.Command.Enable(
 				envelope,
-				name,
+				normalizedName,
 				new ProjectionManagementMessage.RunAs(CurrentUser)),
 			cancellationToken);
 
@@ -232,9 +232,9 @@ public sealed class ProjectionBrowserService(
 			name,
 			DisableOperation,
 			"disable projection",
-			envelope => new ProjectionManagementMessage.Command.Disable(
+			(normalizedName, envelope) => new ProjectionManagementMessage.Command.Disable(
 				envelope,
-				name,
+				normalizedName,
 				new ProjectionManagementMessage.RunAs(CurrentUser)),
 			cancellationToken);
 
@@ -243,9 +243,9 @@ public sealed class ProjectionBrowserService(
 			name,
 			ResetOperation,
 			"reset projection",
-			envelope => new ProjectionManagementMessage.Command.Reset(
+			(normalizedName, envelope) => new ProjectionManagementMessage.Command.Reset(
 				envelope,
-				name,
+				normalizedName,
 				new ProjectionManagementMessage.RunAs(CurrentUser)),
 			cancellationToken);
 
@@ -393,7 +393,7 @@ public sealed class ProjectionBrowserService(
 		string name,
 		Operation operation,
 		string action,
-		Func<IEnvelope, Message> createMessage,
+		Func<string, IEnvelope, Message> createMessage,
 		CancellationToken cancellationToken) {
 		name = NormalizeName(name);
 		if (string.IsNullOrWhiteSpace(name))
@@ -402,7 +402,7 @@ public sealed class ProjectionBrowserService(
 		if (!await HasAccess(operation, cancellationToken))
 			return ProjectionCommandResult.Failure(name, $"Projection {action} access was denied.");
 
-		return await RunUpdated(name, action, createMessage, cancellationToken);
+		return await RunUpdated(name, action, envelope => createMessage(name, envelope), cancellationToken);
 	}
 
 	private async Task<ProjectionCommandResult> RunUpdated(
