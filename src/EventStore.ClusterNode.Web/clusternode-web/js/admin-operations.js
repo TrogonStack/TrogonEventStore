@@ -10,10 +10,6 @@
 		data.forEach(function (value, key) {
 			if (value === "")
 				return;
-			if (value === "on") {
-				payload[key] = true;
-				return;
-			}
 
 			if (isNumberField(form, key)) {
 				var number = Number(value);
