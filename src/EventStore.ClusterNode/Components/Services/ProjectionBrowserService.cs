@@ -57,7 +57,7 @@ public sealed class ProjectionBrowserService(
 
 	public async Task<ProjectionListPage> ReadAll(bool includeQueries, CancellationToken cancellationToken = default) {
 		if (!await HasAccess(ListOperation, cancellationToken))
-			return ProjectionListPage.Unavailable("Projection list access was denied.");
+			return ProjectionListPage.Unavailable("Projection list access was denied.", includeQueries);
 
 		var read = await ReadStatistics(includeQueries ? null : ProjectionMode.AllNonTransient, name: null, cancellationToken);
 		return read.IsAvailable
@@ -430,7 +430,14 @@ public sealed class ProjectionBrowserService(
 		var failures = new List<string>();
 		var completed = 0;
 		foreach (var projection in candidates) {
-			var result = await run(projection);
+			ProjectionCommandResult result;
+			try {
+				result = await run(projection);
+			} catch (OperationCanceledException) {
+				failures.Add($"{projection.Name}: operation was canceled before this projection was updated.");
+				return ProjectionBulkCommandResult.Partial(completed, failures);
+			}
+
 			if (result.Success)
 				completed++;
 			else
