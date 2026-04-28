@@ -17,13 +17,48 @@
 					? "/ui/cluster#cluster-snapshot"
 					: "/ui/cluster#cluster-status";
 			}
+		},
+		{
+			pattern: /^#\/admin(?:[/?].*)?$/i,
+			target: function () {
+				return "/ui/operations";
+			}
+		},
+		{
+			pattern: /^#\/scavenge\/([^/?#]+)(?:\/)?(?:[?](.*))?$/i,
+			target: function (hash) {
+				var match = /^#\/scavenge\/([^/?#]+)(?:\/)?(?:[?](.*))?$/i.exec(hash);
+				if (!match)
+					return "/ui/operations";
+
+				var scavengeId = safeDecode(match[1]);
+				var target = "/ui/operations/scavenges/" + encodeURIComponent(scavengeId);
+				var source = new URLSearchParams(match[2] || "");
+				var destination = new URLSearchParams();
+				if (source.has("page"))
+					destination.set("page", source.get("page"));
+				if (source.has("from"))
+					destination.set("from", source.get("from"));
+
+				var query = destination.toString();
+				return query ? target + "?" + query : target;
+			}
 		}
 	];
 
 	var legacyNavLinks = [
 		{ selector: 'a[ui-sref="dashboard.list"]', text: "Dashboard" },
-		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" }
+		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" },
+		{ selector: 'a[ui-sref="admin"]', text: "Admin" }
 	];
+
+	function safeDecode(value) {
+		try {
+			return decodeURIComponent(value);
+		} catch (_) {
+			return value;
+		}
+	}
 
 	function removeLegacyLinks() {
 		for (var group = 0; group < legacyNavLinks.length; group++) {

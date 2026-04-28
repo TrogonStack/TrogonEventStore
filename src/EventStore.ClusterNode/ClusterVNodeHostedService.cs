@@ -43,6 +43,15 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 	private readonly ClusterNodeMutex _clusterNodeMutex;
 
 	public ClusterVNode Node { get; }
+	public IReadOnlyList<NodeSubsystems> EnabledNodeSubsystems { get; private set; } = Array.Empty<NodeSubsystems>();
+	public bool SupportsScavenge =>
+		!_options.Database.MemDb && _options.Database.DbLogFormat == DbLogFormat.V2;
+	public string ScavengeSupportMessage =>
+		SupportsScavenge
+			? ""
+			: _options.Database.MemDb
+				? "Scavenge is not supported on in-memory databases."
+				: "Scavenge is not yet supported on Log V3.";
 
 	public ClusterVNodeHostedService(
 		ClusterVNodeOptions options,
@@ -133,11 +142,11 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			throw new ArgumentOutOfRangeException(nameof(_options.Database.DbLogFormat), "Unexpected log format specified.");
 		}
 
-		var enabledNodeSubsystems = projectionMode >= ProjectionType.System
+		EnabledNodeSubsystems = projectionMode >= ProjectionType.System
 			? new[] { NodeSubsystems.Projections }
 			: Array.Empty<NodeSubsystems>();
 
-		RegisterWebControllers(enabledNodeSubsystems);
+		RegisterWebControllers(EnabledNodeSubsystems.ToArray());
 		return;
 
 		(ClusterVNodeOptions, AuthorizationProviderFactory) GetAuthorizationProviderFactory()

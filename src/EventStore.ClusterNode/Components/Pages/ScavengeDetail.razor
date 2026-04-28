@@ -1,0 +1,146 @@
+@page "/ui/operations/scavenges/{ScavengeId}"
+@inject AdminOperationsService Operations
+
+<PageTitle>Scavenge @ScavengeId - EventStore UI</PageTitle>
+
+@if (PageNumber <= 0)
+{
+	<span hidden data-admin-auto-refresh="2000"></span>
+}
+
+<section class="grid gap-8 lg:grid-cols-[1fr_0.8fr] lg:items-start">
+	<div>
+		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Scavenge detail</p>
+		<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@ScavengeId</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Inspect the status events written for this scavenge without switching back to the legacy admin shell.</p>
+	</div>
+	<div class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Command status</p>
+		<div hidden data-admin-command-status class="mt-4 rounded-2xl border border-es-ink/10 bg-es-ink/5 px-4 py-3 text-sm font-bold text-es-ink"></div>
+		<div class="mt-5 flex flex-wrap gap-2">
+			<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/operations">Operations</a>
+			@if (Page?.IsAvailable == true)
+			{
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.RawStreamHref">Raw stream</a>
+			}
+		</div>
+	</div>
+</section>
+
+@if (Page is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading scavenge...
+	</section>
+}
+else if (!Page.IsAvailable)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</section>
+}
+else
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<div class="flex flex-wrap items-center justify-between gap-4">
+			<div>
+				<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Status stream</p>
+				<h2 class="mt-2 text-2xl font-black tracking-tight text-es-ink">Events page @Page.Page</h2>
+			</div>
+			@if (Page.CanStop)
+			{
+				<form method="post" action="/ui/operations/scavenge/stop" data-admin-command data-confirm="Stop this scavenge?">
+					<input name="scavengeId" type="hidden" value="@Page.ScavengeId" />
+					<button class="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-black text-red-800 transition hover:bg-red-100" type="submit">Stop scavenge</button>
+				</form>
+			}
+		</div>
+
+		@if (!Page.HasRows)
+		{
+			<p class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-sm font-bold text-es-muted">No events are visible for this scavenge.</p>
+		}
+		else
+		{
+			<div class="mt-5 overflow-x-auto rounded-2xl border border-es-ink/10">
+				<table class="min-w-full divide-y divide-es-ink/10 text-sm">
+					<thead class="bg-es-ink/5 text-left text-xs font-black uppercase tracking-[0.18em] text-es-muted">
+						<tr>
+							<th class="px-4 py-3">Event</th>
+							<th class="px-4 py-3">Status</th>
+							<th class="px-4 py-3">Space saved</th>
+							<th class="px-4 py-3">Time taken</th>
+							<th class="px-4 py-3">Result</th>
+							<th class="px-4 py-3">Node</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-es-ink/10 bg-white/70">
+						@foreach (var row in Page.Rows)
+						{
+							<tr>
+								<td class="px-4 py-3">
+									<div class="font-mono text-xs font-bold text-es-ink">#@row.EventNumber</div>
+									<div class="mt-1 font-mono text-xs text-es-muted">@row.EventType</div>
+									<div class="mt-1 font-mono text-xs text-es-muted">@row.TimeStampLabel</div>
+								</td>
+								<td class="px-4 py-3 font-bold text-es-ink">@row.Status</td>
+								<td class="px-4 py-3 font-mono text-xs text-es-muted">@row.SpaceSaved</td>
+								<td class="px-4 py-3 font-mono text-xs text-es-muted">@row.TimeTaken</td>
+								<td class="px-4 py-3"><StatusBadge Label="@row.Result" Tone="@row.Tone" /></td>
+								<td class="px-4 py-3 font-mono text-xs text-es-muted">@row.NodeEndpoint</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+
+		<div class="mt-5 flex flex-wrap gap-2">
+			<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.LatestHref">Latest</a>
+			@if (Page.CanReadNewer)
+			{
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.NewerHref">Newer</a>
+			}
+			@if (Page.CanReadOlder)
+			{
+				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.OlderHref">Older</a>
+			}
+		</div>
+	</section>
+}
+
+@code {
+	[Parameter] public string ScavengeId { get; set; } = "";
+	[SupplyParameterFromQuery(Name = "page")] public int PageNumber { get; set; }
+	[SupplyParameterFromQuery] public long? From { get; set; }
+
+	private ScavengeDetailPage Page { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		var requestedId = ScavengeId;
+		var requestedPage = PageNumber;
+		var requestedFrom = From;
+		Page = null;
+
+		try {
+			var result = await Operations.ReadScavengeDetail(requestedId, requestedPage, requestedFrom);
+			if (requestedId != ScavengeId || requestedPage != PageNumber || requestedFrom != From)
+				return;
+
+			Page = result;
+		} catch (OperationCanceledException) {
+			if (requestedId != ScavengeId || requestedPage != PageNumber || requestedFrom != From)
+				return;
+
+			Page = ScavengeDetailPage.Unavailable(requestedId, "Loading scavenge was canceled.");
+		} catch (Exception ex) {
+			if (requestedId != ScavengeId || requestedPage != PageNumber || requestedFrom != From)
+				return;
+
+			Page = ScavengeDetailPage.Unavailable(requestedId, $"Failed to load scavenge: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+}
