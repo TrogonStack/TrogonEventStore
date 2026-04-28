@@ -39,9 +39,9 @@
 				<InputTextArea id="projection-edit-source" class="mt-4 min-h-96 w-full rounded-2xl border border-es-ink/10 bg-es-ink px-4 py-3 font-mono text-sm text-white outline-none transition placeholder:text-white/40 focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Query" />
 				<ValidationMessage For="() => Input.Query" />
 
-				@if (Result is not null && !Result.Success)
+				@if (SaveResult is not null && !SaveResult.Success)
 				{
-					<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Result.Message</p>
+					<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@SaveResult.Message</p>
 				}
 
 				<div class="mt-5 flex flex-wrap gap-2">
@@ -66,6 +66,10 @@
 				<AntiforgeryToken />
 				<button class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-900 transition hover:bg-amber-100" type="submit">Reset projection</button>
 			</EditForm>
+			@if (ResetResult is not null)
+			{
+				<p class="mt-4 rounded-2xl border @(ResetResult.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-4 text-sm font-bold">@ResetResult.Message</p>
+			}
 		</article>
 		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 			<StatusBadge Label="Raw" Tone="muted" />
@@ -85,7 +89,8 @@
 	private ProjectionResetInput ResetInput { get; set; } = new();
 
 	private ProjectionQueryPage Page { get; set; }
-	private ProjectionCommandResult Result { get; set; }
+	private ProjectionCommandResult SaveResult { get; set; }
+	private ProjectionCommandResult ResetResult { get; set; }
 	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
 	private string RawQueryHref => $"/projection/{Uri.EscapeDataString(Name)}/query?config=yes";
 
@@ -107,14 +112,15 @@
 
 	private async Task SaveProjection() {
 		var redirectTo = "";
+		ResetResult = null;
 		try {
-			Result = await Projections.UpdateQuery(Input.ToRequest());
-			if (Result.Success)
+			SaveResult = await Projections.UpdateQuery(Input.ToRequest());
+			if (SaveResult.Success)
 				redirectTo = DetailHref;
 		} catch (OperationCanceledException) {
-			Result = ProjectionCommandResult.Failure(Input.Name, "Projection update was canceled.");
+			SaveResult = ProjectionCommandResult.Failure(Input.Name, "Projection update was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection: {UiMessages.Friendly(ex)}");
+			SaveResult = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
@@ -122,12 +128,13 @@
 	}
 
 	private async Task ResetProjection() {
+		SaveResult = null;
 		try {
-			Result = await Projections.Reset(Name);
+			ResetResult = await Projections.Reset(Name);
 		} catch (OperationCanceledException) {
-			Result = ProjectionCommandResult.Failure(Name, "Projection reset was canceled.");
+			ResetResult = ProjectionCommandResult.Failure(Name, "Projection reset was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Name, $"Failed to reset projection: {UiMessages.Friendly(ex)}");
+			ResetResult = ProjectionCommandResult.Failure(Name, $"Failed to reset projection: {UiMessages.Friendly(ex)}");
 		}
 	}
 
