@@ -37,6 +37,20 @@ public sealed class AdminOperationsService(
 
 	public async Task<AdminOperationsPage> Read(CancellationToken cancellationToken = default) {
 		var subsystems = await ReadSubsystems(cancellationToken);
+
+		if (!hostedService.SupportsScavenge) {
+			var unavailable = ScavengeStatusView.Unavailable(hostedService.ScavengeSupportMessage);
+			return new AdminOperationsPage(
+				subsystems,
+				new ScavengeOperationsPanel(
+					false,
+					hostedService.ScavengeSupportMessage,
+					unavailable,
+					unavailable,
+					Array.Empty<ScavengeHistoryItem>(),
+					hostedService.ScavengeSupportMessage));
+		}
+
 		var current = await ReadCurrentScavenge(cancellationToken);
 		var last = await ReadLastScavenge(cancellationToken);
 		var history = await ReadScavengeHistory(cancellationToken);
@@ -78,9 +92,6 @@ public sealed class AdminOperationsService(
 			.Select(ScavengeDetailRow.From)
 			.Where(x => x is not null)
 			.ToArray();
-
-		if (rows.Length == 0)
-			return ScavengeDetailPage.Unavailable(scavengeId, $"Scavenge '{scavengeId}' has no visible history.");
 
 		return ScavengeDetailPage.Success(
 			scavengeId,
@@ -130,6 +141,9 @@ public sealed class AdminOperationsService(
 	public async Task<AdminCommandResult> StopScavenge(
 		ScavengeStopRequest request,
 		CancellationToken cancellationToken = default) {
+		if (!hostedService.SupportsScavenge)
+			return AdminCommandResult.Failed(hostedService.ScavengeSupportMessage, StatusCodes.Status400BadRequest);
+
 		if (string.IsNullOrWhiteSpace(request.ScavengeId))
 			return AdminCommandResult.Failed("Missing scavenge id.", StatusCodes.Status400BadRequest);
 
@@ -448,6 +462,7 @@ public sealed record ScavengeDetailPage(
 
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasRows => Rows.Count > 0;
+	public bool CanStop => HasRows && !Rows.Any(x => x.EventType.Equals(SystemEventTypes.ScavengeCompleted, StringComparison.OrdinalIgnoreCase));
 	public bool CanReadOlder => HasRows && !IsEndOfStream && NextEventNumber >= 0;
 	public bool CanReadNewer => Page > 0;
 	public long NewerFrom => HasRows ? Rows[0].EventNumber + PageSize : -1;
@@ -694,9 +709,11 @@ internal sealed class ScavengeHistoryBuilder(string scavengeId) {
 				_startedUtc ??= parsed.TimeStamp;
 				break;
 			case SystemEventTypes.ScavengeCompleted:
-				_completedUtc ??= parsed.TimeStamp;
-				_result = string.IsNullOrWhiteSpace(parsed.Result) ? "Completed" : parsed.Result;
-				_error = parsed.Error;
+				if (_completedUtc is null) {
+					_completedUtc = parsed.TimeStamp;
+					_result = string.IsNullOrWhiteSpace(parsed.Result) ? "Completed" : parsed.Result;
+					_error = parsed.Error;
+				}
 				break;
 		}
 	}

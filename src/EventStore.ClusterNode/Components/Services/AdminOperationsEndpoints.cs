@@ -11,11 +11,11 @@ internal static class AdminOperationsEndpoints {
 		app.MapPost("/ui/operations/scavenge/start", async (
 			HttpContext context,
 			AdminOperationsService operations) => {
-			var (request, error) = await ReadBody(context, new ScavengeStartRequest());
+			var (request, error) = await ReadBody(context, new ScavengeStartRequest(), allowEmptyBody: true);
 			return await ToJson(async () => error is not null
 				? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
 				: await operations.StartScavenge(request, context.RequestAborted));
-		});
+		}).RequireAuthorization();
 
 		app.MapPost("/ui/operations/scavenge/stop", async (
 			HttpContext context,
@@ -24,22 +24,22 @@ internal static class AdminOperationsEndpoints {
 			return await ToJson(async () => error is not null
 				? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
 				: await operations.StopScavenge(request, context.RequestAborted));
-		});
+		}).RequireAuthorization();
 
 		app.MapPost("/ui/operations/reload-config", async (
 			HttpContext context,
 			AdminOperationsService operations) =>
-			await ToJson(() => operations.ReloadConfig(context.RequestAborted)));
+			await ToJson(() => operations.ReloadConfig(context.RequestAborted))).RequireAuthorization();
 
 		app.MapPost("/ui/operations/merge-indexes", async (
 			HttpContext context,
 			AdminOperationsService operations) =>
-			await ToJson(() => operations.MergeIndexes(context.RequestAborted)));
+			await ToJson(() => operations.MergeIndexes(context.RequestAborted))).RequireAuthorization();
 
 		app.MapPost("/ui/operations/resign", async (
 			HttpContext context,
 			AdminOperationsService operations) =>
-			await ToJson(() => operations.ResignNode(context.RequestAborted)));
+			await ToJson(() => operations.ResignNode(context.RequestAborted))).RequireAuthorization();
 
 		app.MapPost("/ui/operations/set-priority", async (
 			HttpContext context,
@@ -48,19 +48,33 @@ internal static class AdminOperationsEndpoints {
 			return await ToJson(async () => error is not null
 				? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
 				: await operations.SetNodePriority(request, context.RequestAborted));
-		});
+		}).RequireAuthorization();
 
 		app.MapPost("/ui/operations/shutdown", async (
 			HttpContext context,
 			AdminOperationsService operations) =>
-			await ToJson(() => operations.Shutdown(context.RequestAborted)));
+			await ToJson(() => operations.Shutdown(context.RequestAborted))).RequireAuthorization();
 
 		return app;
 	}
 
-	private static async Task<(T Request, string Error)> ReadBody<T>(HttpContext context, T fallback) {
+	private static async Task<(T Request, string Error)> ReadBody<T>(
+		HttpContext context,
+		T fallback,
+		bool allowEmptyBody = false) {
+		if (context.Request.ContentLength == 0)
+			return allowEmptyBody
+				? (fallback, null)
+				: (fallback, "The command payload is required.");
+
 		try {
-			return (await context.Request.ReadFromJsonAsync<T>(cancellationToken: context.RequestAborted) ?? fallback, null);
+			var request = await context.Request.ReadFromJsonAsync<T>(cancellationToken: context.RequestAborted);
+			if (request is null)
+				return allowEmptyBody
+					? (fallback, null)
+					: (fallback, "The command payload is required.");
+
+			return (request, null);
 		} catch (Exception ex) when (ex is BadHttpRequestException or System.Text.Json.JsonException) {
 			return (fallback, "The command payload was not valid JSON.");
 		}

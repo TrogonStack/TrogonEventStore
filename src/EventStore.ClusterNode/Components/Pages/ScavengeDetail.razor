@@ -47,10 +47,13 @@ else
 				<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Status stream</p>
 				<h2 class="mt-2 text-2xl font-black tracking-tight text-es-ink">Events page @Page.Page</h2>
 			</div>
-			<form method="post" action="/ui/operations/scavenge/stop" data-admin-command data-confirm="Stop this scavenge?">
-				<input name="scavengeId" type="hidden" value="@Page.ScavengeId" />
-				<button class="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-black text-red-800 transition hover:bg-red-100" type="submit">Stop scavenge</button>
-			</form>
+			@if (Page.CanStop)
+			{
+				<form method="post" action="/ui/operations/scavenge/stop" data-admin-command data-confirm="Stop this scavenge?">
+					<input name="scavengeId" type="hidden" value="@Page.ScavengeId" />
+					<button class="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-black text-red-800 transition hover:bg-red-100" type="submit">Stop scavenge</button>
+				</form>
+			}
 		</div>
 
 		@if (!Page.HasRows)
@@ -126,8 +129,14 @@ else
 
 			Page = result;
 		} catch (OperationCanceledException) {
+			if (requestedId != ScavengeId || requestedPage != PageNumber || requestedFrom != From)
+				return;
+
 			Page = ScavengeDetailPage.Unavailable(requestedId, "Loading scavenge was canceled.");
 		} catch (Exception ex) {
+			if (requestedId != ScavengeId || requestedPage != PageNumber || requestedFrom != From)
+				return;
+
 			Page = ScavengeDetailPage.Unavailable(requestedId, $"Failed to load scavenge: {FriendlyMessage(ex)}");
 		}
 	}

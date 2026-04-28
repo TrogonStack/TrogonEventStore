@@ -31,13 +31,7 @@
 				if (!match)
 					return "/ui/operations";
 
-				var scavengeId = match[1];
-				try {
-					scavengeId = decodeURIComponent(scavengeId);
-				} catch (_) {
-					return "/ui/operations";
-				}
-
+				var scavengeId = safeDecode(match[1]);
 				var target = "/ui/operations/scavenges/" + encodeURIComponent(scavengeId);
 				var source = new URLSearchParams(match[2] || "");
 				var destination = new URLSearchParams();
@@ -57,6 +51,14 @@
 		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" },
 		{ selector: 'a[ui-sref="admin"]', text: "Admin" }
 	];
+
+	function safeDecode(value) {
+		try {
+			return decodeURIComponent(value);
+		} catch (_) {
+			return value;
+		}
+	}
 
 	function removeLegacyLinks() {
 		for (var group = 0; group < legacyNavLinks.length; group++) {

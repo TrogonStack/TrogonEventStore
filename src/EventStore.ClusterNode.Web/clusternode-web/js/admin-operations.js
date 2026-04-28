@@ -15,10 +15,13 @@
 				return;
 			}
 
-			var number = Number(value);
-			payload[key] = Number.isFinite(number) && String(number) === String(value)
-				? number
-				: value;
+			if (isNumberField(form, key)) {
+				var number = Number(value);
+				payload[key] = Number.isFinite(number) ? number : value;
+				return;
+			}
+
+			payload[key] = value;
 		});
 
 		form.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
@@ -28,10 +31,21 @@
 		return payload;
 	}
 
+	function isNumberField(form, key) {
+		var field = form.elements[key];
+		if (!field)
+			return false;
+
+		if (field.length && !field.type)
+			field = field[0];
+
+		return field && field.type === "number";
+	}
+
 	function statusRoot(form) {
 		var scoped = form.closest("[data-admin-command-scope]");
-		return document.querySelector("[data-admin-command-status]") ||
-			(scoped ? scoped.querySelector("[data-admin-command-status]") : null);
+		return (scoped ? scoped.querySelector("[data-admin-command-status]") : null) ||
+			document.querySelector("[data-admin-command-status]");
 	}
 
 	function showStatus(form, message, success) {
