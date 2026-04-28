@@ -510,11 +510,17 @@
 	}
 
 	function padRight(value, width) {
-		value = String(value);
-		if (value.length >= width)
-			return value;
+		var text = truncate(String(value), width);
+		while (text.length < width)
+			text += " ";
 
-		return value + " ".repeat(width - value.length);
+		return text;
+	}
+
+	function truncate(value, width) {
+		return value.length > width
+			? value.slice(0, Math.max(0, width - 3)) + "..."
+			: value;
 	}
 
 	function friendlyMessage(error) {
