@@ -508,12 +508,20 @@ public sealed class ProjectionBrowserService(
 		foreach (var suffix in ProjectionEndpointSuffixes) {
 			var endpointSuffix = $"/{suffix}";
 			if (value.EndsWith(endpointSuffix, StringComparison.OrdinalIgnoreCase))
-				return value[..^endpointSuffix.Length];
+				return SafeDecodeName(value[..^endpointSuffix.Length]);
 			if (value.EndsWith(endpointSuffix + "/", StringComparison.OrdinalIgnoreCase))
-				return value[..^(endpointSuffix.Length + 1)];
+				return SafeDecodeName(value[..^(endpointSuffix.Length + 1)]);
 		}
 
-		return value;
+		return SafeDecodeName(value);
+	}
+
+	private static string SafeDecodeName(string name) {
+		try {
+			return Uri.UnescapeDataString(name);
+		} catch (UriFormatException) {
+			return name;
+		}
 	}
 
 	private static string ActionPastTense(string action) =>
