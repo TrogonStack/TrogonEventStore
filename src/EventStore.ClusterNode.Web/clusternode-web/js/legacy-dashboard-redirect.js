@@ -188,7 +188,7 @@
 	}
 
 	function projectionNameFromLocation(value) {
-		var name = safeDecode(value || "");
+		var name = value || "";
 		try {
 			var url = new URL(name, window.location.origin);
 			name = url.pathname || name;
