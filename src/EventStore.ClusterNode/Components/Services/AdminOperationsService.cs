@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -62,10 +63,11 @@ public sealed class AdminOperationsService(
 		if (!await HasAccess(ScavengeReadOperation, cancellationToken))
 			return ScavengeDetailPage.Unavailable(scavengeId, "Scavenge history access was denied.");
 
+		var normalizedPage = Math.Max(0, page);
 		var streamId = $"{SystemStreams.ScavengesStream}-{scavengeId.Trim()}";
 		var read = await ReadStreamBackward(
 			streamId,
-			fromEventNumber ?? -1,
+			normalizedPage == 0 ? -1 : fromEventNumber ?? -1,
 			ScavengeDetailPageSize,
 			cancellationToken);
 
@@ -82,7 +84,7 @@ public sealed class AdminOperationsService(
 
 		return ScavengeDetailPage.Success(
 			scavengeId,
-			Math.Max(0, page),
+			normalizedPage,
 			rows,
 			read.NextEventNumber,
 			read.IsEndOfStream);
@@ -225,9 +227,9 @@ public sealed class AdminOperationsService(
 			return ScavengeStatusView.Unavailable("Scavenge status access was denied.");
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ScavengeDatabaseGetCurrentResponse>();
-		publisher.Publish(new ClientMessage.GetCurrentDatabaseScavenge(envelope, Guid.NewGuid(), CurrentUser));
 
 		try {
+			publisher.Publish(new ClientMessage.GetCurrentDatabaseScavenge(envelope, Guid.NewGuid(), CurrentUser));
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return completed.Result == ClientMessage.ScavengeDatabaseGetCurrentResponse.ScavengeResult.InProgress
 				? ScavengeStatusView.InProgress(completed.ScavengeId)
@@ -246,9 +248,9 @@ public sealed class AdminOperationsService(
 			return ScavengeStatusView.Unavailable("Scavenge status access was denied.");
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ScavengeDatabaseGetLastResponse>();
-		publisher.Publish(new ClientMessage.GetLastDatabaseScavenge(envelope, Guid.NewGuid(), CurrentUser));
 
 		try {
+			publisher.Publish(new ClientMessage.GetLastDatabaseScavenge(envelope, Guid.NewGuid(), CurrentUser));
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return string.IsNullOrWhiteSpace(completed.ScavengeId)
 				? ScavengeStatusView.Unknown(completed.Result.ToString())
@@ -291,7 +293,8 @@ public sealed class AdminOperationsService(
 		return ScavengeHistoryRead.Success(
 			byId.Values
 				.Select(x => x.Build())
-				.OrderByDescending(x => x.StartedUtc ?? x.CompletedUtc ?? DateTime.MinValue)
+				.Where(x => x.StartedUtc is not null)
+				.OrderBy(x => x.StartedUtc)
 				.ToArray());
 	}
 
@@ -301,21 +304,22 @@ public sealed class AdminOperationsService(
 		int count,
 		CancellationToken cancellationToken) {
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ReadStreamEventsBackwardCompleted>();
-		publisher.Publish(new ClientMessage.ReadStreamEventsBackward(
-			Guid.NewGuid(),
-			Guid.NewGuid(),
-			envelope,
-			streamId,
-			Math.Max(fromEventNumber, -1),
-			count,
-			resolveLinkTos: true,
-			requireLeader: false,
-			validationStreamVersion: null,
-			CurrentUser,
-			cancellationToken: cancellationToken));
 
 		ClientMessage.ReadStreamEventsBackwardCompleted completed;
 		try {
+			publisher.Publish(new ClientMessage.ReadStreamEventsBackward(
+				Guid.NewGuid(),
+				Guid.NewGuid(),
+				envelope,
+				streamId,
+				Math.Max(fromEventNumber, -1),
+				count,
+				resolveLinkTos: true,
+				requireLeader: false,
+				validationStreamVersion: null,
+				CurrentUser,
+				cancellationToken: cancellationToken));
+
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		} catch (TimeoutException) {
 			return StreamReadResult.Unavailable($"Timed out reading '{streamId}'.");
@@ -720,7 +724,7 @@ internal sealed record ParsedScavengeEvent(
 	long? EntriesDeleted,
 	int? StartFromChunk,
 	int? Threads) {
-	public string SpaceSavedLabel => SpaceSaved?.ToString() ?? "-";
+	public string SpaceSavedLabel => SpaceSaved?.ToString("N0", CultureInfo.InvariantCulture) ?? "-";
 	public int ChunkCount => ChunkStartNumber.HasValue && ChunkEndNumber.HasValue
 		? Math.Max(0, ChunkEndNumber.Value - ChunkStartNumber.Value + 1)
 		: 0;

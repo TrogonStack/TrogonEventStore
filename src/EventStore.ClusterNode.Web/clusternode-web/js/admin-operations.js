@@ -29,8 +29,9 @@
 	}
 
 	function statusRoot(form) {
+		var scoped = form.closest("[data-admin-command-scope]");
 		return document.querySelector("[data-admin-command-status]") ||
-			form.closest("[data-admin-command-scope]")?.querySelector("[data-admin-command-status]");
+			(scoped ? scoped.querySelector("[data-admin-command-status]") : null);
 	}
 
 	function showStatus(form, message, success) {
@@ -128,17 +129,19 @@
 
 	document.addEventListener("submit", submitCommand);
 	startAutoRefresh();
-	new MutationObserver(function (mutations) {
-		mutations.forEach(function (mutation) {
-			mutation.addedNodes.forEach(function (node) {
-				if (node.nodeType !== Node.ELEMENT_NODE)
-					return;
+	if (window.MutationObserver) {
+		new MutationObserver(function (mutations) {
+			mutations.forEach(function (mutation) {
+				mutation.addedNodes.forEach(function (node) {
+					if (node.nodeType !== Node.ELEMENT_NODE)
+						return;
 
-				if (node.matches("[data-admin-auto-refresh]"))
-					initializeAutoRefresh(node);
+					if (node.matches("[data-admin-auto-refresh]"))
+						initializeAutoRefresh(node);
 
-				startAutoRefresh(node);
+					startAutoRefresh(node);
+				});
 			});
-		});
-	}).observe(document.body, { childList: true, subtree: true });
+		}).observe(document.body, { childList: true, subtree: true });
+	}
 })();

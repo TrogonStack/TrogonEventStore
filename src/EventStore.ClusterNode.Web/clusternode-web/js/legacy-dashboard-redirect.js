@@ -31,7 +31,14 @@
 				if (!match)
 					return "/ui/operations";
 
-				var target = "/ui/operations/scavenges/" + encodeURIComponent(decodeURIComponent(match[1]));
+				var scavengeId = match[1];
+				try {
+					scavengeId = decodeURIComponent(scavengeId);
+				} catch (_) {
+					return "/ui/operations";
+				}
+
+				var target = "/ui/operations/scavenges/" + encodeURIComponent(scavengeId);
 				var source = new URLSearchParams(match[2] || "");
 				var destination = new URLSearchParams();
 				if (source.has("page"))
