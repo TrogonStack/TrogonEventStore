@@ -77,8 +77,9 @@ public sealed class AdminOperationsService(
 		if (!await HasAccess(ScavengeReadOperation, cancellationToken))
 			return ScavengeDetailPage.Unavailable(scavengeId, "Scavenge history access was denied.");
 
+		var normalizedScavengeId = scavengeId.Trim();
 		var normalizedPage = Math.Max(0, page);
-		var streamId = $"{SystemStreams.ScavengesStream}-{scavengeId.Trim()}";
+		var streamId = $"{SystemStreams.ScavengesStream}-{normalizedScavengeId}";
 		var read = await ReadStreamBackward(
 			streamId,
 			normalizedPage == 0 ? -1 : fromEventNumber ?? -1,
@@ -92,13 +93,17 @@ public sealed class AdminOperationsService(
 			.Select(ScavengeDetailRow.From)
 			.Where(x => x is not null)
 			.ToArray();
+		var current = await ReadCurrentScavenge(cancellationToken);
+		var canStop = current.IsInProgress &&
+			current.ScavengeId.Equals(normalizedScavengeId, StringComparison.OrdinalIgnoreCase);
 
 		return ScavengeDetailPage.Success(
-			scavengeId,
+			normalizedScavengeId,
 			normalizedPage,
 			rows,
 			read.NextEventNumber,
-			read.IsEndOfStream);
+			read.IsEndOfStream,
+			canStop);
 	}
 
 	public async Task<AdminCommandResult> StartScavenge(
@@ -457,12 +462,12 @@ public sealed record ScavengeDetailPage(
 	IReadOnlyList<ScavengeDetailRow> Rows,
 	long NextEventNumber,
 	bool IsEndOfStream,
+	bool CanStop,
 	string Message) {
 	private const int PageSize = 20;
 
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasRows => Rows.Count > 0;
-	public bool CanStop => HasRows && !Rows.Any(x => x.EventType.Equals(SystemEventTypes.ScavengeCompleted, StringComparison.OrdinalIgnoreCase));
 	public bool CanReadOlder => HasRows && !IsEndOfStream && NextEventNumber >= 0;
 	public bool CanReadNewer => Page > 0;
 	public long NewerFrom => HasRows ? Rows[0].EventNumber + PageSize : -1;
@@ -478,11 +483,12 @@ public sealed record ScavengeDetailPage(
 		int page,
 		IReadOnlyList<ScavengeDetailRow> rows,
 		long nextEventNumber,
-		bool isEndOfStream) =>
-		new(scavengeId, page, rows, nextEventNumber, isEndOfStream, "");
+		bool isEndOfStream,
+		bool canStop) =>
+		new(scavengeId, page, rows, nextEventNumber, isEndOfStream, canStop, "");
 
 	public static ScavengeDetailPage Unavailable(string scavengeId, string message) =>
-		new(scavengeId, 0, Array.Empty<ScavengeDetailRow>(), -1, true, message);
+		new(scavengeId, 0, Array.Empty<ScavengeDetailRow>(), -1, true, false, message);
 }
 
 public sealed record ScavengeDetailRow(
