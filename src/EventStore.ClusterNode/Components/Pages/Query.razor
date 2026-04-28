@@ -71,12 +71,26 @@
 </section>
 
 @code {
+	private const string DefaultQuery = "fromAll().when({\n  $init: function () { return { count: 0 }; },\n  $any: function (state, event) {\n    state.count += 1;\n  }\n});";
+
+	[SupplyParameterFromQuery] public string InitStreamId { get; set; } = "";
+
 	[SupplyParameterFromForm(FormName = "transient-query")]
 	private QueryInput Input { get; set; } = new() {
-		Query = "fromAll().when({\n  $init: function () { return { count: 0 }; },\n  $any: function (state, event) {\n    state.count += 1;\n  }\n});"
+		Query = DefaultQuery
 	};
 
 	private QueryRunPage Result { get; set; }
+
+	protected override void OnParametersSet() {
+		if (string.IsNullOrWhiteSpace(InitStreamId))
+			return;
+
+		if (!string.Equals(Input.Query, DefaultQuery, StringComparison.Ordinal))
+			return;
+
+		Input.Query = StreamQuery(InitStreamId);
+	}
 
 	private async Task RunQuery() {
 		try {
@@ -90,6 +104,9 @@
 
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private static string StreamQuery(string streamId) =>
+		$"fromStream({System.Text.Json.JsonSerializer.Serialize(streamId)}).when({{\n  $init: function () {{ return {{ count: 0 }}; }},\n  $any: function (state, event) {{\n    state.count += 1;\n  }}\n}});";
 
 	private sealed class QueryInput {
 		[Required(ErrorMessage = "Enter a query before running it.")]

@@ -16,6 +16,7 @@ else
 		</div>
 		<div class="flex flex-wrap gap-3">
 			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)">Latest</a>
+			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)?direction=forward&amp;from=0">First events</a>
 			@if (Page.CanReadOlder)
 			{
 				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)?from=@Page.NextEventNumber">Older events</a>
@@ -30,6 +31,10 @@ else
 			<div class="grid gap-4 lg:grid-cols-2">
 				<JsonPanel Eyebrow="Data" Title="@($"{ev.EventType} data")" Content="@ev.DataForDisplay" RawHref="@ev.RawHref" />
 				<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@ev.MetadataForDisplay" />
+				@if (ev.HasLinkMetadata)
+				{
+					<JsonPanel Eyebrow="Link" Title="Link metadata" Content="@ev.LinkMetadataForDisplay" />
+				}
 			</div>
 		}
 	</div>

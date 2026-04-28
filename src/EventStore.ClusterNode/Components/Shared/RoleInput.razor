@@ -1,0 +1,14 @@
+<label class="text-sm font-bold text-es-muted">
+	@Label
+	<input class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" value="@Value" @oninput="OnInput" />
+	<span class="mt-1 block text-xs font-medium text-es-muted/80">Comma-separated roles. Leave blank to omit this ACL entry.</span>
+</label>
+
+@code {
+	[Parameter] public string Label { get; set; } = "";
+	[Parameter] public string Value { get; set; } = "";
+	[Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+	private Task OnInput(ChangeEventArgs args) =>
+		ValueChanged.InvokeAsync(args.Value?.ToString() ?? "");
+}
