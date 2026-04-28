@@ -94,7 +94,7 @@ else
 			throw;
 		} catch (Exception ex) {
 			if (requestedStream == StreamId && requestedGroup == GroupName)
-				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load subscription: {FriendlyMessage(ex)}");
+				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load subscription: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -115,13 +115,10 @@ else
 		} catch (OperationCanceledException) {
 			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, "Subscription update was canceled.");
 		} catch (Exception ex) {
-			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to update subscription: {FriendlyMessage(ex)}");
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to update subscription: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
 			Navigation.NavigateTo(redirectTo);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }

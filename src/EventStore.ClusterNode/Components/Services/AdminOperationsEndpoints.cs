@@ -89,10 +89,7 @@ internal static class AdminOperationsEndpoints {
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ToJson(AdminCommandResult.Failed(FriendlyMessage(ex)));
+			return ToJson(AdminCommandResult.Failed(UiMessages.Friendly(ex)));
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }

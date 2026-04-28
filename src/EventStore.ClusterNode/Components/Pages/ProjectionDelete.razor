@@ -1,0 +1,131 @@
+@page "/ui/projections/delete/{*Name}"
+@inject ProjectionBrowserService Projections
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Delete Projection - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@DetailHref">Back to projection</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-red-700">Delete projection</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@Name</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Stop the projection and remove its registration, optionally cleaning checkpoint, state, and emitted streams.</p>
+</section>
+
+<section class="mt-8 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+	<article class="rounded-[2rem] border border-red-200 bg-red-50/80 p-6 shadow-[0_20px_70px_rgba(127,29,29,0.08)]">
+		<StatusBadge Label="Destructive" Tone="bad" />
+		<h2 class="mt-4 text-2xl font-black tracking-tight text-red-950">Confirm deletion</h2>
+		<p class="mt-3 text-sm leading-6 text-red-900">The projection is disabled first, then deleted. Stream cleanup options mirror the legacy delete confirmation.</p>
+
+		<EditForm Model="Input" FormName="projection-delete" OnValidSubmit="DeleteProjection">
+			<AntiforgeryToken />
+			<InputText type="hidden" @bind-Value="Input.Name" />
+
+			<div class="mt-5 grid gap-3 rounded-2xl border border-red-200 bg-white/70 p-4">
+				<label class="flex items-center gap-3 text-sm font-bold text-red-950">
+					<InputCheckbox @bind-Value="Input.DeleteCheckpointStream" />
+					Delete checkpoint stream
+				</label>
+				<label class="flex items-center gap-3 text-sm font-bold text-red-950">
+					<InputCheckbox @bind-Value="Input.DeleteStateStream" />
+					Delete state stream
+				</label>
+				<label class="flex items-center gap-3 text-sm font-bold text-red-950">
+					<InputCheckbox @bind-Value="Input.DeleteEmittedStreams" />
+					Delete emitted streams
+				</label>
+			</div>
+
+			@if (Result is not null && !Result.Success)
+			{
+				<p class="mt-5 rounded-2xl border border-red-300 bg-white/80 p-4 text-sm font-bold text-red-900">@Result.Message</p>
+			}
+
+			<div class="mt-5 flex flex-wrap gap-2">
+				<button class="rounded-2xl bg-red-700 px-5 py-3 text-sm font-black text-white shadow-lg shadow-red-900/15 transition hover:bg-red-800" type="submit">Delete projection</button>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@DetailHref">Cancel</a>
+			</div>
+		</EditForm>
+	</article>
+
+	<aside class="grid gap-5">
+		@if (Page is null)
+		{
+			<article class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+				Loading projection...
+			</article>
+		}
+		else if (!Page.HasProjection)
+		{
+			<article class="rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+				@Page.Message
+			</article>
+		}
+		else
+		{
+			var projection = Page.Projection;
+			<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+				<div class="flex flex-wrap gap-2">
+					<StatusBadge Label="@projection.StatusLabel" Tone="@projection.StatusTone" />
+					<StatusBadge Label="@projection.EnabledLabel" Tone="@projection.EnabledTone" />
+				</div>
+				<h2 class="mt-4 break-words text-2xl font-black tracking-tight text-es-ink">@projection.EffectiveName</h2>
+				@if (!string.IsNullOrWhiteSpace(projection.StateReason))
+				{
+					<p class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">@projection.StateReason</p>
+				}
+			</article>
+		}
+	</aside>
+</section>
+
+@code {
+	[Parameter] public string Name { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "projection-delete")]
+	private ProjectionDeleteInput Input { get; set; } = new();
+
+	private ProjectionDetailPage Page { get; set; }
+	private ProjectionCommandResult Result { get; set; }
+	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
+
+	protected override async Task OnParametersSetAsync() {
+		if (!string.Equals(Input.Name, Name, StringComparison.OrdinalIgnoreCase))
+			Input.Name = Name;
+
+		try {
+			Page = await Projections.ReadProjection(Name);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			Page = ProjectionDetailPage.Unavailable(Name, $"Failed to load projection: {UiMessages.Friendly(ex)}");
+		}
+	}
+
+	private async Task DeleteProjection() {
+		var redirectTo = "";
+		try {
+			Result = await Projections.Delete(Input.ToRequest());
+			if (Result.Success)
+				redirectTo = "/ui/projections";
+		} catch (OperationCanceledException) {
+			Result = ProjectionCommandResult.Failure(Input.Name, "Projection deletion was canceled.");
+		} catch (Exception ex) {
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to delete projection: {UiMessages.Friendly(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private sealed class ProjectionDeleteInput {
+		public string Name { get; set; } = "";
+		public bool DeleteCheckpointStream { get; set; }
+		public bool DeleteStateStream { get; set; }
+		public bool DeleteEmittedStreams { get; set; }
+
+		public ProjectionDeleteRequest ToRequest() =>
+			new(Name, DeleteCheckpointStream, DeleteStateStream, DeleteEmittedStreams);
+	}
+}

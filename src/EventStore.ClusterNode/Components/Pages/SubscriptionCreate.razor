@@ -53,13 +53,10 @@
 		} catch (OperationCanceledException) {
 			Result = SubscriptionCommandResult.Failure(Input.StreamId, Input.GroupName, "Subscription creation was canceled.");
 		} catch (Exception ex) {
-			Result = SubscriptionCommandResult.Failure(Input.StreamId, Input.GroupName, $"Failed to create subscription: {FriendlyMessage(ex)}");
+			Result = SubscriptionCommandResult.Failure(Input.StreamId, Input.GroupName, $"Failed to create subscription: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
 			Navigation.NavigateTo(redirectTo);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }

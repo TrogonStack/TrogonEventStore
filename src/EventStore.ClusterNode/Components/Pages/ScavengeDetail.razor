@@ -137,10 +137,7 @@ else
 			if (requestedId != ScavengeId || requestedPage != PageNumber || requestedFrom != From)
 				return;
 
-			Page = ScavengeDetailPage.Unavailable(requestedId, $"Failed to load scavenge: {FriendlyMessage(ex)}");
+			Page = ScavengeDetailPage.Unavailable(requestedId, $"Failed to load scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }

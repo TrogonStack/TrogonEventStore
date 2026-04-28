@@ -1,5 +1,6 @@
 @page "/ui/projections/{*Name}"
 @inject ProjectionBrowserService Projections
+@using Microsoft.AspNetCore.Components.Forms
 
 <PageTitle>@Name - EventStore UI</PageTitle>
 
@@ -7,10 +8,17 @@
 	<a class="text-sm font-bold text-es-green hover:text-es-forest" href="/ui/projections">&lt;- Projections</a>
 	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Projection detail</p>
 	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@Name</h1>
-	<p class="mt-5 text-lg leading-8 text-es-muted">Read-only status, progress, checkpoint, and raw diagnostic handoffs for this projection.</p>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect status, source, state, result, and lifecycle controls for this projection.</p>
 </section>
 
-<section class="mt-8">
+<section class="mt-8" data-admin-auto-refresh="2000">
+	@if (CommandResult is not null)
+	{
+		<div class="mb-6 rounded-[1.75rem] border @(CommandResult.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-5 text-sm font-bold shadow-[0_18px_60px_rgba(23,32,51,0.06)]">
+			@CommandResult.Message
+		</div>
+	}
+
 	@if (Page is null)
 	{
 		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
@@ -68,6 +76,99 @@
 			</div>
 		</div>
 
+		<section class="mt-6 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<StatusBadge Label="Actions" Tone="warn" />
+					<h2 class="mt-3 text-2xl font-black tracking-tight text-es-ink">Manage projection</h2>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					<EditForm Model="EnableInput" FormName="projection-detail-enable" OnValidSubmit="EnableProjection">
+						<AntiforgeryToken />
+						<button class="rounded-2xl bg-es-green px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-green/20 transition hover:bg-es-forest" type="submit">Start</button>
+					</EditForm>
+					<EditForm Model="DisableInput" FormName="projection-detail-disable" OnValidSubmit="DisableProjection">
+						<AntiforgeryToken />
+						<button class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-900 transition hover:bg-amber-100" type="submit">Stop</button>
+					</EditForm>
+					<EditForm Model="ResetInput" FormName="projection-detail-reset" OnValidSubmit="ResetProjection">
+						<AntiforgeryToken />
+						<button class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" type="submit">Reset</button>
+					</EditForm>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@projection.EditHref">Edit</a>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@projection.ConfigHref">Config</a>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@projection.DebugHref">Debug</a>
+					<a class="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-800 transition hover:bg-red-100" href="@projection.DeleteHref">Delete</a>
+				</div>
+			</div>
+		</section>
+
+		<section class="mt-6 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+			<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+				<StatusBadge Label="Source" Tone="muted" />
+				<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Projection query</h2>
+				@if (Page.Query is null)
+				{
+					<p class="mt-4 text-sm leading-6 text-es-muted">Projection source is unavailable.</p>
+				}
+				else
+				{
+					<div class="mt-4 flex flex-wrap gap-2">
+						<StatusBadge Label="@Page.Query.EmitLabel" Tone="muted" />
+						<StatusBadge Label="@Page.Query.CheckpointsLabel" Tone="muted" />
+						<StatusBadge Label="@Page.Query.TrackEmittedStreamsLabel" Tone="muted" />
+					</div>
+					<pre class="mt-4 max-h-[34rem] overflow-auto rounded-2xl bg-es-ink p-4 text-sm leading-6 text-white">@Page.Query.Query</pre>
+				}
+			</article>
+
+			<aside class="grid gap-5">
+				<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+					<StatusBadge Label="Partition" Tone="muted" />
+					<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">State partition</h2>
+					<p class="mt-3 text-sm leading-6 text-es-muted">Use the same partition lookup the legacy detail page exposed for state and result inspection.</p>
+					<form class="mt-5 flex flex-wrap gap-2" method="get" action="@projection.DetailHref">
+						<input class="min-w-0 flex-1 rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" name="partition" value="@Partition" placeholder="Partition id" />
+						<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Load</button>
+					</form>
+				</article>
+
+				<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+					<StatusBadge Label="State" Tone="muted" />
+					<h2 class="mt-4 text-xl font-black tracking-tight text-es-ink">Current state</h2>
+					@if (!Page.State.IsAvailable)
+					{
+						<p class="mt-3 text-sm leading-6 text-es-muted">@Page.State.Message</p>
+					}
+					else if (!Page.State.HasValue)
+					{
+						<p class="mt-3 text-sm leading-6 text-es-muted">No state payload is available.</p>
+					}
+					else
+					{
+						<pre class="mt-4 max-h-72 overflow-auto rounded-2xl bg-es-ink p-4 text-xs leading-5 text-white">@Page.State.Value</pre>
+					}
+				</article>
+
+				<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+					<StatusBadge Label="Result" Tone="muted" />
+					<h2 class="mt-4 text-xl font-black tracking-tight text-es-ink">Current result</h2>
+					@if (!Page.Result.IsAvailable)
+					{
+						<p class="mt-3 text-sm leading-6 text-es-muted">@Page.Result.Message</p>
+					}
+					else if (!Page.Result.HasValue)
+					{
+						<p class="mt-3 text-sm leading-6 text-es-muted">No result payload is available.</p>
+					}
+					else
+					{
+						<pre class="mt-4 max-h-72 overflow-auto rounded-2xl bg-es-ink p-4 text-xs leading-5 text-white">@Page.Result.Value</pre>
+					}
+				</article>
+			</aside>
+		</section>
+
 		<section class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 			<SurfaceCard Eyebrow="Raw" Title="Statistics" Description="Open the projection statistics payload returned by the node." Href="@projection.RawStatisticsHref" LinkText="Open statistics" Target="_blank" />
 			<SurfaceCard Eyebrow="Raw" Title="State" Description="Inspect the projection state payload when the projection exposes one." Href="@projection.RawStateHref" LinkText="Open state" Target="_blank" />
@@ -84,18 +185,30 @@
 
 @code {
 	[Parameter] public string Name { get; set; } = "";
+	[SupplyParameterFromQuery] public string Partition { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "projection-detail-enable")]
+	private ProjectionActionInput EnableInput { get; set; } = new();
+
+	[SupplyParameterFromForm(FormName = "projection-detail-disable")]
+	private ProjectionActionInput DisableInput { get; set; } = new();
+
+	[SupplyParameterFromForm(FormName = "projection-detail-reset")]
+	private ProjectionActionInput ResetInput { get; set; } = new();
 
 	private ProjectionDetailPage Page { get; set; }
+	private ProjectionCommandResult CommandResult { get; set; }
 	private long _loadSequence;
 
 	protected override async Task OnParametersSetAsync() {
 		var requestedName = Name;
+		var requestedPartition = Partition;
 		var sequence = ++_loadSequence;
 		Page = null;
 
 		try
 		{
-			var page = await Projections.ReadProjection(requestedName);
+			var page = await Projections.ReadProjection(requestedName, requestedPartition);
 			if (sequence == _loadSequence)
 				Page = page;
 		}
@@ -106,10 +219,45 @@
 		catch (Exception ex)
 		{
 			if (sequence == _loadSequence)
-				Page = ProjectionDetailPage.Unavailable(requestedName, $"Failed to load projection: {FriendlyMessage(ex)}");
+				Page = ProjectionDetailPage.Unavailable(requestedName, $"Failed to load projection: {UiMessages.Friendly(ex)}");
 		}
 	}
 
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+	private async Task EnableProjection() {
+		CommandResult = await RunAction(() => Projections.Enable(Name), "Projection start was canceled.");
+	}
+
+	private async Task DisableProjection() {
+		CommandResult = await RunAction(() => Projections.Disable(Name), "Projection stop was canceled.");
+	}
+
+	private async Task ResetProjection() {
+		CommandResult = await RunAction(() => Projections.Reset(Name), "Projection reset was canceled.");
+	}
+
+	private async Task<ProjectionCommandResult> RunAction(
+		Func<Task<ProjectionCommandResult>> action,
+		string canceledMessage) {
+		ProjectionCommandResult result;
+		try {
+			result = await action();
+		} catch (OperationCanceledException) {
+			return ProjectionCommandResult.Failure(Name, canceledMessage);
+		} catch (Exception ex) {
+			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {UiMessages.Friendly(ex)}");
+		}
+
+		try {
+			Page = await Projections.ReadProjection(Name, Partition);
+		} catch (OperationCanceledException) {
+			Page = ProjectionDetailPage.Unavailable(Name, "Projection command completed, but the refresh was canceled.");
+		} catch (Exception ex) {
+			Page = ProjectionDetailPage.Unavailable(Name, $"Projection command completed, but the projection refresh failed: {UiMessages.Friendly(ex)}");
+		}
+
+		return result;
+	}
+
+	private sealed class ProjectionActionInput {
+	}
 }

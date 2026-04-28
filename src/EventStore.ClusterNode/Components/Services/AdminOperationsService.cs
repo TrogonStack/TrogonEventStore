@@ -139,7 +139,7 @@ public sealed class AdminOperationsService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return AdminCommandResult.Failed($"Unable to start scavenge: {FriendlyMessage(ex)}");
+			return AdminCommandResult.Failed($"Unable to start scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -171,7 +171,7 @@ public sealed class AdminOperationsService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return AdminCommandResult.Failed($"Unable to stop scavenge: {FriendlyMessage(ex)}");
+			return AdminCommandResult.Failed($"Unable to stop scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -199,7 +199,7 @@ public sealed class AdminOperationsService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return AdminCommandResult.Failed($"Unable to merge indexes: {FriendlyMessage(ex)}");
+			return AdminCommandResult.Failed($"Unable to merge indexes: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -258,7 +258,7 @@ public sealed class AdminOperationsService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ScavengeStatusView.Unavailable($"Unable to read current scavenge: {FriendlyMessage(ex)}");
+			return ScavengeStatusView.Unavailable($"Unable to read current scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -279,7 +279,7 @@ public sealed class AdminOperationsService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ScavengeStatusView.Unavailable($"Unable to read last scavenge: {FriendlyMessage(ex)}");
+			return ScavengeStatusView.Unavailable($"Unable to read last scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -345,7 +345,7 @@ public sealed class AdminOperationsService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return StreamReadResult.Unavailable($"Unable to read '{streamId}': {FriendlyMessage(ex)}");
+			return StreamReadResult.Unavailable($"Unable to read '{streamId}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -375,9 +375,6 @@ public sealed class AdminOperationsService(
 			ClientMessage.ScavengeDatabaseUnauthorizedResponse unauthorized => FriendlyMessage(unauthorized.Reason),
 			_ => null
 		};
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private static string FriendlyMessage(string message) =>
 		string.IsNullOrWhiteSpace(message) ? "The operation failed without a reason." : message;

@@ -1,0 +1,199 @@
+@page "/ui/projections/config/{*Name}"
+@inject ProjectionBrowserService Projections
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Projection Config - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@DetailHref">Back to projection</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Projection config</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@Name</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Tune checkpoint, batching, pending-event, and emitted-stream controls for this projection.</p>
+</section>
+
+<section class="mt-8 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		@if (Page is null)
+		{
+			<p class="text-es-muted">Loading projection configuration...</p>
+		}
+		else if (!Page.HasConfig)
+		{
+			<p class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Page.Message</p>
+		}
+		else
+		{
+			<EditForm Model="Input" FormName="projection-config" OnValidSubmit="SaveConfig">
+				<AntiforgeryToken />
+				<DataAnnotationsValidator />
+				<InputText type="hidden" @bind-Value="Input.Name" />
+
+				<div class="grid gap-3 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 md:grid-cols-2">
+					<label class="flex items-center gap-3 text-sm font-bold text-es-ink">
+						<InputCheckbox @bind-Value="Input.EmitEnabled" />
+						Emit enabled
+					</label>
+					<label class="flex items-center gap-3 text-sm font-bold text-es-ink">
+						<InputCheckbox @bind-Value="Input.TrackEmittedStreams" />
+						Track emitted streams
+					</label>
+				</div>
+
+				<div class="mt-5 grid gap-4 md:grid-cols-2">
+					<label class="text-sm font-bold text-es-muted">
+						Checkpoint after ms
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.CheckpointAfterMs" />
+						<ValidationMessage For="() => Input.CheckpointAfterMs" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Checkpoint handled threshold
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.CheckpointHandledThreshold" />
+						<ValidationMessage For="() => Input.CheckpointHandledThreshold" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Checkpoint unhandled bytes threshold
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.CheckpointUnhandledBytesThreshold" />
+						<ValidationMessage For="() => Input.CheckpointUnhandledBytesThreshold" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Pending events threshold
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.PendingEventsThreshold" />
+						<ValidationMessage For="() => Input.PendingEventsThreshold" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Max write batch length
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.MaxWriteBatchLength" />
+						<ValidationMessage For="() => Input.MaxWriteBatchLength" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Max allowed writes in flight
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.MaxAllowedWritesInFlight" />
+						<ValidationMessage For="() => Input.MaxAllowedWritesInFlight" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Projection execution timeout
+						<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.ProjectionExecutionTimeout" />
+						<ValidationMessage For="() => Input.ProjectionExecutionTimeout" />
+					</label>
+				</div>
+
+				@if (Result is not null && !Result.Success)
+				{
+					<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Result.Message</p>
+				}
+
+				<div class="mt-5 flex flex-wrap gap-2">
+					<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Save configuration</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@DetailHref">Cancel</a>
+				</div>
+			</EditForm>
+		}
+	</article>
+
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<StatusBadge Label="Stopped projections" Tone="warn" />
+		<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Config writes can be refused while running</h2>
+		<p class="mt-3 text-sm leading-6 text-es-muted">The projection subsystem protects some configuration changes until a projection is stopped or faulted. If a save is rejected, stop the projection and retry.</p>
+		<a class="mt-5 inline-flex rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawConfigHref" target="_blank" rel="noopener noreferrer">Open raw config</a>
+	</article>
+</section>
+
+@code {
+	[Parameter] public string Name { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "projection-config")]
+	private ProjectionConfigInput Input { get; set; } = new();
+
+	private ProjectionConfigPage Page { get; set; }
+	private ProjectionCommandResult Result { get; set; }
+	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
+	private string RawConfigHref => $"/projection/{Uri.EscapeDataString(Name)}/config";
+
+	protected override async Task OnParametersSetAsync() {
+		var hasSubmittedForm = string.Equals(Input.Name, Name, StringComparison.OrdinalIgnoreCase);
+		if (hasSubmittedForm)
+			return;
+
+		try {
+			Page = await Projections.ReadProjectionConfig(Name);
+			if (Page.Config is not null)
+				Input = ProjectionConfigInput.From(Name, Page.Config);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			Page = ProjectionConfigPage.Unavailable(Name, $"Failed to load projection configuration: {UiMessages.Friendly(ex)}");
+		}
+	}
+
+	private async Task SaveConfig() {
+		var redirectTo = "";
+		try {
+			Result = await Projections.UpdateConfig(Input.ToRequest(Name));
+			if (Result.Success)
+				redirectTo = DetailHref;
+		} catch (OperationCanceledException) {
+			Result = ProjectionCommandResult.Failure(Name, "Projection configuration update was canceled.");
+		} catch (Exception ex) {
+			Result = ProjectionCommandResult.Failure(Name, $"Failed to update projection configuration: {UiMessages.Friendly(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private sealed class ProjectionConfigInput {
+		public string Name { get; set; } = "";
+		public bool EmitEnabled { get; set; }
+		public bool TrackEmittedStreams { get; set; }
+
+		[Range(0, int.MaxValue)]
+		public int CheckpointAfterMs { get; set; }
+
+		[Range(0, int.MaxValue)]
+		public int CheckpointHandledThreshold { get; set; }
+
+		[Range(0, int.MaxValue)]
+		public int CheckpointUnhandledBytesThreshold { get; set; }
+
+		[Range(0, int.MaxValue)]
+		public int PendingEventsThreshold { get; set; }
+
+		[Range(0, int.MaxValue)]
+		public int MaxWriteBatchLength { get; set; }
+
+		[Range(0, int.MaxValue)]
+		public int MaxAllowedWritesInFlight { get; set; }
+
+		[Range(1, int.MaxValue)]
+		public int? ProjectionExecutionTimeout { get; set; }
+
+		public static ProjectionConfigInput From(string name, ProjectionConfigView config) =>
+			new() {
+				Name = name,
+				EmitEnabled = config.EmitEnabled,
+				TrackEmittedStreams = config.TrackEmittedStreams,
+				CheckpointAfterMs = config.CheckpointAfterMs,
+				CheckpointHandledThreshold = config.CheckpointHandledThreshold,
+				CheckpointUnhandledBytesThreshold = config.CheckpointUnhandledBytesThreshold,
+				PendingEventsThreshold = config.PendingEventsThreshold,
+				MaxWriteBatchLength = config.MaxWriteBatchLength,
+				MaxAllowedWritesInFlight = config.MaxAllowedWritesInFlight,
+				ProjectionExecutionTimeout = config.ProjectionExecutionTimeout
+			};
+
+		public ProjectionConfigRequest ToRequest(string name) =>
+			new(
+				name,
+				EmitEnabled,
+				TrackEmittedStreams,
+				CheckpointAfterMs,
+				CheckpointHandledThreshold,
+				CheckpointUnhandledBytesThreshold,
+				PendingEventsThreshold,
+				MaxWriteBatchLength,
+				MaxAllowedWritesInFlight,
+				ProjectionExecutionTimeout);
+	}
+}

@@ -1,0 +1,165 @@
+@page "/ui/projections/debug/{*Name}"
+@inject ProjectionBrowserService Projections
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Projection Debug - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@DetailHref">Back to projection</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Projection debug</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@Name</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect the same source, state, result, and raw debug endpoints used by the legacy debugger while keeping lifecycle commands close.</p>
+</section>
+
+@if (CommandResult is not null)
+{
+	<section class="mt-6 rounded-[1.75rem] border @(CommandResult.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-5 text-sm font-bold shadow-[0_18px_60px_rgba(23,32,51,0.06)]">
+		@CommandResult.Message
+	</section>
+}
+
+<section class="mt-8 grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		@if (Page is null)
+		{
+			<p class="text-es-muted">Loading debug context...</p>
+		}
+		else if (!Page.HasProjection)
+		{
+			<p class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Page.Message</p>
+		}
+		else
+		{
+			var projection = Page.Projection;
+			<div class="flex flex-wrap gap-2">
+				<StatusBadge Label="@projection.StatusLabel" Tone="@projection.StatusTone" />
+				<StatusBadge Label="@projection.Mode" Tone="muted" />
+				@if (!string.IsNullOrWhiteSpace(FromQueryState))
+				{
+					<StatusBadge Label="From query state" Tone="warn" />
+				}
+			</div>
+
+			<h2 class="mt-5 text-2xl font-black tracking-tight text-es-ink">Source</h2>
+			@if (Page.Query is null)
+			{
+				<p class="mt-3 text-sm leading-6 text-es-muted">Projection source is unavailable.</p>
+			}
+			else
+			{
+				<pre class="mt-4 max-h-[34rem] overflow-auto rounded-2xl bg-es-ink p-4 text-sm leading-6 text-white">@Page.Query.Query</pre>
+			}
+		}
+	</article>
+
+	<aside class="grid gap-5">
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="Commands" Tone="warn" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Debug controls</h2>
+			<div class="mt-5 flex flex-wrap gap-2">
+				<EditForm Model="DisableInput" FormName="projection-debug-disable" OnValidSubmit="DisableProjection">
+					<AntiforgeryToken />
+					<button class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-900 transition hover:bg-amber-100" type="submit">Stop</button>
+				</EditForm>
+				<EditForm Model="ResetInput" FormName="projection-debug-reset" OnValidSubmit="ResetProjection">
+					<AntiforgeryToken />
+					<button class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" type="submit">Reset</button>
+				</EditForm>
+				<a class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="@QueryHref">Open in query</a>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@EditHref">Edit source</a>
+			</div>
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="State" Tone="muted" />
+			<h2 class="mt-4 text-xl font-black tracking-tight text-es-ink">Current state</h2>
+			@if (Page?.State is null || !Page.State.IsAvailable)
+			{
+				<p class="mt-3 text-sm leading-6 text-es-muted">@(Page?.State?.Message ?? "State is unavailable.")</p>
+			}
+			else if (!Page.State.HasValue)
+			{
+				<p class="mt-3 text-sm leading-6 text-es-muted">No state payload is available.</p>
+			}
+			else
+			{
+				<pre class="mt-4 max-h-72 overflow-auto rounded-2xl bg-es-ink p-4 text-xs leading-5 text-white">@Page.State.Value</pre>
+			}
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="Raw debug" Tone="muted" />
+			<h2 class="mt-4 text-xl font-black tracking-tight text-es-ink">Endpoint handoffs</h2>
+			<div class="mt-5 flex flex-wrap gap-2">
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawStateHref" target="_blank" rel="noopener noreferrer">State</a>
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawResultHref" target="_blank" rel="noopener noreferrer">Result</a>
+				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawStatsHref" target="_blank" rel="noopener noreferrer">Stats</a>
+			</div>
+		</article>
+	</aside>
+</section>
+
+@code {
+	[Parameter] public string Name { get; set; } = "";
+	[SupplyParameterFromQuery] public string FromQueryState { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "projection-debug-disable")]
+	private ProjectionDebugInput DisableInput { get; set; } = new();
+
+	[SupplyParameterFromForm(FormName = "projection-debug-reset")]
+	private ProjectionDebugInput ResetInput { get; set; } = new();
+
+	private ProjectionDetailPage Page { get; set; }
+	private ProjectionCommandResult CommandResult { get; set; }
+	private string LinkName => Page?.Name ?? Name;
+	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(LinkName)}";
+	private string EditHref => $"/ui/projections/edit/{Uri.EscapeDataString(LinkName)}";
+	private string QueryHref => $"/ui/query?location={Uri.EscapeDataString(LinkName)}";
+	private string RawStateHref => $"/projection/{Uri.EscapeDataString(LinkName)}/state";
+	private string RawResultHref => $"/projection/{Uri.EscapeDataString(LinkName)}/result";
+	private string RawStatsHref => $"/projection/{Uri.EscapeDataString(LinkName)}/statistics";
+
+	protected override async Task OnParametersSetAsync() {
+		try {
+			Page = await Projections.ReadProjection(Name);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			Page = ProjectionDetailPage.Unavailable(Name, $"Failed to load projection: {UiMessages.Friendly(ex)}");
+		}
+	}
+
+	private async Task DisableProjection() {
+		CommandResult = await RunAction(() => Projections.Disable(Name), "Projection stop was canceled.");
+	}
+
+	private async Task ResetProjection() {
+		CommandResult = await RunAction(() => Projections.Reset(Name), "Projection reset was canceled.");
+	}
+
+	private async Task<ProjectionCommandResult> RunAction(
+		Func<Task<ProjectionCommandResult>> action,
+		string canceledMessage) {
+		ProjectionCommandResult result;
+		try {
+			result = await action();
+		} catch (OperationCanceledException) {
+			return ProjectionCommandResult.Failure(Name, canceledMessage);
+		} catch (Exception ex) {
+			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {UiMessages.Friendly(ex)}");
+		}
+
+		try {
+			Page = await Projections.ReadProjection(Name);
+		} catch (OperationCanceledException) {
+			Page = ProjectionDetailPage.Unavailable(Name, "Projection command completed, but the refresh was canceled.");
+		} catch (Exception ex) {
+			Page = ProjectionDetailPage.Unavailable(Name, $"Projection command completed, but the projection refresh failed: {UiMessages.Friendly(ex)}");
+		}
+
+		return result;
+	}
+
+	private sealed class ProjectionDebugInput {
+	}
+}

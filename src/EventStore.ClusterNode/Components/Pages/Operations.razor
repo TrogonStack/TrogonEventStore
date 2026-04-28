@@ -224,13 +224,10 @@ else
 				SubsystemsPanel.Unavailable("Loading operations was canceled."),
 				new ScavengeOperationsPanel(false, "Loading operations was canceled.", ScavengeStatusView.Unavailable("Canceled."), ScavengeStatusView.Unavailable("Canceled."), Array.Empty<ScavengeHistoryItem>(), "Canceled."));
 		} catch (Exception ex) {
-			var message = FriendlyMessage(ex);
+			var message = UiMessages.Friendly(ex);
 			Page = new AdminOperationsPage(
 				SubsystemsPanel.Unavailable($"Failed to load subsystems: {message}"),
 				new ScavengeOperationsPanel(false, $"Failed to load scavenge support: {message}", ScavengeStatusView.Unavailable(message), ScavengeStatusView.Unavailable(message), Array.Empty<ScavengeHistoryItem>(), message));
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }

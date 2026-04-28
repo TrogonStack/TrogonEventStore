@@ -72,7 +72,7 @@ public sealed class QueueDashboardService : IDisposable {
 
 			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.");
 		} catch (Exception ex) {
-			return QueueDashboardPage.Unavailable($"Unable to read queue statistics: {FriendlyMessage(ex)}");
+			return QueueDashboardPage.Unavailable($"Unable to read queue statistics: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -134,9 +134,6 @@ public sealed class QueueDashboardService : IDisposable {
 
 		return QueueDashboardPage.Success(queues);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }
 
 internal readonly record struct LocalHttpEndPoint(string Host, int Port);

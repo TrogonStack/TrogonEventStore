@@ -99,6 +99,58 @@
 			}
 		},
 		{
+			pattern: /^#\/projections(?:[/?].*)?$/i,
+			target: function (hash) {
+				var path = hash.replace(/^#\/projections\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
+				if (!path)
+					return "/ui/projections";
+
+				var parts = path.split("/");
+				var first = (parts[0] || "").toLowerCase();
+				if (first === "new")
+					return "/ui/projections/new";
+				if (first === "standard")
+					return "/ui/projections/standard";
+
+				var action = (parts[parts.length - 1] || "").toLowerCase();
+				var hasAction = parts.length >= 2 && isProjectionAction(action);
+				var projectionPath = hasAction
+					? parts.slice(0, -1).join("/")
+					: path;
+				var name = projectionNameFromLocation(projectionPath);
+				var target = "/ui/projections/" + encodeURIComponent(name);
+
+				if (hasAction && action === "edit")
+					target = "/ui/projections/edit/" + encodeURIComponent(name);
+				else if (hasAction && action === "config")
+					target = "/ui/projections/config/" + encodeURIComponent(name);
+				else if (hasAction && action === "delete")
+					target = "/ui/projections/delete/" + encodeURIComponent(name);
+				else if (hasAction && action === "debug")
+					target = "/ui/projections/debug/" + encodeURIComponent(name);
+
+				var query = new URLSearchParams(hash.split("?")[1] || "");
+				if (hasAction && action === "debug" && query.has("fromQueryState"))
+					target += "?fromQueryState=" + encodeURIComponent(query.get("fromQueryState"));
+
+				return target;
+			}
+		},
+		{
+			pattern: /^#\/query(?:[/?].*)?$/i,
+			target: function (hash) {
+				var source = new URLSearchParams(hash.split("?")[1] || "");
+				var destination = new URLSearchParams();
+				if (source.has("location"))
+					destination.set("location", projectionNameFromLocation(source.get("location")));
+				if (source.has("initStreamId"))
+					destination.set("initStreamId", source.get("initStreamId"));
+
+				var query = destination.toString();
+				return query ? "/ui/query?" + query : "/ui/query";
+			}
+		},
+		{
 			pattern: /^#\/users(?:[/?].*)?$/i,
 			target: function (hash) {
 				var path = hash.replace(/^#\/users\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
@@ -123,7 +175,9 @@
 		{ selector: 'a[ui-sref="admin"]', text: "Admin" },
 		{ selector: 'a[ui-sref="streams.list"]', text: "Stream Browser" },
 		{ selector: 'a[ui-sref="users.list"]', text: "Users" },
-		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" }
+		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" },
+		{ selector: 'a[ui-sref="projections.list"]', text: "Projections" },
+		{ selector: 'a[ui-sref="query"]', text: "Query" }
 	];
 
 	function safeDecode(value) {
@@ -132,6 +186,21 @@
 		} catch (_) {
 			return value;
 		}
+	}
+
+	function projectionNameFromLocation(value) {
+		var name = value || "";
+		try {
+			var url = new URL(name, window.location.origin);
+			name = url.pathname || name;
+		} catch (_) {
+		}
+
+		name = name.replace(/^\/+/, "");
+		if (name.toLowerCase().indexOf("projection/") === 0)
+			name = name.substring("projection/".length);
+
+		return safeDecode(name);
 	}
 
 	function isUserAction(action) {
@@ -151,6 +220,13 @@
 	function isStreamDirection(action) {
 		return action === "forward" ||
 			action === "backward";
+	}
+
+	function isProjectionAction(action) {
+		return action === "edit" ||
+			action === "config" ||
+			action === "delete" ||
+			action === "debug";
 	}
 
 	function removeLegacyLinks() {

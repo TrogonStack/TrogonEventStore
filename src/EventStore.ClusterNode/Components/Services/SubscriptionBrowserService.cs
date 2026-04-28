@@ -49,7 +49,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionListPage.Unavailable($"Unable to read persistent subscriptions: {FriendlyMessage(ex)}");
+			return SubscriptionListPage.Unavailable($"Unable to read persistent subscriptions: {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -91,7 +91,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionDetailPage.Unavailable(streamId, groupName, $"Unable to read subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionDetailPage.Unavailable(streamId, groupName, $"Unable to read subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -155,7 +155,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to create subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to create subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -215,7 +215,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to update subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to update subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -262,7 +262,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to create subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to create subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -308,7 +308,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to update subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to update subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -352,7 +352,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to delete subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to delete subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -382,7 +382,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to delete subscription '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to delete subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -427,7 +427,7 @@ public sealed class SubscriptionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to replay parked messages for '{groupName}': {FriendlyMessage(ex)}");
+			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to replay parked messages for '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -508,9 +508,6 @@ public sealed class SubscriptionBrowserService(
 
 	private static string FriendlyResult(string result, string reason) =>
 		string.IsNullOrWhiteSpace(reason) ? $"Persistent subscription command returned {result}." : reason;
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 }
 
