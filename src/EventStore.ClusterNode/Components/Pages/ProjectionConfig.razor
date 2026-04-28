@@ -123,7 +123,7 @@
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			Page = ProjectionConfigPage.Unavailable(Name, $"Failed to load projection configuration: {FriendlyMessage(ex)}");
+			Page = ProjectionConfigPage.Unavailable(Name, $"Failed to load projection configuration: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -136,15 +136,12 @@
 		} catch (OperationCanceledException) {
 			Result = ProjectionCommandResult.Failure(Input.Name, "Projection configuration update was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection configuration: {FriendlyMessage(ex)}");
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection configuration: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
 			Navigation.NavigateTo(redirectTo);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class ProjectionConfigInput {
 		public string Name { get; set; } = "";

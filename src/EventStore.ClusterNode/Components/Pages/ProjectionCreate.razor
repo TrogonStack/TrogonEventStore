@@ -101,15 +101,12 @@
 		} catch (OperationCanceledException) {
 			Result = ProjectionCommandResult.Failure(Input.Name, "Projection creation was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to create projection: {FriendlyMessage(ex)}");
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to create projection: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
 			Navigation.NavigateTo(redirectTo);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class ProjectionCreateInput {
 		[Required(ErrorMessage = "Enter a projection name.")]

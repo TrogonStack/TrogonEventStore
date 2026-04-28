@@ -74,15 +74,12 @@
 		} catch (OperationCanceledException) {
 			Result = ProjectionCommandResult.Failure(Input.Name, "Standard projection creation was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to create standard projection: {FriendlyMessage(ex)}");
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to create standard projection: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
 			Navigation.NavigateTo(redirectTo);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class StandardProjectionCreateInput {
 		[Required(ErrorMessage = "Enter a projection name.")]

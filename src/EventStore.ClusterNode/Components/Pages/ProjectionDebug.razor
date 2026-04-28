@@ -75,7 +75,7 @@
 			<h2 class="mt-4 text-xl font-black tracking-tight text-es-ink">Current state</h2>
 			@if (Page?.State is null || !Page.State.IsAvailable)
 			{
-				<p class="mt-3 text-sm leading-6 text-es-muted">@(Page?.State.Message ?? "State is unavailable.")</p>
+				<p class="mt-3 text-sm leading-6 text-es-muted">@(Page?.State?.Message ?? "State is unavailable.")</p>
 			}
 			else if (!Page.State.HasValue)
 			{
@@ -124,7 +124,7 @@
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			Page = ProjectionDetailPage.Unavailable(Name, $"Failed to load projection: {FriendlyMessage(ex)}");
+			Page = ProjectionDetailPage.Unavailable(Name, $"Failed to load projection: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -146,12 +146,9 @@
 		} catch (OperationCanceledException) {
 			return ProjectionCommandResult.Failure(Name, canceledMessage);
 		} catch (Exception ex) {
-			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {FriendlyMessage(ex)}");
+			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {UiMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class ProjectionDebugInput {
 	}

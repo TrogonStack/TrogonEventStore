@@ -315,7 +315,7 @@ public sealed class ProjectionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ProjectionQueryRead.Unavailable($"Unable to read query for '{name}': {FriendlyMessage(ex)}");
+			return ProjectionQueryRead.Unavailable($"Unable to read query for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -335,7 +335,7 @@ public sealed class ProjectionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ProjectionConfigRead.Unavailable($"Unable to read configuration for '{name}': {FriendlyMessage(ex)}");
+			return ProjectionConfigRead.Unavailable($"Unable to read configuration for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -360,7 +360,7 @@ public sealed class ProjectionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ProjectionDataRead.Unavailable($"Unable to read state for '{name}': {FriendlyMessage(ex)}");
+			return ProjectionDataRead.Unavailable($"Unable to read state for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -385,7 +385,7 @@ public sealed class ProjectionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ProjectionDataRead.Unavailable($"Unable to read result for '{name}': {FriendlyMessage(ex)}");
+			return ProjectionDataRead.Unavailable($"Unable to read result for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -422,7 +422,7 @@ public sealed class ProjectionBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return ProjectionCommandResult.Failure(name, $"Unable to {action} '{name}': {FriendlyMessage(ex)}");
+			return ProjectionCommandResult.Failure(name, $"Unable to {action} '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -470,8 +470,8 @@ public sealed class ProjectionBrowserService(
 			throw;
 		} catch (Exception ex) {
 			return ProjectionStatisticsRead.Unavailable(name is null
-				? $"Unable to read projections: {FriendlyMessage(ex)}"
-				: $"Unable to read projection '{name}': {FriendlyMessage(ex)}");
+				? $"Unable to read projections: {UiMessages.Friendly(ex)}"
+				: $"Unable to read projection '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -486,9 +486,6 @@ public sealed class ProjectionBrowserService(
 
 	private static string ProjectionFailureMessage(Message message) =>
 		message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason ?? "" : null;
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private static string NormalizeName(string name) {
 		if (string.IsNullOrWhiteSpace(name))

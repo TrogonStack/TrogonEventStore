@@ -171,7 +171,7 @@ else
 			throw;
 		} catch (Exception ex) {
 			if (requestedStream == StreamId && requestedGroup == GroupName) {
-				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load parked messages: {FriendlyMessage(ex)}");
+				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load parked messages: {UiMessages.Friendly(ex)}");
 				EventsPage = StreamReadPage.Empty("", Page.Message);
 			}
 		}
@@ -188,15 +188,12 @@ else
 		} catch (OperationCanceledException) {
 			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, "Replay parked was canceled.");
 		} catch (Exception ex) {
-			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to replay parked messages: {FriendlyMessage(ex)}");
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to replay parked messages: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	private static string ParkedStreamName(string streamId, string groupName) =>
 		$"$persistentsubscription-{streamId}::{groupName}-parked";
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class ReplayParkedInput {
 		public long? StopAt { get; set; }

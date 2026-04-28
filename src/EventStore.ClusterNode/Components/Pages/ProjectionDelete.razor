@@ -99,7 +99,7 @@
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			Page = ProjectionDetailPage.Unavailable(Name, $"Failed to load projection: {FriendlyMessage(ex)}");
+			Page = ProjectionDetailPage.Unavailable(Name, $"Failed to load projection: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -112,15 +112,12 @@
 		} catch (OperationCanceledException) {
 			Result = ProjectionCommandResult.Failure(Input.Name, "Projection deletion was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to delete projection: {FriendlyMessage(ex)}");
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to delete projection: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
 			Navigation.NavigateTo(redirectTo);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class ProjectionDeleteInput {
 		public string Name { get; set; } = "";

@@ -161,10 +161,7 @@
 		}
 		catch (Exception ex)
 		{
-			Page = SubscriptionListPage.Unavailable($"Failed to load persistent subscriptions: {FriendlyMessage(ex)}");
+			Page = SubscriptionListPage.Unavailable($"Failed to load persistent subscriptions: {UiMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }

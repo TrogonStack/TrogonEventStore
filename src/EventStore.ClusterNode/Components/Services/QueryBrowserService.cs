@@ -52,7 +52,7 @@ public sealed class QueryBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return QueryRunPage.Unavailable(query, $"Unable to create transient query: {FriendlyMessage(ex)}");
+			return QueryRunPage.Unavailable(query, $"Unable to create transient query: {UiMessages.Friendly(ex)}");
 		}
 
 		return QueryRunPage.Success(query, completed.Name);
@@ -63,9 +63,6 @@ public sealed class QueryBrowserService(
 
 	private Task<bool> HasAccess(Operation operation, CancellationToken cancellationToken) =>
 		authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 }
 

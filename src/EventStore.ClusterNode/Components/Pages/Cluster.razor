@@ -272,7 +272,7 @@
 		}
 		catch (Exception ex)
 		{
-			Page = QueueDashboardPage.Unavailable($"Failed to load queue statistics: {FriendlyMessage(ex)}");
+			Page = QueueDashboardPage.Unavailable($"Failed to load queue statistics: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -281,9 +281,6 @@
 		var width = Math.Clamp(pressure * 100d / MaxPressure, 6d, 100d);
 		return string.Format(CultureInfo.InvariantCulture, "width: {0:0.##}%", width);
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private string ProbeLinkClass(ProbeLink probe) =>
 		string.Equals(probe.Key, Probe, StringComparison.OrdinalIgnoreCase)

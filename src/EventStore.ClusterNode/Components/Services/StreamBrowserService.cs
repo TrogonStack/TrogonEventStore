@@ -69,7 +69,7 @@ public sealed class StreamBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {FriendlyMessage(ex)}");
+			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -125,7 +125,7 @@ public sealed class StreamBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {FriendlyMessage(ex)}");
+			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -175,7 +175,7 @@ public sealed class StreamBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return RecentEventsPage.Unavailable($"Unable to read recent events: {FriendlyMessage(ex)}");
+			return RecentEventsPage.Unavailable($"Unable to read recent events: {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -218,7 +218,7 @@ public sealed class StreamBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return StreamEventDetailPage.Unavailable(streamId, eventNumber, $"Unable to read event #{eventNumber}: {FriendlyMessage(ex)}");
+			return StreamEventDetailPage.Unavailable(streamId, eventNumber, $"Unable to read event #{eventNumber}: {UiMessages.Friendly(ex)}");
 		}
 
 		return completed.Result switch {
@@ -365,9 +365,6 @@ public sealed class StreamBrowserService(
 	private static long NormalizeFromEventNumber(long fromEventNumber) =>
 		Math.Max(fromEventNumber, -1);
 
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
-
 	private async Task<ClientMessage.WriteEventsCompleted> Write(
 		Func<IEnvelope, ClientMessage.WriteEvents> createMessage,
 		string timeoutMessage,
@@ -382,7 +379,7 @@ public sealed class StreamBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return new ClientMessage.WriteEventsCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, $"{errorPrefix}: {FriendlyMessage(ex)}");
+			return new ClientMessage.WriteEventsCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, $"{errorPrefix}: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -400,7 +397,7 @@ public sealed class StreamBrowserService(
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			return new ClientMessage.DeleteStreamCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, $"{errorPrefix}: {FriendlyMessage(ex)}");
+			return new ClientMessage.DeleteStreamCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, $"{errorPrefix}: {UiMessages.Friendly(ex)}");
 		}
 	}
 

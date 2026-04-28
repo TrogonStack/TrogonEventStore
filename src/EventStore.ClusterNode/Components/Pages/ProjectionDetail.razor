@@ -219,12 +219,9 @@
 		catch (Exception ex)
 		{
 			if (sequence == _loadSequence)
-				Page = ProjectionDetailPage.Unavailable(requestedName, $"Failed to load projection: {FriendlyMessage(ex)}");
+				Page = ProjectionDetailPage.Unavailable(requestedName, $"Failed to load projection: {UiMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private async Task EnableProjection() {
 		CommandResult = await RunAction(() => Projections.Enable(Name), "Projection start was canceled.");
@@ -248,7 +245,7 @@
 		} catch (OperationCanceledException) {
 			return ProjectionCommandResult.Failure(Name, canceledMessage);
 		} catch (Exception ex) {
-			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {FriendlyMessage(ex)}");
+			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {UiMessages.Friendly(ex)}");
 		}
 	}
 

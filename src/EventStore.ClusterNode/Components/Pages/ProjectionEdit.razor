@@ -101,7 +101,7 @@
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			Page = ProjectionQueryPage.Unavailable(Name, $"Failed to load projection query: {FriendlyMessage(ex)}");
+			Page = ProjectionQueryPage.Unavailable(Name, $"Failed to load projection query: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -114,7 +114,7 @@
 		} catch (OperationCanceledException) {
 			Result = ProjectionCommandResult.Failure(Input.Name, "Projection update was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection: {FriendlyMessage(ex)}");
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
@@ -127,12 +127,9 @@
 		} catch (OperationCanceledException) {
 			Result = ProjectionCommandResult.Failure(Name, "Projection reset was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Name, $"Failed to reset projection: {FriendlyMessage(ex)}");
+			Result = ProjectionCommandResult.Failure(Name, $"Failed to reset projection: {UiMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private sealed class ProjectionEditInput {
 		public string Name { get; set; } = "";

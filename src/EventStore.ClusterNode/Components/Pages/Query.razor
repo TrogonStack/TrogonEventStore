@@ -118,7 +118,7 @@
 			} catch (OperationCanceledException) {
 				throw;
 			} catch (Exception ex) {
-				Result = QueryRunPage.Unavailable(Input.Query, $"Failed to load query projection: {FriendlyMessage(ex)}");
+				Result = QueryRunPage.Unavailable(Input.Query, $"Failed to load query projection: {UiMessages.Friendly(ex)}");
 			}
 
 			return;
@@ -150,7 +150,7 @@
 		} catch (OperationCanceledException) {
 			Result = QueryRunPage.Unavailable(Input.Query, "Query execution was canceled.");
 		} catch (Exception ex) {
-			Result = QueryRunPage.Unavailable(Input.Query, $"Failed to run query: {FriendlyMessage(ex)}");
+			Result = QueryRunPage.Unavailable(Input.Query, $"Failed to run query: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -165,12 +165,9 @@
 		} catch (OperationCanceledException) {
 			CommandResult = ProjectionCommandResult.Failure(Result.ProjectionName, "Query break was canceled.");
 		} catch (Exception ex) {
-			CommandResult = ProjectionCommandResult.Failure(Result.ProjectionName, $"Failed to stop query projection: {FriendlyMessage(ex)}");
+			CommandResult = ProjectionCommandResult.Failure(Result.ProjectionName, $"Failed to stop query projection: {UiMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 
 	private static string StreamQuery(string streamId) =>
 		$"fromStream({System.Text.Json.JsonSerializer.Serialize(streamId)}).when({{\n  $init: function () {{ return {{ count: 0 }}; }},\n  $any: function (state, event) {{\n    state.count += 1;\n  }}\n}});";
