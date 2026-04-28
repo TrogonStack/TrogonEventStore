@@ -114,13 +114,13 @@
 		var redirectTo = "";
 		ResetResult = null;
 		try {
-			SaveResult = await Projections.UpdateQuery(Input.ToRequest());
+			SaveResult = await Projections.UpdateQuery(Input.ToRequest(Name));
 			if (SaveResult.Success)
 				redirectTo = DetailHref;
 		} catch (OperationCanceledException) {
-			SaveResult = ProjectionCommandResult.Failure(Input.Name, "Projection update was canceled.");
+			SaveResult = ProjectionCommandResult.Failure(Name, "Projection update was canceled.");
 		} catch (Exception ex) {
-			SaveResult = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection: {UiMessages.Friendly(ex)}");
+			SaveResult = ProjectionCommandResult.Failure(Name, $"Failed to update projection: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
@@ -153,7 +153,7 @@
 				EmitEnabled = query.EmitEnabled
 			};
 
-		public ProjectionUpdateQueryRequest ToRequest() => new(Name, Query, EmitEnabled);
+		public ProjectionUpdateQueryRequest ToRequest(string name) => new(name, Query, EmitEnabled);
 	}
 
 	private sealed class ProjectionResetInput {

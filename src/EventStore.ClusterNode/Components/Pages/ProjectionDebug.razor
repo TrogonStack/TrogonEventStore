@@ -140,15 +140,24 @@
 	private async Task<ProjectionCommandResult> RunAction(
 		Func<Task<ProjectionCommandResult>> action,
 		string canceledMessage) {
+		ProjectionCommandResult result;
 		try {
-			var result = await action();
-			Page = await Projections.ReadProjection(Name);
-			return result;
+			result = await action();
 		} catch (OperationCanceledException) {
 			return ProjectionCommandResult.Failure(Name, canceledMessage);
 		} catch (Exception ex) {
 			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {UiMessages.Friendly(ex)}");
 		}
+
+		try {
+			Page = await Projections.ReadProjection(Name);
+		} catch (OperationCanceledException) {
+			Page = ProjectionDetailPage.Unavailable(Name, "Projection command completed, but the refresh was canceled.");
+		} catch (Exception ex) {
+			Page = ProjectionDetailPage.Unavailable(Name, $"Projection command completed, but the projection refresh failed: {UiMessages.Friendly(ex)}");
+		}
+
+		return result;
 	}
 
 	private sealed class ProjectionDebugInput {

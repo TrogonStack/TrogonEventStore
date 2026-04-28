@@ -12,6 +12,13 @@
 </section>
 
 <section class="mt-8" data-admin-auto-refresh="2000">
+	@if (CommandResult is not null)
+	{
+		<div class="mb-6 rounded-[1.75rem] border @(CommandResult.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-5 text-sm font-bold shadow-[0_18px_60px_rgba(23,32,51,0.06)]">
+			@CommandResult.Message
+		</div>
+	}
+
 	@if (Page is null)
 	{
 		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
@@ -27,13 +34,6 @@
 	else
 	{
 		var projection = Page.Projection;
-		@if (CommandResult is not null)
-		{
-			<div class="mb-6 rounded-[1.75rem] border @(CommandResult.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-5 text-sm font-bold shadow-[0_18px_60px_rgba(23,32,51,0.06)]">
-				@CommandResult.Message
-			</div>
-		}
-
 		<div class="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
 			<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 				<div class="flex flex-wrap gap-2">
@@ -238,15 +238,24 @@
 	private async Task<ProjectionCommandResult> RunAction(
 		Func<Task<ProjectionCommandResult>> action,
 		string canceledMessage) {
+		ProjectionCommandResult result;
 		try {
-			var result = await action();
-			Page = await Projections.ReadProjection(Name, Partition);
-			return result;
+			result = await action();
 		} catch (OperationCanceledException) {
 			return ProjectionCommandResult.Failure(Name, canceledMessage);
 		} catch (Exception ex) {
 			return ProjectionCommandResult.Failure(Name, $"Projection command failed: {UiMessages.Friendly(ex)}");
 		}
+
+		try {
+			Page = await Projections.ReadProjection(Name, Partition);
+		} catch (OperationCanceledException) {
+			Page = ProjectionDetailPage.Unavailable(Name, "Projection command completed, but the refresh was canceled.");
+		} catch (Exception ex) {
+			Page = ProjectionDetailPage.Unavailable(Name, $"Projection command completed, but the projection refresh failed: {UiMessages.Friendly(ex)}");
+		}
+
+		return result;
 	}
 
 	private sealed class ProjectionActionInput {

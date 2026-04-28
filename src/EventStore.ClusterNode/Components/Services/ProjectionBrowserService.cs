@@ -35,6 +35,7 @@ public sealed class ProjectionBrowserService(
 		.WithParameter(Operations.Projections.Parameters.OneTime);
 	private static readonly Operation CreateContinuousOperation = new Operation(Operations.Projections.Create)
 		.WithParameter(Operations.Projections.Parameters.Continuous);
+	private static readonly string[] ProjectionEndpointSuffixes = new[] { "query", "config", "state", "result", "statistics" };
 
 	public static IReadOnlyList<StandardProjectionOption> StandardProjectionOptions { get; } = new[] {
 		new StandardProjectionOption(
@@ -488,10 +489,22 @@ public sealed class ProjectionBrowserService(
 		if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
 			value = absolute.AbsolutePath;
 
+		var queryStart = value.IndexOfAny(new[] { '?', '#' });
+		if (queryStart >= 0)
+			value = value[..queryStart];
+
 		value = value.TrimStart('/');
 		const string projectionPrefix = "projection/";
 		if (value.StartsWith(projectionPrefix, StringComparison.OrdinalIgnoreCase))
 			value = value[projectionPrefix.Length..];
+
+		foreach (var suffix in ProjectionEndpointSuffixes) {
+			var endpointSuffix = $"/{suffix}";
+			if (value.EndsWith(endpointSuffix, StringComparison.OrdinalIgnoreCase))
+				return value[..^endpointSuffix.Length];
+			if (value.EndsWith(endpointSuffix + "/", StringComparison.OrdinalIgnoreCase))
+				return value[..^(endpointSuffix.Length + 1)];
+		}
 
 		return value;
 	}

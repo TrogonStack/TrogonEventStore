@@ -130,13 +130,13 @@
 	private async Task SaveConfig() {
 		var redirectTo = "";
 		try {
-			Result = await Projections.UpdateConfig(Input.ToRequest());
+			Result = await Projections.UpdateConfig(Input.ToRequest(Name));
 			if (Result.Success)
 				redirectTo = DetailHref;
 		} catch (OperationCanceledException) {
-			Result = ProjectionCommandResult.Failure(Input.Name, "Projection configuration update was canceled.");
+			Result = ProjectionCommandResult.Failure(Name, "Projection configuration update was canceled.");
 		} catch (Exception ex) {
-			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection configuration: {UiMessages.Friendly(ex)}");
+			Result = ProjectionCommandResult.Failure(Name, $"Failed to update projection configuration: {UiMessages.Friendly(ex)}");
 		}
 
 		if (!string.IsNullOrWhiteSpace(redirectTo))
@@ -183,9 +183,9 @@
 				ProjectionExecutionTimeout = config.ProjectionExecutionTimeout
 			};
 
-		public ProjectionConfigRequest ToRequest() =>
+		public ProjectionConfigRequest ToRequest(string name) =>
 			new(
-				Name,
+				name,
 				EmitEnabled,
 				TrackEmittedStreams,
 				CheckpointAfterMs,
