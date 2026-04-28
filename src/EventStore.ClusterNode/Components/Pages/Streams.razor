@@ -7,8 +7,8 @@
 <section class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
 	<div>
 		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Streams</p>
-		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Read event streams without leaving the workspace.</h1>
-		<p class="mt-5 text-lg leading-8 text-es-muted">Open a stream by id, inspect recent events, and keep raw endpoint access close when troubleshooting needs the wire view.</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Browse and operate on streams without falling back to Angular.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Open a stream by id, inspect recent created and changed streams, append events, and keep raw endpoint access nearby for troubleshooting.</p>
 	</div>
 	<form class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]" method="get" action="/ui/streams">
 		<label class="text-sm font-black uppercase tracking-[0.22em] text-es-green" for="streamId">Stream id</label>
@@ -16,7 +16,10 @@
 			<input class="min-w-0 flex-1 rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" id="streamId" name="streamId" value="@StreamId" placeholder="$ce-category or my-stream" />
 			<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Open</button>
 		</div>
-		<p class="mt-3 text-sm leading-6 text-es-muted">The first native pass is read-only. Append, ACL, and metadata editing stay in the compatibility tools for now.</p>
+		<div class="mt-4 flex flex-wrap gap-2">
+			<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-2 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/streams/append">Add Event</a>
+			<a class="rounded-2xl border border-es-ink/10 bg-white px-4 py-2 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/streams/$all/head/100?embed=rich" target="_blank" rel="noopener noreferrer">Raw $all feed</a>
+		</div>
 	</form>
 </section>
 
@@ -26,28 +29,84 @@
 		<StreamEventsSection Page="SelectedStream" />
 	</section>
 }
-else if (RecentEvents is not null)
+else if (Overview is null)
 {
+	<section class="mt-8 rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading streams...
+	</section>
+}
+else
+{
+	<section class="mt-8 grid gap-6 xl:grid-cols-2">
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="mb-5">
+				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Created</p>
+				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Recently created streams</h2>
+			</div>
+			@if (!Overview.HasRecentlyCreated)
+			{
+				<p class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-sm font-bold text-es-muted">@(string.IsNullOrWhiteSpace(Overview.CreatedMessage) ? "No recently created streams." : Overview.CreatedMessage)</p>
+			}
+			else
+			{
+				<div class="grid gap-3">
+					@foreach (var stream in Overview.RecentlyCreated)
+					{
+						<a class="group rounded-2xl border border-es-ink/10 bg-white px-4 py-3 transition hover:border-es-green/30 hover:shadow-[0_12px_35px_rgba(23,32,51,0.08)]" href="@stream.DetailHref">
+							<span class="block break-all font-mono text-sm font-black text-es-ink group-hover:text-es-forest">@stream.StreamId</span>
+							<span class="mt-1 block text-xs font-bold uppercase tracking-[0.16em] text-es-muted">@stream.UpdatedLabel</span>
+						</a>
+					}
+				</div>
+			}
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="mb-5">
+				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Changed</p>
+				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Recently changed streams</h2>
+			</div>
+			@if (!Overview.HasRecentlyChanged)
+			{
+				<p class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-sm font-bold text-es-muted">@(string.IsNullOrWhiteSpace(Overview.ChangedMessage) ? "No recently changed streams." : Overview.ChangedMessage)</p>
+			}
+			else
+			{
+				<div class="grid gap-3">
+					@foreach (var stream in Overview.RecentlyChanged)
+					{
+						<a class="group rounded-2xl border border-es-ink/10 bg-white px-4 py-3 transition hover:border-es-green/30 hover:shadow-[0_12px_35px_rgba(23,32,51,0.08)]" href="@stream.DetailHref">
+							<span class="block break-all font-mono text-sm font-black text-es-ink group-hover:text-es-forest">@stream.StreamId</span>
+							<span class="mt-1 block text-xs font-bold uppercase tracking-[0.16em] text-es-muted">@stream.EventType at @stream.UpdatedLabel</span>
+						</a>
+					}
+				</div>
+			}
+		</article>
+	</section>
 	<section class="mt-8">
 		<div class="mb-5 flex flex-wrap items-end justify-between gap-4">
 			<div>
 				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Recent</p>
 				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Latest readable events</h2>
 			</div>
-			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/web/index.html#/streams" target="_blank" rel="noopener noreferrer">Compatibility stream browser</a>
 		</div>
-		@if (!RecentEvents.HasEvents)
+		@if (!Overview.HasRecentlyChanged)
 		{
 			<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
-				@RecentEvents.Message
+				@(string.IsNullOrWhiteSpace(Overview.ChangedMessage) ? "No recent events are available." : Overview.ChangedMessage)
 			</div>
 		}
 		else
 		{
 			<div class="grid gap-5">
-				@foreach (var ev in RecentEvents.Events)
+				@foreach (var stream in Overview.RecentlyChanged.Take(8))
 				{
-					<StreamEventCard Event="ev" />
+					<div class="rounded-[1.75rem] border border-white/80 bg-white/85 p-5 shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+						<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">@stream.EventType</p>
+						<a class="mt-2 block break-all font-mono text-lg font-black text-es-ink hover:text-es-forest" href="@stream.DetailHref">@stream.StreamId</a>
+						<p class="mt-2 text-sm text-es-muted">Event #@stream.EventNumber at @stream.UpdatedLabel</p>
+					</div>
 				}
 			</div>
 		}
@@ -59,16 +118,16 @@ else if (RecentEvents is not null)
 	[SupplyParameterFromQuery] public int Count { get; set; } = 20;
 
 	private StreamReadPage SelectedStream { get; set; }
-	private RecentEventsPage RecentEvents { get; set; }
+	private StreamOverviewPage Overview { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
 		if (!string.IsNullOrWhiteSpace(StreamId)) {
 			SelectedStream = await StreamBrowser.ReadStreamBackward(StreamId, count: Count);
-			RecentEvents = null;
+			Overview = null;
 			return;
 		}
 
 		SelectedStream = null;
-		RecentEvents = await StreamBrowser.ReadRecentEvents(12);
+		Overview = await StreamBrowser.ReadOverview();
 	}
 }

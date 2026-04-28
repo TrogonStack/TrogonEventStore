@@ -1,0 +1,74 @@
+@page "/ui/streams/event/{EventNumber:long}/{*StreamId}"
+@using EventStore.ClusterNode.Components.Services
+@inject StreamBrowserService Streams
+
+<PageTitle>Event #@EventNumber - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@BackHref">&lt;- Back to stream</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Event detail</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">#@EventNumber in @StreamId</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect the resolved event payloads and jump to adjacent events without opening the legacy browser.</p>
+</section>
+
+<section class="mt-8">
+	@if (Page is null)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading event...
+		</div>
+	}
+	else if (!Page.HasEvent)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@Page.Message
+		</div>
+	}
+	else
+	{
+		<div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+			<div>
+				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Resolved event</p>
+				<h2 class="mt-2 break-words text-3xl font-black tracking-tight text-es-ink">@Page.Event.EventType</h2>
+			</div>
+			<div class="flex flex-wrap gap-3">
+				@if (!string.IsNullOrWhiteSpace(Page.PreviousHref))
+				{
+					<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.PreviousHref">Previous</a>
+				}
+				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.NextHref">Next</a>
+				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.Event.AppendLikeHref">Add New Like This</a>
+				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.Event.RawHref" target="_blank" rel="noopener noreferrer">Raw event</a>
+			</div>
+		</div>
+
+		<StreamEventCard Event="Page.Event" />
+		<div class="mt-5 grid gap-4 lg:grid-cols-2">
+			<JsonPanel Eyebrow="Data" Title="@($"{Page.Event.EventType} data")" Content="@Page.Event.DataForDisplay" RawHref="@Page.Event.RawHref" />
+			<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@Page.Event.MetadataForDisplay" />
+			@if (Page.Event.HasLinkMetadata)
+			{
+				<JsonPanel Eyebrow="Link" Title="Link metadata" Content="@Page.Event.LinkMetadataForDisplay" />
+			}
+		</div>
+	}
+</section>
+
+@code {
+	[Parameter] public string StreamId { get; set; } = "";
+	[Parameter] public long EventNumber { get; set; }
+
+	private StreamEventDetailPage Page { get; set; }
+	private string BackHref => $"/ui/streams/{Uri.EscapeDataString(StreamId)}";
+
+	protected override async Task OnParametersSetAsync() {
+		var requestedStream = StreamId;
+		var requestedEvent = EventNumber;
+		Page = null;
+		var page = await Streams.ReadEvent(requestedStream, requestedEvent);
+		if (!string.Equals(StreamId, requestedStream, StringComparison.Ordinal) || EventNumber != requestedEvent)
+			return;
+
+		Page = page;
+	}
+}

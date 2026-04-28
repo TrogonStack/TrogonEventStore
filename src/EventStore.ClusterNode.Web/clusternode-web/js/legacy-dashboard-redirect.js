@@ -48,6 +48,37 @@
 			}
 		},
 		{
+			pattern: /^#\/streams(?:[/?].*)?$/i,
+			target: function (hash) {
+				var path = hash.replace(/^#\/streams\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
+				if (!path)
+					return "/ui/streams";
+
+				var parts = path.split("/");
+				if (parts[0].toLowerCase() === "addevent")
+					return "/ui/streams/append";
+
+				var streamId = safeDecode(parts[0]);
+				var action = (parts[1] || "").toLowerCase();
+				if (action === "addevent")
+					return "/ui/streams/append/" + encodeURIComponent(streamId);
+				if (action === "acl" || action === "metadata")
+					return "/ui/streams/acl/" + encodeURIComponent(streamId);
+
+				var direction = (parts[2] || "").toLowerCase();
+				if (parts.length >= 4 && isStreamDirection(direction))
+					return "/ui/streams/" + encodeURIComponent(streamId) +
+						"?from=" + encodeURIComponent(parts[1]) +
+						"&direction=" + encodeURIComponent(direction) +
+						"&count=" + encodeURIComponent(parts[3]);
+
+				if (parts.length >= 2 && /^\d+$/.test(parts[1]))
+					return "/ui/streams/event/" + encodeURIComponent(parts[1]) + "/" + encodeURIComponent(streamId);
+
+				return "/ui/streams/" + encodeURIComponent(streamId);
+			}
+		},
+		{
 			pattern: /^#\/scavenge\/([^/?#]+)(?:\/)?(?:[?](.*))?$/i,
 			target: function (hash) {
 				var match = /^#\/scavenge\/([^/?#]+)(?:\/)?(?:[?](.*))?$/i.exec(hash);
@@ -90,6 +121,7 @@
 		{ selector: 'a[ui-sref="dashboard.list"]', text: "Dashboard" },
 		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" },
 		{ selector: 'a[ui-sref="admin"]', text: "Admin" },
+		{ selector: 'a[ui-sref="streams.list"]', text: "Stream Browser" },
 		{ selector: 'a[ui-sref="users.list"]', text: "Users" },
 		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" }
 	];
@@ -114,6 +146,11 @@
 		return action === "edit" ||
 			action === "delete" ||
 			action === "parked";
+	}
+
+	function isStreamDirection(action) {
+		return action === "forward" ||
+			action === "backward";
 	}
 
 	function removeLegacyLinks() {

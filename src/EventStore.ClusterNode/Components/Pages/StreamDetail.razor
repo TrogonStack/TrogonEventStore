@@ -8,10 +8,37 @@
 	<a class="text-sm font-bold text-es-green hover:text-es-forest" href="/ui/streams">&lt;- Streams</a>
 	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Stream detail</p>
 	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@StreamId</h1>
-	<p class="mt-5 text-lg leading-8 text-es-muted">Read-only event inspection with raw endpoint handoffs kept nearby for troubleshooting.</p>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect events, append new records, update ACL metadata, or delete the stream from the native Razor UI.</p>
+	<div class="mt-6 flex flex-wrap gap-3">
+		@if (CanAppend)
+		{
+			<a class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="@($"/ui/streams/append/{Uri.EscapeDataString(StreamId)}")">Add Event</a>
+		}
+		@if (CanEditMetadata)
+		{
+			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@($"/ui/streams/acl/{Uri.EscapeDataString(StreamId)}")">Edit ACL</a>
+		}
+		@if (CanDelete)
+		{
+			<a class="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-800 transition hover:border-red-300 hover:bg-red-100" href="@($"/ui/streams/delete/{Uri.EscapeDataString(StreamId)}")">Delete</a>
+		}
+		<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@($"/ui/query?initStreamId={Uri.EscapeDataString(StreamId)}")">Query</a>
+		<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@($"/streams/{Uri.EscapeDataString(StreamId)}")" target="_blank" rel="noopener noreferrer">Raw stream</a>
+	</div>
 </section>
 
-<section class="mt-8">
+<section class="mt-8" data-stream-browser data-stream-live="@CanPoll.ToString().ToLowerInvariant()">
+	@if (CanPoll)
+	{
+		<div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-white/80 bg-white/75 px-5 py-4 shadow-[0_12px_40px_rgba(23,32,51,0.06)]">
+			<div>
+				<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Live head</p>
+				<p class="mt-1 text-sm font-bold text-es-muted" data-stream-status>Refreshing the latest page every 2s.</p>
+			</div>
+			<button class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" type="button" data-stream-toggle>Pause</button>
+		</div>
+	}
+	<div data-stream-events-fragment>
 	@if (Page is null)
 	{
 		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
@@ -22,16 +49,26 @@
 	{
 		<StreamEventsSection Page="Page" />
 	}
+	</div>
 </section>
 
 @code {
 	[Parameter] public string StreamId { get; set; } = "";
 	[SupplyParameterFromQuery] public long? From { get; set; }
 	[SupplyParameterFromQuery] public int Count { get; set; } = 20;
+	[SupplyParameterFromQuery] public string Direction { get; set; } = "backward";
 
 	private StreamReadPage Page { get; set; }
+	private bool IsUserStream => !string.IsNullOrWhiteSpace(StreamId) && !StreamId.StartsWith("$", StringComparison.Ordinal);
+	private bool CanAppend => IsUserStream;
+	private bool CanEditMetadata => IsUserStream;
+	private bool CanDelete => IsUserStream;
+	private bool CanPoll => string.Equals(Direction, "backward", StringComparison.OrdinalIgnoreCase) && !From.HasValue;
 
 	protected override async Task OnParametersSetAsync() {
-		Page = await Streams.ReadStreamBackward(StreamId, From ?? -1, Count);
+		Page = null;
+		Page = string.Equals(Direction, "forward", StringComparison.OrdinalIgnoreCase)
+			? await Streams.ReadStreamForward(StreamId, From ?? 0, Count)
+			: await Streams.ReadStreamBackward(StreamId, From ?? -1, Count);
 	}
 }

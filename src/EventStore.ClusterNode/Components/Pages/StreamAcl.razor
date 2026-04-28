@@ -1,0 +1,132 @@
+@page "/ui/streams/acl/{*StreamId}"
+@using EventStore.ClusterNode.Components.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject StreamBrowserService Streams
+
+<PageTitle>Stream ACL - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@($"/ui/streams/{Uri.EscapeDataString(StreamId)}")">&lt;- Back to stream</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Access control</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@StreamId</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Edit the stream metadata ACL fields the legacy browser exposed: read, write, delete, metadata read, and metadata write roles.</p>
+</section>
+
+@if (Page is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading ACL metadata...
+	</section>
+}
+else if (!Page.IsAvailable)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</section>
+}
+else
+{
+	<section class="mt-8 grid gap-5 lg:grid-cols-[1fr_1fr]">
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<EditForm Model="Input" FormName="stream-acl" OnValidSubmit="UpdateAcl">
+				<AntiforgeryToken />
+				<InputText type="hidden" @bind-Value="Input.StreamId" />
+
+				<div class="grid gap-4">
+					<label class="text-sm font-bold text-es-muted">
+						Reader
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.ReadRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Writer
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.WriteRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Deleter
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.DeleteRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Meta Reader
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.MetaReadRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Meta Writer
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.MetaWriteRoles" />
+					</label>
+				</div>
+
+				@if (Result is not null)
+				{
+					<p class="mt-5 rounded-2xl border @(Result.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-4 text-sm font-bold">@Result.Message</p>
+				}
+				else if (!string.IsNullOrWhiteSpace(Page.Message))
+				{
+					<p class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-sm font-bold text-es-muted">@Page.Message</p>
+				}
+
+				<div class="mt-5 flex flex-wrap gap-2">
+					<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Save ACL</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@($"/ui/streams/{Uri.EscapeDataString(StreamId)}")">Cancel</a>
+				</div>
+			</EditForm>
+		</article>
+
+		<JsonPanel Eyebrow="Metadata" Title="Current stream metadata" Content="@Page.RawMetadata" RawHref="@($"/streams/{Uri.EscapeDataString(StreamId)}/metadata")" />
+	</section>
+}
+
+@code {
+	[Parameter] public string StreamId { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "stream-acl")]
+	private StreamAclForm Input { get; set; } = new();
+
+	private StreamAclPage Page { get; set; }
+	private StreamCommandResult Result { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		var requested = StreamId;
+		var hasSubmittedForm = string.Equals(Input.StreamId, requested, StringComparison.OrdinalIgnoreCase);
+		Page = null;
+		Result = null;
+		if (!hasSubmittedForm)
+			Input = new();
+
+		Page = await Streams.ReadAcl(requested);
+		if (Page.Input is not null && !hasSubmittedForm) {
+			Input.StreamId = Page.Input.StreamId;
+			Input.ReadRoles = Page.Input.ReadRoles;
+			Input.WriteRoles = Page.Input.WriteRoles;
+			Input.DeleteRoles = Page.Input.DeleteRoles;
+			Input.MetaReadRoles = Page.Input.MetaReadRoles;
+			Input.MetaWriteRoles = Page.Input.MetaWriteRoles;
+		}
+	}
+
+	private async Task UpdateAcl() {
+		try {
+			Result = await Streams.UpdateAcl(new StreamAclUpdateRequest(
+				Input.StreamId,
+				Input.ReadRoles,
+				Input.WriteRoles,
+				Input.DeleteRoles,
+				Input.MetaReadRoles,
+				Input.MetaWriteRoles));
+			if (Result.Success)
+				Page = await Streams.ReadAcl(Input.StreamId);
+		} catch (OperationCanceledException) {
+			Result = StreamCommandResult.Failure(Input.StreamId, "ACL update was canceled.");
+		} catch (Exception ex) {
+			Result = StreamCommandResult.Failure(Input.StreamId, $"Failed to update ACL: {UserInterfaceMessages.Friendly(ex)}");
+		}
+	}
+
+	private sealed class StreamAclForm {
+		public string StreamId { get; set; } = "";
+		public string ReadRoles { get; set; } = "";
+		public string WriteRoles { get; set; } = "";
+		public string DeleteRoles { get; set; } = "";
+		public string MetaReadRoles { get; set; } = "";
+		public string MetaWriteRoles { get; set; } = "";
+	}
+}

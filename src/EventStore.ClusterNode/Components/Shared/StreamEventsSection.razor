@@ -15,10 +15,11 @@ else
 			<p class="mt-2 text-sm text-es-muted">Last event #@Page.LastEventNumber. Showing from @Page.FromEventNumber.</p>
 		</div>
 		<div class="flex flex-wrap gap-3">
-			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)">Latest</a>
-			@if (Page.CanReadOlder)
+			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.LatestHref">Latest</a>
+			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.FirstPageHref">First events</a>
+			@if (Page.CanReadNextPage)
 			{
-				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="/ui/streams/@Uri.EscapeDataString(Page.StreamId)?from=@Page.NextEventNumber">Older events</a>
+				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.NextPageHref">@Page.NextPageLabel</a>
 			}
 			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/streams/@Uri.EscapeDataString(Page.StreamId)" target="_blank" rel="noopener noreferrer">Raw stream</a>
 		</div>
@@ -30,6 +31,10 @@ else
 			<div class="grid gap-4 lg:grid-cols-2">
 				<JsonPanel Eyebrow="Data" Title="@($"{ev.EventType} data")" Content="@ev.DataForDisplay" RawHref="@ev.RawHref" />
 				<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@ev.MetadataForDisplay" />
+				@if (ev.HasLinkMetadata)
+				{
+					<JsonPanel Eyebrow="Link" Title="Link metadata" Content="@ev.LinkMetadataForDisplay" />
+				}
 			</div>
 		}
 	</div>
