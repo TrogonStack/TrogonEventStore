@@ -3,20 +3,22 @@
 
 	var pollIntervalMs = 1000;
 	var requestTimeoutMs = 8000;
+	var rootSelector = "[data-cluster-status]";
 	var dashboards = new WeakMap();
+	var observer = null;
 
 	function start() {
-		var roots = document.querySelectorAll("[data-cluster-status]");
-		for (var i = 0; i < roots.length; i++)
-			initialize(roots[i]);
+		initializeRoots(document);
+		observeRoots();
 	}
 
 	function initialize(root) {
-		if (dashboards.has(root))
+		if (dashboards.has(root) || !root.isConnected)
 			return;
 
 		var state = {
 			root: root,
+			intervalId: null,
 			members: [],
 			replicas: [],
 			previousReplicas: new Map(),
@@ -31,7 +33,12 @@
 		dashboards.set(root, state);
 		openClusterSnapshot();
 		refreshGossip(state);
-		window.setInterval(function () {
+		state.intervalId = window.setInterval(function () {
+			if (!isActive(state)) {
+				cleanupState(state);
+				return;
+			}
+
 			if (document.hidden)
 				return;
 
@@ -39,7 +46,71 @@
 		}, pollIntervalMs);
 	}
 
+	function initializeRoots(container) {
+		if (!container)
+			return;
+
+		if (container.matches && container.matches(rootSelector))
+			initialize(container);
+
+		var roots = container.querySelectorAll ? container.querySelectorAll(rootSelector) : [];
+		for (var i = 0; i < roots.length; i++)
+			initialize(roots[i]);
+	}
+
+	function observeRoots() {
+		if (observer || !window.MutationObserver || !document.body)
+			return;
+
+		observer = new MutationObserver(function (mutations) {
+			for (var i = 0; i < mutations.length; i++) {
+				for (var added = 0; added < mutations[i].addedNodes.length; added++)
+					initializeRoots(mutations[i].addedNodes[added]);
+
+				for (var removed = 0; removed < mutations[i].removedNodes.length; removed++)
+					cleanupRoots(mutations[i].removedNodes[removed]);
+			}
+		});
+		observer.observe(document.body, { childList: true, subtree: true });
+	}
+
+	function cleanupRoots(container) {
+		if (!container)
+			return;
+
+		if (container.matches && container.matches(rootSelector))
+			cleanupRoot(container);
+
+		var roots = container.querySelectorAll ? container.querySelectorAll(rootSelector) : [];
+		for (var i = 0; i < roots.length; i++)
+			cleanupRoot(roots[i]);
+	}
+
+	function cleanupRoot(root) {
+		var state = dashboards.get(root);
+		if (state)
+			cleanupState(state);
+	}
+
+	function cleanupState(state) {
+		if (state.intervalId !== null) {
+			window.clearInterval(state.intervalId);
+			state.intervalId = null;
+		}
+
+		dashboards.delete(state.root);
+	}
+
+	function isActive(state) {
+		return dashboards.get(state.root) === state && state.root.isConnected;
+	}
+
 	async function refreshGossip(state) {
+		if (!isActive(state)) {
+			cleanupState(state);
+			return;
+		}
+
 		if (state.gossipInFlight)
 			return;
 
@@ -51,6 +122,9 @@
 				throw new Error("Gossip endpoint returned " + response.status + " " + response.statusText);
 
 			var payload = await response.json();
+			if (!isActive(state))
+				return;
+
 			state.members = parseMembers(payload);
 			state.clusterError = "";
 			state.replicaError = "";
@@ -58,6 +132,9 @@
 			render(state);
 			refreshReplication(state);
 		} catch (error) {
+			if (!isActive(state))
+				return;
+
 			clearClusterState(state);
 			state.clusterError = "Gossip unavailable: " + friendlyMessage(error);
 			state.replicaError = "Replica stats unavailable while gossip is unavailable.";
@@ -69,6 +146,11 @@
 	}
 
 	async function refreshReplication(state) {
+		if (!isActive(state)) {
+			cleanupState(state);
+			return;
+		}
+
 		if (state.replicationInFlight)
 			return;
 
@@ -82,6 +164,7 @@
 		}
 
 		var endpointValue = endpoint(leader.httpHost, leader.httpPort);
+		var requestEndpoint = endpointValue;
 		if (state.leaderEndpoint !== endpointValue) {
 			state.leaderEndpoint = endpointValue;
 			state.previousReplicas = new Map();
@@ -96,6 +179,9 @@
 				throw new Error("Replication stats endpoint returned " + response.status + " " + response.statusText);
 
 			var payload = await response.json();
+			if (!isActive(state) || leaderEndpointChanged(state, requestEndpoint))
+				return;
+
 			var now = Date.now();
 			state.replicas = parseReplicas(payload, state.members, leader, state.previousReplicas, now);
 			state.replicaError = "";
@@ -103,12 +189,20 @@
 			state.lastReplicaRefresh = now;
 			renderReplicas(state);
 		} catch (error) {
+			if (!isActive(state) || leaderEndpointChanged(state, requestEndpoint))
+				return;
+
 			clearReplicaState(state);
 			state.replicaError = "Replica stats unavailable: " + friendlyMessage(error);
 			renderReplicas(state);
 		} finally {
 			state.replicationInFlight = false;
 		}
+	}
+
+	function leaderEndpointChanged(state, requestEndpoint) {
+		var leader = findLeader(state.members);
+		return !leader || endpoint(leader.httpHost, leader.httpPort) !== requestEndpoint;
 	}
 
 	function clearClusterState(state) {
