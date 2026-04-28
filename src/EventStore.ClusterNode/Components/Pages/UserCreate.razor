@@ -1,0 +1,120 @@
+@page "/ui/users/new"
+@inject UserBrowserService UserBrowser
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>New User - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="/ui/users">Back to users</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">New user</p>
+	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Create an internal account.</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Use the same internal user-management path as the public API while keeping role assignment explicit.</p>
+</section>
+
+<section class="mt-8 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<EditForm Model="Input" FormName="user-create" OnValidSubmit="CreateUser">
+			<AntiforgeryToken />
+			<DataAnnotationsValidator />
+
+			<div class="grid gap-4 md:grid-cols-2">
+				<label class="text-sm font-bold text-es-muted">
+					Login name
+					<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.LoginName" />
+					<ValidationMessage For="() => Input.LoginName" />
+				</label>
+				<label class="text-sm font-bold text-es-muted">
+					Full name
+					<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.FullName" />
+					<ValidationMessage For="() => Input.FullName" />
+				</label>
+				<label class="text-sm font-bold text-es-muted">
+					Password
+					<InputText type="password" class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Password" />
+					<ValidationMessage For="() => Input.Password" />
+				</label>
+				<label class="text-sm font-bold text-es-muted">
+					Confirm password
+					<InputText type="password" class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.ConfirmPassword" />
+					<ValidationMessage For="() => Input.ConfirmPassword" />
+				</label>
+			</div>
+
+			<div class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+				<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Role</p>
+				<InputRadioGroup class="mt-3 grid gap-2 sm:grid-cols-3" @bind-Value="Input.Role">
+					@foreach (var option in UserBrowserService.RoleOptions)
+					{
+						<label class="flex items-center gap-2 rounded-2xl border border-es-ink/10 bg-white px-3 py-2 text-sm font-bold text-es-ink">
+							<InputRadio Value="@option.Value" />
+							@option.Label
+						</label>
+					}
+				</InputRadioGroup>
+			</div>
+
+			@if (Result is not null && !Result.Success)
+			{
+				<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Result.Message</p>
+			}
+
+			<div class="mt-5 flex flex-wrap gap-2">
+				<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Create user</button>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/users">Cancel</a>
+			</div>
+		</EditForm>
+	</article>
+
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<StatusBadge Label="Administrator only" Tone="warn" />
+		<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Role mapping</h2>
+		<p class="mt-3 text-sm leading-6 text-es-muted">The legacy users UI allowed one special role at creation time: operations, administrator, or none. This page keeps that boundary so account intent stays obvious.</p>
+	</article>
+</section>
+
+@code {
+	[SupplyParameterFromForm(FormName = "user-create")]
+	private UserCreateInput Input { get; set; } = new();
+
+	private UserCommandResult Result { get; set; }
+
+	private async Task CreateUser() {
+		var redirectTo = "";
+		try {
+			Result = await UserBrowser.Create(new UserCreateRequest(
+				Input.LoginName,
+				Input.FullName,
+				Input.Role,
+				Input.Password,
+				Input.ConfirmPassword));
+
+			if (Result.Success)
+				redirectTo = $"/ui/users/{Uri.EscapeDataString(Result.LoginName)}";
+		} catch (OperationCanceledException) {
+			Result = UserCommandResult.Failure(Input.LoginName, "User creation was canceled.");
+		} catch (Exception ex) {
+			Result = UserCommandResult.Failure(Input.LoginName, $"Failed to create user: {UserInterfaceMessages.Friendly(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private sealed class UserCreateInput {
+		[Required(ErrorMessage = "Enter a login name.")]
+		public string LoginName { get; set; } = "";
+
+		[Required(ErrorMessage = "Enter a full name.")]
+		public string FullName { get; set; } = "";
+
+		public string Role { get; set; } = "";
+
+		[Required(ErrorMessage = "Enter a password.")]
+		public string Password { get; set; } = "";
+
+		[Compare(nameof(Password), ErrorMessage = "The password confirmation does not match.")]
+		public string ConfirmPassword { get; set; } = "";
+	}
+}

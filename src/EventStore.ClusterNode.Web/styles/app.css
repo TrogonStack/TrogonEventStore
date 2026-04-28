@@ -9,7 +9,7 @@
 
 @theme {
 	--font-sans: Roboto, ui-sans-serif, system-ui, sans-serif;
-	--font-mono: "Source Code Pro", ui-monospace, SFMono-Regular, monospace;
+	--font-mono: "Source Code Pro", ui-monospace, "SFMono-Regular", monospace;
 	--color-es-green: #6ba300;
 	--color-es-forest: #436b00;
 	--color-es-ink: #172033;

@@ -6,8 +6,12 @@
 <section class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
 	<div>
 		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Users</p>
-		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Review account access from the native workspace.</h1>
-		<p class="mt-5 text-lg leading-8 text-es-muted">Inspect account state, roles, and the currently authenticated principal before making security changes through the dedicated API surfaces.</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Manage account access from the native workspace.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Create users, adjust roles, reset passwords, and inspect the currently authenticated principal without falling back to the legacy shell.</p>
+		<div class="mt-6 flex flex-wrap gap-2">
+			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="/ui/users/new">New user</a>
+			<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/users/" target="_blank" rel="noopener noreferrer">Raw users</a>
+		</div>
 	</div>
 	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-2">
 		<MetricCard Label="Users" Value="@(Page?.UserCountLabel ?? "-")" />
@@ -50,7 +54,7 @@
 	}
 	else
 	{
-		<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]" data-admin-auto-refresh="5000">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
 					<thead class="bg-es-ink/5 text-xs font-black uppercase tracking-[0.16em] text-es-muted">
@@ -59,7 +63,7 @@
 							<th class="px-5 py-4">Status</th>
 							<th class="px-5 py-4">Groups</th>
 							<th class="px-5 py-4">Updated</th>
-							<th class="px-5 py-4">Links</th>
+							<th class="px-5 py-4">Actions</th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-es-ink/10">
@@ -78,6 +82,16 @@
 								<td class="px-5 py-4">
 									<div class="flex flex-wrap gap-2">
 										<a class="rounded-full bg-es-ink px-3 py-1.5 text-xs font-bold text-white transition hover:bg-es-green" href="@user.DetailHref">Details</a>
+										<a class="rounded-full border border-es-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@user.EditHref">Edit</a>
+										<a class="rounded-full border border-es-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@user.ResetPasswordHref">Reset</a>
+										@if (user.Disabled)
+										{
+											<a class="rounded-full border border-es-green/30 bg-es-green/10 px-3 py-1.5 text-xs font-bold text-es-forest transition hover:bg-es-green hover:text-white" href="@user.EnableHref">Enable</a>
+										}
+										else
+										{
+											<a class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100" href="@user.DisableHref">Disable</a>
+										}
 										<a class="rounded-full border border-es-ink/10 bg-white px-3 py-1.5 text-xs font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@user.RawHref" target="_blank" rel="noopener noreferrer">Raw</a>
 									</div>
 								</td>
@@ -101,10 +115,7 @@
 		} catch (OperationCanceledException) {
 			throw;
 		} catch (Exception ex) {
-			Page = UserListPage.Unavailable(UserBrowser.ReadCurrentRequest(), $"Failed to load users: {FriendlyMessage(ex)}");
+			Page = UserListPage.Unavailable(UserBrowser.ReadCurrentRequest(), $"Failed to load users: {UserInterfaceMessages.Friendly(ex)}");
 		}
 	}
-
-	private static string FriendlyMessage(Exception ex) =>
-		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }
