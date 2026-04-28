@@ -257,14 +257,17 @@
 		}
 	}
 
-	async function redirectLegacyRoutes() {
+	function redirectLegacyRoutes() {
 		var hash = window.location.hash || "";
 		for (var i = 0; i < legacyRoutes.length; i++) {
 			if (!legacyRoutes[i].pattern.test(hash))
 				continue;
 
-			await copyLegacyCredentialsCookie();
-			window.location.replace(legacyRoutes[i].target(hash));
+			var target = legacyRoutes[i].target(hash);
+			if (submitLegacyCredentials(target))
+				return;
+
+			window.location.replace(target);
 			return;
 		}
 	}
@@ -281,19 +284,28 @@
 		return "";
 	}
 
-	async function copyLegacyCredentialsCookie() {
+	function submitLegacyCredentials(returnUrl) {
 		var value = readCookie("es-creds");
-		if (!value || !window.fetch)
-			return;
+		if (!value)
+			return false;
 
-		try {
-			await window.fetch("/ui/security/migrate-credentials", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ credentials: value })
-			});
-		} catch (_) {
-		}
+		var form = document.createElement("form");
+		form.method = "post";
+		form.action = "/ui/security/migrate-credentials";
+		form.style.display = "none";
+		appendHidden(form, "credentials", value);
+		appendHidden(form, "returnUrl", returnUrl);
+		(document.body || document.documentElement).appendChild(form);
+		form.submit();
+		return true;
+	}
+
+	function appendHidden(form, name, value) {
+		var input = document.createElement("input");
+		input.type = "hidden";
+		input.name = name;
+		input.value = value;
+		form.appendChild(input);
 	}
 
 	function watchLegacyShell() {

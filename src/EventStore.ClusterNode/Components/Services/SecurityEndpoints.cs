@@ -12,8 +12,7 @@ internal static class SecurityEndpoints {
 		app.MapPost("/ui/security/migrate-credentials", async (HttpContext context, SecurityBrowserService security) => {
 			SecurityCredentialMigrationRequest request;
 			try {
-				request = await context.Request.ReadFromJsonAsync<SecurityCredentialMigrationRequest>(
-					cancellationToken: context.RequestAborted);
+				request = await ReadMigrationRequest(context);
 			} catch (Exception ex) when (ex is BadHttpRequestException or JsonException) {
 				return Results.BadRequest();
 			}
@@ -37,11 +36,33 @@ internal static class SecurityEndpoints {
 				return Results.Unauthorized();
 
 			UiCredentialCookie.AppendBasic(context.Response, credentials);
-			return Results.NoContent();
+			return string.IsNullOrWhiteSpace(request.ReturnUrl)
+				? Results.NoContent()
+				: Results.Redirect(request.ReturnUrl);
 		});
 
 		return app;
 	}
+
+	private static async Task<SecurityCredentialMigrationRequest> ReadMigrationRequest(HttpContext context) {
+		if (context.Request.HasFormContentType) {
+			var form = await context.Request.ReadFormAsync(context.RequestAborted);
+			return new SecurityCredentialMigrationRequest(
+				form["credentials"].ToString(),
+				SecurityBrowserService.NormalizeReturnUrl(form["returnUrl"].ToString()));
+		}
+
+		var request = await context.Request.ReadFromJsonAsync<SecurityCredentialMigrationRequest>(
+			cancellationToken: context.RequestAborted);
+
+		return request is null
+			? null
+			: request with {
+				ReturnUrl = string.IsNullOrWhiteSpace(request.ReturnUrl)
+					? ""
+					: SecurityBrowserService.NormalizeReturnUrl(request.ReturnUrl)
+			};
+	}
 }
 
-internal sealed record SecurityCredentialMigrationRequest(string Credentials);
+internal sealed record SecurityCredentialMigrationRequest(string Credentials, string ReturnUrl = "");
