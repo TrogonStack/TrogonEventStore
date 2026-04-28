@@ -3,9 +3,94 @@
 @inject QueueDashboardService QueueDashboard
 @using System.Globalization
 
-<PageTitle>EventStore Dashboard</PageTitle>
+<PageTitle>EventStore Cluster</PageTitle>
 
 <div data-queue-dashboard="home">
+<section id="cluster-status" data-cluster-status class="mb-5 overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+	<div class="flex flex-col gap-3 border-b border-es-ink/10 px-5 py-5 xl:flex-row xl:items-start xl:justify-between">
+		<div>
+			<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Cluster status</p>
+			<h1 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Gossip membership</h1>
+			<p class="mt-2 text-sm text-es-muted">Live state, checkpoints, node endpoints, and replica catch-up from gossip and replication statistics.</p>
+		</div>
+		<div class="flex flex-wrap gap-2">
+			<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-cluster-status-label>Connecting gossip...</span>
+			<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-cluster-updated>Waiting for first update</span>
+			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/gossip?format=json" target="_blank" rel="noopener noreferrer">Raw gossip</a>
+		</div>
+	</div>
+
+	<div class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+		<MetricCard Label="Members" Value="-" ClusterMetric="members" />
+		<MetricCard Label="Alive" Value="-" Tone="muted" ClusterMetric="alive" />
+		<MetricCard Label="Leader" Value="-" ClusterMetric="leader" />
+		<MetricCard Label="Read-only replicas" Value="-" Tone="muted" ClusterMetric="readonly" />
+	</div>
+
+	<div class="grid gap-5 px-5 pb-5 2xl:grid-cols-[1fr_0.55fr]">
+		<div class="overflow-hidden rounded-[1.5rem] border border-es-ink/10 bg-white">
+			<div class="overflow-x-auto">
+				<table class="min-w-full text-left text-sm">
+					<thead class="border-b border-es-ink/10 bg-es-ink/5 text-xs font-black uppercase tracking-[0.16em] text-es-muted">
+						<tr>
+							<th class="px-5 py-4">State</th>
+							<th class="px-5 py-4">Status</th>
+							<th class="px-5 py-4">Timestamp (UTC)</th>
+							<th class="px-5 py-4">Checkpoints</th>
+							<th class="px-5 py-4">TCP</th>
+							<th class="px-5 py-4">HTTP</th>
+							<th class="px-5 py-4 text-right">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-es-ink/10" data-cluster-members-body>
+						<tr>
+							<td class="px-5 py-4 text-es-muted" colspan="7">Loading cluster membership...</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<div class="grid gap-5">
+			<details id="cluster-snapshot" class="overflow-hidden rounded-[1.5rem] border border-es-ink/10 bg-es-ink text-white">
+				<summary class="cursor-pointer px-5 py-4 text-sm font-black uppercase tracking-[0.18em] text-white/70 hover:text-white">Snapshot</summary>
+				<pre class="max-h-[28rem] overflow-auto border-t border-white/10 p-5 text-xs leading-5 text-white/80" data-cluster-snapshot>Cluster status is not available yet.</pre>
+			</details>
+
+			<div class="overflow-hidden rounded-[1.5rem] border border-es-ink/10 bg-white" data-replica-section>
+				<div class="flex items-center justify-between gap-3 border-b border-es-ink/10 px-5 py-4">
+					<div>
+						<p class="text-xs font-black uppercase tracking-[0.18em] text-es-green">Replica status</p>
+						<p class="mt-1 text-sm text-es-muted" data-replica-status>No replica stats reported.</p>
+					</div>
+				</div>
+				<div class="overflow-x-auto">
+					<table class="min-w-full text-left text-sm">
+						<thead class="border-b border-es-ink/10 bg-es-ink/5 text-xs font-black uppercase tracking-[0.16em] text-es-muted">
+							<tr>
+								<th class="px-5 py-4">Replica endpoint</th>
+								<th class="px-5 py-4 text-right">Sent</th>
+								<th class="px-5 py-4 text-right">Received</th>
+								<th class="px-5 py-4 text-right">Pending send</th>
+								<th class="px-5 py-4 text-right">Pending receive</th>
+								<th class="px-5 py-4 text-right">Queue</th>
+								<th class="px-5 py-4 text-right">To catch up</th>
+								<th class="px-5 py-4 text-right">Speed/s</th>
+								<th class="px-5 py-4 text-right">ETA</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-es-ink/10" data-replica-body>
+							<tr>
+								<td class="px-5 py-4 text-es-muted" colspan="9">No replica stats reported.</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
 <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 	<MetricCard Label="Runtime queues" Value="@(Page?.QueueCountLabel ?? "-")" QueueMetric="queue-count" />
 	<MetricCard Label="Busy queues" Value="@(Page?.BusyQueueCountLabel ?? "-")" Tone="muted" QueueMetric="busy-count" />

@@ -1,38 +1,61 @@
 (function () {
 	"use strict";
 
-	var legacyDashboardRoute = /^#\/dashboard(?:\/snapshot)?(?:[/?].*)?$/i;
+	var legacyRoutes = [
+		{
+			pattern: /^#\/dashboard(?:\/snapshot)?(?:[/?].*)?$/i,
+			target: function (hash) {
+				return hash.toLowerCase().indexOf("/snapshot") >= 0
+					? "/ui/observability#dashboard-snapshot"
+					: "/ui/observability";
+			}
+		},
+		{
+			pattern: /^#\/clusterstatus(?:\/snapshot)?(?:[/?].*)?$/i,
+			target: function (hash) {
+				return hash.toLowerCase().indexOf("/snapshot") >= 0
+					? "/ui/cluster#cluster-snapshot"
+					: "/ui/cluster#cluster-status";
+			}
+		}
+	];
 
-	function removeLegacyDashboardLink() {
-		var links = document.querySelectorAll('a[ui-sref="dashboard.list"]');
-		for (var i = 0; i < links.length; i++) {
-			if (links[i].textContent.trim() !== "Dashboard")
-				continue;
+	var legacyNavLinks = [
+		{ selector: 'a[ui-sref="dashboard.list"]', text: "Dashboard" },
+		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" }
+	];
 
-			var item = links[i].closest("li");
-			if (item)
-				item.remove();
+	function removeLegacyLinks() {
+		for (var group = 0; group < legacyNavLinks.length; group++) {
+			var links = document.querySelectorAll(legacyNavLinks[group].selector);
+			for (var i = 0; i < links.length; i++) {
+				if (links[i].textContent.trim() !== legacyNavLinks[group].text)
+					continue;
+
+				var item = links[i].closest("li");
+				if (item)
+					item.remove();
+			}
 		}
 	}
 
-	function redirectLegacyDashboard() {
+	function redirectLegacyRoutes() {
 		var hash = window.location.hash || "";
-		if (!legacyDashboardRoute.test(hash))
+		for (var i = 0; i < legacyRoutes.length; i++) {
+			if (!legacyRoutes[i].pattern.test(hash))
+				continue;
+
+			window.location.replace(legacyRoutes[i].target(hash));
 			return;
-
-		var target = hash.toLowerCase().indexOf("/snapshot") >= 0
-			? "/ui/observability#dashboard-snapshot"
-			: "/ui/observability";
-
-		window.location.replace(target);
+		}
 	}
 
 	function watchLegacyShell() {
-		removeLegacyDashboardLink();
+		removeLegacyLinks();
 		if (!window.MutationObserver || !document.body)
 			return;
 
-		var observer = new MutationObserver(removeLegacyDashboardLink);
+		var observer = new MutationObserver(removeLegacyLinks);
 		observer.observe(document.body, { childList: true, subtree: true });
 	}
 
@@ -41,6 +64,6 @@
 	else
 		watchLegacyShell();
 
-	window.addEventListener("hashchange", redirectLegacyDashboard);
-	redirectLegacyDashboard();
+	window.addEventListener("hashchange", redirectLegacyRoutes);
+	redirectLegacyRoutes();
 })();

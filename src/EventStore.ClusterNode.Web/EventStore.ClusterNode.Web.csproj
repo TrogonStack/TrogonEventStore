@@ -38,6 +38,9 @@
 		<None Include="clusternode-web\js\app.min.js">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Include="clusternode-web\js\cluster-status.js">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Include="clusternode-web\js\legacy-dashboard-redirect.js">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
