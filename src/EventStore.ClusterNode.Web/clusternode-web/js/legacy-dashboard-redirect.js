@@ -25,6 +25,29 @@
 			}
 		},
 		{
+			pattern: /^#\/subscriptions(?:[/?].*)?$/i,
+			target: function (hash) {
+				var path = hash.replace(/^#\/subscriptions\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
+				if (!path)
+					return "/ui/subscriptions";
+
+				var parts = path.split("/");
+				if (parts[0].toLowerCase() === "new")
+					return "/ui/subscriptions/new";
+				if (parts.length < 2)
+					return "/ui/subscriptions";
+
+				var streamId = safeDecode(parts[0]);
+				var groupName = safeDecode(parts[1]);
+				var action = (parts[2] || "").toLowerCase();
+				var target = "/ui/subscriptions/" + encodeURIComponent(streamId) + "/" + encodeURIComponent(groupName);
+				if (action === "viewparkedmessages")
+					return target + "/parked";
+
+				return isSubscriptionAction(action) ? target + "/" + action : target;
+			}
+		},
+		{
 			pattern: /^#\/scavenge\/([^/?#]+)(?:\/)?(?:[?](.*))?$/i,
 			target: function (hash) {
 				var match = /^#\/scavenge\/([^/?#]+)(?:\/)?(?:[?](.*))?$/i.exec(hash);
@@ -67,7 +90,8 @@
 		{ selector: 'a[ui-sref="dashboard.list"]', text: "Dashboard" },
 		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" },
 		{ selector: 'a[ui-sref="admin"]', text: "Admin" },
-		{ selector: 'a[ui-sref="users.list"]', text: "Users" }
+		{ selector: 'a[ui-sref="users.list"]', text: "Users" },
+		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" }
 	];
 
 	function safeDecode(value) {
@@ -84,6 +108,12 @@
 			action === "disable" ||
 			action === "delete" ||
 			action === "reset";
+	}
+
+	function isSubscriptionAction(action) {
+		return action === "edit" ||
+			action === "delete" ||
+			action === "parked";
 	}
 
 	function removeLegacyLinks() {

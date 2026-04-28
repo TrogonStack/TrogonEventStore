@@ -1,0 +1,131 @@
+@page "/ui/subscriptions/{StreamId}/{GroupName}/delete"
+@inject SubscriptionBrowserService SubscriptionBrowser
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Delete Subscription - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@($"/ui/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}")">Back to subscription</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-red-700">Delete subscription</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@GroupName</h1>
+	<p class="mt-5 break-words text-lg leading-8 text-es-muted">@StreamId</p>
+</section>
+
+@if (Page is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading subscription...
+	</section>
+}
+else if (Page.Subscription is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</section>
+}
+else
+{
+	<section class="mt-8 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+		<article class="rounded-[2rem] border border-red-200 bg-red-50 p-6 text-red-950 shadow-[0_20px_70px_rgba(153,27,27,0.08)]">
+			<StatusBadge Label="Destructive" Tone="bad" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight">Delete persistent subscription</h2>
+			<p class="mt-3 text-sm leading-6">This removes the subscription group and its checkpoint state. Parked messages should be inspected or replayed before deleting when they matter for recovery.</p>
+
+			@if (Result is not null)
+			{
+				<p class="mt-5 rounded-2xl border @(Result.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-white text-red-800") p-4 text-sm font-bold">@Result.Message</p>
+			}
+
+			<EditForm Model="Input" FormName="subscription-delete" OnValidSubmit="DeleteSubscription">
+				<AntiforgeryToken />
+				<InputText type="hidden" @bind-Value="Input.StreamId" />
+				<InputText type="hidden" @bind-Value="Input.GroupName" />
+				<div class="mt-5 flex flex-wrap gap-2">
+					<button class="rounded-2xl bg-red-700 px-5 py-3 text-sm font-black text-white shadow-lg shadow-red-900/15 transition hover:bg-red-800" type="submit">Delete subscription</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.Subscription.UiDetailHref">Cancel</a>
+				</div>
+			</EditForm>
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="@Page.Subscription.StatusLabel" Tone="@Page.Subscription.StatusTone" />
+			<h2 class="mt-4 break-words text-2xl font-black tracking-tight text-es-ink">@Page.Subscription.GroupName</h2>
+			<p class="mt-2 break-words font-mono text-sm text-es-muted">@Page.Subscription.StreamId</p>
+			<div class="mt-5 grid gap-3 text-sm">
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Parked messages</p>
+					<p class="mt-2 font-mono text-es-ink">@Page.Subscription.ParkedMessageCount</p>
+				</div>
+				<div class="rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+					<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Checkpoint</p>
+					<p class="mt-2 break-words font-mono text-es-ink">@(string.IsNullOrWhiteSpace(Page.Subscription.LastCheckpointedEventPosition) ? "No checkpoint" : Page.Subscription.LastCheckpointedEventPosition)</p>
+				</div>
+			</div>
+		</article>
+	</section>
+}
+
+@code {
+	[Parameter] public string StreamId { get; set; } = "";
+	[Parameter] public string GroupName { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "subscription-delete")]
+	private SubscriptionDeleteInput Input { get; set; } = new();
+
+	private SubscriptionDetailPage Page { get; set; }
+	private SubscriptionCommandResult Result { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		var requestedStream = StreamId;
+		var requestedGroup = GroupName;
+		Page = null;
+		Result = null;
+
+		try {
+			var page = await SubscriptionBrowser.Read(requestedStream, requestedGroup);
+			if (requestedStream != StreamId || requestedGroup != GroupName)
+				return;
+
+			Page = page;
+			if (Page.Subscription is not null) {
+				Input.StreamId = Page.Subscription.StreamId;
+				Input.GroupName = Page.Subscription.GroupName;
+			}
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			if (requestedStream == StreamId && requestedGroup == GroupName)
+				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load subscription: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private async Task DeleteSubscription() {
+		if (Page?.Subscription is not { } subscription) {
+			Result = SubscriptionCommandResult.Failure(StreamId, GroupName, "Subscription details are not loaded.");
+			return;
+		}
+
+		var redirectTo = "";
+		try {
+			Result = await SubscriptionBrowser.Delete(subscription.StreamId, subscription.GroupName);
+			if (Result.Success)
+				redirectTo = "/ui/subscriptions";
+		} catch (OperationCanceledException) {
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, "Subscription delete was canceled.");
+		} catch (Exception ex) {
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to delete subscription: {FriendlyMessage(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private sealed class SubscriptionDeleteInput {
+		public string StreamId { get; set; } = "";
+		public string GroupName { get; set; } = "";
+	}
+}

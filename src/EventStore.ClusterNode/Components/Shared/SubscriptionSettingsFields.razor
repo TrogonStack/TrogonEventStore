@@ -1,0 +1,111 @@
+@using EventStore.ClusterNode.Components.Services
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="grid gap-4 md:grid-cols-2">
+	<label class="text-sm font-bold text-es-muted">
+		Stream id
+		@if (AllowIdentityEdit)
+		{
+			<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.StreamId" />
+			<ValidationMessage For="() => Model.StreamId" />
+		}
+		else
+		{
+			<InputText type="hidden" @bind-Value="Model.StreamId" />
+			<span class="mt-2 block break-words rounded-2xl border border-es-ink/10 bg-es-ink/5 px-4 py-3 font-mono text-sm text-es-ink">@Model.StreamId</span>
+		}
+	</label>
+	<label class="text-sm font-bold text-es-muted">
+		Group name
+		@if (AllowIdentityEdit)
+		{
+			<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.GroupName" />
+			<ValidationMessage For="() => Model.GroupName" />
+		}
+		else
+		{
+			<InputText type="hidden" @bind-Value="Model.GroupName" />
+			<span class="mt-2 block break-words rounded-2xl border border-es-ink/10 bg-es-ink/5 px-4 py-3 font-mono text-sm text-es-ink">@Model.GroupName</span>
+		}
+	</label>
+</div>
+
+<div class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+	<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Delivery</p>
+	<div class="mt-4 grid gap-4 md:grid-cols-2">
+		<label class="flex items-center gap-3 rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-sm font-bold text-es-ink">
+			<InputCheckbox @bind-Value="Model.ResolveLinkTos" />
+			Resolve link events
+		</label>
+		<label class="flex items-center gap-3 rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-sm font-bold text-es-ink">
+			<InputCheckbox @bind-Value="Model.ExtraStatistics" />
+			Collect extra statistics
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Start from
+			<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.StartFrom" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Consumer strategy
+			<InputSelect class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.NamedConsumerStrategy">
+				@foreach (var option in SubscriptionBrowserService.StrategyOptions)
+				{
+					<option value="@option.Value">@option.Label</option>
+				}
+			</InputSelect>
+		</label>
+	</div>
+</div>
+
+<div class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+	<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Buffers and retries</p>
+	<div class="mt-4 grid gap-4 md:grid-cols-3">
+		<label class="text-sm font-bold text-es-muted">
+			Message timeout ms
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.MessageTimeoutMilliseconds" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Max retries
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.MaxRetryCount" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Max subscribers
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.MaxSubscriberCount" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Live buffer
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.LiveBufferSize" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Buffer size
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.BufferSize" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Read batch size
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.ReadBatchSize" />
+		</label>
+	</div>
+</div>
+
+<div class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4">
+	<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Checkpoints</p>
+	<div class="mt-4 grid gap-4 md:grid-cols-3">
+		<label class="text-sm font-bold text-es-muted">
+			Checkpoint after ms
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.CheckPointAfterMilliseconds" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Min checkpoint count
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.MinCheckPointCount" />
+		</label>
+		<label class="text-sm font-bold text-es-muted">
+			Max checkpoint count
+			<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Model.MaxCheckPointCount" />
+		</label>
+	</div>
+</div>
+
+@code {
+	[Parameter] public SubscriptionSettingsInput Model { get; set; }
+	[Parameter] public bool AllowIdentityEdit { get; set; }
+}

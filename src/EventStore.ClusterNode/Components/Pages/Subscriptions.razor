@@ -8,6 +8,7 @@
 		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Subscriptions</p>
 		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Inspect consumer pressure before it turns into backlog.</h1>
 		<p class="mt-5 text-lg leading-8 text-es-muted">Review persistent subscription groups, parked messages, in-flight work, and active consumers from the native workspace.</p>
+		<a class="mt-6 inline-flex rounded-full bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="/ui/subscriptions/new">Create subscription</a>
 	</div>
 	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-2">
 		<MetricCard Label="Groups" Value="@(Page?.GroupCountLabel ?? "-")" />
@@ -46,8 +47,10 @@
 							<p class="mt-2 break-words font-mono text-sm text-es-muted">@subscription.StreamId</p>
 						</div>
 						<div class="flex flex-wrap gap-3">
-							<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@subscription.DetailHref" target="_blank" rel="noopener noreferrer">Raw details</a>
-							<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@subscription.ParkedHref" target="_blank" rel="noopener noreferrer">Parked</a>
+							<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@subscription.UiDetailHref">Inspect</a>
+							<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@subscription.UiParkedHref">Parked</a>
+							<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@subscription.UiEditHref">Edit</a>
+							<a class="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-800 transition hover:bg-red-100" href="@subscription.UiDeleteHref">Delete</a>
 						</div>
 					</div>
 
@@ -69,6 +72,10 @@
 							<p class="text-xs font-black uppercase tracking-[0.18em] text-es-muted">Pressure</p>
 							<p class="mt-2 text-2xl font-black text-es-ink">@subscription.TotalInFlightMessages in flight</p>
 							<p class="text-sm text-es-muted">@subscription.OutstandingMessagesCount outstanding</p>
+							@if (!string.IsNullOrWhiteSpace(subscription.BehindStatusLabel))
+							{
+								<p class="mt-1 text-xs font-bold text-es-muted">@subscription.BehindStatusLabel</p>
+							}
 						</div>
 					</div>
 

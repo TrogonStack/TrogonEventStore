@@ -1,0 +1,204 @@
+@page "/ui/subscriptions/{StreamId}/{GroupName}/parked"
+@inject SubscriptionBrowserService SubscriptionBrowser
+@inject StreamBrowserService StreamBrowser
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Parked Messages - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@($"/ui/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}")">Back to subscription</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Parked messages</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@GroupName</h1>
+	<p class="mt-5 break-words text-lg leading-8 text-es-muted">@StreamId</p>
+</section>
+
+@if (Page is null || EventsPage is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading parked messages...
+	</section>
+}
+else if (Page.Subscription is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</section>
+}
+else
+{
+	var subscription = Page.Subscription;
+	<section class="mt-8 grid gap-5 xl:grid-cols-[1fr_0.8fr]">
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="Parked queue" Tone="bad" />
+			<h2 class="mt-4 break-words text-2xl font-black tracking-tight text-es-ink">@ParkedStreamName(subscription.StreamId, subscription.GroupName)</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">Browse parked events without leaving the workspace, then replay all parked messages or stop at a specific parked event number.</p>
+			<div class="mt-5 flex flex-wrap gap-3">
+				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@BaseHref">First</a>
+				@if (OlderHref is { } olderHref)
+				{
+					<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@olderHref">Next</a>
+				}
+				@if (NewerHref is { } newerHref)
+				{
+					<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@newerHref">Previous</a>
+				}
+				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/streams/@Uri.EscapeDataString(ParkedStreamName(subscription.StreamId, subscription.GroupName))" target="_blank" rel="noopener noreferrer">Raw parked stream</a>
+			</div>
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="@subscription.StatusLabel" Tone="@subscription.StatusTone" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Replay parked</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">@subscription.ParkedMessageCount parked messages are reported for this subscription.</p>
+			@if (Result is not null)
+			{
+				<p class="mt-5 rounded-2xl border @(Result.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-4 text-sm font-bold">@Result.Message</p>
+			}
+			<EditForm Model="ReplayInput" FormName="subscription-parked-replay" OnValidSubmit="ReplayParked">
+				<AntiforgeryToken />
+				<label class="mt-5 block text-sm font-bold text-es-muted">
+					Stop at event number
+					<InputNumber class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="ReplayInput.StopAt" />
+				</label>
+				<button class="mt-4 rounded-2xl bg-es-green px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-green/20 transition hover:bg-es-forest" type="submit">Replay parked</button>
+			</EditForm>
+		</article>
+	</section>
+
+	<section class="mt-8">
+		@if (!EventsPage.HasEvents)
+		{
+			<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+				@(string.IsNullOrWhiteSpace(EventsPage.Message) || EventsPage.Message.Contains(ParkedStreamName(subscription.StreamId, subscription.GroupName), StringComparison.Ordinal)
+					? $"No parked events for subscription {subscription.StreamId}::{subscription.GroupName}."
+					: EventsPage.Message)
+			</div>
+		}
+		else
+		{
+			<div class="mb-5">
+				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Events</p>
+				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Showing from @EventsPage.FromEventNumber</h2>
+				<p class="mt-2 text-sm text-es-muted">Last parked event #@EventsPage.LastEventNumber.</p>
+			</div>
+			<div class="grid gap-5">
+				@foreach (var ev in EventsPage.Events)
+				{
+					<StreamEventCard Event="ev" />
+					<div class="grid gap-4 lg:grid-cols-2">
+						<JsonPanel Eyebrow="Data" Title="@($"{ev.EventType} data")" Content="@ev.DataForDisplay" RawHref="@ev.RawHref" />
+						<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@ev.MetadataForDisplay" />
+						@if (ev.HasLinkMetadata)
+						{
+							<JsonPanel Eyebrow="Link metadata" Title="Parked link metadata" Content="@ev.LinkMetadataForDisplay" />
+						}
+					</div>
+				}
+			</div>
+		}
+	</section>
+}
+
+@code {
+	private const int PageSize = 20;
+
+	[Parameter] public string StreamId { get; set; } = "";
+	[Parameter] public string GroupName { get; set; } = "";
+	[SupplyParameterFromQuery] public long? From { get; set; }
+	[SupplyParameterFromQuery] public string Direction { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "subscription-parked-replay")]
+	private ReplayParkedInput ReplayInput { get; set; } = new();
+
+	private SubscriptionDetailPage Page { get; set; }
+	private StreamReadPage EventsPage { get; set; }
+	private SubscriptionCommandResult Result { get; set; }
+
+	private string BaseHref => $"/ui/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}/parked";
+	private string OlderHref {
+		get {
+			if (EventsPage?.HasEvents != true)
+				return null;
+
+			var from = EventsPage.Events.Min(x => x.EventNumber) - 1;
+			return from >= 0 ? $"{BaseHref}?from={from}" : null;
+		}
+	}
+	private string NewerHref {
+		get {
+			if (EventsPage?.HasEvents != true)
+				return null;
+
+			var from = EventsPage.Events.Max(x => x.EventNumber) + 1;
+			return from <= EventsPage.LastEventNumber ? $"{BaseHref}?direction=forward&from={from}" : null;
+		}
+	}
+
+	protected override async Task OnParametersSetAsync() {
+		var requestedStream = StreamId;
+		var requestedGroup = GroupName;
+		var requestedFrom = From;
+		var requestedDirection = Direction;
+		Page = null;
+		EventsPage = null;
+		Result = null;
+
+		try {
+			var page = await SubscriptionBrowser.Read(requestedStream, requestedGroup);
+			if (requestedStream != StreamId || requestedGroup != GroupName)
+				return;
+
+			Page = page;
+			if (Page.Subscription is null) {
+				EventsPage = StreamReadPage.Empty("", Page.Message);
+				return;
+			}
+
+			var parkedStream = ParkedStreamName(Page.Subscription.StreamId, Page.Subscription.GroupName);
+			var eventsPage = string.Equals(requestedDirection, "forward", StringComparison.OrdinalIgnoreCase)
+				? await StreamBrowser.ReadStreamForward(parkedStream, requestedFrom ?? 0, PageSize)
+				: await StreamBrowser.ReadStreamBackward(parkedStream, requestedFrom ?? -1, PageSize);
+
+			if (requestedStream != StreamId ||
+			    requestedGroup != GroupName ||
+			    requestedFrom != From ||
+			    !string.Equals(requestedDirection, Direction, StringComparison.Ordinal))
+				return;
+
+			EventsPage = eventsPage;
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			if (requestedStream == StreamId && requestedGroup == GroupName) {
+				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load parked messages: {FriendlyMessage(ex)}");
+				EventsPage = StreamReadPage.Empty("", Page.Message);
+			}
+		}
+	}
+
+	private async Task ReplayParked() {
+		if (Page?.Subscription is not { } subscription) {
+			Result = SubscriptionCommandResult.Failure(StreamId, GroupName, "Subscription details are not loaded.");
+			return;
+		}
+
+		try {
+			Result = await SubscriptionBrowser.ReplayParked(subscription.StreamId, subscription.GroupName, ReplayInput.StopAt);
+		} catch (OperationCanceledException) {
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, "Replay parked was canceled.");
+		} catch (Exception ex) {
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to replay parked messages: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private static string ParkedStreamName(string streamId, string groupName) =>
+		$"$persistentsubscription-{streamId}::{groupName}-parked";
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private sealed class ReplayParkedInput {
+		public long? StopAt { get; set; }
+	}
+}
