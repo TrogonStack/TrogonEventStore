@@ -22,6 +22,8 @@
 			previousReplicas: new Map(),
 			lastReplicaRefresh: null,
 			leaderEndpoint: "",
+			clusterError: "",
+			replicaError: "",
 			gossipInFlight: false,
 			replicationInFlight: false
 		};
@@ -50,10 +52,16 @@
 
 			var payload = await response.json();
 			state.members = parseMembers(payload);
+			state.clusterError = "";
+			state.replicaError = "";
 			setStatus(state.root, "Gossip live", "Updated " + formatTime(new Date()));
 			render(state);
 			refreshReplication(state);
 		} catch (error) {
+			clearClusterState(state);
+			state.clusterError = "Gossip unavailable: " + friendlyMessage(error);
+			state.replicaError = "Replica stats unavailable while gossip is unavailable.";
+			render(state);
 			setStatus(state.root, "Gossip unavailable", friendlyMessage(error));
 		} finally {
 			state.gossipInFlight = false;
@@ -66,8 +74,9 @@
 
 		var leader = findLeader(state.members);
 		if (!leader) {
-			state.replicas = [];
+			clearReplicaState(state);
 			state.leaderEndpoint = "";
+			state.replicaError = "";
 			renderReplicas(state);
 			return;
 		}
@@ -89,14 +98,29 @@
 			var payload = await response.json();
 			var now = Date.now();
 			state.replicas = parseReplicas(payload, state.members, leader, state.previousReplicas, now);
+			state.replicaError = "";
 			state.previousReplicas = indexReplicas(state.replicas);
 			state.lastReplicaRefresh = now;
 			renderReplicas(state);
 		} catch (error) {
-			setReplicaStatus(state.root, "Replica stats unavailable: " + friendlyMessage(error));
+			clearReplicaState(state);
+			state.replicaError = "Replica stats unavailable: " + friendlyMessage(error);
+			renderReplicas(state);
 		} finally {
 			state.replicationInFlight = false;
 		}
+	}
+
+	function clearClusterState(state) {
+		state.members = [];
+		state.leaderEndpoint = "";
+		clearReplicaState(state);
+	}
+
+	function clearReplicaState(state) {
+		state.replicas = [];
+		state.previousReplicas = new Map();
+		state.lastReplicaRefresh = null;
 	}
 
 	function parseMembers(payload) {
@@ -178,8 +202,8 @@
 
 	function render(state) {
 		updateMetrics(state.root, state.members);
-		renderMembers(state.root, state.members);
-		renderSnapshot(state.root, state.members);
+		renderMembers(state.root, state.members, state.clusterError);
+		renderSnapshot(state.root, state.members, state.clusterError);
 		renderReplicas(state);
 	}
 
@@ -203,7 +227,7 @@
 		});
 	}
 
-	function renderMembers(root, members) {
+	function renderMembers(root, members, error) {
 		var tbody = root.querySelector("[data-cluster-members-body]");
 		if (!tbody)
 			return;
@@ -213,7 +237,7 @@
 			var empty = element("tr");
 			var cell = element("td", "px-5 py-4 text-es-muted");
 			cell.colSpan = 7;
-			cell.textContent = "No nodes in the cluster.";
+			cell.textContent = error || "No nodes in the cluster.";
 			empty.appendChild(cell);
 			tbody.appendChild(empty);
 			return;
@@ -264,13 +288,13 @@
 		row.appendChild(cell);
 	}
 
-	function renderSnapshot(root, members) {
+	function renderSnapshot(root, members, error) {
 		var node = root.querySelector("[data-cluster-snapshot]");
 		if (!node)
 			return;
 
 		if (members.length === 0) {
-			node.textContent = "Cluster status is not available.";
+			node.textContent = error || "Cluster status is not available.";
 			return;
 		}
 
@@ -306,13 +330,14 @@
 
 		replaceChildren(tbody);
 		if (state.replicas.length === 0) {
+			var message = state.replicaError || "No replica stats reported.";
 			var empty = element("tr");
 			var cell = element("td", "px-5 py-4 text-es-muted");
 			cell.colSpan = 9;
-			cell.textContent = "No replica stats reported.";
+			cell.textContent = message;
 			empty.appendChild(cell);
 			tbody.appendChild(empty);
-			setReplicaStatus(state.root, "No replica stats reported.");
+			setReplicaStatus(state.root, message);
 			return;
 		}
 
