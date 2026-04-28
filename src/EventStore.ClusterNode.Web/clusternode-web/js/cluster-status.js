@@ -2,6 +2,7 @@
 	"use strict";
 
 	var pollIntervalMs = 1000;
+	var requestTimeoutMs = 8000;
 	var dashboards = new WeakMap();
 
 	function start() {
@@ -42,10 +43,7 @@
 
 		state.gossipInFlight = true;
 		try {
-			var response = await fetch("/gossip?format=json", {
-				credentials: "same-origin",
-				headers: { "Accept": "application/json" }
-			});
+			var response = await fetchWithTimeout("/gossip?format=json");
 
 			if (!response.ok)
 				throw new Error("Gossip endpoint returned " + response.status + " " + response.statusText);
@@ -83,10 +81,7 @@
 
 		state.replicationInFlight = true;
 		try {
-			var response = await fetch(window.location.protocol + "//" + endpointValue + "/stats/replication?format=json", {
-				credentials: "same-origin",
-				headers: { "Accept": "application/json" }
-			});
+			var response = await fetchWithTimeout(window.location.protocol + "//" + endpointValue + "/stats/replication?format=json");
 
 			if (!response.ok)
 				throw new Error("Replication stats endpoint returned " + response.status + " " + response.statusText);
@@ -476,6 +471,23 @@
 		return value === true || String(value).toLowerCase() === "true";
 	}
 
+	async function fetchWithTimeout(url) {
+		var controller = new AbortController();
+		var timeout = window.setTimeout(function () {
+			controller.abort();
+		}, requestTimeoutMs);
+
+		try {
+			return await fetch(url, {
+				credentials: "same-origin",
+				headers: { "Accept": "application/json" },
+				signal: controller.signal
+			});
+		} finally {
+			window.clearTimeout(timeout);
+		}
+	}
+
 	function formatUtc(value) {
 		var date = value instanceof Date ? value : new Date(value);
 		if (Number.isNaN(date.getTime()))
@@ -525,6 +537,9 @@
 	}
 
 	function friendlyMessage(error) {
+		if (error && error.name === "AbortError")
+			return "Request timed out.";
+
 		return error && error.message ? error.message : String(error);
 	}
 
