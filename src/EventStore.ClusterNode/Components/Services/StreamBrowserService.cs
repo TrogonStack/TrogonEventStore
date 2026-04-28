@@ -242,14 +242,15 @@ public sealed class StreamBrowserService(
 		var metadataStream = SystemStreams.MetastreamOf(streamId.Trim());
 		var metadata = await ReadStreamBackward(metadataStream, count: 1, cancellationToken: cancellationToken);
 		if (!metadata.HasEvents && string.IsNullOrWhiteSpace(metadata.Message))
-			return StreamAclPage.Success(streamId.Trim(), "", StreamAclInput.Empty(streamId.Trim()), "No stream metadata exists yet.");
+			return StreamAclPage.Success(streamId.Trim(), ExpectedVersion.NoStream, "", StreamAclInput.Empty(streamId.Trim()), "No stream metadata exists yet.");
 		if (!metadata.HasEvents && metadata.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase))
-			return StreamAclPage.Success(streamId.Trim(), "", StreamAclInput.Empty(streamId.Trim()), "No stream metadata exists yet.");
+			return StreamAclPage.Success(streamId.Trim(), ExpectedVersion.NoStream, "", StreamAclInput.Empty(streamId.Trim()), "No stream metadata exists yet.");
 		if (!metadata.HasEvents)
 			return StreamAclPage.Unavailable(streamId.Trim(), metadata.Message);
 
-		var rawMetadata = metadata.Events[0].Data;
-		return StreamAclPage.Success(streamId.Trim(), rawMetadata, StreamAclInput.FromMetadata(streamId.Trim(), rawMetadata), "");
+		var latestMetadata = metadata.Events[0];
+		var rawMetadata = latestMetadata.Data;
+		return StreamAclPage.Success(streamId.Trim(), latestMetadata.EventNumber, rawMetadata, StreamAclInput.FromMetadata(streamId.Trim(), rawMetadata), "");
 	}
 
 	public async Task<StreamCommandResult> AppendEvent(
@@ -307,7 +308,7 @@ public sealed class StreamBrowserService(
 				envelope,
 				requireLeader: false,
 				SystemStreams.MetastreamOf(streamId),
-				ExpectedVersion.Any,
+				metadata.MetadataVersion,
 				[@event],
 				CurrentUser,
 				cancellationToken: cancellationToken),
@@ -461,6 +462,9 @@ public sealed class StreamBrowserService(
 		if (string.Equals(streamId, SystemStreams.AllStream, StringComparison.OrdinalIgnoreCase))
 			return StreamCommandResult.Failure(streamId, "$all cannot be edited or deleted.");
 
+		if (SystemStreams.IsSystemStream(streamId))
+			return StreamCommandResult.Failure(streamId, "System streams cannot be edited or deleted from the stream browser.");
+
 		return SystemStreams.IsMetastream(streamId)
 			? StreamCommandResult.Failure(streamId, "Metadata streams cannot be edited or deleted directly.")
 			: StreamCommandResult.Succeeded(streamId, "");
@@ -612,17 +616,18 @@ public sealed record StreamEventDetailPage(
 
 public sealed record StreamAclPage(
 	string StreamId,
+	long MetadataVersion,
 	string RawMetadata,
 	StreamAclInput Input,
 	string Message) {
 	public bool IsAvailable => Input is not null;
 	public bool HasMetadata => !string.IsNullOrWhiteSpace(RawMetadata);
 
-	public static StreamAclPage Success(string streamId, string rawMetadata, StreamAclInput input, string message) =>
-		new(streamId, rawMetadata, input, message);
+	public static StreamAclPage Success(string streamId, long metadataVersion, string rawMetadata, StreamAclInput input, string message) =>
+		new(streamId, metadataVersion, rawMetadata, input, message);
 
 	public static StreamAclPage Unavailable(string streamId, string message) =>
-		new(streamId, "", null, message);
+		new(streamId, ExpectedVersion.Any, "", null, message);
 }
 
 public sealed record StreamAclInput(
@@ -730,9 +735,10 @@ file static class StreamBrowserMapping {
 			return null;
 
 		var position = resolvedEvent.OriginalPosition;
+		var identity = resolvedEvent.Link ?? record;
 		return new StreamViewEvent(
-			record.EventStreamId,
-			record.EventNumber,
+			identity.EventStreamId,
+			identity.EventNumber,
 			record.EventType,
 			record.EventId,
 			record.TimeStamp,

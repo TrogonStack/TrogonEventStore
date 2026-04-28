@@ -65,13 +65,14 @@
 				if (action === "acl" || action === "metadata")
 					return "/ui/streams/acl/" + encodeURIComponent(streamId);
 
-				if (parts.length >= 4 && isStreamDirection(parts[2]))
+				var direction = (parts[2] || "").toLowerCase();
+				if (parts.length >= 4 && isStreamDirection(direction))
 					return "/ui/streams/" + encodeURIComponent(streamId) +
 						"?from=" + encodeURIComponent(parts[1]) +
-						"&direction=" + encodeURIComponent(parts[2]) +
+						"&direction=" + encodeURIComponent(direction) +
 						"&count=" + encodeURIComponent(parts[3]);
 
-				if (parts.length >= 2 && /^-?\d+$/.test(parts[1]))
+				if (parts.length >= 2 && /^\d+$/.test(parts[1]))
 					return "/ui/streams/event/" + encodeURIComponent(parts[1]) + "/" + encodeURIComponent(streamId);
 
 				return "/ui/streams/" + encodeURIComponent(streamId);

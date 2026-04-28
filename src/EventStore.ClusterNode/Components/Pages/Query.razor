@@ -81,15 +81,25 @@
 	};
 
 	private QueryRunPage Result { get; set; }
+	private string _lastSeededQuery = "";
 
 	protected override void OnParametersSet() {
-		if (string.IsNullOrWhiteSpace(InitStreamId))
+		if (string.IsNullOrWhiteSpace(InitStreamId)) {
+			if (!string.IsNullOrWhiteSpace(_lastSeededQuery) &&
+				string.Equals(Input.Query, _lastSeededQuery, StringComparison.Ordinal))
+				Input.Query = DefaultQuery;
+
+			_lastSeededQuery = "";
+			return;
+		}
+
+		var seed = StreamQuery(InitStreamId);
+		if (!string.Equals(Input.Query, DefaultQuery, StringComparison.Ordinal) &&
+			!string.Equals(Input.Query, _lastSeededQuery, StringComparison.Ordinal))
 			return;
 
-		if (!string.Equals(Input.Query, DefaultQuery, StringComparison.Ordinal))
-			return;
-
-		Input.Query = StreamQuery(InitStreamId);
+		Input.Query = seed;
+		_lastSeededQuery = seed;
 	}
 
 	private async Task RunQuery() {

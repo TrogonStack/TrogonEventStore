@@ -76,28 +76,39 @@
 	private StreamAppendInput Input { get; set; } = NewInput("");
 
 	private StreamCommandResult Result { get; set; }
+	private string _lastRequestedStreamId = "";
+	private long? _lastRequestedFromEvent;
 	private string BackHref => string.IsNullOrWhiteSpace(Input.StreamId)
 		? "/ui/streams"
 		: $"/ui/streams/{Uri.EscapeDataString(Input.StreamId)}";
 
 	protected override async Task OnParametersSetAsync() {
 		var requestedStream = StreamId ?? "";
+		var requestedFromEvent = FromEvent;
+		var sameRequest = string.Equals(_lastRequestedStreamId, requestedStream, StringComparison.OrdinalIgnoreCase) &&
+			_lastRequestedFromEvent == requestedFromEvent;
 		var hasSubmittedForm = !string.IsNullOrWhiteSpace(Input.StreamId) &&
 			(string.IsNullOrWhiteSpace(requestedStream) || string.Equals(Input.StreamId, requestedStream, StringComparison.OrdinalIgnoreCase));
-		if (hasSubmittedForm)
+		if (hasSubmittedForm && sameRequest)
 			return;
 
 		Input = NewInput(requestedStream);
 		Result = null;
 
-		if (FromEvent.HasValue && !string.IsNullOrWhiteSpace(requestedStream)) {
-			var page = await Streams.ReadEvent(requestedStream, FromEvent.Value);
+		if (requestedFromEvent.HasValue && !string.IsNullOrWhiteSpace(requestedStream)) {
+			var page = await Streams.ReadEvent(requestedStream, requestedFromEvent.Value);
+			if (!string.Equals(StreamId ?? "", requestedStream, StringComparison.OrdinalIgnoreCase) || FromEvent != requestedFromEvent)
+				return;
+
 			if (page.Event is not null) {
 				Input.EventType = page.Event.EventType;
 				Input.Data = page.Event.DataForDisplay;
 				Input.Metadata = page.Event.MetadataForDisplay;
 			}
 		}
+
+		_lastRequestedStreamId = requestedStream;
+		_lastRequestedFromEvent = requestedFromEvent;
 	}
 
 	private async Task Append() {

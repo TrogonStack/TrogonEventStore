@@ -33,11 +33,26 @@ else
 				<InputText type="hidden" @bind-Value="Input.StreamId" />
 
 				<div class="grid gap-4">
-					<RoleInput Label="Reader" @bind-Value="Input.ReadRoles" />
-					<RoleInput Label="Writer" @bind-Value="Input.WriteRoles" />
-					<RoleInput Label="Deleter" @bind-Value="Input.DeleteRoles" />
-					<RoleInput Label="Meta Reader" @bind-Value="Input.MetaReadRoles" />
-					<RoleInput Label="Meta Writer" @bind-Value="Input.MetaWriteRoles" />
+					<label class="text-sm font-bold text-es-muted">
+						Reader
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.ReadRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Writer
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.WriteRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Deleter
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.DeleteRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Meta Reader
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.MetaReadRoles" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Meta Writer
+						<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.MetaWriteRoles" />
+					</label>
 				</div>
 
 				@if (Result is not null)
@@ -97,6 +112,8 @@ else
 				Input.DeleteRoles,
 				Input.MetaReadRoles,
 				Input.MetaWriteRoles));
+			if (Result.Success)
+				Page = await Streams.ReadAcl(Input.StreamId);
 		} catch (OperationCanceledException) {
 			Result = StreamCommandResult.Failure(Input.StreamId, "ACL update was canceled.");
 		} catch (Exception ex) {

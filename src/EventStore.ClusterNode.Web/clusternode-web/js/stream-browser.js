@@ -5,24 +5,36 @@
 	var requestTimeoutMs = 8000;
 
 	function initialize(root) {
-		if (!root || root.dataset.streamBrowserInitialized === "true")
+		if (!root)
+			return;
+
+		var live = root.dataset.streamLive === "true";
+		if (!live) {
+			cleanup(root);
+			return;
+		}
+
+		if (root.dataset.streamBrowserInitialized === "true" && root._streamBrowserInterval)
 			return;
 
 		root.dataset.streamBrowserInitialized = "true";
-		var live = root.dataset.streamLive === "true";
-		var paused = !live;
+		var state = root._streamBrowserState || { paused: false, inFlight: false, toggleBound: false };
+		state.paused = false;
+		state.inFlight = false;
+		root._streamBrowserState = state;
 		var toggle = root.querySelector("[data-stream-toggle]");
 		var status = root.querySelector("[data-stream-status]");
-		var inFlight = false;
 
-		if (!live)
-			return;
-
-		if (toggle) {
+		if (toggle && !state.toggleBound) {
+			state.toggleBound = true;
 			toggle.addEventListener("click", function () {
-				paused = !paused;
-				toggle.textContent = paused ? "Resume" : "Pause";
-				setStatus(status, paused ? "Live refresh paused." : "Refreshing the latest page every 2s.");
+				var current = root._streamBrowserState;
+				if (!current)
+					return;
+
+				current.paused = !current.paused;
+				toggle.textContent = current.paused ? "Resume" : "Pause";
+				setStatus(status, current.paused ? "Live refresh paused." : "Refreshing the latest page every 2s.");
 			});
 		}
 
@@ -32,12 +44,12 @@
 				return;
 			}
 
-			if (paused || inFlight)
+			if (state.paused || state.inFlight)
 				return;
 
-			inFlight = true;
+			state.inFlight = true;
 			refresh(root, status).finally(function () {
-				inFlight = false;
+				state.inFlight = false;
 			});
 		}, pollIntervalMs);
 	}
@@ -79,6 +91,8 @@
 			window.clearInterval(root._streamBrowserInterval);
 			root._streamBrowserInterval = null;
 		}
+
+		delete root.dataset.streamBrowserInitialized;
 	}
 
 	function setStatus(status, message) {
@@ -117,9 +131,17 @@
 							initialize(found[k]);
 					}
 				}
+
+				if (mutations[i].type === "attributes" && mutations[i].target.matches("[data-stream-browser]"))
+					initialize(mutations[i].target);
 			}
 		});
-		observer.observe(document.body, { childList: true, subtree: true });
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ["data-stream-live"]
+		});
 	}
 
 	if (document.readyState === "loading")
