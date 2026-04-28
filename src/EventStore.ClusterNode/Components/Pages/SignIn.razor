@@ -105,6 +105,7 @@
 				return;
 			}
 
+			UiCredentialCookie.DeleteOAuthToken(context.Response);
 			UiCredentialCookie.AppendBasic(context.Response, new UiCredentials(Input.Username.Trim(), Input.Password));
 		} catch (OperationCanceledException) {
 			Message = "Sign-in was canceled.";

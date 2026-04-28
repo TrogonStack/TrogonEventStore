@@ -15,9 +15,20 @@ public static class UiCredentialCookie {
 	public const string OAuthCookieName = "oauth_id_token";
 
 	public static void AppendBasic(HttpResponse response, UiCredentials credentials) =>
+		AppendBasicValue(response, credentials.BasicValue);
+
+	public static bool TryAppendBasicValue(HttpResponse response, string raw) {
+		if (!TryExtractBasicValue(SafeDecode(raw), out var value) || !IsHeaderSafe(value) || !IsValidBasicValue(value))
+			return false;
+
+		AppendBasicValue(response, value);
+		return true;
+	}
+
+	private static void AppendBasicValue(HttpResponse response, string value) =>
 		response.Cookies.Append(
 			BasicCookieName,
-			JsonSerializer.Serialize(new { credentials = credentials.BasicValue }),
+			JsonSerializer.Serialize(new { credentials = value }),
 			Options(response.HttpContext.Request.IsHttps));
 
 	public static void Delete(HttpResponse response) =>

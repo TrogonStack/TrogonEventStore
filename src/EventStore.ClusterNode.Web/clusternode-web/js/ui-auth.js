@@ -25,32 +25,9 @@
 		}
 	}
 
-	function readBasicCredentials() {
-		var raw = safeDecode(readCookie("es-creds"));
-		if (!raw)
-			return "";
-
-		if (raw.indexOf("j:") === 0)
-			raw = raw.substring(2);
-
-		if (raw.charAt(0) !== "{")
-			return raw;
-
-		try {
-			var parsed = JSON.parse(raw);
-			return parsed ? (parsed.credentials || parsed.Credentials || "") : "";
-		} catch (_) {
-			return "";
-		}
-	}
-
 	function readAuthorization() {
 		var token = safeDecode(readCookie("oauth_id_token"));
-		if (token)
-			return "Bearer " + token;
-
-		var credentials = readBasicCredentials();
-		return credentials ? "Basic " + credentials : "";
+		return token ? "Bearer " + token : "";
 	}
 
 	function sameOrigin(input) {
@@ -78,7 +55,8 @@
 	}
 
 	function clearCookie(name) {
-		document.cookie = name + "=; max-age=0; path=/; SameSite=Lax";
+		var secure = window.location.protocol === "https:" ? "; secure" : "";
+		document.cookie = name + "=; max-age=0; path=/; SameSite=Lax" + secure;
 	}
 
 	function clearAuthCookies() {

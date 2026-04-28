@@ -281,6 +281,7 @@ internal static class Program
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
 					app.MapAdminOperationsEndpoints();
+					app.MapSecurityEndpoints();
 					app.MapRazorComponents<App>();
 
 					await app.RunAsync(cts.Token);

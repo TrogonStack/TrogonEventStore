@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Http;
 namespace EventStore.ClusterNode.Components.Services;
 
 public sealed class SecurityBrowserService(IAuthenticationProvider authenticationProvider) {
+	private static readonly Uri LocalBaseUri = new("http://localhost", UriKind.Absolute);
+
 	public SecurityAuthenticationInfo AuthenticationInfo() {
 		var schemes = authenticationProvider.GetSupportedAuthenticationSchemes() ?? [];
 		return new SecurityAuthenticationInfo(
@@ -40,18 +42,24 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 		if (string.IsNullOrWhiteSpace(returnUrl))
 			return "/ui";
 
-		if (!Uri.TryCreate(returnUrl, UriKind.Relative, out _))
+		if (!returnUrl.StartsWith("/", StringComparison.Ordinal) ||
+		    returnUrl.StartsWith("//", StringComparison.Ordinal) ||
+		    returnUrl.IndexOf('\\') >= 0 ||
+		    !Uri.TryCreate(returnUrl, UriKind.Relative, out var relative))
 			return "/ui";
 
-		return returnUrl.StartsWith("/ui", StringComparison.OrdinalIgnoreCase)
-			? returnUrl
+		var normalized = new Uri(LocalBaseUri, relative);
+		return IsUiPath(normalized.AbsolutePath)
+			? $"{normalized.PathAndQuery}{normalized.Fragment}"
 			: "/ui";
 	}
 
 	public static bool IsSignedIn(ClaimsPrincipal principal) =>
-		principal != null &&
-		principal.Claims.Any() &&
-		principal.Claims.All(x => x.Type != ClaimTypes.Anonymous);
+		principal?.Identity?.IsAuthenticated == true;
+
+	private static bool IsUiPath(string path) =>
+		path.Equals("/ui", StringComparison.OrdinalIgnoreCase) ||
+		path.StartsWith("/ui/", StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed record SecurityAuthenticationInfo(string Type, bool SupportsBasic, bool IsInsecure) {

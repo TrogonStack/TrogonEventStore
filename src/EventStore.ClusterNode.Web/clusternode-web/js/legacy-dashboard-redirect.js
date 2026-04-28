@@ -257,13 +257,13 @@
 		}
 	}
 
-	function redirectLegacyRoutes() {
+	async function redirectLegacyRoutes() {
 		var hash = window.location.hash || "";
 		for (var i = 0; i < legacyRoutes.length; i++) {
 			if (!legacyRoutes[i].pattern.test(hash))
 				continue;
 
-			copyLegacyCredentialsCookie();
+			await copyLegacyCredentialsCookie();
 			window.location.replace(legacyRoutes[i].target(hash));
 			return;
 		}
@@ -281,13 +281,19 @@
 		return "";
 	}
 
-	function copyLegacyCredentialsCookie() {
+	async function copyLegacyCredentialsCookie() {
 		var value = readCookie("es-creds");
-		if (!value)
+		if (!value || !window.fetch)
 			return;
 
-		var secure = window.location.protocol === "https:" ? "; secure" : "";
-		document.cookie = "es-creds=" + value + "; path=/; SameSite=Lax" + secure;
+		try {
+			await window.fetch("/ui/security/migrate-credentials", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ credentials: value })
+			});
+		} catch (_) {
+		}
 	}
 
 	function watchLegacyShell() {
