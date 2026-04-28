@@ -126,9 +126,10 @@ public sealed class ProjectionBrowserService(
 	public async Task<ProjectionCommandResult> Create(
 		ProjectionCreateRequest request,
 		CancellationToken cancellationToken = default) {
-		var validation = ValidateCreate(request);
+		var name = NormalizeName(request.Name);
+		var validation = ValidateCreate(request, name);
 		if (!string.IsNullOrWhiteSpace(validation))
-			return ProjectionCommandResult.Failure(request.Name, validation);
+			return ProjectionCommandResult.Failure(name ?? "", validation);
 
 		var mode = request.Mode == ProjectionCreateMode.Continuous
 			? ProjectionMode.Continuous
@@ -142,15 +143,15 @@ public sealed class ProjectionBrowserService(
 		var handlerType = NormalizeHandlerType(request.HandlerType);
 
 		if (!await HasAccess(operation, cancellationToken))
-			return ProjectionCommandResult.Failure(request.Name, "Projection creation access was denied.");
+			return ProjectionCommandResult.Failure(name, "Projection creation access was denied.");
 
 		return await RunUpdated(
-			request.Name,
+			name,
 			"create projection",
 			envelope => new ProjectionManagementMessage.Command.Post(
 				envelope,
 				mode,
-				request.Name.Trim(),
+				name,
 				new ProjectionManagementMessage.RunAs(CurrentUser),
 				handlerType,
 				request.Query,
@@ -510,8 +511,8 @@ public sealed class ProjectionBrowserService(
 			_ => "updated"
 		};
 
-	private static string ValidateCreate(ProjectionCreateRequest request) {
-		if (string.IsNullOrWhiteSpace(request.Name))
+	private static string ValidateCreate(ProjectionCreateRequest request, string name) {
+		if (string.IsNullOrWhiteSpace(name))
 			return "Enter a projection name.";
 		if (string.IsNullOrWhiteSpace(request.Query))
 			return "Enter projection source before creating it.";

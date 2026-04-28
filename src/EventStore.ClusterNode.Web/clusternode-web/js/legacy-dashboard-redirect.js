@@ -130,7 +130,7 @@
 					target = "/ui/projections/debug/" + encodeURIComponent(name);
 
 				var query = new URLSearchParams(hash.split("?")[1] || "");
-				if (action === "debug" && query.has("fromQueryState"))
+				if (hasAction && action === "debug" && query.has("fromQueryState"))
 					target += "?fromQueryState=" + encodeURIComponent(query.get("fromQueryState"));
 
 				return target;
