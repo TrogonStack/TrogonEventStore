@@ -59,9 +59,10 @@
 	[SupplyParameterFromQuery] public string Direction { get; set; } = "backward";
 
 	private StreamReadPage Page { get; set; }
-	private bool CanAppend => !string.IsNullOrWhiteSpace(StreamId) && !StreamId.StartsWith("$", StringComparison.Ordinal);
-	private bool CanEditMetadata => !string.Equals(StreamId, "$all", StringComparison.OrdinalIgnoreCase);
-	private bool CanDelete => !string.IsNullOrWhiteSpace(StreamId) && !string.Equals(StreamId, "$all", StringComparison.OrdinalIgnoreCase);
+	private bool IsUserStream => !string.IsNullOrWhiteSpace(StreamId) && !StreamId.StartsWith("$", StringComparison.Ordinal);
+	private bool CanAppend => IsUserStream;
+	private bool CanEditMetadata => IsUserStream;
+	private bool CanDelete => IsUserStream;
 	private bool CanPoll => string.Equals(Direction, "backward", StringComparison.OrdinalIgnoreCase) && !From.HasValue;
 
 	protected override async Task OnParametersSetAsync() {

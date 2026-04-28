@@ -75,10 +75,12 @@ public sealed class StreamBrowserService(
 		return completed.Result switch {
 			ReadStreamResult.Success => StreamReadPage.Success(
 				completed.EventStreamId,
+				StreamReadDirection.Backward,
 				completed.FromEventNumber,
 				completed.NextEventNumber,
 				completed.LastEventNumber,
 				completed.IsEndOfStream,
+				count,
 				completed.Events.ToViewEvents()),
 			ReadStreamResult.NoStream => StreamReadPage.Empty(streamId, $"Stream '{streamId}' was not found."),
 			ReadStreamResult.StreamDeleted => StreamReadPage.Empty(streamId, $"Stream '{streamId}' has been deleted."),
@@ -129,10 +131,12 @@ public sealed class StreamBrowserService(
 		return completed.Result switch {
 			ReadStreamResult.Success => StreamReadPage.Success(
 				completed.EventStreamId,
+				StreamReadDirection.Forward,
 				completed.FromEventNumber,
 				completed.NextEventNumber,
 				completed.LastEventNumber,
 				completed.IsEndOfStream,
+				count,
 				completed.Events.ToViewEvents()),
 			ReadStreamResult.NoStream => StreamReadPage.Empty(streamId, $"Stream '{streamId}' was not found."),
 			ReadStreamResult.StreamDeleted => StreamReadPage.Empty(streamId, $"Stream '{streamId}' has been deleted."),
@@ -402,7 +406,7 @@ public sealed class StreamBrowserService(
 
 	private static IReadOnlyList<StreamSummaryItem> BuildCreatedStreams(StreamReadPage page) =>
 		page.Events
-			.Select(x => new StreamSummaryItem(StreamReferenceToStreamId(x), x.EventType, x.TimeStamp, x.EventNumber))
+			.Select(x => new StreamSummaryItem(StreamReferenceToStreamId(x), x.EventType, x.TimeStamp, x.ResolvedEventNumber))
 			.Where(x => !string.IsNullOrWhiteSpace(x.StreamId))
 			.DistinctBy(x => x.StreamId, StringComparer.OrdinalIgnoreCase)
 			.OrderByDescending(x => x.UpdatedUtc)
@@ -410,8 +414,9 @@ public sealed class StreamBrowserService(
 
 	private static IReadOnlyList<StreamSummaryItem> BuildChangedStreams(RecentEventsPage page) =>
 		page.Events
-			.Select(x => new StreamSummaryItem(x.StreamId, x.EventType, x.TimeStamp, x.EventNumber))
+			.Select(x => new StreamSummaryItem(x.ResolvedStreamId, x.EventType, x.TimeStamp, x.ResolvedEventNumber))
 			.Where(x => !string.IsNullOrWhiteSpace(x.StreamId))
+			.Where(x => !SystemStreams.IsSystemStream(x.StreamId))
 			.DistinctBy(x => x.StreamId, StringComparer.OrdinalIgnoreCase)
 			.OrderByDescending(x => x.UpdatedUtc)
 			.ToArray();
@@ -420,7 +425,7 @@ public sealed class StreamBrowserService(
 		try {
 			return SystemEventTypes.StreamReferenceEventToStreamId(ev.EventType, ev.Data);
 		} catch (Exception) {
-			return ev.StreamId;
+			return ev.ResolvedStreamId;
 		}
 	}
 
@@ -542,28 +547,45 @@ public sealed class StreamBrowserService(
 
 }
 
+public enum StreamReadDirection {
+	Backward,
+	Forward
+}
+
 public sealed record StreamReadPage(
 	string StreamId,
+	StreamReadDirection Direction,
 	long FromEventNumber,
 	long NextEventNumber,
 	long LastEventNumber,
 	bool IsEndOfStream,
+	int Count,
 	IReadOnlyList<StreamViewEvent> Events,
 	string Message) {
+	private const int EmptyPageCount = 20;
+
 	public bool HasEvents => Events.Count > 0;
-	public bool CanReadOlder => HasEvents && NextEventNumber >= 0 && !IsEndOfStream;
+	public bool CanReadNextPage => HasEvents && NextEventNumber >= 0 && !IsEndOfStream;
+	public string NextPageLabel => Direction == StreamReadDirection.Forward ? "Newer events" : "Older events";
+	public string LatestHref => $"/ui/streams/{Uri.EscapeDataString(StreamId)}";
+	public string FirstPageHref => $"/ui/streams/{Uri.EscapeDataString(StreamId)}?direction=forward&from=0&count={Count}";
+	public string NextPageHref => Direction == StreamReadDirection.Forward
+		? $"/ui/streams/{Uri.EscapeDataString(StreamId)}?direction=forward&from={NextEventNumber}&count={Count}"
+		: $"/ui/streams/{Uri.EscapeDataString(StreamId)}?from={NextEventNumber}&count={Count}";
 
 	public static StreamReadPage Success(
 		string streamId,
+		StreamReadDirection direction,
 		long fromEventNumber,
 		long nextEventNumber,
 		long lastEventNumber,
 		bool isEndOfStream,
+		int count,
 		IReadOnlyList<StreamViewEvent> events) =>
-		new(streamId, fromEventNumber, nextEventNumber, lastEventNumber, isEndOfStream, events, "");
+		new(streamId, direction, fromEventNumber, nextEventNumber, lastEventNumber, isEndOfStream, count, events, "");
 
 	public static StreamReadPage Empty(string streamId, string message) =>
-		new(streamId, -1, -1, -1, true, Array.Empty<StreamViewEvent>(), message);
+		new(streamId, StreamReadDirection.Backward, -1, -1, -1, true, EmptyPageCount, Array.Empty<StreamViewEvent>(), message);
 }
 
 public sealed record RecentEventsPage(
@@ -691,6 +713,8 @@ public sealed record StreamAclUpdateRequest(
 public sealed record StreamViewEvent(
 	string StreamId,
 	long EventNumber,
+	string ResolvedStreamId,
+	long ResolvedEventNumber,
 	string EventType,
 	Guid EventId,
 	DateTime TimeStamp,
@@ -739,6 +763,8 @@ file static class StreamBrowserMapping {
 		return new StreamViewEvent(
 			identity.EventStreamId,
 			identity.EventNumber,
+			record.EventStreamId,
+			record.EventNumber,
 			record.EventType,
 			record.EventId,
 			record.TimeStamp,
