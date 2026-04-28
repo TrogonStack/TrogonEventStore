@@ -74,6 +74,61 @@ public sealed class StreamBrowserService(
 		};
 	}
 
+	public async Task<StreamReadPage> ReadStreamForward(
+		string streamId,
+		long fromEventNumber = 0,
+		int count = DefaultCount,
+		CancellationToken cancellationToken = default) {
+		if (string.IsNullOrWhiteSpace(streamId))
+			return StreamReadPage.Empty("", "Enter a stream id to inspect events.");
+
+		count = NormalizeCount(count);
+		fromEventNumber = Math.Max(fromEventNumber, 0);
+		var correlationId = Guid.NewGuid();
+		var envelope = new TaskCompletionEnvelope<ClientMessage.ReadStreamEventsForwardCompleted>();
+
+		publisher.Publish(new ClientMessage.ReadStreamEventsForward(
+			Guid.NewGuid(),
+			correlationId,
+			envelope,
+			streamId.Trim(),
+			fromEventNumber,
+			count,
+			resolveLinkTos: true,
+			requireLeader: false,
+			validationStreamVersion: null,
+			CurrentUser,
+			replyOnExpired: false,
+			cancellationToken: cancellationToken));
+
+		ClientMessage.ReadStreamEventsForwardCompleted completed;
+		try {
+			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
+		} catch (TimeoutException) {
+			return StreamReadPage.Empty(streamId, $"Timed out reading '{streamId}'.");
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {FriendlyMessage(ex)}");
+		}
+
+		return completed.Result switch {
+			ReadStreamResult.Success => StreamReadPage.Success(
+				completed.EventStreamId,
+				completed.FromEventNumber,
+				completed.NextEventNumber,
+				completed.LastEventNumber,
+				completed.IsEndOfStream,
+				completed.Events.ToViewEvents()),
+			ReadStreamResult.NoStream => StreamReadPage.Empty(streamId, $"Stream '{streamId}' was not found."),
+			ReadStreamResult.StreamDeleted => StreamReadPage.Empty(streamId, $"Stream '{streamId}' has been deleted."),
+			ReadStreamResult.AccessDenied => StreamReadPage.Empty(streamId, $"Read access was denied for '{streamId}'."),
+			_ => StreamReadPage.Empty(streamId, string.IsNullOrWhiteSpace(completed.Error)
+				? $"Unable to read '{streamId}'. Result: {completed.Result}."
+				: completed.Error)
+		};
+	}
+
 	public async Task<RecentEventsPage> ReadRecentEvents(
 		int count = 12,
 		CancellationToken cancellationToken = default) {
@@ -169,6 +224,7 @@ public sealed record StreamViewEvent(
 	DateTime TimeStamp,
 	string Data,
 	string Metadata,
+	string LinkMetadata,
 	bool IsJson,
 	long? CommitPosition,
 	long? PreparePosition) {
@@ -178,6 +234,8 @@ public sealed record StreamViewEvent(
 
 	public string DataForDisplay => FormatBody(Data, IsJson);
 	public string MetadataForDisplay => FormatBody(Metadata, true);
+	public string LinkMetadataForDisplay => FormatBody(LinkMetadata, true);
+	public bool HasLinkMetadata => !string.IsNullOrWhiteSpace(LinkMetadata);
 	public string DetailHref => $"/ui/streams/{Uri.EscapeDataString(StreamId)}?from={EventNumber}&count=1";
 	public string RawHref => $"/streams/{Uri.EscapeDataString(StreamId)}/{EventNumber}?embed=tryharder";
 
@@ -214,6 +272,7 @@ file static class StreamBrowserMapping {
 				record.TimeStamp,
 				Decode(record.Data),
 				Decode(record.Metadata),
+				resolvedEvent.Link is null ? "" : Decode(resolvedEvent.Link.Metadata),
 				record.IsJson,
 				position?.CommitPosition,
 				position?.PreparePosition));

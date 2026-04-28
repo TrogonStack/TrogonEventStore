@@ -1,0 +1,127 @@
+@page "/ui/subscriptions/{StreamId}/{GroupName}/edit"
+@inject SubscriptionBrowserService SubscriptionBrowser
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Edit Subscription - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@($"/ui/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}")">Back to subscription</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Edit subscription</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@GroupName</h1>
+	<p class="mt-5 break-words text-lg leading-8 text-es-muted">@StreamId</p>
+</section>
+
+@if (Page is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading subscription...
+	</section>
+}
+else if (Page.Subscription is null)
+{
+	<section class="mt-8 rounded-[2rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@Page.Message
+	</section>
+}
+else
+{
+	<section class="mt-8 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<EditForm Model="Input" FormName="subscription-edit" OnValidSubmit="UpdateSubscription">
+				<AntiforgeryToken />
+				<DataAnnotationsValidator />
+				<SubscriptionSettingsFields Model="Input" AllowIdentityEdit="false" />
+
+				@if (Result is not null)
+				{
+					<p class="mt-5 rounded-2xl border @(Result.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-4 text-sm font-bold">@Result.Message</p>
+				}
+
+				<div class="mt-5 flex flex-wrap gap-2">
+					<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Update subscription</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Page.Subscription.UiDetailHref">Cancel</a>
+				</div>
+			</EditForm>
+		</article>
+
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="@Page.Subscription.StatusLabel" Tone="@Page.Subscription.StatusTone" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Current pressure</h2>
+			<div class="mt-5 grid gap-3">
+				<MetricCard Label="Parked" Value="@Page.Subscription.ParkedMessageCount.ToString()" Tone="bad" />
+				<MetricCard Label="In flight" Value="@Page.Subscription.TotalInFlightMessages.ToString()" Tone="muted" />
+				<MetricCard Label="Consumers" Value="@Page.Subscription.ConnectionCount.ToString()" />
+			</div>
+		</article>
+	</section>
+}
+
+@code {
+	[Parameter] public string StreamId { get; set; } = "";
+	[Parameter] public string GroupName { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "subscription-edit")]
+	private SubscriptionSettingsInput Input { get; set; } = new();
+
+	private SubscriptionDetailPage Page { get; set; }
+	private SubscriptionCommandResult Result { get; set; }
+
+	protected override async Task OnParametersSetAsync() {
+		var requestedStream = StreamId;
+		var requestedGroup = GroupName;
+		var hasSubmittedForm =
+			string.Equals(Input.StreamId, requestedStream, StringComparison.Ordinal) &&
+			string.Equals(Input.GroupName, requestedGroup, StringComparison.Ordinal);
+		Page = null;
+		Result = null;
+		if (!hasSubmittedForm)
+			Input = new();
+
+		try {
+			var page = await SubscriptionBrowser.Read(requestedStream, requestedGroup);
+			if (requestedStream != StreamId || requestedGroup != GroupName)
+				return;
+
+			Page = page;
+			if (Page.Subscription is not null) {
+				Input.StreamId = Page.Subscription.StreamId;
+				Input.GroupName = Page.Subscription.GroupName;
+				if (!hasSubmittedForm)
+					Input = SubscriptionSettingsInput.From(Page.Subscription.ToUpdateRequest());
+			}
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			if (requestedStream == StreamId && requestedGroup == GroupName)
+				Page = SubscriptionDetailPage.Unavailable(requestedStream, requestedGroup, $"Failed to load subscription: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private async Task UpdateSubscription() {
+		if (Page?.Subscription is not { } subscription) {
+			Result = SubscriptionCommandResult.Failure(StreamId, GroupName, "Subscription details are not loaded.");
+			return;
+		}
+
+		var redirectTo = "";
+		try {
+			Result = await SubscriptionBrowser.Update(Input.ToRequest() with {
+				StreamId = subscription.StreamId,
+				GroupName = subscription.GroupName
+			});
+			if (Result.Success)
+				redirectTo = $"/ui/subscriptions/{Uri.EscapeDataString(Result.StreamId)}/{Uri.EscapeDataString(Result.GroupName)}";
+		} catch (OperationCanceledException) {
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, "Subscription update was canceled.");
+		} catch (Exception ex) {
+			Result = SubscriptionCommandResult.Failure(subscription.StreamId, subscription.GroupName, $"Failed to update subscription: {FriendlyMessage(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+}
