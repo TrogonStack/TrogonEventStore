@@ -308,7 +308,7 @@ public sealed class AdminOperationsService(
 			byId.Values
 				.Select(x => x.Build())
 				.Where(x => x.StartedUtc is not null)
-				.OrderBy(x => x.StartedUtc)
+				.OrderByDescending(x => x.StartedUtc)
 				.ToArray());
 	}
 
