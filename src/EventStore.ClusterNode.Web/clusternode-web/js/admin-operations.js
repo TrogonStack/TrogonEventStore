@@ -1,6 +1,9 @@
 (function () {
 	"use strict";
 
+	var commandInFlight = 0;
+	var commandRefreshScheduled = false;
+
 	function readForm(form) {
 		var payload = {};
 		var data = new FormData(form);
@@ -57,6 +60,7 @@
 		if (button)
 			button.disabled = true;
 
+		commandInFlight += 1;
 		try {
 			showStatus(form, "Command in progress...", true);
 			var response = await fetch(form.action, {
@@ -74,15 +78,67 @@
 			var success = response.ok && result.success !== false;
 			showStatus(form, result.message || response.statusText, success);
 
-			if (success && form.getAttribute("data-admin-no-refresh") !== "true")
+			if (success && form.getAttribute("data-admin-no-refresh") !== "true") {
+				commandRefreshScheduled = true;
 				window.setTimeout(function () { window.location.reload(); }, 900);
+			}
 		} catch (error) {
 			showStatus(form, error && error.message ? error.message : "Command failed.", false);
 		} finally {
+			commandInFlight -= 1;
 			if (button)
 				button.disabled = false;
 		}
 	}
 
+	function isEditing() {
+		var element = document.activeElement;
+		return !!element && (
+			element.isContentEditable ||
+			element.matches("input, select, textarea"));
+	}
+
+	function canAutoRefresh() {
+		return !document.hidden &&
+			commandInFlight === 0 &&
+			!commandRefreshScheduled &&
+			!isEditing();
+	}
+
+	function initializeAutoRefresh(root) {
+		if (!root || root._adminAutoRefreshInterval)
+			return;
+
+		var interval = Number(root.getAttribute("data-admin-auto-refresh")) || 2000;
+		root._adminAutoRefreshInterval = window.setInterval(function () {
+			if (!root.isConnected) {
+				window.clearInterval(root._adminAutoRefreshInterval);
+				root._adminAutoRefreshInterval = null;
+				return;
+			}
+
+			if (canAutoRefresh())
+				window.location.reload();
+		}, interval);
+	}
+
+	function startAutoRefresh(root) {
+		(root || document).querySelectorAll("[data-admin-auto-refresh]").forEach(initializeAutoRefresh);
+	}
+
 	document.addEventListener("submit", submitCommand);
+	startAutoRefresh();
+	new MutationObserver(function (mutations) {
+		mutations.forEach(function (mutation) {
+			mutation.addedNodes.forEach(function (node) {
+				if (node.nodeType !== Node.ELEMENT_NODE)
+					return;
+
+				if (node.matches("[data-admin-auto-refresh]"))
+					initializeAutoRefresh(node);
+
+				startAutoRefresh(node);
+			});
+		});
+	}).observe(document.body, { childList: true, subtree: true });
 })();

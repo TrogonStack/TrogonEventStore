@@ -3,6 +3,11 @@
 
 <PageTitle>Scavenge @ScavengeId - EventStore UI</PageTitle>
 
+@if (PageNumber <= 0)
+{
+	<span hidden data-admin-auto-refresh="2000"></span>
+}
+
 <section class="grid gap-8 lg:grid-cols-[1fr_0.8fr] lg:items-start">
 	<div>
 		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Scavenge detail</p>

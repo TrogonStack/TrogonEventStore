@@ -507,9 +507,7 @@ public sealed record ScavengeDetailRow(
 				$"Scavenging chunks {parsed.ChunkStartNumber} - {parsed.ChunkEndNumber} complete",
 				parsed.SpaceSavedLabel,
 				parsed.TimeTaken,
-				parsed.WasScavenged == false
-					? FriendlyDetail(parsed.ErrorMessage, "Chunk was not scavenged.")
-					: "Complete",
+				BuildChunkResult(parsed),
 				parsed.NodeEndpoint),
 			SystemEventTypes.ScavengeMergeCompleted => new ScavengeDetailRow(
 				raw.EventNumber,
@@ -518,9 +516,7 @@ public sealed record ScavengeDetailRow(
 				$"Merging chunks {parsed.ChunkStartNumber} - {parsed.ChunkEndNumber} complete",
 				parsed.SpaceSavedLabel,
 				parsed.TimeTaken,
-				parsed.WasMerged == false
-					? FriendlyDetail(parsed.ErrorMessage, "Chunks were not merged.")
-					: "Complete",
+				BuildMergeResult(parsed),
 				parsed.NodeEndpoint),
 			SystemEventTypes.ScavengeIndexCompleted => new ScavengeDetailRow(
 				raw.EventNumber,
@@ -529,9 +525,7 @@ public sealed record ScavengeDetailRow(
 				$"Scavenging index table ({parsed.Level},{parsed.Index}) complete",
 				parsed.SpaceSavedLabel,
 				parsed.TimeTaken,
-				parsed.EntriesDeleted.HasValue
-					? $"{parsed.EntriesDeleted.Value} entries deleted"
-					: FriendlyDetail(parsed.ErrorMessage, "Complete"),
+				BuildIndexResult(parsed),
 				parsed.NodeEndpoint),
 			SystemEventTypes.ScavengeCompleted => new ScavengeDetailRow(
 				raw.EventNumber,
@@ -540,7 +534,7 @@ public sealed record ScavengeDetailRow(
 				"Completed",
 				parsed.SpaceSavedLabel,
 				parsed.TimeTaken,
-				FriendlyDetail(parsed.Error, parsed.Result),
+				BuildCompletedResult(parsed),
 				parsed.NodeEndpoint),
 			_ => new ScavengeDetailRow(
 				raw.EventNumber,
@@ -562,6 +556,38 @@ public sealed record ScavengeDetailRow(
 			parts.Add($"{parsed.Threads.Value} thread(s)");
 		return parts.Count == 0 ? "Started" : string.Join(", ", parts);
 	}
+
+	private static string BuildChunkResult(ParsedScavengeEvent parsed) {
+		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage))
+			return $"Error: {parsed.ErrorMessage}";
+
+		return parsed.WasScavenged == true
+			? $"{parsed.ChunkCountLabel} chunk(s) scavenged"
+			: "No chunks scavenged";
+	}
+
+	private static string BuildMergeResult(ParsedScavengeEvent parsed) {
+		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage))
+			return $"Error: {parsed.ErrorMessage}";
+
+		return parsed.WasMerged == true
+			? $"{parsed.ChunkCountLabel} chunk(s) merged"
+			: "No chunks merged";
+	}
+
+	private static string BuildIndexResult(ParsedScavengeEvent parsed) {
+		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage))
+			return $"Error: {parsed.ErrorMessage}";
+
+		return parsed.WasScavenged == true
+			? $"{parsed.EntriesDeleted.GetValueOrDefault()} index entries scavenged"
+			: "Index table not scavenged";
+	}
+
+	private static string BuildCompletedResult(ParsedScavengeEvent parsed) =>
+		parsed.Result.Equals("Failed", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(parsed.Error)
+			? $"{parsed.Result}: {parsed.Error}"
+			: FriendlyDetail(parsed.Result, "Completed");
 
 	private static string FriendlyDetail(string value, string fallback) =>
 		string.IsNullOrWhiteSpace(value) ? fallback : value;
@@ -695,6 +721,10 @@ internal sealed record ParsedScavengeEvent(
 	int? StartFromChunk,
 	int? Threads) {
 	public string SpaceSavedLabel => SpaceSaved?.ToString() ?? "-";
+	public int ChunkCount => ChunkStartNumber.HasValue && ChunkEndNumber.HasValue
+		? Math.Max(0, ChunkEndNumber.Value - ChunkStartNumber.Value + 1)
+		: 0;
+	public string ChunkCountLabel => ChunkCount == 0 ? "0" : ChunkCount.ToString();
 
 	public static ParsedScavengeEvent From(ScavengeRawEvent raw) {
 		if (string.IsNullOrWhiteSpace(raw.Data))
