@@ -76,6 +76,7 @@ public sealed record QueryRunPage(
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasProjection => !string.IsNullOrWhiteSpace(ProjectionName);
 	public string ProjectionHref => HasProjection ? $"/ui/projections/{Uri.EscapeDataString(ProjectionName)}" : "";
+	public string DebugHref => HasProjection ? $"/ui/projections/debug/{Uri.EscapeDataString(ProjectionName)}" : "";
 	public string RawStateHref => HasProjection ? $"/projection/{Uri.EscapeDataString(ProjectionName)}/state" : "";
 	public string RawResultHref => HasProjection ? $"/projection/{Uri.EscapeDataString(ProjectionName)}/result" : "";
 	public string RawStatisticsHref => HasProjection ? $"/projection/{Uri.EscapeDataString(ProjectionName)}/statistics" : "";

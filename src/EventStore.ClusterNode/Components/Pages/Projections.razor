@@ -1,13 +1,19 @@
 @page "/ui/projections"
 @inject ProjectionBrowserService ProjectionBrowser
+@using Microsoft.AspNetCore.Components.Forms
 
 <PageTitle>Projections - EventStore UI</PageTitle>
 
 <section class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
 	<div>
 		<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Projections</p>
-		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Inspect projection health without leaving the workspace.</h1>
-		<p class="mt-5 text-lg leading-8 text-es-muted">Start with read-only status, progress, checkpoints, and raw diagnostic handoffs before we introduce projection commands.</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Manage projection health without leaving the workspace.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Create, edit, reset, start, stop, debug, and delete projections from the Razor shell while keeping raw diagnostics nearby.</p>
+		<div class="mt-6 flex flex-wrap gap-2">
+			<a class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="/ui/projections/new">New projection</a>
+			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/projections/standard">New standard projection</a>
+			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@(Page?.ToggleQueriesHref ?? (IncludeQueries ? "/ui/projections" : "/ui/projections?includeQueries=true"))">@(Page?.ToggleQueriesLabel ?? (IncludeQueries ? "Hide transient queries" : "Include transient queries"))</a>
+		</div>
 	</div>
 	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-3">
 		<MetricCard Label="Running" Value="@(Page?.RunningCountLabel ?? "-")" />
@@ -16,7 +22,23 @@
 	</div>
 </section>
 
-<section class="mt-8">
+@if (CommandResult is not null)
+{
+	<section class="mt-6 rounded-[1.75rem] border @(CommandResult.Success ? "border-es-green/25 bg-es-green/10 text-es-forest" : "border-red-200 bg-red-50 text-red-800") p-5 text-sm font-bold shadow-[0_18px_60px_rgba(23,32,51,0.06)]">
+		<p>@CommandResult.Message</p>
+		@if (CommandResult.Failures.Count > 0)
+		{
+			<ul class="mt-3 list-disc space-y-1 pl-5">
+				@foreach (var failure in CommandResult.Failures)
+				{
+					<li>@failure</li>
+				}
+			</ul>
+		}
+	</section>
+}
+
+<section class="mt-8" data-admin-auto-refresh="2000">
 	@if (Page is null)
 	{
 		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
@@ -32,15 +54,29 @@
 	else
 	{
 		<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="flex flex-wrap items-center justify-between gap-3 border-b border-es-ink/10 px-5 py-4">
+				<p class="text-sm font-bold text-es-muted">Showing @(Page.IncludeQueries ? "all projections including transient queries" : "non-transient projections").</p>
+				<div class="flex flex-wrap gap-2">
+					<EditForm Model="EnableAllInput" FormName="projection-enable-all" OnValidSubmit="EnableAll">
+						<AntiforgeryToken />
+						<button class="rounded-full border border-es-green/25 bg-es-green/10 px-4 py-2 text-xs font-black text-es-forest transition hover:bg-es-green hover:text-white" type="submit">Enable all</button>
+					</EditForm>
+					<EditForm Model="DisableAllInput" FormName="projection-disable-all" OnValidSubmit="DisableAll">
+						<AntiforgeryToken />
+						<button class="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black text-amber-900 transition hover:bg-amber-100" type="submit">Disable all running</button>
+					</EditForm>
+				</div>
+			</div>
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
 					<thead class="bg-es-ink/5 text-xs font-black uppercase tracking-[0.18em] text-es-muted">
 						<tr>
 							<th class="px-5 py-4">Projection</th>
 							<th class="px-5 py-4">Status</th>
-							<th class="px-5 py-4">Progress</th>
+							<th class="px-5 py-4">Done</th>
 							<th class="px-5 py-4">Checkpoint</th>
-							<th class="px-5 py-4">Work</th>
+							<th class="px-5 py-4">Work queues</th>
+							<th class="px-5 py-4">Rate</th>
 							<th class="px-5 py-4">Actions</th>
 						</tr>
 					</thead>
@@ -70,9 +106,17 @@
 								<td class="px-5 py-4 text-es-muted">
 									<p><span class="font-black text-es-ink">@projection.EventsProcessedAfterRestart</span> events</p>
 									<p><span class="font-black text-es-ink">@projection.ReadsInProgress</span> reads / <span class="font-black text-es-ink">@projection.WritesInProgress</span> writes</p>
+									<p><span class="font-black text-es-ink">@projection.WriteQueuesLabel</span> write queues</p>
+									<p><span class="font-black text-es-ink">@projection.PartitionsCached</span> partitions cached</p>
 								</td>
+								<td class="px-5 py-4 font-mono text-es-ink">@projection.EventsPerSecondLabel/s</td>
 								<td class="px-5 py-4">
-									<a class="rounded-full bg-es-ink px-4 py-2 text-xs font-black text-white transition hover:bg-es-green" href="@projection.DetailHref">Inspect</a>
+									<div class="flex flex-wrap gap-2">
+										<a class="rounded-full bg-es-ink px-4 py-2 text-xs font-black text-white transition hover:bg-es-green" href="@projection.DetailHref">Inspect</a>
+										<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-xs font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@projection.EditHref">Edit</a>
+										<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-xs font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@projection.ConfigHref">Config</a>
+										<a class="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-black text-red-800 transition hover:bg-red-100" href="@projection.DeleteHref">Delete</a>
+									</div>
 								</td>
 							</tr>
 						}
@@ -84,14 +128,23 @@
 </section>
 
 @code {
+	[SupplyParameterFromQuery] public bool IncludeQueries { get; set; }
+
+	[SupplyParameterFromForm(FormName = "projection-enable-all")]
+	private ProjectionBulkInput EnableAllInput { get; set; } = new();
+
+	[SupplyParameterFromForm(FormName = "projection-disable-all")]
+	private ProjectionBulkInput DisableAllInput { get; set; } = new();
+
 	private ProjectionListPage Page { get; set; }
+	private ProjectionBulkCommandResult CommandResult { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
 		Page = null;
 
 		try
 		{
-			Page = await ProjectionBrowser.ReadAllNonTransient();
+			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
 		}
 		catch (OperationCanceledException)
 		{
@@ -103,6 +156,31 @@
 		}
 	}
 
+	private async Task EnableAll() {
+		try {
+			CommandResult = await ProjectionBrowser.EnableAll(IncludeQueries);
+			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			CommandResult = ProjectionBulkCommandResult.Failure($"Failed to enable projections: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private async Task DisableAll() {
+		try {
+			CommandResult = await ProjectionBrowser.DisableAll(IncludeQueries);
+			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			CommandResult = ProjectionBulkCommandResult.Failure($"Failed to disable projections: {FriendlyMessage(ex)}");
+		}
+	}
+
 	private static string FriendlyMessage(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private sealed class ProjectionBulkInput {
+	}
 }

@@ -1,0 +1,157 @@
+@page "/ui/projections/edit/{*Name}"
+@inject ProjectionBrowserService Projections
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Edit Projection - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@DetailHref">Back to projection</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Edit projection</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@Name</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Update projection source and emit behavior using the projection management command path.</p>
+</section>
+
+<section class="mt-8 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		@if (Page is null)
+		{
+			<p class="text-es-muted">Loading projection source...</p>
+		}
+		else if (!Page.HasQuery)
+		{
+			<p class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Page.Message</p>
+		}
+		else
+		{
+			<EditForm Model="Input" FormName="projection-edit" OnValidSubmit="SaveProjection">
+				<AntiforgeryToken />
+				<DataAnnotationsValidator />
+				<InputText type="hidden" @bind-Value="Input.Name" />
+
+				<label class="flex items-center gap-3 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-sm font-bold text-es-ink">
+					<InputCheckbox @bind-Value="Input.EmitEnabled" />
+					Emit enabled
+				</label>
+
+				<label class="mt-5 block text-sm font-black uppercase tracking-[0.22em] text-es-green" for="projection-edit-source">Source</label>
+				<InputTextArea id="projection-edit-source" class="mt-4 min-h-96 w-full rounded-2xl border border-es-ink/10 bg-es-ink px-4 py-3 font-mono text-sm text-white outline-none transition placeholder:text-white/40 focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Query" />
+				<ValidationMessage For="() => Input.Query" />
+
+				@if (Result is not null && !Result.Success)
+				{
+					<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Result.Message</p>
+				}
+
+				<div class="mt-5 flex flex-wrap gap-2">
+					<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Save projection</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@DetailHref">Cancel</a>
+				</div>
+			</EditForm>
+		}
+	</article>
+
+	<aside class="grid gap-5">
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="Source control" Tone="warn" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Save is a live projection update</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">This follows the same server command as the legacy editor. Use reset after saving if the projection should restart from its configured checkpoint behavior.</p>
+		</article>
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="Reset" Tone="warn" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Restart processing</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">Reset clears the projection's processing progress through the projection command path.</p>
+			<EditForm Model="ResetInput" FormName="projection-edit-reset" OnValidSubmit="ResetProjection">
+				<AntiforgeryToken />
+				<button class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-900 transition hover:bg-amber-100" type="submit">Reset projection</button>
+			</EditForm>
+		</article>
+		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<StatusBadge Label="Raw" Tone="muted" />
+			<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Need the raw query response?</h2>
+			<a class="mt-5 inline-flex rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawQueryHref" target="_blank" rel="noopener noreferrer">Open raw query</a>
+		</article>
+	</aside>
+</section>
+
+@code {
+	[Parameter] public string Name { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "projection-edit")]
+	private ProjectionEditInput Input { get; set; } = new();
+
+	[SupplyParameterFromForm(FormName = "projection-edit-reset")]
+	private ProjectionResetInput ResetInput { get; set; } = new();
+
+	private ProjectionQueryPage Page { get; set; }
+	private ProjectionCommandResult Result { get; set; }
+	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
+	private string RawQueryHref => $"/projection/{Uri.EscapeDataString(Name)}/query?config=yes";
+
+	protected override async Task OnParametersSetAsync() {
+		var hasSubmittedForm = string.Equals(Input.Name, Name, StringComparison.OrdinalIgnoreCase);
+		if (hasSubmittedForm)
+			return;
+
+		try {
+			Page = await Projections.ReadProjectionQuery(Name);
+			if (Page.Query is not null)
+				Input = ProjectionEditInput.From(Page.Query);
+		} catch (OperationCanceledException) {
+			throw;
+		} catch (Exception ex) {
+			Page = ProjectionQueryPage.Unavailable(Name, $"Failed to load projection query: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private async Task SaveProjection() {
+		var redirectTo = "";
+		try {
+			Result = await Projections.UpdateQuery(Input.ToRequest());
+			if (Result.Success)
+				redirectTo = DetailHref;
+		} catch (OperationCanceledException) {
+			Result = ProjectionCommandResult.Failure(Input.Name, "Projection update was canceled.");
+		} catch (Exception ex) {
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to update projection: {FriendlyMessage(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private async Task ResetProjection() {
+		try {
+			Result = await Projections.Reset(Name);
+		} catch (OperationCanceledException) {
+			Result = ProjectionCommandResult.Failure(Name, "Projection reset was canceled.");
+		} catch (Exception ex) {
+			Result = ProjectionCommandResult.Failure(Name, $"Failed to reset projection: {FriendlyMessage(ex)}");
+		}
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private sealed class ProjectionEditInput {
+		public string Name { get; set; } = "";
+
+		[Required(ErrorMessage = "Enter projection source.")]
+		public string Query { get; set; } = "";
+
+		public bool EmitEnabled { get; set; }
+
+		public static ProjectionEditInput From(ProjectionQueryView query) =>
+			new() {
+				Name = query.Name,
+				Query = query.Query,
+				EmitEnabled = query.EmitEnabled
+			};
+
+		public ProjectionUpdateQueryRequest ToRequest() => new(Name, Query, EmitEnabled);
+	}
+
+	private sealed class ProjectionResetInput {
+	}
+}

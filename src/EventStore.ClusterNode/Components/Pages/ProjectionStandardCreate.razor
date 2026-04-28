@@ -1,0 +1,107 @@
+@page "/ui/projections/standard"
+@inject ProjectionBrowserService Projections
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>New Standard Projection - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="/ui/projections">Back to projections</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Standard projection</p>
+	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Create a native projection handler.</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Configure the standard EventStore projection handlers from the Razor shell, including checkpoints and emitted events.</p>
+</section>
+
+<section class="mt-8 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<EditForm Model="Input" FormName="projection-standard-create" OnValidSubmit="CreateProjection">
+			<AntiforgeryToken />
+			<DataAnnotationsValidator />
+
+			<div class="grid gap-4 md:grid-cols-2">
+				<label class="text-sm font-bold text-es-muted">
+					Name
+					<InputText class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Name" />
+					<ValidationMessage For="() => Input.Name" />
+				</label>
+				<label class="text-sm font-bold text-es-muted">
+					Type
+					<InputSelect class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.HandlerType">
+						@foreach (var option in ProjectionBrowserService.StandardProjectionOptions)
+						{
+							<option value="@option.HandlerType">@option.Label</option>
+						}
+					</InputSelect>
+				</label>
+			</div>
+
+			<label class="mt-5 block text-sm font-black uppercase tracking-[0.22em] text-es-green" for="standard-source">Source</label>
+			<InputTextArea id="standard-source" class="mt-4 min-h-80 w-full rounded-2xl border border-es-ink/10 bg-es-ink px-4 py-3 font-mono text-sm text-white outline-none transition placeholder:text-white/40 focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Query" />
+			<ValidationMessage For="() => Input.Query" />
+
+			@if (Result is not null && !Result.Success)
+			{
+				<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Result.Message</p>
+			}
+
+			<div class="mt-5 flex flex-wrap gap-2">
+				<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Create standard projection</button>
+				<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/projections">Cancel</a>
+			</div>
+		</EditForm>
+	</article>
+
+	<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+		<StatusBadge Label="Native handler" Tone="good" />
+		<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">Legacy-compatible defaults</h2>
+		<p class="mt-3 text-sm leading-6 text-es-muted">Standard projections are created as continuous projections with emitting, checkpoints, and startup enabled, matching the old standard projection workflow.</p>
+	</article>
+</section>
+
+@code {
+	[SupplyParameterFromForm(FormName = "projection-standard-create")]
+	private StandardProjectionCreateInput Input { get; set; } = new();
+
+	private ProjectionCommandResult Result { get; set; }
+
+	private async Task CreateProjection() {
+		var redirectTo = "";
+		try {
+			Result = await Projections.Create(Input.ToRequest());
+			if (Result.Success)
+				redirectTo = $"/ui/projections/{Uri.EscapeDataString(Result.Name)}";
+		} catch (OperationCanceledException) {
+			Result = ProjectionCommandResult.Failure(Input.Name, "Standard projection creation was canceled.");
+		} catch (Exception ex) {
+			Result = ProjectionCommandResult.Failure(Input.Name, $"Failed to create standard projection: {FriendlyMessage(ex)}");
+		}
+
+		if (!string.IsNullOrWhiteSpace(redirectTo))
+			Navigation.NavigateTo(redirectTo);
+	}
+
+	private static string FriendlyMessage(Exception ex) =>
+		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
+
+	private sealed class StandardProjectionCreateInput {
+		[Required(ErrorMessage = "Enter a projection name.")]
+		public string Name { get; set; } = "";
+
+		[Required(ErrorMessage = "Enter projection source.")]
+		public string Query { get; set; } = "";
+
+		public string HandlerType { get; set; } = ProjectionBrowserService.StandardProjectionOptions[0].HandlerType;
+
+		public ProjectionCreateRequest ToRequest() =>
+			new(
+				ProjectionCreateMode.Continuous,
+				Name,
+				Query,
+				Enabled: true,
+				CheckpointsEnabled: true,
+				EmitEnabled: true,
+				TrackEmittedStreams: false,
+				HandlerType);
+	}
+}
