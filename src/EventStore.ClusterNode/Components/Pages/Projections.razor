@@ -160,7 +160,8 @@
 		try {
 			CommandResult = await ProjectionBrowser.EnableAll(IncludeQueries);
 		} catch (OperationCanceledException) {
-			throw;
+			CommandResult = ProjectionBulkCommandResult.Failure("Enable projections was canceled.");
+			return;
 		} catch (Exception ex) {
 			CommandResult = ProjectionBulkCommandResult.Failure($"Failed to enable projections: {UiMessages.Friendly(ex)}");
 			return;
@@ -173,7 +174,8 @@
 		try {
 			CommandResult = await ProjectionBrowser.DisableAll(IncludeQueries);
 		} catch (OperationCanceledException) {
-			throw;
+			CommandResult = ProjectionBulkCommandResult.Failure("Disable projections was canceled.");
+			return;
 		} catch (Exception ex) {
 			CommandResult = ProjectionBulkCommandResult.Failure($"Failed to disable projections: {UiMessages.Friendly(ex)}");
 			return;
@@ -186,7 +188,7 @@
 		try {
 			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
 		} catch (OperationCanceledException) {
-			throw;
+			Page = ProjectionListPage.Unavailable("Projection command completed, but refresh was canceled.", IncludeQueries);
 		} catch (Exception ex) {
 			Page = ProjectionListPage.Unavailable($"Projection command completed, but refresh failed: {UiMessages.Friendly(ex)}", IncludeQueries);
 		}
