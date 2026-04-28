@@ -1,0 +1,127 @@
+@page "/ui/signin"
+@layout AuthLayout
+@inject SecurityBrowserService Security
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Sign in - EventStore UI</PageTitle>
+
+<section class="grid w-full gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+	<article class="rounded-[2rem] border border-white/80 bg-white/90 p-7 shadow-[0_24px_90px_rgba(23,32,51,0.12)] backdrop-blur">
+		<a class="inline-flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-es-ink/5" href="/ui" aria-label="EventStore UI home">
+			<span class="flex size-10 items-center justify-center rounded-2xl bg-es-ink text-base font-black tracking-tight text-white shadow-lg shadow-es-ink/15">ES</span>
+			<span>
+				<span class="block text-xs font-bold uppercase tracking-[0.24em] text-es-green">EventStore</span>
+				<span class="block text-lg font-black tracking-tight text-es-ink">Operations UI</span>
+			</span>
+		</a>
+
+		<p class="mt-10 text-xs font-black uppercase tracking-[0.28em] text-es-green">Secure session</p>
+		<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Sign in to manage this node.</h1>
+		<p class="mt-5 text-lg leading-8 text-es-muted">Use the same node authentication provider as the legacy Admin UI while keeping the new Razor surface outside Angular.</p>
+	</article>
+
+	<article class="rounded-[2rem] border border-white/80 bg-white/95 p-7 shadow-[0_24px_90px_rgba(23,32,51,0.12)] backdrop-blur">
+		@if (Authentication.IsInsecure)
+		{
+			<StatusBadge Label="Insecure mode" Tone="warn" />
+			<h2 class="mt-4 text-3xl font-black tracking-tight text-es-ink">Authentication is disabled.</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">This node is running with insecure access, so there is no credential exchange to perform.</p>
+			<a class="mt-6 inline-flex rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="@Destination">Continue to UI</a>
+		}
+		else if (!Authentication.SupportsBasic)
+		{
+			<StatusBadge Label="@Authentication.TypeLabel" Tone="warn" />
+			<h2 class="mt-4 text-3xl font-black tracking-tight text-es-ink">Continue with the configured provider.</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">This node does not advertise Basic authentication, so sign-in is delegated to the configured browser authentication flow.</p>
+			<button class="mt-6 rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="button" data-ui-oauth-signin data-ui-oauth-return="@Destination">Continue</button>
+			<p class="mt-4 hidden rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800" data-ui-oauth-status></p>
+		}
+		else
+		{
+			<EditForm Model="Input" FormName="ui-signin" OnValidSubmit="SignInUser">
+				<AntiforgeryToken />
+				<DataAnnotationsValidator />
+
+				<div class="grid gap-4">
+					<label class="text-sm font-bold text-es-muted">
+						Username
+						<InputText autocomplete="username" autofocus class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Username" />
+						<ValidationMessage For="() => Input.Username" />
+					</label>
+					<label class="text-sm font-bold text-es-muted">
+						Password
+						<InputText autocomplete="current-password" type="password" class="mt-2 w-full rounded-2xl border border-es-ink/10 bg-white px-4 py-3 text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" @bind-Value="Input.Password" />
+						<ValidationMessage For="() => Input.Password" />
+					</label>
+				</div>
+
+				@if (!string.IsNullOrWhiteSpace(Message))
+				{
+					<p class="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Message</p>
+				}
+
+				<div class="mt-6 flex flex-wrap gap-2">
+					<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Sign in</button>
+					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/web/index.html#/signin">Legacy sign-in</a>
+				</div>
+			</EditForm>
+		}
+	</article>
+</section>
+
+@code {
+	[SupplyParameterFromQuery(Name = "returnUrl")]
+	private string ReturnUrl { get; set; } = "";
+
+	[SupplyParameterFromForm(FormName = "ui-signin")]
+	private SignInInput Input { get; set; } = new();
+
+	private SecurityAuthenticationInfo Authentication { get; set; }
+	private string Message { get; set; } = "";
+	private string Destination => SecurityBrowserService.NormalizeReturnUrl(ReturnUrl);
+
+	protected override void OnParametersSet() {
+		Authentication = Security.AuthenticationInfo();
+		var context = HttpContextAccessor.HttpContext;
+		if (string.Equals(context?.Request.Method, HttpMethods.Get, StringComparison.OrdinalIgnoreCase) &&
+		    SecurityBrowserService.IsSignedIn(context.User))
+			Navigation.NavigateTo(Destination);
+	}
+
+	private async Task SignInUser() {
+		try {
+			var result = await Security.Validate(Input.Username, Input.Password);
+			if (!result.Success) {
+				Message = result.Message;
+				return;
+			}
+
+			var context = HttpContextAccessor.HttpContext;
+			if (context is null) {
+				Message = "The sign-in response is no longer available.";
+				return;
+			}
+
+			UiCredentialCookie.AppendBasic(context.Response, new UiCredentials(Input.Username.Trim(), Input.Password));
+		} catch (OperationCanceledException) {
+			Message = "Sign-in was canceled.";
+			return;
+		} catch (Exception ex) {
+			Message = $"Failed to sign in: {UserInterfaceMessages.Friendly(ex)}";
+			return;
+		}
+
+		Navigation.NavigateTo(Destination);
+	}
+
+	private sealed class SignInInput {
+		[Required(ErrorMessage = "Enter a username.")]
+		public string Username { get; set; } = "";
+
+		[Required(ErrorMessage = "Enter a password.")]
+		public string Password { get; set; } = "";
+	}
+}

@@ -25,6 +25,18 @@
 			}
 		},
 		{
+			pattern: /^#\/signin(?:[/?].*)?$/i,
+			target: function () {
+				return "/ui/signin";
+			}
+		},
+		{
+			pattern: /^#\/signout(?:[/?].*)?$/i,
+			target: function () {
+				return "/ui/signout";
+			}
+		},
+		{
 			pattern: /^#\/subscriptions(?:[/?].*)?$/i,
 			target: function (hash) {
 				var path = hash.replace(/^#\/subscriptions\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
@@ -177,7 +189,9 @@
 		{ selector: 'a[ui-sref="users.list"]', text: "Users" },
 		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" },
 		{ selector: 'a[ui-sref="projections.list"]', text: "Projections" },
-		{ selector: 'a[ui-sref="query"]', text: "Query" }
+		{ selector: 'a[ui-sref="query"]', text: "Query" },
+		{ selector: 'a[ui-sref="signout"]', text: "Log Out" },
+		{ selector: 'a[ui-sref="signout"]', text: "Disconnect" }
 	];
 
 	function safeDecode(value) {
@@ -249,9 +263,31 @@
 			if (!legacyRoutes[i].pattern.test(hash))
 				continue;
 
+			copyLegacyCredentialsCookie();
 			window.location.replace(legacyRoutes[i].target(hash));
 			return;
 		}
+	}
+
+	function readCookie(name) {
+		var prefix = name + "=";
+		var parts = document.cookie ? document.cookie.split(";") : [];
+		for (var i = 0; i < parts.length; i++) {
+			var part = parts[i].trim();
+			if (part.indexOf(prefix) === 0)
+				return part.substring(prefix.length);
+		}
+
+		return "";
+	}
+
+	function copyLegacyCredentialsCookie() {
+		var value = readCookie("es-creds");
+		if (!value)
+			return;
+
+		var secure = window.location.protocol === "https:" ? "; secure" : "";
+		document.cookie = "es-creds=" + value + "; path=/; SameSite=Lax" + secure;
 	}
 
 	function watchLegacyShell() {

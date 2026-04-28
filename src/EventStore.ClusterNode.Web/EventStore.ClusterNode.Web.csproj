@@ -47,6 +47,9 @@
 		<None Include="clusternode-web\js\queue-dashboard.js">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Include="clusternode-web\js\ui-auth.js">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Include="clusternode-web\js\requirejs.min.js">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
