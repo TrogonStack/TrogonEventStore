@@ -48,7 +48,7 @@
 	else if (!Page.HasProjections)
 	{
 		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
-			@(string.IsNullOrWhiteSpace(Page.Message) ? "No non-transient projections are available." : Page.Message)
+			@(string.IsNullOrWhiteSpace(Page.Message) ? EmptyProjectionsMessage : Page.Message)
 		</div>
 	}
 	else
@@ -138,6 +138,8 @@
 
 	private ProjectionListPage Page { get; set; }
 	private ProjectionBulkCommandResult CommandResult { get; set; }
+	private string EmptyProjectionsMessage =>
+		Page?.IncludeQueries == true ? "No projections are available." : "No non-transient projections are available.";
 
 	protected override async Task OnParametersSetAsync() {
 		Page = null;
