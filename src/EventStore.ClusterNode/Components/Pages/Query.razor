@@ -68,6 +68,7 @@
 					<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Result.ProjectionHref">Projection detail</a>
 					<EditForm Model="StopInput" FormName="query-stop" OnValidSubmit="StopProjection">
 						<AntiforgeryToken />
+						<InputText type="hidden" @bind-Value="StopInput.ProjectionName" />
 						<button class="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 transition hover:bg-amber-100" type="submit">Break</button>
 					</EditForm>
 					<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@Result.DebugHref">Debug</a>
@@ -112,6 +113,7 @@
 					_lastSeededQuery = page.Query.Query;
 					_lastLoadedLocation = Location;
 					Result = QueryRunPage.Success(Input.Query, page.Query.Name);
+					StopInput.ProjectionName = page.Query.Name;
 				} else {
 					Result = QueryRunPage.Unavailable(Input.Query, page.Message);
 				}
@@ -146,6 +148,7 @@
 	private async Task RunQuery() {
 		try {
 			Result = await QueryBrowser.RunTransient(Input.Query);
+			StopInput.ProjectionName = Result.ProjectionName;
 			CommandResult = null;
 		} catch (OperationCanceledException) {
 			Result = QueryRunPage.Unavailable(Input.Query, "Query execution was canceled.");
@@ -155,17 +158,19 @@
 	}
 
 	private async Task StopProjection() {
-		if (Result is null || !Result.HasProjection) {
+		var projectionName = StopInput.ProjectionName;
+		if (string.IsNullOrWhiteSpace(projectionName)) {
 			CommandResult = ProjectionCommandResult.Failure("", "Run or load a query projection before stopping it.");
 			return;
 		}
 
+		Result = QueryRunPage.Success(Input.Query, projectionName);
 		try {
-			CommandResult = await Projections.Disable(Result.ProjectionName);
+			CommandResult = await Projections.Disable(projectionName);
 		} catch (OperationCanceledException) {
-			CommandResult = ProjectionCommandResult.Failure(Result.ProjectionName, "Query break was canceled.");
+			CommandResult = ProjectionCommandResult.Failure(projectionName, "Query break was canceled.");
 		} catch (Exception ex) {
-			CommandResult = ProjectionCommandResult.Failure(Result.ProjectionName, $"Failed to stop query projection: {UiMessages.Friendly(ex)}");
+			CommandResult = ProjectionCommandResult.Failure(projectionName, $"Failed to stop query projection: {UiMessages.Friendly(ex)}");
 		}
 	}
 
@@ -182,5 +187,6 @@
 	}
 
 	private sealed class QueryStopInput {
+		public string ProjectionName { get; set; } = "";
 	}
 }
