@@ -54,9 +54,6 @@ public sealed class ProjectionBrowserService(
 			"Reading Speed Test Handler")
 	};
 
-	public Task<ProjectionListPage> ReadAllNonTransient(CancellationToken cancellationToken = default) =>
-		ReadAll(includeQueries: false, cancellationToken);
-
 	public async Task<ProjectionListPage> ReadAll(bool includeQueries, CancellationToken cancellationToken = default) {
 		if (!await HasAccess(ListOperation, cancellationToken))
 			return ProjectionListPage.Unavailable("Projection list access was denied.");

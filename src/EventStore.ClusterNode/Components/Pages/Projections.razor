@@ -152,7 +152,7 @@
 		}
 		catch (Exception ex)
 		{
-			Page = ProjectionListPage.Unavailable($"Failed to load projections: {UiMessages.Friendly(ex)}");
+			Page = ProjectionListPage.Unavailable($"Failed to load projections: {UiMessages.Friendly(ex)}", IncludeQueries);
 		}
 	}
 
