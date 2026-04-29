@@ -19,8 +19,11 @@ public static class UiCredentialCookie {
 
 	public static bool TryParseBasicCredentials(string raw, out UiCredentials credentials) {
 		credentials = new UiCredentials("", "");
-		if (!TryExtractBasicValue(SafeDecode(raw), out var value) ||
-		    !IsHeaderSafe(value) ||
+		if (!TryExtractBasicValue(SafeDecode(raw), out var value))
+			return false;
+
+		value = NormalizeBasicValue(value);
+		if (!IsHeaderSafe(value) ||
 		    !TryDecodeBasicValue(value, out var username, out var password))
 			return false;
 
@@ -73,6 +76,7 @@ public static class UiCredentialCookie {
 		if (!TryExtractBasicValue(SafeDecode(raw), out value))
 			return false;
 
+		value = NormalizeBasicValue(value);
 		return IsHeaderSafe(value) && TryDecodeBasicValue(value, out _, out _);
 	}
 
@@ -113,6 +117,11 @@ public static class UiCredentialCookie {
 			return false;
 		}
 	}
+
+	private static string NormalizeBasicValue(string value) =>
+		value.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase)
+			? value["Basic ".Length..].TrimStart()
+			: value;
 
 	private static bool IsHeaderSafe(string value) =>
 		!value.Any(x => x is '\r' or '\n');
