@@ -314,7 +314,16 @@
 			return token;
 		}
 
-		return String(Date.now()) + String(Math.random()).slice(2);
+		var fallback = String(Date.now());
+		while (fallback.length < 32) {
+			var chunk = Math.floor(Math.random() * 0x100000000).toString(16);
+			while (chunk.length < 8)
+				chunk = "0" + chunk;
+
+			fallback += chunk;
+		}
+
+		return fallback;
 	}
 
 	function writeMigrationToken(token) {

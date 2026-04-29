@@ -63,7 +63,7 @@ internal static class SecurityEndpoints {
 			var form = await context.Request.ReadFormAsync(context.RequestAborted);
 			return new SecurityCredentialMigration(
 				form["credentials"].ToString(),
-				NormalizeOptionalReturnUrl(form["returnUrl"].ToString()),
+				form["returnUrl"].ToString(),
 				form["migrationToken"].ToString(),
 				UsesRedirect: true);
 		}
@@ -75,7 +75,7 @@ internal static class SecurityEndpoints {
 			? null
 			: new SecurityCredentialMigration(
 				request.Credentials ?? "",
-				NormalizeOptionalReturnUrl(request.ReturnUrl),
+				request.ReturnUrl ?? "",
 				request.MigrationToken ?? "",
 				UsesRedirect: false);
 	}
