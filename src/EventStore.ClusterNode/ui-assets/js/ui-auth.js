@@ -39,12 +39,12 @@
 			return "";
 
 		try {
-			var parsed = JSON.parse(raw.indexOf("j:") === 0 ? raw.substring(2) : raw);
+			var parsed = JSON.parse(raw);
 			var credentials = parsed && typeof parsed.credentials === "string" ? parsed.credentials : "";
 			if (!isHeaderSafe(credentials))
 				return "";
 
-			return /^Basic\s+/i.test(credentials) ? credentials : "Basic " + credentials;
+			return "Basic " + credentials;
 		} catch (_) {
 			return "";
 		}
