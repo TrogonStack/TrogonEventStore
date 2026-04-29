@@ -14,7 +14,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 		private readonly NodeSubsystems[] _enabledNodeSubsystems;
 
-		//private readonly MiniWeb _commonWeb;
 		private readonly MiniWeb _clusterNodeWeb;
 
 		public ClusterWebUiController(IPublisher publisher, NodeSubsystems[] enabledNodeSubsystems)
