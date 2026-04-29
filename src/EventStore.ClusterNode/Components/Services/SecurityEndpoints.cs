@@ -52,9 +52,7 @@ internal static class SecurityEndpoints {
 					: Results.Unauthorized();
 
 			UiCredentialCookie.AppendBasic(context.Response, credentials);
-			return string.IsNullOrWhiteSpace(request.ReturnUrl)
-				? Results.NoContent()
-				: Results.Redirect(request.ReturnUrl);
+			return RedirectToReturnUrlOrNoContent(request.ReturnUrl);
 		});
 
 		return app;
@@ -85,7 +83,15 @@ internal static class SecurityEndpoints {
 	private static IResult ClearLegacyCredentialsAndRedirect(HttpContext context, string returnUrl) {
 		UiCredentialCookie.Delete(context.Response);
 		DeleteMigrationToken(context.Response);
-		return Results.Redirect(string.IsNullOrWhiteSpace(returnUrl) ? "/ui" : returnUrl);
+		var normalizedReturnUrl = NormalizeOptionalReturnUrl(returnUrl);
+		return Results.Redirect(string.IsNullOrWhiteSpace(normalizedReturnUrl) ? "/ui" : normalizedReturnUrl);
+	}
+
+	private static IResult RedirectToReturnUrlOrNoContent(string returnUrl) {
+		var normalizedReturnUrl = NormalizeOptionalReturnUrl(returnUrl);
+		return string.IsNullOrWhiteSpace(normalizedReturnUrl)
+			? Results.NoContent()
+			: Results.Redirect(normalizedReturnUrl);
 	}
 
 	private static string NormalizeOptionalReturnUrl(string returnUrl) =>

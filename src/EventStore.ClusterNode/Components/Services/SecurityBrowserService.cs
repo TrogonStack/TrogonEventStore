@@ -63,6 +63,8 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 }
 
 public sealed record SecurityAuthenticationInfo(string Type, bool SupportsBasic, bool IsInsecure) {
+	public static SecurityAuthenticationInfo Unavailable() => new("Unavailable", SupportsBasic: false, IsInsecure: false);
+
 	public string TypeLabel => string.IsNullOrWhiteSpace(Type) ? "External authentication" : Type;
 }
 
