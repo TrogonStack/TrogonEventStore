@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using EventStore.Core.Bus;
-using EventStore.Core.Util;
 using EventStore.Plugins.Authorization;
 using EventStore.Transport.Http;
 using EventStore.Transport.Http.Codecs;
@@ -14,17 +13,13 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 		private readonly NodeSubsystems[] _enabledNodeSubsystems;
 
-		private readonly MiniWeb _clusterNodeWeb;
-
 		public ClusterWebUiController(IPublisher publisher, NodeSubsystems[] enabledNodeSubsystems)
 			: base(publisher) {
 			_enabledNodeSubsystems = enabledNodeSubsystems;
-			_clusterNodeWeb = new MiniWeb("/ui/assets");
 		}
 
 		protected override void SubscribeCore(IHttpService service) {
 			RegisterRedirectAction(service, "", "/ui");
-			_clusterNodeWeb.RegisterControllerActions(service);
 
 			service.RegisterAction(
 				new ControllerAction("/sys/subsystems", HttpMethod.Get, Codec.NoCodecs, new ICodec[] {Codec.Json}, new Operation(Operations.Node.Information.Subsystems)),

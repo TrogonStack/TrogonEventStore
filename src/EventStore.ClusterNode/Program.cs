@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -279,6 +280,10 @@ internal static class Program
 
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
+					app.UseStaticFiles(new StaticFileOptions {
+						FileProvider = new PhysicalFileProvider(Locations.UiAssetsDirectory),
+						RequestPath = "/ui/assets"
+					});
 					hostedService.Node.Startup.Configure(app);
 					app.MapAdminOperationsEndpoints();
 					app.MapRazorComponents<App>();
