@@ -280,10 +280,14 @@ internal static class Program
 
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
-					app.UseStaticFiles(new StaticFileOptions {
-						FileProvider = new PhysicalFileProvider(Locations.UiAssetsDirectory),
-						RequestPath = "/ui/assets"
-					});
+					if (Directory.Exists(Locations.UiAssetsDirectory)) {
+						app.UseStaticFiles(new StaticFileOptions {
+							FileProvider = new PhysicalFileProvider(Locations.UiAssetsDirectory),
+							RequestPath = "/ui/assets"
+						});
+					} else {
+						Log.Warning("UI assets directory {UiAssetsDirectory} is not available.", Locations.UiAssetsDirectory);
+					}
 					hostedService.Node.Startup.Configure(app);
 					app.MapAdminOperationsEndpoints();
 					app.MapRazorComponents<App>();
