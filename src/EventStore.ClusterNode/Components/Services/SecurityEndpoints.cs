@@ -34,7 +34,7 @@ internal static class SecurityEndpoints {
 
 			if (!UiCredentialCookie.TryParseBasicCredentials(request.Credentials, out var credentials))
 				return request.UsesRedirect
-					? ClearLegacyCredentialsAndRedirect(context, request.ReturnUrl)
+					? ClearInvalidCredentialsAndRedirect(context, request.ReturnUrl)
 					: Results.BadRequest();
 
 			SecurityCommandResult validation;
@@ -44,13 +44,13 @@ internal static class SecurityEndpoints {
 				throw;
 			} catch (Exception) {
 				return request.UsesRedirect
-					? ClearLegacyCredentialsAndRedirect(context, request.ReturnUrl)
+					? ClearInvalidCredentialsAndRedirect(context, request.ReturnUrl)
 					: Results.Unauthorized();
 			}
 
 			if (!validation.Success)
 				return request.UsesRedirect
-					? ClearLegacyCredentialsAndRedirect(context, request.ReturnUrl)
+					? ClearInvalidCredentialsAndRedirect(context, request.ReturnUrl)
 					: Results.Unauthorized();
 
 			UiCredentialCookie.AppendBasic(context.Response, credentials);
@@ -82,7 +82,7 @@ internal static class SecurityEndpoints {
 				UsesRedirect: false);
 	}
 
-	private static IResult ClearLegacyCredentialsAndRedirect(HttpContext context, string returnUrl) {
+	private static IResult ClearInvalidCredentialsAndRedirect(HttpContext context, string returnUrl) {
 		UiCredentialCookie.Delete(context.Response);
 		DeleteMigrationToken(context.Response);
 		var normalizedReturnUrl = NormalizeOptionalReturnUrl(returnUrl);
