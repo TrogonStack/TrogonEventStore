@@ -74,8 +74,10 @@
 				var action = (parts[1] || "").toLowerCase();
 				if (action === "addevent")
 					return "/ui/streams/append/" + encodeURIComponent(streamId);
-				if (action === "acl" || action === "metadata")
+				if (action === "acl")
 					return "/ui/streams/acl/" + encodeURIComponent(streamId);
+				if (action === "metadata")
+					return "/ui/streams/metadata/" + encodeURIComponent(streamId);
 
 				var direction = (parts[2] || "").toLowerCase();
 				if (parts.length >= 4 && isStreamDirection(direction))
