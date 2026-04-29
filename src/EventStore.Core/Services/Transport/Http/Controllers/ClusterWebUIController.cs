@@ -20,13 +20,11 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		public ClusterWebUiController(IPublisher publisher, NodeSubsystems[] enabledNodeSubsystems)
 			: base(publisher) {
 			_enabledNodeSubsystems = enabledNodeSubsystems;
-			_clusterNodeWeb = new MiniWeb("/web");
+			_clusterNodeWeb = new MiniWeb("/ui/assets");
 		}
 
 		protected override void SubscribeCore(IHttpService service) {
 			RegisterRedirectAction(service, "", "/ui");
-			RegisterRedirectAction(service, "/web", "/ui");
-			RegisterRedirectAction(service, "/web/index.html", "/ui");
 			_clusterNodeWeb.RegisterControllerActions(service);
 
 			service.RegisterAction(
