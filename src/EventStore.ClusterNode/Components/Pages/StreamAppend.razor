@@ -89,7 +89,7 @@
 			_lastRequestedFromEvent == requestedFromEvent;
 		var hasSubmittedForm = !string.IsNullOrWhiteSpace(Input.StreamId) &&
 			(string.IsNullOrWhiteSpace(requestedStream) || string.Equals(Input.StreamId, requestedStream, StringComparison.OrdinalIgnoreCase));
-		if (hasSubmittedForm && sameRequest)
+		if (hasSubmittedForm || sameRequest)
 			return;
 
 		Input = NewInput(requestedStream);
