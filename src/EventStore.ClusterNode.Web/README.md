@@ -5,7 +5,7 @@ The generated Tailwind stylesheet is committed so .NET builds do not require Nod
 Run the CSS build whenever Tailwind utility classes change in:
 
 - `styles/app.css`
-- `clusternode-web/index.html`
+- `clusternode-web/js/*.js`
 - `../EventStore.ClusterNode/Components/**/*.razor`
 
 ```sh
