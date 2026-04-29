@@ -59,7 +59,6 @@ public class FakeController : IHttpController
 		Register("/streams/$all/{position}/{count}?embed={embed}", HttpMethod.Get);
 		Register("/streams/$all/{position}/backward/{count}?embed={embed}", HttpMethod.Get);
 		Register("/streams/$all/{position}/forward/{count}?embed={embed}", HttpMethod.Get);
-		Register("/projections", HttpMethod.Get);
 		Register("/projections/any", HttpMethod.Get);
 		Register("/projections/all-non-transient", HttpMethod.Get);
 		Register("/projections/transient", HttpMethod.Get);

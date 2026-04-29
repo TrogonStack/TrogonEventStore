@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.BufferManagement
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.Projections.Core.Tests", "EventStore.Projections.Core.Tests\EventStore.Projections.Core.Tests.csproj", "{96FC74C3-8E5D-4090-B4C7-2B7ED46AE187}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.ClusterNode.Web", "EventStore.ClusterNode.Web\EventStore.ClusterNode.Web.csproj", "{401862D3-E12F-470C-9137-B9DE10591AC6}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.Common", "EventStore.Common\EventStore.Common.csproj", "{3F955137-DC23-4AC1-B7F8-6D0857234CCB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventStore.Core.Tests", "EventStore.Core.Tests\EventStore.Core.Tests.csproj", "{F0E1719C-88FF-4E44-BCBE-8B59ADA29134}"
@@ -117,18 +115,6 @@ Global
 		{96FC74C3-8E5D-4090-B4C7-2B7ED46AE187}.Release|ARM64.Build.0 = Release|ARM64
 		{96FC74C3-8E5D-4090-B4C7-2B7ED46AE187}.Release|x64.ActiveCfg = Release|x64
 		{96FC74C3-8E5D-4090-B4C7-2B7ED46AE187}.Release|x64.Build.0 = Release|x64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Debug|ARM64.ActiveCfg = Debug|ARM64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Debug|ARM64.Build.0 = Debug|ARM64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Debug|x64.ActiveCfg = Debug|x64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Debug|x64.Build.0 = Debug|x64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Release|ARM64.ActiveCfg = Release|ARM64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Release|ARM64.Build.0 = Release|ARM64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Release|x64.ActiveCfg = Release|x64
-		{401862D3-E12F-470C-9137-B9DE10591AC6}.Release|x64.Build.0 = Release|x64
 		{3F955137-DC23-4AC1-B7F8-6D0857234CCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3F955137-DC23-4AC1-B7F8-6D0857234CCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F955137-DC23-4AC1-B7F8-6D0857234CCB}.Debug|ARM64.ActiveCfg = Debug|ARM64

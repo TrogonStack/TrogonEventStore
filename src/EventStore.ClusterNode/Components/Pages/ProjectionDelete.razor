@@ -16,7 +16,7 @@
 	<article class="rounded-[2rem] border border-red-200 bg-red-50/80 p-6 shadow-[0_20px_70px_rgba(127,29,29,0.08)]">
 		<StatusBadge Label="Destructive" Tone="bad" />
 		<h2 class="mt-4 text-2xl font-black tracking-tight text-red-950">Confirm deletion</h2>
-		<p class="mt-3 text-sm leading-6 text-red-900">The projection is disabled first, then deleted. Stream cleanup options mirror the legacy delete confirmation.</p>
+		<p class="mt-3 text-sm leading-6 text-red-900">The projection is disabled first, then deleted. Stream cleanup options stay explicit because they can remove emitted data.</p>
 
 		<EditForm Model="Input" FormName="projection-delete" OnValidSubmit="DeleteProjection">
 			<AntiforgeryToken />

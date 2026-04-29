@@ -22,7 +22,7 @@ When you install EventStoreDB from PackageCloud on Linux, the following location
 - **Data:** `/var/lib/eventstore`
 - **Server logs:** `/var/log/eventstore`
 - **Test client logs:** `./testclientlog`
-- **Web content:** `./clusternode-web` then `{Content}/clusternode-web`
+- **Web content:** `./ui-assets` then `{Content}/ui-assets`
 - **Projections:** `./projections` then `{Content}/projections`
 - **Prelude:** `./Prelude` then `{Content}/Prelude`
 
@@ -32,7 +32,7 @@ When you install EventStoreDB from PackageCloud on Linux, the following location
 - **Data:** `./data`
 - **Server logs:** `./logs`
 - **Test client log:** `./testclientlogs`
-- **Web content:** `./clusternode-web`
+- **Web content:** `./ui-assets`
 - **Projections:** `./projections`
 - **Prelude:** `./Prelude`
 
@@ -44,7 +44,7 @@ When running EventStoreDB using local binaries, either downloaded or built from 
 - **Data:** `./data`
 - **Server logs:** `./logs`
 - **Test client log:** `./testclientlogs`
-- **Web content:** `./clusternode-web`
+- **Web content:** `./ui-assets`
 - **Projections:** `./projections`
 - **Prelude:** `./Prelude`
 

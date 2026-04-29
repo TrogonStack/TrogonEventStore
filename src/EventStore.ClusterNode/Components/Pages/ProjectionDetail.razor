@@ -126,7 +126,7 @@
 				<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 					<StatusBadge Label="Partition" Tone="muted" />
 					<h2 class="mt-4 text-2xl font-black tracking-tight text-es-ink">State partition</h2>
-					<p class="mt-3 text-sm leading-6 text-es-muted">Use the same partition lookup the legacy detail page exposed for state and result inspection.</p>
+					<p class="mt-3 text-sm leading-6 text-es-muted">Look up state and result payloads for a specific projection partition.</p>
 					<form class="mt-5 flex flex-wrap gap-2" method="get" action="@projection.DetailHref">
 						<input class="min-w-0 flex-1 rounded-2xl border border-es-ink/10 bg-white px-4 py-3 font-mono text-sm text-es-ink outline-none transition focus:border-es-green focus:ring-4 focus:ring-es-green/15" name="partition" value="@Partition" placeholder="Partition id" />
 						<button class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="submit">Load</button>

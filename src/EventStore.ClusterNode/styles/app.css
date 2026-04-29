@@ -1,12 +1,12 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 
-@source "../clusternode-web/js/admin-operations.js";
-@source "../clusternode-web/js/cluster-status.js";
-@source "../clusternode-web/js/queue-dashboard.js";
-@source "../clusternode-web/js/stream-browser.js";
-@source "../clusternode-web/js/ui-auth.js";
-@source "../../EventStore.ClusterNode/Components/**/*.razor";
+@source "../ui-assets/js/admin-operations.js";
+@source "../ui-assets/js/cluster-status.js";
+@source "../ui-assets/js/queue-dashboard.js";
+@source "../ui-assets/js/stream-browser.js";
+@source "../ui-assets/js/ui-auth.js";
+@source "../Components/**/*.razor";
 
 @font-face {
 	font-family: Roboto;

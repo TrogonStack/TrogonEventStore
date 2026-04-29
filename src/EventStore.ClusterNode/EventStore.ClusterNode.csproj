@@ -11,7 +11,6 @@
 		<PackageReference Include="System.ComponentModel.Composition" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\EventStore.ClusterNode.Web\EventStore.ClusterNode.Web.csproj" />
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
 		<ProjectReference Include="..\EventStore.Core\EventStore.Core.csproj" />
 		<ProjectReference Include="..\EventStore.PluginHosting\EventStore.PluginHosting.csproj" />
@@ -42,6 +41,19 @@
 		<Content Include="app2.ico" />
 		<None Remove="certs\**\*" />
 		<Content Include="certs\**\*" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="package.json" />
+		<None Update="package-lock.json" />
+		<None Update="styles\app.css" />
+		<None Update="ui-assets\apple-touch-icon.png" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\es-tile.png" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\favicon.png" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\fonts\**\*" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\css\tailwind.generated.css" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\js\admin-operations.js" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\js\cluster-status.js" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\js\queue-dashboard.js" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\js\stream-browser.js" CopyToOutputDirectory="PreserveNewest" />
+		<None Update="ui-assets\js\ui-auth.js" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 	<!-- TODO(jen20): Investigate which of these are correct -->
 	<PropertyGroup>
