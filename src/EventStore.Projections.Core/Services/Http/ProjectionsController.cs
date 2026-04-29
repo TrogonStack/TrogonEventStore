@@ -51,8 +51,6 @@ public class ProjectionsController : CommunicationController
 
 		_miniWebPrelude.RegisterControllerActions(service);
 
-		HttpHelpers.RegisterRedirectAction(service, "/web/projections", "/web/projections.htm");
-
 		Register(service, "/projections",
 			HttpMethod.Get, OnProjections, Codec.NoCodecs, new ICodec[] { Codec.ManualEncoding }, new Operation(Operations.Projections.List));
 		Register(service, "/projections/restart",
@@ -115,7 +113,7 @@ public class ProjectionsController : CommunicationController
 			"Moved", 302, "Found", "text/plain",
 			new[] {
 				new KeyValuePair<string, string>(
-					"Location", new Uri(match.BaseUri, "/web/projections.htm").AbsoluteUri)
+					"Location", new Uri(match.BaseUri, "/ui/projections").AbsoluteUri)
 			}, x => Log.Debug(x, "Reply Text Content Failed."));
 	}
 
