@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -129,7 +131,12 @@ internal static class SecurityEndpoints {
 		request.UsesRedirect &&
 		request.MigrationToken.Length >= 16 &&
 		context.Request.Cookies.TryGetValue(MigrationTokenCookieName, out var cookieToken) &&
-		string.Equals(cookieToken, request.MigrationToken, StringComparison.Ordinal);
+		FixedTimeEquals(cookieToken, request.MigrationToken);
+
+	private static bool FixedTimeEquals(string left, string right) =>
+		CryptographicOperations.FixedTimeEquals(
+			SHA256.HashData(Encoding.UTF8.GetBytes(left)),
+			SHA256.HashData(Encoding.UTF8.GetBytes(right)));
 
 	private static void DeleteMigrationToken(HttpResponse response) =>
 		response.Cookies.Delete(MigrationTokenCookieName, new CookieOptions {

@@ -264,7 +264,7 @@
 				continue;
 
 			var target = legacyRoutes[i].target(hash);
-			if (submitLegacyCredentials(target))
+			if (shouldMigrateLegacyCredentials(target) && submitLegacyCredentials(target))
 				return;
 
 			window.location.replace(target);
@@ -301,6 +301,10 @@
 		(document.body || document.documentElement).appendChild(form);
 		form.submit();
 		return true;
+	}
+
+	function shouldMigrateLegacyCredentials(target) {
+		return !/^\/ui\/signout(?:[/?#]|$)/i.test(target || "");
 	}
 
 	function createMigrationToken() {
