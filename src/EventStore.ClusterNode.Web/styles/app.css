@@ -1,10 +1,11 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 
-@source "../clusternode-web/index.html";
 @source "../clusternode-web/js/admin-operations.js";
 @source "../clusternode-web/js/cluster-status.js";
 @source "../clusternode-web/js/queue-dashboard.js";
+@source "../clusternode-web/js/stream-browser.js";
+@source "../clusternode-web/js/ui-auth.js";
 @source "../../EventStore.ClusterNode/Components/**/*.razor";
 
 @theme {
