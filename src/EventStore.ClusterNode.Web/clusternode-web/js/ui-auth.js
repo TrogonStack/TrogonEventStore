@@ -25,9 +25,13 @@
 		}
 	}
 
+	function isHeaderSafe(value) {
+		return value && !/[\r\n]/.test(value);
+	}
+
 	function readAuthorization() {
 		var token = safeDecode(readCookie("oauth_id_token"));
-		if (token)
+		if (isHeaderSafe(token))
 			return "Bearer " + token;
 
 		var raw = safeDecode(readCookie("es-creds"));
@@ -37,7 +41,7 @@
 		try {
 			var parsed = JSON.parse(raw.indexOf("j:") === 0 ? raw.substring(2) : raw);
 			var credentials = parsed && typeof parsed.credentials === "string" ? parsed.credentials : "";
-			if (!credentials || /[\r\n]/.test(credentials))
+			if (!isHeaderSafe(credentials))
 				return "";
 
 			return /^Basic\s+/i.test(credentials) ? credentials : "Basic " + credentials;
@@ -75,7 +79,7 @@
 		document.cookie = name + "=; max-age=0; path=/; SameSite=Lax" + secure;
 	}
 
-	function clearAuthCookies() {
+	function clearReadableAuthCookies() {
 		clearCookie("es-creds");
 		clearCookie("oauth_id_token");
 	}
@@ -134,7 +138,7 @@
 
 	document.addEventListener("DOMContentLoaded", function () {
 		if (document.querySelector("[data-ui-clear-auth]"))
-			clearAuthCookies();
+			clearReadableAuthCookies();
 
 		if (window.location.pathname !== "/ui/signin")
 			return;
@@ -164,7 +168,6 @@
 	});
 
 	window.EventStoreUiAuth = {
-		clear: clearAuthCookies,
 		readAuthorization: readAuthorization
 	};
 }());
