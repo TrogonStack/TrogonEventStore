@@ -1,0 +1,74 @@
+@page "/ui/streams/metadata/{*StreamId}"
+@using EventStore.ClusterNode.Components.Services
+@inject StreamBrowserService Streams
+
+<PageTitle>Stream Metadata - EventStore UI</PageTitle>
+
+<section class="max-w-5xl">
+	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@BackHref">&lt;- Back to stream</a>
+	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Stream metadata</p>
+	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@StreamId</h1>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect the metadata event that the legacy stream browser exposed, then jump into ACL editing only when you intend to change it.</p>
+	<div class="mt-6 flex flex-wrap gap-3">
+		<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@AclHref">Edit ACL</a>
+		<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawMetadataHref" target="_blank" rel="noopener noreferrer">Raw metadata</a>
+	</div>
+</section>
+
+<section class="mt-8">
+	@if (Page is null)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			Loading stream metadata...
+		</div>
+	}
+	else if (!Page.IsAvailable)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@Page.Message
+		</div>
+	}
+	else if (!Page.HasMetadata)
+	{
+		<div class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+			@Page.Message
+		</div>
+	}
+	else
+	{
+		<div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+			<div>
+				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Metadata event</p>
+				<h2 class="mt-2 break-words text-3xl font-black tracking-tight text-es-ink">@Page.MetadataEvent.EventType</h2>
+			</div>
+			<div class="flex flex-wrap gap-3">
+				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.MetadataEvent.RawHref" target="_blank" rel="noopener noreferrer">Raw event</a>
+			</div>
+		</div>
+
+		<StreamEventCard Event="Page.MetadataEvent" />
+		<div class="mt-5 grid gap-4 lg:grid-cols-2">
+			<JsonPanel Eyebrow="Data" Title="Stream metadata" Content="@Page.MetadataEvent.DataForDisplay" RawHref="@RawMetadataHref" />
+			<JsonPanel Eyebrow="Metadata" Title="Metadata event metadata" Content="@Page.MetadataEvent.MetadataForDisplay" />
+		</div>
+	}
+</section>
+
+@code {
+	[Parameter] public string StreamId { get; set; } = "";
+
+	private StreamMetadataPage Page { get; set; }
+	private string BackHref => $"/ui/streams/{Uri.EscapeDataString(StreamId)}";
+	private string AclHref => $"/ui/streams/acl/{Uri.EscapeDataString(StreamId)}";
+	private string RawMetadataHref => $"/streams/{Uri.EscapeDataString(StreamId)}/metadata";
+
+	protected override async Task OnParametersSetAsync() {
+		var requested = StreamId;
+		Page = null;
+		var page = await Streams.ReadMetadata(requested);
+		if (!string.Equals(StreamId, requested, StringComparison.Ordinal))
+			return;
+
+		Page = page;
+	}
+}

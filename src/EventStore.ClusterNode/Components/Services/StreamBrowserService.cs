@@ -257,6 +257,25 @@ public sealed class StreamBrowserService(
 		return StreamAclPage.Success(streamId.Trim(), latestMetadata.EventNumber, rawMetadata, StreamAclInput.FromMetadata(streamId.Trim(), rawMetadata), "");
 	}
 
+	public async Task<StreamMetadataPage> ReadMetadata(
+		string streamId,
+		CancellationToken cancellationToken = default) {
+		var validation = ValidateUserStream(streamId);
+		if (!validation.Success)
+			return StreamMetadataPage.Unavailable(streamId, validation.Message);
+
+		streamId = streamId.Trim();
+		var metadata = await ReadStreamBackward(SystemStreams.MetastreamOf(streamId), count: 1, cancellationToken: cancellationToken);
+		if (!metadata.HasEvents && string.IsNullOrWhiteSpace(metadata.Message))
+			return StreamMetadataPage.Empty(streamId, "No stream metadata exists yet.");
+		if (!metadata.HasEvents && metadata.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase))
+			return StreamMetadataPage.Empty(streamId, "No stream metadata exists yet.");
+		if (!metadata.HasEvents)
+			return StreamMetadataPage.Unavailable(streamId, metadata.Message);
+
+		return StreamMetadataPage.Success(streamId, metadata.Events[0]);
+	}
+
 	public async Task<StreamCommandResult> AppendEvent(
 		StreamAppendRequest request,
 		CancellationToken cancellationToken = default) {
@@ -647,6 +666,23 @@ public sealed record StreamAclPage(
 
 	public static StreamAclPage Unavailable(string streamId, string message) =>
 		new(streamId, ExpectedVersion.Any, "", null, message);
+}
+
+public sealed record StreamMetadataPage(
+	string StreamId,
+	StreamViewEvent MetadataEvent,
+	bool IsAvailable,
+	string Message) {
+	public bool HasMetadata => MetadataEvent is not null;
+
+	public static StreamMetadataPage Success(string streamId, StreamViewEvent metadataEvent) =>
+		new(streamId, metadataEvent, true, "");
+
+	public static StreamMetadataPage Empty(string streamId, string message) =>
+		new(streamId, null, true, message);
+
+	public static StreamMetadataPage Unavailable(string streamId, string message) =>
+		new(streamId, null, false, message);
 }
 
 public sealed record StreamAclInput(

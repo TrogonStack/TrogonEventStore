@@ -16,6 +16,7 @@
 		}
 		@if (CanEditMetadata)
 		{
+			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@($"/ui/streams/metadata/{Uri.EscapeDataString(StreamId)}")">Metadata</a>
 			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@($"/ui/streams/acl/{Uri.EscapeDataString(StreamId)}")">Edit ACL</a>
 		}
 		@if (CanDelete)
