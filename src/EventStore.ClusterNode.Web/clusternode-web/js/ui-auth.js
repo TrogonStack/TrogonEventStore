@@ -27,7 +27,23 @@
 
 	function readAuthorization() {
 		var token = safeDecode(readCookie("oauth_id_token"));
-		return token ? "Bearer " + token : "";
+		if (token)
+			return "Bearer " + token;
+
+		var raw = safeDecode(readCookie("es-creds"));
+		if (!raw)
+			return "";
+
+		try {
+			var parsed = JSON.parse(raw.indexOf("j:") === 0 ? raw.substring(2) : raw);
+			var credentials = parsed && typeof parsed.credentials === "string" ? parsed.credentials : "";
+			if (!credentials || /[\r\n]/.test(credentials))
+				return "";
+
+			return /^Basic\s+/i.test(credentials) ? credentials : "Basic " + credentials;
+		} catch (_) {
+			return "";
+		}
 	}
 
 	function sameOrigin(input) {

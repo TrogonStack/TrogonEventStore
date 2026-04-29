@@ -10,7 +10,10 @@ namespace EventStore.ClusterNode.Components.Services;
 internal static class SecurityEndpoints {
 	public static IEndpointRouteBuilder MapSecurityEndpoints(this IEndpointRouteBuilder app) {
 		app.MapPost("/ui/security/migrate-credentials", async (HttpContext context, SecurityBrowserService security) => {
-			SecurityCredentialMigrationRequest request;
+			if (!IsSameOrigin(context.Request))
+				return Results.StatusCode(StatusCodes.Status403Forbidden);
+
+			SecurityCredentialMigration request;
 			try {
 				request = await ReadMigrationRequest(context);
 			} catch (Exception ex) when (ex is BadHttpRequestException or JsonException) {
@@ -21,7 +24,9 @@ internal static class SecurityEndpoints {
 				return Results.BadRequest();
 
 			if (!UiCredentialCookie.TryParseBasicCredentials(request.Credentials, out var credentials))
-				return Results.BadRequest();
+				return request.UsesRedirect
+					? ClearLegacyCredentialsAndRedirect(context, request.ReturnUrl)
+					: Results.BadRequest();
 
 			SecurityCommandResult validation;
 			try {
@@ -29,11 +34,15 @@ internal static class SecurityEndpoints {
 			} catch (OperationCanceledException) {
 				throw;
 			} catch (Exception) {
-				return Results.Unauthorized();
+				return request.UsesRedirect
+					? ClearLegacyCredentialsAndRedirect(context, request.ReturnUrl)
+					: Results.Unauthorized();
 			}
 
 			if (!validation.Success)
-				return Results.Unauthorized();
+				return request.UsesRedirect
+					? ClearLegacyCredentialsAndRedirect(context, request.ReturnUrl)
+					: Results.Unauthorized();
 
 			UiCredentialCookie.AppendBasic(context.Response, credentials);
 			return string.IsNullOrWhiteSpace(request.ReturnUrl)
@@ -44,12 +53,13 @@ internal static class SecurityEndpoints {
 		return app;
 	}
 
-	private static async Task<SecurityCredentialMigrationRequest> ReadMigrationRequest(HttpContext context) {
+	private static async Task<SecurityCredentialMigration> ReadMigrationRequest(HttpContext context) {
 		if (context.Request.HasFormContentType) {
 			var form = await context.Request.ReadFormAsync(context.RequestAborted);
-			return new SecurityCredentialMigrationRequest(
+			return new SecurityCredentialMigration(
 				form["credentials"].ToString(),
-				SecurityBrowserService.NormalizeReturnUrl(form["returnUrl"].ToString()));
+				NormalizeOptionalReturnUrl(form["returnUrl"].ToString()),
+				UsesRedirect: true);
 		}
 
 		var request = await context.Request.ReadFromJsonAsync<SecurityCredentialMigrationRequest>(
@@ -57,12 +67,48 @@ internal static class SecurityEndpoints {
 
 		return request is null
 			? null
-			: request with {
-				ReturnUrl = string.IsNullOrWhiteSpace(request.ReturnUrl)
-					? ""
-					: SecurityBrowserService.NormalizeReturnUrl(request.ReturnUrl)
-			};
+			: new SecurityCredentialMigration(
+				request.Credentials,
+				NormalizeOptionalReturnUrl(request.ReturnUrl),
+				UsesRedirect: false);
 	}
+
+	private static IResult ClearLegacyCredentialsAndRedirect(HttpContext context, string returnUrl) {
+		UiCredentialCookie.Delete(context.Response);
+		return Results.Redirect(string.IsNullOrWhiteSpace(returnUrl) ? "/ui" : returnUrl);
+	}
+
+	private static string NormalizeOptionalReturnUrl(string returnUrl) =>
+		string.IsNullOrWhiteSpace(returnUrl)
+			? ""
+			: SecurityBrowserService.NormalizeReturnUrl(returnUrl);
+
+	private static bool IsSameOrigin(HttpRequest request) {
+		if (!TryReadOrigin(request, out var origin))
+			return false;
+
+		var expectedPort = request.Host.Port ?? DefaultPort(request.Scheme);
+		return string.Equals(origin.Scheme, request.Scheme, StringComparison.OrdinalIgnoreCase) &&
+		       string.Equals(origin.Host, request.Host.Host, StringComparison.OrdinalIgnoreCase) &&
+		       origin.Port == expectedPort;
+	}
+
+	private static bool TryReadOrigin(HttpRequest request, out Uri origin) {
+		if (request.Headers.TryGetValue("Origin", out var originHeader) &&
+		    Uri.TryCreate(originHeader.ToString(), UriKind.Absolute, out origin))
+			return true;
+
+		if (request.Headers.TryGetValue("Referer", out var refererHeader) &&
+		    Uri.TryCreate(refererHeader.ToString(), UriKind.Absolute, out origin))
+			return true;
+
+		origin = null;
+		return false;
+	}
+
+	private static int DefaultPort(string scheme) =>
+		string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase) ? 443 : 80;
 }
 
 internal sealed record SecurityCredentialMigrationRequest(string Credentials, string ReturnUrl = "");
+internal sealed record SecurityCredentialMigration(string Credentials, string ReturnUrl, bool UsesRedirect);
