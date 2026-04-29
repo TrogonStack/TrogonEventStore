@@ -8,11 +8,10 @@ using Microsoft.AspNetCore.Routing;
 namespace EventStore.ClusterNode.Components.Services;
 
 internal static class SecurityEndpoints {
+	private const string MigrationTokenCookieName = "es-ui-migration-token";
+
 	public static IEndpointRouteBuilder MapSecurityEndpoints(this IEndpointRouteBuilder app) {
 		app.MapPost("/ui/security/migrate-credentials", async (HttpContext context, SecurityBrowserService security) => {
-			if (!IsSameOrigin(context.Request))
-				return Results.StatusCode(StatusCodes.Status403Forbidden);
-
 			SecurityCredentialMigration request;
 			try {
 				request = await ReadMigrationRequest(context);
@@ -20,7 +19,15 @@ internal static class SecurityEndpoints {
 				return Results.BadRequest();
 			}
 
-			if (request is null || string.IsNullOrWhiteSpace(request.Credentials))
+			if (request is null)
+				return Results.BadRequest();
+
+			if (!IsSameOrigin(context.Request) && !HasValidMigrationToken(context, request))
+				return Results.StatusCode(StatusCodes.Status403Forbidden);
+
+			DeleteMigrationToken(context.Response);
+
+			if (string.IsNullOrWhiteSpace(request.Credentials))
 				return Results.BadRequest();
 
 			if (!UiCredentialCookie.TryParseBasicCredentials(request.Credentials, out var credentials))
@@ -59,6 +66,7 @@ internal static class SecurityEndpoints {
 			return new SecurityCredentialMigration(
 				form["credentials"].ToString(),
 				NormalizeOptionalReturnUrl(form["returnUrl"].ToString()),
+				form["migrationToken"].ToString(),
 				UsesRedirect: true);
 		}
 
@@ -68,13 +76,15 @@ internal static class SecurityEndpoints {
 		return request is null
 			? null
 			: new SecurityCredentialMigration(
-				request.Credentials,
+				request.Credentials ?? "",
 				NormalizeOptionalReturnUrl(request.ReturnUrl),
+				request.MigrationToken ?? "",
 				UsesRedirect: false);
 	}
 
 	private static IResult ClearLegacyCredentialsAndRedirect(HttpContext context, string returnUrl) {
 		UiCredentialCookie.Delete(context.Response);
+		DeleteMigrationToken(context.Response);
 		return Results.Redirect(string.IsNullOrWhiteSpace(returnUrl) ? "/ui" : returnUrl);
 	}
 
@@ -108,7 +118,22 @@ internal static class SecurityEndpoints {
 
 	private static int DefaultPort(string scheme) =>
 		string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase) ? 443 : 80;
+
+	private static bool HasValidMigrationToken(HttpContext context, SecurityCredentialMigration request) =>
+		request.UsesRedirect &&
+		request.MigrationToken.Length >= 16 &&
+		context.Request.Cookies.TryGetValue(MigrationTokenCookieName, out var cookieToken) &&
+		string.Equals(cookieToken, request.MigrationToken, StringComparison.Ordinal);
+
+	private static void DeleteMigrationToken(HttpResponse response) =>
+		response.Cookies.Delete(MigrationTokenCookieName, new CookieOptions {
+			HttpOnly = false,
+			IsEssential = true,
+			Path = "/",
+			SameSite = SameSiteMode.Lax,
+			Secure = response.HttpContext.Request.IsHttps
+		});
 }
 
-internal sealed record SecurityCredentialMigrationRequest(string Credentials, string ReturnUrl = "");
-internal sealed record SecurityCredentialMigration(string Credentials, string ReturnUrl, bool UsesRedirect);
+internal sealed record SecurityCredentialMigrationRequest(string Credentials, string ReturnUrl = "", string MigrationToken = "");
+internal sealed record SecurityCredentialMigration(string Credentials, string ReturnUrl, string MigrationToken, bool UsesRedirect);

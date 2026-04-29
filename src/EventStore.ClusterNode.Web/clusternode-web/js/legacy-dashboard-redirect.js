@@ -293,11 +293,33 @@
 		form.method = "post";
 		form.action = "/ui/security/migrate-credentials";
 		form.style.display = "none";
+		var migrationToken = createMigrationToken();
+		writeMigrationToken(migrationToken);
 		appendHidden(form, "credentials", value);
 		appendHidden(form, "returnUrl", returnUrl);
+		appendHidden(form, "migrationToken", migrationToken);
 		(document.body || document.documentElement).appendChild(form);
 		form.submit();
 		return true;
+	}
+
+	function createMigrationToken() {
+		if (window.crypto && window.crypto.getRandomValues) {
+			var bytes = new Uint8Array(16);
+			window.crypto.getRandomValues(bytes);
+			var token = "";
+			for (var i = 0; i < bytes.length; i++)
+				token += ("0" + bytes[i].toString(16)).slice(-2);
+
+			return token;
+		}
+
+		return String(Date.now()) + String(Math.random()).slice(2);
+	}
+
+	function writeMigrationToken(token) {
+		var secure = window.location.protocol === "https:" ? "; secure" : "";
+		document.cookie = "es-ui-migration-token=" + token + "; path=/; max-age=120; SameSite=Lax" + secure;
 	}
 
 	function appendHidden(form, name, value) {
