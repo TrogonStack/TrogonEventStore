@@ -27,7 +27,7 @@ public class authentication_middleware_should {
 	public async Task rewrite_anonymous_non_browser_redirects_to_unauthorized() {
 		var context = await InvokeWithRedirect(
 			new AnonymousHttpAuthenticationProvider(),
-			path: "/web/index.html",
+			path: "/ui",
 			userAgent: "curl/8.0");
 
 		Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
