@@ -115,12 +115,12 @@ namespace EventStore.Core.Util {
 						: Path.GetFullPath(Path.Combine(fileName, @"..\..\..", debugPath));
 					fileSystemWebRoot = Directory.Exists(sourceWebRootDirectory)
 						? sourceWebRootDirectory
-						: Locations.WebContentDirectory;
+						: Locations.UiAssetsDirectory;
 				} else {
-					fileSystemWebRoot = Locations.WebContentDirectory;
+					fileSystemWebRoot = Locations.UiAssetsDirectory;
 				}
 			} catch (Exception) {
-				fileSystemWebRoot = Locations.WebContentDirectory;
+				fileSystemWebRoot = Locations.UiAssetsDirectory;
 			}
 
 			return fileSystemWebRoot;

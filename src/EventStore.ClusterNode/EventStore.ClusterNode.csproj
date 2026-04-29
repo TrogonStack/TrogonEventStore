@@ -39,7 +39,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Content Include="app2.ico" />
-		<Content Include="projections\es.projections.environment.js" CopyToOutputDirectory="Always" />
 		<None Remove="certs\**\*" />
 		<Content Include="certs\**\*" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="package.json" />
