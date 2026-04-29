@@ -25,6 +25,18 @@
 			}
 		},
 		{
+			pattern: /^#\/signin(?:[/?].*)?$/i,
+			target: function () {
+				return "/ui/signin";
+			}
+		},
+		{
+			pattern: /^#\/signout(?:[/?].*)?$/i,
+			target: function () {
+				return "/ui/signout";
+			}
+		},
+		{
 			pattern: /^#\/subscriptions(?:[/?].*)?$/i,
 			target: function (hash) {
 				var path = hash.replace(/^#\/subscriptions\/?/i, "").split(/[?#]/)[0].replace(/\/$/, "");
@@ -177,7 +189,9 @@
 		{ selector: 'a[ui-sref="users.list"]', text: "Users" },
 		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" },
 		{ selector: 'a[ui-sref="projections.list"]', text: "Projections" },
-		{ selector: 'a[ui-sref="query"]', text: "Query" }
+		{ selector: 'a[ui-sref="query"]', text: "Query" },
+		{ selector: 'a[ui-sref="signout"]', text: "Log Out" },
+		{ selector: 'a[ui-sref="signout"]', text: "Disconnect" }
 	];
 
 	function safeDecode(value) {
@@ -249,9 +263,84 @@
 			if (!legacyRoutes[i].pattern.test(hash))
 				continue;
 
-			window.location.replace(legacyRoutes[i].target(hash));
+			var target = legacyRoutes[i].target(hash);
+			if (shouldMigrateLegacyCredentials(target) && submitLegacyCredentials(target))
+				return;
+
+			window.location.replace(target);
 			return;
 		}
+	}
+
+	function readCookie(name) {
+		var prefix = name + "=";
+		var parts = document.cookie ? document.cookie.split(";") : [];
+		for (var i = 0; i < parts.length; i++) {
+			var part = parts[i].trim();
+			if (part.indexOf(prefix) === 0)
+				return part.substring(prefix.length);
+		}
+
+		return "";
+	}
+
+	function submitLegacyCredentials(returnUrl) {
+		var value = readCookie("es-creds");
+		if (!value)
+			return false;
+
+		var form = document.createElement("form");
+		form.method = "post";
+		form.action = "/ui/security/migrate-credentials";
+		form.style.display = "none";
+		var migrationToken = createMigrationToken();
+		writeMigrationToken(migrationToken);
+		appendHidden(form, "credentials", value);
+		appendHidden(form, "returnUrl", returnUrl);
+		appendHidden(form, "migrationToken", migrationToken);
+		(document.body || document.documentElement).appendChild(form);
+		form.submit();
+		return true;
+	}
+
+	function shouldMigrateLegacyCredentials(target) {
+		return !/^\/ui\/signout(?:[/?#]|$)/i.test(target || "");
+	}
+
+	function createMigrationToken() {
+		if (window.crypto && window.crypto.getRandomValues) {
+			var bytes = new Uint8Array(16);
+			window.crypto.getRandomValues(bytes);
+			var token = "";
+			for (var i = 0; i < bytes.length; i++)
+				token += ("0" + bytes[i].toString(16)).slice(-2);
+
+			return token;
+		}
+
+		var fallback = String(Date.now());
+		while (fallback.length < 32) {
+			var chunk = Math.floor(Math.random() * 0x100000000).toString(16);
+			while (chunk.length < 8)
+				chunk = "0" + chunk;
+
+			fallback += chunk;
+		}
+
+		return fallback;
+	}
+
+	function writeMigrationToken(token) {
+		var secure = window.location.protocol === "https:" ? "; secure" : "";
+		document.cookie = "es-ui-migration-token=" + token + "; path=/; max-age=120; SameSite=Lax" + secure;
+	}
+
+	function appendHidden(form, name, value) {
+		var input = document.createElement("input");
+		input.type = "hidden";
+		input.name = name;
+		input.value = value;
+		form.appendChild(input);
 	}
 
 	function watchLegacyShell() {

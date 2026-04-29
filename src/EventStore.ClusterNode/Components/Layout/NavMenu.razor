@@ -1,3 +1,5 @@
+@inject IHttpContextAccessor HttpContextAccessor
+
 <aside class="lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-72 lg:shrink-0">
 	<div class="flex h-full flex-col rounded-[2rem] border border-white/80 bg-white/85 p-4 shadow-[0_18px_70px_rgba(23,32,51,0.10)] backdrop-blur">
 		<a class="group flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-es-ink/5" href="/ui" aria-label="EventStore UI home">
@@ -32,6 +34,14 @@
 				<div class="mt-2 grid gap-1">
 					<NavLink href="/ui/users" class="@LinkClass" ActiveClass="@ActiveClass">Users</NavLink>
 					<NavLink href="/ui/operations" class="@LinkClass" ActiveClass="@ActiveClass">Operations</NavLink>
+					@if (IsAnonymous)
+					{
+						<NavLink href="/ui/signin" class="@LinkClass" ActiveClass="@ActiveClass">Sign in</NavLink>
+					}
+					else
+					{
+						<NavLink href="/ui/signout" class="@LinkClass" ActiveClass="@ActiveClass">Sign out</NavLink>
+					}
 				</div>
 			</div>
 		</nav>
@@ -42,4 +52,5 @@
 @code {
 	private const string LinkClass = "rounded-2xl px-3 py-2.5 transition hover:bg-es-ink/5 hover:text-es-forest";
 	private const string ActiveClass = "bg-es-ink text-white shadow-lg shadow-es-ink/15 hover:bg-es-ink hover:text-white";
+	private bool IsAnonymous => !SecurityBrowserService.IsSignedIn(HttpContextAccessor.HttpContext?.User);
 }

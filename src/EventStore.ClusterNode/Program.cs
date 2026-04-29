@@ -272,13 +272,16 @@ internal static class Program
 					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddScoped<SubscriptionBrowserService>();
 					builder.Services.AddScoped<UserBrowserService>();
+					builder.Services.AddScoped<SecurityBrowserService>();
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
+					app.UseMiddleware<UiCredentialsMiddleware>();
 					hostedService.Node.Startup.Configure(app);
 					app.MapAdminOperationsEndpoints();
+					app.MapSecurityEndpoints();
 					app.MapRazorComponents<App>();
 
 					await app.RunAsync(cts.Token);
