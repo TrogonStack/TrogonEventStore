@@ -8,10 +8,7 @@ namespace EventStore.Common.Utils;
 public class Locations
 {
 	public static readonly string ApplicationDirectory;
-	public static readonly string WebContentDirectory;
-	public static readonly string ProjectionsDirectory;
-	public static readonly string PreludeDirectory;
-	public static readonly string PreludeResourcesPath;
+	public static readonly string UiAssetsDirectory;
 	public static readonly string PluginsDirectory;
 	public static readonly string DefaultContentDirectory;
 	public static readonly string DefaultConfigurationDirectory;
@@ -59,19 +56,10 @@ public class Locations
 				break;
 		}
 
-		WebContentDirectory = GetPrecededLocation(
+		UiAssetsDirectory = GetPrecededLocation(
 			Path.Combine(ApplicationDirectory, "ui-assets"),
 			Path.Combine(DefaultContentDirectory, "ui-assets")
 		);
-		ProjectionsDirectory = GetPrecededLocation(
-			Path.Combine(ApplicationDirectory, "projections"),
-			Path.Combine(DefaultContentDirectory, "projections")
-		);
-		PreludeDirectory = GetPrecededLocation(
-			Path.Combine(ApplicationDirectory, "Prelude"),
-			Path.Combine(DefaultContentDirectory, "Prelude")
-		);
-		PreludeResourcesPath = "EventStore.Projections.Core.Prelude";
 	}
 
 	/// <summary>

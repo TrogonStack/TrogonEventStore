@@ -1,4 +1,4 @@
-# Cluster Node Web Assets
+# Cluster Node UI Assets
 
 The generated Tailwind stylesheet is committed so .NET builds do not require Node.js.
 
@@ -6,7 +6,7 @@ Run the CSS build whenever Tailwind utility classes change in:
 
 - `styles/app.css`
 - `ui-assets/js/*.js`
-- `../EventStore.ClusterNode/Components/**/*.razor`
+- `Components/**/*.razor`
 
 ```sh
 npm ci

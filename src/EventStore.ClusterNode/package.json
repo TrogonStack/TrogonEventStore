@@ -1,5 +1,5 @@
 {
-  "name": "eventstore-ui-assets",
+  "name": "eventstore-clusternode-ui",
   "private": true,
   "type": "module",
   "scripts": {

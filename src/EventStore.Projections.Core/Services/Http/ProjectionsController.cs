@@ -9,7 +9,6 @@ using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.Services.Transport.Http.Controllers;
-using EventStore.Core.Util;
 using EventStore.Plugins.Authorization;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messages.EventReaders.Feeds;
@@ -29,8 +28,6 @@ public class ProjectionsController : CommunicationController
 
 	private static readonly ICodec[] SupportedCodecs = { Codec.Json };
 
-	private readonly MiniWeb _clusterNodeJs;
-	private readonly MiniWeb _miniWebPrelude;
 	private readonly IHttpForwarder _httpForwarder;
 	private readonly IPublisher _networkSendQueue;
 
@@ -39,20 +36,11 @@ public class ProjectionsController : CommunicationController
 	{
 		_httpForwarder = httpForwarder;
 
-		_clusterNodeJs = new MiniWeb("/web/es/js/projections", Locations.ProjectionsDirectory);
-
 		_networkSendQueue = networkSendQueue;
-		_miniWebPrelude = new MiniWeb("/web/es/js/projections/v8/Prelude", Locations.PreludeDirectory);
 	}
 
 	protected override void SubscribeCore(IHttpService service)
 	{
-		_clusterNodeJs.RegisterControllerActions(service);
-
-		_miniWebPrelude.RegisterControllerActions(service);
-
-		Register(service, "/projections",
-			HttpMethod.Get, OnProjections, Codec.NoCodecs, new ICodec[] { Codec.ManualEncoding }, new Operation(Operations.Projections.List));
 		Register(service, "/projections/restart",
 			HttpMethod.Post, OnProjectionsRestart, new ICodec[] { Codec.ManualEncoding }, SupportedCodecs, new Operation(Operations.Projections.Restart));
 		Register(service, "/projections/any",
@@ -102,19 +90,6 @@ public class ProjectionsController : CommunicationController
 			HttpMethod.Get, OnProjectionConfigGet, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Projections.ReadConfiguration));
 		Register(service, "/projection/{name}/config",
 			HttpMethod.Put, OnProjectionConfigPut, SupportedCodecs, SupportedCodecs, new Operation(Operations.Projections.UpdateConfiguration));
-	}
-
-	private void OnProjections(HttpEntityManager http, UriTemplateMatch match)
-	{
-		if (_httpForwarder.ForwardRequest(http))
-			return;
-
-		http.ReplyTextContent(
-			"Moved", 302, "Found", "text/plain",
-			new[] {
-				new KeyValuePair<string, string>(
-					"Location", new Uri(match.BaseUri, "/ui/projections").AbsoluteUri)
-			}, x => Log.Debug(x, "Reply Text Content Failed."));
 	}
 
 	private void OnProjectionsRestart(HttpEntityManager http, UriTemplateMatch match)

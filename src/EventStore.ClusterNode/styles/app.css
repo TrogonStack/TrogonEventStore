@@ -6,7 +6,7 @@
 @source "../ui-assets/js/queue-dashboard.js";
 @source "../ui-assets/js/stream-browser.js";
 @source "../ui-assets/js/ui-auth.js";
-@source "../../EventStore.ClusterNode/Components/**/*.razor";
+@source "../Components/**/*.razor";
 
 @font-face {
 	font-family: Roboto;
