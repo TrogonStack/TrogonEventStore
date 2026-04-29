@@ -41,8 +41,7 @@ public class LegacyPolicySelectorFactory(
 		// The Node.Ping is set to allow anonymous as it does not disclose any secure information.
 		policy.AllowAnonymous(Operations.Node.Ping);
 
-		// The following endpoints require anonymous access to load the index.html page.
-		// If the endpoints are secured, then the user will not be able to logged into EventStoreDB
+		// The browser UI needs these before credentials exist so it can discover authentication and fetch assets.
 		policy.AllowAnonymous(Operations.Node.Information.Read);
 		policy.AllowAnonymous(Operations.Node.StaticContent);
 		policy.AllowAnonymous(Operations.Node.Redirect);
