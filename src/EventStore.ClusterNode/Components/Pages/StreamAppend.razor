@@ -3,6 +3,8 @@
 @using EventStore.ClusterNode.Components.Services
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
 @inject StreamBrowserService Streams
 
 <PageTitle>Add Event - EventStore UI</PageTitle>
@@ -89,7 +91,7 @@
 			_lastRequestedFromEvent == requestedFromEvent;
 		var hasSubmittedForm = !string.IsNullOrWhiteSpace(Input.StreamId) &&
 			(string.IsNullOrWhiteSpace(requestedStream) || string.Equals(Input.StreamId, requestedStream, StringComparison.OrdinalIgnoreCase));
-		if (hasSubmittedForm || sameRequest)
+		if (hasSubmittedForm && (IsFormPost || sameRequest))
 			return;
 
 		Input = NewInput(requestedStream);
@@ -110,6 +112,9 @@
 		_lastRequestedStreamId = requestedStream;
 		_lastRequestedFromEvent = requestedFromEvent;
 	}
+
+	private bool IsFormPost =>
+		string.Equals(HttpContextAccessor.HttpContext?.Request.Method, HttpMethods.Post, StringComparison.OrdinalIgnoreCase);
 
 	private async Task Append() {
 		try {
