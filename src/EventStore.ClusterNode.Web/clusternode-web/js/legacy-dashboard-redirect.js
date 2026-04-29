@@ -265,13 +265,24 @@
 			if (!legacyRoutes[i].pattern.test(hash))
 				continue;
 
-			var target = legacyRoutes[i].target(hash);
-			if (shouldMigrateLegacyCredentials(target) && submitLegacyCredentials(target))
-				return;
-
-			window.location.replace(target);
+			replaceWithTarget(legacyRoutes[i].target(hash));
 			return;
 		}
+
+		replaceWithTarget(isLegacyShellRoot(hash) ? "/ui" : "/ui/navigator");
+	}
+
+	function isLegacyShellRoot(hash) {
+		return !hash ||
+			hash === "#" ||
+			/^#\/?(?:[?].*)?$/i.test(hash);
+	}
+
+	function replaceWithTarget(target) {
+		if (shouldMigrateLegacyCredentials(target) && submitLegacyCredentials(target))
+			return;
+
+		window.location.replace(target);
 	}
 
 	function readCookie(name) {
