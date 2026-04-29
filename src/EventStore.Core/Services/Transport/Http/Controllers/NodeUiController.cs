@@ -8,12 +8,12 @@ using EventStore.Transport.Http.EntityManagement;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Transport.Http.Controllers {
-	public class ClusterWebUiController : CommunicationController {
-		private static readonly ILogger Log = Serilog.Log.ForContext<ClusterWebUiController>();
+	public class NodeUiController : CommunicationController {
+		private static readonly ILogger Log = Serilog.Log.ForContext<NodeUiController>();
 
 		private readonly NodeSubsystems[] _enabledNodeSubsystems;
 
-		public ClusterWebUiController(IPublisher publisher, NodeSubsystems[] enabledNodeSubsystems)
+		public NodeUiController(IPublisher publisher, NodeSubsystems[] enabledNodeSubsystems)
 			: base(publisher) {
 			_enabledNodeSubsystems = enabledNodeSubsystems;
 		}

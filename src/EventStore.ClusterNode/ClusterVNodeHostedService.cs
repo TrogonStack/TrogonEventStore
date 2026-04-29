@@ -378,7 +378,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 	{
 		if (!_options.Interface.DisableAdminUi)
 		{
-			Node.HttpService.SetupController(new ClusterWebUiController(Node.MainQueue,
+			Node.HttpService.SetupController(new NodeUiController(Node.MainQueue,
 				enabledNodeSubsystems));
 		}
 	}
