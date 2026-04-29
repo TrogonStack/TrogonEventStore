@@ -183,19 +183,6 @@
 		}
 	];
 
-	var legacyNavLinks = [
-		{ selector: 'a[ui-sref="dashboard.list"]', text: "Dashboard" },
-		{ selector: 'a[ui-sref="clusterstatus.list"]', text: "Cluster Status" },
-		{ selector: 'a[ui-sref="admin"]', text: "Admin" },
-		{ selector: 'a[ui-sref="streams.list"]', text: "Stream Browser" },
-		{ selector: 'a[ui-sref="users.list"]', text: "Users" },
-		{ selector: 'a[ui-sref="subscriptions.list"]', text: "Persistent Subscriptions" },
-		{ selector: 'a[ui-sref="projections.list"]', text: "Projections" },
-		{ selector: 'a[ui-sref="query"]', text: "Query" },
-		{ selector: 'a[ui-sref="signout"]', text: "Log Out" },
-		{ selector: 'a[ui-sref="signout"]', text: "Disconnect" }
-	];
-
 	function safeDecode(value) {
 		try {
 			return decodeURIComponent(value);
@@ -243,20 +230,6 @@
 			action === "config" ||
 			action === "delete" ||
 			action === "debug";
-	}
-
-	function removeLegacyLinks() {
-		for (var group = 0; group < legacyNavLinks.length; group++) {
-			var links = document.querySelectorAll(legacyNavLinks[group].selector);
-			for (var i = 0; i < links.length; i++) {
-				if (links[i].textContent.trim() !== legacyNavLinks[group].text)
-					continue;
-
-				var item = links[i].closest("li");
-				if (item)
-					item.remove();
-			}
-		}
 	}
 
 	function redirectLegacyRoutes() {
@@ -355,20 +328,6 @@
 		input.value = value;
 		form.appendChild(input);
 	}
-
-	function watchLegacyShell() {
-		removeLegacyLinks();
-		if (!window.MutationObserver || !document.body)
-			return;
-
-		var observer = new MutationObserver(removeLegacyLinks);
-		observer.observe(document.body, { childList: true, subtree: true });
-	}
-
-	if (document.readyState === "loading")
-		document.addEventListener("DOMContentLoaded", watchLegacyShell);
-	else
-		watchLegacyShell();
 
 	window.addEventListener("hashchange", redirectLegacyRoutes);
 	redirectLegacyRoutes();
