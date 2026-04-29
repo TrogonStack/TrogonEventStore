@@ -1,18 +1,162 @@
 @page "/ui/configuration"
+@inject ConfigurationBrowserService ConfigurationBrowser
 
 <PageTitle>Configuration - EventStore UI</PageTitle>
 
-<section class="max-w-4xl">
-	<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Configuration</p>
-	<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Runtime context without guesswork.</h1>
-	<p class="mt-5 text-lg leading-8 text-es-muted">The configuration workspace gathers read-only node metadata, loaded options, and subsystem details in one place.</p>
-</section>
+@if (!string.IsNullOrWhiteSpace(LoadError))
+{
+	<section class="rounded-[1.75rem] border border-red-200 bg-red-50 p-6 text-red-800 shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		@LoadError
+	</section>
+}
+else if (Page is null)
+{
+	<section class="rounded-[1.75rem] border border-white/80 bg-white/80 p-6 text-es-muted shadow-[0_18px_60px_rgba(23,32,51,0.08)]">
+		Loading configuration...
+	</section>
+}
+else
+{
+	<section class="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+		<div>
+			<p class="text-sm font-black uppercase tracking-[0.28em] text-es-green">Configuration</p>
+			<h1 class="mt-4 text-5xl font-black tracking-tight text-es-ink sm:text-6xl">Runtime context without guesswork.</h1>
+			<p class="mt-5 text-lg leading-8 text-es-muted">Read node metadata, feature flags, subsystem availability, and loaded options directly in the Razor workspace.</p>
+		</div>
+		<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-2">
+			<MetricCard Label="Version" Value="@Page.Version" />
+			@if (Page.CanInspectRuntimeDetails)
+			{
+				<MetricCard Label="Node HTTP" Value="@Page.NodeEndpoint" Tone="muted" />
+				<MetricCard Label="Database" Value="@Page.DatabaseLogFormat" Tone="muted" />
+				<MetricCard Label="Security" Value="@Page.SecurityMode" Tone="@Page.SecurityTone" />
+			}
+			else
+			{
+				<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 sm:col-span-2">
+					<p class="text-xs font-black uppercase tracking-[0.18em]">Restricted</p>
+					<p class="mt-2 text-sm font-bold">@Page.OptionsMessage</p>
+				</div>
+			}
+		</div>
+	</section>
 
-<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-	<SurfaceCard Eyebrow="Node" Title="Node information" Description="Read version, state, feature, and authentication metadata from the node." Href="/info" LinkText="Open info" Target="_blank" />
-	<SurfaceCard Eyebrow="Node" Title="Loaded options" Description="Inspect the options that were loaded and their configuration sources." Href="/info/options" LinkText="Open options" Target="_blank" />
-	<SurfaceCard Eyebrow="Cluster" Title="Gossip" Description="Review the node's current gossip view of the cluster." Href="/gossip" LinkText="Open gossip" Target="_blank" />
-	<SurfaceCard Eyebrow="Features" Title="Subsystems" Description="Inspect the subsystems enabled for the hosted node." Href="/sys/subsystems" LinkText="Open subsystems" Target="_blank" />
-	<SurfaceCard Eyebrow="UI" Title="Navigator" Description="Jump across the Razor management workspace from a single route index." Href="/ui/navigator" LinkText="Open navigator" />
-	<SurfaceCard Eyebrow="API" Title="HTTP API root" Description="Open the root HTTP surface for link discovery and API navigation." Href="/" LinkText="Open root" Target="_blank" />
-</section>
+	<section class="mt-8 grid gap-5 xl:grid-cols-[0.7fr_1.3fr]">
+		<div class="grid gap-5">
+			<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+				<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Features</p>
+				<div class="mt-5 grid gap-3">
+					@foreach (var feature in Page.Features)
+					{
+						<div class="flex items-center justify-between gap-3 rounded-2xl border border-es-ink/10 bg-white/70 px-4 py-3">
+							<span class="font-bold text-es-ink">@feature.Name</span>
+							<StatusBadge Label="@feature.Status" Tone="@feature.Tone" />
+						</div>
+					}
+				</div>
+			</article>
+
+			<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+				<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Subsystems</p>
+				@if (!Page.HasSubsystems)
+				{
+					<p class="mt-5 rounded-2xl border border-es-ink/10 bg-es-ink/5 p-4 text-sm font-bold text-es-muted">No optional subsystems are enabled.</p>
+				}
+				else
+				{
+					<div class="mt-5 grid gap-3">
+						@foreach (var subsystem in Page.Subsystems)
+						{
+							<div class="flex items-center justify-between gap-3 rounded-2xl border border-es-ink/10 bg-white/70 px-4 py-3">
+								<span class="font-bold text-es-ink">@subsystem.Name</span>
+								<StatusBadge Label="Enabled" Tone="good" />
+							</div>
+						}
+					</div>
+				}
+			</article>
+
+			@if (Page.CanInspectRuntimeDetails)
+			{
+				<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+					<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Authentication</p>
+					<div class="mt-5 grid gap-3 text-sm">
+						<p class="rounded-2xl border border-es-ink/10 bg-white/70 px-4 py-3"><span class="font-black text-es-ink">Authentication:</span> <span class="text-es-muted">@Page.AuthenticationType</span></p>
+						<p class="rounded-2xl border border-es-ink/10 bg-white/70 px-4 py-3"><span class="font-black text-es-ink">Authorization:</span> <span class="text-es-muted">@Page.AuthorizationType</span></p>
+						<p class="rounded-2xl border border-es-ink/10 bg-white/70 px-4 py-3"><span class="font-black text-es-ink">Database path:</span> <span class="break-all font-mono text-es-muted">@Page.DatabasePath</span></p>
+					</div>
+				</article>
+			}
+		</div>
+
+		<article class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
+			<div class="border-b border-es-ink/10 px-5 py-5">
+				<p class="text-sm font-black uppercase tracking-[0.22em] text-es-green">Loaded options</p>
+				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Effective node settings</h2>
+				<p class="mt-2 text-sm text-es-muted">Sensitive values are masked before display.</p>
+			</div>
+
+			@if (!Page.HasLoadedOptions)
+			{
+				<p class="m-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">@Page.OptionsMessage</p>
+			}
+			else
+			{
+				<div class="overflow-x-auto">
+					<table class="min-w-full divide-y divide-es-ink/10 text-left text-sm">
+						<thead class="bg-es-ink/5 text-xs font-black uppercase tracking-[0.18em] text-es-muted">
+							<tr>
+								<th class="px-5 py-4">Option</th>
+								<th class="px-5 py-4">Value</th>
+								<th class="px-5 py-4">Source</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-es-ink/10">
+							@foreach (var option in Page.LoadedOptions)
+							{
+								<tr class="align-top">
+									<td class="px-5 py-4">
+										<p class="font-black text-es-ink">@option.Name</p>
+										<p class="mt-1 text-xs font-black uppercase tracking-[0.16em] text-es-green">@option.Group</p>
+										@if (!string.IsNullOrWhiteSpace(option.Description))
+										{
+											<p class="mt-2 max-w-md text-sm leading-6 text-es-muted">@option.Description</p>
+										}
+										@if (!string.IsNullOrWhiteSpace(option.DeprecationMessage))
+										{
+											<p class="mt-2 max-w-md rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">@option.DeprecationMessage</p>
+										}
+									</td>
+									<td class="max-w-sm break-all px-5 py-4 font-mono text-xs text-es-ink">@option.Value</td>
+									<td class="px-5 py-4"><StatusBadge Label="@option.Source" Tone="@option.SourceTone" /></td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</article>
+	</section>
+}
+
+@code {
+	private ConfigurationPage Page { get; set; }
+	private string LoadError { get; set; } = "";
+
+	protected override async Task OnInitializedAsync() {
+		try
+		{
+			await Task.Yield();
+			Page = ConfigurationBrowser.Read();
+			LoadError = "";
+		}
+		catch (OperationCanceledException)
+		{
+			LoadError = "Loading configuration was canceled.";
+		}
+		catch (Exception ex)
+		{
+			LoadError = $"Failed to load configuration: {UiMessages.Friendly(ex)}";
+		}
+	}
+}

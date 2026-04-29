@@ -275,6 +275,7 @@ internal static class Program
 					builder.Services.AddScoped<UserBrowserService>();
 					builder.Services.AddScoped<SecurityBrowserService>();
 					builder.Services.AddScoped<AdminOperationsService>();
+					builder.Services.AddScoped<ConfigurationBrowserService>();
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
