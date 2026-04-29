@@ -60,8 +60,8 @@ public class Locations
 		}
 
 		WebContentDirectory = GetPrecededLocation(
-			Path.Combine(ApplicationDirectory, "clusternode-web"),
-			Path.Combine(DefaultContentDirectory, "clusternode-web")
+			Path.Combine(ApplicationDirectory, "ui-assets"),
+			Path.Combine(DefaultContentDirectory, "ui-assets")
 		);
 		ProjectionsDirectory = GetPrecededLocation(
 			Path.Combine(ApplicationDirectory, "projections"),

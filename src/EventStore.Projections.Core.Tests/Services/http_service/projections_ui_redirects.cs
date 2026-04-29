@@ -43,7 +43,7 @@ public class projections_ui_redirects {
 	}
 
 	[Test]
-	public void legacy_web_projections_route_is_not_registered() {
+	public void retired_web_projections_route_is_not_registered() {
 		var service = new TestHttpService();
 		new ProjectionsController(new NoForwarder(), new NoopPublisher(), new NoopPublisher()).Subscribe(service);
 
