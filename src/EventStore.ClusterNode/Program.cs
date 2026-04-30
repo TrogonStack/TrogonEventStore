@@ -270,6 +270,7 @@ internal static class Program
 					builder.Services.AddScoped<ProjectionBrowserService>();
 					builder.Services.AddScoped<QueryBrowserService>();
 					builder.Services.AddSingleton<QueueDashboardService>();
+					builder.Services.AddSingleton<NodeProbeService>();
 					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddScoped<SubscriptionBrowserService>();
 					builder.Services.AddScoped<UserBrowserService>();

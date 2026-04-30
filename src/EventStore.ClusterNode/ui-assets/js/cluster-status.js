@@ -370,9 +370,10 @@
 	function appendActions(row, member) {
 		var cell = element("td", "px-5 py-4 text-right");
 		var wrap = element("div", "flex flex-wrap justify-end gap-2");
-		appendLink(wrap, "Ping", "//" + endpoint(member.httpHost, member.httpPort) + "/ping?format=json");
-		appendLink(wrap, "Open", "//" + endpoint(member.httpHost, member.httpPort));
-		appendLink(wrap, "Gossip", "//" + endpoint(member.httpHost, member.httpPort) + "/gossip?format=json");
+		var httpEndpoint = endpoint(member.httpHost, member.httpPort);
+		appendLink(wrap, "Ping", "//" + httpEndpoint + "/ui?probe=ping");
+		appendLink(wrap, "Open", "//" + httpEndpoint + "/ui");
+		appendLink(wrap, "Gossip", "//" + httpEndpoint + "/ui?probe=gossip");
 		cell.appendChild(wrap);
 		row.appendChild(cell);
 	}
@@ -535,8 +536,6 @@
 	function appendLink(parent, label, href) {
 		var link = element("a", "rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest");
 		link.href = href;
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
 		link.textContent = label;
 		parent.appendChild(link);
 	}
