@@ -38,13 +38,12 @@
 				}
 				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.NextHref">Next</a>
 				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.Event.AppendLikeHref">Add New Like This</a>
-				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@Page.Event.RawHref" target="_blank" rel="noopener noreferrer">Raw event</a>
 			</div>
 		</div>
 
 		<StreamEventCard Event="Page.Event" />
 		<div class="mt-5 grid gap-4 lg:grid-cols-2">
-			<JsonPanel Eyebrow="Data" Title="@($"{Page.Event.EventType} data")" Content="@Page.Event.DataForDisplay" RawHref="@Page.Event.RawHref" />
+			<JsonPanel Eyebrow="Data" Title="@($"{Page.Event.EventType} data")" Content="@Page.Event.DataForDisplay" />
 			<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@Page.Event.MetadataForDisplay" />
 			@if (Page.Event.HasLinkMetadata)
 			{

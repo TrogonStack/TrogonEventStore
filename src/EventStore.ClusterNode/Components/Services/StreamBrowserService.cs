@@ -767,7 +767,6 @@ public sealed record StreamViewEvent(
 	public bool HasLinkMetadata => !string.IsNullOrWhiteSpace(LinkMetadata);
 	public string DetailHref => $"/ui/streams/event/{EventNumber}/{Uri.EscapeDataString(StreamId)}";
 	public string AppendLikeHref => $"/ui/streams/append/{Uri.EscapeDataString(StreamId)}?fromEvent={EventNumber}";
-	public string RawHref => $"/streams/{Uri.EscapeDataString(StreamId)}/{EventNumber}?embed=tryharder";
 
 	private static string FormatBody(string value, bool preferJson) {
 		if (string.IsNullOrWhiteSpace(value))

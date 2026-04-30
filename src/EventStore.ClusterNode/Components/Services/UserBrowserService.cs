@@ -425,15 +425,6 @@ public sealed record UserView(
 	public string DisableHref => $"/ui/users/{Uri.EscapeDataString(LoginName)}/disable";
 	public string DeleteHref => $"/ui/users/{Uri.EscapeDataString(LoginName)}/delete";
 	public string ResetPasswordHref => $"/ui/users/{Uri.EscapeDataString(LoginName)}/reset";
-	public string RawHref => $"/users/{Uri.EscapeDataString(LoginName)}";
-	public IReadOnlyList<UserLinkView> ApiLinks => [
-		new("self", RawHref, "GET"),
-		new("reset-password", $"{RawHref}/command/reset-password", "POST"),
-		new("change-password", $"{RawHref}/command/change-password", "POST"),
-		new("edit", RawHref, "PUT"),
-		new("delete", RawHref, "DELETE"),
-		new(Disabled ? "enable" : "disable", $"{RawHref}/command/{(Disabled ? "enable" : "disable")}", "POST")
-	];
 
 	public static UserView From(UserManagementMessage.UserData source) =>
 		new(
@@ -442,11 +433,4 @@ public sealed record UserView(
 			source.Groups ?? Array.Empty<string>(),
 			source.Disabled,
 			source.DateLastUpdated);
-}
-
-public sealed record UserLinkView(
-	string Rel,
-	string Href,
-	string Method) {
-	public bool IsGet => string.Equals(Method, "GET", StringComparison.OrdinalIgnoreCase);
 }

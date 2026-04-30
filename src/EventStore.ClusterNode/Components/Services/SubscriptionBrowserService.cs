@@ -684,10 +684,6 @@ public sealed record SubscriptionView(
 			return $"{behind.Value} behind / {seconds:0.##}s";
 		}
 	}
-	public string DetailHref =>
-		$"/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}/info";
-	public string ParkedHref =>
-		$"/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}/parked";
 	public string UiDetailHref =>
 		$"/ui/subscriptions/{Uri.EscapeDataString(StreamId)}/{Uri.EscapeDataString(GroupName)}";
 	public string UiEditHref =>

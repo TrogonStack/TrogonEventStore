@@ -169,17 +169,12 @@
 			</aside>
 		</section>
 
-		<section class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-			<SurfaceCard Eyebrow="Raw" Title="Statistics" Description="Open the projection statistics payload returned by the node." Href="@projection.RawStatisticsHref" LinkText="Open statistics" Target="_blank" />
-			<SurfaceCard Eyebrow="Raw" Title="State" Description="Inspect the projection state payload when the projection exposes one." Href="@projection.RawStateHref" LinkText="Open state" Target="_blank" />
-			<SurfaceCard Eyebrow="Raw" Title="Result" Description="Inspect the projection result payload when the projection exposes one." Href="@projection.RawResultHref" LinkText="Open result" Target="_blank" />
-			<SurfaceCard Eyebrow="Raw" Title="Query" Description="Review the projection query and configuration response." Href="@projection.RawQueryHref" LinkText="Open query" Target="_blank" />
-			<SurfaceCard Eyebrow="Raw" Title="Config" Description="Review the projection configuration response." Href="@projection.RawConfigHref" LinkText="Open config" Target="_blank" />
-			@if (!string.IsNullOrWhiteSpace(projection.ResultStreamHref))
-			{
+		@if (!string.IsNullOrWhiteSpace(projection.ResultStreamHref))
+		{
+			<section class="mt-6 max-w-xl">
 				<SurfaceCard Eyebrow="Stream" Title="Result stream" Description="Inspect the stream that receives this projection output." Href="@projection.ResultStreamHref" LinkText="Open stream" />
-			}
-		</section>
+			</section>
+		}
 	}
 </section>
 
