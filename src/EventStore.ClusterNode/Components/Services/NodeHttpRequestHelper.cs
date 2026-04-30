@@ -10,7 +10,11 @@ namespace EventStore.ClusterNode.Components.Services;
 
 internal static class NodeHttpRequestHelper {
 	public static LocalHttpEndPoint GetLocalEndPoint(StandardComponents standardComponents) {
-		var endPoint = standardComponents.HttpServices
+		var httpServices = standardComponents.HttpServices;
+		if (httpServices is null || httpServices.Length == 0)
+			throw new InvalidOperationException("Node HTTP endpoint is unavailable.");
+
+		var endPoint = httpServices
 			.SelectMany(x => x.EndPoints)
 			.FirstOrDefault();
 
