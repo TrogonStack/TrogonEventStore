@@ -166,11 +166,9 @@ connect to it using one of the clients and the `esdb://localhost:2113?tls=false`
 ```bash:no-line-numbers
 docker run --name esdb-node -it -p 2113:2113 \
     eventstore/eventstore:latest --insecure --run-projections=All
-    --enable-atom-pub-over-http
 ```
 
-Then, you'd be able to connect to EventStoreDB with gRPC clients. The command also enables AtomPub over HTTP
-for clients that still rely on the deprecated HTTP application API.
+Then, you'd be able to connect to EventStoreDB with gRPC clients and use the Admin UI.
 
 In order to sustainably keep the data, we also recommend mapping the database and index volumes.
 
@@ -192,7 +190,7 @@ Run the instance:
 docker-compose up
 ```
 
-The command above would run EventStoreDB as a single node without SSL. You also get AtomPub protocol enabled for clients that still rely on the deprecated HTTP application API.
+The command above would run EventStoreDB as a single node without SSL.
 
 ::: warning
 The legacy TCP client protocol is disabled by default and will no longer be available since version 24.2. 
