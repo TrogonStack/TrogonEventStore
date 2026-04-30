@@ -42,6 +42,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 	private readonly ExclusiveDbLock _dbLock;
 	private readonly ClusterNodeMutex _clusterNodeMutex;
 
+	public ClusterVNodeOptions Options => _options;
 	public ClusterVNode Node { get; }
 	public IReadOnlyList<NodeSubsystems> EnabledNodeSubsystems { get; private set; } = Array.Empty<NodeSubsystems>();
 	public bool SupportsScavenge =>

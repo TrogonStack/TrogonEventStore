@@ -37,7 +37,6 @@
 		<div class="flex flex-wrap gap-2">
 			<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-queue-status>Connecting live stats...</span>
 			<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-queue-updated>Waiting for first update</span>
-			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/stats?format=json" target="_blank" rel="noopener noreferrer">Open raw stats</a>
 		</div>
 	</div>
 
@@ -99,7 +98,6 @@
 			<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-tcp-page-status>No pages</span>
 			<button type="button" class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-green disabled:cursor-not-allowed disabled:opacity-40" data-tcp-page="previous" disabled>Previous</button>
 			<button type="button" class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-green disabled:cursor-not-allowed disabled:opacity-40" data-tcp-page="next" disabled>Next</button>
-			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/stats/tcp?format=json" target="_blank" rel="noopener noreferrer">Open raw TCP</a>
 		</div>
 	</div>
 
@@ -130,14 +128,6 @@
 	</div>
 </section>
 
-<section class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-	<SurfaceCard Eyebrow="Health" Title="Health check" Description="Check whether the node health endpoint is responding." Href="/health/live" LinkText="Open health" Target="_blank" />
-	<SurfaceCard Eyebrow="Health" Title="Ping" Description="Use the simplest HTTP probe for process availability." Href="/ping" LinkText="Open ping" Target="_blank" />
-	<SurfaceCard Eyebrow="Stats" Title="Grouped stats" Description="Inspect grouped runtime statistics collected by the node." Href="/stats" LinkText="Open stats" Target="_blank" />
-	<SurfaceCard Eyebrow="Stats" Title="Replication stats" Description="Review replication-specific statistics for diagnosing cluster movement." Href="/stats/replication" LinkText="Open replication" Target="_blank" />
-	<SurfaceCard Eyebrow="Stats" Title="TCP stats" Description="Inspect TCP connection statistics when troubleshooting network behavior." Href="/stats/tcp" LinkText="Open TCP stats" Target="_blank" />
-	<SurfaceCard Eyebrow="Metrics" Title="Metrics endpoint" Description="Open the metrics endpoint used by external monitoring systems." Href="/metrics" LinkText="Open metrics" Target="_blank" />
-</section>
 </div>
 
 @code {

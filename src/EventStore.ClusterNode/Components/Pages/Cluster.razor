@@ -16,7 +16,6 @@
 		<div class="flex flex-wrap gap-2">
 			<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-cluster-status-label>Connecting gossip...</span>
 			<span class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-muted" data-cluster-updated>Waiting for first update</span>
-			<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white hover:bg-es-green hover:text-white" href="/gossip?format=json" target="_blank" rel="noopener noreferrer">Raw gossip</a>
 		</div>
 	</div>
 
@@ -194,7 +193,6 @@
 					<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Node probes</p>
 					<h2 class="mt-2 text-2xl font-black tracking-tight text-es-ink">Quick checks</h2>
 				</div>
-				<a class="text-sm font-black text-es-green hover:text-es-forest" href="/stats?format=json" target="_blank" rel="noopener noreferrer">Raw stats</a>
 			</div>
 			<div class="mt-5 grid gap-2">
 				@foreach (var probe in Probes)
@@ -210,7 +208,6 @@
 							<p class="text-xs font-black uppercase tracking-[0.2em] text-es-green">@SelectedProbe.Title</p>
 							<p class="mt-1 text-sm text-es-muted">@SelectedProbe.Description</p>
 						</div>
-						<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@SelectedProbe.Href" target="_blank" rel="noopener noreferrer">Open raw</a>
 					</div>
 					<iframe class="h-64 w-full bg-white" src="@SelectedProbe.Href" title="@($"{SelectedProbe.Title} response")"></iframe>
 				</div>
@@ -219,8 +216,8 @@
 
 		<div class="rounded-[2rem] bg-es-green p-5 text-white shadow-[0_20px_70px_rgba(107,163,0,0.20)]">
 			<p class="text-xs font-black uppercase tracking-[0.22em] text-white/70">Operator flow</p>
-			<h2 class="mt-3 text-2xl font-black tracking-tight">One dashboard, raw endpoints nearby.</h2>
-			<p class="mt-3 text-sm leading-6 text-white/80">The new surface makes routine checks readable while keeping the low-level HTTP endpoints available when you need exact payloads.</p>
+			<h2 class="mt-3 text-2xl font-black tracking-tight">One dashboard for routine operations.</h2>
+			<p class="mt-3 text-sm leading-6 text-white/80">The replacement surface keeps live membership, workload, and follow-up actions in the same workspace.</p>
 		</div>
 	</aside>
 </section>
@@ -229,7 +226,7 @@
 	<SurfaceCard Eyebrow="Explore" Title="Navigator" Description="Jump into streams, subscriptions, projections, user management, and browser tools from one place." Href="/ui/navigator" LinkText="Open" />
 	<SurfaceCard Eyebrow="Run" Title="Operations" Description="Reach privileged actions for scavenging, shutdown, reload, and node-level workflows." Href="/ui/operations" LinkText="Open" />
 	<SurfaceCard Eyebrow="Watch" Title="Observability" Description="Inspect queues, replication, TCP, metrics, and health through a curated operator map." Href="/ui/observability" LinkText="Open" />
-	<SurfaceCard Eyebrow="Review" Title="Configuration" Description="Find runtime information, loaded options, and subsystem metadata without memorizing endpoints." Href="/ui/configuration" LinkText="Open" />
+	<SurfaceCard Eyebrow="Review" Title="Configuration" Description="Find runtime information, loaded options, and subsystem metadata inside the workspace." Href="/ui/configuration" LinkText="Open" />
 </section>
 </div>
 
