@@ -11,7 +11,7 @@ You can only subscribe to one stream or the `$all` stream. You can use server-si
 Persistent subscriptions run on the Leader node and are not dropped when the connection is closed. Moreover, this subscription type supports the "[competing consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)" messaging pattern and are useful when you need to distribute messages to many workers. EventStoreDB saves the subscription state server-side and allows for at-least-once delivery guarantees across multiple consumers on the same stream. It is possible to have many groups of consumers compete on the same stream, with each group getting an at-least-once guarantee.
 
 ::: tip
-The Administration UI includes a _Persistent Subscriptions_ section where a user can create, update, delete and view subscriptions and their statuses. However, persistent subscriptions to the $all stream have to be created through a gRPC client.
+The Razor Admin UI _Subscriptions_ page can create, update, delete, and inspect persistent subscriptions for streams and the `$all` stream.
 :::
 
 ## Concepts
@@ -34,7 +34,7 @@ Clients must acknowledge (or not acknowledge) messages as they are handled. If m
 
 ## Parked messages
 
-Messages that have been retried too will often be parked in the persistent subscription's parked message stream. This stream is named `$persistentsubscription-{groupname}::{streamname}-parked`. You can easily see the number of parked events in the persistent subscription statistics or browse the parked messages in the admin UI.
+Messages that have been retried too will often be parked in the persistent subscription's parked message stream. This stream is named `$persistentsubscription-{groupname}::{streamname}-parked`. You can easily see the number of parked events in the persistent subscription statistics or browse and replay parked messages from the Razor Admin UI _Subscriptions_ page.
 
 If you want to retry the parked messages, you can `Replay` the parked messages for that subscription. This will push the parked messages to subscribers before any new events on the subscription.
 

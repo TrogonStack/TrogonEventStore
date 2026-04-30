@@ -454,7 +454,7 @@ Increase value of this setting if projection handler is compute intensive or ser
 
 [User projections you create in JavaScript](#user-defined-projections) can be inspected from the Razor Admin UI.
 The projection debug page keeps source, state, and lifecycle commands together so operators can inspect a
-projection without returning to the legacy web-admin shell.
+projection without leaving the node workspace.
 
 ### Logging from within a projection
 

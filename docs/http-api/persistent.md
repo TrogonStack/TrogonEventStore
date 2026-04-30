@@ -3,7 +3,7 @@
 This document explains how to use the HTTP API for setting up and consuming persistent subscriptions and competing consumer subscription groups. For an overview on competing consumers and how they relate to other subscription types, please see our [getting started guide](@server/persistent-subscriptions.md).
 
 ::: tip
-The Administration UI includes a _Competing Consumers_ section where you are able to create, update, delete and view subscriptions and their statuses.
+The Razor Admin UI _Subscriptions_ page provides a browser workflow for creating, updating, deleting, and inspecting persistent subscriptions.
 :::
 
 ## Creating a persistent subscription

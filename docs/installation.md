@@ -161,7 +161,7 @@ closer to what you'd run in production.
 EventStoreDB has a Docker image available for any platform that supports Docker.
 
 The following command will start the EventStoreDB node using default HTTP port, without security. You can then
-connect to it using one of the clients and the `esdb://localhost:2113?tls=false` connection string. You can also access the Admin UI by opening http://localhost:2113 in your browser.
+connect to it using one of the clients and the `esdb://localhost:2113?tls=false` connection string. You can also access the Admin UI by opening http://localhost:2113/ui in your browser.
 
 ```bash:no-line-numbers
 docker run --name esdb-node -it -p 2113:2113 \
