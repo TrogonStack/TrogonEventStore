@@ -8,7 +8,6 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Common.Utils;
 using EventStore.Core;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
@@ -34,7 +33,7 @@ public sealed class QueueDashboardService : IDisposable {
 		StandardComponents standardComponents) {
 		_authorizationProvider = authorizationProvider;
 		_httpContextAccessor = httpContextAccessor;
-		_statsEndPoint = GetLocalStatsEndPoint(standardComponents);
+		_statsEndPoint = NodeHttpRequestHelper.GetLocalEndPoint(standardComponents);
 		_client = nodeHttpClientFactory.CreateHttpClient([_statsEndPoint.Host]);
 	}
 
@@ -49,9 +48,11 @@ public sealed class QueueDashboardService : IDisposable {
 
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
-			using var request = new HttpRequestMessage(HttpMethod.Get, BuildStatsUri(context.Request, _statsEndPoint));
-			CopyHeader(context.Request, request, HeaderNames.Authorization);
-			CopyHeader(context.Request, request, HeaderNames.Cookie);
+			using var request = new HttpRequestMessage(
+				HttpMethod.Get,
+				NodeHttpRequestHelper.BuildUri(context.Request, _statsEndPoint, "/stats", "format=json"));
+			NodeHttpRequestHelper.CopyHeader(context.Request, request, HeaderNames.Authorization);
+			NodeHttpRequestHelper.CopyHeader(context.Request, request, HeaderNames.Cookie);
 
 			using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
 			if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
@@ -85,40 +86,6 @@ public sealed class QueueDashboardService : IDisposable {
 	private Task<bool> HasAccess(Operation operation, CancellationToken cancellationToken) =>
 		_authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();
 
-	private static LocalHttpEndPoint GetLocalStatsEndPoint(StandardComponents standardComponents) {
-		var endPoint = standardComponents.HttpServices
-			.SelectMany(x => x.EndPoints)
-			.FirstOrDefault();
-
-		if (endPoint is null)
-			throw new InvalidOperationException("Node HTTP endpoint is unavailable.");
-
-		return new LocalHttpEndPoint(LocalHostFor(endPoint), endPoint.GetPort());
-	}
-
-	private static string LocalHostFor(EndPoint endPoint) =>
-		endPoint switch {
-			IPEndPoint { Address: var address } when IPAddress.Any.Equals(address) => IPAddress.Loopback.ToString(),
-			IPEndPoint { Address: var address } when IPAddress.IPv6Any.Equals(address) => IPAddress.Loopback.ToString(),
-			IPEndPoint { Address: var address } => address.ToString(),
-			DnsEndPoint { Host: var host } when !string.IsNullOrWhiteSpace(host) => host,
-			_ => endPoint.GetHost()
-		};
-
-	private static Uri BuildStatsUri(HttpRequest request, LocalHttpEndPoint statsEndPoint) {
-		var builder = new UriBuilder(request.Scheme, statsEndPoint.Host, statsEndPoint.Port) {
-			Path = $"{request.PathBase}/stats",
-			Query = "format=json"
-		};
-
-		return builder.Uri;
-	}
-
-	private static void CopyHeader(HttpRequest source, HttpRequestMessage target, string headerName) {
-		if (source.Headers.TryGetValue(headerName, out var value) && value.Count > 0)
-			target.Headers.TryAddWithoutValidation(headerName, value.ToArray());
-	}
-
 	private static QueueDashboardPage ParseQueueStats(JsonDocument document) {
 		if (!document.RootElement.TryGetProperty("es", out var es) ||
 		    !es.TryGetProperty("queue", out var queueStats) ||
@@ -135,8 +102,6 @@ public sealed class QueueDashboardService : IDisposable {
 		return QueueDashboardPage.Success(queues);
 	}
 }
-
-internal readonly record struct LocalHttpEndPoint(string Host, int Port);
 
 public sealed record QueueDashboardPage(
 	IReadOnlyList<QueueDashboardBlock> Blocks,
