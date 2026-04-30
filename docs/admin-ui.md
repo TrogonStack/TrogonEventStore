@@ -39,8 +39,6 @@ The _Streams_ page lets you find recently created or changed streams and open a 
 - event detail views with data and metadata
 - append, metadata, ACL, delete, and query actions
 
-The stream browser depends on AtomPub over HTTP. Enable AtomPub if the stream browsing controls are unavailable.
-
 ## Query
 
 The _Query_ page runs transient JavaScript projections for short-lived analysis and can stop the generated transient projection from the same page.
