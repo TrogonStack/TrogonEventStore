@@ -473,7 +473,7 @@ public sealed record ScavengeDetailPage(
 		? $"/ui/operations/scavenges/{Uri.EscapeDataString(ScavengeId)}"
 		: $"/ui/operations/scavenges/{Uri.EscapeDataString(ScavengeId)}?page={Page - 1}&from={NewerFrom}";
 	public string LatestHref => $"/ui/operations/scavenges/{Uri.EscapeDataString(ScavengeId)}";
-	public string RawStreamHref => $"/ui/streams/{Uri.EscapeDataString(SystemStreams.ScavengesStream + "-" + ScavengeId)}";
+	public string StreamHref => $"/ui/streams/{Uri.EscapeDataString(SystemStreams.ScavengesStream + "-" + ScavengeId)}";
 
 	public static ScavengeDetailPage Success(
 		string scavengeId,

@@ -11,7 +11,6 @@
 	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect the metadata event, then jump into ACL editing only when you intend to change it.</p>
 	<div class="mt-6 flex flex-wrap gap-3">
 		<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@AclHref">Edit ACL</a>
-		<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawMetadataHref" target="_blank" rel="noopener noreferrer">Raw metadata</a>
 	</div>
 </section>
 
@@ -41,14 +40,11 @@
 				<p class="text-sm font-black uppercase tracking-[0.24em] text-es-green">Metadata event</p>
 				<h2 class="mt-2 break-words text-3xl font-black tracking-tight text-es-ink">@Page.MetadataEvent.EventType</h2>
 			</div>
-			<div class="flex flex-wrap gap-3">
-				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.MetadataEvent.RawHref" target="_blank" rel="noopener noreferrer">Raw event</a>
-			</div>
 		</div>
 
 		<StreamEventCard Event="Page.MetadataEvent" />
 		<div class="mt-5 grid gap-4 lg:grid-cols-2">
-			<JsonPanel Eyebrow="Data" Title="Stream metadata" Content="@Page.MetadataEvent.DataForDisplay" RawHref="@RawMetadataHref" />
+			<JsonPanel Eyebrow="Data" Title="Stream metadata" Content="@Page.MetadataEvent.DataForDisplay" />
 			<JsonPanel Eyebrow="Metadata" Title="Metadata event metadata" Content="@Page.MetadataEvent.MetadataForDisplay" />
 		</div>
 	}
@@ -60,7 +56,6 @@
 	private StreamMetadataPage Page { get; set; }
 	private string BackHref => $"/ui/streams/{Uri.EscapeDataString(StreamId)}";
 	private string AclHref => $"/ui/streams/acl/{Uri.EscapeDataString(StreamId)}";
-	private string RawMetadataHref => $"/streams/{Uri.EscapeDataString(StreamId)}/metadata";
 
 	protected override async Task OnParametersSetAsync() {
 		var requested = StreamId;

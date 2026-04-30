@@ -8,7 +8,7 @@
 	<a class="text-sm font-bold text-es-green transition hover:text-es-forest" href="@DetailHref">Back to projection</a>
 	<p class="mt-6 text-sm font-black uppercase tracking-[0.28em] text-es-green">Projection debug</p>
 	<h1 class="mt-4 break-words text-5xl font-black tracking-tight text-es-ink sm:text-6xl">@Name</h1>
-	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect projection source, state, result, and raw debug endpoints while keeping lifecycle commands close.</p>
+	<p class="mt-5 text-lg leading-8 text-es-muted">Inspect projection source and state while keeping lifecycle commands close.</p>
 </section>
 
 @if (CommandResult is not null)
@@ -87,15 +87,6 @@
 			}
 		</article>
 
-		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
-			<StatusBadge Label="Raw debug" Tone="muted" />
-			<h2 class="mt-4 text-xl font-black tracking-tight text-es-ink">Endpoint handoffs</h2>
-			<div class="mt-5 flex flex-wrap gap-2">
-				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawStateHref" target="_blank" rel="noopener noreferrer">State</a>
-				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawResultHref" target="_blank" rel="noopener noreferrer">Result</a>
-				<a class="rounded-full border border-es-ink/10 bg-white px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@RawStatsHref" target="_blank" rel="noopener noreferrer">Stats</a>
-			</div>
-		</article>
 	</aside>
 </section>
 
@@ -115,9 +106,6 @@
 	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(LinkName)}";
 	private string EditHref => $"/ui/projections/edit/{Uri.EscapeDataString(LinkName)}";
 	private string QueryHref => $"/ui/query?location={Uri.EscapeDataString(LinkName)}";
-	private string RawStateHref => $"/projection/{Uri.EscapeDataString(LinkName)}/state";
-	private string RawResultHref => $"/projection/{Uri.EscapeDataString(LinkName)}/result";
-	private string RawStatsHref => $"/projection/{Uri.EscapeDataString(LinkName)}/statistics";
 
 	protected override async Task OnParametersSetAsync() {
 		try {

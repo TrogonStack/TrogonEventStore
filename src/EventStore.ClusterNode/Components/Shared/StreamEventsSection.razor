@@ -21,7 +21,6 @@ else
 			{
 				<a class="rounded-full bg-es-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-es-green" href="@Page.NextPageHref">@Page.NextPageLabel</a>
 			}
-			<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="/streams/@Uri.EscapeDataString(Page.StreamId)" target="_blank" rel="noopener noreferrer">Raw stream</a>
 		</div>
 	</div>
 	<div class="grid gap-5">
@@ -29,7 +28,7 @@ else
 		{
 			<StreamEventCard Event="ev" />
 			<div class="grid gap-4 lg:grid-cols-2">
-				<JsonPanel Eyebrow="Data" Title="@($"{ev.EventType} data")" Content="@ev.DataForDisplay" RawHref="@ev.RawHref" />
+				<JsonPanel Eyebrow="Data" Title="@($"{ev.EventType} data")" Content="@ev.DataForDisplay" />
 				<JsonPanel Eyebrow="Metadata" Title="Event metadata" Content="@ev.MetadataForDisplay" />
 				@if (ev.HasLinkMetadata)
 				{

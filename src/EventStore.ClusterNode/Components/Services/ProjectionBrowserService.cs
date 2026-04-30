@@ -826,11 +826,6 @@ public sealed record ProjectionView(
 	public string ConfigHref => $"/ui/projections/config/{Uri.EscapeDataString(Name)}";
 	public string DeleteHref => $"/ui/projections/delete/{Uri.EscapeDataString(Name)}";
 	public string DebugHref => $"/ui/projections/debug/{Uri.EscapeDataString(Name)}";
-	public string RawStatisticsHref => $"/projection/{Uri.EscapeDataString(Name)}/statistics";
-	public string RawStateHref => $"/projection/{Uri.EscapeDataString(Name)}/state";
-	public string RawResultHref => $"/projection/{Uri.EscapeDataString(Name)}/result";
-	public string RawQueryHref => $"/projection/{Uri.EscapeDataString(Name)}/query?config=yes";
-	public string RawConfigHref => $"/projection/{Uri.EscapeDataString(Name)}/config";
 	public string ResultStreamHref => string.IsNullOrWhiteSpace(ResultStreamName)
 		? ""
 		: $"/ui/streams/{Uri.EscapeDataString(ResultStreamName)}";
