@@ -12,6 +12,7 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
+using EventStore.Core.TransactionLog.LogRecords;
 using Microsoft.AspNetCore.Http;
 
 namespace EventStore.ClusterNode.Components.Services;
@@ -755,6 +756,7 @@ public sealed record StreamViewEvent(
 	string Metadata,
 	string LinkMetadata,
 	bool IsJson,
+	bool IsRedacted,
 	long? CommitPosition,
 	long? PreparePosition) {
 	private static readonly JsonSerializerOptions JsonOptions = new() {
@@ -804,6 +806,7 @@ file static class StreamBrowserMapping {
 			Decode(record.Metadata),
 			resolvedEvent.Link is null ? "" : Decode(resolvedEvent.Link.Metadata),
 			record.IsJson,
+			record.Flags.HasAnyOf(PrepareFlags.IsRedacted),
 			position?.CommitPosition,
 			position?.PreparePosition);
 	}
