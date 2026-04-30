@@ -9,8 +9,9 @@ Run the CSS build whenever Tailwind utility classes change in:
 - `Components/**/*.razor`
 
 ```sh
-npm ci
-npm run build:css
+mise run ui:css
 ```
 
 Commit the updated `ui-assets/css/tailwind.generated.css` with the source change.
+
+Use `mise run ui:css:watch` while iterating locally.

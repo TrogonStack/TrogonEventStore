@@ -11,3 +11,19 @@ DOTNET_ROLL_FORWARD=Major mise exec -- dotnet watch run \
   --log "$PWD/tmp/log" \
   --log-console-format Plain
 '''
+
+[tasks."ui:css"]
+description = "Build the committed Razor UI stylesheet"
+run = '''
+cd src/EventStore.ClusterNode
+npm ci
+npm run build:css
+'''
+
+[tasks."ui:css:watch"]
+description = "Watch Razor UI assets and rebuild the stylesheet"
+run = '''
+cd src/EventStore.ClusterNode
+npm ci
+npm run watch:css
+'''
