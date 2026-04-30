@@ -69,7 +69,7 @@ Find out more about configuring the HTTP protocol on the [HTTP configuration](ne
 
 ::: warning Deprecation Note
 The current AtomPub-based HTTP application API is disabled by default since v20 of EventStoreDB. You can enable it by adding an [option](networking.md#atompub) to the server configuration. Although we plan to remove AtomPub support from future server versions, the server management HTTP API will remain available.
-You need to enable the AtomPub protocol to have a fully functioning database user interface.
+The Admin UI uses the server management surface and does not require AtomPub for stream browsing.
 :::
 
 Learn more about the EventStoreDB HTTP interface in the [HTTP documentation](@clients/http-api/README.md). 

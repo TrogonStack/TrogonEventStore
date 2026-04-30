@@ -169,8 +169,8 @@ docker run --name esdb-node -it -p 2113:2113 \
     --enable-atom-pub-over-http
 ```
 
-Then, you'd be able to connect to EventStoreDB with gRPC clients. Also, the Stream Browser will work
-in the Admin UI.
+Then, you'd be able to connect to EventStoreDB with gRPC clients. The command also enables AtomPub over HTTP
+for clients that still rely on the deprecated HTTP application API.
 
 In order to sustainably keep the data, we also recommend mapping the database and index volumes.
 
@@ -192,7 +192,7 @@ Run the instance:
 docker-compose up
 ```
 
-The command above would run EventStoreDB as a single node without SSL. You also get AtomPub protocol enabled, so you can get the stream browser to work in the Admin UI.
+The command above would run EventStoreDB as a single node without SSL. You also get AtomPub protocol enabled for clients that still rely on the deprecated HTTP application API.
 
 ::: warning
 The legacy TCP client protocol is disabled by default and will no longer be available since version 24.2. 
@@ -255,7 +255,7 @@ Depending on how your EventStoreDB instance is configured, some features might n
 | Feature                       | Options impact                                                                                                                                                                          |
 |:------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Connection without SSL or TLS | EventStoreDB 20.6+ is secure by default. Your clients need to establish a secure connection, unless you use the `Insecure` option.                                                      |
-| Authentication and ACLs       | When using the `Insecure` option for the server, all security is disabled. The `Users` menu item is also disabled in the Admin UI.                                                      |
-| Projections                   | Running projections is disabled by default and the `Projections` menu item is disabled in the Admin UI. You need to enable projections explicitly by using the `RunProjections` option. |
+| Authentication and ACLs       | When using the `Insecure` option for the server, all security is disabled. User management workflows are unavailable because there is no authentication subsystem to manage.             |
+| Projections                   | Running projections is disabled by default. Projection workflows require enabling projections explicitly by using the `RunProjections` option.                                         |
 | AtomPub protocol              | In 20.6+, the AtomPub protocol is disabled by default. If you use this protocol, you have to explicitly enable it by using the `EnableAtomPubOverHttp` option.                          |
-| Stream browser                | The stream browser feature in Admin UI depends on the AtomPub protocol and is greyed out by default. You need to enable AtomPub (previous line) to make the stream browser work.        |
+| Stream browser                | The Razor Admin UI stream browser does not require AtomPub. Enable AtomPub only for clients that use the AtomPub HTTP API.                                                             |
