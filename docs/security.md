@@ -391,8 +391,6 @@ One useful scenario is to use the Docker Compose file tool to generate all the n
 Sample:
 
 ```yaml
-version: "3.5"
-
 services:
   setup:
     image: eventstore/es-gencert-cli:1.0.2
@@ -402,8 +400,8 @@ services:
       -c "mkdir -p ./certs && cd /certs
       && es-gencert-cli create-ca
       && es-gencert-cli create-node -out ./node1 -ip-addresses 127.0.0.1,172.20.240.1 -dns-names localhost,node1.eventstore
-      && es-gencert-cli create-node -out ./node1 -ip-addresses 127.0.0.1,172.20.240.2 -dns-names localhost,node2.eventstore
-      && es-gencert-cli create-node -out ./node1 -ip-addresses 127.0.0.1,172.20.240.3 -dns-names localhost,node3.eventstore
+      && es-gencert-cli create-node -out ./node2 -ip-addresses 127.0.0.1,172.20.240.2 -dns-names localhost,node2.eventstore
+      && es-gencert-cli create-node -out ./node3 -ip-addresses 127.0.0.1,172.20.240.3 -dns-names localhost,node3.eventstore
       && find . -type f -print0 | xargs -0 chmod 666"
     container_name: setup
     volumes:
