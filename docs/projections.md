@@ -311,10 +311,8 @@ improvements.
 You can only change the configuration of a stopped projection.
 :::
 
-You change the configuration of a projection by setting the relevant key and value in a request, or when you
-create a projection with the web admin interface.
-
-![Web admin interface projections configuration screen](./images/wai-projection-config.jpg)
+You change the configuration of a projection by setting the relevant key and value in a request, or from the
+Razor Admin UI _Projections_ page.
 
 <!-- TODO: Further explanation here -->
 
