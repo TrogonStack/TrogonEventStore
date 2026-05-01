@@ -73,7 +73,6 @@ public class FileSystemOptions
 
 public class S3Options
 {
-	public string AwsCliProfileName { get; init; } = "default";
 	public string Bucket { get; init; } = "";
 	public string Region { get; init; } = "";
 

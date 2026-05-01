@@ -11,7 +11,6 @@ public class S3Writer : FluentWriter, IArchiveStorageWriter
 	{
 		AwsTraceLogging.Configure();
 		BlobStorage = StorageFactory.Blobs.AwsS3(
-			awsCliProfileName: options.AwsCliProfileName,
 			bucketName: options.Bucket,
 			region: options.Region);
 	}
