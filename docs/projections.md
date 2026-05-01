@@ -312,7 +312,7 @@ You can only change the configuration of a stopped projection.
 :::
 
 You change the configuration of a projection by setting the relevant key and value in a request, or from the
-Razor Admin UI _Projections_ page.
+Admin UI _Projections_ page.
 
 <!-- TODO: Further explanation here -->
 
@@ -452,9 +452,9 @@ Increase value of this setting if projection handler is compute intensive or ser
 
 ## Debugging
 
-[User projections you create in JavaScript](#user-defined-projections) can be inspected from the Razor Admin UI.
+[User projections you create in JavaScript](#user-defined-projections) can be inspected from the Admin UI.
 The projection debug page keeps source, state, and lifecycle commands together so operators can inspect a
-projection without leaving the node workspace.
+projection from the same node view.
 
 ### Logging from within a projection
 
@@ -504,7 +504,7 @@ curl -i -d@stats-counter.json \
 
 ### Debugging your first projection
 
-Once the projection is running, open the Razor Admin UI, go to _Projections_, select the projection, and choose
+Once the projection is running, open the Admin UI, go to _Projections_, select the projection, and choose
 _Debug_. The debug page shows the current projection source, state payload, and status, with actions to stop or
 reset the projection when the runtime state needs to be cleared.
 

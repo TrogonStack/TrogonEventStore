@@ -6,7 +6,7 @@ EventStoreDB supports basic authentication for HTTP API calls, and access contro
 
 ### Creating users
 
-EventStoreDB supports basic HTTP authentication to internal users. You create these users with the HTTP API or the Razor Admin UI _Users_ page. You need to use the credentials of the default user in the request, which has the username of `admin`, and the password of `changeit`.
+EventStoreDB supports basic HTTP authentication to internal users. You create these users with the HTTP API or the Admin UI _Users_ page. You need to use the credentials of the default user in the request, which has the username of `admin`, and the password of `changeit`.
 
 When using the HTTP API, you can send the following JSON payload to the server:
 
@@ -40,7 +40,7 @@ As you pass the username and password in the request we recommend you to enable 
 
 Alongside authentication, EventStoreDB supports per stream configuration of Access Control Lists (ACL). To configure the ACL of a stream go to its head and look for the `metadata` relationship link to fetch the metadata for the stream.
 
-To set access control lists over HTTP you can post to the metadata stream as [with setting any other metadata](README.md#stream-metadata). You can also edit stream ACLs from the Razor Admin UI stream metadata workflow.
+To set access control lists over HTTP you can post to the metadata stream as [with setting any other metadata](README.md#stream-metadata). You can also edit stream ACLs from the Admin UI stream metadata workflow.
 
 ### ACL example
 
