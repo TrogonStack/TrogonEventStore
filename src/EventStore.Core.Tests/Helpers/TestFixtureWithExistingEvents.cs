@@ -685,7 +685,7 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 			list.Add(BuildEvent(record.Value, message.ResolveLinkTos, record.Key.CommitPosition));
 		}
 
-		if (records.IsEmpty())
+		if (records.IsEmpty() && _all.Count > 0)
 		{
 			var lastPos = _all.Keys[^1];
 			next = new TFPos(lastPos.CommitPosition, lastPos.PreparePosition + 1);

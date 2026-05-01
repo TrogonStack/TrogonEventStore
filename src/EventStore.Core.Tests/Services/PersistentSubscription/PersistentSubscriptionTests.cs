@@ -2658,9 +2658,10 @@ public class CheckpointingWithSkippedEvents
 				.StartFromCurrent());
 		reader.Load(null);
 
-		var correlationId = Guid.NewGuid();
-		sub.AddClient(Guid.NewGuid(), Guid.NewGuid(), "connection-1", client1Envelope, 1, "foo", "bar");
-		sub.AddClient(Guid.NewGuid(), Guid.NewGuid(), "connection-2", client2Envelope, 1000, "foo", "bar");
+		var client1CorrelationId = Guid.NewGuid();
+		var client2CorrelationId = Guid.NewGuid();
+		sub.AddClient(client1CorrelationId, Guid.NewGuid(), "connection-1", client1Envelope, 1, "foo", "bar");
+		sub.AddClient(client2CorrelationId, Guid.NewGuid(), "connection-2", client2Envelope, 1000, "foo", "bar");
 
 		var message11 = WriteEventForStream1();
 		var message12 = WriteEventForStream1();
@@ -2678,19 +2679,19 @@ public class CheckpointingWithSkippedEvents
 		Assert.AreEqual(2, streamBuffer.BufferCount);
 		Assert.IsNull(checkpoint);
 
-		sub.AcknowledgeMessagesProcessed(correlationId, new[] { message11 });
+		sub.AcknowledgeMessagesProcessed(client1CorrelationId, new[] { message11 });
 		pushScheduler.Push(sub);
 		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(0), checkpoint);
 
-		sub.AcknowledgeMessagesProcessed(correlationId, new[] { message21, message22, message23 });
+		sub.AcknowledgeMessagesProcessed(client2CorrelationId, new[] { message21, message22, message23 });
 		pushScheduler.Push(sub);
 		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(0), checkpoint);
 
-		sub.AcknowledgeMessagesProcessed(correlationId, new[] { message12 });
+		sub.AcknowledgeMessagesProcessed(client1CorrelationId, new[] { message12 });
 		pushScheduler.Push(sub);
 		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(1), checkpoint);
 
-		sub.AcknowledgeMessagesProcessed(correlationId, new[] { message13 });
+		sub.AcknowledgeMessagesProcessed(client1CorrelationId, new[] { message13 });
 		pushScheduler.Push(sub);
 		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(5), checkpoint);
 
@@ -2737,8 +2738,8 @@ public class CheckpointingWithNoMoreCapacity
 				.StartFromCurrent());
 		reader.Load(null);
 
-		var correlationId = Guid.NewGuid();
-		sub.AddClient(Guid.NewGuid(), Guid.NewGuid(), "connection-1", clientEnvelope, 1, "foo", "bar");
+		var clientCorrelationId = Guid.NewGuid();
+		sub.AddClient(clientCorrelationId, Guid.NewGuid(), "connection-1", clientEnvelope, 1, "foo", "bar");
 
 		var message1 = WriteEvent();
 		var message2 = WriteEvent();
@@ -2747,12 +2748,12 @@ public class CheckpointingWithNoMoreCapacity
 		Assert.AreEqual(1, clientEnvelope.Replies.Count);
 		Assert.IsNull(checkpoint);
 
-		sub.AcknowledgeMessagesProcessed(correlationId, new[] { message1 });
+		sub.AcknowledgeMessagesProcessed(clientCorrelationId, new[] { message1 });
 		pushScheduler.Push(sub);
 		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(0), checkpoint);
 		Assert.AreEqual(2, clientEnvelope.Replies.Count);
 
-		sub.AcknowledgeMessagesProcessed(correlationId, new[] { message2 });
+		sub.AcknowledgeMessagesProcessed(clientCorrelationId, new[] { message2 });
 		pushScheduler.Push(sub);
 		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(1), checkpoint);
 
