@@ -29,7 +29,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 			{
 				StorageType = storageType,
 				FileSystem = new() { Path = ArchivePath },
-				S3 = new() { AwsCliProfileName = "default", Bucket = "archiver-unit-tests", Region = "eu-west-1", }
+				S3 = new() { Bucket = "archiver-unit-tests", Region = "eu-west-1", }
 			},
 			chunkNamer);
 		return factory;
