@@ -53,7 +53,7 @@ namespace EventStore.Common.Log {
 
 		public static void Initialize(string logsDirectory, string componentName, LogConsoleFormat logConsoleFormat,
 			int logFileSize, RollingInterval logFileInterval, int logFileRetentionCount, bool disableLogFile,
-			string logConfig = "logconfig.json") {
+			string logConfig = "logconfig.json", IConfiguration telemetryConfiguration = null) {
 			if (Interlocked.Exchange(ref Initialized, 1) == 1) {
 				throw new InvalidOperationException($"{nameof(Initialize)} may not be called more than once.");
 			}
@@ -75,6 +75,7 @@ namespace EventStore.Common.Log {
 						.ReadFrom.Configuration(configurationRoot)
 					: Default(logsDirectory, componentName, configurationRoot, logConsoleFormat, logFileInterval,
 						logFileSize, logFileRetentionCount, disableLogFile))
+				.AddOpenTelemetryLogger(telemetryConfiguration, componentName)
 				.CreateLogger();
 
 			Serilog.Debugging.SelfLog.Disable();
