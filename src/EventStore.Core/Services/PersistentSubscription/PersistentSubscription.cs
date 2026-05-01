@@ -246,7 +246,15 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			if (!shouldSchedule)
 				return;
 
-			_settings.PushScheduler.SchedulePush();
+			try {
+				_settings.PushScheduler.SchedulePush();
+			} catch {
+				lock (_lock) {
+					_pushScheduled = false;
+				}
+
+				throw;
+			}
 		}
 
 		public void PushToClientsFromSchedule() {
