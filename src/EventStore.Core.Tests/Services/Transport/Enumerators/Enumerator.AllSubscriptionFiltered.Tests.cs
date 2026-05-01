@@ -77,7 +77,7 @@ public partial class EnumeratorTests
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			var response = await sub.GetNext();
 			Assert.IsInstanceOf<Checkpoint>(response);
-			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
+			Assert.AreEqual(Position.Start, ((Checkpoint)response).CheckpointPosition);
 			Assert.True(await sub.GetNext() is CaughtUp);
 		}
 	}
@@ -150,7 +150,8 @@ public partial class EnumeratorTests
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			var response = await sub.GetNext();
 			Assert.IsInstanceOf<Checkpoint>(response);
-			Assert.True(((Checkpoint)response).CheckpointPosition < Position.End);
+			Assert.AreEqual(new Position((ulong)_subscribeFrom.CommitPosition, (ulong)_subscribeFrom.PreparePosition),
+				((Checkpoint)response).CheckpointPosition);
 			Assert.True(await sub.GetNext() is CaughtUp);
 		}
 	}

@@ -24,6 +24,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		private readonly IPersistentSubscriptionStreamReader _streamReader;
 		private readonly IPersistentSubscriptionCheckpointReader _checkpointReader;
 		private readonly IPersistentSubscriptionCheckpointWriter _checkpointWriter;
+		private readonly IPersistentSubscriptionPushScheduler _pushScheduler;
 		private IPersistentSubscriptionMessageParker _messageParker;
 
 		public PersistentSubscriptionParams(bool resolveLinkTos, string subscriptionId,
@@ -38,7 +39,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			IPersistentSubscriptionStreamReader streamReader,
 			IPersistentSubscriptionCheckpointReader checkpointReader,
 			IPersistentSubscriptionCheckpointWriter checkpointWriter,
-			IPersistentSubscriptionMessageParker messageParker) {
+			IPersistentSubscriptionMessageParker messageParker,
+			IPersistentSubscriptionPushScheduler pushScheduler = null) {
 			_resolveLinkTos = resolveLinkTos;
 			_subscriptionId = subscriptionId;
 			_eventSource = eventSource;
@@ -59,6 +61,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			_checkpointReader = checkpointReader;
 			_checkpointWriter = checkpointWriter;
 			_messageParker = messageParker;
+			_pushScheduler = pushScheduler;
 		}
 
 		public bool ResolveLinkTos {
@@ -103,6 +106,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public IPersistentSubscriptionMessageParker MessageParker {
 			get { return _messageParker; }
+		}
+
+		public IPersistentSubscriptionPushScheduler PushScheduler {
+			get { return _pushScheduler; }
 		}
 
 		public int MaxRetryCount {

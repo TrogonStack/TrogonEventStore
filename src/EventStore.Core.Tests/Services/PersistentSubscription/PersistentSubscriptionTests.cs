@@ -10,6 +10,7 @@ using EventStore.ClientAPI.Common;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Helpers;
+using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
@@ -436,6 +437,37 @@ public class LiveTests
 		sub.AddClient(Guid.NewGuid(), Guid.NewGuid(), "connection-1", envelope, 10, "foo", "bar");
 		sub.NotifyLiveSubscriptionMessage(Helper.GetFakeEventFor(0, _eventSource));
 		Assert.AreEqual(1, envelope.Replies.Count);
+	}
+
+	[Test]
+	public void live_subscription_coalesces_scheduled_pushes()
+	{
+		var envelope = new FakeEnvelope();
+		var reader = new FakeCheckpointReader();
+		var pushScheduler = new FakePushScheduler();
+		var sub = new Core.Services.PersistentSubscription.PersistentSubscription(
+			Helper.CreatePersistentSubscriptionBuilderFor(_eventSource)
+				.WithEventLoader(new FakeStreamReader())
+				.WithCheckpointReader(reader)
+				.WithCheckpointWriter(new FakeCheckpointWriter(x => { }))
+				.WithMessageParker(new FakeMessageParker())
+				.WithPushScheduler(pushScheduler)
+				.StartFromCurrent());
+		reader.Load(null);
+
+		sub.AddClient(Guid.NewGuid(), Guid.NewGuid(), "connection-1", envelope, 10, "foo", "bar");
+		sub.NotifyLiveSubscriptionMessage(Helper.GetFakeEventFor(0, _eventSource));
+		sub.NotifyLiveSubscriptionMessage(Helper.GetFakeEventFor(1, _eventSource));
+		sub.NotifyLiveSubscriptionMessage(Helper.GetFakeEventFor(2, _eventSource));
+
+		Assert.AreEqual(1, pushScheduler.ScheduleCount);
+		Assert.AreEqual(0, envelope.Replies.Count);
+
+		pushScheduler.Push(sub);
+		Assert.AreEqual(3, envelope.Replies.Count);
+
+		sub.NotifyLiveSubscriptionMessage(Helper.GetFakeEventFor(3, _eventSource));
+		Assert.AreEqual(2, pushScheduler.ScheduleCount);
 	}
 
 	[Test]
@@ -2598,6 +2630,143 @@ public class DeadlockTest<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLo
 	}
 }
 
+public class CheckpointingWithSkippedEvents
+{
+	[Test]
+	public void checkpointing_works_when_events_are_skipped_by_the_consumer_strategy()
+	{
+		var categoryVersion = 0;
+		var stream1Version = 0;
+		var stream2Version = 0;
+
+		IPersistentSubscriptionStreamPosition checkpoint = null;
+		var client1Envelope = new FakeEnvelope();
+		var client2Envelope = new FakeEnvelope();
+		var reader = new FakeCheckpointReader();
+		var pushScheduler = new FakePushScheduler();
+		const string subscriptionStream = "$ce-streamName";
+		var sub = new Core.Services.PersistentSubscription.PersistentSubscription(
+			PersistentSubscriptionToStreamParamsBuilder.CreateFor(subscriptionStream, "groupName")
+				.WithEventLoader(new FakeStreamReader())
+				.WithCheckpointReader(reader)
+				.WithCheckpointWriter(new FakeCheckpointWriter(x => checkpoint = x))
+				.WithMessageParker(new FakeMessageParker())
+				.WithPushScheduler(pushScheduler)
+				.MinimumToCheckPoint(1)
+				.MaximumToCheckPoint(1)
+				.CustomConsumerStrategy(new PinnedPersistentSubscriptionConsumerStrategy(new XXHashUnsafe()))
+				.StartFromCurrent());
+		reader.Load(null);
+
+		var client1CorrelationId = Guid.NewGuid();
+		var client2CorrelationId = Guid.NewGuid();
+		sub.AddClient(client1CorrelationId, Guid.NewGuid(), "connection-1", client1Envelope, 1, "foo", "bar");
+		sub.AddClient(client2CorrelationId, Guid.NewGuid(), "connection-2", client2Envelope, 1000, "foo", "bar");
+
+		var message11 = WriteEventForStream1();
+		var message12 = WriteEventForStream1();
+		var message13 = WriteEventForStream1();
+		pushScheduler.Push(sub);
+
+		var message21 = WriteEventForStream2();
+		var message22 = WriteEventForStream2();
+		var message23 = WriteEventForStream2();
+		pushScheduler.Push(sub);
+
+		Assert.AreEqual(1, client1Envelope.Replies.Count);
+		Assert.AreEqual(3, client2Envelope.Replies.Count);
+		Assert.True(sub.TryGetStreamBuffer(out var streamBuffer));
+		Assert.AreEqual(2, streamBuffer.BufferCount);
+		Assert.IsNull(checkpoint);
+
+		sub.AcknowledgeMessagesProcessed(client1CorrelationId, new[] { message11 });
+		pushScheduler.Push(sub);
+		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(0), checkpoint);
+
+		sub.AcknowledgeMessagesProcessed(client2CorrelationId, new[] { message21, message22, message23 });
+		pushScheduler.Push(sub);
+		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(0), checkpoint);
+
+		sub.AcknowledgeMessagesProcessed(client1CorrelationId, new[] { message12 });
+		pushScheduler.Push(sub);
+		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(1), checkpoint);
+
+		sub.AcknowledgeMessagesProcessed(client1CorrelationId, new[] { message13 });
+		pushScheduler.Push(sub);
+		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(5), checkpoint);
+
+		Guid WriteEventForStream1()
+		{
+			var id = Guid.NewGuid();
+			sub.NotifyLiveSubscriptionMessage(Helper.BuildLinkEvent(id, subscriptionStream, categoryVersion++,
+				Helper.BuildFakeEvent(Guid.NewGuid(), "type", "streamName-1", stream1Version++), false));
+			return id;
+		}
+
+		Guid WriteEventForStream2()
+		{
+			var id = Guid.NewGuid();
+			sub.NotifyLiveSubscriptionMessage(Helper.BuildLinkEvent(id, subscriptionStream, categoryVersion++,
+				Helper.BuildFakeEvent(Guid.NewGuid(), "type", "streamName-2", stream2Version++), false));
+			return id;
+		}
+	}
+}
+
+public class CheckpointingWithNoMoreCapacity
+{
+	[Test]
+	public void checkpoint_is_correct_when_message_hits_no_more_capacity_then_succeeds()
+	{
+		var version = 0;
+
+		IPersistentSubscriptionStreamPosition checkpoint = null;
+		var clientEnvelope = new FakeEnvelope();
+		var reader = new FakeCheckpointReader();
+		var pushScheduler = new FakePushScheduler();
+		const string subscriptionStream = "streamName";
+		var sub = new Core.Services.PersistentSubscription.PersistentSubscription(
+			PersistentSubscriptionToStreamParamsBuilder.CreateFor(subscriptionStream, "groupName")
+				.WithEventLoader(new FakeStreamReader())
+				.WithCheckpointReader(reader)
+				.WithCheckpointWriter(new FakeCheckpointWriter(x => checkpoint = x))
+				.WithMessageParker(new FakeMessageParker())
+				.WithPushScheduler(pushScheduler)
+				.MinimumToCheckPoint(1)
+				.MaximumToCheckPoint(1)
+				.PreferRoundRobin()
+				.StartFromCurrent());
+		reader.Load(null);
+
+		var clientCorrelationId = Guid.NewGuid();
+		sub.AddClient(clientCorrelationId, Guid.NewGuid(), "connection-1", clientEnvelope, 1, "foo", "bar");
+
+		var message1 = WriteEvent();
+		var message2 = WriteEvent();
+		pushScheduler.Push(sub);
+
+		Assert.AreEqual(1, clientEnvelope.Replies.Count);
+		Assert.IsNull(checkpoint);
+
+		sub.AcknowledgeMessagesProcessed(clientCorrelationId, new[] { message1 });
+		pushScheduler.Push(sub);
+		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(0), checkpoint);
+		Assert.AreEqual(2, clientEnvelope.Replies.Count);
+
+		sub.AcknowledgeMessagesProcessed(clientCorrelationId, new[] { message2 });
+		pushScheduler.Push(sub);
+		Assert.AreEqual(new PersistentSubscriptionSingleStreamPosition(1), checkpoint);
+
+		Guid WriteEvent()
+		{
+			var id = Guid.NewGuid();
+			sub.NotifyLiveSubscriptionMessage(
+				Helper.BuildFakeEvent(id, "type", subscriptionStream, version++));
+			return id;
+		}
+	}
+}
+
 public static class Helper
 {
 	public static PersistentSubscriptionParamsBuilder CreatePersistentSubscriptionBuilderFor(EventSource eventSource)
@@ -2831,5 +3000,25 @@ class FakeCheckpointWriter : IPersistentSubscriptionCheckpointWriter
 	public void BeginDelete(Action<IPersistentSubscriptionCheckpointWriter> completed)
 	{
 		_deleteAction?.Invoke();
+	}
+}
+
+class FakePushScheduler : IPersistentSubscriptionPushScheduler
+{
+	private bool _pushScheduled;
+
+	public int ScheduleCount { get; private set; }
+
+	public void SchedulePush()
+	{
+		ScheduleCount++;
+		_pushScheduled = true;
+	}
+
+	public void Push(Core.Services.PersistentSubscription.PersistentSubscription subscription)
+	{
+		Assert.True(_pushScheduled, "Push was not scheduled");
+		_pushScheduled = false;
+		subscription.PushToClientsFromSchedule();
 	}
 }
