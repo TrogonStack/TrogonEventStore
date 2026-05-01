@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.DataStructures;
@@ -25,6 +26,9 @@ namespace EventStore.Core.Services.Transport.Http {
 		}
 
 		private void PurgeTimedOutRequests() {
+			if (!Monitor.TryEnter(_pending))
+				return;
+
 			try {
 				while (_pending.Count > 0) {
 					var req = _pending.FindMin();
@@ -40,6 +44,8 @@ namespace EventStore.Core.Services.Transport.Http {
 				}
 			} catch (Exception exc) {
 				Log.Error(exc, "Error purging timed out requests in HTTP request processor.");
+			} finally {
+				Monitor.Exit(_pending);
 			}
 		}
 
@@ -49,7 +55,9 @@ namespace EventStore.Core.Services.Transport.Http {
 			try {
 				var reqParams = match.RequestHandler(manager, match.TemplateMatch);
 				if (!reqParams.IsDone)
-					_pending.Add(Tuple.Create(DateTime.UtcNow + reqParams.Timeout, manager));
+					lock (_pending) {
+						_pending.Add(Tuple.Create(DateTime.UtcNow + reqParams.Timeout, manager));
+					}
 			} catch (Exception exc) {
 				Log.Error(exc, "Error while handling HTTP request '{url}'.", manager.HttpEntity.Request.Url);
 				InternalServerError(manager);
