@@ -92,12 +92,12 @@ public class when_performing_a_live_check<TLogFormat, TStreamId> : Specification
 	}
 
 	[TestCaseSource(nameof(MethodNotAllowedTestCases))]
-	public async Task using_methods_other_than_get_or_head_returns_method_not_allowed(HttpMethod method)
+	public async Task using_methods_other_than_get_or_head_returns_not_found(HttpMethod method)
 	{
 		await StartNodeAndWaitForReadiness();
 		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/health/live"));
 
-		Assert.AreEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+		Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
 	}
 
 	private async Task StartNodeAndWaitForReadiness()

@@ -24,11 +24,6 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
-using MidFunc = System.Func<
-	Microsoft.AspNetCore.Http.HttpContext,
-	System.Func<System.Threading.Tasks.Task>,
-	System.Threading.Tasks.Task
->;
 using Operations = EventStore.Core.Services.Transport.Grpc.Operations;
 using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
@@ -127,7 +122,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		var internalDispatcher = new InternalDispatcherEndpoint(_mainQueue, _httpMessageHandler);
 		_mainBus.Subscribe(internalDispatcher);
 
-		app = app.Map("/health", _statusCheck.Configure)
+		app = app
 			.UseCors("default")
 			// AuthenticationMiddleware uses _httpAuthenticationProviders and assigns
 			// the resulting ClaimsPrinciple to HttpContext.User
@@ -148,6 +143,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		app.UseEndpoints(ep =>
 		{
+			_statusCheck.MapLiveness(ep);
+
 			_authenticationProvider.ConfigureEndpoints(ep);
 
 			ep.MapGrpcService<PersistentSubscriptions>();
@@ -342,12 +339,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			_startup = startup;
 		}
 
-		public void Configure(IApplicationBuilder builder) =>
-			builder.Use(GetAndHeadOnly)
-				.UseRouter(router => router
-					.MapMiddlewareGet("live", inner => inner.Use(Live)));
+		public void MapLiveness(IEndpointRouteBuilder endpoints) =>
+			endpoints.MapMethods("/health/live", [HttpMethod.Get, HttpMethod.Head], Live);
 
-		private MidFunc Live => (context, next) =>
+		private Task Live(HttpContext context)
 		{
 			if (_startup._ready)
 			{
@@ -367,21 +362,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			}
 
 			return Task.CompletedTask;
-		};
-
-		private static MidFunc GetAndHeadOnly => (context, next) =>
-		{
-			switch (context.Request.Method)
-			{
-				case "HEAD":
-					context.Request.Method = "GET";
-					return next();
-				case "GET":
-					return next();
-				default:
-					context.Response.StatusCode = 405;
-					return Task.CompletedTask;
-			}
-		};
+		}
 	}
 }
