@@ -32,7 +32,7 @@ else
 		<article class="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 			<StatusBadge Label="Parked queue" Tone="bad" />
 			<h2 class="mt-4 break-words text-2xl font-black tracking-tight text-es-ink">@ParkedStreamName(subscription.StreamId, subscription.GroupName)</h2>
-			<p class="mt-3 text-sm leading-6 text-es-muted">Browse parked events without leaving the workspace, then replay all parked messages or stop at a specific parked event number.</p>
+			<p class="mt-3 text-sm leading-6 text-es-muted">Browse parked events in context, then replay all parked messages or stop at a specific parked event number.</p>
 			<div class="mt-5 flex flex-wrap gap-3">
 				<a class="rounded-full border border-es-ink/10 px-4 py-2 text-sm font-bold text-es-ink transition hover:border-es-green hover:text-es-forest" href="@BaseHref">First</a>
 				@if (OlderHref is { } olderHref)

@@ -37,7 +37,7 @@ Here is the projection code:
 
 @[code](@httpapi/xbox-one-s-counter.js)
 
-You create a projection by calling the projection API and providing it with the definition of the projection. Here you decide how to run the projection, declaring that you want the projection to start from the beginning and keep running. You can also create a projection from the Razor Admin UI _Projections_ page.
+You create a projection by calling the projection API and providing it with the definition of the projection. Here you decide how to run the projection, declaring that you want the projection to start from the beginning and keep running. You can also create a projection from the Admin UI _Projections_ page.
 
 You can also create projections programmatically. Pass the projection JSON file as a parameter of your request, along with any other settings:
 
@@ -69,7 +69,7 @@ Below is the updated projection:
 
 @[code](@httpapi/xbox-one-s-counter-outputState.js)
 
-To update the projection, edit the projection definition from the Razor Admin UI _Projections_ page, or issue the following request:
+To update the projection, edit the projection definition from the Admin UI _Projections_ page, or issue the following request:
 
 @[code](@httpapi/xbox-one-s-counter-outputState.sh)
 
