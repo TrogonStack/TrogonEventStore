@@ -292,14 +292,17 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 									checkpoint = eventPosition;
 								}
 
+								if (checkpoint < completed.CurrentPos && completed.CurrentPos < completed.NextPos)
+									checkpoint = completed.CurrentPos;
+
 								checkpointIntervalCounter += completed.ConsideredEventsCount;
 								Log.Verbose(
 									"Subscription {subscriptionId} to $all:{eventFilter} considered {consideredEventsCount} catch-up events (interval: {checkpointInterval}, counter: {checkpointIntervalCounter})",
 									_subscriptionId, _eventFilter, completed.ConsideredEventsCount, _checkpointInterval, checkpointIntervalCounter);
 
 								if (completed.IsEndOfStream) {
-									if (checkpoint < completed.CurrentPos)
-										checkpoint = completed.CurrentPos;
+									if (checkpoint < TFPos.FirstRecordOfTf && TFPos.FirstRecordOfTf < completed.NextPos)
+										checkpoint = TFPos.FirstRecordOfTf;
 
 									// issue a checkpoint when going live to make sure that at least
 									// one checkpoint is issued within the checkpoint interval
@@ -311,9 +314,6 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 
 								if (checkpointIntervalCounter >= _checkpointInterval) {
 									checkpointIntervalCounter %= _checkpointInterval;
-
-									if (checkpoint < completed.CurrentPos)
-										checkpoint = completed.CurrentPos;
 
 									Log.Verbose(
 										"Subscription {subscriptionId} to $all:{eventFilter} reached checkpoint at {position} during catch-up (interval: {checkpointInterval}, counter: {checkpointIntervalCounter})",

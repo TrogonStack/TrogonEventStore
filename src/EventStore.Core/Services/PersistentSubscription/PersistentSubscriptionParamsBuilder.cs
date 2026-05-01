@@ -22,6 +22,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		private IPersistentSubscriptionCheckpointReader _checkpointReader;
 		private IPersistentSubscriptionCheckpointWriter _checkpointWriter;
 		private IPersistentSubscriptionMessageParker _messageParker;
+		private IPersistentSubscriptionPushScheduler _pushScheduler;
 		private TimeSpan _checkPointAfter;
 		private int _minCheckPointCount;
 		private int _maxCheckPointCount;
@@ -76,6 +77,11 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// <returns></returns>
 		public PersistentSubscriptionParamsBuilder WithMessageParker(IPersistentSubscriptionMessageParker parker) {
 			_messageParker = parker;
+			return this;
+		}
+
+		public PersistentSubscriptionParamsBuilder WithPushScheduler(IPersistentSubscriptionPushScheduler scheduler) {
+			_pushScheduler = scheduler;
 			return this;
 		}
 
@@ -310,7 +316,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				builder._streamReader,
 				builder._checkpointReader,
 				builder._checkpointWriter,
-				builder._messageParker);
+				builder._messageParker,
+				builder._pushScheduler);
 		}
 	}
 }

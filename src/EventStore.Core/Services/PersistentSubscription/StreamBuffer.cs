@@ -85,6 +85,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			_retry.AddLast(ev);
 		}
 
+		public void AddRetryToEnd(OutstandingMessage ev) {
+			_retry.AddLast(ev);
+		}
+
 		public void AddLiveMessage(OutstandingMessage ev) {
 			if (Live) {
 				if (_buffer.Count < _maxBufferSize)
@@ -122,6 +126,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 			foreach (var list in new[] {_retry, _buffer}) // save on code duplication
 			{
+				var isRetry = ReferenceEquals(list, _retry);
 				var current = list.First;
 				if (current != null) {
 					do {
@@ -129,7 +134,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						// that current is removed from the list setting next to null.
 						var next = current.Next;
 
-						yield return new OutstandingMessagePointer(current);
+						yield return new OutstandingMessagePointer(current, isRetry);
 
 						current = next;
 					} while (current != null);
@@ -157,12 +162,14 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			return result;
 		}
 
-		public struct OutstandingMessagePointer {
+		public readonly struct OutstandingMessagePointer {
 			private readonly LinkedListNode<OutstandingMessage> _entry;
+			private readonly bool _isRetry;
 
-			internal OutstandingMessagePointer(LinkedListNode<OutstandingMessage> entry)
+			internal OutstandingMessagePointer(LinkedListNode<OutstandingMessage> entry, bool isRetry)
 				: this() {
 				_entry = entry;
+				_isRetry = isRetry;
 			}
 
 			public OutstandingMessage Message {
@@ -175,6 +182,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				}
 
 				_entry.List.Remove(_entry);
+			}
+
+			public bool IsRetry {
+				get { return _isRetry; }
 			}
 		}
 	}

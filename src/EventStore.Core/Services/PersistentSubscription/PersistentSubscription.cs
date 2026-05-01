@@ -47,6 +47,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		private IPersistentSubscriptionStreamPosition _lastKnownMessage;
 		private readonly object _lock = new object();
 		private bool _faulted;
+		private bool _pushScheduled;
 
 		public bool HasClients {
 			get { return _pushClients.Count > 0; }
@@ -222,35 +223,57 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 				_nextEventToPullFrom = newPosition;
 				TryReadingNewBatch();
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 			}
 		}
 
-		private void TryPushingMessagesToClients() {
+		private void SchedulePushToClients() {
+			if (_settings.PushScheduler == null) {
+				PushToClients();
+				return;
+			}
+
+			if (_pushScheduled)
+				return;
+
+			_pushScheduled = true;
+			_settings.PushScheduler.SchedulePush();
+		}
+
+		public void PushToClientsFromSchedule() {
+			lock (_lock) {
+				_pushScheduled = false;
+				PushToClients();
+			}
+		}
+
+		private void PushToClients() {
 			lock (_lock) {
 				if (!TryGetStreamBuffer(out var streamBuffer))
 					return;
 
 				foreach (StreamBuffer.OutstandingMessagePointer messagePointer in streamBuffer.Scan()) {
-					//optimistically assume that the message will be pushed
-					//if it is, then we will increment the next sequence number if a new one was assigned
-					//if it is not, then we will not increment the next sequence number
 					(OutstandingMessage message, bool newSequenceNumberAssigned) =
 						OutstandingMessage.ForPushedEvent(messagePointer.Message, _nextSequenceNumber, _lastKnownMessage);
 					ConsumerPushResult result =
 						_pushClients.PushMessageToClient(message);
+
+					if (newSequenceNumberAssigned && result is ConsumerPushResult.Sent or ConsumerPushResult.Skipped) {
+						_lastKnownSequenceNumber = _nextSequenceNumber++;
+						_lastKnownMessage = message.EventPosition;
+					}
+
 					if (result == ConsumerPushResult.Sent) {
 						messagePointer.MarkSent();
-
-						if (newSequenceNumberAssigned) {
-							//the message was pushed and a new sequence number was assigned
-							//so we increment the next sequence number
-							_nextSequenceNumber++;
-						}
-
 						MarkBeginProcessing(message);
 					} else if (result == ConsumerPushResult.Skipped) {
-						// The consumer strategy skipped the message so leave it in the buffer and continue.
+						if (newSequenceNumberAssigned) {
+							Debug.Assert(!messagePointer.IsRetry);
+							messagePointer.MarkSent();
+							streamBuffer.AddRetryToEnd(message);
+						} else {
+							Debug.Assert(messagePointer.IsRetry);
+						}
 					} else if (result == ConsumerPushResult.NoMoreCapacity) {
 						return;
 					}
@@ -286,7 +309,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						_nextEventToPullFrom = _settings.EventSource.GetStreamPositionFor(resolvedEvent);
 				}
 
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 			}
 		}
 
@@ -300,9 +323,11 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					(OutstandingMessage message, bool newSequenceNumberAssigned) =
 						OutstandingMessage.ForPushedEvent(messagePointer.Message, _nextSequenceNumber, _lastKnownMessage);
 					if (newSequenceNumberAssigned) {
-						_nextSequenceNumber++;
+						_lastKnownSequenceNumber = _nextSequenceNumber++;
+						_lastKnownMessage = message.EventPosition;
 					}
-					MarkBeginProcessing(message); //sequence number will be incremented in this call if a new one has been assigned
+
+					MarkBeginProcessing(message);
 					yield return (messagePointer.Message.ResolvedEvent, messagePointer.Message.RetryCount);
 				}
 			}
@@ -310,10 +335,6 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		private void MarkBeginProcessing(OutstandingMessage message) {
 			_statistics.IncrementProcessed();
-			if (message.EventSequenceNumber > _lastKnownSequenceNumber) {
-				_lastKnownSequenceNumber = message.EventSequenceNumber.Value;
-				_lastKnownMessage = _settings.EventSource.GetStreamPositionFor(message.ResolvedEvent);
-			}
 
 			StartMessage(message,
 				_settings.MessageTimeout == TimeSpan.MaxValue
@@ -335,7 +356,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					return;
 				}
 
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 			}
 		}
 
@@ -365,7 +386,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					RetryMessage(m);
 				}
 
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 				return true;
 			}
 		}
@@ -378,7 +399,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					RetryMessage(m);
 				}
 
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 			}
 		}
 
@@ -447,7 +468,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				RemoveProcessingMessages(processedEventIds);
 				TryMarkCheckpoint(false);
 				TryReadingNewBatch();
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 			}
 		}
 
@@ -463,7 +484,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				RemoveProcessingMessages(processedEventIds);
 				TryMarkCheckpoint(false);
 				TryReadingNewBatch();
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 			}
 		}
 
@@ -517,7 +538,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				lock (_lock) {
 					_outstandingMessages.Remove(e.OriginalEvent.EventId);
 					_pushClients.RemoveProcessingMessages(e.OriginalEvent.EventId);
-					TryPushingMessagesToClients();
+					SchedulePushToClients();
 				}
 			});
 		}
@@ -585,7 +606,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					streamBuffer.AddRetry(OutstandingMessage.ForParkedEvent(ev));
 				}
 
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 
 				var newStreamPosition = newPosition as PersistentSubscriptionSingleStreamPosition;
 				Ensure.NotNull(newStreamPosition, "newStreamPosition");
@@ -654,10 +675,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					}
 				}
 
-				TryPushingMessagesToClients();
+				SchedulePushToClients();
 				TryMarkCheckpoint(true);
-				if ((_state & PersistentSubscriptionState.Behind |
-					 PersistentSubscriptionState.OutstandingPageRequest) ==
+				if ((_state & (PersistentSubscriptionState.Behind |
+					 PersistentSubscriptionState.OutstandingPageRequest)) ==
 					PersistentSubscriptionState.Behind)
 					TryReadingNewBatch();
 			}
