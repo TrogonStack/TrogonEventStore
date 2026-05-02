@@ -33,7 +33,8 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId>
 
 	protected GrpcSpecification(IExpiryStrategy expiryStrategy = null)
 	{
-		_node = new MiniNode<TLogFormat, TStreamId>(Path.Combine(Path.GetTempPath(), GetType().FullName),
+		_node = new MiniNode<TLogFormat, TStreamId>(Path.GetTempPath(),
+			dbPath: Path.Combine(Path.GetTempPath(), $"grpc-node-{Guid.NewGuid():N}"),
 			expiryStrategy: expiryStrategy);
 
 		Channel = GrpcChannel.ForAddress(new UriBuilder
