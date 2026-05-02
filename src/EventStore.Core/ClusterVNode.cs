@@ -365,64 +365,52 @@ public class ClusterVNode<TStreamId> :
 			ICheckpoint indexChk = new InMemoryCheckpoint(Checkpoint.Index, initValue: -1);
 			var dbPath = options.Database.Db;
 
-			if (options.Database.MemDb)
+			dbPath = EnsureWritableDbPath(
+				dbPath,
+				Locations.DefaultDataDirectory,
+				Locations.FallbackDefaultDataDirectory);
+
+			var indexPath = options.Database.Index ?? Path.Combine(dbPath, ESConsts.DefaultIndexDirectoryName);
+			var streamExistencePath = Path.Combine(indexPath, ESConsts.StreamExistenceFilterDirectoryName);
+			Directory.CreateDirectory(streamExistencePath);
+
+			var writerCheckFilename = Path.Combine(dbPath, Checkpoint.Writer + ".chk");
+			var chaserCheckFilename = Path.Combine(dbPath, Checkpoint.Chaser + ".chk");
+			var epochCheckFilename = Path.Combine(dbPath, Checkpoint.Epoch + ".chk");
+			var proposalCheckFilename = Path.Combine(dbPath, Checkpoint.Proposal + ".chk");
+			var truncateCheckFilename = Path.Combine(dbPath, Checkpoint.Truncate + ".chk");
+			var streamExistenceFilterCheckFilename =
+				Path.Combine(streamExistencePath, Checkpoint.StreamExistenceFilter + ".chk");
+
+			if (RuntimeInformation.IsUnix)
 			{
-				writerChk = new InMemoryCheckpoint(Checkpoint.Writer);
-				chaserChk = new InMemoryCheckpoint(Checkpoint.Chaser);
-				epochChk = new InMemoryCheckpoint(Checkpoint.Epoch, initValue: -1);
-				proposalChk = new InMemoryCheckpoint(Checkpoint.Proposal, initValue: -1);
-				truncateChk = new InMemoryCheckpoint(Checkpoint.Truncate, initValue: -1);
-				streamExistenceFilterChk = new InMemoryCheckpoint(Checkpoint.StreamExistenceFilter, initValue: -1);
+				Log.Debug("Using File Checkpoints");
+				writerChk = new FileCheckpoint(writerCheckFilename, Checkpoint.Writer);
+				chaserChk = new FileCheckpoint(chaserCheckFilename, Checkpoint.Chaser);
+				epochChk = new FileCheckpoint(epochCheckFilename, Checkpoint.Epoch,
+					initValue: -1);
+				proposalChk = new FileCheckpoint(proposalCheckFilename, Checkpoint.Proposal,
+					initValue: -1);
+				truncateChk = new FileCheckpoint(truncateCheckFilename, Checkpoint.Truncate,
+					initValue: -1);
+				streamExistenceFilterChk = new FileCheckpoint(streamExistenceFilterCheckFilename,
+					Checkpoint.StreamExistenceFilter,
+					initValue: -1);
 			}
 			else
 			{
-				dbPath = EnsureWritableDbPath(
-					dbPath,
-					Locations.DefaultDataDirectory,
-					Locations.FallbackDefaultDataDirectory);
-
-				var indexPath = options.Database.Index ?? Path.Combine(dbPath, ESConsts.DefaultIndexDirectoryName);
-				var streamExistencePath = Path.Combine(indexPath, ESConsts.StreamExistenceFilterDirectoryName);
-				Directory.CreateDirectory(streamExistencePath);
-
-				var writerCheckFilename = Path.Combine(dbPath, Checkpoint.Writer + ".chk");
-				var chaserCheckFilename = Path.Combine(dbPath, Checkpoint.Chaser + ".chk");
-				var epochCheckFilename = Path.Combine(dbPath, Checkpoint.Epoch + ".chk");
-				var proposalCheckFilename = Path.Combine(dbPath, Checkpoint.Proposal + ".chk");
-				var truncateCheckFilename = Path.Combine(dbPath, Checkpoint.Truncate + ".chk");
-				var streamExistenceFilterCheckFilename =
-					Path.Combine(streamExistencePath, Checkpoint.StreamExistenceFilter + ".chk");
-
-				if (RuntimeInformation.IsUnix)
-				{
-					Log.Debug("Using File Checkpoints");
-					writerChk = new FileCheckpoint(writerCheckFilename, Checkpoint.Writer);
-					chaserChk = new FileCheckpoint(chaserCheckFilename, Checkpoint.Chaser);
-					epochChk = new FileCheckpoint(epochCheckFilename, Checkpoint.Epoch,
-						initValue: -1);
-					proposalChk = new FileCheckpoint(proposalCheckFilename, Checkpoint.Proposal,
-						initValue: -1);
-					truncateChk = new FileCheckpoint(truncateCheckFilename, Checkpoint.Truncate,
-						initValue: -1);
-					streamExistenceFilterChk = new FileCheckpoint(streamExistenceFilterCheckFilename,
-						Checkpoint.StreamExistenceFilter,
-						initValue: -1);
-				}
-				else
-				{
-					Log.Debug("Using Memory Mapped File Checkpoints");
-					writerChk = new MemoryMappedFileCheckpoint(writerCheckFilename, Checkpoint.Writer);
-					chaserChk = new MemoryMappedFileCheckpoint(chaserCheckFilename, Checkpoint.Chaser);
-					epochChk = new MemoryMappedFileCheckpoint(epochCheckFilename, Checkpoint.Epoch,
-						initValue: -1);
-					proposalChk = new MemoryMappedFileCheckpoint(proposalCheckFilename, Checkpoint.Proposal,
-						initValue: -1);
-					truncateChk = new MemoryMappedFileCheckpoint(truncateCheckFilename, Checkpoint.Truncate,
-						initValue: -1);
-					streamExistenceFilterChk = new MemoryMappedFileCheckpoint(streamExistenceFilterCheckFilename,
-						Checkpoint.StreamExistenceFilter,
-						initValue: -1);
-				}
+				Log.Debug("Using Memory Mapped File Checkpoints");
+				writerChk = new MemoryMappedFileCheckpoint(writerCheckFilename, Checkpoint.Writer);
+				chaserChk = new MemoryMappedFileCheckpoint(chaserCheckFilename, Checkpoint.Chaser);
+				epochChk = new MemoryMappedFileCheckpoint(epochCheckFilename, Checkpoint.Epoch,
+					initValue: -1);
+				proposalChk = new MemoryMappedFileCheckpoint(proposalCheckFilename, Checkpoint.Proposal,
+					initValue: -1);
+				truncateChk = new MemoryMappedFileCheckpoint(truncateCheckFilename, Checkpoint.Truncate,
+					initValue: -1);
+				streamExistenceFilterChk = new MemoryMappedFileCheckpoint(streamExistenceFilterCheckFilename,
+					Checkpoint.StreamExistenceFilter,
+					initValue: -1);
 			}
 
 			var cache = options.Database.CachedChunks >= 0
@@ -474,7 +462,6 @@ public class ClusterVNode<TStreamId> :
 				replicationChk,
 				indexChk,
 				streamExistenceFilterChk,
-				options.Database.MemDb,
 				unbuffered: false,
 				options.Database.WriteThrough,
 				options.Database.ReduceFileCachePressure,
@@ -640,7 +627,6 @@ public class ClusterVNode<TStreamId> :
 
 		var logFormat = logFormatAbstractorFactory.Create(new()
 		{
-			InMemory = options.Database.MemDb,
 			IndexDirectory = indexPath,
 			InitialReaderCount = ESConsts.PTableInitialReaderCount,
 			MaxReaderCount = pTableMaxReaderCount,
@@ -704,8 +690,7 @@ public class ClusterVNode<TStreamId> :
 			options.IndexBitnessVersion,
 			maxSizeForMemory: options.Database.MaxMemTableSize,
 			maxTablesPerLevel: 2,
-			inMem: Db.Config.InMemDb,
-			skipIndexVerify: options.Database.SkipIndexVerify,
+				skipIndexVerify: options.Database.SkipIndexVerify,
 			indexCacheDepth: options.Database.IndexCacheDepth,
 			useBloomFilter: options.Database.UseIndexBloomFilters,
 			lruCacheSize: options.Database.IndexCacheSize,
@@ -1308,9 +1293,6 @@ public class ClusterVNode<TStreamId> :
 
 			if (logFormat is not LogFormatAbstractor<string> logFormatV2)
 				throw new NotSupportedException("Scavenge is not yet supported on Log V3");
-
-			if (options.Database.MemDb)
-				throw new NotSupportedException("Scavenge is not supported on in-memory databases");
 
 			var cancellationCheckPeriod = 1024;
 

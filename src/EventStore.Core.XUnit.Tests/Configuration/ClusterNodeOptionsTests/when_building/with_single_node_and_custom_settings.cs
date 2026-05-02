@@ -18,29 +18,9 @@ public class with_run_on_disk<TLogFormat, TStreamId> : SingleNodeScenario<TLogFo
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options.RunOnDisk(PathName);
 
 	[Test]
-	public void should_set_memdb_to_false()
-	{
-		Assert.IsFalse(_node.Db.Config.InMemDb);
-	}
-
-	[Test]
 	public void should_set_the_db_path()
 	{
 		Assert.AreEqual(PathName, _node.Db.Config.Path);
-	}
-}
-
-[TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class with_run_in_memory<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) =>
-		options.RunInMemory();
-
-	[Test]
-	public void should_set_memdb_to_true()
-	{
-		Assert.IsTrue(_node.Db.Config.InMemDb);
 	}
 }
 

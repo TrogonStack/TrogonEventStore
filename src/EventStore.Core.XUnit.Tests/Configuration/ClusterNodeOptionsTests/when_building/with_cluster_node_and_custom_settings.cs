@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration.Sources;
@@ -40,14 +41,15 @@ public class with_cluster_dns_name<TLogFormat, TStreamId> : ClusterMemberScenari
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class with_dns_discovery_disabled_and_no_gossip_seeds<TLogFormat, TStreamId>
+public class with_dns_discovery_disabled_and_no_gossip_seeds<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private Exception _caughtException;
 	protected ClusterVNodeOptions _options;
 
 	[OneTimeSetUp]
-	public void TestFixtureSetUp()
+	public override async Task TestFixtureSetUp()
 	{
+		await base.TestFixtureSetUp();
 		_options = new ClusterVNodeOptions
 		{
 			Cluster = new()
@@ -56,7 +58,7 @@ public class with_dns_discovery_disabled_and_no_gossip_seeds<TLogFormat, TStream
 			}
 		}
 			.ReduceMemoryUsageForTests()
-			.RunInMemory();
+			.RunOnDisk(PathName);
 		try
 		{
 			_ = new ClusterVNode<TStreamId>(_options, LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory,

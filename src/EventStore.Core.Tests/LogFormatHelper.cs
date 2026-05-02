@@ -1,5 +1,7 @@
 using System;
 using EventStore.Core.LogAbstraction;
+using EventStore.Core.LogV2;
+using EventStore.Core.LogV3;
 using LogV3StreamId = System.UInt32;
 
 namespace EventStore.Core.Tests;
@@ -14,17 +16,6 @@ public static class LogFormatHelper<TLogFormat, TStreamId>
 {
 	public static bool IsV2 => typeof(TLogFormat) == typeof(LogFormat.V2);
 	public static bool IsV3 => typeof(TLogFormat) == typeof(LogFormat.V3);
-
-	// static v3 but private so that we can be sure we only hand out stateless parts of it
-	readonly static LogFormatAbstractor<LogV3StreamId> _v3 = new LogV3FormatAbstractorFactory().Create(new()
-	{
-		InMemory = true,
-	});
-
-	readonly static LogFormatAbstractor<string> _v2 = new LogV2FormatAbstractorFactory().Create(new()
-	{
-		InMemory = true,
-	});
 
 	public static T Choose<T>(object v2, object v3)
 	{
@@ -43,20 +34,15 @@ public static class LogFormatHelper<TLogFormat, TStreamId>
 		throw new InvalidOperationException();
 	}
 
-	private static LogFormatAbstractor<TStreamId> _staticLogFormat =
-		Choose<LogFormatAbstractor<TStreamId>>(_v2, _v3);
-
 	public static ILogFormatAbstractorFactory<TStreamId> LogFormatFactory { get; } =
 		Choose<ILogFormatAbstractorFactory<TStreamId>>(new LogV2FormatAbstractorFactory(), new LogV3FormatAbstractorFactory());
 
-	// safe because stateless
-	public static IRecordFactory<TStreamId> RecordFactory { get; } = _staticLogFormat.RecordFactory;
+	public static IRecordFactory<TStreamId> RecordFactory { get; } =
+		Choose<IRecordFactory<TStreamId>>(new LogV2RecordFactory(), new LogV3RecordFactory());
 
-	// safe because stateless
-	public static bool SupportsExplicitTransactions { get; } = _staticLogFormat.SupportsExplicitTransactions;
+	public static bool SupportsExplicitTransactions { get; } = Choose<bool>(true, false);
 
-	// safe because stateless
-	public static TStreamId EmptyStreamId { get; } = _staticLogFormat.EmptyStreamId;
+	public static TStreamId EmptyStreamId { get; } = Choose<TStreamId>(string.Empty, 0U);
 
 	/// just a valid stream id
 	public static TStreamId StreamId { get; } = Choose<TStreamId>("stream", 1024U);
@@ -64,7 +50,7 @@ public static class LogFormatHelper<TLogFormat, TStreamId>
 
 	public static TStreamId EventTypeId { get; } = Choose<TStreamId>("eventType", 1024U);
 	public static TStreamId EventTypeId2 { get; } = Choose<TStreamId>("eventType2", 1025U);
-	public static TStreamId EmptyEventTypeId { get; } = _staticLogFormat.EmptyEventTypeId;
+	public static TStreamId EmptyEventTypeId { get; } = Choose<TStreamId>(string.Empty, 0U);
 
 	public static void CheckIfExplicitTransactionsSupported()
 	{

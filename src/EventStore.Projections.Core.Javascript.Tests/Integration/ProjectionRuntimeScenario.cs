@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Options;
@@ -33,10 +34,12 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 	{
 		var options =
 			new ProjectionSubsystemOptions(3, ProjectionType.All, true, TimeSpan.FromMinutes(5), false, 500, 500);
-		var config = new TFChunkDbConfig("mem", new VersionedPatternFileNamingStrategy("mem", "chunk-"), 10000, 0,
+		var dbPath = Path.Combine(Path.GetTempPath(), $"projection-runtime-{Guid.NewGuid():N}");
+		Directory.CreateDirectory(dbPath);
+		var config = new TFChunkDbConfig(dbPath, new VersionedPatternFileNamingStrategy(dbPath, "chunk-"), 10000, 0,
 			writerCheckpoint, new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
 			new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
-			new InMemoryCheckpoint(-1), true);
+			new InMemoryCheckpoint(-1));
 		var db = new TFChunkDb(config);
 		var qs = new QueueStatsManager();
 		var timeProvider = new RealTimeProvider();
@@ -56,13 +59,41 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 
 		async ValueTask StopAsync()
 		{
+			Exception? primaryException = null;
 			try
 			{
 				await subsystem.Stop();
 			}
+			catch (Exception ex)
+			{
+				primaryException = ex;
+				throw;
+			}
 			finally
 			{
-				await db.DisposeAsync();
+				try
+				{
+					await db.DisposeAsync();
+				}
+				catch (Exception) when (primaryException is not null)
+				{
+				}
+				catch (Exception ex)
+				{
+					primaryException = ex;
+					throw;
+				}
+				finally
+				{
+					try
+					{
+						if (Directory.Exists(dbPath))
+							Directory.Delete(dbPath, recursive: true);
+					}
+					catch (Exception) when (primaryException is not null)
+					{
+					}
+				}
 			}
 		}
 

@@ -161,11 +161,10 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 			fileSystem: fileSystem,
 			filename: GetFilePathFor("file1"),
 			chunkDataSize: 300,
-			chunkStartNumber: 0,
-			chunkEndNumber: 0,
-			isScavenged: false,
-			inMem: false,
-			unbuffered: false,
+				chunkStartNumber: 0,
+				chunkEndNumber: 0,
+				isScavenged: false,
+				unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: false,
@@ -219,6 +218,15 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 			inner.ReadFooterAsync(fileName, token);
 
 		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
+
+		public void MoveFile(string sourceFileName, string destinationFileName) =>
+			inner.MoveFile(sourceFileName, destinationFileName);
+
+		public void DeleteFile(string fileName) =>
+			inner.DeleteFile(fileName);
+
+		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+			inner.SetAttributes(fileName, fileAttributes);
 	}
 
 	private sealed class TrackingChunkHandle(IChunkHandle inner) : IChunkHandle

@@ -44,7 +44,7 @@ public class StorageReaderWorker<TStreamId> :
 	private readonly IReadIndex<TStreamId> _readIndex;
 	private readonly ISystemStreamLookup<TStreamId> _systemStreams;
 	private readonly IReadOnlyCheckpoint _writerCheckpoint;
-	private readonly IInMemoryStreamReader _inMemReader;
+	private readonly IInMemoryStreamReader _memoryStreamReader;
 	private readonly int _queueId;
 	private static readonly char[] LinkToSeparator = { '@' };
 	private const int MaxPageSize = 4096;
@@ -57,7 +57,7 @@ public class StorageReaderWorker<TStreamId> :
 		IReadIndex<TStreamId> readIndex,
 		ISystemStreamLookup<TStreamId> systemStreams,
 		IReadOnlyCheckpoint writerCheckpoint,
-		IInMemoryStreamReader inMemReader,
+		IInMemoryStreamReader inMemoryStreamReader,
 		int queueId)
 	{
 		Ensure.NotNull(publisher, "publisher");
@@ -70,7 +70,7 @@ public class StorageReaderWorker<TStreamId> :
 		_systemStreams = systemStreams;
 		_writerCheckpoint = writerCheckpoint;
 		_queueId = queueId;
-		_inMemReader = inMemReader;
+		_memoryStreamReader = inMemoryStreamReader;
 	}
 
 	async ValueTask IAsyncHandle<ClientMessage.ReadEvent>.HandleAsync(ClientMessage.ReadEvent msg,
@@ -132,7 +132,7 @@ public class StorageReaderWorker<TStreamId> :
 		try
 		{
 			res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
-				? _inMemReader.ReadForwards(msg)
+				? _memoryStreamReader.ReadForwards(msg)
 				: await ReadStreamEventsForward(msg, token);
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token)
@@ -191,7 +191,7 @@ public class StorageReaderWorker<TStreamId> :
 		try
 		{
 			var res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
-				? _inMemReader.ReadBackwards(msg)
+				? _memoryStreamReader.ReadBackwards(msg)
 				: await ReadStreamEventsBackward(msg, token);
 
 			msg.Envelope.ReplyWith(res);

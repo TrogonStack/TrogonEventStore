@@ -91,8 +91,7 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			truncateCheckpoint,
 			replicationCheckpoint,
 			indexCheckpoint,
-			streamExistenceFilterCheckpoint,
-			inMemDb: true);
+			streamExistenceFilterCheckpoint);
 	}
 
 	private sealed class FaultingCheckpoint(string name, long initialValue = 0) : ICheckpoint

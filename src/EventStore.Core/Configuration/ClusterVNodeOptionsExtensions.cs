@@ -34,16 +34,6 @@ public static class ClusterVNodeOptionsExtensions
 	};
 
 	/// <summary>
-	/// Returns a builder set to run in memory only
-	/// </summary>
-	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
-	/// <returns>A <see cref="ClusterVNodeOptions"/> with the options set</returns>
-	public static ClusterVNodeOptions RunInMemory(this ClusterVNodeOptions options) => options with
-	{
-		Database = options.Database with { MemDb = true, Db = new ClusterVNodeOptions().Database.Db }
-	};
-
-	/// <summary>
 	/// Returns a builder set to write database files to the specified path
 	/// </summary>
 	/// <param name="options">The <see cref="ClusterVNodeOptions"/></param>
@@ -51,7 +41,7 @@ public static class ClusterVNodeOptionsExtensions
 	/// <returns>A <see cref="ClusterVNodeOptions"/> with the options set</returns>
 	public static ClusterVNodeOptions RunOnDisk(this ClusterVNodeOptions options, string path) => options with
 	{
-		Database = options.Database with { MemDb = false, Db = path }
+		Database = options.Database with { Db = path }
 	};
 
 	/// <summary>

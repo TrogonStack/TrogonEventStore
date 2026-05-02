@@ -26,9 +26,9 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		Filename = Path.Combine(Path.GetTempPath(), $"{nameof(when_completing_a_tfchunk_with_a_cancelable_token)}-{Guid.NewGuid()}");
 
 		_writeState = new ObservingWriteState();
-		_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(Filename), Filename, 4096, 0, 0,
-			isScavenged: false, inMem: false, unbuffered: false,
-			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
+			_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(Filename), Filename, 4096, 0, 0,
+				isScavenged: false, unbuffered: false,
+				writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new ObservingChunkTransformFactory(_writeState),
 			token: CancellationToken.None);
 		var record = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);

@@ -346,12 +346,6 @@ internal static class Program
 
 	private static void TryListenOnUnixSocket(ClusterVNodeHostedService hostedService, KestrelServerOptions server)
 	{
-		if (hostedService.Node.Db.Config.InMemDb)
-		{
-			Log.Information("Not listening on a UNIX domain socket since the database is running in memory.");
-			return;
-		}
-
 		if (!RuntimeInformation.IsLinux && !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17063))
 		{
 			Log.Error("Not listening on a UNIX domain socket since it is not supported by the operating system.");

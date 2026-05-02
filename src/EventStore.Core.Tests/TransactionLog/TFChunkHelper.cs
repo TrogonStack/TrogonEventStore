@@ -76,11 +76,11 @@ public static class TFChunkHelper
 			new InMemoryCheckpoint(-1));
 	}
 
-	public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
-	{
-		return TFChunk.CreateNew(CreateLocalFileSystem(fileName), fileName, chunkSize, 0, 0,
-			isScavenged: isScavenged, inMem: false, unbuffered: false,
-			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
+		public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
+		{
+			return TFChunk.CreateNew(CreateLocalFileSystem(fileName), fileName, chunkSize, 0, 0,
+				isScavenged: isScavenged, unbuffered: false,
+				writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
 			transformFactory: new IdentityChunkTransformFactory(),
 			token);
 	}

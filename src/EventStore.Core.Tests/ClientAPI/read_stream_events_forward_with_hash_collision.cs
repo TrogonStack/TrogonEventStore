@@ -25,7 +25,6 @@ public class read_stream_events_forward_with_hash_collision<TLogFormat, TStreamI
 	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName,
-			inMemDb: false,
 			memTableSize: 20,
 			hashCollisionReadLimit: 1,
 			indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV4,
@@ -68,7 +67,7 @@ public class read_stream_events_forward_with_hash_collision<TLogFormat, TStreamI
 
 		//Restart the node to ensure the read index stream info cache is empty
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName,
-			tcpPort, httpPort, inMemDb: false,
+			tcpPort, httpPort,
 			memTableSize: 20,
 			hashCollisionReadLimit: 1,
 			indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV4,

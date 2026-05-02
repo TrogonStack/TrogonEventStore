@@ -25,7 +25,6 @@ public class LogFormatAbstractorV3Tests : IAsyncLifetime
 	readonly LogFormatAbstractor<StreamId> _sut = new LogV3FormatAbstractorFactory().Create(new()
 	{
 		IndexDirectory = _outputDir,
-		InMemory = false,
 		StreamExistenceFilterSize = 1_000_000,
 		StreamExistenceFilterCheckpoint = new InMemoryCheckpoint(),
 	});

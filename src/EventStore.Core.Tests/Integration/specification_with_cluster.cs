@@ -162,7 +162,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		bool wait = true) => new(
 		PathName, index, endpoints.InternalTcp,
 		endpoints.ExternalTcp, endpoints.HttpEndPoint,
-		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds, inMemDb: false);
+		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()

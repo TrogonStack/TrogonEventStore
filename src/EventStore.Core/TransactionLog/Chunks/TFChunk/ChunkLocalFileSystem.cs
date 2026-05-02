@@ -65,4 +65,13 @@ public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStra
 	}
 
 	public IChunkEnumerator CreateChunkEnumerator() => new TFChunkEnumerator(NamingStrategy, ReadHeaderAsync);
+
+	public void MoveFile(string sourceFileName, string destinationFileName) =>
+		File.Move(sourceFileName, destinationFileName);
+
+	public void DeleteFile(string fileName) =>
+		File.Delete(fileName);
+
+	public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+		File.SetAttributes(fileName, fileAttributes);
 }

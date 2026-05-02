@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using DotNext.Threading;
 using EventStore.Core.Tests.Transforms.WithHeader;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -50,8 +48,8 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 	/*
 			[Test]
 			public void a_read_on_scavenged_chunk_includes_map()
-			{
-				var chunk = TFChunk.CreateNew(GetFilePathFor("afile"), 200, 0, 0, isScavenged: true, inMem: false, unbuffered: false, writethrough: false);
+				{
+					var chunk = TFChunk.CreateNew(GetFilePathFor("afile"), 200, 0, 0, isScavenged: true, unbuffered: false, writethrough: false);
 				chunk.CompleteScavenge(new [] {new PosMap(0, 0), new PosMap(1,1) }, false);
 				using (var reader = chunk.AcquireRawReader())
 				{
@@ -66,8 +64,8 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 
 			[Test]
 			public void a_read_past_end_of_completed_chunk_does_include_header_or_footer()
-			{
-				var chunk = TFChunk.CreateNew(GetFilePathFor("File1"), 300, 0, 0, isScavenged: false, inMem: false, unbuffered: false, writethrough: false);
+				{
+					var chunk = TFChunk.CreateNew(GetFilePathFor("File1"), 300, 0, 0, isScavenged: false, unbuffered: false, writethrough: false);
 				chunk.Complete();
 				using (var reader = chunk.AcquireRawReader())
 				{
@@ -120,11 +118,10 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			fileSystem: TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("file1")),
 			filename: GetFilePathFor("file1"),
 			chunkDataSize: 2000,
-			chunkStartNumber: 0,
-			chunkEndNumber: 0,
-			isScavenged: false,
-			inMem: false,
-			unbuffered: false,
+				chunkStartNumber: 0,
+				chunkEndNumber: 0,
+				isScavenged: false,
+				unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: false,
@@ -156,11 +153,10 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			fileSystem: fileSystem,
 			filename: GetFilePathFor("file1"),
 			chunkDataSize: 2000,
-			chunkStartNumber: 0,
-			chunkEndNumber: 0,
-			isScavenged: false,
-			inMem: false,
-			unbuffered: false,
+				chunkStartNumber: 0,
+				chunkEndNumber: 0,
+				isScavenged: false,
+				unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: false,
@@ -197,11 +193,10 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			fileSystem: fileSystem,
 			filename: GetFilePathFor("file1"),
 			chunkDataSize: 2000,
-			chunkStartNumber: 0,
-			chunkEndNumber: 0,
-			isScavenged: false,
-			inMem: false,
-			unbuffered: false,
+				chunkStartNumber: 0,
+				chunkEndNumber: 0,
+				isScavenged: false,
+				unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: true,
@@ -233,11 +228,10 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			fileSystem: fileSystem,
 			filename: GetFilePathFor("file1"),
 			chunkDataSize: 2000,
-			chunkStartNumber: 0,
-			chunkEndNumber: 0,
-			isScavenged: false,
-			inMem: false,
-			unbuffered: false,
+				chunkStartNumber: 0,
+				chunkEndNumber: 0,
+				isScavenged: false,
+				unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: false,
@@ -257,55 +251,6 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 
 		chunk.MarkForDeletion();
 		chunk.WaitForDestroy(5000);
-	}
-
-	[Test]
-	public async Task a_dedicated_raw_reader_on_completed_in_memory_chunk_waits_for_a_real_mem_reader()
-	{
-		var chunk = await TFChunk.CreateNew(
-			fileSystem: TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("file1")),
-			filename: GetFilePathFor("file1"),
-			chunkDataSize: 2000,
-			chunkStartNumber: 0,
-			chunkEndNumber: 0,
-			isScavenged: false,
-			inMem: true,
-			unbuffered: false,
-			writethrough: false,
-			reduceFileCachePressure: false,
-			asyncIO: false,
-			tracker: new TFChunkTracker.NoOp(),
-			transformFactory: new WithHeaderChunkTransformFactory(),
-			token: CancellationToken.None);
-		await chunk.Complete(CancellationToken.None);
-
-		var cachedDataLock = (AsyncExclusiveLock)typeof(TFChunk)
-			.GetField("_cachedDataLock", BindingFlags.Instance | BindingFlags.NonPublic)!
-			.GetValue(chunk)!;
-
-		cachedDataLock.TryAcquire(System.Threading.Timeout.InfiniteTimeSpan);
-		try
-		{
-			var acquireTask = Task.Run(async () => await chunk.AcquireRawReader());
-			await Task.Delay(100);
-			Assert.That(acquireTask.IsCompleted, Is.False);
-
-			cachedDataLock.Release();
-
-			using var reader = await acquireTask;
-			Assert.IsTrue(reader.IsMemory);
-
-			var buffer = new byte[1024];
-			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
-			Assert.IsFalse(result.IsEOF);
-			Assert.Greater(result.BytesRead, 0);
-		}
-		finally
-		{
-			if (cachedDataLock.IsLockHeld)
-				cachedDataLock.Release();
-			chunk.Dispose();
-		}
 	}
 
 	private sealed class ObservingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem
@@ -335,7 +280,16 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			inner.ReadFooterAsync(fileName, token);
 
 		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
-	}
+
+		public void MoveFile(string sourceFileName, string destinationFileName) =>
+			inner.MoveFile(sourceFileName, destinationFileName);
+
+		public void DeleteFile(string fileName) =>
+			inner.DeleteFile(fileName);
+
+		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+			inner.SetAttributes(fileName, fileAttributes);
+		}
 
 	private sealed class BlockingBulkReaderOpenChunkFileSystem(
 		IChunkFileSystem inner,
@@ -364,5 +318,14 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 			inner.ReadFooterAsync(fileName, token);
 
 		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
+
+		public void MoveFile(string sourceFileName, string destinationFileName) =>
+			inner.MoveFile(sourceFileName, destinationFileName);
+
+		public void DeleteFile(string fileName) =>
+			inner.DeleteFile(fileName);
+
+		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+			inner.SetAttributes(fileName, fileAttributes);
 	}
 }

@@ -337,11 +337,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			ptableVersion: PTableVersions.IndexV4,
 			maxAutoMergeIndexLevel: int.MaxValue,
 			pTableMaxReaderCount: ESConsts.PTableInitialReaderCount,
-			maxSizeForMemory: _skipIndexCheck
-				? KeepIndexInMemoryWhenSkippingIndexCheck
-				: ForceImmediatePTableConversion,
-			maxTablesPerLevel: 2,
-			inMem: false);
+				maxSizeForMemory: _skipIndexCheck
+					? KeepIndexInMemoryWhenSkippingIndexCheck
+					: ForceImmediatePTableConversion,
+				maxTablesPerLevel: 2);
 		logFormat.StreamNamesProvider.SetTableIndex(tableIndex);
 
 		var readIndex = new ReadIndex<TStreamId>(
@@ -876,7 +875,6 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				filename: $"{chunk.LocalFileName}.tmp",
 				header: newChunkHeader,
 				fileSize: ChunkHeader.Size,
-				inMem: false,
 				unbuffered: false,
 				writethrough: false,
 				reduceFileCachePressure: false,

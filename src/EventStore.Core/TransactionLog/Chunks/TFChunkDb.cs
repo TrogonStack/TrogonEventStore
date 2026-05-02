@@ -81,13 +81,6 @@ public class TFChunkDb : IAsyncDisposable
 		ValidateReaderChecksumsMustBeLess(Config);
 		var checkpoint = Config.WriterCheckpoint.Read();
 
-		if (Config.InMemDb)
-		{
-			if (createNewChunks)
-				await Manager.AddNewChunk(token);
-			return;
-		}
-
 		var lastChunkNum = (int)(checkpoint / Config.ChunkSize);
 		var chunkEnumerator = Manager.FileSystem.CreateChunkEnumerator();
 		var lastChunkVersions = Manager.FileSystem.NamingStrategy.GetAllVersionsFor(lastChunkNum);
@@ -360,8 +353,8 @@ public class TFChunkDb : IAsyncDisposable
 	private void RemoveFile(string reason, string file)
 	{
 		_log.Debug(reason, file);
-		File.SetAttributes(file, FileAttributes.Normal);
-		File.Delete(file);
+		Config.ChunkFileSystem.SetAttributes(file, FileAttributes.Normal);
+		Config.ChunkFileSystem.DeleteFile(file);
 	}
 
 	public ValueTask DisposeAsync() => Close(CancellationToken.None);

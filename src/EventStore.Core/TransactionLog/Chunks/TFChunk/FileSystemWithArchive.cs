@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,6 +56,20 @@ public sealed class FileSystemWithArchive : IChunkFileSystem
 
 	public IChunkEnumerator CreateChunkEnumerator() =>
 		new ChunkEnumeratorWithArchive(_chunkSize, _locatorCodec, _localFileSystem.CreateChunkEnumerator(), _archive);
+
+	public void MoveFile(string sourceFileName, string destinationFileName) =>
+		_localFileSystem.MoveFile(LocalMutationTarget(sourceFileName), LocalMutationTarget(destinationFileName));
+
+	public void DeleteFile(string fileName) =>
+		_localFileSystem.DeleteFile(LocalMutationTarget(fileName));
+
+	public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+		_localFileSystem.SetAttributes(LocalMutationTarget(fileName), fileAttributes);
+
+	private string LocalMutationTarget(string fileName) =>
+		_locatorCodec.Decode(fileName, out var logicalChunkNumber, out var localFileName)
+			? throw new NotSupportedException($"Cannot mutate archived chunk {logicalChunkNumber}.")
+			: localFileName;
 
 	private sealed class ChunkEnumeratorWithArchive : IChunkEnumerator
 	{

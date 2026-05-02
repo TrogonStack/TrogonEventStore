@@ -32,7 +32,7 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 			: new ClusterVNodeOptions().ReduceMemoryUsageForTests();
 
 		_options = WithOptions(options
-			.RunInMemory()
+			.RunOnDisk(PathName)
 			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
 				ssl_connections.GetServerCertificate()));
 		_node = new ClusterVNode<TStreamId>(_options, _logFormatFactory,
@@ -65,7 +65,7 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 }
 
 [TestFixture, Category("LongRunning")]
-public abstract class ClusterMemberScenario<TLogFormat, TStreamId>
+public abstract class ClusterMemberScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	protected ClusterVNode _node;
 	protected int _clusterSize = 3;
@@ -74,15 +74,16 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId>
 	protected ILogFormatAbstractorFactory<TStreamId> _logFormatFactory;
 
 	[OneTimeSetUp]
-	public virtual void TestFixtureSetUp()
+	public override async Task TestFixtureSetUp()
 	{
+		await base.TestFixtureSetUp();
 		_logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 		_quorumSize = _clusterSize / 2 + 1;
 
 		_options = WithOptions(new ClusterVNodeOptions()
 			.ReduceMemoryUsageForTests()
 			.InCluster(_clusterSize)
-			.RunInMemory()
+			.RunOnDisk(PathName)
 			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
 				ssl_connections.GetServerCertificate()));
 		_node = new ClusterVNode<TStreamId>(_options, _logFormatFactory,
@@ -98,7 +99,17 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId>
 	}
 
 	[OneTimeTearDown]
-	public virtual Task TestFixtureTearDown() => _node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask;
+	public override async Task TestFixtureTearDown()
+	{
+		try
+		{
+			await (_node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask);
+		}
+		finally
+		{
+			await base.TestFixtureTearDown();
+		}
+	}
 
 	protected abstract ClusterVNodeOptions WithOptions(ClusterVNodeOptions options);
 }

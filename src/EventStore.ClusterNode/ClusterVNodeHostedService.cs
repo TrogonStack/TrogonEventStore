@@ -45,13 +45,11 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 	public ClusterVNode Node { get; }
 	public IReadOnlyList<NodeSubsystems> EnabledNodeSubsystems { get; private set; } = Array.Empty<NodeSubsystems>();
 	public bool SupportsScavenge =>
-		!_options.Database.MemDb && _options.Database.DbLogFormat == DbLogFormat.V2;
+		_options.Database.DbLogFormat == DbLogFormat.V2;
 	public string ScavengeSupportMessage =>
 		SupportsScavenge
 			? ""
-			: _options.Database.MemDb
-				? "Scavenge is not supported on in-memory databases."
-				: "Scavenge is not yet supported on Log V3.";
+			: "Scavenge is not yet supported on Log V3.";
 
 	public ClusterVNodeHostedService(
 		ClusterVNodeOptions options,
@@ -97,16 +95,13 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 					options.Projection.MaxProjectionStateSize)))
 			: options;
 
-		if (!_options.Database.MemDb)
-		{
-			var absolutePath = Path.GetFullPath(_options.Database.Db);
-			if (RuntimeInformation.IsWindows)
-				absolutePath = absolutePath.ToLower();
+		var absolutePath = Path.GetFullPath(_options.Database.Db);
+		if (RuntimeInformation.IsWindows)
+			absolutePath = absolutePath.ToLower();
 
-			_dbLock = new ExclusiveDbLock(absolutePath);
-			if (!_dbLock.Acquire())
-				throw new InvalidConfigurationException($"Couldn't acquire exclusive lock on DB at '{_options.Database.Db}'.");
-		}
+		_dbLock = new ExclusiveDbLock(absolutePath);
+		if (!_dbLock.Acquire())
+			throw new InvalidConfigurationException($"Couldn't acquire exclusive lock on DB at '{_options.Database.Db}'.");
 
 		var authorizationConfig = string.IsNullOrEmpty(_options.Auth.AuthorizationConfig)
 			? _options.Application.Config

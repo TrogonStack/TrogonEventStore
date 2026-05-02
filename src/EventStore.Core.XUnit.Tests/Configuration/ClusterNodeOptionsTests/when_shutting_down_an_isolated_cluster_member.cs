@@ -43,7 +43,7 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 		var options = new ClusterVNodeOptions()
 			.ReduceMemoryUsageForTests()
 			.InCluster(3)
-			.RunInMemory()
+			.RunOnDisk(PathName)
 			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
 				ssl_connections.GetServerCertificate());
 

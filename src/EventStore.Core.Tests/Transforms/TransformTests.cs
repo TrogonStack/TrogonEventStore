@@ -26,33 +26,25 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 	private const int BatchSize = 50;
 	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 
-	[TestCase("identity", false)]
-	[TestCase("identity", true)]
-	[TestCase("bitflip", false)]
-	[TestCase("bitflip", true)]
-	[TestCase("bytedup", false)]
-	[TestCase("bytedup", true)]
-	[TestCase("withheader", false)]
-	[TestCase("withheader", true)]
+	[TestCase("identity")]
+	[TestCase("bitflip")]
+	[TestCase("bytedup")]
+	[TestCase("withheader")]
 	[Timeout(600000)]
-	public async Task transform_works(string transform, bool memDb)
+	public async Task transform_works(string transform)
 	{
 		MiniNode<TLogFormat, TStreamId> node = null;
 		IEventStoreConnection connection = null;
 		var dbPath = Path.Combine(PathName, $"node-{Guid.NewGuid()}");
 		try
 		{
-			(node, connection) = await CreateNode(dbPath, transform, memDb);
+			(node, connection) = await CreateNode(dbPath, transform);
 
 			var writtenIds = await WriteEvents(connection);
 			await VerifyEvents(connection, writtenIds);
 
-			if (memDb)
-				return;
-
-			// if it's an on-disk database, close and re-open the database,
 			await ShutdownNode(node, connection, keepDb: true);
-			(node, connection) = await CreateNode(dbPath, transform, memDb: false);
+			(node, connection) = await CreateNode(dbPath, transform);
 
 			// then verify the chunk checksums
 			await VerifyChecksums(node);
@@ -87,7 +79,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 			await chunk.VerifyFileHash(token);
 	}
 
-	private async Task<(MiniNode<TLogFormat, TStreamId>, IEventStoreConnection)> CreateNode(string dbPath, string transform, bool memDb)
+	private async Task<(MiniNode<TLogFormat, TStreamId>, IEventStoreConnection)> CreateNode(string dbPath, string transform)
 	{
 		IDbTransform dbTransform = transform switch
 		{
@@ -101,7 +93,6 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		var node = new MiniNode<TLogFormat, TStreamId>(
 			pathname: PathName,
 			dbPath: dbPath,
-			inMemDb: memDb,
 			chunkSize: 10_000,
 			cachedChunkSize: (10_000 + ChunkHeader.Size + ChunkFooter.Size) * 2,
 			transform: dbTransform.Name,
