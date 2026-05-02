@@ -39,6 +39,30 @@ public sealed class HttpEntityManager
 	private static readonly string[] SupportedCompressionAlgorithms =
 		{CompressionAlgorithms.Gzip, CompressionAlgorithms.Deflate};
 
+	// .NET compression streams emit no payload until data is written, but clients still need a decodable member
+	// whenever a Content-Encoding header is advertised.
+	private static readonly byte[] EmptyGzipResponse =
+	{
+		0x1f, 0x8b,
+		0x08,
+		0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00,
+		0xff,
+		0x01,
+		0x00, 0x00,
+		0xff, 0xff,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00
+	};
+
+	private static readonly byte[] EmptyDeflateResponse =
+	{
+		0x01,
+		0x00, 0x00,
+		0xff, 0xff
+	};
+
 	private static readonly BufferManager
 		_compressionBufferManager = new BufferManager(20, 50 * 1024); //create 20 50KB buffers (1MB total)
 
@@ -299,18 +323,19 @@ public sealed class HttpEntityManager
 		if (!BeginReply(code, description, contentType, encoding, headers))
 			return;
 
+		LogResponse(response ?? Array.Empty<byte>());
+
+		if (!string.IsNullOrEmpty(_responseContentEncoding))
+			response = CompressResponse(response ?? Array.Empty<byte>(), _responseContentEncoding);
+
 		if (response == null || response.Length == 0)
 		{
-			LogResponse(Array.Empty<byte>());
 			SetResponseLength(0);
 			_onComplete();
 			CloseConnection(onError);
 		}
 		else
 		{
-			LogResponse(response);
-			if (!string.IsNullOrEmpty(_responseContentEncoding))
-				response = CompressResponse(response, _responseContentEncoding);
 			SetResponseLength(response.Length);
 			ContinueReply(response, onError, _onComplete);
 		}
@@ -501,6 +526,11 @@ public sealed class HttpEntityManager
 		if (string.IsNullOrEmpty(compressionAlgorithm) ||
 			!SupportedCompressionAlgorithms.Contains(compressionAlgorithm))
 			return response;
+
+		if (response.Length == 0)
+			return compressionAlgorithm.Equals(CompressionAlgorithms.Gzip)
+				? EmptyGzipResponse.ToArray()
+				: EmptyDeflateResponse.ToArray();
 
 		MemoryStream outputStream;
 		var useBufferManager =
