@@ -590,7 +590,7 @@ public partial class TFChunk : IDisposable
 			tempFile.FlushToDisk();
 		}
 
-		File.Move(tempFilename, LocalFileName);
+		_fileSystem.MoveFile(tempFilename, LocalFileName);
 
 		// reuse FileStreamOptions instance
 		options.Mode = FileMode.Open;
@@ -1266,14 +1266,14 @@ public partial class TFChunk : IDisposable
 		if (!_inMem)
 		{
 			_handle?.Dispose();
-			Helper.EatException(LocalFileName, static filename => File.SetAttributes(filename, FileAttributes.Normal));
+			Helper.EatException(LocalFileName, filename => _fileSystem.SetAttributes(filename, FileAttributes.Normal));
 
 			if (_deleteFile)
 			{
 				Log.Information(
 					"File {chunk} has been marked for delete and will be deleted in TryDestructFileStreams.",
 					Path.GetFileName(ChunkLocator));
-				Helper.EatException(LocalFileName, File.Delete);
+				Helper.EatException(LocalFileName, _fileSystem.DeleteFile);
 			}
 		}
 

@@ -164,11 +164,20 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 		public ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token) =>
 			throw new NotImplementedException();
 
-		public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
-			throw new NotImplementedException();
+			public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
+				throw new NotImplementedException();
 
-		public IChunkEnumerator CreateChunkEnumerator() => chunkEnumerator;
-	}
+			public IChunkEnumerator CreateChunkEnumerator() => chunkEnumerator;
+
+			public void MoveFile(string sourceFileName, string destinationFileName) =>
+				throw new NotImplementedException();
+
+			public void DeleteFile(string fileName) =>
+				throw new NotImplementedException();
+
+			public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+				throw new NotImplementedException();
+		}
 
 	private sealed class FakeChunkEnumerator(params TFChunkInfo[] chunkInfos) : IChunkEnumerator
 	{

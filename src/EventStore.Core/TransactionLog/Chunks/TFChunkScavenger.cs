@@ -371,7 +371,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				+ "\nException message: {e}.",
 				oldChunkName, tmpChunkPath, exc.Message);
 			newChunk.Dispose();
-			DeleteTempChunk(_logger, tmpChunkPath, MaxRetryCount);
+			DeleteTempChunk(_logger, tmpChunkPath, MaxRetryCount, _db.Config.ChunkFileSystem);
 			_scavengerLog.ChunksNotScavenged(chunkStartNumber, chunkEndNumber, sw.Elapsed, exc.Message);
 		}
 		catch (OperationCanceledException)
@@ -386,7 +386,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				"Got exception while scavenging chunk: #{chunkStartNumber}-{chunkEndNumber}. This chunk will be skipped\n"
 				+ "Exception: {e}.", chunkStartNumber, chunkEndNumber, ex.ToString());
 			newChunk.Dispose();
-			DeleteTempChunk(_logger, tmpChunkPath, MaxRetryCount);
+			DeleteTempChunk(_logger, tmpChunkPath, MaxRetryCount, _db.Config.ChunkFileSystem);
 			_scavengerLog.ChunksNotScavenged(chunkStartNumber, chunkEndNumber, sw.Elapsed, ex.Message);
 		}
 	}
@@ -579,7 +579,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				+ "\nException message: {e}.",
 				oldChunksList, tmpChunkPath, exc.Message);
 			newChunk.Dispose();
-			DeleteTempChunk(logger, tmpChunkPath, MaxRetryCount);
+			DeleteTempChunk(logger, tmpChunkPath, MaxRetryCount, db.Config.ChunkFileSystem);
 			scavengerLog.ChunksNotMerged(chunkStartNumber, chunkEndNumber, sw.Elapsed, exc.Message);
 			return false;
 		}
@@ -600,18 +600,18 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				oldChunks, ex.ToString()
 			);
 			newChunk.Dispose();
-			DeleteTempChunk(logger, tmpChunkPath, MaxRetryCount);
+			DeleteTempChunk(logger, tmpChunkPath, MaxRetryCount, db.Config.ChunkFileSystem);
 			scavengerLog.ChunksNotMerged(chunkStartNumber, chunkEndNumber, sw.Elapsed, ex.Message);
 			return false;
 		}
 	}
 
-	public static void DeleteTempChunk(ILogger logger, string tmpChunkPath, int retries)
+	public static void DeleteTempChunk(ILogger logger, string tmpChunkPath, int retries, IChunkFileSystem fileSystem)
 	{
 		try
 		{
-			File.SetAttributes(tmpChunkPath, FileAttributes.Normal);
-			File.Delete(tmpChunkPath);
+			fileSystem.SetAttributes(tmpChunkPath, FileAttributes.Normal);
+			fileSystem.DeleteFile(tmpChunkPath);
 		}
 		catch (Exception ex)
 		{
@@ -620,7 +620,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				logger.Error("Failed to delete the temp chunk. Retrying {retry}/{maxRetryCount}. Reason: {e}",
 					MaxRetryCount - retries, MaxRetryCount, ex);
 				Thread.Sleep(5000);
-				DeleteTempChunk(logger, tmpChunkPath, retries - 1);
+				DeleteTempChunk(logger, tmpChunkPath, retries - 1, fileSystem);
 			}
 			else
 			{

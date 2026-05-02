@@ -353,8 +353,8 @@ public class TFChunkDb : IAsyncDisposable
 	private void RemoveFile(string reason, string file)
 	{
 		_log.Debug(reason, file);
-		File.SetAttributes(file, FileAttributes.Normal);
-		File.Delete(file);
+		Config.ChunkFileSystem.SetAttributes(file, FileAttributes.Normal);
+		Config.ChunkFileSystem.DeleteFile(file);
 	}
 
 	public ValueTask DisposeAsync() => Close(CancellationToken.None);

@@ -16,6 +16,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 	const int BatchLength = 2000;
 	private readonly ILogger _logger;
 	private readonly ChunkManagerForExecutor<TStreamId> _manager;
+	private readonly IChunkFileSystem _fileSystem;
 	private readonly TFChunk _outputChunk;
 	private readonly List<List<PosMap>> _posMapss;
 	private int _lastFlushedPage = -1;
@@ -23,11 +24,13 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 	private ChunkWriterForExecutor(
 		ILogger logger,
 		ChunkManagerForExecutor<TStreamId> manager,
+		IChunkFileSystem fileSystem,
 		TFChunk outputChunk)
 	{
 
 		_logger = logger;
 		_manager = manager;
+		_fileSystem = fileSystem;
 
 		// list of lists to avoid having an enormous list which could make it to the LoH
 		// and to avoid expensive resize operations on large lists
@@ -62,7 +65,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 			transformFactory: transformManager.GetFactoryForNewChunk(),
 			token);
 
-		return new(logger, manager, chunk);
+		return new(logger, manager, dbConfig.ChunkFileSystem, chunk);
 	}
 
 	public string LocalFileName => _outputChunk.LocalFileName;
@@ -113,7 +116,8 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		if (deleteImmediately)
 		{
 			_outputChunk.Dispose();
-			TFChunkScavenger<TStreamId>.DeleteTempChunk(_logger, LocalFileName, TFChunkScavenger.MaxRetryCount);
+			TFChunkScavenger<TStreamId>.DeleteTempChunk(_logger, LocalFileName, TFChunkScavenger.MaxRetryCount,
+				_fileSystem);
 		}
 		else
 		{

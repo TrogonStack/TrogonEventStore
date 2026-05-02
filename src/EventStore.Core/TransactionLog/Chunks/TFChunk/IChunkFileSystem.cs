@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
@@ -24,4 +25,10 @@ public interface IChunkFileSystem
 	ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token);
 
 	IChunkEnumerator CreateChunkEnumerator();
+
+	void MoveFile(string sourceFileName, string destinationFileName);
+
+	void DeleteFile(string fileName);
+
+	void SetAttributes(string fileName, FileAttributes fileAttributes);
 }

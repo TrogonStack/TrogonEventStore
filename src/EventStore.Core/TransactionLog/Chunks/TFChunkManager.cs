@@ -346,7 +346,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 			Path.GetFileName(newFileName));
 		try
 		{
-			File.Move(oldFileName, newFileName);
+			FileSystem.MoveFile(oldFileName, newFileName);
 		}
 		catch (IOException)
 		{

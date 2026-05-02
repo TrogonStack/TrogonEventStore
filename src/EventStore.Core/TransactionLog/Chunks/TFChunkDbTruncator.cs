@@ -109,8 +109,8 @@ public class TFChunkDbTruncator
 			foreach (var chunkFile in chunksToDelete)
 			{
 				Log.Information("File {chunk} will be deleted during TruncateDb procedure.", chunkFile);
-				File.SetAttributes(chunkFile, FileAttributes.Normal);
-				File.Delete(chunkFile);
+				_config.ChunkFileSystem.SetAttributes(chunkFile, FileAttributes.Normal);
+				_config.ChunkFileSystem.DeleteFile(chunkFile);
 			}
 
 			if (!newLastChunkHeader.IsScavenged && !truncatingToBoundary)
@@ -185,7 +185,7 @@ public class TFChunkDbTruncator
 		var newFileSize = TFChunk.TFChunk.GetAlignedSize(ChunkHeader.Size + newDataSize + ChunkFooter.Size);
 		var dataTruncatePos = transformFactory.TransformDataPosition((int)chunkHeader.GetLocalLogPosition(truncateChk));
 
-		File.SetAttributes(chunkFilename, FileAttributes.Normal);
+		_config.ChunkFileSystem.SetAttributes(chunkFilename, FileAttributes.Normal);
 		using (var fs = new FileStream(chunkFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
 		{
 			fs.SetLength(newFileSize);

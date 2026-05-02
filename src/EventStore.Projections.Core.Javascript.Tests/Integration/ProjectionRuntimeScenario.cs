@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Options;
@@ -33,7 +34,8 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 	{
 		var options =
 			new ProjectionSubsystemOptions(3, ProjectionType.All, true, TimeSpan.FromMinutes(5), false, 500, 500);
-		var config = new TFChunkDbConfig("mem", new VersionedPatternFileNamingStrategy("mem", "chunk-"), 10000, 0,
+		var dbPath = Path.Combine(Path.GetTempPath(), $"projection-runtime-{Guid.NewGuid():N}");
+		var config = new TFChunkDbConfig(dbPath, new VersionedPatternFileNamingStrategy(dbPath, "chunk-"), 10000, 0,
 			writerCheckpoint, new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
 			new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
 			new InMemoryCheckpoint(-1));
@@ -62,7 +64,15 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 			}
 			finally
 			{
-				await db.DisposeAsync();
+				try
+				{
+					await db.DisposeAsync();
+				}
+				finally
+				{
+					if (Directory.Exists(dbPath))
+						Directory.Delete(dbPath, recursive: true);
+				}
 			}
 		}
 
