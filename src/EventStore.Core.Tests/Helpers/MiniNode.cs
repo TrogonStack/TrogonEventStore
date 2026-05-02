@@ -74,7 +74,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		ISubsystem[] subsystems = null,
 		int chunkSize = ChunkSize, int cachedChunkSize = CachedChunkSize, bool enableTrustedAuth = false,
 		int memTableSize = 1000,
-		bool inMemDb = true, bool disableFlushToDisk = false,
+		bool disableFlushToDisk = false,
 		string advertisedExtHostAddress = null, int advertisedHttpPort = 0,
 		int hashCollisionReadLimit = Util.Opts.HashCollisionReadLimitDefault,
 		byte indexBitnessVersion = Util.Opts.IndexBitnessVersionDefault,
@@ -181,9 +181,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		if (advertisedExtHostAddress != null)
 			options = options.AdvertiseNodeAs(new DnsEndPoint(advertisedExtHostAddress, advertisedHttpPort));
 
-		options = inMemDb
-			? options.RunInMemory()
-			: options.RunOnDisk(DbPath);
+		options = options.RunOnDisk(DbPath);
 
 		Log.Information("\n{0,-25} {1} ({2}/{3}, {4})\n"
 				 + "{5,-25} {6} ({7})\n"

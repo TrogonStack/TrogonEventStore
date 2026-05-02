@@ -47,7 +47,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			250);
 		_projections = new ProjectionsSubsystem(configuration);
 		_node = new MiniNode<TLogFormat, TStreamId>(
-			PathName, inMemDb: true,
+			PathName,
 			subsystems: [_projections]);
 		_projectionsCreated = SystemProjections.Created(_projections.LeaderInputBus);
 

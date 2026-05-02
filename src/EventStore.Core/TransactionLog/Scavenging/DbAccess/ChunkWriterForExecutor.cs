@@ -53,7 +53,7 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 			chunkStartNumber: sourceChunk.ChunkStartNumber,
 			chunkEndNumber: sourceChunk.ChunkEndNumber,
 			isScavenged: true,
-			inMem: dbConfig.InMemDb,
+			inMem: false,
 			unbuffered: dbConfig.Unbuffered,
 			writethrough: dbConfig.WriteThrough,
 			reduceFileCachePressure: dbConfig.ReduceFileCachePressure,

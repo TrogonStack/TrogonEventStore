@@ -28,7 +28,7 @@ public class when_running_scavenge_from_storage_scavenger<TLogFormat, TStreamId>
 	{
 		await base.TestFixtureSetUp();
 
-		_node = new MiniNode<TLogFormat, TStreamId>(PathName, inMemDb: false);
+		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 
 		var scavengeMessage =

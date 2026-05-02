@@ -180,8 +180,7 @@ public abstract class
 			truncateChk,
 			replicationCheckpoint,
 			indexCheckpoint,
-			streamExistenceFilterCheckpoint,
-			inMemDb: true);
+			streamExistenceFilterCheckpoint);
 		return nodeConfig;
 	}
 }

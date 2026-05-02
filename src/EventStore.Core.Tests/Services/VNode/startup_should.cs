@@ -72,7 +72,7 @@ public class startup_should : SpecificationWithDirectory
 			.WithReplicationEndpointOn(internalEndPoint)
 			.WithExternalTcpOn(tcpEndPoint)
 			.WithNodeEndpointOn(httpEndPoint)
-			.RunInMemory();
+			.RunOnDisk(System.IO.Path.Combine(PathName, "db"));
 
 		var configuration = new ConfigurationBuilder()
 			.AddInMemoryCollection(new KeyValuePair<string, string>[] {

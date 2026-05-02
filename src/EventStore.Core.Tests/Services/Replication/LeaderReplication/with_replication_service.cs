@@ -166,8 +166,7 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 			truncateChk,
 			replicationCheckpoint,
 			indexCheckpoint,
-			streamExistenceFilterCheckpoint,
-			true);
+			streamExistenceFilterCheckpoint);
 		return nodeConfig;
 	}
 }

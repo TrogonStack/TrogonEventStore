@@ -36,7 +36,7 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 		var config = new TFChunkDbConfig("mem", new VersionedPatternFileNamingStrategy("mem", "chunk-"), 10000, 0,
 			writerCheckpoint, new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
 			new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
-			new InMemoryCheckpoint(-1), true);
+			new InMemoryCheckpoint(-1));
 		var db = new TFChunkDb(config);
 		var qs = new QueueStatsManager();
 		var timeProvider = new RealTimeProvider();

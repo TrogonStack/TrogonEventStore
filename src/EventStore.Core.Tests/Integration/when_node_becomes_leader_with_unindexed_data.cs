@@ -159,7 +159,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 		int nodePriority, string intHostAdvertiseAs) => new(
 		PathName, index, endpoints.InternalTcp,
 		endpoints.ExternalTcp, endpoints.HttpEndPoint,
-		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds, inMemDb: false,
+		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds,
 		nodePriority: nodePriority, intHostAdvertiseAs: intHostAdvertiseAs);
 
 	private Task StartNode(int i, int priority, string intHostAdvertiseAs = null)

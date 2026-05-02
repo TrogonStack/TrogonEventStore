@@ -17,7 +17,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 		public readonly ICheckpoint IndexCheckpoint;
 		public readonly ICheckpoint StreamExistenceFilterCheckpoint;
 		public readonly IChunkFileSystem ChunkFileSystem;
-		public readonly bool InMemDb;
 		public readonly bool Unbuffered;
 		public readonly bool WriteThrough;
 		public readonly bool ReduceFileCachePressure;
@@ -36,7 +35,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			ICheckpoint replicationCheckpoint,
 			ICheckpoint indexCheckpoint,
 			ICheckpoint streamExistenceFilterCheckpoint,
-			bool inMemDb = false,
 			bool unbuffered = false,
 			bool writethrough = false,
 			bool reduceFileCachePressure = false,
@@ -55,7 +53,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 				replicationCheckpoint,
 				indexCheckpoint,
 				streamExistenceFilterCheckpoint,
-				inMemDb,
 				unbuffered,
 				writethrough,
 				reduceFileCachePressure,
@@ -75,7 +72,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			ICheckpoint replicationCheckpoint,
 			ICheckpoint indexCheckpoint,
 			ICheckpoint streamExistenceFilterCheckpoint,
-			bool inMemDb = false,
 			bool unbuffered = false,
 			bool writethrough = false,
 			bool reduceFileCachePressure = false,
@@ -106,7 +102,6 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			IndexCheckpoint = indexCheckpoint;
 			StreamExistenceFilterCheckpoint = streamExistenceFilterCheckpoint;
 			ChunkFileSystem = chunkFileSystem;
-			InMemDb = inMemDb;
 			Unbuffered = unbuffered;
 			WriteThrough = writethrough;
 			ReduceFileCachePressure = reduceFileCachePressure;

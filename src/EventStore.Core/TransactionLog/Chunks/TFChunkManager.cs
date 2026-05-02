@@ -141,18 +141,18 @@ public class TFChunkManager : IThreadPoolWorkItem
 		return TFChunk.TFChunk.CreateWithHeader(FileSystem, chunkFileName,
 			chunkHeader,
 			fileSize,
-			_config.InMemDb,
-			_config.Unbuffered,
-			_config.WriteThrough,
-			_config.ReduceFileCachePressure,
-			_config.AsyncIO,
-			_tracker,
+			inMem: false,
+			unbuffered: _config.Unbuffered,
+			writethrough: _config.WriteThrough,
+			reduceFileCachePressure: _config.ReduceFileCachePressure,
+			asyncIO: _config.AsyncIO,
+			tracker: _tracker,
 			// temporary chunks are used for replicating raw (scavenged) chunks.
 			// since the raw data being replicated is already transformed, we use
 			// the identity transform as we don't want to transform the data again
 			// when appending raw data to the chunk.
-			new IdentityChunkTransformFactory(),
-			ReadOnlyMemory<byte>.Empty,
+			transformFactory: new IdentityChunkTransformFactory(),
+			transformHeader: ReadOnlyMemory<byte>.Empty,
 			token);
 	}
 
@@ -170,7 +170,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 				chunkNumber,
 				chunkNumber,
 				isScavenged: false,
-				inMem: _config.InMemDb,
+				inMem: false,
 				unbuffered: _config.Unbuffered,
 				writethrough: _config.WriteThrough,
 				reduceFileCachePressure: _config.ReduceFileCachePressure,
@@ -212,7 +212,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 			chunk = await TFChunk.TFChunk.CreateWithHeader(FileSystem, chunkName,
 				chunkHeader,
 				fileSize,
-				_config.InMemDb,
+				inMem: false,
 				unbuffered: _config.Unbuffered,
 				writethrough: _config.WriteThrough,
 				reduceFileCachePressure: _config.ReduceFileCachePressure,
@@ -328,41 +328,36 @@ public class TFChunkManager : IThreadPoolWorkItem
 			chunkHeader.ChunkStartNumber, chunkHeader.ChunkEndNumber, Path.GetFileName(oldFileName));
 		TFChunk.TFChunk newChunk;
 
-		if (_config.InMemDb)
-			newChunk = chunk;
-		else
+		chunk.Dispose();
+		try
 		{
-			chunk.Dispose();
-			try
-			{
-				chunk.WaitForDestroy(0); // should happen immediately
-			}
-			catch (TimeoutException exc)
-			{
-				throw new Exception(
-					string.Format("The chunk that is being switched {0} is used by someone else.", chunk), exc);
-			}
-
-			var newFileName =
-				FileSystem.NamingStrategy.DetermineNewVersionFilenameForIndex(chunkHeader.ChunkStartNumber,
-					defaultVersion: 1);
-			Log.Information("File {oldFileName} will be moved to file {newFileName}", Path.GetFileName(oldFileName),
-				Path.GetFileName(newFileName));
-			try
-			{
-				File.Move(oldFileName, newFileName);
-			}
-			catch (IOException)
-			{
-				WindowsProcessUtil.PrintWhoIsLocking(oldFileName, Log);
-				WindowsProcessUtil.PrintWhoIsLocking(newFileName, Log);
-				throw;
-			}
-
-			newChunk = await TFChunk.TFChunk.FromCompletedFile(FileSystem, newFileName, verifyHash, _config.Unbuffered,
-				_tracker, type => _transformManager.GetFactoryForExistingChunk(type),
-				_config.ReduceFileCachePressure, _config.AsyncIO, token: token);
+			chunk.WaitForDestroy(0); // should happen immediately
 		}
+		catch (TimeoutException exc)
+		{
+			throw new Exception(
+				string.Format("The chunk that is being switched {0} is used by someone else.", chunk), exc);
+		}
+
+		var newFileName =
+			FileSystem.NamingStrategy.DetermineNewVersionFilenameForIndex(chunkHeader.ChunkStartNumber,
+				defaultVersion: 1);
+		Log.Information("File {oldFileName} will be moved to file {newFileName}", Path.GetFileName(oldFileName),
+			Path.GetFileName(newFileName));
+		try
+		{
+			File.Move(oldFileName, newFileName);
+		}
+		catch (IOException)
+		{
+			WindowsProcessUtil.PrintWhoIsLocking(oldFileName, Log);
+			WindowsProcessUtil.PrintWhoIsLocking(newFileName, Log);
+			throw;
+		}
+
+		newChunk = await TFChunk.TFChunk.FromCompletedFile(FileSystem, newFileName, verifyHash, _config.Unbuffered,
+			_tracker, type => _transformManager.GetFactoryForExistingChunk(type),
+			_config.ReduceFileCachePressure, _config.AsyncIO, token: token);
 
 		if (!await SwitchInChunks([newChunk],
 			removeChunksWithGreaterNumbers ? chunkHeader.ChunkEndNumber : null,

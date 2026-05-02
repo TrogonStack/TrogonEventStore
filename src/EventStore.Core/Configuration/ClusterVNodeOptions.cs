@@ -394,9 +394,6 @@ public partial record ClusterVNodeOptions
 		[Description("The type of transformation to apply to the database.")]
 		public string Transform { get; init; } = "identity";
 
-		[Description("Keep everything in memory, no directories or files are created.")]
-		public bool MemDb { get; init; } = false;
-
 		[Description("Creates a Bloom filter file for each new index file to speed up index reads.")]
 		public bool UseIndexBloomFilters { get; init; } = true;
 

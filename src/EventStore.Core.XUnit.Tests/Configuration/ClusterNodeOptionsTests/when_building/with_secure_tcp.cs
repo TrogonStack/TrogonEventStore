@@ -87,7 +87,7 @@ public class with_ssl_enabled_and_using_a_security_certificate<TLogFormat, TStre
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
-public class with_secure_tcp_endpoints_and_no_certificates<TLogFormat, TStreamId>
+public class with_secure_tcp_endpoints_and_no_certificates<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private ClusterVNodeOptions _options;
 	private Exception _caughtException;
@@ -100,7 +100,7 @@ public class with_secure_tcp_endpoints_and_no_certificates<TLogFormat, TStreamId
 		var externalSecTcp = new IPEndPoint(baseIpAddress, 1115);
 		_options = new ClusterVNodeOptions()
 			.ReduceMemoryUsageForTests()
-			.RunInMemory()
+			.RunOnDisk(PathName)
 			.WithReplicationEndpointOn(internalSecTcp)
 			.WithExternalTcpOn(externalSecTcp);
 		try

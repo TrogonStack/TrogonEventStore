@@ -93,8 +93,7 @@ public abstract class with_storage_chaser_service<TLogFormat, TStreamId> : Speci
 			_truncateChk,
 			_replicationCheckpoint,
 			_indexCheckpoint,
-			_streamExistenceFilterCheckpoint,
-			true);
+			_streamExistenceFilterCheckpoint);
 		return nodeConfig;
 	}
 }

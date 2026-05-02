@@ -40,7 +40,6 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 			_node = new MiniNode<TLogFormat, TStreamId>(
 				pathname: PathName,
 				dbPath: Path.Combine(PathName, "mini-node-db"),
-				inMemDb: false,
 				streamExistenceFilterSize: 10_000,
 				streamExistenceFilterCheckpointIntervalMs: 100,
 				streamExistenceFilterCheckpointDelayMs: 0);

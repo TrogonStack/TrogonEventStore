@@ -196,7 +196,6 @@ DEFAULT OPTIONS:
          MAX AUTO MERGE INDEX LEVEL:              2147483647 (<DEFAULT>)
          MAX MEM TABLE SIZE:                      1000000 (<DEFAULT>)
          MAX TRUNCATION:                          268435456 (<DEFAULT>)
-         MEM DB:                                  False (<DEFAULT>)
          MIN FLUSH DELAY MS:                      2 (<DEFAULT>)
          OPTIMIZE INDEX MERGE:                    False (<DEFAULT>)
          PREPARE TIMEOUT MS:                      2000 (<DEFAULT>)

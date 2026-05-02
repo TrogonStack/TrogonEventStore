@@ -22,7 +22,6 @@ public class LogFormatAbstractorV2Tests :
 		_sut = new LogV2FormatAbstractorFactory().Create(new()
 		{
 			IndexDirectory = _fixture.Directory,
-			InMemory = false,
 			StreamExistenceFilterSize = 1_000_000,
 			StreamExistenceFilterCheckpoint = new InMemoryCheckpoint(),
 		});

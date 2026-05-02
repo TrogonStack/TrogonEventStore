@@ -95,7 +95,7 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 		await Db.DisposeAsync();
 
 		// start node with our created DB
-		Node = new MiniNode<TLogFormat, TStreamId>(PathName, inMemDb: false, dbPath: dbPath);
+		Node = new MiniNode<TLogFormat, TStreamId>(PathName, dbPath: dbPath);
 		await Node.Start();
 
 		try

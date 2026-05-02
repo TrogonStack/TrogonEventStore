@@ -14,7 +14,6 @@ using LogV3StreamId = System.UInt32;
 namespace EventStore.Core.LogAbstraction {
 	public record LogFormatAbstractorOptions {
 		public string IndexDirectory { get; init; }
-		public bool InMemory { get; init; }
 		public int InitialReaderCount { get; init; } = ESConsts.PTableInitialReaderCount;
 		public int MaxReaderCount { get; init; } = 100;
 		public long StreamExistenceFilterSize { get; init; }
@@ -64,7 +63,7 @@ namespace EventStore.Core.LogAbstraction {
 		private static INameExistenceFilter GenStreamExistenceFilter(
 			LogFormatAbstractorOptions options) {
 
-			if (options.InMemory || options.StreamExistenceFilterSize == 0) {
+			if (options.StreamExistenceFilterSize == 0) {
 				return new NoNameExistenceFilter();
 			}
 
@@ -167,10 +166,6 @@ namespace EventStore.Core.LogAbstraction {
 				recordTypeToHandle: typeof(LogV3StreamRecord));
 
 		static INameIndexPersistence<LogV3StreamId> GenStreamNameIndexPersistence(LogFormatAbstractorOptions options) {
-			if (options.InMemory) {
-				return new NameIndexInMemoryPersistence();
-			}
-
 			var persistence = new FASTERNameIndexPersistence(
 				indexName: "StreamNameIndexPersistence",
 				logDir: $"{options.IndexDirectory}/stream-name-index",
@@ -184,7 +179,7 @@ namespace EventStore.Core.LogAbstraction {
 		}
 
 		public static INameExistenceFilter GenStreamExistenceFilter(LogFormatAbstractorOptions options) {
-			if (options.InMemory || options.StreamExistenceFilterSize == 0) {
+			if (options.StreamExistenceFilterSize == 0) {
 				return new NoNameExistenceFilter();
 			}
 
@@ -202,10 +197,6 @@ namespace EventStore.Core.LogAbstraction {
 		}
 
 		static INameIndexPersistence<LogV3StreamId> GenEventTypeIndexPersistence(LogFormatAbstractorOptions options) {
-			if (options.InMemory) {
-				return new NameIndexInMemoryPersistence();
-			}
-
 			var persistence = new FASTERNameIndexPersistence(
 				indexName: "EventTypeIndexPersistence",
 				logDir: $"{options.IndexDirectory}/event-type-index",

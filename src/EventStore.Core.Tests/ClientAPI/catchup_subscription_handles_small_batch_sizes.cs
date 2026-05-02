@@ -26,7 +26,7 @@ public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamI
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
-		_node = new MiniNode<TLogFormat, TStreamId>(PathName, inMemDb: true);
+		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 
 		_conn = BuildConnection(_node);

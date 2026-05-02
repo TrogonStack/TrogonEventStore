@@ -65,7 +65,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 
 	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint internalTcp, IPEndPoint externalTcp,
 		IPEndPoint httpEndPoint, EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
-		bool enableTrustedAuth = false, int memTableSize = 1000, bool inMemDb = true,
+		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
 		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null)
 	{
@@ -144,7 +144,6 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				ScavengeHistoryMaxAge = 30,
 				SkipDbVerify = true,
 				MaxMemTableSize = memTableSize,
-				MemDb = inMemDb,
 				Db = _dbPath,
 				ChunkSize = MiniNode.ChunkSize,
 				ChunksCacheSize = MiniNode.CachedChunkSize,

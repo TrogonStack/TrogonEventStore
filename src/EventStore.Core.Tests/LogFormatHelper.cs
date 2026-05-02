@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using EventStore.Core.LogAbstraction;
 using LogV3StreamId = System.UInt32;
 
@@ -18,12 +19,13 @@ public static class LogFormatHelper<TLogFormat, TStreamId>
 	// static v3 but private so that we can be sure we only hand out stateless parts of it
 	readonly static LogFormatAbstractor<LogV3StreamId> _v3 = new LogV3FormatAbstractorFactory().Create(new()
 	{
-		InMemory = true,
+		IndexDirectory = Path.Combine(Path.GetTempPath(), nameof(LogFormatHelper<TLogFormat, TStreamId>)),
+		StreamExistenceFilterSize = 0,
 	});
 
 	readonly static LogFormatAbstractor<string> _v2 = new LogV2FormatAbstractorFactory().Create(new()
 	{
-		InMemory = true,
+		StreamExistenceFilterSize = 0,
 	});
 
 	public static T Choose<T>(object v2, object v3)

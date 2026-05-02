@@ -17,13 +17,15 @@ namespace EventStore.Core.Tests.ClientOperations;
 public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPublisher, ISubscriber, IDisposable
 {
 	private ClusterVNode _node;
+	private string _dbPath;
 	private readonly List<IDisposable> _disposables = new List<IDisposable>();
 	public void CreateTestNode()
 	{
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
+		_dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}-{GetType().Name}");
 		var options = new ClusterVNodeOptions()
 			.ReduceMemoryUsageForTests()
-			.RunInMemory()
+			.RunOnDisk(_dbPath)
 			.Secure(new X509Certificate2Collection(ssl_connections.GetRootCertificate()),
 				ssl_connections.GetServerCertificate());
 		_node = new ClusterVNode<TStreamId>(options, logFormatFactory,
@@ -102,6 +104,17 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 				_disposables?.ForEach(d => d?.Dispose());
 				_disposables?.Clear();
 				_node?.StopAsync().Wait();
+				if (_dbPath is not null)
+				{
+					try
+					{
+						if (System.IO.Directory.Exists(_dbPath))
+							System.IO.Directory.Delete(_dbPath, recursive: true);
+					}
+					catch (Exception)
+					{
+					}
+				}
 			}
 			_disposed = true;
 		}

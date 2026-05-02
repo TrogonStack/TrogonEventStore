@@ -81,13 +81,6 @@ public class TFChunkDb : IAsyncDisposable
 		ValidateReaderChecksumsMustBeLess(Config);
 		var checkpoint = Config.WriterCheckpoint.Read();
 
-		if (Config.InMemDb)
-		{
-			if (createNewChunks)
-				await Manager.AddNewChunk(token);
-			return;
-		}
-
 		var lastChunkNum = (int)(checkpoint / Config.ChunkSize);
 		var chunkEnumerator = Manager.FileSystem.CreateChunkEnumerator();
 		var lastChunkVersions = Manager.FileSystem.NamingStrategy.GetAllVersionsFor(lastChunkNum);

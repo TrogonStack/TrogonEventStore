@@ -28,7 +28,6 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName,
-			inMemDb: false,
 			memTableSize: 20,
 			hashCollisionReadLimit: 1,
 			indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV4,
@@ -69,7 +68,7 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 
 		//Restart the node to ensure the read index stream info cache is empty
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName,
-			tcpPort, httpPort, inMemDb: false,
+			tcpPort, httpPort,
 			memTableSize: 20,
 			hashCollisionReadLimit: 1,
 			indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV4,

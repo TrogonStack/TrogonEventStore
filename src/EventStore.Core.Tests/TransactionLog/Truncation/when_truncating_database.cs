@@ -18,7 +18,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
 	public async Task everything_should_go_fine()
 	{
-		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, inMemDb: false);
+		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await miniNode.Start();
 
 		var tcpPort = miniNode.TcpEndPoint.Port;
@@ -44,12 +44,12 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown(keepDb: true);
 
 		// --- first restart and truncation
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, inMemDb: false);
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort);
 		await miniNode.Start();
 		await miniNode.Shutdown(keepDb: true);
 
 		// --- second restart after truncation
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, inMemDb: false);
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort);
 		await miniNode.Start();
 		Assert.AreEqual(-1, miniNode.Db.Config.TruncateCheckpoint.Read());
 		Assert.That(miniNode.Db.Config.WriterCheckpoint.Read(), Is.GreaterThanOrEqualTo(truncatePosition));
@@ -62,7 +62,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown(keepDb: true);
 
 		// -- third restart
-		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, inMemDb: false);
+		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort);
 		Assert.AreEqual(-1, miniNode.Db.Config.TruncateCheckpoint.Read());
 		await miniNode.Start();
 
@@ -76,7 +76,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		const int chunkSize = 1024 * 1024;
 		const int cachedSize = chunkSize * 3;
 
-		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: chunkSize, cachedChunkSize: cachedSize, inMemDb: false);
+		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: chunkSize, cachedChunkSize: cachedSize);
 		await miniNode.Start();
 
 		var httpPort = miniNode.HttpEndPoint.Port;
@@ -104,13 +104,13 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 
 		// --- first restart and truncation
 		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, chunkSize: chunkSize,
-			cachedChunkSize: cachedSize, inMemDb: false);
+			cachedChunkSize: cachedSize);
 		await miniNode.Start();
 		await miniNode.Shutdown(keepDb: true);
 
 		// --- second restart after truncation
 		miniNode = new MiniNode<TLogFormat, TStreamId>(PathName, tcpPort, httpPort, chunkSize: chunkSize,
-			cachedChunkSize: cachedSize, inMemDb: false);
+			cachedChunkSize: cachedSize);
 		await miniNode.Start();
 		Assert.AreEqual(-1, miniNode.Db.Config.TruncateCheckpoint.Read());
 		Assert.That(miniNode.Db.Config.WriterCheckpoint.Read(), Is.GreaterThanOrEqualTo(truncatePosition));

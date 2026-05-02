@@ -53,7 +53,8 @@ public class HashCollisionTestFixture : SpecificationWithDirectoryPerTestFixture
 
 		_logFormat = LogFormatHelper<LogFormat.V2, string>.LogFormatFactory.Create(new()
 		{
-			InMemory = true,
+			IndexDirectory = _indexDir,
+			StreamExistenceFilterSize = 0,
 			LowHasher = new XXHashUnsafe(),
 			HighHasher = new ConstantHasher(0),
 		});

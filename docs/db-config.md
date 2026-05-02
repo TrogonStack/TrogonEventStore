@@ -20,18 +20,6 @@ Normally, you'd want to keep the database files separated from the OS and other 
 
 **Default**: the default database location is platform specific. On Windows, the database will be stored in the `data` directory inside the EventStoreDB installation location. On Linux, it will be `/var/lib/eventstore`.
 
-### In-memory database
-
-When running EventStoreDB for educational purposes or in an automated test environment, you might want to prevent it from saving any data to the disk. EventStoreDB can keep the data in memory as soon as it has enough available RAM. When you shut down the instance that uses in-memory database, all the data will be lost.
-
-| Format               | Syntax              |
-|:---------------------|:--------------------|
-| Command line         | `--mem-db`          |
-| YAML                 | `MemDb`             |
-| Environment variable | `EVENTSTORE_MEM_DB` |
-
-**Default**: `false`
-
 ### Skip database verification
 
 When the database node restarts, it checks the database files to ensure they aren't corrupted. It is a lengthy process and can take hours on a large database. EventStoreDB normally flushes every write to disk, so database files are unlikely to get corrupted. In an environment where nodes restart often for some reason, you might want to disable the database verification to allow faster startup of the node.
@@ -168,4 +156,3 @@ The size of read operations is dependent on the size of the events appended, not
 A higher reader count can be useful, if disks are able to support more concurrent operations. Context switching incurs additional costs in terms of performance. If disks are already saturated, adding more reader threads can exacerbate that issue and lead to more failed requests.
 
 Increasing the count of reader threads can improve performance up to a point, but it is likely to rapidly tail off once that limit is reached.
-
