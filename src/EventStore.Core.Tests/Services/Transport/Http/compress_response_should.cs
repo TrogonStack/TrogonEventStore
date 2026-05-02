@@ -84,13 +84,26 @@ class compress_response_should
 	[Test]
 	public void empty_gzip_reply_has_a_valid_gzip_body()
 	{
+		AssertEmptyReplyHasValidBody(CompressionAlgorithms.Gzip, stream =>
+			new GZipStream(stream, CompressionMode.Decompress));
+	}
+
+	[Test]
+	public void empty_deflate_reply_has_a_valid_deflate_body()
+	{
+		AssertEmptyReplyHasValidBody(CompressionAlgorithms.Deflate, stream =>
+			new DeflateStream(stream, CompressionMode.Decompress));
+	}
+
+	private static void AssertEmptyReplyHasValidBody(string compressionAlgorithm, Func<Stream, Stream> decompress)
+	{
 		using var completed = new ManualResetEventSlim();
 		using var responseBody = new MemoryStream();
 		var context = new DefaultHttpContext();
 		context.Request.Scheme = "http";
 		context.Request.Host = new HostString("localhost");
 		context.Request.Path = "/";
-		context.Request.Headers["Accept-Encoding"] = CompressionAlgorithms.Gzip;
+		context.Request.Headers["Accept-Encoding"] = compressionAlgorithm;
 		context.Response.Body = responseBody;
 		var entity = new HttpEntity(context, logHttpRequests: false, advertiseAsHost: null, advertiseAsPort: 0,
 			completed.Set);
@@ -101,11 +114,11 @@ class compress_response_should
 
 		Assert.IsTrue(completed.Wait(TimeSpan.FromSeconds(5)));
 		Assert.IsNull(error);
-		Assert.AreEqual(CompressionAlgorithms.Gzip, context.Response.Headers["Content-Encoding"].ToString());
+		Assert.AreEqual(compressionAlgorithm, context.Response.Headers["Content-Encoding"].ToString());
 		Assert.Greater(responseBody.Length, 0);
 
 		responseBody.Position = 0;
-		using var uncompressedStream = new GZipStream(responseBody, CompressionMode.Decompress);
+		using var uncompressedStream = decompress(responseBody);
 		using var outputStream = new MemoryStream();
 		uncompressedStream.CopyTo(outputStream);
 		Assert.AreEqual(0, outputStream.Length);
