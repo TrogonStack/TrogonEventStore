@@ -27,14 +27,16 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId>
 {
 	protected readonly GrpcChannel Channel;
 	private readonly MiniNode<TLogFormat, TStreamId> _node;
+	private readonly string _dbPath;
 	protected MiniNode<TLogFormat, TStreamId> Node => _node;
 	internal Streams.StreamsClient StreamsClient { get; }
 	private readonly BatchAppender _batchAppender;
 
 	protected GrpcSpecification(IExpiryStrategy expiryStrategy = null)
 	{
+		_dbPath = Path.Combine(Path.GetTempPath(), $"grpc-node-{Guid.NewGuid():N}");
 		_node = new MiniNode<TLogFormat, TStreamId>(Path.GetTempPath(),
-			dbPath: Path.Combine(Path.GetTempPath(), $"grpc-node-{Guid.NewGuid():N}"),
+			dbPath: _dbPath,
 			expiryStrategy: expiryStrategy);
 
 		Channel = GrpcChannel.ForAddress(new UriBuilder
@@ -81,9 +83,29 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId>
 	[OneTimeTearDown]
 	public async Task TearDown()
 	{
+		Exception shutdownException = null;
 		await _batchAppender.DisposeAsync();
 		Channel?.Dispose();
-		await _node.Shutdown();
+		try
+		{
+			await _node.Shutdown();
+		}
+		catch (Exception ex)
+		{
+			shutdownException = ex;
+			throw;
+		}
+		finally
+		{
+			try
+			{
+				if (Directory.Exists(_dbPath))
+					Directory.Delete(_dbPath, recursive: true);
+			}
+			catch (Exception) when (shutdownException is not null)
+			{
+			}
+		}
 	}
 
 	private static CallCredentials CallCredentialsFromUser((string userName, string password) credentials) =>

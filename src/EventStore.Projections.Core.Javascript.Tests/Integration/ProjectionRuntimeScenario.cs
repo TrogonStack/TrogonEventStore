@@ -58,9 +58,15 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 
 		async ValueTask StopAsync()
 		{
+			Exception? primaryException = null;
 			try
 			{
 				await subsystem.Stop();
+			}
+			catch (Exception ex)
+			{
+				primaryException = ex;
+				throw;
 			}
 			finally
 			{
@@ -68,10 +74,24 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 				{
 					await db.DisposeAsync();
 				}
+				catch (Exception) when (primaryException is not null)
+				{
+				}
+				catch (Exception ex)
+				{
+					primaryException = ex;
+					throw;
+				}
 				finally
 				{
-					if (Directory.Exists(dbPath))
-						Directory.Delete(dbPath, recursive: true);
+					try
+					{
+						if (Directory.Exists(dbPath))
+							Directory.Delete(dbPath, recursive: true);
+					}
+					catch (Exception) when (primaryException is not null)
+					{
+					}
 				}
 			}
 		}
