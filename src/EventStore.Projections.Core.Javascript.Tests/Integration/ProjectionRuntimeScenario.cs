@@ -35,6 +35,7 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 		var options =
 			new ProjectionSubsystemOptions(3, ProjectionType.All, true, TimeSpan.FromMinutes(5), false, 500, 500);
 		var dbPath = Path.Combine(Path.GetTempPath(), $"projection-runtime-{Guid.NewGuid():N}");
+		Directory.CreateDirectory(dbPath);
 		var config = new TFChunkDbConfig(dbPath, new VersionedPatternFileNamingStrategy(dbPath, "chunk-"), 10000, 0,
 			writerCheckpoint, new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),
 			new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1), new InMemoryCheckpoint(-1),

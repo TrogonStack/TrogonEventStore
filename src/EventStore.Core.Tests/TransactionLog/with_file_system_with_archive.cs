@@ -177,7 +177,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 
 		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
 			throw new NotImplementedException();
-		}
+	}
 
 	private sealed class FakeChunkEnumerator(params TFChunkInfo[] chunkInfos) : IChunkEnumerator
 	{

@@ -228,7 +228,7 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 
 		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
 			inner.SetAttributes(fileName, fileAttributes);
-		}
+	}
 
 	private sealed class TrackingChunkHandle(IChunkHandle inner) : IChunkHandle
 	{

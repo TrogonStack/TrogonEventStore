@@ -369,18 +369,18 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 		public ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token) =>
 			inner.ReadHeaderAsync(fileName, token);
 
-			public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
-				inner.ReadFooterAsync(fileName, token);
+		public ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token) =>
+			inner.ReadFooterAsync(fileName, token);
 
-			public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
+		public IChunkEnumerator CreateChunkEnumerator() => inner.CreateChunkEnumerator();
 
-			public void MoveFile(string sourceFileName, string destinationFileName) =>
-				inner.MoveFile(sourceFileName, destinationFileName);
+		public void MoveFile(string sourceFileName, string destinationFileName) =>
+			inner.MoveFile(sourceFileName, destinationFileName);
 
-			public void DeleteFile(string fileName) =>
-				inner.DeleteFile(fileName);
+		public void DeleteFile(string fileName) =>
+			inner.DeleteFile(fileName);
 
-			public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
-				inner.SetAttributes(fileName, fileAttributes);
-		}
+		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
+			inner.SetAttributes(fileName, fileAttributes);
 	}
+}
