@@ -2,7 +2,7 @@
 
 EventStoreDB collects metrics in [Prometheus format](https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format), available on the `/metrics` endpoint. Prometheus can be configured to scrape this endpoint directly. The metrics are configured in `metricsconfig.json`. 
 
-In addition, EventStoreDB can actively export metrics to a specified endpoint using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP). <Badge type="warning" text="Commercial" vertical="middle"></Badge>
+In addition, EventStoreDB can actively export metrics to a specified endpoint using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
 
 ## Metrics reference
 
@@ -583,4 +583,3 @@ Following metric is reported when `ExpectedScrapeIntervalSeconds` is set to `15`
 eventstore_writer_flush_size_max{range="16-20 seconds"} 1854 1688070655500
 ```
 In above example, maximum reported is `1854`. It is not a maximum measurement in last `15s` but rather maximum measurement in last `16` to last `20` seconds i.e. the maximum measurement could have been recorded in last `16s`, last `17s`, …, upto last `20s`.
-

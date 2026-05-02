@@ -57,7 +57,8 @@ internal static class Program
 				options.Logging.LogFileInterval,
 				options.Logging.LogFileRetentionCount,
 				options.Logging.DisableLogFile,
-				options.Logging.LogConfig);
+				options.Logging.LogConfig,
+				configuration);
 
 			if (options.Application.Help)
 			{

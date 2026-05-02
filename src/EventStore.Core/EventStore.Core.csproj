@@ -23,6 +23,7 @@
 		<PackageReference Include="OpenTelemetry.Extensions.Hosting" />
 		<PackageReference Include="Quickenshtein" />
 		<PackageReference Include="Scrutor" />
+		<PackageReference Include="Serilog.Sinks.OpenTelemetry" />
 		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
 		<PackageReference Include="System.IO.Pipelines" />

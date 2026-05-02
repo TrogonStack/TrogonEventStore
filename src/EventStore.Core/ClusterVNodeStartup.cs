@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EventStore.Common.Configuration;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
+using EventStore.Core.Configuration;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Grpc;
@@ -229,7 +230,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton<ServerFeatures>()
 
 			.AddOpenTelemetry()
-			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration))
+			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration, _configuration))
 			.Services
 
 			// gRPC
@@ -253,7 +254,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			component.ConfigureServices(services, _configuration);
 	}
 
-	private static void ConfigureMetrics(MeterProviderBuilder meterOptions, MetricsConfiguration metricsConfiguration)
+	private static void ConfigureMetrics(
+		MeterProviderBuilder meterOptions,
+		MetricsConfiguration metricsConfiguration,
+		IConfiguration configuration)
 	{
 		meterOptions
 			.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("eventstore"))
@@ -306,18 +310,32 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			})
 			.AddPrometheusExporter(options => options.ScrapeResponseCacheDurationMilliseconds = 1000);
 
-		ConfigureOtlpMetrics(meterOptions, metricsConfiguration);
+		ConfigureOtlpMetrics(meterOptions, metricsConfiguration, configuration);
 	}
 
 	private static void ConfigureOtlpMetrics(
 		MeterProviderBuilder meterOptions,
-		MetricsConfiguration metricsConfiguration)
+		MetricsConfiguration metricsConfiguration,
+		IConfiguration configuration)
 	{
-		var options = metricsConfiguration.Otlp;
-		if (!options.Enabled)
+		if (!configuration.OtlpMetricsEnabled(metricsConfiguration))
 			return;
 
-		meterOptions.AddOtlpExporter();
+		meterOptions.AddOtlpExporter((exporterOptions, metricReaderOptions) =>
+		{
+			configuration.BindOtlpExporterOptions(
+				OpenTelemetryConfiguration.OtlpMetricsOtlpPrefix,
+				exporterOptions);
+			configuration.GetSection(OpenTelemetryConfiguration.OtlpMetricsPrefix).Bind(metricReaderOptions);
+
+			var periodicOptions = metricReaderOptions.PeriodicExportingMetricReaderOptions;
+			if (periodicOptions.ExportIntervalMilliseconds is null &&
+				metricsConfiguration.ExpectedScrapeIntervalSeconds > 0)
+			{
+				periodicOptions.ExportIntervalMilliseconds =
+					metricsConfiguration.ExpectedScrapeIntervalSeconds * 1000;
+			}
+		});
 	}
 
 	public void Handle(SystemMessage.SystemReady _) => _ready = true;
