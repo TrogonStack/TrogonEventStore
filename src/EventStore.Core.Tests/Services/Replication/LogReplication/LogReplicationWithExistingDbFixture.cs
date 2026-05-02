@@ -49,11 +49,10 @@ public abstract class
 
 		var chunk = await TFChunk.CreateWithHeader(
 			fileSystem: db.Config.ChunkFileSystem,
-			filename: filename,
-			header: header,
-			fileSize: TFChunk.GetAlignedSize(db.Config.ChunkSize + ChunkHeader.Size + ChunkFooter.Size),
-			inMem: false,
-			unbuffered: db.Config.Unbuffered,
+				filename: filename,
+				header: header,
+				fileSize: TFChunk.GetAlignedSize(db.Config.ChunkSize + ChunkHeader.Size + ChunkFooter.Size),
+				unbuffered: db.Config.Unbuffered,
 			writethrough: db.Config.WriteThrough,
 			reduceFileCachePressure: db.Config.ReduceFileCachePressure,
 			asyncIO: db.Config.AsyncIO,

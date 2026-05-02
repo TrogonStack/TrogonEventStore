@@ -155,7 +155,7 @@ public class SwitchChunkFailureTests<TLogFormat, TStreamId> : SwitchChunkTests<T
 		var chunk = await TFChunk.CreateWithHeader(
 			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")),
 			Path.Combine(PathName, newChunk), chunkHeader, 1024, false, false,
-			false, false, false,
+			false, false,
 			new TFChunkTracker.NoOp(), new IdentityChunkTransformFactory(), ReadOnlyMemory<byte>.Empty,
 			CancellationToken.None);
 		chunk.Dispose();

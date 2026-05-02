@@ -67,7 +67,7 @@ public class SubscriptionsService<TStreamId> :
 	private readonly IEnvelope _busEnvelope;
 	private readonly IQueuedHandler _queuedHandler;
 	private readonly IReadIndex<TStreamId> _readIndex;
-	private readonly IInMemoryStreamReader _inMemReader;
+	private readonly IInMemoryStreamReader _memoryStreamReader;
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private static readonly char[] _linkToSeparator = new[] { '@' };
 
@@ -76,21 +76,21 @@ public class SubscriptionsService<TStreamId> :
 		IQueuedHandler queuedHandler,
 		IAuthorizationProvider authorizationProvider,
 		IReadIndex<TStreamId> readIndex,
-		IInMemoryStreamReader inMemReader)
+		IInMemoryStreamReader inMemoryStreamReader)
 	{
 
 		Ensure.NotNull(bus, nameof(bus));
 		Ensure.NotNull(queuedHandler, nameof(queuedHandler));
 		Ensure.NotNull(authorizationProvider, nameof(authorizationProvider));
 		Ensure.NotNull(readIndex, nameof(readIndex));
-		Ensure.NotNull(inMemReader, nameof(inMemReader));
+		Ensure.NotNull(inMemoryStreamReader, nameof(inMemoryStreamReader));
 
 		_bus = bus;
 		_busEnvelope = bus;
 		_queuedHandler = queuedHandler;
 		_authorizationProvider = authorizationProvider;
 		_readIndex = readIndex;
-		_inMemReader = inMemReader;
+		_memoryStreamReader = inMemoryStreamReader;
 	}
 
 	public void Handle(SystemMessage.SystemStart message)
@@ -161,7 +161,7 @@ public class SubscriptionsService<TStreamId> :
 				validationStreamVersion: null,
 				user: SystemAccounts.System);
 
-			var readResult = _inMemReader.ReadBackwards(readMsg);
+			var readResult = _memoryStreamReader.ReadBackwards(readMsg);
 			lastEventNumber = readResult.LastEventNumber;
 		}
 		else if (!msg.EventStreamId.IsEmptyString())

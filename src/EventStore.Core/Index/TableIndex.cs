@@ -45,7 +45,6 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 	private readonly int _maxSizeForMemory;
 	private readonly int _maxTablesPerLevel;
 	private readonly bool _additionalReclaim;
-	private readonly bool _inMem;
 	private readonly bool _skipIndexVerify;
 	private readonly int _indexCacheDepth;
 	private readonly bool _useBloomFilter;
@@ -91,7 +90,6 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		int maxSizeForMemory = 1000000,
 		int maxTablesPerLevel = 4,
 		bool additionalReclaim = false,
-		bool inMem = false,
 		bool skipIndexVerify = false,
 		int indexCacheDepth = 16,
 		int initializationThreads = 1,
@@ -121,7 +119,6 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		_maxSizeForMemory = maxSizeForMemory;
 		_maxTablesPerLevel = maxTablesPerLevel;
 		_additionalReclaim = additionalReclaim;
-		_inMem = inMem;
 		_skipIndexVerify = ShouldForceIndexVerify() ? false : skipIndexVerify;
 		_indexCacheDepth = indexCacheDepth;
 		_initializationThreads = initializationThreads;
@@ -146,14 +143,6 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		if (_initialized)
 			throw new IOException("TableIndex is already initialized.");
 		_initialized = true;
-
-		if (_inMem)
-		{
-			_indexMap = IndexMap.CreateEmpty(_maxTablesPerLevel, int.MaxValue, _pTableMaxReaderCount);
-			_prepareCheckpoint = _indexMap.PrepareCheckpoint;
-			_commitCheckpoint = _indexMap.CommitCheckpoint;
-			return;
-		}
 
 		if (ShouldForceIndexVerify())
 		{
@@ -307,7 +296,6 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 			Log.Debug("Switching MemTable, currently: {awaitingMemTables} awaiting tables.", newTables.Count);
 
 			_awaitingMemTables = newTables;
-			if (_inMem) return;
 			TryProcessAwaitingTables();
 
 			if (_additionalReclaim)
@@ -1093,8 +1081,6 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 	{
 		if (!_backgroundRunningEvent.Wait(7000))
 			throw new TimeoutException("Could not finish background thread in reasonable time.");
-		if (_inMem)
-			return;
 		if (_indexMap == null) return;
 		if (removeFiles)
 		{
