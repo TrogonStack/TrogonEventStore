@@ -1,11 +1,17 @@
+using System;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
+using EventStore.Client.Users;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Transport.Http.Controllers;
 using EventStore.Core.Tests.Helpers;
+using Grpc.Core;
+using Grpc.Net.Client;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using UsersClient = EventStore.Client.Users.Users.UsersClient;
 
 namespace EventStore.Core.Tests.Http.Users
 {
@@ -24,6 +30,31 @@ namespace EventStore.Core.Tests.Http.Users
 			{
 				SetDefaultCredentials(_admin);
 			}
+
+			protected async Task DisableUser(string loginName, NetworkCredential credentials)
+			{
+				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
+					new GrpcChannelOptions
+					{
+						HttpClient = _node.HttpClient,
+						DisposeHttpClient = false
+					});
+				var users = new UsersClient(channel);
+				await users.DisableAsync(new DisableReq
+				{
+					Options = new DisableReq.Types.Options
+					{
+						LoginName = loginName
+					}
+				}, new CallOptions(new Metadata
+				{
+					{"authorization", BasicAuthHeader(credentials)}
+				}));
+			}
+
+			private static string BasicAuthHeader(NetworkCredential credentials) =>
+				"Basic " + Convert.ToBase64String(
+					Encoding.ASCII.GetBytes($"{credentials.UserName}:{credentials.Password}"));
 		}
 
 		[Category("LongRunning")]
@@ -105,10 +136,6 @@ namespace EventStore.Core.Tests.Http.Users
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test1",
 										Rel = "edit"
-									},
-									new {
-										Href = "http://" + _node.HttpEndPoint + "/users/test1/command/disable",
-										Rel = "disable"
 									}
 								}
 							}
@@ -134,7 +161,7 @@ namespace EventStore.Core.Tests.Http.Users
 						Password = "Pa55w0rd!"
 					}, _admin);
 
-				await MakePost("/users/test2/command/disable", _admin);
+				await DisableUser("test2", _admin);
 			}
 
 			protected override async Task When()
@@ -149,7 +176,7 @@ namespace EventStore.Core.Tests.Http.Users
 			}
 
 			[Test]
-			public void returns_valid_json_data_with_enable_link()
+			public void returns_valid_json_data()
 			{
 				HelperExtensions.AssertJson(
 					new
@@ -163,10 +190,6 @@ namespace EventStore.Core.Tests.Http.Users
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test2",
 										Rel = "edit"
-									},
-									new {
-										Href = "http://" + _node.HttpEndPoint + "/users/test2/command/enable",
-										Rel = "enable"
 									}
 								}
 							}
@@ -226,72 +249,6 @@ namespace EventStore.Core.Tests.Http.Users
 				Assert.AreEqual(HttpStatusCode.Conflict, _response.StatusCode);
 			}
 		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_disabling_an_enabled_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			protected override Task Given()
-			{
-				return MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-			}
-
-			protected override Task When()
-			{
-				return MakePost("/users/test1/command/disable", _admin);
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
-			}
-
-			[Test]
-			public async Task enables_it()
-			{
-				var jsonResponse = await GetJson<JObject>("/users/test1");
-				HelperExtensions.AssertJson(
-					new { Success = true, Error = "Success", Data = new { LoginName = "test1", Disabled = true } },
-					jsonResponse);
-			}
-		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_enabling_a_disabled_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override async Task Given()
-			{
-				await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				await MakePost("/users/test1/command/disable", _admin);
-			}
-
-			protected override async Task When()
-			{
-				_response = await MakePost("/users/test1/command/enable", _admin);
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
-			}
-
-			[Test]
-			public async Task disables_it()
-			{
-				var jsonResponse = await GetJson<JObject>("/users/test1");
-				HelperExtensions.AssertJson(
-					new { Success = true, Error = "Success", Data = new { LoginName = "test1", Disabled = false } },
-					jsonResponse);
-			}
-		}
-
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		class when_updating_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>

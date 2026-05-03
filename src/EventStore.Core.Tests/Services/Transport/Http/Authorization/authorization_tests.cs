@@ -189,8 +189,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/users;POST;Admin",
 			"/users/;POST;Admin",
 			"/users/{login};PUT;Admin",
-			"/users/{login}/command/enable;POST;Admin",
-			"/users/{login}/command/disable;POST;Admin",
 			"/ui/assets/{*remaining_path};GET;None",
 			";GET;None"
 		)] string httpEndpointDetails
