@@ -6269,6 +6269,19 @@
             "name": "DisableResp"
           },
           {
+            "name": "CurrentReq"
+          },
+          {
+            "name": "CurrentResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "user_details",
+                "type": "DetailsResp.UserDetails"
+              }
+            ]
+          },
+          {
             "name": "DetailsReq",
             "fields": [
               {
@@ -6439,6 +6452,11 @@
                 "name": "Enable",
                 "in_type": "EnableReq",
                 "out_type": "EnableResp"
+              },
+              {
+                "name": "Current",
+                "in_type": "CurrentReq",
+                "out_type": "CurrentResp"
               },
               {
                 "name": "Details",

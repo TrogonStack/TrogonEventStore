@@ -17,7 +17,6 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 	{
 		var skipActionPaths = new[] {
 			"/admin/login",
-			"/users/$current",
 			// handled by: /stats/{statPath}
 			"/stats/replication",
 			"/stats/tcp",
