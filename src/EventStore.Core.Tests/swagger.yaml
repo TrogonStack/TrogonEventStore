@@ -118,11 +118,6 @@ paths:
       responses:
         "200":
           description: OK
-  "/users/{login}":
-    get:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:
