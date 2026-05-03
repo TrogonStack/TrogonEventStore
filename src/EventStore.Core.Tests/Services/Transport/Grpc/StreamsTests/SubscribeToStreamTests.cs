@@ -13,7 +13,6 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 public class SubscribeToStreamTests
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_subscribing_to_stream<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private const string StreamId = nameof(when_subscribing_to_stream<TLogFormat, TStreamId>);

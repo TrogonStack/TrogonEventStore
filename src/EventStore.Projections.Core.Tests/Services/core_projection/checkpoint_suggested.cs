@@ -14,7 +14,6 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 public static class checkpoint_suggested
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_the_checkpoint_is_suggested<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
 	{
 		protected override void Given()
@@ -56,7 +55,6 @@ public static class checkpoint_suggested
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_the_second_checkpoint_is_suggested<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
 	{
 		protected override void Given()
@@ -108,7 +106,6 @@ public static class checkpoint_suggested
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_the_second_checkpoint_is_suggested_and_write_succeeds<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
 	{
 		protected override void Given()

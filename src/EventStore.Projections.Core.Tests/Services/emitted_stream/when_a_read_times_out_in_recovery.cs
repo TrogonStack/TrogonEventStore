@@ -16,7 +16,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_a_read_times_out_in_recovery<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 {
 	private const string TestStreamId = "test_stream";

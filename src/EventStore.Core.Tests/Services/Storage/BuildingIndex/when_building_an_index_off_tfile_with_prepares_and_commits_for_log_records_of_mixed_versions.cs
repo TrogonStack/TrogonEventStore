@@ -11,7 +11,6 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Not applicable")]
 public class
 	WhenBuildingAnIndexOffTfileWithPreparesAndCommitsForLogRecordsOfMixedVersions<TLogFormat, TStreamId> :
 	ReadIndexTestScenario<TLogFormat, TStreamId>

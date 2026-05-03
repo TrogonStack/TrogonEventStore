@@ -16,7 +16,6 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 public class ReadStreamsForwardTests
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_reading_forward_from_stream_that_has_been_truncated<TLogFormat, TStreamId>
 		: GrpcSpecification<TLogFormat, TStreamId>
 	{
@@ -129,7 +128,6 @@ public class ReadStreamsForwardTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_reading_forward_from_the_start_of_the_stream<TLogFormat, TStreamId>
 		: GrpcSpecification<TLogFormat, TStreamId>
 	{
@@ -249,7 +247,6 @@ public class ReadStreamsForwardTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_reading_forward_from_the_middle_of_the_stream<TLogFormat, TStreamId>
 		: GrpcSpecification<TLogFormat, TStreamId>
 	{
@@ -323,7 +320,6 @@ public class ReadStreamsForwardTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_reading_forward_from_stream_with_no_events_after_position<TLogFormat, TStreamId>
 		: GrpcSpecification<TLogFormat, TStreamId>
 	{

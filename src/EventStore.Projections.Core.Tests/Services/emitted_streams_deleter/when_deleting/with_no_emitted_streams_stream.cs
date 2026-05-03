@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_streams_deleter.when_deleting;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_no_emitted_streams_stream<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId>
 {
 	protected Action _onDeleteStreamCompleted;

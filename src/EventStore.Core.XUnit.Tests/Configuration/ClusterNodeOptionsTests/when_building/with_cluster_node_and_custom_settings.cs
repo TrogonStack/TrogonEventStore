@@ -14,7 +14,6 @@ using NUnit.Framework;
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when_building;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_cluster_dns_name<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) =>
@@ -40,7 +39,6 @@ public class with_cluster_dns_name<TLogFormat, TStreamId> : ClusterMemberScenari
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_dns_discovery_disabled_and_no_gossip_seeds<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private Exception _caughtException;
@@ -78,7 +76,6 @@ public class with_dns_discovery_disabled_and_no_gossip_seeds<TLogFormat, TStream
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_dns_discovery_disabled_and_gossip_seeds_defined<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	private EndPoint[] _gossipSeeds = {
@@ -103,7 +100,6 @@ public class with_dns_discovery_disabled_and_gossip_seeds_defined<TLogFormat, TS
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_custom_gossip_seeds<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	private readonly DnsEndPoint[] _gossipSeeds = { new("127.0.1.15", 2112), new("127.0.1.15", 3112) };
@@ -125,7 +121,6 @@ public class with_custom_gossip_seeds<TLogFormat, TStreamId> : ClusterMemberScen
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_custom_external_ip_address_as_advertise_info<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
@@ -153,7 +148,6 @@ public class with_custom_external_ip_address_as_advertise_info<TLogFormat, TStre
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_0_0_0_0_as_external_ip_address_and_custom_advertise_info<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
@@ -181,7 +175,6 @@ public class with_0_0_0_0_as_external_ip_address_and_custom_advertise_info<TLogF
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_0_0_0_0_as_external_ip_address_with_no_explicit_advertise_info_set<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
@@ -208,7 +201,6 @@ public class with_0_0_0_0_as_external_ip_address_with_no_explicit_advertise_info
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	with_0_0_0_0_for_internal_and_external_ips_with_advertise_info_set_for_external<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
@@ -239,7 +231,6 @@ public class
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_cluster_custom_password_for_admin_and_ops_user<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
 {
 	private const string _adminPassword = "Admin";
@@ -260,7 +251,6 @@ public class with_cluster_custom_password_for_admin_and_ops_user<TLogFormat, TSt
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class with_cluster_custom_settings_check_for_environment_only_options<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat,
 		TStreamId>
 {

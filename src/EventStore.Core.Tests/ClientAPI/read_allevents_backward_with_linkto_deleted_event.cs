@@ -6,7 +6,6 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class read_event_of_linkto_to_deleted_event<TLogFormat, TStreamId> : SpecificationWithLinkToToDeletedEvents<TLogFormat, TStreamId>
 {
 	private EventReadResult _read;
@@ -37,7 +36,6 @@ public class read_event_of_linkto_to_deleted_event<TLogFormat, TStreamId> : Spec
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class read_allevents_backward_with_linkto_deleted_event<TLogFormat, TStreamId> : SpecificationWithLinkToToDeletedEvents<TLogFormat, TStreamId>
 {
 	private StreamEventsSlice _read;

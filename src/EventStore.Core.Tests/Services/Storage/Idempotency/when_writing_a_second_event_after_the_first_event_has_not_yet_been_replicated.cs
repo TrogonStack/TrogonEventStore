@@ -9,7 +9,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.Idempotency;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	when_writing_a_second_event_after_the_first_event_has_not_yet_been_replicated<TLogFormat, TStreamId> :
 	WriteEventsToIndexScenario<TLogFormat, TStreamId>

@@ -10,7 +10,6 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class read_event_stream_backward_should<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private MiniNode<TLogFormat, TStreamId> _node;

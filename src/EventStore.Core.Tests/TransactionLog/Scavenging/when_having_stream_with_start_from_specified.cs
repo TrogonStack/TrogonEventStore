@@ -9,7 +9,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_having_stream_with_truncatebefore_specified<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
 {
 	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)

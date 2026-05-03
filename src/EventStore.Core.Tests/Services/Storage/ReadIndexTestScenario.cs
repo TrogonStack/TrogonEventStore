@@ -8,7 +8,6 @@ using EventStore.Core.DataStructures;
 using EventStore.Core.Index;
 using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
-using EventStore.Core.LogV3;
 using EventStore.Core.Messaging;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services;

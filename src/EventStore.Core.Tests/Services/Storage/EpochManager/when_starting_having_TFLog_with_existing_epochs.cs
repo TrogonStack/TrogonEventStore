@@ -22,7 +22,6 @@ using NUnit.Framework.Internal;
 namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public sealed class
 	WhenStartingHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture,
 	IDisposable

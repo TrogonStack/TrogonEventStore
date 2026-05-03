@@ -48,7 +48,6 @@ projections_projects=(
 )
 
 misc_projects=(
-    EventStore.LogV3.Tests
     EventStore.BufferManagement.Tests
     EventStore.Common.Tests
     EventStore.SourceGenerators.Tests

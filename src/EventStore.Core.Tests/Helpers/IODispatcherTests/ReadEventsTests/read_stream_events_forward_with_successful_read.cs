@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Helpers.IODispatcherTests.ReadEventsTests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class async_read_stream_events_forward_with_successful_read<TLogFormat, TStreamId> : with_read_io_dispatcher<TLogFormat, TStreamId>
 {
 	private ClientMessage.ReadStreamEventsForwardCompleted _result;
@@ -57,7 +56,6 @@ public class async_read_stream_events_forward_with_successful_read<TLogFormat, T
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class read_stream_events_forward_with_successful_read<TLogFormat, TStreamId> : with_read_io_dispatcher<TLogFormat, TStreamId>
 {
 	private ClientMessage.ReadStreamEventsForwardCompleted _result;

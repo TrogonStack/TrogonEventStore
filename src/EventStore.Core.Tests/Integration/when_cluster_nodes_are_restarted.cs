@@ -8,7 +8,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Integration;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
 	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(5);

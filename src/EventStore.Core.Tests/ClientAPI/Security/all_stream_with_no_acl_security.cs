@@ -8,7 +8,6 @@ namespace EventStore.Core.Tests.ClientAPI.Security;
 
 [Category("ClientAPI"), Category("LongRunning"), Category("Network")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class all_stream_with_no_acl_security<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId>
 {
 	[OneTimeSetUp]

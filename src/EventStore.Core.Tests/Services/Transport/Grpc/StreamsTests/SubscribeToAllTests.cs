@@ -14,7 +14,6 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 public class SubscribeToAllTests
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_subscribing_to_all<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private const string StreamId = nameof(when_subscribing_to_all<TLogFormat, TStreamId>);
@@ -77,7 +76,6 @@ public class SubscribeToAllTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_subscribing_to_all_live<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private const string StreamId = nameof(when_subscribing_to_all_live<TLogFormat, TStreamId>);

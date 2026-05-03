@@ -9,7 +9,6 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNext
 
 // test the binary chop where it has to repeatedly lower the high bound
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	WhenReadingVeryLongStreamWithMaxAgeAndSomeExpiredEvents<TLogFormat, TStreamId>()
 	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize)

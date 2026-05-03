@@ -119,7 +119,6 @@ public class DeleteTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class DeleteExistingStreamExpectedRevision<TLogFormat, TStreamId>
 		: DeleteExistingStreamSpecification<TLogFormat, TStreamId>
 	{
@@ -127,7 +126,6 @@ public class DeleteTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class DeleteExistingStreamAny<TLogFormat, TStreamId>
 		: DeleteExistingStreamSpecification<TLogFormat, TStreamId>
 	{
@@ -135,7 +133,6 @@ public class DeleteTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class DeleteExistingStreamExists<TLogFormat, TStreamId>
 		: DeleteExistingStreamSpecification<TLogFormat, TStreamId>
 	{
@@ -143,7 +140,6 @@ public class DeleteTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class DeleteNoStream<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private Exception _caughtException;
@@ -183,7 +179,6 @@ public class DeleteTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class DeleteWithExistingMetadata<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private Exception _caughtException;

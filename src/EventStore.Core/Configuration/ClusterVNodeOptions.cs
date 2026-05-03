@@ -480,8 +480,7 @@ public partial record ClusterVNodeOptions
 
 		public StatsStorage StatsStorage { get; init; } = StatsStorage.File;
 
-		[Description("The log format version to use for storing the event log. " +
-		             "V3 is currently in development and should only be used for testing purposes.")]
+		[Description("The log format version to use for storing the event log.")]
 		public DbLogFormat DbLogFormat { get; init; } = DbLogFormat.V2;
 
 		[Description("The amount of memory & disk space, in bytes, to use for the stream existence filter. " +

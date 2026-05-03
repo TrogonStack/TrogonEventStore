@@ -5,7 +5,6 @@ namespace EventStore.Core.Tests.ClientAPI.UserManagement;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class list_users<TLogFormat, TStreamId> : TestWithNode<TLogFormat, TStreamId>
 {
 	[Test]

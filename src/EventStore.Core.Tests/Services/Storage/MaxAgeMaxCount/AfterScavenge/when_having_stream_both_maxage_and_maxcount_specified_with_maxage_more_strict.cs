@@ -9,7 +9,6 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.AfterScavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	when_having_stream_both_maxage_and_maxcount_specified_with_maxage_more_strict<TLogFormat, TStreamId> :
 	ReadIndexTestScenario<TLogFormat, TStreamId>

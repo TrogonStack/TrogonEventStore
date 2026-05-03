@@ -12,7 +12,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_restarting_with_a_connected_subscription<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId>
 {
 	private readonly ManualResetEvent _subscriptionDropped = new ManualResetEvent(false);

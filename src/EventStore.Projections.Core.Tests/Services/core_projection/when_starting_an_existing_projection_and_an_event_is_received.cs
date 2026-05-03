@@ -10,7 +10,6 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_starting_an_existing_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
 {
 	private string _testProjectionState = @"{""test"":1}";

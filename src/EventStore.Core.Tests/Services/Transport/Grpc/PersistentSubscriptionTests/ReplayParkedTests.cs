@@ -20,7 +20,6 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.PersistentSubscriptionTe
 public class ReplayParkedTests
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_replaying_parked_messages_with_no_limit_for_existing_subscription<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
@@ -129,7 +128,6 @@ public class ReplayParkedTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_replaying_parked_messages_with_a_replay_limit_for_existing_subscription<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
@@ -264,7 +262,6 @@ public class ReplayParkedTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_replaying_parked_messages_for_non_existent_subscription<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>

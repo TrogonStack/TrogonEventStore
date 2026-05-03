@@ -14,7 +14,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId>
 {
 	private const string ExpectedRunningProjectionPosition = "C:0/P:-1";

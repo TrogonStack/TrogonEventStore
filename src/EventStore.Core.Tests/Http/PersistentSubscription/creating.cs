@@ -11,7 +11,6 @@ namespace EventStore.Core.Tests.Http.PersistentSubscription;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_a_subscription<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	private HttpResponseMessage _response;
@@ -50,7 +49,6 @@ class when_creating_a_subscription<TLogFormat, TStreamId> : with_admin_user<TLog
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_a_subscription_with_query_params<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	private HttpResponseMessage _response;
@@ -89,7 +87,6 @@ class when_creating_a_subscription_with_query_params<TLogFormat, TStreamId> : wi
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_a_subscription_without_permissions<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	private HttpResponseMessage _response;
@@ -122,7 +119,6 @@ class when_creating_a_subscription_without_permissions<TLogFormat, TStreamId> : 
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_a_duplicate_subscription<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	private HttpResponseMessage _response;
@@ -162,7 +158,6 @@ class when_creating_a_duplicate_subscription<TLogFormat, TStreamId> : with_admin
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_a_subscription_with_bad_config<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	protected string SubscriptionPath;
@@ -200,7 +195,6 @@ class when_creating_a_subscription_with_bad_config<TLogFormat, TStreamId> : with
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_persistent_subscription_with_message_timeout_0<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	protected string SubscriptionPath;
@@ -248,7 +242,6 @@ class when_creating_persistent_subscription_with_message_timeout_0<TLogFormat, T
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_persistent_subscription_without_message_timeout<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	protected string SubscriptionPath;

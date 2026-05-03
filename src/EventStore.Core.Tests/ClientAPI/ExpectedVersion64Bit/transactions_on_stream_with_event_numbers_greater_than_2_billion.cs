@@ -8,7 +8,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 [Category("ClientAPI"), Category("LongRunning")]
 public class TransactionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
 	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>

@@ -16,7 +16,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	[Test]

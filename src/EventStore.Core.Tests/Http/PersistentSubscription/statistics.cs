@@ -14,7 +14,6 @@ namespace EventStore.Core.Tests.Http.PersistentSubscription;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class
 	when_getting_statistics_for_new_subscription_for_stream_with_existing_events<TLogFormat, TStreamId> : with_subscription_having_events<TLogFormat, TStreamId>
 {
@@ -45,7 +44,6 @@ class
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_all_statistics_in_json<TLogFormat, TStreamId> : with_subscription_having_events<TLogFormat, TStreamId>
 {
 	private JArray _json;
@@ -72,7 +70,6 @@ class when_getting_all_statistics_in_json<TLogFormat, TStreamId> : with_subscrip
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_all_statistics_in_xml<TLogFormat, TStreamId> : with_subscription_having_events<TLogFormat, TStreamId>
 {
 	private XDocument _xml;
@@ -99,7 +96,6 @@ class when_getting_all_statistics_in_xml<TLogFormat, TStreamId> : with_subscript
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_non_existent_single_statistics<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	private HttpResponseMessage _response;
@@ -122,7 +118,6 @@ class when_getting_non_existent_single_statistics<TLogFormat, TStreamId> : with_
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_non_existent_stream_statistics<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
 	private HttpResponseMessage _response;
@@ -145,7 +140,6 @@ class when_getting_non_existent_stream_statistics<TLogFormat, TStreamId> : with_
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_subscription_statistics_for_individual<TLogFormat, TStreamId> : SpecificationWithPersistentSubscriptionAndConnections<TLogFormat, TStreamId>
 {
 	private JObject _json;
@@ -247,7 +241,6 @@ class when_getting_subscription_statistics_for_individual<TLogFormat, TStreamId>
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_subscription_stats_summary<TLogFormat, TStreamId> : SpecificationWithPersistentSubscriptionAndConnections<TLogFormat, TStreamId>
 {
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -402,7 +395,6 @@ class when_getting_subscription_stats_summary<TLogFormat, TStreamId> : Specifica
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_getting_subscription_statistics_for_stream<TLogFormat, TStreamId> : SpecificationWithPersistentSubscriptionAndConnections<TLogFormat, TStreamId>
 {
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()

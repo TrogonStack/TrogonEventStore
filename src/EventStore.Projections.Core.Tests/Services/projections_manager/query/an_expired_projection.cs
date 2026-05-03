@@ -46,7 +46,6 @@ public class an_expired_projection
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_retrieving_statistics<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		protected override IEnumerable<WhenStep> When()
@@ -68,7 +67,6 @@ public class an_expired_projection
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_deleted_on_expiry<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		protected override IEnumerable<WhenStep> When()

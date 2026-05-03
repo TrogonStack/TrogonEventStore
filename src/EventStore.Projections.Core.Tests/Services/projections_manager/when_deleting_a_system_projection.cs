@@ -10,7 +10,6 @@ using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using NUnit.Framework;
-using LogV3StreamId = System.UInt32;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
@@ -26,7 +25,6 @@ public class SystemProjectionNames : IEnumerable
 			.Select(x => x.GetRawConstantValue()))
 		{
 			yield return new[] { typeof(LogFormat.V2), typeof(string), projection };
-			yield return new[] { typeof(LogFormat.V3), typeof(LogV3StreamId), projection };
 		}
 	}
 }

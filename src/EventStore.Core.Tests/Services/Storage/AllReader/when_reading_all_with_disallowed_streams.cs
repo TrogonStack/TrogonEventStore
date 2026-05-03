@@ -12,8 +12,6 @@ namespace EventStore.Core.Tests.Services.Storage.AllReader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string), "$persistentsubscription-$all::group-checkpoint")]
 [TestFixture(typeof(LogFormat.V2), typeof(string), "$persistentsubscription-$all::group-parked")]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), "$persistentsubscription-$all::group-checkpoint")]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), "$persistentsubscription-$all::group-parked")]
 public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string disallowedStream)
 	: ReadIndexTestScenario<TLogFormat, TStreamId>
 {

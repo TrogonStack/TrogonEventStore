@@ -8,7 +8,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.ClientAPI;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class list_projections<TLogFormat, TStreamId> : specification_with_standard_projections_runnning<TLogFormat, TStreamId>
 {
 	const string TestProjection =
