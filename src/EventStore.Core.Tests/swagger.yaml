@@ -15,11 +15,6 @@ securityDefinitions:
 schemes:
   - https
 paths:
-  /admin/node/resign:
-    post:
-      responses:
-        "200":
-          description: OK
   /admin/reloadconfig:
     post:
       responses:

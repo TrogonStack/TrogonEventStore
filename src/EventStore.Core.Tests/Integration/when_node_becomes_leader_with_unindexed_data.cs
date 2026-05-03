@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client.Streams;
@@ -32,6 +31,15 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 
 	private const string AuthenticationScheme = "Basic";
 	private readonly string AuthenticationValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{Username}:{Password}"));
+	private static readonly Marshaller<Empty> EmptyMarshaller = Marshallers.Create(
+		static message => message.ToByteArray(),
+		static bytes => Empty.Parser.ParseFrom(bytes));
+	private static readonly Method<Empty, Empty> ResignNodeMethod = new(
+		MethodType.Unary,
+		"event_store.client.operations.Operations",
+		"ResignNode",
+		EmptyMarshaller,
+		EmptyMarshaller);
 	private class CommitTimeoutException : Exception { }
 	private class WrongExpectedVersionException : Exception { }
 
@@ -231,19 +239,13 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 	private async Task ResignLeader(int leaderIdx)
 	{
 		var httpEndPoint = _nodes[leaderIdx].HttpEndPoint;
-		var request = new HttpRequestMessage(HttpMethod.Post, $"https://{httpEndPoint}/admin/node/resign")
-		{
-			Content = new StringContent(""),
-			Headers = {
-				Authorization = new AuthenticationHeaderValue(AuthenticationScheme, AuthenticationValue)
-			}
-		};
-
-		var response = await _httpClient.SendAsync(request);
-		if (response.StatusCode != HttpStatusCode.OK)
-		{
-			throw new Exception($"Unexpected status code: {response.StatusCode}");
-		}
+		using var channel = GrpcChannel.ForAddress(new Uri($"https://{httpEndPoint}"),
+			new GrpcChannelOptions { HttpClient = _httpClient });
+		await channel.CreateCallInvoker().AsyncUnaryCall(
+			ResignNodeMethod,
+			null,
+			GetCallOptions(),
+			new Empty());
 
 		var start = DateTime.UtcNow;
 		while (_nodes[leaderIdx].NodeState != VNodeState.Unknown && DateTime.UtcNow - start < TimeSpan.FromSeconds(2))
