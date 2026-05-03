@@ -5,9 +5,6 @@ using EventStore.ClientAPI;
 using EventStore.ClientAPI.Common;
 using EventStore.Common.Utils;
 using EventStore.Core.Tests.Http.Users.users;
-using EventStore.Transport.Http;
-using NUnit.Framework;
-using HttpStatusCode = System.Net.HttpStatusCode;
 
 namespace EventStore.Core.Tests.Http.PersistentSubscription;
 
@@ -33,14 +30,15 @@ abstract class with_subscription_having_events<TLogFormat, TStreamId> : with_adm
 
 		GroupName = Guid.NewGuid().ToString();
 		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStreamName, GroupName);
-		var response = await MakeJsonPut(SubscriptionPath,
-			new
-			{
-				ResolveLinkTos = true,
-				MessageTimeoutMilliseconds = 10000,
-			},
-			_admin);
-		Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+		var settings = PersistentSubscriptionSettings.Create()
+			.ResolveLinkTos()
+			.StartFromBeginning()
+			.WithMessageTimeoutOf(TimeSpan.FromSeconds(10));
+		await _connection.CreatePersistentSubscriptionAsync(
+			TestStreamName,
+			GroupName,
+			settings,
+			DefaultData.AdminCredentials);
 	}
 
 	protected override Task When() => Task.CompletedTask;

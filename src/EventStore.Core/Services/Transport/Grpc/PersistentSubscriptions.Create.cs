@@ -31,6 +31,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				throw RpcExceptions.AccessDenied();
 			}
 
+			ValidateCreateSettings(settings);
+
 			string streamId = null;
 			string consumerStrategy = null;
 			if (string.IsNullOrEmpty(settings.ConsumerStrategy)) { /*for backwards compatibility*/
@@ -169,6 +171,24 @@ namespace EventStore.Core.Services.Transport.Grpc {
 							: EventFilter.StreamName.Regex(isAllStream, filter.StreamIdentifier.Regex)),
 					_ => throw RpcExceptions.InvalidArgument(filter.FilterCase)
 				};
+
+			static void ValidateCreateSettings(CreateReq.Types.Settings settings) {
+				if (settings is null)
+					throw RpcExceptions.InvalidArgument("Subscription settings are required.");
+
+				if (settings.HistoryBufferSize <= 0)
+					throw RpcExceptions.InvalidArgument($"Buffer Size ({settings.HistoryBufferSize}) must be positive");
+
+				if (settings.LiveBufferSize <= 0)
+					throw RpcExceptions.InvalidArgument($"Live Buffer Size ({settings.LiveBufferSize}) must be positive");
+
+				if (settings.ReadBatchSize <= 0)
+					throw RpcExceptions.InvalidArgument($"Read Batch Size ({settings.ReadBatchSize}) must be positive");
+
+				if (settings.HistoryBufferSize <= settings.ReadBatchSize)
+					throw RpcExceptions.InvalidArgument(
+						$"BufferSize ({settings.HistoryBufferSize}) must be larger than ReadBatchSize ({settings.ReadBatchSize})");
+			}
 
 			return await createPersistentSubscriptionSource.Task;
 
