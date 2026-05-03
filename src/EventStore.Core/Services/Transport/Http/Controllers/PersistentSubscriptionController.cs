@@ -32,7 +32,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		protected override void SubscribeCore(IHttpService service) {
 			Register(service, "/subscriptions?offset={offset}&count={count}", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
-			Register(service, "/subscriptions/restart", HttpMethod.Post, RestartPersistentSubscriptions, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Restart));
 			Register(service, "/subscriptions/{stream}", HttpMethod.Get, GetSubscriptionInfoForStream, Codec.NoCodecs,
 				DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Put, PutSubscription, DefaultCodecs,
@@ -385,25 +384,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			Publish(cmd);
 		}
 		
-		private void RestartPersistentSubscriptions(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-
-			var envelope = new SendToHttpEnvelope<SubscriptionMessage.PersistentSubscriptionsRestarting>(_networkSendQueue, http,
-				(e, message) => e.To("Restarting"),
-				(e, message) => {
-					switch (message) {
-						case SubscriptionMessage.PersistentSubscriptionsRestarting _:
-							return Configure.Ok(e.ContentType);
-						default:
-							return Configure.InternalServerError();
-					}
-				}, CreateErrorEnvelope(http)
-			);
-
-			Publish(new SubscriptionMessage.PersistentSubscriptionsRestart(envelope));
-		}
-
 		private void GetAllSubscriptionInfo(HttpEntityManager http, UriTemplateMatch match) {
 			if (_httpForwarder.ForwardRequest(http))
 				return;

@@ -132,11 +132,6 @@ paths:
       responses:
         "200":
           description: OK
-  /subscriptions/restart:
-    post:
-      responses:
-        "200":
-          description: OK
   /users:
     get:
       responses:
