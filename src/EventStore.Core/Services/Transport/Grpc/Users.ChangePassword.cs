@@ -14,10 +14,10 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 			var user = context.GetHttpContext().User;
 			var changePasswordOperation = ChangePasswordOperation;
-			if (user?.Identity?.Name != null) {
+			if (options?.LoginName != null) {
 				changePasswordOperation =
 					changePasswordOperation.WithParameter(
-						Plugins.Authorization.Operations.Users.Parameters.User(user.Identity.Name));
+						Plugins.Authorization.Operations.Users.Parameters.User(options.LoginName));
 			}
 			if (!await _authorizationProvider.CheckAccessAsync(user, changePasswordOperation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
