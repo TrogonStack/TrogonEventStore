@@ -131,16 +131,6 @@ paths:
       responses:
         "200":
           description: OK
-  "/users/{login}/command/enable":
-    post:
-      responses:
-        "200":
-          description: OK
-  "/users/{login}/command/disable":
-    post:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:

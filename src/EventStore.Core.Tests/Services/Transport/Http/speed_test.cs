@@ -88,8 +88,6 @@ public class FakeController : IHttpController
 		Register("/users/{login}", HttpMethod.Get);
 		Register("/users/", HttpMethod.Post);
 		Register("/users/{login}", HttpMethod.Put);
-		Register("/users/{login}/command/enable", HttpMethod.Post);
-		Register("/users/{login}/command/disable", HttpMethod.Post);
 	}
 
 	private void Register(string route, string verb)
