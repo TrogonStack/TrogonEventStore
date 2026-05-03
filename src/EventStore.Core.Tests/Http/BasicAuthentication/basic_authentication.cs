@@ -70,9 +70,7 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 		{
 			protected override async Task Given()
 			{
-				var response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+				await CreateUser("test1", "User Full Name", Array.Empty<string>(), "Pa55w0rd!", _admin);
 			}
 
 			protected override async Task When()
@@ -93,9 +91,7 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 		{
 			protected override async Task Given()
 			{
-				var response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+				await CreateUser("test1", "User Full Name", Array.Empty<string>(), "Pa55w0rd!", _admin);
 			}
 
 			protected override async Task When()
@@ -116,9 +112,7 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 		{
 			protected override async Task Given()
 			{
-				var response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+				await CreateUser("test1", "User Full Name", Array.Empty<string>(), "Pa55w0rd!", _admin);
 				await DisableUser("test1", _admin);
 			}
 
@@ -140,9 +134,7 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 		{
 			protected override async Task Given()
 			{
-				var response = await MakeRawJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+				await CreateUser("test1", "User Full Name", Array.Empty<string>(), "Pa55w0rd!", _admin);
 				await DeleteUser("test1", _admin);
 			}
 
