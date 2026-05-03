@@ -674,9 +674,7 @@ shown below:
 }
 ```
 
-You can rewrite these to the `$settings` stream with the following request:
-
-@[code{curl}](@samples/default-settings.sh)
+You can rewrite these to the `$settings` stream with a gRPC client or from the Admin UI stream browser.
 
 The `$userStreamAcl` controls the default ACL for user streams, while all system streams use
 the `$systemStreamAcl` as the default.
@@ -848,7 +846,7 @@ UserCertificatesPlugin: user X.509 certificate authentication is enabled
 Use the following command as an example to connect using `curl`: 
 
 ```:no-line-numbers
-curl -i https://localhost:2113/streams/%24all --cert user-admin.crt --key user-admin.key
+curl -i https://localhost:2113/info --cert user-admin.crt --key user-admin.key
 ```
 
 For using X.509 user certificate with EventStoreDB client from an application, refer to the client's documentation.

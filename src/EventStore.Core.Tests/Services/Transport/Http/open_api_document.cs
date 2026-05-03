@@ -23,17 +23,11 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 			"/stats/tcp",
 			// redirected
 			"/users/",
-			"/streams/$all/",
-			"/streams/%24all/",
-			"/streams/{stream}/",
-			"/streams/{stream}/metadata/",
 		};
 
 		var httpActions = _node.Node.HttpService.Actions
 			.Where(a => !skipActionPaths.Contains(a.UriTemplate))
 			.Where(a => !a.UriTemplate.StartsWith("/test"))
-			// exclude AtomPub controller actions
-			.Where(a => !a.UriTemplate.Contains("embed={embed}"))
 			.ToArray();
 
 		var absoluteSwaggerPath = HelperExtensions.GetFilePathFromAssembly("swagger.yaml");

@@ -131,8 +131,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			{
 				ReplicationHeartbeatInterval = 10_000,
 				ReplicationHeartbeatTimeout = 10_000,
-				EnableTrustedAuth = enableTrustedAuth,
-				EnableAtomPubOverHttp = true
+				EnableTrustedAuth = enableTrustedAuth
 			},
 			Cluster = new()
 			{

@@ -129,7 +129,6 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				NodePort = HttpEndPoint.Port,
 				ReplicationHeartbeatTimeout = 2_000,
 				ReplicationHeartbeatInterval = 2_000,
-				EnableAtomPubOverHttp = true,
 				EnableTrustedAuth = enableTrustedAuth,
 				ReplicationHostAdvertiseAs = intHostAdvertiseAs
 			},

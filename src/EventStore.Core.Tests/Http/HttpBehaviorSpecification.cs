@@ -61,19 +61,9 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		await When().WithTimeout(TimeSpan.FromMinutes(5));
 	}
 
-	public string TestStream
-	{
-		get { return "/streams/test" + Tag; }
-	}
-
 	public string TestStreamName
 	{
 		get { return "test" + Tag; }
-	}
-
-	public string TestMetadataStream
-	{
-		get { return "/streams/$$test" + Tag; }
 	}
 
 	public string Tag
@@ -193,13 +183,6 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		return GetRequestResponse(request);
 	}
 
-	protected Task<HttpResponseMessage> MakeArrayEventsPost<T>(string path, T body, NetworkCredential credentials = null, string extra = null)
-	{
-		credentials ??= _defaultCredentials;
-		var request = CreateEventsJsonPostRequest(path, "POST", body, credentials, extra);
-		return GetRequestResponse(request);
-	}
-
 	protected Task<HttpResponseMessage> MakeRawJsonPost<T>(string path, T body, NetworkCredential credentials = null, string extra = null)
 	{
 		credentials ??= _defaultCredentials;
@@ -227,34 +210,6 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		}
 	}
 
-	protected async Task<JObject> MakeJsonEventsPostWithJsonResponse<T>(string path, T body, NetworkCredential credentials = null, string extra = null)
-	{
-		credentials ??= _defaultCredentials;
-		var request = CreateEventsJsonPostRequest(path, "POST", body, credentials, extra);
-		_lastResponse = await GetRequestResponse(request);
-		var memoryStream = new MemoryStream();
-		await _lastResponse.Content.CopyToAsync(memoryStream);
-		var bytes = memoryStream.ToArray();
-		_lastResponseBody = Helper.UTF8NoBom.GetString(bytes);
-		try
-		{
-			return _lastResponseBody.ParseJson<JObject>();
-		}
-		catch (JsonException ex)
-		{
-			_lastJsonException = ex;
-			return default;
-		}
-	}
-
-
-	protected Task<HttpResponseMessage> MakeEventsJsonPut<T>(string path, T body, NetworkCredential credentials, string extra = null)
-	{
-		credentials ??= _defaultCredentials;
-		var request = CreateEventsJsonPostRequest(path, "PUT", body, credentials, extra);
-		return GetRequestResponse(request);
-	}
-
 	protected Task<HttpResponseMessage> MakeRawJsonPut<T>(string path, T body, NetworkCredential credentials, string extra = null)
 	{
 		credentials ??= _defaultCredentials;
@@ -274,13 +229,6 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 		credentials ??= _defaultCredentials;
 		var request = CreateJsonPostRequest(path, credentials, extra);
 		return GetRequestResponse(request);
-	}
-
-	protected async Task<XDocument> GetAtomXml(Uri uri, NetworkCredential credentials = null, string extra = null)
-	{
-		credentials ??= _defaultCredentials;
-		await Get(uri.ToString(), extra, HttpTransportContentType.Atom, credentials);
-		return XDocument.Parse(_lastResponseBody);
 	}
 
 	protected async Task<XDocument> GetXml(Uri uri, NetworkCredential credentials = null, string extra = null)
@@ -407,18 +355,6 @@ public abstract class HttpBehaviorSpecification<TLogFormat, TStreamId> : Specifi
 	{
 		string instring = JsonConvert.SerializeObject(source, Newtonsoft.Json.Formatting.Indented, TestJsonSettings);
 		return Helper.UTF8NoBom.GetBytes(instring);
-	}
-
-	protected HttpRequestMessage CreateEventsJsonPostRequest<T>(
-		string path, string method, T body, NetworkCredential credentials = null, string extra = null)
-	{
-		credentials = credentials ?? _defaultCredentials;
-		var request = CreateRequest(path, extra, method, HttpTransportContentType.EventsJson, credentials);
-		request.Content = new ByteArrayContent(ToJsonBytes(body))
-		{
-			Headers = { ContentType = new MediaTypeHeaderValue(HttpTransportContentType.EventsJson) }
-		};
-		return request;
 	}
 
 	protected HttpRequestMessage CreateRawJsonPostRequest<T>(

@@ -180,14 +180,6 @@ namespace EventStore.Core.Services.Transport.Http {
 					return ContentType.PlainText;
 				case "xml":
 					return ContentType.Xml;
-				case "atom":
-					return ContentType.Atom;
-				case "atomxj":
-					return ContentType.AtomJson;
-				case "atomsvc":
-					return ContentType.AtomServiceDoc;
-				case "atomsvcxj":
-					return ContentType.AtomServiceDocJson;
 				default:
 					throw new NotSupportedException("Unknown format requested");
 			}

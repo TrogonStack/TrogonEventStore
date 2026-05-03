@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.Http.Users.users;
 using EventStore.Transport.Http;
@@ -166,31 +165,16 @@ class when_creating_a_duplicate_subscription<TLogFormat, TStreamId> : with_admin
 [TestFixture(typeof(LogFormat.V3), typeof(uint))]
 class when_creating_a_subscription_with_bad_config<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 {
-	protected List<object> Events;
 	protected string SubscriptionPath;
 	protected string GroupName;
 	protected HttpResponseMessage Response;
 
-	protected override async Task Given()
-	{
-		Events = new List<object> {
-			new {EventId = Guid.NewGuid(), EventType = "event-type", Data = new {A = "1"}},
-			new {EventId = Guid.NewGuid(), EventType = "event-type", Data = new {B = "2"}},
-			new {EventId = Guid.NewGuid(), EventType = "event-type", Data = new {C = "3"}},
-			new {EventId = Guid.NewGuid(), EventType = "event-type", Data = new {D = "4"}}
-		};
-
-		Response = await MakeArrayEventsPost(
-			TestStream,
-			Events,
-			_admin);
-		Assert.AreEqual(HttpStatusCode.Created, Response.StatusCode);
-	}
+	protected override Task Given() => Task.CompletedTask;
 
 	protected override async Task When()
 	{
 		GroupName = Guid.NewGuid().ToString();
-		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStream.Substring(9), GroupName);
+		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStreamName, GroupName);
 		Response = await MakeJsonPut(SubscriptionPath,
 			new
 			{
@@ -229,7 +213,7 @@ class when_creating_persistent_subscription_with_message_timeout_0<TLogFormat, T
 	protected override async Task When()
 	{
 		GroupName = Guid.NewGuid().ToString();
-		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStream.Substring(9), GroupName);
+		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStreamName, GroupName);
 		Response = await MakeJsonPut(SubscriptionPath,
 			new
 			{
@@ -276,7 +260,7 @@ class when_creating_persistent_subscription_without_message_timeout<TLogFormat, 
 	protected override async Task When()
 	{
 		GroupName = Guid.NewGuid().ToString();
-		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStream.Substring(9), GroupName);
+		SubscriptionPath = string.Format("/subscriptions/{0}/{1}", TestStreamName, GroupName);
 		Response = await MakeJsonPut(SubscriptionPath,
 			new
 			{
@@ -307,4 +291,3 @@ class when_creating_persistent_subscription_without_message_timeout<TLogFormat, 
 
 	}
 }
-

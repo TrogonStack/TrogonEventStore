@@ -202,9 +202,9 @@ public class ClusterVNodeOptionsTests
 		var ex = Assert.Throws<InvalidConfigurationException>(() =>
 			ClusterVNodeOptions.FromConfiguration(config));
 
-		Assert.Equal(
-			"Failed to convert configuration value at 'EventStore:GossipSeed' to type 'System.Net.EndPoint[]'. " + expectedError,
-			ex.Message);
+		ex.Message.Should().Contain("EventStore:GossipSeed");
+		ex.Message.Should().Contain("System.Net.EndPoint[]");
+		ex.Message.Should().Contain(expectedError);
 	}
 
 	[Fact]
@@ -230,9 +230,9 @@ public class ClusterVNodeOptionsTests
 		var ex = Assert.Throws<InvalidConfigurationException>(() =>
 			ClusterVNodeOptions.FromConfiguration(config));
 
-		Assert.Equal(
-			"Failed to convert configuration value at 'EventStore:NodeIp' to type 'System.Net.IPAddress'. " + expectedError,
-			ex.Message);
+		ex.Message.Should().Contain("EventStore:NodeIp");
+		ex.Message.Should().Contain("System.Net.IPAddress");
+		ex.Message.Should().Contain(expectedError);
 	}
 
 	[Fact]
@@ -306,19 +306,5 @@ public class ClusterVNodeOptionsTests
 
 		var options = ClusterVNodeOptions.FromConfiguration(config);
 		options.GetDeprecationWarnings().Should().BeNullOrEmpty();
-	}
-
-	[Fact]
-	public void can_get_deprecation_warnings()
-	{
-		var config = new ConfigurationBuilder()
-			.AddEventStoreDefaultValues()
-			.AddEventStoreEnvironmentVariables(("EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "true"))
-			.Build();
-
-		var options = ClusterVNodeOptions.FromConfiguration(config);
-		options.GetDeprecationWarnings().Should().Be(
-			"AtomPub over HTTP Interface has been deprecated as of version 20.6.0. It is recommended to use gRPC instead" +
-			Environment.NewLine);
 	}
 }

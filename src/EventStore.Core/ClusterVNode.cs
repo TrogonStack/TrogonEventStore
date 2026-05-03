@@ -1078,9 +1078,6 @@ public class ClusterVNode<TStreamId> :
 		var pingController = new PingController();
 		var statController = new StatController(monitoringQueue, _workersHandler);
 		var metricsController = new MetricsController();
-		var atomController = new AtomController(_mainQueue, _workersHandler,
-			options.Application.DisableHttpCaching, options.Application.MaxAppendSize,
-			TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs));
 		var gossipController = new GossipController(_mainQueue, _workersHandler,
 			trackers.GossipTrackers.ProcessingRequestFromHttpClient);
 		var persistentSubscriptionController =
@@ -1093,8 +1090,7 @@ public class ClusterVNode<TStreamId> :
 				["projections"] = options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev,
 				["userManagement"] =
 					options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault &&
-					!options.Application.Insecure,
-				["atomPub"] = options.Interface.EnableAtomPubOverHttp || options.DevMode.Dev
+					!options.Application.Insecure
 			},
 			_authenticationProvider
 		);
@@ -1112,8 +1108,6 @@ public class ClusterVNode<TStreamId> :
 			_httpService.SetupController(metricsController);
 		}
 
-		if (options.Interface.EnableAtomPubOverHttp || options.DevMode.Dev)
-			_httpService.SetupController(atomController);
 		if (!options.Interface.DisableGossipOnHttp)
 			_httpService.SetupController(gossipController);
 

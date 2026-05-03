@@ -19,8 +19,7 @@ public sealed class ConfigurationBrowserService(
 		var options = hostedService.Options;
 		var features = new[] {
 			new ConfigurationFeature("Projections", options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev),
-			new ConfigurationFeature("User management", options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.Insecure),
-			new ConfigurationFeature("AtomPub over HTTP", options.Interface.EnableAtomPubOverHttp || options.DevMode.Dev)
+			new ConfigurationFeature("User management", options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.Insecure)
 		};
 
 		var subsystems = hostedService.EnabledNodeSubsystems

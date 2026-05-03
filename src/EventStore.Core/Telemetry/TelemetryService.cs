@@ -216,7 +216,6 @@ public sealed class TelemetryService :
 			new JsonObject
 			{
 				["clusterSize"] = _nodeOptions.Cluster.ClusterSize,
-				["enableAtomPubOverHttp"] = _nodeOptions.Interface.EnableAtomPubOverHttp,
 				["insecure"] = _nodeOptions.Application.Insecure,
 				["runProjections"] = _nodeOptions.Projection.RunProjections.ToString(),
 				["authorizationType"] = _nodeOptions.Auth.AuthorizationType,

@@ -31,7 +31,7 @@ public class ProjectionStatisticsHttpFormatted
 		this.ResultUrl = makeAbsoluteUrl(statusLocalUrl + "/result");
 		this.QueryUrl = makeAbsoluteUrl(statusLocalUrl + "/query?config=yes");
 		if (!string.IsNullOrEmpty(source.ResultStreamName))
-			this.ResultStreamUrl = makeAbsoluteUrl("/streams/" + Uri.EscapeDataString(source.ResultStreamName));
+			this.ResultStreamUrl = makeAbsoluteUrl("/ui/streams/" + Uri.EscapeDataString(source.ResultStreamName));
 		this.DisableCommandUrl = makeAbsoluteUrl(statusLocalUrl + "/command/disable");
 		this.EnableCommandUrl = makeAbsoluteUrl(statusLocalUrl + "/command/enable");
 	}

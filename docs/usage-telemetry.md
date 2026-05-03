@@ -13,7 +13,6 @@ Examples of the telemetry data collected:
 * Node machine size
 * Is cluster or instance configured in secure mode
 * Legacy TCP client protocol enabled
-* Legacy AtomPub protocol enabled
 * Number of running projections
 * Number of running persistent subscriptions
 
@@ -39,7 +38,6 @@ Here's an example of a full telemetry message from a single-node instance:
   },
   "configuration": {
     "clusterSize": 1,
-    "enableAtomPubOverHttp": true,
     "enableExternalTcp": true,
     "insecure": false,
     "runProjections": "None"

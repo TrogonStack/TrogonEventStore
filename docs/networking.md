@@ -85,35 +85,15 @@ After having pinged for keepalive check, the server waits for a duration of `kee
 
 As a general rule, we do not recommend putting EventStoreDB behind a load balancer. However, if you are using it and want to benefit from the Keepalive feature, then you should make sure if the compatible settings are properly set. Some load balancers may also override the Keepalive settings. Most of them require setting the idle timeout larger/longer than the `keepAliveTimeout`. We suggest checking the load balancer documentation before using Keepalive pings.
 
-### AtomPub
-
-The AtomPub application protocol over HTTP is disabled by default since v20. We plan to deprecate the AtomPub support in the future versions, but we aim to provide a replacement before we finally deprecate AtomPub.
-
-In Event Store Cloud, the AtomPub protocol is enabled. For self-hosted instances, use the configuration setting to enable AtomPub.
-
-| Format               | Syntax                                 |
-|:---------------------|:---------------------------------------|
-| Command line         | `--enable-atom-pub-over-http`          |
-| YAML                 | `EnableAtomPubOverHttp`                |
-| Environment variable | `EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP` |
-
-**Default**: `false` (AtomPub is disabled)
-
 ### HTTP caching
 
 :::tip
-This section is about caching static resources for HTTP API. It does not affect the server performance directly and cannot be used with gRPC clients.
+This section is about caching HTTP resources such as the Admin UI. It does not affect the server performance directly and cannot be used with gRPC clients.
 :::
 
-Most of the URIs that EventStoreDB emits are immutable (including the UI and Atom Feeds).
-
-An Atom feed has a URI that represents an event, e.g., `/streams/foo/0` which represents 'event 0'. The data for event 0 never changes. If this stream is open to public reads, then the URI is set to be 'cachable' for long periods of time.
-
-You can see a similar example in reading a feed. If a stream has 50 events in it, the feed page `20/forward/10` never changes, it will always be events 20-30. Internally, EventStoreDB controls serving the right URIs by using `rel` links with feeds (for example `prev`/`next`).
+Most static resources that EventStoreDB emits are immutable and can be cached safely.
 
 This caching behavior is great for performance in a production environment and we recommended you use it, but in a developer environment it can become confusing.
-
-For example, what happens if you started a database, wrote `/streams/foo/0` and performed a `GET` request? The `GET` request is cachable and now in your cache. Since this is a development environment, you shut down EventStoreDB and delete the database. You then restart EventStoreDB and append a different event to `/streams/foo/0`. You open your browser and inspect the `/streams/foo/0` stream, and you see the event appended before you deleted the database.
 
 To avoid this during development it's best to run EventStoreDB with the `--disable-http-caching` command line option. This disables all caching and solves the issue.
 
@@ -473,7 +453,6 @@ When the plugin starts, you should see a log similar to the following:
 ```
 [11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
 ```
-
 
 
 
