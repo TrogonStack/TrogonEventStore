@@ -5,11 +5,8 @@ using System.Threading.Tasks;
 using EventStore.Client.Users;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Transport.Http.Controllers;
-using EventStore.Core.Tests.Helpers;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Newtonsoft.Json.Linq;
-using NUnit.Framework;
 using UsersClient = EventStore.Client.Users.Users.UsersClient;
 
 namespace EventStore.Core.Tests.Http.Users
@@ -84,89 +81,5 @@ namespace EventStore.Core.Tests.Http.Users
 				"Basic " + Convert.ToBase64String(
 					Encoding.ASCII.GetBytes($"{credentials.UserName}:{credentials.Password}"));
 		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_retrieving_a_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private JObject _response;
-
-			protected override async Task Given()
-			{
-				await CreateUser("test1", "User Full Name", new[] {"admin", "other"}, "Pa55w0rd!", _admin);
-			}
-
-			protected override async Task When()
-			{
-				_response = await GetJson<JObject>("/users/test1");
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
-			}
-
-			[Test]
-			public void returns_valid_json_data()
-			{
-				HelperExtensions.AssertJson(
-					new
-					{
-						Success = true,
-						Error = "Success",
-						Data =
-							new
-							{
-								LoginName = "test1",
-								FullName = "User Full Name",
-								Groups = new[] { "admin", "other" },
-								Disabled = false,
-								Password___ = false
-							}
-					}, _response);
-			}
-		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_retrieving_a_disabled_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private JObject _response;
-
-			protected override async Task Given()
-			{
-				await CreateUser("test2", "User Full Name", new[] {"admin", "other"}, "Pa55w0rd!", _admin);
-				await DisableUser("test2", _admin);
-			}
-
-			protected override async Task When()
-			{
-				_response = await GetJson<JObject>("/users/test2");
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
-			}
-
-			[Test]
-			public void returns_valid_json_data()
-			{
-				HelperExtensions.AssertJson(
-					new
-					{
-						Success = true,
-						Error = "Success",
-						Data =
-							new
-							{
-								Disabled = true
-							}
-					}, _response);
-			}
-		}
-
 	}
 }

@@ -20,7 +20,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		protected override void SubscribeCore(IHttpService service) {
 			RegisterUrlBased(service, "/users", HttpMethod.Get, new Operation(Operations.Users.List), GetUsers);
 			RegisterUrlBased(service, "/users/", HttpMethod.Get, new Operation(Operations.Users.List), GetUsers);
-			RegisterUrlBased(service, "/users/{login}", HttpMethod.Get, new Operation(Operations.Users.Read), GetUser);
 			RegisterUrlBased(service, "/users/$current", HttpMethod.Get, new Operation(Operations.Users.CurrentUser), GetCurrentUser);
 		}
 
@@ -33,19 +32,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 					new UserManagementMessage.AllUserDetailsResultHttpFormatted(msg));
 
 			var message = new UserManagementMessage.GetAll(envelope, http.User);
-			Publish(message);
-		}
-
-		private void GetUser(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-
-			var envelope = CreateSendToHttpWithConversionEnvelope(http,
-				(UserManagementMessage.UserDetailsResult msg) =>
-					new UserManagementMessage.UserDetailsResultHttpFormatted(msg));
-
-			var login = match.BoundVariables["login"];
-			var message = new UserManagementMessage.Get(envelope, http.User, login);
 			Publish(message);
 		}
 
