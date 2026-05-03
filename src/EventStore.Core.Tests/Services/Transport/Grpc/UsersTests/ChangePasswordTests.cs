@@ -58,6 +58,42 @@ public class ChangePasswordTests {
 		}
 	}
 
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_changing_another_users_password<TLogFormat, TStreamId>
+		: GrpcSpecification<TLogFormat, TStreamId> {
+		private const string LoginName = "change-password-target";
+		private const string CurrentPassword = "CurrentPa55w0rd!";
+		private UsersClient _client;
+		private RpcException _exception;
+
+		protected override async Task Given() {
+			_client = new UsersClient(Channel);
+			await _client.CreateAsync(new CreateReq {
+				Options = new CreateReq.Types.Options {
+					LoginName = LoginName,
+					FullName = "Change Password Target",
+					Password = CurrentPassword,
+					Groups = { "$ops" }
+				}
+			}, GetCallOptions(AdminCredentials));
+		}
+
+		protected override async Task When() {
+			try {
+				await _client.ChangePasswordAsync(ChangePasswordRequest(LoginName, CurrentPassword, "NewPa55w0rd!"),
+					GetCallOptions(AdminCredentials));
+			} catch (RpcException ex) {
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void returns_permission_denied() {
+			Assert.IsNotNull(_exception);
+			Assert.AreEqual(StatusCode.PermissionDenied, _exception.Status.StatusCode);
+		}
+	}
+
 	private static ChangePasswordReq ChangePasswordRequest(string loginName, string currentPassword, string newPassword) =>
 		new() {
 			Options = new ChangePasswordReq.Types.Options {
