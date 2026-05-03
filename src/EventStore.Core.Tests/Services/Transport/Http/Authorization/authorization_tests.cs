@@ -184,7 +184,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/admin/scavenge/{scavengeId};DELETE;Ops",
 			"/admin/scavenge/current;GET;Ops",
 			"/admin/scavenge/last;GET;Ops",
-			"/admin/mergeindexes;POST;Ops",
 			"/ping;GET;None",
 			"/info;GET;None",
 			"/info/options;GET;Ops",
