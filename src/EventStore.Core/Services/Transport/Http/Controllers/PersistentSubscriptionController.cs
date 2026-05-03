@@ -68,6 +68,9 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) => http.ResponseCodec.To(message),
 				(args, message) => {
 					int code;
+					if (message is ClientMessage.NotHandled notHandled)
+						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
+
 					var m = message as ClientMessage.ReplayMessagesReceived;
 					if (m == null) throw new Exception("unexpected message " + message);
 					switch (m.Result) {
@@ -123,6 +126,9 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) => http.ResponseCodec.To(message),
 				(args, message) => {
 					int code;
+					if (message is ClientMessage.NotHandled notHandled)
+						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
+
 					var m = message as ClientMessage.CreatePersistentSubscriptionToStreamCompleted;
 					if (m == null) throw new Exception("unexpected message " + message);
 					switch (m.Result) {
@@ -195,6 +201,9 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) => http.ResponseCodec.To(message),
 				(args, message) => {
 					int code;
+					if (message is ClientMessage.NotHandled notHandled)
+						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
+
 					var m = message as ClientMessage.UpdatePersistentSubscriptionToStreamCompleted;
 					if (m == null) throw new Exception("unexpected message " + message);
 					switch (m.Result) {
@@ -339,6 +348,9 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) => http.ResponseCodec.To(message),
 				(args, message) => {
 					int code;
+					if (message is ClientMessage.NotHandled notHandled)
+						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
+
 					var m = message as ClientMessage.DeletePersistentSubscriptionToStreamCompleted;
 					if (m == null) throw new Exception("unexpected message " + message);
 					switch (m.Result) {
@@ -420,7 +432,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) =>
 					http.ResponseCodec.To(ToPagedSummaryDto(http,
 						message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted)),
-				(args, message) => StatsConfiguration(http, message));
+				(args, message) => StatsConfiguration(args, message));
 			var cmd = new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope, offset, count);
 			Publish(cmd);
 		}
@@ -431,7 +443,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) =>
 					http.ResponseCodec.To(ToSummaryDto(http,
 						message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted).ToArray()),
-				(args, message) => StatsConfiguration(http, message));
+				(args, message) => StatsConfiguration(args, message));
 			var cmd = new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope);
 			Publish(cmd);
 		}
@@ -445,7 +457,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				(args, message) =>
 					http.ResponseCodec.To(ToSummaryDto(http,
 						message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted).ToArray()),
-				(args, message) => StatsConfiguration(http, message));
+				(args, message) => StatsConfiguration(args, message));
 			var cmd = new MonitoringMessage.GetStreamPersistentSubscriptionStats(envelope, stream);
 			Publish(cmd);
 		}
@@ -461,7 +473,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 					http.ResponseCodec.To(
 						ToDto(http, message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted)
 							.FirstOrDefault()),
-				(args, message) => StatsConfiguration(http, message));
+				(args, message) => StatsConfiguration(args, message));
 			var cmd = new MonitoringMessage.GetPersistentSubscriptionStats(envelope, stream, groupName);
 			Publish(cmd);
 		}
@@ -485,8 +497,11 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		}
 
 
-		private static ResponseConfiguration StatsConfiguration(HttpEntityManager http, Message message) {
+		private static ResponseConfiguration StatsConfiguration(HttpResponseConfiguratorArgs http, Message message) {
 			int code;
+			if (message is ClientMessage.NotHandled notHandled)
+				return Configure.HandleNotHandled(http.RequestedUrl, notHandled);
+
 			var m = message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted;
 			if (m == null) throw new Exception("unexpected message " + message);
 			switch (m.Result) {

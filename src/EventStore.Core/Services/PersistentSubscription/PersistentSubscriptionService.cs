@@ -278,7 +278,6 @@ public class PersistentSubscriptionService<TStreamId> :
 		string user
 	)
 	{
-		if (!_started) return;
 		var stream = eventSource.ToString();
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		Log.Debug("Creating persistent subscription {subscriptionKey}", key);
@@ -347,6 +346,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.CreatePersistentSubscriptionToStream message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		if (string.IsNullOrEmpty(message.EventStreamId))
 		{
 			message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
@@ -433,6 +438,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.CreatePersistentSubscriptionToAll message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		try
 		{
 			CreatePersistentSubscription(
@@ -522,8 +533,6 @@ public class PersistentSubscriptionService<TStreamId> :
 		string user
 	)
 	{
-		if (!_started) return;
-
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		Log.Debug("Updating persistent subscription {subscriptionKey}", key);
 
@@ -602,6 +611,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.UpdatePersistentSubscriptionToStream message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		if (string.IsNullOrEmpty(message.EventStreamId))
 		{
 			message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
@@ -689,6 +704,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.UpdatePersistentSubscriptionToAll message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		try
 		{
 			UpdatePersistentSubscription(
@@ -816,7 +837,6 @@ public class PersistentSubscriptionService<TStreamId> :
 		string user
 	)
 	{
-		if (!_started) return;
 		var stream = eventSource.ToString();
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		Log.Debug("Deleting persistent subscription {subscriptionKey}", key);
@@ -843,6 +863,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.DeletePersistentSubscriptionToStream message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		if (string.IsNullOrEmpty(message.EventStreamId))
 		{
 			message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
@@ -903,6 +929,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.DeletePersistentSubscriptionToAll message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		DeletePersistentSubscription(
 			new PersistentSubscriptionAllStreamEventSource(),
 			message.GroupName,
@@ -1069,7 +1101,11 @@ public class PersistentSubscriptionService<TStreamId> :
 		string user,
 		CancellationToken token)
 	{
-		if (!_started) return;
+		if (!_started)
+		{
+			ReplyWithNotReady(envelope, correlationId);
+			return;
+		}
 
 		var stream = eventSource.ToString();
 		if (!_subscriptionTopics.TryGetValue(stream, out _))
@@ -1228,7 +1264,11 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.ReadNextNPersistentMessages message)
 	{
-		if (!_started) return;
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
 
 		if (string.IsNullOrEmpty(message.EventStreamId))
 		{
@@ -1283,6 +1323,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.ReplayParkedMessages message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		PersistentSubscription subscription;
 		var key = BuildSubscriptionGroupKey(message.EventStreamId, message.GroupName);
 		Log.Debug("Replaying parked messages for persistent subscription {subscriptionKey} {to}",
@@ -1462,6 +1508,14 @@ public class PersistentSubscriptionService<TStreamId> :
 	{
 		message.Envelope.ReplyWith(new TelemetryMessage.Response("persistentSubscriptions",
 			new JsonObject { ["count"] = _subscriptionsById?.Count ?? 0 }));
+	}
+
+	private static void ReplyWithNotReady(IEnvelope envelope, Guid correlationId)
+	{
+		envelope.ReplyWith(new ClientMessage.NotHandled(
+			correlationId,
+			ClientMessage.NotHandled.Types.NotHandledReason.NotReady,
+			(string)null));
 	}
 
 	public void Handle(MonitoringMessage.GetPersistentSubscriptionStats message)
