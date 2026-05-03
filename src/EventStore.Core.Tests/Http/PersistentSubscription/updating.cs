@@ -1,7 +1,6 @@
 using System;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
@@ -19,12 +18,11 @@ class when_updating_a_subscription_without_permissions<TLogFormat, TStreamId> : 
 
 	protected override async Task Given()
 	{
-		_response = await MakeJsonPut(
-			"/subscriptions/stream/groupname337",
-			new
-			{
-				ResolveLinkTos = true
-			}, _admin);
+		await _connection.CreatePersistentSubscriptionAsync(
+			"stream",
+			"groupname337",
+			PersistentSubscriptionHttpFixtures.CreateSubscriptionSettings(),
+			DefaultData.AdminCredentials);
 	}
 
 	protected override async Task When()
@@ -83,12 +81,11 @@ class when_updating_an_existing_subscription<TLogFormat, TStreamId> : with_admin
 
 	protected override async Task Given()
 	{
-		_response = await MakeJsonPut(
-			string.Format("/subscriptions/{0}/{1}", _stream, _groupName),
-			new
-			{
-				ResolveLinkTos = true
-			}, DefaultData.AdminNetworkCredentials);
+		await _connection.CreatePersistentSubscriptionAsync(
+			_stream,
+			_groupName,
+			PersistentSubscriptionHttpFixtures.CreateSubscriptionSettings(),
+			DefaultData.AdminCredentials);
 		SetupSubscription();
 	}
 
@@ -134,4 +131,12 @@ class when_updating_an_existing_subscription<TLogFormat, TStreamId> : with_admin
 			string.Format("http://{0}/subscriptions/{1}/{2}", _node.HttpEndPoint, _stream, _groupName),
 			_response.Headers.Location.ToString());
 	}
+}
+
+static class PersistentSubscriptionHttpFixtures
+{
+	public static PersistentSubscriptionSettings CreateSubscriptionSettings() =>
+		PersistentSubscriptionSettings.Create()
+			.ResolveLinkTos()
+			.StartFromBeginning();
 }
