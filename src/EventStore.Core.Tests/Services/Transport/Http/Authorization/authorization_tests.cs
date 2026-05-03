@@ -185,7 +185,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/subscriptions/{stream}/{subscription};POST;Ops",
 			"/subscriptions/{stream}/{subscription};DELETE;Ops",
 			"/subscriptions/{stream}/{subscription}/info;GET;User",
-			"/subscriptions/{stream}/{subscription}/replayParked?stopAt=1;POST;Ops",
 			"/users;GET;Admin",
 			"/users/;GET;Admin",
 			"/users/{login};GET;Admin",

@@ -168,9 +168,9 @@ class when_getting_subscription_statistics_for_individual<TLogFormat, TStreamId>
 
 	[Test]
 	[Retry(5)]
-	public void has_two_rel_links()
+	public void has_detail_rel_link()
 	{
-		Assert.AreEqual(2,
+		Assert.AreEqual(1,
 			_json["links"].Count());
 	}
 

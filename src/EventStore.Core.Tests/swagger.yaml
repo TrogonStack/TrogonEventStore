@@ -127,11 +127,6 @@ paths:
       responses:
         "200":
           description: OK
-  "/subscriptions/{stream}/{subscription}/replayParked":
-    post:
-      responses:
-        "200":
-          description: OK
   /users:
     get:
       responses:
