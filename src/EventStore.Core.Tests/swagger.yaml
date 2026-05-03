@@ -22,7 +22,288 @@ paths:
       tags:
         - Admin
       operationId: Change node priority
-      definitions:
+      parameters:
+        - name: nodePriority
+          in: path
+          required: true
+          type: integer
+      responses:
+        "200":
+          description: OK
+  /admin/node/resign:
+    post:
+      responses:
+        "200":
+          description: OK
+  /admin/reloadconfig:
+    post:
+      responses:
+        "200":
+          description: OK
+  /admin/shutdown:
+    post:
+      responses:
+        "200":
+          description: OK
+  /admin/scavenge:
+    post:
+      responses:
+        "200":
+          description: OK
+  "/admin/scavenge/{scavengeId}":
+    delete:
+      responses:
+        "200":
+          description: OK
+  /admin/scavenge/current:
+    get:
+      responses:
+        "200":
+          description: OK
+  /admin/scavenge/last:
+    get:
+      responses:
+        "200":
+          description: OK
+  /admin/mergeindexes:
+    post:
+      responses:
+        "200":
+          description: OK
+  /info:
+    get:
+      responses:
+        "200":
+          description: OK
+  /info/options:
+    get:
+      responses:
+        "200":
+          description: OK
+  /metrics:
+    get:
+      responses:
+        "200":
+          description: OK
+  /ping:
+    get:
+      responses:
+        "200":
+          description: OK
+  /sys/subsystems:
+    get:
+      responses:
+        "200":
+          description: OK
+  /subscriptions:
+    get:
+      responses:
+        "200":
+          description: OK
+    post:
+      responses:
+        "201":
+          description: Created
+  "/subscriptions/{stream}":
+    get:
+      responses:
+        "200":
+          description: OK
+  "/subscriptions/{stream}/{subscription}":
+    put:
+      responses:
+        "201":
+          description: Created
+    post:
+      responses:
+        "200":
+          description: OK
+    delete:
+      responses:
+        "200":
+          description: OK
+  "/subscriptions/{stream}/{subscription}/info":
+    get:
+      responses:
+        "200":
+          description: OK
+  "/subscriptions/{stream}/{subscription}/replayParked":
+    post:
+      responses:
+        "200":
+          description: OK
+  /subscriptions/restart:
+    post:
+      responses:
+        "200":
+          description: OK
+  /users:
+    get:
+      responses:
+        "200":
+          description: OK
+    post:
+      responses:
+        "201":
+          description: Created
+  "/users/{login}":
+    get:
+      responses:
+        "200":
+          description: OK
+    put:
+      responses:
+        "200":
+          description: OK
+    delete:
+      responses:
+        "200":
+          description: OK
+  "/users/{login}/command/enable":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/users/{login}/command/disable":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/users/{login}/command/reset-password":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/users/{login}/command/change-password":
+    post:
+      responses:
+        "200":
+          description: OK
+  /projections/any:
+    get:
+      responses:
+        "200":
+          description: OK
+  /projections/all-non-transient:
+    get:
+      responses:
+        "200":
+          description: OK
+  /projections/onetime:
+    get:
+      responses:
+        "200":
+          description: OK
+    post:
+      responses:
+        "201":
+          description: Created
+  /projections/continuous:
+    get:
+      responses:
+        "200":
+          description: OK
+    post:
+      responses:
+        "201":
+          description: Created
+  /projections/restart:
+    post:
+      responses:
+        "200":
+          description: OK
+  /projections/transient:
+    get:
+      responses:
+        "200":
+          description: OK
+    post:
+      responses:
+        "201":
+          description: Created
+  /projections/read-events:
+    post:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/query":
+    get:
+      responses:
+        "200":
+          description: OK
+    put:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/state":
+    get:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/result":
+    get:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/statistics":
+    get:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/command/disable":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/command/enable":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/command/reset":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/command/abort":
+    post:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}/config":
+    get:
+      responses:
+        "200":
+          description: OK
+    put:
+      responses:
+        "200":
+          description: OK
+  "/projection/{name}":
+    get:
+      responses:
+        "200":
+          description: OK
+    delete:
+      responses:
+        "200":
+          description: OK
+  /stats:
+    get:
+      responses:
+        "200":
+          description: OK
+  "/stats/{statPath}":
+    get:
+      responses:
+        "200":
+          description: OK
+  /gossip:
+    get:
+      responses:
+        "200":
+          description: OK
+definitions:
   UserItem:
     type: object
     properties:
