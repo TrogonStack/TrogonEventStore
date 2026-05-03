@@ -18,6 +18,14 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			var updatePersistentSubscriptionSource = new TaskCompletionSource<UpdateResp>();
 			var settings = request.Options.Settings;
 			var correlationId = Guid.NewGuid();
+			string consumerStrategy;
+			if (string.IsNullOrEmpty(settings.ConsumerStrategy)) { /*for backwards compatibility*/
+				#pragma warning disable 612
+				consumerStrategy = settings.NamedConsumerStrategy.ToString();
+				#pragma warning restore 612
+			} else {
+				consumerStrategy = settings.ConsumerStrategy;
+			}
 
 			var user = context.GetHttpContext().User;
 			if (!await _authorizationProvider.CheckAccessAsync(user,
@@ -77,7 +85,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 						settings.MinCheckpointCount,
 						settings.MaxCheckpointCount,
 						settings.MaxSubscriberCount,
-						settings.NamedConsumerStrategy.ToString(),
+						consumerStrategy,
 						user));
 					break;
 				}
@@ -123,7 +131,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 						settings.MinCheckpointCount,
 						settings.MaxCheckpointCount,
 						settings.MaxSubscriberCount,
-						settings.NamedConsumerStrategy.ToString(),
+						consumerStrategy,
 						user));
 					break;
 				default:

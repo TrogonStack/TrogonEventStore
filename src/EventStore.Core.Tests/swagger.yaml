@@ -100,15 +100,6 @@ paths:
       responses:
         "200":
           description: OK
-    post:
-      responses:
-        "201":
-          description: Created
-  "/subscriptions/{stream}/{subscription}":
-    post:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:
