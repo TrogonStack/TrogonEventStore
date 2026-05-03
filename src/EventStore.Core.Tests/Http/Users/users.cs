@@ -107,10 +107,6 @@ namespace EventStore.Core.Tests.Http.Users
 										Rel = "edit"
 									},
 									new {
-										Href = "http://" + _node.HttpEndPoint + "/users/test1",
-										Rel = "delete"
-									},
-									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test1/command/disable",
 										Rel = "disable"
 									}
@@ -167,10 +163,6 @@ namespace EventStore.Core.Tests.Http.Users
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test2",
 										Rel = "edit"
-									},
-									new {
-										Href = "http://" + _node.HttpEndPoint + "/users/test2",
-										Rel = "delete"
 									},
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test2/command/enable",
@@ -332,36 +324,5 @@ namespace EventStore.Core.Tests.Http.Users
 			}
 		}
 
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_deleting_a_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override Task Given()
-			{
-				return MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-			}
-
-			protected override async Task When()
-			{
-				_response = await MakeDelete("/users/test1", _admin);
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
-			}
-
-			[Test]
-			public async Task get_returns_not_found()
-			{
-				await GetJson<JObject>("/users/test1");
-				Assert.AreEqual(HttpStatusCode.NotFound, _lastResponse.StatusCode);
-			}
-		}
 	}
 }
