@@ -179,10 +179,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"Admin"
 		)] string userAuthorizationLevel,
 		[Values(
-			"/admin/scavenge?startFromChunk={startFromChunk}&threads={threads};POST;Ops",
-			"/admin/scavenge/{scavengeId};DELETE;Ops",
-			"/admin/scavenge/current;GET;Ops",
-			"/admin/scavenge/last;GET;Ops",
 			"/ping;GET;None",
 			"/info;GET;None",
 			"/info/options;GET;Ops",

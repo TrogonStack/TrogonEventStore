@@ -1074,7 +1074,7 @@ public class ClusterVNode<TStreamId> :
 			//modifiedOptions = modifiedOptions.WithPlugableComponent(new ArchivePlugableComponent());
 		}
 
-		var adminController = new AdminController(_mainQueue, _workersHandler);
+		var adminController = new AdminController(_mainQueue);
 		var pingController = new PingController();
 		var statController = new StatController(monitoringQueue, _workersHandler);
 		var metricsController = new MetricsController();

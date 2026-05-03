@@ -7,6 +7,8 @@ import "shared.proto";
 service Operations {
 	rpc StartScavenge (StartScavengeReq) returns (ScavengeResp);
 	rpc StopScavenge (StopScavengeReq) returns (ScavengeResp);
+	rpc GetCurrentScavenge (event_store.client.Empty) returns (ScavengeStatusResp);
+	rpc GetLastScavenge (event_store.client.Empty) returns (ScavengeStatusResp);
 	rpc Shutdown (event_store.client.Empty) returns (event_store.client.Empty);
 	rpc MergeIndexes (event_store.client.Empty) returns (event_store.client.Empty);
 	rpc ResignNode (event_store.client.Empty) returns (event_store.client.Empty);
@@ -19,6 +21,9 @@ message StartScavengeReq {
 	message Options {
 		int32 thread_count = 1;
 		int32 start_from_chunk = 2;
+		optional int32 threshold = 3;
+		optional int32 throttle_percent = 4;
+		bool sync_only = 5;
 	}
 }
 
@@ -37,6 +42,19 @@ message ScavengeResp {
 		Started = 0;
 		InProgress = 1;
 		Stopped = 2;
+	}
+}
+
+message ScavengeStatusResp {
+	string scavenge_id = 1;
+	ScavengeStatus scavenge_status = 2;
+
+	enum ScavengeStatus {
+		Unknown = 0;
+		InProgress = 1;
+		Stopped = 2;
+		Success = 3;
+		Errored = 4;
 	}
 }
 
