@@ -4,9 +4,13 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using EventStore.Client.Users;
 using EventStore.Common.Utils;
 using EventStore.Core.Tests.Integration;
+using Grpc.Core;
+using Grpc.Net.Client;
 using NUnit.Framework;
+using UsersClient = EventStore.Client.Users.Users.UsersClient;
 
 namespace EventStore.Core.Tests.Services.Transport.Http;
 
@@ -101,20 +105,29 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 		{
 			try
 			{
-				var dataStr = string.Format("{{loginName: '{0}', fullName: '{1}', password: '{2}', groups: []}}", username, username, password);
-				var data = Helper.UTF8NoBom.GetBytes(dataStr);
-				var stream = new MemoryStream(data);
-				var content = new StreamContent(stream);
-				content.Headers.Add("Content-Type", "application/json");
-
-				var res = await _httpClients["Admin"].PostAsync(
-					string.Format("https://{0}/users/", _nodes[_leaderId].HttpEndPoint),
-					content
-				);
-				res.EnsureSuccessStatusCode();
+				using var httpClient = _nodes[_leaderId].CreateHttpClient();
+				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_nodes[_leaderId].HttpEndPoint}"),
+					new GrpcChannelOptions
+					{
+						HttpClient = httpClient,
+						DisposeHttpClient = false
+					});
+				var users = new UsersClient(channel);
+				await users.CreateAsync(new CreateReq
+				{
+					Options = new CreateReq.Types.Options
+					{
+						LoginName = username,
+						FullName = username,
+						Password = password
+					}
+				}, new CallOptions(new Metadata
+				{
+					{"authorization", _httpClients["Admin"].DefaultRequestHeaders.Authorization.ToString()}
+				}));
 				break;
 			}
-			catch (HttpRequestException)
+			catch (RpcException)
 			{
 				if (trial == 5)
 				{
