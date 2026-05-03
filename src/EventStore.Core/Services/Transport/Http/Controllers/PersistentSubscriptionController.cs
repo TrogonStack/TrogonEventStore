@@ -32,85 +32,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		protected override void SubscribeCore(IHttpService service) {
 			Register(service, "/subscriptions?offset={offset}&count={count}", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
-			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Put, PutSubscription, DefaultCodecs,
-				DefaultCodecs, new Operation(Operations.Subscriptions.Create));
 			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Post, PostSubscription,
 				DefaultCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Update));
-		}
-
-		private void PutSubscription(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var groupname = match.BoundVariables["subscription"];
-			var stream = match.BoundVariables["stream"];
-			var envelope = new SendToHttpEnvelope(
-				_networkSendQueue, http,
-				(args, message) => http.ResponseCodec.To(message),
-				(args, message) => {
-					int code;
-					if (message is ClientMessage.NotHandled notHandled)
-						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
-
-					var m = message as ClientMessage.CreatePersistentSubscriptionToStreamCompleted;
-					if (m == null) throw new Exception("unexpected message " + message);
-					switch (m.Result) {
-						case ClientMessage.CreatePersistentSubscriptionToStreamCompleted
-							.CreatePersistentSubscriptionToStreamResult
-							.Success:
-							code = HttpStatusCode.Created;
-							break;
-						case ClientMessage.CreatePersistentSubscriptionToStreamCompleted
-							.CreatePersistentSubscriptionToStreamResult
-							.AlreadyExists:
-							code = HttpStatusCode.Conflict;
-							break;
-						case ClientMessage.CreatePersistentSubscriptionToStreamCompleted
-							.CreatePersistentSubscriptionToStreamResult
-							.AccessDenied:
-							code = HttpStatusCode.Unauthorized;
-							break;
-						case ClientMessage.CreatePersistentSubscriptionToStreamCompleted
-							.CreatePersistentSubscriptionToStreamResult.Fail:
-							code = HttpStatusCode.BadRequest;
-							break;
-						default:
-							code = HttpStatusCode.InternalServerError;
-							break;
-					}
-
-					return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
-						http.ResponseCodec.Encoding,
-						new KeyValuePair<string, string>("location",
-							MakeUrl(http, "/subscriptions/" + stream + "/" + groupname)));
-				});
-			http.ReadTextRequestAsync(
-				(o, s) => {
-					var data = http.RequestCodec.From<SubscriptionConfigData>(s);
-					var config = ParseConfig(data);
-					if (!ValidateConfig(config, http)) return;
-					var message = new ClientMessage.CreatePersistentSubscriptionToStream(Guid.NewGuid(),
-						Guid.NewGuid(),
-						envelope,
-						stream,
-						groupname,
-						config.ResolveLinktos,
-						#pragma warning disable 612
-						config.StartPosition != null ? long.Parse(config.StartPosition) : config.StartFrom,
-						#pragma warning restore 612
-						config.MessageTimeoutMilliseconds,
-						config.ExtraStatistics,
-						config.MaxRetryCount,
-						config.BufferSize,
-						config.LiveBufferSize,
-						config.ReadBatchSize,
-						config.CheckPointAfterMilliseconds,
-						config.MinCheckPointCount,
-						config.MaxCheckPointCount,
-						config.MaxSubscriberCount,
-						CalculateNamedConsumerStrategyForOldClients(data),
-						http.User);
-					Publish(message);
-				}, x => Log.Debug(x, "Reply Text Content Failed."));
 		}
 
 		private void PostSubscription(HttpEntityManager http, UriTemplateMatch match) {

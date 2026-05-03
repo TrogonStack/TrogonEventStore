@@ -237,6 +237,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		public static RpcException InvalidArgument<T>(T argument) =>
 			new(new Status(StatusCode.InvalidArgument, $"'{argument}' is not a valid {typeof(T)}"));
 
+		public static RpcException InvalidArgument(string reason) =>
+			new(new Status(StatusCode.InvalidArgument, reason));
+
 		public static RpcException RequiredArgument<T>(string name, T argument) =>
 			new(new Status(StatusCode.InvalidArgument, $" `{name}` is a required argument of type {typeof(T)}"));
 
