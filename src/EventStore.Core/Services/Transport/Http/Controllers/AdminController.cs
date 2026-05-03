@@ -45,9 +45,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				new ControllerAction("/admin/scavenge/last", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Scavenge.Read)),
 				OnGetLastScavenge);
 			service.RegisterAction(
-				new ControllerAction("/admin/mergeindexes", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.MergeIndexes)),
-				OnPostMergeIndexes);
-			service.RegisterAction(
 				new ControllerAction("/admin/node/priority/{nodePriority}", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.SetPriority)),
 				OnSetNodePriority);
 			service.RegisterAction(
@@ -78,26 +75,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			} else {
 				entity.ReplyStatus(HttpStatusCode.Unauthorized, "Unauthorized", LogReplyError);
 			}
-		}
-
-		private void OnPostMergeIndexes(HttpEntityManager entity, UriTemplateMatch match) {
-			Log.Information("Request merge indexes because /admin/mergeindexes request has been received.");
-
-			var correlationId = Guid.NewGuid();
-			var envelope = new SendToHttpEnvelope(_networkSendQueue, entity,
-				(e, message) => { return e.ResponseCodec.To(new MergeIndexesResultDto(correlationId.ToString())); },
-				(e, message) => {
-					var completed = message as ClientMessage.MergeIndexesResponse;
-					switch (completed?.Result) {
-						case ClientMessage.MergeIndexesResponse.MergeIndexesResult.Started:
-							return Configure.Ok(e.ResponseCodec.ContentType);
-						default:
-							return Configure.InternalServerError();
-					}
-				}
-			);
-
-			Publish(new ClientMessage.MergeIndexes(envelope, correlationId, entity.User));
 		}
 
 		private void OnPostScavenge(HttpEntityManager entity, UriTemplateMatch match) {
