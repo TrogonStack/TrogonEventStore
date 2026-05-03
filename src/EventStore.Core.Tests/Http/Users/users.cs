@@ -102,11 +102,6 @@ namespace EventStore.Core.Tests.Http.Users
 								Disabled = false,
 								Password___ = false,
 								Links = new[] {
-										new {
-											Href = "http://" + _node.HttpEndPoint +
-												   "/users/test1/command/reset-password",
-											Rel = "reset-password"
-									},
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test1",
 										Rel = "edit"
@@ -169,11 +164,6 @@ namespace EventStore.Core.Tests.Http.Users
 							new
 							{
 								Links = new[] {
-										new {
-											Href = "http://" + _node.HttpEndPoint +
-												   "/users/test2/command/reset-password",
-											Rel = "reset-password"
-									},
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test2",
 										Rel = "edit"
@@ -339,39 +329,6 @@ namespace EventStore.Core.Tests.Http.Users
 				var jsonResponse = await GetJson<JObject>("/users/test1");
 				HelperExtensions.AssertJson(
 					new { Success = true, Error = "Success", Data = new { FullName = "Updated Full Name" } }, jsonResponse);
-			}
-		}
-
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_resetting_a_password<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override Task Given()
-			{
-				return MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-			}
-
-			protected override async Task When()
-			{
-				_response = await MakeJsonPost(
-					"/users/test1/command/reset-password", new { NewPassword = "NewPassword!" }, _admin);
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
-			}
-
-			[Test]
-			public async Task can_authenticate_using_the_new_password()
-			{
-				await GetJson<JObject>("/test1", credentials: new NetworkCredential("test1", "NewPassword!"));
-				Assert.AreNotEqual(HttpStatusCode.Unauthorized, _lastResponse.StatusCode);
 			}
 		}
 

@@ -145,11 +145,6 @@ paths:
       responses:
         "200":
           description: OK
-  "/users/{login}/command/reset-password":
-    post:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:
