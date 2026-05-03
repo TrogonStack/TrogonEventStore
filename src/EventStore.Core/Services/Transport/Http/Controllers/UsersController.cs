@@ -5,14 +5,11 @@ using EventStore.Plugins.Authorization;
 using EventStore.Transport.Http;
 using EventStore.Transport.Http.Codecs;
 using EventStore.Transport.Http.EntityManagement;
-using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Transport.Http.Controllers {
 	public class UsersController : CommunicationController {
 		private readonly IHttpForwarder _httpForwarder;
 		private readonly IPublisher _networkSendQueue;
-		private static readonly ICodec[] DefaultCodecs = new ICodec[] {Codec.Json, Codec.Xml};
-		private static readonly ILogger Log = Serilog.Log.ForContext<UsersController>();
 
 		public UsersController(IHttpForwarder httpForwarder, IPublisher publisher, IPublisher networkSendQueue)
 			: base(publisher) {
@@ -25,7 +22,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			RegisterUrlBased(service, "/users/", HttpMethod.Get, new Operation(Operations.Users.List), GetUsers);
 			RegisterUrlBased(service, "/users/{login}", HttpMethod.Get, new Operation(Operations.Users.Read), GetUser);
 			RegisterUrlBased(service, "/users/$current", HttpMethod.Get, new Operation(Operations.Users.CurrentUser), GetCurrentUser);
-			Register(service, "/users/{login}", HttpMethod.Put, PutUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Update));
 		}
 
 		private void GetUsers(HttpEntityManager http, UriTemplateMatch match) {
@@ -65,20 +61,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 			var message = new UserManagementMessage.Get(envelope, http.User, http.User.Identity.Name);
 			Publish(message);
-		}
-
-		private void PutUser(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-			http.ReadTextRequestAsync(
-				(o, s) => {
-					var login = match.BoundVariables["login"];
-					var data = http.RequestCodec.From<PutUserData>(s);
-					var message =
-						new UserManagementMessage.Update(envelope, http.User, login, data.FullName, data.Groups);
-					Publish(message);
-				}, x => Log.Debug(x, "Reply Text Content Failed."));
 		}
 
 		private SendToHttpEnvelope<T> CreateReplyEnvelope<T>(
@@ -132,11 +114,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				default:
 					return HttpStatusCode.InternalServerError;
 			}
-		}
-
-		private class PutUserData {
-			public string FullName { get; set; }
-			public string[] Groups { get; set; }
 		}
 
 	}

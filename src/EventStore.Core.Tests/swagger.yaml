@@ -123,10 +123,6 @@ paths:
       responses:
         "200":
           description: OK
-    put:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:
