@@ -77,3 +77,9 @@ dependencyOverrides:
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
+
+  - name: "OpenTelemetry.Instrumentation.AspNetCore"
+    version: "1.15.2"
+    licenses:
+      - key: "Apache-2.0"
+        url: "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/main/LICENSE"

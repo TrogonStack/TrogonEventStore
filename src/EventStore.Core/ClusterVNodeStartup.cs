@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Operations = EventStore.Core.Services.Transport.Grpc.Operations;
 using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
@@ -231,6 +232,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 			.AddOpenTelemetry()
 			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration, _configuration))
+			.WithTracing(tracerOptions => ConfigureTracing(tracerOptions, _configuration))
 			.Services
 
 			// gRPC
@@ -336,6 +338,22 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					metricsConfiguration.ExpectedScrapeIntervalSeconds * 1000;
 			}
 		});
+	}
+
+	private static void ConfigureTracing(
+		TracerProviderBuilder tracerOptions,
+		IConfiguration configuration)
+	{
+		tracerOptions.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("eventstore"));
+
+		if (!configuration.OtlpTracesEnabled())
+			return;
+
+		tracerOptions
+			.AddAspNetCoreInstrumentation()
+			.AddOtlpExporter(exporterOptions => configuration.BindOtlpExporterOptions(
+				OpenTelemetryConfiguration.OtlpTracesOtlpPrefix,
+				exporterOptions));
 	}
 
 	public void Handle(SystemMessage.SystemReady _) => _ready = true;
