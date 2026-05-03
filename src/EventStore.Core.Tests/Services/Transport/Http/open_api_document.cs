@@ -16,7 +16,6 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 	public async Task should_document_the_actions_of_all_controllers()
 	{
 		var skipActionPaths = new[] {
-			"/admin/login",
 			// handled by: /stats/{statPath}
 			"/stats/replication",
 			"/stats/tcp",

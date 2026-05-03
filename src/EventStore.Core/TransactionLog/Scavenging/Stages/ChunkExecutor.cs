@@ -200,8 +200,8 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 					}
 					else
 					{
-						// running a multithreaded scavenge with throttle < 100
-						// is rejected by the AdminController.
+						// validation rejects multithreaded scavenges with throttle < 100
+						// before execution reaches this path.
 					}
 				},
 				token: cancellationToken);
