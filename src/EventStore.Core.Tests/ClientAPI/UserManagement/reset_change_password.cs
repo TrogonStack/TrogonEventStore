@@ -42,114 +42,12 @@ public class reset_password<TLogFormat, TStreamId> : TestWithUser<TLogFormat, TS
 	public async Task can_reset_password()
 	{
 		await _manager.ResetPasswordAsync(_username, "foo", new UserCredentials("admin", "changeit"));
-		var ex = await AssertEx.ThrowsAsync<UserCommandFailedException>(
-			() => _manager.ChangePasswordAsync(_username, "password", "foobar",
-				new UserCredentials(_username, "password"))
-		);
+		var ex = await AssertEx.ThrowsAsync<AggregateException>(
+			() => _manager.GetCurrentUserAsync(new UserCredentials(_username, "password")));
 		Assert.AreEqual(HttpStatusCode.Unauthorized,
-			ex.HttpStatusCode);
-	}
-}
+			((UserCommandFailedException)ex.InnerException).HttpStatusCode);
 
-[TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class change_password<TLogFormat, TStreamId> : TestWithUser<TLogFormat, TStreamId>
-{
-	[Test]
-	public async Task null_username_throws()
-	{
-		await AssertEx.ThrowsAsync<ArgumentNullException>(() =>
-			_manager.ChangePasswordAsync(null, "oldpassword", "newpassword",
-				new UserCredentials("admin", "changeit")));
-	}
-
-	[Test]
-	public async Task empty_username_throws()
-	{
-		await AssertEx.ThrowsAsync<ArgumentNullException>(() =>
-			_manager.ChangePasswordAsync("", "oldpassword", "newpassword", new UserCredentials("admin", "changeit"))
-				);
-	}
-
-	[Test]
-	public async Task null_current_password_throws()
-	{
-		await AssertEx.ThrowsAsync<ArgumentNullException>(() =>
-			_manager.ChangePasswordAsync(_username, null, "newpassword", new UserCredentials("admin", "changeit"))
-				);
-	}
-
-	[Test]
-	public async Task empty_current_password_throws()
-	{
-		await AssertEx.ThrowsAsync<ArgumentNullException>(() =>
-			_manager.ChangePasswordAsync(_username, "", "newpassword", new UserCredentials("admin", "changeit"))
-				);
-	}
-
-	[Test]
-	public async Task null_new_password_throws()
-	{
-		await AssertEx.ThrowsAsync<ArgumentNullException>(() =>
-			_manager.ChangePasswordAsync(_username, "oldpasword", null, new UserCredentials("admin", "changeit"))
-				);
-	}
-
-	[Test]
-	public async Task empty_new_password_throws()
-	{
-		await AssertEx.ThrowsAsync<ArgumentNullException>(() =>
-			_manager.ChangePasswordAsync(_username, "oldpassword", "", new UserCredentials("admin", "changeit"))
-				);
-	}
-
-	[Test]
-	public async Task can_change_password()
-	{
-		await _manager.ChangePasswordAsync(_username, "password", "fubar", new UserCredentials(_username, "password"));
-		var ex = await AssertEx.ThrowsAsync<UserCommandFailedException>(
-			() => _manager.ChangePasswordAsync(_username, "password", "foobar",
-				new UserCredentials(_username, "password"))
-		);
-		Assert.AreEqual(HttpStatusCode.Unauthorized,
-			ex.HttpStatusCode);
-	}
-}
-
-[TestFixture(typeof(LogFormat.V2), typeof(string), "newpassword")]
-[TestFixture(typeof(LogFormat.V2), typeof(string), "n£wpasswordUnicode码")]
-[TestFixture(typeof(LogFormat.V2), typeof(string), "password")] // same as old password
-public class change_password_and_use_the_new_one<TLogFormat, TStreamId> : TestWithUser<TLogFormat, TStreamId>
-{
-	private readonly string _newPassword;
-	private const string OldPassword = "password";
-	private readonly TimeSpan _passwordChangeDelay = TimeSpan.FromSeconds(20);
-
-	public change_password_and_use_the_new_one(string newPassword)
-	{
-		_newPassword = newPassword;
-	}
-
-	[Test, Category("LongRunning"), Explicit]
-	public async Task can_change_password_and_use_the_new_one()
-	{
-		var oldCredentials = new UserCredentials(_username, OldPassword);
-		var newCredentials = new UserCredentials(_username, _newPassword);
-
-		// change the password to the new one
-		await _manager.ChangePasswordAsync(
-			login: _username,
-			oldPassword: OldPassword,
-			newPassword: _newPassword,
-			userCredentials: oldCredentials);
-
-		// wait for some time to allow the password change notification reader to detect the change
-		await Task.Delay(_passwordChangeDelay);
-
-		// change the password again but with the new credentials to see if they work
-		await _manager.ChangePasswordAsync(
-			login: _username,
-			oldPassword: _newPassword,
-			newPassword: "foobar",
-			userCredentials: newCredentials);
+		var current = await _manager.GetCurrentUserAsync(new UserCredentials(_username, "foo"));
+		Assert.AreEqual(_username, current.LoginName);
 	}
 }

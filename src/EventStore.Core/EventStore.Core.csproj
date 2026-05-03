@@ -77,7 +77,7 @@
 		<Protobuf Include="..\Protos\Grpc\streams.proto" GrpcServices="Both" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
 			<Link>Services\Transport\Grpc\Protos\streams.proto</Link>
 		</Protobuf>
-		<Protobuf Include="..\Protos\Grpc\users.proto" GrpcServices="Server" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
+		<Protobuf Include="..\Protos\Grpc\users.proto" GrpcServices="Both" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
 			<Link>Services\Transport\Grpc\Protos\users.proto</Link>
 		</Protobuf>
 		<Protobuf Include="..\Protos\Grpc\monitoring.proto" GrpcServices="Both" LinkBase="Services/Transport/Grpc" ProtoRoot="../Protos/Grpc">
