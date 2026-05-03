@@ -2720,6 +2720,30 @@
                 "integer": 2
               }
             ]
+          },
+          {
+            "name": "ScavengeStatusResp.ScavengeStatus",
+            "enum_fields": [
+              {
+                "name": "Unknown"
+              },
+              {
+                "name": "InProgress",
+                "integer": 1
+              },
+              {
+                "name": "Stopped",
+                "integer": 2
+              },
+              {
+                "name": "Success",
+                "integer": 3
+              },
+              {
+                "name": "Errored",
+                "integer": 4
+              }
+            ]
           }
         ],
         "messages": [
@@ -2745,6 +2769,21 @@
                     "id": 2,
                     "name": "start_from_chunk",
                     "type": "int32"
+                  },
+                  {
+                    "id": 3,
+                    "name": "threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 4,
+                    "name": "throttle_percent",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 5,
+                    "name": "sync_only",
+                    "type": "bool"
                   }
                 ]
               }
@@ -2788,6 +2827,21 @@
             ]
           },
           {
+            "name": "ScavengeStatusResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "scavenge_id",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "scavenge_status",
+                "type": "ScavengeStatus"
+              }
+            ]
+          },
+          {
             "name": "SetNodePriorityReq",
             "fields": [
               {
@@ -2811,6 +2865,16 @@
                 "name": "StopScavenge",
                 "in_type": "StopScavengeReq",
                 "out_type": "ScavengeResp"
+              },
+              {
+                "name": "GetCurrentScavenge",
+                "in_type": "event_store.client.Empty",
+                "out_type": "ScavengeStatusResp"
+              },
+              {
+                "name": "GetLastScavenge",
+                "in_type": "event_store.client.Empty",
+                "out_type": "ScavengeStatusResp"
               },
               {
                 "name": "Shutdown",

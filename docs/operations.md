@@ -26,10 +26,8 @@ Scavenging is destructive. Once a scavenge has run, you cannot recover any delet
 
 ### Starting a scavenge
 
-You start a scavenge by issuing an empty `POST` request to the HTTP API with the credentials of an `admin`
-or `ops` user:
-
-@[code{curl}](@samples/scavenge.sh)
+Start a scavenge by calling the gRPC `Operations.StartScavenge` method with the credentials of an `admin`
+or `ops` user.
 
 You can also start scavenges from the _Operations_ page of the Admin UI.
 
@@ -38,28 +36,16 @@ scavenge request to each node. The scavenges can be run concurrently, but can al
 
 ### Getting the current scavenge ID
 
-Get the ID of the currently running scavenge, if there is one, by issuing a `GET` request to the following HTTP API endpoint with the `admin` or `ops` credentials.
-
-```bash:no-line-numbers
-curl -i -X GET http://127.0.0.1:2113/admin/scavenge/current -u "admin:changeit"
-```
+Get the ID of the currently running scavenge, if there is one, by calling the gRPC `Operations.GetCurrentScavenge` method with the `admin` or `ops` credentials.
 
 ### Stopping a scavenge
 
-Stop a running scavenge operation by issuing a `DELETE` request to the HTTP API with the credentials of
-an `admin` or `ops` user and the ID of the scavenge you want to stop:
+Stop a running scavenge operation by calling the gRPC `Operations.StopScavenge` method with the credentials of
+an `admin` or `ops` user and the ID of the scavenge you want to stop.
 
-```bash:no-line-numbers
-curl -i -X DELETE http://localhost:2113/admin/scavenge/{scavengeId} -u "admin:changeit"
-```
+Or stop the currently running scavenge by specifying a `scavenge_id` of `current`.
 
-Or stop the currently running scavenge by specifying an ID of `current`:
-
-```bash:no-line-numbers
-curl -i -X DELETE http://localhost:2113/admin/scavenge/current -u "admin:changeit"
-```
-
-A 200 response is returned after the scavenge has stopped.
+The `StopScavenge` response is returned after the scavenge has stopped.
 
 You can also stop scavenges from the _Operations_ page of the Admin UI.
 
@@ -158,17 +144,13 @@ This final phase removes data from the scavenge database that is no longer neede
 
 ## Starting a scavenge
 
-When starting a scavenge with an HTTP POST request, the following options are available.
+When starting a scavenge with `Operations.StartScavenge`, the following options are available.
 
 ### Threads
 
 Specify the number of threads to use for running the scavenging process. The default value is 1.
 
-Example:
-
-```bash:no-line-numbers
-curl -i -X POST http://127.0.0.1:2113/admin/scavenge?threads=2 -u "admin:changeit"
-```
+Set the `thread_count` option to control the number of threads.
 
 ### Threshold
 
@@ -182,11 +164,7 @@ Possible values for the threshold:
 - `0`: Default value. Scavenges every chunk that has events to remove.
 - `> 0`: The minimum weight a chunk must have in order to be scavenged.
 
-Example:
-
-```bash:no-line-numbers
-curl -i -X POST http://127.0.0.1:2113/admin/scavenge?threshold=2000 -u "admin:changeit"
-```
+Set the `threshold` option to control the minimum chunk weight.
 
 ::: tip
 Setting a positive threshold means that not all deleted and expired events will be removed. This may be important to consider with respect to GDPR.
@@ -194,31 +172,21 @@ Setting a positive threshold means that not all deleted and expired events will 
 
 ### Throttle percent
 
-The scavenging process can be time-consuming and resource-intensive. You can control the speed and resource usage of the scavenge process using the `throttlePercent` option. When set to 100 (default value), the scavenge process runs at full speed. Setting it to 50 makes the process take twice as long by pausing regularly.
+The scavenging process can be time-consuming and resource-intensive. You can control the speed and resource usage of the scavenge process using the `throttle_percent` option. When set to 100 (default value), the scavenge process runs at full speed. Setting it to 50 makes the process take twice as long by pausing regularly.
 
-A scavenge can be stopped and restarted with a different `throttlePercent`.
+A scavenge can be stopped and restarted with a different `throttle_percent`.
 
-For `throttlePercent` values:
+For `throttle_percent` values:
 
 - Throttle percent must be between 1 and 100.
 
 - Throttle percent must be 100 for a multi-threaded scavenge.
 
-Example:
-
-```bash:no-line-numbers
-curl -i -X POST http://127.0.0.1:2113/admin/scavenge?throttlePercent=50 -u "admin:changeit"
-```
+Set the `throttle_percent` option to control the throttle.
 
 ### Sync Only
 
-The `syncOnly` option is a boolean value and is false by default. When true, it prevents the creation of a new scavenge point and will only run the scavenge if there is an existing scavenge point that has not yet been reached in a previous scavenged. After running a scavenge on one node, this flag can be used to ensure that a subsequent node scavenges to that same point.
-
-Example:
-
-```bash:no-line-numbers
-curl -i -X POST http://127.0.0.1:2113/admin/scavenge?syncOnly=true -u "admin:changeit"
-```
+The `sync_only` option is a boolean value and is false by default. When true, it prevents the creation of a new scavenge point and will only run the scavenge if there is an existing scavenge point that has not yet been reached in a previous scavenge. After running a scavenge on one node, this flag can be used to ensure that a subsequent node scavenges to that same point.
 
 ### Start From Chunk
 

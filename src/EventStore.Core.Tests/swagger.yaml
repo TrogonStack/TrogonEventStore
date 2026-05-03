@@ -20,26 +20,6 @@ paths:
       responses:
         "200":
           description: OK
-  /admin/scavenge:
-    post:
-      responses:
-        "200":
-          description: OK
-  "/admin/scavenge/{scavengeId}":
-    delete:
-      responses:
-        "200":
-          description: OK
-  /admin/scavenge/current:
-    get:
-      responses:
-        "200":
-          description: OK
-  /admin/scavenge/last:
-    get:
-      responses:
-        "200":
-          description: OK
   /info:
     get:
       responses:
@@ -255,33 +235,6 @@ definitions:
     example:
       CurrentPassword: anOldSecurePassword
       NewPassword: aNewSecurePassword
-  ScavengeCurrentItem:
-    type: object
-    properties:
-      ScavengeId:
-        type: string
-        description: The identifier of the current scavenge.
-      ScavengeLink:
-        type: string
-        description: Link to current scavenge.
-  ScavengeLastItem:
-    type: object
-    properties:
-      ScavengeId:
-        type: string
-        description: The identifier of the last scavenge.
-      ScavengeLink:
-        type: string
-        description: Link to last scavenge.
-      ScavengeResult:
-        description: The status of the last scavenge.
-        type: string
-        enum:
-          - Success
-          - InProgress
-          - Stopped
-          - Errored
-          - Unknown
   SubscriptionItem:
     type: object
     properties:
