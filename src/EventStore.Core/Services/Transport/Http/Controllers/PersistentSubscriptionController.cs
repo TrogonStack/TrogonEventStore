@@ -38,7 +38,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				DefaultCodecs, new Operation(Operations.Subscriptions.Create));
 			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Post, PostSubscription,
 				DefaultCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Update));
-			RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Delete, new Operation(Operations.Subscriptions.Delete), DeleteSubscription);
 			Register(service, "/subscriptions/{stream}/{subscription}/info", HttpMethod.Get, GetSubscriptionInfo,
 				Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 		}
@@ -267,51 +266,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			return namedConsumerStrategy;
 		}
 
-		private void DeleteSubscription(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = new SendToHttpEnvelope(
-				_networkSendQueue, http,
-				(args, message) => http.ResponseCodec.To(message),
-				(args, message) => {
-					int code;
-					if (message is ClientMessage.NotHandled notHandled)
-						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
-
-					var m = message as ClientMessage.DeletePersistentSubscriptionToStreamCompleted;
-					if (m == null) throw new Exception("unexpected message " + message);
-					switch (m.Result) {
-						case ClientMessage.DeletePersistentSubscriptionToStreamCompleted.DeletePersistentSubscriptionToStreamResult
-							.Success:
-							code = HttpStatusCode.OK;
-							break;
-						case ClientMessage.DeletePersistentSubscriptionToStreamCompleted.DeletePersistentSubscriptionToStreamResult
-							.DoesNotExist:
-							code = HttpStatusCode.NotFound;
-							break;
-						case ClientMessage.DeletePersistentSubscriptionToStreamCompleted.DeletePersistentSubscriptionToStreamResult
-							.AccessDenied:
-							code = HttpStatusCode.Unauthorized;
-							break;
-						case ClientMessage.DeletePersistentSubscriptionToStreamCompleted.DeletePersistentSubscriptionToStreamResult
-							.Fail:
-							code = HttpStatusCode.BadRequest;
-							break;
-						default:
-							code = HttpStatusCode.InternalServerError;
-							break;
-					}
-
-					return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
-						http.ResponseCodec.Encoding);
-				});
-			var groupname = match.BoundVariables["subscription"];
-			var stream = match.BoundVariables["stream"];
-			var cmd = new ClientMessage.DeletePersistentSubscriptionToStream(Guid.NewGuid(), Guid.NewGuid(), envelope, stream,
-				groupname, http.User);
-			Publish(cmd);
-		}
-		
 		private void GetAllSubscriptionInfo(HttpEntityManager http, UriTemplateMatch match) {
 			if (_httpForwarder.ForwardRequest(http))
 				return;
