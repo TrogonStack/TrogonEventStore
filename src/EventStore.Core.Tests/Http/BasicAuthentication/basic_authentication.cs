@@ -1,10 +1,15 @@
 using System;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
+using EventStore.Client.Users;
 using EventStore.Core.Services;
 using EventStore.Core.Tests.Http.Users.users;
+using Grpc.Core;
+using Grpc.Net.Client;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using UsersClient = EventStore.Client.Users.Users.UsersClient;
 
 namespace EventStore.Core.Tests.Http.BasicAuthentication
 {
@@ -139,9 +144,7 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 				var response = await MakeRawJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-				Console.WriteLine("done with json post");
-				response = await MakeDelete("/users/test1", _admin);
-				Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+				await DeleteUser("test1", _admin);
 			}
 
 			protected override async Task When()
@@ -154,6 +157,31 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 			{
 				Assert.AreEqual(HttpStatusCode.Unauthorized, _lastResponse.StatusCode);
 			}
+
+			private async Task DeleteUser(string loginName, NetworkCredential credentials)
+			{
+				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
+					new GrpcChannelOptions
+					{
+						HttpClient = _node.HttpClient,
+						DisposeHttpClient = false
+					});
+				var users = new UsersClient(channel);
+				await users.DeleteAsync(new DeleteReq
+				{
+					Options = new DeleteReq.Types.Options
+					{
+						LoginName = loginName
+					}
+				}, new CallOptions(new Metadata
+				{
+					{"authorization", BasicAuthHeader(credentials)}
+				}));
+			}
+
+			private static string BasicAuthHeader(NetworkCredential credentials) =>
+				"Basic " + Convert.ToBase64String(
+					Encoding.ASCII.GetBytes($"{credentials.UserName}:{credentials.Password}"));
 		}
 	}
 }

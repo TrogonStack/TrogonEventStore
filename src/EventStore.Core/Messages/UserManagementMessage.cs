@@ -186,7 +186,6 @@ namespace EventStore.Core.Messages {
 				Links = new List<RelLink>();
 				var userLocalUrl = "/users/" + userData.LoginName;
 				Links.Add(new RelLink(makeAbsoluteUrl(userLocalUrl), "edit"));
-				Links.Add(new RelLink(makeAbsoluteUrl(userLocalUrl), "delete"));
 
 				Links.Add(userData.Disabled
 					? new RelLink(makeAbsoluteUrl(userLocalUrl + "/command/enable"), "enable")
