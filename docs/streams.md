@@ -141,7 +141,7 @@ The event data includes:
 ### **`$all`**
 
 **`$all`** is a dedicated paged stream containing all events. You can employ the same paged reading method described earlier to
-read all events for a node by pointing the stream at _/streams/\$all_. Like any other stream, you can perform all operations, except posting to it.
+read all events for a node through a gRPC client or the Admin UI stream browser. Like any other stream, you can perform all operations, except posting to it.
 
 ### **`$settings`**
 

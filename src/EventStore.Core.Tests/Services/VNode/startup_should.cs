@@ -45,8 +45,7 @@ public class startup_should : SpecificationWithDirectory
 			Interface = new()
 			{
 				ReplicationHeartbeatInterval = 10_000,
-				ReplicationHeartbeatTimeout = 10_000,
-				EnableAtomPubOverHttp = true
+				ReplicationHeartbeatTimeout = 10_000
 			},
 			Cluster = new()
 			{

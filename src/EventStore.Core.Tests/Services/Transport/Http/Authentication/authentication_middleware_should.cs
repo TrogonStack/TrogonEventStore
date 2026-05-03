@@ -16,7 +16,7 @@ public class authentication_middleware_should {
 	public async Task preserve_anonymous_browser_redirects_regardless_of_path() {
 		var context = await InvokeWithRedirect(
 			new AnonymousHttpAuthenticationProvider(),
-			path: "/streams/test",
+			path: "/ui/streams/test",
 			userAgent: "Mozilla/5.0");
 
 		Assert.AreEqual(StatusCodes.Status302Found, context.Response.StatusCode);

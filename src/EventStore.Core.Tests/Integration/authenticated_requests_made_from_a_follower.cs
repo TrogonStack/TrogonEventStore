@@ -1,9 +1,6 @@
 using System;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using EventStore.Client;
 using EventStore.Client.Streams;
@@ -24,55 +21,6 @@ public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TS
 
 	private static readonly string AuthorizationHeaderValue =
 		$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}";
-
-	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-	public class via_http_should : authenticated_requests_made_from_a_follower<TLogFormat, TStreamId>
-	{
-		private HttpStatusCode _statusCode;
-
-		protected override async Task Given()
-		{
-			var node = GetFollowers()[0];
-			await Task.WhenAll(node.AdminUserCreated, node.Started);
-			using var httpClient = new HttpClient(new SocketsHttpHandler
-			{
-				SslOptions = {
-					RemoteCertificateValidationCallback = delegate { return true; }
-				}
-			}, true)
-			{
-				BaseAddress = new Uri($"https://{node.HttpEndPoint}/"),
-				DefaultRequestHeaders = {
-					Authorization = AuthenticationHeaderValue.Parse(AuthorizationHeaderValue)
-				}
-			};
-
-			var content = JsonSerializer.SerializeToUtf8Bytes(new[] {
-				new {
-					eventId = Guid.NewGuid(),
-					data = new{},
-					metadata = new{},
-					eventType = "-"
-				}
-			}, new JsonSerializerOptions
-			{
-				PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-			});
-
-			using var response = await httpClient.PostAsync($"/streams/{ProtectedStream}",
-				new ReadOnlyMemoryContent(content)
-				{
-					Headers = { ContentType = new MediaTypeHeaderValue("application/vnd.eventstore.events+json") }
-				});
-
-			_statusCode = response.StatusCode;
-		}
-
-		[Test]
-		[Retry(5)]
-		public void work() => Assert.AreEqual(HttpStatusCode.Created, _statusCode);
-	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	[TestFixture(typeof(LogFormat.V3), typeof(uint))]

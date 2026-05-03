@@ -53,7 +53,7 @@ public abstract class uri_router_should
 			new ControllerAction("/halt", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
 			(x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction("/streams/{stream}/{event}/backward/{count}?embed={embed}", HttpMethod.Get,
+			new ControllerAction("/routes/{stream}/{event}/backward/{count}?embed={embed}", HttpMethod.Get,
 				Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 		_router.RegisterAction(
 			new ControllerAction(
@@ -63,20 +63,20 @@ public abstract class uri_router_should
 			new ControllerAction("/s/stats/{*statPath}", HttpMethod.Get, Codec.NoCodecs,
 				FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction("/streams/$all/", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
+			new ControllerAction("/routes/$all/", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
 			(x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction("/streams/$$all", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
+			new ControllerAction("/routes/$$all", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
 			(x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction("/streams/$mono?param={param}", HttpMethod.Get, Codec.NoCodecs,
+			new ControllerAction("/routes/$mono?param={param}", HttpMethod.Get, Codec.NoCodecs,
 				FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 
 		_router.RegisterAction(
-			new ControllerAction("/streams/test", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
+			new ControllerAction("/routes/test", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
 			(x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction("/streams/test", HttpMethod.Post, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
+			new ControllerAction("/routes/test", HttpMethod.Post, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
 			(x, y) => p);
 
 		_router.RegisterAction(
@@ -138,75 +138,75 @@ public abstract class uri_router_should
 	[Test, Ignore("ignore")]
 	public void not_care_about_trailing_slash()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/$all"));
+		var match = _router.GetAllUriMatches(Uri("/routes/$all"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$all/", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$all/", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 
-		match = _router.GetAllUriMatches(Uri("/streams/$all/"));
+		match = _router.GetAllUriMatches(Uri("/routes/$all/"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$all/", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$all/", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 	}
 
 	[Test, Ignore("ignore")]
 	public void not_care_about_trailing_slash2()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/$$all"));
+		var match = _router.GetAllUriMatches(Uri("/routes/$$all"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$$all", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$$all", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 
-		match = _router.GetAllUriMatches(Uri("/streams/$$all/"));
+		match = _router.GetAllUriMatches(Uri("/routes/$$all/"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$$all", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$$all", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 	}
 
 	[Test]
 	public void care_about_trailing_slash()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/$all/"));
+		var match = _router.GetAllUriMatches(Uri("/routes/$all/"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$all/", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$all/", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 
-		match = _router.GetAllUriMatches(Uri("/streams/$all"));
+		match = _router.GetAllUriMatches(Uri("/routes/$all"));
 		Assert.AreEqual(0, match.Count);
 	}
 
 	[Test]
 	public void care_about_trailing_slash2()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/$$all"));
+		var match = _router.GetAllUriMatches(Uri("/routes/$$all"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$$all", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$$all", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 
-		match = _router.GetAllUriMatches(Uri("/streams/$$all/"));
+		match = _router.GetAllUriMatches(Uri("/routes/$$all/"));
 		Assert.AreEqual(0, match.Count);
 	}
 
 	[Test]
 	public void match_route_with_dollar_sign()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/$mono"));
+		var match = _router.GetAllUriMatches(Uri("/routes/$mono"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$mono?param={param}", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$mono?param={param}", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 
-		match = _router.GetAllUriMatches(Uri("/streams/$mono?param=bla"));
+		match = _router.GetAllUriMatches(Uri("/routes/$mono?param=bla"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/$mono?param={param}", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/$mono?param={param}", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 	}
 
 	[Test]
 	public void match_complex_route_with_placeholders_and_query_params()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/test-stream/10/backward/20?embed=true"));
+		var match = _router.GetAllUriMatches(Uri("/routes/test-stream/10/backward/20?embed=true"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/{stream}/{event}/backward/{count}?embed={embed}",
+		Assert.AreEqual("/routes/{stream}/{event}/backward/{count}?embed={embed}",
 			match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 	}
@@ -214,9 +214,9 @@ public abstract class uri_router_should
 	[Test]
 	public void match_complex_route_with_placeholders_and_query_params_when_no_query_params_are_set()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/test-stream/head/backward/20"));
+		var match = _router.GetAllUriMatches(Uri("/routes/test-stream/head/backward/20"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/streams/{stream}/{event}/backward/{count}?embed={embed}",
+		Assert.AreEqual("/routes/{stream}/{event}/backward/{count}?embed={embed}",
 			match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
 	}
@@ -249,11 +249,11 @@ public abstract class uri_router_should
 	[Test]
 	public void match_same_routes_with_different_http_methods()
 	{
-		var match = _router.GetAllUriMatches(Uri("/streams/test"));
+		var match = _router.GetAllUriMatches(Uri("/routes/test"));
 		Assert.AreEqual(2, match.Count);
-		Assert.AreEqual("/streams/test", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/test", match[0].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Get, match[0].ControllerAction.HttpMethod);
-		Assert.AreEqual("/streams/test", match[1].ControllerAction.UriTemplate);
+		Assert.AreEqual("/routes/test", match[1].ControllerAction.UriTemplate);
 		Assert.AreEqual(HttpMethod.Post, match[1].ControllerAction.HttpMethod);
 	}
 

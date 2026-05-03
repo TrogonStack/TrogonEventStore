@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using EventStore.ClientAPI;
-using EventStore.Core.Bus;
-using EventStore.Core.Messages;
 using EventStore.Core.Tests.Http.Users.users;
 using EventStore.Transport.Http;
 using Newtonsoft.Json.Linq;
@@ -43,81 +40,6 @@ class
 		Assert.AreEqual(Events.Count, knownNumberOfEvents,
 			"Expected the subscription statistics to know about {0} events but seeing {1}", Events.Count,
 			knownNumberOfEvents);
-	}
-}
-
-[Category("LongRunning")]
-[TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
-class when_getting_statistics_for_subscription_with_parked_events<TLogFormat, TStreamId> : with_subscription_having_events<TLogFormat, TStreamId>
-{
-	private string _nackLink;
-	private JObject _json;
-	private string _streamName;
-
-	private string _subscriptionParkedStream;
-	private Guid _writeCorrelationId;
-	private TaskCompletionSource<bool> _eventParked = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-	protected override async Task Given()
-	{
-		_connection.Close();
-		_connection.Dispose();
-		NumberOfEventsToCreate = 1;
-		await base.Given();
-
-		_streamName = TestStream.Substring(9);
-		_subscriptionParkedStream =
-			"$persistentsubscription-" + _streamName + "::" + GroupName + "-parked";
-
-		// Subscribe to the writes to ensure the parked message has been written
-		_node.Node.MainBus.Subscribe(new AdHocHandler<StorageMessage.WritePrepares>(Handle));
-		_node.Node.MainBus.Subscribe(new AdHocHandler<StorageMessage.CommitIndexed>(Handle));
-
-		var json = await GetJson2<JObject>(
-			SubscriptionPath + "/1", "embed=rich",
-			ContentType.CompetingJson,
-			_admin);
-
-		Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
-		Assert.DoesNotThrow(() =>
-		{
-			var _entries = json != null ? json["entries"].ToList() : new List<JToken>();
-			_nackLink = _entries[0]["links"][3]["uri"] + "?action=park";
-		});
-
-		//Park the message
-		var response = await MakePost(_nackLink, _admin);
-		Assert.AreEqual(HttpStatusCode.Accepted, response.StatusCode);
-	}
-
-	private void Handle(StorageMessage.WritePrepares msg)
-	{
-		if (msg.EventStreamId == _subscriptionParkedStream)
-		{
-			_writeCorrelationId = msg.CorrelationId;
-		}
-	}
-
-	private void Handle(StorageMessage.CommitIndexed msg)
-	{
-		if (msg.CorrelationId == _writeCorrelationId)
-		{
-			_eventParked.TrySetResult(true);
-		}
-	}
-
-	protected override async Task When()
-	{
-		await _eventParked.Task.WithTimeout();
-		_json = await GetJson<JObject>("/subscriptions/" + _streamName + "/" + GroupName + "/info", ContentType.Json);
-	}
-
-	[Test]
-	[Retry(5)]
-	public void should_show_one_parked_message()
-	{
-		Assert.AreEqual(1, _json["parkedMessageCount"].Value<int>());
 	}
 }
 
@@ -186,7 +108,7 @@ class when_getting_non_existent_single_statistics<TLogFormat, TStreamId> : with_
 
 	protected override async Task When()
 	{
-		var request = CreateRequest("/subscriptions/fu/fubar", null, "GET", "text/xml");
+		var request = CreateRequest("/subscriptions/fu/fubar/info", null, "GET", "text/xml");
 		_response = await GetRequestResponse(request);
 	}
 
@@ -444,24 +366,6 @@ class when_getting_subscription_stats_summary<TLogFormat, TStreamId> : Specifica
 
 	[Test]
 	[Retry(5)]
-	public void the_first_parked_message_queue_uri_is_correct()
-	{
-		Assert.AreEqual(
-			string.Format("http://{0}/streams/%24persistentsubscription-{1}::{2}-parked", _node.HttpEndPoint,
-				_streamName, _groupName), _json[0]["parkedMessageUri"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_parked_message_queue_uri_is_correct()
-	{
-		Assert.AreEqual(
-			string.Format("http://{0}/streams/%24persistentsubscription-{1}::{2}-parked", _node.HttpEndPoint,
-				_streamName, "secondgroup"), _json[1]["parkedMessageUri"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
 	public void the_status_is_live()
 	{
 		Assert.AreEqual("Live", _json[0]["status"].Value<string>());
@@ -587,24 +491,6 @@ class when_getting_subscription_statistics_for_stream<TLogFormat, TStreamId> : S
 			string.Format("http://{0}/subscriptions/{1}/{2}/info", _node.HttpEndPoint, _streamName,
 				"secondgroup"),
 			_json[1]["links"][0]["href"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_first_parked_message_queue_uri_is_correct()
-	{
-		Assert.AreEqual(
-			string.Format("http://{0}/streams/%24persistentsubscription-{1}::{2}-parked", _node.HttpEndPoint,
-				_streamName, _groupName), _json[0]["parkedMessageUri"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_parked_message_queue_uri_is_correct()
-	{
-		Assert.AreEqual(
-			string.Format("http://{0}/streams/%24persistentsubscription-{1}::{2}-parked", _node.HttpEndPoint,
-				_streamName, "secondgroup"), _json[1]["parkedMessageUri"].Value<string>());
 	}
 
 	[Test]

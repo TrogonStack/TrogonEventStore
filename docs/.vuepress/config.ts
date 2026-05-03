@@ -8,8 +8,6 @@ import viteBundler from "@vuepress/bundler-vite";
 import {defaultTheme} from "@vuepress/theme-default";
 import {containerPlugin} from "@vuepress/plugin-container";
 
-const projectionSamplesPath = "https://raw.githubusercontent.com/EventStore/EventStore/53f84e55ea56ccfb981aff0e432581d72c23fbf6/samples/http-api/data/";
-
 export default defineUserConfig({
     title: "EventStoreDB Documentation",
     description: "The stream database built for Event Sourcing",
@@ -23,27 +21,18 @@ export default defineUserConfig({
         md.use(replaceLinkPlugin, {
             replaceLink: (link: string, _) => link
                 .replace("@server", "")
-                .replace("@clients/http-api/", "/http-api/")
-                .replace("@clients/httpapi/", "/http-api/")
-                .replace("@httpapi/data/", projectionSamplesPath)
-                .replace("@httpapi", "/http-api")
         });
     },
     theme: defaultTheme({
         sidebarDepth: 2,
         docsDir: ".",
         sidebar: {
-            "/": require("../sidebar"),
-            "/http-api/": require("../http-api/sidebar")
+            "/": require("../sidebar")
         },
         navbar: [
             {
                 text: "Server",
                 link: "/",
-            },
-            {
-                text: "HTTP API",
-                link: "/http-api/"
             }
         ]
     }),

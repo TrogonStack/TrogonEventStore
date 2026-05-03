@@ -63,19 +63,10 @@ Read more in the [gRPC clients documentation](@clients/grpc/README.md).
 
 ### HTTP
 
-EventStoreDB also offers an HTTP-based interface. It consists of the REST-oriented API, and a realtime subscription feature based on the [AtomPub protocol](https://datatracker.ietf.org/doc/html/rfc5023). As it operates over HTTP, this is less efficient, but nearly every environment supports it.
+EventStoreDB also offers HTTP surfaces for the Admin UI, management workflows, health probes, gossip, and diagnostics. Application event access uses the gRPC clients listed above.
 
 Find out more about configuring the HTTP protocol on the [HTTP configuration](networking.md#http-configuration) page.
 
-::: warning Deprecation Note
-The current AtomPub-based HTTP application API is disabled by default since v20 of EventStoreDB. You can enable it by adding an [option](networking.md#atompub) to the server configuration. Although we plan to remove AtomPub support from future server versions, the server management HTTP API will remain available.
-The Admin UI uses the server management surface and does not require AtomPub for stream browsing.
-:::
-
-Learn more about the EventStoreDB HTTP interface in the [HTTP documentation](@clients/http-api/README.md). 
-
-
 #### Community developed clients
 
-- [PHP (prooph/event-store-http-client)](https://github.com/prooph/event-store-http-client/)
 - [Ruby (yousty/event_store_client)](https://github.com/yousty/event_store_client)

@@ -180,47 +180,12 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/stats/replication;GET;None",
 			"/stats/tcp;GET;None",
 			"/stats/{*statPath};GET;None",
-			"/streams/{stream};POST;None",
-			"/streams/{stream};DELETE;None",
-			"/streams/{stream}/incoming/{C38FC5D7-C0B6-4F47-A60D-9BF3D1B76BDF};POST;None",
-			"/streams/{stream}/;POST;None",
-			"/streams/{stream}/;DELETE;None",
-			"/streams/{stream}/;GET;None",
-			//These are not valid urls, and by default all users can perform all operations on streams
-			//"/streams/{stream}?embed={embed};GET;User",
-			//"/streams/{stream}/{event}?embed={embed};GET;User",
-			//"/streams/{stream}/{event}/{count}?embed={embed};GET;User",
-			//"/streams/{stream}/{event}/backward/{count}?embed={embed};GET;User",
-			//"/streams/{stream}/metadata;POST;User",
-			//"/streams/{stream}/metadata/;POST;User",
-			//"/streams/{stream}/metadata?embed={embed};GET;User",
-			//"/streams/{stream}/metadata/?embed={embed};GET;User",
-			//"/streams/{stream}/metadata/{event}?embed={embed};GET;User",
-			//"/streams/{stream}/metadata/{event}/{count}?embed={embed};GET;User",
-			//"/streams/{stream}/metadata/{event}/backward/{count}?embed={embed};GET;User",
-			"/streams/$all/;GET;User", /* only redirects, so "User" is allowed */
-			"/streams/%24all/;GET;User", /* only redirects, so "User" is allowed */
-			/* -- with default ACLs, only Admin should be able to read $all -- */
-			"/streams/$all?embed={embed};GET;Admin",
-			"/streams/$all/00000000000000000000000000000000/10?embed={embed};GET;Admin", /* /streams/$all/{position}/{count}?embed={embed} */
-			"/streams/$all/head/backward/10?embed={embed};GET;Admin", /* /streams/$all/{position}/backward/{count}?embed={embed} */
-			"/streams/%24all?embed={embed};GET;Admin",
-			"/streams/%24all/00000000000000000000000000000000/10?embed={embed};GET;Admin", /* /streams/%24all/{position}/{count}?embed={embed} */
-			"/streams/%24all/head/backward/10?embed={embed};GET;Admin", /* /streams/%24all/{position}/backward/{count}?embed={embed} */
-			/* ------------------------------------------------------------- */
 			"/subscriptions;GET;User",
 			"/subscriptions/{stream};GET;User",
 			"/subscriptions/{stream}/{subscription};PUT;Ops",
 			"/subscriptions/{stream}/{subscription};POST;Ops",
 			"/subscriptions/{stream}/{subscription};DELETE;Ops",
-			"/subscriptions/{stream}/{subscription};GET;User",
-			"/subscriptions/{stream}/{subscription}?embed={embed};GET;User",
-			"/subscriptions/{stream}/{subscription}/{count}?embed={embed};GET;User",
 			"/subscriptions/{stream}/{subscription}/info;GET;User",
-			"/subscriptions/{stream}/{subscription}/ack/{messageid};POST;User",
-			"/subscriptions/{stream}/{subscription}/nack/{messageid}?action={action};POST;User",
-			"/subscriptions/{stream}/{subscription}/ack?ids={messageids};POST;User",
-			"/subscriptions/{stream}/{subscription}/nack?ids={messageids}&action={action};POST;User",
 			"/subscriptions/{stream}/{subscription}/replayParked?stopAt=1;POST;Ops",
 			"/users;GET;Admin",
 			"/users/;GET;Admin",

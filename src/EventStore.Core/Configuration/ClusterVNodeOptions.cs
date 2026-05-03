@@ -111,7 +111,7 @@ public partial record ClusterVNodeOptions
 	public record DevModeOptions
 	{
 		[Description(
-			"Runs EventStoreDB in dev mode. This will create and add dev certificates to your certificate store, enable atompub over http, and run standard projections.")]
+			"Runs EventStoreDB in dev mode. This will create and add dev certificates to your certificate store and run standard projections.")]
 		public bool Dev { get; init; } = false;
 
 		[Description("Removes any dev certificates installed on this computer without starting EventStoreDB.")]
@@ -583,11 +583,6 @@ public partial record ClusterVNodeOptions
 
 		[Description("Enables trusted authentication by an intermediary in the HTTP.")]
 		public bool EnableTrustedAuth { get; init; } = false;
-
-		[Description("Enable AtomPub over HTTP Interface."),
-		 Deprecated(
-			 "AtomPub over HTTP Interface has been deprecated as of version 20.6.0. It is recommended to use gRPC instead")]
-		public bool EnableAtomPubOverHttp { get; init; } = false;
 	}
 
 	[Description("Projection Options")]
