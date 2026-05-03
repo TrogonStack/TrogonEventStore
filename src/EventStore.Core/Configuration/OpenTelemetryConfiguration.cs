@@ -14,6 +14,8 @@ public static class OpenTelemetryConfiguration
 	public const string OtlpLogsOtlpPrefix = $"{OpenTelemetryPrefix}:Logs:Otlp";
 	public const string OtlpMetricsPrefix = $"{OpenTelemetryPrefix}:Metrics";
 	public const string OtlpMetricsOtlpPrefix = $"{OpenTelemetryPrefix}:Metrics:Otlp";
+	public const string OtlpTracesPrefix = $"{OpenTelemetryPrefix}:Traces";
+	public const string OtlpTracesOtlpPrefix = $"{OpenTelemetryPrefix}:Traces:Otlp";
 
 	public static bool OtlpLogsEnabled(this IConfiguration configuration) =>
 		configuration.GetValue<bool>($"{OtlpLogsPrefix}:Enabled");
@@ -22,6 +24,10 @@ public static class OpenTelemetryConfiguration
 		metricsConfiguration.Otlp.Enabled ||
 		configuration.GetSection(OtlpMetricsOtlpPrefix).Exists() ||
 		configuration.GetValue<bool>($"{OtlpMetricsPrefix}:Enabled");
+
+	public static bool OtlpTracesEnabled(this IConfiguration configuration) =>
+		configuration.GetSection(OtlpTracesOtlpPrefix).Exists() ||
+		configuration.GetValue<bool>($"{OtlpTracesPrefix}:Enabled");
 
 	public static OtlpExporterOptions GetOtlpExporterOptions(
 		this IConfiguration configuration,

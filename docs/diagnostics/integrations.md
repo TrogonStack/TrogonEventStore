@@ -6,7 +6,7 @@ title: "Integrations"
 
 EventStoreDB supports several methods to integrate with external monitoring and observability tools. Those include:
 
-- [OpenTelemetry](#opentelemetry-exporter): export metrics to an OpenTelemetry-compatible endpoint
+- [OpenTelemetry](#opentelemetry-exporter): export telemetry to an OpenTelemetry-compatible endpoint
 - [Prometheus](#prometheus): collect metrics in Prometheus
 - [Datadog](#datadog): monitor and measure the cluster with Datadog
 - [ElasticSearch](#elasticsearch): this section describes how to collect EventStoreDB logs in ElasticSearch
@@ -21,7 +21,7 @@ Older versions can be monitored by Prometheus using the community-supported expo
 
 ## OpenTelemetry Exporter
 
-EventStoreDB passively exposes metrics for scraping on the `/metrics` endpoint. It can also actively export metrics and logs using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
+EventStoreDB passively exposes metrics for scraping on the `/metrics` endpoint. It can also actively export logs, metrics, and traces using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
 
 A number of APM providers natively support OTLP, so you might be able to send EventStoreDB telemetry directly to your APM provider. Alternatively, you can export to the OpenTelemetry Collector, which can then fan out to a variety of backends. You can find out more about the [OpenTelemetry collector](https://opentelemetry.io/docs/collector/).
 
@@ -44,13 +44,19 @@ Sample JSON configuration:
         "Otlp": {
           "Endpoint": "http://metrics-collector:4317"
         }
+      },
+      "Traces": {
+        "Enabled": true,
+        "Otlp": {
+          "Endpoint": "http://traces-collector:4317"
+        }
       }
     }
   }
 }
 ```
 
-The shared `EventStore:OpenTelemetry:Otlp` section provides defaults for every enabled OTLP signal. The `EventStore:OpenTelemetry:Logs:Otlp` and `EventStore:OpenTelemetry:Metrics:Otlp` sections can override only the settings that need to differ for each signal.
+The shared `EventStore:OpenTelemetry:Otlp` section provides defaults for every enabled OTLP signal. The `EventStore:OpenTelemetry:Logs:Otlp`, `EventStore:OpenTelemetry:Metrics:Otlp`, and `EventStore:OpenTelemetry:Traces:Otlp` sections can override only the settings that need to differ for each signal.
 
 All OpenTelemetry environment variables are optional. Configure them only in deployment environments that should export telemetry to an OTLP collector.
 
@@ -64,6 +70,8 @@ The configuration can specify:
 | EventStore__OpenTelemetry__Logs__Otlp__Endpoint    | Optional log-specific OTLP destination                         |
 | EventStore__OpenTelemetry__Metrics__Enabled        | Enables OTLP metric export from runtime configuration          |
 | EventStore__OpenTelemetry__Metrics__Otlp__Endpoint | Optional metric-specific OTLP destination                      |
+| EventStore__OpenTelemetry__Traces__Enabled         | Enables OTLP trace export from runtime configuration           |
+| EventStore__OpenTelemetry__Traces__Otlp__Endpoint  | Optional trace-specific OTLP destination                       |
 
 Headers are key-value pairs separated by commas. For example:
 ```:no-line-numbers
@@ -82,7 +90,8 @@ The interval is taken from the `ExpectedScrapeIntervalSeconds` value in `metrics
 |------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
 | Logs are not exported                    | Check that `EventStore__OpenTelemetry__Logs__Enabled` is set to `true`.                                                                        |
 | Metrics are not exported                 | Check that `EventStore__OpenTelemetry__Metrics__Enabled` is `true`, any `EventStore__OpenTelemetry__Metrics__Otlp__*` key is set, or `Otlp.Enabled` is `true` in `metricsconfig.json`. |
-| Telemetry arrives at the wrong collector | Check whether a per-signal `Logs:Otlp` or `Metrics:Otlp` section is overriding the shared `EventStore:OpenTelemetry:Otlp` destination.         |
+| Traces are not exported                  | Check that `EventStore__OpenTelemetry__Traces__Enabled` is `true` or any `EventStore__OpenTelemetry__Traces__Otlp__*` key is set.             |
+| Telemetry arrives at the wrong collector | Check whether a per-signal `Logs:Otlp`, `Metrics:Otlp`, or `Traces:Otlp` section is overriding the shared `EventStore:OpenTelemetry:Otlp` destination. |
 
 ## Datadog
 
