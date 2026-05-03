@@ -357,6 +357,8 @@ message ListReq {
 			event_store.client.Empty list_all_subscriptions = 1;
 			StreamOption list_for_stream = 2;
 		}
+		optional int32 offset = 3;
+		optional int32 count = 4;
 	}
 	message StreamOption {
 		oneof stream_option {
@@ -368,4 +370,7 @@ message ListReq {
 
 message ListResp {
 	repeated SubscriptionInfo subscriptions = 1;
+	int32 offset = 2;
+	int32 count = 3;
+	int32 total = 4;
 }

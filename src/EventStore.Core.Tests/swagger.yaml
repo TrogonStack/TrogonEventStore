@@ -45,11 +45,6 @@ paths:
       responses:
         "200":
           description: OK
-  /subscriptions:
-    get:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:
