@@ -4041,6 +4041,16 @@
                     "id": 2,
                     "name": "list_for_stream",
                     "type": "StreamOption"
+                  },
+                  {
+                    "id": 3,
+                    "name": "offset",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 4,
+                    "name": "count",
+                    "type": "int32"
                   }
                 ]
               },
@@ -4069,6 +4079,21 @@
                 "name": "subscriptions",
                 "type": "SubscriptionInfo",
                 "is_repeated": true
+              },
+              {
+                "id": 2,
+                "name": "offset",
+                "type": "int32"
+              },
+              {
+                "id": 3,
+                "name": "count",
+                "type": "int32"
+              },
+              {
+                "id": 4,
+                "name": "total",
+                "type": "int32"
               }
             ]
           }

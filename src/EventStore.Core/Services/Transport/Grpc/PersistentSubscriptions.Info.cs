@@ -74,8 +74,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		}
 
 		public override async Task<ListResp> List(ListReq request, ServerCallContext context) {
-			var listPersistentSubscriptionsSource = new TaskCompletionSource<ListResp>();
-			var correlationId = Guid.NewGuid();
+			var listPersistentSubscriptionsSource =
+				new TaskCompletionSource<ListResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 			var user = context.GetHttpContext().User;
 
@@ -84,18 +84,42 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				throw RpcExceptions.AccessDenied();
 			}
 
+			var options = request.Options ?? new ListReq.Types.Options();
+			var listOptionCase = options.ListOptionCase == ListReq.Types.Options.ListOptionOneofCase.None
+				? ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions
+				: options.ListOptionCase;
+
+			var hasPaging = options.HasOffset || options.HasCount;
+			if (options.HasOffset && options.Offset < 0)
+				throw new RpcException(new Status(StatusCode.InvalidArgument, "offset must be a non-negative integer"));
+			if (options.HasCount && options.Count < 1)
+				throw new RpcException(new Status(StatusCode.InvalidArgument, "count must be a positive integer"));
+			if (hasPaging && !(options.HasOffset && options.HasCount))
+				throw new RpcException(new Status(StatusCode.InvalidArgument, "offset and count must be provided together"));
+			if (hasPaging &&
+				listOptionCase != ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions)
+				throw new RpcException(new Status(StatusCode.InvalidArgument,
+					"offset and count are only supported when listing all subscriptions"));
+
 			var streamId = string.Empty;
-			switch (request.Options.ListOptionCase)
-			{
+			switch (listOptionCase) {
 				case ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions:
-					_publisher.Publish(new MonitoringMessage.GetAllPersistentSubscriptionStats(
-						new CallbackEnvelope(HandleListSubscriptionsCompleted)));
+					var envelope = new CallbackEnvelope(HandleListSubscriptionsCompleted);
+					_publisher.Publish(hasPaging
+						? new MonitoringMessage.GetAllPersistentSubscriptionStats(
+							envelope,
+							options.Offset,
+							options.Count)
+						: new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope));
 					break;
 				case ListReq.Types.Options.ListOptionOneofCase.ListForStream:
-					streamId = request.Options.ListForStream.StreamOptionCase switch {
+					var listForStream = options.ListForStream;
+					if (listForStream is null)
+						throw new RpcException(new Status(StatusCode.InvalidArgument, "list_for_stream must be provided"));
+					streamId = listForStream.StreamOptionCase switch {
 						ListReq.Types.StreamOption.StreamOptionOneofCase.All => "$all",
-						ListReq.Types.StreamOption.StreamOptionOneofCase.Stream => request.Options.ListForStream.Stream,
-						_ => throw new InvalidOperationException()
+						ListReq.Types.StreamOption.StreamOptionOneofCase.Stream => listForStream.Stream,
+						_ => throw new RpcException(new Status(StatusCode.InvalidArgument, "stream option must be provided"))
 					};
 					_publisher.Publish(new MonitoringMessage.GetStreamPersistentSubscriptionStats(
 						new CallbackEnvelope(HandleListSubscriptionsCompleted),
@@ -106,7 +130,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					throw new InvalidOperationException();
 			}
 
-			return await listPersistentSubscriptionsSource.Task;
+			return await listPersistentSubscriptionsSource.Task.WaitAsync(context.CancellationToken);
 
 			void HandleListSubscriptionsCompleted(Message message) {
 				if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
@@ -121,6 +145,11 @@ namespace EventStore.Core.Services.Transport.Grpc {
 							listResp.Subscriptions.AddRange(
 								completed.SubscriptionStats.Select(ParseSubscriptionInfo)
 							);
+							listResp.Offset = completed.RequestedOffset;
+							listResp.Count = completed.RequestedCount == int.MaxValue
+								? listResp.Subscriptions.Count
+								: completed.RequestedCount;
+							listResp.Total = completed.Total;
 							listPersistentSubscriptionsSource.TrySetResult(listResp);
 							return;
 						case MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotFound:
