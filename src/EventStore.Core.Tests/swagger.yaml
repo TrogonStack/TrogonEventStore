@@ -20,11 +20,6 @@ paths:
       responses:
         "200":
           description: OK
-  /admin/shutdown:
-    post:
-      responses:
-        "200":
-          description: OK
   /admin/scavenge:
     post:
       responses:
