@@ -1094,7 +1094,7 @@ public partial class TFChunk : IDisposable
 		ChunkFooter footerWithHash;
 		try
 		{
-			var footerNoHash = new ChunkFooter(true, true, _physicalDataSize, LogicalDataSize, mapSize);
+			var footerNoHash = new ChunkFooter(true, _physicalDataSize, LogicalDataSize, mapSize);
 
 			//MD5
 			footerNoHash.Format(bufferFromPool);
@@ -1102,7 +1102,7 @@ public partial class TFChunk : IDisposable
 				ChunkFooter.Size - ChunkFooter.ChecksumSize);
 
 			//FILE
-			footerWithHash = new ChunkFooter(true, true, _physicalDataSize, LogicalDataSize, mapSize, workItem.MD5);
+			footerWithHash = new ChunkFooter(true, _physicalDataSize, LogicalDataSize, mapSize, workItem.MD5);
 
 			footerWithHash.Format(bufferFromPool);
 			fileSize = await _transform.Write.WriteFooter(new(bufferFromPool, 0, ChunkFooter.Size),

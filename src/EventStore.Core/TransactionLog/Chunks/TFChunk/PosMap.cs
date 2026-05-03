@@ -1,19 +1,13 @@
 using System;
-using System.Buffers.Binary;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using DotNext.Buffers;
 using DotNext.Buffers.Binary;
-using DotNext.IO;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
 public struct PosMap : IBinaryFormattable<PosMap>
 {
 	public const int FullSize = sizeof(long) + sizeof(int);
-	public const int DeprecatedSize = sizeof(int) + sizeof(int);
 
 	public readonly long LogPos;
 	public readonly int ActualPos;
@@ -41,24 +35,6 @@ public struct PosMap : IBinaryFormattable<PosMap>
 
 	public static PosMap FromNewFormat(ReadOnlySpan<byte> source)
 		=> new(source);
-
-	public static PosMap FromOldFormat(ReadOnlySpan<byte> source)
-	{
-		Debug.Assert(source.Length >= DeprecatedSize);
-
-		var posmap = BinaryPrimitives.ReadUInt64LittleEndian(source);
-		var logPos = (int)(posmap >>> 32);
-		var actualPos = (int)(posmap & 0xFFFFFFFF);
-		return new(logPos, actualPos);
-	}
-
-	public static async ValueTask<PosMap> FromOldFormat(Stream stream, Memory<byte> buffer, CancellationToken token)
-	{
-		var posmap = await stream.ReadLittleEndianAsync<ulong>(buffer, token);
-		var logPos = (int)(posmap >>> 32);
-		var actualPos = (int)(posmap & 0xFFFFFFFF);
-		return new(logPos, actualPos);
-	}
 
 	public readonly void Format(Span<byte> destination)
 	{

@@ -24,7 +24,6 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 
 	// flags within single byte
 	public readonly bool IsCompleted;
-	public readonly bool IsMap12Bytes;
 
 	public readonly int PhysicalDataSize; // the size of a section of data in chunk
 
@@ -41,7 +40,7 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 
 	public readonly int MapCount; // calculated, not stored
 
-	public ChunkFooter(bool isCompleted, bool isMap12Bytes, int physicalDataSize, long logicalDataSize, int mapSize, IncrementalHash hash = null)
+	public ChunkFooter(bool isCompleted, int physicalDataSize, long logicalDataSize, int mapSize, IncrementalHash hash = null)
 	{
 		Ensure.Nonnegative(physicalDataSize, nameof(physicalDataSize));
 		Ensure.Nonnegative(logicalDataSize, nameof(logicalDataSize));
@@ -51,7 +50,6 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 		Ensure.Nonnegative(mapSize, "mapSize");
 
 		IsCompleted = isCompleted;
-		IsMap12Bytes = isMap12Bytes;
 
 		PhysicalDataSize = physicalDataSize;
 		LogicalDataSize = logicalDataSize;
@@ -61,10 +59,9 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 		Unsafe.SkipInit(out _checksum); // fix for Qodana false positive about init of readonly field
 		hash?.TryGetHashAndReset(_checksum, out _);
 
-		var posMapSize = isMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
-		if (MapSize % posMapSize is not 0)
-			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {posMapSize}.");
-		MapCount = mapSize / posMapSize;
+		if (MapSize % PosMap.FullSize is not 0)
+			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {PosMap.FullSize}.");
+		MapCount = mapSize / PosMap.FullSize;
 	}
 
 	public ChunkFooter(ReadOnlySpan<byte> source)
@@ -75,23 +72,22 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 		byte flags = reader.Read();
 
 		IsCompleted = (flags & 1) is not 0;
-		IsMap12Bytes = (flags & 2) is not 0;
+		if (IsCompleted && (flags & 2) is 0)
+			throw new Exception("Deprecated 8-byte TFChunk position maps are not supported.");
+
 		PhysicalDataSize = reader.ReadLittleEndian<int>();
-		LogicalDataSize = IsMap12Bytes
-			? reader.ReadLittleEndian<long>()
-			: reader.ReadLittleEndian<int>();
+		LogicalDataSize = reader.ReadLittleEndian<long>();
 
 		MapSize = reader.ReadLittleEndian<int>();
 		reader.ConsumedCount = Size - ChecksumSize;
 		reader.Read(_checksum);
 
-		var posMapSize = IsMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
-		if (MapSize % posMapSize is not 0)
+		if (MapSize % PosMap.FullSize is not 0)
 		{
-			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {posMapSize}.");
+			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {PosMap.FullSize}.");
 		}
 
-		MapCount = MapSize / posMapSize;
+		MapCount = MapSize / PosMap.FullSize;
 	}
 
 	static int IBinaryFormattable<ChunkFooter>.Size => Size;
@@ -101,15 +97,11 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 		Debug.Assert(destination.Length >= Size);
 
 		SpanWriter<byte> writer = new(destination.Slice(0, Size));
-		int flags = Unsafe.BitCast<bool, byte>(IsCompleted)
-		            | Unsafe.BitCast<bool, byte>(IsMap12Bytes) << 1;
+		var flags = (IsCompleted ? 1 : 0) | 2;
 
 		writer.Add((byte)flags);
 		writer.WriteLittleEndian(PhysicalDataSize);
-		if (IsMap12Bytes)
-			writer.WriteLittleEndian(LogicalDataSize);
-		else
-			writer.WriteLittleEndian((int)LogicalDataSize);
+		writer.WriteLittleEndian(LogicalDataSize);
 
 		writer.WriteLittleEndian(MapSize);
 
