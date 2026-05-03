@@ -10,7 +10,7 @@ public class list_users<TLogFormat, TStreamId> : TestWithNode<TLogFormat, TStrea
 	[Test]
 	public async System.Threading.Tasks.Task list_all_users_worksAsync()
 	{
-		await _manager.CreateUserAsync("ouro", "ourofull", new[] { "foo", "bar" }, "ouro",
+		await CreateUserWithGrpc("ouro", "ourofull", new[] {"foo", "bar"}, "ouro",
 			new UserCredentials("admin", "changeit"));
 		var x = await _manager.ListAllAsync(new UserCredentials("admin", "changeit"));
 		Assert.AreEqual(3, x.Count);
