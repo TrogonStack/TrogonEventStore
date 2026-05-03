@@ -52,7 +52,7 @@ public class updating_a_user<TLogFormat, TStreamId> : TestWithNode<TLogFormat, T
 	public async Task updating_a_user_with_parameters_can_be_read()
 	{
 		UserDetails d = null;
-		await _manager.CreateUserAsync("ouro", "ourofull", new[] { "foo", "bar" }, "password",
+		await CreateUserWithGrpc("ouro", "ourofull", new[] {"foo", "bar"}, "password",
 			new UserCredentials("admin", "changeit"));
 		await _manager.UpdateUserAsync("ouro", "something", new[] { "bar", "baz" },
 			new UserCredentials("admin", "changeit"));

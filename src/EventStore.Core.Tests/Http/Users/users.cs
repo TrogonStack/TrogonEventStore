@@ -31,6 +31,35 @@ namespace EventStore.Core.Tests.Http.Users
 				SetDefaultCredentials(_admin);
 			}
 
+			protected async Task CreateUser(
+				string loginName,
+				string fullName,
+				string[] groups,
+				string password,
+				NetworkCredential credentials)
+			{
+				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
+					new GrpcChannelOptions
+					{
+						HttpClient = _node.HttpClient,
+						DisposeHttpClient = false
+					});
+				var users = new UsersClient(channel);
+				await users.CreateAsync(new CreateReq
+				{
+					Options = new CreateReq.Types.Options
+					{
+						LoginName = loginName,
+						FullName = fullName,
+						Groups = {groups},
+						Password = password
+					}
+				}, new CallOptions(new Metadata
+				{
+					{"authorization", BasicAuthHeader(credentials)}
+				}));
+			}
+
 			protected async Task DisableUser(string loginName, NetworkCredential credentials)
 			{
 				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
@@ -59,50 +88,13 @@ namespace EventStore.Core.Tests.Http.Users
 
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_creating_a_user<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override Task Given() => Task.CompletedTask;
-
-			protected override async Task When()
-			{
-				_response = await MakeJsonPost(
-					"/users/",
-					new
-					{
-						LoginName = "test1",
-						FullName = "User Full Name",
-						Groups = new[] { "admin", "other" },
-						Password = "Pa55w0rd!"
-					}, _admin);
-			}
-
-			[Test]
-			public void returns_created_status_code_and_location()
-			{
-				Assert.AreEqual(HttpStatusCode.Created, _response.StatusCode);
-				Assert.AreEqual(MakeUrl("/users/test1"), _response.Headers.GetLocationAsString());
-			}
-		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		class when_retrieving_a_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 		{
 			private JObject _response;
 
-			protected override Task Given()
+			protected override async Task Given()
 			{
-				return MakeJsonPost(
-					"/users/",
-					new
-					{
-						LoginName = "test1",
-						FullName = "User Full Name",
-						Groups = new[] { "admin", "other" },
-						Password = "Pa55w0rd!"
-					}, _admin);
+				await CreateUser("test1", "User Full Name", new[] {"admin", "other"}, "Pa55w0rd!", _admin);
 			}
 
 			protected override async Task When()
@@ -151,16 +143,7 @@ namespace EventStore.Core.Tests.Http.Users
 
 			protected override async Task Given()
 			{
-				await MakeJsonPost(
-					"/users/",
-					new
-					{
-						LoginName = "test2",
-						FullName = "User Full Name",
-						Groups = new[] { "admin", "other" },
-						Password = "Pa55w0rd!"
-					}, _admin);
-
+				await CreateUser("test2", "User Full Name", new[] {"admin", "other"}, "Pa55w0rd!", _admin);
 				await DisableUser("test2", _admin);
 			}
 
@@ -199,66 +182,13 @@ namespace EventStore.Core.Tests.Http.Users
 
 		[Category("LongRunning")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_creating_an_already_existing_user_account<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override async Task Given()
-			{
-				var response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-			}
-
-			protected override async Task When()
-			{
-				_response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-			}
-
-			[Test]
-			public void returns_create_status_code_and_location()
-			{
-				Assert.AreEqual(HttpStatusCode.Created, _response.StatusCode);
-			}
-		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_creating_an_already_existing_user_account_with_a_different_password<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override async Task Given()
-			{
-				var response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
-				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-			}
-
-			protected override async Task When()
-			{
-				_response = await MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "AnotherPa55w0rd!" },
-					_admin);
-			}
-
-			[Test]
-			public void returns_conflict_status_code_and_location()
-			{
-				Assert.AreEqual(HttpStatusCode.Conflict, _response.StatusCode);
-			}
-		}
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
 		class when_updating_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
 		{
 			private HttpResponseMessage _response;
 
-			protected override Task Given()
+			protected override async Task Given()
 			{
-				return MakeJsonPost(
-					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
+				await CreateUser("test1", "User Full Name", Array.Empty<string>(), "Pa55w0rd!", _admin);
 			}
 
 			protected override async Task When()

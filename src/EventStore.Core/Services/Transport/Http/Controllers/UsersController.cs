@@ -25,8 +25,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			RegisterUrlBased(service, "/users/", HttpMethod.Get, new Operation(Operations.Users.List), GetUsers);
 			RegisterUrlBased(service, "/users/{login}", HttpMethod.Get, new Operation(Operations.Users.Read), GetUser);
 			RegisterUrlBased(service, "/users/$current", HttpMethod.Get, new Operation(Operations.Users.CurrentUser), GetCurrentUser);
-			Register(service, "/users", HttpMethod.Post, PostUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Create));
-			Register(service, "/users/", HttpMethod.Post, PostUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Create));
 			Register(service, "/users/{login}", HttpMethod.Put, PutUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Update));
 		}
 
@@ -67,26 +65,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 			var message = new UserManagementMessage.Get(envelope, http.User, http.User.Identity.Name);
 			Publish(message);
-		}
-
-		private void PostUser(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(
-				http, configurator: (codec, result) => {
-					var configuration = AutoConfigurator(codec, result);
-					return configuration.Code == HttpStatusCode.OK
-						? configuration.SetCreated(
-							MakeUrl(http, "/users/" + Uri.EscapeDataString(result.LoginName)))
-						: configuration;
-				});
-			http.ReadTextRequestAsync(
-				(o, s) => {
-					var data = http.RequestCodec.From<PostUserData>(s);
-					var message = new UserManagementMessage.Create(
-						envelope, http.User, data.LoginName, data.FullName, data.Groups, data.Password);
-					Publish(message);
-				}, x => Log.Debug(x, "Reply Text Content Failed."));
 		}
 
 		private void PutUser(HttpEntityManager http, UriTemplateMatch match) {
@@ -154,13 +132,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				default:
 					return HttpStatusCode.InternalServerError;
 			}
-		}
-
-		private class PostUserData {
-			public string LoginName { get; set; }
-			public string FullName { get; set; }
-			public string[] Groups { get; set; }
-			public string Password { get; set; }
 		}
 
 		private class PutUserData {
