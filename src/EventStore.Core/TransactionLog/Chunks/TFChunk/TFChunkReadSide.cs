@@ -222,7 +222,6 @@ public partial class TFChunk
 			if (Chunk.ChunkFooter.MapCount is 0) // empty chunk
 				return [];
 
-			var posMapSize = Chunk.ChunkFooter.IsMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
 			try
 			{
 				using var posMapsBuffer = Memory.AllocateAtLeast<byte>(checked(Chunk.ChunkFooter.MapSize));
@@ -230,7 +229,7 @@ public partial class TFChunk
 				int segmentSize;
 				Midpoint[] midpoints;
 				var mapCount = Chunk.ChunkFooter.MapCount;
-				var posMaps = posMapsBuffer.Memory[..checked(mapCount * posMapSize)];
+				var posMaps = posMapsBuffer.Memory[..checked(mapCount * PosMap.FullSize)];
 				workItem.BaseStream.Seek(ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize, SeekOrigin.Begin);
 				await workItem.BaseStream.ReadExactlyAsync(posMaps, token);
 
@@ -272,32 +271,17 @@ public partial class TFChunk
 
 		private PosMap ReadPosMap(ReadOnlySpan<byte> posMaps, int index)
 		{
-			var posMapSize = Chunk.ChunkFooter.IsMap12Bytes ? PosMap.FullSize : PosMap.DeprecatedSize;
-			var start = checked(index * posMapSize);
-			var buffer = posMaps.Slice(start, posMapSize);
-			return Chunk.ChunkFooter.IsMap12Bytes
-				? PosMap.FromNewFormat(buffer)
-				: PosMap.FromOldFormat(buffer);
+			var start = checked(index * PosMap.FullSize);
+			var buffer = posMaps.Slice(start, PosMap.FullSize);
+			return PosMap.FromNewFormat(buffer);
 		}
 
 		private ValueTask<PosMap> ReadPosMap(ReaderWorkItem workItem, long index, Memory<byte> buffer,
 			CancellationToken token)
 		{
-			ValueTask<PosMap> task;
-			if (Chunk.ChunkFooter.IsMap12Bytes)
-			{
-				var pos = ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize + index * PosMap.FullSize;
-				workItem.BaseStream.Seek(pos, SeekOrigin.Begin);
-				task = workItem.BaseStream.ReadAsync<PosMap>(buffer, token);
-			}
-			else
-			{
-				var pos = ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize + index * PosMap.DeprecatedSize;
-				workItem.BaseStream.Seek(pos, SeekOrigin.Begin);
-				task = PosMap.FromOldFormat(workItem.BaseStream, buffer, token);
-			}
-
-			return task;
+			var pos = ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize + index * PosMap.FullSize;
+			workItem.BaseStream.Seek(pos, SeekOrigin.Begin);
+			return workItem.BaseStream.ReadAsync<PosMap>(buffer, token);
 		}
 
 		public async ValueTask<bool> ExistsAt(long logicalPosition, CancellationToken token)
