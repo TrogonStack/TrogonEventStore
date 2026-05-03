@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using EventStore.Core.Messaging;
-using EventStore.Core.Services.Transport.Http.Controllers;
 
 namespace EventStore.Core.Messages {
 	public static partial class UserManagementMessage {
@@ -168,44 +166,6 @@ namespace EventStore.Core.Messages {
 				LoginName = loginName;
 			}
 		}
-
-		public class UserDataHttpFormated {
-			public readonly string LoginName;
-			public readonly string FullName;
-			public readonly string[] Groups;
-			public readonly DateTimeOffset? DateLastUpdated;
-			public readonly bool Disabled;
-
-			public UserDataHttpFormated(UserData userData) {
-				LoginName = userData.LoginName;
-				FullName = userData.FullName;
-				Groups = userData.Groups;
-				Disabled = userData.Disabled;
-			}
-		}
-
-
-		[DerivedMessage(CoreMessage.UserManagement)]
-		public partial class UserDetailsResultHttpFormatted : ResponseMessage {
-			public readonly UserDataHttpFormated Data;
-
-			public UserDetailsResultHttpFormatted(UserDetailsResult msg) :
-				base(msg.Success, msg.Error) {
-				if (msg.Data != null)
-					Data = new UserDataHttpFormated(msg.Data);
-			}
-		}
-
-		[DerivedMessage(CoreMessage.UserManagement)]
-		public partial class AllUserDetailsResultHttpFormatted : ResponseMessage {
-			public readonly UserDataHttpFormated[] Data;
-
-			public AllUserDetailsResultHttpFormatted(AllUserDetailsResult msg) :
-				base(msg.Success, msg.Error) {
-				Data = msg.Data.Select(user => new UserDataHttpFormated(user)).ToArray();
-			}
-		}
-
 
 		[DerivedMessage(CoreMessage.UserManagement)]
 		public sealed partial class UserDetailsResult : ResponseMessage {

@@ -21,8 +21,6 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 			// handled by: /stats/{statPath}
 			"/stats/replication",
 			"/stats/tcp",
-			// redirected
-			"/users/",
 		};
 
 		var httpActions = _node.Node.HttpService.Actions

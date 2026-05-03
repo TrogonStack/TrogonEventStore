@@ -195,8 +195,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/subscriptions;GET;User",
 			"/subscriptions/{stream}/{subscription};PUT;Ops",
 			"/subscriptions/{stream}/{subscription};POST;Ops",
-			"/users;GET;Admin",
-			"/users/;GET;Admin",
 			"/users/$current;GET;User",
 			"/ui/assets/{*remaining_path};GET;None",
 			";GET;None"
@@ -252,10 +250,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 	{
 		if (httpMethod == HttpMethod.Post || httpMethod == HttpMethod.Put || httpMethod == HttpMethod.Delete)
 		{
-			if (url.Equals("/users") || url.Equals("/users/"))
-			{
-				return "{loginName: \"test\", fullName: \"test\", password: \"changeit\", groups: []}";
-			}
 			return "{}";
 		}
 		else

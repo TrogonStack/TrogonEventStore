@@ -58,6 +58,38 @@ public class DetailsTests {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_reading_all_users<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private UsersClient _client;
+		private DetailsResp[] _details;
+
+		protected override async Task Given() {
+			_client = new UsersClient(Channel);
+			await _client.CreateAsync(CreateRequest("details-list-test-user-1"), GetCallOptions(AdminCredentials));
+			await _client.CreateAsync(CreateRequest("details-list-test-user-2"), GetCallOptions(AdminCredentials));
+			await _client.DisableAsync(DisableRequest("details-list-test-user-2"), GetCallOptions(AdminCredentials));
+		}
+
+		protected override async Task When() {
+			_details = await ReadDetails(_client, GetCallOptions(AdminCredentials));
+		}
+
+		[Test]
+		public void streams_the_user_list() {
+			var loginNames = _details.Select(x => x.UserDetails.LoginName).ToArray();
+			CollectionAssert.Contains(loginNames, "details-list-test-user-1");
+			CollectionAssert.Contains(loginNames, "details-list-test-user-2");
+
+			var enabledUser = _details.Single(x => x.UserDetails.LoginName == "details-list-test-user-1");
+			Assert.AreEqual("Details Test User", enabledUser.UserDetails.FullName);
+			Assert.AreEqual(new[] {"admin", "other"}, enabledUser.UserDetails.Groups.ToArray());
+			Assert.IsFalse(enabledUser.UserDetails.Disabled);
+
+			var disabledUser = _details.Single(x => x.UserDetails.LoginName == "details-list-test-user-2");
+			Assert.IsTrue(disabledUser.UserDetails.Disabled);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class when_reading_disabled_user<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private UsersClient _client;
 		private DetailsResp _details;
