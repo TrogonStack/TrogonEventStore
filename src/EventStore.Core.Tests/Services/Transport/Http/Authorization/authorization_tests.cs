@@ -179,7 +179,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"Admin"
 		)] string userAuthorizationLevel,
 		[Values(
-			"/admin/shutdown;POST;Ops", /* this test is not executed for Ops and Admin to prevent the node from shutting down */
 			"/admin/scavenge?startFromChunk={startFromChunk}&threads={threads};POST;Ops",
 			"/admin/scavenge/{scavengeId};DELETE;Ops",
 			"/admin/scavenge/current;GET;Ops",
@@ -204,12 +203,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 		var endpointUrl = httpEndpointTokens[0];
 		var httpMethod = GetHttpMethod(httpEndpointTokens[1]);
 		var requiredMinAuthorizationLevel = httpEndpointTokens[2];
-
-		/* this test was done manually for Admin and Ops */
-		if (endpointUrl == "/admin/shutdown" && (userAuthorizationLevel == "Admin" || userAuthorizationLevel == "Ops"))
-		{
-			return;
-		}
 
 		var url = $"https://{nodeEndpoint}{endpointUrl}";
 		var body = GetData(httpMethod, endpointUrl);

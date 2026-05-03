@@ -36,6 +36,12 @@ public class AdminTests {
 		"ResignNode",
 		EmptyMarshaller,
 		EmptyMarshaller);
+	private static readonly Method<Empty, Empty> ShutdownMethod = new(
+		MethodType.Unary,
+		OperationsService,
+		"Shutdown",
+		EmptyMarshaller,
+		EmptyMarshaller);
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class when_merging_indexes_as_admin<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
@@ -241,6 +247,31 @@ public class AdminTests {
 			try {
 				await Channel.CreateCallInvoker().AsyncUnaryCall(
 					ResignNodeMethod,
+					null,
+					GetCallOptions(),
+					new Empty());
+			} catch (Exception ex) {
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void returns_permission_denied() {
+			Assert.IsInstanceOf<RpcException>(_exception);
+			Assert.AreEqual(StatusCode.PermissionDenied, ((RpcException)_exception).Status.StatusCode);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_shutting_down_without_permissions<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private Exception _exception;
+
+		protected override Task Given() => Task.CompletedTask;
+
+		protected override async Task When() {
+			try {
+				await Channel.CreateCallInvoker().AsyncUnaryCall(
+					ShutdownMethod,
 					null,
 					GetCallOptions(),
 					new Empty());

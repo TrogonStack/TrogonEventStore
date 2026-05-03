@@ -27,9 +27,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 		protected override void SubscribeCore(IHttpService service) {
 			service.RegisterAction(
-				new ControllerAction("/admin/shutdown", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Shutdown)),
-				OnPostShutdown);
-			service.RegisterAction(
 				new ControllerAction("/admin/reloadconfig", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.ReloadConfiguration)),
 				OnPostReloadConfig);
 			service.RegisterAction(
@@ -47,17 +44,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			service.RegisterAction(
 				new ControllerAction("/admin/login", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Login)),
 				OnGetLogin);
-		}
-
-		private void OnPostShutdown(HttpEntityManager entity, UriTemplateMatch match) {
-			if (entity.User != null &&
-			    (entity.User.LegacyRoleCheck(SystemRoles.Admins) || entity.User.LegacyRoleCheck(SystemRoles.Operations))) {
-				Log.Information("Request shut down of node because shutdown command has been received.");
-				Publish(new ClientMessage.RequestShutdown(exitProcess: true, shutdownHttp: true));
-				entity.ReplyStatus(HttpStatusCode.OK, "OK", LogReplyError);
-			} else {
-				entity.ReplyStatus(HttpStatusCode.Unauthorized, "Unauthorized", LogReplyError);
-			}
 		}
 
 		private void OnPostReloadConfig(HttpEntityManager entity, UriTemplateMatch match) {
