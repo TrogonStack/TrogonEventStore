@@ -45,9 +45,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				new ControllerAction("/admin/scavenge/last", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Scavenge.Read)),
 				OnGetLastScavenge);
 			service.RegisterAction(
-				new ControllerAction("/admin/node/resign", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Resign)),
-				OnResignNode);
-			service.RegisterAction(
 				new ControllerAction("/admin/login", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Login)),
 				OnGetLogin);
 		}
@@ -241,17 +238,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			);
 
 			Publish(new ClientMessage.GetLastDatabaseScavenge(envelope, Guid.Empty, entity.User));
-		}
-
-		private void OnResignNode(HttpEntityManager entity, UriTemplateMatch match) {
-			if (entity.User != null &&
-			    (entity.User.LegacyRoleCheck(SystemRoles.Admins) || entity.User.LegacyRoleCheck(SystemRoles.Operations))) {
-				Log.Information("Request to resign node.");
-				Publish(new ClientMessage.ResignNode());
-				entity.ReplyStatus(HttpStatusCode.OK, "OK", LogReplyError);
-			} else {
-				entity.ReplyStatus(HttpStatusCode.Unauthorized, "Unauthorized", LogReplyError);
-			}
 		}
 
 		private void OnGetLogin(HttpEntityManager entity, UriTemplateMatch match) {
