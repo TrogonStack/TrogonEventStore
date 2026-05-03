@@ -33,12 +33,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			RegisterUrlBased(service, "/users/{login}/command/disable", HttpMethod.Post, new Operation(Operations.Users.Disable), PostCommandDisable);
 			Register(service, "/users/{login}/command/reset-password", HttpMethod.Post, PostCommandResetPassword,
 				DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.ResetPassword));
-			Register(service, "/users/{login}/command/change-password", HttpMethod.Post, PostCommandChangePassword,
-				DefaultCodecs, DefaultCodecs, ForUser(Operations.Users.ChangePassword));
-		}
-
-		private static Func<UriTemplateMatch, Operation> ForUser(OperationDefinition definition) {
-			return match => new Operation(definition).WithParameter(Operations.Users.Parameters.User(match.BoundVariables["login"]));
 		}
 
 		private void GetUsers(HttpEntityManager http, UriTemplateMatch match) {
@@ -154,21 +148,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				}, x => Log.Debug(x, "Reply Text Content Failed."));
 		}
 
-		private void PostCommandChangePassword(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-			http.ReadTextRequestAsync(
-				(o, s) => {
-					var login = match.BoundVariables["login"];
-					var data = http.RequestCodec.From<ChangePasswordData>(s);
-					var message = new UserManagementMessage.ChangePassword(
-						envelope, http.User, login, data.CurrentPassword, data.NewPassword);
-					Publish(message);
-				},
-				x => Log.Debug(x, "Reply Text Content Failed."));
-		}
-
 		private SendToHttpEnvelope<T> CreateReplyEnvelope<T>(
 			HttpEntityManager http, Func<ICodec, T, string> formatter = null,
 			Func<ICodec, T, ResponseConfiguration> configurator = null)
@@ -238,9 +217,5 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			public string NewPassword { get; set; }
 		}
 
-		private class ChangePasswordData {
-			public string CurrentPassword { get; set; }
-			public string NewPassword { get; set; }
-		}
 	}
 }

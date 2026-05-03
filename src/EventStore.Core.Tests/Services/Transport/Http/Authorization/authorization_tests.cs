@@ -193,7 +193,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/users/{login}/command/enable;POST;Admin",
 			"/users/{login}/command/disable;POST;Admin",
 			"/users/{login}/command/reset-password;POST;Admin",
-			//"/users/{login}/command/change-password;POST;User", Users can only change their own password, so this url won't be correct in these tests
 			"/ui/assets/{*remaining_path};GET;None",
 			";GET;None"
 		)] string httpEndpointDetails
@@ -248,7 +247,7 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 	{
 		if (httpMethod == HttpMethod.Post || httpMethod == HttpMethod.Put || httpMethod == HttpMethod.Delete)
 		{
-			if (url.Equals("/users/{login}/command/change-password") || url.Equals("/users/{login}/command/reset-password"))
+				if (url.Equals("/users/{login}/command/reset-password"))
 			{
 				return "{newPassword: \"changeit\"}";
 			}
