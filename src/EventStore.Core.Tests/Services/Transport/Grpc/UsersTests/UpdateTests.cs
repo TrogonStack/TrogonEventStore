@@ -57,6 +57,35 @@ public class UpdateTests {
 		}
 	}
 
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_updating_user_without_admin_credentials<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private const string ActorLogin = "update-denied-actor";
+		private const string TargetLogin = "update-denied-target";
+		private const string Password = "Pa55w0rd!";
+		private UsersClient _client;
+		private RpcException _exception;
+
+		protected override async Task Given() {
+			_client = new UsersClient(Channel);
+			await _client.CreateAsync(CreateRequest(ActorLogin), GetCallOptions(AdminCredentials));
+			await _client.CreateAsync(CreateRequest(TargetLogin), GetCallOptions(AdminCredentials));
+		}
+
+		protected override async Task When() {
+			try {
+				await _client.UpdateAsync(UpdateRequest(TargetLogin), GetCallOptions((ActorLogin, Password)));
+			} catch (RpcException ex) {
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void returns_permission_denied() {
+			Assert.IsNotNull(_exception);
+			Assert.AreEqual(StatusCode.PermissionDenied, _exception.Status.StatusCode);
+		}
+	}
+
 	private static CreateReq CreateRequest(string loginName) =>
 		new() {
 			Options = new CreateReq.Types.Options {
