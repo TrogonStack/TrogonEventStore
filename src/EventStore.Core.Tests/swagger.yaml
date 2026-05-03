@@ -15,21 +15,6 @@ securityDefinitions:
 schemes:
   - https
 paths:
-  "/admin/node/priority/{nodePriority}":
-    post:
-      description: Issues a command to change the priority of a node.
-      summary: Change node priority
-      tags:
-        - Admin
-      operationId: Change node priority
-      parameters:
-        - name: nodePriority
-          in: path
-          required: true
-          type: integer
-      responses:
-        "200":
-          description: OK
   /admin/node/resign:
     post:
       responses:

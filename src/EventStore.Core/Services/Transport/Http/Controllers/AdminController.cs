@@ -45,9 +45,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				new ControllerAction("/admin/scavenge/last", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Scavenge.Read)),
 				OnGetLastScavenge);
 			service.RegisterAction(
-				new ControllerAction("/admin/node/priority/{nodePriority}", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.SetPriority)),
-				OnSetNodePriority);
-			service.RegisterAction(
 				new ControllerAction("/admin/node/resign", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Resign)),
 				OnResignNode);
 			service.RegisterAction(
@@ -244,30 +241,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			);
 
 			Publish(new ClientMessage.GetLastDatabaseScavenge(envelope, Guid.Empty, entity.User));
-		}
-
-		private void OnSetNodePriority(HttpEntityManager entity, UriTemplateMatch match) {
-			if (entity.User != null &&
-			    (entity.User.LegacyRoleCheck(SystemRoles.Admins) || entity.User.LegacyRoleCheck(SystemRoles.Operations))) {
-				Log.Information("Request to set node priority.");
-
-				int nodePriority;
-				var nodePriorityVariable = match.BoundVariables["nodePriority"];
-				if (nodePriorityVariable == null) {
-					SendBadRequest(entity, "Could not find expected `nodePriority` in the request body.");
-					return;
-				}
-
-				if (!int.TryParse(nodePriorityVariable, out nodePriority)) {
-					SendBadRequest(entity, "nodePriority must be an integer.");
-					return;
-				}
-
-				Publish(new ClientMessage.SetNodePriority(nodePriority));
-				entity.ReplyStatus(HttpStatusCode.OK, "OK", LogReplyError);
-			} else {
-				entity.ReplyStatus(HttpStatusCode.Unauthorized, "Unauthorized", LogReplyError);
-			}
 		}
 
 		private void OnResignNode(HttpEntityManager entity, UriTemplateMatch match) {
