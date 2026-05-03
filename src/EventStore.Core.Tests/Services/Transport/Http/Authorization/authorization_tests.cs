@@ -192,7 +192,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/users/{login};DELETE;Admin",
 			"/users/{login}/command/enable;POST;Admin",
 			"/users/{login}/command/disable;POST;Admin",
-			"/users/{login}/command/reset-password;POST;Admin",
 			"/ui/assets/{*remaining_path};GET;None",
 			";GET;None"
 		)] string httpEndpointDetails
@@ -247,11 +246,7 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 	{
 		if (httpMethod == HttpMethod.Post || httpMethod == HttpMethod.Put || httpMethod == HttpMethod.Delete)
 		{
-				if (url.Equals("/users/{login}/command/reset-password"))
-			{
-				return "{newPassword: \"changeit\"}";
-			}
-			else if (url.Equals("/users") || url.Equals("/users/"))
+			if (url.Equals("/users") || url.Equals("/users/"))
 			{
 				return "{loginName: \"test\", fullName: \"test\", password: \"changeit\", groups: []}";
 			}

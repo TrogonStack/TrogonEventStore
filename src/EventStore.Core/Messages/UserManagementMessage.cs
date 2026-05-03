@@ -185,7 +185,6 @@ namespace EventStore.Core.Messages {
 
 				Links = new List<RelLink>();
 				var userLocalUrl = "/users/" + userData.LoginName;
-				Links.Add(new RelLink(makeAbsoluteUrl(userLocalUrl + "/command/reset-password"), "reset-password"));
 				Links.Add(new RelLink(makeAbsoluteUrl(userLocalUrl), "edit"));
 				Links.Add(new RelLink(makeAbsoluteUrl(userLocalUrl), "delete"));
 
