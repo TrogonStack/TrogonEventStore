@@ -44,9 +44,5 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				new List<KeyValuePair<string, string>>(),
 					e => Log.Error(e, "Error while writing HTTP response"));
 		}
-
-		private void LogReplyError(Exception exc) {
-			Log.Debug("Error while closing HTTP connection (admin controller): {e}.", exc.Message);
-		}
 	}
 }
