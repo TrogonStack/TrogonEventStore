@@ -9,27 +9,26 @@ using Grpc.Core;
 namespace EventStore.Core.Services.Transport.Grpc {
 	internal partial class Users {
 		private static readonly Operation ReadOperation = new Operation(Plugins.Authorization.Operations.Users.Read);
+		private static readonly Operation ListOperation = new Operation(Plugins.Authorization.Operations.Users.List);
 		public override async Task Details(DetailsReq request, IServerStreamWriter<DetailsResp> responseStream,
 			ServerCallContext context) {
 			var options = request.Options;
+			var loginName = options?.LoginName;
 
 			var user = context.GetHttpContext().User;
-			var readOperation = ReadOperation;
-			if (user?.Identity?.Name != null) {
-				readOperation =
-					readOperation.WithParameter(
-						Plugins.Authorization.Operations.Users.Parameters.User(user.Identity.Name));
-			}
-			if (!await _authorizationProvider.CheckAccessAsync(user, readOperation, context.CancellationToken)) {
+			var operation = string.IsNullOrWhiteSpace(loginName)
+				? ListOperation
+				: ReadOperation.WithParameter(Plugins.Authorization.Operations.Users.Parameters.User(loginName));
+			if (!await _authorizationProvider.CheckAccessAsync(user, operation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
 			}
 			var detailsSource = new TaskCompletionSource<UserManagementMessage.UserData[]>();
 
 			var envelope = new CallbackEnvelope(OnMessage);
 
-			_publisher.Publish(string.IsNullOrWhiteSpace(options?.LoginName)
+			_publisher.Publish(string.IsNullOrWhiteSpace(loginName)
 				? (Message)new UserManagementMessage.GetAll(envelope, user)
-				: new UserManagementMessage.Get(envelope, user, options.LoginName));
+				: new UserManagementMessage.Get(envelope, user, loginName));
 
 			var details = await detailsSource.Task;
 
@@ -49,7 +48,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			}
 
 			void OnMessage(Message message) {
-				if (HandleErrors(options?.LoginName, message, detailsSource)) return;
+				if (HandleErrors(loginName, message, detailsSource)) return;
 
 				switch (message) {
 					case UserManagementMessage.UserDetailsResult userDetails:
