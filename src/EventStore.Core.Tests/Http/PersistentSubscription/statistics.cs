@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using EventStore.ClientAPI;
@@ -96,129 +95,6 @@ class when_getting_all_statistics_in_xml<TLogFormat, TStreamId> : with_subscript
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-class when_getting_non_existent_single_statistics<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-{
-	private HttpResponseMessage _response;
-
-	protected override Task Given() => Task.CompletedTask;
-
-	protected override async Task When()
-	{
-		var request = CreateRequest("/subscriptions/fu/fubar/info", null, "GET", "text/xml");
-		_response = await GetRequestResponse(request);
-	}
-
-	[Test]
-	[Retry(5)]
-	public void returns_not_found()
-	{
-		Assert.AreEqual(HttpStatusCode.NotFound, _response.StatusCode);
-	}
-}
-
-[Category("LongRunning")]
-[TestFixture(typeof(LogFormat.V2), typeof(string))]
-class when_getting_subscription_statistics_for_individual<TLogFormat, TStreamId> : SpecificationWithPersistentSubscriptionAndConnections<TLogFormat, TStreamId>
-{
-	private JObject _json;
-
-
-	protected override async Task When()
-	{
-		_json = await GetJson<JObject>("/subscriptions/" + _streamName + "/" + _groupName + "/info", ContentType.Json);
-	}
-
-	[Test]
-	[Retry(5)]
-	public void returns_ok()
-	{
-		Assert.AreEqual(HttpStatusCode.OK, _lastResponse.StatusCode);
-	}
-
-	[Test]
-	[Retry(5)]
-	public void detail_rel_href_is_correct()
-	{
-		Assert.AreEqual(
-			string.Format("http://{0}/subscriptions/{1}/{2}/info", _node.HttpEndPoint, _streamName, _groupName),
-			_json["links"][0]["href"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void has_detail_rel_link()
-	{
-		Assert.AreEqual(1,
-			_json["links"].Count());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_view_detail_rel_is_correct()
-	{
-		Assert.AreEqual("detail",
-			_json["links"][0]["rel"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_event_stream_is_correct()
-	{
-		Assert.AreEqual(_streamName, _json["eventStreamId"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_groupname_is_correct()
-	{
-		Assert.AreEqual(_groupName, _json["groupName"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_status_is_live()
-	{
-		Assert.AreEqual("Live", _json["status"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void there_are_two_connections()
-	{
-		Assert.AreEqual(2, _json["connections"].Count());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_first_connection_has_endpoint()
-	{
-		Assert.IsNotNull(_json["connections"][0]["from"]);
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_connection_has_endpoint()
-	{
-		Assert.IsNotNull(_json["connections"][1]["from"]);
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_first_connection_has_user()
-	{
-		Assert.AreEqual("admin", _json["connections"][0]["username"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_connection_has_user()
-	{
-		Assert.AreEqual("admin", _json["connections"][1]["username"].Value<string>());
-	}
-}
-
-[Category("LongRunning")]
-[TestFixture(typeof(LogFormat.V2), typeof(string))]
 class when_getting_subscription_stats_summary<TLogFormat, TStreamId> : SpecificationWithPersistentSubscriptionAndConnections<TLogFormat, TStreamId>
 {
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -286,53 +162,18 @@ class when_getting_subscription_stats_summary<TLogFormat, TStreamId> : Specifica
 
 	[Test]
 	[Retry(5)]
-	public void the_first_event_stream_detail_uri_is_correct()
+	public void the_first_event_stream_has_no_http_detail_links()
 	{
-		Assert.AreEqual(
-			string.Format("http://{0}/subscriptions/{1}/{2}/info", _node.HttpEndPoint, _streamName, _groupName),
-			_json[0]["links"][0]["href"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_first_event_stream_detail_has_one_link()
-	{
-		Assert.AreEqual(1,
+		Assert.AreEqual(0,
 			_json[0]["links"].Count());
 	}
 
 	[Test]
 	[Retry(5)]
-	public void the_first_event_stream_detail_rel_is_correct()
+	public void the_second_event_stream_has_no_http_detail_links()
 	{
-		Assert.AreEqual("detail",
-			_json[0]["links"][0]["rel"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_event_stream_detail_uri_is_correct()
-	{
-		Assert.AreEqual(
-			string.Format("http://{0}/subscriptions/{1}/{2}/info", _node.HttpEndPoint, _streamName,
-				"secondgroup"),
-			_json[1]["links"][0]["href"].Value<string>());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_event_stream_detail_has_one_link()
-	{
-		Assert.AreEqual(1,
+		Assert.AreEqual(0,
 			_json[1]["links"].Count());
-	}
-
-	[Test]
-	[Retry(5)]
-	public void the_second_event_stream_detail_rel_is_correct()
-	{
-		Assert.AreEqual("detail",
-			_json[1]["links"][0]["rel"].Value<string>());
 	}
 
 	[Test]
