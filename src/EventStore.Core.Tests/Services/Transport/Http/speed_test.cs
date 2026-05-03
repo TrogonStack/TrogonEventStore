@@ -84,7 +84,6 @@ public class FakeController : IHttpController
 		Register("/projection/{name}/command/reset", HttpMethod.Post);
 		Register("/stats", HttpMethod.Get);
 		Register("/stats/{*statPath}", HttpMethod.Get);
-		Register("/users/", HttpMethod.Get);
 	}
 
 	private void Register(string route, string verb)
