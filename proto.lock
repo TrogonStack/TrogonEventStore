@@ -3579,7 +3579,13 @@
                   {
                     "id": 13,
                     "name": "named_consumer_strategy",
-                    "type": "ConsumerStrategy"
+                    "type": "ConsumerStrategy",
+                    "options": [
+                      {
+                        "name": "deprecated",
+                        "value": "true"
+                      }
+                    ]
                   },
                   {
                     "id": 4,
@@ -3600,6 +3606,11 @@
                     "id": 15,
                     "name": "checkpoint_after_ms",
                     "type": "int32"
+                  },
+                  {
+                    "id": 16,
+                    "name": "consumer_strategy",
+                    "type": "string"
                   }
                 ]
               }
