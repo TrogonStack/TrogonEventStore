@@ -86,7 +86,6 @@ public class FakeController : IHttpController
 		Register("/stats/{*statPath}", HttpMethod.Get);
 		Register("/users/", HttpMethod.Get);
 		Register("/users/{login}", HttpMethod.Get);
-		Register("/users/{login}", HttpMethod.Put);
 	}
 
 	private void Register(string route, string verb)
