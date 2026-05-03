@@ -420,167 +420,218 @@ public class GetInfoTests
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
 			CollectionAssert.AreEquivalent(_expectedSubscriptionInfo, _actualSubscriptionInfo);
 		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_listing_all_persistent_subscriptions_without_options<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private const string StreamName = "test-stream";
+		private List<SubscriptionInfo> _actualSubscriptionInfo;
+		private SubscriptionInfo _expectedSubscriptionInfo;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+
+		protected override async Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+
+			await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+			{
+				Options = new CreateReq.Types.Options
+				{
+					GroupName = "groupA",
+					Stream = new CreateReq.Types.StreamOptions
+					{
+						Start = new Empty(),
+						StreamIdentifier = new StreamIdentifier
+						{
+							StreamName = ByteString.CopyFromUtf8(StreamName)
+						}
+					},
+					Settings = TestPersistentSubscriptionSettings
+				}
+			}, GetCallOptions(AdminCredentials));
+			_expectedSubscriptionInfo = GetSubscriptionInfoFromSettings(
+				TestPersistentSubscriptionSettings, "groupA", StreamName, "0", string.Empty);
 		}
 
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class
-			when_listing_all_persistent_subscriptions_with_paging<TLogFormat, TStreamId>
-				: GrpcSpecification<TLogFormat, TStreamId>
+		protected override async Task When()
 		{
-			private ListResp _resp;
-			private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
-			protected override async Task Given()
+			var resp = await _persistentSubscriptionsClient.ListAsync(new ListReq(), GetCallOptions(AdminCredentials));
+			_actualSubscriptionInfo = resp.Subscriptions.ToList();
+		}
+
+		[Test]
+		public void should_receive_the_correct_stats()
+		{
+			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
+			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
+			CollectionAssert.AreEquivalent(new[] { _expectedSubscriptionInfo }, _actualSubscriptionInfo);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_listing_all_persistent_subscriptions_with_paging<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private ListResp _resp;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+
+		protected override async Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+
+			var subscriptionNames = new Dictionary<string, string[]> {
+				{"paged-stream-a", new[] {"paged-group-a"}},
+				{"paged-stream-b", new[] {"paged-group-b"}},
+				{"paged-stream-c", new[] {"paged-group-c"}},
+				{"paged-stream-d", new[] {"paged-group-d"}},
+			};
+			foreach (var (stream, groupNames) in subscriptionNames)
 			{
-				_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
-
-				var subscriptionNames = new Dictionary<string, string[]> {
-					{"paged-stream-a", new[] {"paged-group-a"}},
-					{"paged-stream-b", new[] {"paged-group-b"}},
-					{"paged-stream-c", new[] {"paged-group-c"}},
-					{"paged-stream-d", new[] {"paged-group-d"}},
-				};
-				foreach (var (stream, groupNames) in subscriptionNames)
+				foreach (var group in groupNames)
 				{
-					foreach (var group in groupNames)
+					await _persistentSubscriptionsClient.CreateAsync(new CreateReq
 					{
-						await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+						Options = new CreateReq.Types.Options
 						{
-							Options = new CreateReq.Types.Options
+							GroupName = group,
+							Stream = new CreateReq.Types.StreamOptions
 							{
-								GroupName = group,
-								Stream = new CreateReq.Types.StreamOptions
+								Start = new Empty(),
+								StreamIdentifier = new StreamIdentifier
 								{
-									Start = new Empty(),
-									StreamIdentifier = new StreamIdentifier
-									{
-										StreamName = ByteString.CopyFromUtf8(stream)
-									}
-								},
-								Settings = TestPersistentSubscriptionSettings
-							}
-						}, GetCallOptions(AdminCredentials));
-					}
+									StreamName = ByteString.CopyFromUtf8(stream)
+								}
+							},
+							Settings = TestPersistentSubscriptionSettings
+						}
+					}, GetCallOptions(AdminCredentials));
 				}
 			}
+		}
 
-			protected override async Task When()
+		protected override async Task When()
+		{
+			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
+
+			_resp = await _persistentSubscriptionsClient.ListAsync(new ListReq
 			{
-				await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
+				Options = new ListReq.Types.Options
+				{
+					ListAllSubscriptions = new Empty(),
+					Offset = 1,
+					Count = 2
+				}
+			}, GetCallOptions(AdminCredentials));
+		}
 
-				_resp = await _persistentSubscriptionsClient.ListAsync(new ListReq
+		[Test]
+		public void should_return_the_requested_page_metadata()
+		{
+			Assert.AreEqual(1, _resp.Offset);
+			Assert.AreEqual(2, _resp.Count);
+			Assert.AreEqual(4, _resp.Total);
+		}
+
+		[Test]
+		public void should_return_the_requested_page_size()
+		{
+			Assert.AreEqual(2, _resp.Subscriptions.Count);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_listing_all_persistent_subscriptions_with_incomplete_paging<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private RpcException _exception;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+
+		protected override Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+			return Task.CompletedTask;
+		}
+
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.ListAsync(new ListReq
 				{
 					Options = new ListReq.Types.Options
 					{
 						ListAllSubscriptions = new Empty(),
-						Offset = 1,
-						Count = 2
+						Offset = 0
 					}
 				}, GetCallOptions(AdminCredentials));
 			}
-
-			[Test]
-			public void should_return_the_requested_page_metadata()
+			catch (RpcException ex)
 			{
-				Assert.AreEqual(1, _resp.Offset);
-				Assert.AreEqual(2, _resp.Count);
-				Assert.AreEqual(4, _resp.Total);
-			}
-
-			[Test]
-			public void should_return_the_requested_page_size()
-			{
-				Assert.AreEqual(2, _resp.Subscriptions.Count);
+				_exception = ex;
 			}
 		}
 
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class
-			when_listing_all_persistent_subscriptions_with_incomplete_paging<TLogFormat, TStreamId>
-				: GrpcSpecification<TLogFormat, TStreamId>
+		[Test]
+		public void returns_invalid_argument()
 		{
-			private RpcException _exception;
-			private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
-
-			protected override Task Given()
-			{
-				_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
-				return Task.CompletedTask;
-			}
-
-			protected override async Task When()
-			{
-				try
-				{
-					await _persistentSubscriptionsClient.ListAsync(new ListReq
-					{
-						Options = new ListReq.Types.Options
-						{
-							ListAllSubscriptions = new Empty(),
-							Offset = 0
-						}
-					}, GetCallOptions(AdminCredentials));
-				}
-				catch (RpcException ex)
-				{
-					_exception = ex;
-				}
-			}
-
-			[Test]
-			public void returns_invalid_argument()
-			{
-				Assert.IsNotNull(_exception);
-				Assert.AreEqual(StatusCode.InvalidArgument, _exception.Status.StatusCode);
-			}
+			Assert.IsNotNull(_exception);
+			Assert.AreEqual(StatusCode.InvalidArgument, _exception.Status.StatusCode);
 		}
+	}
 
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class
-			when_listing_all_persistent_subscriptions_with_invalid_count<TLogFormat, TStreamId>
-				: GrpcSpecification<TLogFormat, TStreamId>
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_listing_all_persistent_subscriptions_with_invalid_count<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private RpcException _exception;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+
+		protected override Task Given()
 		{
-			private RpcException _exception;
-			private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+			return Task.CompletedTask;
+		}
 
-			protected override Task Given()
+		protected override async Task When()
+		{
+			try
 			{
-				_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
-				return Task.CompletedTask;
-			}
-
-			protected override async Task When()
-			{
-				try
+				await _persistentSubscriptionsClient.ListAsync(new ListReq
 				{
-					await _persistentSubscriptionsClient.ListAsync(new ListReq
+					Options = new ListReq.Types.Options
 					{
-						Options = new ListReq.Types.Options
-						{
-							ListAllSubscriptions = new Empty(),
-							Offset = 0,
-							Count = 0
-						}
-					}, GetCallOptions(AdminCredentials));
-				}
-				catch (RpcException ex)
-				{
-					_exception = ex;
-				}
+						ListAllSubscriptions = new Empty(),
+						Offset = 0,
+						Count = 0
+					}
+				}, GetCallOptions(AdminCredentials));
 			}
-
-			[Test]
-			public void returns_invalid_argument()
+			catch (RpcException ex)
 			{
-				Assert.IsNotNull(_exception);
-				Assert.AreEqual(StatusCode.InvalidArgument, _exception.Status.StatusCode);
+				_exception = ex;
 			}
 		}
 
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class
-			when_getting_info_for_persistent_subscription_group_on_all<TLogFormat, TStreamId>
-				: GrpcSpecification<TLogFormat, TStreamId>
+		[Test]
+		public void returns_invalid_argument()
+		{
+			Assert.IsNotNull(_exception);
+			Assert.AreEqual(StatusCode.InvalidArgument, _exception.Status.StatusCode);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_getting_info_for_persistent_subscription_group_on_all<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
 	{
 		private string _groupName = "test-group";
 		private SubscriptionInfo _actualSubscriptionInfo;
