@@ -105,10 +105,6 @@ paths:
         "201":
           description: Created
   "/subscriptions/{stream}/{subscription}":
-    put:
-      responses:
-        "201":
-          description: Created
     post:
       responses:
         "200":
