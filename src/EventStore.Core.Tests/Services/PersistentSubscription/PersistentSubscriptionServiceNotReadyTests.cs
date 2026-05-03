@@ -149,6 +149,17 @@ public class PersistentSubscriptionServiceNotReadyTests {
 		AssertNotReady(envelope, correlationId);
 	}
 
+	[Test]
+	public void replay_parked_replies_not_ready() {
+		var envelope = new FakeEnvelope();
+		var correlationId = Guid.NewGuid();
+
+		_sut.Handle(new ClientMessage.ReplayParkedMessages(
+			Guid.NewGuid(), correlationId, envelope, "stream", "group", null, ClaimsPrincipal.Current));
+
+		AssertNotReady(envelope, correlationId);
+	}
+
 	private static void AssertNotReady(FakeEnvelope envelope, Guid correlationId) {
 		Assert.That(envelope.Replies, Has.Count.EqualTo(1));
 		var reply = envelope.Replies.Single();

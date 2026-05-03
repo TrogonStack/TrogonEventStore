@@ -1323,6 +1323,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.ReplayParkedMessages message)
 	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
 		PersistentSubscription subscription;
 		var key = BuildSubscriptionGroupKey(message.EventStreamId, message.GroupName);
 		Log.Debug("Replaying parked messages for persistent subscription {subscriptionKey} {to}",
