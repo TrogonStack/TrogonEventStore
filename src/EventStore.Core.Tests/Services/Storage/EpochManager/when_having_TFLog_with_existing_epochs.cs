@@ -290,12 +290,10 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 				}
 			}
 
-			var expectedStreamId = LogFormatHelper<TLogFormat, TStreamId>.Choose<TStreamId>(
-				SystemStreams.EpochInformationStream,
-				null);
-			var expectedEventType = LogFormatHelper<TLogFormat, TStreamId>.Choose<TStreamId>(
-				SystemEventTypes.EpochInformation,
-				null);
+			var expectedStreamId = LogFormatHelper<TLogFormat, TStreamId>.ForV2<TStreamId>(
+				SystemStreams.EpochInformationStream);
+			var expectedEventType = LogFormatHelper<TLogFormat, TStreamId>.ForV2<TStreamId>(
+				SystemEventTypes.EpochInformation);
 			Assert.AreEqual(expectedStreamId, epochInfo.EventStreamId);
 			Assert.AreEqual(expectedEventType, epochInfo.EventType);
 			Assert.AreEqual(i - 1, epochInfo.ExpectedVersion);
