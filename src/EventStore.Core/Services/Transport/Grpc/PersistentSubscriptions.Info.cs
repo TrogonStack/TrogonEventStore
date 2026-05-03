@@ -131,19 +131,19 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				}
 
 				if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed) {
-						switch (completed.Result) {
-							case MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success:
-								var listResp = new ListResp();
-								listResp.Subscriptions.AddRange(
-									completed.SubscriptionStats.Select(ParseSubscriptionInfo)
-								);
-								listResp.Offset = completed.RequestedOffset;
-								listResp.Count = completed.RequestedCount == int.MaxValue
-									? listResp.Subscriptions.Count
-									: completed.RequestedCount;
-								listResp.Total = completed.Total;
-								listPersistentSubscriptionsSource.TrySetResult(listResp);
-								return;
+					switch (completed.Result) {
+						case MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success:
+							var listResp = new ListResp();
+							listResp.Subscriptions.AddRange(
+								completed.SubscriptionStats.Select(ParseSubscriptionInfo)
+							);
+							listResp.Offset = completed.RequestedOffset;
+							listResp.Count = completed.RequestedCount == int.MaxValue
+								? listResp.Subscriptions.Count
+								: completed.RequestedCount;
+							listResp.Total = completed.Total;
+							listPersistentSubscriptionsSource.TrySetResult(listResp);
+							return;
 						case MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotFound:
 							listPersistentSubscriptionsSource.TrySetException(
 								RpcExceptions.PersistentSubscriptionDoesNotExist(streamId, ""));

@@ -370,7 +370,7 @@ message ListReq {
 
 message ListResp {
 	repeated SubscriptionInfo subscriptions = 1;
-	int32 offset = 2;
-	int32 count = 3;
-	int32 total = 4;
+	optional int32 offset = 2;
+	optional int32 count = 3;
+	optional int32 total = 4;
 }
