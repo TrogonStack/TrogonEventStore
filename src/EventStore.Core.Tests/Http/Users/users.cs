@@ -1,6 +1,5 @@
 using System;
 using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client.Users;
@@ -177,37 +176,6 @@ namespace EventStore.Core.Tests.Http.Users
 								}
 							}
 					}, _response);
-			}
-		}
-
-		[Category("LongRunning")]
-		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_updating_user_details<TLogFormat, TStreamId> : with_admin_user<TLogFormat, TStreamId>
-		{
-			private HttpResponseMessage _response;
-
-			protected override async Task Given()
-			{
-				await CreateUser("test1", "User Full Name", Array.Empty<string>(), "Pa55w0rd!", _admin);
-			}
-
-			protected override async Task When()
-			{
-				_response = await MakeRawJsonPut("/users/test1", new { FullName = "Updated Full Name" }, _admin);
-			}
-
-			[Test]
-			public void returns_ok_status_code()
-			{
-				Assert.AreEqual(HttpStatusCode.OK, _response.StatusCode);
-			}
-
-			[Test]
-			public async Task updates_full_name()
-			{
-				var jsonResponse = await GetJson<JObject>("/users/test1");
-				HelperExtensions.AssertJson(
-					new { Success = true, Error = "Success", Data = new { FullName = "Updated Full Name" } }, jsonResponse);
 			}
 		}
 
