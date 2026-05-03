@@ -108,7 +108,7 @@ class when_getting_non_existent_single_statistics<TLogFormat, TStreamId> : with_
 
 	protected override async Task When()
 	{
-		var request = CreateRequest("/subscriptions/fu/fubar", null, "GET", "text/xml");
+		var request = CreateRequest("/subscriptions/fu/fubar/info", null, "GET", "text/xml");
 		_response = await GetRequestResponse(request);
 	}
 
