@@ -183,7 +183,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/subscriptions/{stream};GET;User",
 			"/subscriptions/{stream}/{subscription};PUT;Ops",
 			"/subscriptions/{stream}/{subscription};POST;Ops",
-			"/subscriptions/{stream}/{subscription};DELETE;Ops",
 			"/subscriptions/{stream}/{subscription}/info;GET;User",
 			"/users;GET;Admin",
 			"/users/;GET;Admin",
