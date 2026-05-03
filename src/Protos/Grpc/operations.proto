@@ -9,6 +9,7 @@ service Operations {
 	rpc StopScavenge (StopScavengeReq) returns (ScavengeResp);
 	rpc GetCurrentScavenge (event_store.client.Empty) returns (ScavengeStatusResp);
 	rpc GetLastScavenge (event_store.client.Empty) returns (ScavengeStatusResp);
+	rpc ReloadConfig (event_store.client.Empty) returns (event_store.client.Empty);
 	rpc Shutdown (event_store.client.Empty) returns (event_store.client.Empty);
 	rpc MergeIndexes (event_store.client.Empty) returns (event_store.client.Empty);
 	rpc ResignNode (event_store.client.Empty) returns (event_store.client.Empty);

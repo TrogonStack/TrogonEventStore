@@ -57,6 +57,12 @@ public class AdminTests {
 		"MergeIndexes",
 		EmptyMarshaller,
 		EmptyMarshaller);
+	private static readonly Method<Empty, Empty> ReloadConfigMethod = new(
+		MethodType.Unary,
+		OperationsService,
+		"ReloadConfig",
+		EmptyMarshaller,
+		EmptyMarshaller);
 	private static readonly Marshaller<SetNodePriorityReq> SetNodePriorityReqMarshaller = Marshallers.Create(
 		static message => message.ToByteArray(),
 		static bytes => SetNodePriorityReq.Parser.ParseFrom(bytes));
@@ -137,6 +143,55 @@ public class AdminTests {
 			try {
 				await Channel.CreateCallInvoker().AsyncUnaryCall(
 					MergeIndexesMethod,
+					null,
+					GetCallOptions(),
+					new Empty());
+			} catch (Exception ex) {
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void returns_permission_denied() {
+			Assert.IsInstanceOf<RpcException>(_exception);
+			Assert.AreEqual(StatusCode.PermissionDenied, ((RpcException)_exception).Status.StatusCode);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_reloading_config_as_admin<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private Exception _exception;
+
+		protected override Task Given() => Task.CompletedTask;
+
+		protected override async Task When() {
+			try {
+				await Channel.CreateCallInvoker().AsyncUnaryCall(
+					ReloadConfigMethod,
+					null,
+					GetCallOptions(AdminCredentials),
+					new Empty());
+			} catch (Exception ex) {
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void completes() {
+			Assert.IsNull(_exception);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_reloading_config_without_permissions<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private Exception _exception;
+
+		protected override Task Given() => Task.CompletedTask;
+
+		protected override async Task When() {
+			try {
+				await Channel.CreateCallInvoker().AsyncUnaryCall(
+					ReloadConfigMethod,
 					null,
 					GetCallOptions(),
 					new Empty());

@@ -527,17 +527,9 @@ In the above example we have the links in a folder at path `/home/ubuntu/links`.
 
 ### Step 3: Reload the configuration
 
-You can reload the certificate configuration without restarting the node by issuing the following curl command.
-
-```bash:no-line-numbers
-curl -k -X POST --basic https://{nodeAddress}:{HttpPort}/admin/reloadconfig -u {username}:{Password}
-```
-
-For Example:
-
-```bash:no-line-numbers
-curl -k -X POST --basic https://127.0.0.1:2113/admin/reloadconfig -u admin:changeit
-```
+You can reload the certificate configuration without restarting the node by calling the gRPC
+`Operations.ReloadConfig` method with the credentials of an `admin` or `ops` user. You can also
+reload the configuration from the _Operations_ page of the Admin UI.
 
 #### Linux OS
 
@@ -558,7 +550,6 @@ pidof eventstored
 Once the configuration has been reloaded successfully, the server logs will look something like:
 
 ```
-[108277,30,14:46:07.453,INF] Reloading the node's configuration since a request has been received on /admin/reloadconfig.
 [108277,29,14:46:07.457,INF] Loading the node's certificate(s) from file: "/home/ubuntu/links/node.crt"
 [108277,29,14:46:07.488,INF] Loading the node's certificate. Subject: "CN=eventstoredb-node", Previous thumbprint: "05526714107700C519E24794E8964A3B30EF9BD0", New thumbprint: "BE6D5CD681D7B9281D60A5969B5A7E31AF775E9F"
 [108277,29,14:46:07.488,INF] Loading intermediate certificate. Subject: "CN=EventStoreDB Intermediate CA 78ae8d5a159b247568039cf64f4b04ad, O=Event Store Ltd, C=UK", Thumbprint: "ED4AA0C5ED4AD120DDEE2FA8B3B0CCC5A30B81E3"
@@ -577,7 +568,6 @@ If there are any errors during loading certificates, the new configuration chang
 The server logs the following error when the node certificate is not available at the path specified in the EventStore configuration file.
 
 ```
-[108277,30,14:49:47.481,INF] Reloading the node's configuration since a request has been received on /admin/reloadconfig.
 [108277,29,14:49:47.488,INF] Loading the node's certificate(s) from file: "/home/ubuntu/links/node.crt"
 [108277,29,14:49:47.489,ERR] An error has occurred while reloading the configuration
 System.IO.FileNotFoundException: Could not find file '/home/ubuntu/links/node.key'.

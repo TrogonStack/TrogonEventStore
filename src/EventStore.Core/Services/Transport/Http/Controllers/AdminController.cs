@@ -23,22 +23,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 		protected override void SubscribeCore(IHttpService service) {
 			service.RegisterAction(
-				new ControllerAction("/admin/reloadconfig", HttpMethod.Post, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.ReloadConfiguration)),
-				OnPostReloadConfig);
-			service.RegisterAction(
 				new ControllerAction("/admin/login", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Login)),
 				OnGetLogin);
-		}
-
-		private void OnPostReloadConfig(HttpEntityManager entity, UriTemplateMatch match) {
-			if (entity.User != null &&
-			    (entity.User.LegacyRoleCheck(SystemRoles.Admins) || entity.User.LegacyRoleCheck(SystemRoles.Operations))) {
-				Log.Information("Reloading the node's configuration since a request has been received on /admin/reloadconfig.");
-				Publish(new ClientMessage.ReloadConfig());
-				entity.ReplyStatus(HttpStatusCode.OK, "OK", LogReplyError);
-			} else {
-				entity.ReplyStatus(HttpStatusCode.Unauthorized, "Unauthorized", LogReplyError);
-			}
 		}
 
 		private void OnGetLogin(HttpEntityManager entity, UriTemplateMatch match) {
