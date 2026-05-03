@@ -31,8 +31,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			RegisterUrlBased(service, "/users/{login}", HttpMethod.Delete, new Operation(Operations.Users.Delete), DeleteUser);
 			RegisterUrlBased(service, "/users/{login}/command/enable", HttpMethod.Post, new Operation(Operations.Users.Enable), PostCommandEnable);
 			RegisterUrlBased(service, "/users/{login}/command/disable", HttpMethod.Post, new Operation(Operations.Users.Disable), PostCommandDisable);
-			Register(service, "/users/{login}/command/reset-password", HttpMethod.Post, PostCommandResetPassword,
-				DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.ResetPassword));
 		}
 
 		private void GetUsers(HttpEntityManager http, UriTemplateMatch match) {
@@ -135,19 +133,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			Publish(message);
 		}
 
-		private void PostCommandResetPassword(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-			http.ReadTextRequestAsync(
-				(o, s) => {
-					var login = match.BoundVariables["login"];
-					var data = http.RequestCodec.From<ResetPasswordData>(s);
-					var message = new UserManagementMessage.ResetPassword(envelope, http.User, login, data.NewPassword);
-					Publish(message);
-				}, x => Log.Debug(x, "Reply Text Content Failed."));
-		}
-
 		private SendToHttpEnvelope<T> CreateReplyEnvelope<T>(
 			HttpEntityManager http, Func<ICodec, T, string> formatter = null,
 			Func<ICodec, T, ResponseConfiguration> configurator = null)
@@ -211,10 +196,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		private class PutUserData {
 			public string FullName { get; set; }
 			public string[] Groups { get; set; }
-		}
-
-		private class ResetPasswordData {
-			public string NewPassword { get; set; }
 		}
 
 	}
