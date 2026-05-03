@@ -32,8 +32,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		protected override void SubscribeCore(IHttpService service) {
 			Register(service, "/subscriptions?offset={offset}&count={count}", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions", HttpMethod.Get, GetAllSubscriptionInfo, Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
-			Register(service, "/subscriptions/{stream}", HttpMethod.Get, GetSubscriptionInfoForStream, Codec.NoCodecs,
-				DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Put, PutSubscription, DefaultCodecs,
 				DefaultCodecs, new Operation(Operations.Subscriptions.Create));
 			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Post, PostSubscription,
@@ -307,20 +305,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 						message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted).ToArray()),
 				(args, message) => StatsConfiguration(args, message));
 			var cmd = new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope);
-			Publish(cmd);
-		}
-
-		private void GetSubscriptionInfoForStream(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var stream = match.BoundVariables["stream"];
-			var envelope = new SendToHttpEnvelope(
-				_networkSendQueue, http,
-				(args, message) =>
-					http.ResponseCodec.To(ToSummaryDto(http,
-						message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted).ToArray()),
-				(args, message) => StatsConfiguration(args, message));
-			var cmd = new MonitoringMessage.GetStreamPersistentSubscriptionStats(envelope, stream);
 			Publish(cmd);
 		}
 
