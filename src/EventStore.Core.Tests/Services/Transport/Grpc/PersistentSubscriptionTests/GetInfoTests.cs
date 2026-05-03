@@ -179,6 +179,50 @@ public class GetInfoTests
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
+		when_getting_info_for_missing_persistent_subscription_on_stream<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private RpcException _exception;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+
+		protected override Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+			return Task.CompletedTask;
+		}
+
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq
+				{
+					Options = new GetInfoReq.Types.Options
+					{
+						GroupName = "missing-group",
+						StreamIdentifier = new StreamIdentifier
+						{
+							StreamName = ByteString.CopyFromUtf8("missing-stream")
+						}
+					}
+				}, GetCallOptions(AdminCredentials));
+			}
+			catch (RpcException ex)
+			{
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void returns_not_found()
+		{
+			Assert.IsNotNull(_exception);
+			Assert.AreEqual(StatusCode.NotFound, _exception.Status.StatusCode);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
 		when_listing_persistent_subscriptions_on_missing_stream<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
 	{

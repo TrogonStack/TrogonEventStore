@@ -36,8 +36,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				DefaultCodecs, new Operation(Operations.Subscriptions.Create));
 			Register(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Post, PostSubscription,
 				DefaultCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Update));
-			Register(service, "/subscriptions/{stream}/{subscription}/info", HttpMethod.Get, GetSubscriptionInfo,
-				Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
 		}
 
 		private void PutSubscription(HttpEntityManager http, UriTemplateMatch match) {
@@ -308,22 +306,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			Publish(cmd);
 		}
 
-		private void GetSubscriptionInfo(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var stream = match.BoundVariables["stream"];
-			var groupName = match.BoundVariables["subscription"];
-			var envelope = new SendToHttpEnvelope(
-				_networkSendQueue, http,
-				(args, message) =>
-					http.ResponseCodec.To(
-						ToDto(http, message as MonitoringMessage.GetPersistentSubscriptionStatsCompleted)
-							.FirstOrDefault()),
-				(args, message) => StatsConfiguration(args, message));
-			var cmd = new MonitoringMessage.GetPersistentSubscriptionStats(envelope, stream, groupName);
-			Publish(cmd);
-		}
-		
 		private static ResponseConfiguration StatsConfiguration(HttpResponseConfiguratorArgs http, Message message) {
 			int code;
 			if (message is ClientMessage.NotHandled notHandled)
@@ -350,97 +332,14 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 				http.ResponseCodec.Encoding);
 		}
 
-		private IEnumerable<SubscriptionInfo> ToDto(HttpEntityManager manager,
-			MonitoringMessage.GetPersistentSubscriptionStatsCompleted message) {
-			if (message == null) yield break;
-			if (message.SubscriptionStats == null) yield break;
-
-			foreach (var stat in message.SubscriptionStats) {
-				string escapedStreamId = Uri.EscapeDataString(stat.EventSource);
-				string escapedGroupName = Uri.EscapeDataString(stat.GroupName);
-				var info = new SubscriptionInfo {
-					Links = new List<RelLink>() {
-						new RelLink(
-							MakeUrl(manager,
-								string.Format("/subscriptions/{0}/{1}/info", escapedStreamId, escapedGroupName)),
-							"detail")
-					},
-					EventStreamId = stat.EventSource,
-					GroupName = stat.GroupName,
-					Status = stat.Status,
-					AverageItemsPerSecond = stat.AveragePerSecond,
-					TotalItemsProcessed = stat.TotalItems,
-					CountSinceLastMeasurement = stat.CountSinceLastMeasurement,
-					#pragma warning disable 612
-					LastKnownEventNumber = long.TryParse(stat.LastKnownEventPosition, out var lastKnownMsg) ? lastKnownMsg : 0,
-					#pragma warning restore 612
-					LastKnownEventPosition = stat.LastKnownEventPosition,
-					#pragma warning disable 612
-					LastProcessedEventNumber = long.TryParse(stat.LastCheckpointedEventPosition, out var lastProcessedPos) ? lastProcessedPos : 0,
-					#pragma warning restore 612
-					LastCheckpointedEventPosition = stat.LastCheckpointedEventPosition,
-					ReadBufferCount = stat.ReadBufferCount,
-					LiveBufferCount = stat.LiveBufferCount,
-					RetryBufferCount = stat.RetryBufferCount,
-					TotalInFlightMessages = stat.TotalInFlightMessages,
-					OutstandingMessagesCount = stat.OutstandingMessagesCount,
-					Config = new SubscriptionConfigData {
-						CheckPointAfterMilliseconds = stat.CheckPointAfterMilliseconds,
-						BufferSize = stat.BufferSize,
-						LiveBufferSize = stat.LiveBufferSize,
-						MaxCheckPointCount = stat.MaxCheckPointCount,
-						MaxRetryCount = stat.MaxRetryCount,
-						MessageTimeoutMilliseconds = stat.MessageTimeoutMilliseconds,
-						MinCheckPointCount = stat.MinCheckPointCount,
-						NamedConsumerStrategy = stat.NamedConsumerStrategy,
-						PreferRoundRobin = stat.NamedConsumerStrategy == SystemConsumerStrategies.RoundRobin,
-						ReadBatchSize = stat.ReadBatchSize,
-						ResolveLinktos = stat.ResolveLinktos,
-						#pragma warning disable 612
-						StartFrom = long.TryParse(stat.StartFrom, out var startFrom) ? startFrom : 0,
-						#pragma warning restore 612
-						StartPosition = stat.StartFrom,
-						ExtraStatistics = stat.ExtraStatistics,
-						MaxSubscriberCount = stat.MaxSubscriberCount,
-					},
-					Connections = new List<ConnectionInfo>(),
-					ParkedMessageCount = stat.ParkedMessageCount
-				};
-				if (stat.Connections != null) {
-					foreach (var connection in stat.Connections) {
-						info.Connections.Add(new ConnectionInfo {
-							Username = connection.Username,
-							From = connection.From,
-							AverageItemsPerSecond = connection.AverageItemsPerSecond,
-							CountSinceLastMeasurement = connection.CountSinceLastMeasurement,
-							TotalItemsProcessed = connection.TotalItems,
-							AvailableSlots = connection.AvailableSlots,
-							InFlightMessages = connection.InFlightMessages,
-							ExtraStatistics = connection.ObservedMeasurements ?? new List<Measurement>(),
-							ConnectionName = connection.ConnectionName,
-						});
-					}
-				}
-
-				yield return info;
-			}
-		}
-
 		private IEnumerable<SubscriptionSummary> ToSummaryDto(HttpEntityManager manager,
 			MonitoringMessage.GetPersistentSubscriptionStatsCompleted message) {
 			if (message == null) yield break;
 			if (message.SubscriptionStats == null) yield break;
 
 			foreach (var stat in message.SubscriptionStats) {
-				string escapedStreamId = Uri.EscapeDataString(stat.EventSource);
-				string escapedGroupName = Uri.EscapeDataString(stat.GroupName);
 				var info = new SubscriptionSummary {
-					Links = new List<RelLink>() {
-						new RelLink(
-							MakeUrl(manager,
-								string.Format("/subscriptions/{0}/{1}/info", escapedStreamId, escapedGroupName)),
-							"detail"),
-					},
+					Links = new List<RelLink>(),
 					EventStreamId = stat.EventSource,
 					GroupName = stat.GroupName,
 					Status = stat.Status,
@@ -560,38 +459,5 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			public int TotalInFlightMessages { get; set; }
 		}
 
-		public class SubscriptionInfo {
-			public List<RelLink> Links { get; set; }
-			public SubscriptionConfigData Config { get; set; }
-			public string EventStreamId { get; set; }
-			public string GroupName { get; set; }
-			public string Status { get; set; }
-			public decimal AverageItemsPerSecond { get; set; }
-			public long TotalItemsProcessed { get; set; }
-			public long CountSinceLastMeasurement { get; set; }
-			[Obsolete] public long LastProcessedEventNumber { get; set; }
-			public string LastCheckpointedEventPosition { get; set; }
-			[Obsolete] public long LastKnownEventNumber { get; set; }
-			public string LastKnownEventPosition { get; set; }
-			public int ReadBufferCount { get; set; }
-			public long LiveBufferCount { get; set; }
-			public int RetryBufferCount { get; set; }
-			public int TotalInFlightMessages { get; set; }
-			public int OutstandingMessagesCount { get; set; }
-			public List<ConnectionInfo> Connections { get; set; }
-			public long ParkedMessageCount { get; set; }
-		}
-
-		public class ConnectionInfo {
-			public string From { get; set; }
-			public string Username { get; set; }
-			public decimal AverageItemsPerSecond { get; set; }
-			public long TotalItemsProcessed { get; set; }
-			public long CountSinceLastMeasurement { get; set; }
-			public List<Measurement> ExtraStatistics { get; set; }
-			public int AvailableSlots { get; set; }
-			public int InFlightMessages { get; set; }
-			public string ConnectionName { get; set; }
-		}
 	}
 }
