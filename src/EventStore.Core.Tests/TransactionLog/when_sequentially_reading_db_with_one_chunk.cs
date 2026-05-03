@@ -14,7 +14,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	when_sequentially_reading_db_with_one_chunk<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {

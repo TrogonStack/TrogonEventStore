@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
 	: ReadIndexTestScenario<TLogFormat, TStreamId>(indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV1,
 		performAdditionalChecks: false)

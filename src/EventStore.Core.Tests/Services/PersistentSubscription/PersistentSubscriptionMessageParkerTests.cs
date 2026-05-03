@@ -31,7 +31,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_parked_stream_does_not_exist<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -58,7 +57,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_parked_messages_and_no_truncate_before<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -88,7 +86,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_parked_messages_and_no_truncate_before_oldest_parked_message_timestamp<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -120,7 +117,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_parked_messages_and_half_are_truncated<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
@@ -151,7 +147,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_parked_messages_and_half_are_truncated_oldest_parked_message_timestamp<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
@@ -185,7 +180,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_parked_messages_and_all_are_truncated<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -223,7 +217,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_a_message_is_parked<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -252,7 +245,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_messages_are_parked_and_then_replayed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -292,7 +284,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_message_parked_after_parked_messages_are_replayed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -337,7 +328,6 @@ public class PersistentSubscriptionMessageParkerTests
 
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_read_backwards_fails_when_getting_stats<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;
@@ -380,7 +370,6 @@ public class PersistentSubscriptionMessageParkerTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class given_read_forwards_fails_when_getting_stats<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;

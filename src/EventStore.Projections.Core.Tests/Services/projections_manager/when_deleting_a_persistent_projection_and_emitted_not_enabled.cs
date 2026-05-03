@@ -13,7 +13,6 @@ using Messages;
 using NUnit.Framework;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class WhenDeletingAPersistentProjectionAndEmittedNotEnabled<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 {
 	private string _projectionName;

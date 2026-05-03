@@ -14,7 +14,6 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 public class ReadAllBackwardsFilteredTests
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_reading_all_backwards_filtered<TLogFormat, TStreamId>
 	  : GrpcSpecification<TLogFormat, TStreamId>
 	{
@@ -103,7 +102,6 @@ public class ReadAllBackwardsFilteredTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_reading_all_backwards_filtered_from_end<TLogFormat, TStreamId>
 	  : GrpcSpecification<TLogFormat, TStreamId>
 	{

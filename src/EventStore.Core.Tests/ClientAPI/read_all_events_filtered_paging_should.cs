@@ -13,7 +13,6 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 	: SpecificationWithMiniNode<TLogFormat, TStreamId>
 {
@@ -133,14 +132,6 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 
 		// Includes system events at start of stream (inc epoch-information)
 		var expectedCount = 11;
-
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV3)
-		{
-			// account for stream records: $scavenges, $user-admin, $user-ops, $users, stream-a
-			expectedCount -= 5;
-			// account for event type records: $UserCreated, $User, AEvent, BEvent, CEvent
-			expectedCount -= 5;
-		}
 
 		Assert.AreEqual(expectedCount, slice.Events.Length);
 	}

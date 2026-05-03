@@ -14,7 +14,6 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.all_streams_wi
 	namespace when_including_links
 	{
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_reading<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
 		{
 			protected Guid _subscriptionId;

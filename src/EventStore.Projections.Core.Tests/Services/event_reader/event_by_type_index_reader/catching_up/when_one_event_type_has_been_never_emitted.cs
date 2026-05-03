@@ -102,7 +102,6 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		class when_index_checkpoint_multiple_events_behind<TLogFormat, TStreamId> : with_one_event_type_has_been_never_emitted<TLogFormat, TStreamId>
 		{
 			protected override void GivenInitialIndexState()

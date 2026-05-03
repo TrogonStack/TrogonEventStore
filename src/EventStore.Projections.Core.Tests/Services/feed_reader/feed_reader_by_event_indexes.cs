@@ -16,7 +16,6 @@ namespace EventStore.Projections.Core.Tests.Services.feed_reader
 	namespace feed_reader_by_event_indexes
 	{
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		class when_reading_the_first_event<TLogFormat, TStreamId> : TestFixtureWithFeedReaderService<TLogFormat, TStreamId>
 		{
 			private QuerySourcesDefinition _querySourcesDefinition;
@@ -83,7 +82,6 @@ namespace EventStore.Projections.Core.Tests.Services.feed_reader
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		class when_reading_the_reordered_events_from_the_same_stream<TLogFormat, TStreamId> : TestFixtureWithFeedReaderService<TLogFormat, TStreamId>
 		{
 			private QuerySourcesDefinition _querySourcesDefinition;

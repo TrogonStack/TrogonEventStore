@@ -8,7 +8,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint.Scenarios;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(long))]
 public class when_deleting_already_categorized_stream<TLogFormat, TStreamId> : specification_with_js_query_posted<TLogFormat, TStreamId>
 {
 	protected override void GivenEvents()

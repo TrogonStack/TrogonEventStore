@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LogReplication.Tests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId>
 {
 	private readonly string _bulkSizedEvent = new(' ', LeaderReplicationService.BulkSize);

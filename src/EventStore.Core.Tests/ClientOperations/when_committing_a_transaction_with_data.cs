@@ -11,7 +11,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.ClientOperations;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class when_committing_a_transaction_with_data<TLogFormat, TStreamId> : specification_with_request_manager_integration<TLogFormat, TStreamId>
 {
 	readonly string _streamId = $"new_test_stream_{Guid.NewGuid()}";

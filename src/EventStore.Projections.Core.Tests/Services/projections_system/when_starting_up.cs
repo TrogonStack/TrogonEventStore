@@ -15,7 +15,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system
 	namespace startup
 	{
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_starting_with_empty_db<TLogFormat, TStreamId> : with_projections_subsystem<TLogFormat, TStreamId>
 		{
 			protected override IEnumerable<WhenStep> When()
@@ -54,7 +53,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_starting_as_follower<TLogFormat, TStreamId> : with_projections_subsystem<TLogFormat, TStreamId>
 		{
 			protected override IEnumerable<WhenStep> PreWhen()

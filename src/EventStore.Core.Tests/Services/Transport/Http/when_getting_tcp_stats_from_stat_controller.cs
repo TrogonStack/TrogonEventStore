@@ -16,7 +16,6 @@ using HttpStatusCode = System.Net.HttpStatusCode;
 namespace EventStore.Core.Tests.Services.Transport.Http;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_getting_tcp_stats_from_stat_controller<TLogFormat, TStreamId>
 	: SpecificationWithMiniNode<TLogFormat, TStreamId>
 {

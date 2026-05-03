@@ -9,9 +9,7 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string), TcpType.Normal)]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), TcpType.Normal)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), TcpType.Ssl)]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), TcpType.Ssl)]
 public class event_store_connection_should<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private readonly TcpType _tcpType;

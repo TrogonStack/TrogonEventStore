@@ -16,7 +16,6 @@
 		</PackageReference>
 		<PackageReference Include="JetBrains.Annotations" />
 		<PackageReference Include="librdkafka.redist" />
-		<PackageReference Include="Microsoft.FASTER.Core" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
 		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
 		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
@@ -42,7 +41,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\EventStore.Common\EventStore.Common.csproj" />
-		<ProjectReference Include="..\EventStore.LogV3\EventStore.LogV3.csproj" />
+		<ProjectReference Include="..\EventStore.LogCommon\EventStore.LogCommon.csproj" />
 		<ProjectReference Include="..\EventStore.Native\EventStore.Native.csproj" />
 		<ProjectReference Include="..\EventStore.Transport.Http\EventStore.Transport.Http.csproj" />
 		<ProjectReference Include="..\EventStore.Transport.Tcp\EventStore.Transport.Tcp.csproj" />

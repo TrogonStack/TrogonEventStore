@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LogReplication.Tests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
 {
 	private const int NumCheckpoints = 5 + /* chunk 0-0 (non-raw): 3 complete transactions, 1 incomplete transaction

@@ -8,7 +8,6 @@ namespace EventStore.Core.Tests.Services.Storage.ChunkBoundary;
 // It only verifies if TFChunkWriter works properly.
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class WhenWritingEventsAtChunkBoundary<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
 {
 	private long _writerChk;

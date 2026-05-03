@@ -19,7 +19,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Transforms;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private const int NumEvents = 1000;

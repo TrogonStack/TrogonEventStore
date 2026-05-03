@@ -3,13 +3,10 @@ using EventStore.Common.Utils;
 using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction.Common;
 using EventStore.Core.LogV2;
-using EventStore.Core.LogV3;
-using EventStore.Core.LogV3.FASTER;
 using EventStore.Core.Settings;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
-using LogV3StreamId = System.UInt32;
 
 namespace EventStore.Core.LogAbstraction {
 	public record LogFormatAbstractorOptions {
@@ -94,130 +91,6 @@ namespace EventStore.Core.LogAbstraction {
 					options.TFReaderLeaseFactory,
 					tableIndex);
 			});
-	}
-
-	public class LogV3FormatAbstractorFactory : ILogFormatAbstractorFactory<LogV3StreamId> {
-		public LogV3FormatAbstractorFactory() {
-		}
-
-		public LogFormatAbstractor<LogV3StreamId> Create(LogFormatAbstractorOptions options) {
-			var metastreams = new LogV3Metastreams();
-			var recordFactory = new LogV3RecordFactory();
-			
-			var streamNameIndexPersistence = GenStreamNameIndexPersistence(options);
-			var streamExistenceFilter = GenStreamExistenceFilter(options);
-			var streamNameIndex = GenStreamNameIndex(streamExistenceFilter, streamNameIndexPersistence, metastreams);
-
-			var streamIds = streamNameIndexPersistence
-				.Wrap(x => new NameExistenceFilterValueLookupDecorator<LogV3StreamId>(x, streamExistenceFilter))
-				.Wrap(x => new StreamIdLookupMetastreamDecorator(x, metastreams));
-
-			var eventTypeIndexPersistence = GenEventTypeIndexPersistence(options);
-			var eventTypeIndex = GenEventTypeIndex(eventTypeIndexPersistence);
-			
-			var abstractor = new LogFormatAbstractor<LogV3StreamId>(
-				lowHasher: new IdentityLowHasher(),
-				highHasher: new IdentityHighHasher(),
-				streamNameIndex: new StreamNameIndexMetastreamDecorator(streamNameIndex, metastreams),
-				streamNameIndexConfirmer: streamNameIndex,
-				eventTypeIndex: new EventTypeIndexSystemTypesDecorator(eventTypeIndex),
-				eventTypeIndexConfirmer: eventTypeIndex,
-				streamIds: streamIds,
-				metastreams: metastreams,
-				streamNamesProvider: GenStreamNamesProvider(metastreams),
-				streamIdValidator: new LogV3StreamIdValidator(),
-				streamIdConverter: new LogV3StreamIdConverter(),
-				emptyStreamId: 0,
-				emptyEventTypeId: 0,
-				streamIdSizer: new LogV3Sizer(),
-				streamExistenceFilter: streamExistenceFilter,
-				// this is for the indexreader to check the existence of the stream using a streamId
-				// its important for LogV2 (because it has no stream name index)
-				// but not applicable to LogV3 (because you need a streamName not id to check the filter)
-				streamExistenceFilterReader: new NoExistenceFilterReader(),
-				recordFactory: recordFactory,
-				supportsExplicitTransactions: false,
-				partitionManagerFactory: (r, w) => new PartitionManager(r, w, recordFactory));
-			return abstractor;
-		}
-
-		static IStreamNamesProvider<LogV3StreamId> GenStreamNamesProvider(IMetastreamLookup<LogV3StreamId> metastreams) {
-			return new AdHocStreamNamesProvider<LogV3StreamId>((self, indexReader) => {
-				INameLookup<LogV3StreamId> streamNames = new StreamIdToNameFromStandardIndex(indexReader);
-				INameLookup<LogV3StreamId> eventTypes = new EventTypeIdToNameFromStandardIndex(indexReader);
-				self.SystemStreams = new LogV3SystemStreams(metastreams, streamNames);
-				self.StreamNames = new StreamNameLookupMetastreamDecorator(streamNames, metastreams);
-				self.EventTypes = new EventTypeLookupSystemTypesDecorator(eventTypes);
-				self.StreamExistenceFilterInitializer = new LogV3StreamExistenceFilterInitializer(streamNames);
-			});
-		}
-
-		static NameIndex GenStreamNameIndex(
-			INameExistenceFilter existenceFilter,
-			INameIndexPersistence<LogV3StreamId> persistence,
-			IMetastreamLookup<LogV3StreamId> metastreams) =>
-			new NameIndex(
-				indexName: "StreamNameIndex",
-				firstValue: LogV3SystemStreams.FirstRealStream,
-				valueInterval: LogV3SystemStreams.StreamInterval,
-				existenceFilter: existenceFilter,
-				persistence: persistence,
-				metastreams: metastreams,
-				recordTypeToHandle: typeof(LogV3StreamRecord));
-
-		static INameIndexPersistence<LogV3StreamId> GenStreamNameIndexPersistence(LogFormatAbstractorOptions options) {
-			var persistence = new FASTERNameIndexPersistence(
-				indexName: "StreamNameIndexPersistence",
-				logDir: $"{options.IndexDirectory}/stream-name-index",
-				firstValue: LogV3SystemStreams.FirstRealStream,
-				valueInterval: LogV3SystemStreams.StreamInterval,
-				initialReaderCount: options.InitialReaderCount,
-				maxReaderCount: options.MaxReaderCount,
-				enableReadCache: true,
-				checkpointInterval: TimeSpan.FromSeconds(60));
-			return persistence;
-		}
-
-		public static INameExistenceFilter GenStreamExistenceFilter(LogFormatAbstractorOptions options) {
-			if (options.StreamExistenceFilterSize == 0) {
-				return new NoNameExistenceFilter();
-			}
-
-			var nameExistenceFilter = new StreamExistenceFilter(
-				directory: $"{options.IndexDirectory}/{ESConsts.StreamExistenceFilterDirectoryName}",
-				filterName: "streamExistenceFilter",
-				size: options.StreamExistenceFilterSize,
-				checkpoint: options.StreamExistenceFilterCheckpoint,
-				checkpointInterval: options.StreamExistenceFilterCheckpointInterval,
-				checkpointDelay: options.StreamExistenceFilterCheckpointDelay,
-				hasher: null)
-			.Wrap(x => new StreamExistenceFilterValidator(x));
-
-			return nameExistenceFilter;
-		}
-
-		static INameIndexPersistence<LogV3StreamId> GenEventTypeIndexPersistence(LogFormatAbstractorOptions options) {
-			var persistence = new FASTERNameIndexPersistence(
-				indexName: "EventTypeIndexPersistence",
-				logDir: $"{options.IndexDirectory}/event-type-index",
-				firstValue: LogV3SystemEventTypes.FirstRealEventTypeNumber,
-				valueInterval: LogV3SystemEventTypes.EventTypeInterval,
-				initialReaderCount: options.InitialReaderCount,
-				maxReaderCount: options.MaxReaderCount,
-				enableReadCache: true,
-				checkpointInterval: TimeSpan.FromSeconds(60));
-			return persistence;
-		}
-
-		static NameIndex GenEventTypeIndex(INameIndexPersistence<LogV3StreamId> persistence) =>
-			new NameIndex(
-				indexName: "EventTypeIndex",
-				firstValue: LogV3SystemEventTypes.FirstRealEventTypeNumber,
-				valueInterval: LogV3SystemEventTypes.EventTypeInterval,
-				existenceFilter: new NoNameExistenceFilter(),
-				persistence: persistence,
-				metastreams: null,
-				recordTypeToHandle: typeof(LogV3EventTypeRecord));
 	}
 
 	public class LogFormatAbstractor<TStreamId> : IDisposable {

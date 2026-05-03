@@ -13,7 +13,6 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private MiniNode<TLogFormat, TStreamId> _node;

@@ -9,7 +9,6 @@ using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.LogAbstraction;
-using EventStore.Core.LogV3;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
@@ -25,7 +24,6 @@ using NUnit.Framework.Internal;
 namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	WhenHavingAnEpochManagerAndEmptyTfLog<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
@@ -182,12 +180,10 @@ public class
 				}
 			}
 
-			var expectedStreamId = LogFormatHelper<TLogFormat, TStreamId>.Choose<TStreamId>(
-				SystemStreams.EpochInformationStream,
-				LogV3SystemStreams.EpochInformationStreamNumber);
-			var expectedEventType = LogFormatHelper<TLogFormat, TStreamId>.Choose<TStreamId>(
-				SystemEventTypes.EpochInformation,
-				LogV3SystemEventTypes.EpochInformationNumber);
+			var expectedStreamId = LogFormatHelper<TLogFormat, TStreamId>.ForV2<TStreamId>(
+				SystemStreams.EpochInformationStream);
+			var expectedEventType = LogFormatHelper<TLogFormat, TStreamId>.ForV2<TStreamId>(
+				SystemEventTypes.EpochInformation);
 			Assert.AreEqual(expectedStreamId, epochInfo.EventStreamId);
 			Assert.AreEqual(expectedEventType, epochInfo.EventType);
 			Assert.AreEqual(i - 1, epochInfo.ExpectedVersion);

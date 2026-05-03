@@ -93,7 +93,6 @@ public abstract class
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class WithNoEpochs() : WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(0)
 	{
 		[Test]
@@ -110,7 +109,6 @@ public abstract class
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class WithTwoEpochs() : WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(2)
 	{
 		[Test]
@@ -209,7 +207,6 @@ public abstract class
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class WithCacheSizeMinusThreeEpochs()
 		: WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(CachedEpochCount - 3)
 	{
@@ -229,7 +226,6 @@ public abstract class
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class WithCacheSizeEpochs() : WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(CachedEpochCount)
 	{
 		[Test]
@@ -248,7 +244,6 @@ public abstract class
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class WithCacheSizePlusTwoEpochs()
 		: WhenTruncatingTheEpochCheckpoint<TLogFormat, TStreamId>(CachedEpochCount + 2)
 	{

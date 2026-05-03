@@ -18,7 +18,6 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.PersistentSubscriptionTe
 public class GetInfoTests
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_getting_info_for_persistent_subscription_group_on_stream<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
@@ -114,7 +113,6 @@ public class GetInfoTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_listing_persistent_subscriptions_on_stream<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
@@ -180,7 +178,6 @@ public class GetInfoTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_listing_persistent_subscriptions_on_all_stream<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
@@ -247,7 +244,6 @@ public class GetInfoTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_listing_all_persistent_subscriptions<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
@@ -336,7 +332,6 @@ public class GetInfoTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class
 		when_getting_info_for_persistent_subscription_group_on_all<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>

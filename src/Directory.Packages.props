@@ -48,7 +48,6 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.5.0" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Composite" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.18" />
-    <PackageVersion Include="Microsoft.FASTER.Core" Version="1.9.16" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Microsoft.Net.Http.Headers" Version="8.0.18" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

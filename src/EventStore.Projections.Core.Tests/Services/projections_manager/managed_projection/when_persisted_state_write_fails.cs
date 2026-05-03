@@ -18,11 +18,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.CommitTimeout)]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), OperationResult.CommitTimeout)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.ForwardTimeout)]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), OperationResult.ForwardTimeout)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.PrepareTimeout)]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), OperationResult.PrepareTimeout)]
 public class when_persisted_state_write_fails<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 {
 	private new ITimeProvider _timeProvider;

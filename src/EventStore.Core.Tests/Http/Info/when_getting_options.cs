@@ -8,7 +8,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Http.Info;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_getting_options<TLogFormat, TStreamId> : HttpBehaviorSpecification<TLogFormat, TStreamId>
 {
 	protected override Task Given() => Task.CompletedTask;

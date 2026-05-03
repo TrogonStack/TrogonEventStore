@@ -12,7 +12,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	TfchunkGetActualRawPositionShould<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {

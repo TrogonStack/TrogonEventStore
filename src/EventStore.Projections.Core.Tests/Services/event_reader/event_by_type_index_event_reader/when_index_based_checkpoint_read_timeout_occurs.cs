@@ -17,7 +17,6 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 
 [Category("test")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_index_based_checkpoint_read_timeout_occurs<TLogFormat, TStreamId> : EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId>
 {
 	private EventByTypeIndexEventReader _eventReader;

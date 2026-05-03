@@ -11,7 +11,6 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "No such thing as a V0 prepare in LogV3")]
 public class
 	when_stream_is_softdeleted_with_mixed_log_record_version_0_and_version_1<TLogFormat, TStreamId> :
 	ScavengeTestScenario<

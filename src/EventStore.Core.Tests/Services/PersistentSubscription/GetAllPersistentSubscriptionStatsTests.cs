@@ -24,7 +24,6 @@ using StreamMetadata = EventStore.Core.Data.StreamMetadata;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 	private PersistentSubscriptionService<TStreamId> _sut;
 	private FakeStorage _storage;

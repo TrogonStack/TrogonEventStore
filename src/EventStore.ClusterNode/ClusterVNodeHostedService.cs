@@ -44,12 +44,8 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 	public ClusterVNodeOptions Options => _options;
 	public ClusterVNode Node { get; }
 	public IReadOnlyList<NodeSubsystems> EnabledNodeSubsystems { get; private set; } = Array.Empty<NodeSubsystems>();
-	public bool SupportsScavenge =>
-		_options.Database.DbLogFormat == DbLogFormat.V2;
-	public string ScavengeSupportMessage =>
-		SupportsScavenge
-			? ""
-			: "Scavenge is not yet supported on Log V3.";
+	public bool SupportsScavenge => true;
+	public string ScavengeSupportMessage => "";
 
 	public ClusterVNodeHostedService(
 		ClusterVNodeOptions options,
@@ -112,26 +108,14 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			: _options.Auth.AuthenticationConfig;
 
 		(_options, var authProviderFactory) = GetAuthorizationProviderFactory();
-		if (_options.Database.DbLogFormat == DbLogFormat.V2)
-		{
-			var logFormatFactory = new LogV2FormatAbstractorFactory();
-			Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
-				authProviderFactory,
-				GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
-				configuration);
-		}
-		else if (_options.Database.DbLogFormat == DbLogFormat.ExperimentalV3)
-		{
-			var logFormatFactory = new LogV3FormatAbstractorFactory();
-			Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
-				authProviderFactory,
-				GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
-				configuration);
-		}
-		else
-		{
+		if (_options.Database.DbLogFormat != DbLogFormat.V2)
 			throw new ArgumentOutOfRangeException(nameof(_options.Database.DbLogFormat), "Unexpected log format specified.");
-		}
+
+		var logFormatFactory = new LogV2FormatAbstractorFactory();
+		Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
+			authProviderFactory,
+			GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
+			configuration);
 
 		EnabledNodeSubsystems = projectionMode >= ProjectionType.System
 			? new[] { NodeSubsystems.Projections }

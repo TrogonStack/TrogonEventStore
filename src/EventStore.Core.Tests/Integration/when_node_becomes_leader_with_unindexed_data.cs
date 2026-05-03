@@ -24,7 +24,6 @@ namespace EventStore.Core.Tests.Integration;
 
 [Explicit]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
 	private const string FakeHostAdvertiseAs = "192.168.123.123";

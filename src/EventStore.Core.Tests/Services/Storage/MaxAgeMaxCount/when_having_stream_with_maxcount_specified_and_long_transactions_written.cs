@@ -10,7 +10,6 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint), Ignore = "Explicit transactions are not supported yet by Log V3")]
 public class
 	WhenHavingStreamWithMaxcountSpecifiedAndLongTransactionsWritten<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat, TStreamId>

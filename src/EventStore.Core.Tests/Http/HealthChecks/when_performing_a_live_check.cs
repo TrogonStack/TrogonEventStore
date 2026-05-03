@@ -12,7 +12,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Http.HealthChecks;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_performing_a_live_check<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);

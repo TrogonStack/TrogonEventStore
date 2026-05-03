@@ -58,10 +58,6 @@ public abstract class race_conditions_when_successive_writes_are_quick
 	[TestFixture(typeof(LogFormat.V2), typeof(string), true, false)]
 	[TestFixture(typeof(LogFormat.V2), typeof(string), false, true)]
 	[TestFixture(typeof(LogFormat.V2), typeof(string), false, false)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), true, true)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), true, false)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), false, true)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), false, false)]
 	public class create_create_race_condition<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 
@@ -135,8 +131,6 @@ public abstract class race_conditions_when_successive_writes_are_quick
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string), true)]
 	[TestFixture(typeof(LogFormat.V2), typeof(string), false)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), true)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), false)]
 	public class create_delete_race_condition<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		private readonly bool shouldBatchCreate;
@@ -238,8 +232,6 @@ public abstract class race_conditions_when_successive_writes_are_quick
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string), true)]
 	[TestFixture(typeof(LogFormat.V2), typeof(string), false)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), true)]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint), false)]
 	public class delete_create_race_condition<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		private readonly bool shouldBatchCreate;
@@ -341,7 +333,6 @@ public abstract class race_conditions_when_successive_writes_are_quick
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class delete_delete_race_condition<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		protected override void Given()

@@ -1285,8 +1285,8 @@ public class ClusterVNode<TStreamId> :
 				restLoggingThreshold: TimeSpan.FromMilliseconds(10_000),
 				activePercent: message.ThrottlePercent ?? 100);
 
-			if (logFormat is not LogFormatAbstractor<string> logFormatV2)
-				throw new NotSupportedException("Scavenge is not yet supported on Log V3");
+			if (logFormat is not LogFormatAbstractor<string>)
+				throw new NotSupportedException("Scavenge requires the string stream id log format.");
 
 			var cancellationCheckPeriod = 1024;
 

@@ -98,7 +98,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_adding_an_event_type<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()
@@ -141,7 +140,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_replacing_an_event_type<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()
@@ -185,7 +183,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_replacing_any_with_an_event_type<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()
@@ -227,7 +224,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_replacing_specific_event_types_with_any<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()
@@ -269,7 +265,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_replacing_stream_with_multiple_streams<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()
@@ -310,7 +305,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_replacing_multiple_streams_with_one_of_them<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()
@@ -349,7 +343,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system.updating
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_replacing_a_stream_in_multiple_streams<TLogFormat, TStreamId> : with_updated_projection<TLogFormat, TStreamId>
 		{
 			protected override string GivenOriginalSource()

@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_scavenge_from_chunk_number<TLogFormat, TStreamId> : ScavengeLifeCycleScenario<TLogFormat, TStreamId>
 {
 	protected override Task When()

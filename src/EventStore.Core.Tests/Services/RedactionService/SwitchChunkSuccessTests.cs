@@ -12,7 +12,6 @@ namespace EventStore.Core.Tests.Services.RedactionService;
 public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFormat, TStreamId>
 {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class CanSwitchWithExactCopy : SwitchChunkSuccess<TLogFormat, TStreamId>
 	{
 		[Test]
@@ -43,7 +42,6 @@ public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFo
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class CanSwitchWithModifiedCopy : SwitchChunkSuccess<TLogFormat, TStreamId>
 	{
 		[Test]

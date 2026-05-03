@@ -10,7 +10,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
 {

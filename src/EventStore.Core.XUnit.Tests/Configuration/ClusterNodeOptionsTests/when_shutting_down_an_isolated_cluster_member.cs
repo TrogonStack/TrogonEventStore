@@ -19,7 +19,6 @@ using NUnit.Framework;
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId> : SpecificationWithDirectory
 {
 	[Test]

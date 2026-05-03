@@ -22,7 +22,6 @@ namespace EventStore.Projections.Core.Tests.ClientAPI
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_creating<TLogFormat, TStreamId> : with_existing_events<TLogFormat, TStreamId>
 		{
 			protected override async Task When()
@@ -51,7 +50,6 @@ function count(s,e) {
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class when_posting_more_events<TLogFormat, TStreamId> : with_existing_events<TLogFormat, TStreamId>
 		{
 			protected override async Task When()

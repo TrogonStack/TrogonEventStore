@@ -12,7 +12,6 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("LongRunning"), Category("ClientAPI")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class connect_to_non_existing_persistent_subscription_with_permissions_async<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
 {
 	private Exception _innerEx;
@@ -39,7 +38,6 @@ public class connect_to_non_existing_persistent_subscription_with_permissions_as
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class connect_to_existing_persistent_subscription_with_permissions_async<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
 {
 	private EventStorePersistentSubscriptionBase _sub;
@@ -72,7 +70,6 @@ public class connect_to_existing_persistent_subscription_with_permissions_async<
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class connect_to_existing_persistent_subscription_without_permissions_async<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
 {
 	private readonly string _stream = "$" + Guid.NewGuid();
@@ -107,7 +104,6 @@ public class connect_to_existing_persistent_subscription_without_permissions_asy
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class connect_to_existing_persistent_subscription_with_max_one_client_async<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
 {
 	private readonly string _stream = "$" + Guid.NewGuid();
@@ -171,7 +167,6 @@ public class connect_to_existing_persistent_subscription_with_max_one_client_asy
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	connect_to_existing_persistent_subscription_with_start_from_beginning_and_no_stream_async<TLogFormat, TStreamId> :
 		SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -229,7 +224,6 @@ public class
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	connect_to_existing_persistent_subscription_with_start_from_two_and_no_stream_async<TLogFormat, TStreamId> :
 		SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -290,7 +284,6 @@ public class
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	connect_to_existing_persistent_subscription_with_start_from_beginning_and_events_in_it_async<TLogFormat, TStreamId> :
 		SpecificationWithMiniNode<TLogFormat, TStreamId>
@@ -358,7 +351,6 @@ public class
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class
 	connect_to_existing_persistent_subscription_with_start_from_beginning_not_set_and_events_in_it_async<TLogFormat, TStreamId> :
 		SpecificationWithMiniNode<TLogFormat, TStreamId>

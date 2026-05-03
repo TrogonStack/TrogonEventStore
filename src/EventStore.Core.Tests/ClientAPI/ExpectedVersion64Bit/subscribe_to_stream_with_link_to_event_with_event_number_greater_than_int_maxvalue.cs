@@ -10,7 +10,6 @@ using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
 namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 [Category("ClientAPI"), Category("LongRunning")]
 public class
 	SubscribeToStreamWithLinkToEventWithEventNumberGreaterThanIntMaxvalue<TLogFormat, TStreamId> :

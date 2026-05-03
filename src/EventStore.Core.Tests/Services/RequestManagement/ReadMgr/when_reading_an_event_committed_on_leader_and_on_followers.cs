@@ -13,7 +13,6 @@ namespace EventStore.Core.Tests.Services.RequestManagement.ReadMgr;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_reading_an_event_committed_on_leader_and_on_followers<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
 	private CountdownEvent _expectedNumberOfRoleAssignments;

@@ -38,7 +38,6 @@ public class a_failed_projection
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_updating_query<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		protected override IEnumerable<WhenStep> When()
@@ -80,7 +79,6 @@ public class a_failed_projection
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_stopping<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		protected override IEnumerable<WhenStep> When()
@@ -127,7 +125,6 @@ public class a_failed_projection
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 	public class when_starting<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
 	{
 		protected override IEnumerable<WhenStep> When()

@@ -13,7 +13,6 @@ namespace EventStore.Core.Tests.Services.RedactionService;
 
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId>
 {
 	private const string StreamId = nameof(EventPositionTests<TLogFormat, TStreamId>);

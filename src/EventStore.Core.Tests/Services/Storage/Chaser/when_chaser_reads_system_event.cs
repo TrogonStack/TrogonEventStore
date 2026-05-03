@@ -7,7 +7,6 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.Chaser;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class WhenChaserReadsSystemEvent<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId>
 {
 	private Guid _epochId;

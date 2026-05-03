@@ -14,7 +14,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
 	{
 		[Ignore("Persistent projections are admin only")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class Authenticated<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 		{
 			private string _projectionName;
@@ -76,7 +75,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class Anonymous<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 		{
 			private string _projectionName;
@@ -156,7 +154,6 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
 
 		[Ignore("Persistent projections are admin only")]
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 		public class as_another_user<TLogFormat, TStreamId> : with_runas_projection<TLogFormat, TStreamId>
 		{
 			protected override IEnumerable<WhenStep> When()

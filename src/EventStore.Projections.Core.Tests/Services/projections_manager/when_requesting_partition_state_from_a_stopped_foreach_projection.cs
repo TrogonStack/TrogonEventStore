@@ -11,7 +11,6 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-[TestFixture(typeof(LogFormat.V3), typeof(uint))]
 public class when_requesting_partition_state_from_a_stopped_foreach_projection<TLogFormat, TStreamId> :
 	TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 {
