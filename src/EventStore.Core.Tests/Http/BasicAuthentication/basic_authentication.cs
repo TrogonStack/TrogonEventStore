@@ -119,8 +119,7 @@ namespace EventStore.Core.Tests.Http.BasicAuthentication
 				var response = await MakeJsonPost(
 					"/users/", new { LoginName = "test1", FullName = "User Full Name", Password = "Pa55w0rd!" }, _admin);
 				Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
-				response = await MakePost("/users/test1/command/disable", _admin);
-				Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+				await DisableUser("test1", _admin);
 			}
 
 			protected override async Task When()

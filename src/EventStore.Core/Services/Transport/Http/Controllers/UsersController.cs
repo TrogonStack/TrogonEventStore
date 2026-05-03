@@ -28,8 +28,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			Register(service, "/users", HttpMethod.Post, PostUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Create));
 			Register(service, "/users/", HttpMethod.Post, PostUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Create));
 			Register(service, "/users/{login}", HttpMethod.Put, PutUser, DefaultCodecs, DefaultCodecs, new Operation(Operations.Users.Update));
-			RegisterUrlBased(service, "/users/{login}/command/enable", HttpMethod.Post, new Operation(Operations.Users.Enable), PostCommandEnable);
-			RegisterUrlBased(service, "/users/{login}/command/disable", HttpMethod.Post, new Operation(Operations.Users.Disable), PostCommandDisable);
 		}
 
 		private void GetUsers(HttpEntityManager http, UriTemplateMatch match) {
@@ -103,24 +101,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 						new UserManagementMessage.Update(envelope, http.User, login, data.FullName, data.Groups);
 					Publish(message);
 				}, x => Log.Debug(x, "Reply Text Content Failed."));
-		}
-
-		private void PostCommandEnable(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-			var login = match.BoundVariables["login"];
-			var message = new UserManagementMessage.Enable(envelope, http.User, login);
-			Publish(message);
-		}
-
-		private void PostCommandDisable(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = CreateReplyEnvelope<UserManagementMessage.UpdateResult>(http);
-			var login = match.BoundVariables["login"];
-			var message = new UserManagementMessage.Disable(envelope, http.User, login);
-			Publish(message);
 		}
 
 		private SendToHttpEnvelope<T> CreateReplyEnvelope<T>(
