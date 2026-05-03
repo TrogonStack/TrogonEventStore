@@ -57,6 +57,30 @@ public class DetailsTests {
 		}
 	}
 
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_reading_all_users<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private UsersClient _client;
+		private DetailsResp[] _details;
+
+		protected override async Task Given() {
+			_client = new UsersClient(Channel);
+			await _client.CreateAsync(CreateRequest("details-list-test-user-1"), GetCallOptions(AdminCredentials));
+			await _client.CreateAsync(CreateRequest("details-list-test-user-2"), GetCallOptions(AdminCredentials));
+		}
+
+		protected override async Task When() {
+			using var call = _client.Details(new DetailsReq(), GetCallOptions(AdminCredentials));
+			_details = await call.ResponseStream.ReadAllAsync().ToArrayAsync();
+		}
+
+		[Test]
+		public void streams_the_user_list() {
+			var loginNames = _details.Select(x => x.UserDetails.LoginName).ToArray();
+			CollectionAssert.Contains(loginNames, "details-list-test-user-1");
+			CollectionAssert.Contains(loginNames, "details-list-test-user-2");
+		}
+	}
+
 	private static CreateReq CreateRequest(string loginName) =>
 		new() {
 			Options = new CreateReq.Types.Options {
