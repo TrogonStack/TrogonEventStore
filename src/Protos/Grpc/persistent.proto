@@ -227,7 +227,7 @@ message UpdateReq {
 		int32 live_buffer_size = 10;
 		int32 read_batch_size = 11;
 		int32 history_buffer_size = 12;
-		ConsumerStrategy named_consumer_strategy = 13;
+		ConsumerStrategy named_consumer_strategy = 13 [deprecated = true];
 		oneof message_timeout {
 			int64 message_timeout_ticks = 4;
 			int32 message_timeout_ms = 14;
@@ -236,6 +236,7 @@ message UpdateReq {
 			int64 checkpoint_after_ticks = 6;
 			int32 checkpoint_after_ms = 15;
 		}
+		string consumer_strategy = 16;
 	}
 
 	enum ConsumerStrategy {
