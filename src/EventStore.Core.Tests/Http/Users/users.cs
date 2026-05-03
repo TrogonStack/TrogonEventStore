@@ -102,15 +102,10 @@ namespace EventStore.Core.Tests.Http.Users
 								Disabled = false,
 								Password___ = false,
 								Links = new[] {
-									new {
-										Href = "http://" + _node.HttpEndPoint +
-											   "/users/test1/command/reset-password",
-										Rel = "reset-password"
-									},
-									new {
-										Href = "http://" + _node.HttpEndPoint +
-											   "/users/test1/command/change-password",
-										Rel = "change-password"
+										new {
+											Href = "http://" + _node.HttpEndPoint +
+												   "/users/test1/command/reset-password",
+											Rel = "reset-password"
 									},
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test1",
@@ -174,15 +169,10 @@ namespace EventStore.Core.Tests.Http.Users
 							new
 							{
 								Links = new[] {
-									new {
-										Href = "http://" + _node.HttpEndPoint +
-											   "/users/test2/command/reset-password",
-										Rel = "reset-password"
-									},
-									new {
-										Href = "http://" + _node.HttpEndPoint +
-											   "/users/test2/command/change-password",
-										Rel = "change-password"
+										new {
+											Href = "http://" + _node.HttpEndPoint +
+												   "/users/test2/command/reset-password",
+											Rel = "reset-password"
 									},
 									new {
 										Href = "http://" + _node.HttpEndPoint + "/users/test2",
@@ -378,13 +368,10 @@ namespace EventStore.Core.Tests.Http.Users
 			}
 
 			[Test]
-			public async Task can_change_password_using_the_new_password()
+			public async Task can_authenticate_using_the_new_password()
 			{
-				var response = await MakeJsonPost(
-					"/users/test1/command/change-password",
-					new { CurrentPassword = "NewPassword!", NewPassword = "TheVeryNewPassword!" },
-					new NetworkCredential("test1", "NewPassword!"));
-				Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+				await GetJson<JObject>("/test1", credentials: new NetworkCredential("test1", "NewPassword!"));
+				Assert.AreNotEqual(HttpStatusCode.Unauthorized, _lastResponse.StatusCode);
 			}
 		}
 
