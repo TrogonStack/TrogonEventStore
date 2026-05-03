@@ -25,6 +25,17 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				throw RpcExceptions.AccessDenied();
 			}
 
+			ValidateUpdateSettings(settings);
+
+			string consumerStrategy;
+			if (string.IsNullOrEmpty(settings.ConsumerStrategy)) { /*for backwards compatibility*/
+				#pragma warning disable 612
+				consumerStrategy = settings.NamedConsumerStrategy.ToString();
+				#pragma warning restore 612
+			} else {
+				consumerStrategy = settings.ConsumerStrategy;
+			}
+
 			string streamId = null;
 
 			switch (request.Options.StreamOptionCase)
@@ -77,7 +88,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 						settings.MinCheckpointCount,
 						settings.MaxCheckpointCount,
 						settings.MaxSubscriberCount,
-						settings.NamedConsumerStrategy.ToString(),
+						consumerStrategy,
 						user));
 					break;
 				}
@@ -123,7 +134,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 						settings.MinCheckpointCount,
 						settings.MaxCheckpointCount,
 						settings.MaxSubscriberCount,
-						settings.NamedConsumerStrategy.ToString(),
+						consumerStrategy,
 						user));
 					break;
 				default:
@@ -201,6 +212,24 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					updatePersistentSubscriptionSource.TrySetException(
 						RpcExceptions.UnknownMessage<ClientMessage.UpdatePersistentSubscriptionToAllCompleted>(message));
 				}
+			}
+
+			static void ValidateUpdateSettings(UpdateReq.Types.Settings settings) {
+				if (settings is null)
+					throw RpcExceptions.InvalidArgument("Subscription settings are required.");
+
+				if (settings.HistoryBufferSize <= 0)
+					throw RpcExceptions.InvalidArgument($"Buffer Size ({settings.HistoryBufferSize}) must be positive");
+
+				if (settings.LiveBufferSize <= 0)
+					throw RpcExceptions.InvalidArgument($"Live Buffer Size ({settings.LiveBufferSize}) must be positive");
+
+				if (settings.ReadBatchSize <= 0)
+					throw RpcExceptions.InvalidArgument($"Read Batch Size ({settings.ReadBatchSize}) must be positive");
+
+				if (settings.HistoryBufferSize <= settings.ReadBatchSize)
+					throw RpcExceptions.InvalidArgument(
+						$"BufferSize ({settings.HistoryBufferSize}) must be larger than ReadBatchSize ({settings.ReadBatchSize})");
 			}
 		}
 	}
