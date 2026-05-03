@@ -175,17 +175,12 @@ namespace EventStore.Core.Messages {
 			public readonly string[] Groups;
 			public readonly DateTimeOffset? DateLastUpdated;
 			public readonly bool Disabled;
-			public readonly List<RelLink> Links;
 
-			public UserDataHttpFormated(UserData userData, Func<string, string> makeAbsoluteUrl) {
+			public UserDataHttpFormated(UserData userData) {
 				LoginName = userData.LoginName;
 				FullName = userData.FullName;
 				Groups = userData.Groups;
 				Disabled = userData.Disabled;
-
-				Links = new List<RelLink>();
-				var userLocalUrl = "/users/" + userData.LoginName;
-				Links.Add(new RelLink(makeAbsoluteUrl(userLocalUrl), "edit"));
 			}
 		}
 
@@ -194,10 +189,10 @@ namespace EventStore.Core.Messages {
 		public partial class UserDetailsResultHttpFormatted : ResponseMessage {
 			public readonly UserDataHttpFormated Data;
 
-			public UserDetailsResultHttpFormatted(UserDetailsResult msg, Func<string, string> makeAbsoluteUrl) :
+			public UserDetailsResultHttpFormatted(UserDetailsResult msg) :
 				base(msg.Success, msg.Error) {
 				if (msg.Data != null)
-					Data = new UserDataHttpFormated(msg.Data, makeAbsoluteUrl);
+					Data = new UserDataHttpFormated(msg.Data);
 			}
 		}
 
@@ -205,9 +200,9 @@ namespace EventStore.Core.Messages {
 		public partial class AllUserDetailsResultHttpFormatted : ResponseMessage {
 			public readonly UserDataHttpFormated[] Data;
 
-			public AllUserDetailsResultHttpFormatted(AllUserDetailsResult msg, Func<string, string> makeAbsoluteUrl) :
+			public AllUserDetailsResultHttpFormatted(AllUserDetailsResult msg) :
 				base(msg.Success, msg.Error) {
-				Data = msg.Data.Select(user => new UserDataHttpFormated(user, makeAbsoluteUrl)).ToArray();
+				Data = msg.Data.Select(user => new UserDataHttpFormated(user)).ToArray();
 			}
 		}
 
