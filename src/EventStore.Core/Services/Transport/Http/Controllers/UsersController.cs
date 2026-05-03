@@ -30,7 +30,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 			var envelope = CreateSendToHttpWithConversionEnvelope(http,
 				(UserManagementMessage.AllUserDetailsResult msg) =>
-					new UserManagementMessage.AllUserDetailsResultHttpFormatted(msg, s => MakeUrl(http, s)));
+					new UserManagementMessage.AllUserDetailsResultHttpFormatted(msg));
 
 			var message = new UserManagementMessage.GetAll(envelope, http.User);
 			Publish(message);
@@ -42,7 +42,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 			var envelope = CreateSendToHttpWithConversionEnvelope(http,
 				(UserManagementMessage.UserDetailsResult msg) =>
-					new UserManagementMessage.UserDetailsResultHttpFormatted(msg, s => MakeUrl(http, s)));
+					new UserManagementMessage.UserDetailsResultHttpFormatted(msg));
 
 			var login = match.BoundVariables["login"];
 			var message = new UserManagementMessage.Get(envelope, http.User, login);

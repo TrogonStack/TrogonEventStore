@@ -122,13 +122,7 @@ namespace EventStore.Core.Tests.Http.Users
 								FullName = "User Full Name",
 								Groups = new[] { "admin", "other" },
 								Disabled = false,
-								Password___ = false,
-								Links = new[] {
-									new {
-										Href = "http://" + _node.HttpEndPoint + "/users/test1",
-										Rel = "edit"
-									}
-								}
+								Password___ = false
 							}
 					}, _response);
 			}
@@ -168,12 +162,7 @@ namespace EventStore.Core.Tests.Http.Users
 						Data =
 							new
 							{
-								Links = new[] {
-									new {
-										Href = "http://" + _node.HttpEndPoint + "/users/test2",
-										Rel = "edit"
-									}
-								}
+								Disabled = true
 							}
 					}, _response);
 			}
