@@ -41,78 +41,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}", HttpMethod.Delete, new Operation(Operations.Subscriptions.Delete), DeleteSubscription);
 			Register(service, "/subscriptions/{stream}/{subscription}/info", HttpMethod.Get, GetSubscriptionInfo,
 				Codec.NoCodecs, DefaultCodecs, new Operation(Operations.Subscriptions.Statistics));
-			RegisterUrlBased(service, "/subscriptions/{stream}/{subscription}/replayParked?stopAt={stopAt}", HttpMethod.Post,
-				WithParameters(Operations.Subscriptions.ReplayParked), ReplayParkedMessages);
-		}
-
-		static Func<UriTemplateMatch, Operation> WithParameters(OperationDefinition definition) {
-			return match => {
-				var operation = new Operation(definition);
-				var stream = match.BoundVariables["stream"];
-				if(!string.IsNullOrEmpty(stream))
-					operation = operation.WithParameter(Operations.Subscriptions.Parameters.StreamId(stream));
-				var subscription = match.BoundVariables["subscription"];
-				if (!string.IsNullOrEmpty(subscription))
-					operation = operation.WithParameter(
-						Operations.Subscriptions.Parameters.SubscriptionId(subscription));
-				return operation;
-			};
-		}
-
-		private void ReplayParkedMessages(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-			var envelope = new SendToHttpEnvelope(
-				_networkSendQueue, http,
-				(args, message) => http.ResponseCodec.To(message),
-				(args, message) => {
-					int code;
-					if (message is ClientMessage.NotHandled notHandled)
-						return Configure.HandleNotHandled(args.RequestedUrl, notHandled);
-
-					var m = message as ClientMessage.ReplayMessagesReceived;
-					if (m == null) throw new Exception("unexpected message " + message);
-					switch (m.Result) {
-						case ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.Success:
-							code = HttpStatusCode.OK;
-							break;
-						case ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.DoesNotExist:
-							code = HttpStatusCode.NotFound;
-							break;
-						case ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.AccessDenied:
-							code = HttpStatusCode.Unauthorized;
-							break;
-						default:
-							code = HttpStatusCode.InternalServerError;
-							break;
-					}
-
-					return new ResponseConfiguration(code, http.ResponseCodec.ContentType,
-						http.ResponseCodec.Encoding);
-				});
-			var groupname = match.BoundVariables["subscription"];
-			var stream = match.BoundVariables["stream"];
-			var stopAtStr = match.BoundVariables["stopAt"];
-			
-			long? stopAt;
-			// if stopAt is declared...
-			if (stopAtStr != null) {
-				// check it is valid
-				if (!long.TryParse(stopAtStr, out var stopAtLong) || stopAtLong < 0) {
-					http.ReplyStatus(HttpStatusCode.BadRequest, "stopAt should be a properly formed positive long",
-						exception => { });
-					return;
-				}
-
-				stopAt = stopAtLong;
-			} else {
-				// else it's null
-				stopAt = null;
-			}
-
-			var cmd = new ClientMessage.ReplayParkedMessages(Guid.NewGuid(), Guid.NewGuid(), envelope, stream,
-				groupname, stopAt, http.User);
-			Publish(cmd);
 		}
 
 		private void PutSubscription(HttpEntityManager http, UriTemplateMatch match) {
@@ -458,25 +386,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			Publish(cmd);
 		}
 		
-		private IEnvelope CreateErrorEnvelope(HttpEntityManager http) {
-			return new SendToHttpEnvelope<SubscriptionMessage.InvalidPersistentSubscriptionsRestart>(
-				_networkSendQueue,
-				http,
-				ErrorFormatter,
-				ErrorConfigurator,
-				null);
-		}
-
-		private ResponseConfiguration ErrorConfigurator(ICodec codec, SubscriptionMessage.InvalidPersistentSubscriptionsRestart message) {
-			return new ResponseConfiguration(HttpStatusCode.BadRequest, "Bad Request", "text/plain",
-				Helper.UTF8NoBom);
-		}
-
-		private string ErrorFormatter(ICodec codec, SubscriptionMessage.InvalidPersistentSubscriptionsRestart message) {
-			return message.Reason;
-		}
-
-
 		private static ResponseConfiguration StatsConfiguration(HttpResponseConfiguratorArgs http, Message message) {
 			int code;
 			if (message is ClientMessage.NotHandled notHandled)
@@ -516,11 +425,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 						new RelLink(
 							MakeUrl(manager,
 								string.Format("/subscriptions/{0}/{1}/info", escapedStreamId, escapedGroupName)),
-							"detail"),
-						new RelLink(
-							MakeUrl(manager,
-								string.Format("/subscriptions/{0}/{1}/replayParked", escapedStreamId,
-									escapedGroupName)), "replayParked")
+							"detail")
 					},
 					EventStreamId = stat.EventSource,
 					GroupName = stat.GroupName,
