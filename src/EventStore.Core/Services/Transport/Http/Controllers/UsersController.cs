@@ -18,21 +18,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		}
 
 		protected override void SubscribeCore(IHttpService service) {
-			RegisterUrlBased(service, "/users", HttpMethod.Get, new Operation(Operations.Users.List), GetUsers);
-			RegisterUrlBased(service, "/users/", HttpMethod.Get, new Operation(Operations.Users.List), GetUsers);
 			RegisterUrlBased(service, "/users/$current", HttpMethod.Get, new Operation(Operations.Users.CurrentUser), GetCurrentUser);
-		}
-
-		private void GetUsers(HttpEntityManager http, UriTemplateMatch match) {
-			if (_httpForwarder.ForwardRequest(http))
-				return;
-
-			var envelope = CreateSendToHttpWithConversionEnvelope(http,
-				(UserManagementMessage.AllUserDetailsResult msg) =>
-					new UserManagementMessage.AllUserDetailsResultHttpFormatted(msg));
-
-			var message = new UserManagementMessage.GetAll(envelope, http.User);
-			Publish(message);
 		}
 
 		private void GetCurrentUser(HttpEntityManager http, UriTemplateMatch match) {
@@ -55,20 +41,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			where T : UserManagementMessage.ResponseMessage {
 			return new SendToHttpEnvelope<T>(
 				_networkSendQueue, http, formatter ?? AutoFormatter, configurator ?? AutoConfigurator, null);
-		}
-
-		private SendToHttpWithConversionEnvelope<T, R> CreateSendToHttpWithConversionEnvelope<T, R>(
-			HttpEntityManager http, Func<T, R> formatter)
-			where T : UserManagementMessage.ResponseMessage
-			where R : UserManagementMessage.ResponseMessage {
-			return new SendToHttpWithConversionEnvelope<T, R>(_networkSendQueue,
-				http,
-				(codec, msg) => codec.To(msg),
-				(codec, transformed) => transformed.Success
-					? new ResponseConfiguration(HttpStatusCode.OK, codec.ContentType, codec.Encoding)
-					: new ResponseConfiguration(
-						ErrorToHttpStatusCode(transformed.Error), codec.ContentType, codec.Encoding),
-				formatter);
 		}
 
 		private ResponseConfiguration AutoConfigurator<T>(ICodec codec, T result)
