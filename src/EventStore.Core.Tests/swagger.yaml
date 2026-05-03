@@ -113,11 +113,6 @@ paths:
       responses:
         "200":
           description: OK
-  "/subscriptions/{stream}/{subscription}/info":
-    get:
-      responses:
-        "200":
-          description: OK
   /users:
     get:
       responses:

@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using EventStore.Core.Tests.Http.Users.users;
-using EventStore.Transport.Http;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using HttpResponseMessage = System.Net.Http.HttpResponseMessage;
 using HttpStatusCode = System.Net.HttpStatusCode;
@@ -200,7 +198,6 @@ class when_creating_persistent_subscription_with_message_timeout_0<TLogFormat, T
 	protected string SubscriptionPath;
 	protected string GroupName;
 	protected HttpResponseMessage Response;
-	protected JObject SubsciptionInfo;
 
 	protected override Task Given() => Task.CompletedTask;
 
@@ -215,8 +212,6 @@ class when_creating_persistent_subscription_with_message_timeout_0<TLogFormat, T
 				MessageTimeoutMilliseconds = 0
 			},
 			_admin);
-
-		SubsciptionInfo = await GetJson<JObject>(SubscriptionPath + "/info", ContentType.Json);
 	}
 
 	[OneTimeTearDown]
@@ -229,14 +224,6 @@ class when_creating_persistent_subscription_with_message_timeout_0<TLogFormat, T
 	public void returns_created()
 	{
 		Assert.AreEqual(HttpStatusCode.Created, Response.StatusCode);
-
-	}
-
-	[Test]
-	public void timeout_set_to_0()
-	{
-		Assert.AreEqual(0, SubsciptionInfo.Value<JObject>("config").Value<long?>("messageTimeoutMilliseconds"));
-
 	}
 }
 
@@ -247,7 +234,6 @@ class when_creating_persistent_subscription_without_message_timeout<TLogFormat, 
 	protected string SubscriptionPath;
 	protected string GroupName;
 	protected HttpResponseMessage Response;
-	protected JObject SubsciptionInfo;
 
 	protected override Task Given() => Task.CompletedTask;
 	protected override async Task When()
@@ -260,8 +246,6 @@ class when_creating_persistent_subscription_without_message_timeout<TLogFormat, 
 				ResolveLinkTos = true,
 			},
 			_admin);
-
-		SubsciptionInfo = await GetJson<JObject>(SubscriptionPath + "/info", ContentType.Json);
 	}
 
 	[OneTimeTearDown]
@@ -274,13 +258,5 @@ class when_creating_persistent_subscription_without_message_timeout<TLogFormat, 
 	public void returns_created()
 	{
 		Assert.AreEqual(HttpStatusCode.Created, Response.StatusCode);
-
-	}
-
-	[Test]
-	public void timeout_set_to_default_10000()
-	{
-		Assert.AreEqual(10000, SubsciptionInfo.Value<JObject>("config").Value<long?>("messageTimeoutMilliseconds"));
-
 	}
 }
