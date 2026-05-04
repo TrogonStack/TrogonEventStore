@@ -183,6 +183,30 @@ public class AdminTests {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class when_reloading_config_as_ops<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+		private Exception _exception;
+
+		protected override Task Given() => Task.CompletedTask;
+
+		protected override async Task When() {
+			try {
+				await Channel.CreateCallInvoker().AsyncUnaryCall(
+					ReloadConfigMethod,
+					null,
+					GetCallOptions(OpsCredentials),
+					new Empty());
+			} catch (Exception ex) {
+				_exception = ex;
+			}
+		}
+
+		[Test]
+		public void completes() {
+			Assert.IsNull(_exception);
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class when_reloading_config_without_permissions<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private Exception _exception;
 
