@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using EventStore.Client.Users;
 using EventStore.Core.Services;
-using EventStore.Core.Services.Transport.Http.Controllers;
 using Grpc.Core;
 using Grpc.Net.Client;
 using UsersClient = EventStore.Client.Users.Users.UsersClient;

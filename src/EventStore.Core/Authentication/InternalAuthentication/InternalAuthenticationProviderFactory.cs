@@ -1,7 +1,6 @@
 using EventStore.Core.Helpers;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Http.Authentication;
-using EventStore.Core.Services.Transport.Http.Controllers;
 using EventStore.Core.Settings;
 using EventStore.Plugins.Authentication;
 
@@ -30,13 +29,6 @@ public class InternalAuthenticationProviderFactory : IAuthenticationProviderFact
 			bus.Subscribe<ClientMessage.NotHandled>(_dispatcher);
 		}
 
-		var usersController = new UsersController(
-			components.HttpSendService,
-			components.MainQueue,
-			components.WorkersQueue
-		);
-
-		components.HttpService.SetupController(usersController);
 	}
 
 	public IAuthenticationProvider Build(bool logFailedAuthenticationAttempts) {

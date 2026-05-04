@@ -8,6 +8,7 @@ service Users {
 	rpc Delete (DeleteReq) returns (DeleteResp);
 	rpc Disable (DisableReq) returns (DisableResp);
 	rpc Enable (EnableReq) returns (EnableResp);
+	rpc Current (CurrentReq) returns (CurrentResp);
 	rpc Details (DetailsReq) returns (stream DetailsResp);
 	rpc ChangePassword (ChangePasswordReq) returns (ChangePasswordResp);
 	rpc ResetPassword (ResetPasswordReq) returns (ResetPasswordResp);
@@ -71,6 +72,13 @@ message DisableReq {
 }
 
 message DisableResp {
+}
+
+message CurrentReq {
+}
+
+message CurrentResp {
+	DetailsResp.UserDetails user_details = 1;
 }
 
 message DetailsReq {

@@ -30,7 +30,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				options.CurrentPassword,
 				options.NewPassword));
 
-			await changePasswordSource.Task;
+			await changePasswordSource.Task.WaitAsync(context.CancellationToken);
 
 			return new ChangePasswordResp();
 
