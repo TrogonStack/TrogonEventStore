@@ -2702,6 +2702,148 @@
       }
     },
     {
+      "protopath": "Grpc:/:node.proto",
+      "def": {
+        "messages": [
+          {
+            "name": "NodeInfo",
+            "fields": [
+              {
+                "id": 1,
+                "name": "es_version",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "state",
+                "type": "string"
+              },
+              {
+                "id": 4,
+                "name": "authentication",
+                "type": "AuthenticationInfo"
+              }
+            ],
+            "maps": [
+              {
+                "key_type": "string",
+                "field": {
+                  "id": 3,
+                  "name": "features",
+                  "type": "bool"
+                }
+              }
+            ]
+          },
+          {
+            "name": "AuthenticationInfo",
+            "fields": [
+              {
+                "id": 1,
+                "name": "type",
+                "type": "string"
+              }
+            ],
+            "maps": [
+              {
+                "key_type": "string",
+                "field": {
+                  "id": 2,
+                  "name": "properties",
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          {
+            "name": "NodeOptions",
+            "fields": [
+              {
+                "id": 1,
+                "name": "options",
+                "type": "NodeOption",
+                "is_repeated": true
+              }
+            ]
+          },
+          {
+            "name": "NodeOption",
+            "fields": [
+              {
+                "id": 1,
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "description",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "group",
+                "type": "string"
+              },
+              {
+                "id": 4,
+                "name": "value",
+                "type": "string"
+              },
+              {
+                "id": 5,
+                "name": "configuration_source",
+                "type": "string"
+              },
+              {
+                "id": 6,
+                "name": "deprecation_message",
+                "type": "string"
+              },
+              {
+                "id": 7,
+                "name": "schema",
+                "type": "google.protobuf.Struct"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "name": "NodeInformation",
+            "rpcs": [
+              {
+                "name": "Read",
+                "in_type": "event_store.client.Empty",
+                "out_type": "NodeInfo"
+              },
+              {
+                "name": "Options",
+                "in_type": "event_store.client.Empty",
+                "out_type": "NodeOptions"
+              }
+            ]
+          }
+        ],
+        "imports": [
+          {
+            "path": "google/protobuf/struct.proto"
+          },
+          {
+            "path": "shared.proto"
+          }
+        ],
+        "package": {
+          "name": "event_store.client.node"
+        },
+        "options": [
+          {
+            "name": "java_package",
+            "value": "com.eventstore.dbclient.proto.node"
+          }
+        ]
+      }
+    },
+    {
       "protopath": "Grpc:/:operations.proto",
       "def": {
         "enums": [

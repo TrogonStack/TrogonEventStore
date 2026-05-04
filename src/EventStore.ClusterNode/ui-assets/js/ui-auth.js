@@ -93,18 +93,19 @@
 		status.classList.remove("hidden");
 	}
 
+	function readJsonAttribute(element, name) {
+		try {
+			return JSON.parse(element.getAttribute(name) || "{}");
+		} catch (_) {
+			return {};
+		}
+	}
+
 	async function beginOAuthSignIn(button) {
 		try {
-			var infoResponse = await originalFetch("/info?format=json", {
-				headers: { "Accept": "application/json" }
-			});
-			if (!infoResponse.ok)
-				throw new Error("Info endpoint returned " + infoResponse.status + " " + infoResponse.statusText);
-
-			var info = await infoResponse.json();
-			var authentication = info.authentication || info.Authentication || {};
-			var properties = authentication.properties || authentication.Properties || {};
-			if ((authentication.type || authentication.Type || "").toLowerCase() !== "oauth")
+			var providerType = (button.getAttribute("data-ui-oauth-type") || "").toLowerCase();
+			var properties = readJsonAttribute(button, "data-ui-oauth-properties");
+			if (providerType !== "oauth")
 				throw new Error("The configured provider is not an OAuth browser flow.");
 
 			var baseUrl = window.location.protocol + "//" + window.location.host;

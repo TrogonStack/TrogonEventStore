@@ -157,7 +157,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			},
 			PlugableComponents = subsystems,
 			// limitation: the LoadedOptions here will only reflect the defaults and not the rest
-			// of the config specified above. however we only use it for /info/options
+			// of the config specified above. however we only use it for node option metadata
 			LoadedOptions = ClusterVNodeOptions.GetLoadedOptions(new ConfigurationBuilder()
 					.AddEventStoreDefaultValues()
 					.Build()),

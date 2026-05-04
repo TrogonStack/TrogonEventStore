@@ -15,16 +15,6 @@ securityDefinitions:
 schemes:
   - https
 paths:
-  /info:
-    get:
-      responses:
-        "200":
-          description: OK
-  /info/options:
-    get:
-      responses:
-        "200":
-          description: OK
   /metrics:
     get:
       responses:

@@ -47,6 +47,7 @@ public class ServerFeaturesTest
 			_expectedEndPoints.AddRange(GetEndPoints(Client.Users.Users.Descriptor));
 			_expectedEndPoints.AddRange(GetEndPoints(Client.Gossip.Gossip.Descriptor));
 			_expectedEndPoints.AddRange(GetEndPoints(Client.Monitoring.Monitoring.Descriptor));
+			_expectedEndPoints.AddRange(GetEndPoints(Client.Node.NodeInformation.Descriptor));
 			_expectedEndPoints.AddRange(GetEndPoints(Client.Redaction.Redaction.Descriptor));
 			_expectedEndPoints.AddRange(GetEndPoints(ServerFeatures.Descriptor));
 
@@ -93,4 +94,3 @@ public class ServerFeaturesTest
 		}
 	}
 }
-

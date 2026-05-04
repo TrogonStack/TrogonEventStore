@@ -31,6 +31,7 @@ using EventStore.Core.Services.TimerService;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.Services.Transport.Http.Authentication;
 using EventStore.Core.Services.Transport.Http.Controllers;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Tcp;
 using EventStore.Core.Services.VNode;
 using EventStore.Core.Settings;
@@ -1079,7 +1080,7 @@ public class ClusterVNode<TStreamId> :
 		var metricsController = new MetricsController();
 		var gossipController = new GossipController(_mainQueue, _workersHandler,
 			trackers.GossipTrackers.ProcessingRequestFromHttpClient);
-		var infoController = new InfoController(
+		var nodeInformationProvider = new NodeInformationProvider(
 			options,
 			new Dictionary<string, bool>
 			{
@@ -1091,10 +1092,9 @@ public class ClusterVNode<TStreamId> :
 			_authenticationProvider
 		);
 
-		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(infoController);
+		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(nodeInformationProvider);
 
 		_httpService.SetupController(pingController);
-		_httpService.SetupController(infoController);
 		if (!options.Interface.DisableStatsOnHttp)
 		{
 			_httpService.SetupController(statController);
@@ -1721,6 +1721,7 @@ public class ClusterVNode<TStreamId> :
 			_httpService,
 			configuration,
 			trackers,
+			nodeInformationProvider,
 			options.Cluster.DiscoverViaDns ? options.Cluster.ClusterDns : null,
 			ConfigureNodeServices,
 			ConfigureNode);
