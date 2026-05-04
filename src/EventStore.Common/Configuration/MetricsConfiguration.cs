@@ -55,7 +55,6 @@ public class MetricsConfiguration
 		ProcessingPushFromPeer,
 		ProcessingRequestFromPeer,
 		ProcessingRequestFromGrpcClient,
-		ProcessingRequestFromHttpClient,
 	}
 
 	public enum WriterTracker

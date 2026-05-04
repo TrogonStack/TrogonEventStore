@@ -1,7 +1,6 @@
 using System;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
-using EventStore.Core.Cluster;
 
 namespace EventStore.Core.Services.Transport.Http {
 	public static class Format {
@@ -35,16 +34,5 @@ namespace EventStore.Core.Services.Transport.Http {
 			return entity.ResponseCodec.To(completed.ConnectionStats);
 		}
 
-		public static string SendPublicGossip(HttpResponseFormatterArgs entity, Message message) {
-			if (message.GetType() != typeof(GossipMessage.SendClientGossip))
-				throw new Exception(string.Format("Unexpected type of response message: {0}, expected: {1}",
-					message.GetType().Name,
-					typeof(GossipMessage.SendClientGossip).Name));
-
-			var sendPublicGossip = message as GossipMessage.SendClientGossip;
-			return sendPublicGossip != null
-				? entity.ResponseCodec.To(sendPublicGossip.ClusterInfo)
-				: string.Empty;
-		}
 	}
 }

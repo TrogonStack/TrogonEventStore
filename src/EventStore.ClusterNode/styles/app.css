@@ -2,7 +2,6 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 
 @source "../ui-assets/js/admin-operations.js";
-@source "../ui-assets/js/cluster-status.js";
 @source "../ui-assets/js/queue-dashboard.js";
 @source "../ui-assets/js/stream-browser.js";
 @source "../ui-assets/js/ui-auth.js";

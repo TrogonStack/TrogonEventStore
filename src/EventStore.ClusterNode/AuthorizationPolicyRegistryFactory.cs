@@ -45,11 +45,11 @@ public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin
 		// Set up the legacy policy selector factory
 		var allowAnonymousEndpointAccess = options.Application.AllowAnonymousEndpointAccess;
 		var allowAnonymousStreamAccess = options.Application.AllowAnonymousStreamAccess;
-		var overrideAnonymousGossipEndpointAccess = options.Application.OverrideAnonymousEndpointAccessForGossip;
+		var overrideAnonymousGossipReadAccess = options.Application.OverrideAnonymousEndpointAccessForGossip;
 		var legacyPolicyFactory = new LegacyPolicySelectorFactory(
 			allowAnonymousEndpointAccess,
 			allowAnonymousStreamAccess,
-			overrideAnonymousGossipEndpointAccess);
+			overrideAnonymousGossipReadAccess);
 
 		// Check if there is a default policy type. Use this if the settings stream is empty
 		var defaultPolicyType =

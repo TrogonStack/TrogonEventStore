@@ -91,11 +91,12 @@ This is now disabled by default but can be enabled by setting `AllowAnonymousStr
 
 ### Anonymous access to endpoints
 
-Similarly to streams above, anonymous access has historically been available to some http endpoints.
+Similarly to streams above, anonymous access has historically been available to some HTTP endpoints and node
+diagnostic operations.
 
-Anonymous access to `/gossip`, `/stats` and the `HTTP OPTIONS` method can now be configured with the following two options. By default `/gossip` is still accessible anonymously but the others are not. Some clients currently rely on anonymous access to `/gossip`. This will likely change in the future.
+Anonymous access to `/stats`, the `HTTP OPTIONS` method, and the client gossip read operation can now be configured with the following two options. By default the client gossip read operation is still accessible anonymously but the others are not.
 
-The `AllowAnonymousEndpointAccess` option controls anonymous access to these endpoints. Setting `OverrideAnonymousEndpointAccessForGossip` to `true` allows anonymous access to `/gossip` specifically, overriding the other option.
+The `AllowAnonymousEndpointAccess` option controls anonymous access to these endpoints. Setting `OverrideAnonymousEndpointAccessForGossip` to `true` allows anonymous access to the client gossip read operation specifically, overriding the other option.
 
 | Format               | Syntax                                       |
 |:---------------------|:---------------------------------------------|
@@ -574,7 +575,7 @@ You can, however, disable TLS for both internal and external TCP.
 EventStoreDB supports authentication based on usernames and passwords out of the box. The Enterprise version
 also supports LDAP as the authentication source.
 
-Authentication is applied to all HTTP endpoints by default, except `/ping`, `GET /gossip`, static web
+Authentication is applied to all HTTP endpoints by default, except `/ping`, static web
 content, and redirects. Endpoints such as `/stats` require authentication unless anonymous endpoint access is
 explicitly enabled.
 
@@ -593,7 +594,7 @@ except for `$scavenges` and `$scavenges-streams`).
 ### New users
 
 New users created in EventStoreDB are standard non-admin users. They can call endpoints permitted by the
-authorization policy, including the default anonymous endpoints such as `/ping` and `GET /gossip`.
+authorization policy, including default anonymous endpoints such as `/ping`.
 
 Internal cluster endpoints, such as election and gossip updates, are only available to system node traffic.
 
