@@ -20,6 +20,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		private static readonly Operation SetNodePriorityOperation =
 			new Operation(Plugins.Authorization.Operations.Node.SetPriority);
 
+		private static readonly Operation ReloadConfigOperation =
+			new Operation(Plugins.Authorization.Operations.Node.ReloadConfiguration);
+
 		private static readonly Operation RestartPersistentSubscriptionsOperation =
 			new Operation(Plugins.Authorization.Operations.Subscriptions.Restart);
 
@@ -78,6 +81,16 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			}
 
 			_publisher.Publish(new ClientMessage.SetNodePriority(request.Priority));
+			return EmptyResult;
+		}
+
+		public override async Task<Empty> ReloadConfig(Empty request, ServerCallContext context) {
+			var user = context.GetHttpContext().User;
+			if (!await _authorizationProvider.CheckAccessAsync(user, ReloadConfigOperation, context.CancellationToken)) {
+				throw RpcExceptions.AccessDenied();
+			}
+
+			_publisher.Publish(new ClientMessage.ReloadConfig());
 			return EmptyResult;
 		}
 

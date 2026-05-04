@@ -15,11 +15,6 @@ securityDefinitions:
 schemes:
   - https
 paths:
-  /admin/reloadconfig:
-    post:
-      responses:
-        "200":
-          description: OK
   /info:
     get:
       responses:
