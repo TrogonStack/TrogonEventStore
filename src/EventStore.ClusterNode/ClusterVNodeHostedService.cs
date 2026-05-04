@@ -121,7 +121,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			? new[] { NodeSubsystems.Projections }
 			: Array.Empty<NodeSubsystems>();
 
-		RegisterWebControllers(EnabledNodeSubsystems.ToArray());
+		RegisterWebControllers();
 		return;
 
 		(ClusterVNodeOptions, AuthorizationProviderFactory) GetAuthorizationProviderFactory()
@@ -349,12 +349,11 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 		}
 	}
 
-	private void RegisterWebControllers(NodeSubsystems[] enabledNodeSubsystems)
+	private void RegisterWebControllers()
 	{
 		if (!_options.Interface.DisableAdminUi)
 		{
-			Node.HttpService.SetupController(new NodeUiController(Node.MainQueue,
-				enabledNodeSubsystems));
+			Node.HttpService.SetupController(new NodeUiController(Node.MainQueue));
 		}
 	}
 
