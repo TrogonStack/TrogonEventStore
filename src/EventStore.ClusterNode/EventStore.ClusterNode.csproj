@@ -50,7 +50,6 @@
 		<None Update="ui-assets\fonts\**\*" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="ui-assets\css\tailwind.generated.css" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="ui-assets\js\admin-operations.js" CopyToOutputDirectory="PreserveNewest" />
-		<None Update="ui-assets\js\cluster-status.js" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="ui-assets\js\queue-dashboard.js" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="ui-assets\js\stream-browser.js" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="ui-assets\js\ui-auth.js" CopyToOutputDirectory="PreserveNewest" />

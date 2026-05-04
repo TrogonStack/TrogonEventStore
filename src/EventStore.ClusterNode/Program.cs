@@ -296,7 +296,6 @@ internal static class Program
 					hostedService.Node.Startup.Configure(app);
 					if (adminUiEnabled) {
 						app.MapAdminOperationsEndpoints();
-						app.MapClusterStatusEndpoints();
 						app.MapRazorComponents<App>();
 					}
 
