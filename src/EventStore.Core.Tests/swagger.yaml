@@ -144,11 +144,6 @@ paths:
       responses:
         "200":
           description: OK
-  /gossip:
-    get:
-      responses:
-        "200":
-          description: OK
 definitions:
   UserItem:
     type: object

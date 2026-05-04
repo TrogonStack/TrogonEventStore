@@ -56,7 +56,6 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 			"DisableScavengeMerging");
 		Assert.AreEqual(false, _options.Interface.DisableAdminUi, "AdminOnPublic");
 		Assert.AreEqual(false, _options.Interface.DisableStatsOnHttp, "StatsOnPublic");
-		Assert.AreEqual(false, _options.Interface.DisableGossipOnHttp, "GossipOnPublic");
 		Assert.AreEqual(1_000_000, _options.Database.MaxMemTableSize, "MaxMemtableEntryCount");
 		Assert.AreEqual(false, _options.Projection.RunProjections > ProjectionType.System,
 			"StartStandardProjections");

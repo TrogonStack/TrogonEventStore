@@ -236,7 +236,6 @@ DEFAULT OPTIONS:
          CONNECTION PENDING SEND BYTES THRESHOLD: 10485760 (<DEFAULT>)
          CONNECTION QUEUE SIZE THRESHOLD:         50000 (<DEFAULT>)
          DISABLE ADMIN UI:                        False (<DEFAULT>)
-         DISABLE GOSSIP ON HTTP:                  False (<DEFAULT>)
          DISABLE INTERNAL TCP TLS:                False (<DEFAULT>)
          DISABLE STATS ON HTTP:                   False (<DEFAULT>)
          ENABLE ATOM PUB OVER HTTP:               False (<DEFAULT>)

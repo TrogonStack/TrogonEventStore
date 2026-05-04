@@ -58,8 +58,7 @@
 		"PushToPeer": true,
 		"ProcessingPushFromPeer": true,
 		"ProcessingRequestFromPeer": false,
-		"ProcessingRequestFromGrpcClient": false,
-		"ProcessingRequestFromHttpClient": false
+		"ProcessingRequestFromGrpcClient": false
 	},
 
 	"Writer": {

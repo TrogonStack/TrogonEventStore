@@ -175,7 +175,7 @@ public partial record ClusterVNodeOptions
 		public bool AllowAnonymousStreamAccess { get; init; } = false;
 
 		[Description(
-			"Overrides anonymous access for the gossip endpoint. If set to true, the gossip endpoint will accept anonymous access. " +
+			"Overrides anonymous access for the client gossip read operation. If set to true, client gossip reads will accept anonymous access. " +
 			$"Otherwise anonymous access will be dis/allowed based on the value of the '{nameof(AllowAnonymousEndpointAccess)}' option")]
 		public bool OverrideAnonymousEndpointAccessForGossip { get; init; } = true;
 
@@ -576,9 +576,6 @@ public partial record ClusterVNodeOptions
 
 		[Description("Disables statistics requests on the HTTP endpoint.")]
 		public bool DisableStatsOnHttp { get; init; } = false;
-
-		[Description("Disables gossip requests on the HTTP endpoint.")]
-		public bool DisableGossipOnHttp { get; init; } = false;
 
 		[Description("Enables trusted authentication by an intermediary in the HTTP.")]
 		public bool EnableTrustedAuth { get; init; } = false;

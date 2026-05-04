@@ -1078,8 +1078,6 @@ public class ClusterVNode<TStreamId> :
 		var pingController = new PingController();
 		var statController = new StatController(monitoringQueue, _workersHandler);
 		var metricsController = new MetricsController();
-		var gossipController = new GossipController(_mainQueue, _workersHandler,
-			trackers.GossipTrackers.ProcessingRequestFromHttpClient);
 		var nodeInformationProvider = new NodeInformationProvider(
 			options,
 			new Dictionary<string, bool>
@@ -1100,9 +1098,6 @@ public class ClusterVNode<TStreamId> :
 			_httpService.SetupController(statController);
 			_httpService.SetupController(metricsController);
 		}
-
-		if (!options.Interface.DisableGossipOnHttp)
-			_httpService.SetupController(gossipController);
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(_httpService);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(_httpService);

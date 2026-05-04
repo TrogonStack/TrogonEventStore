@@ -145,7 +145,6 @@ Usually a node pushes new gossip to other nodes periodically or when its view of
 | `eventstore_gossip_processing_duration_seconds_bucket{`<br/>`activity="push-from-peer",`<br/>`status=<"successful"\|"failed">,`<br/>`le=<DURATION>}`           | [Histogram](#common-types) | Number of gossips pushed from peers that took less than or equal to _DURATION_ in seconds to process         |
 | `eventstore_gossip_processing_duration_seconds_bucket{`<br/>`activity="request-from-peer",`<br/>`status=<"successful"\|"failed">,`<br/>`le=<DURATION>}`        | [Histogram](#common-types) | Number of gossip requests from peers that took less than or equal to _DURATION_ in seconds to process        |
 | `eventstore_gossip_processing_duration_seconds_bucket{`<br/>`activity="request-from-grpc-client",`<br/>`status=<"successful"\|"failed">,`<br/>`le=<DURATION>}` | [Histogram](#common-types) | Number of gossip requests from gRPC clients that took less than or equal to _DURATION_ in seconds to process |
-| `eventstore_gossip_processing_duration_seconds_bucket{`<br/>`activity="request-from-http-client",`<br/>`status=<"successful"\|"failed">,`<br/>`le=<DURATION>}` | [Histogram](#common-types) | Number of gossip requests from HTTP clients that took less than or equal to _DURATION_ in seconds to process |
 
 Example configuration:
 ```json
@@ -154,8 +153,7 @@ Example configuration:
   "PushToPeer": true,
   "ProcessingPushFromPeer": false,
   "ProcessingRequestFromPeer": false,
-  "ProcessingRequestFromGrpcClient": false,
-  "ProcessingRequestFromHttpClient": false
+  "ProcessingRequestFromGrpcClient": false
 }
 ```
 

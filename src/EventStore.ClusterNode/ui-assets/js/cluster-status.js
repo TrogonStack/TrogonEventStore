@@ -116,10 +116,10 @@
 
 		state.gossipInFlight = true;
 		try {
-			var response = await fetchWithTimeout("/gossip?format=json");
+			var response = await fetchWithTimeout("/ui/cluster/membership");
 
 			if (!response.ok)
-				throw new Error("Gossip endpoint returned " + response.status + " " + response.statusText);
+				throw new Error("Cluster membership endpoint returned " + response.status + " " + response.statusText);
 
 			var payload = await response.json();
 			if (!isActive(state))
@@ -128,7 +128,7 @@
 			state.members = parseMembers(payload);
 			state.clusterError = "";
 			state.replicaError = "";
-			setStatus(state.root, "Gossip live", "Updated " + formatTime(new Date()));
+			setStatus(state.root, "Cluster live", "Updated " + formatTime(new Date()));
 			render(state);
 			refreshReplication(state);
 		} catch (error) {
@@ -136,10 +136,10 @@
 				return;
 
 			clearClusterState(state);
-			state.clusterError = "Gossip unavailable: " + friendlyMessage(error);
-			state.replicaError = "Replica stats unavailable while gossip is unavailable.";
+			state.clusterError = "Cluster membership unavailable: " + friendlyMessage(error);
+			state.replicaError = "Replica stats unavailable while cluster membership is unavailable.";
 			render(state);
-			setStatus(state.root, "Gossip unavailable", friendlyMessage(error));
+			setStatus(state.root, "Cluster unavailable", friendlyMessage(error));
 		} finally {
 			state.gossipInFlight = false;
 		}
@@ -373,7 +373,7 @@
 		var httpEndpoint = endpoint(member.httpHost, member.httpPort);
 		appendLink(wrap, "Ping", "//" + httpEndpoint + "/ui?probe=ping");
 		appendLink(wrap, "Open", "//" + httpEndpoint + "/ui");
-		appendLink(wrap, "Gossip", "//" + httpEndpoint + "/ui?probe=gossip");
+		appendLink(wrap, "Membership", "//" + httpEndpoint + "/ui?probe=cluster");
 		cell.appendChild(wrap);
 		row.appendChild(cell);
 	}

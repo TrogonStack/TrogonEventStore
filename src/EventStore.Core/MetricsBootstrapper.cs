@@ -54,7 +54,6 @@ public class GossipTrackers {
 	public IDurationTracker PushToPeer { get; set; } = new DurationTracker.NoOp();
 	public IDurationTracker ProcessingPushFromPeer { get; set; } = new DurationTracker.NoOp();
 	public IDurationTracker ProcessingRequestFromPeer { get; set; } = new DurationTracker.NoOp();
-	public IDurationTracker ProcessingRequestFromHttpClient { get; set; } = new DurationTracker.NoOp();
 	public IDurationTracker ProcessingRequestFromGrpcClient { get; set; } = new DurationTracker.NoOp();
 }
 
@@ -155,9 +154,6 @@ public static class MetricsBootstrapper {
 
 			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingRequestFromGrpcClient, out var processingRequestFromGrpcClient) && processingRequestFromGrpcClient)
 				trackers.GossipTrackers.ProcessingRequestFromGrpcClient = new DurationTracker(gossipProcessingMetric, "request-from-grpc-client");
-
-			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingRequestFromHttpClient, out var processingRequestFromHttpClient) && processingRequestFromHttpClient)
-				trackers.GossipTrackers.ProcessingRequestFromHttpClient = new DurationTracker(gossipProcessingMetric, "request-from-http-client");
 		}
 
 		// persistent subscriptions

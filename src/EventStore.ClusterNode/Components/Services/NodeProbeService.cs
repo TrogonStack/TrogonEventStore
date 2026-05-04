@@ -34,11 +34,12 @@ public sealed class NodeProbeService : IDisposable {
 			new Operation(Operations.Node.Information.Read),
 			NodeProbeKind.NodeInformation),
 		new(
-			"gossip",
-			"Gossip",
-			"/gossip",
+			"cluster",
+			"Cluster membership",
+			"",
 			"Current cluster membership view.",
-			new Operation(Operations.Node.Gossip.ClientRead))
+			new Operation(Operations.Node.Gossip.ClientRead),
+			NodeProbeKind.ClusterMembership)
 	];
 
 	private static readonly JsonSerializerOptions IndentedJson = new() {
@@ -47,6 +48,7 @@ public sealed class NodeProbeService : IDisposable {
 
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly IHttpContextAccessor _httpContextAccessor;
+	private readonly ClusterStatusService _clusterStatus;
 	private readonly NodeInformationProvider _nodeInformationProvider;
 	private readonly HttpClient _client;
 	private readonly LocalHttpEndPoint _nodeEndPoint;
@@ -54,11 +56,13 @@ public sealed class NodeProbeService : IDisposable {
 	public NodeProbeService(
 		IAuthorizationProvider authorizationProvider,
 		IHttpContextAccessor httpContextAccessor,
+		ClusterStatusService clusterStatus,
 		NodeInformationProvider nodeInformationProvider,
 		INodeHttpClientFactory nodeHttpClientFactory,
 		StandardComponents standardComponents) {
 		_authorizationProvider = authorizationProvider;
 		_httpContextAccessor = httpContextAccessor;
+		_clusterStatus = clusterStatus;
 		_nodeInformationProvider = nodeInformationProvider;
 		_nodeEndPoint = NodeHttpRequestHelper.GetLocalEndPoint(standardComponents);
 		_client = nodeHttpClientFactory.CreateHttpClient([_nodeEndPoint.Host]);
@@ -74,6 +78,9 @@ public sealed class NodeProbeService : IDisposable {
 
 		if (probe.Kind == NodeProbeKind.NodeInformation)
 			return NodeProbeRead.Available(probe, FormatPayload(_nodeInformationProvider.ReadJson()));
+
+		if (probe.Kind == NodeProbeKind.ClusterMembership)
+			return await ReadClusterMembership(probe, cancellationToken);
 
 		try {
 			var context = _httpContextAccessor.HttpContext;
@@ -123,6 +130,26 @@ public sealed class NodeProbeService : IDisposable {
 	private Task<bool> HasAccess(Operation operation, CancellationToken cancellationToken) =>
 		_authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();
 
+	private async Task<NodeProbeRead> ReadClusterMembership(
+		NodeProbeDefinition probe,
+		CancellationToken cancellationToken) {
+		try {
+			var status = await _clusterStatus.Read(CurrentUser, cancellationToken);
+			return NodeProbeRead.Available(
+				probe,
+				FormatPayload(JsonSerializer.Serialize(status, ClusterStatusJson.Options)));
+		} catch (TimeoutException) {
+			return NodeProbeRead.Unavailable(probe, "Timed out reading cluster membership.");
+		} catch (OperationCanceledException) {
+			if (cancellationToken.IsCancellationRequested)
+				throw;
+
+			return NodeProbeRead.Unavailable(probe, "Timed out reading cluster membership.");
+		} catch (Exception ex) {
+			return NodeProbeRead.Unavailable(probe, $"Unable to read cluster membership: {UiMessages.Friendly(ex)}");
+		}
+	}
+
 	private static string FormatPayload(string content) {
 		if (string.IsNullOrWhiteSpace(content))
 			return "";
@@ -146,7 +173,8 @@ public sealed record NodeProbeDefinition(
 
 public enum NodeProbeKind {
 	Http,
-	NodeInformation
+	NodeInformation,
+	ClusterMembership
 }
 
 public sealed record NodeProbeRead(
