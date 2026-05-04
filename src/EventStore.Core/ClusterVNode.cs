@@ -1074,7 +1074,6 @@ public class ClusterVNode<TStreamId> :
 			//modifiedOptions = modifiedOptions.WithPlugableComponent(new ArchivePlugableComponent());
 		}
 
-		var adminController = new AdminController(_mainQueue);
 		var pingController = new PingController();
 		var statController = new StatController(monitoringQueue, _workersHandler);
 		var metricsController = new MetricsController();
@@ -1094,8 +1093,6 @@ public class ClusterVNode<TStreamId> :
 
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(infoController);
 
-		if (!options.Interface.DisableAdminUi)
-			_httpService.SetupController(adminController);
 		_httpService.SetupController(pingController);
 		_httpService.SetupController(infoController);
 		if (!options.Interface.DisableStatsOnHttp)

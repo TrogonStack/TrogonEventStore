@@ -39,7 +39,6 @@ public class FallbackStreamAccessPolicyVerification
 		Operations.Node.Gossip.Update,
 		Operations.Node.Elections.Proposal,
 		Operations.Node.MergeIndexes,
-		Operations.Node.Login,
 		Operations.Node.Ping,
 		Operations.Node.Shutdown,
 		Operations.Node.Redirect,
