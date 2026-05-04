@@ -182,7 +182,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_standard_
 			"/projection/{name}/command/abort?enableRunAs={enableRunAs};POST;User",
 			"/projection/{name}/config;GET;Ops",
 			"/projection/{name}/config;PUT;Ops"
-			/*"/sys/subsystems;GET;Ops"*/ /* this endpoint has been commented since this controller is not registered when using a MiniNode */
 		)] string httpEndpointDetails
 	)
 	{

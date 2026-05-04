@@ -25,11 +25,6 @@ paths:
       responses:
         "200":
           description: OK
-  /sys/subsystems:
-    get:
-      responses:
-        "200":
-          description: OK
   /projections/any:
     get:
       responses:
