@@ -50,6 +50,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly IConfiguration _configuration;
 	private readonly Trackers _trackers;
 	private readonly StatusCheck _statusCheck;
+	private readonly NodeInformationProvider _nodeInformationProvider;
 	private readonly Func<IServiceCollection, IServiceCollection> _configureNodeServices;
 	private readonly Action<IApplicationBuilder> _configureNode;
 
@@ -72,6 +73,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		KestrelHttpService httpService,
 		IConfiguration configuration,
 		Trackers trackers,
+		NodeInformationProvider nodeInformationProvider,
 		string clusterDns,
 		Func<IServiceCollection, IServiceCollection> configureNodeServices,
 		Action<IApplicationBuilder> configureNode)
@@ -110,6 +112,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_httpService = httpService;
 		_configuration = configuration;
 		_trackers = trackers;
+		_nodeInformationProvider =
+			nodeInformationProvider ?? throw new ArgumentNullException(nameof(nodeInformationProvider));
 		_clusterDns = clusterDns;
 		_configureNodeServices =
 			configureNodeServices ?? throw new ArgumentNullException(nameof(configureNodeServices));
@@ -157,6 +161,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			ep.MapGrpcService<Operations>();
 			ep.MapGrpcService<ClientGossip>();
 			ep.MapGrpcService<Monitoring>();
+			ep.MapGrpcService<NodeInformation>();
 			ep.MapGrpcService<ServerFeatures>();
 
 			// enable redaction service on unix sockets only
@@ -227,6 +232,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton(new ClientGossip(_mainQueue, _authorizationProvider,
 				_trackers.GossipTrackers.ProcessingRequestFromGrpcClient))
 			.AddSingleton(new Monitoring(_monitoringQueue))
+			.AddSingleton(_nodeInformationProvider)
+			.AddSingleton(new NodeInformation(_nodeInformationProvider, _authorizationProvider))
 			.AddSingleton(new Redaction(_mainQueue, _authorizationProvider))
 			.AddSingleton<ServerFeatures>()
 

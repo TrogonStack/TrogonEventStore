@@ -114,7 +114,7 @@ The `AllowAnonymousEndpointAccess` option controls anonymous access to these end
 **Default**: `true`
 
 ::: tip
-Anonymous access is still always granted to `/ping`, `/info`, the static content of the UI, and http redirects.
+Anonymous access is still always granted to `/ping`, the static content of the UI, and http redirects.
 :::
 
 ### Certificates configuration
@@ -574,8 +574,9 @@ You can, however, disable TLS for both internal and external TCP.
 EventStoreDB supports authentication based on usernames and passwords out of the box. The Enterprise version
 also supports LDAP as the authentication source.
 
-Authentication is applied to all HTTP endpoints, except `/info`, `/ping`, `/stats`, `/elections` (only `GET`)
-, `/gossip` (only `GET`) and static web content.
+Authentication is applied to all HTTP endpoints by default, except `/ping`, `GET /gossip`, static web
+content, and redirects. Endpoints such as `/stats` require authentication unless anonymous endpoint access is
+explicitly enabled.
 
 ### Default users
 
@@ -591,10 +592,10 @@ except for `$scavenges` and `$scavenges-streams`).
 
 ### New users
 
-New users created in EventStoreDB are standard non-authenticated users. Non-authenticated users are
-allowed `GET` access to the `/info`, `/ping`, `/stats`, `/elections`, and `/gossip` system streams.
+New users created in EventStoreDB are standard non-admin users. They can call endpoints permitted by the
+authorization policy, including the default anonymous endpoints such as `/ping` and `GET /gossip`.
 
-`POST` access to the `/elections` and `/gossip` system streams is only allowed on the internal HTTP service.
+Internal cluster endpoints, such as election and gossip updates, are only available to system node traffic.
 
 By default, any user can read any non-protected stream unless there is an ACL preventing that.
 
@@ -843,10 +844,10 @@ UserCertificatesPlugin: user X.509 certificate authentication is enabled
 
 ### Connecting with a user certificate
 
-Use the following command as an example to connect using `curl`: 
+Use the following command as an example authenticated request using `curl`:
 
 ```:no-line-numbers
-curl -i https://localhost:2113/info --cert user-admin.crt --key user-admin.key
+curl -i https://localhost:2113/stats --cert user-admin.crt --key user-admin.key
 ```
 
 For using X.509 user certificate with EventStoreDB client from an application, refer to the client's documentation.

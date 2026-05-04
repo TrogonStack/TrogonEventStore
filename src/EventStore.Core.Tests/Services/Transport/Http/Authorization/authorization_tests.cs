@@ -180,8 +180,6 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 		)] string userAuthorizationLevel,
 		[Values(
 			"/ping;GET;None",
-			"/info;GET;None",
-			"/info/options;GET;Ops",
 			"/stats;GET;None",
 			"/stats/replication;GET;None",
 			"/stats/tcp;GET;None",

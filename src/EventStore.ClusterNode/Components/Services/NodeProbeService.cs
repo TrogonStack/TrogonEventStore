@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
 using EventStore.Plugins.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -28,9 +29,10 @@ public sealed class NodeProbeService : IDisposable {
 		new(
 			"info",
 			"Node info",
-			"/info",
+			"",
 			"Version, state, feature, and authentication metadata.",
-			new Operation(Operations.Node.Information.Read)),
+			new Operation(Operations.Node.Information.Read),
+			NodeProbeKind.NodeInformation),
 		new(
 			"gossip",
 			"Gossip",
@@ -45,16 +47,19 @@ public sealed class NodeProbeService : IDisposable {
 
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly IHttpContextAccessor _httpContextAccessor;
+	private readonly NodeInformationProvider _nodeInformationProvider;
 	private readonly HttpClient _client;
 	private readonly LocalHttpEndPoint _nodeEndPoint;
 
 	public NodeProbeService(
 		IAuthorizationProvider authorizationProvider,
 		IHttpContextAccessor httpContextAccessor,
+		NodeInformationProvider nodeInformationProvider,
 		INodeHttpClientFactory nodeHttpClientFactory,
 		StandardComponents standardComponents) {
 		_authorizationProvider = authorizationProvider;
 		_httpContextAccessor = httpContextAccessor;
+		_nodeInformationProvider = nodeInformationProvider;
 		_nodeEndPoint = NodeHttpRequestHelper.GetLocalEndPoint(standardComponents);
 		_client = nodeHttpClientFactory.CreateHttpClient([_nodeEndPoint.Host]);
 	}
@@ -66,6 +71,9 @@ public sealed class NodeProbeService : IDisposable {
 
 		if (!await HasAccess(probe.Operation, cancellationToken))
 			return NodeProbeRead.Unavailable(probe, $"{probe.Title} access was denied.");
+
+		if (probe.Kind == NodeProbeKind.NodeInformation)
+			return NodeProbeRead.Available(probe, FormatPayload(_nodeInformationProvider.ReadJson()));
 
 		try {
 			var context = _httpContextAccessor.HttpContext;
@@ -133,7 +141,13 @@ public sealed record NodeProbeDefinition(
 	string Title,
 	string Path,
 	string Description,
-	Operation Operation);
+	Operation Operation,
+	NodeProbeKind Kind = NodeProbeKind.Http);
+
+public enum NodeProbeKind {
+	Http,
+	NodeInformation
+}
 
 public sealed record NodeProbeRead(
 	NodeProbeDefinition Probe,

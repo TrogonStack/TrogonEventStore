@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using EventStore.Plugins.Authentication;
 using EventStore.Transport.Http;
@@ -13,10 +15,15 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 
 	public SecurityAuthenticationInfo AuthenticationInfo() {
 		var schemes = authenticationProvider.GetSupportedAuthenticationSchemes() ?? [];
+		var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? [])
+			properties[key] = value;
+
 		return new SecurityAuthenticationInfo(
 			authenticationProvider.Name,
 			schemes.Any(x => string.Equals(x, "Basic", StringComparison.OrdinalIgnoreCase)),
-			schemes.Any(x => string.Equals(x, "Insecure", StringComparison.OrdinalIgnoreCase)));
+			schemes.Any(x => string.Equals(x, "Insecure", StringComparison.OrdinalIgnoreCase)),
+			properties);
 	}
 
 	public async Task<SecurityCommandResult> Validate(string username, string password) {
@@ -62,10 +69,16 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 		path.StartsWith("/ui/", StringComparison.OrdinalIgnoreCase);
 }
 
-public sealed record SecurityAuthenticationInfo(string Type, bool SupportsBasic, bool IsInsecure) {
-	public static SecurityAuthenticationInfo Unavailable() => new("Unavailable", SupportsBasic: false, IsInsecure: false);
+public sealed record SecurityAuthenticationInfo(
+	string Type,
+	bool SupportsBasic,
+	bool IsInsecure,
+	IReadOnlyDictionary<string, string> Properties) {
+	public static SecurityAuthenticationInfo Unavailable() =>
+		new("Unavailable", SupportsBasic: false, IsInsecure: false, new Dictionary<string, string>());
 
 	public string TypeLabel => string.IsNullOrWhiteSpace(Type) ? "External authentication" : Type;
+	public string PropertiesJson => JsonSerializer.Serialize(Properties);
 }
 
 public sealed record SecurityCommandResult(bool Success, string Message) {
