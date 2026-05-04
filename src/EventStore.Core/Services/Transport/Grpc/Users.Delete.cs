@@ -21,7 +21,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 			_publisher.Publish(new UserManagementMessage.Delete(envelope, user, options.LoginName));
 
-			await deleteSource.Task;
+			await deleteSource.Task.WaitAsync(context.CancellationToken);
 
 			return new DeleteResp();
 

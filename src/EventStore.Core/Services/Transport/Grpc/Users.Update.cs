@@ -24,7 +24,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			_publisher.Publish(new UserManagementMessage.Update(envelope, user, options.LoginName, options.FullName,
 				options.Groups.ToArray()));
 
-			await updateSource.Task;
+			await updateSource.Task.WaitAsync(context.CancellationToken);
 
 			return new UpdateResp();
 

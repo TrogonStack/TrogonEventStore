@@ -21,7 +21,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 			_publisher.Publish(new UserManagementMessage.Disable(envelope, user, options.LoginName));
 
-			await disableSource.Task;
+			await disableSource.Task.WaitAsync(context.CancellationToken);
 
 			return new DisableResp();
 

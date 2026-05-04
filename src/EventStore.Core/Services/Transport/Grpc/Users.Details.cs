@@ -30,7 +30,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				? (Message)new UserManagementMessage.GetAll(envelope, user)
 				: new UserManagementMessage.Get(envelope, user, loginName));
 
-			var details = await detailsSource.Task;
+			var details = await detailsSource.Task.WaitAsync(context.CancellationToken);
 
 			foreach (var detail in details) {
 				await responseStream.WriteAsync(new DetailsResp {

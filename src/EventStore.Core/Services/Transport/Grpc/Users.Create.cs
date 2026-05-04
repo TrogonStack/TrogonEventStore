@@ -24,7 +24,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				options.Groups.ToArray(),
 				options.Password));
 
-			await createSource.Task;
+			await createSource.Task.WaitAsync(context.CancellationToken);
 
 			return new CreateResp();
 

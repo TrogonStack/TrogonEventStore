@@ -23,7 +23,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			_publisher.Publish(
 				new UserManagementMessage.ResetPassword(envelope, user, options.LoginName, options.NewPassword));
 
-			await resetPasswordSource.Task;
+			await resetPasswordSource.Task.WaitAsync(context.CancellationToken);
 
 			return new ResetPasswordResp();
 

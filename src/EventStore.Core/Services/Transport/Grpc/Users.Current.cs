@@ -26,7 +26,7 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			_publisher.Publish(new UserManagementMessage.Get(envelope, user, loginName));
 
 			return new CurrentResp {
-				UserDetails = ToUserDetails(await detailsSource.Task)
+				UserDetails = ToUserDetails(await detailsSource.Task.WaitAsync(context.CancellationToken))
 			};
 
 			void OnMessage(Message message) {
