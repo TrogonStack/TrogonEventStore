@@ -75,7 +75,7 @@ public class http_service_should : SpecificationWithDirectory
 		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
 		await node.Start();
 
-		var request = new HttpRequestMessage(HttpMethod.Get, "/stats/replication");
+		var request = new HttpRequestMessage(HttpMethod.Get, "/stats");
 		request.Headers.Add("Origin", "https://example.com");
 
 		var result = await node.HttpClient.SendAsync(request);

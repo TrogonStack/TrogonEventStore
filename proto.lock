@@ -2744,6 +2744,65 @@
                 "type": "bool"
               }
             ]
+          },
+          {
+            "name": "ReplicationStatsReq"
+          },
+          {
+            "name": "ReplicationStatsResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "stats",
+                "type": "ReplicationStats",
+                "is_repeated": true
+              }
+            ]
+          },
+          {
+            "name": "ReplicationStats",
+            "fields": [
+              {
+                "id": 1,
+                "name": "subscription_id",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "connection_id",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "subscription_endpoint",
+                "type": "string"
+              },
+              {
+                "id": 4,
+                "name": "total_bytes_sent",
+                "type": "int64"
+              },
+              {
+                "id": 5,
+                "name": "total_bytes_received",
+                "type": "int64"
+              },
+              {
+                "id": 6,
+                "name": "pending_send_bytes",
+                "type": "int32"
+              },
+              {
+                "id": 7,
+                "name": "pending_received_bytes",
+                "type": "int32"
+              },
+              {
+                "id": 8,
+                "name": "send_queue_size",
+                "type": "int32"
+              }
+            ]
           }
         ],
         "services": [
@@ -2760,6 +2819,11 @@
                 "name": "TcpStats",
                 "in_type": "TcpStatsReq",
                 "out_type": "TcpStatsResp"
+              },
+              {
+                "name": "ReplicationStats",
+                "in_type": "ReplicationStatsReq",
+                "out_type": "ReplicationStatsResp"
               }
             ]
           }

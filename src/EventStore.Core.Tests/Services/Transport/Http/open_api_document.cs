@@ -15,13 +15,7 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 	[Test]
 	public async Task should_document_the_actions_of_all_controllers()
 	{
-		var skipActionPaths = new[] {
-			// handled by: /stats/{statPath}
-			"/stats/replication",
-		};
-
 		var httpActions = _node.Node.HttpService.Actions
-			.Where(a => !skipActionPaths.Contains(a.UriTemplate))
 			.Where(a => !a.UriTemplate.StartsWith("/test"))
 			.ToArray();
 

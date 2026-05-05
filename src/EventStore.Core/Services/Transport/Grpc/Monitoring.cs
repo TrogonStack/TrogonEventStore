@@ -81,6 +81,37 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			return responseSource.Task.WaitAsync(context.CancellationToken);
 		}
 
+		public override Task<ReplicationStatsResp> ReplicationStats(ReplicationStatsReq request, ServerCallContext context) {
+			var responseSource =
+				new TaskCompletionSource<ReplicationStatsResp>(TaskCreationOptions.RunContinuationsAsynchronously);
+			var envelope = new CallbackEnvelope(message => {
+				if (message is not ReplicationMessage.GetReplicationStatsCompleted completed) {
+					responseSource.TrySetException(
+						UnknownMessage<ReplicationMessage.GetReplicationStatsCompleted>(message));
+					return;
+				}
+
+				var response = new ReplicationStatsResp();
+				foreach (var stats in completed.ReplicationStats) {
+					response.Stats.Add(new ReplicationStats {
+						SubscriptionId = stats.SubscriptionId.ToString("D"),
+						ConnectionId = stats.ConnectionId.ToString("D"),
+						SubscriptionEndpoint = stats.SubscriptionEndpoint ?? string.Empty,
+						TotalBytesSent = stats.TotalBytesSent,
+						TotalBytesReceived = stats.TotalBytesReceived,
+						PendingSendBytes = stats.PendingSendBytes,
+						PendingReceivedBytes = stats.PendingReceivedBytes,
+						SendQueueSize = stats.SendQueueSize
+					});
+				}
+
+				responseSource.TrySetResult(response);
+			});
+
+			_publisher.Publish(new ReplicationMessage.GetReplicationStats(envelope));
+			return responseSource.Task.WaitAsync(context.CancellationToken);
+		}
+
 		public Monitoring(IPublisher publisher) {
 			_publisher = publisher;
 		}

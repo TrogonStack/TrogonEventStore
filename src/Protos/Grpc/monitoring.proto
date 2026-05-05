@@ -5,6 +5,7 @@ option java_package = "com.eventstore.dbclient.proto.monitoring";
 service Monitoring {
 	rpc Stats(StatsReq) returns (stream StatsResp);
 	rpc TcpStats(TcpStatsReq) returns (TcpStatsResp);
+	rpc ReplicationStats(ReplicationStatsReq) returns (ReplicationStatsResp);
 }
 
 message StatsReq {
@@ -34,4 +35,22 @@ message TcpConnectionStats {
 	int32 pending_received_bytes = 8;
 	bool is_external_connection = 9;
 	bool is_ssl_connection = 10;
+}
+
+message ReplicationStatsReq {
+}
+
+message ReplicationStatsResp {
+	repeated ReplicationStats stats = 1;
+}
+
+message ReplicationStats {
+	string subscription_id = 1;
+	string connection_id = 2;
+	string subscription_endpoint = 3;
+	int64 total_bytes_sent = 4;
+	int64 total_bytes_received = 5;
+	int32 pending_send_bytes = 6;
+	int32 pending_received_bytes = 7;
+	int32 send_queue_size = 8;
 }
