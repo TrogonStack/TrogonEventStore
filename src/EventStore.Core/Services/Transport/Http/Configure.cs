@@ -164,14 +164,5 @@ namespace EventStore.Core.Services.Transport.Http {
 			return Ok(entity.ResponseCodec.ContentType, Helper.UTF8NoBom, null, cacheSeconds, isCachePublic: true);
 		}
 
-		public static ResponseConfiguration GetFreshTcpConnectionStatsCompleted(HttpResponseConfiguratorArgs entity,
-			Message message) {
-			var completed = message as MonitoringMessage.GetFreshTcpConnectionStatsCompleted;
-			if (completed == null)
-				return InternalServerError();
-
-			var cacheSeconds = (int)MonitoringService.MemoizePeriod.TotalSeconds;
-			return Ok(entity.ResponseCodec.ContentType, Helper.UTF8NoBom, null, cacheSeconds, isCachePublic: true);
-		}
 	}
 }

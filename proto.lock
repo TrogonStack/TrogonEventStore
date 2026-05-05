@@ -2675,6 +2675,75 @@
                 }
               }
             ]
+          },
+          {
+            "name": "TcpStatsReq"
+          },
+          {
+            "name": "TcpStatsResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "connections",
+                "type": "TcpConnectionStats",
+                "is_repeated": true
+              }
+            ]
+          },
+          {
+            "name": "TcpConnectionStats",
+            "fields": [
+              {
+                "id": 1,
+                "name": "remote_endpoint",
+                "type": "string"
+              },
+              {
+                "id": 2,
+                "name": "local_endpoint",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "client_connection_name",
+                "type": "string"
+              },
+              {
+                "id": 4,
+                "name": "connection_id",
+                "type": "string"
+              },
+              {
+                "id": 5,
+                "name": "total_bytes_sent",
+                "type": "int64"
+              },
+              {
+                "id": 6,
+                "name": "total_bytes_received",
+                "type": "int64"
+              },
+              {
+                "id": 7,
+                "name": "pending_send_bytes",
+                "type": "int32"
+              },
+              {
+                "id": 8,
+                "name": "pending_received_bytes",
+                "type": "int32"
+              },
+              {
+                "id": 9,
+                "name": "is_external_connection",
+                "type": "bool"
+              },
+              {
+                "id": 10,
+                "name": "is_ssl_connection",
+                "type": "bool"
+              }
+            ]
           }
         ],
         "services": [
@@ -2686,6 +2755,11 @@
                 "in_type": "StatsReq",
                 "out_type": "StatsResp",
                 "out_streamed": true
+              },
+              {
+                "name": "TcpStats",
+                "in_type": "TcpStatsReq",
+                "out_type": "TcpStatsResp"
               }
             ]
           }

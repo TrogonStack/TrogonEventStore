@@ -49,6 +49,38 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			}
 		}
 
+		public override Task<TcpStatsResp> TcpStats(TcpStatsReq request, ServerCallContext context) {
+			var responseSource = new TaskCompletionSource<TcpStatsResp>(TaskCreationOptions.RunContinuationsAsynchronously);
+			var envelope = new CallbackEnvelope(message => {
+				if (message is not MonitoringMessage.GetFreshTcpConnectionStatsCompleted completed) {
+					responseSource.TrySetException(
+						UnknownMessage<MonitoringMessage.GetFreshTcpConnectionStatsCompleted>(message));
+					return;
+				}
+
+				var response = new TcpStatsResp();
+				foreach (var connection in completed.ConnectionStats) {
+					response.Connections.Add(new TcpConnectionStats {
+						RemoteEndpoint = connection.RemoteEndPoint ?? string.Empty,
+						LocalEndpoint = connection.LocalEndPoint ?? string.Empty,
+						ClientConnectionName = connection.ClientConnectionName ?? string.Empty,
+						ConnectionId = connection.ConnectionId.ToString("D"),
+						TotalBytesSent = connection.TotalBytesSent,
+						TotalBytesReceived = connection.TotalBytesReceived,
+						PendingSendBytes = connection.PendingSendBytes,
+						PendingReceivedBytes = connection.PendingReceivedBytes,
+						IsExternalConnection = connection.IsExternalConnection,
+						IsSslConnection = connection.IsSslConnection
+					});
+				}
+
+				responseSource.TrySetResult(response);
+			});
+
+			_publisher.Publish(new MonitoringMessage.GetFreshTcpConnectionStats(envelope));
+			return responseSource.Task.WaitAsync(context.CancellationToken);
+		}
+
 		public Monitoring(IPublisher publisher) {
 			_publisher = publisher;
 		}
