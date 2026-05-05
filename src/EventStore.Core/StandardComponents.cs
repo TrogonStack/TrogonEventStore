@@ -15,6 +15,7 @@ namespace EventStore.Core {
 		private readonly IHttpForwarder _httpForwarder;
 		private readonly IHttpService[] _httpServices;
 		private readonly IPublisher _networkSendService;
+		private readonly IPublisher _monitoringQueue;
 		private readonly QueueStatsManager _queueStatsManager;
 
 		public StandardComponents(
@@ -26,6 +27,7 @@ namespace EventStore.Core {
 			IHttpForwarder httpForwarder,
 			IHttpService[] httpServices,
 			IPublisher networkSendService,
+			IPublisher monitoringQueue,
 			QueueStatsManager queueStatsManager,
 			QueueTrackers trackers,
 			bool projectionStats) {
@@ -37,6 +39,7 @@ namespace EventStore.Core {
 			_httpForwarder = httpForwarder;
 			_httpServices = httpServices;
 			_networkSendService = networkSendService;
+			_monitoringQueue = monitoringQueue;
 			_queueStatsManager = queueStatsManager;
 			QueueTrackers = trackers;
 			ProjectionStats = projectionStats;
@@ -72,6 +75,10 @@ namespace EventStore.Core {
 
 		public IPublisher NetworkSendService {
 			get { return _networkSendService; }
+		}
+
+		public IPublisher MonitoringQueue {
+			get { return _monitoringQueue; }
 		}
 
 		public QueueStatsManager QueueStatsManager {
