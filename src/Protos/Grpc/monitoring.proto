@@ -3,7 +3,8 @@ package event_store.client.monitoring;
 option java_package = "com.eventstore.dbclient.proto.monitoring";
 
 service Monitoring {
-	rpc Stats(StatsReq) returns (stream StatsResp);	
+	rpc Stats(StatsReq) returns (stream StatsResp);
+	rpc TcpStats(TcpStatsReq) returns (TcpStatsResp);
 }
 
 message StatsReq {
@@ -13,4 +14,24 @@ message StatsReq {
 
 message StatsResp {
 	map<string, string> stats = 1;
+}
+
+message TcpStatsReq {
+}
+
+message TcpStatsResp {
+	repeated TcpConnectionStats connections = 1;
+}
+
+message TcpConnectionStats {
+	string remote_endpoint = 1;
+	string local_endpoint = 2;
+	string client_connection_name = 3;
+	string connection_id = 4;
+	int64 total_bytes_sent = 5;
+	int64 total_bytes_received = 6;
+	int32 pending_send_bytes = 7;
+	int32 pending_received_bytes = 8;
+	bool is_external_connection = 9;
+	bool is_ssl_connection = 10;
 }

@@ -18,7 +18,6 @@ public class open_api_document<TLogFormat, TStreamId> : specification_with_a_sin
 		var skipActionPaths = new[] {
 			// handled by: /stats/{statPath}
 			"/stats/replication",
-			"/stats/tcp",
 		};
 
 		var httpActions = _node.Node.HttpService.Actions

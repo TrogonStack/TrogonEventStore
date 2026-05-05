@@ -27,19 +27,9 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			service.RegisterAction(
 				new ControllerAction("/stats/replication", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Statistics.Replication)),
 				OnGetReplicationStats);
-			service.RegisterAction(new ControllerAction("/stats/tcp", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Statistics.Tcp)),
-				OnGetTcpConnectionStats);
 			service.RegisterAction(
 				new ControllerAction("/stats/{*statPath}", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Statistics.Custom)),
 				OnGetFreshStats);
-		}
-
-		private void OnGetTcpConnectionStats(HttpEntityManager entity, UriTemplateMatch match) {
-			var envelope = new SendToHttpEnvelope(_networkSendQueue,
-				entity,
-				Format.GetFreshTcpConnectionStatsCompleted,
-				Configure.GetFreshTcpConnectionStatsCompleted);
-			Publish(new MonitoringMessage.GetFreshTcpConnectionStats(envelope));
 		}
 
 		private void OnGetFreshStats(HttpEntityManager entity, UriTemplateMatch match) {
