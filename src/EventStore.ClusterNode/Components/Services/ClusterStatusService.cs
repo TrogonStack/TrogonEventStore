@@ -74,6 +74,11 @@ public sealed class ClusterStatusService(
 			return ParseReplicaStats(response, clusterInfo.Members, leader, leaderEndpoint, DateTime.UtcNow);
 		} catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.PermissionDenied) {
 			return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
+		} catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) {
+			if (cancellationToken.IsCancellationRequested)
+				throw new OperationCanceledException(null, ex, cancellationToken);
+
+			return ClusterReplicaPage.Unavailable("Timed out reading replica statistics.");
 		} catch (OperationCanceledException) {
 			if (cancellationToken.IsCancellationRequested)
 				throw;
