@@ -21,15 +21,17 @@
 			blocks: [],
 			queues: [],
 			tcpConnections: [],
-			tcpLastSeen: null,
 			tcpPage: 0,
 			timer: null,
-			inFlight: false,
-			tcpInFlight: false
+			inFlight: false
 		};
 
 		dashboards.set(root, state);
 		openDashboardSnapshot();
+		var initialPayload = readPayload(document, state);
+		if (initialPayload)
+			applyPayload(state, initialPayload);
+
 		root.addEventListener("click", function (event) {
 			var tcpPager = event.target.closest("[data-tcp-page]");
 			if (tcpPager && root.contains(tcpPager)) {
@@ -54,13 +56,11 @@
 		});
 
 		refresh(state);
-		refreshTcp(state);
 		state.timer = window.setInterval(function () {
 			if (document.hidden)
 				return;
 
 			refresh(state);
-			refreshTcp(state);
 		}, pollIntervalMs);
 	}
 
@@ -99,76 +99,96 @@
 			snapshot.open = true;
 	}
 
+	function readPayload(doc, state) {
+		var roots = doc.querySelectorAll("[data-queue-dashboard]");
+		var dashboardName = state.root.getAttribute("data-queue-dashboard");
+		for (var i = 0; i < roots.length; i++) {
+			if (roots[i].getAttribute("data-queue-dashboard") !== dashboardName)
+				continue;
+
+			var payload = roots[i].querySelector("[data-queue-dashboard-payload]");
+			if (!payload)
+				return null;
+
+			try {
+				return JSON.parse(payload.textContent || "{}");
+			} catch (_) {
+				return null;
+			}
+		}
+
+		return null;
+	}
+
+	function applyPayload(state, payload) {
+		var parsed = parseQueues(payload);
+		state.queues = parsed.queues;
+		state.blocks = parsed.blocks;
+		state.tcpConnections = parseTcpConnections(payload);
+		setStatus(
+			state.root,
+			payload.message ? "Live stats unavailable" : "Live stats",
+			payload.message || "Updated " + formatTime(new Date()));
+		render(state);
+
+		if (state.root.querySelector("[data-tcp-table-body]")) {
+			var tcpMessage = payload.tcpMessage || payload.message || "";
+			setTcpStatus(
+				state.root,
+				tcpMessage ? "TCP unavailable" : "TCP live",
+				tcpMessage || state.tcpConnections.length + " connection" + (state.tcpConnections.length === 1 ? "" : "s"));
+			renderTcpTable(state.root, state.tcpConnections, state);
+		}
+	}
+
 	async function refresh(state) {
 		if (state.inFlight)
 			return;
 
 		state.inFlight = true;
 		try {
-			var response = await fetch("/stats?format=json", {
+			var response = await fetch(payloadUrl(), {
 				credentials: "same-origin",
 				headers: { "Accept": "application/json" }
 			});
 
 			if (!response.ok)
-				throw new Error("Stats endpoint returned " + response.status + " " + response.statusText);
+				throw new Error("Dashboard refresh returned " + response.status + " " + response.statusText);
 
-			var payload = await response.json();
-			var parsed = parseQueues(payload);
-			state.queues = parsed.queues;
-			state.blocks = parsed.blocks;
-			setStatus(state.root, "Live stats", "Updated " + formatTime(new Date()));
-			render(state);
+			applyPayload(state, await response.json());
 		} catch (error) {
+			state.queues = [];
+			state.blocks = [];
+			state.tcpConnections = [];
 			setStatus(state.root, "Live stats unavailable", friendlyMessage(error));
+			setTcpStatus(state.root, "TCP unavailable", friendlyMessage(error));
+			render(state);
+			renderTcpTable(state.root, state.tcpConnections, state);
 		} finally {
 			state.inFlight = false;
 		}
 	}
 
-	async function refreshTcp(state) {
-		if (state.tcpInFlight || !state.root.querySelector("[data-tcp-table-body]"))
-			return;
+	function payloadUrl() {
+		var pathname = window.location.pathname;
+		var marker = "/ui/";
+		var markerIndex = pathname.toLowerCase().indexOf(marker);
+		var pathBase = markerIndex === -1 ? "" : pathname.substring(0, markerIndex);
 
-		state.tcpInFlight = true;
-		try {
-			var response = await fetch("/stats/tcp?format=json", {
-				credentials: "same-origin",
-				headers: { "Accept": "application/json" }
-			});
-
-			if (!response.ok)
-				throw new Error("TCP stats endpoint returned " + response.status + " " + response.statusText);
-
-			var payload = await response.json();
-			var now = Date.now();
-			var elapsedSeconds = state.tcpLastSeen
-				? Math.max(1, (now - state.tcpLastSeen) / 1000)
-				: 1;
-
-			state.tcpConnections = parseTcpConnections(payload, state.tcpConnections, elapsedSeconds);
-			state.tcpLastSeen = now;
-			setTcpStatus(state.root, "TCP live", state.tcpConnections.length + " connection" + (state.tcpConnections.length === 1 ? "" : "s"));
-			renderTcpTable(state.root, state.tcpConnections, state);
-		} catch (error) {
-			setTcpStatus(state.root, "TCP unavailable", friendlyMessage(error));
-		} finally {
-			state.tcpInFlight = false;
-		}
+		return pathBase + "/ui/queue-dashboard/payload";
 	}
 
 	function parseQueues(payload) {
-		var stats = payload && payload.es && payload.es.queue;
+		var stats = payload && payload.queues;
 		var queues = [];
-		if (stats && typeof stats === "object") {
-			Object.keys(stats).forEach(function (key) {
-				var value = stats[key];
+		if (Array.isArray(stats)) {
+			stats.forEach(function (value) {
 				if (!value || typeof value !== "object")
 					return;
 
 				queues.push({
 					kind: "queue",
-					name: readString(value.queueName, key),
+					name: readString(value.name, ""),
 					groupName: readString(value.groupName, ""),
 					length: readNumber(value.length),
 					lengthCurrentTryPeak: readNumber(value.lengthCurrentTryPeak),
@@ -188,24 +208,13 @@
 		};
 	}
 
-	function parseTcpConnections(payload, previousConnections, elapsedSeconds) {
-		var rows = Array.isArray(payload) ? payload : [];
-		var previous = new Map();
-		previousConnections.forEach(function (connection) {
-			previous.set(connection.id, connection);
-		});
+	function parseTcpConnections(payload) {
+		var rows = payload && Array.isArray(payload.tcpConnections) ? payload.tcpConnections : [];
 
 		return rows.map(function (row) {
 			var id = readFieldString(row, ["connectionId", "ConnectionId"], "");
 			var totalBytesSent = readFieldNumber(row, ["totalBytesSent", "TotalBytesSent"]);
 			var totalBytesReceived = readFieldNumber(row, ["totalBytesReceived", "TotalBytesReceived"]);
-			var previousRow = previous.get(id);
-			var sentRate = previousRow
-				? Math.max(0, (totalBytesSent - previousRow.totalBytesSent) / elapsedSeconds)
-				: 0;
-			var receivedRate = previousRow
-				? Math.max(0, (totalBytesReceived - previousRow.totalBytesReceived) / elapsedSeconds)
-				: 0;
 
 			return {
 				id: id,
@@ -216,8 +225,8 @@
 				totalBytesReceived: totalBytesReceived,
 				pendingSendBytes: readFieldNumber(row, ["pendingSendBytes", "PendingSendBytes"]),
 				pendingReceivedBytes: readFieldNumber(row, ["pendingReceivedBytes", "PendingReceivedBytes"]),
-				sentRate: sentRate,
-				receivedRate: receivedRate,
+				sentRate: readFieldNumber(row, ["sentRate", "SentRate"]),
+				receivedRate: readFieldNumber(row, ["receivedRate", "ReceivedRate"]),
 				isExternalConnection: readFieldBoolean(row, ["isExternalConnection", "IsExternalConnection"]),
 				isSslConnection: readFieldBoolean(row, ["isSslConnection", "IsSslConnection"])
 			};

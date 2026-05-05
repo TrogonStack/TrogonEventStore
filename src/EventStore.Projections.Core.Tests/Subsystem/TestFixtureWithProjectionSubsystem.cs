@@ -52,7 +52,7 @@ public class TestFixtureWithProjectionSubsystem
 
 		return new StandardComponents(dbConfig, mainQueue, mainBus,
 			timerService, timeProvider: null, httpForwarder: null, httpServices: new IHttpService[] { },
-			networkSendService: null, queueStatsManager: new QueueStatsManager(),
+			networkSendService: null, monitoringQueue: mainQueue, queueStatsManager: new QueueStatsManager(),
 			trackers: new(), true);
 	}
 

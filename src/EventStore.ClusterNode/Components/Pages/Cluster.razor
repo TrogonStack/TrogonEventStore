@@ -11,6 +11,7 @@
 <PageTitle>EventStore Cluster</PageTitle>
 
 <div data-queue-dashboard="home">
+<script type="application/json" data-queue-dashboard-payload>@((MarkupString)DashboardPayloadJson)</script>
 <section id="cluster-status" class="mb-5 overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 	<div class="flex flex-col gap-3 border-b border-es-ink/10 px-5 py-5 xl:flex-row xl:items-start xl:justify-between">
 		<div>
@@ -176,7 +177,7 @@
 			<div>
 				<p class="text-xs font-black uppercase tracking-[0.22em] text-es-green">Queue pressure</p>
 				<h2 class="mt-2 text-3xl font-black tracking-tight text-es-ink">Live node workload</h2>
-				<p class="mt-2 text-sm text-es-muted">Updates every second from the node stats endpoint while this tab is visible.</p>
+				<p class="mt-2 text-sm text-es-muted">Updates every second while this tab is visible.</p>
 			</div>
 			<div class="flex flex-wrap gap-2">
 				<span class="rounded-full border border-es-green/20 bg-es-green/10 px-4 py-2 text-sm font-bold text-es-forest" data-queue-status>Connecting live stats...</span>
@@ -339,6 +340,8 @@
 		: $"Snapshot {ClusterReadAt.Value:HH:mm:ss} UTC";
 
 	private string ReplicaStatusLabel => Replicas.StatusLabel;
+
+	private string DashboardPayloadJson => Page?.ClientPayloadJson ?? "{}";
 
 	private string ClusterEmptyMessage => string.IsNullOrWhiteSpace(ClusterMessage)
 		? "No nodes in the cluster."

@@ -56,11 +56,11 @@ public sealed class ClusterStatusService(
 		if (leader is null)
 			return ClusterReplicaPage.Unavailable("Replica stats are unavailable until a leader is known.");
 
+		var leaderEndpoint = HttpEndpoint(leader);
 		var context = httpContextAccessor.HttpContext;
 		if (context is null)
 			return ClusterReplicaPage.Unavailable("Replica stats are unavailable outside an HTTP request.");
 
-		var leaderEndpoint = HttpEndpoint(leader);
 		if (string.IsNullOrWhiteSpace(leader.HttpEndPointIp) || leader.HttpEndPointPort <= 0)
 			return ClusterReplicaPage.Unavailable("Leader HTTP endpoint is unavailable.");
 
