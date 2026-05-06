@@ -44,7 +44,7 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 		var qs = new QueueStatsManager();
 		var timeProvider = new RealTimeProvider();
 		var ts = new TimerService(new TimerBasedScheduler(new RealTimer(), timeProvider));
-		var sc = new StandardComponents(db.Config, mainQueue, mainBus, ts, timeProvider, null, new IHttpService[] { },
+		var sc = new StandardComponents(db.Config, mainQueue, mainBus, ts, timeProvider, new IHttpService[] { },
 			mainBus, mainQueue, qs, new(), true);
 
 		var subsystem = new ProjectionsSubsystem(options);

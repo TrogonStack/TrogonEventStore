@@ -19,7 +19,6 @@ using EventStore.Core.Configuration.Sources;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Services.Storage.ReaderIndex;
-using EventStore.Core.Tests.Http;
 using EventStore.Core.Tests.Index.Hashers;
 using EventStore.Core.Tests.Services.Transport.Tcp;
 using EventStore.Core.TransactionLog.Chunks;
@@ -225,7 +224,6 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			configureAdditionalNodeServices: services => ConfigureMiniNodeServices(services, newTransforms));
 		Db = Node.Db;
 
-		TestController.Register(Node.HttpService);
 		_kestrelTestServer = new TestServer(new WebHostBuilder()
 			.UseKestrel(o =>
 			{

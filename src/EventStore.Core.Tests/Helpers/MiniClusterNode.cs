@@ -19,7 +19,6 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Storage.ReaderIndex;
-using EventStore.Core.Tests.Http;
 using EventStore.Core.Tests.Services.Transport.Tcp;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins.Subsystems;
@@ -199,8 +198,6 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			configuration: inMemConf,
 			expiryStrategy,
 			Guid.NewGuid(), debugIndex);
-		TestController.Register(Node.HttpService);
-
 		_host = new WebHostBuilder()
 			.UseKestrel(o =>
 			{

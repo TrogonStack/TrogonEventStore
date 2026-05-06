@@ -12,7 +12,6 @@ namespace EventStore.Core {
 		private readonly ISubscriber _mainBus;
 		private readonly TimerService _timerService;
 		private readonly ITimeProvider _timeProvider;
-		private readonly IHttpForwarder _httpForwarder;
 		private readonly IHttpService[] _httpServices;
 		private readonly IPublisher _networkSendService;
 		private readonly IPublisher _monitoringQueue;
@@ -24,7 +23,6 @@ namespace EventStore.Core {
 			ISubscriber mainBus,
 			TimerService timerService,
 			ITimeProvider timeProvider,
-			IHttpForwarder httpForwarder,
 			IHttpService[] httpServices,
 			IPublisher networkSendService,
 			IPublisher monitoringQueue,
@@ -36,7 +34,6 @@ namespace EventStore.Core {
 			_mainBus = mainBus;
 			_timerService = timerService;
 			_timeProvider = timeProvider;
-			_httpForwarder = httpForwarder;
 			_httpServices = httpServices;
 			_networkSendService = networkSendService;
 			_monitoringQueue = monitoringQueue;
@@ -63,10 +60,6 @@ namespace EventStore.Core {
 
 		public ITimeProvider TimeProvider {
 			get { return _timeProvider; }
-		}
-
-		public IHttpForwarder HttpForwarder {
-			get { return _httpForwarder; }
 		}
 
 		public IHttpService[] HttpServices {

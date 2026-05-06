@@ -30,7 +30,7 @@ fromAll().foreachStream().when({
 }).outputState();
 ");
 		WaitIdle();
-		await _manager.AbortAsync("test-projection", _admin);
+		await AbortProjection("test-projection");
 		WaitIdle();
 	}
 
@@ -39,7 +39,7 @@ fromAll().foreachStream().when({
 		await base.When();
 		await HardDeleteStream("stream-1");
 		WaitIdle();
-		await _manager.EnableAsync("test-projection", _admin);
+		await EnableProjection("test-projection");
 		WaitIdle();
 	}
 

@@ -4,9 +4,12 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using EventStore.ClientAPI;
 using EventStore.Client.Users;
 using EventStore.Common.Utils;
-using EventStore.Core.Tests.Integration;
+using EventStore.Core.Services;
+using EventStore.Core.Tests.ClientAPI.Helpers;
+using EventStore.Core.Tests.Helpers;
 using Grpc.Core;
 using Grpc.Net.Client;
 using NUnit.Framework;
@@ -15,21 +18,18 @@ using UsersClient = EventStore.Client.Users.Users.UsersClient;
 namespace EventStore.Core.Tests.Services.Transport.Http;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
+public class Authorization<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
+	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 	private readonly Dictionary<string, HttpClient> _httpClients = new Dictionary<string, HttpClient>();
 	private TimeSpan _timeout = TimeSpan.FromSeconds(5);
-	private int _leaderId;
-
+	private MiniNode<TLogFormat, TStreamId> _node;
 
 	private HttpClient CreateHttpClient(string username, string password)
 	{
-		var client = new HttpClient(new HttpClientHandler
+		var client = new HttpClient(_node.HttpMessageHandler, disposeHandler: false)
 		{
-			AllowAutoRedirect = false,
-			ServerCertificateCustomValidationCallback = delegate { return true; }
-		})
-		{
+			BaseAddress = new Uri($"https://{_node.HttpEndPoint}"),
 			Timeout = _timeout
 		};
 
@@ -49,7 +49,7 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 	{
 		var request = new HttpRequestMessage();
 		request.Method = method;
-		request.RequestUri = new Uri(url);
+		request.RequestUri = new Uri(url, UriKind.Relative);
 
 		if (body != null)
 		{
@@ -105,11 +105,10 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 		{
 			try
 			{
-				using var httpClient = _nodes[_leaderId].CreateHttpClient();
-				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_nodes[_leaderId].HttpEndPoint}"),
+				using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
 					new GrpcChannelOptions
 					{
-						HttpClient = httpClient,
+						HttpClient = _node.HttpClient,
 						DisposeHttpClient = false
 					});
 				var users = new UsersClient(channel);
@@ -142,16 +141,14 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
+		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
+		await _node.Start();
+		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
 
-		//find the leader node
-		for (int i = 0; i < _nodes.Length; i++)
-		{
-			if (_nodes[i].NodeState == Data.VNodeState.Leader)
-			{
-				_leaderId = i;
-				break;
-			}
-		}
+		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
+			() => TestConnection.CreateMiniNodeClient(_node.TcpEndPoint),
+			conn => conn.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
+			ReadinessTimeout);
 
 		_httpClients["Admin"] = CreateHttpClient("admin", "changeit");
 		_httpClients["Ops"] = CreateHttpClient("ops", "changeit");
@@ -161,13 +158,17 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
+	public override async Task TestFixtureTearDown()
 	{
 		foreach (var kvp in _httpClients)
 		{
 			kvp.Value.Dispose();
 		}
-		return base.TestFixtureTearDown();
+
+		if (_node != null)
+			await _node.Shutdown();
+
+		await base.TestFixtureTearDown();
 	}
 
 	[Test, Combinatorial]
@@ -182,21 +183,18 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 			"/-/liveness;GET;None",
 			"/-/readiness;GET;None",
 			"/-/metrics;GET;None",
-			"/ui/assets/{*remaining_path};GET;None"
+			"/ui/assets/favicon.png;GET;None"
 		)] string httpEndpointDetails
 	)
 	{
-		/*use the leader node endpoint to avoid any redirects*/
-		var nodeEndpoint = _nodes[_leaderId].HttpEndPoint;
 		var httpEndpointTokens = httpEndpointDetails.Split(';');
 		var endpointUrl = httpEndpointTokens[0];
 		var httpMethod = GetHttpMethod(httpEndpointTokens[1]);
 		var requiredMinAuthorizationLevel = httpEndpointTokens[2];
 
-		var url = $"https://{nodeEndpoint}{endpointUrl}";
-		var body = GetData(httpMethod, endpointUrl);
+		var body = GetData(httpMethod);
 		var contentType = httpMethod == HttpMethod.Post || httpMethod == HttpMethod.Put || httpMethod == HttpMethod.Delete ? "application/json" : null;
-		var statusCode = await SendRequest(_httpClients[userAuthorizationLevel], httpMethod, url, body, contentType);
+		var statusCode = await SendRequest(_httpClients[userAuthorizationLevel], httpMethod, endpointUrl, body, contentType);
 
 		if (GetAuthLevel(userAuthorizationLevel) >= GetAuthLevel(requiredMinAuthorizationLevel))
 		{
@@ -225,7 +223,7 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 		}
 	}
 
-	private string GetData(HttpMethod httpMethod, string url)
+	private string GetData(HttpMethod httpMethod)
 	{
 		if (httpMethod == HttpMethod.Post || httpMethod == HttpMethod.Put || httpMethod == HttpMethod.Delete)
 		{

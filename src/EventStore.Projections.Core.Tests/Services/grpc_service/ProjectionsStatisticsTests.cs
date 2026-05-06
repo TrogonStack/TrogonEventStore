@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using EventStore.Client;
 using EventStore.Client.Projections;
 using EventStore.Core.Tests;
-using EventStore.Projections.Core.Tests.ClientAPI.projectionsManager;
 using Grpc.Core;
 using Grpc.Net.Client;
 using NUnit.Framework;
@@ -14,7 +13,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId>
+public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId>
 {
 	private const string ExpectedRunningProjectionPosition = "C:0/P:-1";
 	private static readonly TimeSpan StatisticsCallDeadline = TimeSpan.FromSeconds(10);

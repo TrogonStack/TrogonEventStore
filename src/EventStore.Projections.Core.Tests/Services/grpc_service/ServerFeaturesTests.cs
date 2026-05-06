@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using EventStore.Client;
 using EventStore.Client.ServerFeatures;
 using EventStore.Core.Tests;
-using EventStore.Projections.Core.Tests.ClientAPI.projectionsManager;
 using Google.Protobuf.Reflection;
 using Grpc.Net.Client;
 using NUnit.Framework;
@@ -14,7 +13,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ServerFeaturesTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId>
+public class ServerFeaturesTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId>
 {
 	private List<SupportedMethod> _supportedEndPoints = new();
 	private List<SupportedMethod> _expectedEndPoints = new();

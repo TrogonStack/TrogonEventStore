@@ -1,11 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
-using EventStore.ClientAPI.Common.Log;
-using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Options;
 using EventStore.Core.Services;
@@ -16,12 +12,11 @@ using EventStore.Core.Util;
 using EventStore.Projections.Core.Services.Processing;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.ClientAPI.projectionsManager;
+namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
-public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
 {
 	protected MiniNode<TLogFormat, TStreamId> _node;
-	protected ProjectionsManager _projManager;
 	protected IEventStoreConnection _connection;
 	protected UserCredentials _credentials;
 	protected TimeSpan _timeout;
@@ -37,7 +32,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		await base.TestFixtureSetUp();
 		_credentials = new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword);
 		_timeout = TimeSpan.FromSeconds(20);
-		// Check if a node is running in ProjectionsManagerTestSuiteMarkerBase
 		_tag = "_1";
 
 		_node = CreateNode();
@@ -51,7 +45,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials),
 			StartupTimeout);
 
-		_projManager = new ProjectionsManager(new ConsoleLogger(), _node.HttpEndPoint, _timeout, _node.HttpMessageHandler);
 		try
 		{
 			await Given().WithTimeout(_timeout);
@@ -90,8 +83,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 			}
 		}
 
-		TestConnectionLifecycle.DisposeIfNeeded(_projManager);
-
 		await _node.Shutdown();
 		await Task.Delay(1000);
 
@@ -120,18 +111,6 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
 		return _connection.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
 	}
 
-	protected Task CreateOneTimeProjection()
-	{
-		var query = CreateStandardQuery(Guid.NewGuid().ToString());
-		return _projManager.CreateOneTimeAsync(query, _credentials);
-	}
-
-	protected Task CreateContinuousProjection(string projectionName)
-	{
-		var query = CreateStandardQuery(Guid.NewGuid().ToString());
-		return _projManager.CreateContinuousAsync(projectionName, query, _credentials);
-	}
-
 	protected string CreateStandardQuery(string stream)
 	{
 		return @"fromStream(""" + stream + @""")
@@ -153,12 +132,4 @@ public abstract class SpecificationWithNodeAndProjectionsManager<TLogFormat, TSt
                 });";
 	}
 
-	private List<string> _systemProjections =>
-		typeof(ProjectionNamesBuilder.StandardProjections).GetFields(
-				System.Reflection.BindingFlags.Public |
-				System.Reflection.BindingFlags.Static |
-				System.Reflection.BindingFlags.FlattenHierarchy)
-			.Where(x => x.IsLiteral && !x.IsInitOnly)
-			.Select(x => x.GetRawConstantValue().ToString())
-			.ToList();
 }
