@@ -1,6 +1,4 @@
 using System;
-using System.Linq;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using EventStore.Client.Monitoring;
 using EventStore.Core.Bus;
@@ -13,39 +11,60 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		private readonly IPublisher _publisher;
 		
 		public override Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context) {
-			var channel = Channel.CreateBounded<StatsResp>(new BoundedChannelOptions(1) {
-				SingleReader = true,
-				SingleWriter = true
-			});
+			var useGrouping = request.HasUseGrouping ? request.UseGrouping : false;
+			if (!useGrouping && !string.IsNullOrEmpty(request.StatsPath))
+				throw new RpcException(
+					new Status(StatusCode.InvalidArgument,
+						"Dynamic stats selection works only with grouping enabled"));
 
-			_ = Receive();
+			return StreamStats();
 
-			return channel.Reader.ReadAllAsync(context.CancellationToken)
-				.ForEachAwaitAsync(responseStream.WriteAsync, context.CancellationToken);
-			
-			async Task Receive() {
+			async Task StreamStats() {
 				var delay = TimeSpan.FromMilliseconds(request.RefreshTimePeriodInMs);
+				while (!context.CancellationToken.IsCancellationRequested) {
+					var completed = await GetFreshStats(context.CancellationToken);
+					if (!completed.Success) {
+						throw new RpcException(
+							new Status(StatusCode.NotFound, "Statistics path was not found."));
+					}
+
+					var response = new StatsResp {
+						StructuredStats = MonitoringStats.ToValue(completed.Stats)
+					};
+					if (!useGrouping) {
+						foreach (var (key, value) in completed.Stats) {
+							if (value is not null)
+								response.Stats.Add(key, value.ToString());
+						}
+					}
+
+					await responseStream.WriteAsync(response);
+					await Task.Delay(delay, context.CancellationToken);
+				}
+			}
+
+			Task<MonitoringMessage.GetFreshStatsCompleted> GetFreshStats(System.Threading.CancellationToken cancellationToken) {
+				var responseSource =
+					new TaskCompletionSource<MonitoringMessage.GetFreshStatsCompleted>(
+						TaskCreationOptions.RunContinuationsAsynchronously);
 				var envelope = new CallbackEnvelope(message => {
 					if (message is not MonitoringMessage.GetFreshStatsCompleted completed) {
-						channel.Writer.TryComplete(UnknownMessage<MonitoringMessage.GetFreshStatsCompleted>(message));
+						responseSource.TrySetException(
+							UnknownMessage<MonitoringMessage.GetFreshStatsCompleted>(message));
 						return;
 					}
 
-					var response = new StatsResp();
-
-					foreach (var (key, value) in completed.Stats.Where(stat => stat.Value is not null)) {
-						response.Stats.Add(key, value.ToString());
-					}
-
-					channel.Writer.TryWrite(response);
-
+					responseSource.TrySetResult(completed);
 				});
-				while (!context.CancellationToken.IsCancellationRequested) {
-					_publisher.Publish(
-						new MonitoringMessage.GetFreshStats(envelope, x => x, request.UseMetadata, false));
 
-					await Task.Delay(delay, context.CancellationToken);
-				}
+				_publisher.Publish(
+					new MonitoringMessage.GetFreshStats(
+						envelope,
+						MonitoringStats.GetStatSelector(request.StatsPath),
+						request.UseMetadata,
+						useGrouping));
+
+				return responseSource.Task.WaitAsync(cancellationToken);
 			}
 		}
 
