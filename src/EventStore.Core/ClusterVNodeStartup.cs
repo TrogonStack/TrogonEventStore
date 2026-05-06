@@ -150,19 +150,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		if (!_disableHttpMetrics)
 		{
 			app.Map("/-/metrics", metrics => metrics
-				.Use(async (context, next) =>
-				{
-						if (await _authorizationProvider.CheckAccessAsync(
-						    context.User,
-						    new Operation(EventStore.Plugins.Authorization.Operations.Node.Statistics.Read),
-						    context.RequestAborted))
-					{
-						await next(context);
-						return;
-					}
-
-					context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-				})
 				.UseOpenTelemetryPrometheusScrapingEndpoint(static _ => true));
 		}
 
