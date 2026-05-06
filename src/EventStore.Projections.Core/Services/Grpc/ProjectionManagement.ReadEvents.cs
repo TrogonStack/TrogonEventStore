@@ -21,6 +21,8 @@ internal partial class ProjectionManagement
 	public override async Task<ReadEventsResp> ReadEvents(ReadEventsReq request, ServerCallContext context)
 	{
 		var readSource = new TaskCompletionSource<FeedReaderMessage.FeedPage>();
+		using var cancellationRegistration =
+			context.CancellationToken.Register(() => readSource.TrySetCanceled(context.CancellationToken));
 		var options = request.Options;
 		var user = context.GetHttpContext().User;
 

@@ -15,6 +15,8 @@ internal partial class ProjectionManagement
 	public override async Task<AbortResp> Abort(AbortReq request, ServerCallContext context)
 	{
 		var abortSource = new TaskCompletionSource<bool>();
+		using var cancellationRegistration =
+			context.CancellationToken.Register(() => abortSource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
 		var user = context.GetHttpContext().User;
 
