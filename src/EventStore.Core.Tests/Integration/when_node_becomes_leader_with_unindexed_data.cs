@@ -176,10 +176,10 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 		return Task.CompletedTask;
 	}
 
-	private async Task<HttpStatusCode> GetLiveStatus(IPEndPoint httpEndPoint)
+	private async Task<bool> IsNodeReady(IPEndPoint httpEndPoint)
 	{
 		var response = await _httpClient.GetAsync($"https://{httpEndPoint}/-/readiness");
-		return response.StatusCode;
+		return response.IsSuccessStatusCode;
 	}
 
 	private async Task WaitForAllNodesToBeLive()
@@ -192,7 +192,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 
 	private async Task WaitForNodeToBeLive(int idx)
 	{
-		while (await GetLiveStatus(_nodes[idx].HttpEndPoint) != HttpStatusCode.NoContent)
+		while (!await IsNodeReady(_nodes[idx].HttpEndPoint))
 		{
 			await Task.Delay(100);
 		}
