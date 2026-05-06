@@ -28,6 +28,7 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 	private GrpcChannel _channel;
 	private Client.Projections.Projections.ProjectionsClient _client;
 	private GetQueryResp _query;
+	private GetQueryResp _disabledOneTimeQuery;
 	private GetConfigResp _initialConfig;
 	private GetConfigResp _updatedConfig;
 	private ReadEventsResp _feedPage;
@@ -83,6 +84,12 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 		_query = await _client.GetQueryAsync(new GetQueryReq {
 			Options = new GetQueryReq.Types.Options {
 				Name = ProjectionName
+			}
+		}, GetCallOptions());
+
+		_disabledOneTimeQuery = await _client.GetQueryAsync(new GetQueryReq {
+			Options = new GetQueryReq.Types.Options {
+				Name = DisabledOneTimeProjectionName
 			}
 		}, GetCallOptions());
 
@@ -149,6 +156,13 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 		Assert.That(_query.Details.CheckpointsEnabled, Is.True);
 		Assert.That(_query.Details.DefinitionJson, Is.Not.Empty);
 		Assert.That(_query.Details.OutputConfigJson, Is.Not.Empty);
+	}
+
+	[Test]
+	public void create_ignores_track_emitted_streams_when_emit_is_disabled()
+	{
+		Assert.That(_disabledOneTimeQuery.Details.EmitEnabled, Is.False);
+		Assert.That(_disabledOneTimeQuery.Details.TrackEmittedStreams, Is.False);
 	}
 
 	[Test]

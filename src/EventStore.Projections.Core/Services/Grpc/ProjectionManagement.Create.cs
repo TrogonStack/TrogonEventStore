@@ -51,10 +51,6 @@ internal partial class ProjectionManagement
 		{
 			(ModeOneofCase.OneTime, true) when options.TrackEmittedStreams => true,
 			(ModeOneofCase.Continuous, true) when options.Continuous.TrackEmittedStreams => true,
-			(ModeOneofCase.OneTime, false) when options.TrackEmittedStreams =>
-				throw new InvalidOperationException("EmitEnabled must be set to true to track emitted streams."),
-			(ModeOneofCase.Continuous, false) when options.Continuous.TrackEmittedStreams =>
-				throw new InvalidOperationException("EmitEnabled must be set to true to track emitted streams."),
 			_ => false
 		};
 		var checkpointsEnabled = options.ModeCase switch
