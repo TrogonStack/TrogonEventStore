@@ -38,11 +38,7 @@ Messages that have been retried too often will be parked in the persistent subsc
 
 If you want to retry the parked messages, you can `Replay` the parked messages for that subscription. This will push the parked messages to subscribers before any new events on the subscription.
 
-You can also specify the number of parked messages to replay over the HTTP endpoint. This can be done by providing the `stopAt` parameter when requesting to replay messages through the HTTP url. For example:
-
-```bash:no-line-numbers
-curl -i -X POST -d {} https://localhost:2113/subscriptions/{stream}/{groupnanme}/replayParked?stopAt={numberofevents} -u "admin:changeit"
-```
+The Admin UI and gRPC `PersistentSubscriptions.ReplayParked` RPC can limit how many parked messages are replayed.
 
 If you don't want to replay any of the parked messages for a subscription and want to clear them out, you can do this by deleting the parked stream like a normal stream.
 

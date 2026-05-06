@@ -5,7 +5,7 @@ title: Networking
 ## Network configuration
 
 EventStoreDB provides two interfaces: 
-- HTTP(S) for gRPC communication and REST APIs
+- HTTP(S) for gRPC communication, the Admin UI, and operational endpoints such as health checks and metrics
 - TCP for cluster replication (internal)
 
 Nodes in the cluster replicate with each other using the TCP protocol, but use gRPC for [discovering other cluster nodes](cluster.md#discovering-cluster-members).
@@ -16,7 +16,7 @@ For gRPC and HTTP, there's no internal vs external separation of traffic.
 
 ## HTTP configuration
 
-HTTP is the primary protocol for EventStoreDB. It is used in gRPC communication and HTTP APIs (management, gossip and diagnostics).
+HTTP is the primary protocol for EventStoreDB. It carries gRPC communication, the Admin UI, health checks, metrics, and supported diagnostics endpoints.
 The HTTP endpoint always binds to the IP address configured in the `NodeIp` setting (previously referred to as `ExtIp`).
 
 | Format               | Syntax               |
@@ -453,6 +453,5 @@ When the plugin starts, you should see a log similar to the following:
 ```
 [11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
 ```
-
 
 
