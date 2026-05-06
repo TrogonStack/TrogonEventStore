@@ -24,12 +24,14 @@ internal partial class ProjectionManagement
 		{
 			throw RpcExceptions.AccessDenied();
 		}
-		const string handlerType = "JS";
+		var handlerType = string.IsNullOrWhiteSpace(options.HandlerType) ? "JS" : options.HandlerType;
 		var name = options.ModeCase switch
 		{
 			ModeOneofCase.Continuous => options.Continuous.Name,
 			ModeOneofCase.Transient => options.Transient.Name,
-			ModeOneofCase.OneTime => Guid.NewGuid().ToString("D"),
+			ModeOneofCase.OneTime => string.IsNullOrWhiteSpace(options.Name)
+				? Guid.NewGuid().ToString("D")
+				: options.Name,
 			_ => throw new InvalidOperationException()
 		};
 		var projectionMode = options.ModeCase switch
@@ -41,21 +43,29 @@ internal partial class ProjectionManagement
 		};
 		var emitEnabled = options.ModeCase switch
 		{
+			ModeOneofCase.OneTime => options.EmitEnabled,
 			ModeOneofCase.Continuous => options.Continuous.EmitEnabled,
 			_ => false
 		};
-		var trackEmittedStreams = (options.ModeCase, emitEnabled, options.Continuous?.TrackEmittedStreams) switch
+		var trackEmittedStreams = (options.ModeCase, emitEnabled) switch
 		{
-			(ModeOneofCase.Continuous, true, true) => true,
-			(ModeOneofCase.Continuous, false, true) =>
-				throw new InvalidOperationException("EmitEnabled must be set to true to track emitted streams."),
+			(ModeOneofCase.OneTime, true) when options.TrackEmittedStreams => true,
+			(ModeOneofCase.Continuous, true) when options.Continuous.TrackEmittedStreams => true,
 			_ => false
 		};
 		var checkpointsEnabled = options.ModeCase switch
 		{
 			ModeOneofCase.Continuous => true,
-			ModeOneofCase.OneTime => false,
+			ModeOneofCase.OneTime => options.CheckpointsEnabled,
 			ModeOneofCase.Transient => false,
+			_ => throw new InvalidOperationException()
+		};
+		var enabled = (options.EnabledOptionCase, options.Enabled) switch
+		{
+			(EnabledOptionOneofCase.Enabled, true) => true,
+			(EnabledOptionOneofCase.Enabled, false) => false,
+			(EnabledOptionOneofCase.NoEnabledOption, _) => true,
+			(EnabledOptionOneofCase.None, _) => true,
 			_ => throw new InvalidOperationException()
 		};
 
@@ -64,7 +74,7 @@ internal partial class ProjectionManagement
 		var envelope = new CallbackEnvelope(OnMessage);
 
 		_publisher.Publish(new ProjectionManagementMessage.Command.Post(envelope, projectionMode, name, runAs,
-			handlerType, options.Query, true, checkpointsEnabled, emitEnabled, trackEmittedStreams, true));
+			handlerType, options.Query, enabled, checkpointsEnabled, emitEnabled, trackEmittedStreams, true));
 
 		await createdSource.Task;
 

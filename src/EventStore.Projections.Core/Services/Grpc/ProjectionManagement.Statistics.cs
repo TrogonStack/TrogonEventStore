@@ -28,6 +28,7 @@ internal partial class ProjectionManagement
 		var name = string.IsNullOrEmpty(options.Name) ? null : options.Name;
 		var mode = options.ModeCase switch
 		{
+			ModeOneofCase.AllNonTransient => ProjectionMode.AllNonTransient,
 			ModeOneofCase.Continuous => ProjectionMode.Continuous,
 			ModeOneofCase.Transient => ProjectionMode.Transient,
 			ModeOneofCase.OneTime => ProjectionMode.OneTime,

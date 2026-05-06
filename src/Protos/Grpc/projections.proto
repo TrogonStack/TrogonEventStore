@@ -8,13 +8,18 @@ import "shared.proto";
 service Projections {
 	rpc Create (CreateReq) returns (CreateResp);
 	rpc Update (UpdateReq) returns (UpdateResp);
+	rpc GetQuery (GetQueryReq) returns (GetQueryResp);
 	rpc Delete (DeleteReq) returns (DeleteResp);
 	rpc Statistics (StatisticsReq) returns (stream StatisticsResp);
 	rpc Disable (DisableReq) returns (DisableResp);
 	rpc Enable (EnableReq) returns (EnableResp);
 	rpc Reset (ResetReq) returns (ResetResp);
+	rpc Abort (AbortReq) returns (AbortResp);
 	rpc State (StateReq) returns (StateResp);
 	rpc Result (ResultReq) returns (ResultResp);
+	rpc GetConfig (GetConfigReq) returns (GetConfigResp);
+	rpc UpdateConfig (UpdateConfigReq) returns (UpdateConfigResp);
+	rpc ReadEvents (ReadEventsReq) returns (ReadEventsResp);
 	rpc RestartSubsystem (event_store.client.Empty) returns (event_store.client.Empty);
 }
 
@@ -28,6 +33,15 @@ message CreateReq {
 			Continuous continuous = 3;
 		}
 		string query = 4;
+		string handler_type = 5;
+		oneof enabled_option {
+			bool enabled = 6;
+			event_store.client.Empty no_enabled_option = 7;
+		}
+		optional string name = 8;
+		bool checkpoints_enabled = 9;
+		bool emit_enabled = 10;
+		bool track_emitted_streams = 11;
 
 		message Transient {
 			string name = 1;
@@ -59,6 +73,29 @@ message UpdateReq {
 message UpdateResp {
 }
 
+message GetQueryReq {
+	Options options = 1;
+
+	message Options {
+		string name = 1;
+	}
+}
+
+message GetQueryResp {
+	Details details = 1;
+
+	message Details {
+		string name = 1;
+		string query = 2;
+		bool emit_enabled = 3;
+		string projection_type = 4;
+		optional bool track_emitted_streams = 5;
+		optional bool checkpoints_enabled = 6;
+		string definition_json = 7;
+		string output_config_json = 8;
+	}
+}
+
 message DeleteReq {
 	Options options = 1;
 
@@ -82,6 +119,7 @@ message StatisticsReq {
 			event_store.client.Empty transient = 3;
 			event_store.client.Empty continuous = 4;
 			event_store.client.Empty one_time = 5;
+			event_store.client.Empty all_non_transient = 6;
 		}
 	}
 }
@@ -138,6 +176,50 @@ message ResultResp {
 	google.protobuf.Value result = 1;
 }
 
+message GetConfigReq {
+	Options options = 1;
+
+	message Options {
+		string name = 1;
+	}
+}
+
+message GetConfigResp {
+	Details details = 1;
+
+	message Details {
+		bool emit_enabled = 1;
+		bool track_emitted_streams = 2;
+		int32 checkpoint_after_ms = 3;
+		int32 checkpoint_handled_threshold = 4;
+		int32 checkpoint_unhandled_bytes_threshold = 5;
+		int32 pending_events_threshold = 6;
+		int32 max_write_batch_length = 7;
+		int32 max_allowed_writes_in_flight = 8;
+		optional int32 projection_execution_timeout = 9;
+	}
+}
+
+message UpdateConfigReq {
+	Options options = 1;
+
+	message Options {
+		string name = 1;
+		bool emit_enabled = 2;
+		bool track_emitted_streams = 3;
+		int32 checkpoint_after_ms = 4;
+		int32 checkpoint_handled_threshold = 5;
+		int32 checkpoint_unhandled_bytes_threshold = 6;
+		int32 pending_events_threshold = 7;
+		int32 max_write_batch_length = 8;
+		int32 max_allowed_writes_in_flight = 9;
+		optional int32 projection_execution_timeout = 10;
+	}
+}
+
+message UpdateConfigResp {
+}
+
 message ResetReq {
 	Options options = 1;
 
@@ -150,6 +232,16 @@ message ResetReq {
 message ResetResp {
 }
 
+message AbortReq {
+	Options options = 1;
+
+	message Options {
+		string name = 1;
+	}
+}
+
+message AbortResp {
+}
 
 message EnableReq {
 	Options options = 1;
@@ -172,4 +264,35 @@ message DisableReq {
 }
 
 message DisableResp {
+}
+
+message ReadEventsReq {
+	Options options = 1;
+
+	message Options {
+		string query_sources_json = 1;
+		string position_json = 2;
+		int32 max_events = 3;
+	}
+}
+
+message ReadEventsResp {
+	Details details = 1;
+
+	message Details {
+		string correlation_id = 1;
+		string reader_position_json = 2;
+		repeated Event events = 3;
+
+		message Event {
+			string event_stream_id = 1;
+			int64 event_number = 2;
+			string event_type = 3;
+			google.protobuf.Value data = 4;
+			google.protobuf.Value metadata = 5;
+			google.protobuf.Value link_metadata = 6;
+			bool is_json = 7;
+			string reader_position_json = 8;
+		}
+	}
 }

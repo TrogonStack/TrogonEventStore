@@ -24,6 +24,7 @@
 		<PackageReference Include="NUnit3TestAdapter" />
 		<PackageReference Include="Serilog.Sinks.TextWriter" />
 		<PackageReference Include="Google.Protobuf" />
+		<PackageReference Include="Grpc.AspNetCore.HealthChecks" />
 		<PackageReference Include="Grpc.Tools">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

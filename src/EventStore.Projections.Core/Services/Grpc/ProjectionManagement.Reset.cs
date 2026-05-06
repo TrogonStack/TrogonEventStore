@@ -10,7 +10,7 @@ namespace EventStore.Projections.Core.Services.Grpc;
 
 internal partial class ProjectionManagement
 {
-	private static readonly Operation ResetOperation = new Operation(Operations.Projections.Create);
+	private static readonly Operation ResetOperation = new Operation(Operations.Projections.Reset);
 	public override async Task<ResetResp> Reset(ResetReq request, ServerCallContext context)
 	{
 		var resetSource = new TaskCompletionSource<bool>();
