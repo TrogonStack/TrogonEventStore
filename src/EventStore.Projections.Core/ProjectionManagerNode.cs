@@ -12,7 +12,6 @@ using EventStore.Core.Telemetry;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Messaging;
 using EventStore.Projections.Core.Metrics;
-using EventStore.Projections.Core.Services.Http;
 using EventStore.Projections.Core.Services.Management;
 using EventStore.Projections.Core.Services.Processing;
 
@@ -31,22 +30,9 @@ public class ProjectionManagerNode
 		IPublisher outputQueue = projectionsStandardComponents.LeaderOutputQueue;
 		var ioDispatcher = new IODispatcher(outputQueue, inputQueue, true);
 
-		var projectionsController = new ProjectionsController(
-			standardComponents.HttpForwarder,
-			inputQueue,
-			standardComponents.NetworkSendService);
-
 		var forwarder = new RequestResponseQueueForwarder(
 			inputQueue: projectionsStandardComponents.LeaderInputQueue,
 			externalRequestQueue: standardComponents.MainQueue);
-
-		if (projectionsStandardComponents.RunProjections != ProjectionType.None)
-		{
-			foreach (var httpService in standardComponents.HttpServices)
-			{
-				httpService.SetupController(projectionsController);
-			}
-		}
 
 		var projectionManagerMessageDispatcher = new ProjectionManagerMessageDispatcher(queues);
 
