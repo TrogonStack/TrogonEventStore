@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Http.Authentication;
-using EventStore.Core.Services.Transport.Http.Messages;
 using EventStore.Core.Tests.Authentication;
 using EventStore.Plugins.Authentication;
 using EventStore.Transport.Http.EntityManagement;

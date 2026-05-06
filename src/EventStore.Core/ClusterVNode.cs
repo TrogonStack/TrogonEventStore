@@ -855,11 +855,6 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(storageChaser);
 		// REPLICATION TRACKING END
 
-		var httpPipe = new HttpMessagePipe();
-		var httpSendService = new HttpSendService(httpPipe, true, _externalServerCertificateValidator);
-		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(httpSendService);
-		SubscribeWorkers(bus => bus.Subscribe<HttpMessage.HttpSend>(httpSendService));
-
 		var grpcSendService = new GrpcSendService(_eventStoreClusterClientCache);
 		_mainBus.Subscribe<GrpcMessage.SendOverGrpc>(_workersHandler);
 		SubscribeWorkers(bus =>
@@ -931,15 +926,7 @@ public class ClusterVNode<TStreamId> :
 				nodeTcpOptions?.NodeTcpPortAdvertiseAs ?? 0);
 		}
 
-		_httpService = new KestrelHttpService(ServiceAccessibility.Public, _mainQueue, new TrieUriRouter(),
-			options.Application.LogHttpRequests,
-			string.IsNullOrEmpty(GossipAdvertiseInfo.AdvertiseHostToClientAs)
-				? GossipAdvertiseInfo.AdvertiseExternalHostAs
-				: GossipAdvertiseInfo.AdvertiseHostToClientAs,
-			GossipAdvertiseInfo.AdvertiseHttpPortToClientAs == 0
-				? GossipAdvertiseInfo.AdvertiseHttpPortAs
-				: GossipAdvertiseInfo.AdvertiseHttpPortToClientAs,
-			NodeInfo.HttpEndPoint);
+		_httpService = new KestrelHttpService(_mainQueue, NodeInfo.HttpEndPoint);
 
 		var components = new AuthenticationProviderFactoryComponents
 		{
@@ -947,8 +934,6 @@ public class ClusterVNode<TStreamId> :
 			MainQueue = _mainQueue,
 			WorkerBuses = _workerBuses,
 			WorkersQueue = _workersHandler,
-			HttpSendService = httpSendService,
-			HttpService = _httpService,
 		};
 
 		// AUTHENTICATION INFRASTRUCTURE - delegate to plugins
@@ -1090,8 +1075,6 @@ public class ClusterVNode<TStreamId> :
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(_httpService);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(_httpService);
-
-		SubscribeWorkers(KestrelHttpService.CreateAndSubscribePipeline);
 
 		// REQUEST FORWARDING
 		var forwardingService = new RequestForwardingService(_mainQueue, forwardingProxy, TimeSpan.FromSeconds(1));
@@ -1596,7 +1579,7 @@ public class ClusterVNode<TStreamId> :
 		_subsystems = options.Subsystems;
 
 		var standardComponents = new StandardComponents(Db.Config, _mainQueue, _mainBus, _timerService, _timeProvider,
-			httpSendService, new IHttpService[] { _httpService }, _workersHandler, monitoringQueue, _queueStatsManager,
+			new IHttpService[] { _httpService }, _workersHandler, monitoringQueue, _queueStatsManager,
 			trackers.QueueTrackers, metricsConfiguration.ProjectionStats);
 
 		IServiceCollection ConfigureNodeServices(IServiceCollection services)

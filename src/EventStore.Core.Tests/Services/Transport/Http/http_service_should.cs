@@ -107,12 +107,7 @@ public class kestrel_http_service_should
 	{
 		var inputBus = new FakeQueuedHandler();
 		var sut = new KestrelHttpService(
-			ServiceAccessibility.Public,
 			inputBus,
-			new TrieUriRouter(),
-			logHttpRequests: false,
-			advertiseAsHost: "127.0.0.1",
-			advertiseAsPort: 2113,
 			new IPEndPoint(IPAddress.Loopback, 2113));
 
 		sut.Handle(new SystemMessage.SystemInit());
@@ -137,12 +132,7 @@ public class kestrel_http_service_should
 	{
 		var inputBus = new FakeQueuedHandler();
 		var sut = new KestrelHttpService(
-			ServiceAccessibility.Public,
 			inputBus,
-			new TrieUriRouter(),
-			logHttpRequests: false,
-			advertiseAsHost: "127.0.0.1",
-			advertiseAsPort: 2113,
 			new IPEndPoint(IPAddress.Loopback, 2113));
 
 		sut.Handle(new SystemMessage.SystemInit());
@@ -153,24 +143,5 @@ public class kestrel_http_service_should
 		var shutdownMessage = inputBus.PublishedMessages.OfType<SystemMessage.ServiceShutdown>().Single();
 		Assert.That(shutdownMessage.ServiceName, Is.EqualTo("HttpServer [127.0.0.1:2113]"));
 		Assert.That(sut.IsListening, Is.False);
-	}
-}
-
-[TestFixture, Category("LongRunning")]
-public class when_http_request_times_out : SpecificationWithDirectory
-{
-	[Test]
-	[Category("Network")]
-	public async Task should_throw_an_exception()
-	{
-		var timeoutSec = 2;
-		var sleepFor = timeoutSec + 1;
-
-		await using var node = new MiniNode<LogFormat.V2, string>(PathName, httpClientTimeoutSec: timeoutSec);
-		await node.Start();
-
-		Assert.ThrowsAsync<TaskCanceledException>(() => node.HttpClient
-				.GetAsync(string.Format("/test-timeout?sleepfor={0}", sleepFor * 1000)),
-			message: "The client aborted the request.");
 	}
 }
