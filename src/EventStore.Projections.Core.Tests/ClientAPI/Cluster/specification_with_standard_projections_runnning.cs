@@ -6,8 +6,6 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
-using EventStore.ClientAPI.Common.Log;
-using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Options;
 using EventStore.Core.Data;
@@ -29,7 +27,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected IEventStoreConnection _conn;
 	private readonly ProjectionsSubsystem[] _projections = new ProjectionsSubsystem[3];
 	protected UserCredentials _admin = DefaultData.AdminCredentials;
-	protected ProjectionsManager _manager;
+	private protected ProjectionManagementTestClient ProjectionClient;
 
 	protected class Endpoints
 	{
@@ -94,10 +92,8 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		_conn = EventStoreConnection.Create(_nodes[0].ExternalTcpEndPoint);
 		await _conn.ConnectAsync().WithTimeout();
 
-		_manager = new ProjectionsManager(
-			new ConsoleLogger(),
-			_nodes.Single(x => x.NodeState == VNodeState.Leader).HttpEndPoint,
-			TimeSpan.FromMilliseconds(10000));
+		var leader = _nodes.Single(x => x.NodeState == VNodeState.Leader);
+		ProjectionClient = new ProjectionManagementTestClient(leader.HttpEndPoint, leader.CreateHttpClient());
 
 		if (GivenStandardProjectionsRunning())
 		{
@@ -140,9 +136,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	[TearDown]
 	public async Task PostTestAsserts()
 	{
-		var all = await _manager.ListAllAsync(_admin);
-		if (all.Any(p => p.Name == "Faulted"))
-			Assert.Fail("Projections faulted while running the test" + "\r\n" + all);
+		var all = await ProjectionClient.StatisticsAll();
+		if (all.Any(p => p.Status == "Faulted"))
+			Assert.Fail("Projections faulted while running the test" + "\r\n" + string.Join("\r\n", all));
 	}
 
 	protected async Task EnableStandardProjections()
@@ -172,7 +168,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		{
 			try
 			{
-				await _manager.EnableAsync(name, _admin);
+				await ProjectionClient.Enable(name);
 			}
 			catch (Exception)
 			{
@@ -187,12 +183,18 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected Task DisableProjection(string name)
 	{
-		return _manager.DisableAsync(name, _admin);
+		return ProjectionClient.Disable(name);
+	}
+
+	protected Task AbortProjection(string name)
+	{
+		return ProjectionClient.Abort(name);
 	}
 
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
 	{
+		ProjectionClient?.Dispose();
 		_conn.Close();
 		await Task.WhenAll(
 			_nodes[0].Shutdown(),
@@ -326,7 +328,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected async Task PostProjection(string query)
 	{
-		await _manager.CreateContinuousAsync("test-projection", query, _admin);
+		await ProjectionClient.CreateContinuous("test-projection", query);
 		WaitIdle();
 	}
 }

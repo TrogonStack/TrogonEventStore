@@ -10,7 +10,6 @@ using EventStore.Core.Tests;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Services.Processing.Checkpointing;
-using EventStore.Projections.Core.Tests.ClientAPI.projectionsManager;
 using Grpc.Core;
 using Grpc.Net.Client;
 using NUnit.Framework;
@@ -18,7 +17,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ProjectionManagementParityTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionsManager<TLogFormat, TStreamId>
+public class ProjectionManagementParityTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId>
 {
 	private const string ProjectionName = "grpc-parity-projection";
 	private const string DisabledOneTimeProjectionName = "grpc-parity-one-time";

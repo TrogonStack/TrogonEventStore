@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using EventStore.ClientAPI.SystemData;
 using EventStore.Core.Tests;
 using NUnit.Framework;
 
@@ -16,7 +15,7 @@ public class list_projections<TLogFormat, TStreamId> : specification_with_standa
 	[Test]
 	public async Task list_all_projections_works()
 	{
-		var x = await _manager.ListAllAsync(new UserCredentials("admin", "changeit"));
+		var x = await ProjectionClient.StatisticsAll();
 		Assert.AreEqual(true, x.Any());
 		Assert.IsTrue(x.Any(p => p.Name == "$streams"));
 	}
@@ -24,8 +23,8 @@ public class list_projections<TLogFormat, TStreamId> : specification_with_standa
 	[Test]
 	public async Task list_oneTime_projections_works()
 	{
-		await _manager.CreateOneTimeAsync(TestProjection, new UserCredentials("admin", "changeit"));
-		var x = await _manager.ListOneTimeAsync(new UserCredentials("admin", "changeit"));
+		await ProjectionClient.CreateOneTime(TestProjection);
+		var x = await ProjectionClient.StatisticsOneTime();
 		Assert.AreEqual(true, x.Any(p => p.Mode == "OneTime"));
 	}
 
@@ -33,8 +32,8 @@ public class list_projections<TLogFormat, TStreamId> : specification_with_standa
 	public async Task list_continuous_projections_works()
 	{
 		var nameToTest = Guid.NewGuid().ToString();
-		await _manager.CreateContinuousAsync(nameToTest, TestProjection, new UserCredentials("admin", "changeit"));
-		var x = await _manager.ListContinuousAsync(new UserCredentials("admin", "changeit"));
+		await ProjectionClient.CreateContinuous(nameToTest, TestProjection);
+		var x = await ProjectionClient.StatisticsContinuous();
 		Assert.AreEqual(true, x.Any(p => p.Name == nameToTest));
 	}
 }
