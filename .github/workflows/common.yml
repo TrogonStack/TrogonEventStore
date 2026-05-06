@@ -27,6 +27,46 @@ permissions:
   packages: read
 
 jobs:
+  csharp-quality:
+    runs-on: ubuntu-latest
+    name: C# Quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install net8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Set up .NET NuGet authentication
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/TrogonStack/index.json" \
+            --name "github" \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text
+      - name: Resolve comparison refs
+        id: refs
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "base=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            echo "head=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Restore
+        run: |
+          dotnet restore src/EventStore.sln
+      - name: Lint unused variables
+        run: |
+          dotnet build --no-restore --configuration Release -p:Platform=x64 -warnaserror:CS0168,CS0219,CS8321 src/EventStore.sln
+      - name: Verify C# formatting
+        run: |
+          ./ci/csharp-format-changed.sh src/EventStore.sln "${{ steps.refs.outputs.base }}" "${{ steps.refs.outputs.head }}"
+
   vulnerability-scan:
     runs-on: ubuntu-latest
     name: Scan for Vulnerabilities
