@@ -93,7 +93,7 @@ If you see authentication errors when connecting to EventStoreDB after upgrading
 
 If you want to revert back to the old behavior, you can enable the `AllowAnonymousStreamAccess` and `AllowAnonymousEndpointAccess` options in EventStoreDB.
 Requests to the HTTP API must be authenticated by default.
-Like with anonymous access to streams, anonymous access to the HTTP and gRPC endpoints has been disabled by default. The HTTP exceptions are `/ping`, static UI content, and redirects.
+Like with anonymous access to streams, anonymous access to the HTTP and gRPC endpoints has been disabled by default. The HTTP exceptions are `/-/liveness`, `/-/readiness`, static UI content, and redirects.
 
 Any tools or monitoring scripts still using legacy HTTP diagnostics endpoints must move to the supported metrics and gRPC monitoring surfaces in this release.
 

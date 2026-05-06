@@ -15,12 +15,17 @@ securityDefinitions:
 schemes:
   - https
 paths:
-  /metrics:
+  /-/metrics:
     get:
       responses:
         "200":
           description: OK
-  /ping:
+  /-/liveness:
+    get:
+      responses:
+        "200":
+          description: OK
+  /-/readiness:
     get:
       responses:
         "200":

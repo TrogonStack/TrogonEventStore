@@ -33,7 +33,8 @@ public class FakeController : IHttpController
 		_http = http;
 
 		Register("/", HttpMethod.Get);
-		Register("/ping", HttpMethod.Get);
+		Register("/-/liveness", HttpMethod.Get);
+		Register("/-/readiness", HttpMethod.Get);
 		Register("/halt", HttpMethod.Get);
 		Register("/shutdown", HttpMethod.Get);
 		Register("/routes/{stream}", HttpMethod.Post);
@@ -57,6 +58,7 @@ public class FakeController : IHttpController
 		Register("/routes/{stream}/metadata/{event}/metadata", HttpMethod.Get);
 		Register("/routes/$all?embed={embed}", HttpMethod.Get);
 		Register("/routes/$all/{position}/{count}?embed={embed}", HttpMethod.Get);
+		Register("/-/metrics", HttpMethod.Get);
 		Register("/routes/$all/{position}/backward/{count}?embed={embed}", HttpMethod.Get);
 		Register("/routes/$all/{position}/forward/{count}?embed={embed}", HttpMethod.Get);
 		Register("/projections/any", HttpMethod.Get);

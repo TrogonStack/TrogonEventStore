@@ -84,7 +84,8 @@
 									<td class="px-5 py-4 font-mono text-xs text-es-muted">@HttpEndpoint(member)</td>
 									<td class="px-5 py-4 text-right">
 										<div class="flex flex-wrap justify-end gap-2">
-											<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@($"//{HttpEndpoint(member)}/ui?probe=ping")">Ping</a>
+											<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@($"//{HttpEndpoint(member)}/ui?probe=liveness")">Liveness</a>
+											<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@($"//{HttpEndpoint(member)}/ui?probe=readiness")">Readiness</a>
 											<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@($"//{HttpEndpoint(member)}/ui")">Open</a>
 											<a class="rounded-full border border-es-ink/10 px-3 py-1.5 text-xs font-bold text-es-ink hover:border-es-green hover:text-es-forest" href="@($"//{HttpEndpoint(member)}/ui?probe=cluster")">Membership</a>
 										</div>

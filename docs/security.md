@@ -115,7 +115,7 @@ The `AllowAnonymousEndpointAccess` option controls anonymous access to these end
 **Default**: `true`
 
 ::: tip
-Anonymous access is still always granted to `/ping`, the static content of the UI, and http redirects.
+Anonymous access is still always granted to `/-/liveness`, `/-/readiness`, the static content of the UI, and HTTP redirects.
 :::
 
 ### Certificates configuration
@@ -575,7 +575,7 @@ You can, however, disable TLS for both internal and external TCP.
 EventStoreDB supports authentication based on usernames and passwords out of the box. The Enterprise version
 also supports LDAP as the authentication source.
 
-Authentication is applied to all HTTP endpoints by default, except `/ping`, static web
+Authentication is applied to all HTTP endpoints by default, except `/-/liveness`, `/-/readiness`, static web
 content, and redirects.
 
 ### Default users
@@ -593,7 +593,7 @@ except for `$scavenges` and `$scavenges-streams`).
 ### New users
 
 New users created in EventStoreDB are standard non-admin users. They can call endpoints permitted by the
-authorization policy, including default anonymous endpoints such as `/ping`.
+authorization policy, including default anonymous endpoints such as `/-/liveness` and `/-/readiness`.
 
 Internal cluster endpoints, such as election and gossip updates, are only available to system node traffic.
 
@@ -847,7 +847,7 @@ UserCertificatesPlugin: user X.509 certificate authentication is enabled
 Use the following command as an example authenticated request using `curl`:
 
 ```bash
-curl -i https://localhost:2113/metrics --cert user-admin.crt --key user-admin.key
+curl -i https://localhost:2113/-/metrics --cert user-admin.crt --key user-admin.key
 ```
 
 For using X.509 user certificate with EventStoreDB client from an application, refer to the client's documentation.

@@ -19,8 +19,8 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 		protected override void SubscribeCore(IHttpService service) {
 			Ensure.NotNull(service, "service");
 
-			// this exists only to specify the permissions required for the /metrics endpoint
-			service.RegisterAction(new ControllerAction("/metrics", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs,
+			// this exists only to specify the permissions required for the /-/metrics endpoint
+			service.RegisterAction(new ControllerAction("/-/metrics", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs,
 				new Operation(Operations.Node.Statistics.Read)),
 				(x, y) => {
 					// the PrometheusExporterMiddleware handles the request itself, this will not be called

@@ -21,10 +21,16 @@ public sealed class NodeProbeService : IDisposable {
 
 	public static readonly IReadOnlyList<NodeProbeDefinition> Probes = [
 		new(
-			"ping",
-			"Ping",
-			"/ping",
+			"liveness",
+			"Liveness",
+			"/-/liveness",
 			"Process availability probe.",
+			new Operation(Operations.Node.Ping)),
+		new(
+			"readiness",
+			"Readiness",
+			"/-/readiness",
+			"Traffic readiness probe.",
 			new Operation(Operations.Node.Ping)),
 		new(
 			"info",
