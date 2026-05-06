@@ -48,7 +48,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly int _maxAppendSize;
 	private readonly TimeSpan _writeTimeout;
 	private readonly IExpiryStrategy _expiryStrategy;
-	private readonly KestrelHttpService _httpService;
 	private readonly IConfiguration _configuration;
 	private readonly Trackers _trackers;
 	private readonly NodeHealthState _nodeHealthState;
@@ -58,7 +57,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly Action<IApplicationBuilder> _configureNode;
 
 	private readonly IAuthorizationProvider _authorizationProvider;
-	private readonly MultiQueuedHandler _httpMessageHandler;
 	private readonly string _clusterDns;
 
 	public ClusterVNodeStartup(
@@ -66,13 +64,11 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		IPublisher mainQueue,
 		IPublisher monitoringQueue,
 		ISubscriber mainBus,
-		MultiQueuedHandler httpMessageHandler,
 		IAuthenticationProvider authenticationProvider,
 		IAuthorizationProvider authorizationProvider,
 		int maxAppendSize,
 		TimeSpan writeTimeout,
 		IExpiryStrategy expiryStrategy,
-		KestrelHttpService httpService,
 		bool disableHttpMetrics,
 		IConfiguration configuration,
 		Trackers trackers,
@@ -83,11 +79,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	{
 
 		Ensure.Positive(maxAppendSize, nameof(maxAppendSize));
-
-		if (httpService == null)
-		{
-			throw new ArgumentNullException(nameof(httpService));
-		}
 
 		ArgumentNullException.ThrowIfNull(configuration);
 
@@ -105,14 +96,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_mainQueue = mainQueue;
 		_monitoringQueue = monitoringQueue;
 		_mainBus = mainBus;
-		_httpMessageHandler = httpMessageHandler;
 		_authenticationProvider = authenticationProvider;
 		_authorizationProvider =
 			authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
 		_maxAppendSize = maxAppendSize;
 		_writeTimeout = writeTimeout;
 		_expiryStrategy = expiryStrategy;
-		_httpService = httpService;
 		_disableHttpMetrics = disableHttpMetrics;
 		_configuration = configuration;
 		_trackers = trackers;
