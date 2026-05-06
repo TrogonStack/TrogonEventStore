@@ -1,6 +1,5 @@
 using System;
 using EventStore.Core.TransactionLog.Scavenging;
-using EventStore.Core.TransactionLog.Scavenging.InMemory;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
@@ -32,7 +31,7 @@ public class ScavengeTransactionTests
 	[Fact]
 	public void can_commit_then_begin()
 	{
-		var storage = new InMemoryScavengeMap<Unit, ScavengeCheckpoint>();
+		var storage = new TestScavengeMap<Unit, ScavengeCheckpoint>();
 		var backend = new MockTransactionFactory();
 		var sut = new TransactionManager<int>(backend, storage);
 
@@ -71,7 +70,7 @@ public class ScavengeTransactionTests
 		var backend = new MockTransactionFactory();
 		var sut = new TransactionManager<int>(
 			backend,
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		Assert.Equal(0, backend.BeginCount);
 		Assert.Equal(0, backend.CommitCount);
@@ -101,7 +100,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		sut.Begin();
 
@@ -116,7 +115,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		sut.Begin();
 		sut.Commit(null);
@@ -132,7 +131,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		sut.Begin();
 		sut.Commit(null);
@@ -148,7 +147,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		sut.Begin();
 		sut.Rollback();
@@ -164,7 +163,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		sut.Begin();
 		sut.Rollback();
@@ -180,7 +179,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		Assert.Throws<InvalidOperationException>(() =>
 		{
@@ -193,7 +192,7 @@ public class ScavengeTransactionTests
 	{
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
-			new InMemoryScavengeMap<Unit, ScavengeCheckpoint>());
+			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		Assert.Throws<InvalidOperationException>(() =>
 		{

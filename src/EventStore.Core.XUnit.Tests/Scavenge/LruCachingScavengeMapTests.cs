@@ -1,5 +1,4 @@
 using EventStore.Core.TransactionLog.Scavenging;
-using EventStore.Core.TransactionLog.Scavenging.InMemory;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
@@ -9,7 +8,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void writing_writes_through()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given empty wrapped
@@ -25,7 +24,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void reading_reads_through()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given some data in the wrapped
@@ -39,7 +38,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void reading_populates_cache()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given some data in the wrapped
@@ -57,7 +56,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void writing_populates_cache()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given empty wrapped
@@ -74,7 +73,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void can_tryget_non_existent()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given empty wrapped
@@ -86,7 +85,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void can_tryremove_uncached()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given some data in the wrapped
@@ -104,7 +103,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void can_tryremove_cached()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given some data in the wrapped
@@ -125,7 +124,7 @@ public class LruCachingScavengeMapTests
 	[Fact]
 	public void can_tryremove_non_existent()
 	{
-		var wrapped = new InMemoryScavengeMap<string, int>();
+		var wrapped = new TestScavengeMap<string, int>();
 		var sut = new LruCachingScavengeMap<string, int>("", wrapped, cacheMaxCount: 100);
 
 		// given empty wrapped

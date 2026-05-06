@@ -7,7 +7,6 @@ using EventStore.Core.Tests.Index.Hashers;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.Scavenging;
-using EventStore.Core.TransactionLog.Scavenging.InMemory;
 using EventStore.Core.TransactionLog.Scavenging.Stages;
 using Serilog;
 using Serilog.Core;
@@ -24,7 +23,7 @@ public class ChunkDeleterTests
 
 	public ChunkDeleterTests()
 	{
-		_backend = new InMemoryScavengeBackend();
+		_backend = new TestScavengeBackend();
 		_scavengeState = new ScavengeStateForChunkWorker<string>(
 			hasher: new HumanReadableHasher(),
 			backend: _backend,
