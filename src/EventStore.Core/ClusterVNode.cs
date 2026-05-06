@@ -1075,7 +1075,6 @@ public class ClusterVNode<TStreamId> :
 			//modifiedOptions = modifiedOptions.WithPlugableComponent(new ArchivePlugableComponent());
 		}
 
-		var metricsController = new MetricsController();
 		var nodeInformationProvider = new NodeInformationProvider(
 			options,
 			new Dictionary<string, bool>
@@ -1089,11 +1088,6 @@ public class ClusterVNode<TStreamId> :
 		);
 
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(nodeInformationProvider);
-
-		if (!options.Interface.DisableStatsOnHttp)
-		{
-			_httpService.SetupController(metricsController);
-		}
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(_httpService);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(_httpService);
@@ -1710,6 +1704,7 @@ public class ClusterVNode<TStreamId> :
 			TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs),
 			expiryStrategy ?? new DefaultExpiryStrategy(),
 			_httpService,
+			options.Interface.DisableStatsOnHttp,
 			configuration,
 			trackers,
 			nodeInformationProvider,

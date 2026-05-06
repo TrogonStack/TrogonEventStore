@@ -28,7 +28,7 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Operations = EventStore.Core.Services.Transport.Grpc.Operations;
+using GrpcOperations = EventStore.Core.Services.Transport.Grpc.Operations;
 using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
 using ServerFeatures = EventStore.Core.Services.Transport.Grpc.ServerFeatures;
@@ -53,6 +53,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly Trackers _trackers;
 	private readonly NodeHealthState _nodeHealthState;
 	private readonly NodeInformationProvider _nodeInformationProvider;
+	private readonly bool _disableHttpMetrics;
 	private readonly Func<IServiceCollection, IServiceCollection> _configureNodeServices;
 	private readonly Action<IApplicationBuilder> _configureNode;
 
@@ -72,6 +73,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		TimeSpan writeTimeout,
 		IExpiryStrategy expiryStrategy,
 		KestrelHttpService httpService,
+		bool disableHttpMetrics,
 		IConfiguration configuration,
 		Trackers trackers,
 		NodeInformationProvider nodeInformationProvider,
@@ -111,6 +113,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_writeTimeout = writeTimeout;
 		_expiryStrategy = expiryStrategy;
 		_httpService = httpService;
+		_disableHttpMetrics = disableHttpMetrics;
 		_configuration = configuration;
 		_trackers = trackers;
 		_nodeInformationProvider =
@@ -144,6 +147,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.UseAuthorization()
 			.UseAntiforgery();
 
+		if (!_disableHttpMetrics)
+		{
+			app.Map("/-/metrics", metrics => metrics
+				.UseOpenTelemetryPrometheusScrapingEndpoint(static _ => true));
+		}
+
 		// allow all subsystems to register their legacy controllers before calling MapLegacyHttp
 		foreach (var component in _plugableComponents)
 			component.ConfigureApplication(app, _configuration);
@@ -158,14 +167,13 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			});
 
 			_authenticationProvider.ConfigureEndpoints(ep);
-
 			ep.MapGrpcHealthChecksService();
 			ep.MapGrpcService<PersistentSubscriptions>();
 			ep.MapGrpcService<Users>();
 			ep.MapGrpcService<Streams<TStreamId>>();
 			ep.MapGrpcService<ClusterGossip>();
 			ep.MapGrpcService<Elections>();
-			ep.MapGrpcService<Operations>();
+			ep.MapGrpcService<GrpcOperations>();
 			ep.MapGrpcService<ClientGossip>();
 			ep.MapGrpcService<Monitoring>();
 			ep.MapGrpcService<NodeInformation>();
@@ -190,9 +198,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					// Looks up the InternalContext to perform the check.
 					// Terminal if auth check is not successful.
 					.UseMiddleware<AuthorizationMiddleware>()
-
-					// Open telemetry currently guarded by our custom authz for consistency with stats
-					.UseOpenTelemetryPrometheusScrapingEndpoint("/-/metrics")
 
 					// Internal dispatcher looks up the InternalContext to call the appropriate controller
 					.Use(x => internalDispatcher.InvokeAsync)
@@ -232,7 +237,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				_authorizationProvider))
 			.AddSingleton(new PersistentSubscriptions(_mainQueue, _authorizationProvider))
 			.AddSingleton(new Users(_mainQueue, _authorizationProvider))
-			.AddSingleton(new Operations(_mainQueue, _authorizationProvider))
+				.AddSingleton(new GrpcOperations(_mainQueue, _authorizationProvider))
 			.AddSingleton(new ClusterGossip(_mainQueue, _authorizationProvider, _clusterDns,
 				updateTracker: _trackers.GossipTrackers.ProcessingPushFromPeer,
 				readTracker: _trackers.GossipTrackers.ProcessingRequestFromPeer))

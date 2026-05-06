@@ -84,6 +84,19 @@ public class http_service_should : SpecificationWithDirectory
 		Assert.That(result.Headers.TryGetValues("Access-Control-Allow-Origin", out var values), Is.True);
 		Assert.That(values, Is.EquivalentTo(new[] { "*" }));
 	}
+
+	[Test]
+	[Category("Network")]
+	public async Task serve_metrics_from_the_infrastructure_endpoint()
+	{
+		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
+		await node.Start();
+
+		var result = await node.HttpClient.GetAsync("/-/metrics");
+
+		Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
+		Assert.That(result.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/plain"));
+	}
 }
 
 [TestFixture]
