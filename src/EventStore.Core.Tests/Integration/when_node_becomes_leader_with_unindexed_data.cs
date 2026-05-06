@@ -178,7 +178,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 
 	private async Task<HttpStatusCode> GetLiveStatus(IPEndPoint httpEndPoint)
 	{
-		var response = await _httpClient.GetAsync($"https://{httpEndPoint}/health/live");
+		var response = await _httpClient.GetAsync($"https://{httpEndPoint}/-/readiness");
 		return response.StatusCode;
 	}
 

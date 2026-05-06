@@ -17,11 +17,13 @@ using EventStore.Plugins;
 using EventStore.Plugins.Authentication;
 using EventStore.Plugins.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -49,12 +51,11 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly KestrelHttpService _httpService;
 	private readonly IConfiguration _configuration;
 	private readonly Trackers _trackers;
-	private readonly StatusCheck _statusCheck;
+	private readonly NodeHealthState _nodeHealthState;
 	private readonly NodeInformationProvider _nodeInformationProvider;
 	private readonly Func<IServiceCollection, IServiceCollection> _configureNodeServices;
 	private readonly Action<IApplicationBuilder> _configureNode;
 
-	private bool _ready;
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly MultiQueuedHandler _httpMessageHandler;
 	private readonly string _clusterDns;
@@ -118,7 +119,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_configureNodeServices =
 			configureNodeServices ?? throw new ArgumentNullException(nameof(configureNodeServices));
 		_configureNode = configureNode ?? throw new ArgumentNullException(nameof(configureNode));
-		_statusCheck = new StatusCheck(this);
+		_nodeHealthState = new NodeHealthState();
 	}
 
 	public void Configure(IApplicationBuilder app)
@@ -149,10 +150,16 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		app.UseEndpoints(ep =>
 		{
-			_statusCheck.MapLiveness(ep);
+			ep.MapHealthChecks("/-/liveness", new HealthCheckOptions {
+				Predicate = registration => registration.Tags.Contains("liveness")
+			});
+			ep.MapHealthChecks("/-/readiness", new HealthCheckOptions {
+				Predicate = registration => registration.Tags.Contains("readiness")
+			});
 
 			_authenticationProvider.ConfigureEndpoints(ep);
 
+			ep.MapGrpcHealthChecksService();
 			ep.MapGrpcService<PersistentSubscriptions>();
 			ep.MapGrpcService<Users>();
 			ep.MapGrpcService<Streams<TStreamId>>();
@@ -185,7 +192,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					.UseMiddleware<AuthorizationMiddleware>()
 
 					// Open telemetry currently guarded by our custom authz for consistency with stats
-					.UseOpenTelemetryPrometheusScrapingEndpoint()
+					.UseOpenTelemetryPrometheusScrapingEndpoint("/-/metrics")
 
 					// Internal dispatcher looks up the InternalContext to call the appropriate controller
 					.Use(x => internalDispatcher.InvokeAsync)
@@ -212,6 +219,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddAntiforgery()
 			.AddSingleton(_authenticationProvider)
 			.AddSingleton(_authorizationProvider)
+			.AddSingleton(_nodeHealthState)
 			.AddSingleton<ISubscriber>(_mainBus)
 			.AddSingleton<IPublisher>(_mainQueue)
 			.AddSingleton<AuthenticationMiddleware>()
@@ -241,6 +249,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration, _configuration))
 			.WithTracing(tracerOptions => ConfigureTracing(tracerOptions, _configuration))
 			.Services
+			.AddGrpcHealthChecks(options => {
+				options.Services.Map("", registration => registration.Tags.Contains("readiness"));
+				options.Services.Map("readiness", registration => registration.Tags.Contains("readiness"));
+				options.Services.Map("liveness", registration => registration.Tags.Contains("liveness"));
+			})
+			.Services
 
 			// gRPC
 			.AddSingleton<RetryInterceptor>()
@@ -250,6 +264,14 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			})
 			.AddServiceOptions<Streams<TStreamId>>(options =>
 				options.MaxReceiveMessageSize = TFConsts.EffectiveMaxLogRecordSize)
+			.Services
+			.AddHealthChecks()
+			.AddCheck("node-liveness",
+				() => _nodeHealthState.IsLive ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy(),
+				tags: ["liveness"])
+			.AddCheck("node-readiness",
+				() => _nodeHealthState.IsReady ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy(),
+				tags: ["readiness"])
 			.Services;
 
 		services.AddCors(o => o.AddPolicy(
@@ -363,48 +385,22 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				exporterOptions));
 	}
 
-	public void Handle(SystemMessage.SystemReady _) => _ready = true;
+	public void Handle(SystemMessage.SystemReady _) => _nodeHealthState.MarkReady();
 
-	public void Handle(SystemMessage.BecomeShuttingDown _) => _ready = false;
+	public void Handle(SystemMessage.BecomeShuttingDown _) => _nodeHealthState.MarkShuttingDown();
 
-	private class StatusCheck
-	{
-		private readonly ClusterVNodeStartup<TStreamId> _startup;
-		private readonly int _livecode = 204;
+	private sealed class NodeHealthState {
+		public bool IsReady { get; private set; }
+		public bool IsLive { get; private set; } = true;
 
-		public StatusCheck(ClusterVNodeStartup<TStreamId> startup)
-		{
-			if (startup == null)
-			{
-				throw new ArgumentNullException(nameof(startup));
-			}
-
-			_startup = startup;
+		public void MarkReady() {
+			IsReady = true;
+			IsLive = true;
 		}
 
-		public void MapLiveness(IEndpointRouteBuilder endpoints) =>
-			endpoints.MapMethods("/health/live", [HttpMethod.Get, HttpMethod.Head], Live);
-
-		private Task Live(HttpContext context)
-		{
-			if (_startup._ready)
-			{
-				if (context.Request.Query.TryGetValue("liveCode", out var expected) &&
-				    int.TryParse(expected, out var statusCode))
-				{
-					context.Response.StatusCode = statusCode;
-				}
-				else
-				{
-					context.Response.StatusCode = _livecode;
-				}
-			}
-			else
-			{
-				context.Response.StatusCode = 503;
-			}
-
-			return Task.CompletedTask;
+		public void MarkShuttingDown() {
+			IsReady = false;
+			IsLive = false;
 		}
 	}
 }

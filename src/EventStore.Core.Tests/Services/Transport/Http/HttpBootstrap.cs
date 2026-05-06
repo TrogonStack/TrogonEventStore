@@ -1,7 +1,6 @@
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Http;
-using EventStore.Core.Services.Transport.Http.Controllers;
 
 namespace EventStore.Core.Tests.Services.Transport.Http;
 
@@ -17,10 +16,5 @@ public class HttpBootstrap
 	{
 		bus.Unsubscribe<SystemMessage.SystemInit>(service);
 		bus.Unsubscribe<SystemMessage.BecomeShuttingDown>(service);
-	}
-
-	public static void RegisterPing(IHttpService service)
-	{
-		service.SetupController(new PingController());
 	}
 }

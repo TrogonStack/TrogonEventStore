@@ -21,7 +21,7 @@ Older versions can be monitored by Prometheus using the community-supported expo
 
 ## OpenTelemetry Exporter
 
-EventStoreDB passively exposes metrics for scraping on the `/metrics` endpoint. It can also actively export logs, metrics, and traces using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
+EventStoreDB passively exposes metrics for scraping on the `/-/metrics` endpoint. It can also actively export logs, metrics, and traces using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
 
 A number of APM providers natively support OTLP, so you might be able to send EventStoreDB telemetry directly to your APM provider. Alternatively, you can export to the OpenTelemetry Collector, which can then fan out to a variety of backends. You can find out more about the [OpenTelemetry collector](https://opentelemetry.io/docs/collector/).
 

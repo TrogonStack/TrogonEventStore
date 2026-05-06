@@ -62,7 +62,7 @@ public class http_service_should : SpecificationWithDirectory
 		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
 		node.Node.MainQueue.Publish(new SystemMessage.SystemInit());
 
-		var result = await node.HttpClient.GetAsync("/ping^\"");
+		var result = await node.HttpClient.GetAsync("/-/liveness^\"");
 
 		Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
 		Assert.IsEmpty(await result.Content.ReadAsStringAsync());
@@ -70,12 +70,12 @@ public class http_service_should : SpecificationWithDirectory
 
 	[Test]
 	[Category("Network")]
-	public async Task apply_cors_headers_to_cross_origin_ping_requests()
+	public async Task apply_cors_headers_to_cross_origin_liveness_requests()
 	{
 		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
 		await node.Start();
 
-		var request = new HttpRequestMessage(HttpMethod.Get, "/ping");
+		var request = new HttpRequestMessage(HttpMethod.Get, "/-/liveness");
 		request.Headers.Add("Origin", "https://example.com");
 
 		var result = await node.HttpClient.SendAsync(request);

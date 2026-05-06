@@ -83,12 +83,11 @@ The following [System metrics](diagnostics/metrics.md#system) are now available 
 The following [Process metrics](diagnostics/metrics.md#process) are now available on the following platforms:
 * `eventstore_disk_io_bytes`: Linux, Windows and macOS
 
-### Allow specifying the HTTP status Code for health requests
+### Health probe endpoints
 
-The HTTP status code to be returned by the `/health/live` endpoint can be provided using the `liveCode` query parameter.
-For example, making a `GET` HTTP call to `/health/live?liveCode=200` will return an empty response with `200 OK` status code.
+The HTTP health probes are exposed on `/-/liveness` and `/-/readiness`.
 
-This is useful for liveness probe expecting specific status code.
+Use `/-/liveness` when a platform needs to know whether the process is still alive, and `/-/readiness` when it needs to know whether the node is ready to accept traffic.
 
 ### Fix - Events in explicit transactions can be missing from $all reads
 
