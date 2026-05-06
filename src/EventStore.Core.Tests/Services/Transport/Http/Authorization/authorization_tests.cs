@@ -181,6 +181,7 @@ public class Authorization<TLogFormat, TStreamId> : specification_with_cluster<T
 		[Values(
 			"/-/liveness;GET;None",
 			"/-/readiness;GET;None",
+			"/-/metrics;GET;None",
 			"/ui/assets/{*remaining_path};GET;None"
 		)] string httpEndpointDetails
 	)
