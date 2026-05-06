@@ -14,8 +14,6 @@ public class ArchiveStorageFactory(
 		return options.StorageType switch
 		{
 			StorageType.Unspecified => throw new InvalidOperationException("Please specify an Archive StorageType"),
-			StorageType.FileSystem => new FileSystemReader(options.FileSystem, chunkNamer,
-				ArchiveCheckpointFile),
 			StorageType.S3 => new S3Reader(options.S3, chunkNamer, ArchiveCheckpointFile),
 			_ => throw new ArgumentOutOfRangeException(nameof(options.StorageType))
 		};
@@ -26,7 +24,6 @@ public class ArchiveStorageFactory(
 		return options.StorageType switch
 		{
 			StorageType.Unspecified => throw new InvalidOperationException("Please specify an Archive StorageType"),
-			StorageType.FileSystem => new FileSystemWriter(options.FileSystem, ArchiveCheckpointFile),
 			StorageType.S3 => new S3Writer(options.S3, ArchiveCheckpointFile),
 			_ => throw new ArgumentOutOfRangeException(nameof(options.StorageType))
 		};

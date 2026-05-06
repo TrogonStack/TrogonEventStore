@@ -44,7 +44,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(DbPath, ChunkPrefix);
 		var archiveChunkNamer = new ArchiveChunkNamer(dbNamingStrategy);
-		var writer = new FileSystemWriter(new FileSystemOptions { Path = ArchivePath }, ArchiveCheckpointFile);
+		var writer = CreateArchiveStorage();
 		await writer.StoreChunk(sourcePath, archiveChunkNamer.GetFileNameFor(0), CancellationToken.None);
 
 		var sut = CreateSut();
@@ -66,7 +66,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 		var expectedFileSize = sourceChunk.FileSize;
 		sourceChunk.Dispose();
 
-		var writer = new FileSystemWriter(new FileSystemOptions { Path = ArchivePath }, ArchiveCheckpointFile);
+		var writer = CreateArchiveStorage();
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(DbPath, ChunkPrefix);
 		await writer.StoreChunk(sourcePath, new ArchiveChunkNamer(dbNamingStrategy).GetFileNameFor(0),
 			CancellationToken.None);
@@ -95,7 +95,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 		await sourceChunk.Complete(CancellationToken.None);
 		sourceChunk.Dispose();
 
-		var writer = new FileSystemWriter(new FileSystemOptions { Path = ArchivePath }, ArchiveCheckpointFile);
+		var writer = CreateArchiveStorage();
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(DbPath, ChunkPrefix);
 		await writer.StoreChunk(sourcePath, new ArchiveChunkNamer(dbNamingStrategy).GetFileNameFor(0),
 			CancellationToken.None);
@@ -141,16 +141,18 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 	private FileSystemWithArchive CreateSut()
 	{
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(DbPath, ChunkPrefix);
-		var archiveNamingStrategy = new VersionedPatternFileNamingStrategy(ArchivePath, ChunkPrefix);
 		return new FileSystemWithArchive(
 			ChunkSize,
 			new PrefixingLocatorCodec(),
 			new ChunkLocalFileSystem(dbNamingStrategy),
-			new FileSystemReader(
-				new FileSystemOptions { Path = ArchivePath },
-				new ArchiveChunkNamer(archiveNamingStrategy),
-				ArchiveCheckpointFile));
+			CreateArchiveStorage());
 	}
+
+	private LocalArchiveStorage CreateArchiveStorage() =>
+		new(
+			ArchivePath,
+			new ArchiveChunkNamer(new VersionedPatternFileNamingStrategy(ArchivePath, ChunkPrefix)),
+			ArchiveCheckpointFile);
 
 	private sealed class FakeChunkFileSystem(IVersionedFileNamingStrategy namingStrategy, IChunkEnumerator chunkEnumerator)
 		: IChunkFileSystem
