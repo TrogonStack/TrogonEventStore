@@ -41,8 +41,7 @@ namespace EventStore.Core.Services.Transport.Http {
 		private bool _isListening;
 
 		public KestrelHttpService(ServiceAccessibility accessibility, IPublisher inputBus, IUriRouter uriRouter,
-			MultiQueuedHandler multiQueuedHandler, bool logHttpRequests, string advertiseAsHost,
-			int advertiseAsPort, bool disableAuthorization, params EndPoint[] endPoints) {
+			bool logHttpRequests, string advertiseAsHost, int advertiseAsPort, params EndPoint[] endPoints) {
 			Ensure.NotNull(inputBus, nameof(inputBus));
 			Ensure.NotNull(uriRouter, nameof(uriRouter));
 			Ensure.NotNull(endPoints, nameof(endPoints));

@@ -110,11 +110,9 @@ public class kestrel_http_service_should
 			ServiceAccessibility.Public,
 			inputBus,
 			new TrieUriRouter(),
-			multiQueuedHandler: null,
 			logHttpRequests: false,
 			advertiseAsHost: "127.0.0.1",
 			advertiseAsPort: 2113,
-			disableAuthorization: false,
 			new IPEndPoint(IPAddress.Loopback, 2113));
 
 		sut.Handle(new SystemMessage.SystemInit());
@@ -142,11 +140,9 @@ public class kestrel_http_service_should
 			ServiceAccessibility.Public,
 			inputBus,
 			new TrieUriRouter(),
-			multiQueuedHandler: null,
 			logHttpRequests: false,
 			advertiseAsHost: "127.0.0.1",
 			advertiseAsPort: 2113,
-			disableAuthorization: false,
 			new IPEndPoint(IPAddress.Loopback, 2113));
 
 		sut.Handle(new SystemMessage.SystemInit());

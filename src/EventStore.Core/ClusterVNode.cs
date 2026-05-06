@@ -932,14 +932,13 @@ public class ClusterVNode<TStreamId> :
 		}
 
 		_httpService = new KestrelHttpService(ServiceAccessibility.Public, _mainQueue, new TrieUriRouter(),
-			_workersHandler, options.Application.LogHttpRequests,
+			options.Application.LogHttpRequests,
 			string.IsNullOrEmpty(GossipAdvertiseInfo.AdvertiseHostToClientAs)
 				? GossipAdvertiseInfo.AdvertiseExternalHostAs
 				: GossipAdvertiseInfo.AdvertiseHostToClientAs,
 			GossipAdvertiseInfo.AdvertiseHttpPortToClientAs == 0
 				? GossipAdvertiseInfo.AdvertiseHttpPortAs
 				: GossipAdvertiseInfo.AdvertiseHttpPortToClientAs,
-			options.Auth.DisableFirstLevelHttpAuthorization,
 			NodeInfo.HttpEndPoint);
 
 		var components = new AuthenticationProviderFactoryComponents
