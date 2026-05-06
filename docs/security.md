@@ -713,8 +713,7 @@ This default ACL gives `ouro` and `$admins` create and write permissions on all 
 can read from them. Be careful allowing default access to system streams to non-admins as they would also have
 access to `$settings` unless you specifically override it.
 
-Refer to the documentation of the HTTP API or SDK of your choice for more information about changing ACLs
-programmatically.
+Refer to the documentation of the SDK of your choice for more information about changing ACLs programmatically.
 
 ## Trusted intermediary
 
