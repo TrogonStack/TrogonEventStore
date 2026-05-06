@@ -10,7 +10,6 @@ using Amazon.S3.Model;
 using EventStore.Common.Exceptions;
 using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage.Exceptions;
-using FluentStorage;
 using FluentStorage.AWS.Blobs;
 using FluentStorage.Blobs;
 using Serilog;
@@ -34,9 +33,7 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 		if (string.IsNullOrEmpty(options.Region))
 			throw new InvalidConfigurationException("Please specify an Archive S3 Region");
 
-		_awsBlobStorage = StorageFactory.Blobs.AwsS3(
-			bucketName: options.Bucket,
-			region: options.Region) as IAwsS3BlobStorage;
+		_awsBlobStorage = S3Storage.Create(options);
 	}
 
 	protected override ILogger Log { get; } = Serilog.Log.ForContext<S3Reader>();

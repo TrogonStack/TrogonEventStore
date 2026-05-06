@@ -1,5 +1,4 @@
-using FluentStorage;
-using FluentStorage.Blobs;
+using FluentStorage.AWS.Blobs;
 using Serilog;
 
 namespace EventStore.Core.Services.Archive.Storage;
@@ -10,12 +9,10 @@ public class S3Writer : FluentWriter, IArchiveStorageWriter
 		archiveCheckpointFile)
 	{
 		AwsTraceLogging.Configure();
-		BlobStorage = StorageFactory.Blobs.AwsS3(
-			bucketName: options.Bucket,
-			region: options.Region);
+		BlobStorage = S3Storage.Create(options);
 	}
 
 	protected override ILogger Log { get; } = Serilog.Log.ForContext<S3Writer>();
 
-	protected override IBlobStorage BlobStorage { get; }
+	protected override IAwsS3BlobStorage BlobStorage { get; }
 }

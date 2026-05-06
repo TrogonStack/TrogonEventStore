@@ -7,7 +7,6 @@ public class ArchiveOptions
 {
 	public bool Enabled { get; init; } = false;
 	public StorageType StorageType { get; init; } = StorageType.Unspecified;
-	public FileSystemOptions FileSystem { get; init; } = new();
 	public S3Options S3 { get; init; } = new();
 	public RetentionOptions RetainAtLeast { get; init; } = new();
 
@@ -19,9 +18,6 @@ public class ArchiveOptions
 			switch (StorageType) {
 				case StorageType.Unspecified:
 					throw new InvalidConfigurationException("Please specify an Archive StorageType");
-				case StorageType.FileSystem:
-					FileSystem.Validate();
-					break;
 				case StorageType.S3:
 					S3.Validate();
 					break;
@@ -39,7 +35,6 @@ public class ArchiveOptions
 public enum StorageType
 {
 	Unspecified,
-	FileSystem,
 	S3,
 }
 
@@ -61,20 +56,14 @@ public class RetentionOptions
 	}
 }
 
-public class FileSystemOptions
-{
-	public string Path { get; init; } = "";
-
-	public void Validate() {
-		if (string.IsNullOrWhiteSpace(Path))
-			throw new InvalidConfigurationException("Please provide a Path for the FileSystem archive");
-	}
-}
-
 public class S3Options
 {
 	public string Bucket { get; init; } = "";
 	public string Region { get; init; } = "";
+	public string AccessKeyId { get; init; } = "";
+	public string SecretAccessKey { get; init; } = "";
+	public string SessionToken { get; init; } = "";
+	public string ServiceUrl { get; init; } = "";
 
 	public void Validate() {
 		if (string.IsNullOrWhiteSpace(Bucket))
@@ -82,5 +71,23 @@ public class S3Options
 
 		if (string.IsNullOrWhiteSpace(Region))
 			throw new InvalidConfigurationException("Please provide a Region for the S3 archive");
+
+		if (string.IsNullOrWhiteSpace(AccessKeyId) != string.IsNullOrWhiteSpace(SecretAccessKey))
+			throw new InvalidConfigurationException(
+				"Please provide both AccessKeyId and SecretAccessKey for S3 archive credentials");
+
+		if (!string.IsNullOrWhiteSpace(SessionToken) &&
+		    (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
+		{
+			throw new InvalidConfigurationException(
+				"Please provide AccessKeyId and SecretAccessKey when SessionToken is configured for S3 archive credentials");
+		}
+
+		if (!string.IsNullOrWhiteSpace(ServiceUrl) &&
+		    (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
+		{
+			throw new InvalidConfigurationException(
+				"Please provide AccessKeyId and SecretAccessKey for S3-compatible archive storage");
+		}
 	}
 }

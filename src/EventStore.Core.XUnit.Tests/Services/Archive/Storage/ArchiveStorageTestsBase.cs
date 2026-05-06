@@ -28,7 +28,6 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 			new()
 			{
 				StorageType = storageType,
-				FileSystem = new() { Path = ArchivePath },
 				S3 = new() { Bucket = "archiver-unit-tests", Region = "eu-west-1", }
 			},
 			chunkNamer);

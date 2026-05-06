@@ -95,6 +95,34 @@ Scavenging does place extra load on the server, especially in terms of disk IO. 
 - Stop the scavenge during peak times and resume it afterwards.
 - Use the [throttle](#throttle-percent) and [threshold](#threshold) options.
 
+### Archive storage
+
+Archive mode stores completed chunks outside the local database directory before retention can remove them locally.
+The supported archive backend is the S3 API. This includes AWS S3 and S3-compatible services that expose the same object-storage API.
+
+```yaml
+Archive:
+  Enabled: true
+  StorageType: S3
+  S3:
+    Bucket: eventstore-archive
+    Region: us-east-1
+    ServiceUrl: https://s3-compatible.example # Omit for AWS S3; required for S3-compatible services
+    AccessKeyId: archive-writer         # Optional for AWS S3; required when ServiceUrl is set
+    SecretAccessKey: change-me          # Optional for AWS S3; required when ServiceUrl is set
+    SessionToken: temporary-session     # Optional; only valid with AccessKeyId and SecretAccessKey
+  RetainAtLeast:
+    Days: 30
+    LogicalBytes: 107374182400
+```
+
+For AWS S3, omit `AccessKeyId`, `SecretAccessKey`, and `SessionToken` to use the AWS SDK credential chain.
+For S3-compatible services, set `ServiceUrl`, `AccessKeyId`, and `SecretAccessKey`.
+Deployments that use explicit S3 credentials must provide these keys in each environment where archive storage is enabled.
+The same keys can be supplied with environment variables such as `EventStore__Archive__S3__AccessKeyId`,
+`EventStore__Archive__S3__SecretAccessKey`, `EventStore__Archive__S3__SessionToken`, and
+`EventStore__Archive__S3__ServiceUrl`.
+
 ## Scavenging algorithm
 
 Central to the scavenging process is the concept of _scavenge points_. Physically, these are log records in the transaction log, each containing the following information:

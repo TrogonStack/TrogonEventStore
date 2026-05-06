@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage;
+using EventStore.Core.Tests.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -27,7 +28,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 	private readonly string _archivePath;
 	private readonly ChunkLocalFileSystem _localFileSystem;
 	private readonly ILocatorCodec _locatorCodec = new PrefixingLocatorCodec();
-	private readonly FileSystemWriter _archiveWriter;
+	private readonly IArchiveStorageWriter _archiveWriter;
 	private readonly ArchiveChunkNamer _archiveChunkNamer;
 	private readonly TFChunkManager _sut;
 
@@ -41,7 +42,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(_dbPath, "chunk-");
 		_localFileSystem = new ChunkLocalFileSystem(dbNamingStrategy);
 		_archiveChunkNamer = new ArchiveChunkNamer(new VersionedPatternFileNamingStrategy(_archivePath, "chunk-"));
-		_archiveWriter = new FileSystemWriter(new FileSystemOptions { Path = _archivePath }, ArchiveCheckpointFile);
+		var archiveStorage = new LocalArchiveStorage(_archivePath, _archiveChunkNamer, ArchiveCheckpointFile);
+		_archiveWriter = archiveStorage;
 
 		var config = new TFChunkDbConfig(
 			path: _dbPath,
@@ -49,10 +51,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 				ChunkSize,
 				_locatorCodec,
 				_localFileSystem,
-				new FileSystemReader(
-					new FileSystemOptions { Path = _archivePath },
-					_archiveChunkNamer,
-					ArchiveCheckpointFile)),
+				archiveStorage),
 			chunkSize: ChunkSize,
 			maxChunksCacheSize: 0,
 			writerCheckpoint: new InMemoryCheckpoint(0),
