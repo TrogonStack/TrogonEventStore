@@ -8,14 +8,5 @@ namespace EventStore.Core.Services.Transport.Http {
 			var textMessage = message as HttpMessage.TextMessage;
 			return textMessage != null ? entity.ResponseCodec.To(textMessage) : String.Empty;
 		}
-
-		public static string GetFreshStatsCompleted(HttpResponseFormatterArgs entity, Message message) {
-			var completed = message as MonitoringMessage.GetFreshStatsCompleted;
-			if (completed == null || !completed.Success)
-				return String.Empty;
-
-			return entity.ResponseCodec.To(completed.Stats);
-		}
-
 	}
 }

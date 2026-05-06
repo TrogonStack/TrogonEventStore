@@ -142,17 +142,5 @@ namespace EventStore.Core.Services.Transport.Http {
 			}
 		}
 
-		public static ResponseConfiguration
-			GetFreshStatsCompleted(HttpResponseConfiguratorArgs entity, Message message) {
-			var completed = message as MonitoringMessage.GetFreshStatsCompleted;
-			if (completed == null)
-				return InternalServerError();
-
-			var cacheSeconds = (int)MonitoringService.MemoizePeriod.TotalSeconds;
-			return completed.Success
-				? Ok(entity.ResponseCodec.ContentType, Helper.UTF8NoBom, null, cacheSeconds, isCachePublic: true)
-				: NotFound();
-		}
-
 	}
 }
