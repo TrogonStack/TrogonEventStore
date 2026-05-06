@@ -20,7 +20,6 @@ namespace EventStore.Core.Services.Transport.Http {
 		ServiceAccessibility Accessibility { get; }
 		bool IsListening { get; }
 		IEnumerable<EndPoint> EndPoints { get; }
-		IEnumerable<ControllerAction> Actions { get; }
 
 		List<UriToActionMatch> GetAllUriMatches(Uri uri);
 
