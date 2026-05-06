@@ -10,7 +10,7 @@ using EventStore.Transport.Http.Codecs;
 
 namespace EventStore.Core.Tests.Services.Transport.Http;
 
-public class FakeController : IHttpController
+public class FakeController
 {
 	private readonly IUriRouter _router;
 

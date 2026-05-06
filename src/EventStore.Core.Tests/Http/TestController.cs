@@ -1,9 +1,8 @@
 using System;
 using System.Security.Claims;
+using System.Text;
 using EventStore.Common.Utils;
-using EventStore.Core.Bus;
 using EventStore.Core.Services.Transport.Http;
-using EventStore.Core.Services.Transport.Http.Controllers;
 using EventStore.Plugins.Authorization;
 using EventStore.Transport.Http;
 using EventStore.Transport.Http.Codecs;
@@ -11,15 +10,8 @@ using EventStore.Transport.Http.EntityManagement;
 
 namespace EventStore.Core.Tests.Http;
 
-public class TestController : CommunicationController
-{
-	public TestController(IPublisher publisher)
-		: base(publisher)
-	{
-	}
-
-	protected override void SubscribeCore(IHttpService service)
-	{
+public static class TestController {
+	public static void Register(IHttpService service) {
 		Register(service, "/test1", Test1Handler);
 		Register(service, "/test-anonymous", TestAnonymousHandler);
 		Register(service, "/test-encoding/{a}?b={b}", TestEncodingHandler);
@@ -39,57 +31,65 @@ public class TestController : CommunicationController
 			(manager, match) => TestTimeoutHandler(manager, match));
 	}
 
-	private void Register(
-		IHttpService service, string uriTemplate, Action<HttpEntityManager, UriTemplateMatch> handler,
-		string httpMethod = HttpMethod.Get)
-	{
-		Register(service, uriTemplate, httpMethod, handler, Codec.NoCodecs, new ICodec[] { Codec.ManualEncoding }, new Operation(Operations.Node.StaticContent));
+	private static void Register(
+		IHttpService service,
+		string uriTemplate,
+		Action<HttpEntityManager, UriTemplateMatch> handler,
+		string httpMethod = HttpMethod.Get) {
+		service.RegisterAction(
+			new ControllerAction(
+				uriTemplate,
+				httpMethod,
+				Codec.NoCodecs,
+				[Codec.ManualEncoding],
+				new Operation(Operations.Node.StaticContent)),
+			handler);
 	}
 
-	private void Test1Handler(HttpEntityManager http, UriTemplateMatch match)
-	{
+	private static void Test1Handler(HttpEntityManager http, UriTemplateMatch match) {
 		if (http.User != null && !http.User.HasClaim(ClaimTypes.Anonymous, ""))
-			http.Reply("OK", 200, "OK", "text/plain");
+			Reply(http, "OK", 200, "OK", "text/plain");
 		else
-			http.Reply("Please authenticate yourself", 401, "Unauthorized", "text/plain");
+			Reply(http, "Please authenticate yourself", 401, "Unauthorized", "text/plain");
 	}
 
-	private void TestAnonymousHandler(HttpEntityManager http, UriTemplateMatch match)
-	{
+	private static void TestAnonymousHandler(HttpEntityManager http, UriTemplateMatch match) {
 		if (!http.User.HasClaim(ClaimTypes.Anonymous, ""))
-			http.Reply("ERROR", 500, "ERROR", "text/plain");
+			Reply(http, "ERROR", 500, "ERROR", "text/plain");
 		else
-			http.Reply("OK", 200, "OK", "text/plain");
+			Reply(http, "OK", 200, "OK", "text/plain");
 	}
 
-	private void TestEncodingHandler(HttpEntityManager http, UriTemplateMatch match)
-	{
+	private static void TestEncodingHandler(HttpEntityManager http, UriTemplateMatch match) {
 		var a = match.BoundVariables["a"];
 		var b = match.BoundVariables["b"];
 
-		http.Reply(new { a = a, b = b, rawSegment = http.RequestedUrl.Segments[2] }.ToJson(), 200, "OK",
-			"application/json");
+		Reply(http, new { a, b, rawSegment = http.RequestedUrl.Segments[2] }.ToJson(), 200, "OK", "application/json");
 	}
 
-	private void TestEncodingHandler(HttpEntityManager http, UriTemplateMatch match, string a)
-	{
+	private static void TestEncodingHandler(HttpEntityManager http, UriTemplateMatch match, string a) {
 		var b = match.BoundVariables["b"];
 
-		http.Reply(
-			new
-			{
-				a = a,
-				b = b,
+		Reply(
+			http,
+			new {
+				a,
+				b,
 				rawSegment = http.RequestedUrl.Segments[1],
 				requestUri = match.RequestUri,
 				rawUrl = http.HttpEntity.Request.RawUrl
-			}.ToJson(), 200, "OK", "application/json");
+			}.ToJson(),
+			200,
+			"OK",
+			"application/json");
 	}
 
-	private void TestTimeoutHandler(HttpEntityManager http, UriTemplateMatch match)
-	{
+	private static void TestTimeoutHandler(HttpEntityManager http, UriTemplateMatch match) {
 		var sleepFor = int.Parse(match.BoundVariables["sleepfor"]);
 		System.Threading.Thread.Sleep(sleepFor);
-		http.Reply("OK", 200, "OK", "text/plain");
+		Reply(http, "OK", 200, "OK", "text/plain");
 	}
+
+	private static void Reply(HttpEntityManager http, string response, int code, string description, string contentType) =>
+		http.Reply(Helper.UTF8NoBom.GetBytes(response), code, description, contentType, Encoding.UTF8, null, _ => { });
 }
