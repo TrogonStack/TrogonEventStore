@@ -94,7 +94,7 @@ This is now disabled by default but can be enabled by setting `AllowAnonymousStr
 Similarly to streams above, anonymous access has historically been available to some HTTP endpoints and node
 diagnostic operations.
 
-Anonymous access to `/stats`, the `HTTP OPTIONS` method, and the client gossip read operation can now be configured with the following two options. By default the client gossip read operation is still accessible anonymously but the others are not.
+Anonymous access to the `HTTP OPTIONS` method and the client gossip read operation can now be configured with the following two options. By default the client gossip read operation is still accessible anonymously but `HTTP OPTIONS` is not.
 
 The `AllowAnonymousEndpointAccess` option controls anonymous access to these endpoints. Setting `OverrideAnonymousEndpointAccessForGossip` to `true` allows anonymous access to the client gossip read operation specifically, overriding the other option.
 
@@ -576,8 +576,7 @@ EventStoreDB supports authentication based on usernames and passwords out of the
 also supports LDAP as the authentication source.
 
 Authentication is applied to all HTTP endpoints by default, except `/ping`, static web
-content, and redirects. Endpoints such as `/stats` require authentication unless anonymous endpoint access is
-explicitly enabled.
+content, and redirects.
 
 ### Default users
 
@@ -847,8 +846,8 @@ UserCertificatesPlugin: user X.509 certificate authentication is enabled
 
 Use the following command as an example authenticated request using `curl`:
 
-```:no-line-numbers
-curl -i https://localhost:2113/stats --cert user-admin.crt --key user-admin.key
+```bash
+curl -i https://localhost:2113/metrics --cert user-admin.crt --key user-admin.key
 ```
 
 For using X.509 user certificate with EventStoreDB client from an application, refer to the client's documentation.

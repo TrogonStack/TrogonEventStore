@@ -4,17 +4,16 @@ EventStoreDB provides several ways to diagnose and troubleshoot issues.
 
 - [Logging](logs.md): structured or plain-text logs on the console and in log files.
 - [Metrics](metrics.md): collect standard metrics using Prometheus or OpenTelemetry.
-- [Stats](#statistics): stats collection and HTTP endpoint.
+- [Stats](#statistics): runtime statistics exposed through the monitoring gRPC service.
 
 You can also use external tools to measure the performance of EventStoreDB and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.
 
 ## Statistics
 
-EventStoreDB servers collect internal statistics and make it available via HTTP over
-the `https://<host>:2113/stats` in JSON format. Here, `2113` is the default HTTP port. Monitoring applications
-and metric collectors can use this endpoint to gather the information about the cluster node. The `stats`
-endpoint only exposes information about the node where you fetch it from and doesn't contain any cluster
-information.
+EventStoreDB servers collect internal statistics and make them available through the monitoring gRPC service.
+Use the `Monitoring.Stats` RPC when you need the structured runtime view that used to be exposed through the
+legacy `/stats` HTTP endpoint. That RPC only exposes information about the node you query and does not include
+cluster-wide state.
 
 What you see in the `stats` endpoint response is the last collected state of the server. The server collects
 this information using events that are appended to the statistics stream. Each node has one. We use a reserved

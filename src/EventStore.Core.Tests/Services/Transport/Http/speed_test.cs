@@ -82,8 +82,6 @@ public class FakeController : IHttpController
 		Register("/projection/{name}/command/disable", HttpMethod.Post);
 		Register("/projection/{name}/command/enable", HttpMethod.Post);
 		Register("/projection/{name}/command/reset", HttpMethod.Post);
-		Register("/stats", HttpMethod.Get);
-		Register("/stats/{*statPath}", HttpMethod.Get);
 	}
 
 	private void Register(string route, string verb)

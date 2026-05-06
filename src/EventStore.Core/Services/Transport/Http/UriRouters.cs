@@ -74,7 +74,7 @@ namespace EventStore.Core.Services.Transport.Http {
 			RouterNode child;
 
 			if (index == segments.Length) {
-				// /stats/ should match /stats/{*greedyStatsPath}
+				// Trailing slashes should still match a greedy child route.
 				if (uri.OriginalString.EndsWith("/") && node.Children.TryGetValue(GreedyPlaceholder, out child))
 					AddMatchingRoutes(child.LeafRoutes, baseAddress, uri, matches);
 

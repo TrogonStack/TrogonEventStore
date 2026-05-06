@@ -130,19 +130,10 @@ those sinks.
 
 #### Collecting metrics
 
-There is an official [EventStoreDB source] that you can use to pull relevant metrics from your database.
-
-Below you can find an example that you can use in your `vector.toml` configuration file:
-
-```toml
-[sources.eventstoredb_metrics]
-type = "eventstoredb_metrics"
-endpoint = "https://{hostname}:{http_port}/stats"
-scrape_interval_secs = 3
-```
-
-Here `hostname` is the EventStoreDB node hostname or the cluster DNS name, and `http_port` is the configured
-HTTP port, which is `2113` by default.
+Vector's historical `eventstoredb_metrics` source depended on the legacy `/stats` HTTP endpoint. That endpoint
+is no longer part of the supported management surface, so new deployments should collect metrics from the
+Prometheus or OpenTelemetry endpoints instead and use the gRPC monitoring service for runtime diagnostics that
+need grouped stats or queue-level detail.
 
 #### Collecting logs
 
@@ -160,24 +151,14 @@ read_from = "end"
 
 #### Example
 
-In this example, Vector runs on the same machine as EventStoreDB, collects metrics and logs, and then sends them to Datadog. Notice that despite the EventStoreDB HTTP is, in theory, accessible via `localhost`, it won't work if the server SSL certificate doesn't have `localhost` in the certificate CN or SAN.
+In this example, Vector runs on the same machine as EventStoreDB, collects logs, and then sends them to
+Datadog.
 
 ```toml
-[sources.eventstoredb_metrics]
-type = "eventstoredb_metrics"
-endpoint = "https://node1.esdb.acme.company:2113/stats"
-scrape_interval_secs = 10
-
 [sources.eventstoredb_logs]
 type = "file"
 include = ["/var/log/eventstore"]
 read_from = "end"
-
-[sinks.dd_metrics]
-type = "datadog_metrics"
-inputs = ["eventstoredb_metrics"]
-api_key = "${DD_API_KEY}"
-default_namespace = "service"
 
 [sinks.dd_logs]
 type = "datadog_logs"
