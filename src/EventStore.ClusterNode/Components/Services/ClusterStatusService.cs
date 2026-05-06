@@ -3,20 +3,21 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Security.Claims;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Client.Monitoring;
 using EventStore.Core;
 using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
 using EventStore.Plugins.Authorization;
+using Grpc.Core;
+using Grpc.Net.Client;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Net.Http.Headers;
+using MonitoringClient = EventStore.Client.Monitoring.Monitoring.MonitoringClient;
 
 namespace EventStore.ClusterNode.Components.Services;
 
@@ -28,7 +29,7 @@ public sealed class ClusterStatusService(
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(8);
 	private static readonly Operation ReadOperation = new(Operations.Node.Gossip.ClientRead);
 	private static readonly Operation ReplicationOperation = new(Operations.Node.Statistics.Replication);
-	private readonly ConcurrentDictionary<string, HttpClient> _clients = new(StringComparer.OrdinalIgnoreCase);
+	private readonly ConcurrentDictionary<string, LeaderMonitoringClient> _clients = new(StringComparer.OrdinalIgnoreCase);
 	private readonly object _replicaGate = new();
 	private Dictionary<Guid, ClusterReplicaRow> _previousReplicas = new();
 	private string _previousLeaderEndpoint = "";
@@ -67,27 +68,17 @@ public sealed class ClusterStatusService(
 		try {
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
-			using var request = new HttpRequestMessage(
-				HttpMethod.Get,
-				BuildLeaderUri(context.Request, leader, "/stats/replication", "format=json"));
-			NodeHttpRequestHelper.CopyHeader(context.Request, request, HeaderNames.Authorization);
-			NodeHttpRequestHelper.CopyHeader(context.Request, request, HeaderNames.Cookie);
+			var response = await ClientFor(context.Request, leader).Client.ReplicationStatsAsync(
+				new ReplicationStatsReq(),
+				cancellationToken: timeout.Token);
+			return ParseReplicaStats(response, clusterInfo.Members, leader, leaderEndpoint, DateTime.UtcNow);
+		} catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.PermissionDenied) {
+			return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
+		} catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) {
+			if (cancellationToken.IsCancellationRequested)
+				throw new OperationCanceledException(null, ex, cancellationToken);
 
-			using var response = await ClientFor(leader.HttpEndPointIp).SendAsync(
-				request,
-				HttpCompletionOption.ResponseHeadersRead,
-				timeout.Token);
-
-			if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-				return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
-
-			if (!response.IsSuccessStatusCode)
-				return ClusterReplicaPage.Unavailable(
-					$"Replica stats endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.");
-
-			await using var content = await response.Content.ReadAsStreamAsync(timeout.Token);
-			using var document = await JsonDocument.ParseAsync(content, cancellationToken: timeout.Token);
-			return ParseReplicaStats(document, clusterInfo.Members, leader, leaderEndpoint, DateTime.UtcNow);
+			return ClusterReplicaPage.Unavailable("Timed out reading replica statistics.");
 		} catch (OperationCanceledException) {
 			if (cancellationToken.IsCancellationRequested)
 				throw;
@@ -98,8 +89,17 @@ public sealed class ClusterStatusService(
 		}
 	}
 
-	private HttpClient ClientFor(string host) =>
-		_clients.GetOrAdd(host, static (value, factory) => factory.CreateHttpClient(new[] { value }), nodeHttpClientFactory);
+	private LeaderMonitoringClient ClientFor(
+		HttpRequest request,
+		ClientClusterInfo.ClientMemberInfo leader) {
+		var key = $"{request.Scheme}://{HttpEndpoint(leader)}";
+		return _clients.GetOrAdd(
+			key,
+			static (_, state) => LeaderMonitoringClient.Create(
+				BuildLeaderAddress(state.Request, state.Leader),
+				state.Factory.CreateHttpClient([state.Leader.HttpEndPointIp])),
+			(Request: request, Leader: leader, Factory: nodeHttpClientFactory));
+	}
 
 	public void Dispose() {
 		foreach (var client in _clients.Values)
@@ -107,23 +107,18 @@ public sealed class ClusterStatusService(
 	}
 
 	private ClusterReplicaPage ParseReplicaStats(
-		JsonDocument document,
+		ReplicationStatsResp response,
 		IReadOnlyList<ClientClusterInfo.ClientMemberInfo> members,
 		ClientClusterInfo.ClientMemberInfo leader,
 		string leaderEndpoint,
 		DateTime now) {
-		if (document.RootElement.ValueKind != JsonValueKind.Array)
-			return ClusterReplicaPage.Unavailable("Replica statistics are unavailable.");
-
 		lock (_replicaGate) {
 			if (!string.Equals(_previousLeaderEndpoint, leaderEndpoint, StringComparison.OrdinalIgnoreCase)) {
 				_previousLeaderEndpoint = leaderEndpoint;
 				_previousReplicas = new Dictionary<Guid, ClusterReplicaRow>();
 			}
 
-			var rows = document.RootElement
-				.EnumerateArray()
-				.Where(x => x.ValueKind == JsonValueKind.Object)
+			var rows = response.Stats
 				.Select(x => ParseReplicaRow(x, members, leader, now))
 				.ToArray();
 
@@ -133,14 +128,16 @@ public sealed class ClusterStatusService(
 	}
 
 	private ClusterReplicaRow ParseReplicaRow(
-		JsonElement row,
+		ReplicationStats row,
 		IReadOnlyList<ClientClusterInfo.ClientMemberInfo> members,
 		ClientClusterInfo.ClientMemberInfo leader,
 		DateTime now) {
-		var connectionId = ReadGuid(row, "connectionId", "ConnectionId");
-		var totalBytesSent = ReadLong(row, "totalBytesSent", "TotalBytesSent");
+		var connectionId = Guid.TryParse(row.ConnectionId, out var parsedConnectionId)
+			? parsedConnectionId
+			: Guid.Empty;
+		var totalBytesSent = row.TotalBytesSent;
 		var previousRow = _previousReplicas.GetValueOrDefault(connectionId);
-		var replicaNode = FindMemberByInternalEndpoint(members, ReadString(row, "subscriptionEndpoint", "SubscriptionEndpoint"));
+		var replicaNode = FindMemberByInternalEndpoint(members, row.SubscriptionEndpoint);
 		var isCatchingUp = replicaNode?.State == VNodeState.CatchingUp;
 		var catchupStartTime = now;
 		var catchupStartBytesSent = totalBytesSent;
@@ -158,12 +155,12 @@ public sealed class ClusterStatusService(
 
 		return new ClusterReplicaRow(
 			connectionId,
-			ReadString(row, "subscriptionEndpoint", "SubscriptionEndpoint", "<none>"),
+			string.IsNullOrWhiteSpace(row.SubscriptionEndpoint) ? "<none>" : row.SubscriptionEndpoint,
 			totalBytesSent,
-			ReadLong(row, "totalBytesReceived", "TotalBytesReceived"),
-			ReadInt(row, "pendingSendBytes", "PendingSendBytes"),
-			ReadInt(row, "pendingReceivedBytes", "PendingReceivedBytes"),
-			ReadInt(row, "sendQueueSize", "SendQueueSize"),
+			row.TotalBytesReceived,
+			row.PendingSendBytes,
+			row.PendingReceivedBytes,
+			row.SendQueueSize,
 			isCatchingUp,
 			bytesToCatchUp,
 			approximateSpeed,
@@ -181,19 +178,10 @@ public sealed class ClusterStatusService(
 		return members.FirstOrDefault(x => string.Equals(InternalTcpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
 	}
 
-	private static Uri BuildLeaderUri(
+	private static Uri BuildLeaderAddress(
 		HttpRequest request,
-		ClientClusterInfo.ClientMemberInfo leader,
-		string path,
-		string query) {
-		var normalizedPath = path.StartsWith('/') ? path : $"/{path}";
-		var builder = new UriBuilder(request.Scheme, leader.HttpEndPointIp, leader.HttpEndPointPort) {
-			Path = $"{request.PathBase}{normalizedPath}",
-			Query = query
-		};
-
-		return builder.Uri;
-	}
+		ClientClusterInfo.ClientMemberInfo leader) =>
+		new UriBuilder(request.Scheme, leader.HttpEndPointIp, leader.HttpEndPointPort).Uri;
 
 	private static string InternalTcpEndpoint(ClientClusterInfo.ClientMemberInfo member) =>
 		Endpoint(
@@ -206,49 +194,29 @@ public sealed class ClusterStatusService(
 	private static string Endpoint(string host, int port) =>
 		$"{(string.IsNullOrWhiteSpace(host) ? "<none>" : host)}:{port}";
 
-	private static string ReadString(JsonElement row, string camelName, string pascalName, string fallback = "") {
-		if (!TryGetProperty(row, camelName, pascalName, out var value))
-			return fallback;
+	private sealed class LeaderMonitoringClient : IDisposable {
+		private readonly GrpcChannel _channel;
+		private readonly HttpClient _httpClient;
 
-		return value.ValueKind switch {
-			JsonValueKind.String => value.GetString() ?? fallback,
-			JsonValueKind.Null => fallback,
-			JsonValueKind.Undefined => fallback,
-			_ => value.ToString()
-		};
+		private LeaderMonitoringClient(Uri address, HttpClient httpClient) {
+			_httpClient = httpClient;
+			_channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions {
+				HttpClient = _httpClient,
+				DisposeHttpClient = false
+			});
+			Client = new MonitoringClient(_channel);
+		}
+
+		public MonitoringClient Client { get; }
+
+		public static LeaderMonitoringClient Create(Uri address, HttpClient httpClient) =>
+			new(address, httpClient);
+
+		public void Dispose() {
+			_channel.Dispose();
+			_httpClient.Dispose();
+		}
 	}
-
-	private static int ReadInt(JsonElement row, string camelName, string pascalName) {
-		if (!TryGetProperty(row, camelName, pascalName, out var value))
-			return 0;
-
-		if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
-			return number;
-
-		return int.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
-			? parsed
-			: 0;
-	}
-
-	private static long ReadLong(JsonElement row, string camelName, string pascalName) {
-		if (!TryGetProperty(row, camelName, pascalName, out var value))
-			return 0;
-
-		if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number))
-			return number;
-
-		return long.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
-			? parsed
-			: 0;
-	}
-
-	private static Guid ReadGuid(JsonElement row, string camelName, string pascalName) {
-		var value = ReadString(row, camelName, pascalName);
-		return Guid.TryParse(value, out var parsed) ? parsed : Guid.Empty;
-	}
-
-	private static bool TryGetProperty(JsonElement row, string camelName, string pascalName, out JsonElement value) =>
-		row.TryGetProperty(camelName, out value) || row.TryGetProperty(pascalName, out value);
 }
 
 public sealed record ClusterReplicaPage(

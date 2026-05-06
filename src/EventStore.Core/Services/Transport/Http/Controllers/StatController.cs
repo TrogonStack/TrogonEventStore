@@ -25,9 +25,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 			service.RegisterAction(new ControllerAction("/stats", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Statistics.Read)),
 				OnGetFreshStats);
 			service.RegisterAction(
-				new ControllerAction("/stats/replication", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Statistics.Replication)),
-				OnGetReplicationStats);
-			service.RegisterAction(
 				new ControllerAction("/stats/{*statPath}", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs, new Operation(Operations.Node.Statistics.Custom)),
 				OnGetFreshStats);
 		}
@@ -87,14 +84,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers {
 
 				return dict;
 			};
-		}
-
-		private void OnGetReplicationStats(HttpEntityManager entity, UriTemplateMatch match) {
-			var envelope = new SendToHttpEnvelope(_networkSendQueue,
-				entity,
-				Format.GetReplicationStatsCompleted,
-				Configure.GetReplicationStatsCompleted);
-			Publish(new ReplicationMessage.GetReplicationStats(envelope));
 		}
 	}
 }
