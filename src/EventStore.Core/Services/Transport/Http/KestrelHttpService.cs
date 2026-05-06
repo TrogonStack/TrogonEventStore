@@ -27,8 +27,6 @@ namespace EventStore.Core.Services.Transport.Http {
 		public bool IsListening => _isListening;
 		public IEnumerable<EndPoint> EndPoints { get; }
 
-		public IEnumerable<ControllerAction> Actions => UriRouter.Actions;
-
 		private readonly ServiceAccessibility _accessibility;
 		private readonly IPublisher _inputBus;
 		public IUriRouter UriRouter { get; }
