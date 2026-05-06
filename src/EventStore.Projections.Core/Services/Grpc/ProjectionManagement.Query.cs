@@ -15,6 +15,8 @@ internal partial class ProjectionManagement
 	public override async Task<GetQueryResp> GetQuery(GetQueryReq request, ServerCallContext context)
 	{
 		var querySource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionQuery>();
+		using var cancellationRegistration =
+			context.CancellationToken.Register(() => querySource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
 		var user = context.GetHttpContext().User;
 

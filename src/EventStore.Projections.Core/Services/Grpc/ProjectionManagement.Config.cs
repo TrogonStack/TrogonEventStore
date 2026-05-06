@@ -16,6 +16,8 @@ internal partial class ProjectionManagement
 	public override async Task<GetConfigResp> GetConfig(GetConfigReq request, ServerCallContext context)
 	{
 		var configSource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionConfig>();
+		using var getConfigCancellationRegistration =
+			context.CancellationToken.Register(() => configSource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
 		var user = context.GetHttpContext().User;
 
@@ -70,6 +72,8 @@ internal partial class ProjectionManagement
 	public override async Task<UpdateConfigResp> UpdateConfig(UpdateConfigReq request, ServerCallContext context)
 	{
 		var updateSource = new TaskCompletionSource<bool>();
+		using var updateConfigCancellationRegistration =
+			context.CancellationToken.Register(() => updateSource.TrySetCanceled(context.CancellationToken));
 		var options = request.Options;
 		var name = options.Name;
 		var user = context.GetHttpContext().User;
