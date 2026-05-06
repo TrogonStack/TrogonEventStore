@@ -92,7 +92,6 @@ namespace EventStore.Core.Services.Transport.Http {
 				return new RequestParams(ESConsts.HttpTimeout);
 			});
 		}
-		public List<UriToActionMatch> GetAllUriMatches(Uri uri) => UriRouter.GetAllUriMatches(uri);
 		public static void CreateAndSubscribePipeline(ISubscriber bus) {
 			var requestProcessor = new AuthenticatedHttpRequestProcessor();
 			bus.Subscribe<AuthenticatedHttpRequestMessage>(requestProcessor);

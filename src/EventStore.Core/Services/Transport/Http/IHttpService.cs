@@ -21,8 +21,6 @@ namespace EventStore.Core.Services.Transport.Http {
 		bool IsListening { get; }
 		IEnumerable<EndPoint> EndPoints { get; }
 
-		List<UriToActionMatch> GetAllUriMatches(Uri uri);
-
 		void RegisterCustomAction(ControllerAction action,
 			Func<HttpEntityManager, UriTemplateMatch, RequestParams> handler);
 
