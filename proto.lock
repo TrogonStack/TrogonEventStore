@@ -2657,6 +2657,16 @@
                 "type": "bool"
               },
               {
+                "id": 2,
+                "name": "stats_path",
+                "type": "string"
+              },
+              {
+                "id": 3,
+                "name": "use_grouping",
+                "type": "bool"
+              },
+              {
                 "id": 4,
                 "name": "refresh_time_period_in_ms",
                 "type": "uint64"
@@ -2665,6 +2675,13 @@
           },
           {
             "name": "StatsResp",
+            "fields": [
+              {
+                "id": 2,
+                "name": "structured_stats",
+                "type": "google.protobuf.Value"
+              }
+            ],
             "maps": [
               {
                 "key_type": "string",
@@ -2826,6 +2843,11 @@
                 "out_type": "ReplicationStatsResp"
               }
             ]
+          }
+        ],
+        "imports": [
+          {
+            "path": "google/protobuf/struct.proto"
           }
         ],
         "package": {
