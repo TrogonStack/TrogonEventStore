@@ -267,7 +267,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.Services
 			.AddHealthChecks()
 			.AddCheck("node-liveness",
-				() => _nodeHealthState.IsLive ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy(),
+				() => HealthCheckResult.Healthy(),
 				tags: ["liveness"])
 			.AddCheck("node-readiness",
 				() => _nodeHealthState.IsReady ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy(),
@@ -391,11 +391,9 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 	private sealed class NodeHealthState {
 		public bool IsReady { get; private set; }
-		public bool IsLive { get; private set; } = true;
 
 		public void MarkReady() {
 			IsReady = true;
-			IsLive = true;
 		}
 
 		public void MarkShuttingDown() {
