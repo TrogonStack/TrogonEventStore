@@ -48,7 +48,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly int _maxAppendSize;
 	private readonly TimeSpan _writeTimeout;
 	private readonly IExpiryStrategy _expiryStrategy;
-	private readonly KestrelHttpService _httpService;
 	private readonly IConfiguration _configuration;
 	private readonly Trackers _trackers;
 	private readonly NodeHealthState _nodeHealthState;
@@ -58,7 +57,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly Action<IApplicationBuilder> _configureNode;
 
 	private readonly IAuthorizationProvider _authorizationProvider;
-	private readonly MultiQueuedHandler _httpMessageHandler;
 	private readonly string _clusterDns;
 
 	public ClusterVNodeStartup(
@@ -66,13 +64,11 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		IPublisher mainQueue,
 		IPublisher monitoringQueue,
 		ISubscriber mainBus,
-		MultiQueuedHandler httpMessageHandler,
 		IAuthenticationProvider authenticationProvider,
 		IAuthorizationProvider authorizationProvider,
 		int maxAppendSize,
 		TimeSpan writeTimeout,
 		IExpiryStrategy expiryStrategy,
-		KestrelHttpService httpService,
 		bool disableHttpMetrics,
 		IConfiguration configuration,
 		Trackers trackers,
@@ -83,11 +79,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	{
 
 		Ensure.Positive(maxAppendSize, nameof(maxAppendSize));
-
-		if (httpService == null)
-		{
-			throw new ArgumentNullException(nameof(httpService));
-		}
 
 		ArgumentNullException.ThrowIfNull(configuration);
 
@@ -105,14 +96,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_mainQueue = mainQueue;
 		_monitoringQueue = monitoringQueue;
 		_mainBus = mainBus;
-		_httpMessageHandler = httpMessageHandler;
 		_authenticationProvider = authenticationProvider;
 		_authorizationProvider =
 			authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
 		_maxAppendSize = maxAppendSize;
 		_writeTimeout = writeTimeout;
 		_expiryStrategy = expiryStrategy;
-		_httpService = httpService;
 		_disableHttpMetrics = disableHttpMetrics;
 		_configuration = configuration;
 		_trackers = trackers;
@@ -128,9 +117,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	public void Configure(IApplicationBuilder app)
 	{
 		_configureNode(app);
-
-		var internalDispatcher = new InternalDispatcherEndpoint(_mainQueue, _httpMessageHandler);
-		_mainBus.Subscribe(internalDispatcher);
 
 		app = app
 			.UseCors("default")
@@ -153,7 +139,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				.UseOpenTelemetryPrometheusScrapingEndpoint(static _ => true));
 		}
 
-		// allow all subsystems to register their legacy controllers before calling MapLegacyHttp
 		foreach (var component in _plugableComponents)
 			component.ConfigureApplication(app, _configuration);
 
@@ -186,23 +171,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					return Results.BadRequest("Redaction is only available via Unix Sockets");
 				return await next(c).ConfigureAwait(false);
 			});
-
-			// Map the legacy controller endpoints with special middleware pipeline
-			ep.MapLegacyHttp(
-				ep.CreateApplicationBuilder()
-					// Select an appropriate controller action and codec.
-					//    Success -> Add InternalContext (HttpEntityManager, urimatch, ...) to HttpContext
-					//    Fail -> Pipeline terminated with response.
-					.UseMiddleware<KestrelToInternalBridgeMiddleware>()
-
-					// Looks up the InternalContext to perform the check.
-					// Terminal if auth check is not successful.
-					.UseMiddleware<AuthorizationMiddleware>()
-
-					// Internal dispatcher looks up the InternalContext to call the appropriate controller
-					.Use(x => internalDispatcher.InvokeAsync)
-					.Build(),
-				_httpService);
 		});
 	}
 
@@ -228,9 +196,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton<ISubscriber>(_mainBus)
 			.AddSingleton<IPublisher>(_mainQueue)
 			.AddSingleton<AuthenticationMiddleware>()
-			.AddSingleton<AuthorizationMiddleware>()
-			.AddSingleton(new KestrelToInternalBridgeMiddleware(_httpService.UriRouter,
-				_httpService.LogHttpRequests, _httpService.AdvertiseAsHost, _httpService.AdvertiseAsPort))
 			.AddSingleton(new Streams<TStreamId>(_mainQueue, _maxAppendSize,
 				_writeTimeout, _expiryStrategy,
 				_trackers.GrpcTrackers,

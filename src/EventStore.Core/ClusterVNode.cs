@@ -1698,12 +1698,11 @@ public class ClusterVNode<TStreamId> :
 
 		_startup = new ClusterVNodeStartup<TStreamId>(
 			modifiedOptions.PlugableComponents,
-			_mainQueue, monitoringQueue, _mainBus, _workersHandler,
+			_mainQueue, monitoringQueue, _mainBus,
 			_authenticationProvider, _authorizationProvider,
 			options.Application.MaxAppendSize,
 			TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs),
 			expiryStrategy ?? new DefaultExpiryStrategy(),
-			_httpService,
 			options.Interface.DisableStatsOnHttp,
 			configuration,
 			trackers,
