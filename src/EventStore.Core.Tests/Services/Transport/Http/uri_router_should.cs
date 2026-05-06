@@ -60,7 +60,7 @@ public abstract class uri_router_should
 				"/projection/{name}?deleteStateStream={deleteStateStream}&deleteCheckpointStream={deleteCheckpointStream}",
 				HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction("/s/stats/{*statPath}", HttpMethod.Get, Codec.NoCodecs,
+			new ControllerAction("/s/greedy/{*path}", HttpMethod.Get, Codec.NoCodecs,
 				FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 		_router.RegisterAction(
 			new ControllerAction("/routes/$all/", HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()),
@@ -260,31 +260,31 @@ public abstract class uri_router_should
 	[Test]
 	public void match_greedy_route_with_bare_minimum_of_uri()
 	{
-		var match = _router.GetAllUriMatches(Uri("/s/stats/test"));
+		var match = _router.GetAllUriMatches(Uri("/s/greedy/test"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/s/stats/{*statPath}", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/s/greedy/{*path}", match[0].ControllerAction.UriTemplate);
 	}
 
 	[Test]
 	public void match_greedy_route_and_catch_long_uri()
 	{
-		var match = _router.GetAllUriMatches(Uri("/s/stats/some/long/stat/path"));
+		var match = _router.GetAllUriMatches(Uri("/s/greedy/some/long/stat/path"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/s/stats/{*statPath}", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/s/greedy/{*path}", match[0].ControllerAction.UriTemplate);
 	}
 
 	[Test]
 	public void match_greedy_route_with_empty_path_part_starting_with_slash()
 	{
-		var match = _router.GetAllUriMatches(Uri("/s/stats/"));
+		var match = _router.GetAllUriMatches(Uri("/s/greedy/"));
 		Assert.AreEqual(1, match.Count);
-		Assert.AreEqual("/s/stats/{*statPath}", match[0].ControllerAction.UriTemplate);
+		Assert.AreEqual("/s/greedy/{*path}", match[0].ControllerAction.UriTemplate);
 	}
 
 	[Test]
 	public void not_match_greedy_route_with_empty_path_part_without_slash()
 	{
-		var match = _router.GetAllUriMatches(Uri("/s/stats"));
+		var match = _router.GetAllUriMatches(Uri("/s/greedy"));
 		Assert.AreEqual(0, match.Count);
 	}
 

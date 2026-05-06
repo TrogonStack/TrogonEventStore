@@ -1076,7 +1076,6 @@ public class ClusterVNode<TStreamId> :
 		}
 
 		var pingController = new PingController();
-		var statController = new StatController(monitoringQueue, _workersHandler);
 		var metricsController = new MetricsController();
 		var nodeInformationProvider = new NodeInformationProvider(
 			options,
@@ -1095,7 +1094,6 @@ public class ClusterVNode<TStreamId> :
 		_httpService.SetupController(pingController);
 		if (!options.Interface.DisableStatsOnHttp)
 		{
-			_httpService.SetupController(statController);
 			_httpService.SetupController(metricsController);
 		}
 

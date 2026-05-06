@@ -574,7 +574,7 @@ public partial record ClusterVNodeOptions
 		[Description("Disables the admin ui on the HTTP endpoint.")]
 		public bool DisableAdminUi { get; init; } = false;
 
-		[Description("Disables statistics requests on the HTTP endpoint.")]
+		[Description("Disables the Prometheus metrics endpoint on HTTP.")]
 		public bool DisableStatsOnHttp { get; init; } = false;
 
 		[Description("Enables trusted authentication by an intermediary in the HTTP.")]

@@ -70,12 +70,12 @@ public class http_service_should : SpecificationWithDirectory
 
 	[Test]
 	[Category("Network")]
-	public async Task apply_cors_headers_to_cross_origin_stats_requests()
+	public async Task apply_cors_headers_to_cross_origin_ping_requests()
 	{
 		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
 		await node.Start();
 
-		var request = new HttpRequestMessage(HttpMethod.Get, "/stats");
+		var request = new HttpRequestMessage(HttpMethod.Get, "/ping");
 		request.Headers.Add("Origin", "https://example.com");
 
 		var result = await node.HttpClient.SendAsync(request);
