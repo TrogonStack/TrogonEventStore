@@ -99,16 +99,12 @@ EventStoreDB ships with five built in projections:
 ### Enabling system projections
 
 When you start EventStoreDB from a fresh database, these projections are present but disabled and querying
-their statuses returns `Stopped`. You can enable a projection by issuing a request which switches the status
-of the projection from `Stopped` to `Running`.
-
-```bash:no-line-numbers
-curl -i -X POST "http://{event-store-ip}:{ext-http-port}/projection/{projection-name}/command/enable" -H "accept:application/json" -H "Content-Length:0" -u admin:changeit
-```
+their statuses returns `Stopped`. You can enable a projection from the Admin UI or through the projection
+management gRPC surface, which switches the status of the projection from `Stopped` to `Running`.
 
 ### By category
 
-The `$by_category` (_http://127.0.0.1:2113/projection/$by_category_) projection links existing events from
+The `$by_category` projection links existing events from
 streams to a new stream with a `$ce-` prefix (a category) by splitting a stream `id` by a configurable
 separator.
 
@@ -139,7 +135,7 @@ The use case of this project is subscribing to all events within a category.
 
 ### By event type
 
-The `$by_event_type` (_http://127.0.0.1:2113/projection/$by_event_type_) projection links existing events from
+The `$by_event_type` projection links existing events from
 streams to a new stream with a stream id in the format `$et-{event-type}`.
 
 For example, if you append an event with the `EventType` field set to `PaymentProcessed`, no matter in what
@@ -149,7 +145,7 @@ You cannot configure this projection.
 
 ### By correlation ID
 
-The `$by_correlation_id` (_http://127.0.0.1:2113/projection/$by_correlation_id_) projection links existing
+The `$by_correlation_id` projection links existing
 events from projections to a new stream with a stream id in the format `$bc-<correlation id>`.
 
 The projection takes one parameter, a JSON string as a projection source:
@@ -162,7 +158,7 @@ The projection takes one parameter, a JSON string as a projection source:
 
 ### Stream by category
 
-The `$stream_by_category` (_http://127.0.0.1:2113/projection/$by_category_) projection links existing events
+The `$stream_by_category` projection links existing events
 from streams to a new stream with a `$category` prefix by splitting a stream `id` by a configurable separator.
 
 ```text:no-line-numbers
@@ -191,7 +187,7 @@ The use case of this projection is subscribing to all stream instances of a cate
 
 ### Streams projection
 
-The `$streams` (_http://127.0.0.1:2113/projection/$streams_) projection links existing events from streams to
+The `$streams` projection links existing events from streams to
 a stream named `$streams`
 
 You cannot configure this projection.
@@ -494,13 +490,8 @@ fromStream('$stats-127.0.0.1:2113')
     })
 ```
 
-You create the projection by making a call to the API and providing it with the definition of the projection.
-
-```bash:no-line-numbers
-curl -i -d@stats-counter.json \
-  http://localhost:2113/projections/continuous?name=stats-counter%26type=js%26enabled=true%26emit=true%26trackemittedstreams=true \
-  -u admin:changeit
-```
+You create the projection from the Admin UI or through the projection management gRPC surface by providing the
+definition of the projection.
 
 ### Debugging your first projection
 
