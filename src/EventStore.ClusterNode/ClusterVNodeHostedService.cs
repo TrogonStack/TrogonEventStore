@@ -20,7 +20,6 @@ using EventStore.Core.Hashing;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.PluginModel;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
-using EventStore.Core.Services.Transport.Http.Controllers;
 using EventStore.PluginHosting;
 using EventStore.Plugins;
 using EventStore.Plugins.Authentication;
@@ -121,7 +120,6 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			? new[] { NodeSubsystems.Projections }
 			: Array.Empty<NodeSubsystems>();
 
-		RegisterWebControllers();
 		return;
 
 		(ClusterVNodeOptions, AuthorizationProviderFactory) GetAuthorizationProviderFactory()
@@ -346,14 +344,6 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			}
 
 			return md5ProviderFactories.ToArray();
-		}
-	}
-
-	private void RegisterWebControllers()
-	{
-		if (!_options.Interface.DisableAdminUi)
-		{
-			Node.HttpService.SetupController(new NodeUiController(Node.MainQueue));
 		}
 	}
 
