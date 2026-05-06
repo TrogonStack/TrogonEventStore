@@ -129,9 +129,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	{
 		_configureNode(app);
 
-		var internalDispatcher = new InternalDispatcherEndpoint(_mainQueue, _httpMessageHandler);
-		_mainBus.Subscribe(internalDispatcher);
-
 		app = app
 			.UseCors("default")
 			// AuthenticationMiddleware uses _httpAuthenticationProviders and assigns
@@ -153,7 +150,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				.UseOpenTelemetryPrometheusScrapingEndpoint(static _ => true));
 		}
 
-		// allow all subsystems to register their legacy controllers before calling MapLegacyHttp
 		foreach (var component in _plugableComponents)
 			component.ConfigureApplication(app, _configuration);
 
@@ -186,23 +182,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					return Results.BadRequest("Redaction is only available via Unix Sockets");
 				return await next(c).ConfigureAwait(false);
 			});
-
-			// Map the legacy controller endpoints with special middleware pipeline
-			ep.MapLegacyHttp(
-				ep.CreateApplicationBuilder()
-					// Select an appropriate controller action and codec.
-					//    Success -> Add InternalContext (HttpEntityManager, urimatch, ...) to HttpContext
-					//    Fail -> Pipeline terminated with response.
-					.UseMiddleware<KestrelToInternalBridgeMiddleware>()
-
-					// Looks up the InternalContext to perform the check.
-					// Terminal if auth check is not successful.
-					.UseMiddleware<AuthorizationMiddleware>()
-
-					// Internal dispatcher looks up the InternalContext to call the appropriate controller
-					.Use(x => internalDispatcher.InvokeAsync)
-					.Build(),
-				_httpService);
 		});
 	}
 
@@ -228,9 +207,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton<ISubscriber>(_mainBus)
 			.AddSingleton<IPublisher>(_mainQueue)
 			.AddSingleton<AuthenticationMiddleware>()
-			.AddSingleton<AuthorizationMiddleware>()
-			.AddSingleton(new KestrelToInternalBridgeMiddleware(_httpService.UriRouter,
-				_httpService.LogHttpRequests, _httpService.AdvertiseAsHost, _httpService.AdvertiseAsPort))
 			.AddSingleton(new Streams<TStreamId>(_mainQueue, _maxAppendSize,
 				_writeTimeout, _expiryStrategy,
 				_trackers.GrpcTrackers,
