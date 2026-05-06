@@ -61,29 +61,6 @@ public class FakeController : IHttpController
 		Register("/-/metrics", HttpMethod.Get);
 		Register("/routes/$all/{position}/backward/{count}?embed={embed}", HttpMethod.Get);
 		Register("/routes/$all/{position}/forward/{count}?embed={embed}", HttpMethod.Get);
-		Register("/projections/any", HttpMethod.Get);
-		Register("/projections/all-non-transient", HttpMethod.Get);
-		Register("/projections/transient", HttpMethod.Get);
-		Register("/projections/onetime", HttpMethod.Get);
-		Register("/projections/continuous", HttpMethod.Get);
-		Register("/projections/transient?name={name}&type={type}&enabled={enabled}", HttpMethod.Post);
-		Register(
-			"/projections/onetime?name={name}&type={type}&enabled={enabled}&checkpoints={checkpoints}&emit={emit}",
-			HttpMethod.Post);
-		Register("/projections/continuous?name={name}&type={type}&enabled={enabled}&emit={emit}", HttpMethod.Post);
-		Register("/projection/{name}/query?config={config}", HttpMethod.Get);
-		Register("/projection/{name}/query?type={type}&emit={emit}", HttpMethod.Put);
-		Register("/projection/{name}", HttpMethod.Get);
-		Register(
-			"/projection/{name}?deleteStateStream={deleteStateStream}&deleteCheckpointStream={deleteCheckpointStream}",
-			HttpMethod.Delete);
-		Register("/projection/{name}/statistics", HttpMethod.Get);
-		Register("/projection/{name}/debug", HttpMethod.Get);
-		Register("/projection/{name}/state?partition={partition}", HttpMethod.Get);
-		Register("/projection/{name}/result?partition={partition}", HttpMethod.Get);
-		Register("/projection/{name}/command/disable", HttpMethod.Post);
-		Register("/projection/{name}/command/enable", HttpMethod.Post);
-		Register("/projection/{name}/command/reset", HttpMethod.Post);
 	}
 
 	private void Register(string route, string verb)

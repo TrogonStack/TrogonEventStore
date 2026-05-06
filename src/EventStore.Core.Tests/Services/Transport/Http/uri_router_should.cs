@@ -56,10 +56,6 @@ public abstract class uri_router_should
 			new ControllerAction("/routes/{stream}/{event}/backward/{count}?embed={embed}", HttpMethod.Get,
 				Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 		_router.RegisterAction(
-			new ControllerAction(
-				"/projection/{name}?deleteStateStream={deleteStateStream}&deleteCheckpointStream={deleteCheckpointStream}",
-				HttpMethod.Get, Codec.NoCodecs, FakeController.SupportedCodecs, new Operation()), (x, y) => p);
-		_router.RegisterAction(
 			new ControllerAction("/s/greedy/{*path}", HttpMethod.Get, Codec.NoCodecs,
 				FakeController.SupportedCodecs, new Operation()), (x, y) => p);
 		_router.RegisterAction(
@@ -224,7 +220,7 @@ public abstract class uri_router_should
 	[Test]
 	public void not_match_partial_route_match()
 	{
-		var match = _router.GetAllUriMatches(Uri("/projection/proj/something"));
+		var match = _router.GetAllUriMatches(Uri("/routes/test-stream/head/something"));
 		Assert.AreEqual(0, match.Count);
 	}
 
