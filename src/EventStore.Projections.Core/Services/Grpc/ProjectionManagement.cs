@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Text.Json;
+using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Grpc;
@@ -78,6 +79,38 @@ namespace EventStore.Projections.Core.Services.Grpc
 			}
 
 			return structValue;
+		}
+
+		private static string ToJson<T>(T value) where T : class =>
+			value is null ? "{}" : value.ToJson();
+
+		private static Value GetProtoValue(string value, bool isJson)
+		{
+			if (string.IsNullOrEmpty(value))
+			{
+				return new Value {
+					StructValue = new Struct()
+				};
+			}
+
+			if (!isJson)
+			{
+				return new Value {
+					StringValue = value
+				};
+			}
+
+			try
+			{
+				using var document = JsonDocument.Parse(value);
+				return GetProtoValue(document.RootElement);
+			}
+			catch (JsonException)
+			{
+				return new Value {
+					StringValue = value
+				};
+			}
 		}
 	}
 }

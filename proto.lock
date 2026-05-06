@@ -4506,6 +4506,41 @@
                     "id": 4,
                     "name": "query",
                     "type": "string"
+                  },
+                  {
+                    "id": 5,
+                    "name": "handler_type",
+                    "type": "string"
+                  },
+                  {
+                    "id": 6,
+                    "name": "enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 7,
+                    "name": "no_enabled_option",
+                    "type": "event_store.client.Empty"
+                  },
+                  {
+                    "id": 8,
+                    "name": "name",
+                    "type": "string"
+                  },
+                  {
+                    "id": 9,
+                    "name": "checkpoints_enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 10,
+                    "name": "emit_enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 11,
+                    "name": "track_emitted_streams",
+                    "type": "bool"
                   }
                 ],
                 "messages": [
@@ -4587,6 +4622,85 @@
             "name": "UpdateResp"
           },
           {
+            "name": "GetQueryReq",
+            "fields": [
+              {
+                "id": 1,
+                "name": "options",
+                "type": "Options"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Options",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "name",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "GetQueryResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "details",
+                "type": "Details"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Details",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "name",
+                    "type": "string"
+                  },
+                  {
+                    "id": 2,
+                    "name": "query",
+                    "type": "string"
+                  },
+                  {
+                    "id": 3,
+                    "name": "emit_enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 4,
+                    "name": "projection_type",
+                    "type": "string"
+                  },
+                  {
+                    "id": 5,
+                    "name": "track_emitted_streams",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 6,
+                    "name": "checkpoints_enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 7,
+                    "name": "definition_json",
+                    "type": "string"
+                  },
+                  {
+                    "id": 8,
+                    "name": "output_config_json",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "name": "DeleteReq",
             "fields": [
               {
@@ -4662,6 +4776,11 @@
                   {
                     "id": 5,
                     "name": "one_time",
+                    "type": "event_store.client.Empty"
+                  },
+                  {
+                    "id": 6,
+                    "name": "all_non_transient",
                     "type": "event_store.client.Empty"
                   }
                 ]
@@ -4855,6 +4974,160 @@
             ]
           },
           {
+            "name": "GetConfigReq",
+            "fields": [
+              {
+                "id": 1,
+                "name": "options",
+                "type": "Options"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Options",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "name",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "GetConfigResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "details",
+                "type": "Details"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Details",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "emit_enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 2,
+                    "name": "track_emitted_streams",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 3,
+                    "name": "checkpoint_after_ms",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 4,
+                    "name": "checkpoint_handled_threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 5,
+                    "name": "checkpoint_unhandled_bytes_threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 6,
+                    "name": "pending_events_threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 7,
+                    "name": "max_write_batch_length",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 8,
+                    "name": "max_allowed_writes_in_flight",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 9,
+                    "name": "projection_execution_timeout",
+                    "type": "int32"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "UpdateConfigReq",
+            "fields": [
+              {
+                "id": 1,
+                "name": "options",
+                "type": "Options"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Options",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "name",
+                    "type": "string"
+                  },
+                  {
+                    "id": 2,
+                    "name": "emit_enabled",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 3,
+                    "name": "track_emitted_streams",
+                    "type": "bool"
+                  },
+                  {
+                    "id": 4,
+                    "name": "checkpoint_after_ms",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 5,
+                    "name": "checkpoint_handled_threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 6,
+                    "name": "checkpoint_unhandled_bytes_threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 7,
+                    "name": "pending_events_threshold",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 8,
+                    "name": "max_write_batch_length",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 9,
+                    "name": "max_allowed_writes_in_flight",
+                    "type": "int32"
+                  },
+                  {
+                    "id": 10,
+                    "name": "projection_execution_timeout",
+                    "type": "int32"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "UpdateConfigResp"
+          },
+          {
             "name": "ResetReq",
             "fields": [
               {
@@ -4883,6 +5156,31 @@
           },
           {
             "name": "ResetResp"
+          },
+          {
+            "name": "AbortReq",
+            "fields": [
+              {
+                "id": 1,
+                "name": "options",
+                "type": "Options"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Options",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "name",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "AbortResp"
           },
           {
             "name": "EnableReq",
@@ -4938,6 +5236,118 @@
           },
           {
             "name": "DisableResp"
+          },
+          {
+            "name": "ReadEventsReq",
+            "fields": [
+              {
+                "id": 1,
+                "name": "options",
+                "type": "Options"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Options",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "query_sources_json",
+                    "type": "string"
+                  },
+                  {
+                    "id": 2,
+                    "name": "position_json",
+                    "type": "string"
+                  },
+                  {
+                    "id": 3,
+                    "name": "max_events",
+                    "type": "int32"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "ReadEventsResp",
+            "fields": [
+              {
+                "id": 1,
+                "name": "details",
+                "type": "Details"
+              }
+            ],
+            "messages": [
+              {
+                "name": "Details",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "correlation_id",
+                    "type": "string"
+                  },
+                  {
+                    "id": 2,
+                    "name": "reader_position_json",
+                    "type": "string"
+                  },
+                  {
+                    "id": 3,
+                    "name": "events",
+                    "type": "Event",
+                    "is_repeated": true
+                  }
+                ],
+                "messages": [
+                  {
+                    "name": "Event",
+                    "fields": [
+                      {
+                        "id": 1,
+                        "name": "event_stream_id",
+                        "type": "string"
+                      },
+                      {
+                        "id": 2,
+                        "name": "event_number",
+                        "type": "int64"
+                      },
+                      {
+                        "id": 3,
+                        "name": "event_type",
+                        "type": "string"
+                      },
+                      {
+                        "id": 4,
+                        "name": "data",
+                        "type": "google.protobuf.Value"
+                      },
+                      {
+                        "id": 5,
+                        "name": "metadata",
+                        "type": "google.protobuf.Value"
+                      },
+                      {
+                        "id": 6,
+                        "name": "link_metadata",
+                        "type": "google.protobuf.Value"
+                      },
+                      {
+                        "id": 7,
+                        "name": "is_json",
+                        "type": "bool"
+                      },
+                      {
+                        "id": 8,
+                        "name": "reader_position_json",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ],
         "services": [
@@ -4953,6 +5363,11 @@
                 "name": "Update",
                 "in_type": "UpdateReq",
                 "out_type": "UpdateResp"
+              },
+              {
+                "name": "GetQuery",
+                "in_type": "GetQueryReq",
+                "out_type": "GetQueryResp"
               },
               {
                 "name": "Delete",
@@ -4981,6 +5396,11 @@
                 "out_type": "ResetResp"
               },
               {
+                "name": "Abort",
+                "in_type": "AbortReq",
+                "out_type": "AbortResp"
+              },
+              {
                 "name": "State",
                 "in_type": "StateReq",
                 "out_type": "StateResp"
@@ -4989,6 +5409,21 @@
                 "name": "Result",
                 "in_type": "ResultReq",
                 "out_type": "ResultResp"
+              },
+              {
+                "name": "GetConfig",
+                "in_type": "GetConfigReq",
+                "out_type": "GetConfigResp"
+              },
+              {
+                "name": "UpdateConfig",
+                "in_type": "UpdateConfigReq",
+                "out_type": "UpdateConfigResp"
+              },
+              {
+                "name": "ReadEvents",
+                "in_type": "ReadEventsReq",
+                "out_type": "ReadEventsResp"
               },
               {
                 "name": "RestartSubsystem",
