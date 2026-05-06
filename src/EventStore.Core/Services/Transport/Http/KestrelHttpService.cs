@@ -78,11 +78,6 @@ namespace EventStore.Core.Services.Transport.Http {
 			_isListening = false;
 		}
 
-		public void SetupController(IHttpController controller) {
-			Ensure.NotNull(controller, "controller");
-			controller.Subscribe(this);
-		}
-
 		public void RegisterCustomAction(ControllerAction action,
 			Func<HttpEntityManager, UriTemplateMatch, RequestParams> handler) {
 			Ensure.NotNull(action, "action");

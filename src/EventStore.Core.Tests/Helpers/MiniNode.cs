@@ -225,7 +225,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			configureAdditionalNodeServices: services => ConfigureMiniNodeServices(services, newTransforms));
 		Db = Node.Db;
 
-		Node.HttpService.SetupController(new TestController(Node.MainQueue));
+		TestController.Register(Node.HttpService);
 		_kestrelTestServer = new TestServer(new WebHostBuilder()
 			.UseKestrel(o =>
 			{

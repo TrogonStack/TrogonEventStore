@@ -199,7 +199,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			configuration: inMemConf,
 			expiryStrategy,
 			Guid.NewGuid(), debugIndex);
-		Node.HttpService.SetupController(new TestController(Node.MainQueue));
+		TestController.Register(Node.HttpService);
 
 		_host = new WebHostBuilder()
 			.UseKestrel(o =>

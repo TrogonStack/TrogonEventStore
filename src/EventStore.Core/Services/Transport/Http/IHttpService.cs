@@ -8,10 +8,6 @@ using EventStore.Transport.Http.EntityManagement;
 using Microsoft.AspNetCore.Http;
 
 namespace EventStore.Core.Services.Transport.Http {
-	public interface IHttpController {
-		void Subscribe(IHttpService service);
-	}
-
 	public interface IHttpSender {
 		void SubscribeSenders(HttpMessagePipe pipe);
 	}
@@ -27,7 +23,6 @@ namespace EventStore.Core.Services.Transport.Http {
 		IEnumerable<ControllerAction> Actions { get; }
 
 		List<UriToActionMatch> GetAllUriMatches(Uri uri);
-		void SetupController(IHttpController controller);
 
 		void RegisterCustomAction(ControllerAction action,
 			Func<HttpEntityManager, UriTemplateMatch, RequestParams> handler);
