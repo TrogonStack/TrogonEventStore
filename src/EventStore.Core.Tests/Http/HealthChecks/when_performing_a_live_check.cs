@@ -110,6 +110,19 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 		Assert.GreaterOrEqual((int)response.StatusCode, 500);
 	}
 
+	[TestCaseSource(nameof(MethodAllowedTestCases))]
+	public async Task liveness_after_shutdown_returns_success(HttpMethod method)
+	{
+		await StartNodeAndWaitForReadiness();
+		await _node.Node.StopAsync()
+			.WithTimeout();
+
+		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/liveness"));
+
+		Assert.GreaterOrEqual((int)response.StatusCode, 200);
+		Assert.Less((int)response.StatusCode, 400);
+	}
+
 	private async Task StartNodeAndWaitForReadiness()
 	{
 		await _node.Start();

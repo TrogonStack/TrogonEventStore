@@ -400,7 +400,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		public void MarkShuttingDown() {
 			IsReady = false;
-			IsLive = false;
 		}
 	}
 }
