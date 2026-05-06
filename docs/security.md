@@ -605,13 +605,6 @@ You can also use the trusted intermediary header for externalized authentication
 almost any authentication system with EventStoreDB. Read more
 about [the trusted intermediary header](#trusted-intermediary).
 
-### Disable HTTP authentication
-
-It is possible to disable authentication on all protected HTTP endpoints by setting
-the `DisableFirstLevelHttpAuthorization` setting to `true`. The setting is set to `false` by default. When
-enabled, the setting will force EventStoreDB to use the supplied credentials only to check the stream access
-using [ACLs](#access-control-lists).
-
 ## Access control lists
 
 By default, authenticated users have access to the whole EventStoreDB database. In addition to that, it allows
