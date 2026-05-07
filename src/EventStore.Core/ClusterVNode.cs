@@ -9,62 +9,62 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Configuration;
+using EventStore.Common.Exceptions;
+using EventStore.Common.Log;
+using EventStore.Common.Options;
 using EventStore.Common.Utils;
+using EventStore.Core.Authentication;
+using EventStore.Core.Authentication.DelegatedAuthentication;
+using EventStore.Core.Authentication.PassthroughAuthentication;
+using EventStore.Core.Authorization;
 using EventStore.Core.Bus;
+using EventStore.Core.Caching;
+using EventStore.Core.Certificates;
+using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
+using EventStore.Core.Helpers;
 using EventStore.Core.Index;
 using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
+using EventStore.Core.Services.Archive;
+using EventStore.Core.Services.Archive.Naming;
+using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.Services.Gossip;
 using EventStore.Core.Services.Monitoring;
+using EventStore.Core.Services.PeriodicLogs;
+using EventStore.Core.Services.PersistentSubscription;
+using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Replication;
 using EventStore.Core.Services.RequestManager;
 using EventStore.Core.Services.Storage;
 using EventStore.Core.Services.Storage.EpochManager;
+using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.TimerService;
+using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.Services.Transport.Http.Authentication;
-using EventStore.Core.Services.Transport.Http.Controllers;
-using EventStore.Core.Services.Transport.Grpc;
+using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
 using EventStore.Core.Services.Transport.Tcp;
 using EventStore.Core.Services.VNode;
 using EventStore.Core.Settings;
+using EventStore.Core.Synchronization;
+using EventStore.Core.Telemetry;
 using EventStore.Core.TransactionLog;
+using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.Scavenging;
 using EventStore.Core.TransactionLog.Scavenging.Sqlite;
 using EventStore.Core.TransactionLog.Scavenging.Stages;
-using EventStore.Core.Authentication;
-using EventStore.Core.Helpers;
-using EventStore.Core.Services.PersistentSubscription;
-using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
-using System.Threading.Tasks;
-using EventStore.Common.Exceptions;
-using EventStore.Common.Log;
-using EventStore.Common.Options;
-using EventStore.Core.Authentication.DelegatedAuthentication;
-using EventStore.Core.Authentication.PassthroughAuthentication;
-using EventStore.Core.Authorization;
-using EventStore.Core.Caching;
-using EventStore.Core.Certificates;
-using EventStore.Core.Cluster;
-using EventStore.Core.Services.Archive;
-using EventStore.Core.Services.Archive.Naming;
-using EventStore.Core.Services.Storage.InMemory;
-using EventStore.Core.Services.PeriodicLogs;
-using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
-using EventStore.Core.Synchronization;
-using EventStore.Core.Telemetry;
-using EventStore.Core.TransactionLog.Checkpoint;
-using EventStore.Core.TransactionLog.FileNamingStrategy;
-using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.Transforms;
 using EventStore.Core.Transforms.Identity;
 using EventStore.Core.Util;
@@ -80,7 +80,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ILogger = Serilog.ILogger;
 using LogLevel = EventStore.Common.Options.LogLevel;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
-using EventStore.Core.Services.Archive.Storage;
 
 namespace EventStore.Core;
 
@@ -339,13 +338,16 @@ public class ClusterVNode<TStreamId> :
 			dbConfig,
 			tracker: trackers.TransactionFileTracker,
 			transformManager: new DbTransformManager(),
-			onChunkLoaded: chunkInfo => {
+			onChunkLoaded: chunkInfo =>
+			{
 				_mainQueue.Publish(new SystemMessage.ChunkLoaded(chunkInfo));
 			},
-			onChunkCompleted: chunkInfo => {
+			onChunkCompleted: chunkInfo =>
+			{
 				_mainQueue.Publish(new SystemMessage.ChunkCompleted(chunkInfo));
 			},
-			onChunkSwitched: chunkInfo => {
+			onChunkSwitched: chunkInfo =>
+			{
 				_mainQueue.Publish(new SystemMessage.ChunkSwitched(chunkInfo));
 			});
 
@@ -776,7 +778,8 @@ public class ClusterVNode<TStreamId> :
 
 		var inMemReader = new InMemoryStreamReader(new Dictionary<string, IInMemoryStreamReader>
 		{
-			[SystemStreams.GossipStream] = gossipListener, [SystemStreams.NodeStateStream] = nodeStatusListener,
+			[SystemStreams.GossipStream] = gossipListener,
+			[SystemStreams.NodeStateStream] = nodeStatusListener,
 		});
 
 		// Storage Reader
@@ -1016,7 +1019,7 @@ public class ClusterVNode<TStreamId> :
 		var httpAuthenticationProviders = new List<IHttpAuthenticationProvider>();
 
 		foreach (var authenticationScheme in _authenticationProvider.GetSupportedAuthenticationSchemes() ??
-		                                     Enumerable.Empty<string>())
+											 Enumerable.Empty<string>())
 		{
 			switch (authenticationScheme)
 			{
@@ -1314,7 +1317,8 @@ public class ClusterVNode<TStreamId> :
 			var chunkManager = new ChunkManagerForExecutor<TStreamId>(logger, Db.Manager, Db.Config,
 				Db.TransformManager);
 			var chunkDeleter = IChunkDeleter<TStreamId, ILogRecord>.NoOp;
-			if (archiveOptions.Enabled) {
+			if (archiveOptions.Enabled)
+			{
 				// todo: consider if we can/should reuse the same reader elsewhere
 				var archiveReader = new ArchiveStorageFactory(
 					archiveOptions,
@@ -1527,14 +1531,14 @@ public class ClusterVNode<TStreamId> :
 				options.Cluster.DiscoverViaDns,
 				options.Cluster.ClusterSize > 1,
 				options.Cluster.GossipSeed is { Length: > 0 }) switch
-			{
-				(true, true, _) => (IGossipSeedSource)new DnsGossipSeedSource(options.Cluster.ClusterDns,
-					options.Cluster.ClusterGossipPort),
-				(false, true, false) => throw new InvalidConfigurationException(
-					"DNS discovery is disabled, but no gossip seed endpoints have been specified. "
-					+ "Specify gossip seeds using the `GossipSeed` option."),
-				_ => new KnownEndpointGossipSeedSource(options.Cluster.GossipSeed)
-			};
+		{
+			(true, true, _) => (IGossipSeedSource)new DnsGossipSeedSource(options.Cluster.ClusterDns,
+				options.Cluster.ClusterGossipPort),
+			(false, true, false) => throw new InvalidConfigurationException(
+				"DNS discovery is disabled, but no gossip seed endpoints have been specified. "
+				+ "Specify gossip seeds using the `GossipSeed` option."),
+			_ => new KnownEndpointGossipSeedSource(options.Cluster.GossipSeed)
+		};
 
 		var gossip = new NodeGossipService(
 			_mainQueue,
@@ -1827,7 +1831,7 @@ public class ClusterVNode<TStreamId> :
 			LRUCache<TStreamId, IndexBackend<TStreamId>.MetadataCached>.ApproximateItemSize(
 				keyRefsSize: sizer.GetSizeInBytes(streamId),
 				valueRefsSize: metadataCached.ApproximateSize -
-				               Unsafe.SizeOf<IndexBackend<TStreamId>.MetadataCached>());
+							   Unsafe.SizeOf<IndexBackend<TStreamId>.MetadataCached>());
 
 		streamMetadataCache = new LRUCache<TStreamId, IndexBackend<TStreamId>.MetadataCached>(
 			"Metadata",
