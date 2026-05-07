@@ -54,8 +54,8 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 			"ScavengeHistoryMaxAge");
 		Assert.AreEqual(false, _options.Database.DisableScavengeMerging,
 			"DisableScavengeMerging");
-		Assert.AreEqual(false, _options.Interface.DisableAdminUi, "AdminOnPublic");
-		Assert.AreEqual(false, _options.Interface.DisableStatsOnHttp, "StatsOnPublic");
+		Assert.AreEqual(false, _options.Interface.DisableAdminUi, "DisableAdminUi");
+		Assert.AreEqual(false, _options.Interface.DisableStatsOnHttp, "DisableStatsOnHttp");
 		Assert.AreEqual(1_000_000, _options.Database.MaxMemTableSize, "MaxMemtableEntryCount");
 		Assert.AreEqual(false, _options.Projection.RunProjections > ProjectionType.System,
 			"StartStandardProjections");
@@ -94,7 +94,6 @@ public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : Clu
 	public void should_have_default_secure_endpoints()
 	{
 		var internalTcp = new IPEndPoint(IPAddress.Loopback, 1112);
-		var externalTcp = new IPEndPoint(IPAddress.Loopback, 1113);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
 		Assert.AreEqual(internalTcp, _node.NodeInfo.InternalSecureTcp);
@@ -126,7 +125,6 @@ public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStrea
 	public void should_have_default_endpoints()
 	{
 		var internalTcp = new IPEndPoint(IPAddress.Loopback, 1112);
-		var externalTcp = new IPEndPoint(IPAddress.Loopback, 1113);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
 		Assert.AreEqual(internalTcp, _node.NodeInfo.InternalTcp);

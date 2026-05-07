@@ -328,37 +328,27 @@ For the gRPC heartbeats, EventStoreDB and its gRPC clients use the protocol feat
 
 ## Exposing endpoints
 
-If you need to disable some HTTP endpoints on the external HTTP interface, you can change some settings below. It is possible to disable the Admin UI, stats and gossip port to be exposed externally.
+If you need to reduce the HTTP surface, you can disable the browser-facing Admin UI and the Prometheus metrics endpoint. Health probes and gRPC remain part of the supported HTTP listener.
 
-You can disable the Admin UI on external HTTP by setting `AdminOnExt` setting to `false`.
-
-| Format               | Syntax                    |
-|:---------------------|:--------------------------|
-| Command line         | `--admin-on-ext`          |
-| YAML                 | `AdminOnExt`              |
-| Environment variable | `EVENTSTORE_ADMIN_ON_EXT` | 
-
-**Default**: `true`, Admin UI is enabled on the external HTTP.
-
-Exposing the `stats` endpoint externally is required for the Admin UI and can also be useful if you collect stats for an external monitoring tool.
+You can disable the Admin UI by setting `DisableAdminUi` to `true`.
 
 | Format               | Syntax                    |
 |:---------------------|:--------------------------|
-| Command line         | `--stats-on-ext`          |
-| YAML                 | `StatsOnExt`              |
-| Environment variable | `EVENTSTORE_STATS_ON_EXT` | 
+| Command line         | `--disable-admin-ui`      |
+| YAML                 | `DisableAdminUi`          |
+| Environment variable | `EVENTSTORE_DISABLE_ADMIN_UI` |
 
-**Default**: `true`, stats endpoint is enabled on the external HTTP.
+**Default**: `false`, Admin UI is enabled.
 
-You can also disable the gossip protocol in the external HTTP interface. If you do that, ensure that the internal interface is properly configured. Also, if you use [gossip with DNS](cluster.md#cluster-with-dns), ensure that the [gossip port](cluster.md#gossip-port) is set to the internal HTTP port.
+You can disable the Prometheus metrics endpoint by setting `DisableStatsOnHttp` to `true`.
 
-| Format               | Syntax                     |
-|:---------------------|:---------------------------|
-| Command line         | `--gossip-on-ext`          |
-| YAML                 | `GossipOnExt`              |
-| Environment variable | `EVENTSTORE_GOSSIP_ON_EXT` | 
+| Format               | Syntax                              |
+|:---------------------|:------------------------------------|
+| Command line         | `--disable-stats-on-http`           |
+| YAML                 | `DisableStatsOnHttp`                |
+| Environment variable | `EVENTSTORE_DISABLE_STATS_ON_HTTP`  |
 
-**Default**: `true`, gossip is enabled on the external HTTP.
+**Default**: `false`, the Prometheus metrics endpoint is enabled on `/-/metrics`.
 
 ## External TCP 
 
@@ -453,5 +443,4 @@ When the plugin starts, you should see a log similar to the following:
 ```
 [11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
 ```
-
 
