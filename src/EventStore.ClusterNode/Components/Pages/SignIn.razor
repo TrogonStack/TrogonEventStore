@@ -82,8 +82,10 @@
 	[SupplyParameterFromQuery(Name = "returnUrl")]
 	private string ReturnUrl { get; set; } = "";
 
+	private SignInInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "ui-signin")]
-	private SignInInput Input { get; set; } = new();
+	private SignInInput Input { get => _input; set => _input = value ?? new(); }
 
 	private SecurityAuthenticationInfo Authentication { get; set; } = SecurityAuthenticationInfo.Unavailable();
 	private bool AuthenticationAvailable { get; set; } = true;

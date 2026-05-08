@@ -87,13 +87,17 @@
 	[SupplyParameterFromQuery] public string InitStreamId { get; set; } = "";
 	[SupplyParameterFromQuery] public string Location { get; set; } = "";
 
-	[SupplyParameterFromForm(FormName = "transient-query")]
-	private QueryInput Input { get; set; } = new() {
+	private QueryInput _input = new() {
 		Query = DefaultQuery
 	};
 
+	[SupplyParameterFromForm(FormName = "transient-query")]
+	private QueryInput Input { get => _input; set => _input = value ?? new() { Query = DefaultQuery }; }
+
+	private QueryStopInput _stopInput = new();
+
 	[SupplyParameterFromForm(FormName = "query-stop")]
-	private QueryStopInput StopInput { get; set; } = new();
+	private QueryStopInput StopInput { get => _stopInput; set => _stopInput = value ?? new(); }
 
 	private QueryRunPage Result { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }

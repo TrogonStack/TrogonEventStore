@@ -25,7 +25,7 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 	public void SetUp()
 	{
 		// certificate exported to PKCS #12 due to this issue on Windows: https://github.com/dotnet/runtime/issues/45680
-		_cert = new X509Certificate2(_leaf.ExportToPkcs12());
+		_cert = X509CertificateLoader.LoadPkcs12(_leaf.ExportToPkcs12(), null);
 
 		_clientCertValidator = (_, _, _) => (true, null);
 		_serverEndPoint = new IPEndPoint(IPAddress.Loopback, PortsHelper.GetAvailablePort(IPAddress.Loopback));

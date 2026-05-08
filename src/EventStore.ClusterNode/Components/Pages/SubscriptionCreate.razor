@@ -39,8 +39,10 @@
 </section>
 
 @code {
+	private SubscriptionSettingsInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "subscription-create")]
-	private SubscriptionSettingsInput Input { get; set; } = new();
+	private SubscriptionSettingsInput Input { get => _input; set => _input = value ?? new(); }
 
 	private SubscriptionCommandResult Result { get; set; }
 

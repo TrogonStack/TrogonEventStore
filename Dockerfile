@@ -1,6 +1,6 @@
 # "build" image
 ARG CONTAINER_RUNTIME=noble
-FROM mcr.microsoft.com/dotnet/sdk:8.0-noble AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 ARG RUNTIME=linux-x64
 
 WORKDIR /build
@@ -37,7 +37,7 @@ RUN find /build/src -maxdepth 1 -type d -name "*.Tests" -print0 | xargs -r -I{} 
     'dotnet publish --runtime=${RUNTIME} --no-self-contained --configuration Release --output /build/published-tests/`basename $1` $1' - '{}'
 
 # "test" image
-FROM mcr.microsoft.com/dotnet/sdk:8.0-${CONTAINER_RUNTIME} AS test
+FROM mcr.microsoft.com/dotnet/sdk:10.0-${CONTAINER_RUNTIME} AS test
 WORKDIR /build
 COPY --from=build ./build/published-tests ./published-tests
 COPY --from=build ./build/ci ./ci
@@ -53,10 +53,10 @@ FROM build AS publish
 ARG RUNTIME=linux-x64
 
 RUN dotnet publish --configuration=Release --runtime=${RUNTIME} --self-contained \
-     --framework=net8.0 --output /publish EventStore.ClusterNode
+     --framework=net10.0 --output /publish EventStore.ClusterNode
 
 # "runtime" image
-FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-${CONTAINER_RUNTIME} AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-${CONTAINER_RUNTIME} AS runtime
 ARG RUNTIME=linux-x64
 ARG UID=10000
 ARG GID=10000

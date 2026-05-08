@@ -77,11 +77,15 @@
 @code {
 	[Parameter] public string Name { get; set; } = "";
 
+	private ProjectionEditInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "projection-edit")]
-	private ProjectionEditInput Input { get; set; } = new();
+	private ProjectionEditInput Input { get => _input; set => _input = value ?? new(); }
+
+	private ProjectionResetInput _resetInput = new();
 
 	[SupplyParameterFromForm(FormName = "projection-edit-reset")]
-	private ProjectionResetInput ResetInput { get; set; } = new();
+	private ProjectionResetInput ResetInput { get => _resetInput; set => _resetInput = value ?? new(); }
 
 	private ProjectionQueryPage Page { get; set; }
 	private ProjectionCommandResult SaveResult { get; set; }

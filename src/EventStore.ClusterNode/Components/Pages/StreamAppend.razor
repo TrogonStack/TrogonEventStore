@@ -74,8 +74,10 @@
 	[Parameter] public string StreamId { get; set; } = "";
 	[SupplyParameterFromQuery] public long? FromEvent { get; set; }
 
+	private StreamAppendInput _input = NewInput("");
+
 	[SupplyParameterFromForm(FormName = "stream-append")]
-	private StreamAppendInput Input { get; set; } = NewInput("");
+	private StreamAppendInput Input { get => _input; set => _input = value ?? NewInput(""); }
 
 	private StreamCommandResult Result { get; set; }
 	private string _lastRequestedStreamId = "";

@@ -57,7 +57,7 @@ internal sealed class WindowsCertificateManager : CertificateManager
 		// key that we generated gets persisted.
 		var export = certificate.ExportToPkcs12(string.Empty);
 		certificate.Dispose();
-		certificate = new X509Certificate2(export, "",
+		certificate = X509CertificateLoader.LoadPkcs12(export, "",
 			X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
 		Array.Clear(export, 0, export.Length);
 		certificate.FriendlyName = EventStoreHttpsOidFriendlyName;
@@ -76,7 +76,7 @@ internal sealed class WindowsCertificateManager : CertificateManager
 
 	protected override void TrustCertificateCore(X509Certificate2 certificate)
 	{
-		using var publicCertificate = new X509Certificate2(certificate.Export(X509ContentType.Cert));
+		using var publicCertificate = X509CertificateLoader.LoadCertificate(certificate.Export(X509ContentType.Cert));
 
 		publicCertificate.FriendlyName = certificate.FriendlyName;
 

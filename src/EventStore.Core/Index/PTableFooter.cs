@@ -48,7 +48,7 @@ namespace EventStore.Core.Index {
 					new InvalidFileException("Invalid PTable file."));
 
 			byte[] buffer = new byte[4];
-			stream.Read(buffer, 0, 4);
+			stream.ReadExactly(buffer, 0, 4);
 			uint numMidpointsCached = BitConverter.ToUInt32(buffer, 0);
 
 			return new PTableFooter((byte)version, numMidpointsCached);

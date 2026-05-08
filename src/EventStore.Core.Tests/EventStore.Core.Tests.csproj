@@ -2,6 +2,7 @@
 	<PropertyGroup>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>$(NoWarn);ASPDEPR004;ASPDEPR008;CA2022</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="EventStore.Client" />
@@ -11,7 +12,6 @@
 		<PackageReference Include="Grpc.HealthCheck" />
 		<PackageReference Include="Grpc.Net.Client" />
 		<PackageReference Include="Microsoft.AspNetCore.TestHost" />
-		<PackageReference Include="Microsoft.CSharp" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="NUnit" />
 		<PackageReference Include="NUnit3TestAdapter" />

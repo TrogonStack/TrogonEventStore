@@ -61,8 +61,10 @@ else
 	[Parameter] public string StreamId { get; set; } = "";
 	[Parameter] public string GroupName { get; set; } = "";
 
+	private SubscriptionSettingsInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "subscription-edit")]
-	private SubscriptionSettingsInput Input { get; set; } = new();
+	private SubscriptionSettingsInput Input { get => _input; set => _input = value ?? new(); }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private SubscriptionCommandResult Result { get; set; }

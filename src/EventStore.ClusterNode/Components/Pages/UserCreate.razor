@@ -75,8 +75,10 @@
 </section>
 
 @code {
+	private UserCreateInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "user-create")]
-	private UserCreateInput Input { get; set; } = new();
+	private UserCreateInput Input { get => _input; set => _input = value ?? new(); }
 
 	private UserCommandResult Result { get; set; }
 

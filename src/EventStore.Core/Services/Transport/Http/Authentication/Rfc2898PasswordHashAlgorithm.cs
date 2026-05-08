@@ -11,8 +11,7 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 			var saltData = new byte[SaltSize];
 			RandomNumberGenerator.Fill(saltData);
 			
-			using var rfcBytes = new Rfc2898DeriveBytes(password, saltData, Iterations, HashAlgorithmName.SHA1);
-			var hashData = rfcBytes.GetBytes(HashSize);
+			var hashData = Rfc2898DeriveBytes.Pbkdf2(password, saltData, Iterations, HashAlgorithmName.SHA1, HashSize);
 			hash = System.Convert.ToBase64String(hashData);
 			salt = System.Convert.ToBase64String(saltData);
 		}
@@ -20,8 +19,8 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 		public override bool Verify(string password, string hash, string salt) {
 			var saltData = System.Convert.FromBase64String(salt);
 
-			using var rfcBytes = new Rfc2898DeriveBytes(password, saltData, Iterations, HashAlgorithmName.SHA1);
-			var newHash = System.Convert.ToBase64String(rfcBytes.GetBytes(HashSize));
+			var newHash = System.Convert.ToBase64String(
+				Rfc2898DeriveBytes.Pbkdf2(password, saltData, Iterations, HashAlgorithmName.SHA1, HashSize));
 
 			return hash == newHash;
 		}

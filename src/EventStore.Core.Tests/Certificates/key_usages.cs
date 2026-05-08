@@ -8,8 +8,8 @@ namespace EventStore.Core.Tests.Certificates;
 
 public class key_usages
 {
-	private readonly Oid _serverAuth = Oid.FromOidValue("1.3.6.1.5.5.7.3.1", OidGroup.EnhancedKeyUsage);
-	private readonly Oid _clientAuth = Oid.FromOidValue("1.3.6.1.5.5.7.3.2", OidGroup.EnhancedKeyUsage);
+	private readonly Oid _serverAuth = new("1.3.6.1.5.5.7.3.1");
+	private readonly Oid _clientAuth = new("1.3.6.1.5.5.7.3.2");
 	private const X509KeyUsageFlags DefaultKeyUsages = X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment;
 
 	private static X509Certificate2 GenSut(X509KeyUsageFlags keyUsages, OidCollection extendedKeyUsages)

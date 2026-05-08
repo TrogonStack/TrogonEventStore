@@ -12,7 +12,7 @@ public class with_certificate_chain_of_length_2 : with_certificates
 		var leaf = CreateCertificate(issuer: false, parent: root);
 
 		//get rid of private keys except for the leaf
-		_root = new X509Certificate2(root.Export(X509ContentType.Cert));
+		_root = X509CertificateLoader.LoadCertificate(root.Export(X509ContentType.Cert));
 		_leaf = leaf;
 	}
 }

@@ -60,8 +60,10 @@
 </section>
 
 @code {
+	private StandardProjectionCreateInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "projection-standard-create")]
-	private StandardProjectionCreateInput Input { get; set; } = new();
+	private StandardProjectionCreateInput Input { get => _input; set => _input = value ?? new(); }
 
 	private ProjectionCommandResult Result { get; set; }
 

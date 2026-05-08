@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using EventStore.Common.Utils;
@@ -15,7 +14,6 @@ public class TestsInitFixture
 	[OneTimeSetUp]
 	public void SetUp()
 	{
-		ServicePointManager.DefaultConnectionLimit = 1000;
 		LogEnvironmentInfo();
 	}
 

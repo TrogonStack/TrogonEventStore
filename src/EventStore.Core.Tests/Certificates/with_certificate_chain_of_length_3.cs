@@ -16,8 +16,8 @@ public class with_certificate_chain_of_length_3 : with_certificates
 		var leaf = CreateCertificate(issuer: false, parent: intermediate, expired: leafExpired);
 
 		//get rid of private keys except for the leaf
-		_root = new X509Certificate2(root.Export(X509ContentType.Cert));
-		_intermediate = new X509Certificate2(intermediate.Export(X509ContentType.Cert));
+		_root = X509CertificateLoader.LoadCertificate(root.Export(X509ContentType.Cert));
+		_intermediate = X509CertificateLoader.LoadCertificate(intermediate.Export(X509ContentType.Cert));
 		_leaf = leaf;
 	}
 }

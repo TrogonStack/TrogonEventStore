@@ -48,8 +48,10 @@
 @code {
 	[Parameter] public string StreamId { get; set; } = "";
 
+	private StreamDeleteInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "stream-delete")]
-	private StreamDeleteInput Input { get; set; } = new();
+	private StreamDeleteInput Input { get => _input; set => _input = value ?? new(); }
 
 	private StreamCommandResult Result { get; set; }
 

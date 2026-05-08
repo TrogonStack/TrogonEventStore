@@ -83,8 +83,10 @@
 @code {
 	[Parameter] public string Name { get; set; } = "";
 
+	private ProjectionDeleteInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "projection-delete")]
-	private ProjectionDeleteInput Input { get; set; } = new();
+	private ProjectionDeleteInput Input { get => _input; set => _input = value ?? new(); }
 
 	private ProjectionDetailPage Page { get; set; }
 	private ProjectionCommandResult Result { get; set; }

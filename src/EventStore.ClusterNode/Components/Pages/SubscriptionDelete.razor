@@ -70,8 +70,10 @@ else
 	[Parameter] public string StreamId { get; set; } = "";
 	[Parameter] public string GroupName { get; set; } = "";
 
+	private SubscriptionDeleteInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "subscription-delete")]
-	private SubscriptionDeleteInput Input { get; set; } = new();
+	private SubscriptionDeleteInput Input { get => _input; set => _input = value ?? new(); }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private SubscriptionCommandResult Result { get; set; }

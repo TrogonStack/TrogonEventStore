@@ -94,11 +94,15 @@
 	[Parameter] public string Name { get; set; } = "";
 	[SupplyParameterFromQuery] public string FromQueryState { get; set; } = "";
 
+	private ProjectionDebugInput _disableInput = new();
+
 	[SupplyParameterFromForm(FormName = "projection-debug-disable")]
-	private ProjectionDebugInput DisableInput { get; set; } = new();
+	private ProjectionDebugInput DisableInput { get => _disableInput; set => _disableInput = value ?? new(); }
+
+	private ProjectionDebugInput _resetInput = new();
 
 	[SupplyParameterFromForm(FormName = "projection-debug-reset")]
-	private ProjectionDebugInput ResetInput { get; set; } = new();
+	private ProjectionDebugInput ResetInput { get => _resetInput; set => _resetInput = value ?? new(); }
 
 	private ProjectionDetailPage Page { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }

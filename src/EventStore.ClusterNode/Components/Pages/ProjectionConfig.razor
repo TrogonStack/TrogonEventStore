@@ -102,8 +102,10 @@
 @code {
 	[Parameter] public string Name { get; set; } = "";
 
+	private ProjectionConfigInput _input = new();
+
 	[SupplyParameterFromForm(FormName = "projection-config")]
-	private ProjectionConfigInput Input { get; set; } = new();
+	private ProjectionConfigInput Input { get => _input; set => _input = value ?? new(); }
 
 	private ProjectionConfigPage Page { get; set; }
 	private ProjectionCommandResult Result { get; set; }

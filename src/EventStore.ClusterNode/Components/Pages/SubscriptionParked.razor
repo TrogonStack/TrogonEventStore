@@ -108,8 +108,10 @@ else
 	[SupplyParameterFromQuery] public long? From { get; set; }
 	[SupplyParameterFromQuery] public string Direction { get; set; } = "";
 
+	private ReplayParkedInput _replayInput = new();
+
 	[SupplyParameterFromForm(FormName = "subscription-parked-replay")]
-	private ReplayParkedInput ReplayInput { get; set; } = new();
+	private ReplayParkedInput ReplayInput { get => _replayInput; set => _replayInput = value ?? new(); }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private StreamReadPage EventsPage { get; set; }

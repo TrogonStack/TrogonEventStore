@@ -182,14 +182,20 @@
 	[Parameter] public string Name { get; set; } = "";
 	[SupplyParameterFromQuery] public string Partition { get; set; } = "";
 
+	private ProjectionActionInput _enableInput = new();
+
 	[SupplyParameterFromForm(FormName = "projection-detail-enable")]
-	private ProjectionActionInput EnableInput { get; set; } = new();
+	private ProjectionActionInput EnableInput { get => _enableInput; set => _enableInput = value ?? new(); }
+
+	private ProjectionActionInput _disableInput = new();
 
 	[SupplyParameterFromForm(FormName = "projection-detail-disable")]
-	private ProjectionActionInput DisableInput { get; set; } = new();
+	private ProjectionActionInput DisableInput { get => _disableInput; set => _disableInput = value ?? new(); }
+
+	private ProjectionActionInput _resetInput = new();
 
 	[SupplyParameterFromForm(FormName = "projection-detail-reset")]
-	private ProjectionActionInput ResetInput { get; set; } = new();
+	private ProjectionActionInput ResetInput { get => _resetInput; set => _resetInput = value ?? new(); }
 
 	private ProjectionDetailPage Page { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }

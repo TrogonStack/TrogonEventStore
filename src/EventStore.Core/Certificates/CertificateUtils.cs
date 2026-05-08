@@ -70,7 +70,7 @@ namespace EventStore.Core {
 			using var publicCertificate = certs[0];
 			using var publicWithPrivate = publicCertificate.CopyWithPrivateKey(rsa);
 			certs.RemoveAt(0);
-			certificate = new X509Certificate2(publicWithPrivate.ExportToPkcs12());
+			certificate = X509CertificateLoader.LoadPkcs12(publicWithPrivate.ExportToPkcs12(), null);
 			intermediates = certs.Count == 0 ? null : certs;
 			return true;
 		}
@@ -97,7 +97,7 @@ namespace EventStore.Core {
 				}
 
 				// if the above attempt failed, try to load the certificate via the standard constructor
-				var certificate = new X509Certificate2(certificatePath, certificatePassword);
+				var certificate = X509CertificateLoader.LoadPkcs12FromFile(certificatePath, certificatePassword);
 				if (!certificate.HasPrivateKey)
 					throw new NoCertificatePrivateKeyException();
 				return (certificate, null);
@@ -145,12 +145,12 @@ namespace EventStore.Core {
 
 			if (!bundleLoadSucceeded || certificateBundle.Count == 0) {
 				// make a last attempt to open the certificate, leaving the file format guess-work to the library
-				certificateBundle.Add(new X509Certificate2(certificatePath, certificatePassword));
+				certificateBundle.Add(X509CertificateLoader.LoadCertificateFromFile(certificatePath));
 			}
 
 			using var publicCertificate = certificateBundle[0];
 			using var publicWithPrivate = publicCertificate.CopyWithPrivateKey(rsa);
-			var serverCertificate = new X509Certificate2(publicWithPrivate.ExportToPkcs12());
+			var serverCertificate = X509CertificateLoader.LoadPkcs12(publicWithPrivate.ExportToPkcs12(), null);
 			certificateBundle.RemoveAt(0);
 			var intermediates = certificateBundle.Count == 0 ? null : certificateBundle;
 
@@ -221,7 +221,7 @@ namespace EventStore.Core {
 				if (acceptedExtensions.Contains(extension)) {
 					X509Certificate2 cert;
 					try {
-						cert = new X509Certificate2(File.ReadAllBytes(file));
+						cert = X509CertificateLoader.LoadCertificate(File.ReadAllBytes(file));
 					} catch (Exception exc) {
 						throw new AggregateException($"Error loading certificate file: {file}", exc);
 					}

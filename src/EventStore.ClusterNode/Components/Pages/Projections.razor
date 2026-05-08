@@ -130,11 +130,15 @@
 @code {
 	[SupplyParameterFromQuery] public bool IncludeQueries { get; set; }
 
+	private ProjectionBulkInput _enableAllInput = new();
+
 	[SupplyParameterFromForm(FormName = "projection-enable-all")]
-	private ProjectionBulkInput EnableAllInput { get; set; } = new();
+	private ProjectionBulkInput EnableAllInput { get => _enableAllInput; set => _enableAllInput = value ?? new(); }
+
+	private ProjectionBulkInput _disableAllInput = new();
 
 	[SupplyParameterFromForm(FormName = "projection-disable-all")]
-	private ProjectionBulkInput DisableAllInput { get; set; } = new();
+	private ProjectionBulkInput DisableAllInput { get => _disableAllInput; set => _disableAllInput = value ?? new(); }
 
 	private ProjectionListPage Page { get; set; }
 	private ProjectionBulkCommandResult CommandResult { get; set; }

@@ -53,6 +53,8 @@ public abstract class IndexReader {
 
 public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 {
+	private readonly record struct IndexedPrepare(long Version, IPrepareLogRecord<TStreamId> Prepare, IndexEntry IndexEntry);
+
 	private static EqualityComparer<TStreamId> StreamIdComparer { get; } = EqualityComparer<TStreamId>.Default;
 
 	public long CachedStreamInfo
@@ -187,13 +189,11 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 	private ValueTask<IPrepareLogRecord<TStreamId>> ReadPrepare(TFReaderLease reader, TStreamId streamId,
 		long eventNumber, CancellationToken token)
 	{
-		var recordsQuery = _tableIndex.GetRange(streamId, eventNumber, eventNumber)
-			.ToAsyncEnumerable()
-			.SelectAwaitWithCancellation(async (x, token) =>
-				new { x.Version, Prepare = await ReadPrepareInternal(reader, x.Position, token) })
-			.Where(x => x.Prepare is not null && StreamIdComparer.Equals(x.Prepare.EventStreamId, streamId))
-			.GroupBy(static x => x.Version)
-			.SelectAwaitWithCancellation(AsyncEnumerable.LastAsync)
+		var recordsQuery = LastByVersion(ReadIndexedPrepares(
+				reader,
+				_tableIndex.GetRange(streamId, eventNumber, eventNumber),
+				streamId,
+				token), token)
 			.Select(static x => x.Prepare);
 
 		return recordsQuery.FirstOrDefaultAsync(token);
@@ -308,20 +308,17 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 					skipIndexScanOnRead, token);
 			}
 
-			var recordsQuery = _tableIndex.GetRange(streamId, startEventNumber, endEventNumber)
-				.ToAsyncEnumerable()
-				.SelectAwaitWithCancellation(async (x, token) =>
-					new { x.Version, Prepare = await ReadPrepareInternal(reader, x.Position, token) })
-				.Where(x => x.Prepare != null && StreamIdComparer.Equals(x.Prepare.EventStreamId, streamId));
+			var recordsQuery = ReadIndexedPrepares(
+				reader,
+				_tableIndex.GetRange(streamId, startEventNumber, endEventNumber),
+				streamId,
+				token);
 			if (!skipIndexScanOnRead)
 			{
-				recordsQuery = recordsQuery.OrderByDescending(x => x.Version)
-					.GroupBy(static x => x.Version).SelectAwaitWithCancellation(AsyncEnumerable.LastAsync);
+				recordsQuery = LastByVersion(recordsQuery.OrderByDescending(static x => x.Version), token);
 			}
 
-			var records = await recordsQuery
-				.Reverse()
-				.SelectAwaitWithCancellation((x, token) => CreateEventRecord(x.Version, x.Prepare, streamName, token))
+			var records = await CreateEventRecords(recordsQuery.Reverse(), streamName, token)
 				.ToArrayAsync(token);
 
 			long nextEventNumber = Math.Min(endEventNumber + 1, lastEventNumber + 1);
@@ -559,25 +556,25 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 		TStreamHandle streamHandle,
 		TFReaderLease reader,
 		long startEventNumber,
-		long endEventNumber);
+		long endEventNumber,
+		CancellationToken token);
 
 	private static IAsyncEnumerable<IndexEntry> ReadIndexEntries_RemoveCollisions(IndexReader<TStreamId> indexReader,
 		TStreamId streamHandle,
 		TFReaderLease reader,
 		long startEventNumber,
-		long endEventNumber)
-		=> indexReader._tableIndex.GetRange(streamHandle, startEventNumber, endEventNumber)
-			.ToAsyncEnumerable()
-			.SelectAwaitWithCancellation(async (x, token) =>
-				new { IndexEntry = x, Prepare = await ReadPrepareInternal(reader, x.Position, token) })
-			.Where(x => x.Prepare is not null && StreamIdComparer.Equals(x.Prepare.EventStreamId, streamHandle))
+		long endEventNumber,
+		CancellationToken token)
+		=> ReadIndexedPrepares(reader, indexReader._tableIndex.GetRange(streamHandle, startEventNumber, endEventNumber),
+				streamHandle, token)
 			.Select(static x => x.IndexEntry);
 
 	private static IAsyncEnumerable<IndexEntry> ReadIndexEntries_NoCollisions(IndexReader<TStreamId> indexReader,
 		ulong streamHandle,
 		TFReaderLease reader,
 		long startEventNumber,
-		long endEventNumber) =>
+		long endEventNumber,
+		CancellationToken token) =>
 		indexReader._tableIndex.GetRange(streamHandle, startEventNumber, endEventNumber).ToAsyncEnumerable();
 
 	public async ValueTask<IndexReadEventInfoResult> ReadEventInfo_KeepDuplicates(TStreamId streamId, long eventNumber,
@@ -730,15 +727,14 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 			startEventNumber = minEventNumber;
 		}
 
-		var recordsQuery = _tableIndex.GetRange(streamId, startEventNumber, endEventNumber)
-			.ToAsyncEnumerable()
-			.SelectAwaitWithCancellation(async (x, token) =>
-				new { x.Version, Prepare = await ReadPrepareInternal(reader, x.Position, token) })
-			.Where(x => x.Prepare is not null && StreamIdComparer.Equals(x.Prepare.EventStreamId, streamId));
+		var recordsQuery = ReadIndexedPrepares(
+			reader,
+			_tableIndex.GetRange(streamId, startEventNumber, endEventNumber),
+			streamId,
+			token);
 		if (!skipIndexScanOnRead)
 		{
-			recordsQuery = recordsQuery.OrderByDescending(static x => x.Version)
-				.GroupBy(x => x.Version).SelectAwaitWithCancellation(AsyncEnumerable.LastAsync);
+			recordsQuery = LastByVersion(recordsQuery.OrderByDescending(static x => x.Version), token);
 		}
 
 		if (metadata.MaxAge.HasValue)
@@ -747,8 +743,7 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 			recordsQuery = recordsQuery.Where(x => x.Prepare.TimeStamp >= ageThreshold);
 		}
 
-		var records = await recordsQuery
-			.SelectAwaitWithCancellation((x, token) => CreateEventRecord(x.Version, x.Prepare, streamName, token))
+		var records = await CreateEventRecords(recordsQuery, streamName, token)
 			.ToArrayAsync(token);
 
 		isEndOfStream = isEndOfStream
@@ -869,7 +864,7 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 		CancellationToken token)
 	{
 
-		var entries = readIndexEntries(this, streamHandle, reader, startEventNumber, endEventNumber);
+		var entries = readIndexEntries(this, streamHandle, reader, startEventNumber, endEventNumber, token);
 		var eventInfos = new List<EventInfo>();
 
 		var prevEntry = new IndexEntry(long.MaxValue, long.MaxValue, long.MaxValue);
@@ -1170,6 +1165,43 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 		string streamName, CancellationToken token)
 	{
 		return CreateEventRecord(version, prepare, streamName, _eventTypes, token);
+	}
+
+	private async IAsyncEnumerable<EventRecord> CreateEventRecords(IAsyncEnumerable<IndexedPrepare> records,
+		string streamName, [EnumeratorCancellation] CancellationToken token)
+	{
+		await foreach (var record in records.WithCancellation(token))
+			yield return await CreateEventRecord(record.Version, record.Prepare, streamName, token);
+	}
+
+	private static async IAsyncEnumerable<IndexedPrepare> ReadIndexedPrepares(TFReaderLease reader,
+		IEnumerable<IndexEntry> indexEntries, TStreamId streamId, [EnumeratorCancellation] CancellationToken token)
+	{
+		foreach (var indexEntry in indexEntries)
+		{
+			token.ThrowIfCancellationRequested();
+			var prepare = await ReadPrepareInternal(reader, indexEntry.Position, token);
+			if (prepare is not null && StreamIdComparer.Equals(prepare.EventStreamId, streamId))
+				yield return new IndexedPrepare(indexEntry.Version, prepare, indexEntry);
+		}
+	}
+
+	private static async IAsyncEnumerable<IndexedPrepare> LastByVersion(IAsyncEnumerable<IndexedPrepare> records,
+		[EnumeratorCancellation] CancellationToken token)
+	{
+		var versions = new List<long>();
+		var recordsByVersion = new Dictionary<long, IndexedPrepare>();
+
+		await foreach (var record in records.WithCancellation(token))
+		{
+			if (!recordsByVersion.ContainsKey(record.Version))
+				versions.Add(record.Version);
+
+			recordsByVersion[record.Version] = record;
+		}
+
+		foreach (var version in versions)
+			yield return recordsByVersion[version];
 	}
 
 	private static async ValueTask<EventRecord> CreateEventRecord(long version, IPrepareLogRecord<TStreamId> prepare,

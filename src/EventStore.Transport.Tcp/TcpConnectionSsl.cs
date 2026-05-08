@@ -345,28 +345,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 	private void DisplaySslStreamInfo(SslStream stream)
 	{
 		Log.Information("[S{remoteEndPoint}, L{localEndPoint}]", RemoteEndPoint, LocalEndPoint);
-		Log.Verbose("Cipher: {cipherAlgorithm}", stream.CipherAlgorithm);
 		try
 		{
-			Log.Verbose("Cipher strength: {cipherStrength}", stream.CipherStrength);
-		}
-		catch (NotImplementedException)
-		{
-		}
-
-		Log.Verbose("Hash: {hashAlgorithm}", stream.HashAlgorithm);
-		try
-		{
-			Log.Verbose("Hash strength: {hashStrength}", stream.HashStrength);
-		}
-		catch (NotImplementedException)
-		{
-		}
-
-		Log.Verbose("Key exchange: {keyExchangeAlgorithm}", stream.KeyExchangeAlgorithm);
-		try
-		{
-			Log.Verbose("Key exchange strength: {keyExchangeStrength}", stream.KeyExchangeStrength);
+			Log.Verbose("Cipher suite: {cipherSuite}", stream.NegotiatedCipherSuite);
 		}
 		catch (NotImplementedException)
 		{

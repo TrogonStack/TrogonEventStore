@@ -171,7 +171,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 		await writerSut.StoreChunk(chunk1, Path.GetFileName(chunk1), CancellationToken.None);
 		await writerSut.StoreChunk(chunk1, Path.GetFileName(chunk2), CancellationToken.None);
 
-		var archivedChunks = sut.ListChunks(CancellationToken.None).ToEnumerable();
+		var archivedChunks = await sut.ListChunks(CancellationToken.None).ToArrayAsync(CancellationToken.None);
 		Assert.Equal([
 			Path.GetFileName(chunk0),
 			Path.GetFileName(chunk1),
@@ -189,7 +189,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 		await writerSut.StoreChunk(chunk, Path.GetFileName(chunk), CancellationToken.None);
 		await writerSut.StoreChunk(chunk, "other-000000.000000", CancellationToken.None);
 
-		var archivedChunks = sut.ListChunks(CancellationToken.None).ToEnumerable();
+		var archivedChunks = await sut.ListChunks(CancellationToken.None).ToArrayAsync(CancellationToken.None);
 		Assert.Equal([Path.GetFileName(chunk)], archivedChunks);
 	}
 }
