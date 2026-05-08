@@ -73,7 +73,7 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 		}
 
 		[TestFixture]
-		public class when_upgrading_the_hashes
+		public class when_verifying_legacy_hashes
 		{
 			private Rfc2898PasswordHashAlgorithm _algorithm;
 			private readonly string _password = "Pa55w0rd!";
@@ -89,15 +89,15 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 			}
 
 			[Test]
-			public void old_hashes_should_successfully_verify()
+			public void old_hashes_do_not_verify()
 			{
-				Assert.True(_algorithm.Verify(_password, _hash, _salt));
+				Assert.False(_algorithm.Verify(_password, _hash, _salt));
 			}
 
 			[Test]
-			public void old_hashes_starting_with_v_should_successfully_verify()
+			public void old_hashes_starting_with_v_do_not_verify()
 			{
-				Assert.True(_algorithm.Verify(_password, _hashStartingWithVersionPrefix, _saltForHashStartingWithVersionPrefix));
+				Assert.False(_algorithm.Verify(_password, _hashStartingWithVersionPrefix, _saltForHashStartingWithVersionPrefix));
 			}
 		}
 	}

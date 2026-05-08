@@ -5,10 +5,8 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 {
 	public class Rfc2898PasswordHashAlgorithm : PasswordHashAlgorithm
 	{
-		private const int LegacyHashSize = 20;
 		private const int HashSize = 32;
 		private const int SaltSize = 16;
-		private const int LegacyIterations = 1000;
 		private const int Iterations = 600_000;
 		private const string Version = "v2";
 		private const string HashAlgorithm = "SHA256";
@@ -33,7 +31,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			if (!TryParseHash(hash, out var hashAlgorithm, out var iterations, out var expectedHash))
 				return false;
 
-			var saltData = System.Convert.FromBase64String(salt);
+			if (!TryReadSalt(salt, out var saltData))
+				return false;
+
 			var actualHash = Rfc2898DeriveBytes.Pbkdf2(
 				password,
 				saltData,
@@ -50,23 +50,34 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			out int iterations,
 			out byte[] expectedHash)
 		{
-			hashAlgorithm = HashAlgorithmName.SHA1;
-			iterations = LegacyIterations;
+			hashAlgorithm = HashAlgorithmName.SHA256;
+			iterations = Iterations;
 			expectedHash = null;
-
-			if (!hash.Contains('$', System.StringComparison.Ordinal))
-				return TryReadHash(hash, LegacyHashSize, out expectedHash);
 
 			var parts = hash.Split('$');
 			if (parts.Length != 4 ||
 				parts[0] != Version ||
 				parts[1] != HashAlgorithm ||
 				!int.TryParse(parts[2], out iterations) ||
-				iterations <= 0)
+				iterations != Iterations)
 				return false;
 
-			hashAlgorithm = HashAlgorithmName.SHA256;
 			return TryReadHash(parts[3], HashSize, out expectedHash);
+		}
+
+		private static bool TryReadSalt(string salt, out byte[] saltData)
+		{
+			try
+			{
+				saltData = System.Convert.FromBase64String(salt);
+			}
+			catch (System.FormatException)
+			{
+				saltData = null;
+				return false;
+			}
+
+			return saltData.Length == SaltSize;
 		}
 
 		private static bool TryReadHash(string hash, int hashSize, out byte[] expectedHash)
