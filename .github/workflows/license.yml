@@ -9,10 +9,10 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
-    - uses: FantasticFiasco/action-update-license-year@v2
+    - uses: FantasticFiasco/action-update-license-year@v3
       with:
         path: LICENSE.md
         labels: 'cherry-pick:release/v5,cherry-pick:release/v20.10,cherry-pick:release/v21.10'
