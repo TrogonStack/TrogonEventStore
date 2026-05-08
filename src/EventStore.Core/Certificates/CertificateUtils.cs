@@ -81,7 +81,9 @@ namespace EventStore.Core
 			using var publicCertificate = certs[0];
 			using var publicWithPrivate = publicCertificate.CopyWithPrivateKey(rsa);
 			certs.RemoveAt(0);
-			certificate = X509CertificateLoader.LoadPkcs12(publicWithPrivate.ExportToPkcs12(), null);
+			certificate = X509CertificateLoader.LoadPkcs12(
+				publicWithPrivate.Export(X509ContentType.Pkcs12, string.Empty),
+				string.Empty);
 			intermediates = certs.Count == 0 ? null : certs;
 			return true;
 		}
@@ -170,17 +172,31 @@ namespace EventStore.Core
 
 			if (!bundleLoadSucceeded || certificateBundle.Count == 0)
 			{
-				// make a last attempt to open the certificate, leaving the file format guess-work to the library
-				certificateBundle.Add(X509CertificateLoader.LoadCertificateFromFile(certificatePath));
+				certificateBundle.Add(LoadCertificateFromFile(certificatePath, certificatePassword));
 			}
 
 			using var publicCertificate = certificateBundle[0];
 			using var publicWithPrivate = publicCertificate.CopyWithPrivateKey(rsa);
-			var serverCertificate = X509CertificateLoader.LoadPkcs12(publicWithPrivate.ExportToPkcs12(), null);
+			var serverCertificate = X509CertificateLoader.LoadPkcs12(
+				publicWithPrivate.Export(X509ContentType.Pkcs12, string.Empty),
+				string.Empty);
 			certificateBundle.RemoveAt(0);
 			var intermediates = certificateBundle.Count == 0 ? null : certificateBundle;
 
 			return (serverCertificate, intermediates);
+		}
+
+		private static X509Certificate2 LoadCertificateFromFile(string certificatePath, string certificatePassword)
+		{
+			try
+			{
+				return X509CertificateLoader.LoadCertificateFromFile(certificatePath);
+			}
+			catch (CryptographicException)
+			{
+				using var certificate = X509CertificateLoader.LoadPkcs12FromFile(certificatePath, certificatePassword);
+				return X509CertificateLoader.LoadCertificate(certificate.Export(X509ContentType.Cert));
+			}
 		}
 
 		private static X509Certificate2 GetCertificateFromStore(X509Store store, string certificateSubjectName,

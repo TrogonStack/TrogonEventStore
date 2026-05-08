@@ -65,7 +65,7 @@ TrogonDB is written in a mixture of C# and JavaScript. It can run on Windows, Li
 
 **Prerequisites**
 
-- [.NET Core SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 Once you've installed the prerequisites for your system, you can launch a `Release` build of EventStore as follows:
 

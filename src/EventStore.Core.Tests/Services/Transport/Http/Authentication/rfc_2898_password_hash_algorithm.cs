@@ -28,6 +28,12 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 			}
 
 			[Test]
+			public void prefixes_the_hash_with_the_current_version()
+			{
+				Assert.That(_hash, Does.StartWith("v2$SHA256$600000$"));
+			}
+
+			[Test]
 			public void does_not_verify_incorrect_password()
 			{
 				Assert.That(!_algorithm.Verify(_password.ToUpper(), _hash, _salt));
