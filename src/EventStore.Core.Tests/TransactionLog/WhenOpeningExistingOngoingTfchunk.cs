@@ -14,17 +14,24 @@ public class WhenOpeningExistingOngoingTfchunk : SpecificationWithFilePerTestFix
 {
 	private TFChunk _chunk;
 	private TFChunk _testChunk;
+	private long _nextLogPosition;
 
 	[OneTimeSetUp]
 	public override async Task TestFixtureSetUp()
 	{
 		await base.TestFixtureSetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, chunkSize: 10 * 1024);
+		var seedResult = await _chunk.TryAppend(
+			new CommitLogRecord(0, Guid.NewGuid(), 0, DateTime.UtcNow, 0),
+			CancellationToken.None);
+		Assert.IsTrue(seedResult.Success);
+		Assert.Greater(seedResult.NewPosition, 0);
+		_nextLogPosition = seedResult.NewPosition;
 		_chunk.TryClose();
 		_testChunk = await TFChunk.FromOngoingFile(
 			fileSystem: TFChunkHelper.CreateLocalFileSystem(Filename),
 			filename: Filename,
-			writePosition: 0,
+			writePosition: (int)_nextLogPosition,
 			unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
@@ -60,7 +67,7 @@ public class WhenOpeningExistingOngoingTfchunk : SpecificationWithFilePerTestFix
 		await _testChunk.Flush(CancellationToken.None);
 
 		var result = await _testChunk.TryAppend(
-			new CommitLogRecord(0, Guid.NewGuid(), 0, DateTime.UtcNow, 0),
+			new CommitLogRecord(_nextLogPosition, Guid.NewGuid(), 0, DateTime.UtcNow, 0),
 			CancellationToken.None);
 
 		Assert.IsTrue(result.Success);
