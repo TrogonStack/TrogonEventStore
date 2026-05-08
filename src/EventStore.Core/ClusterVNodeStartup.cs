@@ -263,7 +263,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		IConfiguration configuration)
 	{
 		meterOptions
-			.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("eventstore"))
+			.SetResourceBuilder(CreateResourceBuilder())
 			.AddMeter(metricsConfiguration.Meters)
 			.AddView(i =>
 			{
@@ -345,17 +345,23 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		TracerProviderBuilder tracerOptions,
 		IConfiguration configuration)
 	{
-		tracerOptions.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("eventstore"));
+		tracerOptions.SetResourceBuilder(CreateResourceBuilder());
 
 		if (!configuration.OtlpTracesEnabled())
 			return;
 
 		tracerOptions
 			.AddAspNetCoreInstrumentation()
+			.AddHttpClientInstrumentation()
 			.AddOtlpExporter(exporterOptions => configuration.BindOtlpExporterOptions(
 				OpenTelemetryConfiguration.OtlpTracesOtlpPrefix,
 				exporterOptions));
 	}
+
+	private static ResourceBuilder CreateResourceBuilder() =>
+		ResourceBuilder.CreateDefault().AddService(
+			serviceName: "eventstore",
+			serviceVersion: VersionInfo.Version);
 
 	public void Handle(SystemMessage.SystemReady _) => _nodeHealthState.MarkReady();
 
