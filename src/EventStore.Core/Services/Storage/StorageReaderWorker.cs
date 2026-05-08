@@ -10,18 +10,19 @@ using EventStore.Core.Data;
 using EventStore.Core.Exceptions;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
+using EventStore.Core.Messaging;
 using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.Storage.ReaderIndex;
-using EventStore.Core.TransactionLog.Checkpoint;
-using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 using EventStore.Core.Services.TimerService;
-using EventStore.Core.Messaging;
+using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using ILogger = Serilog.ILogger;
+using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Services.Storage;
 
-public abstract class StorageReaderWorker {
+public abstract class StorageReaderWorker
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<StorageReaderWorker>();
 }
 
@@ -46,6 +47,7 @@ public class StorageReaderWorker<TStreamId> :
 	private readonly IReadOnlyCheckpoint _writerCheckpoint;
 	private readonly IInMemoryStreamReader _memoryStreamReader;
 	private readonly int _queueId;
+	private readonly CancellationTokenMultiplexer _tokenMultiplexer = new();
 	private static readonly char[] LinkToSeparator = { '@' };
 	private const int MaxPageSize = 4096;
 	private DateTime? _lastExpireTime;
@@ -88,19 +90,15 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var cts = token.LinkTo(msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg.CancellationToken);
 		try
 		{
 			var ev = await ReadEvent(msg, token);
 			msg.Envelope.ReplyWith(ev);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token)
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
-		}
-		finally
-		{
-			cts?.Dispose();
 		}
 	}
 
@@ -128,20 +126,16 @@ public class StorageReaderWorker<TStreamId> :
 		}
 
 		ClientMessage.ReadStreamEventsForwardCompleted res;
-		var cts = token.LinkTo(msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg.CancellationToken);
 		try
 		{
 			res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
 				? _memoryStreamReader.ReadForwards(msg)
 				: await ReadStreamEventsForward(msg, token);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token)
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
-		}
-		finally
-		{
-			cts?.Dispose();
 		}
 
 		switch (res.Result)
@@ -187,7 +181,7 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var cts = token.LinkTo(msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg.CancellationToken);
 		try
 		{
 			var res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
@@ -196,13 +190,9 @@ public class StorageReaderWorker<TStreamId> :
 
 			msg.Envelope.ReplyWith(res);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token)
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
-		}
-		finally
-		{
-			cts?.Dispose();
 		}
 	}
 
@@ -246,7 +236,7 @@ public class StorageReaderWorker<TStreamId> :
 				break;
 			case ReadAllResult.NotModified:
 				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
-				    res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
+					res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
 				{
 					_publisher.Publish(new SubscriptionMessage.PollStream(
 						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
@@ -323,7 +313,7 @@ public class StorageReaderWorker<TStreamId> :
 				break;
 			case FilteredReadAllResult.NotModified:
 				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
-				    res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
+					res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
 				{
 					_publisher.Publish(new SubscriptionMessage.PollStream(
 						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
@@ -373,7 +363,7 @@ public class StorageReaderWorker<TStreamId> :
 				break;
 			case FilteredReadAllResult.NotModified:
 				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
-				    res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
+					res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
 				{
 					_publisher.Publish(new SubscriptionMessage.PollStream(
 						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
@@ -397,7 +387,7 @@ public class StorageReaderWorker<TStreamId> :
 		StorageMessage.EffectiveStreamAclRequest msg, CancellationToken token)
 	{
 		Message reply;
-		var cts = token.LinkTo(msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg.CancellationToken);
 
 		try
 		{
@@ -408,13 +398,9 @@ public class StorageReaderWorker<TStreamId> :
 		{
 			reply = new StorageMessage.OperationCancelledMessage(msg.CancellationToken);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token)
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
-		}
-		finally
-		{
-			cts?.Dispose();
 		}
 
 		msg.Envelope.ReplyWith(reply);
@@ -434,9 +420,9 @@ public class StorageReaderWorker<TStreamId> :
 			if (record is null)
 				return NoData(msg, ReadEventResult.AccessDenied);
 			if (result.Result is ReadEventResult.NoStream or ReadEventResult.NotFound &&
-			    _systemStreams.IsMetaStream(streamId) &&
-			    result.OriginalStreamExists.HasValue &&
-			    result.OriginalStreamExists.Value)
+				_systemStreams.IsMetaStream(streamId) &&
+				result.OriginalStreamExists.HasValue &&
+				result.OriginalStreamExists.Value)
 			{
 				return NoData(msg, ReadEventResult.Success);
 			}
@@ -466,7 +452,7 @@ public class StorageReaderWorker<TStreamId> :
 			var streamName = msg.EventStreamId;
 			var streamId = _readIndex.GetStreamId(msg.EventStreamId);
 			if (msg.ValidationStreamVersion.HasValue &&
-			    await _readIndex.GetStreamLastEventNumber(streamId, token) == msg.ValidationStreamVersion)
+				await _readIndex.GetStreamLastEventNumber(streamId, token) == msg.ValidationStreamVersion)
 				return NoData(msg, ReadStreamResult.NotModified, lastIndexPosition,
 					msg.ValidationStreamVersion.Value);
 
@@ -504,7 +490,7 @@ public class StorageReaderWorker<TStreamId> :
 			var streamName = msg.EventStreamId;
 			var streamId = _readIndex.GetStreamId(msg.EventStreamId);
 			if (msg.ValidationStreamVersion.HasValue &&
-			    await _readIndex.GetStreamLastEventNumber(streamId, token) == msg.ValidationStreamVersion)
+				await _readIndex.GetStreamLastEventNumber(streamId, token) == msg.ValidationStreamVersion)
 				return NoData(msg, ReadStreamResult.NotModified, lastIndexedPosition,
 					msg.ValidationStreamVersion.Value);
 
@@ -967,7 +953,7 @@ public class StorageReaderWorker<TStreamId> :
 	async ValueTask IAsyncHandle<StorageMessage.StreamIdFromTransactionIdRequest>.HandleAsync(
 		StorageMessage.StreamIdFromTransactionIdRequest message, CancellationToken token)
 	{
-		var cts = token.LinkTo(message.CancellationToken);
+		using var cts = Multiplex(ref token, message.CancellationToken);
 		Message reply;
 		try
 		{
@@ -979,15 +965,20 @@ public class StorageReaderWorker<TStreamId> :
 		{
 			reply = new StorageMessage.OperationCancelledMessage(message.CancellationToken);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken == cts?.Token)
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
 			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		}
-		finally
-		{
-			cts?.Dispose();
-		}
 
 		message.Envelope.ReplyWith(reply);
+	}
+
+	private CancellationTokenMultiplexer.Scope Multiplex(
+		ref CancellationToken token,
+		CancellationToken cancellationToken)
+	{
+		var scope = _tokenMultiplexer.Combine([token, cancellationToken]);
+		token = scope.Token;
+		return scope;
 	}
 }
