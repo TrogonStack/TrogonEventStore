@@ -10,7 +10,6 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Http.Authentication;
 using EventStore.Core.Tests.Authentication;
 using EventStore.Plugins.Authentication;
-using EventStore.Transport.Http.EntityManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using NUnit.Framework;
