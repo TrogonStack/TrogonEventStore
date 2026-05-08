@@ -29,6 +29,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 
 		public override bool Verify(string password, string hash, string salt)
 		{
+			if (string.IsNullOrEmpty(hash) || string.IsNullOrEmpty(salt))
+				return false;
+
 			if (!TryParseHash(hash, out var hashAlgorithm, out var iterations, out var expectedHash))
 				return false;
 
@@ -55,6 +58,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			iterations = CurrentIterations;
 			expectedHash = null;
 
+			if (string.IsNullOrEmpty(hash))
+				return false;
+
 			var parts = hash.Split('$');
 			if (parts.Length != 4 ||
 				parts[0] != Version ||
@@ -68,6 +74,12 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 
 		private static bool TryReadSalt(string salt, out byte[] saltData)
 		{
+			if (string.IsNullOrEmpty(salt))
+			{
+				saltData = null;
+				return false;
+			}
+
 			try
 			{
 				saltData = System.Convert.FromBase64String(salt);
@@ -83,6 +95,12 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 
 		private static bool TryReadHash(string hash, int hashSize, out byte[] expectedHash)
 		{
+			if (string.IsNullOrEmpty(hash))
+			{
+				expectedHash = null;
+				return false;
+			}
+
 			try
 			{
 				expectedHash = System.Convert.FromBase64String(hash);

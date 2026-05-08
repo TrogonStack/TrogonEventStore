@@ -114,10 +114,17 @@ public class startup_should : SpecificationWithDirectory
 		using var cancellationTokenSource = new CancellationTokenSource();
 		var startTask = node.StartAsync(false, cancellationTokenSource.Token);
 
-		await startupTaskStarted.Task.WithTimeout(TimeSpan.FromSeconds(5));
-		await cancellationTokenSource.CancelAsync();
+		try
+		{
+			await startupTaskStarted.Task.WithTimeout(TimeSpan.FromSeconds(5));
+			await cancellationTokenSource.CancelAsync();
 
-		Assert.That(async () => await startTask, Throws.InstanceOf<OperationCanceledException>());
+			Assert.That(async () => await startTask, Throws.InstanceOf<OperationCanceledException>());
+		}
+		finally
+		{
+			await node.StopAsync(TimeSpan.FromSeconds(20));
+		}
 	}
 
 	private sealed class BlockingStartupTask(TaskCompletionSource<bool> started) : IClusterVNodeStartupTask

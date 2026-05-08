@@ -40,6 +40,24 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 				Assert.That(!_algorithm.Verify(_password.ToUpper(), _hash, _salt));
 			}
 
+			[TestCase(null, "valid-salt")]
+			[TestCase("valid-hash", null)]
+			[TestCase("", "valid-salt")]
+			[TestCase("valid-hash", "")]
+			public void does_not_verify_missing_hash_material(string hash, string salt)
+			{
+				Assert.False(_algorithm.Verify(_password, hash, salt));
+			}
+
+			[TestCase("v2$SHA256$600000")]
+			[TestCase("v2$SHA256$600000$not-base64")]
+			[TestCase("v2$SHA256$not-a-number$ee1+y7tFN2rFnT6InxyxNuv16Fhq7VGC1nvLzgHm0qU=")]
+			[TestCase("v2$SHA256$599999$ee1+y7tFN2rFnT6InxyxNuv16Fhq7VGC1nvLzgHm0qU=")]
+			public void does_not_verify_malformed_current_hashes(string hash)
+			{
+				Assert.False(_algorithm.Verify(_password, hash, _salt));
+			}
+
 			[Test]
 			public void verifies_hash_with_stored_iteration_count()
 			{

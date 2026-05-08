@@ -136,7 +136,7 @@ public class with_password_protected_pkcs12_and_separate_key : with_certificate_
 	{
 		_certPath = $"{PathName}/leaf.p12";
 		_keyPath = $"{PathName}/leaf.key";
-		File.WriteAllBytes(_certPath, _leaf.Export(X509ContentType.Pkcs12, Password));
+		File.WriteAllBytes(_certPath, _leaf.ExportToPkcs12(Password));
 		File.WriteAllText(_keyPath, _leaf.PemPrivateKey());
 	}
 
@@ -147,6 +147,32 @@ public class with_password_protected_pkcs12_and_separate_key : with_certificate_
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
 		Assert.True(certificate.HasPrivateKey);
+	}
+}
+
+public class with_password_protected_pkcs12_and_wrong_separate_key : with_certificate_chain_of_length_1
+{
+	private string _certPath;
+	private string _keyPath;
+	private const string Password = "test$1234";
+
+	[SetUp]
+	public void Setup()
+	{
+		_certPath = $"{PathName}/leaf.p12";
+		_keyPath = $"{PathName}/leaf.key";
+
+		using var wrongKey = RSA.Create();
+		File.WriteAllBytes(_certPath, _leaf.ExportToPkcs12(Password));
+		File.WriteAllText(_keyPath, wrongKey.ExportRSAPrivateKey().PEM("RSA PRIVATE KEY"));
+	}
+
+	[Test]
+	public void cannot_load_certificate()
+	{
+		Assert.Throws<ArgumentException>(() =>
+			CertificateUtils.LoadFromFile(_certPath, _keyPath, Password)
+		);
 	}
 }
 

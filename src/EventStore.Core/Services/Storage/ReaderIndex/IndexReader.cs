@@ -1243,9 +1243,13 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 			{
 				token.ThrowIfCancellationRequested();
 				if (await ReadPrepareInternal(reader, indexEntry.Position, token) is { } prepare &&
-					StreamIdComparer.Equals(prepare.EventStreamId, streamId) &&
-					(!ageThreshold.HasValue || prepare.TimeStamp >= ageThreshold.Value))
+					StreamIdComparer.Equals(prepare.EventStreamId, streamId))
+				{
+					if (ageThreshold.HasValue && prepare.TimeStamp < ageThreshold.Value)
+						break;
+
 					records.Add(await CreateEventRecord(indexEntry.Version, prepare, streamName, token));
+				}
 			}
 
 			return records.ToArray();
@@ -1267,8 +1271,10 @@ public class IndexReader<TStreamId> : IndexReader, IIndexReader<TStreamId>
 		var filtered = new List<EventRecord>(array.Length);
 		foreach (var record in array)
 		{
-			if (record.TimeStamp >= ageThreshold.Value)
-				filtered.Add(record);
+			if (record.TimeStamp < ageThreshold.Value)
+				break;
+
+			filtered.Add(record);
 		}
 
 		return filtered.ToArray();

@@ -22,7 +22,8 @@ public class Startup : IStartup
 {
 	public IServiceProvider ConfigureServices(IServiceCollection services)
 	{
-		return services.AddRouting().BuildServiceProvider();
+		services.AddRouting();
+		return null;
 	}
 
 	public void Configure(IApplicationBuilder app)
