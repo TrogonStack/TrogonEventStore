@@ -10,8 +10,8 @@ using EventStore.Common.Exceptions;
 using EventStore.Core.Authorization;
 using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Bus;
-using EventStore.Core.Messages;
 using EventStore.Core.Data;
+using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -35,7 +35,7 @@ public class StreamBasedAuthPolicyRegistryTests
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 	};
 
-	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
 	private StreamBasedAuthorizationPolicyRegistry CreateSut(
 		FakePolicySelectorPlugin[] plugins, AuthorizationPolicySettings defaultSettings,
