@@ -341,7 +341,8 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				JsString s => formatForRaw ? $"\"{s.AsString()}\"" : s.AsString(),
 				JsNumber n => n.AsNumber().ToString(CultureInfo.InvariantCulture),
 				JsNull => null,
-				JsUndefined => null, { } v => Serialize(value),
+				JsUndefined => null,
+				{ } => Serialize(value),
 				_ => null
 			};
 		}
@@ -969,6 +970,7 @@ namespace EventStore.Projections.Core.Services.Interpreted
 		{
 			var envelope = new EventEnvelope(_engine, _parser, this);
 			envelope.Partition = partition;
+			envelope.Created = @event.Timestamp;
 			envelope.BodyRaw = @event.Data;
 			envelope.MetadataRaw = @event.Metadata;
 			envelope.StreamId = @event.EventStreamId;
@@ -1117,6 +1119,11 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			public string Category
 			{
 				set => SetOwnProperty("category", new PropertyDescriptor(value, false, true, false));
+			}
+
+			public DateTime Created
+			{
+				set => SetOwnProperty("created", new PropertyDescriptor(value.ToString("o"), false, true, false));
 			}
 
 			public string EventId
