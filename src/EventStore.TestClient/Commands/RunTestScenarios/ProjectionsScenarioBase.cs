@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using EventStore.Transport.Http.Codecs;
+using EventStore.TestClient.Commands;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
@@ -116,7 +116,7 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 
 		var statDic = rawState.Substring(start + 1, end - start - 1);
 
-		var state = Codec.Json.From<Dictionary<string, string>>(statDic);
+		var state = TestClientJson.From<Dictionary<string, string>>(statDic);
 		return state;
 	}
 
@@ -132,7 +132,7 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 		if (rawState == "*** UNKNOWN ***")
 			return null;
 
-		var state = Codec.Json.From<Dictionary<string, string>>(rawState);
+		var state = TestClientJson.From<Dictionary<string, string>>(rawState);
 		return state;
 	}
 
