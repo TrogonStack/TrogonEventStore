@@ -15,7 +15,7 @@
     <!--Version 8 and beyond are free for open-source projects and non-commercial use, but commercial use requires a paid license-->
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
     <PackageVersion Include="FluentStorage.AWS" Version="5.5.0" />
-    <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.3">
+    <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
@@ -72,7 +72,7 @@
     <PackageVersion Include="Serilog.Settings.Configuration" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
-    <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageVersion Include="Serilog.Sinks.InMemory" Version="0.16.0" />
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <PackageVersion Include="Serilog.Sinks.TextWriter" Version="3.0.0" />
@@ -89,6 +89,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="YamlDotnet" Version="13.7.1" />
+    <PackageVersion Include="YamlDotnet" Version="17.1.0" />
   </ItemGroup>
 </Project>
