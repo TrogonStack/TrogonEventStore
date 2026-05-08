@@ -82,10 +82,8 @@
 	[SupplyParameterFromQuery(Name = "returnUrl")]
 	private string ReturnUrl { get; set; } = "";
 
-	private SignInInput _input = new();
-
 	[SupplyParameterFromForm(FormName = "ui-signin")]
-	private SignInInput Input { get => _input; set => _input = value ?? new(); }
+	private SignInInput Input { get; set; }
 
 	private SecurityAuthenticationInfo Authentication { get; set; } = SecurityAuthenticationInfo.Unavailable();
 	private bool AuthenticationAvailable { get; set; } = true;
@@ -93,6 +91,8 @@
 	private string Destination => SecurityBrowserService.NormalizeReturnUrl(ReturnUrl);
 
 	protected override void OnParametersSet() {
+		Input ??= new();
+
 		try {
 			Authentication = Security.AuthenticationInfo();
 			AuthenticationAvailable = true;

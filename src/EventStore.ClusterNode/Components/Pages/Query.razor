@@ -87,17 +87,11 @@
 	[SupplyParameterFromQuery] public string InitStreamId { get; set; } = "";
 	[SupplyParameterFromQuery] public string Location { get; set; } = "";
 
-	private QueryInput _input = new() {
-		Query = DefaultQuery
-	};
-
 	[SupplyParameterFromForm(FormName = "transient-query")]
-	private QueryInput Input { get => _input; set => _input = value ?? new() { Query = DefaultQuery }; }
-
-	private QueryStopInput _stopInput = new();
+	private QueryInput Input { get; set; }
 
 	[SupplyParameterFromForm(FormName = "query-stop")]
-	private QueryStopInput StopInput { get => _stopInput; set => _stopInput = value ?? new(); }
+	private QueryStopInput StopInput { get; set; }
 
 	private QueryRunPage Result { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }
@@ -107,6 +101,9 @@
 		DataProtectionProvider.CreateProtector("EventStore.ClusterNode.Components.Pages.Query.StopProjection");
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new() { Query = DefaultQuery };
+		StopInput ??= new();
+
 		if (!string.IsNullOrWhiteSpace(Location)) {
 			if (string.Equals(_lastLoadedLocation, Location, StringComparison.OrdinalIgnoreCase) ||
 				(string.IsNullOrWhiteSpace(_lastLoadedLocation) && !CanSeedQuery()))

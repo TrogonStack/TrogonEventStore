@@ -117,15 +117,15 @@ else
 	[Parameter] public string StreamId { get; set; } = "";
 	[Parameter] public string GroupName { get; set; } = "";
 
-	private ReplayParkedInput _replayInput = new();
-
 	[SupplyParameterFromForm(FormName = "subscription-detail-replay")]
-	private ReplayParkedInput ReplayInput { get => _replayInput; set => _replayInput = value ?? new(); }
+	private ReplayParkedInput ReplayInput { get; set; }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private SubscriptionCommandResult Result { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
+		ReplayInput ??= new();
+
 		var requestedStream = StreamId;
 		var requestedGroup = GroupName;
 		Page = null;

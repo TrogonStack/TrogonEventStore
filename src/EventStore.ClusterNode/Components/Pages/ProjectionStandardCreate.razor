@@ -60,12 +60,14 @@
 </section>
 
 @code {
-	private StandardProjectionCreateInput _input = new();
-
 	[SupplyParameterFromForm(FormName = "projection-standard-create")]
-	private StandardProjectionCreateInput Input { get => _input; set => _input = value ?? new(); }
+	private StandardProjectionCreateInput Input { get; set; }
 
 	private ProjectionCommandResult Result { get; set; }
+
+	protected override void OnParametersSet() {
+		Input ??= new();
+	}
 
 	private async Task CreateProjection() {
 		var redirectTo = "";

@@ -48,12 +48,14 @@
 @code {
 	[Parameter] public string StreamId { get; set; } = "";
 
-	private StreamDeleteInput _input = new();
-
 	[SupplyParameterFromForm(FormName = "stream-delete")]
-	private StreamDeleteInput Input { get => _input; set => _input = value ?? new(); }
+	private StreamDeleteInput Input { get; set; }
 
 	private StreamCommandResult Result { get; set; }
+
+	protected override void OnParametersSet() {
+		Input ??= new();
+	}
 
 	private async Task Delete() {
 		try {

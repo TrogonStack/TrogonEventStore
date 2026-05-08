@@ -83,15 +83,15 @@ else
 @code {
 	[Parameter] public string LoginName { get; set; } = "";
 
-	private UserEditInput _input = new();
-
 	[SupplyParameterFromForm(FormName = "user-edit")]
-	private UserEditInput Input { get => _input; set => _input = value ?? new(); }
+	private UserEditInput Input { get; set; }
 
 	private UserDetailPage Page { get; set; }
 	private UserCommandResult Result { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+
 		var requested = LoginName;
 		var hasSubmittedForm = string.Equals(Input.LoginName, requested, StringComparison.OrdinalIgnoreCase);
 		Page = null;

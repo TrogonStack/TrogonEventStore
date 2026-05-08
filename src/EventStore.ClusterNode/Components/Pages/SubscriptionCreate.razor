@@ -39,12 +39,14 @@
 </section>
 
 @code {
-	private SubscriptionSettingsInput _input = new();
-
 	[SupplyParameterFromForm(FormName = "subscription-create")]
-	private SubscriptionSettingsInput Input { get => _input; set => _input = value ?? new(); }
+	private SubscriptionSettingsInput Input { get; set; }
 
 	private SubscriptionCommandResult Result { get; set; }
+
+	protected override void OnParametersSet() {
+		Input ??= new();
+	}
 
 	private async Task CreateSubscription() {
 		var redirectTo = "";
