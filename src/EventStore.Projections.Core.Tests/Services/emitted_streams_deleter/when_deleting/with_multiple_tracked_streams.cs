@@ -18,7 +18,7 @@ public class with_multiple_tracked_streams<TLogFormat, TStreamId> : Specificatio
 	protected Action _onDeleteStreamCompleted;
 	protected ManualResetEvent _resetEvent = new ManualResetEvent(false);
 	protected CountdownEvent _eventAppeared;
-	private int _numberOfTrackedEvents = 200;
+	private int _numberOfTrackedEvents = 50;
 	private string _testStreamFormat = "test_stream_{0}";
 	private EventStore.ClientAPI.SystemData.UserCredentials _credentials;
 

@@ -9,10 +9,15 @@ using EventStore.Plugins.Authorization;
 
 namespace EventStore.Core.Authorization.AuthorizationPolicies;
 
+/// <param name="allowAnonymousClusterAccess">
+/// Exposes internal gossip and election operations without authentication. Intended only for test clusters or explicitly insecure deployments.
+/// Do not enable on authenticated production nodes.
+/// </param>
 public class LegacyPolicySelectorFactory(
 	bool allowAnonymousEndpointAccess,
 	bool allowAnonymousStreamAccess,
-	bool overrideAnonymousGossipEndpointAccess)
+	bool overrideAnonymousGossipEndpointAccess,
+	bool allowAnonymousClusterAccess = false)
 	: IPolicySelectorFactory
 {
 	public const string LegacyPolicySelectorName = "acl";
@@ -71,16 +76,19 @@ public class LegacyPolicySelectorFactory(
 
 		var isSystem = new MultipleClaimMatchAssertion(Grant.Allow, MultipleMatchMode.All,
 			SystemAccounts.System.Claims.ToArray());
-		policy.Add(Operations.Node.Elections.Prepare, isSystem);
-		policy.Add(Operations.Node.Elections.PrepareOk, isSystem);
-		policy.Add(Operations.Node.Elections.ViewChange, isSystem);
-		policy.Add(Operations.Node.Elections.ViewChangeProof, isSystem);
-		policy.Add(Operations.Node.Elections.Proposal, isSystem);
-		policy.Add(Operations.Node.Elections.Accept, isSystem);
-		policy.Add(Operations.Node.Elections.LeaderIsResigning, isSystem);
-		policy.Add(Operations.Node.Elections.LeaderIsResigningOk, isSystem);
-		policy.Add(Operations.Node.Gossip.Update, isSystem);
-		policy.Add(Operations.Node.Gossip.Read, isSystem);
+		Action<OperationDefinition> addToClusterPolicy = allowAnonymousClusterAccess
+			? op => policy.AllowAnonymous(op)
+			: op => policy.Add(op, isSystem);
+		addToClusterPolicy(Operations.Node.Elections.Prepare);
+		addToClusterPolicy(Operations.Node.Elections.PrepareOk);
+		addToClusterPolicy(Operations.Node.Elections.ViewChange);
+		addToClusterPolicy(Operations.Node.Elections.ViewChangeProof);
+		addToClusterPolicy(Operations.Node.Elections.Proposal);
+		addToClusterPolicy(Operations.Node.Elections.Accept);
+		addToClusterPolicy(Operations.Node.Elections.LeaderIsResigning);
+		addToClusterPolicy(Operations.Node.Elections.LeaderIsResigningOk);
+		addToClusterPolicy(Operations.Node.Gossip.Update);
+		addToClusterPolicy(Operations.Node.Gossip.Read);
 
 		policy.AddMatchAnyAssertion(Operations.Node.Shutdown, Grant.Allow, OperationsOrAdmins);
 		policy.AddMatchAnyAssertion(Operations.Node.ReloadConfiguration, Grant.Allow, OperationsOrAdmins);

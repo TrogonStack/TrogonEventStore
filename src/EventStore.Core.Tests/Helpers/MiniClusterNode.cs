@@ -193,7 +193,8 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 					new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
 						options.Application.AllowAnonymousEndpointAccess,
 						options.Application.AllowAnonymousStreamAccess,
-						options.Application.OverrideAnonymousEndpointAccessForGossip).Create(components.MainQueue)]))),
+						options.Application.OverrideAnonymousEndpointAccessForGossip,
+						allowAnonymousClusterAccess: true).Create(components.MainQueue)]))),
 			[],
 			new OptionsCertificateProvider(),
 			configuration: inMemConf,

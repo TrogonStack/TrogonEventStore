@@ -101,28 +101,23 @@ docker build --tag myeventstore . \
 
 For instance:
 
-```
+```bash
 docker build --tag myeventstore . \
---build-arg CONTAINER_RUNTIME=bookworm-slim \
+--build-arg CONTAINER_RUNTIME=noble \
 --build-arg RUNTIME=linux-x64
 ```
 
 **_Note:_** Because of the [Docker issue](https://github.com/moby/buildkit/issues/1900), if you're building a Docker image on Windows, you may need to set the `DOCKER_BUILDKIT=0` environment variable. For instance, running in PowerShell:
 
-```
+```powershell
 $env:DOCKER_BUILDKIT=0; docker build --tag myeventstore . `
---build-arg CONTAINER_RUNTIME=bookworm-slim `
+--build-arg CONTAINER_RUNTIME=noble `
 --build-arg RUNTIME=linux-x64
 ```
 
 Currently, we support the following configurations:
 
-1. Bookworm slim:
-
-- `CONTAINER_RUNTIME=bookworm-slim`
-- `RUNTIME=linux-x64`
-
-2. Noble:
+1. Noble:
 
 - `CONTAINER_RUNTIME=noble`
 - `RUNTIME=linux-x64`
