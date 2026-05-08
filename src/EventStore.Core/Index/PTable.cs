@@ -3,18 +3,18 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.DataStructures;
+using EventStore.Core.DataStructures.ProbabilisticFilter;
 using EventStore.Core.Exceptions;
 using EventStore.Core.TransactionLog.Unbuffered;
 using ILogger = Serilog.ILogger;
-using Range = EventStore.Core.Data.Range;
-using EventStore.Core.DataStructures.ProbabilisticFilter;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
 using MD5 = EventStore.Core.Hashing.MD5;
+using Range = EventStore.Core.Data.Range;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.Core.Index;
@@ -176,8 +176,8 @@ public partial class PTable : ISearchTable, IDisposable
 			}
 
 			if ((header.Version != PTableVersions.IndexV2) &&
-			    (header.Version != PTableVersions.IndexV3) &&
-			    (header.Version != PTableVersions.IndexV4))
+				(header.Version != PTableVersions.IndexV3) &&
+				(header.Version != PTableVersions.IndexV4))
 				throw new CorruptIndexException(
 					new UnsupportedFileVersionException(_filename, header.Version, Version));
 			_version = header.Version;
@@ -226,7 +226,7 @@ public partial class PTable : ISearchTable, IDisposable
 			}
 
 			long indexEntriesTotalSize = (_size - PTableHeader.Size - _midpointsCacheSize -
-			                              PTableFooter.GetSize(_version) - MD5Size);
+										  PTableFooter.GetSize(_version) - MD5Size);
 
 			if (indexEntriesTotalSize < 0)
 			{
@@ -337,8 +337,9 @@ public partial class PTable : ISearchTable, IDisposable
 			Log.Debug("Disabling Verification of PTable");
 		}
 
-		Stream stream = null;
 		WorkItem workItem = null;
+
+		Stream stream;
 		if (RuntimeInformation.IsUnix)
 		{
 			workItem = GetWorkItem();
@@ -376,7 +377,7 @@ public partial class PTable : ISearchTable, IDisposable
 						//so, we can load them directly from the PTable file
 						Log.Debug("Loading {midpointsCached} cached midpoints from PTable", _midpointsCached);
 						long startOffset = stream.Length - MD5Size - PTableFooter.GetSize(_version) -
-						                   _midpointsCacheSize;
+										   _midpointsCacheSize;
 						stream.Seek(startOffset, SeekOrigin.Begin);
 						for (int k = 0; k < (int)_midpointsCached; k++)
 						{
@@ -746,9 +747,9 @@ public partial class PTable : ISearchTable, IDisposable
 			}
 
 			if (candidateEntry.Stream == stream.Hash &&
-			    candidateEntry.Position < beforePosition &&
-			    candidateEntry.Position > maxBeforePosition &&
-			    await isForThisStream(candidateEntry, token))
+				candidateEntry.Position < beforePosition &&
+				candidateEntry.Position > maxBeforePosition &&
+				await isForThisStream(candidateEntry, token))
 			{
 
 				maxBeforePosition = candidateEntry.Position;
@@ -1415,7 +1416,7 @@ public partial class PTable : ISearchTable, IDisposable
 		// its not in either of the LRU caches. add it to one or the other
 		// so that subsequent calls do not require searching.
 		if (TrySearchForLatestEntry(stream, 0, long.MaxValue, out var latestEntry, out var latestOffset) &&
-		    TrySearchForOldestEntry(stream, 0, long.MaxValue, out var oldestEntry, out var oldestOffset))
+			TrySearchForOldestEntry(stream, 0, long.MaxValue, out var oldestEntry, out var oldestOffset))
 		{
 
 			value = new(

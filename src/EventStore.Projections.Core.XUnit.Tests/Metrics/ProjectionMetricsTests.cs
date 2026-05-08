@@ -98,7 +98,8 @@ public class ProjectionMetricsTests
 		};
 
 	private static ProjectionStatistics ProjectionWithState(ManagedProjectionState state, string status) =>
-		new() {
+		new()
+		{
 			Name = "TestProjection",
 			ProjectionId = 1234,
 			Epoch = -1,
