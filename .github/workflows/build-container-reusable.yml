@@ -30,30 +30,30 @@ jobs:
     name: ${{ format('{0} / {1}', inputs.container-runtime, inputs.test-group-name) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
         if: ${{ inputs.mode != 'test-only' }}
       - name: Install net10.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
         if: ${{ inputs.mode != 'test-only' }}
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         if: ${{ inputs.mode != 'test-only' }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         if: ${{ inputs.mode != 'test-only' }}
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         if: ${{ inputs.mode != 'test-only' }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         if: ${{ inputs.mode != 'test-only' }}
         with:
           context: .
@@ -71,7 +71,7 @@ jobs:
         run: |
           docker run --rm eventstore --insecure --what-if
       - name: Build Test Container
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         if: ${{ inputs.mode != 'test-only' }}
         with:
           context: .
@@ -90,14 +90,14 @@ jobs:
         run: |
           docker save eventstore-test -o eventstore-test.tar
       - name: Publish Test Container
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ inputs.mode == 'build-only' }}
         with:
           name: ${{ inputs.test-image-artifact-name }}
           path: eventstore-test.tar
           if-no-files-found: error
       - name: Download Test Container
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         if: ${{ inputs.mode == 'test-only' }}
         with:
           name: ${{ inputs.test-image-artifact-name }}
@@ -121,7 +121,7 @@ jobs:
             sudo chmod -R u+rwX,go+rX test-results
           fi
       - name: Publish Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-results-${{ inputs.container-runtime }}-${{ inputs.test-group-name }}
