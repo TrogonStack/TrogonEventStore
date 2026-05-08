@@ -7,10 +7,12 @@ using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.Tests.Helpers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Http.HttpProtocols;
@@ -38,25 +40,29 @@ public class Startup : IStartup
 [TestFixture]
 public class clear_text_http_multiplexing_middleware
 {
-	private IWebHost _host;
+	private IHost _host;
 	private string _endpoint;
 
 	[SetUp]
 	public void SetUp()
 	{
-		_host = new WebHostBuilder()
-			.UseKestrel(server =>
+		_host = new HostBuilder()
+			.ConfigureWebHost(webHost =>
 			{
-				server.Listen(IPAddress.Loopback, 0, listenOptions =>
-				{
-					listenOptions.Use(next => new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);
-				});
+				webHost
+					.UseKestrel(server =>
+					{
+						server.Listen(IPAddress.Loopback, 0, listenOptions =>
+						{
+							listenOptions.Use(next => new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);
+						});
+					})
+					.UseStartup(new Startup());
 			})
-			.UseStartup(new Startup())
 			.Build();
 
 		_host.Start();
-		_endpoint = _host.ServerFeatures.Get<IServerAddressesFeature>().Addresses.Single();
+		_endpoint = _host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>().Addresses.Single();
 	}
 
 	[TearDown]

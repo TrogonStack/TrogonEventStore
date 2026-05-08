@@ -13,6 +13,7 @@ internal static class WebHostBuilderExtensions
 				.Configure(startup.Configure);
 
 		return builder
-			.ConfigureServices(services => services.AddSingleton(startup));
+			.ConfigureServices(services => startup.ConfigureServices(services))
+			.Configure(startup.Configure);
 	}
 }

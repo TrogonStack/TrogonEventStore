@@ -13,9 +13,11 @@ using EventStore.Core.Configuration.Sources;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Services.Transport.Tcp;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.VNode;
@@ -97,10 +99,17 @@ public class startup_should : SpecificationWithDirectory
 			configuration: configuration,
 			configureAdditionalNodeServices: services =>
 				services.Decorate<IReadOnlyList<IClusterVNodeStartupTask>>(
-					startupTasks => [..startupTasks, blockingStartupTask]));
+					startupTasks => [.. startupTasks, blockingStartupTask]));
 
-		using var host = new TestServer(
-			new Microsoft.AspNetCore.Hosting.WebHostBuilder().UseStartup(node.Startup));
+		using var host = new HostBuilder()
+			.ConfigureWebHost(webHost =>
+			{
+				webHost
+					.UseTestServer()
+					.UseStartup(node.Startup);
+			})
+			.Build();
+		await host.StartAsync();
 
 		using var cancellationTokenSource = new CancellationTokenSource();
 		var startTask = node.StartAsync(false, cancellationTokenSource.Token);

@@ -2,7 +2,6 @@
 	<PropertyGroup>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<NoWarn>$(NoWarn);ASPDEPR004;ASPDEPR008;CA2022</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="EventStore.Client" />
