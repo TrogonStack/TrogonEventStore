@@ -79,6 +79,8 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 			private readonly string _password = "Pa55w0rd!";
 			private readonly string _hash = "HKoq6xw3Oird4KqU4RyoY9aFFRc=";
 			private readonly string _salt = "+6eoSEkays/BOpzGMLE6Uw==";
+			private readonly string _hashStartingWithVersionPrefix = "vYwkAhH8una9mDmclvp9G1UzWb4=";
+			private readonly string _saltForHashStartingWithVersionPrefix = "WVadp2fjEOzN93uhQ2Fp3Q==";
 
 			[SetUp]
 			public void SetUp()
@@ -90,6 +92,12 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 			public void old_hashes_should_successfully_verify()
 			{
 				Assert.True(_algorithm.Verify(_password, _hash, _salt));
+			}
+
+			[Test]
+			public void old_hashes_starting_with_v_should_successfully_verify()
+			{
+				Assert.True(_algorithm.Verify(_password, _hashStartingWithVersionPrefix, _saltForHashStartingWithVersionPrefix));
 			}
 		}
 	}

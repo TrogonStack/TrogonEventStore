@@ -54,7 +54,7 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			iterations = LegacyIterations;
 			expectedHash = null;
 
-			if (!hash.StartsWith("v", System.StringComparison.Ordinal))
+			if (!hash.Contains('$', System.StringComparison.Ordinal))
 				return TryReadHash(hash, LegacyHashSize, out expectedHash);
 
 			var parts = hash.Split('$');
