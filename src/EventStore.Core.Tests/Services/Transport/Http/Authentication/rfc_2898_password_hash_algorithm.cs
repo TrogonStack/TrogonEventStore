@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using EventStore.Core.Services.Transport.Http.Authentication;
 using NUnit.Framework;
 
@@ -37,6 +38,24 @@ namespace EventStore.Core.Tests.Services.Transport.Http.Authentication
 			public void does_not_verify_incorrect_password()
 			{
 				Assert.That(!_algorithm.Verify(_password.ToUpper(), _hash, _salt));
+			}
+
+			[Test]
+			public void verifies_hash_with_stored_iteration_count()
+			{
+				var saltData = RandomNumberGenerator.GetBytes(16);
+				var iterations = 600_001;
+				var hashData = Rfc2898DeriveBytes.Pbkdf2(
+					_password,
+					saltData,
+					iterations,
+					HashAlgorithmName.SHA256,
+					32);
+
+				var hash = $"v2$SHA256${iterations}${System.Convert.ToBase64String(hashData)}";
+				var salt = System.Convert.ToBase64String(saltData);
+
+				Assert.That(_algorithm.Verify(_password, hash, salt));
 			}
 		}
 

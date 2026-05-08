@@ -7,7 +7,8 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 	{
 		private const int HashSize = 32;
 		private const int SaltSize = 16;
-		private const int Iterations = 600_000;
+		private const int MinimumIterations = 600_000;
+		private const int CurrentIterations = 600_000;
 		private const string Version = "v2";
 		private const string HashAlgorithm = "SHA256";
 
@@ -19,10 +20,10 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			var hashData = Rfc2898DeriveBytes.Pbkdf2(
 				password,
 				saltData,
-				Iterations,
+				CurrentIterations,
 				HashAlgorithmName.SHA256,
 				HashSize);
-			hash = $"{Version}${HashAlgorithm}${Iterations}${System.Convert.ToBase64String(hashData)}";
+			hash = $"{Version}${HashAlgorithm}${CurrentIterations}${System.Convert.ToBase64String(hashData)}";
 			salt = System.Convert.ToBase64String(saltData);
 		}
 
@@ -51,7 +52,7 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			out byte[] expectedHash)
 		{
 			hashAlgorithm = HashAlgorithmName.SHA256;
-			iterations = Iterations;
+			iterations = CurrentIterations;
 			expectedHash = null;
 
 			var parts = hash.Split('$');
@@ -59,7 +60,7 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 				parts[0] != Version ||
 				parts[1] != HashAlgorithm ||
 				!int.TryParse(parts[2], out iterations) ||
-				iterations != Iterations)
+				iterations < MinimumIterations)
 				return false;
 
 			return TryReadHash(parts[3], HashSize, out expectedHash);
