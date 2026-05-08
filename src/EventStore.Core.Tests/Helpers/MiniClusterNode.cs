@@ -24,7 +24,6 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins.Subsystems;
 using EventStore.TcpUnitTestPlugin;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -61,20 +60,12 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public VNodeState NodeState = VNodeState.Unknown;
 	private readonly IHost _host;
 
-	private static bool EnableHttps() => !RuntimeInformation.IsOSX;
-
 	public MiniClusterNode(string pathname, int debugIndex, IPEndPoint internalTcp, IPEndPoint externalTcp,
 		IPEndPoint httpEndPoint, EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
 		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
 		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null)
 	{
-
-		if (RuntimeInformation.IsOSX)
-		{
-			AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport",
-				true); //TODO JPB Remove this sadness when dotnet core supports kestrel + http2 on macOS
-		}
 
 		RunningTime.Start();
 		RunCount += 1;
@@ -91,8 +82,6 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		Directory.CreateDirectory(_dbPath);
 		FileStreamExtensions.ConfigureFlush(disableFlushToDisk);
 
-		var useHttps = EnableHttps();
-
 		subsystems ??= [];
 		subsystems = [.. subsystems, new TcpApiTestPlugin()];
 
@@ -102,7 +91,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			{
 				AllowAnonymousEndpointAccess = true,
 				AllowAnonymousStreamAccess = true,
-				Insecure = !useHttps,
+				Insecure = false,
 				WorkerThreads = 1,
 				StatsPeriodSec = (int)TimeSpan.FromHours(1).TotalSeconds
 			},
@@ -164,12 +153,10 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				new("EventStore:TcpUnitTestPlugin:NodeHeartbeatTimeout", "10000"),
 				new("EventStore:TcpUnitTestPlugin:Insecure", options.Application.Insecure.ToString()),
 			}).Build();
-		var serverCertificate = useHttps ? ssl_connections.GetServerCertificate() : null;
+		var serverCertificate = ssl_connections.GetServerCertificate();
 		var trustedRootCertificates =
-			useHttps ? new X509Certificate2Collection(ssl_connections.GetRootCertificate()) : null;
-		options = useHttps
-			? options.Secure(trustedRootCertificates, serverCertificate)
-			: options;
+			new X509Certificate2Collection(ssl_connections.GetRootCertificate());
+		options = options.Secure(trustedRootCertificates, serverCertificate);
 
 		_isReadOnlyReplica = readOnlyReplica;
 
@@ -193,8 +180,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 					new StaticAuthorizationPolicyRegistry([new LegacyPolicySelectorFactory(
 						options.Application.AllowAnonymousEndpointAccess,
 						options.Application.AllowAnonymousStreamAccess,
-						options.Application.OverrideAnonymousEndpointAccessForGossip,
-						allowAnonymousClusterAccess: true).Create(components.MainQueue)]))),
+						options.Application.OverrideAnonymousEndpointAccessForGossip).Create(components.MainQueue)]))),
 			[],
 			new OptionsCertificateProvider(),
 			configuration: inMemConf,
@@ -208,28 +194,22 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 					{
 						o.Listen(HttpEndPoint, options =>
 						{
-							if (RuntimeInformation.IsOSX)
+							options.UseHttps(new HttpsConnectionAdapterOptions
 							{
-								options.Protocols = HttpProtocols.Http2;
-							}
-							else
-							{
-								options.UseHttps(new HttpsConnectionAdapterOptions
+								ServerCertificate = serverCertificate,
+								ClientCertificateMode = ClientCertificateMode.AllowCertificate,
+								ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
 								{
-									ServerCertificate = serverCertificate,
-									ClientCertificateMode = ClientCertificateMode.AllowCertificate,
-									ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
+									var (isValid, error) =
+										ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors,
+											() => null, () => trustedRootCertificates);
+									if (!isValid && error != null)
 									{
-										var (isValid, error) =
-											ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => trustedRootCertificates);
-										if (!isValid && error != null)
-										{
-											Log.Error("Client certificate validation error: {e}", error);
-										}
-										return isValid;
+										Log.Error("Client certificate validation error: {e}", error);
 									}
-								});
-							}
+									return isValid;
+								}
+							});
 						});
 					})
 					.UseStartup(Node.Startup);
