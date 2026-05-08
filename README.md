@@ -65,7 +65,7 @@ TrogonDB is written in a mixture of C# and JavaScript. It can run on Windows, Li
 
 **Prerequisites**
 
-- [.NET Core SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 Once you've installed the prerequisites for your system, you can launch a `Release` build of EventStore as follows:
 
@@ -78,7 +78,7 @@ The build scripts: `build.sh` and `build.ps1` are also available for Linux and W
 To start a single node, you can then run:
 
 ```
-dotnet ./src/EventStore.ClusterNode/bin/x64/Release/net8.0/EventStore.ClusterNode.dll --dev --db ./tmp/data --index ./tmp/index --log ./tmp/log
+dotnet ./src/EventStore.ClusterNode/bin/x64/Release/net10.0/EventStore.ClusterNode.dll --dev --db ./tmp/data --index ./tmp/index --log ./tmp/log
 ```
 
 ### Running the tests

@@ -61,9 +61,13 @@
 
 @code {
 	[SupplyParameterFromForm(FormName = "projection-standard-create")]
-	private StandardProjectionCreateInput Input { get; set; } = new();
+	private StandardProjectionCreateInput Input { get; set; }
 
 	private ProjectionCommandResult Result { get; set; }
+
+	protected override void OnParametersSet() {
+		Input ??= new();
+	}
 
 	private async Task CreateProjection() {
 		var redirectTo = "";

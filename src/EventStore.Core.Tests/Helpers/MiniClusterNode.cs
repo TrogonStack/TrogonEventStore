@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using ILogger = Serilog.ILogger;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
 
@@ -58,7 +59,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 	public Task AdminUserCreated => _adminUserCreated.Task;
 
 	public VNodeState NodeState = VNodeState.Unknown;
-	private readonly IWebHost _host;
+	private readonly IHost _host;
 
 	private static bool EnableHttps() => !RuntimeInformation.IsOSX;
 
@@ -198,36 +199,40 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			configuration: inMemConf,
 			expiryStrategy,
 			Guid.NewGuid(), debugIndex);
-		_host = new WebHostBuilder()
-			.UseKestrel(o =>
+		_host = new HostBuilder()
+			.ConfigureWebHost(webHost =>
 			{
-				o.Listen(HttpEndPoint, options =>
-				{
-					if (RuntimeInformation.IsOSX)
+				webHost
+					.UseKestrel(o =>
 					{
-						options.Protocols = HttpProtocols.Http2;
-					}
-					else
-					{
-						options.UseHttps(new HttpsConnectionAdapterOptions
+						o.Listen(HttpEndPoint, options =>
 						{
-							ServerCertificate = serverCertificate,
-							ClientCertificateMode = ClientCertificateMode.AllowCertificate,
-							ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
+							if (RuntimeInformation.IsOSX)
 							{
-								var (isValid, error) =
-									ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => trustedRootCertificates);
-								if (!isValid && error != null)
+								options.Protocols = HttpProtocols.Http2;
+							}
+							else
+							{
+								options.UseHttps(new HttpsConnectionAdapterOptions
 								{
-									Log.Error("Client certificate validation error: {e}", error);
-								}
-								return isValid;
+									ServerCertificate = serverCertificate,
+									ClientCertificateMode = ClientCertificateMode.AllowCertificate,
+									ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
+									{
+										var (isValid, error) =
+											ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => trustedRootCertificates);
+										if (!isValid && error != null)
+										{
+											Log.Error("Client certificate validation error: {e}", error);
+										}
+										return isValid;
+									}
+								});
 							}
 						});
-					}
-				});
+					})
+					.UseStartup(Node.Startup);
 			})
-			.UseStartup(Node.Startup)
 			.Build();
 	}
 

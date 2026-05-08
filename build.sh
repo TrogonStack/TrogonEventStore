@@ -9,7 +9,7 @@ COPYRIGHT="Copyright 2021 Event Store Ltd. All rights reserved."
 # ------------ End of configuration -------------
 
 CONFIGURATION="Release"
-NET_FRAMEWORK="net8.0"
+NET_FRAMEWORK="net10.0"
 
 function usage() {    
 cat <<EOF

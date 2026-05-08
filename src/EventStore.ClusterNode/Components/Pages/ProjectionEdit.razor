@@ -78,10 +78,10 @@
 	[Parameter] public string Name { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "projection-edit")]
-	private ProjectionEditInput Input { get; set; } = new();
+	private ProjectionEditInput Input { get; set; }
 
 	[SupplyParameterFromForm(FormName = "projection-edit-reset")]
-	private ProjectionResetInput ResetInput { get; set; } = new();
+	private ProjectionResetInput ResetInput { get; set; }
 
 	private ProjectionQueryPage Page { get; set; }
 	private ProjectionCommandResult SaveResult { get; set; }
@@ -89,6 +89,9 @@
 	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+		ResetInput ??= new();
+
 		var hasSubmittedForm = string.Equals(Input.Name, Name, StringComparison.OrdinalIgnoreCase);
 		if (hasSubmittedForm)
 			return;

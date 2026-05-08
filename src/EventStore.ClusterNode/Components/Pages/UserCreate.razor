@@ -76,9 +76,13 @@
 
 @code {
 	[SupplyParameterFromForm(FormName = "user-create")]
-	private UserCreateInput Input { get; set; } = new();
+	private UserCreateInput Input { get; set; }
 
 	private UserCommandResult Result { get; set; }
+
+	protected override void OnParametersSet() {
+		Input ??= new();
+	}
 
 	private async Task CreateUser() {
 		var redirectTo = "";

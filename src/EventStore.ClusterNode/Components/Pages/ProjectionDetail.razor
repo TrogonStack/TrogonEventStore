@@ -183,19 +183,23 @@
 	[SupplyParameterFromQuery] public string Partition { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "projection-detail-enable")]
-	private ProjectionActionInput EnableInput { get; set; } = new();
+	private ProjectionActionInput EnableInput { get; set; }
 
 	[SupplyParameterFromForm(FormName = "projection-detail-disable")]
-	private ProjectionActionInput DisableInput { get; set; } = new();
+	private ProjectionActionInput DisableInput { get; set; }
 
 	[SupplyParameterFromForm(FormName = "projection-detail-reset")]
-	private ProjectionActionInput ResetInput { get; set; } = new();
+	private ProjectionActionInput ResetInput { get; set; }
 
 	private ProjectionDetailPage Page { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }
 	private long _loadSequence;
 
 	protected override async Task OnParametersSetAsync() {
+		EnableInput ??= new();
+		DisableInput ??= new();
+		ResetInput ??= new();
+
 		var requestedName = Name;
 		var requestedPartition = Partition;
 		var sequence = ++_loadSequence;

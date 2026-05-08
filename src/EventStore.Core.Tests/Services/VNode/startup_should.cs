@@ -13,9 +13,11 @@ using EventStore.Core.Configuration.Sources;
 using EventStore.Core.Services.Monitoring;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Services.Transport.Tcp;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.VNode;
@@ -97,18 +99,32 @@ public class startup_should : SpecificationWithDirectory
 			configuration: configuration,
 			configureAdditionalNodeServices: services =>
 				services.Decorate<IReadOnlyList<IClusterVNodeStartupTask>>(
-					startupTasks => [..startupTasks, blockingStartupTask]));
+					startupTasks => [.. startupTasks, blockingStartupTask]));
 
-		using var host = new TestServer(
-			new Microsoft.AspNetCore.Hosting.WebHostBuilder().UseStartup(node.Startup));
+		using var host = new HostBuilder()
+			.ConfigureWebHost(webHost =>
+			{
+				webHost
+					.UseTestServer()
+					.UseStartup(node.Startup);
+			})
+			.Build();
+		await host.StartAsync();
 
 		using var cancellationTokenSource = new CancellationTokenSource();
 		var startTask = node.StartAsync(false, cancellationTokenSource.Token);
 
-		await startupTaskStarted.Task.WithTimeout(TimeSpan.FromSeconds(5));
-		await cancellationTokenSource.CancelAsync();
+		try
+		{
+			await startupTaskStarted.Task.WithTimeout(TimeSpan.FromSeconds(5));
+			await cancellationTokenSource.CancelAsync();
 
-		Assert.That(async () => await startTask, Throws.InstanceOf<OperationCanceledException>());
+			Assert.That(async () => await startTask, Throws.InstanceOf<OperationCanceledException>());
+		}
+		finally
+		{
+			await node.StopAsync(TimeSpan.FromSeconds(20));
+		}
 	}
 
 	private sealed class BlockingStartupTask(TaskCompletionSource<bool> started) : IClusterVNodeStartupTask

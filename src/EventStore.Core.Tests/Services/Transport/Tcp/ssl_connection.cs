@@ -152,7 +152,7 @@ public class ssl_connections
 		using X509Certificate2 certWithKey = certificate.CopyWithPrivateKey(rsa);
 
 		// recreate the certificate from a PKCS #12 bundle to work around: https://github.com/dotnet/runtime/issues/23749
-		return new X509Certificate2(certWithKey.ExportToPkcs12(), string.Empty, X509KeyStorageFlags.Exportable);
+		return X509CertificateLoader.LoadPkcs12(certWithKey.ExportToPkcs12(), string.Empty, X509KeyStorageFlags.Exportable);
 	}
 
 	private static byte[] LoadResource(string resource)

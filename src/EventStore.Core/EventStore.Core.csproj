@@ -25,11 +25,7 @@
 		<PackageReference Include="Quickenshtein" />
 		<PackageReference Include="Scrutor" />
 		<PackageReference Include="Serilog.Sinks.OpenTelemetry" />
-		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
-		<PackageReference Include="System.IO.Pipelines" />
-		<PackageReference Include="System.Linq.Async" />
-		<PackageReference Include="System.Net.Http" />
 		<PackageReference Include="Microsoft.Diagnostics.NETCore.Client" />
 		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" />
 		<PackageReference Include="Microsoft.Data.Sqlite" />
@@ -37,8 +33,6 @@
 		<PackageReference Include="DotNext.IO" />
 		<PackageReference Include="DotNext.Threading" />
 		<PackageReference Include="DotNext.Unsafe" />
-		<PackageReference Include="System.Text.RegularExpressions" />
-		<PackageReference Include="System.Threading.Channels" />
 		<PackageReference Include="TrogonEventStore.Plugins" />
 	</ItemGroup>
 	<ItemGroup>

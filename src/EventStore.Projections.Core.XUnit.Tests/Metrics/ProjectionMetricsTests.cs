@@ -91,8 +91,6 @@ public class ProjectionMetricsTests
 		actualMeasurement =>
 		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
-			if (actualMeasurement.Tags == null)
-				return;
 
 			Assert.Equal(
 				tags,
@@ -100,7 +98,8 @@ public class ProjectionMetricsTests
 		};
 
 	private static ProjectionStatistics ProjectionWithState(ManagedProjectionState state, string status) =>
-		new() {
+		new()
+		{
 			Name = "TestProjection",
 			ProjectionId = 1234,
 			Epoch = -1,

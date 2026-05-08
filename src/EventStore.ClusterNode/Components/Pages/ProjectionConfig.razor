@@ -103,13 +103,15 @@
 	[Parameter] public string Name { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "projection-config")]
-	private ProjectionConfigInput Input { get; set; } = new();
+	private ProjectionConfigInput Input { get; set; }
 
 	private ProjectionConfigPage Page { get; set; }
 	private ProjectionCommandResult Result { get; set; }
 	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(Name)}";
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+
 		var hasSubmittedForm = string.Equals(Input.Name, Name, StringComparison.OrdinalIgnoreCase);
 		if (hasSubmittedForm)
 			return;

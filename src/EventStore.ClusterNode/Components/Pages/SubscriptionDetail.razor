@@ -118,12 +118,14 @@ else
 	[Parameter] public string GroupName { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "subscription-detail-replay")]
-	private ReplayParkedInput ReplayInput { get; set; } = new();
+	private ReplayParkedInput ReplayInput { get; set; }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private SubscriptionCommandResult Result { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
+		ReplayInput ??= new();
+
 		var requestedStream = StreamId;
 		var requestedGroup = GroupName;
 		Page = null;

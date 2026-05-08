@@ -95,10 +95,10 @@
 	[SupplyParameterFromQuery] public string FromQueryState { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "projection-debug-disable")]
-	private ProjectionDebugInput DisableInput { get; set; } = new();
+	private ProjectionDebugInput DisableInput { get; set; }
 
 	[SupplyParameterFromForm(FormName = "projection-debug-reset")]
-	private ProjectionDebugInput ResetInput { get; set; } = new();
+	private ProjectionDebugInput ResetInput { get; set; }
 
 	private ProjectionDetailPage Page { get; set; }
 	private ProjectionCommandResult CommandResult { get; set; }
@@ -108,6 +108,9 @@
 	private string QueryHref => $"/ui/query?location={Uri.EscapeDataString(LinkName)}";
 
 	protected override async Task OnParametersSetAsync() {
+		DisableInput ??= new();
+		ResetInput ??= new();
+
 		try {
 			Page = await Projections.ReadProjection(Name);
 		} catch (OperationCanceledException) {

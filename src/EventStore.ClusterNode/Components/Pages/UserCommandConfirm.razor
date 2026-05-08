@@ -75,13 +75,15 @@ else
 	[Parameter] public string LoginName { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "user-command-confirm")]
-	private UserCommandInput Input { get; set; } = new();
+	private UserCommandInput Input { get; set; }
 
 	private UserDetailPage Page { get; set; }
 	private UserCommandResult Result { get; set; }
 	private UserAction Action => ResolveAction();
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+
 		var requested = LoginName;
 		Page = null;
 		Result = null;

@@ -71,12 +71,14 @@ else
 	[Parameter] public string GroupName { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "subscription-delete")]
-	private SubscriptionDeleteInput Input { get; set; } = new();
+	private SubscriptionDeleteInput Input { get; set; }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private SubscriptionCommandResult Result { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+
 		var requestedStream = StreamId;
 		var requestedGroup = GroupName;
 		Page = null;

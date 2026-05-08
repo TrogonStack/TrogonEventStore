@@ -46,6 +46,8 @@ public class EventNumberCachedTests
 
 		// initialize any underlying data structures (the dictionary in this case)
 		lruCache.Put(123, new EventNumberCached(0, 0));
+		// Avoid charging lazy equality-comparer setup to the measured cache item.
+		lruCache.TryGet(456, out _);
 
 		var mem = MemUsage.Calculate(() =>
 			lruCache.Put(456, new EventNumberCached(10, 123)));

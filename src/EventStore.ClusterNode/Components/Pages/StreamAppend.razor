@@ -75,7 +75,7 @@
 	[SupplyParameterFromQuery] public long? FromEvent { get; set; }
 
 	[SupplyParameterFromForm(FormName = "stream-append")]
-	private StreamAppendInput Input { get; set; } = NewInput("");
+	private StreamAppendInput Input { get; set; }
 
 	private StreamCommandResult Result { get; set; }
 	private string _lastRequestedStreamId = "";
@@ -85,6 +85,8 @@
 		: $"/ui/streams/{Uri.EscapeDataString(Input.StreamId)}";
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= NewInput("");
+
 		var requestedStream = StreamId ?? "";
 		var requestedFromEvent = FromEvent;
 		var sameRequest = string.Equals(_lastRequestedStreamId, requestedStream, StringComparison.OrdinalIgnoreCase) &&

@@ -62,12 +62,14 @@ else
 	[Parameter] public string GroupName { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "subscription-edit")]
-	private SubscriptionSettingsInput Input { get; set; } = new();
+	private SubscriptionSettingsInput Input { get; set; }
 
 	private SubscriptionDetailPage Page { get; set; }
 	private SubscriptionCommandResult Result { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+
 		var requestedStream = StreamId;
 		var requestedGroup = GroupName;
 		var hasSubmittedForm =

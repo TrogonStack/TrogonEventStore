@@ -88,9 +88,13 @@
 	private const string DefaultQuery = "fromAll().when({\n  $init: function () { return {}; },\n  $any: function (state, event) {\n    return state;\n  }\n});";
 
 	[SupplyParameterFromForm(FormName = "projection-create")]
-	private ProjectionCreateInput Input { get; set; } = new();
+	private ProjectionCreateInput Input { get; set; }
 
 	private ProjectionCommandResult Result { get; set; }
+
+	protected override void OnParametersSet() {
+		Input ??= new();
+	}
 
 	private async Task CreateProjection() {
 		var redirectTo = "";

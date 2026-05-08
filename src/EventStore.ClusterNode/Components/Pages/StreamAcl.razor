@@ -80,12 +80,14 @@ else
 	[Parameter] public string StreamId { get; set; } = "";
 
 	[SupplyParameterFromForm(FormName = "stream-acl")]
-	private StreamAclForm Input { get; set; } = new();
+	private StreamAclForm Input { get; set; }
 
 	private StreamAclPage Page { get; set; }
 	private StreamCommandResult Result { get; set; }
 
 	protected override async Task OnParametersSetAsync() {
+		Input ??= new();
+
 		var requested = StreamId;
 		var hasSubmittedForm = string.Equals(Input.StreamId, requested, StringComparison.OrdinalIgnoreCase);
 		Page = null;

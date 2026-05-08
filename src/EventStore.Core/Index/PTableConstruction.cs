@@ -79,7 +79,7 @@ public partial class PTable
 
 		var sw = Stopwatch.StartNew();
 		using (var fs = new FileStream(filename, FileMode.Create, FileAccess.ReadWrite, FileShare.None,
-			       DefaultSequentialBufferSize, FileOptions.SequentialScan))
+				   DefaultSequentialBufferSize, FileOptions.SequentialScan))
 		{
 
 			var fileSize = GetFileSizeUpToIndexEntries(table.Count, table.Version);
@@ -101,7 +101,7 @@ public partial class PTable
 				var requiredMidpointCount = GetRequiredMidpointCountCached(table.Count, table.Version, cacheDepth);
 				using var midpoints =
 					new UnmanagedMemoryAppendOnlyList<Midpoint>((int)requiredMidpointCount +
-					                                            MidpointsOverflowSafetyNet);
+																MidpointsOverflowSafetyNet);
 
 				var midpointCalculator = new MidpointIndexCalculator(table.Count, requiredMidpointCount);
 				long indexEntry = 0L;
@@ -112,7 +112,7 @@ public partial class PTable
 					AppendRecordTo(bs, buffer, table.Version, rec, indexEntrySize);
 					dumpedEntryCount += 1;
 					if (table.Version >= PTableVersions.IndexV4 &&
-					    indexEntry == midpointCalculator.NextMidpointIndex)
+						indexEntry == midpointCalculator.NextMidpointIndex)
 					{
 						midpoints.Add(new Midpoint(new IndexEntryKey(rec.Stream, rec.Version), indexEntry));
 						midpointCalculator.Advance();
@@ -219,13 +219,13 @@ public partial class PTable
 
 			long dumpedEntryCount = 0;
 			using (var f = new FileStream(outputFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None,
-				       DefaultSequentialBufferSize, FileOptions.SequentialScan))
+					   DefaultSequentialBufferSize, FileOptions.SequentialScan))
 			{
 				f.SetLength(fileSizeUpToIndexEntries);
 				f.Seek(0, SeekOrigin.Begin);
 
 				using (var bloomFilter =
-				       ConstructBloomFilter(useBloomFilter, outputFile, tables.Sum(table => table.Count)))
+					   ConstructBloomFilter(useBloomFilter, outputFile, tables.Sum(table => table.Count)))
 				using (var md5 = MD5.Create())
 				using (var cs = new CryptoStream(f, md5, CryptoStreamMode.Write))
 				using (var bs = new BufferedStream(cs, DefaultSequentialBufferSize))
@@ -239,7 +239,7 @@ public partial class PTable
 					var requiredMidpointCount = GetRequiredMidpointCountCached(numIndexEntries, version, cacheDepth);
 					using var midpoints =
 						new UnmanagedMemoryAppendOnlyList<Midpoint>((int)requiredMidpointCount +
-						                                            MidpointsOverflowSafetyNet);
+																	MidpointsOverflowSafetyNet);
 
 					var midpointCalculator = new MidpointIndexCalculator(numIndexEntries, requiredMidpointCount);
 					long indexEntry = 0L;
@@ -252,7 +252,7 @@ public partial class PTable
 						var current = enumerators[idx].Current;
 						AppendRecordTo(bs, buffer, version, current, indexEntrySize);
 						if (version >= PTableVersions.IndexV4 &&
-						    indexEntry == midpointCalculator.NextMidpointIndex)
+							indexEntry == midpointCalculator.NextMidpointIndex)
 						{
 							midpoints.Add(new Midpoint(new IndexEntryKey(current.Stream, current.Version), indexEntry));
 							midpointCalculator.Advance();
@@ -365,13 +365,13 @@ public partial class PTable
 		{
 			long dumpedEntryCount = 0;
 			using (var f = new FileStream(outputFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None,
-				       DefaultSequentialBufferSize, FileOptions.SequentialScan))
+					   DefaultSequentialBufferSize, FileOptions.SequentialScan))
 			{
 				f.SetLength(fileSizeUpToIndexEntries);
 				f.Seek(0, SeekOrigin.Begin);
 
 				using (var bloomFilter =
-				       ConstructBloomFilter(useBloomFilter, outputFile, tables.Sum(table => table.Count)))
+					   ConstructBloomFilter(useBloomFilter, outputFile, tables.Sum(table => table.Count)))
 				using (var md5 = MD5.Create())
 				using (var cs = new CryptoStream(f, md5, CryptoStreamMode.Write))
 				using (var bs = new BufferedStream(cs, DefaultSequentialBufferSize))
@@ -386,7 +386,7 @@ public partial class PTable
 						GetRequiredMidpointCountCached(numIndexEntries, version, cacheDepth);
 					using var midpoints =
 						new UnmanagedMemoryAppendOnlyList<Midpoint>((int)requiredMidpointCount +
-						                                            MidpointsOverflowSafetyNet);
+																	MidpointsOverflowSafetyNet);
 
 					var midpointCalculator = new MidpointIndexCalculator(numIndexEntries, requiredMidpointCount);
 					long indexEntry = 0L;
@@ -417,7 +417,7 @@ public partial class PTable
 
 						AppendRecordTo(bs, buffer, version, current, indexEntrySize);
 						if (version >= PTableVersions.IndexV4 &&
-						    indexEntry == midpointCalculator.NextMidpointIndex)
+							indexEntry == midpointCalculator.NextMidpointIndex)
 						{
 							midpoints.Add(new Midpoint(new IndexEntryKey(current.Stream, current.Version),
 								indexEntry));
@@ -520,7 +520,7 @@ public partial class PTable
 		try
 		{
 			using (var f = new FileStream(outputFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None,
-				       DefaultSequentialBufferSize, FileOptions.SequentialScan))
+					   DefaultSequentialBufferSize, FileOptions.SequentialScan))
 			{
 				f.SetLength(fileSizeUpToIndexEntries);
 				f.Seek(0, SeekOrigin.Begin);
@@ -727,7 +727,7 @@ public partial class PTable
 			else
 			{
 				fs.Seek(PTableHeader.Size + index * indexEntrySize, SeekOrigin.Begin);
-				fs.Read(buffer, 0, indexKeySize);
+				fs.ReadExactly(buffer, 0, indexKeySize);
 				IndexEntryKey key = new IndexEntryKey(BitConverter.ToUInt64(buffer, 8),
 					BitConverter.ToInt64(buffer, 0));
 				midpoints.Add(new Midpoint(key, index));
@@ -832,7 +832,8 @@ public partial class PTable
 	private static int GetDepth(long indexEntriesFileSize, int minDepth)
 	{
 		minDepth = Math.Max(0, Math.Min(minDepth, 28));
-		if ((2L << 28) * 4096L < indexEntriesFileSize) return 28;
+		if ((2L << 28) * 4096L < indexEntriesFileSize)
+			return 28;
 		for (int i = 27; i >= minDepth; i--)
 		{
 			if ((2L << i) * 4096L < indexEntriesFileSize)
@@ -846,8 +847,10 @@ public partial class PTable
 
 	private static int GetRequiredMidpointCount(long numIndexEntries, byte version, int minDepth)
 	{
-		if (numIndexEntries == 0) return 0;
-		if (numIndexEntries == 1) return 2;
+		if (numIndexEntries == 0)
+			return 0;
+		if (numIndexEntries == 1)
+			return 2;
 
 		int indexEntrySize = GetIndexEntrySize(version);
 		var depth = GetDepth(numIndexEntries * indexEntrySize, minDepth);

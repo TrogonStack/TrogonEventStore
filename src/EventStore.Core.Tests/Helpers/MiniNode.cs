@@ -33,6 +33,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using ILogger = Serilog.ILogger;
 using RuntimeInformation = System.Runtime.RuntimeInformation;
 
@@ -62,6 +63,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 	public readonly HttpClient HttpClient;
 	public readonly HttpMessageHandler HttpMessageHandler;
 
+	private readonly IHost _kestrelTestHost;
 	private readonly TestServer _kestrelTestServer;
 	private readonly TaskCompletionSource<bool> _started;
 	private readonly TaskCompletionSource<bool> _adminUserCreated;
@@ -224,36 +226,43 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			configureAdditionalNodeServices: services => ConfigureMiniNodeServices(services, newTransforms));
 		Db = Node.Db;
 
-		_kestrelTestServer = new TestServer(new WebHostBuilder()
-			.UseKestrel(o =>
+		_kestrelTestHost = new HostBuilder()
+			.ConfigureWebHost(webHost =>
 			{
-				o.Listen(HttpEndPoint, options =>
-				{
-					if (RuntimeInformation.IsOSX)
+				webHost
+					.UseKestrel(o =>
 					{
-						options.Protocols = HttpProtocols.Http2;
-					}
-					else
-					{
-						options.UseHttps(new HttpsConnectionAdapterOptions
+						o.Listen(HttpEndPoint, options =>
 						{
-							ServerCertificate = ssl_connections.GetServerCertificate(),
-							ClientCertificateMode = ClientCertificateMode.AllowCertificate,
-							ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
+							if (RuntimeInformation.IsOSX)
 							{
-								var (isValid, error) =
-									ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => new X509Certificate2Collection(ssl_connections.GetRootCertificate()));
-								if (!isValid && error != null)
+								options.Protocols = HttpProtocols.Http2;
+							}
+							else
+							{
+								options.UseHttps(new HttpsConnectionAdapterOptions
 								{
-									Log.Error("Client certificate validation error: {e}", error);
-								}
-								return isValid;
+									ServerCertificate = ssl_connections.GetServerCertificate(),
+									ClientCertificateMode = ClientCertificateMode.AllowCertificate,
+									ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
+									{
+										var (isValid, error) =
+											ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => new X509Certificate2Collection(ssl_connections.GetRootCertificate()));
+										if (!isValid && error != null)
+										{
+											Log.Error("Client certificate validation error: {e}", error);
+										}
+										return isValid;
+									}
+								});
 							}
 						});
-					}
-				});
+					})
+					.UseTestServer()
+					.UseStartup(Node.Startup);
 			})
-			.UseStartup(Node.Startup));
+			.Start();
+		_kestrelTestServer = _kestrelTestHost.GetTestServer();
 		_started = new TaskCompletionSource<bool>();
 		_adminUserCreated = new TaskCompletionSource<bool>();
 		HttpMessageHandler = _kestrelTestServer.CreateHandler();
@@ -344,9 +353,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 
 		StoppingTime.Start();
 
-		_kestrelTestServer.Dispose();
 		HttpMessageHandler.Dispose();
 		HttpClient.Dispose();
+		_kestrelTestHost.Dispose();
 		await Node.StopAsync(TimeSpan.FromSeconds(20));
 
 		if (!keepDb)

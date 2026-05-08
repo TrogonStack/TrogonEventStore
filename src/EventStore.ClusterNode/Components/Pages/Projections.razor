@@ -131,10 +131,10 @@
 	[SupplyParameterFromQuery] public bool IncludeQueries { get; set; }
 
 	[SupplyParameterFromForm(FormName = "projection-enable-all")]
-	private ProjectionBulkInput EnableAllInput { get; set; } = new();
+	private ProjectionBulkInput EnableAllInput { get; set; }
 
 	[SupplyParameterFromForm(FormName = "projection-disable-all")]
-	private ProjectionBulkInput DisableAllInput { get; set; } = new();
+	private ProjectionBulkInput DisableAllInput { get; set; }
 
 	private ProjectionListPage Page { get; set; }
 	private ProjectionBulkCommandResult CommandResult { get; set; }
@@ -142,6 +142,9 @@
 		Page?.IncludeQueries == true ? "No projections are available." : "No non-transient projections are available.";
 
 	protected override async Task OnParametersSetAsync() {
+		EnableAllInput ??= new();
+		DisableAllInput ??= new();
+
 		Page = null;
 
 		try
