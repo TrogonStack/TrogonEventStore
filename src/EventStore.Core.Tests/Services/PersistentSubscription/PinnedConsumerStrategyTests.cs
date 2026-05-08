@@ -515,4 +515,38 @@ public class PinnedConsumerStrategyTests
 
 		Assert.That(streamBuffer.BufferCount, Is.EqualTo(0));
 	}
+
+	[Test]
+	public void reconnect_with_reused_correlation_id_routes_pinned_stream_to_live_client()
+	{
+		var correlationId = Guid.NewGuid();
+		var client1Envelope = new FakeEnvelope();
+		var client2Envelope = new FakeEnvelope();
+		var reader = new FakeCheckpointReader();
+		const string subsctiptionStream = "$ce-streamName";
+		var sub = new Core.Services.PersistentSubscription.PersistentSubscription(
+			PersistentSubscriptionToStreamParamsBuilder.CreateFor(subsctiptionStream, "groupName")
+				.WithEventLoader(new FakeStreamReader())
+				.WithCheckpointReader(reader)
+				.WithCheckpointWriter(new FakeCheckpointWriter(x => { }))
+				.WithMessageParker(new FakeMessageParker())
+				.CustomConsumerStrategy(new PinnedPersistentSubscriptionConsumerStrategy(new XXHashUnsafe()))
+				.StartFromCurrent());
+		reader.Load(null);
+
+		var firstConnectionId = Guid.NewGuid();
+		sub.AddClient(correlationId, firstConnectionId, "connection-1", client1Envelope, 10, "foo", "bar");
+		var firstEventId = Guid.NewGuid();
+		sub.NotifyLiveSubscriptionMessage(Helper.BuildFakeEvent(firstEventId, "type", "streamName-1", 0));
+
+		Assert.That(client1Envelope.Replies.Count, Is.EqualTo(1));
+
+		sub.AcknowledgeMessagesProcessed(correlationId, new[] { firstEventId });
+		Assert.IsTrue(sub.RemoveClientByConnectionId(firstConnectionId));
+		sub.AddClient(correlationId, Guid.NewGuid(), "connection-2", client2Envelope, 10, "foo", "bar");
+		sub.NotifyLiveSubscriptionMessage(Helper.BuildFakeEvent(Guid.NewGuid(), "type", "streamName-1", 1));
+
+		Assert.That(client1Envelope.Replies.Count, Is.EqualTo(1));
+		Assert.That(client2Envelope.Replies.Count, Is.EqualTo(1));
+	}
 }
