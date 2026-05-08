@@ -63,7 +63,9 @@ public class clear_text_http_multiplexing_middleware
 			.Build();
 
 		_host.Start();
-		_endpoint = _host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>().Addresses.Single();
+		var addressesFeature = _host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
+		_endpoint = addressesFeature?.Addresses.Single()
+			?? throw new InvalidOperationException("IServerAddressesFeature not available after host start.");
 	}
 
 	[TearDown]
