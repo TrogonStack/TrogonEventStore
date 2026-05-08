@@ -57,16 +57,18 @@ public class ServerFeaturesTest
 			var node = GetLeader();
 			await Task.WhenAll(node.AdminUserCreated, node.Started);
 
-			using var channel = GrpcChannel.ForAddress(new Uri($"https://{node.HttpEndPoint}"),
-				new GrpcChannelOptions
-				{
-					HttpClient = new HttpClient(new SocketsHttpHandler
-					{
-						SslOptions = {
-							RemoteCertificateValidationCallback = delegate { return true; }
-						}
-					}, true)
-				});
+			using var httpClient = new HttpClient(new SocketsHttpHandler
+			{
+				SslOptions = {
+					RemoteCertificateValidationCallback = delegate { return true; }
+				}
+			}, true)
+			{
+				DefaultRequestVersion = new Version(2, 0)
+			};
+			var scheme = node.Node.DisableHttps ? "http" : "https";
+			using var channel = GrpcChannel.ForAddress(new Uri($"{scheme}://{node.HttpEndPoint}"),
+				new GrpcChannelOptions { HttpClient = httpClient });
 			var client = new ServerFeatures.ServerFeaturesClient(channel);
 
 			var resp = await client.GetSupportedMethodsAsync(new Empty());
