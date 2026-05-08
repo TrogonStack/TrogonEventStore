@@ -174,17 +174,17 @@ public class TFChunkTrackerTests : IDisposable
 
 	private static PrepareLogRecord CreatePrepare(byte[] data, byte[] meta, long logPosition = 42)
 	{
-		return new PrepareLogRecord(logPosition, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.Now,
+		return new PrepareLogRecord(logPosition, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.UtcNow,
 			PrepareFlags.Data, "type-test", null, data, meta);
 	}
 
 	private static SystemLogRecord CreateSystemRecord()
 	{
-		return new SystemLogRecord(42, DateTime.Now, SystemRecordType.Epoch, SystemRecordSerialization.Binary, Array.Empty<byte>());
+		return new SystemLogRecord(42, DateTime.UtcNow, SystemRecordType.Epoch, SystemRecordSerialization.Binary, Array.Empty<byte>());
 	}
 
 	private static CommitLogRecord CreateCommit()
 	{
-		return new CommitLogRecord(42, Guid.NewGuid(), 42, DateTime.Now, 42);
+		return new CommitLogRecord(42, Guid.NewGuid(), 42, DateTime.UtcNow, 42);
 	}
 }

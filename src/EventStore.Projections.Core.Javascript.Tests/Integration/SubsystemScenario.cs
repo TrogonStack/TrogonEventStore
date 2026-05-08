@@ -343,7 +343,7 @@ public abstract class SubsystemScenario : IHandle<Message>, IAsyncLifetime
 					flags |= PrepareFlags.TransactionEnd;
 
 				var record = new EventRecord(revision, position, message.CorrelationId,
-					current.EventId, _all.Count, i, message.EventStreamId, -1, DateTime.Now,
+					current.EventId, _all.Count, i, message.EventStreamId, -1, DateTime.UtcNow,
 					flags, current.EventType, current.Data, current.Metadata);
 				if (current.EventType == SystemEventTypes.LinkTo)
 				{

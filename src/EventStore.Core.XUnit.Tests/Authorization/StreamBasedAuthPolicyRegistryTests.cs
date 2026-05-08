@@ -10,8 +10,8 @@ using EventStore.Common.Exceptions;
 using EventStore.Core.Authorization;
 using EventStore.Core.Authorization.AuthorizationPolicies;
 using EventStore.Core.Bus;
-using EventStore.Core.Messages;
 using EventStore.Core.Data;
+using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -415,7 +415,7 @@ public class StreamBasedAuthPolicyRegistryTests
 			transactionOffset: 0,
 			SystemStreams.AuthorizationPolicyRegistryStream,
 			eventStreamIdSize: null,
-			expectedVersion: eventNumber, DateTime.Now, PrepareFlags.Data,
+			expectedVersion: eventNumber, DateTime.UtcNow, PrepareFlags.Data,
 			eventType, eventTypeSize: null, data, ReadOnlyMemory<byte>.Empty);
 		var eventRecord = new EventRecord(eventNumber, prepare, SystemStreams.AuthorizationPolicyRegistryStream,
 			eventType);

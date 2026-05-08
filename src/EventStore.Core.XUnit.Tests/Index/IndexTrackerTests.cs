@@ -46,7 +46,7 @@ public class IndexTrackerTests : IDisposable
 
 	private static PrepareLogRecord CreatePrepare()
 	{
-		return new PrepareLogRecord(42, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.Now,
+		return new PrepareLogRecord(42, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.UtcNow,
 			PrepareFlags.Data, "type-test", null, Array.Empty<byte>(), Array.Empty<byte>());
 	}
 
