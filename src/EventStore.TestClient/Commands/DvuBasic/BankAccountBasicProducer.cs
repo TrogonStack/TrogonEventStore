@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
-using EventStore.Transport.Http.Codecs;
+using EventStore.TestClient.Commands;
 using ILogger = Serilog.ILogger;
 #pragma warning disable 1591
 
@@ -22,7 +22,7 @@ internal class BankAccountBasicProducer : IBasicProducer
 	{
 		var accountObject = BankAccountEventFactory.CreateAccountObject(version);
 
-		var serializedObject = Codec.Json.To(accountObject);
+		var serializedObject = TestClientJson.To(accountObject);
 		var @event = new Event(Guid.NewGuid(), accountObject.GetType().Name, true,
 			Helper.UTF8NoBom.GetBytes(serializedObject), new byte[0]);
 
@@ -67,29 +67,29 @@ internal class BankAccountBasicProducer : IBasicProducer
 
 	private object Deserialize(string eventType, byte[] actualData)
 	{
-		object result = null;
+		object result;
 		var strData = Helper.UTF8NoBom.GetString(actualData);
 		if (eventType == typeof(AccountCreated).FullName)
 		{
-			result = Codec.Json.From<AccountCreated>(strData);
+			result = TestClientJson.From<AccountCreated>(strData);
 		}
 		else
 		{
 			if (eventType == typeof(AccountCredited).Name)
 			{
-				result = Codec.Json.From<AccountCredited>(strData);
+				result = TestClientJson.From<AccountCredited>(strData);
 			}
 			else
 			{
 				if (eventType == typeof(AccountDebited).Name)
 				{
-					result = Codec.Json.From<AccountDebited>(strData);
+					result = TestClientJson.From<AccountDebited>(strData);
 				}
 				else
 				{
 					if (eventType == typeof(AccountCheckPoint).Name)
 					{
-						result = Codec.Json.From<AccountCheckPoint>(strData);
+						result = TestClientJson.From<AccountCheckPoint>(strData);
 					}
 					else
 					{

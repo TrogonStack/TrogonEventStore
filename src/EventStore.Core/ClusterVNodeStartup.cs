@@ -11,7 +11,6 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Core.Services.Transport.Grpc.Cluster;
 using EventStore.Core.Services.Transport.Http;
-using EventStore.Transport.Http;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins;
 using EventStore.Plugins.Authentication;
@@ -28,9 +27,9 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using GrpcOperations = EventStore.Core.Services.Transport.Grpc.Operations;
-using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
+using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
+using GrpcOperations = EventStore.Core.Services.Transport.Grpc.Operations;
 using ServerFeatures = EventStore.Core.Services.Transport.Grpc.ServerFeatures;
 
 #nullable enable
@@ -144,10 +143,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		app.UseEndpoints(ep =>
 		{
-			ep.MapHealthChecks("/-/liveness", new HealthCheckOptions {
+			ep.MapHealthChecks("/-/liveness", new HealthCheckOptions
+			{
 				Predicate = registration => registration.Tags.Contains("liveness")
 			});
-			ep.MapHealthChecks("/-/readiness", new HealthCheckOptions {
+			ep.MapHealthChecks("/-/readiness", new HealthCheckOptions
+			{
 				Predicate = registration => registration.Tags.Contains("readiness")
 			});
 
@@ -219,7 +220,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration, _configuration))
 			.WithTracing(tracerOptions => ConfigureTracing(tracerOptions, _configuration))
 			.Services
-			.AddGrpcHealthChecks(options => {
+			.AddGrpcHealthChecks(options =>
+			{
 				options.Services.Map("", registration => registration.Tags.Contains("readiness"));
 				options.Services.Map("readiness", registration => registration.Tags.Contains("readiness"));
 				options.Services.Map("liveness", registration => registration.Tags.Contains("liveness"));
@@ -246,7 +248,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		services.AddCors(o => o.AddPolicy(
 			"default",
-			b => b.AllowAnyOrigin().WithMethods(HttpMethod.Options, HttpMethod.Get).AllowAnyHeader())
+			b => b.AllowAnyOrigin().WithMethods(HttpMethods.Options, HttpMethods.Get).AllowAnyHeader())
 		);
 
 		services = _configureNodeServices(services);
@@ -276,7 +278,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 						]
 					};
 				else if (i.Name.StartsWith("eventstore-") &&
-				         i.Name.EndsWith("-latency-seconds"))
+						 i.Name.EndsWith("-latency-seconds"))
 					return new ExplicitBucketHistogramConfiguration
 					{
 						Boundaries =
@@ -292,7 +294,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 						]
 					};
 				else if (i.Name.StartsWith("eventstore-") &&
-				         i.Name.EndsWith("-seconds"))
+						 i.Name.EndsWith("-seconds"))
 					return new ExplicitBucketHistogramConfiguration
 					{
 						Boundaries =
@@ -359,14 +361,17 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 	public void Handle(SystemMessage.BecomeShuttingDown _) => _nodeHealthState.MarkShuttingDown();
 
-	private sealed class NodeHealthState {
+	private sealed class NodeHealthState
+	{
 		public bool IsReady { get; private set; }
 
-		public void MarkReady() {
+		public void MarkReady()
+		{
 			IsReady = true;
 		}
 
-		public void MarkShuttingDown() {
+		public void MarkShuttingDown()
+		{
 			IsReady = false;
 		}
 	}

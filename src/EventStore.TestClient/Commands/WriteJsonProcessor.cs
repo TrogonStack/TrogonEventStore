@@ -5,7 +5,6 @@ using EventStore.Client.Messages;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Transport.Tcp;
-using EventStore.Transport.Http.Codecs;
 
 
 namespace EventStore.TestClient.Commands;
@@ -109,7 +108,7 @@ internal class WriteJsonProcessor : ICmdProcessor
 
 	private string GenerateTestData()
 	{
-		return Codec.Json.To(new TestData(Guid.NewGuid().ToString(), _random.Next(1, 101)));
+		return TestClientJson.To(new TestData(Guid.NewGuid().ToString(), _random.Next(1, 101)));
 	}
 }
 
