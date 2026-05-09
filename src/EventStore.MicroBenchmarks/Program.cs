@@ -14,8 +14,7 @@ internal class Program
 {
 	static void Main(string[] args)
 	{
-		var config = System.Diagnostics.Debugger.IsAttached ? new DebugBuildConfig() { } : DefaultConfig.Instance;
-		BenchmarkRunner.Run<ProjectionSerializationBenchmarks>(config, args);
+		BenchmarkRunner.Run<ProjectionSerializationBenchmarks>(DefaultConfig.Instance, args);
 	}
 }
 

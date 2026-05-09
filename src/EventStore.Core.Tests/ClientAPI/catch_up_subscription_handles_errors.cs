@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -21,7 +20,7 @@ namespace EventStore.Core.Tests.ClientAPI;
 [TestFixture, Category("ClientAPI"), Category("LongRunning")]
 public class catch_up_subscription_handles_errors
 {
-	private static readonly int TimeoutMs = Debugger.IsAttached ? Timeout.Infinite : 2000;
+	private const int TimeoutMs = 2000;
 	private FakeEventStoreConnection _connection;
 	private IList<ResolvedEvent> _raisedEvents;
 	private bool _liveProcessingStarted;

@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using DotNext;
-using static System.Threading.Timeout;
 
 namespace EventStore.Core.Tests;
 
@@ -14,11 +13,6 @@ public static class TaskExtensions
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
 		Debug.Assert(task is not null);
-
-		if (Debugger.IsAttached)
-		{
-			timeout = InfiniteTimeSpan;
-		}
 
 		await task
 			.WaitAsync(timeout)
@@ -43,12 +37,6 @@ public static class TaskExtensions
 		[CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-
-		if (Debugger.IsAttached)
-		{
-			timeout = InfiniteTimeSpan;
-		}
-
 		await task.As<Task>()
 			.WaitAsync(timeout)
 			.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);

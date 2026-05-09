@@ -485,8 +485,6 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			{
 				if (_sw.Elapsed - _start >= _timeout)
 				{
-					if (Debugger.IsAttached)
-						return;
 					var action = _executing ? "execute" : "compile";
 					throw new TimeoutException($"Projection script took too long to {action} (took: {_sw.Elapsed - _start:c}, allowed: {_timeout:c}");
 				}

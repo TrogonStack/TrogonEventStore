@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,14 +26,18 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	{
 		_channel = GrpcChannel.ForAddress(
 			new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions {
+			new GrpcChannelOptions
+			{
 				HttpHandler = _node.HttpMessageHandler
 			});
 		_client = new Client.Projections.Projections.ProjectionsClient(_channel);
 
-		await _client.CreateAsync(new CreateReq {
-			Options = new CreateReq.Types.Options {
-				Continuous = new CreateReq.Types.Options.Types.Continuous {
+		await _client.CreateAsync(new CreateReq
+		{
+			Options = new CreateReq.Types.Options
+			{
+				Continuous = new CreateReq.Types.Options.Types.Continuous
+				{
 					Name = "faulted-projection",
 					EmitEnabled = false,
 					TrackEmittedStreams = false
@@ -43,9 +46,12 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 			}
 		}, GetCallOptions());
 
-		await _client.CreateAsync(new CreateReq {
-			Options = new CreateReq.Types.Options {
-				Continuous = new CreateReq.Types.Options.Types.Continuous {
+		await _client.CreateAsync(new CreateReq
+		{
+			Options = new CreateReq.Types.Options
+			{
+				Continuous = new CreateReq.Types.Options.Types.Continuous
+				{
 					Name = "running-projection",
 					EmitEnabled = false,
 					TrackEmittedStreams = false
@@ -57,7 +63,8 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 
 	public override async Task When()
 	{
-		for (var attempt = 0; attempt < 20; attempt++) {
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
 			try
 			{
 				(_faultedProjection, _runningProjection) = await ReadStatisticsAsync();
@@ -106,8 +113,10 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 		return base.TestFixtureTearDown();
 	}
 
-	private static CallOptions GetCallOptions(TimeSpan? deadline = null) {
-		var credentials = CallCredentials.FromInterceptor((_, metadata) => {
+	private static CallOptions GetCallOptions(TimeSpan? deadline = null)
+	{
+		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
+		{
 			metadata.Add("authorization",
 				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
 			return Task.CompletedTask;
@@ -115,11 +124,9 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 
 		return new CallOptions(
 			credentials: credentials,
-			deadline: Debugger.IsAttached
-				? DateTime.UtcNow.AddDays(1)
-				: deadline is { } value
-					? DateTime.UtcNow.Add(value)
-					: null);
+			deadline: deadline is { } value
+				? DateTime.UtcNow.Add(value)
+				: null);
 	}
 
 	private async Task<(StatisticsResp.Types.Details faultedProjection, StatisticsResp.Types.Details runningProjection)>
@@ -128,13 +135,16 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 		StatisticsResp.Types.Details faultedProjection = null;
 		StatisticsResp.Types.Details runningProjection = null;
 
-		using var statistics = _client.Statistics(new StatisticsReq {
-			Options = new StatisticsReq.Types.Options {
+		using var statistics = _client.Statistics(new StatisticsReq
+		{
+			Options = new StatisticsReq.Types.Options
+			{
 				All = new Empty()
 			}
 		}, GetCallOptions(StatisticsCallDeadline));
 
-		while (await statistics.ResponseStream.MoveNext(CancellationToken.None)) {
+		while (await statistics.ResponseStream.MoveNext(CancellationToken.None))
+		{
 			var details = statistics.ResponseStream.Current.Details;
 			if (details.Name == "faulted-projection")
 				faultedProjection = details;

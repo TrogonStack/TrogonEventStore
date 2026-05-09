@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -471,10 +470,6 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				commitInfo.StreamId,
 				x =>
 				{
-					if (!Debugger.IsAttached)
-						Debugger.Launch();
-					else
-						Debugger.Break();
 					throw new Exception(string.Format("CommitInfo for stream '{0}' is not present!", x));
 				},
 				(streamId, oldVersion) => oldVersion,
@@ -485,10 +480,6 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 					_systemStreams.OriginalStreamOf(commitInfo.StreamId),
 					x =>
 					{
-						if (!Debugger.IsAttached)
-							Debugger.Launch();
-						else
-							Debugger.Break();
 						throw new Exception(string.Format(
 							"Original stream CommitInfo for meta-stream '{0}' is not present!",
 							_systemStreams.MetaStreamOf(x)));

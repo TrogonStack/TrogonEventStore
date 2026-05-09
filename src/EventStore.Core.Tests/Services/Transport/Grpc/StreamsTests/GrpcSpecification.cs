@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -123,9 +122,7 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId>
 
 	protected CallOptions GetCallOptions((string userName, string password) credentials = default) =>
 		new(credentials: GetCredentials(credentials == default ? DefaultCredentials : credentials),
-			deadline: Debugger.IsAttached
-				? DateTime.UtcNow.AddDays(1)
-				: new DateTime?());
+			deadline: null);
 
 	private static CallCredentials GetCredentials((string userName, string password) credentials) =>
 		credentials == default ? null : CallCredentialsFromUser(credentials);
