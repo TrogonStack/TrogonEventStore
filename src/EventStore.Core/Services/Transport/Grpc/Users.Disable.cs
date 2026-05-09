@@ -1,35 +1,40 @@
 using System.Threading.Tasks;
+using EventStore.Client.Users;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
-using EventStore.Client.Users;
 using EventStore.Plugins.Authorization;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	internal partial class Users {
-		private static readonly Operation DisableOperation = new Operation(Plugins.Authorization.Operations.Users.Disable);
-		public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context) {
-			var options = request.Options;
+namespace EventStore.Core.Services.Transport.Grpc;
 
-			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, DisableOperation, context.CancellationToken)) {
-				throw RpcExceptions.AccessDenied();
-			}
-			var disableSource = new TaskCompletionSource<bool>();
+internal partial class Users
+{
+	private static readonly Operation DisableOperation = new Operation(Plugins.Authorization.Operations.Users.Disable);
+	public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context)
+	{
+		var options = request.Options;
 
-			var envelope = new CallbackEnvelope(OnMessage);
+		var user = context.GetHttpContext().User;
+		if (!await _authorizationProvider.CheckAccessAsync(user, DisableOperation, context.CancellationToken))
+		{
+			throw RpcExceptions.AccessDenied();
+		}
+		var disableSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-			_publisher.Publish(new UserManagementMessage.Disable(envelope, user, options.LoginName));
+		var envelope = new CallbackEnvelope(OnMessage);
 
-			await disableSource.Task.WaitAsync(context.CancellationToken);
+		_publisher.Publish(new UserManagementMessage.Disable(envelope, user, options.LoginName));
 
-			return new DisableResp();
+		await disableSource.Task.WaitAsync(context.CancellationToken);
 
-			void OnMessage(Message message) {
-				if (HandleErrors(options.LoginName, message, disableSource)) return;
+		return new DisableResp();
 
-				disableSource.TrySetResult(true);
-			}
+		void OnMessage(Message message)
+		{
+			if (HandleErrors(options.LoginName, message, disableSource))
+				return;
+
+			disableSource.TrySetResult(true);
 		}
 	}
 }

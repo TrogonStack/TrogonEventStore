@@ -1,38 +1,43 @@
 using System.Linq;
 using System.Threading.Tasks;
+using EventStore.Client.Users;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
-using EventStore.Client.Users;
 using EventStore.Plugins.Authorization;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	internal partial class Users {
-		private static readonly Operation CreateOperation = new Operation(Plugins.Authorization.Operations.Users.Create);
-		public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context) {
-			var options = request.Options;
+namespace EventStore.Core.Services.Transport.Grpc;
 
-			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, CreateOperation, context.CancellationToken)) {
-				throw RpcExceptions.AccessDenied();
-			}
-			var createSource = new TaskCompletionSource<bool>();
+internal partial class Users
+{
+	private static readonly Operation CreateOperation = new Operation(Plugins.Authorization.Operations.Users.Create);
+	public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context)
+	{
+		var options = request.Options;
 
-			var envelope = new CallbackEnvelope(OnMessage);
+		var user = context.GetHttpContext().User;
+		if (!await _authorizationProvider.CheckAccessAsync(user, CreateOperation, context.CancellationToken))
+		{
+			throw RpcExceptions.AccessDenied();
+		}
+		var createSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-			_publisher.Publish(new UserManagementMessage.Create(envelope, user, options.LoginName, options.FullName,
-				options.Groups.ToArray(),
-				options.Password));
+		var envelope = new CallbackEnvelope(OnMessage);
 
-			await createSource.Task.WaitAsync(context.CancellationToken);
+		_publisher.Publish(new UserManagementMessage.Create(envelope, user, options.LoginName, options.FullName,
+			options.Groups.ToArray(),
+			options.Password));
 
-			return new CreateResp();
+		await createSource.Task.WaitAsync(context.CancellationToken);
 
-			void OnMessage(Message message) {
-				if (HandleErrors(options.LoginName, message, createSource)) return;
+		return new CreateResp();
 
-				createSource.TrySetResult(true);
-			}
+		void OnMessage(Message message)
+		{
+			if (HandleErrors(options.LoginName, message, createSource))
+				return;
+
+			createSource.TrySetResult(true);
 		}
 	}
 }
