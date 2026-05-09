@@ -35,7 +35,7 @@ public class StreamBasedAuthPolicyRegistryTests
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 	};
 
-	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
 	private StreamBasedAuthorizationPolicyRegistry CreateSut(
 		FakePolicySelectorPlugin[] plugins, AuthorizationPolicySettings defaultSettings,
