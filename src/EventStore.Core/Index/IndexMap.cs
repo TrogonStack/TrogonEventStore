@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Runtime.ExceptionServices;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.Exceptions;
@@ -34,9 +35,12 @@ public class IndexMap
 		int maxTablesPerLevel, int maxTableLevelsForAutomaticMerge, int pTableMaxReaderCount)
 	{
 		Ensure.Nonnegative(version, "version");
-		if (prepareCheckpoint < -1) throw new ArgumentOutOfRangeException("prepareCheckpoint");
-		if (commitCheckpoint < -1) throw new ArgumentOutOfRangeException("commitCheckpoint");
-		if (maxTablesPerLevel <= 1) throw new ArgumentOutOfRangeException("maxTablesPerLevel");
+		if (prepareCheckpoint < -1)
+			throw new ArgumentOutOfRangeException("prepareCheckpoint");
+		if (commitCheckpoint < -1)
+			throw new ArgumentOutOfRangeException("commitCheckpoint");
+		if (maxTablesPerLevel <= 1)
+			throw new ArgumentOutOfRangeException("maxTablesPerLevel");
 
 		Version = version;
 
@@ -123,8 +127,8 @@ public class IndexMap
 	public IEnumerable<string> GetAllFilenames()
 	{
 		return from level in _map
-			from table in level
-			select table.Filename;
+			   from table in level
+			   select table.Filename;
 	}
 
 	public static IndexMap CreateEmpty(int maxTablesPerLevel, int maxTableLevelsForAutomaticMerge,
@@ -215,7 +219,7 @@ public class IndexMap
 		{
 			throw new CorruptIndexException(
 				string.Format("Hash validation error (different hash sizes).\n"
-				              + "Expected hash ({0}): {1}, real hash ({2}): {3}.",
+							  + "Expected hash ({0}): {1}, real hash ({2}): {3}.",
 					expectedHash.Length, BitConverter.ToString(expectedHash),
 					realHash.Length, BitConverter.ToString(realHash)));
 		}
@@ -226,7 +230,7 @@ public class IndexMap
 			{
 				throw new CorruptIndexException(
 					string.Format("Hash validation error (different hashes).\n"
-					              + "Expected hash ({0}): {1}, real hash ({2}): {3}.",
+								  + "Expected hash ({0}): {1}, real hash ({2}): {3}.",
 						expectedHash.Length, BitConverter.ToString(expectedHash),
 						realHash.Length, BitConverter.ToString(realHash)));
 			}
@@ -347,7 +351,8 @@ public class IndexMap
 			catch (AggregateException aggEx)
 			{
 				// We only care that *something* has gone wrong, throw the first exception
-				throw aggEx.InnerException;
+				ExceptionDispatchInfo.Capture(aggEx.InnerException!).Throw();
+				throw;
 			}
 		}
 		catch (Exception exc)
