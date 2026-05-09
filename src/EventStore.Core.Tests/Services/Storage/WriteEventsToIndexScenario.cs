@@ -50,7 +50,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 				eventType,
 				new byte[0],
 				new byte[0],
-				DateTime.Now,
+					DateTime.UtcNow,
 				PrepareFlags.IsCommitted
 			)
 		};
@@ -91,7 +91,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 					eventTypes[i],
 					new byte[0],
 					new byte[0],
-					DateTime.Now
+					DateTime.UtcNow
 			));
 		}
 
@@ -100,7 +100,7 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 
 	public CommitLogRecord CreateCommitLogRecord(long logPosition, long transactionPosition, long firstEventNumber)
 	{
-		return new CommitLogRecord(logPosition, Guid.NewGuid(), transactionPosition, DateTime.Now, 0);
+		return new CommitLogRecord(logPosition, Guid.NewGuid(), transactionPosition, DateTime.UtcNow, 0);
 	}
 
 	public void WriteToDB(IEnumerable<IPrepareLogRecord<TStreamId>> prepares)
