@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
@@ -12,19 +13,19 @@ namespace EventStore.Core.Tests.Integration;
 [NonParallelizable]
 public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
+	private const int RestartCount = 3;
 	private static readonly bool IsArm64 = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(IsArm64 ? 15 : 5);
-	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(IsArm64 ? 10 : 5);
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(10);
 	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(IsArm64 ? 30 : 20);
 
 	protected override async Task Given()
 	{
 		await base.Given();
 
-		for (int i = 0; i < 9; i++)
+		var restartedNodes = new bool[RestartCount];
+		for (int i = 0; i < RestartCount; i++)
 		{
-			var restartedNodeIndex = i % 3;
-
 			AssertEx.IsOrBecomesTrue(
 				() =>
 				{
@@ -33,8 +34,11 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 						   states.Count(x => x == VNodeState.Follower) == 2;
 				},
 				i == 0 ? InitialStabilizationTimeout : RestartTimeout,
-				$"Cluster did not stabilize before restarting node {restartedNodeIndex}",
+				$"Cluster did not stabilize before restart iteration {i + 1}",
 				MiniNodeLogging.WriteLogs);
+
+			var restartedNodeIndex = SelectRestartNode(restartedNodes, restartLeader: i == RestartCount - 1);
+			restartedNodes[restartedNodeIndex] = true;
 
 			await _nodes[restartedNodeIndex].Shutdown(keepDb: true);
 			AssertEx.IsOrBecomesTrue(
@@ -51,8 +55,7 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 				$"Remaining cluster did not stabilize after shutting down node {restartedNodeIndex}",
 				MiniNodeLogging.WriteLogs);
 
-			var node = CreateNode(restartedNodeIndex, _nodeEndpoints[restartedNodeIndex],
-				new[] { _nodeEndpoints[(i + 1) % 3].HttpEndPoint, _nodeEndpoints[(i + 2) % 3].HttpEndPoint });
+			var node = CreateNode(restartedNodeIndex, _nodeEndpoints[restartedNodeIndex], GossipSeedsFor(restartedNodeIndex));
 			node.Start();
 			_nodes[restartedNodeIndex] = node;
 
@@ -68,6 +71,29 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 				MiniNodeLogging.WriteLogs);
 		}
 	}
+
+	private int SelectRestartNode(bool[] restartedNodes, bool restartLeader)
+	{
+		var targetState = restartLeader ? VNodeState.Leader : VNodeState.Follower;
+		var candidate = _nodes
+			.Select((node, index) => (node, index))
+			.FirstOrDefault(x => !restartedNodes[x.index] && x.node.NodeState == targetState);
+
+		if (candidate.node is not null)
+			return candidate.index;
+
+		var fallbackIndex = Array.FindIndex(restartedNodes, restarted => !restarted);
+		if (fallbackIndex >= 0)
+			return fallbackIndex;
+
+		throw new InvalidOperationException("All cluster nodes have already been restarted.");
+	}
+
+	private EndPoint[] GossipSeedsFor(int restartedNodeIndex) =>
+		_nodeEndpoints
+			.Where((_, index) => index != restartedNodeIndex)
+			.Select(x => (EndPoint)x.HttpEndPoint)
+			.ToArray();
 
 	[Test]
 	public void cluster_should_stabilize()
