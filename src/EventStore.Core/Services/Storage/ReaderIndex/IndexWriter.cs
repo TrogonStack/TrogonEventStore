@@ -17,7 +17,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage.ReaderIndex;
 
-public interface IIndexWriter<TStreamId> {
+public interface IIndexWriter<TStreamId>
+{
 	long CachedTransInfo { get; }
 	long NotCachedTransInfo { get; }
 
@@ -40,17 +41,20 @@ public interface IIndexWriter<TStreamId> {
 	ValueTask<string> GetStreamName(TStreamId streamId, CancellationToken token);
 }
 
-public struct RawMetaInfo {
+public struct RawMetaInfo
+{
 	public readonly long MetaLastEventNumber;
 	public readonly ReadOnlyMemory<byte> RawMeta;
 
-	public RawMetaInfo(long metaLastEventNumber, ReadOnlyMemory<byte> rawMeta) {
+	public RawMetaInfo(long metaLastEventNumber, ReadOnlyMemory<byte> rawMeta)
+	{
 		MetaLastEventNumber = metaLastEventNumber;
 		RawMeta = rawMeta;
 	}
 }
 
-public abstract class IndexWriter {
+public abstract class IndexWriter
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<IndexWriter>();
 }
 
@@ -141,10 +145,10 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				if (await GetPrepare(reader, transactionPosition, token) is not { } prepare)
 				{
 					Log.Error("Could not read first prepare of to-be-committed transaction. "
-					          + "Transaction pos: {transactionPosition}, commit pos: {commitPosition}.",
+							  + "Transaction pos: {transactionPosition}, commit pos: {commitPosition}.",
 						transactionPosition, commitPosition);
 					var message = String.Format("Could not read first prepare of to-be-committed transaction. "
-					                            + "Transaction pos: {0}, commit pos: {1}.",
+												+ "Transaction pos: {0}, commit pos: {1}.",
 						transactionPosition, commitPosition);
 					throw new InvalidOperationException(message);
 				}
@@ -202,7 +206,16 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 		var curVersion = await GetStreamLastEventNumber(streamId, token);
 		if (curVersion is EventNumber.DeletedStream)
+		{
+			using var enumerator = eventIds.GetEnumerator();
+			if (!enumerator.MoveNext() &&
+				expectedVersion is ExpectedVersion.Any or ExpectedVersion.NoStream or EventNumber.DeletedStream)
+			{
+				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1, false);
+			}
+
 			return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, false);
+		}
 		if (curVersion is EventNumber.Invalid)
 			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1, -1,
 				false);
@@ -231,7 +244,7 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			foreach (var eventId in eventIds)
 			{
 				if (!_committedEvents.TryGetRecord(eventId, out var prepInfo) ||
-				    !StreamIdComparer.Equals(prepInfo.StreamId, streamId))
+					!StreamIdComparer.Equals(prepInfo.StreamId, streamId))
 					return new CommitCheckResult<TStreamId>(
 						first ? CommitDecision.Ok : CommitDecision.CorruptedIdempotency,
 						streamId, curVersion, -1, -1, first && await IsSoftDeleted(streamId, token));
@@ -272,8 +285,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				eventNumber += 1;
 
 				if (_committedEvents.TryGetRecord(eventId, out var prepInfo)
-				    && StreamIdComparer.Equals(prepInfo.StreamId, streamId)
-				    && prepInfo.EventNumber == eventNumber)
+					&& StreamIdComparer.Equals(prepInfo.StreamId, streamId)
+					&& prepInfo.EventNumber == eventNumber)
 					continue;
 
 				if (await _indexReader.ReadPrepare(streamId, eventNumber, token) is { } res && res.EventId == eventId)
@@ -293,9 +306,14 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 					false);
 			}
 
-			if (eventNumber == expectedVersion) /* no data in transaction */
+			if (eventNumber == expectedVersion)
+			{
+				if (expectedVersion is ExpectedVersion.NoStream && await IsSoftDeleted(streamId, token))
+					return new(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
+
 				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
 					-1, false);
+			}
 
 			var isReplicated = await _indexReader.GetStreamLastEventNumber(streamId, token) >= eventNumber;
 			//TODO(clc): the new index should hold the log positions removing this read
@@ -453,8 +471,10 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				commitInfo.StreamId,
 				x =>
 				{
-					if (!Debugger.IsAttached) Debugger.Launch();
-					else Debugger.Break();
+					if (!Debugger.IsAttached)
+						Debugger.Launch();
+					else
+						Debugger.Break();
 					throw new Exception(string.Format("CommitInfo for stream '{0}' is not present!", x));
 				},
 				(streamId, oldVersion) => oldVersion,
@@ -465,8 +485,10 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 					_systemStreams.OriginalStreamOf(commitInfo.StreamId),
 					x =>
 					{
-						if (!Debugger.IsAttached) Debugger.Launch();
-						else Debugger.Break();
+						if (!Debugger.IsAttached)
+							Debugger.Launch();
+						else
+							Debugger.Break();
 						throw new Exception(string.Format(
 							"Original stream CommitInfo for meta-stream '{0}' is not present!",
 							_systemStreams.MetaStreamOf(x)));
