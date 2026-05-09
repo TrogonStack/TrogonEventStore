@@ -8,12 +8,12 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.ClusterNode.Components;
+using EventStore.ClusterNode.Components.Services;
 using EventStore.Common.DevCertificates;
 using EventStore.Common.Exceptions;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
-using EventStore.ClusterNode.Components;
-using EventStore.ClusterNode.Components.Services;
 using EventStore.Core;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
@@ -39,7 +39,7 @@ internal static class Program
 		var configuration = EventStoreConfiguration.Build(args);
 
 		ThreadPool.SetMaxThreads(1000, 1000);
-		var exitCodeSource = new TaskCompletionSource<int>();
+		var exitCodeSource = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var cts = new CancellationTokenSource();
 
 		Log.Logger = EventStoreLoggerConfiguration.ConsoleLog;
@@ -285,16 +285,21 @@ internal static class Program
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					var adminUiEnabled = !options.Interface.DisableAdminUi;
-					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory)) {
-						app.UseStaticFiles(new StaticFileOptions {
+					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory))
+					{
+						app.UseStaticFiles(new StaticFileOptions
+						{
 							FileProvider = new PhysicalFileProvider(Locations.UiAssetsDirectory),
 							RequestPath = "/ui/assets"
 						});
-					} else if (adminUiEnabled) {
+					}
+					else if (adminUiEnabled)
+					{
 						Log.Warning("UI assets directory {UiAssetsDirectory} is not available.", Locations.UiAssetsDirectory);
 					}
 					hostedService.Node.Startup.Configure(app);
-					if (adminUiEnabled) {
+					if (adminUiEnabled)
+					{
 						app.MapAdminOperationsEndpoints();
 						app.MapQueueDashboardEndpoints();
 						app.MapRazorComponents<App>();
