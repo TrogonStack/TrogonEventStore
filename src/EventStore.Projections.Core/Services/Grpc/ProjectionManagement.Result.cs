@@ -23,7 +23,7 @@ internal partial class ProjectionManagement
 			throw RpcExceptions.AccessDenied();
 		}
 
-		var resultSource = new TaskCompletionSource<Value>();
+		var resultSource = new TaskCompletionSource<Value>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var options = request.Options;
 
 		var name = options.Name;
@@ -74,7 +74,7 @@ internal partial class ProjectionManagement
 		{
 			throw RpcExceptions.AccessDenied();
 		}
-		var resultSource = new TaskCompletionSource<Value>();
+		var resultSource = new TaskCompletionSource<Value>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 

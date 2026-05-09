@@ -14,7 +14,7 @@ internal partial class ProjectionManagement
 
 	public override async Task<Empty> RestartSubsystem(Empty empty, ServerCallContext context)
 	{
-		var restart = new TaskCompletionSource<bool>();
+		var restart = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var envelope = new CallbackEnvelope(OnMessage);
 
 		var user = context.GetHttpContext().User;

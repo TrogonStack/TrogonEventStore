@@ -15,7 +15,7 @@ internal partial class ProjectionManagement
 	private static readonly Operation UpdateOperation = new Operation(Operations.Projections.Update);
 	public override async Task<UpdateResp> Update(UpdateReq request, ServerCallContext context)
 	{
-		var updatedSource = new TaskCompletionSource<bool>();
+		var updatedSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;

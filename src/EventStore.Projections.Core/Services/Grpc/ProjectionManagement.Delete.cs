@@ -13,7 +13,7 @@ internal partial class ProjectionManagement
 	private static readonly Operation DeleteOperation = new Operation(Operations.Projections.Delete);
 	public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context)
 	{
-		var deletedSource = new TaskCompletionSource<bool>();
+		var deletedSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
