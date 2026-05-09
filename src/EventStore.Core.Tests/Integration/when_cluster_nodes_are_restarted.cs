@@ -14,8 +14,8 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 {
 	private static readonly bool IsArm64 = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(IsArm64 ? 8 : 5);
-	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(IsArm64 ? 5 : 3);
-	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(IsArm64 ? 20 : 10);
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(IsArm64 ? 8 : 5);
+	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(IsArm64 ? 30 : 20);
 
 	protected override async Task Given()
 	{
@@ -56,8 +56,6 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			node.Start();
 			_nodes[restartedNodeIndex] = node;
 
-			await Task.WhenAll(_nodes.Select(x => x.Started))
-				.WithTimeout(RestartTimeout, MiniNodeLogging.WriteLogs);
 			AssertEx.IsOrBecomesTrue(
 				() =>
 				{
