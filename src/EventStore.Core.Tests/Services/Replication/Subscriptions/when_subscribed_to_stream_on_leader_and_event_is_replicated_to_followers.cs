@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
+using EventStore.Core.Tests.Helpers;
 using EventStore.Core.Tests.Integration;
 using NUnit.Framework;
 
@@ -16,37 +16,24 @@ namespace EventStore.Core.Tests.Replication.ReadStream;
 public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_followers<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
 	private const string _streamId = "test-stream";
-	private CountdownEvent _expectedNumberOfRoleAssignments;
+	private static readonly TimeSpan _topologyTimeout = TimeSpan.FromSeconds(90);
+	private static readonly TimeSpan _subscriptionTimeout = TimeSpan.FromSeconds(30);
 	private CountdownEvent _subscriptionsConfirmed;
 	private TestSubscription<TLogFormat, TStreamId> _leaderSubscription;
 	private List<TestSubscription<TLogFormat, TStreamId>> _followerSubscriptions;
 
-	private TimeSpan _timeout = TimeSpan.FromSeconds(5);
-
-	protected override void BeforeNodesStart()
-	{
-		_nodes.ToList().ForEach(x =>
-			x.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.StateChangeMessage>(Handle)));
-		_expectedNumberOfRoleAssignments = new CountdownEvent(3);
-		base.BeforeNodesStart();
-	}
-
-	private void Handle(SystemMessage.StateChangeMessage msg)
-	{
-		switch (msg.State)
-		{
-			case Data.VNodeState.Leader:
-				_expectedNumberOfRoleAssignments.Signal();
-				break;
-			case Data.VNodeState.Follower:
-				_expectedNumberOfRoleAssignments.Signal();
-				break;
-		}
-	}
-
 	protected override async Task Given()
 	{
-		_expectedNumberOfRoleAssignments.Wait(5000);
+		AssertEx.IsOrBecomesTrue(
+			() =>
+			{
+				var states = _nodes.Select(x => x.NodeState).ToArray();
+				return states.Count(x => x == VNodeState.Leader) == 1 &&
+					   states.Count(x => x == VNodeState.Follower) == 2;
+			},
+			_topologyTimeout,
+			"Timed out waiting for one leader and two followers",
+			MiniNodeLogging.WriteLogs);
 
 		var leader = GetLeader();
 		Assert.IsNotNull(leader, "Could not get leader node");
@@ -54,12 +41,14 @@ public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_foll
 		// Set the checkpoint so the check is not skipped
 		leader.Db.Config.ReplicationCheckpoint.Write(0);
 
-		_subscriptionsConfirmed = new CountdownEvent(3);
+		var followers = GetFollowers();
+		Assert.AreEqual(2, followers.Length, "Expected two follower nodes");
+
+		_subscriptionsConfirmed = new CountdownEvent(1 + followers.Length);
 		_leaderSubscription = new TestSubscription<TLogFormat, TStreamId>(leader, 1, _streamId, _subscriptionsConfirmed);
 		_leaderSubscription.CreateSubscription();
 
 		_followerSubscriptions = new List<TestSubscription<TLogFormat, TStreamId>>();
-		var followers = GetFollowers();
 		foreach (var s in followers)
 		{
 			var followerSubscription = new TestSubscription<TLogFormat, TStreamId>(s, 1, _streamId, _subscriptionsConfirmed);
@@ -67,7 +56,7 @@ public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_foll
 			followerSubscription.CreateSubscription();
 		}
 
-		if (!_subscriptionsConfirmed.Wait(_timeout))
+		if (!_subscriptionsConfirmed.Wait(_subscriptionTimeout))
 		{
 			Assert.Fail($"Timed out waiting for subscriptions to confirm, confirmed {_subscriptionsConfirmed.CurrentCount} need {_subscriptionsConfirmed.InitialCount}.");
 		}
