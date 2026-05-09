@@ -7,10 +7,18 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-[TestFixture]
+[TestFixture(DateTimeKind.Utc)]
+[TestFixture(DateTimeKind.Unspecified)]
 public class when_accessing_event_created_property : specification_with_event_handled
 {
-	private static readonly DateTime ExpectedTimestamp = new(2023, 4, 5, 12, 34, 56, DateTimeKind.Utc);
+	private readonly DateTimeKind _timestampKind;
+
+	public when_accessing_event_created_property(DateTimeKind timestampKind)
+	{
+		_timestampKind = timestampKind;
+	}
+
+	private DateTime ExpectedTimestamp => new(2023, 4, 5, 12, 34, 56, _timestampKind);
 
 	protected override void Given()
 	{
@@ -45,6 +53,8 @@ public class when_accessing_event_created_property : specification_with_event_ha
 	{
 		using var state = JsonDocument.Parse(_newState);
 
-		Assert.AreEqual(ExpectedTimestamp.ToString("o"), state.RootElement.GetProperty("created").GetString());
+		var expectedTimestamp = DateTime.SpecifyKind(ExpectedTimestamp, DateTimeKind.Utc).ToString("o");
+
+		Assert.That(state.RootElement.GetProperty("created").GetString(), Is.EqualTo(expectedTimestamp));
 	}
 }

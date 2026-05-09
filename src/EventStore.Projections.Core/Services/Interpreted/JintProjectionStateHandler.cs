@@ -1123,7 +1123,7 @@ namespace EventStore.Projections.Core.Services.Interpreted
 
 			public DateTime Created
 			{
-				set => SetOwnProperty("created", new PropertyDescriptor(value.ToString("o"), false, true, false));
+				set => SetOwnProperty("created", new PropertyDescriptor(FormatCreated(value), false, true, false));
 			}
 
 			public string EventId
@@ -1135,6 +1135,15 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			{
 				_parser = parser;
 				_parent = parent;
+			}
+
+			private static string FormatCreated(DateTime value)
+			{
+				var created = value.Kind == DateTimeKind.Unspecified
+					? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+					: value.ToUniversalTime();
+
+				return created.ToString("o");
 			}
 
 			public override JsValue Get(JsValue property, JsValue receiver)
