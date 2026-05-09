@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Tests.Helpers;
@@ -8,11 +9,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Integration;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
+[NonParallelizable]
 public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
 {
-	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(5);
-	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(3);
-	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(10);
+	private static readonly bool IsArm64 = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(IsArm64 ? 8 : 5);
+	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(IsArm64 ? 5 : 3);
+	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(IsArm64 ? 20 : 10);
 
 	protected override async Task Given()
 	{
@@ -23,10 +26,11 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			var restartedNodeIndex = i % 3;
 
 			AssertEx.IsOrBecomesTrue(
-				() => {
+				() =>
+				{
 					var states = _nodes.Select(x => x.NodeState).ToArray();
 					return states.Count(x => x == VNodeState.Leader) == 1 &&
-					       states.Count(x => x == VNodeState.Follower) == 2;
+						   states.Count(x => x == VNodeState.Follower) == 2;
 				},
 				i == 0 ? InitialStabilizationTimeout : RestartTimeout,
 				$"Cluster did not stabilize before restarting node {restartedNodeIndex}",
@@ -34,13 +38,14 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 
 			await _nodes[restartedNodeIndex].Shutdown(keepDb: true);
 			AssertEx.IsOrBecomesTrue(
-				() => {
+				() =>
+				{
 					var states = _nodes
 						.Where((_, index) => index != restartedNodeIndex)
 						.Select(x => x.NodeState)
 						.ToArray();
 					return states.Count(x => x == VNodeState.Leader) == 1 &&
-					       states.Count(x => x == VNodeState.Follower) == 1;
+						   states.Count(x => x == VNodeState.Follower) == 1;
 				},
 				RestartTimeout,
 				$"Remaining cluster did not stabilize after shutting down node {restartedNodeIndex}",
@@ -54,10 +59,11 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			await Task.WhenAll(_nodes.Select(x => x.Started))
 				.WithTimeout(RestartTimeout, MiniNodeLogging.WriteLogs);
 			AssertEx.IsOrBecomesTrue(
-				() => {
+				() =>
+				{
 					var states = _nodes.Select(x => x.NodeState).ToArray();
 					return states.Count(x => x == VNodeState.Leader) == 1 &&
-					       states.Count(x => x == VNodeState.Follower) == 2;
+						   states.Count(x => x == VNodeState.Follower) == 2;
 				},
 				RestartTimeout,
 				$"Cluster did not stabilize after restarting node {restartedNodeIndex}",
