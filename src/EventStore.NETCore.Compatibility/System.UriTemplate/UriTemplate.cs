@@ -92,8 +92,6 @@ public class UriTemplate
 			queryTemplate = template.Substring(queryStart + 1);
 			pathTemplate = template.Substring(0, queryStart);
 		}
-		template = null; // to ensure we don't accidentally reference this variable any more
-
 		// setup path template and validate
 		if (!string.IsNullOrEmpty(pathTemplate))
 		{
@@ -507,8 +505,7 @@ public class UriTemplate
 
 	internal string AddPathVariable(UriTemplatePartType sourceNature, string varDeclaration)
 	{
-		bool hasDefaultValue;
-		return AddPathVariable(sourceNature, varDeclaration, out hasDefaultValue);
+		return AddPathVariable(sourceNature, varDeclaration, out _);
 	}
 	internal string AddPathVariable(UriTemplatePartType sourceNature, string varDeclaration,
 		out bool hasDefaultValue)

@@ -28,11 +28,11 @@ public class when_running_counting_js_projection : TestFixtureWithInterpretedPro
 	[Test, Category(_projectionType)]
 	public void process_event_counts_events()
 	{
-		string state;
-		EmittedEventEnvelope[] emittedEvents;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 10, 5), "stream1", "type1", "category", Guid.NewGuid(), 0, "metadata",
-			@"{""a"":""b""}", out state, out emittedEvents);
+			@"{""a"":""b""}", out _, out _);
+		string state;
+		EmittedEventEnvelope[] emittedEvents;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 15), "stream1", "type1", "category", Guid.NewGuid(), 1,
 			"metadata",
@@ -55,12 +55,10 @@ public class when_running_counting_js_projection : TestFixtureWithInterpretedPro
 		for (var i = 0; i < 1000000; i++)
 		{
 			_logged.Clear();
-			string state;
-			EmittedEventEnvelope[] emittedEvents;
 			_stateHandler.ProcessEvent(
 				"", CheckpointTag.FromPosition(0, i * 10, i * 10 - 5), "stream" + i, "type" + i, "category",
 				Guid.NewGuid(), 0,
-				"metadata", @"{""a"":""" + i + @"""}", out state, out emittedEvents);
+				"metadata", @"{""a"":""" + i + @"""}", out _, out _);
 			Assert.AreEqual(1, _logged.Count);
 			Assert.AreEqual((i + 1).ToString(CultureInfo.InvariantCulture), _logged[_logged.Count - 1]);
 		}

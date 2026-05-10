@@ -4,7 +4,7 @@ internal static class BankAccountEventFactory
 {
 	public static object CreateAccountObject(int version)
 	{
-		object accountObject = null;
+		object accountObject;
 
 		var internalCounter = version + 1;
 

@@ -414,8 +414,7 @@ public class UriTemplateTable
 		// Consider fast-path and lookup
 		// return false if not under base uri
 		string uriPath = UriTemplateHelpers.GetUriPath(uri);
-		FastPathInfo fpInfo = null;
-		if ((this.fastPathTable != null) && this.fastPathTable.TryGetValue(uriPath, out fpInfo))
+		if ((this.fastPathTable != null) && this.fastPathTable.TryGetValue(uriPath, out var fpInfo))
 		{
 			relativePathSegments = fpInfo.RelativePathSegments;
 			candidates = fpInfo.Candidates;

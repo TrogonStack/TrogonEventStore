@@ -147,8 +147,7 @@ public class EventReaderCoreService :
 	{
 		if (!_pausedSubscriptions.Contains(message.SubscriptionId))
 			Handle(new ReaderSubscriptionManagement.Pause(message.SubscriptionId));
-		var eventReaderId = Guid.Empty;
-		_subscriptionEventReaders.TryGetValue(message.SubscriptionId, out eventReaderId);
+		_subscriptionEventReaders.TryGetValue(message.SubscriptionId, out var eventReaderId);
 		if (eventReaderId != Guid.Empty)
 		{
 			_eventReaders[eventReaderId].Dispose();

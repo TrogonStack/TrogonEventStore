@@ -15,9 +15,11 @@ public class Calculator<TStreamId>(
 	Throttle throttle)
 	: ICalculator<TStreamId>
 {
-	public class Buffer {
-		public Buffer(int size) {
-			Array = new(StreamHandle<TStreamId>, OriginalStreamData)[size];
+	public class Buffer
+	{
+		public Buffer(int size)
+		{
+			Array = new (StreamHandle<TStreamId>, OriginalStreamData)[size];
 		}
 
 		public (StreamHandle<TStreamId>, OriginalStreamData)[] Array { get; init; }
@@ -26,7 +28,8 @@ public class Calculator<TStreamId>(
 	public async ValueTask Calculate(
 		ScavengePoint scavengePoint,
 		IScavengeStateForCalculator<TStreamId> state,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		logger.Debug("SCAVENGING: Started new scavenge calculation phase for {scavengePoint}",
 			scavengePoint.GetName());
@@ -41,7 +44,8 @@ public class Calculator<TStreamId>(
 	public async ValueTask Calculate(
 		ScavengeCheckpoint.Calculating<TStreamId> checkpoint,
 		IScavengeStateForCalculator<TStreamId> state,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		logger.Debug("SCAVENGING: Calculating from checkpoint: {checkpoint}", checkpoint);
 		var stopwatch = Stopwatch.StartNew();
@@ -70,11 +74,13 @@ public class Calculator<TStreamId>(
 			IScavengeStateForCalculator<TStreamId> state,
 			StreamHandle<TStreamId> checkpoint,
 			(StreamHandle<TStreamId>, OriginalStreamData)[] buffer,
-			out int count) {
+			out int count)
+		{
 
 			count = 0;
 			var streams = state.OriginalStreamsToCalculate(checkpoint);
-			foreach (var stream in streams) {
+			foreach (var stream in streams)
+			{
 				buffer[count++] = stream;
 				if (count == buffer.Length)
 					break;
@@ -85,12 +91,15 @@ public class Calculator<TStreamId>(
 
 		var buffer1 = buffer.Array;
 		var cp = checkpoint?.DoneStreamHandle ?? default;
-		while (TryPopulateBuffer(state, cp, buffer1, out var countInBatch)) {
+		while (TryPopulateBuffer(state, cp, buffer1, out var countInBatch))
+		{
 			// for determinism it is important that IncreaseChunkWeight is called in a transaction with
 			// its calculation and checkpoint, otherwise the weight could be increased again on recovery
 			var transaction = state.BeginTransaction();
-			try {
-				for (int i = 0; i < countInBatch; i++) {
+			try
+			{
+				for (int i = 0; i < countInBatch; i++)
+				{
 					var (originalStreamHandle, originalStreamData) = buffer1[i];
 					if (originalStreamData.Status != CalculationStatus.Active)
 						throw new InvalidOperationException(
@@ -109,21 +118,26 @@ public class Calculator<TStreamId>(
 							cancellationToken);
 
 					// don't allow the discard point to move backwards
-					if (newDiscardPoint < originalStreamData.DiscardPoint) {
+					if (newDiscardPoint < originalStreamData.DiscardPoint)
+					{
 						newDiscardPoint = originalStreamData.DiscardPoint;
 					}
 
 					// don't allow the maybe discard point to move backwards
-					if (newMaybeDiscardPoint < originalStreamData.MaybeDiscardPoint) {
+					if (newMaybeDiscardPoint < originalStreamData.MaybeDiscardPoint)
+					{
 						newMaybeDiscardPoint = originalStreamData.MaybeDiscardPoint;
 					}
 
 					if (newStatus == originalStreamData.Status &&
-					    newDiscardPoint == originalStreamData.DiscardPoint &&
-					    newMaybeDiscardPoint == originalStreamData.MaybeDiscardPoint) {
+						newDiscardPoint == originalStreamData.DiscardPoint &&
+						newMaybeDiscardPoint == originalStreamData.MaybeDiscardPoint)
+					{
 
 						// nothing to update for this stream
-					} else {
+					}
+					else
+					{
 						state.SetOriginalStreamDiscardPoints(
 							streamHandle: originalStreamHandle,
 							status: newStatus,
@@ -146,8 +160,11 @@ public class Calculator<TStreamId>(
 				LogRate("total", totalCounter, elapsed);
 
 				periodStart = stopwatch.Elapsed;
-			} catch (Exception ex) {
-				if (ex is not OperationCanceledException) {
+			}
+			catch (Exception ex)
+			{
+				if (ex is not OperationCanceledException)
+				{
 					logger.Error(ex, "SCAVENGING: Rolling back");
 				}
 				// invariant: there is always an open transaction whenever an exception can be thrown
@@ -160,7 +177,8 @@ public class Calculator<TStreamId>(
 		throttle.Rest(cancellationToken);
 	}
 
-	private void LogRate(string name, int count, TimeSpan elapsed) {
+	private void LogRate(string name, int count, TimeSpan elapsed)
+	{
 		var rate = count / elapsed.TotalSeconds;
 		logger.Debug(
 			"SCAVENGING: Calculated in " + name + ": {count:N0} streams in {elapsed}. {rate:N2} streams per second",
@@ -182,7 +200,8 @@ public class Calculator<TStreamId>(
 		StreamHandle<TStreamId> originalStreamHandle,
 		ScavengePoint scavengePoint,
 		int cancellationCheckCounter,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		var fromEventNumber = 0L;
 
@@ -194,7 +213,8 @@ public class Calculator<TStreamId>(
 		var first = true;
 		var allDiscardedSoFar = true;
 
-		while (true) {
+		while (true)
+		{
 			// read in slices because the stream might be huge.
 			// note: when the handle is a hash the ReadEventInfoForward call is index-only
 			// note: the event infos are not necessarily contiguous
@@ -207,9 +227,11 @@ public class Calculator<TStreamId>(
 
 			var slice = result.EventInfos;
 
-			foreach (var eventInfo in slice) {
+			foreach (var eventInfo in slice)
+			{
 				// Check cancellation and rest occasionally
-				if (++cancellationCheckCounter == cancellationCheckPeriod) {
+				if (++cancellationCheckCounter == cancellationCheckPeriod)
+				{
 					cancellationCheckCounter = 0;
 					cancellationToken.ThrowIfCancellationRequested();
 					throttle.Rest(cancellationToken);
@@ -217,7 +239,8 @@ public class Calculator<TStreamId>(
 
 				eventCalc.SetEvent(eventInfo);
 
-				if (first) {
+				if (first)
+				{
 					// this is the first event that is known to the index. advance the discard points
 					// to discard everything before here since they're already discarded. (we need
 					// this because the chunks haven't necessarily been executed yet so we want to
@@ -228,7 +251,8 @@ public class Calculator<TStreamId>(
 					first = false;
 				}
 
-				switch (await eventCalc.DecideEvent(cancellationToken)) {
+				switch (await eventCalc.DecideEvent(cancellationToken))
+				{
 					case DiscardDecision.Discard:
 						weights.OnDiscard(eventCalc.LogicalChunkNumber);
 						discardPoint = DiscardPoint.DiscardIncluding(eventInfo.EventNumber);
@@ -272,27 +296,31 @@ public class Calculator<TStreamId>(
 			}
 
 			// we haven't found an event to definitely keep
-			if (result.IsEndOfStream) {
+			if (result.IsEndOfStream)
+			{
 				// we have finished reading the stream from the index,
 				// but not found any events to keep.
 				// we therefore didn't find any at all, or found some and discarded them all
 				// (the latter should not be possible)
-				if (first) {
+				if (first)
+				{
 					// we didn't find any at all
 					// - the stream might actually be empty
 					// - the stream might have events after the scavenge point and old scavenge
 					//   has removed the ones before
 					// we didn't find anything to discard, so keep everything.
-					discardPoint = DiscardPoint.KeepAll;
-					maybeDiscardPoint = DiscardPoint.KeepAll;
 					return (DiscardPoint.KeepAll, DiscardPoint.KeepAll, cancellationCheckCounter);
-				} else {
+				}
+				else
+				{
 					// we found some and discarded them all, oops.
 					throw new Exception(
 						$"Calculated that all events for stream {originalStreamHandle} " +
 						$"should be discarded. This should be impossible.");
 				}
-			} else {
+			}
+			else
+			{
 				// we aren't done reading slices, read the next slice.
 				fromEventNumber = result.NextEventNumber;
 			}

@@ -171,7 +171,7 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 
 	private void TrySend()
 	{
-		bool continueSendSynchronously = true;
+		bool continueSendSynchronously;
 		try
 		{
 			do

@@ -519,7 +519,7 @@ internal sealed class UrlUtility
 				// extract the name / value pair
 
 				string name = null;
-				string value = null;
+				string value;
 
 				if (ti >= 0)
 				{

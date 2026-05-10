@@ -60,7 +60,7 @@ public class PersistentSubscriptionConfigTests
 		var data = config.GetSerializedForm();
 		var config2 = PersistentSubscriptionConfig.FromSerializedForm(data);
 		var newFilterDto = config2.Entries[0].Filter;
-		var (success, reason) = EventFilter.TryParse(newFilterDto, out var newFilter);
+		var (success, _) = EventFilter.TryParse(newFilterDto, out var newFilter);
 		Assert.AreEqual(1, config2.Entries.Count);
 		Assert.IsTrue(success);
 		Assert.AreEqual(filter.ToString(), newFilter.ToString());

@@ -38,8 +38,7 @@ public class TcpConnectionMonitor
 
 	public void Unregister(IMonitoredTcpConnection connection)
 	{
-		ConnectionData data;
-		_connections.TryRemove(connection, out data);
+		_connections.TryRemove(connection, out _);
 	}
 
 	public TcpStats GetTcpStats()

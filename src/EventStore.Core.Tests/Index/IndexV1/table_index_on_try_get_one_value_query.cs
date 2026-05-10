@@ -79,8 +79,7 @@ public class table_index_on_try_get_one_value_query : SpecificationWithDirectory
 	[Test]
 	public void should_return_empty_collection_when_stream_is_not_in_db()
 	{
-		long position;
-		Assert.IsFalse(_tableIndex.TryGetOneValue("0xFEED", 0, out position));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("0xFEED", 0, out _));
 	}
 
 	[Test]

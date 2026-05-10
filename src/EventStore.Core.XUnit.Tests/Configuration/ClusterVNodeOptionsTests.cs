@@ -26,7 +26,7 @@ public class ClusterVNodeOptionsTests
 	[Fact]
 	public void builds_proper()
 	{
-		var options = new ClusterVNodeOptions();
+		_ = new ClusterVNodeOptions();
 	}
 
 	[Fact]

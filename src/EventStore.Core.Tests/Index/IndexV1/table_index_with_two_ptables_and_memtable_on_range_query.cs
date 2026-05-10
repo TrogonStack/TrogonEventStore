@@ -92,15 +92,13 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	[Test]
 	public void should_not_return_latest_entry_for_nonexisting_stream()
 	{
-		IndexEntry entry;
-		Assert.IsFalse(_tableIndex.TryGetLatestEntry("7", out entry));
+		Assert.IsFalse(_tableIndex.TryGetLatestEntry("7", out _));
 	}
 
 	[Test]
 	public void should_not_return_oldest_entry_for_nonexisting_stream()
 	{
-		IndexEntry entry;
-		Assert.IsFalse(_tableIndex.TryGetLatestEntry("7", out entry));
+		Assert.IsFalse(_tableIndex.TryGetLatestEntry("7", out _));
 	}
 
 	[Test]
@@ -266,8 +264,7 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	[Test]
 	public void should_not_return_one_value_for_nonexistent_stream()
 	{
-		long pos;
-		Assert.IsFalse(_tableIndex.TryGetOneValue("7", 0, out pos));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("7", 0, out _));
 	}
 
 	[Test]
@@ -296,12 +293,11 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	[Test]
 	public void should_not_return_one_value_for_existing_streams_for_nonexistent_version()
 	{
-		long pos;
-		Assert.IsFalse(_tableIndex.TryGetOneValue("1", 2, out pos));
-		Assert.IsFalse(_tableIndex.TryGetOneValue("2", 2, out pos));
-		Assert.IsFalse(_tableIndex.TryGetOneValue("3", 2, out pos));
-		Assert.IsFalse(_tableIndex.TryGetOneValue("4", 1, out pos));
-		Assert.IsFalse(_tableIndex.TryGetOneValue("5", 0, out pos));
-		Assert.IsFalse(_tableIndex.TryGetOneValue("6", 2, out pos));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("1", 2, out _));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("2", 2, out _));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("3", 2, out _));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("4", 1, out _));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("5", 0, out _));
+		Assert.IsFalse(_tableIndex.TryGetOneValue("6", 2, out _));
 	}
 }

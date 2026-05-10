@@ -81,8 +81,7 @@ internal class RequestMonitor
 
 	private int GetPercentile(decimal percentile, int size)
 	{
-		decimal percent = 0;
-		percent = percentile / 100m;
+		var percent = percentile / 100m;
 		var ret = (int)(percent * size);
 		if (ret == size)
 			ret -= 1;

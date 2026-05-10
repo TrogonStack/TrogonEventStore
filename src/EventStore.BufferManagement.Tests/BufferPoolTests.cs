@@ -156,7 +156,7 @@ public class when_converting_to_an_effective_IEnumerable_of_arraysegments : has_
 	public void empty_returns_no_results()
 	{
 		BufferPool pool = new BufferPool(10, BufferManager);
-		foreach (ArraySegment<byte> effectiveBuffer in pool.EffectiveBuffers)
+		foreach (var _ in pool.EffectiveBuffers)
 		{
 			Assert.Fail("should not have been buffers");
 		}
