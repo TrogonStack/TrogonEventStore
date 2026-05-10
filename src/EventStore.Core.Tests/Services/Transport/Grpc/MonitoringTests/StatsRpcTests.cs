@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Client.Monitoring;
@@ -13,16 +14,20 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.MonitoringTests;
 
 [TestFixture]
-public class StatsRpcTests {
+public class StatsRpcTests
+{
 	[Test]
-	public async Task should_preserve_flat_stats_by_default() {
+	public async Task should_preserve_flat_stats_by_default()
+	{
 		var publisher = new CapturingPublisher(
-			stats: new Dictionary<string, object> {
+			stats: new Dictionary<string, object>
+			{
 				["es-queue-mainQueue"] = 12
 			});
 		var response = await ReadSingleResponse(
 			publisher,
-			new StatsReq {
+			new StatsReq
+			{
 				RefreshTimePeriodInMs = 1
 			});
 
@@ -34,11 +39,15 @@ public class StatsRpcTests {
 	}
 
 	[Test]
-	public async Task should_honor_stats_path_when_grouping_enabled() {
+	public async Task should_honor_stats_path_when_grouping_enabled()
+	{
 		var publisher = new CapturingPublisher(
-			stats: new Dictionary<string, object> {
-				["es"] = new Dictionary<string, object> {
-					["queue"] = new Dictionary<string, object> {
+			stats: new Dictionary<string, object>
+			{
+				["es"] = new Dictionary<string, object>
+				{
+					["queue"] = new Dictionary<string, object>
+					{
 						["mainQueue"] = 12
 					}
 				}
@@ -46,7 +55,8 @@ public class StatsRpcTests {
 			applySelector: true);
 		var response = await ReadSingleResponse(
 			publisher,
-			new StatsReq {
+			new StatsReq
+			{
 				RefreshTimePeriodInMs = 1,
 				StatsPath = "es/queue",
 				UseGrouping = true
@@ -57,13 +67,15 @@ public class StatsRpcTests {
 	}
 
 	[Test]
-	public void should_reject_stats_path_when_grouping_is_disabled() {
+	public void should_reject_stats_path_when_grouping_is_disabled()
+	{
 		var publisher = new CapturingPublisher(new Dictionary<string, object>());
 
 		var ex = Assert.ThrowsAsync<RpcException>(async () =>
 			await ReadSingleResponse(
 				publisher,
-				new StatsReq {
+				new StatsReq
+				{
 					RefreshTimePeriodInMs = 1,
 					StatsPath = "es/queue",
 					UseGrouping = false
@@ -73,16 +85,20 @@ public class StatsRpcTests {
 	}
 
 	[Test]
-	public async Task should_map_metadata_when_requested() {
+	public async Task should_map_metadata_when_requested()
+	{
 		var publisher = new CapturingPublisher(
-			stats: new Dictionary<string, object> {
-				["proc"] = new Dictionary<string, object> {
+			stats: new Dictionary<string, object>
+			{
+				["proc"] = new Dictionary<string, object>
+				{
 					["mem"] = new StatMetadata(123L, "Process", "Process Virtual Memory")
 				}
 			});
 		var response = await ReadSingleResponse(
 			publisher,
-			new StatsReq {
+			new StatsReq
+			{
 				RefreshTimePeriodInMs = 1,
 				UseMetadata = true
 			});
@@ -96,11 +112,15 @@ public class StatsRpcTests {
 	}
 
 	[Test]
-	public void should_return_not_found_for_missing_stats_path() {
+	public void should_return_not_found_for_missing_stats_path()
+	{
 		var publisher = new CapturingPublisher(
-			stats: new Dictionary<string, object> {
-				["es"] = new Dictionary<string, object> {
-					["queue"] = new Dictionary<string, object> {
+			stats: new Dictionary<string, object>
+			{
+				["es"] = new Dictionary<string, object>
+				{
+					["queue"] = new Dictionary<string, object>
+					{
 						["mainQueue"] = 12
 					}
 				}
@@ -110,7 +130,8 @@ public class StatsRpcTests {
 		var ex = Assert.ThrowsAsync<RpcException>(async () =>
 			await ReadSingleResponse(
 				publisher,
-				new StatsReq {
+				new StatsReq
+				{
 					RefreshTimePeriodInMs = 1,
 					StatsPath = "es/missing",
 					UseGrouping = true
@@ -119,7 +140,8 @@ public class StatsRpcTests {
 		Assert.That(ex!.StatusCode, Is.EqualTo(StatusCode.NotFound));
 	}
 
-	private static async Task<StatsResp> ReadSingleResponse(CapturingPublisher publisher, StatsReq request) {
+	private static async Task<StatsResp> ReadSingleResponse(CapturingPublisher publisher, StatsReq request)
+	{
 		var serviceType = typeof(MonitoringMessage).Assembly.GetType(
 			"EventStore.Core.Services.Transport.Grpc.Monitoring",
 			throwOnError: true);
@@ -133,16 +155,23 @@ public class StatsRpcTests {
 		using var cts = new CancellationTokenSource();
 		var stream = new CapturingResponseStream(cts);
 		Task task;
-		try {
+		try
+		{
 			task = (Task)serviceType!.GetMethod(nameof(EventStore.Client.Monitoring.Monitoring.MonitoringBase.Stats))!
 				.Invoke(service, [request, stream, new TestServerCallContext(cts.Token)])!;
-		} catch (TargetInvocationException ex) when (ex.InnerException is not null) {
-			throw ex.InnerException;
+		}
+		catch (TargetInvocationException ex) when (ex.InnerException is not null)
+		{
+			ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+			throw;
 		}
 
-		try {
+		try
+		{
 			await task;
-		} catch (OperationCanceledException) when (cts.IsCancellationRequested) {
+		}
+		catch (OperationCanceledException) when (cts.IsCancellationRequested)
+		{
 		}
 
 		return stream.SingleResponse!;
@@ -150,12 +179,14 @@ public class StatsRpcTests {
 
 	private sealed class CapturingPublisher(
 		Dictionary<string, object> stats,
-		bool applySelector = false) : IPublisher {
+		bool applySelector = false) : IPublisher
+	{
 		public bool RequestedStats { get; private set; }
 		public bool UseMetadata { get; private set; }
 		public bool UseGrouping { get; private set; }
 
-		public void Publish(Message message) {
+		public void Publish(Message message)
+		{
 			if (message is not MonitoringMessage.GetFreshStats request)
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
 
@@ -171,18 +202,21 @@ public class StatsRpcTests {
 		}
 	}
 
-	private sealed class CapturingResponseStream(CancellationTokenSource cts) : IServerStreamWriter<StatsResp> {
+	private sealed class CapturingResponseStream(CancellationTokenSource cts) : IServerStreamWriter<StatsResp>
+	{
 		public StatsResp SingleResponse { get; private set; }
 		public WriteOptions WriteOptions { get; set; }
 
-		public Task WriteAsync(StatsResp message) {
+		public Task WriteAsync(StatsResp message)
+		{
 			SingleResponse = message;
 			cts.Cancel();
 			return Task.CompletedTask;
 		}
 	}
 
-	private sealed class TestServerCallContext(CancellationToken cancellationToken) : ServerCallContext {
+	private sealed class TestServerCallContext(CancellationToken cancellationToken) : ServerCallContext
+	{
 		protected override string MethodCore => nameof(EventStore.Client.Monitoring.Monitoring.MonitoringBase.Stats);
 		protected override string HostCore => "localhost";
 		protected override string PeerCore => "ipv4:127.0.0.1:0";
