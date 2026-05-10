@@ -17,7 +17,7 @@ internal class TestClientHostedService : IHostedService
 
 	public TestClientHostedService(ClientOptions options)
 	{
-		_exitCode = new TaskCompletionSource<int>();
+		_exitCode = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
 		_stopped = new CancellationTokenSource();
 		_stopped.Token.Register(() => _exitCode.TrySetResult(0));
 		_client = new Client(options, _stopped);
@@ -27,7 +27,7 @@ internal class TestClientHostedService : IHostedService
 		cancellationToken.Register(_stopped.Cancel);
 		return Task.Run(() =>
 		{
-			_exitCode.SetResult(_client.Run(cancellationToken));
+			_exitCode.TrySetResult(_client.Run(cancellationToken));
 			if (!_client.InteractiveMode)
 			{
 				_stopped.Cancel();
