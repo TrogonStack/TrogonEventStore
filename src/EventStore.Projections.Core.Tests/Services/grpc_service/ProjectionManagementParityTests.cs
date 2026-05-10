@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,14 +36,18 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 	{
 		_channel = GrpcChannel.ForAddress(
 			new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions {
+			new GrpcChannelOptions
+			{
 				HttpHandler = _node.HttpMessageHandler
 			});
 		_client = new Client.Projections.Projections.ProjectionsClient(_channel);
 
-		await _client.CreateAsync(new CreateReq {
-			Options = new CreateReq.Types.Options {
-				Continuous = new CreateReq.Types.Options.Types.Continuous {
+		await _client.CreateAsync(new CreateReq
+		{
+			Options = new CreateReq.Types.Options
+			{
+				Continuous = new CreateReq.Types.Options.Types.Continuous
+				{
 					Name = ProjectionName,
 					EmitEnabled = true,
 					TrackEmittedStreams = true
@@ -53,8 +56,10 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 			}
 		}, GetCallOptions());
 
-		await _client.CreateAsync(new CreateReq {
-			Options = new CreateReq.Types.Options {
+		await _client.CreateAsync(new CreateReq
+		{
+			Options = new CreateReq.Types.Options
+			{
 				OneTime = new EventStore.Client.Empty(),
 				Enabled = false,
 				Name = DisabledOneTimeProjectionName,
@@ -65,9 +70,12 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 			}
 		}, GetCallOptions());
 
-		await _client.CreateAsync(new CreateReq {
-			Options = new CreateReq.Types.Options {
-				Transient = new CreateReq.Types.Options.Types.Transient {
+		await _client.CreateAsync(new CreateReq
+		{
+			Options = new CreateReq.Types.Options
+			{
+				Transient = new CreateReq.Types.Options.Types.Transient
+				{
 					Name = TransientProjectionName
 				},
 				Query = $"fromStream(\"{DebugStream}\").when({{$any:function(s,e){{return s;}}}});"
@@ -80,28 +88,36 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 
 	public override async Task When()
 	{
-		_query = await _client.GetQueryAsync(new GetQueryReq {
-			Options = new GetQueryReq.Types.Options {
+		_query = await _client.GetQueryAsync(new GetQueryReq
+		{
+			Options = new GetQueryReq.Types.Options
+			{
 				Name = ProjectionName
 			}
 		}, GetCallOptions());
 
-		_disabledOneTimeQuery = await _client.GetQueryAsync(new GetQueryReq {
-			Options = new GetQueryReq.Types.Options {
+		_disabledOneTimeQuery = await _client.GetQueryAsync(new GetQueryReq
+		{
+			Options = new GetQueryReq.Types.Options
+			{
 				Name = DisabledOneTimeProjectionName
 			}
 		}, GetCallOptions());
 
-		_initialConfig = await _client.GetConfigAsync(new GetConfigReq {
-			Options = new GetConfigReq.Types.Options {
+		_initialConfig = await _client.GetConfigAsync(new GetConfigReq
+		{
+			Options = new GetConfigReq.Types.Options
+			{
 				Name = ProjectionName
 			}
 		}, GetCallOptions());
 
 		await WaitForStatus(ProjectionName, "Faulted");
 
-		await _client.UpdateConfigAsync(new UpdateConfigReq {
-			Options = new UpdateConfigReq.Types.Options {
+		await _client.UpdateConfigAsync(new UpdateConfigReq
+		{
+			Options = new UpdateConfigReq.Types.Options
+			{
 				Name = ProjectionName,
 				EmitEnabled = _initialConfig.Details.EmitEnabled,
 				TrackEmittedStreams = _initialConfig.Details.TrackEmittedStreams,
@@ -115,15 +131,20 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 			}
 		}, GetCallOptions());
 
-		_updatedConfig = await _client.GetConfigAsync(new GetConfigReq {
-			Options = new GetConfigReq.Types.Options {
+		_updatedConfig = await _client.GetConfigAsync(new GetConfigReq
+		{
+			Options = new GetConfigReq.Types.Options
+			{
 				Name = ProjectionName
 			}
 		}, GetCallOptions());
 
-		_feedPage = await _client.ReadEventsAsync(new ReadEventsReq {
-			Options = new ReadEventsReq.Types.Options {
-				QuerySourcesJson = new QuerySourcesDefinition {
+		_feedPage = await _client.ReadEventsAsync(new ReadEventsReq
+		{
+			Options = new ReadEventsReq.Types.Options
+			{
+				QuerySourcesJson = new QuerySourcesDefinition
+				{
 					Streams = new[] { DebugStream },
 					AllEvents = true
 				}.ToJson(),
@@ -132,14 +153,18 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 			}
 		}, GetCallOptions());
 
-		await _client.AbortAsync(new AbortReq {
-			Options = new AbortReq.Types.Options {
+		await _client.AbortAsync(new AbortReq
+		{
+			Options = new AbortReq.Types.Options
+			{
 				Name = TransientProjectionName
 			}
 		}, GetCallOptions());
 
-		_allNonTransientStatistics = await ReadStatisticsAsync(new StatisticsReq {
-			Options = new StatisticsReq.Types.Options {
+		_allNonTransientStatistics = await ReadStatisticsAsync(new StatisticsReq
+		{
+			Options = new StatisticsReq.Types.Options
+			{
 				AllNonTransient = new EventStore.Client.Empty()
 			}
 		});
@@ -203,7 +228,8 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 
 	private static CallOptions GetCallOptions(TimeSpan? deadline = null)
 	{
-		var credentials = CallCredentials.FromInterceptor((_, metadata) => {
+		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
+		{
 			metadata.Add("authorization",
 				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
 			return Task.CompletedTask;
@@ -211,19 +237,19 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 
 		return new CallOptions(
 			credentials: credentials,
-			deadline: Debugger.IsAttached
-				? DateTime.UtcNow.AddDays(1)
-				: deadline is { } value
-					? DateTime.UtcNow.Add(value)
-					: null);
+			deadline: deadline is { } value
+				? DateTime.UtcNow.Add(value)
+				: null);
 	}
 
 	private async Task WaitForStatus(string projectionName, string expectedStatus)
 	{
 		for (var attempt = 0; attempt < 40; attempt++)
 		{
-			using var statistics = _client.Statistics(new StatisticsReq {
-				Options = new StatisticsReq.Types.Options {
+			using var statistics = _client.Statistics(new StatisticsReq
+			{
+				Options = new StatisticsReq.Types.Options
+				{
 					Name = projectionName
 				}
 			}, GetCallOptions(TimeSpan.FromSeconds(10)));

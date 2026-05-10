@@ -290,7 +290,6 @@ internal abstract class ScenarioBase : IScenario
 	{
 		if (streams.Length == 0)
 		{
-			Debugger.Break();
 			throw new Exception("Streams shouldn't be empty.");
 		}
 
@@ -440,8 +439,7 @@ internal abstract class ScenarioBase : IScenario
 			}
 			else
 			{
-				Process temp;
-				if (TryGetProcessById(processId, out temp))
+				if (TryGetProcessById(processId, out _))
 					Log.Error(
 						"Process {processId} did not report about exit in time and is still present in processes list.",
 						processId);

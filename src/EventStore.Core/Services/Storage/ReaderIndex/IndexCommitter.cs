@@ -1,20 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Index;
-using EventStore.Core.Messages;
 using EventStore.Core.LogAbstraction;
+using EventStore.Core.Messages;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
-using ILogger = Serilog.ILogger;
 using EventStore.LogCommon;
+using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage.ReaderIndex;
 
@@ -125,30 +124,30 @@ public class IndexCommitter<TStreamId>(
 					case LogRecordType.Stream:
 					case LogRecordType.EventType:
 					case LogRecordType.Prepare:
-					{
-						var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
-						if (prepare.Flags.HasAnyOf(PrepareFlags.IsCommitted))
 						{
-							if (prepare.Flags.HasAnyOf(PrepareFlags.SingleWrite))
+							var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
+							if (prepare.Flags.HasAnyOf(PrepareFlags.IsCommitted))
 							{
-								await Commit(commitedPrepares, false, false, token);
-								commitedPrepares.Clear();
-								await Commit([prepare], result.Eof, false, token);
-							}
-							else
-							{
-								if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
-									commitedPrepares.Add(prepare);
-								if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
+								if (prepare.Flags.HasAnyOf(PrepareFlags.SingleWrite))
 								{
-									await Commit(commitedPrepares, result.Eof, false, token);
+									await Commit(commitedPrepares, false, false, token);
 									commitedPrepares.Clear();
+									await Commit([prepare], result.Eof, false, token);
+								}
+								else
+								{
+									if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
+										commitedPrepares.Add(prepare);
+									if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
+									{
+										await Commit(commitedPrepares, result.Eof, false, token);
+										commitedPrepares.Clear();
+									}
 								}
 							}
-						}
 
-						break;
-					}
+							break;
+						}
 					case LogRecordType.Commit:
 						await Commit((CommitLogRecord)result.LogRecord, result.Eof, false, token);
 						break;
@@ -286,7 +285,7 @@ public class IndexCommitter<TStreamId>(
 				: commit.FirstEventNumber + prepare.TransactionOffset;
 
 			if (new TFPos(commit.LogPosition, prepare.LogPosition) >
-			    new TFPos(_persistedCommitPos, _persistedPreparePos))
+				new TFPos(_persistedCommitPos, _persistedPreparePos))
 			{
 				indexEntries.Add(new IndexKey<TStreamId>(streamId, eventNumber, prepare.LogPosition));
 				prepares.Add(prepare);
@@ -403,14 +402,14 @@ public class IndexCommitter<TStreamId>(
 			}
 
 			if (prepare.LogPosition < lastIndexedPosition ||
-			    (prepare.LogPosition == lastIndexedPosition && !_indexRebuild))
+				(prepare.LogPosition == lastIndexedPosition && !_indexRebuild))
 				continue; // already committed
 
 			eventNumber =
 				prepare.ExpectedVersion + 1; /* for committed prepare expected version is always explicit */
 
 			if (new TFPos(prepare.LogPosition, prepare.LogPosition) >
-			    new TFPos(_persistedCommitPos, _persistedPreparePos))
+				new TFPos(_persistedCommitPos, _persistedPreparePos))
 			{
 				indexEntries.Add(new IndexKey<TStreamId>(streamId, eventNumber, prepare.LogPosition));
 				prepares.Add(prepare);
@@ -512,13 +511,10 @@ public class IndexCommitter<TStreamId>(
 		long lastEventNumber = await indexReader.GetStreamLastEventNumber(streamId, token);
 		if (newEventNumber != lastEventNumber + 1)
 		{
-			if (Debugger.IsAttached)
-				Debugger.Break();
-			else
-				throw new Exception(
-					string.Format(
-						"Commit invariant violation: new event number {0} does not correspond to current stream version {1}.\n"
-						+ "Stream ID: {2}.\nCommit: {3}.", newEventNumber, lastEventNumber, streamId, commit));
+			throw new Exception(
+				string.Format(
+					"Commit invariant violation: new event number {0} does not correspond to current stream version {1}.\n"
+					+ "Stream ID: {2}.\nCommit: {3}.", newEventNumber, lastEventNumber, streamId, commit));
 		}
 	}
 
@@ -536,15 +532,12 @@ public class IndexCommitter<TStreamId>(
 				var prepare = prepares[prepareIndex];
 				IPrepareLogRecord<TStreamId> indexedPrepare = await GetPrepare(reader, indexEntry.Position, token);
 				if (indexedPrepare != null &&
-				    StreamIdComparer.Equals(indexedPrepare.EventStreamId, prepare.EventStreamId))
+					StreamIdComparer.Equals(indexedPrepare.EventStreamId, prepare.EventStreamId))
 				{
-					if (Debugger.IsAttached)
-						Debugger.Break();
-					else
-						throw new Exception(
-							string.Format("Trying to add duplicate event #{0} to stream {1} \nCommit: {2}\n"
-							              + "Prepare: {3}\nIndexed prepare: {4}.",
-								indexEntry.Version, prepare.EventStreamId, commit, prepare, indexedPrepare));
+					throw new Exception(
+						string.Format("Trying to add duplicate event #{0} to stream {1} \nCommit: {2}\n"
+									  + "Prepare: {3}\nIndexed prepare: {4}.",
+							indexEntry.Version, prepare.EventStreamId, commit, prepare, indexedPrepare));
 				}
 			}
 		}
