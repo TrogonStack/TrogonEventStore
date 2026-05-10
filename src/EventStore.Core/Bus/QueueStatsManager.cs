@@ -76,13 +76,14 @@ namespace EventStore.Core.Bus
 			do
 			{
 				if ((waitForCheckpoints && AreCheckpointsDifferent()) ||
-					(waitForNonEmptyTf && _writerCheckpoint.Read() == 0))
+					(waitForNonEmptyTf && (_writerCheckpoint == null || _writerCheckpoint.Read() == 0)))
 				{
 					Console.WriteLine("Waiting for IDLE state on checkpoints...");
 					counter++;
 					if (counter > 150 * multiplier)
 						throw new ApplicationException("Infinite WaitIdle() loop on checkpoints?");
 					Thread.Sleep(100);
+					successes = 0;
 				}
 				else
 				{

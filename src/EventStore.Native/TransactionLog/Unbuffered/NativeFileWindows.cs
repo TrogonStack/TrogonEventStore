@@ -21,7 +21,8 @@ public unsafe class NativeFileWindows : INativeFile
 	public void SetFileSize(SafeFileHandle handle, long count)
 	{
 		var low = (int)(count & 0xffffffff);
-		WinNative.SetFilePointer(handle, low, out _, WinNative.EMoveMethod.Begin);
+		var high = (int)(count >> 32);
+		WinNative.SetFilePointer(handle, low, ref high, WinNative.EMoveMethod.Begin);
 		if (!WinNative.SetEndOfFile(handle))
 		{
 			throw new Win32Exception();
@@ -108,7 +109,14 @@ public unsafe class NativeFileWindows : INativeFile
 	public void Seek(SafeFileHandle handle, long position, SeekOrigin origin)
 	{
 		var low = (int)(position & 0xffffffff);
-		var f = WinNative.SetFilePointer(handle, low, out _, WinNative.EMoveMethod.Begin);
+		var high = (int)(position >> 32);
+		var moveMethod = origin switch
+		{
+			SeekOrigin.Current => WinNative.EMoveMethod.Current,
+			SeekOrigin.End => WinNative.EMoveMethod.End,
+			_ => WinNative.EMoveMethod.Begin
+		};
+		var f = WinNative.SetFilePointer(handle, low, ref high, moveMethod);
 		if (f == WinNative.INVALID_SET_FILE_POINTER)
 		{
 			throw new Win32Exception();
