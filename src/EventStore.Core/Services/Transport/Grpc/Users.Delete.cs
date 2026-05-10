@@ -1,35 +1,40 @@
 using System.Threading.Tasks;
+using EventStore.Client.Users;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
-using EventStore.Client.Users;
 using EventStore.Plugins.Authorization;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	internal partial class Users {
-		private static readonly Operation DeleteOperation = new Operation(Plugins.Authorization.Operations.Users.Delete);
-		public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context) {
-			var options = request.Options;
+namespace EventStore.Core.Services.Transport.Grpc;
 
-			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, DeleteOperation, context.CancellationToken)) {
-				throw RpcExceptions.AccessDenied();
-			}
-			var deleteSource = new TaskCompletionSource<bool>();
+internal partial class Users
+{
+	private static readonly Operation DeleteOperation = new Operation(Plugins.Authorization.Operations.Users.Delete);
+	public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context)
+	{
+		var options = request.Options;
 
-			var envelope = new CallbackEnvelope(OnMessage);
+		var user = context.GetHttpContext().User;
+		if (!await _authorizationProvider.CheckAccessAsync(user, DeleteOperation, context.CancellationToken))
+		{
+			throw RpcExceptions.AccessDenied();
+		}
+		var deleteSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-			_publisher.Publish(new UserManagementMessage.Delete(envelope, user, options.LoginName));
+		var envelope = new CallbackEnvelope(OnMessage);
 
-			await deleteSource.Task.WaitAsync(context.CancellationToken);
+		_publisher.Publish(new UserManagementMessage.Delete(envelope, user, options.LoginName));
 
-			return new DeleteResp();
+		await deleteSource.Task.WaitAsync(context.CancellationToken);
 
-			void OnMessage(Message message) {
-				if (HandleErrors(options.LoginName, message, deleteSource)) return;
+		return new DeleteResp();
 
-				deleteSource.TrySetResult(true);
-			}
+		void OnMessage(Message message)
+		{
+			if (HandleErrors(options.LoginName, message, deleteSource))
+				return;
+
+			deleteSource.TrySetResult(true);
 		}
 	}
 }
