@@ -14,7 +14,7 @@ internal partial class ProjectionManagement
 
 	public override async Task<GetQueryResp> GetQuery(GetQueryReq request, ServerCallContext context)
 	{
-		var querySource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionQuery>();
+		var querySource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionQuery>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var cancellationRegistration =
 			context.CancellationToken.Register(() => querySource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
@@ -32,7 +32,8 @@ internal partial class ProjectionManagement
 			new ProjectionManagementMessage.RunAs(user)));
 
 		var query = await querySource.Task;
-		var details = new GetQueryResp.Types.Details {
+		var details = new GetQueryResp.Types.Details
+		{
 			Name = query.Name ?? string.Empty,
 			Query = query.Query ?? string.Empty,
 			EmitEnabled = query.EmitEnabled,
@@ -50,7 +51,8 @@ internal partial class ProjectionManagement
 			details.CheckpointsEnabled = checkpointsEnabled;
 		}
 
-		return new GetQueryResp {
+		return new GetQueryResp
+		{
 			Details = details
 		};
 

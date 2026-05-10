@@ -22,7 +22,7 @@ internal partial class ProjectionManagement
 			throw RpcExceptions.AccessDenied();
 		}
 
-		var statsSource = new TaskCompletionSource<ProjectionStatistics[]>();
+		var statsSource = new TaskCompletionSource<ProjectionStatistics[]>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 		var name = string.IsNullOrEmpty(options.Name) ? null : options.Name;

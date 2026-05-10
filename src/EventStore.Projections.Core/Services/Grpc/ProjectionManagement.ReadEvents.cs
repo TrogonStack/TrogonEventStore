@@ -20,7 +20,7 @@ internal partial class ProjectionManagement
 
 	public override async Task<ReadEventsResp> ReadEvents(ReadEventsReq request, ServerCallContext context)
 	{
-		var readSource = new TaskCompletionSource<FeedReaderMessage.FeedPage>();
+		var readSource = new TaskCompletionSource<FeedReaderMessage.FeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var cancellationRegistration =
 			context.CancellationToken.Register(() => readSource.TrySetCanceled(context.CancellationToken));
 		var options = request.Options;
@@ -50,7 +50,8 @@ internal partial class ProjectionManagement
 			throw RpcExceptions.AccessDenied();
 		}
 
-		var details = new ReadEventsResp.Types.Details {
+		var details = new ReadEventsResp.Types.Details
+		{
 			CorrelationId = page.CorrelationId.ToString("D"),
 			ReaderPositionJson = page.LastReaderPosition.ToJsonRaw().ToString()
 		};
@@ -58,7 +59,8 @@ internal partial class ProjectionManagement
 		foreach (var taggedEvent in page.Events)
 		{
 			var resolvedEvent = taggedEvent.ResolvedEvent;
-			details.Events.Add(new ReadEventsResp.Types.Details.Types.Event {
+			details.Events.Add(new ReadEventsResp.Types.Details.Types.Event
+			{
 				EventStreamId = resolvedEvent.EventStreamId ?? string.Empty,
 				EventNumber = resolvedEvent.EventSequenceNumber,
 				EventType = resolvedEvent.EventType ?? string.Empty,
@@ -70,7 +72,8 @@ internal partial class ProjectionManagement
 			});
 		}
 
-		return new ReadEventsResp {
+		return new ReadEventsResp
+		{
 			Details = details
 		};
 

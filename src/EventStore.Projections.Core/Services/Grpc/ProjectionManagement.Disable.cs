@@ -13,7 +13,7 @@ internal partial class ProjectionManagement
 	private static readonly Operation DisableOperation = new Operation(Operations.Projections.Disable);
 	public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context)
 	{
-		var disableSource = new TaskCompletionSource<bool>();
+		var disableSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 

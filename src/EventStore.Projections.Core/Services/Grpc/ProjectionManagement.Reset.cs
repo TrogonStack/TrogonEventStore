@@ -13,7 +13,7 @@ internal partial class ProjectionManagement
 	private static readonly Operation ResetOperation = new Operation(Operations.Projections.Reset);
 	public override async Task<ResetResp> Reset(ResetReq request, ServerCallContext context)
 	{
-		var resetSource = new TaskCompletionSource<bool>();
+		var resetSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 

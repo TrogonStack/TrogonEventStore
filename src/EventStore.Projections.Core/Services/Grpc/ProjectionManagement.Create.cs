@@ -16,7 +16,7 @@ internal partial class ProjectionManagement
 
 	public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context)
 	{
-		var createdSource = new TaskCompletionSource<bool>();
+		var createdSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;

@@ -13,7 +13,7 @@ internal partial class ProjectionManagement
 	private static readonly Operation EnableOperation = new Operation(Operations.Projections.Enable);
 	public override async Task<EnableResp> Enable(EnableReq request, ServerCallContext context)
 	{
-		var enableSource = new TaskCompletionSource<bool>();
+		var enableSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 

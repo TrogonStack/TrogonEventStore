@@ -15,7 +15,7 @@ internal partial class ProjectionManagement
 
 	public override async Task<GetConfigResp> GetConfig(GetConfigReq request, ServerCallContext context)
 	{
-		var configSource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionConfig>();
+		var configSource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionConfig>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var getConfigCancellationRegistration =
 			context.CancellationToken.Register(() => configSource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
@@ -33,7 +33,8 @@ internal partial class ProjectionManagement
 			new ProjectionManagementMessage.RunAs(user)));
 
 		var config = await configSource.Task;
-		var details = new GetConfigResp.Types.Details {
+		var details = new GetConfigResp.Types.Details
+		{
 			EmitEnabled = config.EmitEnabled,
 			TrackEmittedStreams = config.TrackEmittedStreams,
 			CheckpointAfterMs = config.CheckpointAfterMs,
@@ -48,7 +49,8 @@ internal partial class ProjectionManagement
 			details.ProjectionExecutionTimeout = projectionExecutionTimeout;
 		}
 
-		return new GetConfigResp {
+		return new GetConfigResp
+		{
 			Details = details
 		};
 
@@ -71,7 +73,7 @@ internal partial class ProjectionManagement
 
 	public override async Task<UpdateConfigResp> UpdateConfig(UpdateConfigReq request, ServerCallContext context)
 	{
-		var updateSource = new TaskCompletionSource<bool>();
+		var updateSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var updateConfigCancellationRegistration =
 			context.CancellationToken.Register(() => updateSource.TrySetCanceled(context.CancellationToken));
 		var options = request.Options;
