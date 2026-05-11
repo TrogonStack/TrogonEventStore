@@ -331,7 +331,7 @@ public class ClusterVNode<TStreamId> :
 			out var workerThreadsCount);
 
 		var trackers = new Trackers();
-		var metricsConfiguration = MetricsConfiguration.Get((configuration));
+		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		MetricsBootstrapper.Bootstrap(metricsConfiguration, dbConfig, trackers);
 
 		Db = new TFChunkDb(
