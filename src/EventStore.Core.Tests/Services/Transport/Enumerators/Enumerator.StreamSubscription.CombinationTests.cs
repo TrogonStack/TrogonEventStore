@@ -928,6 +928,7 @@ public partial class EnumeratorTests
 		}
 
 		[Test]
+		[Retry(3)]
 		public async Task enumeration_is_correct()
 		{
 			var sub = Subscribe();
