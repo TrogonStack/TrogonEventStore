@@ -50,6 +50,16 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void removed_first_level_http_authorization_option_is_unknown()
+	{
+		var options = GetOptions("--disable-first-level-http-authorization true");
+
+		var (key, value) = options.Unknown.Options[0];
+		Assert.Equal("DisableFirstLevelHttpAuthorization", key);
+		Assert.Equal("", value);
+	}
+
+	[Fact]
 	public void valid_parameters()
 	{
 		var options = GetOptions("--cluster-size 3");
