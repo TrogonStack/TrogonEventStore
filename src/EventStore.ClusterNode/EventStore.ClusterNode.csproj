@@ -54,10 +54,4 @@
 		<None Update="ui-assets\js\stream-browser.js" CopyToOutputDirectory="PreserveNewest" />
 		<None Update="ui-assets\js\ui-auth.js" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
-	<!-- TODO(jen20): Investigate which of these are correct -->
-	<PropertyGroup>
-		<IsMac>false</IsMac>
-		<IsMac Condition="('$(OS)' == 'Unix') And (Exists ('/Library/Frameworks'))">true</IsMac>
-	</PropertyGroup>
-
 </Project>
