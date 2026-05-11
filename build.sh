@@ -11,7 +11,7 @@ COPYRIGHT="Copyright 2021 Event Store Ltd. All rights reserved."
 CONFIGURATION="Release"
 NET_FRAMEWORK="net10.0"
 
-function usage() {    
+function usage() {
 cat <<EOF
 Usage:
   $0 [<version=0.0.0.0>] [<configuration=Debug|Release>]
