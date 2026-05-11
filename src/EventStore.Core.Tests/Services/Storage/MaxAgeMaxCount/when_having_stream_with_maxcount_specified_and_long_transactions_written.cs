@@ -12,12 +12,10 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	WhenHavingStreamWithMaxcountSpecifiedAndLongTransactionsWritten<TLogFormat, TStreamId> : ReadIndexTestScenario<
-	TLogFormat, TStreamId>
-{
+	TLogFormat, TStreamId> {
 	private EventRecord[] _records;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		const string metadata = @"{""$maxCount"":2}";
 
 		_records = new EventRecord[9]; // 3 + 2 + 4
@@ -28,11 +26,9 @@ public class
 		await WriteTransaction(-1 + 3 + 2, 4, token);
 	}
 
-	private async ValueTask WriteTransaction(long expectedVersion, int transactionLength, CancellationToken token)
-	{
+	private async ValueTask WriteTransaction(long expectedVersion, int transactionLength, CancellationToken token) {
 		var begin = await WriteTransactionBegin("ES", expectedVersion, token);
-		for (int i = 0; i < transactionLength; ++i)
-		{
+		for (int i = 0; i < transactionLength; ++i) {
 			var eventNumber = expectedVersion + i + 1;
 			_records[eventNumber] = await WriteTransactionEvent(Guid.NewGuid(), begin.LogPosition, i, "ES", eventNumber,
 				"data" + i, PrepareFlags.Data, token: token);
@@ -43,8 +39,7 @@ public class
 	}
 
 	[Test]
-	public async Task forward_range_read_returns_last_transaction_events_and_doesnt_return_expired_ones()
-	{
+	public async Task forward_range_read_returns_last_transaction_events_and_doesnt_return_expired_ones() {
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);

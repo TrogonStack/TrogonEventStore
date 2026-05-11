@@ -15,8 +15,7 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Index;
 
-public class IndexMap
-{
+public class IndexMap {
 	private static readonly ILogger Log = Serilog.Log.ForContext<IndexMap>();
 
 	public const int IndexMapVersion = 2;
@@ -32,15 +31,19 @@ public class IndexMap
 	private readonly int _pTableMaxReaderCount;
 
 	private IndexMap(int version, List<List<PTable>> tables, long prepareCheckpoint, long commitCheckpoint,
-		int maxTablesPerLevel, int maxTableLevelsForAutomaticMerge, int pTableMaxReaderCount)
-	{
+		int maxTablesPerLevel, int maxTableLevelsForAutomaticMerge, int pTableMaxReaderCount) {
 		Ensure.Nonnegative(version, "version");
-		if (prepareCheckpoint < -1)
+		if (prepareCheckpoint < -1) {
 			throw new ArgumentOutOfRangeException("prepareCheckpoint");
-		if (commitCheckpoint < -1)
+		}
+
+		if (commitCheckpoint < -1) {
 			throw new ArgumentOutOfRangeException("commitCheckpoint");
-		if (maxTablesPerLevel <= 1)
+		}
+
+		if (maxTablesPerLevel <= 1) {
 			throw new ArgumentOutOfRangeException("maxTablesPerLevel");
+		}
 
 		Version = version;
 
@@ -54,27 +57,23 @@ public class IndexMap
 		VerifyStructure();
 	}
 
-	private static List<List<PTable>> CopyFrom(List<List<PTable>> tables)
-	{
+	private static List<List<PTable>> CopyFrom(List<List<PTable>> tables) {
 		var tmp = new List<List<PTable>>();
-		for (int i = 0; i < tables.Count; i++)
-		{
+		for (int i = 0; i < tables.Count; i++) {
 			tmp.Add(new List<PTable>(tables[i]));
 		}
 
 		return tmp;
 	}
 
-	private void VerifyStructure()
-	{
-		if (_map.SelectMany(level => level).Any(item => item == null))
+	private void VerifyStructure() {
+		if (_map.SelectMany(level => level).Any(item => item == null)) {
 			throw new CorruptIndexException("Internal indexmap structure corruption.");
+		}
 	}
 
-	private static void AddTableToTables(List<List<PTable>> tables, int level, PTable table)
-	{
-		while (level >= tables.Count)
-		{
+	private static void AddTableToTables(List<List<PTable>> tables, int level, PTable table) {
+		while (level >= tables.Count) {
 			tables.Add(new List<PTable>());
 		}
 
@@ -83,57 +82,50 @@ public class IndexMap
 		innerTables.Add(table);
 	}
 
-	private static void InsertTableToTables(List<List<PTable>> tables, int level, int position, PTable table)
-	{
-		while (level >= tables.Count)
+	private static void InsertTableToTables(List<List<PTable>> tables, int level, int position, PTable table) {
+		while (level >= tables.Count) {
 			tables.Add(new List<PTable>());
+		}
 
 		var innerTables = tables[level] ?? (tables[level] = new List<PTable>());
 
-		while (position >= innerTables.Count)
+		while (position >= innerTables.Count) {
 			innerTables.Add(null);
+		}
 
 		innerTables[position] = table;
 	}
 
-	public IEnumerable<PTable> InOrder()
-	{
+	public IEnumerable<PTable> InOrder() {
 		var map = _map;
 		// level 0 (newest tables) -> N (oldest tables)
-		for (int i = 0; i < map.Count; ++i)
-		{
+		for (int i = 0; i < map.Count; ++i) {
 			// last in the level's list (newest on level) -> to first (oldest on level)
-			for (int j = map[i].Count - 1; j >= 0; --j)
-			{
+			for (int j = map[i].Count - 1; j >= 0; --j) {
 				yield return map[i][j];
 			}
 		}
 	}
 
-	public IEnumerable<PTable> InReverseOrder()
-	{
+	public IEnumerable<PTable> InReverseOrder() {
 		var map = _map;
 		// N (oldest tables) -> level 0 (newest tables)
-		for (int i = map.Count - 1; i >= 0; --i)
-		{
+		for (int i = map.Count - 1; i >= 0; --i) {
 			// from first (oldest on level) in the level's list -> last in the level's list (newest on level)
-			for (int j = 0, n = map[i].Count; j < n; ++j)
-			{
+			for (int j = 0, n = map[i].Count; j < n; ++j) {
 				yield return map[i][j];
 			}
 		}
 	}
 
-	public IEnumerable<string> GetAllFilenames()
-	{
+	public IEnumerable<string> GetAllFilenames() {
 		return from level in _map
 			   from table in level
 			   select table.Filename;
 	}
 
 	public static IndexMap CreateEmpty(int maxTablesPerLevel, int maxTableLevelsForAutomaticMerge,
-		int pTableMaxReaderCount)
-	{
+		int pTableMaxReaderCount) {
 		return new IndexMap(IndexMapVersion, new List<List<PTable>>(), -1, -1, maxTablesPerLevel,
 			maxTableLevelsForAutomaticMerge, pTableMaxReaderCount);
 	}
@@ -148,20 +140,18 @@ public class IndexMap
 		int lruCacheSize,
 		int threads,
 		int maxAutoMergeLevel,
-		int pTableMaxReaderCount)
-	{
-		if (!File.Exists(filename))
+		int pTableMaxReaderCount) {
+		if (!File.Exists(filename)) {
 			return CreateEmpty(maxTablesPerLevel, maxAutoMergeLevel, pTableMaxReaderCount);
+		}
 
-		using (var f = File.OpenRead(filename))
-		{
+		using (var f = File.OpenRead(filename)) {
 			// calculate real MD5 hash except first 32 bytes which are string representation of stored hash
 			f.Position = 32;
 			var realHash = MD5Hash.GetHashFor(f);
 			f.Position = 0;
 
-			using (var reader = new StreamReader(f))
-			{
+			using (var reader = new StreamReader(f)) {
 				ReadAndCheckHash(reader, realHash);
 
 				// at this point we can assume the format is ok, so actually no need to check errors.
@@ -170,12 +160,12 @@ public class IndexMap
 				var checkpoints = ReadCheckpoints(reader);
 				var prepareCheckpoint = checkpoints.PreparePosition;
 				var commitCheckpoint = checkpoints.CommitPosition;
-				if (version > 1)
-				{
+				if (version > 1) {
 					var tmpMaxAutoMergeLevel = ReadMaxAutoMergeLevel(reader);
-					if (tmpMaxAutoMergeLevel < maxAutoMergeLevel)
+					if (tmpMaxAutoMergeLevel < maxAutoMergeLevel) {
 						throw new CorruptIndexException(
 							$"Index map has lower maximum auto merge level ({tmpMaxAutoMergeLevel}) than is currently configured ({maxAutoMergeLevel}) and the index will need to be rebuilt");
+					}
 
 					maxAutoMergeLevel = Math.Min(maxAutoMergeLevel, tmpMaxAutoMergeLevel);
 				}
@@ -187,10 +177,11 @@ public class IndexMap
 						lruCacheSize, threads, pTableMaxReaderCount)
 					: new List<List<PTable>>();
 
-				if (!loadPTables && reader.ReadLine() != null)
+				if (!loadPTables && reader.ReadLine() != null) {
 					throw new CorruptIndexException(
 						string.Format("Negative prepare/commit checkpoint in non-empty IndexMap: {0}.",
 							checkpoints));
+				}
 
 				return new IndexMap(version, tables, prepareCheckpoint, commitCheckpoint, maxTablesPerLevel,
 					maxAutoMergeLevel, pTableMaxReaderCount);
@@ -198,25 +189,25 @@ public class IndexMap
 		}
 	}
 
-	private static void ReadAndCheckHash(TextReader reader, byte[] realHash)
-	{
+	private static void ReadAndCheckHash(TextReader reader, byte[] realHash) {
 		// read stored MD5 hash and convert it from string to byte array
 		string text;
-		if ((text = reader.ReadLine()) == null)
+		if ((text = reader.ReadLine()) == null) {
 			throw new CorruptIndexException("IndexMap file is empty.");
-		if (text.Length != 32 || !text.All(x => char.IsDigit(x) || (x >= 'A' && x <= 'F')))
+		}
+
+		if (text.Length != 32 || !text.All(x => char.IsDigit(x) || (x >= 'A' && x <= 'F'))) {
 			throw new CorruptIndexException(string.Format("Corrupted IndexMap MD5 hash. Hash ({0}): {1}.",
 				text.Length, text));
+		}
 
 		// check expected and real hashes are the same
 		var expectedHash = new byte[16];
-		for (int i = 0; i < 16; ++i)
-		{
+		for (int i = 0; i < 16; ++i) {
 			expectedHash[i] = Convert.ToByte(text.Substring(i * 2, 2), 16);
 		}
 
-		if (expectedHash.Length != realHash.Length)
-		{
+		if (expectedHash.Length != realHash.Length) {
 			throw new CorruptIndexException(
 				string.Format("Hash validation error (different hash sizes).\n"
 							  + "Expected hash ({0}): {1}, real hash ({2}): {3}.",
@@ -224,10 +215,8 @@ public class IndexMap
 					realHash.Length, BitConverter.ToString(realHash)));
 		}
 
-		for (int i = 0; i < realHash.Length; ++i)
-		{
-			if (expectedHash[i] != realHash[i])
-			{
+		for (int i = 0; i < realHash.Length; ++i) {
+			if (expectedHash[i] != realHash[i]) {
 				throw new CorruptIndexException(
 					string.Format("Hash validation error (different hashes).\n"
 								  + "Expected hash ({0}): {1}, real hash ({2}): {3}.",
@@ -237,50 +226,53 @@ public class IndexMap
 		}
 	}
 
-	private static int ReadVersion(TextReader reader)
-	{
+	private static int ReadVersion(TextReader reader) {
 		string text;
-		if ((text = reader.ReadLine()) == null)
+		if ((text = reader.ReadLine()) == null) {
 			throw new CorruptIndexException("Corrupted version.");
+		}
+
 		return int.Parse(text);
 	}
 
-	private static TFPos ReadCheckpoints(TextReader reader)
-	{
+	private static TFPos ReadCheckpoints(TextReader reader) {
 		// read and check prepare/commit checkpoint
 		string text;
-		if ((text = reader.ReadLine()) == null)
+		if ((text = reader.ReadLine()) == null) {
 			throw new CorruptIndexException("Corrupted commit checkpoint.");
-		try
-		{
+		}
+
+		try {
 			long prepareCheckpoint;
 			long commitCheckpoint;
 			var checkpoints = text.Split('/');
-			if (!long.TryParse(checkpoints[0], out prepareCheckpoint) || prepareCheckpoint < -1)
+			if (!long.TryParse(checkpoints[0], out prepareCheckpoint) || prepareCheckpoint < -1) {
 				throw new CorruptIndexException(string.Format("Invalid prepare checkpoint: {0}.", checkpoints[0]));
-			if (!long.TryParse(checkpoints[1], out commitCheckpoint) || commitCheckpoint < -1)
+			}
+
+			if (!long.TryParse(checkpoints[1], out commitCheckpoint) || commitCheckpoint < -1) {
 				throw new CorruptIndexException(string.Format("Invalid commit checkpoint: {0}.", checkpoints[1]));
+			}
+
 			return new TFPos(commitCheckpoint, prepareCheckpoint);
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			throw new CorruptIndexException("Corrupted prepare/commit checkpoints pair.", exc);
 		}
 	}
 
-	private static int ReadMaxAutoMergeLevel(TextReader reader)
-	{
-		if (!(reader.ReadLine() is string text && int.TryParse(text, out var maxAutoMergeLevel)))
+	private static int ReadMaxAutoMergeLevel(TextReader reader) {
+		if (!(reader.ReadLine() is string text && int.TryParse(text, out var maxAutoMergeLevel))) {
 			throw new CorruptIndexException("Corrupted auto merge level.");
+		}
+
 		return maxAutoMergeLevel;
 	}
 
-	private static IEnumerable<string> GetAllLines(StreamReader reader)
-	{
+	private static IEnumerable<string> GetAllLines(StreamReader reader) {
 		// all next lines are PTables sorted by levels
 		string text;
-		while ((text = reader.ReadLine()) != null)
-		{
+		while ((text = reader.ReadLine()) != null) {
 			yield return text;
 		}
 	}
@@ -289,28 +281,24 @@ public class IndexMap
 		int cacheDepth, bool skipIndexVerify,
 		bool useBloomFilter, int lruCacheSize,
 		int threads,
-		int pTableMaxReaderCount)
-	{
+		int pTableMaxReaderCount) {
 		var tables = new List<List<PTable>>();
-		try
-		{
-			try
-			{
+		try {
+			try {
 				Parallel.ForEach(
 					GetAllLines(reader)
 						.Reverse(), // Reverse so we load the highest levels (biggest files) first - ensures we use concurrency in the most efficient way.
 					new ParallelOptions { MaxDegreeOfParallelism = threads },
-					indexMapEntry =>
-					{
-						if (checkpoints.PreparePosition < 0 || checkpoints.CommitPosition < 0)
+					indexMapEntry => {
+						if (checkpoints.PreparePosition < 0 || checkpoints.CommitPosition < 0) {
 							throw new CorruptIndexException(
 								string.Format("Negative prepare/commit checkpoint in non-empty IndexMap: {0}.",
 									checkpoints));
+						}
 
 						PTable ptable = null;
 						var pieces = indexMapEntry.Split(',');
-						try
-						{
+						try {
 							var level = int.Parse(pieces[0]);
 							var position = int.Parse(pieces[1]);
 							var file = pieces[2];
@@ -320,50 +308,43 @@ public class IndexMap
 							ptable = PTable.FromFile(ptablePath, ESConsts.PTableInitialReaderCount,
 								pTableMaxReaderCount, cacheDepth, skipIndexVerify, useBloomFilter, lruCacheSize);
 
-							lock (tables)
-							{
+							lock (tables) {
 								InsertTableToTables(tables, level, position, ptable);
 							}
 						}
-						catch (Exception)
-						{
+						catch (Exception) {
 							// if PTable file path was correct, but data is corrupted, we still need to dispose opened streams
-							if (ptable != null)
+							if (ptable != null) {
 								ptable.Dispose();
+							}
 
 							throw;
 						}
 					});
 
 				// Verify map is correct
-				for (int i = 0; i < tables.Count; ++i)
-				{
-					for (int j = 0; j < tables[i].Count; ++j)
-					{
-						if (tables[i][j] == null)
-						{
+				for (int i = 0; i < tables.Count; ++i) {
+					for (int j = 0; j < tables[i].Count; ++j) {
+						if (tables[i][j] == null) {
 							throw new CorruptIndexException(
 								$"indexmap is missing contiguous level,position {i},{j}");
 						}
 					}
 				}
 			}
-			catch (AggregateException aggEx)
-			{
+			catch (AggregateException aggEx) {
 				// We only care that *something* has gone wrong, throw the first exception
 				ExceptionDispatchInfo.Capture(aggEx.InnerException!).Throw();
 				throw;
 			}
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			// also dispose all previously loaded correct PTables
-			for (int i = 0; i < tables.Count; ++i)
-			{
-				for (int j = 0; j < tables[i].Count; ++j)
-				{
-					if (tables[i][j] != null)
+			for (int i = 0; i < tables.Count; ++i) {
+				for (int j = 0; j < tables[i].Count; ++j) {
+					if (tables[i][j] != null) {
 						tables[i][j].Dispose();
+					}
 				}
 			}
 
@@ -373,21 +354,17 @@ public class IndexMap
 		return tables;
 	}
 
-	public void SaveToFile(string filename)
-	{
+	public void SaveToFile(string filename) {
 		var tmpIndexMap = string.Format("{0}.{1}.indexmap.tmp", filename, Guid.NewGuid());
 
 		using (var memStream = new MemoryStream())
-		using (var memWriter = new StreamWriter(memStream))
-		{
+		using (var memWriter = new StreamWriter(memStream)) {
 			memWriter.WriteLine(new string('0', 32)); // pre-allocate space for MD5 hash
 			memWriter.WriteLine(Version);
 			memWriter.WriteLine("{0}/{1}", PrepareCheckpoint, CommitCheckpoint);
 			memWriter.WriteLine(_maxTableLevelsForAutomaticMerge);
-			for (int i = 0; i < _map.Count; i++)
-			{
-				for (int j = 0; j < _map[i].Count; j++)
-				{
+			for (int i = 0; i < _map.Count; i++) {
+				for (int j = 0; j < _map[i].Count; j++) {
 					memWriter.WriteLine("{0},{1},{2}", i, j, new FileInfo(_map[i][j].Filename).Name);
 				}
 			}
@@ -398,16 +375,14 @@ public class IndexMap
 			var hash = MD5Hash.GetHashFor(memStream);
 
 			memStream.Position = 0;
-			foreach (var t in hash)
-			{
+			foreach (var t in hash) {
 				memWriter.Write(t.ToString("X2"));
 			}
 
 			memWriter.Flush();
 
 			memStream.Position = 0;
-			using (var f = File.OpenWrite(tmpIndexMap))
-			{
+			using (var f = File.OpenWrite(tmpIndexMap)) {
 				f.Write(memStream.GetBuffer(), 0, (int)memStream.Length);
 				f.FlushToDisk();
 			}
@@ -415,18 +390,14 @@ public class IndexMap
 
 		int trial = 0;
 		int maxTrials = 5;
-		while (trial < maxTrials)
-		{
-			Action<Exception> errorHandler = ex =>
-			{
+		while (trial < maxTrials) {
+			Action<Exception> errorHandler = ex => {
 				Log.Error("Failed trial to replace indexmap {indexMap} with {tmpIndexMap}.", filename, tmpIndexMap);
 				Log.Error("Exception: {e}", ex);
 				trial += 1;
 			};
-			try
-			{
-				if (File.Exists(filename))
-				{
+			try {
+				if (File.Exists(filename)) {
 					File.SetAttributes(filename, FileAttributes.Normal);
 					File.Delete(filename);
 				}
@@ -434,17 +405,14 @@ public class IndexMap
 				File.Move(tmpIndexMap, filename);
 				break;
 			}
-			catch (IOException exc)
-			{
+			catch (IOException exc) {
 				errorHandler(exc);
-				if (trial >= maxTrials)
-				{
+				if (trial >= maxTrials) {
 					WindowsProcessUtil.PrintWhoIsLocking(tmpIndexMap, Log);
 					WindowsProcessUtil.PrintWhoIsLocking(filename, Log);
 				}
 			}
-			catch (UnauthorizedAccessException exc)
-			{
+			catch (UnauthorizedAccessException exc) {
 				errorHandler(exc);
 			}
 		}
@@ -452,8 +420,7 @@ public class IndexMap
 
 	public AddResult AddPTable(PTable tableToAdd,
 		long prepareCheckpoint,
-		long commitCheckpoint)
-	{
+		long commitCheckpoint) {
 		Ensure.NotNull(tableToAdd, "tableToAdd");
 		Ensure.Nonnegative(prepareCheckpoint, "prepareCheckpoint");
 		Ensure.Nonnegative(commitCheckpoint, "commitCheckpoint");
@@ -466,10 +433,8 @@ public class IndexMap
 
 		var canMergeAny = false;
 		var maxTableLevelsToMerge = Math.Min(tables.Count, _maxTableLevelsForAutomaticMerge);
-		for (int level = 0; level < maxTableLevelsToMerge; level++)
-		{
-			if (tables[level].Count >= _maxTablesPerLevel)
-			{
+		for (int level = 0; level < maxTableLevelsToMerge; level++) {
+			if (tables[level].Count >= _maxTablesPerLevel) {
 				canMergeAny = true;
 				break;
 			}
@@ -484,8 +449,7 @@ public class IndexMap
 		int indexCacheDepth = 16,
 		bool skipIndexVerify = false,
 		bool useBloomFilter = true,
-		int lruCacheSize = 1_000_000)
-	{
+		int lruCacheSize = 1_000_000) {
 
 		var tables = CopyFrom(_map);
 
@@ -493,12 +457,9 @@ public class IndexMap
 		var canMergeAny = false;
 		var toDelete = new List<PTable>();
 		var maxTableLevelsToMerge = Math.Min(tables.Count, _maxTableLevelsForAutomaticMerge);
-		for (int level = 0; level < maxTableLevelsToMerge; level++)
-		{
-			if (tables[level].Count >= _maxTablesPerLevel)
-			{
-				if (hasMergedAny)
-				{
+		for (int level = 0; level < maxTableLevelsToMerge; level++) {
+			if (tables[level].Count >= _maxTablesPerLevel) {
+				if (hasMergedAny) {
 					canMergeAny = true;
 					break;
 				}
@@ -533,20 +494,19 @@ public class IndexMap
 		int indexCacheDepth = 16,
 		bool skipIndexVerify = false,
 		bool useBloomFilter = true,
-		int lruCacheSize = 1_000_000)
-	{
+		int lruCacheSize = 1_000_000) {
 
 		var tables = CopyFrom(_map);
 
-		if (tables.Count <= _maxTableLevelsForAutomaticMerge)
-		{
+		if (tables.Count <= _maxTableLevelsForAutomaticMerge) {
 			return new MergeResult(this, new List<PTable>(), false, false);
 		}
 
 		var toDelete = new List<PTable>();
 		var tablesToMerge = tables.Skip(_maxTableLevelsForAutomaticMerge).SelectMany(a => a).ToList();
-		if (tablesToMerge.Count == 1)
+		if (tablesToMerge.Count == 1) {
 			return new MergeResult(this, new List<PTable>(), false, false);
+		}
 
 		var filename = filenameProvider.GetFilenameNewTable();
 		PTable mergedTable = PTable.MergeTo(
@@ -560,8 +520,7 @@ public class IndexMap
 			useBloomFilter,
 			lruCacheSize);
 
-		for (int i = tables.Count - 1; i > _maxTableLevelsForAutomaticMerge; i--)
-		{
+		for (int i = tables.Count - 1; i > _maxTableLevelsForAutomaticMerge; i--) {
 			tables.RemoveAt(i);
 		}
 
@@ -581,16 +540,12 @@ public class IndexMap
 		int indexCacheDepth = 16,
 		bool skipIndexVerify = false,
 		bool useBloomFilter = true,
-		int lruCacheSize = 1_000_000)
-	{
+		int lruCacheSize = 1_000_000) {
 
 		var scavengedMap = CopyFrom(_map);
-		for (int level = 0; level < scavengedMap.Count; level++)
-		{
-			for (int i = 0; i < scavengedMap[level].Count; i++)
-			{
-				if (scavengedMap[level][i].Id == toScavenge)
-				{
+		for (int level = 0; level < scavengedMap.Count; level++) {
+			for (int i = 0; i < scavengedMap[level].Count; i++) {
+				if (scavengedMap[level][i].Id == toScavenge) {
 					var filename = filenameProvider.GetFilenameNewTable();
 					var oldTable = scavengedMap[level][i];
 
@@ -607,8 +562,7 @@ public class IndexMap
 						lruCacheSize,
 						ct);
 
-					if (scavenged is null)
-					{
+					if (scavenged is null) {
 						return ScavengeResult.Failed(oldTable, level, i);
 					}
 
@@ -625,15 +579,12 @@ public class IndexMap
 		throw new ArgumentException("Unable to find table in map.", nameof(toScavenge));
 	}
 
-	public void Dispose(TimeSpan timeout)
-	{
-		foreach (var ptable in InOrder())
-		{
+	public void Dispose(TimeSpan timeout) {
+		foreach (var ptable in InOrder()) {
 			ptable.Dispose();
 		}
 
-		foreach (var ptable in InOrder())
-		{
+		foreach (var ptable in InOrder()) {
 			ptable.WaitForDisposal(timeout);
 		}
 	}

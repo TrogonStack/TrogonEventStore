@@ -21,8 +21,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			TimeSpan restLoggingThreshold,
 			double activePercent) {
 
-			if (activePercent <= 0 || 100 < activePercent)
+			if (activePercent <= 0 || 100 < activePercent) {
 				throw new ArgumentOutOfRangeException(nameof(activePercent), activePercent, null);
+			}
 
 			_logger = logger;
 			_stopwatch = new Stopwatch();
@@ -40,28 +41,32 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public void Rest(CancellationToken cancellationToken) {
-			if (_restFactor == 0)
+			if (_restFactor == 0) {
 				return;
+			}
 
 			var totalTimeMs = _stopwatch.Elapsed.TotalMilliseconds;
 
 			// we want to have achieved the right proportion after the rest
 			var timeToRestMs = (_restFactor * totalTimeMs - _totalRestingTimeMs) / (1 - _restFactor);
 
-			if (timeToRestMs < _minimumRestMs)
+			if (timeToRestMs < _minimumRestMs) {
 				return;
+			}
 
 			var isLongRest = timeToRestMs >= _logThresholdMs;
-			if (isLongRest)
+			if (isLongRest) {
 				_logger.Debug("SCAVENGING: Resting {timeToRestMs:N0}ms", timeToRestMs);
+			}
 
 			_totalRestingTimeMs += timeToRestMs;
 
 			// nothing will set the mres, we just wait until we timeout or are cancelled
 			_mres.Wait((int)timeToRestMs, cancellationToken);
 
-			if (isLongRest)
+			if (isLongRest) {
 				_logger.Debug(PrettyPrint());
+			}
 		}
 
 		public string PrettyPrint() {

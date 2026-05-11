@@ -13,10 +13,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_posting_a_persistent_projection_and_writes_succeed<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+	when_posting_a_persistent_projection_and_writes_succeed<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+	protected override void Given() {
 		NoStream("$projections-test-projection-order");
 		AllWritesToSucceed("$projections-test-projection-order");
 		NoStream("$projections-test-projection-checkpoint");
@@ -26,8 +24,7 @@ public class
 
 	private string _projectionName;
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		_projectionName = "test-projection";
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 		yield return
@@ -38,8 +35,7 @@ public class
 	}
 
 	[Test, Category("v8")]
-	public void projection_status_is_running()
-	{
+	public void projection_status_is_running() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, _projectionName,
 				true));
@@ -50,16 +46,14 @@ public class
 	}
 
 	[Test, Category("v8")]
-	public void a_projection_updated_event_is_written()
-	{
+	public void a_projection_updated_event_is_written() {
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Any(
 				v => v.Events[0].EventType == ProjectionEventTypes.ProjectionUpdated));
 	}
 
 	[Test, Category("v8")]
-	public void a_projection_updated_message_is_published()
-	{
+	public void a_projection_updated_message_is_published() {
 		// not published until writes complete
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ProjectionManagementMessage.Updated>().Count());
 	}

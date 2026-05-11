@@ -8,69 +8,55 @@ using System;
 using System.Collections.Generic;
 using System.ServiceModel;
 
-class FreezableCollection<T> : Collection<T>, ICollection<T>
-{
+class FreezableCollection<T> : Collection<T>, ICollection<T> {
 	bool frozen;
 
 	public FreezableCollection()
-		: base()
-	{
+		: base() {
 	}
 
 	public FreezableCollection(IList<T> list)
-		: base(list)
-	{
+		: base(list) {
 	}
 
-	public bool IsFrozen
-	{
-		get
-		{
+	public bool IsFrozen {
+		get {
 			return this.frozen;
 		}
 	}
 
-	bool ICollection<T>.IsReadOnly
-	{
-		get
-		{
+	bool ICollection<T>.IsReadOnly {
+		get {
 			return this.frozen;
 		}
 	}
 
-	public void Freeze()
-	{
+	public void Freeze() {
 		this.frozen = true;
 	}
 
-	protected override void ClearItems()
-	{
+	protected override void ClearItems() {
 		ThrowIfFrozen();
 		base.ClearItems();
 	}
 
-	protected override void InsertItem(int index, T item)
-	{
+	protected override void InsertItem(int index, T item) {
 		ThrowIfFrozen();
 		base.InsertItem(index, item);
 	}
 
-	protected override void RemoveItem(int index)
-	{
+	protected override void RemoveItem(int index) {
 		ThrowIfFrozen();
 		base.RemoveItem(index);
 	}
 
-	protected override void SetItem(int index, T item)
-	{
+	protected override void SetItem(int index, T item) {
 		ThrowIfFrozen();
 		base.SetItem(index, item);
 	}
 
-	void ThrowIfFrozen()
-	{
-		if (this.frozen)
-		{
+	void ThrowIfFrozen() {
+		if (this.frozen) {
 			throw DiagnosticUtility.ExceptionUtility.ThrowHelperError(new InvalidOperationException(SR.ObjectIsReadOnly));
 		}
 	}

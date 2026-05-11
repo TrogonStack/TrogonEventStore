@@ -9,18 +9,15 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_starting_a_new_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+public class when_starting_a_new_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	protected override void Given() {
 		NoStream("$projections-projection-result");
 		NoStream("$projections-projection-order");
 		AllWritesToSucceed("$projections-projection-order");
 		NoStream("$projections-projection-checkpoint");
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		var eventId = Guid.NewGuid();
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -30,8 +27,7 @@ public class when_starting_a_new_projection_and_an_event_is_received<TLogFormat,
 	}
 
 	[Test]
-	public void should_initialize_projection_state_handler()
-	{
+	public void should_initialize_projection_state_handler() {
 		Assert.AreEqual(1, _stateHandler._initializeCalled);
 	}
 }

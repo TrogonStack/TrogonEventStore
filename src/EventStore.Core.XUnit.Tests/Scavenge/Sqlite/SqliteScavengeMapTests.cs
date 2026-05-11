@@ -5,12 +5,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
-{
+public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests> {
 
 	[Fact]
-	public void throws_on_unsupported_type()
-	{
+	public void throws_on_unsupported_type() {
 		Assert.Throws<ArgumentException>(
 			() => new SqliteScavengeMap<byte, int>("UnsupportedKeyTypeMap"));
 
@@ -19,8 +17,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void initializes_table_only_once()
-	{
+	public void initializes_table_only_once() {
 		var sut = new SqliteScavengeMap<int, int>("SomeMap");
 		var sqliteBackend = new SqliteBackend(Fixture.DbConnection);
 
@@ -34,8 +31,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_use_int_float_map()
-	{
+	public void can_use_int_float_map() {
 		var sut = new SqliteScavengeMap<int, float>("IntFloatMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -50,8 +46,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_use_string_map()
-	{
+	public void can_use_string_map() {
 		var sut = new SqliteScavengeMap<string, string>("StringMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -62,8 +57,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_overwrite_value()
-	{
+	public void can_overwrite_value() {
 		var sut = new SqliteScavengeMap<string, string>("OverwriteStringMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -75,8 +69,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_store_max_unsigned_long()
-	{
+	public void can_store_max_unsigned_long() {
 		var sut = new SqliteScavengeMap<ulong, ulong>("UnsignedLongMaxValueMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -87,8 +80,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_remove_value_from_map()
-	{
+	public void can_remove_value_from_map() {
 		var sut = new SqliteScavengeMap<int, int>("RemoveValueMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -105,8 +97,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_try_remove_value_from_map()
-	{
+	public void can_try_remove_value_from_map() {
 		var sut = new SqliteScavengeMap<int, int>("TryRemoveValueMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -115,8 +106,7 @@ public class SqliteScavengeMapTests : SqliteDbPerTest<SqliteScavengeMapTests>
 	}
 
 	[Fact]
-	public void can_get_all_records()
-	{
+	public void can_get_all_records() {
 		var sut = new SqliteScavengeMap<int, int>("EnumerateMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 

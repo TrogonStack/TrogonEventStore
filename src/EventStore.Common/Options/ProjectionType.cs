@@ -1,7 +1,6 @@
 namespace EventStore.Common.Options;
 
-public enum ProjectionType
-{
+public enum ProjectionType {
 	None,
 	System,
 	All

@@ -7,26 +7,23 @@ using EventStore.Common.Utils;
 
 namespace EventStore.TestClient.Commands;
 
-internal class SubscriptionStressTestProcessor : ICmdProcessor
-{
-	public string Usage
-	{
+internal class SubscriptionStressTestProcessor : ICmdProcessor {
+	public string Usage {
 		get { return "SST [<subscription-count>]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "SST"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		int subscriptionCount = 5000;
 
-		if (args.Length > 0)
-		{
-			if (args.Length > 1)
+		if (args.Length > 0) {
+			if (args.Length > 1) {
 				return false;
+			}
+
 			subscriptionCount = MetricPrefixValue.ParseInt(args[0]);
 		}
 
@@ -41,18 +38,17 @@ internal class SubscriptionStressTestProcessor : ICmdProcessor
 
 		long appearedCnt = 0;
 		var sw = Stopwatch.StartNew();
-		for (int i = 0; i < subscriptionCount; ++i)
-		{
+		for (int i = 0; i < subscriptionCount; ++i) {
 			conn.SubscribeToStreamAsync(
 				string.Format("stream-{0}", i),
 				false,
-				(s, e) =>
-				{
+				(s, e) => {
 					var c = Interlocked.Increment(ref appearedCnt);
-					if (c % 1000 == 0)
+					if (c % 1000 == 0) {
 						Console.Write('\'');
-					if (c % 100000 == 0)
-					{
+					}
+
+					if (c % 100000 == 0) {
 						context.Log.Debug("Received total {events} events ({rate} per sec)...", c,
 							100000.0 / sw.Elapsed.TotalSeconds);
 						sw.Restart();

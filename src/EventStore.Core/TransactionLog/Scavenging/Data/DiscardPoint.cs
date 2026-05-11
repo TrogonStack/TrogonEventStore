@@ -4,8 +4,9 @@ using EventStore.Common.Utils;
 namespace EventStore.Core.TransactionLog.Scavenging {
 	public readonly struct DiscardPoint : IEquatable<DiscardPoint> {
 		private DiscardPoint(long firstEventNumberToKeep) {
-			if (firstEventNumberToKeep < 0)
+			if (firstEventNumberToKeep < 0) {
 				firstEventNumberToKeep = 0;
+			}
 
 			FirstEventNumberToKeep = firstEventNumberToKeep;
 		}
@@ -14,11 +15,12 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			new DiscardPoint(eventNumber);
 
 		public static DiscardPoint DiscardIncluding(long eventNumber) {
-			if (eventNumber == long.MaxValue)
+			if (eventNumber == long.MaxValue) {
 				throw new ArgumentOutOfRangeException(
 					nameof(eventNumber),
 					eventNumber,
 					"eventNumber must be less than long.MaxValue");
+			}
 
 			return DiscardBefore(eventNumber + 1);
 		}
@@ -64,10 +66,12 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public override string ToString() {
-			if (this == KeepAll)
+			if (this == KeepAll) {
 				return "Keep all";
-			else
+			}
+			else {
 				return $"Discard before {FirstEventNumberToKeep}";
+			}
 		}
 	}
 }

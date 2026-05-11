@@ -10,8 +10,7 @@ using EventStore.TestClient.Commands.DvuBasic;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
-{
+internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase {
 	private int _iterationCode = 0;
 	private TimeSpan _executionPeriod;
 
@@ -19,34 +18,28 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		int maxConcurrentRequests, int connections, int streams, int eventsPerStream, int streamDeleteStep,
 		TimeSpan executionPeriod, string dbParentPath, NodeConnectionInfo customNode)
 		: base(directSendOverTcp, maxConcurrentRequests, connections, streams, eventsPerStream, streamDeleteStep,
-			dbParentPath, customNode)
-	{
+			dbParentPath, customNode) {
 		_executionPeriod = executionPeriod;
 	}
 
-	private EventData CreateBankEvent(int version)
-	{
+	private EventData CreateBankEvent(int version) {
 		var accountObject = BankAccountEventFactory.CreateAccountObject(version);
 		var @event = BankAccountEvent.FromEvent(accountObject);
 		return @event;
 	}
 
-	protected virtual int GetIterationCode()
-	{
+	protected virtual int GetIterationCode() {
 		return _iterationCode;
 	}
 
-	protected virtual bool ShouldRestartNode
-	{
+	protected virtual bool ShouldRestartNode {
 		get { return true; }
 	}
 
-	protected override void RunInternal()
-	{
+	protected override void RunInternal() {
 		var started = DateTime.UtcNow;
 
-		while ((DateTime.UtcNow - started) < _executionPeriod)
-		{
+		while ((DateTime.UtcNow - started) < _executionPeriod) {
 			var msg = string.Format(
 				"=================== Start run #{0}, elapsed {1} of {2} minutes, {3} =================== ",
 				GetIterationCode(),
@@ -67,12 +60,12 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		}
 	}
 
-	private void InnerRun()
-	{
+	private void InnerRun() {
 		int nodeProcessId = -1;
 
-		if (ShouldRestartNode)
+		if (ShouldRestartNode) {
 			nodeProcessId = StartNode();
+		}
 
 		EnableProjectionByCategory();
 
@@ -92,82 +85,82 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		var stopWatch = new Stopwatch();
 
 		var waitDuration = TimeSpan.FromMilliseconds(20 * 1000 + 5 * Streams * EventsPerStream);
-		while (stopWatch.Elapsed < waitDuration)
-		{
-			if (writeTask.IsFaulted)
+		while (stopWatch.Elapsed < waitDuration) {
+			if (writeTask.IsFaulted) {
 				throw new ApplicationException("Failed to write data");
+			}
 
-			if (writeTask.IsCompleted && !stopWatch.IsRunning)
-			{
+			if (writeTask.IsCompleted && !stopWatch.IsRunning) {
 				stopWatch.Start();
 				isWatchStarted = true;
 			}
 
-			if (isWatchStarted)
+			if (isWatchStarted) {
 				stopWatch.Stop();
+			}
 
 			failed = CheckIsFaulted(projections, out failReason);
-			if (failed)
+			if (failed) {
 				break;
+			}
 
-			if (CheckIsCompleted(projections, expectedAllEventsCount))
+			if (CheckIsCompleted(projections, expectedAllEventsCount)) {
 				break;
+			}
 
 			Thread.Sleep((int)(waitDuration.TotalMilliseconds / 6));
 
 			failed = CheckIsFaulted(projections, out failReason);
-			if (failed)
+			if (failed) {
 				break;
+			}
 
-			if (ShouldRestartNode)
-			{
+			if (ShouldRestartNode) {
 				KillNode(nodeProcessId);
 				nodeProcessId = StartNode();
 			}
 
-			if (isWatchStarted)
+			if (isWatchStarted) {
 				stopWatch.Start();
+			}
 		}
 
 		writeTask.Wait();
 
-		for (int i = 3; i < 11; ++i)
-		{
+		for (int i = 3; i < 11; ++i) {
 			var newSumCheckForBankAccounts = CreateSumCheckForBankAccounts("sumCheckForBankAccounts", i.ToString());
 			Thread.Sleep(200);
 			failed = CheckIsFaulted(new[] { newSumCheckForBankAccounts }, out failReason);
 
-			if (failed)
+			if (failed) {
 				break;
+			}
 		}
 
-		if (ShouldRestartNode)
+		if (ShouldRestartNode) {
 			KillNode(nodeProcessId);
+		}
 
-		if (failed)
+		if (failed) {
 			throw new ApplicationException(string.Format("Projection failed due to reason: {0}.", failReason));
+		}
 	}
 
-	private bool CheckIsFaulted(IEnumerable<string> projectionsNames, out string failReason)
-	{
+	private bool CheckIsFaulted(IEnumerable<string> projectionsNames, out string failReason) {
 		var faulted = false;
 		failReason = null;
-		foreach (var projectionName in projectionsNames)
-		{
+		foreach (var projectionName in projectionsNames) {
 			faulted = faulted || GetProjectionIsFaulted(projectionName, out failReason);
 		}
 
 		return faulted;
 	}
 
-	private bool CheckIsCompleted(IEnumerable<string> projectionsNames, int expectedAllEventsCount)
-	{
+	private bool CheckIsCompleted(IEnumerable<string> projectionsNames, int expectedAllEventsCount) {
 		var completed = false;
-		foreach (var projectionName in projectionsNames)
-		{
+		foreach (var projectionName in projectionsNames) {
 			var position = GetProjectionPosition(projectionName);
-			if (position == expectedAllEventsCount)
-			{
+			if (position == expectedAllEventsCount) {
 				Log.Debug("Expected position reached in {projection}, done.", projectionName);
 				completed = true;
 			}
@@ -176,8 +169,7 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		return completed;
 	}
 
-	protected Task WriteData()
-	{
+	protected Task WriteData() {
 		var streams = Enumerable.Range(0, Streams)
 			.Select(i => string.Format("bank_account_it{0}-{1}", GetIterationCode(), i)).ToArray();
 		var slices = Split(streams, 3);
@@ -190,8 +182,7 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		return task.ContinueWith(x => Log.Information("Data written for iteration {iteration}.", GetIterationCode()));
 	}
 
-	protected string CreateSumCheckForBankAccounts(string projectionName, string suffix = "")
-	{
+	protected string CreateSumCheckForBankAccounts(string projectionName, string suffix = "") {
 		var fullProjectionName = string.Format("{0}_it{1}_{2}", projectionName, GetIterationCode(), suffix);
 		var countItemsProjection = string.Format(@"
                 fromCategory('bank_account_it{1}').foreachStream().when({{
@@ -237,8 +228,7 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 	}
 }
 
-internal class ProjForeachForcedCommonNameNoRestartScenario : ProjForeachForcedCommonNameScenario
-{
+internal class ProjForeachForcedCommonNameNoRestartScenario : ProjForeachForcedCommonNameScenario {
 	public ProjForeachForcedCommonNameNoRestartScenario(Action<IPEndPoint, byte[]> directSendOverTcp,
 		int maxConcurrentRequests,
 		int connections,
@@ -249,17 +239,14 @@ internal class ProjForeachForcedCommonNameNoRestartScenario : ProjForeachForcedC
 		string dbParentPath,
 		NodeConnectionInfo customNode)
 		: base(directSendOverTcp, maxConcurrentRequests, connections, streams, eventsPerStream, streamDeleteStep,
-			executionPeriod, dbParentPath, customNode)
-	{
+			executionPeriod, dbParentPath, customNode) {
 	}
 
-	protected override bool ShouldRestartNode
-	{
+	protected override bool ShouldRestartNode {
 		get { return false; }
 	}
 
-	protected override void RunInternal()
-	{
+	protected override void RunInternal() {
 		StartNode();
 		base.RunInternal();
 	}

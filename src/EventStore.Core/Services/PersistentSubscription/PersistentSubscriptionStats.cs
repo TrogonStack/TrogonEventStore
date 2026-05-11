@@ -31,10 +31,13 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		}
 
 		public void SetLastKnownEventPosition(IPersistentSubscriptionStreamPosition knownEventPosition) {
-			if (knownEventPosition == null)
+			if (knownEventPosition == null) {
 				return;
-			if (_lastKnownEventPosition == null || _lastKnownEventPosition.CompareTo(knownEventPosition) < 0)
+			}
+
+			if (_lastKnownEventPosition == null || _lastKnownEventPosition.CompareTo(knownEventPosition) < 0) {
 				_lastKnownEventPosition = knownEventPosition;
+			}
 		}
 
 		public MonitoringMessage.PersistentSubscriptionInfo GetStatistics() {

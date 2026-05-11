@@ -12,17 +12,14 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Tests.TransactionLog;
 
-internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
-{
+internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId> {
 	private readonly IMetastreamLookup<TStreamId> _metastreams;
 
-	public long LastIndexedPosition
-	{
+	public long LastIndexedPosition {
 		get { return 0; }
 	}
 
-	public IIndexWriter<TStreamId> IndexWriter
-	{
+	public IIndexWriter<TStreamId> IndexWriter {
 		get { throw new NotImplementedException(); }
 	}
 
@@ -30,31 +27,26 @@ internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
 
 	public FakeReadIndex(
 		Func<TStreamId, bool> isStreamDeleted,
-		IMetastreamLookup<TStreamId> metastreams)
-	{
+		IMetastreamLookup<TStreamId> metastreams) {
 
 		Ensure.NotNull(isStreamDeleted, "isStreamDeleted");
 		_isStreamDeleted = isStreamDeleted;
 		_metastreams = metastreams;
 	}
 
-	public void Init(long buildToPosition)
-	{
+	public void Init(long buildToPosition) {
 		throw new NotImplementedException();
 	}
 
-	public void Commit(CommitLogRecord record)
-	{
+	public void Commit(CommitLogRecord record) {
 		throw new NotImplementedException();
 	}
 
-	public void Commit(IList<IPrepareLogRecord<TStreamId>> commitedPrepares)
-	{
+	public void Commit(IList<IPrepareLogRecord<TStreamId>> commitedPrepares) {
 		throw new NotImplementedException();
 	}
 
-	public ReadIndexStats GetStatistics()
-	{
+	public ReadIndexStats GetStatistics() {
 		throw new NotImplementedException();
 	}
 
@@ -107,15 +99,14 @@ internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
 		IEventFilter eventFilter, CancellationToken token)
 		=> ValueTask.FromException<IndexReadAllResult>(new NotImplementedException());
 
-	public ValueTask<bool> IsStreamDeleted(TStreamId streamId, CancellationToken token)
-	{
+	public ValueTask<bool> IsStreamDeleted(TStreamId streamId, CancellationToken token) {
 		return new(_isStreamDeleted(streamId));
 	}
 
-	public ValueTask<long> GetStreamLastEventNumber(TStreamId streamId, CancellationToken token)
-	{
-		if (_metastreams.IsMetaStream(streamId))
+	public ValueTask<long> GetStreamLastEventNumber(TStreamId streamId, CancellationToken token) {
+		if (_metastreams.IsMetaStream(streamId)) {
 			return GetStreamLastEventNumber(_metastreams.OriginalStreamOf(streamId), token);
+		}
 
 		return new(_isStreamDeleted(streamId) ? EventNumber.DeletedStream : 1000000);
 	}
@@ -134,29 +125,25 @@ internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
 	public ValueTask<TStreamId> GetEventStreamIdByTransactionId(long transactionId, CancellationToken token)
 		=> ValueTask.FromException<TStreamId>(new NotImplementedException());
 
-	public StreamAccess CheckStreamAccess(TStreamId streamId, StreamAccessType streamAccessType, ClaimsPrincipal user)
-	{
+	public StreamAccess CheckStreamAccess(TStreamId streamId, StreamAccessType streamAccessType, ClaimsPrincipal user) {
 		throw new NotImplementedException();
 	}
 
 	public ValueTask<StreamMetadata> GetStreamMetadata(TStreamId streamId, CancellationToken token)
 		=> ValueTask.FromException<StreamMetadata>(new NotImplementedException());
 
-	public TStreamId GetStreamId(string streamName)
-	{
+	public TStreamId GetStreamId(string streamName) {
 		throw new NotImplementedException();
 	}
 
 	public ValueTask<string> GetStreamName(TStreamId streamId, CancellationToken token)
 		=> ValueTask.FromException<string>(new NotImplementedException());
 
-	public void Close()
-	{
+	public void Close() {
 		throw new NotImplementedException();
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		throw new NotImplementedException();
 	}
 }

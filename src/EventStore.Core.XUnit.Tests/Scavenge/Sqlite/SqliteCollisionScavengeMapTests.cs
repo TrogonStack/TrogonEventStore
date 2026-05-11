@@ -5,12 +5,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionScavengeMapTests>
-{
+public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionScavengeMapTests> {
 
 	[Fact]
-	public void can_set_value()
-	{
+	public void can_set_value() {
 		var sut = new SqliteCollisionScavengeMap<int>();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -21,8 +19,7 @@ public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionSc
 	}
 
 	[Fact]
-	public void can_overwrite_value()
-	{
+	public void can_overwrite_value() {
 		var sut = new SqliteCollisionScavengeMap<string>();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -34,8 +31,7 @@ public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionSc
 	}
 
 	[Fact]
-	public void can_get_all_records()
-	{
+	public void can_get_all_records() {
 		var sut = new SqliteCollisionScavengeMap<int>();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -54,8 +50,7 @@ public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionSc
 	}
 
 	[Fact]
-	public void can_try_get_value_of_non_existing()
-	{
+	public void can_try_get_value_of_non_existing() {
 		var sut = new SqliteCollisionScavengeMap<int>();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -64,8 +59,7 @@ public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionSc
 	}
 
 	[Fact]
-	public void can_remove_value()
-	{
+	public void can_remove_value() {
 		var sut = new SqliteCollisionScavengeMap<int>();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -76,8 +70,7 @@ public class SqliteCollisionScavengeMapTests : SqliteDbPerTest<SqliteCollisionSc
 	}
 
 	[Fact]
-	public void can_try_remove_value()
-	{
+	public void can_try_remove_value() {
 		var sut = new SqliteCollisionScavengeMap<string>();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 

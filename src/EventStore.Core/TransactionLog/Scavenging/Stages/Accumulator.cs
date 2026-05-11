@@ -15,15 +15,13 @@ public class Accumulator<TStreamId>(
 	IIndexReaderForAccumulator<TStreamId> index,
 	int cancellationCheckPeriod,
 	Throttle throttle)
-	: IAccumulator<TStreamId>
-{
+	: IAccumulator<TStreamId> {
 	// Start a new accumulation
 	public async ValueTask Accumulate(
 		ScavengePoint prevScavengePoint,
 		ScavengePoint scavengePoint,
 		IScavengeStateForAccumulator<TStreamId> state,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		logger.Debug("SCAVENGING: Started new scavenge accumulation phase: {prevScavengePoint} to {scavengePoint}",
 			prevScavengePoint?.GetName() ?? "beginning of log",
@@ -31,8 +29,7 @@ public class Accumulator<TStreamId>(
 
 		var doneLogicalChunkNumber = default(int?);
 
-		if (prevScavengePoint != null)
-		{
+		if (prevScavengePoint != null) {
 			// scavenge point always closes a chunk, and we accumulate up to and including the
 			// scavenge point, so we have done the chunk with the prev scavenge point in it.
 			doneLogicalChunkNumber = (int)(prevScavengePoint.Position / chunkSize);
@@ -49,8 +46,7 @@ public class Accumulator<TStreamId>(
 	public async ValueTask Accumulate(
 		ScavengeCheckpoint.Accumulating checkpoint,
 		IScavengeStateForAccumulator<TStreamId> state,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		logger.Debug("SCAVENGING: Accumulating from checkpoint: {checkpoint}", checkpoint);
 		var stopwatch = new Stopwatch();
@@ -66,16 +62,15 @@ public class Accumulator<TStreamId>(
 		var tombstoneRecord = new RecordForAccumulator<TStreamId>.TombStoneRecord();
 
 		while (await AccumulateChunkAndRecordRange(
-			       scavengePoint,
-			       state,
-			       weights,
-			       logicalChunkNumber,
-			       originalStreamRecord,
-			       metadataStreamRecord,
-			       tombstoneRecord,
-			       stopwatch,
-			       cancellationToken))
-		{
+				   scavengePoint,
+				   state,
+				   weights,
+				   logicalChunkNumber,
+				   originalStreamRecord,
+				   metadataStreamRecord,
+				   tombstoneRecord,
+				   stopwatch,
+				   cancellationToken)) {
 			logicalChunkNumber++;
 		}
 	}
@@ -89,16 +84,14 @@ public class Accumulator<TStreamId>(
 		RecordForAccumulator<TStreamId>.MetadataStreamRecord metadataStreamRecord,
 		RecordForAccumulator<TStreamId>.TombStoneRecord tombStoneRecord,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		stopwatch.Restart();
 
 		// for correctness it is important that any particular DetectCollisions call is contained
 		// within a transaction.
 		var transaction = state.BeginTransaction();
-		try
-		{
+		try {
 			var ret = await AccumulateChunk(
 				scavengePoint,
 				state,
@@ -109,14 +102,12 @@ public class Accumulator<TStreamId>(
 				tombStoneRecord,
 				cancellationToken);
 
-			if (ret.ChunkTimeStamps.Min <= ret.ChunkTimeStamps.Max)
-			{
+			if (ret.ChunkTimeStamps.Min <= ret.ChunkTimeStamps.Max) {
 				state.SetChunkTimeStampRange(
 					logicalChunkNumber: logicalChunkNumber,
 					ret.ChunkTimeStamps);
 			}
-			else
-			{
+			else {
 				// empty range, no need to store it.
 			}
 
@@ -150,10 +141,8 @@ public class Accumulator<TStreamId>(
 
 			return ret.Continue;
 		}
-		catch (Exception ex)
-		{
-			if (ex is not OperationCanceledException)
-			{
+		catch (Exception ex) {
+			if (ex is not OperationCanceledException) {
 				logger.Error(ex, "SCAVENGING: Rolling back");
 			}
 
@@ -172,8 +161,7 @@ public class Accumulator<TStreamId>(
 		RecordForAccumulator<TStreamId>.OriginalStreamRecord originalStreamRecord,
 		RecordForAccumulator<TStreamId>.MetadataStreamRecord metadataStreamRecord,
 		RecordForAccumulator<TStreamId>.TombStoneRecord tombStoneRecord,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		var countAccumulatedRecords = 0;
 		var countOriginalStreamRecords = 0;
@@ -186,8 +174,7 @@ public class Accumulator<TStreamId>(
 
 		var scavengePointPosition = scavengePoint.Position;
 
-		if ((long)logicalChunkNumber * chunkSize > scavengePointPosition)
-		{
+		if ((long)logicalChunkNumber * chunkSize > scavengePointPosition) {
 			// this can happen if we accumulated the chunk with the scavenge point in it
 			// then checkpointed that we have done so.
 			@continue = false;
@@ -196,16 +183,14 @@ public class Accumulator<TStreamId>(
 
 		var cancellationCheckCounter = 0;
 		await foreach (var recordType in chunkReader.ReadChunkInto(
-			               logicalChunkNumber,
-			               originalStreamRecord,
-			               metadataStreamRecord,
-			               tombStoneRecord,
-			               cancellationToken))
-		{
+						   logicalChunkNumber,
+						   originalStreamRecord,
+						   metadataStreamRecord,
+						   tombStoneRecord,
+						   cancellationToken)) {
 
 			RecordForAccumulator<TStreamId> record;
-			switch (recordType)
-			{
+			switch (recordType) {
 				case AccumulatorRecordType.OriginalStreamRecord:
 					ProcessOriginalStreamRecord(originalStreamRecord, state);
 					record = originalStreamRecord;
@@ -226,27 +211,26 @@ public class Accumulator<TStreamId>(
 					throw new InvalidOperationException($"Unexpected recordType: {recordType}");
 			}
 
-			if (record.TimeStamp < chunkMinTimeStamp)
+			if (record.TimeStamp < chunkMinTimeStamp) {
 				chunkMinTimeStamp = record.TimeStamp;
+			}
 
-			if (record.TimeStamp > chunkMaxTimeStamp)
+			if (record.TimeStamp > chunkMaxTimeStamp) {
 				chunkMaxTimeStamp = record.TimeStamp;
+			}
 
 			countAccumulatedRecords++;
 
-			if (record.LogPosition == scavengePointPosition)
-			{
+			if (record.LogPosition == scavengePointPosition) {
 				// accumulated the scavenge point, time to stop.
 				@continue = false;
 				goto Return;
 			}
-			else if (record.LogPosition > scavengePointPosition)
-			{
+			else if (record.LogPosition > scavengePointPosition) {
 				throw new Exception("Accumulator expected to find the scavenge point before now.");
 			}
 
-			if (++cancellationCheckCounter == cancellationCheckPeriod)
-			{
+			if (++cancellationCheckCounter == cancellationCheckPeriod) {
 				cancellationCheckCounter = 0;
 				cancellationToken.ThrowIfCancellationRequested();
 				throttle.Rest(cancellationToken);
@@ -255,9 +239,8 @@ public class Accumulator<TStreamId>(
 
 		@continue = true;
 
-		Return:
-		return new AccumulationResult
-		{
+Return:
+		return new AccumulationResult {
 			AccumulatedRecordsCount = countAccumulatedRecords,
 			OriginalStreamRecordsCount = countOriginalStreamRecords,
 			MetaStreamRecordsCount = countMetaStreamRecords,
@@ -276,8 +259,7 @@ public class Accumulator<TStreamId>(
 	//    streams first event is anything other than 0.
 	private static void ProcessOriginalStreamRecord(
 		RecordForAccumulator<TStreamId>.OriginalStreamRecord record,
-		IScavengeStateForAccumulator<TStreamId> state)
-	{
+		IScavengeStateForAccumulator<TStreamId> state) {
 
 		state.DetectCollisions(record.StreamId);
 	}
@@ -296,16 +278,16 @@ public class Accumulator<TStreamId>(
 		ScavengePoint scavengePoint,
 		IScavengeStateForAccumulator<TStreamId> state,
 		WeightAccumulator weights,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
 		var originalStreamId = metastreamLookup.OriginalStreamOf(record.StreamId);
 		state.DetectCollisions(originalStreamId);
 		state.DetectCollisions(record.StreamId);
 
-		if (record.EventNumber < 0)
+		if (record.EventNumber < 0) {
 			throw new InvalidOperationException(
 				$"Found metadata in transaction in stream {record.StreamId}");
+		}
 
 		var (isInOrder, replacedPosition) = await CheckMetadataOrdering(
 			record,
@@ -313,29 +295,25 @@ public class Accumulator<TStreamId>(
 			scavengePoint,
 			token);
 
-		if (replacedPosition.HasValue)
-		{
+		if (replacedPosition.HasValue) {
 			var logicalChunkNumber = (int)(replacedPosition.Value / chunkSize);
 			weights.OnDiscard(logicalChunkNumber: logicalChunkNumber);
 		}
 
-		if (!isInOrder)
-		{
+		if (!isInOrder) {
 			logger.Information("SCAVENGING: Accumulator found out of order metadata: {stream}:{eventNumber}",
 				record.StreamId,
 				record.EventNumber);
 			return;
 		}
 
-		if (metastreamLookup.IsMetaStream(originalStreamId))
-		{
+		if (metastreamLookup.IsMetaStream(originalStreamId)) {
 			// record in a metadata stream of a metadata stream: $$$$xyz
 			// this does not set metadata for $$xyz (which is fixed at maxcount1)
 			// (see IndexReader.GetStreamMetadataCached)
 			// but it does, itself, have a fixed metadata of maxcount1, so move the discard point.
 		}
-		else
-		{
+		else {
 			// record is in a standard metadata stream: $$xyz
 			// Update the Metadata for stream xyz
 			state.SetOriginalStreamMetadata(originalStreamId, record.Metadata);
@@ -343,12 +321,10 @@ public class Accumulator<TStreamId>(
 
 		// Update the discard point
 		var discardPoint = DiscardPoint.DiscardBefore(record.EventNumber);
-		if (discardPoint != DiscardPoint.KeepAll)
-		{
+		if (discardPoint != DiscardPoint.KeepAll) {
 			state.SetMetastreamDiscardPoint(record.StreamId, discardPoint);
 		}
-		else
-		{
+		else {
 			// no need to set a discard point for the first metadata record because
 			// there is nothing to discard.
 		}
@@ -363,21 +339,18 @@ public class Accumulator<TStreamId>(
 		ScavengePoint scavengePoint,
 		IScavengeStateForAccumulator<TStreamId> state,
 		WeightAccumulator weights,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
 		state.DetectCollisions(record.StreamId);
 
-		if (metastreamLookup.IsMetaStream(record.StreamId))
-		{
+		if (metastreamLookup.IsMetaStream(record.StreamId)) {
 			// isn't possible to write a tombstone to a metadatastream, but spot it in case
 			// it ever was possible.
 			throw new InvalidOperationException(
 				$"Found Tombstone in metadata stream {record.StreamId}");
 		}
 
-		if (record.EventNumber < 0)
-		{
+		if (record.EventNumber < 0) {
 			throw new InvalidOperationException(
 				$"Found Tombstone in transaction in stream {record.StreamId}");
 		}
@@ -405,8 +378,7 @@ public class Accumulator<TStreamId>(
 			scavengePoint: scavengePoint,
 			token)).EventInfos;
 
-		foreach (var eventInfo in eventInfos)
-		{
+		foreach (var eventInfo in eventInfos) {
 			var logicalChunkNumber = (int)(eventInfo.LogPosition / chunkSize);
 			weights.OnDiscard(logicalChunkNumber: logicalChunkNumber);
 		}
@@ -416,8 +388,7 @@ public class Accumulator<TStreamId>(
 		RecordForAccumulator<TStreamId>.MetadataStreamRecord record,
 		StreamHandle<TStreamId> metastreamId,
 		ScavengePoint scavengePoint,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
 		// We have just received a metadata record.
 		// we need to achieve two things here
@@ -445,11 +416,9 @@ public class Accumulator<TStreamId>(
 			token)).EventInfos;
 
 		var isInOrder = true;
-		foreach (var eventInfo in eventInfos)
-		{
+		foreach (var eventInfo in eventInfos) {
 			if (eventInfo.LogPosition < record.LogPosition &&
-			    eventInfo.EventNumber >= record.EventNumber)
-			{
+				eventInfo.EventNumber >= record.EventNumber) {
 
 				// found an event that is before us in the log but has our event number or higher.
 				// that record is the metadata that we will keep, skipping over this one.
@@ -458,21 +427,17 @@ public class Accumulator<TStreamId>(
 		}
 
 		long? replacedPosition;
-		if (isInOrder)
-		{
+		if (isInOrder) {
 			if (eventInfos.Length > 0 &&
-			    eventInfos[0].EventNumber < record.EventNumber &&
-			    eventInfos[0].LogPosition < record.LogPosition)
-			{
+				eventInfos[0].EventNumber < record.EventNumber &&
+				eventInfos[0].LogPosition < record.LogPosition) {
 				replacedPosition = eventInfos[0].LogPosition;
 			}
-			else
-			{
+			else {
 				replacedPosition = null;
 			}
 		}
-		else
-		{
+		else {
 			replacedPosition = record.LogPosition;
 		}
 

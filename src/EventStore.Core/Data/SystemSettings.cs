@@ -34,8 +34,10 @@ namespace EventStore.Core.Data {
 
 				while (true) {
 					Check(reader.Read(), reader);
-					if (reader.TokenType == JsonToken.EndObject)
+					if (reader.TokenType == JsonToken.EndObject) {
 						break;
+					}
+
 					Check(JsonToken.PropertyName, reader);
 					var name = (string)reader.Value;
 					switch (name) {
@@ -46,11 +48,11 @@ namespace EventStore.Core.Data {
 							systemStreamAcl = StreamMetadata.ReadAcl(reader);
 							break;
 						default: {
-							Check(reader.Read(), reader);
-							// skip
-							JToken.ReadFrom(reader);
-							break;
-						}
+								Check(reader.Read(), reader);
+								// skip
+								JToken.ReadFrom(reader);
+								break;
+							}
 					}
 				}
 
@@ -59,13 +61,15 @@ namespace EventStore.Core.Data {
 		}
 
 		private static void Check(JsonToken type, JsonTextReader reader) {
-			if (reader.TokenType != type)
+			if (reader.TokenType != type) {
 				throw new Exception("Invalid JSON");
+			}
 		}
 
 		private static void Check(bool read, JsonTextReader reader) {
-			if (!read)
+			if (!read) {
 				throw new Exception("Invalid JSON");
+			}
 		}
 
 		public byte[] ToJsonBytes() {

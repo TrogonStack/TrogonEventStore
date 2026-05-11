@@ -4,8 +4,7 @@ using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public interface IResultWriter
-{
+public interface IResultWriter {
 	//NOTE: subscriptionId should not be here.  Reconsider how to pass it to follower projection result writer
 	void WriteEofResult(
 		Guid subscriptionId, string partition, string resultBody, CheckpointTag causedBy, Guid causedByGuid,

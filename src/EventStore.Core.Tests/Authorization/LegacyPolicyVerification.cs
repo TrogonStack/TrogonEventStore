@@ -25,8 +25,7 @@ namespace EventStore.Core.Tests.Authorization;
 [TestFixture(false, true, false)]
 [TestFixture(false, false, true)]
 [TestFixture(false, false, false)]
-public class LegacyPolicyVerification
-{
+public class LegacyPolicyVerification {
 	private const string _streamWithDefaultPermissions = "StreamWithDefaultPermissions";
 	private const string _streamWithCustomPermissions = "StreamWithCustomPermissions";
 
@@ -36,8 +35,7 @@ public class LegacyPolicyVerification
 	private static bool _allowAnonymousStreamAccess;
 	private static bool _overrideAnonymousGossipEndpointAccess;
 
-	public LegacyPolicyVerification(bool allowAnonymousEndpointAccess, bool allowAnonymousStreamAccess, bool overrideAnonymousGossipEndpointAccess)
-	{
+	public LegacyPolicyVerification(bool allowAnonymousEndpointAccess, bool allowAnonymousStreamAccess, bool overrideAnonymousGossipEndpointAccess) {
 		_aclResponder = new AclResponder();
 		_allowAnonymousEndpointAccess = allowAnonymousEndpointAccess;
 		_allowAnonymousStreamAccess = allowAnonymousStreamAccess;
@@ -50,16 +48,14 @@ public class LegacyPolicyVerification
 			.Build();
 	}
 
-	public abstract class PolicyVerificationParameters
-	{
+	public abstract class PolicyVerificationParameters {
 		public ClaimsPrincipal User { get; }
 		public Operation Operation { get; }
 		public string Stream { get; }
 		public StorageMessage.EffectiveAcl StreamAcl { get; }
 		public abstract string TestName { get; }
 
-		public PolicyVerificationParameters(ClaimsPrincipal user, Operation operation, string stream, StorageMessage.EffectiveAcl streamAcl)
-		{
+		public PolicyVerificationParameters(ClaimsPrincipal user, Operation operation, string stream, StorageMessage.EffectiveAcl streamAcl) {
 			User = user;
 			Operation = operation;
 			Stream = stream;
@@ -69,36 +65,31 @@ public class LegacyPolicyVerification
 		public override string ToString() => TestName;
 	}
 
-	public class StaticPolicyVerificationParameters : PolicyVerificationParameters
-	{
+	public class StaticPolicyVerificationParameters : PolicyVerificationParameters {
 		public bool IsAuthorized { get; }
 		public bool ShouldRequestAcl { get; }
 		public override string TestName => $"{User.Identity?.Name ?? "Anonymous (empty)"} {(IsAuthorized ? "is" : "is not")} authorized to perform operation {Operation}";
 
 		public StaticPolicyVerificationParameters(ClaimsPrincipal user, Operation operation, string stream, StorageMessage.EffectiveAcl streamAcl, bool isAuthorized, bool shouldRequestAcl) :
-		base(user, operation, stream, streamAcl)
-		{
+		base(user, operation, stream, streamAcl) {
 			IsAuthorized = isAuthorized;
 			ShouldRequestAcl = shouldRequestAcl;
 		}
 	}
 
-	public class ConfigurablePolicyVerificationParameters : PolicyVerificationParameters
-	{
+	public class ConfigurablePolicyVerificationParameters : PolicyVerificationParameters {
 		public Func<bool, bool, bool> AuthorizationCheck { get; }
 		public Func<bool, bool> AclCheck { get; }
 		public override string TestName => $"Verify if Anonymous user is authorized to perform operation {Operation}";
 
 		public ConfigurablePolicyVerificationParameters(ClaimsPrincipal user, Operation operation, string stream, StorageMessage.EffectiveAcl streamAcl, Func<bool, bool, bool> authorizationCheck, Func<bool, bool> aclCheck)
-		: base(user, operation, stream, streamAcl)
-		{
+		: base(user, operation, stream, streamAcl) {
 			AuthorizationCheck = authorizationCheck;
 			AclCheck = aclCheck;
 		}
 	}
 
-	public class GossipPolicyVerificationParameters : PolicyVerificationParameters
-	{
+	public class GossipPolicyVerificationParameters : PolicyVerificationParameters {
 		public Func<bool, bool, bool> AuthorizationCheck { get; }
 
 		public override string TestName =>
@@ -106,14 +97,12 @@ public class LegacyPolicyVerification
 
 		public GossipPolicyVerificationParameters(ClaimsPrincipal user, Operation operation, string stream,
 			StorageMessage.EffectiveAcl streamAcl, Func<bool, bool, bool> authorizationCheck)
-			: base(user, operation, stream, streamAcl)
-		{
+			: base(user, operation, stream, streamAcl) {
 			AuthorizationCheck = authorizationCheck;
 		}
 	}
 
-	public static IEnumerable<PolicyVerificationParameters> PolicyTests()
-	{
+	public static IEnumerable<PolicyVerificationParameters> PolicyTests() {
 		StorageMessage.EffectiveAcl systemStreamPermission = new StorageMessage.EffectiveAcl(
 			SystemSettings.Default.SystemStreamAcl,
 			SystemSettings.Default.SystemStreamAcl,
@@ -145,10 +134,8 @@ public class LegacyPolicyVerification
 		var users = new[] { user1, user2 };
 		var system = new[] { userSystem };
 		var anonymous = new[] { new ClaimsPrincipal(), new ClaimsPrincipal(new ClaimsIdentity(new Claim[] { new Claim(ClaimTypes.Anonymous, ""), })), };
-		foreach (var user in system)
-		{
-			foreach (var operation in SystemOperations())
-			{
+		foreach (var user in system) {
+			foreach (var operation in SystemOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -156,35 +143,22 @@ public class LegacyPolicyVerification
 				);
 			}
 		}
-		foreach (var user in admins)
-		{
-			foreach (var operation in SystemOperations())
-			{
+		foreach (var user in admins) {
+			foreach (var operation in SystemOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					false
 				);
 			}
-			foreach (var operation in AdminOperations())
-			{
+			foreach (var operation in AdminOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
 					false
 				);
 			}
-			foreach (var operation in OpsOperations())
-			{
-				yield return new StaticPolicyVerificationParameters(user,
-					operation.Item1, operation.Item2, operation.Item3,
-					true,
-					false
-				);
-			}
-
-			foreach (var operation in UserOperations())
-			{
+			foreach (var operation in OpsOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -192,8 +166,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in AuthenticatedOperations())
-			{
+			foreach (var operation in UserOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -201,8 +174,15 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in AnonymousOperations())
-			{
+			foreach (var operation in AuthenticatedOperations()) {
+				yield return new StaticPolicyVerificationParameters(user,
+					operation.Item1, operation.Item2, operation.Item3,
+					true,
+					false
+				);
+			}
+
+			foreach (var operation in AnonymousOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -211,26 +191,22 @@ public class LegacyPolicyVerification
 			}
 		}
 
-		foreach (var user in operations)
-		{
-			foreach (var operation in SystemOperations())
-			{
+		foreach (var user in operations) {
+			foreach (var operation in SystemOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					false
 				);
 			}
-			foreach (var operation in AdminOperations())
-			{
+			foreach (var operation in AdminOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					operation.Item3 != null
 				);
 			}
-			foreach (var operation in OpsOperations())
-			{
+			foreach (var operation in OpsOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -238,8 +214,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in UserOperations())
-			{
+			foreach (var operation in UserOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					operation.Item2 == null || operation.Item3 == defaultUseruserStreamPermission,
@@ -247,8 +222,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in AuthenticatedOperations())
-			{
+			foreach (var operation in AuthenticatedOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -256,8 +230,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in AnonymousOperations())
-			{
+			foreach (var operation in AnonymousOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -266,26 +239,22 @@ public class LegacyPolicyVerification
 			}
 		}
 
-		foreach (var user in users)
-		{
-			foreach (var operation in SystemOperations())
-			{
+		foreach (var user in users) {
+			foreach (var operation in SystemOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					false
 				);
 			}
-			foreach (var operation in AdminOperations())
-			{
+			foreach (var operation in AdminOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					operation.Item3 != null
 				);
 			}
-			foreach (var operation in OpsOperations())
-			{
+			foreach (var operation in OpsOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
@@ -293,8 +262,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in UserOperations())
-			{
+			foreach (var operation in UserOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					operation.Item2 == null || user.Identity.Name != "test2" || operation.Item3 == defaultUseruserStreamPermission,
@@ -302,16 +270,14 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in AuthenticatedOperations())
-			{
+			foreach (var operation in AuthenticatedOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
 					operation.Item3 != null
 				);
 			}
-			foreach (var operation in AnonymousOperations())
-			{
+			foreach (var operation in AnonymousOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
@@ -320,26 +286,22 @@ public class LegacyPolicyVerification
 			}
 		}
 
-		foreach (var user in anonymous)
-		{
-			foreach (var operation in SystemOperations())
-			{
+		foreach (var user in anonymous) {
+			foreach (var operation in SystemOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					false
 				);
 			}
-			foreach (var operation in AdminOperations())
-			{
+			foreach (var operation in AdminOperations()) {
 				yield return new ConfigurablePolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					(_, _) => false,
 					(allowAnonymousStreamAccess) => allowAnonymousStreamAccess
 				);
 			}
-			foreach (var operation in OpsOperations())
-			{
+			foreach (var operation in OpsOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
@@ -347,8 +309,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in UserOperations())
-			{
+			foreach (var operation in UserOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
@@ -356,32 +317,28 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in AuthenticatedOperations())
-			{
+			foreach (var operation in AuthenticatedOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					false,
 					false
 				);
 			}
-			foreach (var operation in AnonymousOperations())
-			{
+			foreach (var operation in AnonymousOperations()) {
 				yield return new StaticPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					true,
 					operation.Item3 != null
 				);
 			}
-			foreach (var operation in AllowAnonymousEndpointAccessOperations())
-			{
+			foreach (var operation in AllowAnonymousEndpointAccessOperations()) {
 				yield return new ConfigurablePolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					(allowAnonymousEndpointAccess, _) => allowAnonymousEndpointAccess,
 					(_) => operation.Item3 != null
 				);
 			}
-			foreach (var operation in AllowAnonymousStreamAccessOperations())
-			{
+			foreach (var operation in AllowAnonymousStreamAccessOperations()) {
 				yield return new ConfigurablePolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					(_, allowAnonymousStreamAccess) => allowAnonymousStreamAccess,
@@ -389,8 +346,7 @@ public class LegacyPolicyVerification
 				);
 			}
 
-			foreach (var operation in ClientGossipOperations())
-			{
+			foreach (var operation in ClientGossipOperations()) {
 				yield return new GossipPolicyVerificationParameters(user,
 					operation.Item1, operation.Item2, operation.Item3,
 					(allowAnonymousGossipAccess, overrideAnonymousGossipAccess) =>
@@ -399,8 +355,7 @@ public class LegacyPolicyVerification
 			}
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> SystemOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> SystemOperations() {
 			yield return CreateOperation(Operations.Node.Gossip.Update);
 
 			yield return CreateOperation(Operations.Node.Elections.Prepare);
@@ -414,16 +369,14 @@ public class LegacyPolicyVerification
 			yield return CreateOperation(Operations.Node.Gossip.Read);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AdminOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AdminOperations() {
 			yield return (new Operation(Operations.Streams.Read).WithParameter(
 					Operations.Streams.Parameters.StreamId("$$$scavenge")),
 				"$$$scavenge",
 				systemStreamPermission);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> OpsOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> OpsOperations() {
 			yield return CreateOperation(Operations.Node.Information.Subsystems);
 
 			yield return CreateOperation(Operations.Node.Shutdown);
@@ -452,8 +405,7 @@ public class LegacyPolicyVerification
 			yield return CreateOperation(Operations.Projections.Restart);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> UserOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> UserOperations() {
 
 			yield return (new Operation(Operations.Subscriptions.ProcessMessages).WithParameter(Operations.Subscriptions.Parameters.StreamId(_streamWithCustomPermissions)), _streamWithCustomPermissions, userStreamPermission);
 			yield return (new Operation(Operations.Subscriptions.ProcessMessages).WithParameter(Operations.Subscriptions.Parameters.StreamId(_streamWithDefaultPermissions)), _streamWithDefaultPermissions, defaultUseruserStreamPermission);
@@ -471,27 +423,23 @@ public class LegacyPolicyVerification
 			yield return CreateOperation(Operations.Projections.Statistics);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AuthenticatedOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AuthenticatedOperations() {
 			yield return CreateOperation(Operations.Subscriptions.Statistics);
 			yield return CreateOperation(Operations.Projections.List);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AnonymousOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AnonymousOperations() {
 			yield return CreateOperation(Operations.Node.Redirect);
 			yield return CreateOperation(Operations.Node.StaticContent);
 			yield return CreateOperation(Operations.Node.Ping);
 			yield return CreateOperation(Operations.Node.Information.Read);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> ClientGossipOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> ClientGossipOperations() {
 			yield return CreateOperation(Operations.Node.Gossip.ClientRead);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AllowAnonymousEndpointAccessOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AllowAnonymousEndpointAccessOperations() {
 			yield return CreateOperation(Operations.Node.Options);
 			yield return CreateOperation(Operations.Node.Statistics.Read);
 			yield return CreateOperation(Operations.Node.Statistics.Replication);
@@ -499,8 +447,7 @@ public class LegacyPolicyVerification
 			yield return CreateOperation(Operations.Node.Statistics.Custom);
 		}
 
-		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AllowAnonymousStreamAccessOperations()
-		{
+		IEnumerable<(Operation, string, StorageMessage.EffectiveAcl)> AllowAnonymousStreamAccessOperations() {
 			yield return (new Operation(Operations.Streams.Read).WithParameter(
 					Operations.Streams.Parameters.StreamId(_streamWithDefaultPermissions)),
 				_streamWithDefaultPermissions, defaultUseruserStreamPermission);
@@ -518,13 +465,11 @@ public class LegacyPolicyVerification
 				_streamWithDefaultPermissions, defaultUseruserStreamPermission);
 		}
 
-		(Operation, string, StorageMessage.EffectiveAcl) CreateOperation(OperationDefinition def)
-		{
+		(Operation, string, StorageMessage.EffectiveAcl) CreateOperation(OperationDefinition def) {
 			return (new Operation(def), null, null);
 		}
 
-		ClaimsPrincipal CreatePrincipal(string name, params string[] roles)
-		{
+		ClaimsPrincipal CreatePrincipal(string name, params string[] roles) {
 			var claims =
 				(new[] { new Claim(ClaimTypes.Name, name) }).Concat(roles.Select(x => new Claim(ClaimTypes.Role, x)));
 			return new ClaimsPrincipal(new ClaimsIdentity(claims));
@@ -532,13 +477,11 @@ public class LegacyPolicyVerification
 	}
 
 	[Test]
-	public async Task VerifyPolicy([ValueSource(nameof(PolicyTests))] PolicyVerificationParameters pvp)
-	{
+	public async Task VerifyPolicy([ValueSource(nameof(PolicyTests))] PolicyVerificationParameters pvp) {
 		_aclResponder.ExpectedAcl(pvp.Stream, pvp.StreamAcl);
 		var result =
 				await _authorizationProvider.CheckAccessAsync(pvp.User, pvp.Operation, CancellationToken.None);
-		switch (pvp)
-		{
+		switch (pvp) {
 			case StaticPolicyVerificationParameters staticPvp:
 				Assert.AreEqual(staticPvp.IsAuthorized, result,
 					staticPvp.IsAuthorized ? "was not authorized" : "was authorized");
@@ -565,18 +508,15 @@ public class LegacyPolicyVerification
 		}
 	}
 
-	class AclResponder : IPublisher
-	{
+	class AclResponder : IPublisher {
 		public bool MessageReceived { get; private set; }
 		private StorageMessage.EffectiveAcl _acl;
 		private string _expectedStream;
 
-		public AclResponder()
-		{
+		public AclResponder() {
 			MessageReceived = false;
 		}
-		public void Publish(Message message)
-		{
+		public void Publish(Message message) {
 			MessageReceived = true;
 			Assert.IsInstanceOf<StorageMessage.EffectiveStreamAclRequest>(message);
 			var request = (StorageMessage.EffectiveStreamAclRequest)message;
@@ -585,11 +525,12 @@ public class LegacyPolicyVerification
 			request.Envelope.ReplyWith(new StorageMessage.EffectiveStreamAclResponse(_acl));
 		}
 
-		public void ExpectedAcl(string stream, StorageMessage.EffectiveAcl acl)
-		{
+		public void ExpectedAcl(string stream, StorageMessage.EffectiveAcl acl) {
 			MessageReceived = false;
-			if (stream == null)
+			if (stream == null) {
 				return;
+			}
+
 			_expectedStream = SystemStreams.IsMetastream(stream) ? SystemStreams.OriginalStreamOf(stream) : stream;
 			_acl = acl;
 		}

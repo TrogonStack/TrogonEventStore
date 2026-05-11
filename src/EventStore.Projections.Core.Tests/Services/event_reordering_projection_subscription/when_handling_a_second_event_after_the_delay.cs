@@ -6,16 +6,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.event_reordering_projection_subscription;
 
 [TestFixture]
-public class when_handling_a_second_event_after_the_delay : TestFixtureWithEventReorderingProjectionSubscription
-{
+public class when_handling_a_second_event_after_the_delay : TestFixtureWithEventReorderingProjectionSubscription {
 	private Guid _firstEventId;
 	private DateTime _firstEventTimestamp;
 #pragma warning disable 108, 114
 	private int _timeBetweenEvents;
 #pragma warning restore 108, 114
 
-	protected override void When()
-	{
+	protected override void When() {
 		_firstEventId = Guid.NewGuid();
 		_firstEventTimestamp = DateTime.UtcNow;
 		_timeBetweenEvents = 1100;
@@ -31,8 +29,7 @@ public class when_handling_a_second_event_after_the_delay : TestFixtureWithEvent
 	}
 
 	[Test]
-	public void no_events_are_passed_to_downstream_handler_immediately()
-	{
+	public void no_events_are_passed_to_downstream_handler_immediately() {
 		Assert.AreEqual(1, _eventHandler.HandledMessages.Count);
 	}
 }

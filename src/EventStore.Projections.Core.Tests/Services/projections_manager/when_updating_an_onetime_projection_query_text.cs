@@ -11,19 +11,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
+public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
 	private string _projectionName;
 	private string _newProjectionSource;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		NoOtherStreams();
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_source_can_be_retrieved()
-	{
+	public void the_projection_source_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
@@ -35,8 +32,7 @@ public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamI
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_status_is_still_running()
-	{
+	public void the_projection_status_is_still_running() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, _projectionName,
 				false));
@@ -56,8 +52,7 @@ public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamI
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_state_can_be_retrieved()
-	{
+	public void the_projection_state_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetState(_bus, _projectionName, ""));
 		_queue.Process();
@@ -70,8 +65,7 @@ public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamI
 			"", _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().State);
 	}
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		_projectionName = "test-projection";
 		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 		yield return

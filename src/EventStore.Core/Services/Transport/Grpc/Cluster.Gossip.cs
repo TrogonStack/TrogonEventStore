@@ -13,8 +13,7 @@ using Empty = EventStore.Client.Empty;
 
 namespace EventStore.Core.Services.Transport.Grpc.Cluster;
 
-partial class Gossip
-{
+partial class Gossip {
 	private readonly IPublisher _bus;
 	private readonly IAuthorizationProvider _authorizationProvider;
 	private readonly string _clusterDns;
@@ -25,8 +24,7 @@ partial class Gossip
 
 	public Gossip(IPublisher bus, IAuthorizationProvider authorizationProvider, string clusterDns,
 		IDurationTracker updateTracker,
-		IDurationTracker readTracker)
-	{
+		IDurationTracker readTracker) {
 
 		_bus = bus;
 		_authorizationProvider = authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
@@ -35,11 +33,9 @@ partial class Gossip
 		_readTracker = readTracker;
 	}
 
-	public override async Task<ClusterInfo> Update(GossipRequest request, ServerCallContext context)
-	{
+	public override async Task<ClusterInfo> Update(GossipRequest request, ServerCallContext context) {
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, UpdateOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, UpdateOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 		var clusterInfo = EventStore.Core.Cluster.ClusterInfo.FromGrpcClusterInfo(request.Info, _clusterDns);
@@ -50,11 +46,9 @@ partial class Gossip
 		return await tcs.Task;
 	}
 
-	public override async Task<ClusterInfo> Read(Empty request, ServerCallContext context)
-	{
+	public override async Task<ClusterInfo> Read(Empty request, ServerCallContext context) {
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 		var tcs = new TaskCompletionSource<ClusterInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -63,10 +57,8 @@ partial class Gossip
 		return await tcs.Task;
 	}
 
-	private void GossipResponse(Message msg, TaskCompletionSource<ClusterInfo> tcs, Duration duration)
-	{
-		if (msg is GossipMessage.SendGossip received)
-		{
+	private void GossipResponse(Message msg, TaskCompletionSource<ClusterInfo> tcs, Duration duration) {
+		if (msg is GossipMessage.SendGossip received) {
 			tcs.TrySetResult(EventStore.Core.Cluster.ClusterInfo.ToGrpcClusterInfo(received.ClusterInfo));
 			duration.Dispose();
 		}

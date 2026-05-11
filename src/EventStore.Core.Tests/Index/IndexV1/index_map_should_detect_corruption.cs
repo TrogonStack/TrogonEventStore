@@ -14,8 +14,7 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class index_map_should_detect_corruption : SpecificationWithDirectory
-{
+public class index_map_should_detect_corruption : SpecificationWithDirectory {
 	private string _indexMapFileName;
 	private string _ptableFileName;
 	private PTable _ptable;
@@ -23,15 +22,13 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	private bool _skipIndexVerify;
 	private int _maxAutoMergeIndexLevel = 4;
 
-	public index_map_should_detect_corruption(byte version, bool skipIndexVerify)
-	{
+	public index_map_should_detect_corruption(byte version, bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 
 		_indexMapFileName = GetFilePathFor("index.map");
@@ -49,15 +46,13 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[TearDown]
-	public override Task TearDown()
-	{
+	public override Task TearDown() {
 		_ptable?.MarkForDestruction();
 		return base.TearDown();
 	}
 
 	[Test]
-	public void when_ptable_file_is_deleted()
-	{
+	public void when_ptable_file_is_deleted() {
 		_ptable.MarkForDestruction();
 		_ptable = null;
 		File.Delete(_ptableFileName);
@@ -67,8 +62,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_indexmap_file_does_not_have_md5_checksum()
-	{
+	public void when_indexmap_file_does_not_have_md5_checksum() {
 		var lines = File.ReadAllLines(_indexMapFileName);
 		File.WriteAllLines(_indexMapFileName, lines.Skip(1));
 
@@ -77,8 +71,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_indexmap_file_does_not_have_latest_commit_position()
-	{
+	public void when_indexmap_file_does_not_have_latest_commit_position() {
 		var lines = File.ReadAllLines(_indexMapFileName);
 		File.WriteAllLines(_indexMapFileName, lines.Where((x, i) => i != 1));
 
@@ -87,8 +80,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_indexmap_file_exists_but_is_empty()
-	{
+	public void when_indexmap_file_exists_but_is_empty() {
 		File.WriteAllText(_indexMapFileName, "");
 
 		Assert.Throws<CorruptIndexException>(() =>
@@ -96,8 +88,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_indexmap_file_is_garbage()
-	{
+	public void when_indexmap_file_is_garbage() {
 		File.WriteAllText(_indexMapFileName, "alkfjasd;lkf\nasdfasdf\n");
 
 		Assert.Throws<CorruptIndexException>(() =>
@@ -105,10 +96,8 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_checkpoints_pair_is_corrupted()
-	{
-		using (var fs = File.Open(_indexMapFileName, FileMode.Open))
-		{
+	public void when_checkpoints_pair_is_corrupted() {
+		using (var fs = File.Open(_indexMapFileName, FileMode.Open)) {
 			fs.Position = 34;
 			var b = (byte)fs.ReadByte();
 			b ^= 1;
@@ -121,8 +110,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_line_is_missing_one_number()
-	{
+	public void when_ptable_line_is_missing_one_number() {
 		var lines = File.ReadAllLines(_indexMapFileName);
 		File.WriteAllLines(_indexMapFileName, new[] { lines[0], lines[1], string.Format("0,{0}", _ptableFileName) });
 
@@ -131,8 +119,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_line_constists_only_of_filename()
-	{
+	public void when_ptable_line_constists_only_of_filename() {
 		var lines = File.ReadAllLines(_indexMapFileName);
 		File.WriteAllLines(_indexMapFileName, new[] { lines[0], lines[1], _ptableFileName });
 
@@ -141,8 +128,7 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_line_is_missing_filename()
-	{
+	public void when_ptable_line_is_missing_filename() {
 		var lines = File.ReadAllLines(_indexMapFileName);
 		File.WriteAllLines(_indexMapFileName, new[] { lines[0], lines[1], "0,0" });
 
@@ -151,10 +137,8 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_indexmap_md5_checksum_is_corrupted()
-	{
-		using (var fs = File.Open(_indexMapFileName, FileMode.Open))
-		{
+	public void when_indexmap_md5_checksum_is_corrupted() {
+		using (var fs = File.Open(_indexMapFileName, FileMode.Open)) {
 			var b = (byte)fs.ReadByte();
 			b ^= 1; // swap single bit
 			fs.Position = 0;
@@ -166,13 +150,11 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_hash_is_corrupted()
-	{
+	public void when_ptable_hash_is_corrupted() {
 		_ptable.Dispose();
 		_ptable = null;
 
-		using (var fs = File.Open(_ptableFileName, FileMode.Open))
-		{
+		using (var fs = File.Open(_ptableFileName, FileMode.Open)) {
 			fs.Seek(-PTable.MD5Size, SeekOrigin.End);
 			var b = (byte)fs.ReadByte();
 			b ^= 1;
@@ -185,13 +167,11 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_type_is_corrupted()
-	{
+	public void when_ptable_type_is_corrupted() {
 		_ptable.Dispose();
 		_ptable = null;
 
-		using (var fs = File.Open(_ptableFileName, FileMode.Open))
-		{
+		using (var fs = File.Open(_ptableFileName, FileMode.Open)) {
 			fs.Seek(0, SeekOrigin.Begin);
 			fs.WriteByte(123);
 		}
@@ -201,13 +181,11 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_header_is_corrupted()
-	{
+	public void when_ptable_header_is_corrupted() {
 		_ptable.Dispose();
 		_ptable = null;
 
-		using (var fs = File.Open(_ptableFileName, FileMode.Open))
-		{
+		using (var fs = File.Open(_ptableFileName, FileMode.Open)) {
 			fs.Position = new Random().Next(0, PTableHeader.Size);
 			var b = (byte)fs.ReadByte();
 			b ^= 1;
@@ -220,13 +198,11 @@ public class index_map_should_detect_corruption : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void when_ptable_data_is_corrupted()
-	{
+	public void when_ptable_data_is_corrupted() {
 		_ptable.Dispose();
 		_ptable = null;
 
-		using (var fs = File.Open(_ptableFileName, FileMode.Open))
-		{
+		using (var fs = File.Open(_ptableFileName, FileMode.Open)) {
 			fs.Position = new Random().Next(PTableHeader.Size, (int)fs.Length);
 			var b = (byte)fs.ReadByte();
 			b ^= 1;

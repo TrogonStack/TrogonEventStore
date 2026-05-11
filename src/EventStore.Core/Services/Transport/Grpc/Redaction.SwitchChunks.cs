@@ -17,14 +17,16 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			ServerCallContext context) {
 
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, SwitchChunkOperation, context.CancellationToken))
+			if (!await _authorizationProvider.CheckAccessAsync(user, SwitchChunkOperation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
+			}
 
 			var acquisitionId = Guid.Empty;
 			try {
 				acquisitionId = await AcquireChunksLock(context);
 				await SwitchChunks(requestStream, responseStream, acquisitionId);
-			} finally {
+			}
+			finally {
 				await ReleaseChunksLock(acquisitionId);
 			}
 		}
@@ -34,8 +36,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			_bus.Publish(new RedactionMessage.AcquireChunksLock(tcsEnvelope));
 
 			var completionMsg = await tcsEnvelope.Task;
-			if (completionMsg.Result != AcquireChunksLockResult.Success)
+			if (completionMsg.Result != AcquireChunksLockResult.Success) {
 				throw RpcExceptions.RedactionLockFailed();
+			}
 
 			// we've managed to acquire the lock. we need to write the headers here since the client's waiting for them.
 			// (they're written automatically when throwing an RpcException e.g. when acquiring the lock failed above)
@@ -49,30 +52,33 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			IServerStreamWriter<SwitchChunkResp> responseStream,
 			Guid acquisitionId) {
 
-			await foreach(var request in requestStream.ReadAllAsync()) {
+			await foreach (var request in requestStream.ReadAllAsync()) {
 				var tcsEnvelope = new TcsEnvelope<RedactionMessage.SwitchChunkCompleted>();
 				_bus.Publish(new RedactionMessage.SwitchChunk(tcsEnvelope, acquisitionId, request.TargetChunkFile, request.NewChunkFile));
 
 				var completionMsg = await tcsEnvelope.Task;
 				var result = completionMsg.Result;
-				if (result != SwitchChunkResult.Success)
+				if (result != SwitchChunkResult.Success) {
 					throw RpcExceptions.RedactionSwitchChunkFailed(result.GetErrorMessage());
+				}
 
 				await responseStream.WriteAsync(new SwitchChunkResp());
 			}
 		}
 
 		private async Task ReleaseChunksLock(Guid acquisitionId) {
-			if (acquisitionId == Guid.Empty)
+			if (acquisitionId == Guid.Empty) {
 				return;
+			}
 
 			var tcsEnvelope = new TcsEnvelope<RedactionMessage.ReleaseChunksLockCompleted>();
 			_bus.Publish(new RedactionMessage.ReleaseChunksLock(tcsEnvelope, acquisitionId));
 
 			var completionMsg = await tcsEnvelope.Task;
 			var result = completionMsg.Result;
-			if (result != ReleaseChunksLockResult.Success)
+			if (result != ReleaseChunksLockResult.Success) {
 				throw RpcExceptions.RedactionSwitchChunkFailed(result.GetErrorMessage());
+			}
 		}
 	}
 }

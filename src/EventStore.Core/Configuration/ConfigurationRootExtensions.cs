@@ -14,8 +14,9 @@ namespace EventStore.Core.Configuration;
 
 public static class ConfigurationRootExtensions {
 	public static string? CheckProvidersForEnvironmentVariables(this IConfigurationRoot? configurationRoot, IEnumerable<Type> optionSections) {
-		if (configurationRoot == null)
+		if (configurationRoot == null) {
 			return null;
+		}
 
 		var environmentOptionsOnly = optionSections.SelectMany(section => section.GetProperties())
 			.Where(option => option.GetCustomAttribute<EnvironmentOnlyAttribute>() != null)
@@ -28,8 +29,9 @@ public static class ConfigurationRootExtensions {
 			var source = provider.GetType();
 
 			if (source == typeof(EventStoreDefaultValuesConfigurationProvider) ||
-				source == typeof(EventStoreEnvironmentVariablesConfigurationProvider))
+				source == typeof(EventStoreEnvironmentVariablesConfigurationProvider)) {
 				continue;
+			}
 
 			var errorDescriptions =
 				from key in provider.GetChildKeys()
@@ -52,7 +54,8 @@ public static class ConfigurationRootExtensions {
 	public static T BindOptions<T>(this IConfiguration configuration) where T : new() {
 		try {
 			return configuration.Get<T>() ?? new T();
-		} catch (InvalidOperationException ex) {
+		}
+		catch (InvalidOperationException ex) {
 			var messages = new string?[] { ex.Message, ex.InnerException?.Message }
 				.Where(x => !string.IsNullOrWhiteSpace(x))
 				.Select(x => x?.TrimEnd('.'));

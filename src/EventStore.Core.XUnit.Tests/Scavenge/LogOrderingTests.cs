@@ -8,13 +8,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
-{
+public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests> {
 	// if a metadata was ever written with the wrong event number (e.g. 0) due to old bugs
 	// the rest of the system will not respect it, so scavenge must not either
 	[Fact]
-	public async Task wrong_order_metadata_does_not_apply()
-	{
+	public async Task wrong_order_metadata_does_not_apply() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -35,8 +33,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_metadata_does_not_apply_a()
-	{
+	public async Task wrong_order_metadata_does_not_apply_a() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -48,8 +45,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 				.Chunk(Rec.Write(t++, "$$ab-1", "$metadata", eventNumber: 0, metadata: MaxCount1)) // 4 skip
 				.Chunk(ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.Equal(0, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.Equal(0, state.SumChunkWeights(2, 2));
@@ -67,8 +63,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_metadata_does_not_apply_b()
-	{
+	public async Task wrong_order_metadata_does_not_apply_b() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -80,8 +75,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 				.Chunk(Rec.Write(t++, "$$ab-1", "$metadata", eventNumber: 4, metadata: MaxCount1)) // 4 skip
 				.Chunk(ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.Equal(0, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.Equal(2, state.SumChunkWeights(2, 2));
@@ -98,8 +92,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_metadata_does_not_apply_c()
-	{
+	public async Task wrong_order_metadata_does_not_apply_c() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -111,8 +104,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 				.Chunk(Rec.Write(t++, "$$ab-1", "$metadata", eventNumber: 0, metadata: MaxCount1)) // 4 skip
 				.Chunk(ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.Equal(0, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.Equal(2, state.SumChunkWeights(2, 2));
@@ -129,8 +121,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_metadata_does_not_apply_d()
-	{
+	public async Task wrong_order_metadata_does_not_apply_d() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -142,8 +133,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 				.Chunk(Rec.Write(t++, "$$ab-1", "$metadata", eventNumber: 0, metadata: MaxCount1)) // 4 skip
 				.Chunk(ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.Equal(0, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.Equal(0, state.SumChunkWeights(2, 2));
@@ -160,8 +150,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_metadata_does_not_apply_e()
-	{
+	public async Task wrong_order_metadata_does_not_apply_e() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -173,8 +162,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 				.Chunk(Rec.Write(t++, "$$ab-1", "$metadata", eventNumber: 3, metadata: MaxCount1)) // 4 skip
 				.Chunk(ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.Equal(0, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.Equal(0, state.SumChunkWeights(2, 2));
@@ -191,8 +179,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_metadata_then_right_does_apply()
-	{
+	public async Task wrong_order_metadata_then_right_does_apply() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -215,8 +202,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_in_original_stream_a()
-	{
+	public async Task wrong_order_in_original_stream_a() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -236,8 +222,7 @@ public class LogDisorderingTests : SqliteDbPerTest<LogDisorderingTests>
 	}
 
 	[Fact]
-	public async Task wrong_order_in_original_stream_b()
-	{
+	public async Task wrong_order_in_original_stream_b() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

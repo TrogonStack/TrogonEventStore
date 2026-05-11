@@ -9,8 +9,7 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -18,8 +17,7 @@ public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTe
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var now = DateTime.UtcNow;
 
 		const string metadata = @"{""$tb"":9223372036854775807}"; //long.maxValue
@@ -33,16 +31,14 @@ public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTe
 	}
 
 	[Test]
-	public async Task metastream_read_returns_metaevent()
-	{
+	public async Task metastream_read_returns_metaevent() {
 		var result = await ReadIndex.ReadEvent(SystemStreams.MetastreamOf("ES"), 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r1, result.Record);
 	}
 
 	[Test]
-	public async Task single_event_read_returns_no_records()
-	{
+	public async Task single_event_read_returns_no_records() {
 		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
@@ -65,24 +61,21 @@ public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTe
 	}
 
 	[Test]
-	public async Task forward_range_read_returns_no_records()
-	{
+	public async Task forward_range_read_returns_no_records() {
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public async Task backward_range_read_returns_no_records()
-	{
+	public async Task backward_range_read_returns_no_records() {
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public async Task read_all_forward_returns_all_records()
-	{
+	public async Task read_all_forward_returns_all_records() {
 		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);
@@ -95,8 +88,7 @@ public class with_softdelete_truncatebefore<TLogFormat, TStreamId> : ReadIndexTe
 	}
 
 	[Test]
-	public async Task read_all_backward_returns_all_records()
-	{
+	public async Task read_all_backward_returns_all_records() {
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);

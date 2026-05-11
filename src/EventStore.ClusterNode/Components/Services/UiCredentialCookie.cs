@@ -47,8 +47,9 @@ public static class UiCredentialCookie {
 
 	private static bool TryReadBearer(HttpRequest request, out string value) {
 		value = "";
-		if (!request.Cookies.TryGetValue(OAuthCookieName, out var token) || string.IsNullOrWhiteSpace(token))
+		if (!request.Cookies.TryGetValue(OAuthCookieName, out var token) || string.IsNullOrWhiteSpace(token)) {
 			return false;
+		}
 
 		value = SafeDecode(token);
 		return IsHeaderSafe(value);
@@ -56,11 +57,13 @@ public static class UiCredentialCookie {
 
 	private static bool TryReadBasic(HttpRequest request, out string value) {
 		value = "";
-		if (!request.Cookies.TryGetValue(BasicCookieName, out var raw) || string.IsNullOrWhiteSpace(raw))
+		if (!request.Cookies.TryGetValue(BasicCookieName, out var raw) || string.IsNullOrWhiteSpace(raw)) {
 			return false;
+		}
 
-		if (!TryExtractBasicValue(SafeDecode(raw), out value))
+		if (!TryExtractBasicValue(SafeDecode(raw), out value)) {
 			return false;
+		}
 
 		return IsHeaderSafe(value) && TryDecodeBasicValue(value, out _, out _);
 	}
@@ -70,12 +73,14 @@ public static class UiCredentialCookie {
 
 		try {
 			using var document = JsonDocument.Parse(raw);
-			if (!document.RootElement.TryGetProperty("credentials", out var credentials))
+			if (!document.RootElement.TryGetProperty("credentials", out var credentials)) {
 				return false;
+			}
 
 			value = credentials.GetString() ?? "";
 			return !string.IsNullOrWhiteSpace(value);
-		} catch (JsonException) {
+		}
+		catch (JsonException) {
 			return false;
 		}
 	}
@@ -86,13 +91,15 @@ public static class UiCredentialCookie {
 		try {
 			var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(value));
 			var separator = decoded.IndexOf(':', StringComparison.Ordinal);
-			if (separator < 0)
+			if (separator < 0) {
 				return false;
+			}
 
 			username = decoded[..separator];
 			password = decoded[(separator + 1)..];
 			return true;
-		} catch (FormatException) {
+		}
+		catch (FormatException) {
 			return false;
 		}
 	}
@@ -103,7 +110,8 @@ public static class UiCredentialCookie {
 	private static string SafeDecode(string value) {
 		try {
 			return Uri.UnescapeDataString(value);
-		} catch (UriFormatException) {
+		}
+		catch (UriFormatException) {
 			return value;
 		}
 	}

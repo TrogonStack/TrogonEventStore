@@ -4,24 +4,20 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Common.Utils;
 
-public enum ExitCode
-{
+public enum ExitCode {
 	Success = 0,
 	Error = 1
 }
 
-public class Application
-{
+public class Application {
 	private static readonly ILogger Log = Serilog.Log.ForContext<Application>();
 
-	private static Action<int> _exit = delegate
-	{
+	private static Action<int> _exit = delegate {
 	};
 
 	private static int _exited;
 
-	public static void RegisterExitAction(Action<int> exitAction)
-	{
+	public static void RegisterExitAction(Action<int> exitAction) {
 		Ensure.NotNull(exitAction, "exitAction");
 
 		_exit = exitAction;
@@ -31,19 +27,20 @@ public class Application
 	public static void Exit(ExitCode exitCode, string reason) => Exit((int)exitCode, reason);
 	public static void Exit(int exitCode, string reason) => Exit(exitCode, reason, false);
 
-	private static void Exit(int exitCode, string reason, bool silent)
-	{
-		if (Interlocked.CompareExchange(ref _exited, 1, 0) != 0)
+	private static void Exit(int exitCode, string reason, bool silent) {
+		if (Interlocked.CompareExchange(ref _exited, 1, 0) != 0) {
 			return;
+		}
 
 		Ensure.NotNullOrEmpty(reason, "reason");
 
-		if (!silent)
-		{
-			if (exitCode != 0)
+		if (!silent) {
+			if (exitCode != 0) {
 				Log.Error("Exiting with exit code: {exitCode}.\nExit reason: {e}", exitCode, reason);
-			else
+			}
+			else {
 				Log.Information("Exiting with exit code: {exitCode}.\nExit reason: {e}", exitCode, reason);
+			}
 		}
 
 		_exit?.Invoke(exitCode);

@@ -4,19 +4,17 @@ using EventStore.Core.Services;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
+
 public class WhenBuildingAnIndexOffTfileWithNonZeroCapacity<TLogFormat, TStreamId>()
-	: ReadIndexTestScenario<TLogFormat, TStreamId>(streamInfoCacheCapacity: 20)
-{
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	: ReadIndexTestScenario<TLogFormat, TStreamId>(streamInfoCacheCapacity: 20) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		await GetOrReserve("test1", token);
 		await GetOrReserve("test2", token);
 		await GetOrReserve("test3", token);
 	}
 
 	[Test]
-	public async Task the_stream_created_records_can_be_read()
-	{
+	public async Task the_stream_created_records_can_be_read() {
 		var records = (await ReadIndex.ReadStreamEventsForward(SystemStreams.StreamsCreatedStream, 0, 20, CancellationToken.None))
 			.Records;
 		Assert.AreEqual(3, records.Length);

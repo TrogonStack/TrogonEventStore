@@ -8,10 +8,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_stream_is_deleted_and_bulk_transaction_spans_chunks_boundary<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
-	{
+public class when_stream_is_deleted_and_bulk_transaction_spans_chunks_boundary<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "bla"),
 				Rec.Commit(0, "bla"),
@@ -29,8 +27,7 @@ public class when_stream_is_deleted_and_bulk_transaction_spans_chunks_boundary<T
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
 		return new[] {
 			new[] {dbResult.Recs[0][2]}, // first prepare in commit that is in different chunk
 			dbResult.Recs[1].Where((x, i) => i >= 3).ToArray(),
@@ -38,8 +35,7 @@ public class when_stream_is_deleted_and_bulk_transaction_spans_chunks_boundary<T
 	}
 
 	[Test]
-	public async Task first_prepare_of_transaction_is_preserved()
-	{
+	public async Task first_prepare_of_transaction_is_preserved() {
 		await CheckRecords();
 	}
 }

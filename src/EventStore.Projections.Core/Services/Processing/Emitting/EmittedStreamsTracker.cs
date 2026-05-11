@@ -11,8 +11,7 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Emitting;
 
-public class EmittedStreamsTracker : IEmittedStreamsTracker
-{
+public class EmittedStreamsTracker : IEmittedStreamsTracker {
 	private static readonly ILogger Log = Serilog.Log.ForContext<EmittedStreamsTracker>();
 	private readonly IODispatcher _ioDispatcher;
 	private readonly ProjectionConfig _projectionConfig;
@@ -25,59 +24,48 @@ public class EmittedStreamsTracker : IEmittedStreamsTracker
 	private readonly object _locker = new object();
 
 	public EmittedStreamsTracker(IODispatcher ioDispatcher, ProjectionConfig projectionConfig,
-		ProjectionNamesBuilder projectionNamesBuilder)
-	{
+		ProjectionNamesBuilder projectionNamesBuilder) {
 		_ioDispatcher = ioDispatcher;
 		_projectionConfig = projectionConfig;
 		_projectionNamesBuilder = projectionNamesBuilder;
 	}
 
-	public void Initialize()
-	{
+	public void Initialize() {
 		ReadEmittedStreamStreamIdsIntoCache(0); //start from the beginning
 	}
 
-	private void ReadEmittedStreamStreamIdsIntoCache(long position)
-	{
+	private void ReadEmittedStreamStreamIdsIntoCache(long position) {
 		_ioDispatcher.ReadForward(_projectionNamesBuilder.GetEmittedStreamsName(), position, 1, false,
-			SystemAccounts.System, x =>
-			{
-				if (x.Events.Count > 0)
-				{
-					for (int i = 0; i < x.Events.Count; i++)
-					{
+			SystemAccounts.System, x => {
+				if (x.Events.Count > 0) {
+					for (int i = 0; i < x.Events.Count; i++) {
 						var streamId = Helper.UTF8NoBom.GetString(x.Events[i].Event.Data.Span);
-						lock (_locker)
-						{
+						lock (_locker) {
 							_streamIdCache.PutRecord(streamId, streamId, false);
 						}
 					}
 				}
 
-				if (!x.IsEndOfStream)
-				{
+				if (!x.IsEndOfStream) {
 					ReadEmittedStreamStreamIdsIntoCache(x.NextEventNumber);
 				}
-			}, () =>
-			{
+			}, () => {
 				Log.Error(
 					"Timed out reading emitted stream ids into cache from {streamName} at position {position}.",
 					_projectionNamesBuilder.GetEmittedStreamsName(), position);
 			}, Guid.NewGuid());
 	}
 
-	public void TrackEmittedStream(EmittedEvent[] emittedEvents)
-	{
-		if (!_projectionConfig.TrackEmittedStreams)
+	public void TrackEmittedStream(EmittedEvent[] emittedEvents) {
+		if (!_projectionConfig.TrackEmittedStreams) {
 			return;
-		foreach (var emittedEvent in emittedEvents)
-		{
-			if (!_streamIdCache.TryGetRecord(emittedEvent.StreamId, out _))
-			{
+		}
+
+		foreach (var emittedEvent in emittedEvents) {
+			if (!_streamIdCache.TryGetRecord(emittedEvent.StreamId, out _)) {
 				var trackEvent = new Event(Guid.NewGuid(), ProjectionEventTypes.StreamTracked, false,
 					Helper.UTF8NoBom.GetBytes(emittedEvent.StreamId), null);
-				lock (_locker)
-				{
+				lock (_locker) {
 					_streamIdCache.PutRecord(emittedEvent.StreamId, emittedEvent.StreamId, false);
 				}
 
@@ -86,24 +74,19 @@ public class EmittedStreamsTracker : IEmittedStreamsTracker
 		}
 	}
 
-	private void WriteEvent(Event evnt, int retryCount)
-	{
+	private void WriteEvent(Event evnt, int retryCount) {
 		_ioDispatcher.WriteEvent(_projectionNamesBuilder.GetEmittedStreamsName(), ExpectedVersion.Any, evnt,
 			SystemAccounts.System,
 			x => OnWriteComplete(x, evnt, Helper.UTF8NoBom.GetString(evnt.Data), retryCount));
 	}
 
 	private void OnWriteComplete(ClientMessage.WriteEventsCompleted completed, Event evnt, string streamId,
-		int retryCount)
-	{
-		if (completed.Result != OperationResult.Success)
-		{
-			if (retryCount > 0)
-			{
+		int retryCount) {
+		if (completed.Result != OperationResult.Success) {
+			if (retryCount > 0) {
 				WriteEvent(evnt, retryCount - 1);
 			}
-			else
-			{
+			else {
 				Log.Error(
 					"PROJECTIONS: Failed to write a tracked stream id of {stream} to the {emittedStream} stream. Retry limit of {maxRetryCount} reached. Reason: {e}",
 					streamId, _projectionNamesBuilder.GetEmittedStreamsName(), MaxRetryCount, completed.Result);

@@ -27,7 +27,7 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					 prepareCount: 1) {
 			_streamId = streamId;
 		}
-		
+
 		protected override Message WriteRequestMsg =>
 			new StorageMessage.WriteTransactionStart(
 					InternalCorrId,
@@ -39,7 +39,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		protected override void AllEventsWritten() {
 			if (CommitSource.ReplicationPosition >= LastEventPosition) {
 				Committed();
-			} else if (!Registered) {
+			}
+			else if (!Registered) {
 				CommitSource.NotifyFor(LastEventPosition, Committed, CommitLevel.Replicated);
 				Registered = true;
 			}

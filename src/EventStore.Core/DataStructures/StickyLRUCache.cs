@@ -59,7 +59,8 @@ namespace EventStore.Core.DataStructures {
 				EnsureCapacity();
 
 				_items.Add(key, node);
-			} else {
+			}
+			else {
 				node.Value.Value = value;
 				node.Value.Stickiness += stickiness;
 				_orderList.Remove(node);
@@ -89,7 +90,8 @@ namespace EventStore.Core.DataStructures {
 				EnsureCapacity();
 
 				_items.Add(key, node);
-			} else {
+			}
+			else {
 				node.Value.Value = updateFactory(key, node.Value.Value);
 				node.Value.Stickiness += stickiness;
 				_orderList.Remove(node);
@@ -106,7 +108,8 @@ namespace EventStore.Core.DataStructures {
 					_orderList.Remove(node);
 					_items.Remove(node.Value.Key);
 					ReturnNode(node);
-				} else {
+				}
+				else {
 					_orderList.Remove(node);
 					_orderList.AddLast(node);
 					break; // hope garbage will be freed on later puts
@@ -115,8 +118,10 @@ namespace EventStore.Core.DataStructures {
 		}
 
 		private LinkedListNode<LRUItem> GetNode() {
-			if (_nodesPool.Count > 0)
+			if (_nodesPool.Count > 0) {
 				return _nodesPool.Dequeue();
+			}
+
 			return new LinkedListNode<LRUItem>(new LRUItem());
 		}
 

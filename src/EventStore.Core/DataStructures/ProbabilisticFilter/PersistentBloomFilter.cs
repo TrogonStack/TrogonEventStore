@@ -58,7 +58,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 						};
 
 						_persistenceStrategy.WriteHeader(_header);
-					} else {
+					}
+					else {
 						_header = _persistenceStrategy.ReadHeader();
 						if (_header.NumBits != numBits) {
 							throw new SizeMismatchException(
@@ -67,7 +68,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 						Verify(0.05);
 					}
 				}
-			} catch {
+			}
+			catch {
 				Dispose();
 				throw;
 			}
@@ -100,8 +102,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				hash += hash2;
 				hash &= long.MaxValue; // make non-negative
 				long bitPosition = hash % _data.LogicalFilterSizeBits;
-				if (!_data.IsBitSet(bitPosition))
+				if (!_data.IsBitSet(bitPosition)) {
 					return false;
+				}
 			}
 
 			return true;

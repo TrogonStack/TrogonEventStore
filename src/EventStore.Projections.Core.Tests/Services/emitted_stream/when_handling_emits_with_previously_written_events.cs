@@ -13,13 +13,11 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_emits_with_previously_written_events<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_handling_emits_with_previously_written_events<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		ExistingEvent("test_stream", "type1", @"{""c"": 100, ""p"": 50}", "data");
 		ExistingEvent("test_stream", "type2", @"{""c"": 200, ""p"": 150}", "data");
@@ -27,8 +25,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test_stream",
@@ -40,8 +37,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void does_not_publish_already_published_events()
-	{
+	public void does_not_publish_already_published_events() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -58,8 +54,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void does_not_fail_the_projection_if_events_are_skipped()
-	{
+	public void does_not_fail_the_projection_if_events_are_skipped() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -71,8 +66,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void fails_the_projection_if_events_are_at_different_positions()
-	{
+	public void fails_the_projection_if_events_are_at_different_positions() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -84,8 +78,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void publishes_not_yet_published_events()
-	{
+	public void publishes_not_yet_published_events() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -96,8 +89,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void replies_with_write_completed_message_for_existing_events()
-	{
+	public void replies_with_write_completed_message_for_existing_events() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -108,8 +100,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void retrieves_event_number_for_previously_written_events()
-	{
+	public void retrieves_event_number_for_previously_written_events() {
 		long eventNumber = -1;
 		_stream.EmitEvents(
 			new[] {
@@ -122,8 +113,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void reply_with_write_completed_message_when_write_completes()
-	{
+	public void reply_with_write_completed_message_when_write_completes() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -136,8 +126,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void reports_event_number_for_new_events()
-	{
+	public void reports_event_number_for_new_events() {
 		long eventNumber = -1;
 		_stream.EmitEvents(
 			new[] {
@@ -151,8 +140,7 @@ public class when_handling_emits_with_previously_written_events<TLogFormat, TStr
 	}
 
 	[Test]
-	public void does_not_fail_if_link_event_target_does_not_exist()
-	{
+	public void does_not_fail_if_link_event_target_does_not_exist() {
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(

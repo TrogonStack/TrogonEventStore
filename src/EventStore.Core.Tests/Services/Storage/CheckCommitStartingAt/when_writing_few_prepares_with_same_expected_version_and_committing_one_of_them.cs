@@ -9,14 +9,12 @@ namespace EventStore.Core.Tests.Services.Storage.CheckCommitStartingAt;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	WhenWritingFewPreparesWithSameExpectedVersionAndCommittingOneOfThem<TLogFormat, TStreamId> : ReadIndexTestScenario<
-	TLogFormat, TStreamId>
-{
+	TLogFormat, TStreamId> {
 	private IPrepareLogRecord _prepare0;
 	private IPrepareLogRecord _prepare1;
 	private IPrepareLogRecord _prepare2;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		_prepare0 = await WritePrepare("ES", expectedVersion: -1, token: token);
 		_prepare1 = await WritePrepare("ES", expectedVersion: -1, token: token);
 		_prepare2 = await WritePrepare("ES", expectedVersion: -1, token: token);
@@ -24,8 +22,7 @@ public class
 	}
 
 	[Test]
-	public async Task other_prepares_cannot_be_committed()
-	{
+	public async Task other_prepares_cannot_be_committed() {
 		var res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare0.LogPosition,
 			WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 

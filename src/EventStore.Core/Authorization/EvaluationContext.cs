@@ -18,8 +18,10 @@ namespace EventStore.Core.Authorization {
 		public Grant Grant { get; private set; }
 
 		public void Add(AssertionMatch match) {
-			if (match.Assertion.Grant > Grant)
+			if (match.Assertion.Grant > Grant) {
 				Grant = match.Assertion.Grant;
+			}
+
 			_matches.Add(match);
 		}
 

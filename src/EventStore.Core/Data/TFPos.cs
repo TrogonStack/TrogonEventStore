@@ -22,24 +22,33 @@ namespace EventStore.Core.Data {
 
 		public static bool TryParse(string s, out TFPos pos) {
 			pos = Invalid;
-			if (s == null || s.Length != 32)
+			if (s == null || s.Length != 32) {
 				return false;
+			}
 
 			long commitPos;
 			long preparePos;
-			if (!long.TryParse(s.Substring(0, 16), System.Globalization.NumberStyles.HexNumber, null, out commitPos))
+			if (!long.TryParse(s.Substring(0, 16), System.Globalization.NumberStyles.HexNumber, null, out commitPos)) {
 				return false;
-			if (!long.TryParse(s.Substring(16, 16), System.Globalization.NumberStyles.HexNumber, null, out preparePos))
+			}
+
+			if (!long.TryParse(s.Substring(16, 16), System.Globalization.NumberStyles.HexNumber, null, out preparePos)) {
 				return false;
+			}
+
 			pos = new TFPos(commitPos, preparePos);
 			return true;
 		}
 
 		public int CompareTo(TFPos other) {
-			if (CommitPosition < other.CommitPosition)
+			if (CommitPosition < other.CommitPosition) {
 				return -1;
-			if (CommitPosition > other.CommitPosition)
+			}
+
+			if (CommitPosition > other.CommitPosition) {
 				return 1;
+			}
+
 			return PreparePosition.CompareTo(other.PreparePosition);
 		}
 
@@ -48,7 +57,10 @@ namespace EventStore.Core.Data {
 		}
 
 		public override bool Equals(object obj) {
-			if (ReferenceEquals(null, obj)) return false;
+			if (ReferenceEquals(null, obj)) {
+				return false;
+			}
+
 			return obj is TFPos && Equals((TFPos)obj);
 		}
 
@@ -76,12 +88,12 @@ namespace EventStore.Core.Data {
 
 		public static bool operator <(TFPos left, TFPos right) {
 			return left.CommitPosition < right.CommitPosition
-			       || (left.CommitPosition == right.CommitPosition && left.PreparePosition < right.PreparePosition);
+				   || (left.CommitPosition == right.CommitPosition && left.PreparePosition < right.PreparePosition);
 		}
 
 		public static bool operator >(TFPos left, TFPos right) {
 			return left.CommitPosition > right.CommitPosition
-			       || (left.CommitPosition == right.CommitPosition && left.PreparePosition > right.PreparePosition);
+				   || (left.CommitPosition == right.CommitPosition && left.PreparePosition > right.PreparePosition);
 		}
 
 		public override string ToString() {

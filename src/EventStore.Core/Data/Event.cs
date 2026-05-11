@@ -23,12 +23,17 @@ namespace EventStore.Core.Data {
 			SizeOnDisk(eventType, data, metadata) > TFConsts.EffectiveMaxLogRecordSize;
 
 		public Event(Guid eventId, string eventType, bool isJson, byte[] data, byte[] metadata) {
-			if (eventId == Guid.Empty)
+			if (eventId == Guid.Empty) {
 				throw new ArgumentException("Empty eventId provided.", nameof(eventId));
-			if (string.IsNullOrEmpty(eventType))
+			}
+
+			if (string.IsNullOrEmpty(eventType)) {
 				throw new ArgumentException("Empty eventType provided.", nameof(eventType));
-			if (ExceedsMaximumSizeOnDisk(eventType, data, metadata))
+			}
+
+			if (ExceedsMaximumSizeOnDisk(eventType, data, metadata)) {
 				throw new ArgumentException("Record is too big.", nameof(data));
+			}
 
 			EventId = eventId;
 			EventType = eventType;

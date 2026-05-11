@@ -4,57 +4,50 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Services.Processing.Phases;
 
-public class PhasePositionTagger : PositionTagger
-{
-	public PhasePositionTagger(int phase) : base(phase)
-	{
+public class PhasePositionTagger : PositionTagger {
+	public PhasePositionTagger(int phase) : base(phase) {
 	}
 
 	public override bool IsMessageAfterCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
-	{
+		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent) {
 		throw new NotSupportedException();
 	}
 
 	public override CheckpointTag MakeCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
-	{
+		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent) {
 		throw new NotSupportedException();
 	}
 
 	public override CheckpointTag MakeCheckpointTag(CheckpointTag previous,
-		ReaderSubscriptionMessage.EventReaderPartitionEof partitionEof)
-	{
+		ReaderSubscriptionMessage.EventReaderPartitionEof partitionEof) {
 		throw new NotSupportedException();
 	}
 
 	public override CheckpointTag MakeCheckpointTag(CheckpointTag previous,
-		ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted)
-	{
+		ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted) {
 		throw new NotSupportedException();
 	}
 
-	public override CheckpointTag MakeZeroCheckpointTag()
-	{
+	public override CheckpointTag MakeZeroCheckpointTag() {
 		return CheckpointTag.FromPhase(Phase, completed: false);
 	}
 
-	public override bool IsCompatible(CheckpointTag checkpointTag)
-	{
+	public override bool IsCompatible(CheckpointTag checkpointTag) {
 		return checkpointTag.Mode_ == CheckpointTag.Mode.Phase;
 	}
 
-	public override CheckpointTag AdjustTag(CheckpointTag tag)
-	{
-		if (tag.Phase < Phase)
+	public override CheckpointTag AdjustTag(CheckpointTag tag) {
+		if (tag.Phase < Phase) {
 			return tag;
-		if (tag.Phase > Phase)
+		}
+
+		if (tag.Phase > Phase) {
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
+		}
 
-		if (tag.Mode_ == CheckpointTag.Mode.Phase)
-		{
+		if (tag.Mode_ == CheckpointTag.Mode.Phase) {
 			return tag;
 		}
 

@@ -11,8 +11,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Authorization;
 
-public class FallbackStreamAccessPolicyVerification
-{
+public class FallbackStreamAccessPolicyVerification {
 	private const string StreamId = "test-stream";
 	private const string StreamsResource = "streams";
 	private const string SubscriptionsResource = "subscriptions";
@@ -20,8 +19,7 @@ public class FallbackStreamAccessPolicyVerification
 	private readonly ClaimsPrincipal _claimsPrincipal = new(new ClaimsIdentity(
 		new[] { new Claim(ClaimTypes.Name, "test-user") }));
 
-	private MultiPolicyEvaluator CreateSut()
-	{
+	private MultiPolicyEvaluator CreateSut() {
 		var fallback = new FallbackStreamAccessPolicySelector();
 		var dummy = new DummyStreamAccess().Create(SampleOperations);
 		return new MultiPolicyEvaluator(new StaticAuthorizationPolicyRegistry([fallback, dummy]));
@@ -65,8 +63,7 @@ public class FallbackStreamAccessPolicyVerification
 		return data;
 	}
 
-	public static TheoryData<OperationDefinition> StreamOperations()
-	{
+	public static TheoryData<OperationDefinition> StreamOperations() {
 		var data = new TheoryData<OperationDefinition>();
 		SampleOperations.Where(x => x.Resource == StreamsResource)
 			.ForEach(x => data.Add(x));
@@ -74,8 +71,7 @@ public class FallbackStreamAccessPolicyVerification
 		return data;
 	}
 
-	public static TheoryData<OperationDefinition> OtherOperations()
-	{
+	public static TheoryData<OperationDefinition> OtherOperations() {
 		var data = new TheoryData<OperationDefinition>();
 		SampleOperations.Where(x => x.Resource != StreamsResource && x.Resource != SubscriptionsResource)
 			.ForEach(x => data.Add(x));
@@ -85,8 +81,7 @@ public class FallbackStreamAccessPolicyVerification
 
 	[Theory]
 	[MemberData(nameof(StreamOperations))]
-	public async Task restricts_stream_access(OperationDefinition operationDefinition)
-	{
+	public async Task restricts_stream_access(OperationDefinition operationDefinition) {
 		var sut = CreateSut();
 
 		var operation = new Operation(operationDefinition)
@@ -109,15 +104,15 @@ public class FallbackStreamAccessPolicyVerification
 		if (operation.Action == Operations.Subscriptions.ProcessMessages.Action) {
 			Assert.Equal(Grant.Deny, res.Grant);
 			Assert.Contains("restricted to system or admin users only", res.ToString());
-		} else {
+		}
+		else {
 			Assert.Equal(Grant.Allow, res.Grant);
 		}
 	}
 
 	[Theory]
 	[MemberData(nameof(OtherOperations))]
-	public async Task does_not_restrict_other_operations(OperationDefinition operationDefinition)
-	{
+	public async Task does_not_restrict_other_operations(OperationDefinition operationDefinition) {
 		var sut = CreateSut();
 
 		var operation = new Operation(operationDefinition);
@@ -126,33 +121,26 @@ public class FallbackStreamAccessPolicyVerification
 		Assert.Equal(Grant.Allow, res.Grant);
 	}
 
-	private class DummyStreamAccess
-	{
-		public StaticPolicySelector Create(OperationDefinition[] operations)
-		{
+	private class DummyStreamAccess {
+		public StaticPolicySelector Create(OperationDefinition[] operations) {
 			var policy = new Policy("dummy", 1, DateTimeOffset.MinValue);
-			foreach (var op in operations)
-			{
+			foreach (var op in operations) {
 				policy.Add(op, new NonStreamAssertion($"{op.Resource}.{op.Action}"));
 			}
 
 			return new StaticPolicySelector(policy.AsReadOnly());
 		}
 
-		private class NonStreamAssertion(string resource) : IAssertion
-		{
+		private class NonStreamAssertion(string resource) : IAssertion {
 			public Grant Grant { get; } = Grant.Allow;
 			public AssertionInformation Information { get; } = new("dummy", resource, Grant.Allow);
 
 			public ValueTask<bool> Evaluate(ClaimsPrincipal cp, Operation operation, PolicyInformation policy,
-				EvaluationContext context)
-			{
-				if (operation.Resource.Contains(StreamsResource))
-				{
+				EvaluationContext context) {
+				if (operation.Resource.Contains(StreamsResource)) {
 					Assert.Fail("Should not assert on stream operations");
 				}
-				else
-				{
+				else {
 					context.Add(new AssertionMatch(policy, Information, []));
 				}
 

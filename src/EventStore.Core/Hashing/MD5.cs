@@ -15,7 +15,8 @@ public class MD5 {
 
 		try {
 			using var _ = md5Provider.Create();
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			throw new AggregateException("Failed to use the specified MD5 provider.", ex);
 		}
 

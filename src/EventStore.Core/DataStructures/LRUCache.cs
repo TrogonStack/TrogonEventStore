@@ -110,8 +110,9 @@ namespace EventStore.Core.DataStructures {
 					_orderList.AddLast(node);
 				}
 
-				if (_size > _capacity)
+				if (_size > _capacity) {
 					EnsureCapacity(0, reuseNode, out _, out _);
+				}
 			}
 		}
 
@@ -132,16 +133,18 @@ namespace EventStore.Core.DataStructures {
 		private void RemoveFirstItem(bool reuseNode) {
 			lock (_lock) {
 				var node = _orderList.First;
-				if (node == null)
+				if (node == null) {
 					return;
+				}
 
 				_orderList.Remove(node);
 				_items.Remove(node.Value.Key);
 				_size -= _calculateItemSize(node.Value.Key, node.Value.Value);
 				_freedSize += _calculateFreedSize(node.Value.Key, node.Value.Value, true, true, !reuseNode);
 
-				if (reuseNode)
+				if (reuseNode) {
 					ReturnNode(node);
+				}
 			}
 		}
 
@@ -163,10 +166,12 @@ namespace EventStore.Core.DataStructures {
 		public TValue Put(TKey key, TValue value) {
 			lock (_lock) {
 				LinkedListNode<LRUItem> node;
-				if (!_items.TryGetValue(key, out node))
+				if (!_items.TryGetValue(key, out node)) {
 					PutItem(key, value);
-				else
+				}
+				else {
 					UpdateItem(node, value);
+				}
 
 				return value;
 			}
@@ -180,8 +185,9 @@ namespace EventStore.Core.DataStructures {
 
 		public void Clear() {
 			lock (_lock) {
-				while (_orderList.Count > 0)
+				while (_orderList.Count > 0) {
 					RemoveFirstItem(false);
+				}
 			}
 		}
 
@@ -193,7 +199,8 @@ namespace EventStore.Core.DataStructures {
 				if (!_items.TryGetValue(key, out node)) {
 					value = addFactory(key, userData);
 					PutItem(key, value);
-				} else {
+				}
+				else {
 					value = updateFactory(key, node.Value.Value, userData);
 					UpdateItem(node, value);
 				}
@@ -207,8 +214,9 @@ namespace EventStore.Core.DataStructures {
 				var initialCount = _items.Count;
 				var initialSize = _size;
 
-				while (_items.Count > 0 && _size + forItemSize > _capacity)
+				while (_items.Count > 0 && _size + forItemSize > _capacity) {
 					RemoveFirstItem(reuseNodes);
+				}
 
 				removedCount = initialCount - _items.Count;
 				removedSize = initialSize - _size;
@@ -218,8 +226,9 @@ namespace EventStore.Core.DataStructures {
 		public void SetCapacity(long newCapacity) {
 			const int resizeBatchSize = 100_000;
 
-			if (newCapacity < 0)
+			if (newCapacity < 0) {
 				throw new ArgumentOutOfRangeException(nameof(newCapacity));
+			}
 
 			var removedCount = 0;
 			var removedSize = 0L;
@@ -237,10 +246,11 @@ namespace EventStore.Core.DataStructures {
 				removedSize += curRemovedSize;
 			}
 
-			if (removedCount > 0)
+			if (removedCount > 0) {
 				Log.Information(
 					"{name} cache removed {removedCount:N0} entries amounting to ~{removedSize:N0} " + _unit,
 					Name, removedCount, removedSize);
+			}
 		}
 
 		public void ResetFreedSize() {
@@ -253,8 +263,10 @@ namespace EventStore.Core.DataStructures {
 		}
 
 		private LinkedListNode<LRUItem> GetNode() {
-			if (_nodesPool.Count > 0)
+			if (_nodesPool.Count > 0) {
 				return _nodesPool.Dequeue();
+			}
+
 			return new LinkedListNode<LRUItem>(new LRUItem());
 		}
 

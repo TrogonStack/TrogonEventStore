@@ -44,12 +44,14 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 					$"size should be between {MinSizeKB:N0} KB and {MaxSizeKB:N0} KB inclusive");
 			}
 
-			if (Header.Size > cacheLineSize)
+			if (Header.Size > cacheLineSize) {
 				throw new Exception("header needs to fit in a cache line");
+			}
 
-			if (pageSize % cacheLineSize != 0)
+			if (pageSize % cacheLineSize != 0) {
 				throw new ArgumentException(
 					$"PageSize {pageSize} must be a multiple of CacheLineSize {cacheLineSize}");
+			}
 
 			LogicalFilterSize = logicalFilterSize;
 			LogicalFilterSizeBits = logicalFilterSize * 8;
@@ -67,8 +69,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 			// last page may be a partial page
 			NumPages = FileSize / PageSize;
-			if (FileSize % PageSize != 0)
+			if (FileSize % PageSize != 0) {
 				NumPages++;
+			}
 		}
 
 		public long LogicalFilterSize { get; }
@@ -89,8 +92,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		public byte* Pointer {
 			get => _pointer;
 			set {
-				if ((long)value % CacheLineSize != 0)
+				if ((long)value % CacheLineSize != 0) {
 					throw new InvalidOperationException($"Pointer {(long)value} is not aligned to a cacheline ({CacheLineSize})");
+				}
 
 				_pointer = value;
 			}
@@ -113,8 +117,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		// the pages are aligned with the beginning of the file so that they are aligned on disk
 		// the first page is therefore slightly smaller to account for the header cache line.
 		public (long PositionInFile, int PageSize) GetPagePositionInFile(long pageNumber) {
-			if (pageNumber >= NumPages)
+			if (pageNumber >= NumPages) {
 				throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "");
+			}
 
 			var positionInFile = pageNumber * PageSize;
 
@@ -217,14 +222,16 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 			var corruptionThresholdPercent = corruptionThreshold * 100;
 			var corruptedPercent = (double)corruptedCacheLines / NumCacheLines * 100;
-			if (corruptedPercent > corruptionThreshold * 100)
+			if (corruptedPercent > corruptionThreshold * 100) {
 				throw new CorruptedHashException(
 					corruptionRebuildCount,
 					$"{corruptedCacheLines:N0} corruption(s) detected ({corruptedPercent:N2}%). Threshold {corruptionThresholdPercent:N2}%");
+			}
 
 			if (corruptedCacheLines == 0) {
 				_log.Debug("Done verifying bloom filter");
-			} else {
+			}
+			else {
 				_log.Warning("Done verifying bloom filter: {corruptedCacheLines:N0} corruption(s) detected ({corruptedPercent:N2}%). Threshold {corruptionThresholdPercent:N2}%",
 					corruptedCacheLines,
 					corruptedPercent,

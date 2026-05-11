@@ -20,8 +20,7 @@ using ResolvedEvent = EventStore.ClientAPI.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.ClientAPI.Cluster;
 
 [Category("ClientAPI")]
-public abstract class specification_with_standard_projections_runnning<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class specification_with_standard_projections_runnning<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
 	protected Endpoints[] _nodeEndpoints = new Endpoints[3];
 	protected IEventStoreConnection _conn;
@@ -29,15 +28,13 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	protected UserCredentials _admin = DefaultData.AdminCredentials;
 	private protected ProjectionManagementTestClient ProjectionClient;
 
-	protected class Endpoints
-	{
+	protected class Endpoints {
 		public readonly IPEndPoint InternalTcp;
 		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint HttpEndPoint;
 		private readonly int[] _ports;
 
-		public Endpoints(int internalTcp, int externalTcp, int httpPort)
-		{
+		public Endpoints(int internalTcp, int externalTcp, int httpPort) {
 			var testIp = Environment.GetEnvironmentVariable("ES-TESTIP");
 
 			var address = string.IsNullOrEmpty(testIp) ? IPAddress.Loopback : IPAddress.Parse(testIp);
@@ -52,8 +49,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 #if (!DEBUG)
             Assert.Ignore("These tests require DEBUG conditional");
@@ -81,8 +77,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 		var projectionsStarted = _projections.Select(p => SystemProjections.Created(p.LeaderInputBus)).ToArray();
 
-		foreach (var node in _nodes)
-		{
+		foreach (var node in _nodes) {
 			node.Start();
 			node.WaitIdle();
 		}
@@ -95,36 +90,30 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		var leader = _nodes.Single(x => x.NodeState == VNodeState.Leader);
 		ProjectionClient = new ProjectionManagementTestClient(leader.HttpEndPoint, leader.CreateHttpClient());
 
-		if (GivenStandardProjectionsRunning())
-		{
+		if (GivenStandardProjectionsRunning()) {
 			await Task.WhenAny(projectionsStarted).WithTimeout(TimeSpan.FromSeconds(10));
 			await EnableStandardProjections().WithTimeout(TimeSpan.FromMinutes(2));
 		}
 
 		WaitIdle();
 
-		try
-		{
+		try {
 			await Given().WithTimeout();
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			throw new Exception("Given Failed", ex);
 		}
 
-		try
-		{
+		try {
 			await When().WithTimeout();
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			throw new Exception("When Failed", ex);
 		}
 #endif
 	}
 
-	private MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds)
-	{
+	private MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds) {
 		_projections[index] = new ProjectionsSubsystem(new ProjectionSubsystemOptions(1, ProjectionType.All, false, TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault), Opts.FaultOutOfOrderProjectionsDefault, 500, 250));
 		var node = new MiniClusterNode<TLogFormat, TStreamId>(
 			PathName, index, endpoints.InternalTcp,
@@ -134,46 +123,41 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	}
 
 	[TearDown]
-	public async Task PostTestAsserts()
-	{
+	public async Task PostTestAsserts() {
 		var all = await ProjectionClient.StatisticsAll();
-		if (all.Any(p => p.Status == "Faulted"))
+		if (all.Any(p => p.Status == "Faulted")) {
 			Assert.Fail("Projections faulted while running the test" + "\r\n" + string.Join("\r\n", all));
+		}
 	}
 
-	protected async Task EnableStandardProjections()
-	{
+	protected async Task EnableStandardProjections() {
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection);
 		await EnableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
 	}
 
-	protected async Task DisableStandardProjections()
-	{
+	protected async Task DisableStandardProjections() {
 		await DisableProjection(ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection);
 		await DisableProjection(ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection);
 		await DisableProjection(ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection);
 		await DisableProjection(ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection);
 	}
 
-	protected virtual bool GivenStandardProjectionsRunning()
-	{
+	protected virtual bool GivenStandardProjectionsRunning() {
 		return true;
 	}
 
-	protected async Task EnableProjection(string name)
-	{
-		for (int i = 1; i <= 10; i++)
-		{
-			try
-			{
+	protected async Task EnableProjection(string name) {
+		for (int i = 1; i <= 10; i++) {
+			try {
 				await ProjectionClient.Enable(name);
 			}
-			catch (Exception)
-			{
-				if (i == 10)
+			catch (Exception) {
+				if (i == 10) {
 					throw;
+				}
+
 				await Task.Delay(5000);
 			}
 		}
@@ -181,19 +165,16 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		await Task.Delay(1000); /* workaround for race condition when multiple projections are being enabled simultaneously */
 	}
 
-	protected Task DisableProjection(string name)
-	{
+	protected Task DisableProjection(string name) {
 		return ProjectionClient.Disable(name);
 	}
 
-	protected Task AbortProjection(string name)
-	{
+	protected Task AbortProjection(string name) {
 		return ProjectionClient.Abort(name);
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		ProjectionClient?.Dispose();
 		_conn.Close();
 		await Task.WhenAll(
@@ -207,28 +188,23 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected virtual Task Given() => Task.CompletedTask;
 
-	protected Task PostEvent(string stream, string eventType, string data)
-	{
+	protected Task PostEvent(string stream, string eventType, string data) {
 		return _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
 	}
 
-	protected Task HardDeleteStream(string stream)
-	{
+	protected Task HardDeleteStream(string stream) {
 		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, true, _admin);
 	}
 
-	protected Task SoftDeleteStream(string stream)
-	{
+	protected Task SoftDeleteStream(string stream) {
 		return _conn.DeleteStreamAsync(stream, ExpectedVersion.Any, false, _admin);
 	}
 
-	protected static EventData CreateEvent(string type, string data)
-	{
+	protected static EventData CreateEvent(string type, string data) {
 		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), new byte[0]);
 	}
 
-	protected void WaitIdle()
-	{
+	protected void WaitIdle() {
 #if DEBUG
 		_nodes[0].WaitIdle();
 		_nodes[1].WaitIdle();
@@ -237,13 +213,11 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	}
 
 #pragma warning disable 1998
-	protected async Task AssertStreamTailAsync(string streamId, params string[] events)
-	{
+	protected async Task AssertStreamTailAsync(string streamId, params string[] events) {
 #pragma warning restore 1998
 #if DEBUG
 		var result = await _conn.ReadStreamEventsBackwardAsync(streamId, -1, events.Length, true, _admin);
-		switch (result.Status)
-		{
+		switch (result.Status) {
 			case SliceReadStatus.StreamDeleted:
 				Assert.Fail("Stream '{0}' is deleted", streamId);
 				break;
@@ -252,20 +226,21 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 				break;
 			case SliceReadStatus.Success:
 				var resultEventsReversed = result.Events.Reverse().ToArray();
-				if (resultEventsReversed.Length < events.Length)
+				if (resultEventsReversed.Length < events.Length) {
 					DumpFailed("Stream does not contain enough events", streamId, events, result.Events);
-				else
-				{
-					for (var index = 0; index < events.Length; index++)
-					{
+				}
+				else {
+					for (var index = 0; index < events.Length; index++) {
 						var parts = events[index].Split(new char[] { ':' }, 2);
 						var eventType = parts[0];
 						var eventData = parts[1];
 
-						if (resultEventsReversed[index].Event.EventType != eventType)
+						if (resultEventsReversed[index].Event.EventType != eventType) {
 							DumpFailed("Invalid event type", streamId, events, resultEventsReversed);
-						else if (resultEventsReversed[index].Event.DebugDataView() != eventData)
+						}
+						else if (resultEventsReversed[index].Event.DebugDataView() != eventData) {
 							DumpFailed("Invalid event body", streamId, events, resultEventsReversed);
+						}
 					}
 				}
 
@@ -275,13 +250,11 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	}
 
 #pragma warning disable 1998
-	protected async Task DumpStreamAsync(string streamId)
-	{
+	protected async Task DumpStreamAsync(string streamId) {
 #pragma warning restore 1998
 #if DEBUG
 		var result = await _conn.ReadStreamEventsBackwardAsync(streamId, -1, 100, true, _admin);
-		switch (result.Status)
-		{
+		switch (result.Status) {
 			case SliceReadStatus.StreamDeleted:
 				Assert.Fail("Stream '{0}' is deleted", streamId);
 				break;
@@ -296,8 +269,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	}
 
 #if DEBUG
-	private void DumpFailed(string message, string streamId, string[] events, ResolvedEvent[] resultEvents)
-	{
+	private void DumpFailed(string message, string streamId, string[] events, ResolvedEvent[] resultEvents) {
 		var expected = events.Aggregate("", (a, v) => a + ", " + v);
 		var actual = resultEvents.Aggregate(
 			"", (a, v) => a + ", " + v.Event.EventType + ":" + v.Event.DebugDataView());
@@ -312,8 +284,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			message, actual, expected, actualMeta);
 	}
 
-	private void Dump(string message, string streamId, ResolvedEvent[] resultEvents)
-	{
+	private void Dump(string message, string streamId, ResolvedEvent[] resultEvents) {
 		var actual = resultEvents.Aggregate(
 			"", (a, v) => a + ", " + v.OriginalEvent.EventType + ":" + v.OriginalEvent.DebugDataView());
 
@@ -326,8 +297,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	}
 #endif
 
-	protected async Task PostProjection(string query)
-	{
+	protected async Task PostProjection(string query) {
 		await ProjectionClient.CreateContinuous("test-projection", query);
 		WaitIdle();
 	}
@@ -335,11 +305,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 [Explicit]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class vnode_cluster_specification<TLogFormat, TStreamId> : specification_with_standard_projections_runnning<TLogFormat, TStreamId>
-{
+public class vnode_cluster_specification<TLogFormat, TStreamId> : specification_with_standard_projections_runnning<TLogFormat, TStreamId> {
 	[Test, Explicit]
-	public async Task vnode_cluster_starts()
-	{
+	public async Task vnode_cluster_starts() {
 		await PostProjection(@"fromStream('$user-admin').outputState()");
 		await AssertStreamTailAsync("$projections-test-projection-result", "Result:{}");
 	}

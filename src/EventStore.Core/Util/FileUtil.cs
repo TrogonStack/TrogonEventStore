@@ -6,15 +6,17 @@ namespace EventStore.Core.Util {
 			// Get the subdirectories for the specified directory.
 			var dir = new DirectoryInfo(sourceDirName);
 
-			if (!dir.Exists)
+			if (!dir.Exists) {
 				throw new DirectoryNotFoundException("Source directory does not exist or could not be found: " +
-				                                     sourceDirName);
+													 sourceDirName);
+			}
 
 			var subdirs = copySubDirs ? dir.GetDirectories() : null;
 
 			// If the destination directory doesn't exist, create it. 
-			if (!Directory.Exists(destDirName))
+			if (!Directory.Exists(destDirName)) {
 				Directory.CreateDirectory(destDirName);
+			}
 
 			// Get the files in the directory and copy them to the new location.
 			foreach (FileInfo file in dir.GetFiles()) {

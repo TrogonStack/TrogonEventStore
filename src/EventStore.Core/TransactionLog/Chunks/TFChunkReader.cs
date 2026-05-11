@@ -8,15 +8,13 @@ using Serilog;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
-public class TFChunkReader : ITransactionFileReader
-{
+public class TFChunkReader : ITransactionFileReader {
 	internal static long CachedReads;
 	internal static long NotCachedReads;
 
 	public const int MaxRetries = 20;
 
-	public long CurrentPosition
-	{
+	public long CurrentPosition {
 		get { return _curPos; }
 	}
 
@@ -25,8 +23,7 @@ public class TFChunkReader : ITransactionFileReader
 	private long _curPos;
 	private readonly ILogger _log = Log.ForContext<TFChunkReader>();
 
-	public TFChunkReader(TFChunkDb db, IReadOnlyCheckpoint writerCheckpoint, long initialPosition = 0)
-	{
+	public TFChunkReader(TFChunkDb db, IReadOnlyCheckpoint writerCheckpoint, long initialPosition = 0) {
 		Ensure.NotNull(db, "dbConfig");
 		Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
 		Ensure.Nonnegative(initialPosition, "initialPosition");
@@ -36,42 +33,39 @@ public class TFChunkReader : ITransactionFileReader
 		_curPos = initialPosition;
 	}
 
-	public void Reposition(long position)
-	{
+	public void Reposition(long position) {
 		_curPos = position;
 	}
 
 	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token)
 		=> TryReadNextInternal(0, token);
 
-	private async ValueTask<SeqReadResult> TryReadNextInternal(int retries, CancellationToken token)
-	{
-		while (true)
-		{
+	private async ValueTask<SeqReadResult> TryReadNextInternal(int retries, CancellationToken token) {
+		while (true) {
 			var pos = _curPos;
 			var writerChk = _writerCheckpoint.Read();
-			if (pos >= writerChk)
+			if (pos >= writerChk) {
 				return SeqReadResult.Failure;
+			}
 
 			var chunk = _db.Manager.GetChunkFor(pos);
 			RecordReadResult result;
-			try
-			{
+			try {
 				result = await chunk.TryReadClosestForward(chunk.ChunkHeader.GetLocalLogPosition(pos), token);
 				CountRead(chunk.IsCached);
 			}
-			catch (FileBeingDeletedException)
-			{
-				if (retries > MaxRetries)
+			catch (FileBeingDeletedException) {
+				if (retries > MaxRetries) {
 					throw new Exception(
 						string.Format(
 							"Got a file that was being deleted {0} times from TFChunkDb, likely a bug there.",
 							MaxRetries));
+				}
+
 				return await TryReadNextInternal(retries + 1, token);
 			}
 
-			if (result.Success)
-			{
+			if (result.Success) {
 				_curPos = chunk.ChunkHeader.ChunkStartPosition + result.NextPosition;
 				var postPos =
 					result.LogRecord.GetNextLogPosition(result.LogRecord.LogPosition, result.RecordLength);
@@ -85,29 +79,28 @@ public class TFChunkReader : ITransactionFileReader
 		}
 	}
 
-	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
-	{
+	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token) {
 		return TryReadPrevInternal(0, token);
 	}
 
-	private async ValueTask<SeqReadResult> TryReadPrevInternal(int retries, CancellationToken token)
-	{
-		for (;; token.ThrowIfCancellationRequested())
-		{
+	private async ValueTask<SeqReadResult> TryReadPrevInternal(int retries, CancellationToken token) {
+		for (; ; token.ThrowIfCancellationRequested()) {
 			var pos = _curPos;
 			var writerChk = _writerCheckpoint.Read();
 			// we allow == writerChk, that means read the very last record
-			if (pos > writerChk)
+			if (pos > writerChk) {
 				throw new Exception(string.Format(
 					"Requested position {0} is greater than writer checkpoint {1} when requesting to read previous record from TF.",
 					pos, writerChk));
-			if (pos <= 0)
+			}
+
+			if (pos <= 0) {
 				return SeqReadResult.Failure;
+			}
 
 			bool readLast = false;
 			if (!_db.Manager.TryGetChunkFor(pos, out var chunk) ||
-			    pos == chunk.ChunkHeader.ChunkStartPosition)
-			{
+				pos == chunk.ChunkHeader.ChunkStartPosition) {
 				// we are exactly at the boundary of physical chunks
 				// so we switch to previous chunk and request TryReadLast
 				readLast = true;
@@ -115,24 +108,23 @@ public class TFChunkReader : ITransactionFileReader
 			}
 
 			RecordReadResult result;
-			try
-			{
+			try {
 				result = await (readLast
 					? chunk.TryReadLast(token)
 					: chunk.TryReadClosestBackward(chunk.ChunkHeader.GetLocalLogPosition(pos), token));
 				CountRead(chunk.IsCached);
 			}
-			catch (FileBeingDeletedException)
-			{
-				if (retries > MaxRetries)
+			catch (FileBeingDeletedException) {
+				if (retries > MaxRetries) {
 					throw new Exception(string.Format(
 						"Got a file that was being deleted {0} times from TFChunkDb, likely a bug there.",
 						MaxRetries));
+				}
+
 				return await TryReadPrevInternal(retries + 1, token);
 			}
 
-			if (result.Success)
-			{
+			if (result.Success) {
 				_curPos = chunk.ChunkHeader.ChunkStartPosition + result.NextPosition;
 				var postPos =
 					result.LogRecord.GetNextLogPosition(result.LogRecord.LogPosition, result.RecordLength);
@@ -152,11 +144,9 @@ public class TFChunkReader : ITransactionFileReader
 	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
 		=> TryReadAtInternal(position, couldBeScavenged, 0, token);
 
-	private async ValueTask<RecordReadResult> TryReadAtInternal(long position, bool couldBeScavenged, int retries, CancellationToken token)
-	{
+	private async ValueTask<RecordReadResult> TryReadAtInternal(long position, bool couldBeScavenged, int retries, CancellationToken token) {
 		var writerChk = _writerCheckpoint.Read();
-		if (position >= writerChk)
-		{
+		if (position >= writerChk) {
 			_log.Warning(
 				"Attempted to read at position {position}, which is further than writer checkpoint {writerChk}",
 				position, writerChk);
@@ -164,16 +154,16 @@ public class TFChunkReader : ITransactionFileReader
 		}
 
 		var chunk = _db.Manager.GetChunkFor(position);
-		try
-		{
+		try {
 			CountRead(chunk.IsCached);
 			return await chunk.TryReadAt(chunk.ChunkHeader.GetLocalLogPosition(position), couldBeScavenged, token);
 		}
-		catch (FileBeingDeletedException)
-		{
-			if (retries > MaxRetries)
+		catch (FileBeingDeletedException) {
+			if (retries > MaxRetries) {
 				throw new FileBeingDeletedException(
 					"Been told the file was deleted > MaxRetries times. Probably a problem in db.");
+			}
+
 			return await TryReadAtInternal(position, couldBeScavenged, retries + 1, token);
 		}
 	}
@@ -181,32 +171,33 @@ public class TFChunkReader : ITransactionFileReader
 	public ValueTask<bool> ExistsAt(long position, CancellationToken token)
 		=> ExistsAtInternal(position, 0, token);
 
-	private async ValueTask<bool> ExistsAtInternal(long position, int retries, CancellationToken token)
-	{
+	private async ValueTask<bool> ExistsAtInternal(long position, int retries, CancellationToken token) {
 		var writerChk = _writerCheckpoint.Read();
-		if (position >= writerChk)
+		if (position >= writerChk) {
 			return false;
+		}
 
 		var chunk = _db.Manager.GetChunkFor(position);
-		try
-		{
+		try {
 			CountRead(chunk.IsCached);
 			return await chunk.ExistsAt(chunk.ChunkHeader.GetLocalLogPosition(position), token);
 		}
-		catch (FileBeingDeletedException)
-		{
-			if (retries > MaxRetries)
+		catch (FileBeingDeletedException) {
+			if (retries > MaxRetries) {
 				throw new FileBeingDeletedException(
 					"Been told the file was deleted > MaxRetries times. Probably a problem in db.");
+			}
+
 			return await ExistsAtInternal(position, retries + 1, token);
 		}
 	}
 
-	private static void CountRead(bool isCached)
-	{
-		if (isCached)
+	private static void CountRead(bool isCached) {
+		if (isCached) {
 			Interlocked.Increment(ref CachedReads);
-		else
+		}
+		else {
 			Interlocked.Increment(ref NotCachedReads);
+		}
 	}
 }

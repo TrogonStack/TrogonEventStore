@@ -8,18 +8,15 @@ using Grpc.Core;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement
-{
+internal partial class ProjectionManagement {
 	private static readonly Operation ResetOperation = new Operation(Operations.Projections.Reset);
-	public override async Task<ResetResp> Reset(ResetReq request, ServerCallContext context)
-	{
+	public override async Task<ResetResp> Reset(ResetReq request, ServerCallContext context) {
 		var resetSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, ResetOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, ResetOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 		var name = options.Name;
@@ -33,10 +30,8 @@ internal partial class ProjectionManagement
 
 		return new ResetResp();
 
-		void OnMessage(Message message)
-		{
-			switch (message)
-			{
+		void OnMessage(Message message) {
+			switch (message) {
 				case ProjectionManagementMessage.Updated:
 					resetSource.TrySetResult(true);
 					break;

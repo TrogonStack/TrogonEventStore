@@ -14,24 +14,21 @@ namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_handling_emits_with_previously_written_events_at_the_same_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+	when_handling_emits_with_previously_written_events_at_the_same_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private long _1;
 	private long _2;
 	private long _3;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		//NOTE: it is possible for a batch of events to be partially written if it contains links
 		ExistingEvent("test_stream", "type1", @"{""c"": 100, ""p"": 50}", "data");
 		ExistingEvent("test_stream", "type2", @"{""c"": 100, ""p"": 50}", "data");
 	}
 
-	private EmittedEvent[] CreateEventBatch()
-	{
+	private EmittedEvent[] CreateEventBatch() {
 		return new EmittedEvent[] {
 			new EmittedDataEvent(
 				(string)"test_stream", Guid.NewGuid(), (string)"type1", (bool)true,
@@ -49,8 +46,7 @@ public class
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test_stream",
@@ -65,8 +61,7 @@ public class
 	}
 
 	[Test]
-	public void publishes_not_yet_written_events_only()
-	{
+	public void publishes_not_yet_written_events_only() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Count());
 		var writeMessage = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Single();
 		Assert.AreEqual(1, writeMessage.Events.Length);
@@ -74,8 +69,7 @@ public class
 	}
 
 	[Test]
-	public void reports_correct_event_numbers()
-	{
+	public void reports_correct_event_numbers() {
 		Assert.AreEqual(0, _1);
 		Assert.AreEqual(1, _2);
 		Assert.AreEqual(2, _3);

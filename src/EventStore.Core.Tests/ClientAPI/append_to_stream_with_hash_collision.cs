@@ -11,20 +11,17 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private const int LongRunningTimeout = 1200000;
 	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
 	private MiniNode<TLogFormat, TStreamId> _node;
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.To(node, TcpType.Ssl);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName,
 			memTableSize: 20,
@@ -36,26 +33,22 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public async Task should_throw_wrong_expected_version()
-	{
+	public async Task should_throw_wrong_expected_version() {
 		const string stream1 = "account--696193173";
 		const string stream2 = "LPN-FC002_LPK51001";
-		using (var store = BuildConnection(_node))
-		{
+		using (var store = BuildConnection(_node)) {
 			await store.ConnectAsync();
 			//Write event to stream 1
 			Assert.AreEqual(0, (await store.AppendToStreamAsync(stream1, ExpectedVersion.NoStream,
 					new EventData(Guid.NewGuid(), "TestEvent", true, null, null))).NextExpectedVersion);
 			//Write 100 events to stream 2 which will have the same hash as stream 1.
-			for (int i = 0; i < 100; i++)
-			{
+			for (int i = 0; i < 100; i++) {
 				Assert.AreEqual(i, (await store.AppendToStreamAsync(stream2, ExpectedVersion.Any,
 					new EventData(Guid.NewGuid(), "TestEvent", true, null, null))).NextExpectedVersion);
 			}
@@ -74,8 +67,7 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 			hash32bit: true,
 			streamExistenceFilterSize: 0);
 		await _node.Start(StartupTimeout);
-		using (var store = BuildConnection(_node))
-		{
+		using (var store = BuildConnection(_node)) {
 			await store.ConnectAsync();
 
 			await AssertEx.ThrowsAsync<WrongExpectedVersionException>(

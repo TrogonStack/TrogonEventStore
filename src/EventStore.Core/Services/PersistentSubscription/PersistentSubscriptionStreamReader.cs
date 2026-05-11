@@ -10,8 +10,7 @@ using Serilog;
 
 namespace EventStore.Core.Services.PersistentSubscription {
 	public class PersistentSubscriptionStreamReader(IODispatcher ioDispatcher, int maxPullBatchSize)
-		: IPersistentSubscriptionStreamReader
-	{
+		: IPersistentSubscriptionStreamReader {
 		private static readonly ILogger Log = Serilog.Log.ForContext<PersistentSubscriptionStreamReader>();
 
 		public const int MaxPullBatchSize = 500;
@@ -48,7 +47,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					resolveLinkTos, SystemAccounts.System, new ResponseHandler(onEventsFound, onEventsSkipped, onError, skipFirstEvent).FetchCompleted,
 					async () => await HandleTimeout(eventSource.EventStreamId),
 					Guid.NewGuid());
-			} else if (eventSource.FromAll) {
+			}
+			else if (eventSource.FromAll) {
 				if (eventSource.EventFilter is null) {
 					ioDispatcher.ReadAllForward(
 						startPosition.TFPosition.Commit,
@@ -62,7 +62,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						new ResponseHandler(onEventsFound, onEventsSkipped, onError, skipFirstEvent).FetchAllCompleted,
 						async () => await HandleTimeout(SystemStreams.AllStream),
 						Guid.NewGuid());
-				} else {
+				}
+				else {
 					var maxSearchWindow = Math.Max(actualBatchSize, maxWindowSize);
 					ioDispatcher.ReadAllForwardFiltered(
 						startPosition.TFPosition.Commit,
@@ -79,7 +80,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						async () => await HandleTimeout($"{SystemStreams.AllStream} with filter {eventSource.EventFilter}"),
 						Guid.NewGuid());
 				}
-			} else {
+			}
+			else {
 				throw new InvalidOperationException();
 			}
 
@@ -102,8 +104,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			Action<IReadOnlyList<ResolvedEvent>, IPersistentSubscriptionStreamPosition, bool> onFetchCompleted,
 			Action<IPersistentSubscriptionStreamPosition, long> onEventsSkipped,
 			Action<string> onError,
-			bool skipFirstEvent)
-		{
+			bool skipFirstEvent) {
 			public void FetchCompleted(ClientMessage.ReadStreamEventsForwardCompleted msg) {
 				switch (msg.Result) {
 					case ReadStreamResult.Success:

@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
 
-namespace EventStore.Core.Telemetry; 
+namespace EventStore.Core.Telemetry;
 
 public class TelemetrySink : ITelemetrySink {
 	private static readonly ILogger _log = Log.ForContext<TelemetrySink>();
@@ -35,11 +35,13 @@ public class TelemetrySink : ITelemetrySink {
 
 		if (_optout) {
 			_log.Information("Telemetry not sent; opted out: " + Environment.NewLine + json);
-		} else {
+		}
+		else {
 			_log.Information("Sending telemetry data to {url} (visit for more information): " + Environment.NewLine + json, ApiHost);
 			try {
 				await _httpClient.PostAsync(ApiHost, JsonContent.Create(data), token);
-			} catch (Exception ex) when (ex is not TaskCanceledException) {
+			}
+			catch (Exception ex) when (ex is not TaskCanceledException) {
 				_log.Error("Error when sending telemetry payload: {exception}", ex);
 			}
 		}
@@ -54,7 +56,8 @@ public class TelemetrySink : ITelemetrySink {
 
 		if (_optout) {
 			sb.AppendLine("You have opted out of sending telemetry by setting the EVENTSTORE_TELEMETRY_OPTOUT environment variable to true.");
-		} else {
+		}
+		else {
 			sb.Append("EventStoreDB collects usage data in order to improve your experience. ");
 			sb.AppendLine("The data is anonymous and collected by Event Store Ltd.");
 			sb.AppendLine("You can opt out of sending telemetry by setting the EVENTSTORE_TELEMETRY_OPTOUT environment variable to true.");

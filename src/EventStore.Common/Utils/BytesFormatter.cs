@@ -4,39 +4,32 @@ using System.Globalization;
 
 namespace EventStore.Common.Utils;
 
-public static class BytesFormatter
-{
+public static class BytesFormatter {
 	private static readonly string[] SizeOrders = new[] { "B", "KiB", "MiB", "GiB", "TiB" };
 	private static readonly string[] SpeedOrders = new[] { "B/s", "KiB/s", "MiB/s", "GiB/s", "TiB/s" };
 	private static readonly string[] NumberOrders = new[] { "", "K", "M", "G", "T" };
 
-	public static string ToFriendlySpeedString(this double bytes)
-	{
+	public static string ToFriendlySpeedString(this double bytes) {
 		return FormatSpeed((float)bytes);
 	}
 
-	public static string ToFriendlySizeString(this ulong bytes)
-	{
+	public static string ToFriendlySizeString(this ulong bytes) {
 		return bytes > long.MaxValue ? "more than long.MaxValue" : ToFriendlySizeString((long)bytes);
 	}
 
-	public static string ToFriendlySizeString(this long bytes)
-	{
+	public static string ToFriendlySizeString(this long bytes) {
 		return FormatLong(bytes, SizeOrders);
 	}
 
-	public static string ToFriendlyNumberString(this ulong number)
-	{
+	public static string ToFriendlyNumberString(this ulong number) {
 		return number > long.MaxValue ? "more than long.MaxValue" : ToFriendlyNumberString((long)number);
 	}
 
-	public static string ToFriendlyNumberString(this long number)
-	{
+	public static string ToFriendlyNumberString(this long number) {
 		return FormatLong(number, NumberOrders);
 	}
 
-	private static string FormatLong(long bytes, IEnumerable<string> orders)
-	{
+	private static string FormatLong(long bytes, IEnumerable<string> orders) {
 		const int scale = 1024;
 		bool isNegative = bytes < 0;
 		bytes = Math.Abs(bytes);
@@ -44,12 +37,12 @@ public static class BytesFormatter
 		long max = 1;
 		string finalOrder = string.Empty;
 
-		foreach (var order in orders)
-		{
+		foreach (var order in orders) {
 			max *= scale;
 			finalOrder = order;
-			if (bytes < max)
+			if (bytes < max) {
 				break;
+			}
 		}
 
 		max /= scale;
@@ -63,8 +56,7 @@ public static class BytesFormatter
 	}
 
 	//the only difference is double vs long
-	private static string FormatSpeed(double bytesPerSec)
-	{
+	private static string FormatSpeed(double bytesPerSec) {
 		const int scale = 1024;
 		bool isNegative = bytesPerSec < 0; // verrry strange, but we need to show this if it happened already
 		bytesPerSec = Math.Abs(bytesPerSec);
@@ -72,12 +64,12 @@ public static class BytesFormatter
 		long max = 1;
 		string finalOrder = string.Empty;
 
-		foreach (var speedOrder in SpeedOrders)
-		{
+		foreach (var speedOrder in SpeedOrders) {
 			max *= scale;
 			finalOrder = speedOrder;
-			if (bytesPerSec < max)
+			if (bytesPerSec < max) {
 				break;
+			}
 		}
 
 		max /= scale;

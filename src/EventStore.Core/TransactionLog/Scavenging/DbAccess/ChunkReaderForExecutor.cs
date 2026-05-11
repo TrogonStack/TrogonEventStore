@@ -40,7 +40,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				if (record.RecordType != LogRecordType.Prepare) {
 					nonPrepare.SetRecord(result.RecordLength, record);
 					yield return false;
-				} else {
+				}
+				else {
 					var sourcePrepare = record as IPrepareLogRecord<TStreamId>;
 					prepare.SetRecord(
 						length: result.RecordLength,

@@ -7,40 +7,34 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class WhenReadingUncachedEmptyScavengedTfchunk : SpecificationWithFilePerTestFixture
-{
+public class WhenReadingUncachedEmptyScavengedTfchunk : SpecificationWithFilePerTestFixture {
 	private TFChunk _chunk;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, isScavenged: true);
 		await _chunk.CompleteScavenge([], CancellationToken.None);
 	}
 
 	[OneTimeTearDown]
-	public override void TestFixtureTearDown()
-	{
+	public override void TestFixtureTearDown() {
 		_chunk.Dispose();
 		base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public async Task no_record_at_exact_position_can_be_read()
-	{
+	public async Task no_record_at_exact_position_can_be_read() {
 		Assert.IsTrue(await _chunk.TryReadAt(0, couldBeScavenged: true, CancellationToken.None) is { Success: false });
 	}
 
 	[Test]
-	public async Task no_record_can_be_read_as_first_record()
-	{
+	public async Task no_record_can_be_read_as_first_record() {
 		Assert.IsFalse((await _chunk.TryReadFirst(CancellationToken.None)).Success);
 	}
 
 	[Test]
-	public async Task no_record_can_be_read_as_closest_forward_record()
-	{
+	public async Task no_record_can_be_read_as_closest_forward_record() {
 		Assert.IsTrue(await _chunk.TryReadClosestForward(0, CancellationToken.None) is { Success: false });
 	}
 

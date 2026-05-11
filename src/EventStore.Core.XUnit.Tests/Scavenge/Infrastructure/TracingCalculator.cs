@@ -4,22 +4,18 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TracingCalculator<TStreamId>(ICalculator<TStreamId> wrapped, Tracer tracer) : ICalculator<TStreamId>
-{
+public class TracingCalculator<TStreamId>(ICalculator<TStreamId> wrapped, Tracer tracer) : ICalculator<TStreamId> {
 	public async ValueTask Calculate(
 		ScavengePoint scavengePoint,
 		IScavengeStateForCalculator<TStreamId> source,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		tracer.TraceIn($"Calculating {scavengePoint.GetName()}");
-		try
-		{
+		try {
 			await wrapped.Calculate(scavengePoint, source, cancellationToken);
 			tracer.TraceOut("Done");
 		}
-		catch
-		{
+		catch {
 			tracer.TraceOut("Exception calculating");
 			throw;
 		}
@@ -28,17 +24,14 @@ public class TracingCalculator<TStreamId>(ICalculator<TStreamId> wrapped, Tracer
 	public async ValueTask Calculate(
 		ScavengeCheckpoint.Calculating<TStreamId> checkpoint,
 		IScavengeStateForCalculator<TStreamId> source,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		tracer.TraceIn($"Calculating from checkpoint: {checkpoint}");
-		try
-		{
+		try {
 			await wrapped.Calculate(checkpoint, source, cancellationToken);
 			tracer.TraceOut("Done");
 		}
-		catch
-		{
+		catch {
 			tracer.TraceOut("Exception calculating");
 			throw;
 		}

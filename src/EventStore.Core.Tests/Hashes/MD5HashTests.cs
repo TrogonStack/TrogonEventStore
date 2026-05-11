@@ -7,14 +7,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Hashes;
 
 [TestFixture]
-public class MD5HashTests
-{
+public class MD5HashTests {
 	[Test]
-	public void does_not_include_previous_data_in_stream()
-	{
+	public void does_not_include_previous_data_in_stream() {
 		var bytes = new byte[1024];
-		for (int i = 15; i < 1024; i++)
-		{
+		for (int i = 15; i < 1024; i++) {
 			bytes[i] = (byte)(i % 255);
 		}
 
@@ -29,11 +26,9 @@ public class MD5HashTests
 	}
 
 	[Test]
-	public void changing_data_in_stream_results_in_different_hash()
-	{
+	public void changing_data_in_stream_results_in_different_hash() {
 		var bytes = new byte[1024];
-		for (int i = 15; i < 1024; i++)
-		{
+		for (int i = 15; i < 1024; i++) {
 			bytes[i] = (byte)(i % 255);
 		}
 
@@ -47,19 +42,16 @@ public class MD5HashTests
 	}
 
 	[Test]
-	public void includes_correct_substream_data()
-	{
+	public void includes_correct_substream_data() {
 		var bytes = new byte[1024];
-		for (int i = 15; i < 1024; i++)
-		{
+		for (int i = 15; i < 1024; i++) {
 			bytes[i] = (byte)(i % 255);
 		}
 
 		var stream = new MemoryStream(bytes);
 		var hash = MD5Hash.GetHashFor(stream, 16, bytes.Length - 32);
 
-		using (var md5 = MD5.Create())
-		{
+		using (var md5 = MD5.Create()) {
 			var referenceHash = md5.ComputeHash(bytes, 16, bytes.Length - 32);
 			Assert.AreEqual(16, hash.Length);
 			Assert.AreEqual(referenceHash, hash);
@@ -67,8 +59,7 @@ public class MD5HashTests
 	}
 
 	[Test, Category("LongRunning"), Explicit]
-	public void randomized_hash_verification_test()
-	{
+	public void randomized_hash_verification_test() {
 		var buf = new byte[1024];
 		var seed = Environment.TickCount;
 		Console.WriteLine("Seed: {0}", seed);
@@ -76,12 +67,9 @@ public class MD5HashTests
 
 		var stream = new MemoryStream(buf);
 
-		using (var md5 = MD5.Create())
-		{
-			for (int i = 0; i < buf.Length; ++i)
-			{
-				for (int j = i; j < buf.Length + 10; ++j)
-				{
+		using (var md5 = MD5.Create()) {
+			for (int i = 0; i < buf.Length; ++i) {
+				for (int j = i; j < buf.Length + 10; ++j) {
 					var referenceHash = md5.ComputeHash(buf, i, Math.Min(buf.Length - i, j - i + 1));
 					var hash = MD5Hash.GetHashFor(stream, i, j - i + 1);
 					Assert.AreEqual(16, hash.Length);

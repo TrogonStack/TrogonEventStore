@@ -56,14 +56,16 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		private void WriteStateCompleted(Action<ResolvedEvent, OperationResult> completed, ResolvedEvent ev,
 			ClientMessage.WriteEventsCompleted msg, DateTime parkedMessageAdded) {
 			_lastParkedEventNumber = msg.LastEventNumber;
-			if (_oldestParkedMessage == null) _oldestParkedMessage = parkedMessageAdded.ToUniversalTime();
+			if (_oldestParkedMessage == null) {
+				_oldestParkedMessage = parkedMessageAdded.ToUniversalTime();
+			}
+
 			completed?.Invoke(ev, msg.Result);
 		}
 
 		public void BeginParkMessage(ResolvedEvent ev, string reason,
 			Action<ResolvedEvent, OperationResult> completed) {
-			var metadata = new ParkedMessageMetadata
-				{ Added = DateTime.Now, Reason = reason, SubscriptionEventNumber = ev.OriginalEventNumber };
+			var metadata = new ParkedMessageMetadata { Added = DateTime.Now, Reason = reason, SubscriptionEventNumber = ev.OriginalEventNumber };
 
 			string data = GetLinkToFor(ev);
 
@@ -90,7 +92,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		private void BeginReadParkedMessageStats(Action completed) {
 			BeginReadLastEvent(lastEventNumber => {
-				if (lastEventNumber is null) completed();
+				if (lastEventNumber is null) {
+					completed();
+				}
+
 				BeginReadFirstEvent(0, (firstEventNumber, oldestParkedMessageTimeStamp) => {
 					_lastTruncateBefore = firstEventNumber ?? -1;
 					_lastParkedEventNumber = lastEventNumber ?? -1;
@@ -133,9 +138,11 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						case ReadStreamResult.Success:
 							if (comp.Events.Any()) {
 								completed?.Invoke(comp.Events.First().OriginalEventNumber, comp.Events.First().OriginalEvent.TimeStamp);
-							} else if (!comp.IsEndOfStream) {
+							}
+							else if (!comp.IsEndOfStream) {
 								BeginReadFirstEvent(comp.NextEventNumber, completed);
-							} else {
+							}
+							else {
 								completed?.Invoke(null, null);
 							}
 
@@ -169,7 +176,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						case ReadStreamResult.Success:
 							if (comp.Events.Any()) {
 								completed?.Invoke(comp.Events.Last().OriginalEventNumber);
-							} else {
+							}
+							else {
 								completed?.Invoke(null);
 							}
 
@@ -203,7 +211,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					switch (msg.Result) {
 						case OperationResult.Success:
 							_lastTruncateBefore = sequence;
-							if (updateOldestParkedMessage) _oldestParkedMessage = timestamp;
+							if (updateOldestParkedMessage) {
+								_oldestParkedMessage = timestamp;
+							}
+
 							completed?.Invoke();
 							break;
 						default:

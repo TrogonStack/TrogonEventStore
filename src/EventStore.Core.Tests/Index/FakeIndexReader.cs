@@ -6,8 +6,7 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Tests.Fakes;
 
-public class FakeIndexReader(Func<long, bool> existsAt = null) : ITransactionFileReader
-{
+public class FakeIndexReader(Func<long, bool> existsAt = null) : ITransactionFileReader {
 	private readonly Func<long, bool> _existsAt = existsAt ?? (l => true);
 
 	public void Reposition(long position) => throw new NotImplementedException();
@@ -18,8 +17,7 @@ public class FakeIndexReader(Func<long, bool> existsAt = null) : ITransactionFil
 	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
 		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
-	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
-	{
+	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token) {
 		var record = (LogRecord)new PrepareLogRecord(position, Guid.NewGuid(), Guid.NewGuid(), 0, 0,
 			position.ToString(), null, -1, DateTime.UtcNow, PrepareFlags.None, "type", null,
 			Array.Empty<byte>(), null);

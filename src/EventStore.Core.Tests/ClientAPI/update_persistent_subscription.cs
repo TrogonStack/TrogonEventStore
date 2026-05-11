@@ -10,16 +10,14 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class update_existing_persistent_subscription<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class update_existing_persistent_subscription<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
 
-	protected override async Task Given()
-	{
+	protected override async Task Given() {
 		await _conn.AppendToStreamAsync(_stream, ExpectedVersion.Any,
 			new EventData(Guid.NewGuid(), "whatever", true, Encoding.UTF8.GetBytes("{'foo' : 2}"), new Byte[0]));
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials);
@@ -28,16 +26,14 @@ public class update_existing_persistent_subscription<TLogFormat, TStreamId> : Sp
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_completion_succeeds()
-	{
+	public async Task the_completion_succeeds() {
 		await _conn.UpdatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials);
 	}
 }
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class update_existing_persistent_subscription_with_subscribers<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class update_existing_persistent_subscription_with_subscribers<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -49,42 +45,35 @@ public class update_existing_persistent_subscription_with_subscribers<TLogFormat
 	private Exception _exception;
 	private Exception _caught = null;
 
-	protected override async Task Given()
-	{
+	protected override async Task Given() {
 		await _conn.AppendToStreamAsync(_stream, ExpectedVersion.Any,
 			new EventData(Guid.NewGuid(), "whatever", true, Encoding.UTF8.GetBytes("{'foo' : 2}"), new Byte[0]));
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials)
 ;
 		_conn.ConnectToPersistentSubscription(_stream, "existing", (x, y) => Task.CompletedTask,
-			(sub, reason, ex) =>
-			{
+			(sub, reason, ex) => {
 				_dropped.Set();
 				_reason = reason;
 				_exception = ex;
 			}, DefaultData.AdminCredentials);
 	}
 
-	protected override async Task When()
-	{
-		try
-		{
+	protected override async Task When() {
+		try {
 			await _conn.UpdatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_caught = ex;
 		}
 	}
 
 	[Test]
-	public void the_completion_succeeds()
-	{
+	public void the_completion_succeeds() {
 		Assert.IsNull(_caught);
 	}
 
 	[Test]
-	public void existing_subscriptions_are_dropped()
-	{
+	public void existing_subscriptions_are_dropped() {
 		Assert.IsTrue(_dropped.WaitOne(TimeSpan.FromSeconds(5)));
 		Assert.AreEqual(SubscriptionDropReason.UserInitiated, _reason);
 		Assert.IsNull(_exception);
@@ -94,8 +83,7 @@ public class update_existing_persistent_subscription_with_subscribers<TLogFormat
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class update_non_existing_persistent_subscription<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class update_non_existing_persistent_subscription<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -105,8 +93,7 @@ public class update_non_existing_persistent_subscription<TLogFormat, TStreamId> 
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_completion_fails_with_not_found()
-	{
+	public async Task the_completion_fails_with_not_found() {
 		await AssertEx.ThrowsAsync<InvalidOperationException>(
 			() => _conn.UpdatePersistentSubscriptionAsync(_stream, "existing", _settings,
 				DefaultData.AdminCredentials));
@@ -115,16 +102,14 @@ public class update_non_existing_persistent_subscription<TLogFormat, TStreamId> 
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class update_existing_persistent_subscription_without_permissions<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class update_existing_persistent_subscription_without_permissions<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
 
-	protected override async Task When()
-	{
+	protected override async Task When() {
 		await _conn.AppendToStreamAsync(_stream, ExpectedVersion.Any,
 			new EventData(Guid.NewGuid(), "whatever", true, Encoding.UTF8.GetBytes("{'foo' : 2}"), new Byte[0]));
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials)
@@ -132,8 +117,7 @@ public class update_existing_persistent_subscription_without_permissions<TLogFor
 	}
 
 	[Test]
-	public async Task the_completion_fails_with_access_denied()
-	{
+	public async Task the_completion_fails_with_access_denied() {
 		await AssertEx.ThrowsAsync<AccessDeniedException>(
 			() => _conn.UpdatePersistentSubscriptionAsync(_stream, "existing", _settings, null));
 	}

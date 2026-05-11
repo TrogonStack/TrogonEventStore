@@ -50,7 +50,8 @@ namespace EventStore.Core.Services.TimerService {
 			if (_tasks.Count > 0) {
 				var tuple = _tasks.FindMin();
 				_timer.FireIn((int)(tuple.DueTime - _timeProvider.UtcNow).TotalMilliseconds, OnTimerFired);
-			} else {
+			}
+			else {
 				_timer.FireIn(Timeout.Infinite, OnTimerFired);
 			}
 		}

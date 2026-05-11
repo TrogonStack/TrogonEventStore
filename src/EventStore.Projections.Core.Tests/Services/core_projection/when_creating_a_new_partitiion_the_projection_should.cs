@@ -12,14 +12,11 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_creating_a_new_partitiion_the_projection_should<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
+public class when_creating_a_new_partitiion_the_projection_should<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
 	private Guid _eventId;
 
-	protected override void Given()
-	{
-		_configureBuilderByQuerySource = source =>
-		{
+	protected override void Given() {
+		_configureBuilderByQuerySource = source => {
 			source.FromAll();
 			source.AllEvents();
 			source.SetByStream();
@@ -30,8 +27,7 @@ public class when_creating_a_new_partitiion_the_projection_should<TLogFormat, TS
 		NoOtherStreams();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_consumer.HandledMessages.Clear();
@@ -43,8 +39,7 @@ public class when_creating_a_new_partitiion_the_projection_should<TLogFormat, TS
 	}
 
 	[Test]
-	public void passes_partition_created_notification_to_the_handler()
-	{
+	public void passes_partition_created_notification_to_the_handler() {
 		Assert.AreEqual(1, _stateHandler._partitionCreatedProcessed);
 		Assert.Inconclusive();
 	}

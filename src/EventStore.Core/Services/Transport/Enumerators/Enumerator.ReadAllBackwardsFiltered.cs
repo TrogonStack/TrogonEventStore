@@ -95,7 +95,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 
 				async Task OnMessage(Message message, CancellationToken ct) {
 					if (message is ClientMessage.NotHandled notHandled &&
-					    TryHandleNotHandled(notHandled, out var ex)) {
+						TryHandleNotHandled(notHandled, out var ex)) {
 						_channel.Writer.TryComplete(ex);
 						return;
 					}

@@ -38,8 +38,9 @@ public sealed class ClusterStatusService(
 		Read(CurrentUser, cancellationToken);
 
 	public async Task<ClientClusterInfo> Read(ClaimsPrincipal user, CancellationToken cancellationToken = default) {
-		if (!await authorizationProvider.CheckAccessAsync(user, ReadOperation, cancellationToken))
+		if (!await authorizationProvider.CheckAccessAsync(user, ReadOperation, cancellationToken)) {
 			throw new UnauthorizedAccessException("Cluster membership access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<GossipMessage.SendClientGossip>();
 		standardComponents.MainQueue.Publish(new GossipMessage.ClientGossip(envelope));
@@ -50,20 +51,24 @@ public sealed class ClusterStatusService(
 	public async Task<ClusterReplicaPage> ReadReplicas(
 		ClientClusterInfo clusterInfo,
 		CancellationToken cancellationToken = default) {
-		if (!await authorizationProvider.CheckAccessAsync(CurrentUser, ReplicationOperation, cancellationToken))
+		if (!await authorizationProvider.CheckAccessAsync(CurrentUser, ReplicationOperation, cancellationToken)) {
 			return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
+		}
 
 		var leader = clusterInfo?.Members?.FirstOrDefault(x => x.State == VNodeState.Leader);
-		if (leader is null)
+		if (leader is null) {
 			return ClusterReplicaPage.Unavailable("Replica stats are unavailable until a leader is known.");
+		}
 
 		var leaderEndpoint = HttpEndpoint(leader);
 		var context = httpContextAccessor.HttpContext;
-		if (context is null)
+		if (context is null) {
 			return ClusterReplicaPage.Unavailable("Replica stats are unavailable outside an HTTP request.");
+		}
 
-		if (string.IsNullOrWhiteSpace(leader.HttpEndPointIp) || leader.HttpEndPointPort <= 0)
+		if (string.IsNullOrWhiteSpace(leader.HttpEndPointIp) || leader.HttpEndPointPort <= 0) {
 			return ClusterReplicaPage.Unavailable("Leader HTTP endpoint is unavailable.");
+		}
 
 		try {
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -72,19 +77,25 @@ public sealed class ClusterStatusService(
 				new ReplicationStatsReq(),
 				cancellationToken: timeout.Token);
 			return ParseReplicaStats(response, clusterInfo.Members, leader, leaderEndpoint, DateTime.UtcNow);
-		} catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.PermissionDenied) {
+		}
+		catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.PermissionDenied) {
 			return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
-		} catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) {
-			if (cancellationToken.IsCancellationRequested)
+		}
+		catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) {
+			if (cancellationToken.IsCancellationRequested) {
 				throw new OperationCanceledException(null, ex, cancellationToken);
+			}
 
 			return ClusterReplicaPage.Unavailable("Timed out reading replica statistics.");
-		} catch (OperationCanceledException) {
-			if (cancellationToken.IsCancellationRequested)
+		}
+		catch (OperationCanceledException) {
+			if (cancellationToken.IsCancellationRequested) {
 				throw;
+			}
 
 			return ClusterReplicaPage.Unavailable("Timed out reading replica statistics.");
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ClusterReplicaPage.Unavailable($"Unable to read replica statistics: {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -102,8 +113,9 @@ public sealed class ClusterStatusService(
 	}
 
 	public void Dispose() {
-		foreach (var client in _clients.Values)
+		foreach (var client in _clients.Values) {
 			client.Dispose();
+		}
 	}
 
 	private ClusterReplicaPage ParseReplicaStats(

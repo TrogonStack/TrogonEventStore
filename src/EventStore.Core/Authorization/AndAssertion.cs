@@ -27,8 +27,10 @@ namespace EventStore.Core.Authorization {
 			while (!remaining.IsEmpty && context.Grant != Grant.Deny) {
 				var pending = remaining.Span[0].Evaluate(cp, operation, policy, context);
 				remaining = remaining.Slice(1);
-				if (!pending.IsCompleted)
+				if (!pending.IsCompleted) {
 					return EvaluateAsync(pending, remaining, cp, operation, policy, context);
+				}
+
 				if (!pending.Result) {
 					context.Add(new AssertionMatch(policy, _failedToMatchAllSubAssertions));
 					return new ValueTask<bool>(false);
@@ -46,8 +48,10 @@ namespace EventStore.Core.Authorization {
 				remaining = remaining.Slice(1);
 			}
 
-			if (!evaluated)
+			if (!evaluated) {
 				result.Add(new AssertionMatch(policy, _failedToMatchAllSubAssertions));
+			}
+
 			return evaluated;
 		}
 	}

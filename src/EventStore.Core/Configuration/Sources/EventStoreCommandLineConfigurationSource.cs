@@ -14,20 +14,25 @@ namespace EventStore.Core.Configuration.Sources {
 			static string NormalizeKeys(string x) => x[0] == '-' && x[1] != '-' ? $"-{x}" : x;
 
 			string NormalizeBooleans(string x, int i) {
-				if (!x.StartsWith("--"))
+				if (!x.StartsWith("--")) {
 					return x;
+				}
 
-				if (x.EndsWith('+'))
+				if (x.EndsWith('+')) {
 					return $"{x[..^1]}=true";
+				}
 
-				if (x.EndsWith('-'))
+				if (x.EndsWith('-')) {
 					return $"{x[..^1]}=false";
+				}
 
-				if (x.Contains('='))
+				if (x.Contains('=')) {
 					return x;
+				}
 
-				if (i != args.Length - 1 && !args[i + 1].StartsWith("--"))
+				if (i != args.Length - 1 && !args[i + 1].StartsWith("--")) {
 					return x;
+				}
 
 				return $"{x}=true";
 			}

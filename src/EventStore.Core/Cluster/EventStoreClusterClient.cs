@@ -51,7 +51,10 @@ namespace EventStore.Core.Cluster {
 		}
 
 		public void Dispose() {
-			if (Disposed) return;
+			if (Disposed) {
+				return;
+			}
+
 			_channel.Dispose();
 			Disposed = true;
 		}

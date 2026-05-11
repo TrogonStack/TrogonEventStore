@@ -10,16 +10,13 @@ using Serilog;
 
 namespace EventStore.TcpUnitTestPlugin;
 
-public class TcpApiTestPlugin() : SubsystemsPlugin(name: "TcpTestApi")
-{
+public class TcpApiTestPlugin() : SubsystemsPlugin(name: "TcpTestApi") {
 	static readonly ILogger Logger = Log.ForContext<TcpApiTestPlugin>();
 
-	public override void ConfigureServices(IServiceCollection services, IConfiguration configuration)
-	{
+	public override void ConfigureServices(IServiceCollection services, IConfiguration configuration) {
 		var options = configuration.GetSection("EventStore:TcpUnitTestPlugin").Get<TcpApiTestOptions>() ?? new();
 
-		services.AddHostedService<PublicTcpApiTestService>(serviceProvider =>
-		{
+		services.AddHostedService<PublicTcpApiTestService>(serviceProvider => {
 			var components = serviceProvider.GetRequiredService<StandardComponents>();
 			var authGateway = serviceProvider.GetRequiredService<AuthorizationGateway>();
 			var authProvider = serviceProvider.GetRequiredService<IAuthenticationProvider>();
@@ -30,8 +27,7 @@ public class TcpApiTestPlugin() : SubsystemsPlugin(name: "TcpTestApi")
 		});
 	}
 
-	public override Task Start()
-	{
+	public override Task Start() {
 		Logger.Debug("{Name}-{Version} test plugin is loaded", Name, Version);
 		return Task.CompletedTask;
 	}

@@ -3,19 +3,17 @@ using EventStore.ClientAPI;
 
 namespace EventStore.Core.Tests.ClientAPI.Helpers;
 
-internal class EventsStream
-{
+internal class EventsStream {
 	private const int SliceSize = 10;
 
-	public static async Task<int> Count(IEventStoreConnection store, string stream)
-	{
+	public static async Task<int> Count(IEventStoreConnection store, string stream) {
 		var result = 0;
-		while (true)
-		{
+		while (true) {
 			var slice = await store.ReadStreamEventsForwardAsync(stream, result, SliceSize, false);
 			result += slice.Events.Length;
-			if (slice.IsEndOfStream)
+			if (slice.IsEndOfStream) {
 				break;
+			}
 		}
 
 		return result;

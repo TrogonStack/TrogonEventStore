@@ -10,23 +10,19 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class PersistentSubscriptions
-{
+internal partial class PersistentSubscriptions {
 	private static readonly Operation GetInfoOperation = new Operation(Plugins.Authorization.Operations.Subscriptions.Statistics);
-	public override async Task<GetInfoResp> GetInfo(GetInfoReq request, ServerCallContext context)
-	{
+	public override async Task<GetInfoResp> GetInfo(GetInfoReq request, ServerCallContext context) {
 		var getPersistentSubscriptionInfoSource = new TaskCompletionSource<GetInfoResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var user = context.GetHttpContext().User;
 
 		if (!await _authorizationProvider.CheckAccessAsync(user,
-			GetInfoOperation, context.CancellationToken))
-		{
+			GetInfoOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
-		string streamId = request.Options.StreamOptionCase switch
-		{
+		string streamId = request.Options.StreamOptionCase switch {
 			GetInfoReq.Types.Options.StreamOptionOneofCase.All => "$all",
 			GetInfoReq.Types.Options.StreamOptionOneofCase.StreamIdentifier => request.Options.StreamIdentifier,
 			_ => throw new InvalidOperationException()
@@ -38,21 +34,16 @@ internal partial class PersistentSubscriptions
 			request.Options.GroupName));
 		return await getPersistentSubscriptionInfoSource.Task;
 
-		void HandleGetPersistentSubscriptionStatsCompleted(Message message)
-		{
-			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
-			{
+		void HandleGetPersistentSubscriptionStatsCompleted(Message message) {
+			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
 				getPersistentSubscriptionInfoSource.TrySetException(ex);
 				return;
 			}
 
-			if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed)
-			{
-				switch (completed.Result)
-				{
+			if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed) {
+				switch (completed.Result) {
 					case MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success:
-						var getInfoResp = new GetInfoResp
-						{
+						var getInfoResp = new GetInfoResp {
 							SubscriptionInfo = ParseSubscriptionInfo(completed.SubscriptionStats.First())
 						};
 						getPersistentSubscriptionInfoSource.TrySetResult(getInfoResp);
@@ -83,16 +74,14 @@ internal partial class PersistentSubscriptions
 		}
 	}
 
-	public override async Task<ListResp> List(ListReq request, ServerCallContext context)
-	{
+	public override async Task<ListResp> List(ListReq request, ServerCallContext context) {
 		var listPersistentSubscriptionsSource =
 			new TaskCompletionSource<ListResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var user = context.GetHttpContext().User;
 
 		if (!await _authorizationProvider.CheckAccessAsync(user,
-			GetInfoOperation, context.CancellationToken))
-		{
+			GetInfoOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -102,20 +91,26 @@ internal partial class PersistentSubscriptions
 			: options.ListOptionCase;
 
 		var hasPaging = options.HasOffset || options.HasCount;
-		if (options.HasOffset && options.Offset < 0)
+		if (options.HasOffset && options.Offset < 0) {
 			throw new RpcException(new Status(StatusCode.InvalidArgument, "offset must be a non-negative integer"));
-		if (options.HasCount && options.Count < 1)
+		}
+
+		if (options.HasCount && options.Count < 1) {
 			throw new RpcException(new Status(StatusCode.InvalidArgument, "count must be a positive integer"));
-		if (hasPaging && !(options.HasOffset && options.HasCount))
+		}
+
+		if (hasPaging && !(options.HasOffset && options.HasCount)) {
 			throw new RpcException(new Status(StatusCode.InvalidArgument, "offset and count must be provided together"));
+		}
+
 		if (hasPaging &&
-			listOptionCase != ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions)
+			listOptionCase != ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions) {
 			throw new RpcException(new Status(StatusCode.InvalidArgument,
 				"offset and count are only supported when listing all subscriptions"));
+		}
 
 		var streamId = string.Empty;
-		switch (listOptionCase)
-		{
+		switch (listOptionCase) {
 			case ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions:
 				var envelope = new CallbackEnvelope(HandleListSubscriptionsCompleted);
 				_publisher.Publish(hasPaging
@@ -127,10 +122,11 @@ internal partial class PersistentSubscriptions
 				break;
 			case ListReq.Types.Options.ListOptionOneofCase.ListForStream:
 				var listForStream = options.ListForStream;
-				if (listForStream is null)
+				if (listForStream is null) {
 					throw new RpcException(new Status(StatusCode.InvalidArgument, "list_for_stream must be provided"));
-				streamId = listForStream.StreamOptionCase switch
-				{
+				}
+
+				streamId = listForStream.StreamOptionCase switch {
 					ListReq.Types.StreamOption.StreamOptionOneofCase.All => "$all",
 					ListReq.Types.StreamOption.StreamOptionOneofCase.Stream => listForStream.Stream,
 					_ => throw new RpcException(new Status(StatusCode.InvalidArgument, "stream option must be provided"))
@@ -146,18 +142,14 @@ internal partial class PersistentSubscriptions
 
 		return await listPersistentSubscriptionsSource.Task.WaitAsync(context.CancellationToken);
 
-		void HandleListSubscriptionsCompleted(Message message)
-		{
-			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
-			{
+		void HandleListSubscriptionsCompleted(Message message) {
+			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
 				listPersistentSubscriptionsSource.TrySetException(ex);
 				return;
 			}
 
-			if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed)
-			{
-				switch (completed.Result)
-				{
+			if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed) {
+				switch (completed.Result) {
 					case MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success:
 						var listResp = new ListResp();
 						listResp.Subscriptions.AddRange(
@@ -194,13 +186,10 @@ internal partial class PersistentSubscriptions
 		}
 	}
 
-	private SubscriptionInfo ParseSubscriptionInfo(MonitoringMessage.PersistentSubscriptionInfo input)
-	{
+	private SubscriptionInfo ParseSubscriptionInfo(MonitoringMessage.PersistentSubscriptionInfo input) {
 		var connectionInfo = new List<SubscriptionInfo.Types.ConnectionInfo>();
-		foreach (var conn in input.Connections)
-		{
-			var connInfo = new SubscriptionInfo.Types.ConnectionInfo
-			{
+		foreach (var conn in input.Connections) {
+			var connInfo = new SubscriptionInfo.Types.ConnectionInfo {
 				From = conn.From,
 				Username = conn.Username,
 				AverageItemsPerSecond = conn.AverageItemsPerSecond,
@@ -211,13 +200,11 @@ internal partial class PersistentSubscriptions
 				ConnectionName = conn.ConnectionName
 			};
 			connInfo.ObservedMeasurements.AddRange(
-				conn.ObservedMeasurements.Select(x => new SubscriptionInfo.Types.Measurement
-				{ Key = x.Key, Value = x.Value }));
+				conn.ObservedMeasurements.Select(x => new SubscriptionInfo.Types.Measurement { Key = x.Key, Value = x.Value }));
 			connectionInfo.Add(connInfo);
 		}
 
-		var subscriptionInfo = new SubscriptionInfo
-		{
+		var subscriptionInfo = new SubscriptionInfo {
 			EventSource = input.EventSource,
 			GroupName = input.GroupName,
 			Status = input.Status,

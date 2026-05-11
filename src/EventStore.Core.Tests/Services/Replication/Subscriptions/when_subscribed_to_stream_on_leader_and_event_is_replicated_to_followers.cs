@@ -13,8 +13,7 @@ namespace EventStore.Core.Tests.Replication.ReadStream;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_followers<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
-{
+public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_followers<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
 	private const string _streamId = "test-stream";
 	private static readonly TimeSpan _topologyTimeout = TimeSpan.FromSeconds(90);
 	private static readonly TimeSpan _subscriptionTimeout = TimeSpan.FromSeconds(30);
@@ -22,11 +21,9 @@ public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_foll
 	private TestSubscription<TLogFormat, TStreamId> _leaderSubscription;
 	private List<TestSubscription<TLogFormat, TStreamId>> _followerSubscriptions;
 
-	protected override async Task Given()
-	{
+	protected override async Task Given() {
 		AssertEx.IsOrBecomesTrue(
-			() =>
-			{
+			() => {
 				var states = _nodes.Select(x => x.NodeState).ToArray();
 				return states.Count(x => x == VNodeState.Leader) == 1 &&
 					   states.Count(x => x == VNodeState.Follower) == 2;
@@ -49,15 +46,13 @@ public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_foll
 		_leaderSubscription.CreateSubscription();
 
 		_followerSubscriptions = new List<TestSubscription<TLogFormat, TStreamId>>();
-		foreach (var s in followers)
-		{
+		foreach (var s in followers) {
 			var followerSubscription = new TestSubscription<TLogFormat, TStreamId>(s, 1, _streamId, _subscriptionsConfirmed);
 			_followerSubscriptions.Add(followerSubscription);
 			followerSubscription.CreateSubscription();
 		}
 
-		if (!_subscriptionsConfirmed.Wait(_subscriptionTimeout))
-		{
+		if (!_subscriptionsConfirmed.Wait(_subscriptionTimeout)) {
 			Assert.Fail($"Timed out waiting for subscriptions to confirm, confirmed {_subscriptionsConfirmed.CurrentCount} need {_subscriptionsConfirmed.InitialCount}.");
 		}
 
@@ -68,8 +63,7 @@ public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_foll
 		await base.Given();
 		var replicas = GetFollowers();
 		AssertEx.IsOrBecomesTrue(
-			() =>
-			{
+			() => {
 				var leaderIndex = leader.Db.Config.IndexCheckpoint.Read();
 				return replicas[0].Db.Config.IndexCheckpoint.Read() == leaderIndex &&
 					   replicas[1].Db.Config.IndexCheckpoint.Read() == leaderIndex;
@@ -79,16 +73,13 @@ public class when_subscribed_to_stream_on_leader_and_event_is_replicated_to_foll
 	}
 
 	[Test]
-	public void should_receive_event_on_leader()
-	{
+	public void should_receive_event_on_leader() {
 		Assert.IsTrue(_leaderSubscription.EventAppeared.Wait(2000));
 	}
 
 	[Test]
-	public void should_receive_event_on_followers()
-	{
-		if (!(_followerSubscriptions[0].EventAppeared.Wait(2000) && _followerSubscriptions[1].EventAppeared.Wait(2000)))
-		{
+	public void should_receive_event_on_followers() {
+		if (!(_followerSubscriptions[0].EventAppeared.Wait(2000) && _followerSubscriptions[1].EventAppeared.Wait(2000))) {
 			Assert.Fail("Timed out waiting for follower subscriptions to get events");
 		}
 	}

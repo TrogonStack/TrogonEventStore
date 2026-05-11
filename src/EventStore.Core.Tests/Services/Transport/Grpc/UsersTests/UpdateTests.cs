@@ -28,7 +28,7 @@ public class UpdateTests {
 		public void stores_the_updated_user_details() {
 			Assert.AreEqual("update-test-user", _details.UserDetails.LoginName);
 			Assert.AreEqual("Updated Test User", _details.UserDetails.FullName);
-			Assert.AreEqual(new[] {"ops", "other"}, _details.UserDetails.Groups.ToArray());
+			Assert.AreEqual(new[] { "ops", "other" }, _details.UserDetails.Groups.ToArray());
 		}
 	}
 
@@ -45,7 +45,8 @@ public class UpdateTests {
 		protected override async Task When() {
 			try {
 				await _client.UpdateAsync(UpdateRequest("missing-update-test-user"), GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -74,7 +75,8 @@ public class UpdateTests {
 		protected override async Task When() {
 			try {
 				await _client.UpdateAsync(UpdateRequest(TargetLogin), GetCallOptions((ActorLogin, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -92,7 +94,7 @@ public class UpdateTests {
 				LoginName = loginName,
 				Password = "Pa55w0rd!",
 				FullName = "Update Test User",
-				Groups = {"admin", "other"}
+				Groups = { "admin", "other" }
 			}
 		};
 
@@ -101,7 +103,7 @@ public class UpdateTests {
 			Options = new UpdateReq.Types.Options {
 				LoginName = loginName,
 				FullName = "Updated Test User",
-				Groups = {"ops", "other"}
+				Groups = { "ops", "other" }
 			}
 		};
 

@@ -10,12 +10,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.TransactionMgr;
 
 [TestFixture]
-public class when_transaction_commit_gets_prepare_timeout_after_prepares : RequestManagerSpecification<TransactionCommit>
-{
+public class when_transaction_commit_gets_prepare_timeout_after_prepares : RequestManagerSpecification<TransactionCommit> {
 
 	private int transactionId = 2341;
-	protected override TransactionCommit OnManager(FakePublisher publisher)
-	{
+	protected override TransactionCommit OnManager(FakePublisher publisher) {
 		return new TransactionCommit(
 			publisher,
 			PrepareTimeout,
@@ -27,26 +25,22 @@ public class when_transaction_commit_gets_prepare_timeout_after_prepares : Reque
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages()
-	{
+	protected override IEnumerable<Message> WithInitialMessages() {
 		yield return new StorageMessage.PrepareAck(InternalCorrId, transactionId, PrepareFlags.SingleWrite);
 	}
 
-	protected override Message When()
-	{
+	protected override Message When() {
 		return new StorageMessage.RequestManagerTimerTick(
 			DateTime.UtcNow + TimeSpan.FromTicks(CommitTimeout.Ticks / 2));
 	}
 
 	[Test]
-	public void no_messages_are_published()
-	{
+	public void no_messages_are_published() {
 		Assert.That(Produced.Count == 0);
 	}
 
 	[Test]
-	public void the_envelope_is_not_replied_to()
-	{
+	public void the_envelope_is_not_replied_to() {
 		Assert.AreEqual(0, Envelope.Replies.Count);
 	}
 }

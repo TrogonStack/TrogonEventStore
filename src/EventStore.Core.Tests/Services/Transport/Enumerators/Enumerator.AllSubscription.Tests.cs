@@ -15,13 +15,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests
-{
+public partial class EnumeratorTests {
 	private static EnumeratorWrapper CreateAllSubscription(
 		IPublisher publisher,
 		Position? checkpoint,
-		ClaimsPrincipal user = null)
-	{
+		ClaimsPrincipal user = null) {
 
 		return new EnumeratorWrapper(new Enumerator.AllSubscription(
 			bus: publisher,
@@ -34,12 +32,10 @@ public partial class EnumeratorTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class subscribe_all_from_start<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-	{
+	public class subscribe_all_from_start<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 		private readonly List<Guid> _eventIds = new();
 
-		protected override void Given()
-		{
+		protected override void Given() {
 			EnableReadAll();
 			_eventIds.Add(WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId);
 			_eventIds.Add(WriteEvent("test-stream", "type2", "{}", "{Data: 2}").Item1.EventId);
@@ -47,8 +43,7 @@ public partial class EnumeratorTests
 		}
 
 		[Test]
-		public async Task should_receive_live_caught_up_message_after_reading_existing_events()
-		{
+		public async Task should_receive_live_caught_up_message_after_reading_existing_events() {
 			await using var sub = CreateAllSubscription(_publisher, checkpoint: null);
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
@@ -60,10 +55,8 @@ public partial class EnumeratorTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class subscribe_all_from_end<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-	{
-		protected override void Given()
-		{
+	public class subscribe_all_from_end<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+		protected override void Given() {
 			EnableReadAll();
 			WriteEvent("test-stream", "type1", "{}", "{Data: 1}");
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
@@ -71,8 +64,7 @@ public partial class EnumeratorTests
 		}
 
 		[Test]
-		public async Task should_receive_live_caught_up_message_immediately()
-		{
+		public async Task should_receive_live_caught_up_message_immediately() {
 			await using var sub = CreateAllSubscription(_publisher, Position.End);
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
@@ -81,13 +73,11 @@ public partial class EnumeratorTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class subscribe_all_from_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-	{
+	public class subscribe_all_from_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 		private readonly List<Guid> _eventIds = new();
 		private TFPos _subscribeFrom;
 
-		protected override void Given()
-		{
+		protected override void Given() {
 			EnableReadAll();
 			WriteEvent("test-stream", "type1", "{}", "{Data: 1}");
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
@@ -98,8 +88,7 @@ public partial class EnumeratorTests
 		}
 
 		[Test]
-		public async Task should_receive_events_after_start_position()
-		{
+		public async Task should_receive_events_after_start_position() {
 			await using var sub = CreateAllSubscription(
 				_publisher,
 				new Position((ulong)_subscribeFrom.CommitPosition, (ulong)_subscribeFrom.PreparePosition));

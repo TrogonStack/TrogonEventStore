@@ -38,11 +38,11 @@ namespace EventStore.Core.DataStructures {
 		~UnmanagedMemoryAppendOnlyList() => Dispose(false);
 
 		public void Add(T item) {
-			if (_count >= _maxCapacity)
+			if (_count >= _maxCapacity) {
 				throw new MaxCapacityReachedException();
+			}
 
-			unsafe
-			{
+			unsafe {
 				new Span<T>(_dataPtr.ToPointer(), _maxCapacity) {
 					[_count] = item
 				};
@@ -56,8 +56,9 @@ namespace EventStore.Core.DataStructures {
 
 		public int Count => _count;
 		public ReadOnlySpan<T> AsSpan() {
-			if (_dataPtr == IntPtr.Zero)
+			if (_dataPtr == IntPtr.Zero) {
 				return ReadOnlySpan<T>.Empty;
+			}
 
 			unsafe {
 				return new ReadOnlySpan<T>(_dataPtr.ToPointer(), _maxCapacity).Slice(0, _count);
@@ -70,8 +71,7 @@ namespace EventStore.Core.DataStructures {
 					throw new IndexOutOfRangeException();
 				}
 
-				unsafe
-				{
+				unsafe {
 					return new ReadOnlySpan<T>(_dataPtr.ToPointer(), _maxCapacity)[index];
 				}
 			}

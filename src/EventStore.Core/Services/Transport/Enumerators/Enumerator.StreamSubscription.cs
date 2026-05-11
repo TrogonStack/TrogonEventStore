@@ -89,7 +89,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			}
 
 			public override async ValueTask<bool> MoveNextAsync() {
-				ReadLoop:
+ReadLoop:
 
 				if (!await _channel.Reader.WaitToReadAsync(_cts.Token)) {
 					return false;
@@ -127,11 +127,13 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			}
 
 			private static long ConvertCheckpoint(StreamRevision? checkpoint, long lastLiveEventNumber) {
-				if (!checkpoint.HasValue)
+				if (!checkpoint.HasValue) {
 					return -1;
+				}
 
-				if (checkpoint == StreamRevision.End)
+				if (checkpoint == StreamRevision.End) {
 					return lastLiveEventNumber;
+				}
 
 				return checkpoint.Value.ToInt64();
 			}
@@ -151,19 +153,24 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					// the most recently read sequence number from the live channel. 0 when we haven't read any.
 					var sequenceNumber = 0UL;
 
-					if (checkpoint >= confirmationLastEventNumber)
+					if (checkpoint >= confirmationLastEventNumber) {
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
+					}
 
 					while (true) {
 						ct.ThrowIfCancellationRequested();
 						checkpoint = await CatchUp(checkpoint, ct);
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
 					}
-				} catch (Exception ex) {
-					if (ex is not (OperationCanceledException or ReadResponseException.StreamDeleted))
+				}
+				catch (Exception ex) {
+					if (ex is not (OperationCanceledException or ReadResponseException.StreamDeleted)) {
 						Log.Error(ex, "Subscription {subscriptionId} to {streamName} experienced an error.", _subscriptionId, _streamName);
+					}
+
 					_channel.Writer.TryComplete(ex);
-				} finally {
+				}
+				finally {
 					Log.Debug("Subscription {subscriptionId} to {streamName} has ended.", _subscriptionId, _streamName);
 				}
 			}
@@ -236,12 +243,14 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				async Task OnMessage(Message message, CancellationToken ct) {
 					try {
 						if (message is ClientMessage.NotHandled notHandled &&
-						    TryHandleNotHandled(notHandled, out var ex))
+							TryHandleNotHandled(notHandled, out var ex)) {
 							throw ex;
+						}
 
-						if (message is not ClientMessage.ReadStreamEventsForwardCompleted completed)
+						if (message is not ClientMessage.ReadStreamEventsForwardCompleted completed) {
 							throw ReadResponseException.UnknownMessage
 								.Create<ClientMessage.ReadStreamEventsForwardCompleted>(message);
+						}
 
 						switch (completed.Result) {
 							case ReadStreamResult.Success:
@@ -279,7 +288,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 							default:
 								throw ReadResponseException.UnknownError.Create(completed.Result);
 						}
-					} catch (Exception exception) {
+					}
+					catch (Exception exception) {
 						catchupCompletionTcs.TrySetException(exception);
 					}
 				}
@@ -288,8 +298,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			private async Task SendEventToSubscription(ResolvedEvent @event, CancellationToken ct) {
 				await _channel.Writer.WriteAsync(new ReadResponse.EventReceived(@event), ct);
 
-				if (@event.OriginalEvent.EventType == SystemEventTypes.StreamDeleted)
+				if (@event.OriginalEvent.EventType == SystemEventTypes.StreamDeleted) {
 					throw new ReadResponseException.StreamDeleted(_streamName);
+				}
 			}
 
 			private Task<long> SubscribeToLive() {
@@ -305,14 +316,15 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				void OnSubscriptionMessage(Message message) {
 					try {
 						if (message is ClientMessage.NotHandled notHandled &&
-						    TryHandleNotHandled(notHandled, out var ex))
+							TryHandleNotHandled(notHandled, out var ex)) {
 							throw ex;
+						}
 
 						switch (message) {
 							case ClientMessage.SubscriptionConfirmation confirmed:
 								long caughtUp = confirmed.LastEventNumber ??
-								                throw ReadResponseException.UnknownError.Create(
-									                $"Live subscription {_subscriptionId} to {_streamName} failed to retrieve the last event number.");
+												throw ReadResponseException.UnknownError.Create(
+													$"Live subscription {_subscriptionId} to {_streamName} failed to retrieve the last event number.");
 
 								Log.Debug(
 									"Subscription {subscriptionId} to {streamName} confirmed. LastEventNumber is {streamRevision:N0}.",
@@ -336,22 +348,23 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 										throw ReadResponseException.UnknownError.Create(dropped.Reason);
 								}
 							case ClientMessage.StreamEventAppeared appeared: {
-								Log.Verbose(
-									"Subscription {subscriptionId} to {streamName} received live event {streamRevision}.",
-									_subscriptionId, _streamName, appeared.Event.OriginalEventNumber);
+									Log.Verbose(
+										"Subscription {subscriptionId} to {streamName} received live event {streamRevision}.",
+										_subscriptionId, _streamName, appeared.Event.OriginalEventNumber);
 
-								if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event))) {
-									// this cannot happen because _liveEvents does not have full mode 'wait'.
-									throw new Exception($"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to {_streamName}");
+									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event))) {
+										// this cannot happen because _liveEvents does not have full mode 'wait'.
+										throw new Exception($"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to {_streamName}");
+									}
+
+									return;
 								}
-
-								return;
-							}
 							default:
 								throw ReadResponseException.UnknownMessage
 									.Create<ClientMessage.SubscriptionConfirmation>(message);
 						}
-					} catch (Exception exception) {
+					}
+					catch (Exception exception) {
 						_liveEvents.Writer.TryComplete(exception);
 						confirmationEventNumberTcs.TrySetException(exception);
 					}

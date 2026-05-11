@@ -9,12 +9,10 @@ namespace EventStore.Core.Tests.Services.Storage.AllReader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
-	: RepeatableDbTestScenario<TLogFormat, TStreamId>
-{
+	: RepeatableDbTestScenario<TLogFormat, TStreamId> {
 
 	[Test]
-	public async Task should_receive_all_events_forward()
-	{
+	public async Task should_receive_all_events_forward() {
 		// create a db with explicit transactions, some of which are filtered out on read.
 		// previously, a bug caused those filtered-out records to prevent the successful
 		// reading of subsequent events that are contained within an explicit transaction.
@@ -49,13 +47,13 @@ public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
 			CancellationToken.None);
 
 		Assert.AreEqual(10, read.Records.Count);
-		for (int j = 0; j < 10; j++)
+		for (int j = 0; j < 10; j++) {
 			Assert.AreEqual($"includedStream{j}", read.Records[j].Event.EventStreamId);
+		}
 	}
 
 	[Test]
-	public async Task should_receive_all_events_backward()
-	{
+	public async Task should_receive_all_events_backward() {
 		// create a db with explicit transactions, some of which are filtered out on read.
 		// previously, a bug caused those filtered-out records to prevent the successful
 		// reading of subsequent events that are contained within an explicit transaction.
@@ -91,7 +89,8 @@ public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
 			CancellationToken.None);
 
 		Assert.AreEqual(10, read.Records.Count);
-		for (int j = 9; j <= 0; j--)
+		for (int j = 9; j <= 0; j--) {
 			Assert.AreEqual($"includedStream{j}", read.Records[j].Event.EventStreamId);
+		}
 	}
 }

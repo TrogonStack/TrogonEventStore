@@ -5,19 +5,16 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive;
 
-public class ArchiveOptionsTests
-{
+public class ArchiveOptionsTests {
 	[Fact]
-	public void disabled_archive_does_not_require_settings()
-	{
+	public void disabled_archive_does_not_require_settings() {
 		var sut = new ArchiveOptions();
 
 		sut.Validate();
 	}
 
 	[Fact]
-	public void enabled_archive_requires_storage_type()
-	{
+	public void enabled_archive_requires_storage_type() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			RetainAtLeast = new() {
@@ -32,8 +29,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void s3_archive_requires_bucket()
-	{
+	public void s3_archive_requires_bucket() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -52,8 +48,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void s3_archive_requires_region()
-	{
+	public void s3_archive_requires_region() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -72,8 +67,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void s3_compatible_archive_requires_credentials()
-	{
+	public void s3_compatible_archive_requires_credentials() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -95,8 +89,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void s3_credentials_must_be_configured_together()
-	{
+	public void s3_credentials_must_be_configured_together() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -118,8 +111,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void s3_session_token_requires_credentials()
-	{
+	public void s3_session_token_requires_credentials() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -141,8 +133,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void s3_archive_allows_explicit_credentials_without_service_url()
-	{
+	public void s3_archive_allows_explicit_credentials_without_service_url() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -162,8 +153,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void retention_requires_days()
-	{
+	public void retention_requires_days() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -179,8 +169,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void retention_requires_logical_bytes()
-	{
+	public void retention_requires_logical_bytes() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -196,8 +185,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void retention_rejects_negative_days()
-	{
+	public void retention_rejects_negative_days() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -214,8 +202,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void retention_rejects_days_above_timespan_limit()
-	{
+	public void retention_rejects_days_above_timespan_limit() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -232,8 +219,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void retention_rejects_negative_logical_bytes()
-	{
+	public void retention_rejects_negative_logical_bytes() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = StorageType.S3,
@@ -250,8 +236,7 @@ public class ArchiveOptionsTests
 	}
 
 	[Fact]
-	public void unknown_storage_type_is_rejected()
-	{
+	public void unknown_storage_type_is_rejected() {
 		var sut = new ArchiveOptions {
 			Enabled = true,
 			StorageType = (StorageType)999,

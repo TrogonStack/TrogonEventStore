@@ -7,8 +7,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientAPI;
 
-public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private readonly int _chunkSize;
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _conn;
@@ -19,8 +18,7 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 
 	protected abstract Task When();
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.CreateMiniNodeClient(node.TcpEndPoint, TcpType.Ssl);
 	}
 
@@ -29,28 +27,23 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 
 	protected SpecificationWithMiniNode() : this(chunkSize: 1024 * 1024) { }
 
-	protected SpecificationWithMiniNode(int chunkSize)
-	{
+	protected SpecificationWithMiniNode(int chunkSize) {
 		_chunkSize = chunkSize;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 
 		MiniNodeLogging.Setup();
 
-		try
-		{
+		try {
 			await base.TestFixtureSetUp();
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			throw new Exception("TestFixtureSetUp Failed", ex);
 		}
 
-		try
-		{
+		try {
 			_node = new MiniNode<TLogFormat, TStreamId>(PathName, chunkSize: _chunkSize);
 			await _node.Start(StartupTimeout);
 			await _node.WaitForTcpEndPoint().WithTimeout(StartupTimeout);
@@ -59,38 +52,34 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 				connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, DefaultData.AdminCredentials),
 				StartupTimeout);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			MiniNodeLogging.WriteLogs();
 			throw new Exception("MiniNodeSetUp Failed", ex);
 		}
 
-		try
-		{
+		try {
 			await Given().WithTimeout(Timeout);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			MiniNodeLogging.WriteLogs();
 			throw new Exception("Given Failed", ex);
 		}
 
-		try
-		{
+		try {
 			await When().WithTimeout(Timeout);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			MiniNodeLogging.WriteLogs();
 			throw new Exception("When Failed", ex);
 		}
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
-		if (_conn != null)
+	public override async Task TestFixtureTearDown() {
+		if (_conn != null) {
 			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, Timeout);
+		}
+
 		await _node.Shutdown();
 		await Task.Delay(1000);
 		await base.TestFixtureTearDown();

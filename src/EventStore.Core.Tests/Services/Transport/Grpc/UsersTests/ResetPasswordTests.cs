@@ -49,8 +49,9 @@ public class ResetPasswordTests {
 					await _client.ChangePasswordAsync(ChangePasswordRequest(loginName, currentPassword, nextPassword),
 						GetCallOptions((loginName, currentPassword)));
 					return;
-				} catch (RpcException ex) when (ex.Status.StatusCode == StatusCode.Unauthenticated &&
-				                               DateTime.UtcNow < deadline) {
+				}
+				catch (RpcException ex) when (ex.Status.StatusCode == StatusCode.Unauthenticated &&
+											   DateTime.UtcNow < deadline) {
 					await Task.Delay(50);
 				}
 			}
@@ -81,7 +82,8 @@ public class ResetPasswordTests {
 			try {
 				await _client.ResetPasswordAsync(ResetPasswordRequest(LoginName, "NewPa55w0rd!"),
 					GetCallOptions((LoginName, CurrentPassword)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -108,7 +110,8 @@ public class ResetPasswordTests {
 			try {
 				await _client.ResetPasswordAsync(ResetPasswordRequest("missing", "NewPa55w0rd!"),
 					GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}

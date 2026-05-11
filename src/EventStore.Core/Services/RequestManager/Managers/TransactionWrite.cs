@@ -33,7 +33,7 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 			_events = events;
 			_transactionId = transactionId;
 		}
-		
+
 		protected override Message WriteRequestMsg =>
 			new StorageMessage.WriteTransactionData(
 					InternalCorrId,
@@ -44,7 +44,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		protected override void AllEventsWritten() {
 			if (CommitSource.ReplicationPosition >= LastEventPosition) {
 				Committed();
-			} else if (!Registered) {
+			}
+			else if (!Registered) {
 				CommitSource.NotifyFor(LastEventPosition, Committed, CommitLevel.Replicated);
 				Registered = true;
 			}

@@ -13,8 +13,7 @@ public class IndexExecutor<TStreamId>(
 	bool unsafeIgnoreHardDeletes,
 	int restPeriod,
 	Throttle throttle)
-	: IIndexExecutor<TStreamId>
-{
+	: IIndexExecutor<TStreamId> {
 	public async ValueTask Execute(
 		ScavengePoint scavengePoint,
 		IScavengeStateForIndexExecutor<TStreamId> state,
@@ -101,7 +100,8 @@ public class IndexExecutor<TStreamId>(
 							handle = StreamHandle.ForStreamId(result.ValueOrDefault);
 							break;
 					}
-				} else {
+				}
+				else {
 					// not a collision, we can get the discard point by hash.
 					handle = StreamHandle.ForHash<TStreamId>(currentHash.Value);
 				}
@@ -110,7 +110,8 @@ public class IndexExecutor<TStreamId>(
 					currentIsTombstoned = info.IsTombstoned;
 					currentDiscardPoint = info.DiscardPoint;
 					currentIsDefinitelyMetastream = info.IsMetastream;
-				} else {
+				}
+				else {
 					// this stream has no scavenge data accumulated. therefore is has no metadata
 					// and is not tombstoned.
 					currentIsTombstoned = false;
@@ -118,7 +119,8 @@ public class IndexExecutor<TStreamId>(
 					currentIsDefinitelyMetastream = false;
 					return true; // don't need this but may as well.
 				}
-			} else {
+			}
+			else {
 				// same hash as the previous invocation, and it is not a collision, so it must be for
 				// the same stream, so the current* variables are already correct.
 
@@ -130,7 +132,8 @@ public class IndexExecutor<TStreamId>(
 					var stream = default(TStreamId);
 					try {
 						stream = state.LookupUniqueHashUser(indexEntry.Stream);
-					} catch {
+					}
+					catch {
 						// probably this isn't possible
 					}
 

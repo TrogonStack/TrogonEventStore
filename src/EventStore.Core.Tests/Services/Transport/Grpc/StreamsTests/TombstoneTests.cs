@@ -13,62 +13,48 @@ using GrpcConstants = EventStore.Core.Services.Transport.Grpc.Constants;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
 [TestFixture]
-public class TombstoneTests
-{
+public class TombstoneTests {
 	private const string StreamName = nameof(TombstoneTests);
 
 	public abstract class TombstoneExistingStreamSpecification<TLogFormat, TStreamId>
-		: GrpcSpecification<TLogFormat, TStreamId>
-	{
+		: GrpcSpecification<TLogFormat, TStreamId> {
 		private readonly TombstoneReq.Types.Options _options;
 		private Exception _caughtException;
 
-		private TombstoneExistingStreamSpecification(TombstoneReq.Types.Options options)
-		{
-			_options = new(options)
-			{
+		private TombstoneExistingStreamSpecification(TombstoneReq.Types.Options options) {
+			_options = new(options) {
 				StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamName) }
 			};
 		}
 
 		protected TombstoneExistingStreamSpecification(StreamRevision expectedStreamRevision) : this(
-			new TombstoneReq.Types.Options
-			{
+			new TombstoneReq.Types.Options {
 				Revision = expectedStreamRevision.ToUInt64(),
-			})
-		{ }
+			}) { }
 
-		protected TombstoneExistingStreamSpecification(long expectedStreamState) : this(expectedStreamState switch
-		{
+		protected TombstoneExistingStreamSpecification(long expectedStreamState) : this(expectedStreamState switch {
 			ExpectedVersion.Any => new TombstoneReq.Types.Options { Any = new() },
 			ExpectedVersion.NoStream => new TombstoneReq.Types.Options { NoStream = new() },
 			ExpectedVersion.StreamExists => new TombstoneReq.Types.Options { StreamExists = new() },
 			_ => throw new InvalidOperationException()
-		})
-		{ }
+		}) { }
 
 		[Test]
-		public void no_exception_is_thrown()
-		{
+		public void no_exception_is_thrown() {
 			Assert.Null(_caughtException);
 		}
 
 		[Test]
-		public void the_stream_is_deleted()
-		{
-			var ex = Assert.ThrowsAsync<RpcException>(async () =>
-			{
-				using var call = StreamsClient.Read(new()
-				{
-					Options = new()
-					{
+		public void the_stream_is_deleted() {
+			var ex = Assert.ThrowsAsync<RpcException>(async () => {
+				using var call = StreamsClient.Read(new() {
+					Options = new() {
 						UuidOption = new() { Structured = new() },
 						NoFilter = new(),
 						ResolveLinks = false,
 						ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
 						Count = 1,
-						Stream = new()
-						{
+						Stream = new() {
 							StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamName) },
 							Start = new()
 						}
@@ -84,13 +70,10 @@ public class TombstoneTests
 				ex.Trailers.Select(x => (x.Key, x.Value)).ToArray());
 		}
 
-		protected override Task Given() => _options.ExpectedStreamRevisionCase switch
-		{
+		protected override Task Given() => _options.ExpectedStreamRevisionCase switch {
 			TombstoneReq.Types.Options.ExpectedStreamRevisionOneofCase.NoStream => Task.CompletedTask,
-			_ => AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+			_ => AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					NoStream = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamName) }
 				},
@@ -100,19 +83,15 @@ public class TombstoneTests
 			}).AsTask()
 		};
 
-		protected override async Task When()
-		{
-			using var call = StreamsClient.TombstoneAsync(new()
-			{
+		protected override async Task When() {
+			using var call = StreamsClient.TombstoneAsync(new() {
 				Options = _options
 			}, GetCallOptions());
 
-			try
-			{
+			try {
 				await call.ResponseAsync;
 			}
-			catch (Exception ex)
-			{
+			catch (Exception ex) {
 				_caughtException = ex;
 			}
 		}
@@ -120,29 +99,25 @@ public class TombstoneTests
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class TombstoneExistingStreamExpectedRevision<TLogFormat, TStreamId>
-		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId>
-	{
+		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId> {
 		public TombstoneExistingStreamExpectedRevision() : base(StreamRevision.Start) { }
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class TombstoneExistingStreamAny<TLogFormat, TStreamId>
-		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId>
-	{
+		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId> {
 		public TombstoneExistingStreamAny() : base(ExpectedVersion.Any) { }
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class TombstoneExistingStreamNoStream<TLogFormat, TStreamId>
-		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId>
-	{
+		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId> {
 		public TombstoneExistingStreamNoStream() : base(ExpectedVersion.NoStream) { }
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class TombstoneExistingStreamExists<TLogFormat, TStreamId>
-		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId>
-	{
+		: TombstoneExistingStreamSpecification<TLogFormat, TStreamId> {
 		public TombstoneExistingStreamExists() : base(ExpectedVersion.StreamExists) { }
 	}
 }

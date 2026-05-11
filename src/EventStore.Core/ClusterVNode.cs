@@ -83,8 +83,7 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.Core;
 
-public abstract class ClusterVNode
-{
+public abstract class ClusterVNode {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<ClusterVNode>();
 	public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(6);
 
@@ -97,8 +96,7 @@ public abstract class ClusterVNode
 		CertificateProvider certificateProvider = null,
 		IConfiguration configuration = null,
 		Guid? instanceId = null,
-		int debugIndex = 0)
-	{
+		int debugIndex = 0) {
 
 		return new ClusterVNode<TStreamId>(
 			options,
@@ -138,8 +136,7 @@ public class ClusterVNode<TStreamId> :
 	IAsyncHandle<SystemMessage.BecomeShuttingDown>,
 	IHandle<SystemMessage.BecomeShutdown>,
 	IHandle<SystemMessage.SystemStart>,
-	IHandle<ClientMessage.ReloadConfig>
-{
+	IHandle<ClientMessage.ReloadConfig> {
 	private readonly ClusterVNodeOptions _options;
 
 	public override TFChunkDb Db { get; }
@@ -150,8 +147,7 @@ public class ClusterVNode<TStreamId> :
 
 	public override ISubscriber MainBus => _mainBus;
 
-	public override IHttpService HttpService
-	{
+	public override IHttpService HttpService {
 		get { return _httpService; }
 	}
 
@@ -159,13 +155,11 @@ public class ClusterVNode<TStreamId> :
 
 	public override IInternalStartup Startup => _startup;
 
-	public override IAuthenticationProvider AuthenticationProvider
-	{
+	public override IAuthenticationProvider AuthenticationProvider {
 		get { return _authenticationProvider; }
 	}
 
-	internal MultiQueuedHandler WorkersHandler
-	{
+	internal MultiQueuedHandler WorkersHandler {
 		get { return _workersHandler; }
 	}
 
@@ -214,8 +208,7 @@ public class ClusterVNode<TStreamId> :
 	private readonly object _startupTaskGate = new();
 	private Task _startupTask = null!;
 
-	public IEnumerable<Task> Tasks
-	{
+	public IEnumerable<Task> Tasks {
 		get { return _tasks; }
 	}
 
@@ -243,8 +236,7 @@ public class ClusterVNode<TStreamId> :
 		IConfiguration configuration = null,
 		IExpiryStrategy expiryStrategy = null,
 		Guid? instanceId = null, int debugIndex = 0,
-		Action<IServiceCollection> configureAdditionalNodeServices = null)
-	{
+		Action<IServiceCollection> configureAdditionalNodeServices = null) {
 
 		configuration ??= new ConfigurationBuilder().Build();
 
@@ -257,17 +249,14 @@ public class ClusterVNode<TStreamId> :
 		var isRunningInContainer = ContainerizedEnvironment.IsRunningInContainer();
 
 		instanceId ??= Guid.NewGuid();
-		if (instanceId == Guid.Empty)
-		{
+		if (instanceId == Guid.Empty) {
 			throw new ArgumentException("InstanceId may not be empty.", nameof(instanceId));
 		}
 
-		if (!options.Application.Insecure)
-		{
+		if (!options.Application.Insecure) {
 			ReloadCertificates(options);
 
-			if (_certificateProvider?.TrustedRootCerts == null || _certificateProvider?.Certificate == null)
-			{
+			if (_certificateProvider?.TrustedRootCerts == null || _certificateProvider?.Certificate == null) {
 				throw new InvalidConfigurationException(
 					"A certificate is required unless insecure mode (--insecure) is set.");
 			}
@@ -338,24 +327,20 @@ public class ClusterVNode<TStreamId> :
 			dbConfig,
 			tracker: trackers.TransactionFileTracker,
 			transformManager: new DbTransformManager(),
-			onChunkLoaded: chunkInfo =>
-			{
+			onChunkLoaded: chunkInfo => {
 				_mainQueue.Publish(new SystemMessage.ChunkLoaded(chunkInfo));
 			},
-			onChunkCompleted: chunkInfo =>
-			{
+			onChunkCompleted: chunkInfo => {
 				_mainQueue.Publish(new SystemMessage.ChunkCompleted(chunkInfo));
 			},
-			onChunkSwitched: chunkInfo =>
-			{
+			onChunkSwitched: chunkInfo => {
 				_mainQueue.Publish(new SystemMessage.ChunkSwitched(chunkInfo));
 			});
 
 		TFChunkDbConfig CreateDbConfig(
 			out SystemStatsHelper statsHelper,
 			out int readerThreadsCount,
-			out int workerThreadsCount)
-		{
+			out int workerThreadsCount) {
 
 			ICheckpoint writerChk;
 			ICheckpoint chaserChk;
@@ -385,8 +370,7 @@ public class ClusterVNode<TStreamId> :
 			var streamExistenceFilterCheckFilename =
 				Path.Combine(streamExistencePath, Checkpoint.StreamExistenceFilter + ".chk");
 
-			if (RuntimeInformation.IsUnix)
-			{
+			if (RuntimeInformation.IsUnix) {
 				Log.Debug("Using File Checkpoints");
 				writerChk = new FileCheckpoint(writerCheckFilename, Checkpoint.Writer);
 				chaserChk = new FileCheckpoint(chaserCheckFilename, Checkpoint.Chaser);
@@ -400,8 +384,7 @@ public class ClusterVNode<TStreamId> :
 					Checkpoint.StreamExistenceFilter,
 					initValue: -1);
 			}
-			else
-			{
+			else {
 				Log.Debug("Using Memory Mapped File Checkpoints");
 				writerChk = new MemoryMappedFileCheckpoint(writerCheckFilename, Checkpoint.Writer);
 				chaserChk = new MemoryMappedFileCheckpoint(chaserCheckFilename, Checkpoint.Chaser);
@@ -439,8 +422,7 @@ public class ClusterVNode<TStreamId> :
 			_fileNamingStrategy = new VersionedPatternFileNamingStrategy(dbPath, "chunk-");
 			var locatorCodec = new PrefixingLocatorCodec();
 			IChunkFileSystem chunkFileSystem = new ChunkLocalFileSystem(_fileNamingStrategy);
-			if (archiveOptions.Enabled)
-			{
+			if (archiveOptions.Enabled) {
 				var archiveReader = new ArchiveStorageFactory(
 					archiveOptions,
 					new ArchiveChunkNamer(_fileNamingStrategy))
@@ -530,17 +512,16 @@ public class ClusterVNode<TStreamId> :
 				watchSlowMsg: true,
 				slowMsgThreshold: TimeSpan.FromMilliseconds(200)));
 
-		void StartSubsystems()
-		{
-			foreach (var subsystem in _subsystems)
-			{
+		void StartSubsystems() {
+			foreach (var subsystem in _subsystems) {
 				var subSystemName = subsystem.Name;
-				subsystem.Start().ContinueWith(t =>
-				{
-					if (t.IsCompletedSuccessfully)
+				subsystem.Start().ContinueWith(t => {
+					if (t.IsCompletedSuccessfully) {
 						_mainQueue.Publish(new SystemMessage.SubSystemInitialized(subSystemName));
-					else
+					}
+					else {
 						Log.Error(t.Exception, "Failed to initialize subsystem {subSystemName}", subSystemName);
+					}
 				});
 			}
 		}
@@ -628,8 +609,7 @@ public class ClusterVNode<TStreamId> :
 				Db,
 				Db.Config.WriterCheckpoint.AsReadOnly()));
 
-		var logFormat = logFormatAbstractorFactory.Create(new()
-		{
+		var logFormat = logFormatAbstractorFactory.Create(new() {
 			IndexDirectory = indexPath,
 			InitialReaderCount = ESConsts.PTableInitialReaderCount,
 			MaxReaderCount = pTableMaxReaderCount,
@@ -645,25 +625,28 @@ public class ClusterVNode<TStreamId> :
 		ILRUCache<TStreamId, IndexBackend<TStreamId>.MetadataCached> streamMetadataCache;
 		var totalMem = RuntimeStats.GetTotalMemory();
 
-		if (options.Cluster.StreamInfoCacheCapacity > 0)
+		if (options.Cluster.StreamInfoCacheCapacity > 0) {
 			CreateStaticStreamInfoCache(
 				options.Cluster.StreamInfoCacheCapacity,
 				out streamLastEventNumberCache,
 				out streamMetadataCache,
 				out streamInfoCacheResizer);
-		else if (isRunningInContainer)
+		}
+		else if (isRunningInContainer) {
 			CreateStaticStreamInfoCache(
 				ContainerizedEnvironment.StreamInfoCacheCapacity,
 				out streamLastEventNumberCache,
 				out streamMetadataCache,
 				out streamInfoCacheResizer);
-		else
+		}
+		else {
 			CreateDynamicStreamInfoCache(
 				logFormat.StreamIdSizer,
 				totalMem,
 				out streamLastEventNumberCache,
 				out streamMetadataCache,
 				out streamInfoCacheResizer);
+		}
 
 		var dynamicCacheManager = new DynamicCacheManager(
 			bus: _mainQueue,
@@ -776,8 +759,7 @@ public class ClusterVNode<TStreamId> :
 		var nodeStatusListener = new NodeStateListenerService(_mainQueue, memLog);
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(nodeStatusListener);
 
-		var inMemReader = new InMemoryStreamReader(new Dictionary<string, IInMemoryStreamReader>
-		{
+		var inMemReader = new InMemoryStreamReader(new Dictionary<string, IInMemoryStreamReader> {
 			[SystemStreams.GossipStream] = gossipListener,
 			[SystemStreams.NodeStateStream] = nodeStatusListener,
 		});
@@ -860,15 +842,13 @@ public class ClusterVNode<TStreamId> :
 
 		var grpcSendService = new GrpcSendService(_eventStoreClusterClientCache);
 		_mainBus.Subscribe<GrpcMessage.SendOverGrpc>(_workersHandler);
-		SubscribeWorkers(bus =>
-		{
+		SubscribeWorkers(bus => {
 			bus.Subscribe<GrpcMessage.SendOverGrpc>(grpcSendService);
 		});
 
 		GossipAdvertiseInfo = GetGossipAdvertiseInfo();
 
-		GossipAdvertiseInfo GetGossipAdvertiseInfo()
-		{
+		GossipAdvertiseInfo GetGossipAdvertiseInfo() {
 			IPAddress intIpAddress = options.Interface.ReplicationIp;
 
 			IPAddress extIpAddress = options.Interface.NodeIp;
@@ -876,19 +856,16 @@ public class ClusterVNode<TStreamId> :
 			var intHostToAdvertise = options.Interface.ReplicationHostAdvertiseAs ?? intIpAddress.ToString();
 			var extHostToAdvertise = options.Interface.NodeHostAdvertiseAs ?? extIpAddress.ToString();
 
-			if (intIpAddress.Equals(IPAddress.Any) || extIpAddress.Equals(IPAddress.Any))
-			{
+			if (intIpAddress.Equals(IPAddress.Any) || extIpAddress.Equals(IPAddress.Any)) {
 				IPAddress nonLoopbackAddress = IPFinder.GetNonLoopbackAddress();
 				IPAddress addressToAdvertise =
 					options.Cluster.ClusterSize > 1 ? nonLoopbackAddress : IPAddress.Loopback;
 
-				if (intIpAddress.Equals(IPAddress.Any) && options.Interface.ReplicationHostAdvertiseAs == null)
-				{
+				if (intIpAddress.Equals(IPAddress.Any) && options.Interface.ReplicationHostAdvertiseAs == null) {
 					intHostToAdvertise = addressToAdvertise.ToString();
 				}
 
-				if (extIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null)
-				{
+				if (extIpAddress.Equals(IPAddress.Any) && options.Interface.NodeHostAdvertiseAs == null) {
 					extHostToAdvertise = addressToAdvertise.ToString();
 				}
 			}
@@ -931,8 +908,7 @@ public class ClusterVNode<TStreamId> :
 
 		_httpService = new KestrelHttpService(_mainQueue, NodeInfo.HttpEndPoint);
 
-		var components = new AuthenticationProviderFactoryComponents
-		{
+		var components = new AuthenticationProviderFactoryComponents {
 			MainBus = _mainBus,
 			MainQueue = _mainQueue,
 			WorkerBuses = _workerBuses,
@@ -970,11 +946,9 @@ public class ClusterVNode<TStreamId> :
 
 		var authorizationGateway = new AuthorizationGateway(_authorizationProvider);
 		{
-			if (!isSingleNode)
-			{
+			if (!isSingleNode) {
 				// INTERNAL TCP
-				if (NodeInfo.InternalTcp != null)
-				{
+				if (NodeInfo.InternalTcp != null) {
 					var intTcpService = new TcpService(_mainQueue, NodeInfo.InternalTcp, _workersHandler,
 						TcpServiceType.Internal, TcpSecurityType.Normal,
 						new InternalTcpDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
@@ -989,8 +963,7 @@ public class ClusterVNode<TStreamId> :
 				}
 
 				// INTERNAL SECURE TCP
-				if (NodeInfo.InternalSecureTcp != null)
-				{
+				if (NodeInfo.InternalSecureTcp != null) {
 					var intSecTcpService = new TcpService(_mainQueue, NodeInfo.InternalSecureTcp, _workersHandler,
 						TcpServiceType.Internal, TcpSecurityType.Secure,
 						new InternalTcpDispatcher(TimeSpan.FromMilliseconds(options.Database.WriteTimeoutMs)),
@@ -1007,8 +980,7 @@ public class ClusterVNode<TStreamId> :
 			}
 		}
 
-		SubscribeWorkers(bus =>
-		{
+		SubscribeWorkers(bus => {
 			var tcpSendService = new TcpSendService();
 			// ReSharper disable RedundantTypeArgumentsOfMethod
 			bus.Subscribe<TcpMessage.TcpSend>(tcpSendService);
@@ -1019,10 +991,8 @@ public class ClusterVNode<TStreamId> :
 		var httpAuthenticationProviders = new List<IHttpAuthenticationProvider>();
 
 		foreach (var authenticationScheme in _authenticationProvider.GetSupportedAuthenticationSchemes() ??
-											 Enumerable.Empty<string>())
-		{
-			switch (authenticationScheme)
-			{
+											 Enumerable.Empty<string>()) {
+			switch (authenticationScheme) {
 				case "Basic":
 					httpAuthenticationProviders.Add(new BasicHttpAuthenticationProvider(_authenticationProvider));
 					break;
@@ -1035,37 +1005,35 @@ public class ClusterVNode<TStreamId> :
 			}
 		}
 
-		if (!httpAuthenticationProviders.Any())
-		{
+		if (!httpAuthenticationProviders.Any()) {
 			throw new InvalidConfigurationException(
 				$"The server does not support any authentication scheme supported by the '{_authenticationProvider.Name}' authentication provider.");
 		}
 
-		if (!options.Application.Insecure)
-		{
+		if (!options.Application.Insecure) {
 			//transport-level authentication providers
 			httpAuthenticationProviders.Add(
 				new NodeCertificateAuthenticationProvider(() => _certificateProvider.GetReservedNodeCommonName()));
 
-			if (options.Interface.EnableTrustedAuth)
+			if (options.Interface.EnableTrustedAuth) {
 				httpAuthenticationProviders.Add(new TrustedHttpAuthenticationProvider());
+			}
 
-			if (EnableUnixSocket)
+			if (EnableUnixSocket) {
 				httpAuthenticationProviders.Add(new UnixSocketAuthenticationProvider());
+			}
 		}
 
 		//default authentication provider
 		httpAuthenticationProviders.Add(new AnonymousHttpAuthenticationProvider());
 
-		if (options.Cluster.Archiver)
-		{
+		if (options.Cluster.Archiver) {
 			//modifiedOptions = modifiedOptions.WithPlugableComponent(new ArchivePlugableComponent());
 		}
 
 		var nodeInformationProvider = new NodeInformationProvider(
 			options,
-			new Dictionary<string, bool>
-			{
+			new Dictionary<string, bool> {
 				["projections"] = options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev,
 				["userManagement"] =
 					options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault &&
@@ -1237,8 +1205,7 @@ public class ClusterVNode<TStreamId> :
 		// reuse the same buffer; it's quite big.
 		var calculatorBuffer = new Calculator<TStreamId>.Buffer(32_768);
 
-		scavengerFactory = new ScavengerFactory((message, scavengerLogger, logger) =>
-		{
+		scavengerFactory = new ScavengerFactory((message, scavengerLogger, logger) => {
 			// currently on the main queue
 			var optionsCalculator = new ScavengeOptionsCalculator(options, message);
 
@@ -1248,8 +1215,9 @@ public class ClusterVNode<TStreamId> :
 				restLoggingThreshold: TimeSpan.FromMilliseconds(10_000),
 				activePercent: message.ThrottlePercent ?? 100);
 
-			if (logFormat is not LogFormatAbstractor<string>)
+			if (logFormat is not LogFormatAbstractor<string>) {
 				throw new NotSupportedException("Scavenge requires the string stream id log format.");
+			}
 
 			var cancellationCheckPeriod = 1024;
 
@@ -1261,8 +1229,7 @@ public class ClusterVNode<TStreamId> :
 				objectPoolName: "scavenge backend pool",
 				initialCount: 0, // so that factory is not called on the main queue
 				maxCount: TFChunkScavenger.MaxThreadCount + 1,
-				factory: () =>
-				{
+				factory: () => {
 					// not on the main queue
 					var scavengeDirectory = Path.Combine(indexPath, "scavenging");
 					Directory.CreateDirectory(scavengeDirectory);
@@ -1317,8 +1284,7 @@ public class ClusterVNode<TStreamId> :
 			var chunkManager = new ChunkManagerForExecutor<TStreamId>(logger, Db.Manager, Db.Config,
 				Db.TransformManager);
 			var chunkDeleter = IChunkDeleter<TStreamId, ILogRecord>.NoOp;
-			if (archiveOptions.Enabled)
-			{
+			if (archiveOptions.Enabled) {
 				// todo: consider if we can/should reuse the same reader elsewhere
 				var archiveReader = new ArchiveStorageFactory(
 					archiveOptions,
@@ -1366,13 +1332,12 @@ public class ClusterVNode<TStreamId> :
 
 			return new Scavenger<TStreamId>(
 				logger: logger,
-				checkPreconditions: () =>
-				{
-					tableIndex.Visit(table =>
-					{
-						if (table.Version <= PTableVersions.IndexV1)
+				checkPreconditions: () => {
+					tableIndex.Visit(table => {
+						if (table.Version <= PTableVersions.IndexV1) {
 							throw new NotSupportedException(
 								$"PTable {table.Filename} has version {table.Version}. Scavenge requires V2 index files and above. Please rebuild the indexes to upgrade them.");
+						}
 					});
 				},
 				state: state,
@@ -1461,8 +1426,10 @@ public class ClusterVNode<TStreamId> :
 			Db.Config.WriterCheckpoint.AsReadOnly(),
 			memberInfo.InstanceId
 		);
-		if (modifiedOptions.Cluster.ReadOnlyReplica)
+		if (modifiedOptions.Cluster.ReadOnlyReplica) {
 			_mainBus.Subscribe<SystemMessage.ReplicaStateMessage>(telemetryService);
+		}
+
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(telemetryService);
 		_mainBus.Subscribe<ElectionMessage.ElectionsDone>(telemetryService);
 		_mainBus.Subscribe<LeaderDiscoveryMessage.LeaderFound>(telemetryService);
@@ -1475,8 +1442,7 @@ public class ClusterVNode<TStreamId> :
 			_queueStatsManager);
 		AddTask(leaderReplicationService.Task);
 
-		if (!isSingleNode)
-		{
+		if (!isSingleNode) {
 			_mainBus.Subscribe<SystemMessage.SystemStart>(leaderReplicationService);
 			_mainBus.Subscribe<SystemMessage.StateChangeMessage>(leaderReplicationService);
 			_mainBus.Subscribe<SystemMessage.EnablePreLeaderReplication>(leaderReplicationService);
@@ -1501,15 +1467,13 @@ public class ClusterVNode<TStreamId> :
 			_mainBus.Subscribe<ReplicationMessage.AckLogPosition>(replicaService);
 			_mainBus.Subscribe<ClientMessage.TcpForwardMessage>(replicaService);
 		}
-		else
-		{
+		else {
 			//LeaderReplicationService only running on a single node to provide stats, hence not subscribed to the other message types like SystemStart and StateChangeMessage
 			monitoringInnerBus.Subscribe<ReplicationMessage.GetReplicationStats>(leaderReplicationService);
 		}
 
 		// ELECTIONS
-		if (!NodeInfo.IsReadOnlyReplica)
-		{
+		if (!NodeInfo.IsReadOnlyReplica) {
 			var electionsService = new ElectionsService(
 				_mainQueue,
 				memberInfo,
@@ -1530,15 +1494,14 @@ public class ClusterVNode<TStreamId> :
 		var gossipSeedSource = (
 				options.Cluster.DiscoverViaDns,
 				options.Cluster.ClusterSize > 1,
-				options.Cluster.GossipSeed is { Length: > 0 }) switch
-		{
-			(true, true, _) => (IGossipSeedSource)new DnsGossipSeedSource(options.Cluster.ClusterDns,
-				options.Cluster.ClusterGossipPort),
-			(false, true, false) => throw new InvalidConfigurationException(
-				"DNS discovery is disabled, but no gossip seed endpoints have been specified. "
-				+ "Specify gossip seeds using the `GossipSeed` option."),
-			_ => new KnownEndpointGossipSeedSource(options.Cluster.GossipSeed)
-		};
+				options.Cluster.GossipSeed is { Length: > 0 }) switch {
+					(true, true, _) => (IGossipSeedSource)new DnsGossipSeedSource(options.Cluster.ClusterDns,
+						options.Cluster.ClusterGossipPort),
+					(false, true, false) => throw new InvalidConfigurationException(
+						"DNS discovery is disabled, but no gossip seed endpoints have been specified. "
+						+ "Specify gossip seeds using the `GossipSeed` option."),
+					_ => new KnownEndpointGossipSeedSource(options.Cluster.GossipSeed)
+				};
 
 		var gossip = new NodeGossipService(
 			_mainQueue,
@@ -1572,8 +1535,7 @@ public class ClusterVNode<TStreamId> :
 		var clusterStateChangeListener = new ClusterMultipleVersionsLogger();
 		_mainBus.Subscribe<GossipMessage.GossipUpdated>(clusterStateChangeListener);
 
-		_reloadConfigSignalRegistration = PosixSignalRegistration.Create(PosixSignal.SIGHUP, c =>
-		{
+		_reloadConfigSignalRegistration = PosixSignalRegistration.Create(PosixSignal.SIGHUP, c => {
 			c.Cancel = true;
 			Log.Information("Reloading the node's configuration since {Signal} has been received.", c.Signal);
 			_mainQueue.Publish(new ClientMessage.ReloadConfig());
@@ -1586,8 +1548,7 @@ public class ClusterVNode<TStreamId> :
 			new IHttpService[] { _httpService }, _workersHandler, monitoringQueue, _queueStatsManager,
 			trackers.QueueTrackers, metricsConfiguration.ProjectionStats);
 
-		IServiceCollection ConfigureNodeServices(IServiceCollection services)
-		{
+		IServiceCollection ConfigureNodeServices(IServiceCollection services) {
 			services
 				.AddSingleton(telemetryService) // for correct disposal
 				.AddSingleton(_readIndex)
@@ -1609,24 +1570,22 @@ public class ClusterVNode<TStreamId> :
 
 		var startupTasks = (IReadOnlyList<IClusterVNodeStartupTask>)Array.Empty<IClusterVNodeStartupTask>();
 
-		void ConfigureNode(IApplicationBuilder app)
-		{
+		void ConfigureNode(IApplicationBuilder app) {
 			var dbTransforms = app.ApplicationServices.GetService<IReadOnlyList<IDbTransform>>();
 			Db.TransformManager.LoadTransforms(dbTransforms);
 
-			if (!Db.TransformManager.TrySetActiveTransform(options.Database.Transform))
+			if (!Db.TransformManager.TrySetActiveTransform(options.Database.Transform)) {
 				throw new InvalidConfigurationException(
 					$"Unknown {nameof(options.Database.Transform)} specified: {options.Database.Transform}");
+			}
 
 			startupTasks = app.ApplicationServices.GetRequiredService<IReadOnlyList<IClusterVNodeStartupTask>>();
 		}
 
-		async Task StartNode(CancellationToken token)
-		{
+		async Task StartNode(CancellationToken token) {
 			// TRUNCATE IF NECESSARY
 			var truncPos = Db.Config.TruncateCheckpoint.Read();
-			if (truncPos != -1)
-			{
+			if (truncPos != -1) {
 				Log.Information(
 					"Truncate checkpoint is present. Truncate: {truncatePosition} (0x{truncatePosition:X}), Writer: {writerCheckpoint} (0x{writerCheckpoint:X}), Chaser: {chaserCheckpoint} (0x{chaserCheckpoint:X}), Epoch: {epochCheckpoint} (0x{epochCheckpoint:X})",
 					truncPos, truncPos, writerCheckpoint, writerCheckpoint, chaserCheckpoint, chaserCheckpoint,
@@ -1640,16 +1599,14 @@ public class ClusterVNode<TStreamId> :
 				// then we can remove this extra restart
 				Log.Information("Truncation successful. Shutting down.");
 				var shutdownGuid = Guid.NewGuid();
-				try
-				{
+				try {
 					await HandleAsync(
 						new SystemMessage.BecomeShuttingDown(shutdownGuid, exitProcess: true, shutdownHttp: true),
 						token)
 						.AsTask()
 						.WaitAsync(ShutdownTimeout, token);
 				}
-				catch (TimeoutException)
-				{
+				catch (TimeoutException) {
 					Log.Warning(
 						"Graceful shutdown did not complete within {shutdownTimeout} after truncation. Continuing with forced shutdown.",
 						ShutdownTimeout);
@@ -1660,8 +1617,9 @@ public class ClusterVNode<TStreamId> :
 				return;
 			}
 
-			foreach (var startupTask in startupTasks)
+			foreach (var startupTask in startupTasks) {
 				await startupTask.Run(token);
+			}
 
 			AddTask(_controller.Start());
 
@@ -1723,17 +1681,14 @@ public class ClusterVNode<TStreamId> :
 		string dbPath,
 		string defaultDataDirectory,
 		string fallbackDefaultDataDirectory,
-		Action<string> probeWriteAccess)
-	{
-		try
-		{
+		Action<string> probeWriteAccess) {
+		try {
 			Directory.CreateDirectory(dbPath);
 			probeWriteAccess(dbPath);
 
 			return dbPath;
 		}
-		catch (Exception ex) when (dbPath == defaultDataDirectory && (ex is UnauthorizedAccessException || ex is IOException))
-		{
+		catch (Exception ex) when (dbPath == defaultDataDirectory && (ex is UnauthorizedAccessException || ex is IOException)) {
 			return FallBackToDefaultDbPath(fallbackDefaultDataDirectory, probeWriteAccess, dbPath);
 		}
 	}
@@ -1741,8 +1696,7 @@ public class ClusterVNode<TStreamId> :
 	private static string FallBackToDefaultDbPath(
 		string fallbackDefaultDataDirectory,
 		Action<string> probeWriteAccess,
-		string dbPath)
-	{
+		string dbPath) {
 		Log.Information(
 			"Access to path {dbPath} denied. The Event Store database will be created in {fallbackDefaultDataDirectory}",
 			dbPath,
@@ -1754,8 +1708,7 @@ public class ClusterVNode<TStreamId> :
 		return fallbackDefaultDataDirectory;
 	}
 
-	private static void ProbeWriteAccess(string dbPath)
-	{
+	private static void ProbeWriteAccess(string dbPath) {
 		var writeProbePath = Path.Combine(dbPath, $"write-access-{Guid.NewGuid():N}.tmp");
 		using var writeProbe = new FileStream(
 			writeProbePath,
@@ -1766,8 +1719,7 @@ public class ClusterVNode<TStreamId> :
 			FileOptions.DeleteOnClose);
 	}
 
-	static int GetPTableMaxReaderCount(int readerThreadsCount)
-	{
+	static int GetPTableMaxReaderCount(int readerThreadsCount) {
 		var ptableMaxReaderCount =
 			1 /* StorageWriter */
 			+ 1 /* StorageChaser */
@@ -1784,8 +1736,7 @@ public class ClusterVNode<TStreamId> :
 		int streamInfoCacheCapacity,
 		out ILRUCache<TStreamId, IndexBackend<TStreamId>.EventNumberCached> streamLastEventNumberCache,
 		out ILRUCache<TStreamId, IndexBackend<TStreamId>.MetadataCached> streamMetadataCache,
-		out ICacheResizer streamInfoCacheResizer)
-	{
+		out ICacheResizer streamInfoCacheResizer) {
 
 		streamLastEventNumberCache = new LRUCache<TStreamId, IndexBackend<TStreamId>.EventNumberCached>(
 			"LastEventNumber", streamInfoCacheCapacity);
@@ -1805,8 +1756,7 @@ public class ClusterVNode<TStreamId> :
 		long totalMem,
 		out ILRUCache<TStreamId, IndexBackend<TStreamId>.EventNumberCached> streamLastEventNumberCache,
 		out ILRUCache<TStreamId, IndexBackend<TStreamId>.MetadataCached> streamMetadataCache,
-		out ICacheResizer streamInfoCacheResizer)
-	{
+		out ICacheResizer streamInfoCacheResizer) {
 
 		int LastEventNumberCacheItemSize(TStreamId streamId,
 			IndexBackend<TStreamId>.EventNumberCached eventNumberCached) =>
@@ -1818,10 +1768,10 @@ public class ClusterVNode<TStreamId> :
 			"LastEventNumber",
 			0,
 			LastEventNumberCacheItemSize,
-			(streamId, eventNumberCached, keyFreed, valueFreed, nodeFreed) =>
-			{
-				if (nodeFreed)
+			(streamId, eventNumberCached, keyFreed, valueFreed, nodeFreed) => {
+				if (nodeFreed) {
 					return LastEventNumberCacheItemSize(streamId, eventNumberCached);
+				}
 
 				return keyFreed ? sizer.GetSizeInBytes(streamId) : 0;
 			}, "bytes");
@@ -1837,10 +1787,10 @@ public class ClusterVNode<TStreamId> :
 			"Metadata",
 			0,
 			MetadataCacheItemSize,
-			(streamId, metadataCached, keyFreed, valueFreed, nodeFreed) =>
-			{
-				if (nodeFreed)
+			(streamId, metadataCached, keyFreed, valueFreed, nodeFreed) => {
+				if (nodeFreed) {
 					return MetadataCacheItemSize(streamId, metadataCached);
+				}
 
 				return
 					(keyFreed ? sizer.GetSizeInBytes(streamId) : 0) +
@@ -1870,91 +1820,79 @@ public class ClusterVNode<TStreamId> :
 				streamMetadataCache));
 	}
 
-	private void SubscribeWorkers(Action<InMemoryBus> setup)
-	{
-		foreach (var workerBus in _workerBuses)
-		{
+	private void SubscribeWorkers(Action<InMemoryBus> setup) {
+		foreach (var workerBus in _workerBuses) {
 			setup(workerBus);
 		}
 	}
 
-	public override void Start()
-	{
+	public override void Start() {
 		PublishSystemInitIfNeeded();
 	}
 
-	private Task EnsureStartedAsync(CancellationToken cancellationToken)
-	{
-		lock (_startupTaskGate)
-		{
+	private Task EnsureStartedAsync(CancellationToken cancellationToken) {
+		lock (_startupTaskGate) {
 			_startupTask ??= _start(cancellationToken);
 			return _startupTask;
 		}
 	}
 
-	private void PublishSystemInitIfNeeded()
-	{
-		lock (_systemInitGate)
-		{
-			if (_shutdownStarted != 0 || IsShutdown)
+	private void PublishSystemInitIfNeeded() {
+		lock (_systemInitGate) {
+			if (_shutdownStarted != 0 || IsShutdown) {
 				return;
+			}
 
-			if (_systemInitPublished != 0)
+			if (_systemInitPublished != 0) {
 				return;
+			}
 
 			_systemInitPublished = 1;
 			_mainQueue.Publish(new SystemMessage.SystemInit());
 		}
 	}
 
-	public override async Task StopAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
-	{
-		if (Interlocked.Exchange(ref _stopCalled, 1) == 1)
-		{
+	public override async Task StopAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default) {
+		if (Interlocked.Exchange(ref _stopCalled, 1) == 1) {
 			Log.Warning("Stop was already called.");
 			return;
 		}
 
 		_mainQueue.Publish(new ClientMessage.RequestShutdown(false, true));
 
-		try
-		{
+		try {
 			await _shutdownSource.Task.WaitAsync(timeout ?? ShutdownTimeout, cancellationToken);
 		}
-		catch (Exception)
-		{
+		catch (Exception) {
 			Log.Error("Graceful shutdown not complete. Forcing shutdown now.");
 			throw;
 		}
-		finally
-		{
+		finally {
 			_switchChunksLock?.Dispose();
 		}
 	}
 
-	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
-	{
-		lock (_systemInitGate)
+	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token) {
+		lock (_systemInitGate) {
 			_shutdownStarted = 1;
+		}
 
 		Log.Information("========== [{httpEndPoint}] Is shutting down subsystems", NodeInfo.HttpEndPoint);
 
 		_reloadConfigSignalRegistration?.Dispose();
 		_reloadConfigSignalRegistration = null;
 
-		foreach (var subsystem in _subsystems ?? [])
+		foreach (var subsystem in _subsystems ?? []) {
 			await subsystem.Stop().WaitAsync(token);
+		}
 	}
 
-	public void Handle(SystemMessage.BecomeShutdown message)
-	{
+	public void Handle(SystemMessage.BecomeShutdown message) {
 		_shutdownSource.TrySetResult(true);
 	}
 
-	public void Handle(SystemMessage.SystemStart _)
-	{
-		_authenticationProvider.Initialize().ContinueWith(t =>
-		{
+	public void Handle(SystemMessage.SystemStart _) {
+		_authenticationProvider.Initialize().ContinueWith(t => {
 			Message msg = t.Exception is null
 				? new AuthenticationMessage.AuthenticationProviderInitialized()
 				: new AuthenticationMessage.AuthenticationProviderInitializationFailed();
@@ -1963,21 +1901,17 @@ public class ClusterVNode<TStreamId> :
 		});
 	}
 
-	public void AddTasks(IEnumerable<Task> tasks)
-	{
+	public void AddTasks(IEnumerable<Task> tasks) {
 #if DEBUG
-		foreach (var task in tasks)
-		{
+		foreach (var task in tasks) {
 			AddTask(task);
 		}
 #endif
 	}
 
-	public void AddTask(Task task)
-	{
+	public void AddTask(Task task) {
 #if DEBUG
-		lock (_taskAddLock)
-		{
+		lock (_taskAddLock) {
 			_tasks.Add(task);
 
 			//keep reference to old trigger task
@@ -1996,32 +1930,29 @@ public class ClusterVNode<TStreamId> :
 #endif
 	}
 
-	public override async Task<ClusterVNode> StartAsync(bool waitUntilReady, CancellationToken cancellationToken = default)
-	{
+	public override async Task<ClusterVNode> StartAsync(bool waitUntilReady, CancellationToken cancellationToken = default) {
 		var tcs = new TaskCompletionSource<ClusterVNode>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-		if (waitUntilReady)
-		{
+		if (waitUntilReady) {
 			_mainBus.Subscribe(new AdHocHandler<SystemMessage.SystemReady>(_ => tcs.TrySetResult(this)));
 		}
-		else
-		{
+		else {
 			tcs.TrySetResult(this);
 		}
 
 		await EnsureStartedAsync(cancellationToken);
 		PublishSystemInitIfNeeded();
 
-		if (IsShutdown)
+		if (IsShutdown) {
 			tcs.TrySetResult(this);
+		}
 
 		return await tcs.Task;
 	}
 
 	public static ValueTuple<bool, string> ValidateServerCertificate(X509Certificate certificate,
 		X509Chain chain, SslPolicyErrors sslPolicyErrors, Func<X509Certificate2Collection> intermediateCertsSelector,
-		Func<X509Certificate2Collection> trustedRootCertsSelector, string[] otherNames)
-	{
+		Func<X509Certificate2Collection> trustedRootCertsSelector, string[] otherNames) {
 		using var _ = certificate.ConvertToCertificate2(out var certificate2);
 		return ValidateCertificate(certificate2, chain, sslPolicyErrors, intermediateCertsSelector,
 			trustedRootCertsSelector, "server", otherNames);
@@ -2029,8 +1960,7 @@ public class ClusterVNode<TStreamId> :
 
 	public static ValueTuple<bool, string> ValidateClientCertificate(X509Certificate certificate,
 		X509Chain chain, SslPolicyErrors sslPolicyErrors, Func<X509Certificate2Collection> intermediateCertsSelector,
-		Func<X509Certificate2Collection> trustedRootCertsSelector)
-	{
+		Func<X509Certificate2Collection> trustedRootCertsSelector) {
 		using var _ = certificate.ConvertToCertificate2(out var certificate2);
 		return ValidateCertificate(certificate2, chain, sslPolicyErrors, intermediateCertsSelector,
 			trustedRootCertsSelector, "client", null);
@@ -2040,20 +1970,17 @@ public class ClusterVNode<TStreamId> :
 		SslPolicyErrors sslPolicyErrors,
 		Func<X509Certificate2Collection> intermediateCertsSelector,
 		Func<X509Certificate2Collection> trustedRootCertsSelector,
-		string certificateOrigin, string[] otherNames)
-	{
-		if (certificate == null)
+		string certificateOrigin, string[] otherNames) {
+		if (certificate == null) {
 			return (false, $"No certificate was provided by the {certificateOrigin}");
+		}
 
 		var intermediates = intermediateCertsSelector();
 
 		// add any intermediate certificates received from the origin
-		if (chain != null)
-		{
-			foreach (var chainElement in chain.ChainElements)
-			{
-				if (CertificateUtils.IsValidIntermediateCertificate(chainElement.Certificate, out _))
-				{
+		if (chain != null) {
+			foreach (var chainElement in chain.ChainElements) {
+				if (CertificateUtils.IsValidIntermediateCertificate(chainElement.Certificate, out _)) {
 					intermediates ??= new X509Certificate2Collection();
 					intermediates.Add(new X509Certificate2(chainElement.Certificate));
 				}
@@ -2062,26 +1989,24 @@ public class ClusterVNode<TStreamId> :
 
 		var chainStatus = CertificateUtils.BuildChain(certificate, intermediates, trustedRootCertsSelector(),
 			out var chainStatusInformation);
-		if (chainStatus == X509ChainStatusFlags.NoError)
+		if (chainStatus == X509ChainStatusFlags.NoError) {
 			sslPolicyErrors &=
 				~SslPolicyErrors.RemoteCertificateChainErrors; //clear the RemoteCertificateChainErrors flag
-		else
+		}
+		else {
 			sslPolicyErrors |= SslPolicyErrors.RemoteCertificateChainErrors; //set the RemoteCertificateChainErrors flag
+		}
 
-		if (otherNames != null && (sslPolicyErrors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
-		{
-			if (otherNames.Any(certificate.MatchesName))
-			{
+		if (otherNames != null && (sslPolicyErrors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0) {
+			if (otherNames.Any(certificate.MatchesName)) {
 				// if we have a match,
 				sslPolicyErrors &=
 					~SslPolicyErrors.RemoteCertificateNameMismatch; // clear the RemoteCertificateNameMismatch flag
 			}
 		}
 
-		if (sslPolicyErrors != SslPolicyErrors.None)
-		{
-			foreach (var status in chainStatusInformation)
-			{
+		if (sslPolicyErrors != SslPolicyErrors.None) {
+			foreach (var status in chainStatusInformation) {
 				Log.Error(status);
 			}
 
@@ -2092,69 +2017,56 @@ public class ClusterVNode<TStreamId> :
 		return (true, null);
 	}
 
-	public void Handle(ClientMessage.ReloadConfig message)
-	{
-		if (Interlocked.CompareExchange(ref _reloadingConfig, 1, 0) != 0)
-		{
+	public void Handle(ClientMessage.ReloadConfig message) {
+		if (Interlocked.CompareExchange(ref _reloadingConfig, 1, 0) != 0) {
 			Log.Information("The node's configuration reload is already in progress");
 			return;
 		}
 
-		Task.Run(() =>
-		{
-			try
-			{
+		Task.Run(() => {
+			try {
 				var options = _options.Reload();
 				ReloadLogOptions(options);
 				ReloadCertificates(options);
 				ReloadTransform(options);
 				Log.Information("The node's configuration was successfully reloaded");
 			}
-			catch (Exception exc)
-			{
+			catch (Exception exc) {
 				Log.Error(exc, "An error has occurred while reloading the configuration");
 			}
-			finally
-			{
+			finally {
 				Interlocked.Exchange(ref _reloadingConfig, 0);
 			}
 		});
 	}
 
-	private void ReloadTransform(ClusterVNodeOptions options)
-	{
+	private void ReloadTransform(ClusterVNodeOptions options) {
 		var transform = options.Database.Transform;
-		if (!Db.TransformManager.TrySetActiveTransform(transform))
+		if (!Db.TransformManager.TrySetActiveTransform(transform)) {
 			Log.Error($"Unknown {nameof(options.Database.Transform)} specified: {options.Database.Transform}");
+		}
 	}
 
-	private void ReloadLogOptions(ClusterVNodeOptions options)
-	{
-		if (options.Logging.LogLevel != LogLevel.Default)
-		{
+	private void ReloadLogOptions(ClusterVNodeOptions options) {
+		if (options.Logging.LogLevel != LogLevel.Default) {
 			var changed = EventStoreLoggerConfiguration.AdjustMinimumLogLevel(options.Logging.LogLevel);
-			if (changed)
-			{
+			if (changed) {
 				Log.Information($"The log level was adjusted to: {options.Logging.LogLevel}");
 
-				if (options.Logging.LogLevel > LogLevel.Information)
-				{
+				if (options.Logging.LogLevel > LogLevel.Information) {
 					Console.WriteLine($"The log level was adjusted to: {options.Logging.LogLevel}");
 				}
 			}
 		}
 	}
 
-	private void ReloadCertificates(ClusterVNodeOptions options)
-	{
-		if (options.Application.Insecure)
-		{
+	private void ReloadCertificates(ClusterVNodeOptions options) {
+		if (options.Application.Insecure) {
 			Log.Information("Skipping reload of certificates since TLS is disabled.");
 			return;
 		}
 
-		if (_certificateProvider?.LoadCertificates(options) == LoadCertificateResult.VerificationFailed)
-		{
+		if (_certificateProvider?.LoadCertificates(options) == LoadCertificateResult.VerificationFailed) {
 			throw new InvalidConfigurationException("Aborting certificate loading due to verification errors.");
 		}
 	}

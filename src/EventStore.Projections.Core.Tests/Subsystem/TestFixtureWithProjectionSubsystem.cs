@@ -18,8 +18,7 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Subsystem;
 
-public class TestFixtureWithProjectionSubsystem
-{
+public class TestFixtureWithProjectionSubsystem {
 	private StandardComponents _standardComponents;
 	private string _dbPath;
 
@@ -36,14 +35,12 @@ public class TestFixtureWithProjectionSubsystem
 
 	static readonly IConfiguration EmptyConfiguration = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
-	private StandardComponents CreateStandardComponents()
-	{
+	private StandardComponents CreateStandardComponents() {
 		_dbPath = Path.Combine(Path.GetTempPath(), $"ES-Projections-{Guid.NewGuid()}");
 		Directory.CreateDirectory(_dbPath);
 		var dbConfig = TFChunkHelper.CreateDbConfig(_dbPath, 0);
 		var mainQueue = new QueuedHandlerThreadPool
-		(new AdHocHandler<Message>(msg =>
-		{
+		(new AdHocHandler<Message>(msg => {
 			/* Ignore messages */
 		}), "MainQueue", new QueueStatsManager(), new());
 		var mainBus = new InMemoryBus("mainBus");
@@ -57,8 +54,7 @@ public class TestFixtureWithProjectionSubsystem
 	}
 
 	[OneTimeSetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_standardComponents = CreateStandardComponents();
 
 		var builder = WebApplication.CreateBuilder();
@@ -76,18 +72,14 @@ public class TestFixtureWithProjectionSubsystem
 		Subsystem.LeaderInputBus.Unsubscribe<ProjectionSubsystemMessage.ComponentStopped>(Subsystem);
 
 		Subsystem.LeaderInputBus.Subscribe(new AdHocHandler<Message>(
-			msg =>
-			{
-				switch (msg)
-				{
-					case ProjectionSubsystemMessage.StartComponents start:
-						{
+			msg => {
+				switch (msg) {
+					case ProjectionSubsystemMessage.StartComponents start: {
 							_lastStartMessage = start;
 							_startReceived.Set();
 							break;
 						}
-					case ProjectionSubsystemMessage.StopComponents stop:
-						{
+					case ProjectionSubsystemMessage.StopComponents stop: {
 							_lastStopMessage = stop;
 							_stopReceived.Set();
 							break;
@@ -101,39 +93,37 @@ public class TestFixtureWithProjectionSubsystem
 	}
 
 	[OneTimeTearDown]
-	public async Task TearDown()
-	{
-		try
-		{
+	public async Task TearDown() {
+		try {
 			_standardComponents?.TimerService.Dispose();
 		}
-		finally
-		{
-			if (_dbPath is not null)
+		finally {
+			if (_dbPath is not null) {
 				await DirectoryDeleter.TryForceDeleteDirectoryAsync(_dbPath, retries: 10);
+			}
 		}
 	}
 
-	protected virtual void Given()
-	{
+	protected virtual void Given() {
 	}
 
 	protected ProjectionSubsystemMessage.StartComponents WaitForStartMessage
-		(string timeoutMsg = null, bool failOnTimeout = true)
-	{
+		(string timeoutMsg = null, bool failOnTimeout = true) {
 		timeoutMsg ??= "Timed out waiting for Start Components";
-		if (_startReceived.WaitOne(WaitTimeoutMs))
+		if (_startReceived.WaitOne(WaitTimeoutMs)) {
 			return _lastStartMessage;
-		if (failOnTimeout)
+		}
+
+		if (failOnTimeout) {
 			Assert.Fail(timeoutMsg);
+		}
+
 		return null;
 	}
 
-	protected ProjectionSubsystemMessage.StopComponents WaitForStopMessage(string timeoutMsg = null)
-	{
+	protected ProjectionSubsystemMessage.StopComponents WaitForStopMessage(string timeoutMsg = null) {
 		timeoutMsg ??= "Timed out waiting for Stop Components";
-		if (_stopReceived.WaitOne(WaitTimeoutMs))
-		{
+		if (_stopReceived.WaitOne(WaitTimeoutMs)) {
 			return _lastStopMessage;
 		}
 
@@ -141,8 +131,7 @@ public class TestFixtureWithProjectionSubsystem
 		return null;
 	}
 
-	protected void ResetMessageEvents()
-	{
+	protected void ResetMessageEvents() {
 		_stopReceived.Reset();
 		_startReceived.Reset();
 		_lastStopMessage = null;

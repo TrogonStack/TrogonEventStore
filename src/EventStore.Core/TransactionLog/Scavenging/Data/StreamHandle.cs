@@ -50,10 +50,14 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public override bool Equals(object other) {
-			if (other == null)
+			if (other == null) {
 				return false;
-			if (!(other is StreamHandle<TStreamId> x))
+			}
+
+			if (!(other is StreamHandle<TStreamId> x)) {
 				return false;
+			}
+
 			return Equals(x);
 		}
 

@@ -11,17 +11,13 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Streams<TStreamId>
-{
-	public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context)
-	{
+internal partial class Streams<TStreamId> {
+	public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context) {
 		using var duration = _deleteTracker.Start();
-		try
-		{
+		try {
 			var options = request.Options;
 			var streamName = options.StreamIdentifier;
-			var expectedVersion = options.ExpectedStreamRevisionCase switch
-			{
+			var expectedVersion = options.ExpectedStreamRevisionCase switch {
 				DeleteReq.Types.Options.ExpectedStreamRevisionOneofCase.Revision =>
 				new StreamRevision(options.Revision).ToInt64(),
 				DeleteReq.Types.Options.ExpectedStreamRevisionOneofCase.Any =>
@@ -35,8 +31,7 @@ internal partial class Streams<TStreamId>
 
 			var user = context.GetHttpContext().User;
 			var op = DeleteOperation.WithParameter(Plugins.Authorization.Operations.Streams.Parameters.StreamId(streamName));
-			if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken))
-			{
+			if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
 			}
 			var requiresLeader = GetRequiresLeader(context.RequestHeaders);
@@ -45,36 +40,29 @@ internal partial class Streams<TStreamId>
 				context.CancellationToken);
 
 			return position.HasValue
-				? new DeleteResp
-				{
-					Position = new DeleteResp.Types.Position
-					{
+				? new DeleteResp {
+					Position = new DeleteResp.Types.Position {
 						CommitPosition = position.Value.CommitPosition,
 						PreparePosition = position.Value.PreparePosition
 					}
 				}
-				: new DeleteResp
-				{
+				: new DeleteResp {
 					NoPosition = new Empty()
 				};
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			duration.SetException(ex);
 			throw;
 		}
 	}
 
-	public override async Task<TombstoneResp> Tombstone(TombstoneReq request, ServerCallContext context)
-	{
+	public override async Task<TombstoneResp> Tombstone(TombstoneReq request, ServerCallContext context) {
 		using var duration = _tombstoneTracker.Start();
-		try
-		{
+		try {
 			var options = request.Options;
 			var streamName = options.StreamIdentifier;
 
-			var expectedVersion = options.ExpectedStreamRevisionCase switch
-			{
+			var expectedVersion = options.ExpectedStreamRevisionCase switch {
 				TombstoneReq.Types.Options.ExpectedStreamRevisionOneofCase.Revision =>
 				new StreamRevision(options.Revision).ToInt64(),
 				TombstoneReq.Types.Options.ExpectedStreamRevisionOneofCase.Any =>
@@ -90,8 +78,7 @@ internal partial class Streams<TStreamId>
 
 			var user = context.GetHttpContext().User;
 			var op = DeleteOperation.WithParameter(Plugins.Authorization.Operations.Streams.Parameters.StreamId(streamName));
-			if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken))
-			{
+			if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
 			}
 
@@ -99,29 +86,24 @@ internal partial class Streams<TStreamId>
 				context.CancellationToken);
 
 			return position.HasValue
-				? new TombstoneResp
-				{
-					Position = new TombstoneResp.Types.Position
-					{
+				? new TombstoneResp {
+					Position = new TombstoneResp.Types.Position {
 						CommitPosition = position.Value.CommitPosition,
 						PreparePosition = position.Value.PreparePosition
 					}
 				}
-				: new TombstoneResp
-				{
+				: new TombstoneResp {
 					NoPosition = new Empty()
 				};
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			duration.SetException(ex);
 			throw;
 		}
 	}
 
 	private async Task<Position?> DeleteInternal(string streamName, long expectedVersion,
-		ClaimsPrincipal user, bool hardDelete, bool requiresLeader, CancellationToken cancellationToken)
-	{
+		ClaimsPrincipal user, bool hardDelete, bool requiresLeader, CancellationToken cancellationToken) {
 		var correlationId = Guid.NewGuid(); // TODO: JPB use request id?
 		var deleteResponseSource = new TaskCompletionSource<Position?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -140,24 +122,20 @@ internal partial class Streams<TStreamId>
 
 		return await deleteResponseSource.Task.WaitAsync(cancellationToken);
 
-		void HandleStreamDeletedCompleted(Message message)
-		{
+		void HandleStreamDeletedCompleted(Message message) {
 			if (message is ClientMessage.NotHandled notHandled &&
-				RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
-			{
+				RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
 				deleteResponseSource.TrySetException(ex);
 				return;
 			}
 
-			if (message is not ClientMessage.DeleteStreamCompleted completed)
-			{
+			if (message is not ClientMessage.DeleteStreamCompleted completed) {
 				deleteResponseSource.TrySetException(
 					RpcExceptions.UnknownMessage<ClientMessage.DeleteStreamCompleted>(message));
 				return;
 			}
 
-			switch (completed.Result)
-			{
+			switch (completed.Result) {
 				case OperationResult.Success:
 					deleteResponseSource.TrySetResult(completed.CommitPosition == -1
 						? default

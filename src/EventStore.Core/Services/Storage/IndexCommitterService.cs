@@ -1,18 +1,18 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
+using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
+using EventStore.Core.Index;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Monitoring.Stats;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
-using System.Threading.Tasks;
-using DotNext.Threading;
-using EventStore.Core.Index;
 using ILogger = Serilog.ILogger;
 
 
@@ -36,8 +36,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 	IHandle<ReplicationTrackingMessage.ReplicatedTo>,
 	IHandle<StorageMessage.CommitAck>,
 	IHandle<ClientMessage.MergeIndexes>,
-	IThreadPoolWorkItem
-{
+	IThreadPoolWorkItem {
 	private readonly IIndexCommitter<TStreamId> _indexCommitter;
 	private readonly IPublisher _publisher;
 	private readonly IReadOnlyCheckpoint _replicationCheckpoint;
@@ -48,8 +47,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 	private readonly CancellationToken _stopToken;
 	private CancellationTokenSource _stop;
 
-	public string Name
-	{
+	public string Name {
 		get { return _queueStats.Name; }
 	}
 
@@ -64,8 +62,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 	private TimeSpan _waitTimeoutMs = TimeSpan.FromMilliseconds(100);
 	private readonly TaskCompletionSource<object> _tcs = new();
 
-	public Task Task
-	{
+	public Task Task {
 		get { return _tcs.Task; }
 	}
 
@@ -75,8 +72,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		IReadOnlyCheckpoint writerCheckpoint,
 		IReadOnlyCheckpoint replicationCheckpoint,
 		ITableIndex tableIndex,
-		QueueStatsManager queueStatsManager)
-	{
+		QueueStatsManager queueStatsManager) {
 		Ensure.NotNull(indexCommitter, nameof(indexCommitter));
 		Ensure.NotNull(publisher, nameof(publisher));
 		Ensure.NotNull(writerCheckpoint, nameof(writerCheckpoint));
@@ -93,39 +89,31 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		_stopToken = _stop.Token;
 	}
 
-	public async ValueTask Init(long chaserCheckpoint, CancellationToken token)
-	{
+	public async ValueTask Init(long chaserCheckpoint, CancellationToken token) {
 		await _indexCommitter.Init(chaserCheckpoint, token);
 		_publisher.Publish(new ReplicationTrackingMessage.IndexedTo(_indexCommitter.LastIndexedPosition));
 		ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);
 	}
 
-	public void Stop()
-	{
-		if (Interlocked.Exchange(ref _stop, null) is { } cts)
-		{
-			using (cts)
-			{
+	public void Stop() {
+		if (Interlocked.Exchange(ref _stop, null) is { } cts) {
+			using (cts) {
 				cts.Cancel();
 			}
 		}
 	}
 
-	async void IThreadPoolWorkItem.Execute()
-	{
+	async void IThreadPoolWorkItem.Execute() {
 		_publisher.Publish(new SystemMessage.ServiceInitialized(Name));
-		try
-		{
+		try {
 			_queueStats.Start();
 			QueueMonitor.Default.Register(this);
 
 			StorageMessage.CommitAck replicatedMessage;
 			var msgType = typeof(StorageMessage.CommitAck);
-			while (!_stopToken.IsCancellationRequested)
-			{
+			while (!_stopToken.IsCancellationRequested) {
 				_addMsgSignal.Reset();
-				if (_replicatedQueue.TryDequeue(out replicatedMessage))
-				{
+				if (_replicatedQueue.TryDequeue(out replicatedMessage)) {
 					_queueStats.EnterBusy();
 #if DEBUG
 					_queueStats.Dequeued(replicatedMessage);
@@ -134,19 +122,16 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 					await ProcessCommitReplicated(replicatedMessage, _stopToken);
 					_queueStats.ProcessingEnded(1);
 				}
-				else
-				{
+				else {
 					_queueStats.EnterIdle();
 					await _addMsgSignal.WaitAsync(_waitTimeoutMs, _stopToken);
 				}
 			}
 		}
-		catch (OperationCanceledException exc) when (exc.CancellationToken == _stopToken)
-		{
+		catch (OperationCanceledException exc) when (exc.CancellationToken == _stopToken) {
 			// shutdown gracefully on cancellation
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			_queueStats.EnterIdle();
 			_queueStats.ProcessingStarted<FaultedIndexCommitterServiceState>(0);
 			Log.Fatal(exc, "Error in IndexCommitterService. Terminating...");
@@ -158,8 +143,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 
 			_queueStats.ProcessingEnded(0);
 		}
-		finally
-		{
+		finally {
 			_queueStats.Stop();
 			QueueMonitor.Default.Unregister(this);
 		}
@@ -167,20 +151,16 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		_publisher.Publish(new SystemMessage.ServiceShutdown(Name));
 	}
 
-	private async ValueTask ProcessCommitReplicated(StorageMessage.CommitAck message, CancellationToken token)
-	{
+	private async ValueTask ProcessCommitReplicated(StorageMessage.CommitAck message, CancellationToken token) {
 		PendingTransaction transaction;
 		long lastEventNumber = message.LastEventNumber;
-		if (_pendingTransactions.TryRemove(message.TransactionPosition, out transaction))
-		{
+		if (_pendingTransactions.TryRemove(message.TransactionPosition, out transaction)) {
 			var isTfEof = IsTfEof(transaction.PostPosition);
-			if (transaction.Prepares.Count > 0)
-			{
+			if (transaction.Prepares.Count > 0) {
 				await _indexCommitter.Commit(transaction.Prepares, isTfEof, true, token);
 			}
 
-			if (transaction.Commit is not null)
-			{
+			if (transaction.Commit is not null) {
 				lastEventNumber = await _indexCommitter.Commit(transaction.Commit, isTfEof, true, token);
 			}
 		}
@@ -193,89 +173,70 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 			message.TransactionPosition, message.FirstEventNumber, lastEventNumber));
 	}
 
-	private bool IsTfEof(long postPosition)
-	{
+	private bool IsTfEof(long postPosition) {
 		return postPosition == _writerCheckpoint.Read();
 	}
 
 	public ValueTask<long> GetCommitLastEventNumber(CommitLogRecord commit, CancellationToken token)
 		=> _indexCommitter.GetCommitLastEventNumber(commit, token);
 
-	public void AddPendingPrepare(IPrepareLogRecord<TStreamId>[] prepares, long postPosition)
-	{
+	public void AddPendingPrepare(IPrepareLogRecord<TStreamId>[] prepares, long postPosition) {
 		var transactionPosition = prepares[0].TransactionPosition;
 		PendingTransaction transaction;
-		if (_pendingTransactions.TryGetValue(transactionPosition, out transaction))
-		{
+		if (_pendingTransactions.TryGetValue(transactionPosition, out transaction)) {
 			var newTransaction = new PendingTransaction(transactionPosition, postPosition, transaction.Prepares,
 				transaction.Commit);
 			newTransaction.AddPendingPrepares(prepares);
-			if (!_pendingTransactions.TryUpdate(transactionPosition, newTransaction, transaction))
-			{
+			if (!_pendingTransactions.TryUpdate(transactionPosition, newTransaction, transaction)) {
 				throw new InvalidOperationException("Failed to update pending prepare");
 			}
 		}
-		else
-		{
+		else {
 			var pendingTransaction = new PendingTransaction(transactionPosition, postPosition, prepares);
-			if (!_pendingTransactions.TryAdd(transactionPosition, pendingTransaction))
-			{
+			if (!_pendingTransactions.TryAdd(transactionPosition, pendingTransaction)) {
 				throw new InvalidOperationException("Failed to add pending prepare");
 			}
 		}
 	}
 
-	public void AddPendingCommit(CommitLogRecord commit, long postPosition)
-	{
+	public void AddPendingCommit(CommitLogRecord commit, long postPosition) {
 		PendingTransaction transaction;
-		if (_pendingTransactions.TryGetValue(commit.TransactionPosition, out transaction))
-		{
+		if (_pendingTransactions.TryGetValue(commit.TransactionPosition, out transaction)) {
 			var newTransaction = new PendingTransaction(commit.TransactionPosition, postPosition,
 				transaction.Prepares, commit);
-			if (!_pendingTransactions.TryUpdate(commit.TransactionPosition, newTransaction, transaction))
-			{
+			if (!_pendingTransactions.TryUpdate(commit.TransactionPosition, newTransaction, transaction)) {
 				throw new InvalidOperationException("Failed to update pending commit");
 			}
 		}
-		else
-		{
+		else {
 			var pendingTransaction = new PendingTransaction(commit.TransactionPosition, postPosition, commit);
-			if (!_pendingTransactions.TryAdd(commit.TransactionPosition, pendingTransaction))
-			{
+			if (!_pendingTransactions.TryAdd(commit.TransactionPosition, pendingTransaction)) {
 				throw new InvalidOperationException("Failed to add pending commit");
 			}
 		}
 	}
 
-	public void Handle(SystemMessage.BecomeShuttingDown message)
-	{
+	public void Handle(SystemMessage.BecomeShuttingDown message) {
 		Stop();
 	}
 
-	public void Handle(StorageMessage.CommitAck message)
-	{
-		lock (_commitAcks)
-		{
+	public void Handle(StorageMessage.CommitAck message) {
+		lock (_commitAcks) {
 			_commitAcks.TryAdd(message.LogPosition, message);
 		}
 
 		EnqueueReplicatedCommits();
 	}
 
-	public void Handle(ReplicationTrackingMessage.ReplicatedTo message)
-	{
+	public void Handle(ReplicationTrackingMessage.ReplicatedTo message) {
 		EnqueueReplicatedCommits();
 	}
 
-	private void EnqueueReplicatedCommits()
-	{
+	private void EnqueueReplicatedCommits() {
 		var replicated = new List<StorageMessage.CommitAck>();
-		lock (_commitAcks)
-		{
-			if (_commitAcks.Count > 0)
-			{
-				do
-				{
+		lock (_commitAcks) {
+			if (_commitAcks.Count > 0) {
+				do {
 					var ack = _commitAcks.Values[0];
 					if (ack.LogPosition >= _replicationCheckpoint.Read()) { break; }
 
@@ -285,8 +246,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 			}
 		}
 
-		foreach (var ack in replicated)
-		{
+		foreach (var ack in replicated) {
 #if DEBUG
 			_queueStats.Enqueued();
 #endif
@@ -295,22 +255,18 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		}
 	}
 
-	public QueueStats GetStatistics()
-	{
+	public QueueStats GetStatistics() {
 		return _queueStats.GetStatistics(0);
 	}
 
-	private class FaultedIndexCommitterServiceState
-	{
+	private class FaultedIndexCommitterServiceState {
 	}
 
-	internal class PendingTransaction
-	{
+	internal class PendingTransaction {
 		public readonly List<IPrepareLogRecord<TStreamId>> Prepares = new List<IPrepareLogRecord<TStreamId>>();
 		private CommitLogRecord _commit;
 
-		public CommitLogRecord Commit
-		{
+		public CommitLogRecord Commit {
 			get { return _commit; }
 		}
 
@@ -318,36 +274,30 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		public readonly long PostPosition;
 
 		public PendingTransaction(long transactionPosition, long postPosition,
-			IEnumerable<IPrepareLogRecord<TStreamId>> prepares, CommitLogRecord commit = null)
-		{
+			IEnumerable<IPrepareLogRecord<TStreamId>> prepares, CommitLogRecord commit = null) {
 			TransactionPosition = transactionPosition;
 			PostPosition = postPosition;
 			Prepares.AddRange(prepares);
 			_commit = commit;
 		}
 
-		public PendingTransaction(long transactionPosition, long postPosition, CommitLogRecord commit)
-		{
+		public PendingTransaction(long transactionPosition, long postPosition, CommitLogRecord commit) {
 			TransactionPosition = transactionPosition;
 			PostPosition = postPosition;
 			_commit = commit;
 		}
 
-		public void AddPendingPrepares(IEnumerable<IPrepareLogRecord<TStreamId>> prepares)
-		{
+		public void AddPendingPrepares(IEnumerable<IPrepareLogRecord<TStreamId>> prepares) {
 			Prepares.AddRange(prepares);
 		}
 
-		public void SetPendingCommit(CommitLogRecord commit)
-		{
+		public void SetPendingCommit(CommitLogRecord commit) {
 			_commit = commit;
 		}
 	}
 
-	public void Handle(ClientMessage.MergeIndexes message)
-	{
-		if (_tableIndex.IsBackgroundTaskRunning)
-		{
+	public void Handle(ClientMessage.MergeIndexes message) {
+		if (_tableIndex.IsBackgroundTaskRunning) {
 			Log.Information("A background operation is already running...");
 			MakeReplyForMergeIndexes(message);
 			return;
@@ -357,8 +307,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		MakeReplyForMergeIndexes(message);
 	}
 
-	private static void MakeReplyForMergeIndexes(ClientMessage.MergeIndexes message)
-	{
+	private static void MakeReplyForMergeIndexes(ClientMessage.MergeIndexes message) {
 		message.Envelope.ReplyWith(new ClientMessage.MergeIndexesResponse(message.CorrelationId,
 			ClientMessage.MergeIndexesResponse.MergeIndexesResult.Started));
 	}

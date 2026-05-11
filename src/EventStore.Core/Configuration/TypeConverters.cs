@@ -19,11 +19,13 @@ namespace EventStore.Core.Configuration {
 		private static EndPoint ParseGossipEndPoint(string value) {
 			var parts = value.Split(':', 2);
 
-			if (parts.Length != 2)
+			if (parts.Length != 2) {
 				throw new("You must specify the ports in the gossip seed");
+			}
 
-			if (!int.TryParse(parts[1], out var port))
+			if (!int.TryParse(parts[1], out var port)) {
 				throw new($"Invalid format for gossip seed port: {parts[1]}");
+			}
 
 			return IPAddress.TryParse(parts[0], out var ip)
 				? new IPEndPoint(ip, port)
@@ -40,11 +42,13 @@ namespace EventStore.Core.Configuration {
 			sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
 
 		public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) {
-			if (value is not string stringValue)
+			if (value is not string stringValue) {
 				return base.ConvertFrom(context, culture, value);
+			}
 
-			if (stringValue.Any(c => InvalidDelimiters.Contains(c)))
+			if (stringValue.Any(c => InvalidDelimiters.Contains(c))) {
 				throw new ArgumentException($"Invalid delimiter for gossip seed value: {stringValue}");
+			}
 
 			var values = stringValue.Split(',', StringSplitOptions.RemoveEmptyEntries);
 

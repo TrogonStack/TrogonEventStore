@@ -17,8 +17,7 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private MultiStreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
@@ -26,8 +25,7 @@ public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, T
 	private Guid _thirdEventId;
 	private Guid _fourthEventId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
@@ -35,8 +33,7 @@ public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, T
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -101,8 +98,7 @@ public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, T
 	}
 
 	[Test]
-	public void publishes_correct_committed_event_received_messages()
-	{
+	public void publishes_correct_committed_event_received_messages() {
 		Assert.AreEqual(
 			6, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 		var first =
@@ -135,8 +131,7 @@ public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, T
 	}
 
 	[Test]
-	public void publishes_read_events_from_beginning_with_correct_next_event_number()
-	{
+	public void publishes_read_events_from_beginning_with_correct_next_event_number() {
 		Assert.AreEqual(4, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
@@ -157,15 +152,13 @@ public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, T
 	}
 
 	[Test]
-	public void publishes_subscribe_awake()
-	{
+	public void publishes_subscribe_awake() {
 		Assert.AreEqual(4, _consumer.HandledMessages.OfType<AwakeServiceMessage.SubscribeAwake>().Count());
 	}
 
 
 	[Test]
-	public void publishes_committed_event_received_messages_in_correct_order()
-	{
+	public void publishes_committed_event_received_messages_in_correct_order() {
 		Assert.AreEqual(
 			6, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 		var first =

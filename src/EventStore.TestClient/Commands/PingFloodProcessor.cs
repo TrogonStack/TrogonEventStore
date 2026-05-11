@@ -7,35 +7,30 @@ using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class PingFloodProcessor : ICmdProcessor
-{
+internal class PingFloodProcessor : ICmdProcessor {
 	private static readonly byte[] Payload = new byte[0];
 
-	public string Usage
-	{
+	public string Usage {
 		get { return "PINGFL [<clients> <messages>]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "PINGFL"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		int clientsCnt = 1;
 		long requestsCnt = 1000000;
-		if (args.Length > 0)
-		{
-			if (args.Length != 2)
+		if (args.Length > 0) {
+			if (args.Length != 2) {
 				return false;
-			try
-			{
+			}
+
+			try {
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
 			}
-			catch
-			{
+			catch {
 				return false;
 			}
 		}
@@ -44,8 +39,7 @@ internal class PingFloodProcessor : ICmdProcessor
 		return true;
 	}
 
-	private void PingFlood(CommandProcessorContext context, int clientsCnt, long requestsCnt)
-	{
+	private void PingFlood(CommandProcessorContext context, int clientsCnt, long requestsCnt) {
 		context.IsAsync();
 
 		var doneEvent = new ManualResetEventSlim(false);
@@ -53,21 +47,20 @@ internal class PingFloodProcessor : ICmdProcessor
 		var threads = new List<Thread>();
 		long all = 0;
 
-		for (int i = 0; i < clientsCnt; i++)
-		{
+		for (int i = 0; i < clientsCnt; i++) {
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			long received = 0;
 			long sent = 0;
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, msg) =>
-				{
+				(conn, msg) => {
 					Interlocked.Increment(ref received);
 					var pongs = Interlocked.Increment(ref all);
-					if (pongs % 10000 == 0)
+					if (pongs % 10000 == 0) {
 						Console.Write('.');
-					if (pongs == requestsCnt)
-					{
+					}
+
+					if (pongs == requestsCnt) {
 						context.Success();
 						doneEvent.Set();
 					}
@@ -75,22 +68,18 @@ internal class PingFloodProcessor : ICmdProcessor
 				connectionClosed: (conn, err) => context.Fail(reason: "Connection was closed prematurely."));
 			clients.Add(client);
 
-			threads.Add(new Thread(() =>
-			{
-				for (int j = 0; j < count; ++j)
-				{
+			threads.Add(new Thread(() => {
+				for (int j = 0; j < count; ++j) {
 					var package = new TcpPackage(TcpCommand.Ping, Guid.NewGuid(), Payload);
 					client.EnqueueSend(package.AsByteArray());
 
 					var localSent = Interlocked.Increment(ref sent);
 					while (localSent - Interlocked.Read(ref received) >
-						   context._tcpTestClient.Options.PingWindow / clientsCnt)
-					{
+						   context._tcpTestClient.Options.PingWindow / clientsCnt) {
 						Thread.Sleep(1);
 					}
 				}
-			})
-			{ IsBackground = true });
+			}) { IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -109,9 +98,11 @@ internal class PingFloodProcessor : ICmdProcessor
 		PerfUtils.LogTeamCityGraphData(string.Format("{0}-{1}-{2}-reqPerSec", Keyword, clientsCnt, requestsCnt),
 			(int)reqPerSec);
 
-		if (Interlocked.Read(ref all) == requestsCnt)
+		if (Interlocked.Read(ref all) == requestsCnt) {
 			context.Success();
-		else
+		}
+		else {
 			context.Fail();
+		}
 	}
 }

@@ -29,7 +29,7 @@ public class CreateTests {
 		public void stores_the_user_details() {
 			Assert.AreEqual("create-test-user", _details.UserDetails.LoginName);
 			Assert.AreEqual("Create Test User", _details.UserDetails.FullName);
-			Assert.AreEqual(new[] {"admin", "other"}, _details.UserDetails.Groups.ToArray());
+			Assert.AreEqual(new[] { "admin", "other" }, _details.UserDetails.Groups.ToArray());
 		}
 	}
 
@@ -53,7 +53,7 @@ public class CreateTests {
 		public void stores_the_user_details() {
 			Assert.AreEqual("码ou£ro码", _details.UserDetails.LoginName);
 			Assert.AreEqual("Unicode Test User", _details.UserDetails.FullName);
-			Assert.AreEqual(new[] {"admin", "other"}, _details.UserDetails.Groups.ToArray());
+			Assert.AreEqual(new[] { "admin", "other" }, _details.UserDetails.Groups.ToArray());
 		}
 	}
 
@@ -98,7 +98,8 @@ public class CreateTests {
 				await _client.CreateAsync(
 					CreateRequest("create-conflict-test-user", "Create Test User", "AnotherPa55w0rd!"),
 					GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -128,7 +129,8 @@ public class CreateTests {
 			try {
 				await _client.CreateAsync(CreateRequest("create-denied-target", "Create Denied Target", Password),
 					GetCallOptions((ActorLogin, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -146,7 +148,7 @@ public class CreateTests {
 				LoginName = loginName,
 				Password = password,
 				FullName = fullName,
-				Groups = {"admin", "other"}
+				Groups = { "admin", "other" }
 			}
 		};
 

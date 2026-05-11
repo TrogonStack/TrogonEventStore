@@ -43,10 +43,10 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 
 			if (ExecuteSingleRead(selectCmd, getValue, out value)) {
 				var affectedRows = ExecuteNonQuery(deleteCmd);
-				
+
 				if (affectedRows == 1) {
 					return true;
-				} 
+				}
 				if (affectedRows > 1) {
 					throw new SystemException("More values removed than expected!");
 				}
@@ -74,7 +74,7 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 					return true;
 				}
 			}
-			
+
 			value = default;
 			return false;
 		}
@@ -105,7 +105,7 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 
 			return null;
 		}
-		
+
 		public SqliteTransaction BeginTransaction() {
 			_transaction = _connection.BeginTransaction();
 			return _transaction;
@@ -164,12 +164,12 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				cmd.ExecuteNonQuery();
 			}
 		}
-		
+
 		public string GetPragmaValue(string name) {
 			var cmd = _connection.CreateCommand();
 			cmd.CommandText = "PRAGMA " + name;
 			var result = cmd.ExecuteScalar();
-			
+
 			if (result != null) {
 				return result.ToString();
 			}
@@ -186,7 +186,7 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				throw new Exception($"Failed to configure cache size, unexpected value: {currentCacheSize}");
 			}
 		}
-		
+
 		public class Stats {
 			public Stats(long memoryUsage, long databaseSize, long cacheSize) {
 				MemoryUsage = memoryUsage;

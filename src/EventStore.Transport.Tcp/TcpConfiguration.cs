@@ -1,7 +1,6 @@
 namespace EventStore.Transport.Tcp;
 
-public static class TcpConfiguration
-{
+public static class TcpConfiguration {
 	public const int SocketCloseTimeoutSecs = 1;
 
 	public const int AcceptBacklogCount = 128;

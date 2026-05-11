@@ -24,8 +24,9 @@ public partial class InMemoryBus {
 		var messageTypes = new HashSet<Type>(500);
 
 		foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-			if (IsSystemAssembly(assembly, systemPrefixes))
+			if (IsSystemAssembly(assembly, systemPrefixes)) {
 				continue;
+			}
 
 			foreach (Type messageType in LoadAvailableTypes(assembly).Where(IsMessageType)) {
 				messageTypes.Add(messageType);
@@ -36,13 +37,15 @@ public partial class InMemoryBus {
 		messageTypes.Clear(); // help GC
 
 		static bool IsSystemAssembly(Assembly candidate, ReadOnlySpan<string> systemPrefixes) {
-			if (candidate.IsDynamic)
+			if (candidate.IsDynamic) {
 				return true;
+			}
 
 			ReadOnlySpan<char> fullName = candidate.FullName;
 			foreach (ReadOnlySpan<char> prefix in systemPrefixes) {
-				if (fullName.StartsWith(prefix))
+				if (fullName.StartsWith(prefix)) {
 					return true;
+				}
 			}
 
 			return false;
@@ -55,10 +58,12 @@ public partial class InMemoryBus {
 	static Type[] LoadAvailableTypes(Assembly assembly) {
 		try {
 			return assembly.GetTypes();
-		} catch (ReflectionTypeLoadException ex) {
-			if (ex.LoaderExceptions.Length > 0)
+		}
+		catch (ReflectionTypeLoadException ex) {
+			if (ex.LoaderExceptions.Length > 0) {
 				Log.Information("The exception(s) occured when scanning for message types: {e}",
 					string.Join(",", ex.LoaderExceptions.Select(static x => x.Message)));
+			}
 			else {
 				Log.Information(ex, "Exception while scanning for message types");
 			}
@@ -86,8 +91,9 @@ public partial class InMemoryBus {
 		static void RegisterMessageType(Dictionary<Type, MessageTypeHandler> messageTypes, Type messageType,
 			MessageTypeHandler handler) {
 			while (messageType.GetBaseTypes().FirstOrDefault(KnownMessageTypes.Contains) is { } baseType && handler.Parent is null) {
-				if (!messageTypes.TryGetValue(baseType, out var parent))
+				if (!messageTypes.TryGetValue(baseType, out var parent)) {
 					Debug.Fail($"Unexpected message type {messageType}");
+				}
 
 				handler.Parent = parent;
 				handler = parent;
@@ -133,27 +139,30 @@ public partial class InMemoryBus {
 
 			// loop retries lock-free until successful
 			Func<T, CancellationToken, ValueTask> devirtHandler = handler.HandleAsync;
-			for (Func<T, CancellationToken, ValueTask>[] newArray;; Array.Clear(newArray)) {
+			for (Func<T, CancellationToken, ValueTask>[] newArray; ; Array.Clear(newArray)) {
 				var currentArray = _handlers;
 
 				// Perf: array is preferred over ImmutableHashSet because enumeration speed is much more important
 				// (for Publish method) than perf of subscription methods.
-				if (IndexOf(currentArray, handler) >= 0)
+				if (IndexOf(currentArray, handler) >= 0) {
 					break;
+				}
 
 				newArray = new Func<T, CancellationToken, ValueTask>[currentArray.Length + 1];
 				Array.Copy(currentArray, newArray, currentArray.Length);
 				newArray[currentArray.Length] = devirtHandler;
 
-				if (Interlocked.CompareExchange(ref _handlers, newArray, currentArray) == currentArray)
+				if (Interlocked.CompareExchange(ref _handlers, newArray, currentArray) == currentArray) {
 					break;
+				}
 			}
 		}
 
 		private static int IndexOf(Func<T, CancellationToken, ValueTask>[] handlers, IAsyncHandle<T> handler) {
 			for (var i = 0; i < handlers.Length; i++) {
-				if (ReferenceEquals(handlers[i].Target, handler))
+				if (ReferenceEquals(handlers[i].Target, handler)) {
 					return i;
+				}
 			}
 
 			return -1;
@@ -163,28 +172,32 @@ public partial class InMemoryBus {
 			Debug.Assert(handler is not null);
 
 			// loop retries lock-free until successful
-			for (var currentArray = _handlers;;) {
+			for (var currentArray = _handlers; ;) {
 				var index = IndexOf(currentArray, handler);
-				if (index < 0 || currentArray.Length is 0)
+				if (index < 0 || currentArray.Length is 0) {
 					break;
+				}
 
 				// fast path loop - no need to search over array
-				for (Func<T, CancellationToken, ValueTask>[] newArray;; Array.Clear(newArray)) {
+				for (Func<T, CancellationToken, ValueTask>[] newArray; ; Array.Clear(newArray)) {
 
 					if (currentArray.Length > 1) {
 						newArray = new Func<T, CancellationToken, ValueTask>[currentArray.Length - 1];
 						Array.Copy(currentArray, newArray, index);
 						Array.Copy(currentArray, index + 1, newArray, index, currentArray.Length - index - 1);
-					} else {
+					}
+					else {
 						newArray = [];
 					}
 
-					if (Interlocked.CompareExchange(ref _handlers, newArray, currentArray) == currentArray)
+					if (Interlocked.CompareExchange(ref _handlers, newArray, currentArray) == currentArray) {
 						return;
+					}
 
 					currentArray = _handlers;
-					if (currentArray.Length >= index || !ReferenceEquals(currentArray[index], handler))
+					if (currentArray.Length >= index || !ReferenceEquals(currentArray[index], handler)) {
 						break;
+					}
 				}
 			}
 		}

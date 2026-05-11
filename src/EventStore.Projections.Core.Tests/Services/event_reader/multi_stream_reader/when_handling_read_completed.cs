@@ -17,15 +17,13 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_read_completed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_handling_read_completed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private MultiStreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
 	private Guid _secondEventId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
@@ -33,8 +31,7 @@ public class when_handling_read_completed<TLogFormat, TStreamId> : TestFixtureWi
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -66,27 +63,23 @@ public class when_handling_read_completed<TLogFormat, TStreamId> : TestFixtureWi
 	}
 
 	[Test]
-	public void cannot_be_resumed()
-	{
+	public void cannot_be_resumed() {
 		Assert.Throws<InvalidOperationException>(() => { _edp.Resume(); });
 	}
 
 	[Test]
-	public void cannot_be_paused()
-	{
+	public void cannot_be_paused() {
 		_edp.Pause();
 	}
 
 	[Test]
-	public void does_not_publish_committed_event_received_messages()
-	{
+	public void does_not_publish_committed_event_received_messages() {
 		Assert.AreEqual(
 			0, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}
 
 	[Test]
-	public void publishes_read_events_from_beginning_with_correct_next_event_number()
-	{
+	public void publishes_read_events_from_beginning_with_correct_next_event_number() {
 		// do not publish new read requests until we consume already available events
 		Assert.AreEqual(2, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.AreEqual(
@@ -97,12 +90,10 @@ public class when_handling_read_completed<TLogFormat, TStreamId> : TestFixtureWi
 	}
 
 	[Test]
-	public void cannot_handle_repeated_read_events_completed()
-	{
+	public void cannot_handle_repeated_read_events_completed() {
 		var correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
 			.Last(x => x.EventStreamId == "a").CorrelationId;
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			_edp.Handle(
 				new ClientMessage.ReadStreamEventsForwardCompleted(
 					correlationId, "a", 100, 100, ReadStreamResult.Success,

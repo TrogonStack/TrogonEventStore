@@ -16,14 +16,12 @@ using UsersClient = EventStore.Client.Users.Users.UsersClient;
 namespace EventStore.Core.Tests.ClientAPI.UserManagement;
 
 [Category("LongRunning"), Category("ClientAPI")]
-public abstract class TestWithNode<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class TestWithNode<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected UsersManager _manager;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
@@ -31,15 +29,13 @@ public abstract class TestWithNode<TLogFormat, TStreamId> : SpecificationWithDir
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
@@ -48,8 +44,7 @@ public abstract class TestWithNode<TLogFormat, TStreamId> : SpecificationWithDir
 		string fullName,
 		string[] groups,
 		string password,
-		UserCredentials credentials)
-	{
+		UserCredentials credentials) {
 		using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
 			new GrpcChannelOptions {
 				HttpClient = _node.HttpClient,
@@ -60,7 +55,7 @@ public abstract class TestWithNode<TLogFormat, TStreamId> : SpecificationWithDir
 			Options = new CreateReq.Types.Options {
 				LoginName = loginName,
 				FullName = fullName,
-				Groups = {groups},
+				Groups = { groups },
 				Password = password
 			}
 		}, new CallOptions(new Metadata {

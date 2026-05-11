@@ -10,10 +10,8 @@ using EventStore.Core.TransactionLog.Chunks;
 
 namespace EventStore.Core.Services.Transport.Tcp;
 
-public class InternalTcpDispatcher : ClientWriteTcpDispatcher
-{
-	public InternalTcpDispatcher(TimeSpan writeTimeout) : base(writeTimeout)
-	{
+public class InternalTcpDispatcher : ClientWriteTcpDispatcher {
+	public InternalTcpDispatcher(TimeSpan writeTimeout) : base(writeTimeout) {
 		AddUnwrapper(TcpCommand.LeaderReplicatedTo, UnwrapReplicatedTo, ClientVersion.V2);
 		AddWrapper<ReplicationTrackingMessage.ReplicatedTo>(WrapReplicatedTo, ClientVersion.V2);
 
@@ -41,22 +39,19 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 	}
 
 
-	private TcpPackage WrapReplicatedTo(ReplicationTrackingMessage.ReplicatedTo msg)
-	{
+	private TcpPackage WrapReplicatedTo(ReplicationTrackingMessage.ReplicatedTo msg) {
 		var dto = new ReplicatedTo(msg.LogPosition);
 		return new TcpPackage(TcpCommand.LeaderReplicatedTo, Guid.NewGuid(), dto.Serialize());
 	}
 
 	private static ReplicationTrackingMessage.LeaderReplicatedTo UnwrapReplicatedTo(TcpPackage package,
-		IEnvelope envelope)
-	{
+		IEnvelope envelope) {
 		var dto = package.Data.Deserialize<ReplicatedTo>();
 		return new ReplicationTrackingMessage.LeaderReplicatedTo(dto.LogPosition);
 	}
 
 	private ReplicationMessage.ReplicaSubscriptionRequest UnwrapReplicaSubscriptionRequest(TcpPackage package,
-		IEnvelope envelope, TcpConnectionManager connection)
-	{
+		IEnvelope envelope, TcpConnectionManager connection) {
 		var dto = package.Data.Deserialize<SubscribeReplica>();
 		var vnodeTcpEndPoint = new DnsEndPoint(Helper.UTF8NoBom.GetString(dto.Ip.Span), dto.Port);
 		var lastEpochs = dto.LastEpochs.Safe()
@@ -74,8 +69,7 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 			dto.IsPromotable);
 	}
 
-	private TcpPackage WrapSubscribeReplica(ReplicationMessage.SubscribeReplica msg)
-	{
+	private TcpPackage WrapSubscribeReplica(ReplicationMessage.SubscribeReplica msg) {
 		var epochs = msg.LastEpochs.Select(x =>
 			new Epoch(x.EpochPosition, x.EpochNumber, x.EpochId.ToByteArray())).ToArray();
 		var dto = new SubscribeReplica(msg.LogPosition,
@@ -91,24 +85,21 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 	}
 
 	private ReplicationMessage.ReplicaLogPositionAck UnwrapReplicaLogPositionAck(TcpPackage package,
-		IEnvelope envelope, TcpConnectionManager connection)
-	{
+		IEnvelope envelope, TcpConnectionManager connection) {
 		var dto = package.Data.Deserialize<ReplicaLogPositionAck>();
 		return new ReplicationMessage.ReplicaLogPositionAck(new Guid(dto.SubscriptionId.Span),
 			dto.ReplicationLogPosition,
 			dto.WriterLogPosition);
 	}
 
-	private TcpPackage WrapAckLogPosition(ReplicationMessage.AckLogPosition msg)
-	{
+	private TcpPackage WrapAckLogPosition(ReplicationMessage.AckLogPosition msg) {
 		var dto = new ReplicaLogPositionAck(msg.SubscriptionId.ToByteArray(),
 			msg.ReplicationLogPosition,
 			msg.WriterLogPosition);
 		return new TcpPackage(TcpCommand.ReplicaLogPositionAck, Guid.NewGuid(), dto.Serialize());
 	}
 
-	private ReplicationMessage.CreateChunk UnwrapCreateChunk(TcpPackage package, IEnvelope envelope)
-	{
+	private ReplicationMessage.CreateChunk UnwrapCreateChunk(TcpPackage package, IEnvelope envelope) {
 		var dto = package.Data.Deserialize<CreateChunk>();
 		ChunkHeader chunkHeader = new(dto.ChunkHeaderBytes.Span);
 
@@ -116,8 +107,7 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 			dto.FileSize, dto.IsScavengedChunk, dto.TransformHeaderBytes.Memory);
 	}
 
-	private TcpPackage WrapCreateChunk(ReplicationMessage.CreateChunk msg)
-	{
+	private TcpPackage WrapCreateChunk(ReplicationMessage.CreateChunk msg) {
 		var dto = new CreateChunk(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray(),
 			msg.ChunkHeader.AsByteArray(),
@@ -127,8 +117,7 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 		return new TcpPackage(TcpCommand.CreateChunk, Guid.NewGuid(), dto.Serialize());
 	}
 
-	private ReplicationMessage.RawChunkBulk UnwrapRawChunkBulk(TcpPackage package, IEnvelope envelope)
-	{
+	private ReplicationMessage.RawChunkBulk UnwrapRawChunkBulk(TcpPackage package, IEnvelope envelope) {
 		var dto = package.Data.Deserialize<RawChunkBulk>();
 		return new ReplicationMessage.RawChunkBulk(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span),
@@ -139,8 +128,7 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 			dto.CompleteChunk);
 	}
 
-	private TcpPackage WrapRawChunkBulk(ReplicationMessage.RawChunkBulk msg)
-	{
+	private TcpPackage WrapRawChunkBulk(ReplicationMessage.RawChunkBulk msg) {
 		var dto = new RawChunkBulk(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray(),
 			msg.ChunkStartNumber,
@@ -151,8 +139,7 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 		return new TcpPackage(TcpCommand.RawChunkBulk, Guid.NewGuid(), dto.Serialize());
 	}
 
-	private ReplicationMessage.DataChunkBulk UnwrapDataChunkBulk(TcpPackage package, IEnvelope envelope)
-	{
+	private ReplicationMessage.DataChunkBulk UnwrapDataChunkBulk(TcpPackage package, IEnvelope envelope) {
 		var dto = package.Data.Deserialize<DataChunkBulk>();
 		return new ReplicationMessage.DataChunkBulk(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span),
@@ -163,8 +150,7 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 			dto.CompleteChunk);
 	}
 
-	private TcpPackage WrapDataChunkBulk(ReplicationMessage.DataChunkBulk msg)
-	{
+	private TcpPackage WrapDataChunkBulk(ReplicationMessage.DataChunkBulk msg) {
 		var dto = new DataChunkBulk(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray(),
 			msg.ChunkStartNumber,
@@ -176,23 +162,20 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 	}
 
 	private ReplicationMessage.ReplicaSubscriptionRetry UnwrapReplicaSubscriptionRetry(TcpPackage package,
-		IEnvelope envelope)
-	{
+		IEnvelope envelope) {
 		var dto = package.Data.Deserialize<ReplicaSubscriptionRetry>();
 		return new ReplicationMessage.ReplicaSubscriptionRetry(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span));
 	}
 
-	private TcpPackage WrapReplicaSubscriptionRetry(ReplicationMessage.ReplicaSubscriptionRetry msg)
-	{
+	private TcpPackage WrapReplicaSubscriptionRetry(ReplicationMessage.ReplicaSubscriptionRetry msg) {
 		var dto = new ReplicaSubscriptionRetry(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray());
 		return new TcpPackage(TcpCommand.ReplicaSubscriptionRetry, Guid.NewGuid(), dto.Serialize());
 	}
 
 	private ReplicationMessage.ReplicaSubscribed UnwrapReplicaSubscribed(TcpPackage package, IEnvelope envelope,
-		TcpConnectionManager connection)
-	{
+		TcpConnectionManager connection) {
 		var dto = package.Data.Deserialize<ReplicaSubscribed>();
 		return new ReplicationMessage.ReplicaSubscribed(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span),
@@ -200,51 +183,44 @@ public class InternalTcpDispatcher : ClientWriteTcpDispatcher
 			connection.RemoteEndPoint);
 	}
 
-	private TcpPackage WrapReplicaSubscribed(ReplicationMessage.ReplicaSubscribed msg)
-	{
+	private TcpPackage WrapReplicaSubscribed(ReplicationMessage.ReplicaSubscribed msg) {
 		var dto = new ReplicaSubscribed(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray(),
 			msg.SubscriptionPosition);
 		return new TcpPackage(TcpCommand.ReplicaSubscribed, Guid.NewGuid(), dto.Serialize());
 	}
 
-	private ReplicationMessage.FollowerAssignment UnwrapFollowerAssignment(TcpPackage package, IEnvelope envelope)
-	{
+	private ReplicationMessage.FollowerAssignment UnwrapFollowerAssignment(TcpPackage package, IEnvelope envelope) {
 		var dto = package.Data.Deserialize<FollowerAssignment>();
 		return new ReplicationMessage.FollowerAssignment(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span));
 	}
 
-	private TcpPackage WrapFollowerAssignment(ReplicationMessage.FollowerAssignment msg)
-	{
+	private TcpPackage WrapFollowerAssignment(ReplicationMessage.FollowerAssignment msg) {
 		var dto = new FollowerAssignment(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray());
 		return new TcpPackage(TcpCommand.FollowerAssignment, Guid.NewGuid(), dto.Serialize());
 	}
 
-	private ReplicationMessage.CloneAssignment UnwrapCloneAssignment(TcpPackage package, IEnvelope envelope)
-	{
+	private ReplicationMessage.CloneAssignment UnwrapCloneAssignment(TcpPackage package, IEnvelope envelope) {
 		var dto = package.Data.Deserialize<CloneAssignment>();
 		return new ReplicationMessage.CloneAssignment(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span));
 	}
 
-	private TcpPackage WrapCloneAssignment(ReplicationMessage.CloneAssignment msg)
-	{
+	private TcpPackage WrapCloneAssignment(ReplicationMessage.CloneAssignment msg) {
 		var dto = new CloneAssignment(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray());
 		return new TcpPackage(TcpCommand.CloneAssignment, Guid.NewGuid(), dto.Serialize());
 	}
 
-	private ReplicationMessage.DropSubscription UnwrapDropSubscription(TcpPackage package, IEnvelope envelope)
-	{
+	private ReplicationMessage.DropSubscription UnwrapDropSubscription(TcpPackage package, IEnvelope envelope) {
 		var dto = package.Data.Deserialize<CloneAssignment>();
 		return new ReplicationMessage.DropSubscription(new Guid(dto.LeaderId.Span),
 			new Guid(dto.SubscriptionId.Span));
 	}
 
-	private TcpPackage WrapDropSubscription(ReplicationMessage.DropSubscription msg)
-	{
+	private TcpPackage WrapDropSubscription(ReplicationMessage.DropSubscription msg) {
 		var dto = new DropSubscription(msg.LeaderId.ToByteArray(),
 			msg.SubscriptionId.ToByteArray());
 		return new TcpPackage(TcpCommand.DropSubscription, Guid.NewGuid(), dto.Serialize());

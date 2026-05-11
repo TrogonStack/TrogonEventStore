@@ -50,8 +50,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 		private void LogRetries(ServerCallContext context) {
 			var entry = context.RequestHeaders.Get("grpc-previous-rpc-attempts");
-			if (entry is null)
+			if (entry is null) {
 				return;
+			}
 
 			Log.Information("gRPC call to {method} received after {retries} retries", context.Method, entry.Value);
 		}

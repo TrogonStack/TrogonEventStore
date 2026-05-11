@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EventStore.Client.Streams;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
-using EventStore.Client.Streams;
 using EventStore.Core.Services.Transport.Common;
 using Grpc.Core;
 using Empty = EventStore.Client.Empty;
@@ -17,11 +17,13 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 			using var duration = _appendTracker.Start();
 			try {
-				if (!await requestStream.MoveNext())
+				if (!await requestStream.MoveNext()) {
 					throw new InvalidOperationException();
+				}
 
-				if (requestStream.Current.ContentCase != AppendReq.ContentOneofCase.Options)
+				if (requestStream.Current.ContentCase != AppendReq.ContentOneofCase.Options) {
 					throw new InvalidOperationException();
+				}
 
 				var options = requestStream.Current.Options;
 				var streamName = options.StreamIdentifier;
@@ -52,8 +54,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 				var size = 0;
 				while (await requestStream.MoveNext()) {
-					if (requestStream.Current.ContentCase != AppendReq.ContentOneofCase.ProposedMessage)
+					if (requestStream.Current.ContentCase != AppendReq.ContentOneofCase.ProposedMessage) {
 						throw new InvalidOperationException();
+					}
 
 					var proposedMessage = requestStream.Current.ProposedMessage;
 					var data = proposedMessage.Data.ToByteArray();
@@ -117,13 +120,15 @@ namespace EventStore.Core.Services.Transport.Grpc {
 							response.Success = new AppendResp.Types.Success();
 							if (completed.LastEventNumber == -1) {
 								response.Success.NoStream = new Empty();
-							} else {
+							}
+							else {
 								response.Success.CurrentRevision = StreamRevision.FromInt64(completed.LastEventNumber);
 							}
 
 							if (completed.CommitPosition == -1) {
 								response.Success.NoPosition = new Empty();
-							} else {
+							}
+							else {
 								var position = Position.FromInt64(completed.CommitPosition, completed.PreparePosition);
 								response.Success.Position = new AppendResp.Types.Position {
 									CommitPosition = position.CommitPosition,
@@ -165,7 +170,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 							if (completed.CurrentVersion == -1) {
 								response.WrongExpectedVersion.CurrentNoStream = new Empty();
 								response.WrongExpectedVersion.NoStream2060 = new Empty();
-							} else {
+							}
+							else {
 								response.WrongExpectedVersion.CurrentRevision =
 									StreamRevision.FromInt64(completed.CurrentVersion);
 								response.WrongExpectedVersion.CurrentRevision2060 =
@@ -188,7 +194,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 							return;
 					}
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				duration.SetException(ex);
 				throw;
 			}

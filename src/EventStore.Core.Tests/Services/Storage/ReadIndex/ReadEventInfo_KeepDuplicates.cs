@@ -12,8 +12,7 @@ namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
 [TestFixture]
 public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2, string>(maxEntriesInMemTable: 3,
 	lowHasher: new ConstantHasher(0),
-	highHasher: new HumanReadableHasher32())
-{
+	highHasher: new HumanReadableHasher32()) {
 	private const string Stream = "ab-1";
 	private const string CollidingStream = "cb-1";
 	private const string SoftDeletedStream = "de-1";
@@ -21,18 +20,15 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 
 	private readonly List<EventRecord> _events = new();
 
-	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result)
-	{
+	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result) {
 		Assert.AreEqual(events.Length, result.EventInfos.Length);
-		for (int i = 0; i < events.Length; i++)
-		{
+		for (int i = 0; i < events.Length; i++) {
 			Assert.AreEqual(events[i].EventNumber, result.EventInfos[i].EventNumber);
 			Assert.AreEqual(events[i].LogPosition, result.EventInfos[i].LogPosition);
 		}
 	}
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		// PTable 1
 		_events.Add(await WriteSingleEvent(Stream, 0, string.Empty, token: token));
 		_events.Add(await WriteSingleEvent(Stream, 1, string.Empty, token: token));
@@ -54,8 +50,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public async Task returns_correct_info_for_normal_event()
-	{
+	public async Task returns_correct_info_for_normal_event() {
 		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 1, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 1)
@@ -68,8 +63,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public async Task returns_correct_info_for_duplicate_events()
-	{
+	public async Task returns_correct_info_for_duplicate_events() {
 		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 2, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 2)
@@ -82,8 +76,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public async Task returns_correct_info_for_colliding_stream()
-	{
+	public async Task returns_correct_info_for_colliding_stream() {
 		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 3, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 3)
@@ -106,8 +99,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public async Task returns_correct_info_for_soft_deleted_stream()
-	{
+	public async Task returns_correct_info_for_soft_deleted_stream() {
 		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(SoftDeletedStream, 10, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == SoftDeletedStream && x.EventNumber == 10)
@@ -120,8 +112,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public async Task returns_correct_info_for_hard_deleted_stream()
-	{
+	public async Task returns_correct_info_for_hard_deleted_stream() {
 		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(HardDeletedStream, 20, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == HardDeletedStream && x.EventNumber == 20)
@@ -134,8 +125,7 @@ public class ReadEventInfo_KeepDuplicates() : ReadIndexTestScenario<LogFormat.V2
 	}
 
 	[Test]
-	public async Task returns_empty_info_when_event_does_not_exist()
-	{
+	public async Task returns_empty_info_when_event_does_not_exist() {
 		var result = await ReadIndex.ReadEventInfo_KeepDuplicates(Stream, 6, CancellationToken.None);
 		var events = _events
 			.Where(x => x.EventStreamId == Stream && x.EventNumber == 6)

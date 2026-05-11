@@ -7,16 +7,13 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Users
-{
+internal partial class Users {
 	private static readonly Operation DisableOperation = new Operation(Plugins.Authorization.Operations.Users.Disable);
-	public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context)
-	{
+	public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context) {
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, DisableOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, DisableOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 		var disableSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -29,10 +26,10 @@ internal partial class Users
 
 		return new DisableResp();
 
-		void OnMessage(Message message)
-		{
-			if (HandleErrors(options.LoginName, message, disableSource))
+		void OnMessage(Message message) {
+			if (HandleErrors(options.LoginName, message, disableSource)) {
 				return;
+			}
 
 			disableSource.TrySetResult(true);
 		}

@@ -10,10 +10,8 @@ using static System.Reflection.BindingFlags;
 namespace System.Diagnostics;
 
 [PublicAPI]
-public static class RuntimeStats
-{
-	static RuntimeStats()
-	{
+public static class RuntimeStats {
+	static RuntimeStats() {
 		GetCpuUsageInternal = typeof(GC)
 			.Assembly
 			.GetType("System.Diagnostics.Tracing.RuntimeEventSourceHelper")!
@@ -42,10 +40,8 @@ public static class RuntimeStats
 	public static long GetTotalMemory() =>
 		GC.GetGCMemoryInfo(GCKind.Background).TotalAvailableMemoryBytes;
 
-	public static ValueTask<long> GetFreeMemoryAsync()
-	{
-		return RuntimeInformation.OsPlatform switch
-		{
+	public static ValueTask<long> GetFreeMemoryAsync() {
+		return RuntimeInformation.OsPlatform switch {
 			RuntimeOSPlatform.Linux => GetFreeMemoryLinux(),
 			RuntimeOSPlatform.FreeBSD => GetFreeMemoryLinux(),
 			RuntimeOSPlatform.OSX => GetFreeMemoryOSX(true),
@@ -53,18 +49,17 @@ public static class RuntimeStats
 			_ => throw new NotSupportedException("Operating system not supported")
 		};
 
-		static async ValueTask<long> GetFreeMemoryLinux()
-		{
+		static async ValueTask<long> GetFreeMemoryLinux() {
 			var output = await ExecuteShellCommandAsync("grep MemAvailable /proc/meminfo");
 			var parts = output.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 			var value = ToInt64(parts[1]) * 1024; // Convert KB to bytes
 			return value;
 		}
 
-		static async ValueTask<long> GetFreeMemoryOSX(bool native = false)
-		{
-			if (native)
+		static async ValueTask<long> GetFreeMemoryOSX(bool native = false) {
+			if (native) {
 				return OsxNative.Memory.GetFreeMemory();
+			}
 
 			var output = await ExecuteShellCommandAsync("vm_stat | head -n 2");
 
@@ -81,18 +76,15 @@ public static class RuntimeStats
 		}
 
 		[SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
-		static ValueTask<long> GetFreeMemoryWindows()
-		{
+		static ValueTask<long> GetFreeMemoryWindows() {
 			using var counter = new PerformanceCounter("Memory", "Available Bytes");
 			var value = ToInt64(counter.NextValue());
 			return ValueTask.FromResult(value);
 		}
 	}
 
-	public static ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetCpuLoadAveragesAsync()
-	{
-		return RuntimeInformation.OsPlatform switch
-		{
+	public static ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetCpuLoadAveragesAsync() {
+		return RuntimeInformation.OsPlatform switch {
 			RuntimeOSPlatform.Linux => GetLoadAveragesLinux(),
 			RuntimeOSPlatform.FreeBSD => GetLoadAveragesFreeBSD(),
 			RuntimeOSPlatform.OSX => GetLoadAveragesMac(),
@@ -100,8 +92,7 @@ public static class RuntimeStats
 			_ => throw new NotSupportedException("Operating system not supported")
 		};
 
-		static async ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetLoadAveragesLinux()
-		{
+		static async ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetLoadAveragesLinux() {
 			// On Linux, the /proc/loadavg file provides load averages along with some additional scheduling information.
 			// The file typically looks something like this:
 			//
@@ -125,8 +116,7 @@ public static class RuntimeStats
 			);
 		}
 
-		static async ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetLoadAveragesMac()
-		{
+		static async ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetLoadAveragesMac() {
 			// On macOS, the uptime command might give you something like this:
 			//
 			// 14:55  up 10 days,  4:02, 4 users, load averages: 2.43 2.72 2.89
@@ -149,8 +139,7 @@ public static class RuntimeStats
 			);
 		}
 
-		static async ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetLoadAveragesFreeBSD()
-		{
+		static async ValueTask<(double OneMinute, double FiveMinutes, double FifteenMinutes)> GetLoadAveragesFreeBSD() {
 			// works on macOS as well
 			// Example output: "{ 0.12 0.26 0.21 }"
 			var output = await ExecuteShellCommandAsync("sysctl -n vm.loadavg");
@@ -170,12 +159,10 @@ public static class RuntimeStats
 	public static (double OneMinute, double FiveMinutes, double FifteenMinutes) GetCpuLoadAverages() =>
 		GetCpuLoadAveragesAsync().AsTask().GetAwaiter().GetResult();
 
-	static async ValueTask<string> ExecuteShellCommandAsync(string command)
-	{
+	static async ValueTask<string> ExecuteShellCommandAsync(string command) {
 		var escapedArgs = command.Replace(@"\", @"\\");
 
-		var psi = new ProcessStartInfo
-		{
+		var psi = new ProcessStartInfo {
 			FileName = "/bin/sh",
 			Arguments = $"-c \"{escapedArgs}\"",
 			RedirectStandardOutput = true,
@@ -185,8 +172,9 @@ public static class RuntimeStats
 
 		using var process = Process.Start(psi);
 
-		if (process is null)
+		if (process is null) {
 			throw new InvalidOperationException($"Could not start sh process to execute: {psi.FileName} {psi.Arguments}");
+		}
 
 		var result = await process.StandardOutput.ReadToEndAsync();
 

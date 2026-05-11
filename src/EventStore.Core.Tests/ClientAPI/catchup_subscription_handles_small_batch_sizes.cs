@@ -14,16 +14,14 @@ namespace EventStore.Core.Tests.ClientAPI;
 [Ignore("Very long running")]
 [Category("LongRunning"), Category("ClientAPI")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private string _streamName = "TestStream";
 	private CatchUpSubscriptionSettings _settings;
 	private IEventStoreConnection _conn;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
@@ -31,19 +29,16 @@ public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamI
 		_conn = BuildConnection(_node);
 		await _conn.ConnectAsync();
 		//Create 80000 events
-		for (var i = 0; i < 80; i++)
-		{
+		for (var i = 0; i < 80; i++) {
 			await _conn.AppendToStreamAsync(_streamName, ExpectedVersion.Any, CreateThousandEvents());
 		}
 
 		_settings = new CatchUpSubscriptionSettings(100, 1, false, true, String.Empty);
 	}
 
-	private EventData[] CreateThousandEvents()
-	{
+	private EventData[] CreateThousandEvents() {
 		var events = new List<EventData>();
-		for (var i = 0; i < 1000; i++)
-		{
+		for (var i = 0; i < 1000; i++) {
 			events.Add(new EventData(Guid.NewGuid(), "testEvent", true,
 				Encoding.UTF8.GetBytes("{ \"Foo\":\"Bar\" }"), null));
 		}
@@ -52,51 +47,45 @@ public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamI
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_conn.Dispose();
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
 	[Test]
-	public void CatchupSubscriptionToAllHandlesManyEventsWithSmallBatchSize()
-	{
+	public void CatchupSubscriptionToAllHandlesManyEventsWithSmallBatchSize() {
 		var mre = new ManualResetEvent(false);
-		_conn.SubscribeToAllFrom(null, _settings, (sub, evnt) =>
-		{
-			if (evnt.OriginalEventNumber % 1000 == 0)
-			{
+		_conn.SubscribeToAllFrom(null, _settings, (sub, evnt) => {
+			if (evnt.OriginalEventNumber % 1000 == 0) {
 				Console.WriteLine("Processed {0} events", evnt.OriginalEventNumber);
 			}
 
 			return Task.CompletedTask;
 		}, (sub) => { mre.Set(); }, null, new UserCredentials("admin", "changeit"));
 
-		if (!mre.WaitOne(TimeSpan.FromMinutes(10)))
+		if (!mre.WaitOne(TimeSpan.FromMinutes(10))) {
 			Assert.Fail("Timed out waiting for test to complete");
+		}
 	}
 
 	[Test]
-	public void CatchupSubscriptionToStreamHandlesManyEventsWithSmallBatchSize()
-	{
+	public void CatchupSubscriptionToStreamHandlesManyEventsWithSmallBatchSize() {
 		var mre = new ManualResetEvent(false);
-		_conn.SubscribeToStreamFrom(_streamName, null, _settings, (sub, evnt) =>
-		{
-			if (evnt.OriginalEventNumber % 1000 == 0)
-			{
+		_conn.SubscribeToStreamFrom(_streamName, null, _settings, (sub, evnt) => {
+			if (evnt.OriginalEventNumber % 1000 == 0) {
 				Console.WriteLine("Processed {0} events", evnt.OriginalEventNumber);
 			}
 
 			return Task.CompletedTask;
 		}, (sub) => { mre.Set(); }, null, new UserCredentials("admin", "changeit"));
 
-		if (!mre.WaitOne(TimeSpan.FromMinutes(10)))
+		if (!mre.WaitOne(TimeSpan.FromMinutes(10))) {
 			Assert.Fail("Timed out waiting for test to complete");
+		}
 	}
 }

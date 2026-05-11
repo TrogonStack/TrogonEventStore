@@ -4,23 +4,19 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TracingAccumulator<TStreamId>(IAccumulator<TStreamId> wrapped, Tracer tracer) : IAccumulator<TStreamId>
-{
+public class TracingAccumulator<TStreamId>(IAccumulator<TStreamId> wrapped, Tracer tracer) : IAccumulator<TStreamId> {
 	public async ValueTask Accumulate(
 		ScavengePoint prevScavengePoint,
 		ScavengePoint scavengePoint,
 		IScavengeStateForAccumulator<TStreamId> state,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		tracer.TraceIn($"Accumulating from {prevScavengePoint?.GetName() ?? "start"} to {scavengePoint.GetName()}");
-		try
-		{
+		try {
 			await wrapped.Accumulate(prevScavengePoint, scavengePoint, state, cancellationToken);
 			tracer.TraceOut("Done");
 		}
-		catch
-		{
+		catch {
 			tracer.TraceOut("Exception accumulating");
 			throw;
 		}
@@ -29,17 +25,14 @@ public class TracingAccumulator<TStreamId>(IAccumulator<TStreamId> wrapped, Trac
 	public async ValueTask Accumulate(
 		ScavengeCheckpoint.Accumulating checkpoint,
 		IScavengeStateForAccumulator<TStreamId> state,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		tracer.TraceIn($"Accumulating from checkpoint: {checkpoint}");
-		try
-		{
+		try {
 			await wrapped.Accumulate(checkpoint, state, cancellationToken);
 			tracer.TraceOut("Done");
 		}
-		catch
-		{
+		catch {
 			tracer.TraceOut("Exception accumulating");
 			throw;
 		}

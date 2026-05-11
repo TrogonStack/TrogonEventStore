@@ -5,11 +5,9 @@ using System.Text;
 
 namespace EventStore.Core.Tests.Certificates;
 
-public class with_certificates : SpecificationWithDirectoryPerTestFixture
-{
+public class with_certificates : SpecificationWithDirectoryPerTestFixture {
 	private static readonly Random Random = new();
-	protected static X509Certificate2 CreateCertificate(bool issuer, X509Certificate2 parent = null, bool expired = false)
-	{
+	protected static X509Certificate2 CreateCertificate(bool issuer, X509Certificate2 parent = null, bool expired = false) {
 		using var rsa = RSA.Create();
 		var certReq = new CertificateRequest(GenerateSubject(), rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 		var now = DateTimeOffset.UtcNow;
@@ -17,12 +15,10 @@ public class with_certificates : SpecificationWithDirectoryPerTestFixture
 		var startDate = now.AddMonths(-1);
 		var endDate = !expired ? now.AddMonths(1) : now.AddDays(-1);
 
-		if (issuer)
-		{
+		if (issuer) {
 			certReq.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
 		}
-		if (parent == null)
-		{
+		if (parent == null) {
 			return certReq.CreateSelfSigned(startDate, endDate);
 		}
 
@@ -31,30 +27,24 @@ public class with_certificates : SpecificationWithDirectoryPerTestFixture
 		return certReq.Create(parent.SubjectName, signatureGenerator, startDate, endDate, GenerateSerialNumber()).CopyWithPrivateKey(rsa);
 	}
 
-	private static string GetCharset()
-	{
+	private static string GetCharset() {
 		var charset = "";
-		for (var c = 'a'; c <= 'z'; c++)
-		{
+		for (var c = 'a'; c <= 'z'; c++) {
 			charset += c;
 		}
-		for (var c = 'A'; c <= 'Z'; c++)
-		{
+		for (var c = 'A'; c <= 'Z'; c++) {
 			charset += c;
 		}
-		for (var c = '0'; c <= '9'; c++)
-		{
+		for (var c = '0'; c <= '9'; c++) {
 			charset += c;
 		}
 		return charset;
 	}
 
-	private static byte[] GenerateSerialNumber()
-	{
+	private static byte[] GenerateSerialNumber() {
 		var charset = GetCharset();
 		string s = "";
-		for (var j = 0; j < 10; j++)
-		{
+		for (var j = 0; j < 10; j++) {
 			s += charset[Random.Next() % charset.Length];
 		}
 
@@ -62,12 +52,10 @@ public class with_certificates : SpecificationWithDirectoryPerTestFixture
 		return utf8Encoding.GetBytes(s);
 	}
 
-	protected static string GenerateSubject()
-	{
+	protected static string GenerateSubject() {
 		var charset = GetCharset();
 		string s = "";
-		for (var j = 0; j < 10; j++)
-		{
+		for (var j = 0; j < 10; j++) {
 			s += charset[Random.Next() % charset.Length];
 		}
 

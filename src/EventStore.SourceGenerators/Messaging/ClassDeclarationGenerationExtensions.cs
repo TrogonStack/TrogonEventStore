@@ -6,10 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace EventStore.SourceGenerators.Messaging;
 
-static class ClassDeclarationGenerationExtensions
-{
-	enum Kind
-	{
+static class ClassDeclarationGenerationExtensions {
+	enum Kind {
 		None,
 		Base,
 		Derived,
@@ -26,8 +24,7 @@ static class ClassDeclarationGenerationExtensions
 		GeneratorExecutionContext context,
 		ClassDeclarationSyntax originalNode) =>
 
-		GetStatsAttribute(originalNode) switch
-		{
+		GetStatsAttribute(originalNode) switch {
 			(Kind.None, _) => node,
 			(Kind.Base, _) => node.AddBaseStatsMembers(),
 			(Kind.Derived, var derivedMessageAttribute) =>
@@ -36,16 +33,13 @@ static class ClassDeclarationGenerationExtensions
 		};
 
 	static (Kind, AttributeSyntax) GetStatsAttribute(
-		ClassDeclarationSyntax node)
-	{
+		ClassDeclarationSyntax node) {
 
-		if (node.TryGetBaseMessageAttribute(out var attributeSyntax))
-		{
+		if (node.TryGetBaseMessageAttribute(out var attributeSyntax)) {
 			return (Kind.Base, attributeSyntax);
 		}
 
-		if (node.TryGetDerivedMessageAttribute(out attributeSyntax))
-		{
+		if (node.TryGetDerivedMessageAttribute(out attributeSyntax)) {
 			return (Kind.Derived, attributeSyntax);
 		}
 
@@ -59,26 +53,20 @@ static class ClassDeclarationGenerationExtensions
 		this ClassDeclarationSyntax node,
 		GeneratorExecutionContext context,
 		ClassDeclarationSyntax originalNode,
-		AttributeSyntax derivedMessageAttribute)
-	{
+		AttributeSyntax derivedMessageAttribute) {
 		var args = derivedMessageAttribute.ArgumentList;
 		var argsCount = args?.Arguments.Count ?? 0;
 		var isAbstract = node.Modifiers.Any(SyntaxKind.AbstractKeyword);
-		if (isAbstract)
-		{
-			if (argsCount > 0)
-			{
+		if (isAbstract) {
+			if (argsCount > 0) {
 				context.ReportAbstractMessageWithGroup(originalNode);
 			}
 		}
-		else
-		{
-			if (argsCount != 1)
-			{
+		else {
+			if (argsCount != 1) {
 				context.ReportConcreteMessageWithoutGroup(originalNode);
 			}
-			else
-			{
+			else {
 				var label = $"{args.Arguments[0]}.{node.Identifier}"
 					.Replace('.', '-'); // because . would make for messy regexps
 				node = node.AddMembers(RegisterConcreteLabel(label));
@@ -98,16 +86,15 @@ static class ClassDeclarationGenerationExtensions
 		$"public override string Label => LabelStatic;",
 	};
 
-	public static ClassDeclarationSyntax AddMembers(this ClassDeclarationSyntax node, params string[] members)
-	{
+	public static ClassDeclarationSyntax AddMembers(this ClassDeclarationSyntax node, params string[] members) {
 		var parsed = members
 			.Select(static x => SyntaxFactory.ParseMemberDeclaration(x))
 			.ToArray();
 
-		for (var i = 0; i < parsed.Length; i++)
-		{
-			if (parsed[i] is null)
+		for (var i = 0; i < parsed.Length; i++) {
+			if (parsed[i] is null) {
 				throw new Exception($"Could not parse member: {members[i]}");
+			}
 		}
 
 		return node.AddMembers(parsed);

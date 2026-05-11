@@ -6,8 +6,7 @@ namespace EventStore.TestClient;
 /// <summary>
 /// A test client that connects using the legacy dotnet TCP client
 /// </summary>
-public class ClientApiTcpTestClient
-{
+public class ClientApiTcpTestClient {
 	/// <summary>
 	/// The options specified when starting the EventStore.TestClient
 	/// </summary>
@@ -19,8 +18,7 @@ public class ClientApiTcpTestClient
 	/// </summary>
 	/// <param name="options"></param>
 	/// <param name="log"></param>
-	public ClientApiTcpTestClient(ClientOptions options, ILogger log)
-	{
+	public ClientApiTcpTestClient(ClientOptions options, ILogger log) {
 		Options = options;
 		_log = log;
 	}
@@ -29,8 +27,7 @@ public class ClientApiTcpTestClient
 	/// Creates a new TCP connection.
 	/// </summary>
 	/// <returns></returns>
-	public IEventStoreConnection CreateConnection()
-	{
+	public IEventStoreConnection CreateConnection() {
 		var connectionString = string.IsNullOrWhiteSpace(Options.ConnectionString)
 			? $"ConnectTo=tcp://{Options.Host}:{Options.TcpPort};UseSslConnection={Options.UseTls};ValidateServer={Options.TlsValidateServer}"
 			: Options.ConnectionString;

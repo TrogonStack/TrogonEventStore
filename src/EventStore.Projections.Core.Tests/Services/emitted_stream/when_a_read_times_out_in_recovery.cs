@@ -16,23 +16,20 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_a_read_times_out_in_recovery<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_a_read_times_out_in_recovery<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private const string TestStreamId = "test_stream";
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private List<TimerMessage.Schedule> timerMessages = new();
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		ExistingEvent(TestStreamId, "type", @"{""c"": 100, ""p"": 50}", "data");
 		ReadsBackwardQueuesUp();
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_bus.Subscribe(new AdHocHandler<TimerMessage.Schedule>(msg => timerMessages.Add(msg)));
 
@@ -53,8 +50,7 @@ public class when_a_read_times_out_in_recovery<TLogFormat, TStreamId> : TestFixt
 	}
 
 	[Test]
-	public void should_retry_the_read_upon_the_read_timing_out()
-	{
+	public void should_retry_the_read_upon_the_read_timing_out() {
 		var timerMessage = timerMessages.FirstOrDefault();
 		Assert.NotNull(timerMessage,
 			$"Expected a {nameof(TimerMessage.Schedule)} to have been published, but none were received");

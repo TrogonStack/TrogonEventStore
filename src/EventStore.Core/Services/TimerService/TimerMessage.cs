@@ -18,12 +18,17 @@ namespace EventStore.Core.Services.TimerService {
 			}
 
 			private Schedule(TimeSpan triggerAfter, IEnvelope envelope, Message replyMessage, Action replyAction) {
-				if (envelope == null)
+				if (envelope == null) {
 					throw new ArgumentNullException("envelope");
-				if (replyMessage == null)
+				}
+
+				if (replyMessage == null) {
 					throw new ArgumentNullException("replyMessage");
-				if (replyAction == null)
+				}
+
+				if (replyAction == null) {
 					throw new ArgumentNullException("replyAction");
+				}
 
 				TriggerAfter = triggerAfter;
 				Envelope = envelope;

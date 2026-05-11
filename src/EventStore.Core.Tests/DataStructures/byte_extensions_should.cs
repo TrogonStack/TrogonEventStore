@@ -4,8 +4,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.DataStructures;
 
 [TestFixture]
-public class byte_extensions_should
-{
+public class byte_extensions_should {
 	[DatapointSource]
 	public static object[][] IsBitSetCases = new object[][] {
 		new object[] { true, (byte)0b1111_0000, 0 },
@@ -27,8 +26,7 @@ public class byte_extensions_should
 	};
 
 	[TestCaseSource(nameof(IsBitSetCases))]
-	public void check_bit_correctly(bool expected, byte x, int bitIndex)
-	{
+	public void check_bit_correctly(bool expected, byte x, int bitIndex) {
 		Assert.AreEqual(expected, x.IsBitSet(bitIndex));
 	}
 
@@ -53,8 +51,7 @@ public class byte_extensions_should
 	};
 
 	[TestCaseSource(nameof(SetBitCases))]
-	public void set_bit_correctly(byte expected, byte x, int bitIndex)
-	{
+	public void set_bit_correctly(byte expected, byte x, int bitIndex) {
 		Assert.AreEqual(expected, x.SetBit(bitIndex));
 	}
 
@@ -79,8 +76,7 @@ public class byte_extensions_should
 	};
 
 	[TestCaseSource(nameof(UnsetBitCases))]
-	public void unset_bit_correctly(byte expected, byte x, int bitIndex)
-	{
+	public void unset_bit_correctly(byte expected, byte x, int bitIndex) {
 		Assert.AreEqual(expected, x.UnsetBit(bitIndex));
 	}
 }

@@ -71,11 +71,13 @@ public sealed class AdminOperationsService(
 		int page,
 		long? fromEventNumber,
 		CancellationToken cancellationToken = default) {
-		if (string.IsNullOrWhiteSpace(scavengeId))
+		if (string.IsNullOrWhiteSpace(scavengeId)) {
 			return ScavengeDetailPage.Unavailable("", "Missing scavenge id.");
+		}
 
-		if (!await HasAccess(ScavengeReadOperation, cancellationToken))
+		if (!await HasAccess(ScavengeReadOperation, cancellationToken)) {
 			return ScavengeDetailPage.Unavailable(scavengeId, "Scavenge history access was denied.");
+		}
 
 		var normalizedScavengeId = scavengeId.Trim();
 		var normalizedPage = Math.Max(0, page);
@@ -86,8 +88,9 @@ public sealed class AdminOperationsService(
 			ScavengeDetailPageSize,
 			cancellationToken);
 
-		if (!read.IsAvailable)
+		if (!read.IsAvailable) {
 			return ScavengeDetailPage.Unavailable(scavengeId, read.Message);
+		}
 
 		var rows = read.Events
 			.Select(ScavengeDetailRow.From)
@@ -109,15 +112,18 @@ public sealed class AdminOperationsService(
 	public async Task<AdminCommandResult> StartScavenge(
 		ScavengeStartRequest request,
 		CancellationToken cancellationToken = default) {
-		if (!hostedService.SupportsScavenge)
+		if (!hostedService.SupportsScavenge) {
 			return AdminCommandResult.Failed(hostedService.ScavengeSupportMessage, StatusCodes.Status400BadRequest);
+		}
 
-		if (!await HasAccess(ScavengeStartOperation, cancellationToken))
+		if (!await HasAccess(ScavengeStartOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Scavenge start access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		var validation = request.Validate();
-		if (!string.IsNullOrWhiteSpace(validation))
+		if (!string.IsNullOrWhiteSpace(validation)) {
 			return AdminCommandResult.Failed(validation, StatusCodes.Status400BadRequest);
+		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ScavengeDatabaseStartedResponse>(
 			mapFailure: ScavengeFailureMessage);
@@ -134,11 +140,14 @@ public sealed class AdminOperationsService(
 
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return AdminCommandResult.Succeeded($"Scavenge '{completed.ScavengeId}' started.", completed.ScavengeId);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return AdminCommandResult.Failed("Timed out starting scavenge.", StatusCodes.Status504GatewayTimeout);
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return AdminCommandResult.Failed($"Unable to start scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -146,14 +155,17 @@ public sealed class AdminOperationsService(
 	public async Task<AdminCommandResult> StopScavenge(
 		ScavengeStopRequest request,
 		CancellationToken cancellationToken = default) {
-		if (!hostedService.SupportsScavenge)
+		if (!hostedService.SupportsScavenge) {
 			return AdminCommandResult.Failed(hostedService.ScavengeSupportMessage, StatusCodes.Status400BadRequest);
+		}
 
-		if (string.IsNullOrWhiteSpace(request.ScavengeId))
+		if (string.IsNullOrWhiteSpace(request.ScavengeId)) {
 			return AdminCommandResult.Failed("Missing scavenge id.", StatusCodes.Status400BadRequest);
+		}
 
-		if (!await HasAccess(ScavengeStopOperation, cancellationToken))
+		if (!await HasAccess(ScavengeStopOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Scavenge stop access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ScavengeDatabaseStoppedResponse>(
 			mapFailure: ScavengeFailureMessage);
@@ -166,26 +178,31 @@ public sealed class AdminOperationsService(
 
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return AdminCommandResult.Succeeded($"Scavenge '{completed.ScavengeId}' stop requested.", completed.ScavengeId);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return AdminCommandResult.Failed("Timed out stopping scavenge.", StatusCodes.Status504GatewayTimeout);
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return AdminCommandResult.Failed($"Unable to stop scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	public async Task<AdminCommandResult> ReloadConfig(CancellationToken cancellationToken = default) {
-		if (!await HasAccess(ReloadConfigOperation, cancellationToken))
+		if (!await HasAccess(ReloadConfigOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Reload configuration access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		publisher.Publish(new ClientMessage.ReloadConfig());
 		return AdminCommandResult.Succeeded("Configuration reload requested.");
 	}
 
 	public async Task<AdminCommandResult> MergeIndexes(CancellationToken cancellationToken = default) {
-		if (!await HasAccess(MergeIndexesOperation, cancellationToken))
+		if (!await HasAccess(MergeIndexesOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Merge indexes access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.MergeIndexesResponse>();
 		try {
@@ -194,18 +211,22 @@ public sealed class AdminOperationsService(
 			return completed.Result == ClientMessage.MergeIndexesResponse.MergeIndexesResult.Started
 				? AdminCommandResult.Succeeded("Index merge started.")
 				: AdminCommandResult.Failed($"Unable to merge indexes. Result: {completed.Result}.");
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return AdminCommandResult.Failed("Timed out requesting index merge.", StatusCodes.Status504GatewayTimeout);
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return AdminCommandResult.Failed($"Unable to merge indexes: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	public async Task<AdminCommandResult> ResignNode(CancellationToken cancellationToken = default) {
-		if (!await HasAccess(ResignOperation, cancellationToken))
+		if (!await HasAccess(ResignOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Resign node access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		publisher.Publish(new ClientMessage.ResignNode());
 		return AdminCommandResult.Succeeded("Node resignation requested.");
@@ -214,24 +235,27 @@ public sealed class AdminOperationsService(
 	public async Task<AdminCommandResult> SetNodePriority(
 		SetNodePriorityRequest request,
 		CancellationToken cancellationToken = default) {
-		if (!await HasAccess(SetPriorityOperation, cancellationToken))
+		if (!await HasAccess(SetPriorityOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Set priority access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		publisher.Publish(new ClientMessage.SetNodePriority(request.Priority));
 		return AdminCommandResult.Succeeded($"Node priority set to {request.Priority}.");
 	}
 
 	public async Task<AdminCommandResult> Shutdown(CancellationToken cancellationToken = default) {
-		if (!await HasAccess(ShutdownOperation, cancellationToken))
+		if (!await HasAccess(ShutdownOperation, cancellationToken)) {
 			return AdminCommandResult.Failed("Shutdown access was denied.", StatusCodes.Status403Forbidden);
+		}
 
 		publisher.Publish(new ClientMessage.RequestShutdown(exitProcess: true, shutdownHttp: true));
 		return AdminCommandResult.Succeeded("Node shutdown requested.");
 	}
 
 	private async Task<SubsystemsPanel> ReadSubsystems(CancellationToken cancellationToken) {
-		if (!await HasAccess(SubsystemsOperation, cancellationToken))
+		if (!await HasAccess(SubsystemsOperation, cancellationToken)) {
 			return SubsystemsPanel.Unavailable("Subsystem access was denied.");
+		}
 
 		var subsystems = hostedService.EnabledNodeSubsystems
 			.Select(x => new SubsystemView(x.ToString(), "Enabled"))
@@ -242,8 +266,9 @@ public sealed class AdminOperationsService(
 	}
 
 	private async Task<ScavengeStatusView> ReadCurrentScavenge(CancellationToken cancellationToken) {
-		if (!await HasAccess(ScavengeReadOperation, cancellationToken))
+		if (!await HasAccess(ScavengeReadOperation, cancellationToken)) {
 			return ScavengeStatusView.Unavailable("Scavenge status access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ScavengeDatabaseGetCurrentResponse>();
 
@@ -253,18 +278,22 @@ public sealed class AdminOperationsService(
 			return completed.Result == ClientMessage.ScavengeDatabaseGetCurrentResponse.ScavengeResult.InProgress
 				? ScavengeStatusView.InProgress(completed.ScavengeId)
 				: ScavengeStatusView.Stopped();
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ScavengeStatusView.Unavailable("Timed out reading current scavenge.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ScavengeStatusView.Unavailable($"Unable to read current scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	private async Task<ScavengeStatusView> ReadLastScavenge(CancellationToken cancellationToken) {
-		if (!await HasAccess(ScavengeReadOperation, cancellationToken))
+		if (!await HasAccess(ScavengeReadOperation, cancellationToken)) {
 			return ScavengeStatusView.Unavailable("Scavenge status access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ScavengeDatabaseGetLastResponse>();
 
@@ -274,32 +303,38 @@ public sealed class AdminOperationsService(
 			return string.IsNullOrWhiteSpace(completed.ScavengeId)
 				? ScavengeStatusView.Unknown(completed.Result.ToString())
 				: new ScavengeStatusView(completed.ScavengeId, completed.Result.ToString(), "", completed.Result.ToString());
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ScavengeStatusView.Unavailable("Timed out reading last scavenge.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ScavengeStatusView.Unavailable($"Unable to read last scavenge: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	private async Task<ScavengeHistoryRead> ReadScavengeHistory(CancellationToken cancellationToken) {
-		if (!await HasAccess(ScavengeReadOperation, cancellationToken))
+		if (!await HasAccess(ScavengeReadOperation, cancellationToken)) {
 			return ScavengeHistoryRead.Unavailable("Scavenge history access was denied.");
+		}
 
 		var read = await ReadStreamBackward(
 			SystemStreams.ScavengesStream,
 			-1,
 			ScavengeHistoryCount,
 			cancellationToken);
-		if (!read.IsAvailable)
+		if (!read.IsAvailable) {
 			return ScavengeHistoryRead.Unavailable(read.Message);
+		}
 
 		var byId = new Dictionary<string, ScavengeHistoryBuilder>(StringComparer.OrdinalIgnoreCase);
 		foreach (var ev in read.Events) {
 			var parsed = ParsedScavengeEvent.From(ev);
-			if (parsed is null || string.IsNullOrWhiteSpace(parsed.ScavengeId))
+			if (parsed is null || string.IsNullOrWhiteSpace(parsed.ScavengeId)) {
 				continue;
+			}
 
 			if (!byId.TryGetValue(parsed.ScavengeId, out var builder)) {
 				builder = new ScavengeHistoryBuilder(parsed.ScavengeId);
@@ -340,11 +375,14 @@ public sealed class AdminOperationsService(
 				cancellationToken: cancellationToken));
 
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return StreamReadResult.Unavailable($"Timed out reading '{streamId}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return StreamReadResult.Unavailable($"Unable to read '{streamId}': {UiMessages.Friendly(ex)}");
 		}
 
@@ -445,8 +483,8 @@ public sealed record ScavengeHistoryItem(
 	public string ResultLabel => string.IsNullOrWhiteSpace(Result) ? "Running" : Result;
 	public string DetailHref => $"/ui/operations/scavenges/{Uri.EscapeDataString(ScavengeId)}";
 	public string Tone => ResultLabel.Contains("error", StringComparison.OrdinalIgnoreCase) ||
-	                     ResultLabel.Contains("failed", StringComparison.OrdinalIgnoreCase) ||
-	                     ResultLabel.Contains("interrupted", StringComparison.OrdinalIgnoreCase)
+						 ResultLabel.Contains("failed", StringComparison.OrdinalIgnoreCase) ||
+						 ResultLabel.Contains("interrupted", StringComparison.OrdinalIgnoreCase)
 		? "bad"
 		: IsCompleted
 			? "good"
@@ -499,7 +537,7 @@ public sealed record ScavengeDetailRow(
 	string NodeEndpoint) {
 	public string TimeStampLabel => TimeStamp.ToUniversalTime().ToString("u");
 	public string Tone => Result.Contains("error", StringComparison.OrdinalIgnoreCase) ||
-	                     Result.Contains("failed", StringComparison.OrdinalIgnoreCase)
+						 Result.Contains("failed", StringComparison.OrdinalIgnoreCase)
 		? "bad"
 		: Result.Contains("complete", StringComparison.OrdinalIgnoreCase) ||
 		  Result.Contains("success", StringComparison.OrdinalIgnoreCase) ||
@@ -509,8 +547,9 @@ public sealed record ScavengeDetailRow(
 
 	internal static ScavengeDetailRow From(ScavengeRawEvent raw) {
 		var parsed = ParsedScavengeEvent.From(raw);
-		if (parsed is null)
+		if (parsed is null) {
 			return new ScavengeDetailRow(raw.EventNumber, raw.TimeStamp, raw.EventType, raw.EventType, "-", "-", "", "");
+		}
 
 		return raw.EventType switch {
 			SystemEventTypes.ScavengeStarted => new ScavengeDetailRow(
@@ -572,16 +611,21 @@ public sealed record ScavengeDetailRow(
 
 	private static string BuildStartedResult(ParsedScavengeEvent parsed) {
 		var parts = new List<string>();
-		if (parsed.StartFromChunk.HasValue)
+		if (parsed.StartFromChunk.HasValue) {
 			parts.Add($"from chunk {parsed.StartFromChunk.Value}");
-		if (parsed.Threads.HasValue)
+		}
+
+		if (parsed.Threads.HasValue) {
 			parts.Add($"{parsed.Threads.Value} thread(s)");
+		}
+
 		return parts.Count == 0 ? "Started" : string.Join(", ", parts);
 	}
 
 	private static string BuildChunkResult(ParsedScavengeEvent parsed) {
-		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage))
+		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage)) {
 			return $"Error: {parsed.ErrorMessage}";
+		}
 
 		return parsed.WasScavenged == true
 			? $"{parsed.ChunkCountLabel} chunk(s) scavenged"
@@ -589,8 +633,9 @@ public sealed record ScavengeDetailRow(
 	}
 
 	private static string BuildMergeResult(ParsedScavengeEvent parsed) {
-		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage))
+		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage)) {
 			return $"Error: {parsed.ErrorMessage}";
+		}
 
 		return parsed.WasMerged == true
 			? $"{parsed.ChunkCountLabel} chunk(s) merged"
@@ -598,8 +643,9 @@ public sealed record ScavengeDetailRow(
 	}
 
 	private static string BuildIndexResult(ParsedScavengeEvent parsed) {
-		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage))
+		if (!string.IsNullOrWhiteSpace(parsed.ErrorMessage)) {
 			return $"Error: {parsed.ErrorMessage}";
+		}
 
 		return parsed.WasScavenged == true
 			? $"{parsed.EntriesDeleted.GetValueOrDefault()} index entries scavenged"
@@ -634,14 +680,22 @@ public sealed record ScavengeStartRequest(
 	int? ThrottlePercent = null,
 	bool SyncOnly = false) {
 	public string Validate() {
-		if (StartFromChunk < 0)
+		if (StartFromChunk < 0) {
 			return "startFromChunk must be a positive integer.";
-		if (Threads < 1)
+		}
+
+		if (Threads < 1) {
 			return "threads must be 1 or above.";
-		if (ThrottlePercent is <= 0 or > 100)
+		}
+
+		if (ThrottlePercent is <= 0 or > 100) {
 			return "throttlePercent must be between 1 and 100 inclusive.";
-		if (ThrottlePercent is not null && ThrottlePercent != 100 && Threads > 1)
+		}
+
+		if (ThrottlePercent is not null && ThrottlePercent != 100 && Threads > 1) {
 			return "throttlePercent must be 100 for a multi-threaded scavenge.";
+		}
+
 		return "";
 	}
 }
@@ -704,8 +758,9 @@ internal sealed class ScavengeHistoryBuilder(string scavengeId) {
 	private string _error = "";
 
 	public void Apply(ParsedScavengeEvent parsed) {
-		if (!string.IsNullOrWhiteSpace(parsed.NodeEndpoint))
+		if (!string.IsNullOrWhiteSpace(parsed.NodeEndpoint)) {
 			_nodeEndpoint = parsed.NodeEndpoint;
+		}
 
 		switch (parsed.EventType) {
 			case SystemEventTypes.ScavengeStarted:
@@ -751,15 +806,17 @@ internal sealed record ParsedScavengeEvent(
 	public string ChunkCountLabel => ChunkCount == 0 ? "0" : ChunkCount.ToString();
 
 	public static ParsedScavengeEvent From(ScavengeRawEvent raw) {
-		if (string.IsNullOrWhiteSpace(raw.Data))
+		if (string.IsNullOrWhiteSpace(raw.Data)) {
 			return null;
+		}
 
 		try {
 			using var document = JsonDocument.Parse(raw.Data);
 			var root = document.RootElement;
 			var scavengeId = ReadString(root, "scavengeId");
-			if (string.IsNullOrWhiteSpace(scavengeId))
+			if (string.IsNullOrWhiteSpace(scavengeId)) {
 				scavengeId = IdFromStream(raw.StreamId);
+			}
 
 			return new ParsedScavengeEvent(
 				scavengeId,
@@ -780,7 +837,8 @@ internal sealed record ParsedScavengeEvent(
 				ReadLong(root, "entriesDeleted"),
 				ReadInt(root, "startFromChunk"),
 				ReadInt(root, "threads"));
-		} catch (JsonException) {
+		}
+		catch (JsonException) {
 			return null;
 		}
 	}
@@ -791,8 +849,9 @@ internal sealed record ParsedScavengeEvent(
 			: "";
 
 	private static string ReadString(JsonElement root, string name) {
-		if (!root.TryGetProperty(name, out var value))
+		if (!root.TryGetProperty(name, out var value)) {
 			return "";
+		}
 
 		return value.ValueKind switch {
 			JsonValueKind.String => value.GetString() ?? "",
@@ -804,28 +863,33 @@ internal sealed record ParsedScavengeEvent(
 	}
 
 	private static int? ReadInt(JsonElement root, string name) {
-		if (!root.TryGetProperty(name, out var value))
+		if (!root.TryGetProperty(name, out var value)) {
 			return null;
+		}
 
-		if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
+		if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number)) {
 			return number;
+		}
 
 		return int.TryParse(ReadString(root, name), out var parsed) ? parsed : null;
 	}
 
 	private static long? ReadLong(JsonElement root, string name) {
-		if (!root.TryGetProperty(name, out var value))
+		if (!root.TryGetProperty(name, out var value)) {
 			return null;
+		}
 
-		if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number))
+		if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number)) {
 			return number;
+		}
 
 		return long.TryParse(ReadString(root, name), out var parsed) ? parsed : null;
 	}
 
 	private static bool? ReadBool(JsonElement root, string name) {
-		if (!root.TryGetProperty(name, out var value))
+		if (!root.TryGetProperty(name, out var value)) {
 			return null;
+		}
 
 		return value.ValueKind switch {
 			JsonValueKind.True => true,

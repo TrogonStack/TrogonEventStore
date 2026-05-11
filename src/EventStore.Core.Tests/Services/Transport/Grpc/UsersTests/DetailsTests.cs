@@ -27,7 +27,7 @@ public class DetailsTests {
 		public void returns_the_user_details() {
 			Assert.AreEqual("details-test-user", _details.UserDetails.LoginName);
 			Assert.AreEqual("Details Test User", _details.UserDetails.FullName);
-			Assert.AreEqual(new[] {"admin", "other"}, _details.UserDetails.Groups.ToArray());
+			Assert.AreEqual(new[] { "admin", "other" }, _details.UserDetails.Groups.ToArray());
 			Assert.IsFalse(_details.UserDetails.Disabled);
 		}
 	}
@@ -45,7 +45,8 @@ public class DetailsTests {
 		protected override async Task When() {
 			try {
 				await ReadSingleDetail(_client, "missing-details-test-user", GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -81,7 +82,7 @@ public class DetailsTests {
 
 			var enabledUser = _details.Single(x => x.UserDetails.LoginName == "details-list-test-user-1");
 			Assert.AreEqual("Details Test User", enabledUser.UserDetails.FullName);
-			Assert.AreEqual(new[] {"admin", "other"}, enabledUser.UserDetails.Groups.ToArray());
+			Assert.AreEqual(new[] { "admin", "other" }, enabledUser.UserDetails.Groups.ToArray());
 			Assert.IsFalse(enabledUser.UserDetails.Disabled);
 
 			var disabledUser = _details.Single(x => x.UserDetails.LoginName == "details-list-test-user-2");
@@ -151,7 +152,8 @@ public class DetailsTests {
 		protected override async Task When() {
 			try {
 				await ReadSingleDetail(_client, TargetLogin, GetCallOptions((ActorLogin, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -179,7 +181,8 @@ public class DetailsTests {
 		protected override async Task When() {
 			try {
 				await ReadDetails(_client, GetCallOptions((LoginName, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -200,7 +203,7 @@ public class DetailsTests {
 				LoginName = loginName,
 				Password = password,
 				FullName = "Details Test User",
-				Groups = {"admin", "other"}
+				Groups = { "admin", "other" }
 			}
 		};
 

@@ -9,8 +9,7 @@ namespace EventStore.Projections.Core.Services.Processing.Phases;
 public interface IProjectionProcessingPhase : IDisposable,
 	IHandle<CoreProjectionManagementMessage.GetState>,
 	IHandle<CoreProjectionManagementMessage.GetResult>,
-	IHandle<CoreProjectionProcessingMessage.PrerecordedEventsLoaded>
-{
+	IHandle<CoreProjectionProcessingMessage.PrerecordedEventsLoaded> {
 	CheckpointTag AdjustTag(CheckpointTag tag);
 
 	void InitializeFromCheckpoint(CheckpointTag checkpointTag);

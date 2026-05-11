@@ -64,22 +64,27 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			Func<TcpPackage, IEnvelope, ClaimsPrincipal, IReadOnlyDictionary<string, string>, TcpConnectionManager, T> unwrapper,
 			ClientVersion version)
 			where T : Message {
-// ReSharper disable RedundantCast
+			// ReSharper disable RedundantCast
 			_unwrappers[(byte)version][(byte)command] =
 				(Func<TcpPackage, IEnvelope, ClaimsPrincipal, IReadOnlyDictionary<string, string>, TcpConnectionManager, Message>)unwrapper;
-// ReSharper restore RedundantCast
+			// ReSharper restore RedundantCast
 		}
 
 		public TcpPackage? WrapMessage(Message message, byte version) {
-			if (message == null)
+			if (message == null) {
 				throw new ArgumentNullException(nameof(message));
+			}
 
 			try {
-				if (_wrappers[version].TryGetValue(message.GetType(), out var wrapper))
+				if (_wrappers[version].TryGetValue(message.GetType(), out var wrapper)) {
 					return wrapper(message);
-				if (_wrappers[^1].TryGetValue(message.GetType(), out wrapper))
+				}
+
+				if (_wrappers[^1].TryGetValue(message.GetType(), out wrapper)) {
 					return wrapper(message);
-			} catch (Exception exc) {
+				}
+			}
+			catch (Exception exc) {
 				Log.Error(exc, "Error while wrapping message {message}.", message);
 			}
 
@@ -88,15 +93,17 @@ namespace EventStore.Core.Services.Transport.Tcp {
 
 		public Message UnwrapPackage(TcpPackage package, IEnvelope envelope, ClaimsPrincipal user,
 			IReadOnlyDictionary<string, string> tokens, TcpConnectionManager connection, byte version) {
-			if (envelope == null)
+			if (envelope == null) {
 				throw new ArgumentNullException(nameof(envelope));
+			}
 
 			var unwrapper = _unwrappers[version][(byte)package.Command] ??
-			                _unwrappers[^1][(byte)package.Command];
+							_unwrappers[^1][(byte)package.Command];
 
 			try {
 				return unwrapper?.Invoke(package, envelope, user, tokens, connection);
-			} catch (Exception exc) {
+			}
+			catch (Exception exc) {
 				Log.Error(exc, "Error while unwrapping TcpPackage with command {command}.",
 					package.Command);
 			}

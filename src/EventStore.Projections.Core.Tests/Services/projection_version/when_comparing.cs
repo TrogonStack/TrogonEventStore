@@ -4,11 +4,9 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projection_version;
 
 [TestFixture]
-public class when_comparing
-{
+public class when_comparing {
 	[Test]
-	public void equal()
-	{
+	public void equal() {
 		var v1 = new ProjectionVersion(10, 5, 6);
 		var v2 = new ProjectionVersion(10, 5, 6);
 
@@ -16,8 +14,7 @@ public class when_comparing
 	}
 
 	[Test]
-	public void not_equal_id()
-	{
+	public void not_equal_id() {
 		var v1 = new ProjectionVersion(10, 5, 6);
 		var v2 = new ProjectionVersion(11, 5, 6);
 
@@ -25,8 +22,7 @@ public class when_comparing
 	}
 
 	[Test]
-	public void not_equal_epoch()
-	{
+	public void not_equal_epoch() {
 		var v1 = new ProjectionVersion(10, 5, 6);
 		var v2 = new ProjectionVersion(11, 6, 6);
 
@@ -34,8 +30,7 @@ public class when_comparing
 	}
 
 	[Test]
-	public void not_equal_version()
-	{
+	public void not_equal_version() {
 		var v1 = new ProjectionVersion(10, 5, 6);
 		var v2 = new ProjectionVersion(10, 5, 7);
 

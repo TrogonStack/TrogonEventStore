@@ -4,10 +4,8 @@ using Newtonsoft.Json.Serialization;
 
 namespace EventStore.TestClient.Commands;
 
-internal static class TestClientJson
-{
-	private static readonly JsonSerializerSettings FromSettings = new()
-	{
+internal static class TestClientJson {
+	private static readonly JsonSerializerSettings FromSettings = new() {
 		ContractResolver = new CamelCasePropertyNamesContractResolver(),
 		DateParseHandling = DateParseHandling.None,
 		NullValueHandling = NullValueHandling.Ignore,
@@ -18,8 +16,7 @@ internal static class TestClientJson
 		Converters = [new StringEnumConverter()]
 	};
 
-	private static readonly JsonSerializerSettings ToSettings = new()
-	{
+	private static readonly JsonSerializerSettings ToSettings = new() {
 		ContractResolver = new CamelCasePropertyNamesContractResolver(),
 		DateFormatHandling = DateFormatHandling.IsoDateFormat,
 		NullValueHandling = NullValueHandling.Include,

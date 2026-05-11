@@ -6,8 +6,7 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class StreamMetadatas
-{
+public class StreamMetadatas {
 	public static StreamMetadata TruncateBefore1 { get; } = new StreamMetadata(truncateBefore: 1);
 	public static StreamMetadata TruncateBefore2 { get; } = new StreamMetadata(truncateBefore: 2);
 	public static StreamMetadata TruncateBefore3 { get; } = new StreamMetadata(truncateBefore: 3);
@@ -36,8 +35,7 @@ public class StreamMetadatas
 		stream: SystemStreams.ScavengePointsStream,
 		eventType: SystemEventTypes.ScavengePoint,
 		timestamp: timeStamp ?? EffectiveNow,
-		data: new ScavengePointPayload
-		{
+		data: new ScavengePointPayload {
 			Threshold = threshold,
 		}.ToJsonBytes());
 

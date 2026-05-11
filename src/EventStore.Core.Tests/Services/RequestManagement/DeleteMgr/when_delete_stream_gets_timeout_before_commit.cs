@@ -10,10 +10,8 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.RequestManagement.DeleteMgr;
 
-public class when_delete_stream_gets_timeout_before_commit : RequestManagerSpecification<DeleteStream>
-{
-	protected override DeleteStream OnManager(FakePublisher publisher)
-	{
+public class when_delete_stream_gets_timeout_before_commit : RequestManagerSpecification<DeleteStream> {
+	protected override DeleteStream OnManager(FakePublisher publisher) {
 		return new DeleteStream(
 			publisher,
 			CommitTimeout,
@@ -26,27 +24,23 @@ public class when_delete_stream_gets_timeout_before_commit : RequestManagerSpeci
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages()
-	{
+	protected override IEnumerable<Message> WithInitialMessages() {
 		yield break;
 	}
 
-	protected override Message When()
-	{
+	protected override Message When() {
 		return new StorageMessage.RequestManagerTimerTick(
 			DateTime.UtcNow + PrepareTimeout + TimeSpan.FromMinutes(5));
 	}
 
 	[Test]
-	public void failed_request_message_is_published()
-	{
+	public void failed_request_message_is_published() {
 		Assert.That(Produced.ContainsSingle<StorageMessage.RequestCompleted>(
 			x => x.CorrelationId == InternalCorrId && x.Success == false));
 	}
 
 	[Test]
-	public void the_envelope_is_replied_to_with_failure()
-	{
+	public void the_envelope_is_replied_to_with_failure() {
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.DeleteStreamCompleted>(
 			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.CommitTimeout));
 	}

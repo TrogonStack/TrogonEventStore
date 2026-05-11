@@ -9,13 +9,10 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
-public class when_handling_events_with_content_type_validation
-{
+public class when_handling_events_with_content_type_validation {
 	[TestFixture]
-	public class given_json_events_and_content_type_validation_enabled : TestFixtureWithProjectionSubscription
-	{
-		protected override void When()
-		{
+	public class given_json_events_and_content_type_validation_enabled : TestFixtureWithProjectionSubscription {
+		protected override void When() {
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(100, 100), "test-stream", 0, false, Guid.NewGuid(),
@@ -41,8 +38,7 @@ public class when_handling_events_with_content_type_validation
 					new byte[0]));
 		}
 
-		protected override IReaderSubscription CreateProjectionSubscription()
-		{
+		protected override IReaderSubscription CreateProjectionSubscription() {
 			return new ReaderSubscription(
 				"Test Subscription",
 				_bus,
@@ -59,8 +55,7 @@ public class when_handling_events_with_content_type_validation
 		}
 
 		[Test]
-		public void only_the_valid_json_is_handled()
-		{
+		public void only_the_valid_json_is_handled() {
 			Assert.AreEqual(2, _eventHandler.HandledMessages.Count);
 			Assert.That(_eventHandler.HandledMessages.Select(x => x.Data.EventType),
 				Is.EquivalentTo(new[] { "valid-json", "commented-json" }));
@@ -68,10 +63,8 @@ public class when_handling_events_with_content_type_validation
 	}
 
 	[TestFixture]
-	public class given_non_json_events_and_content_type_validation_enabled : TestFixtureWithProjectionSubscription
-	{
-		protected override void When()
-		{
+	public class given_non_json_events_and_content_type_validation_enabled : TestFixtureWithProjectionSubscription {
+		protected override void When() {
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(100, 100), "test-stream", 0, false, Guid.NewGuid(),
@@ -86,8 +79,7 @@ public class when_handling_events_with_content_type_validation
 					"valid-json", false, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
 		}
 
-		protected override IReaderSubscription CreateProjectionSubscription()
-		{
+		protected override IReaderSubscription CreateProjectionSubscription() {
 			return new ReaderSubscription(
 				"Test Subscription",
 				_bus,
@@ -104,17 +96,14 @@ public class when_handling_events_with_content_type_validation
 		}
 
 		[Test]
-		public void all_events_are_handled()
-		{
+		public void all_events_are_handled() {
 			Assert.AreEqual(3, _eventHandler.HandledMessages.Count);
 		}
 	}
 
 	[TestFixture]
-	public class given_json_and_non_json_events_and_content_type_validation_disabled : TestFixtureWithProjectionSubscription
-	{
-		protected override void When()
-		{
+	public class given_json_and_non_json_events_and_content_type_validation_disabled : TestFixtureWithProjectionSubscription {
+		protected override void When() {
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(100, 100), "test-stream", 0, false, Guid.NewGuid(),
@@ -141,8 +130,7 @@ public class when_handling_events_with_content_type_validation
 					"valid-json", false, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
 		}
 
-		protected override IReaderSubscription CreateProjectionSubscription()
-		{
+		protected override IReaderSubscription CreateProjectionSubscription() {
 			return new ReaderSubscription(
 				"Test Subscription",
 				_bus,
@@ -159,8 +147,7 @@ public class when_handling_events_with_content_type_validation
 		}
 
 		[Test]
-		public void all_events_are_handled()
-		{
+		public void all_events_are_handled() {
 			Assert.AreEqual(6, _eventHandler.HandledMessages.Count);
 		}
 	}

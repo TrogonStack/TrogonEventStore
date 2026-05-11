@@ -9,8 +9,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-internal sealed class ReaderWorkItem : Disposable
-{
+internal sealed class ReaderWorkItem : Disposable {
 	// Chunk reads sit on a hot path during scavenging, so a larger buffer avoids
 	// turning filesystem buffering overhead into the bottleneck.
 	private const int BufferSize = 8192;
@@ -20,8 +19,7 @@ internal sealed class ReaderWorkItem : Disposable
 	public readonly Stream BaseStream;
 	private readonly bool _leaveOpen;
 
-	private ReaderWorkItem(Stream stream, bool leaveOpen)
-	{
+	private ReaderWorkItem(Stream stream, bool leaveOpen) {
 		Debug.Assert(stream is not null);
 
 		_leaveOpen = leaveOpen;
@@ -29,27 +27,23 @@ internal sealed class ReaderWorkItem : Disposable
 	}
 
 	public ReaderWorkItem(Stream sharedStream, IChunkReadTransform chunkReadTransform)
-		: this(CreateTransformedMemoryStream(sharedStream, chunkReadTransform), leaveOpen: true)
-	{
+		: this(CreateTransformedMemoryStream(sharedStream, chunkReadTransform), leaveOpen: true) {
 		IsMemory = true;
 		Source = ITransactionFileTracker.Source.ChunkCache;
 	}
 
 	public ReaderWorkItem(IChunkHandle handle, IChunkReadTransform chunkReadTransform)
-		: this(CreateTransformedFileStream(handle, chunkReadTransform), leaveOpen: false)
-	{
+		: this(CreateTransformedFileStream(handle, chunkReadTransform), leaveOpen: false) {
 		IsMemory = false;
 		Source = ITransactionFileTracker.Source.FileSystem;
 	}
 
-	private static Stream CreateTransformedMemoryStream(Stream memStream, IChunkReadTransform chunkReadTransform)
-	{
+	private static Stream CreateTransformedMemoryStream(Stream memStream, IChunkReadTransform chunkReadTransform) {
 		return chunkReadTransform.TransformData(new ChunkDataReadStream(memStream));
 	}
 
 	private static ChunkDataReadStream CreateTransformedFileStream(IChunkHandle handle,
-		IChunkReadTransform chunkReadTransform)
-	{
+		IChunkReadTransform chunkReadTransform) {
 		var fileStream = new BufferedStream(handle.CreateStream(), BufferSize);
 		return chunkReadTransform.TransformData(new ChunkDataReadStream(fileStream));
 	}
@@ -58,23 +52,20 @@ internal sealed class ReaderWorkItem : Disposable
 
 	public ITransactionFileTracker.Source Source { get; }
 
-	public int PositionInPool
-	{
+	public int PositionInPool {
 		get => _positionInPool;
-		init
-		{
+		init {
 			Debug.Assert(value >= 0);
 
 			_positionInPool = value;
 		}
 	}
 
-	protected override void Dispose(bool disposing)
-	{
-		if (disposing)
-		{
-			if (!_leaveOpen)
+	protected override void Dispose(bool disposing) {
+		if (disposing) {
+			if (!_leaveOpen) {
 				BaseStream.Dispose();
+			}
 		}
 
 		base.Dispose(disposing);

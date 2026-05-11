@@ -91,28 +91,36 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public void AddLiveMessage(OutstandingMessage ev) {
 			if (Live) {
-				if (_buffer.Count < _maxBufferSize)
+				if (_buffer.Count < _maxBufferSize) {
 					_buffer.AddLast(ev);
-				else
+				}
+				else {
 					Live = false;
+				}
 			}
 
 			_liveBuffer.Enqueue(ev);
 		}
 
 		public void AddReadMessage(OutstandingMessage ev) {
-			if (Live) return;
-			if (_initialSequence != null &&
-			    ev.EventPosition.CompareTo(_initialSequence) <= 0)
+			if (Live) {
 				return;
+			}
+
+			if (_initialSequence != null &&
+				ev.EventPosition.CompareTo(_initialSequence) <= 0) {
+				return;
+			}
 
 			var livePosition = TryPeekLive();
 			if (livePosition == null || ev.EventPosition.CompareTo(livePosition) < 0) {
 				_buffer.AddLast(ev);
-			} else if (livePosition.CompareTo(ev.EventPosition) < 0) {
+			}
+			else if (livePosition.CompareTo(ev.EventPosition) < 0) {
 				DrainLiveTo(ev.EventPosition);
 				SwitchToLive();
-			} else {
+			}
+			else {
 				SwitchToLive();
 			}
 		}
@@ -124,7 +132,7 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public IEnumerable<OutstandingMessagePointer> Scan() {
 			// This enumerator assumes that nothing is added to the buffers during enumeration.
 
-			foreach (var list in new[] {_retry, _buffer}) // save on code duplication
+			foreach (var list in new[] { _retry, _buffer }) // save on code duplication
 			{
 				var isRetry = ReferenceEquals(list, _retry);
 				var current = list.First;
@@ -153,8 +161,11 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public (OutstandingMessage? message, long sequenceNumber) GetLowestRetry() {
 			(OutstandingMessage? message, long sequenceNumber) result = (null, long.MaxValue);
-			foreach(var x in _retry) {
-				if (x.IsReplayedEvent || !x.EventSequenceNumber.HasValue) continue;
+			foreach (var x in _retry) {
+				if (x.IsReplayedEvent || !x.EventSequenceNumber.HasValue) {
+					continue;
+				}
+
 				if (x.EventSequenceNumber.Value < result.sequenceNumber) {
 					result = (x, x.EventSequenceNumber.Value);
 				}

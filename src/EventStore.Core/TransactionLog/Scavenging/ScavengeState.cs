@@ -1,10 +1,10 @@
-using System.Collections.Generic;
 using System;
-using EventStore.Core.Index.Hashes;
-using EventStore.Core.LogAbstraction;
+using System.Collections.Generic;
+using System.Linq;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
-using System.Linq;
+using EventStore.Core.Index.Hashes;
+using EventStore.Core.LogAbstraction;
 using Serilog;
 
 namespace EventStore.Core.TransactionLog.Scavenging {
@@ -52,8 +52,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public void Init() {
-			if (_initialized)
+			if (_initialized) {
 				return;
+			}
 
 			_initialized = true;
 			_backend = _backendPool.Get();
@@ -92,8 +93,10 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		public void Dispose() {
 			_transactionManager?.UnregisterOnRollback();
-			if (_backend != null)
+			if (_backend != null) {
 				_backendPool.Return(_backend);
+			}
+
 			_backendPool.Dispose();
 		}
 
@@ -324,7 +327,7 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	// in the chunk executor each worker gets its own state so that it has its own dbconnection and
 	// prepared commands.
 	public readonly struct ScavengeStateForChunkWorker<TStreamId> :
-		IScavengeStateForChunkExecutorWorker<TStreamId>{
+		IScavengeStateForChunkExecutorWorker<TStreamId> {
 
 		private readonly MetastreamCollisionMap<TStreamId> _metastreamDatas;
 		private readonly OriginalStreamCollisionMap<TStreamId> _originalStreamDatas;

@@ -32,8 +32,9 @@ public class MessageLabelConfigurator {
 
 		label = default;
 
-		if (messageType.IsAbstract)
+		if (messageType.IsAbstract) {
 			return false;
+		}
 
 		var labelStaticProperty = messageType
 			.GetProperty("LabelStatic", BindingFlags.Static | BindingFlags.Public);

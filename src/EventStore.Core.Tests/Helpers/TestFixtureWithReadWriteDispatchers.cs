@@ -14,8 +14,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Helpers;
 
-public abstract class TestFixtureWithReadWriteDispatchers
-{
+public abstract class TestFixtureWithReadWriteDispatchers {
 	protected SynchronousScheduler _bus;
 	protected IQueuedHandler _publisher;
 
@@ -34,24 +33,22 @@ public abstract class TestFixtureWithReadWriteDispatchers
 	protected FakeTimeProvider _timeProvider;
 	private IEnvelope _envelope;
 
-	protected IEnvelope Envelope
-	{
-		get
-		{
-			if (_envelope == null)
+	protected IEnvelope Envelope {
+		get {
+			if (_envelope == null) {
 				_envelope = GetInputQueue();
+			}
+
 			return _envelope;
 		}
 	}
 
-	protected List<Message> HandledMessages
-	{
+	protected List<Message> HandledMessages {
 		get { return _consumer.HandledMessages; }
 	}
 
 	[SetUp]
-	public void setup0()
-	{
+	public void setup0() {
 		_envelope = null;
 		_timeProvider = new FakeTimeProvider();
 		_bus = new SynchronousScheduler();
@@ -80,164 +77,150 @@ public abstract class TestFixtureWithReadWriteDispatchers
 		_bus.Subscribe<ClientMessage.NotHandled>(_ioDispatcher);
 	}
 
-	protected virtual ManualQueue GiveInputQueue()
-	{
+	protected virtual ManualQueue GiveInputQueue() {
 		return null;
 	}
 
-	protected IPublisher GetInputQueue()
-	{
+	protected IPublisher GetInputQueue() {
 		return _queue.As<IPublisher>() ?? _bus;
 	}
 
-	protected void DisableTimer()
-	{
+	protected void DisableTimer() {
 		_queue.DisableTimer();
 	}
 
-	protected void EnableTimer()
-	{
+	protected void EnableTimer() {
 		_queue.EnableTimer();
 	}
 
-	protected void WhenLoop()
-	{
+	protected void WhenLoop() {
 		_queue.Process();
 		var steps = PreWhen().Concat(When());
 		WhenLoop(steps);
 	}
 
-	protected void WhenLoop(IEnumerable<WhenStep> steps)
-	{
-		foreach (var step in steps)
-		{
+	protected void WhenLoop(IEnumerable<WhenStep> steps) {
+		foreach (var step in steps) {
 			_timeProvider.AddToUtcTime(TimeSpan.FromMilliseconds(10));
-			if (step.Action != null)
-			{
+			if (step.Action != null) {
 				step.Action();
 			}
 
-			foreach (var message in step)
-			{
-				if (message != null)
+			foreach (var message in step) {
+				if (message != null) {
 					_queue.Publish(message);
+				}
 			}
 
 			_queue.ProcessTimer();
-			if (_otherQueues != null)
-				foreach (var other in _otherQueues)
+			if (_otherQueues != null) {
+				foreach (var other in _otherQueues) {
 					other.ProcessTimer();
+				}
+			}
 
 			var count = 1;
 			var total = 0;
-			while (count > 0)
-			{
+			while (count > 0) {
 				count = 0;
 				count += _queue.ProcessNonTimer();
-				if (_otherQueues != null)
-					foreach (var other in _otherQueues)
+				if (_otherQueues != null) {
+					foreach (var other in _otherQueues) {
 						count += other.ProcessNonTimer();
+					}
+				}
+
 				total += count;
-				if (total > 2000)
+				if (total > 2000) {
 					throw new Exception("Infinite loop?");
+				}
 			}
 
 			// process final timer messages
 		}
 
 		_queue.Process();
-		if (_otherQueues != null)
-			foreach (var other in _otherQueues)
+		if (_otherQueues != null) {
+			foreach (var other in _otherQueues) {
 				other.Process();
+			}
+		}
 	}
 
-	public static T EatException<T>(Func<T> func, T defaultValue = default(T))
-	{
-		try
-		{
+	public static T EatException<T>(Func<T> func, T defaultValue = default(T)) {
+		try {
 			return func();
 		}
-		catch (Exception)
-		{
+		catch (Exception) {
 			return defaultValue;
 		}
 	}
 
-	public sealed class WhenStep : IEnumerable<Message>
-	{
+	public sealed class WhenStep : IEnumerable<Message> {
 		public readonly Action Action;
 		public readonly Message Message;
 		public readonly IEnumerable<Message> Messages;
 
-		private WhenStep(Message message)
-		{
+		private WhenStep(Message message) {
 			Message = message;
 		}
 
-		internal WhenStep(IEnumerable<Message> messages)
-		{
+		internal WhenStep(IEnumerable<Message> messages) {
 			Messages = messages;
 		}
 
-		public WhenStep(params Message[] messages)
-		{
+		public WhenStep(params Message[] messages) {
 			Messages = messages;
 		}
 
-		public WhenStep(Action action)
-		{
+		public WhenStep(Action action) {
 			Action = action;
 		}
 
-		internal WhenStep()
-		{
+		internal WhenStep() {
 		}
 
-		public static implicit operator WhenStep(Message message)
-		{
+		public static implicit operator WhenStep(Message message) {
 			return new WhenStep(message);
 		}
 
-		public IEnumerator<Message> GetEnumerator()
-		{
+		public IEnumerator<Message> GetEnumerator() {
 			return GetMessages().GetEnumerator();
 		}
 
-		private IEnumerable<Message> GetMessages()
-		{
-			if (Message != null)
+		private IEnumerable<Message> GetMessages() {
+			if (Message != null) {
 				yield return Message;
-			else if (Messages != null)
-				foreach (var message in Messages)
+			}
+			else if (Messages != null) {
+				foreach (var message in Messages) {
 					yield return message;
-			else
+				}
+			}
+			else {
 				yield return null;
+			}
 		}
 
-		IEnumerator IEnumerable.GetEnumerator()
-		{
+		IEnumerator IEnumerable.GetEnumerator() {
 			return GetEnumerator();
 		}
 	}
 
-	protected virtual IEnumerable<WhenStep> PreWhen()
-	{
+	protected virtual IEnumerable<WhenStep> PreWhen() {
 		yield break;
 	}
 
-	protected virtual IEnumerable<WhenStep> When()
-	{
+	protected virtual IEnumerable<WhenStep> When() {
 		yield break;
 	}
 
 	public readonly WhenStep Yield = new WhenStep();
 }
 
-public static class TestUtils
-{
+public static class TestUtils {
 	public static TestFixtureWithReadWriteDispatchers.WhenStep ToSteps(
-		this IEnumerable<TestFixtureWithReadWriteDispatchers.WhenStep> steps)
-	{
+		this IEnumerable<TestFixtureWithReadWriteDispatchers.WhenStep> steps) {
 		return new TestFixtureWithReadWriteDispatchers.WhenStep(steps.SelectMany(v => v));
 	}
 }

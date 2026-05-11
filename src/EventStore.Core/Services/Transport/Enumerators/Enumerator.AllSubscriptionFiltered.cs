@@ -87,7 +87,7 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			}
 
 			public async ValueTask<bool> MoveNextAsync() {
-				ReadLoop:
+ReadLoop:
 
 				if (!await _channel.Reader.WaitToReadAsync(_cts.Token)) {
 					return false;
@@ -111,7 +111,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 						_subscriptionId, _eventFilter, position);
 
 					_currentPosition = position;
-				} else if (readResponse is ReadResponse.CheckpointReceived checkpointReceived) {
+				}
+				else if (readResponse is ReadResponse.CheckpointReceived checkpointReceived) {
 					var checkpointPos = new Position(checkpointReceived.CommitPosition, checkpointReceived.PreparePosition);
 
 					if (_currentCheckpoint.HasValue && checkpointPos <= _currentCheckpoint.Value) {
@@ -139,11 +140,13 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			}
 
 			private static TFPos ConvertCheckpoint(Position? checkpoint, TFPos lastLivePos) {
-				if (!checkpoint.HasValue)
+				if (!checkpoint.HasValue) {
 					return TFPos.HeadOfTf;
+				}
 
-				if (checkpoint == Position.End)
+				if (checkpoint == Position.End) {
 					return lastLivePos;
+				}
 
 				var (commitPos, preparePos) = checkpoint.Value.ToInt64();
 				return new TFPos(commitPos, preparePos);
@@ -164,20 +167,25 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					// the most recently read sequence number from the live channel. 0 when we haven't read any.
 					var sequenceNumber = 0UL;
 
-					if (checkpoint >= confirmationLastPos)
+					if (checkpoint >= confirmationLastPos) {
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
+					}
 
 					while (true) {
 						ct.ThrowIfCancellationRequested();
 						checkpoint = await CatchUp(checkpoint, ct);
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
 					}
-				} catch (Exception ex) {
-					if (ex is not (OperationCanceledException or ReadResponseException.InvalidPosition))
+				}
+				catch (Exception ex) {
+					if (ex is not (OperationCanceledException or ReadResponseException.InvalidPosition)) {
 						Log.Error(ex, "Subscription {subscriptionId} to $all:{eventFilter} experienced an error.",
 							_subscriptionId, _eventFilter);
+					}
+
 					_channel.Writer.TryComplete(ex);
-				} finally {
+				}
+				finally {
 					Log.Debug("Subscription {subscriptionId} to $all:{eventFilter} has ended.",
 						_subscriptionId, _eventFilter);
 				}
@@ -237,7 +245,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 						// this is the next event to send towards the client. send it and update `checkpoint`
 						await SendEventToSubscription(liveEvent.ResolvedEvent.Value, ct);
 						checkpoint = liveEvent.ResolvedEvent.Value.OriginalPosition!.Value;
-					} else if (liveEvent.Checkpoint.HasValue) {
+					}
+					else if (liveEvent.Checkpoint.HasValue) {
 						// this is a valid checkpoint that we can send towards the client. send it and update `checkpoint`
 						await SendCheckpointToSubscription(liveEvent.Checkpoint.Value, ct);
 						checkpoint = liveEvent.Checkpoint.Value;
@@ -267,12 +276,14 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				async Task OnMessage(Message message, CancellationToken ct) {
 					try {
 						if (message is ClientMessage.NotHandled notHandled &&
-						    TryHandleNotHandled(notHandled, out var ex))
+							TryHandleNotHandled(notHandled, out var ex)) {
 							throw ex;
+						}
 
-						if (message is not ClientMessage.FilteredReadAllEventsForwardCompleted completed)
+						if (message is not ClientMessage.FilteredReadAllEventsForwardCompleted completed) {
 							throw ReadResponseException.UnknownMessage
 								.Create<ClientMessage.FilteredReadAllEventsForwardCompleted>(message);
+						}
 
 						switch (completed.Result) {
 							case FilteredReadAllResult.Success:
@@ -281,8 +292,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 
 									// this can only be true for the first event of the first page
 									// as we start page reads from the checkpoint's position
-									if (eventPosition <= checkpoint)
+									if (eventPosition <= checkpoint) {
 										continue;
+									}
 
 									Log.Verbose(
 										"Subscription {subscriptionId} to $all:{eventFilter} received catch-up event {position}.",
@@ -292,8 +304,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 									checkpoint = eventPosition;
 								}
 
-								if (checkpoint < completed.CurrentPos && completed.CurrentPos < completed.NextPos)
+								if (checkpoint < completed.CurrentPos && completed.CurrentPos < completed.NextPos) {
 									checkpoint = completed.CurrentPos;
+								}
 
 								checkpointIntervalCounter += completed.ConsideredEventsCount;
 								Log.Verbose(
@@ -301,8 +314,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 									_subscriptionId, _eventFilter, completed.ConsideredEventsCount, _checkpointInterval, checkpointIntervalCounter);
 
 								if (completed.IsEndOfStream) {
-									if (checkpoint < TFPos.FirstRecordOfTf && TFPos.FirstRecordOfTf < completed.NextPos)
+									if (checkpoint < TFPos.FirstRecordOfTf && TFPos.FirstRecordOfTf < completed.NextPos) {
 										checkpoint = TFPos.FirstRecordOfTf;
+									}
 
 									// issue a checkpoint when going live to make sure that at least
 									// one checkpoint is issued within the checkpoint interval
@@ -334,7 +348,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 							default:
 								throw ReadResponseException.UnknownError.Create(completed.Result);
 						}
-					} catch (Exception exception) {
+					}
+					catch (Exception exception) {
 						catchupCompletionTcs.TrySetException(exception);
 					}
 				}
@@ -345,8 +360,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 			}
 
 			private async Task SendCheckpointToSubscription(TFPos checkpoint, CancellationToken ct) {
-				if (checkpoint == TFPos.HeadOfTf)
+				if (checkpoint == TFPos.HeadOfTf) {
 					return;
+				}
 
 				var checkpointPos = Position.FromInt64(checkpoint.CommitPosition, checkpoint.PreparePosition);
 				await _channel.Writer.WriteAsync(new ReadResponse.CheckpointReceived(
@@ -368,8 +384,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				void OnSubscriptionMessage(Message message) {
 					try {
 						if (message is ClientMessage.NotHandled notHandled &&
-						    TryHandleNotHandled(notHandled, out var ex))
+							TryHandleNotHandled(notHandled, out var ex)) {
 							throw ex;
+						}
 
 						switch (message) {
 							case ClientMessage.SubscriptionConfirmation confirmed:
@@ -396,35 +413,36 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 										throw ReadResponseException.UnknownError.Create(dropped.Reason);
 								}
 							case ClientMessage.StreamEventAppeared appeared: {
-								Log.Verbose(
-									"Subscription {subscriptionId} to $all:{eventFilter} received live event {position}.",
-									_subscriptionId, _eventFilter, appeared.Event.OriginalPosition!.Value);
+									Log.Verbose(
+										"Subscription {subscriptionId} to $all:{eventFilter} received live event {position}.",
+										_subscriptionId, _eventFilter, appeared.Event.OriginalPosition!.Value);
 
-								if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event, null))) {
-									// this cannot happen because _liveEvents does not have full mode 'wait'.
-									throw new Exception($"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to $all:{_eventFilter}");
+									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event, null))) {
+										// this cannot happen because _liveEvents does not have full mode 'wait'.
+										throw new Exception($"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to $all:{_eventFilter}");
+									}
+
+									return;
 								}
-
-								return;
-							}
 							case ClientMessage.CheckpointReached checkpointReached: {
-								Log.Verbose(
-									"Subscription {subscriptionId} to $all:{eventFilter} received live checkpoint {position}.",
-									_subscriptionId, _eventFilter, checkpointReached.Position);
+									Log.Verbose(
+										"Subscription {subscriptionId} to $all:{eventFilter} received live checkpoint {position}.",
+										_subscriptionId, _eventFilter, checkpointReached.Position);
 
-								if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, null, checkpointReached.Position!.Value))) {
-									// this cannot happen because _liveEvents does not have full mode 'wait'.
-									throw new Exception(
-										$"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to $all:{_eventFilter}");
+									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, null, checkpointReached.Position!.Value))) {
+										// this cannot happen because _liveEvents does not have full mode 'wait'.
+										throw new Exception(
+											$"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to $all:{_eventFilter}");
+									}
+
+									return;
 								}
-
-								return;
-							}
 							default:
 								throw ReadResponseException.UnknownMessage
 									.Create<ClientMessage.SubscriptionConfirmation>(message);
 						}
-					} catch (Exception exception) {
+					}
+					catch (Exception exception) {
 						_liveEvents.Writer.TryComplete(exception);
 						confirmationPositionTcs.TrySetException(exception);
 					}
@@ -441,8 +459,9 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					"Subscription {subscriptionId} to $all:{eventFilter} reading next page starting from {position}.",
 					_subscriptionId, _eventFilter, startPos);
 
-				if (startPos is { CommitPosition: < 0, PreparePosition: < 0 })
+				if (startPos is { CommitPosition: < 0, PreparePosition: < 0 }) {
 					startPos = new TFPos(0, 0);
+				}
 
 				_bus.Publish(new ClientMessage.FilteredReadAllEventsForward(
 					correlationId, correlationId, envelope,

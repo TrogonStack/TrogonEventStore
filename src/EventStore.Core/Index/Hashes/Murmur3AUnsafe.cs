@@ -63,10 +63,14 @@ namespace EventStore.Core.Index.Hashes {
 			k1 = 0;
 			uint rem = len & 3;
 			byte* tail = (byte*)block;
-			if (rem >= 3)
+			if (rem >= 3) {
 				k1 ^= (uint)(tail[2] << 16);
-			if (rem >= 2)
+			}
+
+			if (rem >= 2) {
 				k1 ^= (uint)(tail[1] << 8);
+			}
+
 			if (rem > 0) {
 				k1 ^= tail[0];
 				k1 *= c1;

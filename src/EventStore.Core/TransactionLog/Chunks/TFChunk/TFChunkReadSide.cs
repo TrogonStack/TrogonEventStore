@@ -4,8 +4,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext.Buffers;
-using DotNext.Threading;
 using DotNext.IO;
+using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Exceptions;
 using EventStore.Core.Time;
@@ -16,10 +16,8 @@ using Range = EventStore.Core.Data.Range;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-public partial class TFChunk
-{
-	public interface IChunkReadSide
-	{
+public partial class TFChunk {
+	public interface IChunkReadSide {
 		void RequestCaching();
 		void Uncache();
 
@@ -36,21 +34,18 @@ public partial class TFChunk
 		ValueTask<RecordReadResult> TryReadClosestBackward(long logicalPosition, CancellationToken token);
 	}
 
-	private class TFChunkReadSideUnscavenged : TFChunkReadSide, IChunkReadSide
-	{
-		public TFChunkReadSideUnscavenged(TFChunk chunk, ITransactionFileTracker tracker) : base(chunk, tracker)
-		{
-			if (chunk.ChunkHeader.IsScavenged)
+	private class TFChunkReadSideUnscavenged : TFChunkReadSide, IChunkReadSide {
+		public TFChunkReadSideUnscavenged(TFChunk chunk, ITransactionFileTracker tracker) : base(chunk, tracker) {
+			if (chunk.ChunkHeader.IsScavenged) {
 				throw new ArgumentException("Scavenged TFChunk passed into unscavenged chunk read side.");
+			}
 		}
 
-		public void RequestCaching()
-		{
+		public void RequestCaching() {
 			// do nothing
 		}
 
-		public void Uncache()
-		{
+		public void Uncache() {
 			// do nothing
 		}
 
@@ -59,8 +54,7 @@ public partial class TFChunk
 				? ValueTask.FromCanceled<bool>(token)
 				: ValueTask.FromResult(logicalPosition >= 0 && logicalPosition < Chunk.LogicalDataSize);
 
-		public ValueTask<long> GetActualPosition(long logicalPosition, CancellationToken token)
-		{
+		public ValueTask<long> GetActualPosition(long logicalPosition, CancellationToken token) {
 			Ensure.Nonnegative(logicalPosition, nameof(logicalPosition));
 
 			return token.IsCancellationRequested
@@ -69,14 +63,11 @@ public partial class TFChunk
 		}
 
 		public async ValueTask<RecordReadResult> TryReadAt(long logicalPosition, bool couldBeScavenged,
-			CancellationToken token)
-		{
+			CancellationToken token) {
 			var start = Instant.Now;
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
-				if (logicalPosition >= Chunk.LogicalDataSize)
-				{
+			try {
+				if (logicalPosition >= Chunk.LogicalDataSize) {
 					_log.Warning(
 						"Tried to read logical position {logicalPosition} which is greater than the chunk's logical size of {chunkLogicalSize}",
 						logicalPosition, Chunk.LogicalDataSize);
@@ -86,8 +77,7 @@ public partial class TFChunk
 				var (record, length) = await TryReadForwardInternal(start, workItem, logicalPosition, token);
 				return new RecordReadResult(record is not null, -1, record, length);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
@@ -95,45 +85,43 @@ public partial class TFChunk
 		public ValueTask<RecordReadResult> TryReadFirst(CancellationToken token)
 			=> TryReadClosestForward(0, token);
 
-		public async ValueTask<RecordReadResult> TryReadClosestForward(long logicalPosition, CancellationToken token)
-		{
+		public async ValueTask<RecordReadResult> TryReadClosestForward(long logicalPosition, CancellationToken token) {
 			var start = Instant.Now;
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
-				if (logicalPosition >= Chunk.LogicalDataSize)
+			try {
+				if (logicalPosition >= Chunk.LogicalDataSize) {
 					return RecordReadResult.Failure;
+				}
 
-				if (await TryReadForwardInternal(start, workItem, logicalPosition, token) is not ({ } record, var length))
+				if (await TryReadForwardInternal(start, workItem, logicalPosition, token) is not ( { } record, var length)) {
 					return RecordReadResult.Failure;
+				}
 
 				long nextLogicalPos = record.GetNextLogPosition(logicalPosition, length);
 				return new(true, nextLogicalPos, record, length);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 
 		public async ValueTask<RawReadResult> TryReadClosestForwardRaw(long logicalPosition,
-			Func<int, byte[]> getBuffer, CancellationToken token)
-		{
+			Func<int, byte[]> getBuffer, CancellationToken token) {
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
-				if (logicalPosition >= Chunk.LogicalDataSize)
+			try {
+				if (logicalPosition >= Chunk.LogicalDataSize) {
 					return RawReadResult.Failure;
+				}
 
 				if (await TryReadForwardRawInternal(workItem, logicalPosition, getBuffer, token) is not
-				    { Array: not null } record)
+					{ Array: not null } record) {
 					return RawReadResult.Failure;
+				}
 
 				var nextLogicalPos = logicalPosition + record.Count + 2 * sizeof(int);
 				return new(true, nextLogicalPos, record.Array, record.Count);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
@@ -141,89 +129,86 @@ public partial class TFChunk
 		public ValueTask<RecordReadResult> TryReadLast(CancellationToken token)
 			=> TryReadClosestBackward(Chunk.LogicalDataSize, token);
 
-		public async ValueTask<RecordReadResult> TryReadClosestBackward(long logicalPosition, CancellationToken token)
-		{
+		public async ValueTask<RecordReadResult> TryReadClosestBackward(long logicalPosition, CancellationToken token) {
 			var start = Instant.Now;
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				// here we allow actualPosition == _logicalDataSize as we can read backward the very last record that way
-				if (logicalPosition > Chunk.LogicalDataSize)
+				if (logicalPosition > Chunk.LogicalDataSize) {
 					return RecordReadResult.Failure;
+				}
 
-				if (await TryReadBackwardInternal(start, workItem, logicalPosition, token) is not ({ } record, var length))
+				if (await TryReadBackwardInternal(start, workItem, logicalPosition, token) is not ( { } record, var length)) {
 					return RecordReadResult.Failure;
+				}
 
 				long nextLogicalPos = record.GetPrevLogPosition(logicalPosition, length);
 				return new RecordReadResult(true, nextLogicalPos, record, length);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 	}
 
-	private class TFChunkReadSideScavenged : TFChunkReadSide, IChunkReadSide
-	{
+	private class TFChunkReadSideScavenged : TFChunkReadSide, IChunkReadSide {
 		// must hold _lock to assign to _midpoints
 		private readonly AsyncExclusiveLock _lock = new();
 		private Midpoint[] _midpoints;
 
 		public TFChunkReadSideScavenged(TFChunk chunk, ITransactionFileTracker tracker)
-			: base(chunk, tracker)
-		{
-			if (!chunk.ChunkHeader.IsScavenged)
+			: base(chunk, tracker) {
+			if (!chunk.ChunkHeader.IsScavenged) {
 				throw new ArgumentException(string.Format("Chunk provided is not scavenged: {0}", chunk));
+			}
 		}
 
-		public void Uncache()
-		{
+		public void Uncache() {
 			// keep midpoints available even when the chunk itself transitions between cached and uncached.
 		}
 
-		public void RequestCaching()
-		{
+		public void RequestCaching() {
 			// midpoints are created lazily on first use.
 		}
 
-		private async ValueTask<Midpoint[]> GetOrCreateMidPoints(ReaderWorkItem workItem, CancellationToken token)
-		{
+		private async ValueTask<Midpoint[]> GetOrCreateMidPoints(ReaderWorkItem workItem, CancellationToken token) {
 			// if we have midpoints we are happy. no synchronization required.
 			// this value may be stale but the midpoints are still valid
-			if (_midpoints is { } midpoints)
+			if (_midpoints is { } midpoints) {
 				return midpoints;
+			}
 
 			await _lock.AcquireAsync(token);
-			try
-			{
+			try {
 				// Double-checked locking pattern: After acquiring the lock, check again if midpoints
 				// were created by another thread while we were waiting. This prevents unnecessary
 				// recreation of midpoints when multiple threads race to create them.
 				// Without this check, Thread A could create midpoints, release the lock, and Thread B
 				// (which was waiting) would then recreate them unnecessarily, wasting CPU and memory.
-				if (_midpoints is { } midpointsDouble)
+				if (_midpoints is { } midpointsDouble) {
 					return midpointsDouble;
+				}
+
 				_midpoints = await PopulateMidpoints(Chunk._midpointsDepth, workItem, token);
 				return _midpoints;
 			}
-			finally
-			{
+			finally {
 				_lock.Release();
 			}
 		}
 
 		private async ValueTask<Midpoint[]> PopulateMidpoints(int depth, ReaderWorkItem workItem,
-			CancellationToken token)
-		{
-			if (depth > 31)
+			CancellationToken token) {
+			if (depth > 31) {
 				throw new ArgumentOutOfRangeException(nameof(depth), "Depth too for midpoints.");
+			}
 
 			if (Chunk.ChunkFooter.MapCount is 0) // empty chunk
+{
 				return [];
+			}
 
-			try
-			{
+			try {
 				using var posMapsBuffer = Memory.AllocateAtLeast<byte>(checked(Chunk.ChunkFooter.MapSize));
 				int midPointsCnt = 1 << depth;
 				int segmentSize;
@@ -233,98 +218,80 @@ public partial class TFChunk
 				workItem.BaseStream.Seek(ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize, SeekOrigin.Begin);
 				await workItem.BaseStream.ReadExactlyAsync(posMaps, token);
 
-				if (mapCount < midPointsCnt)
-				{
+				if (mapCount < midPointsCnt) {
 					segmentSize = 1; // we cache all items
 					midpoints = new Midpoint[mapCount];
 				}
-				else
-				{
+				else {
 					segmentSize = mapCount / midPointsCnt;
 					midpoints = new Midpoint[1 + (mapCount + segmentSize - 1) / segmentSize];
 				}
 
 				var i = 0;
-				for (int x = 0, xN = mapCount - 1; x < xN; x += segmentSize, i++)
-				{
+				for (int x = 0, xN = mapCount - 1; x < xN; x += segmentSize, i++) {
 					midpoints[i] = new Midpoint(x, ReadPosMap(posMaps.Span, x));
 				}
 
 				var lastMidpoint = new Midpoint(mapCount - 1, ReadPosMap(posMaps.Span, mapCount - 1));
-				while (i < midpoints.Length)
-				{
+				while (i < midpoints.Length) {
 					midpoints[i] = lastMidpoint;
 					i++;
 				}
 
 				return midpoints;
 			}
-			catch (FileBeingDeletedException)
-			{
+			catch (FileBeingDeletedException) {
 				return null;
 			}
-			catch (OutOfMemoryException)
-			{
+			catch (OutOfMemoryException) {
 				return null;
 			}
 		}
 
-		private PosMap ReadPosMap(ReadOnlySpan<byte> posMaps, int index)
-		{
+		private PosMap ReadPosMap(ReadOnlySpan<byte> posMaps, int index) {
 			var start = checked(index * PosMap.FullSize);
 			var buffer = posMaps.Slice(start, PosMap.FullSize);
 			return PosMap.FromNewFormat(buffer);
 		}
 
 		private ValueTask<PosMap> ReadPosMap(ReaderWorkItem workItem, long index, Memory<byte> buffer,
-			CancellationToken token)
-		{
+			CancellationToken token) {
 			var pos = ChunkHeader.Size + Chunk.ChunkFooter.PhysicalDataSize + index * PosMap.FullSize;
 			workItem.BaseStream.Seek(pos, SeekOrigin.Begin);
 			return workItem.BaseStream.ReadAsync<PosMap>(buffer, token);
 		}
 
-		public async ValueTask<bool> ExistsAt(long logicalPosition, CancellationToken token)
-		{
+		public async ValueTask<bool> ExistsAt(long logicalPosition, CancellationToken token) {
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				var actualPosition = await TranslateExactPosition(workItem, logicalPosition, token);
 				return actualPosition >= 0 && actualPosition < Chunk.PhysicalDataSize;
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 
-		public async ValueTask<long> GetActualPosition(long logicalPosition, CancellationToken token)
-		{
+		public async ValueTask<long> GetActualPosition(long logicalPosition, CancellationToken token) {
 			Ensure.Nonnegative(logicalPosition, nameof(logicalPosition));
 
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				return await TranslateExactPosition(workItem, logicalPosition, token);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 
 		public async ValueTask<RecordReadResult> TryReadAt(long logicalPosition, bool couldBeScavenged,
-			CancellationToken token)
-		{
+			CancellationToken token) {
 			var start = Instant.Now;
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				var actualPosition = await TranslateExactPosition(workItem, logicalPosition, token);
-				if (actualPosition is -1 || actualPosition >= Chunk.PhysicalDataSize)
-				{
-					if (!couldBeScavenged)
-					{
+				if (actualPosition is -1 || actualPosition >= Chunk.PhysicalDataSize) {
+					if (!couldBeScavenged) {
 						_log.Warning(
 							"Tried to read actual position {actualPosition}, translated from logPosition {logicalPosition}, " +
 							"which is greater than the chunk's physical size of {chunkPhysicalSize}",
@@ -337,47 +304,47 @@ public partial class TFChunk
 				var (record, length) = await TryReadForwardInternal(start, workItem, actualPosition, token);
 				return new(record is not null, -1, record, length);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 
-		private async ValueTask<int> TranslateExactPosition(ReaderWorkItem workItem, long pos, CancellationToken token)
-		{
+		private async ValueTask<int> TranslateExactPosition(ReaderWorkItem workItem, long pos, CancellationToken token) {
 			return await GetOrCreateMidPoints(workItem, token) is { Length: > 0 } midpoints
 				? await TranslateExactWithMidpoints(workItem, midpoints, pos, token)
 				: await TranslateExactWithoutMidpoints(workItem, pos, 0, Chunk.ChunkFooter.MapCount - 1, token);
 		}
 
 		private async ValueTask<int> TranslateExactWithoutMidpoints(ReaderWorkItem workItem, long pos, long startIndex,
-			long endIndex, CancellationToken token)
-		{
+			long endIndex, CancellationToken token) {
 			long low = startIndex;
 			long high = endIndex;
 
 			using var buffer = Memory.AllocateAtLeast<byte>(PosMap.FullSize);
-			while (low <= high)
-			{
+			while (low <= high) {
 				var mid = low + (high - low) / 2;
 				var v = await ReadPosMap(workItem, mid, buffer.Memory, token);
 
-				if (v.LogPos == pos)
+				if (v.LogPos == pos) {
 					return v.ActualPos;
-				if (v.LogPos < pos)
+				}
+
+				if (v.LogPos < pos) {
 					low = mid + 1;
-				else
+				}
+				else {
 					high = mid - 1;
+				}
 			}
 
 			return -1;
 		}
 
 		private ValueTask<int> TranslateExactWithMidpoints(ReaderWorkItem workItem, Midpoint[] midpoints, long pos,
-			CancellationToken token)
-		{
-			if (pos < midpoints[0].LogPos || pos > midpoints[^1].LogPos)
+			CancellationToken token) {
+			if (pos < midpoints[0].LogPos || pos > midpoints[^1].LogPos) {
 				return ValueTask.FromResult(-1);
+			}
 
 			var recordRange = LocatePosRange(midpoints, pos);
 			return TranslateExactWithoutMidpoints(workItem, pos, recordRange.Lower, recordRange.Upper, token);
@@ -386,55 +353,57 @@ public partial class TFChunk
 		public ValueTask<RecordReadResult> TryReadFirst(CancellationToken token)
 			=> TryReadClosestForward(0, token);
 
-		public async ValueTask<RecordReadResult> TryReadClosestForward(long logicalPosition, CancellationToken token)
-		{
-			if (Chunk.ChunkFooter.MapCount is 0)
+		public async ValueTask<RecordReadResult> TryReadClosestForward(long logicalPosition, CancellationToken token) {
+			if (Chunk.ChunkFooter.MapCount is 0) {
 				return RecordReadResult.Failure;
+			}
 
 			var start = Instant.Now;
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				var actualPosition = await TranslateClosestForwardPosition(workItem, logicalPosition, token);
-				if (actualPosition is -1 || actualPosition >= Chunk.PhysicalDataSize)
+				if (actualPosition is -1 || actualPosition >= Chunk.PhysicalDataSize) {
 					return RecordReadResult.Failure;
+				}
 
-				if (await TryReadForwardInternal(start, workItem, actualPosition, token) is not ({ } record, var length))
+				if (await TryReadForwardInternal(start, workItem, actualPosition, token) is not ( { } record, var length)) {
 					return RecordReadResult.Failure;
+				}
 
 				long nextLogicalPos =
 					Chunk.ChunkHeader.GetLocalLogPosition(record.GetNextLogPosition(record.LogPosition, length));
 				return new RecordReadResult(true, nextLogicalPos, record, length);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 
 		public async ValueTask<RawReadResult> TryReadClosestForwardRaw(long logicalPosition,
-			Func<int, byte[]> getBuffer, CancellationToken token)
-		{
-			if (Chunk.ChunkFooter.MapCount == 0)
+			Func<int, byte[]> getBuffer, CancellationToken token) {
+			if (Chunk.ChunkFooter.MapCount == 0) {
 				return RawReadResult.Failure;
+			}
 
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				var actualPosition = await TranslateClosestForwardPosition(workItem, logicalPosition, token);
-				if (actualPosition is -1 || actualPosition >= Chunk.PhysicalDataSize)
+				if (actualPosition is -1 || actualPosition >= Chunk.PhysicalDataSize) {
 					return RawReadResult.Failure;
+				}
 
 				if (await TryReadForwardRawInternal(workItem, actualPosition, getBuffer, token) is not
-				    { Array: not null } record)
+					{ Array: not null } record) {
 					return RawReadResult.Failure;
+				}
 
 				// We need to read the record's log position from the buffer so that we can correctly compute
 				// the next position. Simply adding the record's length, suffix & prefix to "logicalPosition" won't
 				// work properly with scavenged chunks since the computed position may still be before the current
 				// record's position, which would cause us to read it again.
-				if (!BitConverter.IsLittleEndian)
+				if (!BitConverter.IsLittleEndian) {
 					throw new NotSupportedException();
+				}
 
 				const int logPositionOffset = 2;
 				var recordLogPos = BitConverter.ToInt64(record.Array, logPositionOffset);
@@ -443,8 +412,7 @@ public partial class TFChunk
 
 				return new(true, nextLogicalPos, record.Array, record.Count);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
@@ -452,35 +420,34 @@ public partial class TFChunk
 		public ValueTask<RecordReadResult> TryReadLast(CancellationToken token)
 			=> TryReadClosestBackward(Chunk.LogicalDataSize, token);
 
-		public async ValueTask<RecordReadResult> TryReadClosestBackward(long logicalPosition, CancellationToken token)
-		{
-			if (Chunk.ChunkFooter.MapCount == 0)
+		public async ValueTask<RecordReadResult> TryReadClosestBackward(long logicalPosition, CancellationToken token) {
+			if (Chunk.ChunkFooter.MapCount == 0) {
 				return RecordReadResult.Failure;
+			}
 
 			var start = Instant.Now;
 			var workItem = Chunk.GetReaderWorkItem();
-			try
-			{
+			try {
 				var actualPosition = await TranslateClosestForwardPosition(workItem, logicalPosition, token);
 				// here we allow actualPosition == _physicalDataSize as we can read backward the very last record that way
-				if (actualPosition is -1 || actualPosition > Chunk.PhysicalDataSize)
+				if (actualPosition is -1 || actualPosition > Chunk.PhysicalDataSize) {
 					return RecordReadResult.Failure;
+				}
 
-				if (await TryReadBackwardInternal(start, workItem, actualPosition, token) is not ({ } record, var length))
+				if (await TryReadBackwardInternal(start, workItem, actualPosition, token) is not ( { } record, var length)) {
 					return RecordReadResult.Failure;
+				}
 
 				long nextLogicalPos = Chunk.ChunkHeader.GetLocalLogPosition(record.LogPosition);
 				return new(true, nextLogicalPos, record, length);
 			}
-			finally
-			{
+			finally {
 				Chunk.ReturnReaderWorkItem(workItem);
 			}
 		}
 
 		private async ValueTask<int> TranslateClosestForwardPosition(ReaderWorkItem workItem, long logicalPosition,
-			CancellationToken token)
-		{
+			CancellationToken token) {
 			return await GetOrCreateMidPoints(workItem, token) is { Length: > 0 } midpoints
 				? await TranslateClosestForwardWithMidpoints(workItem, midpoints, logicalPosition, token)
 				: await TranslateClosestForwardWithoutMidpoints(workItem, logicalPosition, 0,
@@ -488,11 +455,11 @@ public partial class TFChunk
 		}
 
 		private ValueTask<int> TranslateClosestForwardWithMidpoints(ReaderWorkItem workItem, Midpoint[] midpoints,
-			long pos, CancellationToken token)
-		{
+			long pos, CancellationToken token) {
 			// to allow backward reading of the last record, forward read will decline anyway
-			if (pos > midpoints[^1].LogPos)
+			if (pos > midpoints[^1].LogPos) {
 				return ValueTask.FromResult(Chunk.PhysicalDataSize);
+			}
 
 			var recordRange = LocatePosRange(midpoints, pos);
 			return TranslateClosestForwardWithoutMidpoints(workItem, pos, recordRange.Lower, recordRange.Upper, token);
@@ -500,27 +467,26 @@ public partial class TFChunk
 
 		private async ValueTask<int> TranslateClosestForwardWithoutMidpoints(ReaderWorkItem workItem, long pos,
 			long startIndex,
-			long endIndex, CancellationToken token)
-		{
+			long endIndex, CancellationToken token) {
 
 			using var buffer = Memory.AllocateAtLeast<byte>(PosMap.FullSize);
 			PosMap res = await ReadPosMap(workItem, endIndex, buffer.Memory, token);
 
 			// to allow backward reading of the last record, forward read will decline anyway
-			if (pos > res.LogPos)
+			if (pos > res.LogPos) {
 				return Chunk.PhysicalDataSize;
+			}
 
 			long low = startIndex;
 			long high = endIndex;
-			while (low < high)
-			{
+			while (low < high) {
 				var mid = low + (high - low) / 2;
 				var v = await ReadPosMap(workItem, mid, buffer.Memory, token);
 
-				if (v.LogPos < pos)
+				if (v.LogPos < pos) {
 					low = mid + 1;
-				else
-				{
+				}
+				else {
 					high = mid;
 					res = v;
 				}
@@ -529,8 +495,7 @@ public partial class TFChunk
 			return res.ActualPos;
 		}
 
-		private static Range LocatePosRange(Midpoint[] midpoints, long pos)
-		{
+		private static Range LocatePosRange(Midpoint[] midpoints, long pos) {
 			int lowerMidpoint = LowerMidpointBound(midpoints, pos);
 			int upperMidpoint = UpperMidpointBound(midpoints, pos);
 			return new(midpoints[lowerMidpoint].ItemIndex, midpoints[upperMidpoint].ItemIndex);
@@ -540,17 +505,17 @@ public partial class TFChunk
 		/// Returns the index of lower midpoint for given logical position.
 		/// Assumes it always exists.
 		/// </summary>
-		private static int LowerMidpointBound(Midpoint[] midpoints, long pos)
-		{
+		private static int LowerMidpointBound(Midpoint[] midpoints, long pos) {
 			int l = 0;
 			int r = midpoints.Length - 1;
-			while (l < r)
-			{
+			while (l < r) {
 				int m = l + (r - l + 1) / 2;
-				if (midpoints[m].LogPos <= pos)
+				if (midpoints[m].LogPos <= pos) {
 					l = m;
-				else
+				}
+				else {
 					r = m - 1;
+				}
 			}
 
 			return l;
@@ -560,41 +525,37 @@ public partial class TFChunk
 		/// Returns the index of upper midpoint for given logical position.
 		/// Assumes it always exists.
 		/// </summary>
-		private static int UpperMidpointBound(Midpoint[] midpoints, long pos)
-		{
+		private static int UpperMidpointBound(Midpoint[] midpoints, long pos) {
 			int l = 0;
 			int r = midpoints.Length - 1;
-			while (l < r)
-			{
+			while (l < r) {
 				int m = l + (r - l) / 2;
-				if (midpoints[m].LogPos >= pos)
+				if (midpoints[m].LogPos >= pos) {
 					r = m;
-				else
+				}
+				else {
 					l = m + 1;
+				}
 			}
 
 			return l;
 		}
 	}
 
-	private abstract class TFChunkReadSide
-	{
+	private abstract class TFChunkReadSide {
 		protected readonly TFChunk Chunk;
 		protected readonly ILogger _log = Log.ForContext<TFChunkReader>();
 		private readonly ITransactionFileTracker _tracker;
 
-		protected TFChunkReadSide(TFChunk chunk, ITransactionFileTracker tracker)
-		{
+		protected TFChunkReadSide(TFChunk chunk, ITransactionFileTracker tracker) {
 			Ensure.NotNull(chunk, "chunk");
 			Chunk = chunk;
 			_tracker = tracker;
 		}
 
-		private bool ValidateRecordPosition(long actualPosition)
-		{
+		private bool ValidateRecordPosition(long actualPosition) {
 			// no space even for length prefix and suffix
-			if (actualPosition + 2 * sizeof(int) > Chunk.PhysicalDataSize)
-			{
+			if (actualPosition + 2 * sizeof(int) > Chunk.PhysicalDataSize) {
 				_log.Warning(
 					"Tried to read actual position {actualPosition}, but there isn't enough space for a record left in the chunk. Chunk's data size: {chunkPhysicalDataSize}",
 					actualPosition, Chunk.PhysicalDataSize);
@@ -604,24 +565,20 @@ public partial class TFChunk
 			return true;
 		}
 
-		private void ValidateRecordLength(int length, long actualPosition)
-		{
-			if (length <= 0)
-			{
+		private void ValidateRecordLength(int length, long actualPosition) {
+			if (length <= 0) {
 				throw new InvalidReadException(
 					$"Log record at actual pos {actualPosition} has non-positive length: {length}. " +
 					$" in chunk {Chunk}.");
 			}
 
-			if (length > TFConsts.MaxLogRecordSize)
-			{
+			if (length > TFConsts.MaxLogRecordSize) {
 				throw new InvalidReadException(
 					$"Log record at actual pos {actualPosition} has too large length: {length} bytes, " +
 					$"while limit is {TFConsts.MaxLogRecordSize} bytes. In chunk {Chunk}.");
 			}
 
-			if (actualPosition + length + 2 * sizeof(int) > Chunk.PhysicalDataSize)
-			{
+			if (actualPosition + length + 2 * sizeof(int) > Chunk.PhysicalDataSize) {
 				throw new UnableToReadPastEndOfStreamException(
 					$"There is not enough space to read full record (length prefix: {length}). " +
 					$"Actual pre-position: {actualPosition}. Something is seriously wrong in chunk {Chunk}.");
@@ -629,11 +586,9 @@ public partial class TFChunk
 		}
 
 		private void ValidatePrefixSuffixLength(int prefixLength, int suffixLength, long actualPosition,
-			string actualPositionType)
-		{
+			string actualPositionType) {
 			// verify suffix length == prefix length
-			if (suffixLength != prefixLength)
-			{
+			if (suffixLength != prefixLength) {
 				throw new InvalidReadException(
 					$"Prefix/suffix length inconsistency: prefix length ({prefixLength}) != suffix length ({suffixLength}).\n" +
 					$"Actual {actualPositionType}: {actualPosition}. Something is seriously wrong in chunk {Chunk}.");
@@ -641,24 +596,22 @@ public partial class TFChunk
 		}
 
 		protected async ValueTask<(ILogRecord, int)> TryReadForwardInternal(Instant start, ReaderWorkItem workItem,
-			long actualPosition, CancellationToken token)
-		{
+			long actualPosition, CancellationToken token) {
 			workItem.BaseStream.Position = GetRawPosition(actualPosition);
-			if (!ValidateRecordPosition(actualPosition))
+			if (!ValidateRecordPosition(actualPosition)) {
 				return (null, -1);
+			}
 
 			int length;
 			MemoryOwner<byte> buffer;
 
-			using (buffer = Memory.AllocateAtLeast<byte>(sizeof(int)))
-			{
+			using (buffer = Memory.AllocateAtLeast<byte>(sizeof(int))) {
 				length = await workItem.BaseStream.ReadLittleEndianAsync<int>(buffer.Memory, token);
 				ValidateRecordLength(length, actualPosition);
 			}
 
 			ILogRecord record;
-			try
-			{
+			try {
 				// log record payload + lenght suffix
 				buffer = Memory.AllocateExactly<byte>(length + sizeof(int));
 				await workItem.BaseStream.ReadExactlyAsync(buffer.Memory, token);
@@ -673,13 +626,11 @@ public partial class TFChunk
 
 				ValidatePrefixSuffixLength(length, suffixLength, actualPosition, "pre-position");
 			}
-			catch (Exception exc)
-			{
+			catch (Exception exc) {
 				throw new InvalidReadException(
 					$"Error while reading log record forwards at actual position {actualPosition}. {exc.Message}");
 			}
-			finally
-			{
+			finally {
 				buffer.Dispose();
 			}
 
@@ -688,11 +639,11 @@ public partial class TFChunk
 
 		protected async ValueTask<ArraySegment<byte>> TryReadForwardRawInternal(ReaderWorkItem workItem,
 			long actualPosition, Func<int, byte[]> getBuffer,
-			CancellationToken token)
-		{
+			CancellationToken token) {
 			workItem.BaseStream.Position = GetRawPosition(actualPosition);
-			if (!ValidateRecordPosition(actualPosition))
+			if (!ValidateRecordPosition(actualPosition)) {
 				return default;
+			}
 
 			using var buffer = Memory.AllocateAtLeast<byte>(sizeof(int));
 			var length = await workItem.BaseStream.ReadLittleEndianAsync<int>(buffer.Memory, token);
@@ -708,11 +659,9 @@ public partial class TFChunk
 		}
 
 		protected async ValueTask<(ILogRecord, int)> TryReadBackwardInternal(Instant start, ReaderWorkItem workItem,
-			long actualPosition, CancellationToken token)
-		{
+			long actualPosition, CancellationToken token) {
 			// no space even for length prefix and suffix
-			if (actualPosition < 2 * sizeof(int))
-			{
+			if (actualPosition < 2 * sizeof(int)) {
 				_log.Warning(
 					"Tried to read actual position {actualPosition}, but the position isn't large enough to contain a record",
 					actualPosition);
@@ -724,22 +673,19 @@ public partial class TFChunk
 			int length;
 			MemoryOwner<byte> buffer;
 
-			using (buffer = Memory.AllocateAtLeast<byte>(sizeof(int)))
-			{
+			using (buffer = Memory.AllocateAtLeast<byte>(sizeof(int))) {
 				length = await workItem.BaseStream.ReadLittleEndianAsync<int>(buffer.Memory, token);
-				if (length <= 0)
-				{
+				if (length <= 0) {
 					throw new InvalidReadException(
 						string.Format("Log record that ends at actual pos {0} has non-positive length: {1}. "
-						              + "In chunk {2}.",
+									  + "In chunk {2}.",
 							actualPosition, length, Chunk));
 				}
 
-				if (length > TFConsts.MaxLogRecordSize)
-				{
+				if (length > TFConsts.MaxLogRecordSize) {
 					throw new InvalidReadException(
 						string.Format("Log record that ends at actual pos {0} has too large length: {1} bytes, "
-						              + "while limit is {2} bytes. In chunk {3}.",
+									  + "while limit is {2} bytes. In chunk {3}.",
 							actualPosition, length, TFConsts.MaxLogRecordSize, Chunk));
 				}
 
@@ -747,7 +693,7 @@ public partial class TFChunk
 				{
 					throw new UnableToReadPastEndOfStreamException(
 						string.Format("There is not enough space to read full record (length suffix: {0}). "
-						              + "Actual post-position: {1}. Something is seriously wrong in chunk {2}.",
+									  + "Actual post-position: {1}. Something is seriously wrong in chunk {2}.",
 							length, actualPosition, Chunk));
 				}
 
@@ -760,19 +706,16 @@ public partial class TFChunk
 
 			ILogRecord record;
 			buffer = Memory.AllocateExactly<byte>(length);
-			try
-			{
+			try {
 				await workItem.BaseStream.ReadExactlyAsync(buffer.Memory, token);
 				var reader = new SequenceReader(new(buffer.Memory));
 				record = LogRecord.ReadFrom(ref reader);
 			}
-			catch (Exception exc)
-			{
+			catch (Exception exc) {
 				throw new InvalidReadException(
 					$"Error while reading log record backwards at actual position {actualPosition}. {exc.Message}");
 			}
-			finally
-			{
+			finally {
 				buffer.Dispose();
 			}
 

@@ -5,8 +5,7 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Messages;
 
-public static partial class EventReaderSubscriptionMessage
-{
+public static partial class EventReaderSubscriptionMessage {
 	/// <summary>
 	/// A CheckpointSuggested message is sent to core projection
 	/// to allow bookmarking a position that can be used to
@@ -14,110 +13,91 @@ public static partial class EventReaderSubscriptionMessage
 	/// an event at this position does not satisfy projection filter)
 	/// </summary>
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class CheckpointSuggested : EventReaderSubscriptionMessageBase
-	{
+	public partial class CheckpointSuggested : EventReaderSubscriptionMessageBase {
 		public CheckpointSuggested(
 			Guid subscriptionId, CheckpointTag checkpointTag, float progress,
 			long subscriptionMessageSequenceNumber, object source = null)
-			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class ProgressChanged : EventReaderSubscriptionMessageBase
-	{
+	public partial class ProgressChanged : EventReaderSubscriptionMessageBase {
 		public ProgressChanged(
 			Guid subscriptionId, CheckpointTag checkpointTag, float progress,
 			long subscriptionMessageSequenceNumber, object source = null)
-			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class SubscriptionStarted : EventReaderSubscriptionMessageBase
-	{
+	public partial class SubscriptionStarted : EventReaderSubscriptionMessageBase {
 		private readonly long _startingLastCommitPosition;
 
-		public long StartingLastCommitPosition
-		{
+		public long StartingLastCommitPosition {
 			get { return _startingLastCommitPosition; }
 		}
 
 		public SubscriptionStarted(
 			Guid subscriptionId, CheckpointTag checkpointTag, long startingLastCommitPosition,
 			long subscriptionMessageSequenceNumber, object source = null)
-			: base(subscriptionId, checkpointTag, 0f, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, 0f, subscriptionMessageSequenceNumber, source) {
 			_startingLastCommitPosition = startingLastCommitPosition;
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public sealed partial class NotAuthorized : EventReaderSubscriptionMessageBase
-	{
+	public sealed partial class NotAuthorized : EventReaderSubscriptionMessageBase {
 		public NotAuthorized(
 			Guid subscriptionId, CheckpointTag checkpointTag, float progress,
 			long subscriptionMessageSequenceNumber,
 			object source = null)
-			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public sealed partial class SubscribeTimeout : EventReaderSubscriptionMessageBase
-	{
+	public sealed partial class SubscribeTimeout : EventReaderSubscriptionMessageBase {
 		public SubscribeTimeout(Guid subscriptionId)
-			: base(subscriptionId, CheckpointTag.Empty, 100.0f, -1, null)
-		{
+			: base(subscriptionId, CheckpointTag.Empty, 100.0f, -1, null) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public sealed partial class Failed : EventReaderSubscriptionMessageBase
-	{
+	public sealed partial class Failed : EventReaderSubscriptionMessageBase {
 		private readonly string _reason;
 
-		public string Reason
-		{
+		public string Reason {
 			get { return _reason; }
 		}
 
 		public Failed(Guid subscriptionId, string reason)
-			: base(subscriptionId, CheckpointTag.Empty, 100.0f, -1, null)
-		{
+			: base(subscriptionId, CheckpointTag.Empty, 100.0f, -1, null) {
 			_reason = reason;
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class EofReached : EventReaderSubscriptionMessageBase
-	{
+	public partial class EofReached : EventReaderSubscriptionMessageBase {
 		public EofReached(
 			Guid subscriptionId, CheckpointTag checkpointTag,
 			long subscriptionMessageSequenceNumber, object source = null)
-			: base(subscriptionId, checkpointTag, 100.0f, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, 100.0f, subscriptionMessageSequenceNumber, source) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class PartitionEofReached : EventReaderSubscriptionMessageBase
-	{
+	public partial class PartitionEofReached : EventReaderSubscriptionMessageBase {
 		private readonly string _partition;
 
-		public string Partition
-		{
+		public string Partition {
 			get { return _partition; }
 		}
 
 		public PartitionEofReached(
 			Guid subscriptionId, CheckpointTag checkpointTag, string partition,
 			long subscriptionMessageSequenceNumber, object source = null)
-			: base(subscriptionId, checkpointTag, 100.0f, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, 100.0f, subscriptionMessageSequenceNumber, source) {
 			_partition = partition;
 		}
 	}
@@ -127,38 +107,32 @@ public static partial class EventReaderSubscriptionMessage
 	/// to appear at the same sequence position in a recovery
 	/// </summary>
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class PartitionDeleted : EventReaderSubscriptionMessageBase
-	{
+	public partial class PartitionDeleted : EventReaderSubscriptionMessageBase {
 		private readonly string _partition;
 
-		public string Partition
-		{
+		public string Partition {
 			get { return _partition; }
 		}
 
 		public PartitionDeleted(
 			Guid subscriptionId, CheckpointTag checkpointTag, string partition,
 			long subscriptionMessageSequenceNumber, object source = null)
-			: base(subscriptionId, checkpointTag, 100.0f, subscriptionMessageSequenceNumber, source)
-		{
+			: base(subscriptionId, checkpointTag, 100.0f, subscriptionMessageSequenceNumber, source) {
 			_partition = partition;
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class CommittedEventReceived : EventReaderSubscriptionMessageBase
-	{
+	public partial class CommittedEventReceived : EventReaderSubscriptionMessageBase {
 		public static CommittedEventReceived Sample(
-			ResolvedEvent data, Guid subscriptionId, long subscriptionMessageSequenceNumber)
-		{
+			ResolvedEvent data, Guid subscriptionId, long subscriptionMessageSequenceNumber) {
 			return new CommittedEventReceived(
 				subscriptionId, 0, null, data, 77.7f, subscriptionMessageSequenceNumber);
 		}
 
 		public static CommittedEventReceived Sample(
 			ResolvedEvent data, CheckpointTag checkpointTag, Guid subscriptionId,
-			long subscriptionMessageSequenceNumber)
-		{
+			long subscriptionMessageSequenceNumber) {
 			return new CommittedEventReceived(
 				subscriptionId, checkpointTag, null, data, 77.7f, subscriptionMessageSequenceNumber, null);
 		}
@@ -170,10 +144,11 @@ public static partial class EventReaderSubscriptionMessage
 		private CommittedEventReceived(
 			Guid subscriptionId, CheckpointTag checkpointTag, string eventCategory, ResolvedEvent data,
 			float progress, long subscriptionMessageSequenceNumber, object source)
-			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source)
-		{
-			if (data == null)
+			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source) {
+			if (data == null) {
 				throw new ArgumentNullException("data");
+			}
+
 			_data = data;
 			_eventCategory = eventCategory;
 		}
@@ -184,56 +159,47 @@ public static partial class EventReaderSubscriptionMessage
 			: this(
 				subscriptionId,
 				CheckpointTag.FromPosition(phase, data.Position.CommitPosition, data.Position.PreparePosition),
-				eventCategory, data, progress, subscriptionMessageSequenceNumber, null)
-		{
+				eventCategory, data, progress, subscriptionMessageSequenceNumber, null) {
 		}
 
-		public ResolvedEvent Data
-		{
+		public ResolvedEvent Data {
 			get { return _data; }
 		}
 
-		public string EventCategory
-		{
+		public string EventCategory {
 			get { return _eventCategory; }
 		}
 
 		public static CommittedEventReceived FromCommittedEventDistributed(
 			ReaderSubscriptionMessage.CommittedEventDistributed message, CheckpointTag checkpointTag,
-			string eventCategory, Guid subscriptionId, long subscriptionMessageSequenceNumber)
-		{
+			string eventCategory, Guid subscriptionId, long subscriptionMessageSequenceNumber) {
 			return new CommittedEventReceived(
 				subscriptionId, checkpointTag, eventCategory, message.Data, message.Progress,
 				subscriptionMessageSequenceNumber, message.Source);
 		}
 
-		public override string ToString()
-		{
+		public override string ToString() {
 			return CheckpointTag.ToString();
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.EventReaderSubscription)]
-	public partial class ReaderAssignedReader : EventReaderSubscriptionMessageBase
-	{
+	public partial class ReaderAssignedReader : EventReaderSubscriptionMessageBase {
 		private readonly Guid _readerId;
 
 		public ReaderAssignedReader(Guid subscriptionId, Guid readerId)
-			: base(subscriptionId, null, 0, 0, null)
-		{
+			: base(subscriptionId, null, 0, 0, null) {
 			_readerId = readerId;
 		}
 
-		public Guid ReaderId
-		{
+		public Guid ReaderId {
 			get { return _readerId; }
 		}
 	}
 }
 
 [DerivedMessage]
-public abstract partial class EventReaderSubscriptionMessageBase : Message
-{
+public abstract partial class EventReaderSubscriptionMessageBase : Message {
 	private readonly Guid _subscriptionId;
 	private readonly long _subscriptionMessageSequenceNumber;
 	private readonly object _source;
@@ -241,8 +207,7 @@ public abstract partial class EventReaderSubscriptionMessageBase : Message
 	private readonly float _progress;
 
 	internal EventReaderSubscriptionMessageBase(Guid subscriptionId, CheckpointTag checkpointTag, float progress,
-		long subscriptionMessageSequenceNumber, object source)
-	{
+		long subscriptionMessageSequenceNumber, object source) {
 		_subscriptionId = subscriptionId;
 		_checkpointTag = checkpointTag;
 		_progress = progress;
@@ -251,28 +216,23 @@ public abstract partial class EventReaderSubscriptionMessageBase : Message
 	}
 
 
-	public CheckpointTag CheckpointTag
-	{
+	public CheckpointTag CheckpointTag {
 		get { return _checkpointTag; }
 	}
 
-	public float Progress
-	{
+	public float Progress {
 		get { return _progress; }
 	}
 
-	public long SubscriptionMessageSequenceNumber
-	{
+	public long SubscriptionMessageSequenceNumber {
 		get { return _subscriptionMessageSequenceNumber; }
 	}
 
-	public Guid SubscriptionId
-	{
+	public Guid SubscriptionId {
 		get { return _subscriptionId; }
 	}
 
-	public object Source
-	{
+	public object Source {
 		get { return _source; }
 	}
 }

@@ -7,25 +7,20 @@ namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
 public class
 	failing_test_github_issue_2785 :
-		TestFixtureWithProjectionSubscription
-{
+		TestFixtureWithProjectionSubscription {
 
-	protected override void Given()
-	{
-		_source = source =>
-		{
+	protected override void Given() {
+		_source = source => {
 			source.FromAll();
 			source.IncludeEvent("good-event-type");
 		};
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 	}
 
 	[Test]
-	public void should_gracefully_handle_resolved_linkto_events()
-	{
+	public void should_gracefully_handle_resolved_linkto_events() {
 		var stream = "any-stream-name";
 		var eventType = "any-event-type";
 		var position = new TFPos(-1, 200); //resolved linkTo event with incomplete TF position

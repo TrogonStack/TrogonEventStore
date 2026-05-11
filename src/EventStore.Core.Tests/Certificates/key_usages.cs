@@ -6,16 +6,13 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Certificates;
 
-public class key_usages
-{
+public class key_usages {
 	private readonly Oid _serverAuth = new("1.3.6.1.5.5.7.3.1");
 	private readonly Oid _clientAuth = new("1.3.6.1.5.5.7.3.2");
 	private const X509KeyUsageFlags DefaultKeyUsages = X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment;
 
-	private static X509Certificate2 GenSut(X509KeyUsageFlags keyUsages, OidCollection extendedKeyUsages)
-	{
-		using (RSA rsa = RSA.Create())
-		{
+	private static X509Certificate2 GenSut(X509KeyUsageFlags keyUsages, OidCollection extendedKeyUsages) {
+		using (RSA rsa = RSA.Create()) {
 			var certReq =
 				new CertificateRequest("CN=hello", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
@@ -24,19 +21,18 @@ public class key_usages
 
 			certReq.CertificateExtensions.Add(keyUsageExtension);
 
-			if (extendedKeyUsages.Count != 0)
+			if (extendedKeyUsages.Count != 0) {
 				certReq.CertificateExtensions.Add(extendedKeyUsageExtension);
+			}
 
 			return certReq.CreateSelfSigned(DateTimeOffset.UtcNow.AddMonths(-1),
 				DateTimeOffset.UtcNow.AddMonths(1));
 		}
 	}
 
-	private static OidCollection GenOids(params Oid[] oids)
-	{
+	private static OidCollection GenOids(params Oid[] oids) {
 		var oidCollection = new OidCollection();
-		foreach (var oid in oids)
-		{
+		foreach (var oid in oids) {
 			oidCollection.Add(oid);
 		}
 
@@ -44,8 +40,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_client_auth_eku()
-	{
+	public void certificate_with_client_auth_eku() {
 		var sut = GenSut(
 			keyUsages: DefaultKeyUsages,
 			extendedKeyUsages: GenOids(_clientAuth));
@@ -55,8 +50,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_client_and_server_auth_eku()
-	{
+	public void certificate_with_client_and_server_auth_eku() {
 		var sut = GenSut(
 			keyUsages: DefaultKeyUsages,
 			extendedKeyUsages: GenOids(_clientAuth, _serverAuth));
@@ -66,8 +60,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_server_auth_eku_only()
-	{
+	public void certificate_with_server_auth_eku_only() {
 		var sut = GenSut(
 			keyUsages: DefaultKeyUsages,
 			extendedKeyUsages: GenOids(_serverAuth));
@@ -78,8 +71,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_no_ekus()
-	{
+	public void certificate_with_no_ekus() {
 		var sut = GenSut(
 			keyUsages: DefaultKeyUsages,
 			extendedKeyUsages: GenOids());
@@ -89,8 +81,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_no_key_usage()
-	{
+	public void certificate_with_no_key_usage() {
 		var sut = GenSut(
 			keyUsages: X509KeyUsageFlags.None,
 			extendedKeyUsages: GenOids(_clientAuth, _serverAuth));
@@ -100,8 +91,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_missing_key_usage()
-	{
+	public void certificate_with_missing_key_usage() {
 		var sut = GenSut(
 			keyUsages: X509KeyUsageFlags.KeyEncipherment,
 			extendedKeyUsages: GenOids(_clientAuth, _serverAuth));
@@ -111,8 +101,7 @@ public class key_usages
 	}
 
 	[Test]
-	public void certificate_with_key_agreement_instead_of_key_encipherment_key_usage()
-	{
+	public void certificate_with_key_agreement_instead_of_key_encipherment_key_usage() {
 		var sut = GenSut(
 			keyUsages: X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyAgreement,
 			extendedKeyUsages: GenOids(_clientAuth, _serverAuth));

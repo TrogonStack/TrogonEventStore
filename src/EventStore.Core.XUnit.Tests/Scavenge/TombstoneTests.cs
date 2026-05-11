@@ -9,11 +9,9 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
-{
+public class TombstoneTests : SqliteDbPerTest<TombstoneTests> {
 	[Fact]
-	public async Task simple_tombstone()
-	{
+	public async Task simple_tombstone() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -30,8 +28,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task single_tombstone()
-	{
+	public async Task single_tombstone() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -47,8 +44,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task tombstone_with_metadata()
-	{
+	public async Task tombstone_with_metadata() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -60,8 +56,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 					Rec.CommittedDelete(t++, "ab-1"))
 				.Chunk(ScavengePointRec(t++)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.True(state.TryGetOriginalStreamData("ab-1", out _));
 				Assert.False(state.TryGetMetastreamData("$$ab-1", out _));
 			})
@@ -74,8 +69,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task tombstone_with_meta_collision()
-	{
+	public async Task tombstone_with_meta_collision() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -100,8 +94,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task tombstone_in_metadata_stream_not_supported()
-	{
+	public async Task tombstone_in_metadata_stream_not_supported() {
 		// eventstore refuses denies access to write such a tombstone in the first place,
 		// including in ESv5
 		var logger = new FakeTFScavengerLog();
@@ -122,8 +115,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task tombstone_in_transaction_not_supported()
-	{
+	public async Task tombstone_in_transaction_not_supported() {
 		// if we wanted to support this we would have to apply the tombstone at the point that it
 		// gets committed. also chunkexecutor would have to be careful not to discard the tombstone
 		// of a tombstoned stream even though it can discard pretty much everything in transactions
@@ -146,8 +138,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task tombstone_stream_with_transaction()
-	{
+	public async Task tombstone_stream_with_transaction() {
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
 			.WithDb(x => x
@@ -174,8 +165,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 	}
 
 	[Fact]
-	public async Task tombstone_stream_with_transaction_and_unsafe_ignore_hard_deletes()
-	{
+	public async Task tombstone_stream_with_transaction_and_unsafe_ignore_hard_deletes() {
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
 			.WithUnsafeIgnoreHardDeletes(true)
@@ -204,8 +194,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 
 	// see comments in EventCalculator.cs
 	[Fact]
-	public async Task int32max_tombstone_with_subsequent_events()
-	{
+	public async Task int32max_tombstone_with_subsequent_events() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -230,8 +219,7 @@ public class TombstoneTests : SqliteDbPerTest<TombstoneTests>
 					Rec.Write(t++, "ab-1"))
 				.Chunk(ScavengePointRec(t++)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				// still counted as tombstoned by scavenge
 				Assert.True(state.TryGetOriginalStreamData("ab-1", out var data));
 				Assert.True(data.IsTombstoned);

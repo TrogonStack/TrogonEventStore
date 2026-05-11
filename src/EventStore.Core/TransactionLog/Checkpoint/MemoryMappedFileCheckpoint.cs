@@ -39,8 +39,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 				false);
 			_accessor = _file.CreateViewAccessor(0, sizeof(long));
 
-			if (old)
+			if (old) {
 				_last = _lastFlushed = _accessor.ReadInt64(0);
+			}
 			else {
 				_last = initValue;
 				Flush();
@@ -48,8 +49,10 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 		}
 
 		public void Close(bool flush) {
-			if (flush)
+			if (flush) {
 				Flush();
+			}
+
 			_accessor.Dispose();
 			_file.Dispose();
 		}
@@ -60,8 +63,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		public void Flush() {
 			var last = Interlocked.Read(ref _last);
-			if (last == _lastFlushed)
+			if (last == _lastFlushed) {
 				return;
+			}
 
 			_accessor.Write(0, last);
 			_accessor.Flush();
@@ -85,8 +89,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		private void OnFlushed(long obj) {
 			var onFlushed = Flushed;
-			if (onFlushed != null)
+			if (onFlushed != null) {
 				onFlushed.Invoke(obj);
+			}
 		}
 	}
 }

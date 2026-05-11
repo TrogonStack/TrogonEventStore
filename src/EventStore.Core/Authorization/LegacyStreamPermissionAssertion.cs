@@ -27,8 +27,10 @@ namespace EventStore.Core.Authorization {
 			EvaluationContext context) {
 			var streamId = FindStreamId(operation.Parameters.Span, context.CancellationToken);
 
-			if (streamId.IsCompleted)
+			if (streamId.IsCompleted) {
 				return CheckStreamAccess(cp, operation, policy, context, streamId.Result);
+			}
+
 			return CheckStreamAccessAsync(streamId, cp, operation, policy, context);
 		}
 
@@ -46,10 +48,12 @@ namespace EventStore.Core.Authorization {
 				return new ValueTask<bool>(true);
 			}
 
-			if (streamId == "")
+			if (streamId == "") {
 				streamId = SystemStreams.AllStream;
+			}
+
 			if (streamId == SystemStreams.AllStream &&
-			    (operation == Operations.Streams.Delete || operation == Operations.Streams.Write)) {
+				(operation == Operations.Streams.Delete || operation == Operations.Streams.Write)) {
 				context.Add(new AssertionMatch(policy,
 					new AssertionInformation("streamId", $"{operation.Action} denied on $all", Grant.Deny)));
 				return new ValueTask<bool>(true);
@@ -81,7 +85,9 @@ namespace EventStore.Core.Authorization {
 #pragma warning disable CA2012
 			var preChecks = IsSystemOrAdmin(cp, operation, policy, context);
 #pragma warning restore CA2012
-			if (preChecks.IsCompleted && preChecks.Result) return preChecks;
+			if (preChecks.IsCompleted && preChecks.Result) {
+				return preChecks;
+			}
 
 			return CheckAsync(preChecks, cp, action, streamId, policy, context);
 		}
@@ -90,8 +96,10 @@ namespace EventStore.Core.Authorization {
 			PolicyInformation policy, EvaluationContext context) {
 			var isSystem = WellKnownAssertions.System.Evaluate(cp, operation, policy, context);
 			if (isSystem.IsCompleted) {
-				if (isSystem.Result)
+				if (isSystem.Result) {
 					return isSystem;
+				}
+
 				return WellKnownAssertions.Admin.Evaluate(cp, operation, policy, context);
 			}
 
@@ -102,7 +110,9 @@ namespace EventStore.Core.Authorization {
 		private async ValueTask<bool> IsSystemOrAdminAsync(ValueTask<bool> isSystem, ClaimsPrincipal cp,
 			Operation operation,
 			PolicyInformation policy, EvaluationContext context) {
-			if (await isSystem) return true;
+			if (await isSystem) {
+				return true;
+			}
 
 			return await WellKnownAssertions.Admin.Evaluate(cp, operation, policy, context);
 		}
@@ -110,8 +120,10 @@ namespace EventStore.Core.Authorization {
 		private async ValueTask<bool> CheckAsync(ValueTask<bool> preChecks, ClaimsPrincipal cp, string action,
 			string streamId, PolicyInformation policy, EvaluationContext context) {
 			var isSystemOrAdmin = await preChecks;
-			if (isSystemOrAdmin)
+			if (isSystemOrAdmin) {
 				return true;
+			}
+
 			var acl = await StorageMessage.EffectiveAcl.LoadAsync(_publisher, streamId, context.CancellationToken);
 			var roles = RolesFor(action, acl);
 			if (roles.Any(x => x == SystemRoles.All)) {
@@ -123,7 +135,7 @@ namespace EventStore.Core.Authorization {
 			for (int i = 0; i < roles.Length; i++) {
 				var role = roles[i];
 				if (cp.FindFirst(x => (x.Type == ClaimTypes.Name || x.Type == ClaimTypes.Role) && x.Value == role)
-				    is Claim matched) {
+					is Claim matched) {
 					context.Add(new AssertionMatch(policy, new AssertionInformation("role match", role, Grant.Allow),
 						matched));
 					return true;
@@ -145,13 +157,19 @@ namespace EventStore.Core.Authorization {
 			CancellationToken cancellationToken) {
 			string transactionId = null;
 			for (int i = 0; i < parameters.Length; i++) {
-				if (parameters[i].Name == "streamId")
+				if (parameters[i].Name == "streamId") {
 					return new ValueTask<string>(parameters[i].Value);
-				if (parameters[i].Name == "transactionId")
+				}
+
+				if (parameters[i].Name == "transactionId") {
 					transactionId = parameters[i].Value;
+				}
 			}
 
-			if (transactionId != null) return FindStreamFromTransactionId(long.Parse(transactionId), cancellationToken);
+			if (transactionId != null) {
+				return FindStreamFromTransactionId(long.Parse(transactionId), cancellationToken);
+			}
+
 			return new ValueTask<string>((string)null);
 		}
 
@@ -169,7 +187,7 @@ namespace EventStore.Core.Authorization {
 				"delete" => acl.Stream?.DeleteRoles ?? acl.System?.DeleteRoles ?? acl.Default?.DeleteRoles,
 				"metadataRead" => acl.Stream?.MetaReadRoles ?? acl.System?.MetaReadRoles ?? acl.Default?.MetaReadRoles,
 				"metadataWrite" => acl.Stream?.MetaWriteRoles ??
-				                   acl.System?.MetaWriteRoles ?? acl.Default?.MetaWriteRoles,
+								   acl.System?.MetaWriteRoles ?? acl.Default?.MetaWriteRoles,
 				_ => Array.Empty<string>()
 			};
 		}
@@ -184,12 +202,15 @@ namespace EventStore.Core.Authorization {
 			public Task<string> Task => _tcs.Task;
 
 			public void ReplyWith<T>(T message) where T : Message {
-				if (message is StorageMessage.StreamIdFromTransactionIdResponse response)
+				if (message is StorageMessage.StreamIdFromTransactionIdResponse response) {
 					_tcs.TrySetResult(response.StreamId);
-				else if (message is StorageMessage.OperationCancelledMessage cancelled)
+				}
+				else if (message is StorageMessage.OperationCancelledMessage cancelled) {
 					_tcs.TrySetCanceled(cancelled.CancellationToken);
-				else
+				}
+				else {
 					_tcs.TrySetException(new InvalidOperationException($"Wrong message type {message.GetType()}"));
+				}
 			}
 		}
 	}

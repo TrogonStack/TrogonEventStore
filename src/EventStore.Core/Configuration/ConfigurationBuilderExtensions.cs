@@ -11,8 +11,9 @@ namespace EventStore.Core.Configuration {
 		public static IConfigurationBuilder AddEsdbConfigFile(this IConfigurationBuilder builder, string configFilePath,
 			bool optional = false, bool reloadOnChange = false) {
 			if (!Locations.TryLocateConfigFile(configFilePath, out var directory, out var fileName)) {
-				if (optional)
+				if (optional) {
 					return builder;
+				}
 
 				throw new FileNotFoundException(
 					$"Could not find {configFilePath} in the following directories: {string.Join(", ", Locations.GetPotentialConfigurationDirectories())}");
@@ -38,8 +39,9 @@ namespace EventStore.Core.Configuration {
 			// so when adding all the files we apply them in reverse order to keep the same precedence
 			foreach (var directory in Locations.GetPotentialConfigurationDirectories().Reverse()) {
 				var configDirectory = Path.Combine(directory, subdirectory);
-				if (!Directory.Exists(configDirectory))
+				if (!Directory.Exists(configDirectory)) {
 					continue;
+				}
 
 				foreach (var configFile in Directory.EnumerateFiles(configDirectory, pattern).Order()) {
 					builder.AddEsdbConfigFile(configFile, optional: true, reloadOnChange: true);

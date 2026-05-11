@@ -10,10 +10,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_having_stream_with_strict_max_age_leaving_no_events_in_stream<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
-	{
+public class when_having_stream_with_strict_max_age_leaving_no_events_in_stream<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator
 			.Chunk(
 				Rec.Prepare(0, "$$bla",
@@ -30,8 +28,7 @@ public class when_having_stream_with_strict_max_age_leaving_no_events_in_stream<
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
 		var keep = LogFormatHelper<TLogFormat, TStreamId>.IsV2
 			? new int[] { 0, 1, 7, 8 }
 			: new int[] { 0, 1, 2, 8, 9 };
@@ -42,8 +39,7 @@ public class when_having_stream_with_strict_max_age_leaving_no_events_in_stream<
 	}
 
 	[Test]
-	public async Task expired_prepares_are_scavenged_but_the_last_in_stream_is_physically_kept()
-	{
+	public async Task expired_prepares_are_scavenged_but_the_last_in_stream_is_physically_kept() {
 		await CheckRecords();
 	}
 }

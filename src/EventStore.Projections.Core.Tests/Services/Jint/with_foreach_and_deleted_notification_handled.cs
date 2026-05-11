@@ -3,10 +3,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class with_foreach_and_deleted_notification_handled : TestFixtureWithInterpretedProjection
-{
-	protected override void Given()
-	{
+public class with_foreach_and_deleted_notification_handled : TestFixtureWithInterpretedProjection {
+	protected override void Given() {
 		_projection = @"fromAll().foreachStream().when({
                 $deleted: function(){}
             })";
@@ -14,8 +12,7 @@ public class with_foreach_and_deleted_notification_handled : TestFixtureWithInte
 	}
 
 	[Test]
-	public void source_definition_is_correct()
-	{
+	public void source_definition_is_correct() {
 		Assert.AreEqual(true, _source.HandlesDeletedNotifications);
 	}
 }

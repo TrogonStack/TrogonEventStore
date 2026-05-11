@@ -12,8 +12,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId>
-{
+public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId> {
 	private const string ExpectedRunningProjectionPosition = "C:0/P:-1";
 	private static readonly TimeSpan StatisticsCallDeadline = TimeSpan.FromSeconds(10);
 
@@ -22,22 +21,17 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	private StatisticsResp.Types.Details _faultedProjection;
 	private StatisticsResp.Types.Details _runningProjection;
 
-	public override async Task Given()
-	{
+	public override async Task Given() {
 		_channel = GrpcChannel.ForAddress(
 			new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions
-			{
+			new GrpcChannelOptions {
 				HttpHandler = _node.HttpMessageHandler
 			});
 		_client = new Client.Projections.Projections.ProjectionsClient(_channel);
 
-		await _client.CreateAsync(new CreateReq
-		{
-			Options = new CreateReq.Types.Options
-			{
-				Continuous = new CreateReq.Types.Options.Types.Continuous
-				{
+		await _client.CreateAsync(new CreateReq {
+			Options = new CreateReq.Types.Options {
+				Continuous = new CreateReq.Types.Options.Types.Continuous {
 					Name = "faulted-projection",
 					EmitEnabled = false,
 					TrackEmittedStreams = false
@@ -46,12 +40,9 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 			}
 		}, GetCallOptions());
 
-		await _client.CreateAsync(new CreateReq
-		{
-			Options = new CreateReq.Types.Options
-			{
-				Continuous = new CreateReq.Types.Options.Types.Continuous
-				{
+		await _client.CreateAsync(new CreateReq {
+			Options = new CreateReq.Types.Options {
+				Continuous = new CreateReq.Types.Options.Types.Continuous {
 					Name = "running-projection",
 					EmitEnabled = false,
 					TrackEmittedStreams = false
@@ -61,21 +52,18 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 		}, GetCallOptions());
 	}
 
-	public override async Task When()
-	{
-		for (var attempt = 0; attempt < 20; attempt++)
-		{
-			try
-			{
+	public override async Task When() {
+		for (var attempt = 0; attempt < 20; attempt++) {
+			try {
 				(_faultedProjection, _runningProjection) = await ReadStatisticsAsync();
 				if (_faultedProjection?.Status == "Faulted"
 					&& _runningProjection?.Status == "Running"
 					&& _runningProjection.Position == ExpectedRunningProjectionPosition
-					&& _runningProjection.LastCheckpoint == ExpectedRunningProjectionPosition)
+					&& _runningProjection.LastCheckpoint == ExpectedRunningProjectionPosition) {
 					return;
+				}
 			}
-			catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
-			{
+			catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded) {
 			}
 
 			await Task.Delay(250);
@@ -85,8 +73,7 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	}
 
 	[Test]
-	public void faulted_projection_returns_safe_string_values()
-	{
+	public void faulted_projection_returns_safe_string_values() {
 		Assert.NotNull(_faultedProjection);
 		Assert.AreEqual("faulted-projection", _faultedProjection.EffectiveName);
 		Assert.AreEqual("Faulted", _faultedProjection.Status);
@@ -96,8 +83,7 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	}
 
 	[Test]
-	public void running_projection_keeps_its_statistics()
-	{
+	public void running_projection_keeps_its_statistics() {
 		Assert.NotNull(_runningProjection);
 		Assert.AreEqual("running-projection", _runningProjection.EffectiveName);
 		Assert.AreEqual("Running", _runningProjection.Status);
@@ -107,16 +93,13 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_channel?.Dispose();
 		return base.TestFixtureTearDown();
 	}
 
-	private static CallOptions GetCallOptions(TimeSpan? deadline = null)
-	{
-		var credentials = CallCredentials.FromInterceptor((_, metadata) =>
-		{
+	private static CallOptions GetCallOptions(TimeSpan? deadline = null) {
+		var credentials = CallCredentials.FromInterceptor((_, metadata) => {
 			metadata.Add("authorization",
 				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}");
 			return Task.CompletedTask;
@@ -130,26 +113,25 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 	}
 
 	private async Task<(StatisticsResp.Types.Details faultedProjection, StatisticsResp.Types.Details runningProjection)>
-		ReadStatisticsAsync()
-	{
+		ReadStatisticsAsync() {
 		StatisticsResp.Types.Details faultedProjection = null;
 		StatisticsResp.Types.Details runningProjection = null;
 
-		using var statistics = _client.Statistics(new StatisticsReq
-		{
-			Options = new StatisticsReq.Types.Options
-			{
+		using var statistics = _client.Statistics(new StatisticsReq {
+			Options = new StatisticsReq.Types.Options {
 				All = new Empty()
 			}
 		}, GetCallOptions(StatisticsCallDeadline));
 
-		while (await statistics.ResponseStream.MoveNext(CancellationToken.None))
-		{
+		while (await statistics.ResponseStream.MoveNext(CancellationToken.None)) {
 			var details = statistics.ResponseStream.Current.Details;
-			if (details.Name == "faulted-projection")
+			if (details.Name == "faulted-projection") {
 				faultedProjection = details;
-			if (details.Name == "running-projection")
+			}
+
+			if (details.Name == "running-projection") {
 				runningProjection = details;
+			}
 		}
 
 		return (faultedProjection, runningProjection);

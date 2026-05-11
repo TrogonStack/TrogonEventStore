@@ -20,10 +20,8 @@ namespace EventStore.Core.Tests.Services.Storage.Transactions;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class WhenRebuildingIndexForPartiallyPersistedTransaction<TLogFormat, TStreamId>()
-	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 10)
-{
-	public override async Task TestFixtureSetUp()
-	{
+	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 10) {
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		ReadIndex.Close();
@@ -68,11 +66,9 @@ public class WhenRebuildingIndexForPartiallyPersistedTransaction<TLogFormat, TSt
 		ReadIndex = readIndex;
 	}
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var begin = await WriteTransactionBegin("ES", ExpectedVersion.Any, token);
-		for (int i = 0; i < 15; ++i)
-		{
+		for (int i = 0; i < 15; ++i) {
 			await WriteTransactionEvent(Guid.NewGuid(), begin.LogPosition, i, "ES", i, "data" + i, PrepareFlags.Data,
 				token: token);
 		}
@@ -82,10 +78,8 @@ public class WhenRebuildingIndexForPartiallyPersistedTransaction<TLogFormat, TSt
 	}
 
 	[Test]
-	public async Task sequence_numbers_are_not_broken()
-	{
-		for (int i = 0; i < 15; ++i)
-		{
+	public async Task sequence_numbers_are_not_broken() {
+		for (int i = 0; i < 15; ++i) {
 			var result = await ReadIndex.ReadEvent("ES", i, CancellationToken.None);
 			Assert.AreEqual(ReadEventResult.Success, result.Result);
 			Assert.AreEqual(Helper.UTF8NoBom.GetBytes("data" + i), result.Record.Data.ToArray());

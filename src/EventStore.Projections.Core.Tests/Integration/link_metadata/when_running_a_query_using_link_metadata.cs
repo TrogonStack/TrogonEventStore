@@ -9,10 +9,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Integration.link_metadata;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_running_a_query_using_link_metadata<TLogFormat, TStreamId> : specification_with_a_v8_query_posted<TLogFormat, TStreamId>
-{
-	protected override void GivenEvents()
-	{
+public class when_running_a_query_using_link_metadata<TLogFormat, TStreamId> : specification_with_a_v8_query_posted<TLogFormat, TStreamId> {
+	protected override void GivenEvents() {
 		ExistingEvent("stream", SystemEventTypes.LinkTo, "{\"a\":1}", "0@account-01");
 		ExistingEvent("stream", SystemEventTypes.LinkTo, "{\"a\":2}", "1@account-01");
 		ExistingEvent("stream", SystemEventTypes.LinkTo, "{\"a\":10}", "0@account-02");
@@ -22,8 +20,7 @@ public class when_running_a_query_using_link_metadata<TLogFormat, TStreamId> : s
 		ExistingEvent("account-02", "test", "", "{\"a\":10}", isJson: true);
 	}
 
-	protected override string GivenQuery()
-	{
+	protected override string GivenQuery() {
 		return @"
 fromStream('stream').when({
     $any: function(s, e) { 
@@ -38,14 +35,12 @@ fromStream('stream').when({
 	}
 
 	[Test]
-	public void just()
-	{
+	public void just() {
 		AssertLastEvent("$projections-query-result", "{\"a\":10}", skip: 1 /* $eof */);
 	}
 
 	[Test]
-	public void state_becomes_completed()
-	{
+	public void state_becomes_completed() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(
 				_bus, null, _projectionName, false));

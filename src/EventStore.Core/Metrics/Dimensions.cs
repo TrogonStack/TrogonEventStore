@@ -24,16 +24,18 @@ internal class Dimensions<TTracker, TData> where TTracker : notnull where TData 
 	public bool AnyRegistered() => _funcs.Any();
 
 	public void Register(TTracker tracker, Func<TData> func) {
-		if (!_enabledDimensions.TryGetValue(tracker, out var dimension))
+		if (!_enabledDimensions.TryGetValue(tracker, out var dimension)) {
 			return;
+		}
 
 		var tags = new[] { _genTag(dimension) };
 		_funcs.Add(() => new(func(), tags.AsSpan()));
 	}
 
 	public void Register(TTracker tracker, Func<string, Measurement<TData>> func) {
-		if (!_enabledDimensions.TryGetValue(tracker, out var dimension))
+		if (!_enabledDimensions.TryGetValue(tracker, out var dimension)) {
 			return;
+		}
 
 		_funcs.Add(() => func(dimension));
 	}

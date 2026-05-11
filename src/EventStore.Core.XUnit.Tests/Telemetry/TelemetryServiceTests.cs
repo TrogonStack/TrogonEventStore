@@ -21,8 +21,7 @@ using static EventStore.Plugins.Diagnostics.PluginDiagnosticsDataCollectionMode;
 
 namespace EventStore.Core.XUnit.Tests.Telemetry;
 
-public sealed class TelemetryServiceTests : IAsyncLifetime
-{
+public sealed class TelemetryServiceTests : IAsyncLifetime {
 	private readonly TelemetryService _sut;
 	private readonly InMemoryTelemetrySink _sink;
 	private readonly ChannelReader<Message> _channelReader;
@@ -31,12 +30,10 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 
 	readonly FakePlugableComponent _plugin;
 
-	public TelemetryServiceTests()
-	{
+	public TelemetryServiceTests() {
 		var config = TFChunkHelper.CreateSizedDbConfig(_fixture.Directory, 0, chunkSize: 4096);
 		_db = new TFChunkDb(config);
-		using (var task = _db.Open(false).AsTask())
-		{
+		using (var task = _db.Open(false).AsTask()) {
 			task.Wait();
 		}
 
@@ -60,16 +57,14 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 
 	public Task InitializeAsync() => _fixture.InitializeAsync();
 
-	public async Task DisposeAsync()
-	{
+	public async Task DisposeAsync() {
 		_plugin.Dispose();
 		await _sut.DisposeAsync();
 		await _db.DisposeAsync();
 		await _fixture.DisposeAsync();
 	}
 
-	private static MemberInfo CreateMemberInfo(Guid instanceId, VNodeState state, bool isReadOnly)
-	{
+	private static MemberInfo CreateMemberInfo(Guid instanceId, VNodeState state, bool isReadOnly) {
 		static int random() => Random.Shared.Next(65000);
 
 		var memberInfo = MemberInfo.ForVNode(
@@ -98,8 +93,7 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 	}
 
 	[Fact]
-	public async Task can_collect_and_flush_telemetry()
-	{
+	public async Task can_collect_and_flush_telemetry() {
 		_plugin.PublishSomeTelemetry();
 
 		// receive schedule of collect trigger it
@@ -155,8 +149,7 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 
 	[Fact]
 
-	public async Task check_for_leaderid_and_epochid()
-	{
+	public async Task check_for_leaderid_and_epochid() {
 		_plugin.PublishSomeTelemetry();
 		// receive schedule of collect trigger it
 		var schedule = Assert.IsType<TimerMessage.Schedule>(await _channelReader.ReadAsync());
@@ -210,10 +203,8 @@ public sealed class TelemetryServiceTests : IAsyncLifetime
 		Assert.NotNull(_sink.Data["fakeComponent"]);
 	}
 
-	class FakePlugableComponent(string name = "FakeComponent") : Plugin(name)
-	{
-		public void PublishSomeTelemetry()
-		{
+	class FakePlugableComponent(string name = "FakeComponent") : Plugin(name) {
+		public void PublishSomeTelemetry() {
 			PublishDiagnosticsData(new() { ["enabled"] = Enabled }, Snapshot);
 
 			PublishDiagnosticsData(new() { ["Baz"] = "qux" }, Snapshot);

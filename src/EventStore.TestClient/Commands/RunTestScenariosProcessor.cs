@@ -11,20 +11,16 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.TestClient.Commands;
 
-internal class RunTestScenariosProcessor : ICmdProcessor
-{
+internal class RunTestScenariosProcessor : ICmdProcessor {
 	private static readonly ILogger Log = Serilog.Log.ForContext<RunTestScenariosProcessor>();
 	private const string AllScenariosFlag = "ALL";
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "RT"; }
 	}
 
-	public string Usage
-	{
-		get
-		{
+	public string Usage {
+		get {
 			const string usage = "<max concurrent requests, int> " +
 								 "\n<connections, int> " +
 								 "\n<streams count, int> " +
@@ -38,10 +34,10 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 		}
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
-		if (args.Length != 0 && false == (args.Length == 7 || args.Length == 8))
+	public bool Execute(CommandProcessorContext context, string[] args) {
+		if (args.Length != 0 && false == (args.Length == 7 || args.Length == 8)) {
 			return false;
+		}
 
 		var maxConcurrentRequests = 20;
 		var connections = 10;
@@ -54,14 +50,12 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 		NodeConnectionInfo customNode = null;
 
 		{
-			if (args.Length == 9)
-			{
+			if (args.Length == 9) {
 				throw new ArgumentException(
 					"Not compatible arguments, only one of <dbPath> or <custom node> can be specified.");
 			}
 
-			if (args.Length == 8)
-			{
+			if (args.Length == 8) {
 				IPAddress ip;
 				int tcpPort;
 				int httpPort;
@@ -70,18 +64,15 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 				if (atoms.Length == 3
 					&& IPAddress.TryParse(atoms[0], out ip)
 					&& int.TryParse(atoms[1], out tcpPort)
-					&& int.TryParse(atoms[2], out httpPort))
-				{
+					&& int.TryParse(atoms[2], out httpPort)) {
 					customNode = new NodeConnectionInfo(ip, tcpPort, httpPort);
 
 					args = CutLastArgument(args);
 				}
 			}
 
-			if (args.Length == 7 || args.Length == 8)
-			{
-				try
-				{
+			if (args.Length == 7 || args.Length == 8) {
+				try {
 					maxConcurrentRequests = int.Parse(args[0]);
 					connections = int.Parse(args[1]);
 					streams = int.Parse(args[2]);
@@ -90,19 +81,17 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 					scenarioName = args[5];
 					executionPeriodMinutes = int.Parse(args[6]);
 
-					if (args.Length == 8)
-					{
+					if (args.Length == 8) {
 						dbParentPath = args[7];
 					}
-					else
-					{
+					else {
 						var envDbPath = Environment.GetEnvironmentVariable("EVENTSTORE_DATABASEPATH");
-						if (!string.IsNullOrEmpty(envDbPath))
+						if (!string.IsNullOrEmpty(envDbPath)) {
 							dbParentPath = envDbPath;
+						}
 					}
 				}
-				catch (Exception e)
-				{
+				catch (Exception e) {
 					Log.Error("Invalid arguments ({e})", e.Message);
 					return false;
 				}
@@ -212,19 +201,15 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 
 		Log.Information("Running test scenarios ({scenarios} total)...", scenarios.Length);
 
-		foreach (var scenario in scenarios)
-		{
-			using (scenario)
-			{
-				try
-				{
+		foreach (var scenario in scenarios) {
+			using (scenario) {
+				try {
 					Log.Information("Run scenario {type}", scenario.GetType().Name);
 					scenario.Run();
 					scenario.Clean();
 					Log.Information("Scenario run successfully");
 				}
-				catch (Exception e)
-				{
+				catch (Exception e) {
 					context.Fail(e);
 				}
 			}
@@ -232,30 +217,27 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 
 		Log.Information("Finished running test scenarios");
 
-		if (context.ExitCode == 0)
+		if (context.ExitCode == 0) {
 			context.Success();
+		}
 
 		return true;
 	}
 
-	private static string[] CutLastArgument(string[] args)
-	{
+	private static string[] CutLastArgument(string[] args) {
 		var cutArgs = new string[7];
 		Array.Copy(args, cutArgs, 7);
 		return cutArgs;
 	}
 
-	private Action<IPEndPoint, byte[]> CreateDirectTcpSender(CommandProcessorContext context)
-	{
+	private Action<IPEndPoint, byte[]> CreateDirectTcpSender(CommandProcessorContext context) {
 		const int timeoutMilliseconds = 4000;
 
-		Action<IPEndPoint, byte[]> sender = (tcpEndPoint, bytes) =>
-		{
+		Action<IPEndPoint, byte[]> sender = (tcpEndPoint, bytes) => {
 			var sent = new AutoResetEvent(false);
 
 			Action<TcpTypedConnection<byte[]>, TcpPackage> handlePackage = (_, __) => { };
-			Action<TcpTypedConnection<byte[]>> established = connection =>
-			{
+			Action<TcpTypedConnection<byte[]>> established = connection => {
 				connection.EnqueueSend(bytes);
 				connection.Close();
 				sent.Set();
@@ -263,8 +245,9 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 			Action<TcpTypedConnection<byte[]>, SocketError> closed = (_, __) => sent.Set();
 
 			context._tcpTestClient.CreateTcpConnection(context, handlePackage, established, closed, false, tcpEndPoint);
-			if (!sent.WaitOne(timeoutMilliseconds))
+			if (!sent.WaitOne(timeoutMilliseconds)) {
 				throw new ApplicationException("Connection to server was not closed in time.");
+			}
 		};
 
 		return sender;

@@ -17,23 +17,20 @@ using SUT = EventStore.Core.Services.ElectionsService;
 
 namespace EventStore.Core.Tests.Services.ElectionsService;
 
-public class ElectionsServiceUnitTests
-{
+public class ElectionsServiceUnitTests {
 	private Dictionary<IPEndPoint, IPublisher> _nodes;
 	private List<MemberInfo> _members;
 	private FakeTimeProvider _fakeTimeProvider;
 	private FakeScheduler _scheduler;
 
 	[SetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		var address = IPAddress.Loopback;
 		var members = new List<MemberInfo>();
 		var seeds = new List<IPEndPoint>();
 		var seedSource = new ReallyNotSafeFakeGossipSeedSource(seeds);
 		_nodes = new Dictionary<IPEndPoint, IPublisher>();
-		for (int i = 0; i < 3; i++)
-		{
+		for (int i = 0; i < 3; i++) {
 			var inputBus = new SynchronousScheduler($"ELECTIONS-INPUT-BUS-NODE-{i}", watchSlowMsg: false);
 			var outputBus = new SynchronousScheduler($"ELECTIONS-OUTPUT-BUS-NODE-{i}", watchSlowMsg: false);
 			var endPoint = new IPEndPoint(address, 1000 + i);
@@ -64,10 +61,8 @@ public class ElectionsServiceUnitTests
 
 			var nodeId = i;
 			outputBus.Subscribe(new AdHocHandler<Message>(
-				m =>
-				{
-					switch (m)
-					{
+				m => {
+					switch (m) {
 						case TimerMessage.Schedule sm:
 							TestContext.WriteLine(
 								$"Node {nodeId} : Delay {sm.TriggerAfter} : {sm.ReplyMessage.GetType()}");
@@ -100,49 +95,40 @@ public class ElectionsServiceUnitTests
 		_members = members;
 	}
 
-	class ReallyNotSafeFakeGossipSeedSource : IGossipSeedSource
-	{
+	class ReallyNotSafeFakeGossipSeedSource : IGossipSeedSource {
 		private readonly List<IPEndPoint> _ipEndPoints;
 
-		public ReallyNotSafeFakeGossipSeedSource(List<IPEndPoint> ipEndPoints)
-		{
+		public ReallyNotSafeFakeGossipSeedSource(List<IPEndPoint> ipEndPoints) {
 			_ipEndPoints = ipEndPoints;
 		}
 
-		public IAsyncResult BeginGetHostEndpoints(AsyncCallback requestCallback, object state)
-		{
+		public IAsyncResult BeginGetHostEndpoints(AsyncCallback requestCallback, object state) {
 			requestCallback(null);
 			return null;
 		}
 
-		public EndPoint[] EndGetHostEndpoints(IAsyncResult asyncResult)
-		{
+		public EndPoint[] EndGetHostEndpoints(IAsyncResult asyncResult) {
 			return _ipEndPoints.ToArray();
 		}
 	}
 }
 
-public class ChoosingLeaderTests
-{
-	static IEnumerable<TestCase> CreateCases()
-	{
+public class ChoosingLeaderTests {
+	static IEnumerable<TestCase> CreateCases() {
 		// Tiebreaker: If all else is equal, pick the node with the highest server id
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			ProposingNode = 0,
 		};
 
 		// If checkpoints are equal, pick the node with the highest priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 0,
 			NodePriorities = new[] { 3, 2, 1 }
 		};
 
 		// Don't pick the last elected leader if it is resigning
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 1,
 			NodePriorities = new[] { 0, 0, 0 },
 			LastElectedLeader = new int?[] { 2, 2, 2 },
@@ -150,8 +136,7 @@ public class ChoosingLeaderTests
 		};
 
 		// Pick the last elected leader if all else is equal
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 0,
 			NodePriorities = new[] { int.MinValue, int.MinValue, int.MinValue },
 			LastElectedLeader = new int?[] { 0, 0, 0 },
@@ -159,8 +144,7 @@ public class ChoosingLeaderTests
 
 		// Pick the non-resigning node with the highest chaser checkpoint
 		// instead of the resigning leader
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 0,
 			LastElectedLeader = new int?[] { 2, 2, 2 },
 			ResigningLeader = 2,
@@ -170,8 +154,7 @@ public class ChoosingLeaderTests
 
 		// Pick the non-resigning node with the highest writer checkpoint
 		// instead of the resigning leader
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 1,
 			LastElectedLeader = new int?[] { 2, 2, 2 },
 			ResigningLeader = 2,
@@ -181,8 +164,7 @@ public class ChoosingLeaderTests
 
 		// Pick the node with the highest chaser checkpoint
 		// regardless of node priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 0,
 			LastElectedLeader = new int?[] { 0, 0, 0 },
 			ChaserCheckpoints = new long[] { 1, 0, 0 },
@@ -191,8 +173,7 @@ public class ChoosingLeaderTests
 
 		// Pick the node with the highest writer checkpoint
 		// regardless of node priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 1,
 			LastElectedLeader = new int?[] { 1, 1, 1 },
 			WriterCheckpoints = new long[] { 0, 1, 0 },
@@ -200,8 +181,7 @@ public class ChoosingLeaderTests
 		};
 
 		// Pick the node with the highest priority over the resigning leader
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 0,
 			ResigningLeader = 1,
 			LastElectedLeader = new int?[] { 1, 1, 1 },
@@ -210,8 +190,7 @@ public class ChoosingLeaderTests
 
 		// Pick the node with the highest priority between non-resigning nodes
 		// over the resigning leader
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			ResigningLeader = 0,
 			LastElectedLeader = new int?[] { 0, 0, 0 },
@@ -221,8 +200,7 @@ public class ChoosingLeaderTests
 
 		// Pick the node with the highest chaser checkpoint
 		// over the resigning leader, despite node priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			ResigningLeader = 0,
 			LastElectedLeader = new int?[] { 0, 0, 0 },
@@ -232,8 +210,7 @@ public class ChoosingLeaderTests
 
 		// Pick the node with the highest writer checkpoint
 		// over the resigning leader, despite node priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			WriterCheckpoints = new long[] { 1, 0, 1 },
 			NodePriorities = new[] { int.MinValue, 0, int.MinValue },
@@ -242,8 +219,7 @@ public class ChoosingLeaderTests
 		};
 
 		// Prefer the majority last leader, highest epoch, chaser, and priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			LastElectedLeader = new int?[] { 0, 2, 2 },
 			EpochNumbers = new[] { 10, 11, 11 },
@@ -252,8 +228,7 @@ public class ChoosingLeaderTests
 		};
 
 		// Prefer the majority last leader, highest chaser, and priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			LastElectedLeader = new int?[] { 0, 2, 2 },
 			EpochNumbers = new[] { 5, 5, 5 },
@@ -262,8 +237,7 @@ public class ChoosingLeaderTests
 		};
 
 		// Prefer the majority last leader, highest epoch, chaser, writer, and priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			LastElectedLeader = new int?[] { 0, 2, 2 },
 			EpochNumbers = new[] { 10, 11, 11 },
@@ -274,8 +248,7 @@ public class ChoosingLeaderTests
 
 		// Prefer the majority last leader, highest epoch, chaser, writer
 		// despite priority
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 1,
 			LastElectedLeader = new int?[] { 0, 1, 1 },
 			EpochNumbers = new[] { 10, 11, 11 },
@@ -286,8 +259,7 @@ public class ChoosingLeaderTests
 
 		// Prefer the majority last leader, highest epoch, and chaser,
 		// despite writer checkpoint
-		yield return new TestCase
-		{
+		yield return new TestCase {
 			ExpectedLeaderCandidateNode = 2,
 			LastElectedLeader = new int?[] { 0, 2, 2 },
 			EpochNumbers = new[] { 10, 11, 11 },
@@ -298,8 +270,7 @@ public class ChoosingLeaderTests
 	}
 
 	[Test, TestCaseSource(nameof(TestCases))]
-	public void should_select_valid_best_leader_candidate(TestCase tc)
-	{
+	public void should_select_valid_best_leader_candidate(TestCase tc) {
 		var epochId = Guid.NewGuid();
 		var members = new MemberInfo[3];
 		var prepareOks = new Dictionary<Guid, ElectionMessage.PrepareOk>();
@@ -309,8 +280,7 @@ public class ChoosingLeaderTests
 		Func<int, int> nodePriority = i => tc.NodePriorities[i];
 		Func<int, int> epochNumber = i => tc.EpochNumbers[i];
 
-		for (int index = 0; index < 3; index++)
-		{
+		for (int index = 0; index < 3; index++) {
 			members[index] = CreateMemberInfo(index, epochId, writerCheckpoint,
 				chaserCheckpoint, nodePriority, epochNumber);
 		}
@@ -318,8 +288,7 @@ public class ChoosingLeaderTests
 		var clusterInfo = new ClusterInfo(members);
 		Func<int, Guid> previousLeaderId = i => !tc.LastElectedLeader[i].HasValue ? Guid.Empty : IdForNode(tc.LastElectedLeader[i].Value);
 
-		for (int index = 0; index < 3; index++)
-		{
+		for (int index = 0; index < 3; index++) {
 			var prepareOk = CreatePrepareOk(index, epochId, writerCheckpoint, chaserCheckpoint,
 				nodePriority, epochNumber, previousLeaderId, clusterInfo);
 			prepareOks.Add(prepareOk.ServerId, prepareOk);
@@ -349,8 +318,7 @@ public class ChoosingLeaderTests
 		Func<int, int> nodePriority,
 		Func<int, int> epochNumber,
 		Func<int, Guid> previousLeaderId,
-		ClusterInfo clusterInfo)
-	{
+		ClusterInfo clusterInfo) {
 		var id = IdForNode(i);
 		var ep = EndpointForNode(i);
 		return new ElectionMessage.PrepareOk(1, id, ep, epochNumber(i), 1, epochId, previousLeaderId(i), -1, writerCheckpoint(i),
@@ -362,8 +330,7 @@ public class ChoosingLeaderTests
 		Func<int, long> chaserCheckpoint,
 		Func<int, int> nodePriority,
 		Func<int, int> epochNumber,
-		Func<int, Guid> previousLeaderId)
-	{
+		Func<int, Guid> previousLeaderId) {
 		var id = IdForNode(i);
 		var ep = EndpointForNode(i);
 		return new SUT.LeaderCandidate(id, ep, epochNumber(i), 1, epochId, previousLeaderId(i), -1, writerCheckpoint(i),
@@ -375,31 +342,26 @@ public class ChoosingLeaderTests
 		Func<int, long> chaserCheckpoint,
 		Func<int, int> nodePriority,
 		Func<int, int> epochNumber
-		)
-	{
+		) {
 		var id = IdForNode(i);
 		var ep = EndpointForNode(i);
 		return MemberInfo.ForVNode(id, DateTime.Now, VNodeState.Follower, true, ep, ep, ep, ep, ep, null, 0, 0,
 			 -1, writerCheckpoint(i), chaserCheckpoint(i), 1, epochNumber(i), epochId, nodePriority(i), false);
 	}
 
-	private static IPEndPoint EndpointForNode(int i)
-	{
+	private static IPEndPoint EndpointForNode(int i) {
 		return new IPEndPoint(IPAddress.Loopback, 1000 + i);
 	}
 
-	private static Guid IdForNode(int i)
-	{
+	private static Guid IdForNode(int i) {
 		return Guid.Parse($"101EFD13-F9CD-49BE-9C6D-E6AF9AF5540{i}");
 	}
 
-	static object[] TestCases()
-	{
+	static object[] TestCases() {
 		return CreateCases().Cast<object>().ToArray();
 	}
 
-	public class TestCase
-	{
+	public class TestCase {
 		public int ExpectedLeaderCandidateNode { get; set; }
 		public int? ResigningLeader { get; set; }
 		public int ProposingNode { get; set; }
@@ -412,55 +374,60 @@ public class ChoosingLeaderTests
 		private static int _id = 0;
 		private static string GenerateName(int expectedLeaderCandidateNode, int?[] previousLeader,
 			long[] writerCheckpoints,
-			long[] chaserCheckpoints, int[] nodePriorities, int[] epochNumbers)
-		{
+			long[] chaserCheckpoints, int[] nodePriorities, int[] epochNumbers) {
 			var nameBuilder = new StringBuilder();
 			nameBuilder.Append($"{_id++} ");
-			if (writerCheckpoints != null)
-			{
-				if (nameBuilder.Length == 0)
+			if (writerCheckpoints != null) {
+				if (nameBuilder.Length == 0) {
 					nameBuilder.Append("Nodes with ");
-				else
+				}
+				else {
 					nameBuilder.Append(" and ");
+				}
+
 				nameBuilder.AppendFormat("writer checkpoints << {0} >>", string.Join(",",
 					writerCheckpoints.Where(x => x != 1).Select((x, i) => $"{i} : wcp {x}")));
 			}
 
-			if (chaserCheckpoints != null)
-			{
-				if (nameBuilder.Length == 0)
+			if (chaserCheckpoints != null) {
+				if (nameBuilder.Length == 0) {
 					nameBuilder.Append("Nodes with ");
-				else
+				}
+				else {
 					nameBuilder.Append(" and ");
+				}
+
 				nameBuilder.AppendFormat("chaser checkpoints << {0} >>", string.Join(",",
 					chaserCheckpoints.Where(x => x != 1).Select((x, i) => $"{i} : ccp {x}")));
 			}
 
-			if (nodePriorities != null)
-			{
-				if (nameBuilder.Length == 0)
+			if (nodePriorities != null) {
+				if (nameBuilder.Length == 0) {
 					nameBuilder.Append("Nodes with ");
-				else
+				}
+				else {
 					nameBuilder.Append(" and ");
+				}
+
 				nameBuilder.AppendFormat("node priorities << {0} >>", string.Join(",",
 					nodePriorities.Where(x => x != 0).Select((x, i) => $"{i} : np {x}")));
 			}
-			if (epochNumbers != null)
-			{
+			if (epochNumbers != null) {
 				nameBuilder.Append(nameBuilder.Length == 0 ? "Nodes with " : " and ");
 				nameBuilder.AppendFormat("epoch numbers << {0} >>", string.Join(",",
 					epochNumbers.Where(x => x != 0).Select((x, i) => $"{i} : en {x}")));
 			}
 
-			if (nameBuilder.Length == 0)
+			if (nameBuilder.Length == 0) {
 				nameBuilder.AppendFormat("All nodes caught up with the same priority expect {0} to be leader",
 					expectedLeaderCandidateNode);
+			}
+
 			var name = nameBuilder.ToString();
 			return name;
 		}
 
-		public override string ToString()
-		{
+		public override string ToString() {
 			return GenerateName(ExpectedLeaderCandidateNode, LastElectedLeader, WriterCheckpoints, ChaserCheckpoints,
 				NodePriorities, EpochNumbers);
 		}

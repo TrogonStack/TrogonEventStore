@@ -12,32 +12,29 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.ServerFeaturesTests;
 
-public class ServerFeaturesTest
-{
+public class ServerFeaturesTest {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
-		when_getting_supported_methods<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
-	{
+		when_getting_supported_methods<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
 
 		private List<SupportedMethod> _supportedEndPoints = new();
 		private List<SupportedMethod> _expectedEndPoints = new();
 		private string _expectedServerVersion;
 		private string _serverVersion;
 
-		protected override async Task Given()
-		{
+		protected override async Task Given() {
 			var streamEndPoints = GetEndPoints(Client.Streams.Streams.Descriptor);
-			foreach (var ep in streamEndPoints)
-			{
-				if (ep.MethodName.Contains("read"))
+			foreach (var ep in streamEndPoints) {
+				if (ep.MethodName.Contains("read")) {
 					ep.Features.AddRange(new[] { "position", "events" });
-				else if (ep.MethodName.Contains("batchappend"))
+				}
+				else if (ep.MethodName.Contains("batchappend")) {
 					ep.Features.Add("deadline_duration");
+				}
 			}
 
 			var psubEndPoints = GetEndPoints(Client.PersistentSubscriptions.PersistentSubscriptions.Descriptor);
-			foreach (var ep in psubEndPoints)
-			{
+			foreach (var ep in psubEndPoints) {
 				ep.Features.AddRange(new[] { "stream", "all" });
 			}
 
@@ -57,13 +54,11 @@ public class ServerFeaturesTest
 			var node = GetLeader();
 			await Task.WhenAll(node.AdminUserCreated, node.Started);
 
-			using var httpClient = new HttpClient(new SocketsHttpHandler
-			{
+			using var httpClient = new HttpClient(new SocketsHttpHandler {
 				SslOptions = {
 					RemoteCertificateValidationCallback = delegate { return true; }
 				}
-			}, true)
-			{
+			}, true) {
 				DefaultRequestVersion = new Version(2, 0)
 			};
 			var scheme = node.Node.DisableHttps ? "http" : "https";
@@ -77,21 +72,18 @@ public class ServerFeaturesTest
 
 		}
 		private SupportedMethod[] GetEndPoints(ServiceDescriptor desc) =>
-			desc.Methods.Select(x => new SupportedMethod
-			{
+			desc.Methods.Select(x => new SupportedMethod {
 				MethodName = x.Name.ToLower(),
 				ServiceName = x.Service.FullName.ToLower()
 			}).ToArray();
 
 		[Test]
-		public void should_receive_expected_endpoints()
-		{
+		public void should_receive_expected_endpoints() {
 			CollectionAssert.AreEquivalent(_expectedEndPoints, _supportedEndPoints);
 		}
 
 		[Test]
-		public void should_receive_the_correct_eventstore_version()
-		{
+		public void should_receive_the_correct_eventstore_version() {
 			Assert.AreEqual(_expectedServerVersion, _serverVersion);
 		}
 	}

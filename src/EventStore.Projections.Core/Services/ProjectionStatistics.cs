@@ -2,8 +2,7 @@ using EventStore.Projections.Core.Services.Management;
 
 namespace EventStore.Projections.Core.Services;
 
-public class ProjectionStatistics
-{
+public class ProjectionStatistics {
 	//TODO: resolve name collisions...
 
 	public string Status { get; set; }
@@ -52,13 +51,11 @@ public class ProjectionStatistics
 
 	public long CoreProcessingTime { get; set; }
 
-	public ProjectionStatistics Clone()
-	{
+	public ProjectionStatistics Clone() {
 		return (ProjectionStatistics)MemberwiseClone();
 	}
 
-	protected bool Equals(ProjectionStatistics other)
-	{
+	protected bool Equals(ProjectionStatistics other) {
 		return string.Equals(Status, other.Status) && Enabled.Equals(other.Enabled)
 												   && LeaderStatus == other.LeaderStatus &&
 												   string.Equals(StateReason, other.StateReason)
@@ -84,21 +81,24 @@ public class ProjectionStatistics
 												   CoreProcessingTime == other.CoreProcessingTime;
 	}
 
-	public override bool Equals(object obj)
-	{
-		if (ReferenceEquals(null, obj))
+	public override bool Equals(object obj) {
+		if (ReferenceEquals(null, obj)) {
 			return false;
-		if (ReferenceEquals(this, obj))
+		}
+
+		if (ReferenceEquals(this, obj)) {
 			return true;
-		if (obj.GetType() != this.GetType())
+		}
+
+		if (obj.GetType() != this.GetType()) {
 			return false;
+		}
+
 		return Equals((ProjectionStatistics)obj);
 	}
 
-	public override int GetHashCode()
-	{
-		unchecked
-		{
+	public override int GetHashCode() {
+		unchecked {
 			int hashCode = (Status != null ? Status.GetHashCode() : 0);
 			hashCode = (hashCode * 397) ^ Enabled.GetHashCode();
 			hashCode = (hashCode * 397) ^ (int)LeaderStatus;

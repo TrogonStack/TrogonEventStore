@@ -18,16 +18,14 @@ namespace EventStore.Projections.Core.Tests.Services.emitted_stream.another_epoc
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_handling_emits_with_previously_written_events_at_the_same_position<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+	when_handling_emits_with_previously_written_events_at_the_same_position<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private long _1;
 	private long _2;
 	private long _3;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		AllWritesToSucceed("$$test_stream");
 		//NOTE: it is possible for a batch of events to be partially written if it contains links
@@ -36,8 +34,7 @@ public class
 		NoOtherStreams();
 	}
 
-	private EmittedEvent[] CreateEventBatch()
-	{
+	private EmittedEvent[] CreateEventBatch() {
 		return new EmittedEvent[] {
 			new EmittedDataEvent(
 				(string)"test_stream", Guid.NewGuid(), (string)"type1", (bool)true,
@@ -55,8 +52,7 @@ public class
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test_stream",
@@ -71,8 +67,7 @@ public class
 	}
 
 	[Test]
-	public void truncates_existing_stream_at_correct_position()
-	{
+	public void truncates_existing_stream_at_correct_position() {
 		var writes =
 			HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.OfEventType(SystemEventTypes.StreamMetadata)
@@ -82,8 +77,7 @@ public class
 	}
 
 	[Test]
-	public void publishes_all_events()
-	{
+	public void publishes_all_events() {
 		var writtenEvents =
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.ExceptOfEventType(SystemEventTypes.StreamMetadata)
@@ -95,8 +89,7 @@ public class
 	}
 
 	[Test]
-	public void updates_stream_metadata()
-	{
+	public void updates_stream_metadata() {
 		var writes =
 			HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.OfEventType(SystemEventTypes.StreamMetadata)
@@ -105,8 +98,7 @@ public class
 	}
 
 	[Test]
-	public void reports_correct_event_numbers()
-	{
+	public void reports_correct_event_numbers() {
 		Assert.AreEqual(2, _1);
 		Assert.AreEqual(3, _2);
 		Assert.AreEqual(4, _3);

@@ -21,8 +21,13 @@ namespace EventStore.Core.Authentication.InternalAuthentication {
 		}
 
 		public void Run(Action<UserManagementMessage.Error, UserManagementMessage.UserData[]> completed) {
-			if (completed == null) throw new ArgumentNullException(nameof(completed));
-			if (_onCompleted != null) throw new InvalidOperationException("AllUsersReader cannot be re-used");
+			if (completed == null) {
+				throw new ArgumentNullException(nameof(completed));
+			}
+
+			if (_onCompleted != null) {
+				throw new InvalidOperationException("AllUsersReader cannot be re-used");
+			}
 
 			_onCompleted = completed;
 
@@ -35,21 +40,26 @@ namespace EventStore.Core.Authentication.InternalAuthentication {
 		}
 
 		private void ReadUsersForwardCompleted(ClientMessage.ReadStreamEventsForwardCompleted result) {
-			if (_aborted)
+			if (_aborted) {
 				return;
+			}
+
 			switch (result.Result) {
 				case ReadStreamResult.Success:
 					foreach (var loginName in from eventData in result.Events
-						let @event = eventData.Event
-						where @event.EventType == UserEventType
-						let stringData = Helper.UTF8NoBom.GetString(@event.Data.Span)
-						select stringData)
+											  let @event = eventData.Event
+											  where @event.EventType == UserEventType
+											  let stringData = Helper.UTF8NoBom.GetString(@event.Data.Span)
+											  select stringData) {
 						BeginReadUserDetails(loginName, () => {
-							if (!result.IsEndOfStream)
+							if (!result.IsEndOfStream) {
 								BeginReadForward(result.NextEventNumber);
-							else
+							}
+							else {
 								TryComplete();
+							}
 						});
+					}
 
 					break;
 				case ReadStreamResult.NoStream:
@@ -78,21 +88,28 @@ namespace EventStore.Core.Authentication.InternalAuthentication {
 
 		private void ReadUserDetailsBackwardCompleted(
 			string loginName, ClientMessage.ReadStreamEventsBackwardCompleted result) {
-			if (_aborted)
+			if (_aborted) {
 				return;
+			}
+
 			switch (result.Result) {
 				case ReadStreamResult.Success:
-					if (_results.Any(x => x.LoginName == loginName)) break;
+					if (_results.Any(x => x.LoginName == loginName)) {
+						break;
+					}
+
 					if (result.Events.Count is not 1) {
 						AddLoadedUserDetails(loginName, "", [], true, null);
-					} else {
+					}
+					else {
 						try {
 							var eventRecord = result.Events[0].Event;
 							var userData = eventRecord.Data.ParseJson<UserData>();
 							AddLoadedUserDetails(
 								userData.LoginName, userData.FullName, userData.Groups, userData.Disabled,
 								new DateTimeOffset(eventRecord.TimeStamp, TimeSpan.FromHours(0)));
-						} catch {
+						}
+						catch {
 							Abort(UserManagementMessage.Error.Error);
 						}
 					}
@@ -110,8 +127,9 @@ namespace EventStore.Core.Authentication.InternalAuthentication {
 		}
 
 		private void TryComplete() {
-			if (!_aborted)
+			if (!_aborted) {
 				_onCompleted(UserManagementMessage.Error.Success, _results.ToArray());
+			}
 		}
 
 		private void AddLoadedUserDetails(

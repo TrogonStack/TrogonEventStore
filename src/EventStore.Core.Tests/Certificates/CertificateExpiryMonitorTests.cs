@@ -11,13 +11,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Certificates;
 
 
-public class CertificateExpiryMonitorTests : with_certificates
-{
+public class CertificateExpiryMonitorTests : with_certificates {
 	private FakePublisher _publisher;
 	private FakeLogger _logger;
 
-	private static X509Certificate2 GenCertificate(TimeSpan timeUntilExpiry)
-	{
+	private static X509Certificate2 GenCertificate(TimeSpan timeUntilExpiry) {
 		using var rsa = RSA.Create();
 		var certificate = new CertificateRequest(GenerateSubject(), rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
 			.CreateSelfSigned(
@@ -27,15 +25,13 @@ public class CertificateExpiryMonitorTests : with_certificates
 	}
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_publisher = new();
 		_logger = new();
 	}
 
 	[Test]
-	public void on_start()
-	{
+	public void on_start() {
 		// given
 		var certificate = GenCertificate(TimeSpan.FromDays(60));
 		var sut = new CertificateExpiryMonitor(_publisher, () => certificate, _logger);
@@ -49,8 +45,7 @@ public class CertificateExpiryMonitorTests : with_certificates
 	}
 
 	[Test]
-	public void certificate_is_going_to_expire_within_30_days()
-	{
+	public void certificate_is_going_to_expire_within_30_days() {
 		// given
 		var certificate = GenCertificate(TimeSpan.FromDays(29));
 		var sut = new CertificateExpiryMonitor(_publisher, () => certificate, _logger);
@@ -70,8 +65,7 @@ public class CertificateExpiryMonitorTests : with_certificates
 	}
 
 	[Test]
-	public void certificate_is_not_going_to_expire_within_30_days()
-	{
+	public void certificate_is_not_going_to_expire_within_30_days() {
 		// given
 		var certificate = GenCertificate(TimeSpan.FromDays(31));
 		var sut = new CertificateExpiryMonitor(_publisher, () => certificate, _logger);

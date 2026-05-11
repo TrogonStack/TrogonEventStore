@@ -9,8 +9,7 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public abstract class DefaultProjectionProcessingStrategy : EventReaderBasedProjectionProcessingStrategy
-{
+public abstract class DefaultProjectionProcessingStrategy : EventReaderBasedProjectionProcessingStrategy {
 	private readonly IProjectionStateHandler _stateHandler;
 
 	protected DefaultProjectionProcessingStrategy(
@@ -26,8 +25,7 @@ public abstract class DefaultProjectionProcessingStrategy : EventReaderBasedProj
 			logger,
 			subscriptionDispatcher,
 			enableContentTypeValidation,
-			maxProjectionStateSize)
-	{
+			maxProjectionStateSize) {
 		_stateHandler = stateHandler;
 	}
 
@@ -43,8 +41,7 @@ public abstract class DefaultProjectionProcessingStrategy : EventReaderBasedProj
 		ICoreProjectionCheckpointManager checkpointManager,
 		IReaderStrategy readerStrategy,
 		IResultWriter resultWriter,
-		IEmittedStreamsTracker emittedStreamsTracker)
-	{
+		IEmittedStreamsTracker emittedStreamsTracker) {
 		var statePartitionSelector = CreateStatePartitionSelector();
 
 		var orderedPartitionProcessing = _sourceDefinition.ByStreams && _sourceDefinition.IsBiState;
@@ -74,8 +71,7 @@ public abstract class DefaultProjectionProcessingStrategy : EventReaderBasedProj
 			enableContentTypeValidation: _enableContentTypeValidation);
 	}
 
-	protected virtual StatePartitionSelector CreateStatePartitionSelector()
-	{
+	protected virtual StatePartitionSelector CreateStatePartitionSelector() {
 		return _sourceDefinition.ByCustomPartitions
 			? new ByHandleStatePartitionSelector(_stateHandler)
 			: (_sourceDefinition.ByStreams

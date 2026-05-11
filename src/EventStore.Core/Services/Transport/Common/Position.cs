@@ -41,10 +41,11 @@ namespace EventStore.Core.Services.Transport.Common {
 		/// <param name="commitPosition">The commit position of the record.</param>
 		/// <param name="preparePosition">The prepare position of the record.</param>
 		public Position(ulong commitPosition, ulong preparePosition) {
-			if (commitPosition < preparePosition)
+			if (commitPosition < preparePosition) {
 				throw new ArgumentOutOfRangeException(
 					nameof(commitPosition),
 					"The commit position cannot be less than the prepare position");
+			}
 
 			if (commitPosition > long.MaxValue && commitPosition != ulong.MaxValue) {
 				throw new ArgumentOutOfRangeException(nameof(commitPosition));

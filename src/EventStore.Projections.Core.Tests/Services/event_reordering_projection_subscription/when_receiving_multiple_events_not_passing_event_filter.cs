@@ -7,15 +7,12 @@ namespace EventStore.Projections.Core.Tests.Services.event_reordering_projection
 
 [TestFixture]
 public class when_receiving_multiple_events_not_passing_event_filter :
-	TestFixtureWithEventReorderingProjectionSubscription
-{
+	TestFixtureWithEventReorderingProjectionSubscription {
 	private DateTime _timestamp;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		base.Given();
-		_source = builder =>
-		{
+		_source = builder => {
 			builder.FromStream("a");
 			builder.FromStream("b");
 			builder.IncludeEvent("specific-event");
@@ -24,8 +21,7 @@ public class when_receiving_multiple_events_not_passing_event_filter :
 		};
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		_timestamp = DateTime.UtcNow;
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
@@ -45,8 +41,7 @@ public class when_receiving_multiple_events_not_passing_event_filter :
 	}
 
 	[Test]
-	public void checkpoint_suggested_message_is_published_once_for_interval()
-	{
+	public void checkpoint_suggested_message_is_published_once_for_interval() {
 		Assert.AreEqual(1, _checkpointHandler.HandledMessages.Count);
 		Assert.AreEqual(2, _checkpointHandler.HandledMessages[0].CheckpointTag.Streams["a"]);
 		Assert.AreEqual(1, _checkpointHandler.HandledMessages[0].CheckpointTag.Streams["b"]);

@@ -12,18 +12,17 @@ using Serilog;
 
 namespace EventStore.Core.Services.Archive.Storage;
 
-public abstract class FluentReader(IArchiveChunkNamer chunkNamer, string archiveCheckpointFile)
-{
+public abstract class FluentReader(IArchiveChunkNamer chunkNamer, string archiveCheckpointFile) {
 	protected abstract ILogger Log { get; }
 	protected abstract IBlobStorage BlobStorage { get; }
 	public IArchiveChunkNamer ChunkNamer { get; } = chunkNamer;
 
-	public async ValueTask<long> GetCheckpoint(CancellationToken ct)
-	{
+	public async ValueTask<long> GetCheckpoint(CancellationToken ct) {
 		await using var stream = await BlobStorage.OpenReadAsync(archiveCheckpointFile, ct);
 
-		if (stream is null)
+		if (stream is null) {
 			return 0L;
+		}
 
 		using var buffer = Memory.AllocateExactly<byte>(sizeof(long));
 		await stream.ReadExactlyAsync(buffer.Memory, ct);
@@ -31,8 +30,7 @@ public abstract class FluentReader(IArchiveChunkNamer chunkNamer, string archive
 		return checkpoint;
 	}
 
-	public async ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
-	{
+	public async ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct) {
 		var stream = await BlobStorage.OpenReadAsync(chunkFile, ct);
 		return stream ?? throw new ChunkDeletedException();
 	}

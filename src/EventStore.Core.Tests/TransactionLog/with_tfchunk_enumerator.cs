@@ -11,10 +11,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class with_tfchunk_enumerator : SpecificationWithDirectory
-{
-	private sealed class CountingNamingStrategy(IVersionedFileNamingStrategy inner) : IVersionedFileNamingStrategy
-	{
+public class with_tfchunk_enumerator : SpecificationWithDirectory {
+	private sealed class CountingNamingStrategy(IVersionedFileNamingStrategy inner) : IVersionedFileNamingStrategy {
 		public int GetAllPresentFilesCalls { get; private set; }
 
 		public string Prefix => inner.Prefix;
@@ -23,8 +21,7 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 			inner.DetermineNewVersionFilenameForIndex(index, defaultVersion);
 		public string[] GetAllVersionsFor(int index) => inner.GetAllVersionsFor(index);
 
-		public string[] GetAllPresentFiles()
-		{
+		public string[] GetAllPresentFiles() {
 			GetAllPresentFilesCalls++;
 			return inner.GetAllPresentFiles();
 		}
@@ -36,15 +33,13 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void throws_argumentnullexception_when_constructed_with_null_naming_strategy()
-	{
+	public void throws_argumentnullexception_when_constructed_with_null_naming_strategy() {
 		var ex = Assert.Throws<ArgumentNullException>(() => new ChunkLocalFileSystem(null));
 		Assert.That(ex.ParamName, Is.EqualTo("namingStrategy"));
 	}
 
 	[Test]
-	public async Task iterates_chunks_with_correct_callback_order()
-	{
+	public async Task iterates_chunks_with_correct_callback_order() {
 		File.Create(GetFilePathFor("foo")).Close(); // should be ignored
 		File.Create(GetFilePathFor("bla")).Close(); // should be ignored
 		File.Create(GetFilePathFor("chunk-000001.000000.tmp")).Close(); // should be ignored
@@ -67,10 +62,8 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		var chunkEnumerator = new TFChunkEnumerator(strategy);
 		var result = new List<string>();
-		ValueTask<int> GetNextFileNumber(string chunk, int chunkNumber, int chunkVersion, CancellationToken token)
-		{
-			return Path.GetFileName(chunk) switch
-			{
+		ValueTask<int> GetNextFileNumber(string chunk, int chunkNumber, int chunkVersion, CancellationToken token) {
+			return Path.GetFileName(chunk) switch {
 				"chunk-000001.000000" => new(2),
 				"chunk-000002.000001" => new(3),
 				"chunk-000005.000000" => new(6),
@@ -83,10 +76,8 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 			};
 		}
 
-		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(16, GetNextFileNumber))
-		{
-			switch (chunkInfo)
-			{
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(16, GetNextFileNumber)) {
+			switch (chunkInfo) {
 				case LatestVersion(var fileName, var start, var end):
 					result.Add($"latest {Path.GetFileName(fileName)} {start}-{end}");
 					break;
@@ -121,8 +112,7 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 	}
 
 	[Test]
-	public async Task reuses_directory_listing_cache_within_the_same_enumerator_session()
-	{
+	public async Task reuses_directory_listing_cache_within_the_same_enumerator_session() {
 		File.Create(GetFilePathFor("chunk-000001.000000")).Close();
 		File.Create(GetFilePathFor("chunk-000002.000000")).Close();
 
@@ -131,14 +121,12 @@ public class with_tfchunk_enumerator : SpecificationWithDirectory
 		var chunkEnumerator = chunkFileSystem.CreateChunkEnumerator();
 
 		var firstPass = new List<TFChunkInfo>();
-		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(2, CancellationToken.None))
-		{
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(2, CancellationToken.None)) {
 			firstPass.Add(chunkInfo);
 		}
 
 		var secondPass = new List<TFChunkInfo>();
-		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(2, CancellationToken.None))
-		{
+		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(2, CancellationToken.None)) {
 			secondPass.Add(chunkInfo);
 		}
 

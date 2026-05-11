@@ -6,10 +6,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
 [TestFixture]
-public class when_handling_duplicate_events : TestFixtureWithProjectionSubscription
-{
-	protected override void When()
-	{
+public class when_handling_duplicate_events : TestFixtureWithProjectionSubscription {
+	protected override void When() {
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(200, 150), "test-stream", 1, false, Guid.NewGuid(),
@@ -25,8 +23,7 @@ public class when_handling_duplicate_events : TestFixtureWithProjectionSubscript
 	}
 
 	[Test]
-	public void duplicates_are_not_passed_to_downstream_handler()
-	{
+	public void duplicates_are_not_passed_to_downstream_handler() {
 		Assert.AreEqual(1, _eventHandler.HandledMessages.Count);
 	}
 }

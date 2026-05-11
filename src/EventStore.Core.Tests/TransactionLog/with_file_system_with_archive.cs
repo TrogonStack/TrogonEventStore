@@ -17,8 +17,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class with_file_system_with_archive : SpecificationWithDirectory
-{
+public class with_file_system_with_archive : SpecificationWithDirectory {
 	private const string ChunkPrefix = "chunk-";
 	private const string ArchiveCheckpointFile = "archive.chk";
 	private const int ChunkSize = 4096;
@@ -27,16 +26,14 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 	private string DbPath => Path.Combine(PathName, "db");
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 		Directory.CreateDirectory(ArchivePath);
 		Directory.CreateDirectory(DbPath);
 	}
 
 	[Test]
-	public async Task opens_remote_chunk_handles_for_archive_locators()
-	{
+	public async Task opens_remote_chunk_handles_for_archive_locators() {
 		var sourcePath = Path.Combine(DbPath, "source");
 		var content = new byte[256];
 		new Random(17).NextBytes(content);
@@ -58,8 +55,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 	}
 
 	[Test]
-	public async Task opens_completed_remote_tfchunks_through_the_archive_file_system()
-	{
+	public async Task opens_completed_remote_tfchunks_through_the_archive_file_system() {
 		var sourcePath = Path.Combine(DbPath, "chunk-000000.000000");
 		var sourceChunk = await TFChunkHelper.CreateNewChunk(sourcePath, chunkSize: ChunkSize);
 		await sourceChunk.Complete(CancellationToken.None);
@@ -88,8 +84,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 	}
 
 	[Test]
-	public async Task reads_remote_chunk_metadata_for_archive_locators()
-	{
+	public async Task reads_remote_chunk_metadata_for_archive_locators() {
 		var sourcePath = Path.Combine(DbPath, "chunk-000000.000000");
 		var sourceChunk = await TFChunkHelper.CreateNewChunk(sourcePath, chunkSize: ChunkSize);
 		await sourceChunk.Complete(CancellationToken.None);
@@ -110,8 +105,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 	}
 
 	[Test]
-	public async Task enumerator_replaces_missing_local_chunks_that_are_already_in_archive()
-	{
+	public async Task enumerator_replaces_missing_local_chunks_that_are_already_in_archive() {
 		var namingStrategy = new VersionedPatternFileNamingStrategy(DbPath, ChunkPrefix);
 		var localChunkEnumerator = new FakeChunkEnumerator(
 			new MissingVersion(namingStrategy.GetFilenameFor(0, 0), 0),
@@ -125,8 +119,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 			archive: new FakeArchiveReader(checkpoint: 2000, namingStrategy));
 
 		var results = new List<TFChunkInfo>();
-		await foreach (var chunkInfo in sut.CreateChunkEnumerator().EnumerateChunks(2, CancellationToken.None))
-		{
+		await foreach (var chunkInfo in sut.CreateChunkEnumerator().EnumerateChunks(2, CancellationToken.None)) {
 			results.Add(chunkInfo);
 		}
 
@@ -138,8 +131,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 		}));
 	}
 
-	private FileSystemWithArchive CreateSut()
-	{
+	private FileSystemWithArchive CreateSut() {
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(DbPath, ChunkPrefix);
 		return new FileSystemWithArchive(
 			ChunkSize,
@@ -155,8 +147,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 			ArchiveCheckpointFile);
 
 	private sealed class FakeChunkFileSystem(IVersionedFileNamingStrategy namingStrategy, IChunkEnumerator chunkEnumerator)
-		: IChunkFileSystem
-	{
+		: IChunkFileSystem {
 		public IVersionedFileNamingStrategy NamingStrategy { get; } = namingStrategy;
 
 		public ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
@@ -181,13 +172,10 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 			throw new NotImplementedException();
 	}
 
-	private sealed class FakeChunkEnumerator(params TFChunkInfo[] chunkInfos) : IChunkEnumerator
-	{
+	private sealed class FakeChunkEnumerator(params TFChunkInfo[] chunkInfos) : IChunkEnumerator {
 		public async IAsyncEnumerable<TFChunkInfo> EnumerateChunks(int lastChunkNumber,
-			[EnumeratorCancellation] CancellationToken token)
-		{
-			foreach (var chunkInfo in chunkInfos)
-			{
+			[EnumeratorCancellation] CancellationToken token) {
+			foreach (var chunkInfo in chunkInfos) {
 				token.ThrowIfCancellationRequested();
 				yield return chunkInfo;
 				await Task.Yield();
@@ -196,8 +184,7 @@ public class with_file_system_with_archive : SpecificationWithDirectory
 	}
 
 	private sealed class FakeArchiveReader(long checkpoint, IVersionedFileNamingStrategy namingStrategy)
-		: IArchiveStorageReader
-	{
+		: IArchiveStorageReader {
 		public IArchiveChunkNamer ChunkNamer { get; } = new ArchiveChunkNamer(namingStrategy);
 
 		public ValueTask<long> GetCheckpoint(CancellationToken ct) => ValueTask.FromResult(checkpoint);

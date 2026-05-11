@@ -6,8 +6,7 @@ using EventStore.Core.Services.Monitoring.Stats;
 
 namespace EventStore.Core.Tests.Bus.Helpers;
 
-public class FakeQueuedHandler : IQueuedHandler
-{
+public class FakeQueuedHandler : IQueuedHandler {
 	public string Name => string.Empty;
 	public List<Message> PublishedMessages { get; } = [];
 
@@ -18,8 +17,7 @@ public class FakeQueuedHandler : IQueuedHandler
 
 	public void Handle(Message message) { }
 
-	public void Publish(Message message)
-	{
+	public void Publish(Message message) {
 		PublishedMessages.Add(message);
 	}
 }

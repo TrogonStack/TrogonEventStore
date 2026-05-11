@@ -5,8 +5,7 @@ using EventStore.Core.DataStructures;
 
 namespace EventStore.Core.TransactionLog;
 
-public interface ITransactionFileReader
-{
+public interface ITransactionFileReader {
 	void Reposition(long position);
 
 	ValueTask<SeqReadResult> TryReadNext(CancellationToken token);
@@ -16,19 +15,16 @@ public interface ITransactionFileReader
 	ValueTask<bool> ExistsAt(long position, CancellationToken token);
 }
 
-public struct TFReaderLease : IDisposable
-{
+public struct TFReaderLease : IDisposable {
 	public readonly ITransactionFileReader Reader;
 	private readonly ObjectPool<ITransactionFileReader> _pool;
 
-	public TFReaderLease(ObjectPool<ITransactionFileReader> pool)
-	{
+	public TFReaderLease(ObjectPool<ITransactionFileReader> pool) {
 		_pool = pool;
 		Reader = pool.Get();
 	}
 
-	public TFReaderLease(ITransactionFileReader reader)
-	{
+	public TFReaderLease(ITransactionFileReader reader) {
 		_pool = null;
 		Reader = reader;
 	}

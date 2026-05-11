@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.Services.TimerService;
-using System.Threading;
 
 namespace EventStore.Core.Helpers {
 	public static class IODispatcherAsync {
@@ -37,7 +37,7 @@ namespace EventStore.Core.Helpers {
 		}
 
 		public static void Run(this Step action) {
-			Run(new[] {action});
+			Run(new[] { action });
 		}
 
 		public static Step BeginReadForward(
@@ -61,12 +61,18 @@ namespace EventStore.Core.Helpers {
 						resolveLinks,
 						principal,
 						response => {
-							if (cancellationScope.Cancelled(response.CorrelationId)) return;
+							if (cancellationScope.Cancelled(response.CorrelationId)) {
+								return;
+							}
+
 							handler(response);
 							Run(steps);
 						},
 						() => {
-							if (cancellationScope.Cancelled(corrId)) return;
+							if (cancellationScope.Cancelled(corrId)) {
+								return;
+							}
+
 							timeoutHandler();
 							Run(steps);
 						},
@@ -95,12 +101,18 @@ namespace EventStore.Core.Helpers {
 						resolveLinks,
 						principal,
 						response => {
-							if (cancellationScope.Cancelled(response.CorrelationId)) return;
+							if (cancellationScope.Cancelled(response.CorrelationId)) {
+								return;
+							}
+
 							handler(response);
 							Run(steps);
 						},
 						() => {
-							if (cancellationScope.Cancelled(corrId)) return;
+							if (cancellationScope.Cancelled(corrId)) {
+								return;
+							}
+
 							timeoutHandler();
 							Run(steps);
 						},
@@ -154,7 +166,10 @@ namespace EventStore.Core.Helpers {
 				streamId,
 				@from,
 				message => {
-					if (cancellationScope.Cancelled(message.CorrelationId)) return;
+					if (cancellationScope.Cancelled(message.CorrelationId)) {
+						return;
+					}
+
 					handler(message);
 					Run(steps);
 				},
@@ -190,7 +205,10 @@ namespace EventStore.Core.Helpers {
 			return steps => ioDispatcher.Delay(
 				timeout,
 				_ => {
-					if (cancellationScope.Cancelled(Guid.Empty)) return;
+					if (cancellationScope.Cancelled(Guid.Empty)) {
+						return;
+					}
+
 					handler();
 					Run(steps);
 				});
@@ -219,7 +237,10 @@ namespace EventStore.Core.Helpers {
 							events,
 							principal,
 							response => {
-								if (cancellationScope.Cancelled(response.CorrelationId)) return;
+								if (cancellationScope.Cancelled(response.CorrelationId)) {
+									return;
+								}
+
 								action(response, response.Result);
 							})));
 		}
@@ -247,7 +268,10 @@ namespace EventStore.Core.Helpers {
 							hardDelete,
 							principal,
 							response => {
-								if (cancellationScope.Cancelled(response.CorrelationId)) return;
+								if (cancellationScope.Cancelled(response.CorrelationId)) {
+									return;
+								}
+
 								action(response, response.Result);
 							})));
 		}
@@ -279,7 +303,10 @@ namespace EventStore.Core.Helpers {
 							},
 							principal,
 							response => {
-								if (cancellationScope.Cancelled(response.CorrelationId)) return;
+								if (cancellationScope.Cancelled(response.CorrelationId)) {
+									return;
+								}
+
 								action(response, response.Result);
 							})));
 		}
@@ -297,11 +324,14 @@ namespace EventStore.Core.Helpers {
 						ioDispatcher.Delay(
 							timeout,
 							_ => {
-								if (timeout < TimeSpan.FromSeconds(10))
+								if (timeout < TimeSpan.FromSeconds(10)) {
 									timeout += timeout;
+								}
+
 								PerformWithRetry(ioDispatcher, handler, steps, retryExpectedVersion, timeout, action);
 							});
-					} else {
+					}
+					else {
 						handler(response);
 						Run(steps);
 					}

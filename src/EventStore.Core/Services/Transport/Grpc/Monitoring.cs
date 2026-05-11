@@ -9,13 +9,14 @@ using Grpc.Core;
 namespace EventStore.Core.Services.Transport.Grpc {
 	internal partial class Monitoring : EventStore.Client.Monitoring.Monitoring.MonitoringBase {
 		private readonly IPublisher _publisher;
-		
+
 		public override Task Stats(StatsReq request, IServerStreamWriter<StatsResp> responseStream, ServerCallContext context) {
 			var useGrouping = request.HasUseGrouping ? request.UseGrouping : false;
-			if (!useGrouping && !string.IsNullOrEmpty(request.StatsPath))
+			if (!useGrouping && !string.IsNullOrEmpty(request.StatsPath)) {
 				throw new RpcException(
 					new Status(StatusCode.InvalidArgument,
 						"Dynamic stats selection works only with grouping enabled"));
+			}
 
 			return StreamStats();
 
@@ -33,8 +34,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					};
 					if (!useGrouping) {
 						foreach (var (key, value) in completed.Stats) {
-							if (value is not null)
+							if (value is not null) {
 								response.Stats.Add(key, value.ToString());
+							}
 						}
 					}
 

@@ -13,20 +13,17 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_the_stream_is_started_with_already_emitted_events<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_the_stream_is_started_with_already_emitted_events<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		base.Given();
 		NoStream("test");
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		;
 		_stream = new EmittedStream(
@@ -45,8 +42,7 @@ public class when_the_stream_is_started_with_already_emitted_events<TLogFormat, 
 	}
 
 	[Test]
-	public void publishes_write_events()
-	{
+	public void publishes_write_events() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Count());
 	}
 }

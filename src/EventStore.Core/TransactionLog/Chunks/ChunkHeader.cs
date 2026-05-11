@@ -4,12 +4,12 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Common.Utils;
-using EventStore.Core.Exceptions;
-using EventStore.Core.Index;
 using DotNext.Buffers;
 using DotNext.Buffers.Binary;
 using DotNext.IO;
+using EventStore.Common.Utils;
+using EventStore.Core.Exceptions;
+using EventStore.Core.Index;
 using EventStore.Plugins.Transforms;
 using ChunkVersions = EventStore.Core.TransactionLog.Chunks.TFChunk.TFChunk.ChunkVersions;
 
@@ -17,8 +17,7 @@ namespace EventStore.Core.TransactionLog.Chunks;
 
 
 // TODO: Consider struct instead of class
-public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
-{
+public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader> {
 	public const int Size = TFConsts.ChunkHeaderSize;
 
 	public readonly long ChunkStartPosition; // return ChunkStartNumber * (long)ChunkSize;
@@ -38,16 +37,16 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 
 	public ChunkHeader(byte version, byte minCompatibleVersion, int chunkSize, int chunkStartNumber, int chunkEndNumber,
 		bool isScavenged,
-		Guid chunkId, TransformType transformType)
-	{
+		Guid chunkId, TransformType transformType) {
 		Ensure.Nonnegative(version, "version");
 		Ensure.Nonnegative(minCompatibleVersion, "minCompatibleVersion");
 		Ensure.Positive(chunkSize, "chunkSize");
 		Ensure.Nonnegative(chunkStartNumber, "chunkStartNumber");
 		Ensure.Nonnegative(chunkEndNumber, "chunkEndNumber");
-		if (chunkStartNumber > chunkEndNumber)
+		if (chunkStartNumber > chunkEndNumber) {
 			throw new ArgumentOutOfRangeException("chunkStartNumber",
 				"chunkStartNumber is greater than ChunkEndNumber.");
+		}
 
 		Version = version;
 		MinCompatibleVersion = minCompatibleVersion;
@@ -62,14 +61,14 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		ChunkEndPosition = (ChunkEndNumber + 1) * (long)ChunkSize;
 	}
 
-	public ChunkHeader(ReadOnlySpan<byte> source)
-	{
+	public ChunkHeader(ReadOnlySpan<byte> source) {
 		Debug.Assert(source.Length >= Size);
 
 		SpanReader<byte> reader = new(source.Slice(0, Size));
 
-		if ((FileType)reader.Read() is not FileType.ChunkFile)
+		if ((FileType)reader.Read() is not FileType.ChunkFile) {
 			throw new CorruptDatabaseException(new InvalidFileException());
+		}
 
 		MinCompatibleVersion = reader.Read();
 
@@ -87,14 +86,18 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 
 		Version = reader.Read();
 
-		if (Version is 0)
+		if (Version is 0) {
 			Version = MinCompatibleVersion;
+		}
+
 		Debug.Assert(Version >= MinCompatibleVersion);
 
-		if (Version >= (byte)ChunkVersions.Transformed)
+		if (Version >= (byte)ChunkVersions.Transformed) {
 			TransformType = (TransformType)reader.Read();
-		else
+		}
+		else {
 			TransformType = TransformType.Identity;
+		}
 
 		ChunkStartPosition = ChunkStartNumber * (long)ChunkSize;
 		ChunkEndPosition = (ChunkEndNumber + 1) * (long)ChunkSize;
@@ -102,8 +105,7 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 
 	static int IBinaryFormattable<ChunkHeader>.Size => Size;
 
-	public void Format(Span<byte> destination)
-	{
+	public void Format(Span<byte> destination) {
 		Debug.Assert(destination.Length >= Size);
 
 		SpanWriter<byte> writer = new(destination);
@@ -115,13 +117,15 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		writer.WriteLittleEndian<int>(Unsafe.BitCast<bool, byte>(IsScavenged));
 		ChunkId.TryWriteBytes(writer.Slide(16));
 
-		if (Version >= (byte)ChunkVersions.Transformed)
+		if (Version >= (byte)ChunkVersions.Transformed) {
 			// we started to use this byte of the chunk header to store `Version` as from `ChunkVersions.Transformed`
 			// so, we don't write it for older versions to keep the previous formats the same.
 			writer.Add(Version);
+		}
 
-		if (Version >= (byte)ChunkVersions.Transformed)
+		if (Version >= (byte)ChunkVersions.Transformed) {
 			writer.Add((byte)TransformType);
+		}
 
 		// reserved bytes must be zero
 		writer.RemainingSpan.Clear();
@@ -130,24 +134,20 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 	static ChunkHeader IBinaryFormattable<ChunkHeader>.Parse(ReadOnlySpan<byte> source)
 		=> new(source);
 
-	public byte[] AsByteArray()
-	{
+	public byte[] AsByteArray() {
 		var array = new byte[Size];
 		Format(array);
 
 		return array;
 	}
 
-	public static async ValueTask<ChunkHeader> FromStream(Stream stream, CancellationToken token)
-	{
+	public static async ValueTask<ChunkHeader> FromStream(Stream stream, CancellationToken token) {
 		using var buffer = Memory.AllocateExactly<byte>(Size);
 		return await stream.ReadAsync<ChunkHeader>(buffer.Memory, token);
 	}
 
-	public long GetLocalLogPosition(long globalLogicalPosition)
-	{
-		if (globalLogicalPosition < ChunkStartPosition || globalLogicalPosition > ChunkEndPosition)
-		{
+	public long GetLocalLogPosition(long globalLogicalPosition) {
+		if (globalLogicalPosition < ChunkStartPosition || globalLogicalPosition > ChunkEndPosition) {
 			throw new Exception(
 				$"globalLogicalPosition {globalLogicalPosition} is out of chunk logical positions [{ChunkStartPosition}, {ChunkEndPosition}].");
 		}
@@ -155,10 +155,8 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		return globalLogicalPosition - ChunkStartPosition;
 	}
 
-	public long GetGlobalLogPosition(long localLogicalPosition)
-	{
-		if (ChunkStartPosition + localLogicalPosition > ChunkEndPosition)
-		{
+	public long GetGlobalLogPosition(long localLogicalPosition) {
+		if (ChunkStartPosition + localLogicalPosition > ChunkEndPosition) {
 			throw new Exception(
 				$"localLogicalPosition {localLogicalPosition} is out of chunk logical positions [{ChunkStartPosition}, {ChunkEndPosition}].");
 		}
@@ -166,8 +164,7 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		return ChunkStartPosition + localLogicalPosition;
 	}
 
-	public override string ToString()
-	{
+	public override string ToString() {
 		return string.Format(
 			"Version: {0}, ChunkSize: {1}, ChunkStartNumber: {2}, ChunkEndNumber: {3}, IsScavenged: {4}, ChunkId: {5}\n" +
 			"TransformType: {6}, ChunkStartPosition: {7}, ChunkEndPosition: {8}, ChunkFullSize: {9}",

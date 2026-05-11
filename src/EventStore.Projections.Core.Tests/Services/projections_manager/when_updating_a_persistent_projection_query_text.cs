@@ -11,10 +11,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_updating_a_persistent_projection_query_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+public class when_updating_a_persistent_projection_query_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+	protected override void Given() {
 		NoStream("$projections-test-projection");
 		NoStream("$projections-test-projection-result");
 		NoStream("$projections-test-projection-order");
@@ -26,8 +24,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 	private string _projectionName;
 	private string _newProjectionSource;
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		_projectionName = "test-projection";
 		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 		yield return
@@ -45,8 +42,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_source_can_be_retrieved()
-	{
+	public void the_projection_source_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
@@ -58,8 +54,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 	}
 
 	[Test, Category("v8")]
-	public void emit_enabled_options_remains_unchanged()
-	{
+	public void emit_enabled_options_remains_unchanged() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
@@ -71,8 +66,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_status_is_still_running()
-	{
+	public void the_projection_status_is_still_running() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, _projectionName,
 				false));
@@ -92,8 +86,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_state_can_be_retrieved()
-	{
+	public void the_projection_state_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetState(_bus, _projectionName, ""));
 		_queue.Process();
@@ -107,8 +100,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 	}
 
 	[Test, Category("v8")]
-	public void correct_query_has_been_prepared()
-	{
+	public void correct_query_has_been_prepared() {
 		var lastPrepared = _consumer.HandledMessages.OfType<CoreProjectionStatusMessage.Prepared>().LastOrDefault();
 		Assert.IsNotNull(lastPrepared);
 		Assert.IsFalse(lastPrepared.SourceDefinition.AllEvents);

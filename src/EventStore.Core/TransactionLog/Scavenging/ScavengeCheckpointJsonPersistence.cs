@@ -105,7 +105,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 					Json.JsonSettings);
 				checkpoint = dto.ToDomain();
 				return checkpoint != null;
-			} catch {
+			}
+			catch {
 				// no op
 			}
 

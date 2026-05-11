@@ -12,8 +12,7 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_checkpoint_reader;
 
-public abstract class with_projection_checkpoint_reader<TLogFormat, TStreamId> : IHandle<ClientMessage.ReadStreamEventsBackward>
-{
+public abstract class with_projection_checkpoint_reader<TLogFormat, TStreamId> : IHandle<ClientMessage.ReadStreamEventsBackward> {
 	protected readonly string _projectionCheckpointStreamId = "projection-checkpoint-stream";
 	protected readonly Guid _projectionId = Guid.NewGuid();
 
@@ -23,8 +22,7 @@ public abstract class with_projection_checkpoint_reader<TLogFormat, TStreamId> :
 	protected CoreProjectionCheckpointReader _reader;
 
 	[OneTimeSetUp]
-	public void TestFixtureSetUp()
-	{
+	public void TestFixtureSetUp() {
 		_ioDispatcher = new IODispatcher(_bus, _bus, true);
 		IODispatcherTestHelpers.SubscribeIODispatcher(_ioDispatcher, _bus);
 		_bus.Subscribe<ClientMessage.ReadStreamEventsBackward>(this);
@@ -36,8 +34,7 @@ public abstract class with_projection_checkpoint_reader<TLogFormat, TStreamId> :
 
 	public abstract void When();
 
-	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message)
-	{
+	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message) {
 		var evnts = IODispatcherTestHelpers.CreateResolvedEvent<TLogFormat, TStreamId>(message.EventStreamId,
 			ProjectionEventTypes.ProjectionCheckpoint, "[]",
 			@"{

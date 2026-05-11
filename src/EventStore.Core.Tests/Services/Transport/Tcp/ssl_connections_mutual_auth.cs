@@ -17,15 +17,13 @@ using Serilog;
 namespace EventStore.Core.Tests.Services.Transport.Tcp;
 
 [TestFixture]
-public class ssl_connections_mutual_auth
-{
+public class ssl_connections_mutual_auth {
 	private static readonly ILogger Log = Serilog.Log.ForContext<ssl_connections_mutual_auth>();
 	private IPAddress _ip;
 	private int _port;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_ip = IPAddress.Loopback;
 		_port = PortsHelper.GetAvailablePort(_ip);
 	}
@@ -52,8 +50,7 @@ public class ssl_connections_mutual_auth
 		bool validateServerCertificate,
 		bool validateClientCertificate,
 		bool shouldConnectSuccessfully
-	)
-	{
+	) {
 		var serverEndPoint = new IPEndPoint(_ip, _port);
 		var serverCertificate = useValidServerCertificate
 			? ssl_connections.GetServerCertificate()
@@ -72,32 +69,28 @@ public class ssl_connections_mutual_auth
 		var done = new ManualResetEventSlim();
 
 		var listener = new TcpServerListener(serverEndPoint);
-		listener.StartListening((endPoint, socket) =>
-		{
+		listener.StartListening((endPoint, socket) => {
 			var ssl = TcpConnectionSsl.CreateServerFromSocket(Guid.NewGuid(), endPoint, socket, () => serverCertificate,
 				null, (cert, chain, err) => validateClientCertificate ?
 					ClusterVNode<string>.ValidateClientCertificate(cert, chain, err, () => null, () => rootCertificates) : (true, null),
 				verbose: true);
 			ssl.ConnectionClosed += (x, y) => done.Set();
-			if (ssl.IsClosed)
+			if (ssl.IsClosed) {
 				done.Set();
+			}
 
 			Action<ITcpConnection, IEnumerable<ArraySegment<byte>>> callback = null;
-			callback = (x, y) =>
-			{
-				foreach (var arraySegment in y)
-				{
+			callback = (x, y) => {
+				foreach (var arraySegment in y) {
 					received.Write(arraySegment.Array, arraySegment.Offset, arraySegment.Count);
 					Log.Information("Received: {0} bytes, total: {1}.", arraySegment.Count, received.Length);
 				}
 
-				if (received.Length >= sent.Length)
-				{
+				if (received.Length >= sent.Length) {
 					Log.Information("Done receiving...");
 					done.Set();
 				}
-				else
-				{
+				else {
 					Log.Information("Receiving...");
 					ssl.ReceiveAsync(callback);
 				}
@@ -115,13 +108,11 @@ public class ssl_connections_mutual_auth
 			() => new X509CertificateCollection { clientCertificate },
 			new TcpClientConnector(),
 			TcpConnectionManager.ConnectionTimeout,
-			conn =>
-			{
+			conn => {
 				Log.Information("Sending bytes...");
 				conn.EnqueueSend(new[] { new ArraySegment<byte>(sent) });
 			},
-			(conn, err) =>
-			{
+			(conn, err) => {
 				Log.Error("Connecting failed: {0}.", err);
 				done.Set();
 			},
@@ -135,9 +126,11 @@ public class ssl_connections_mutual_auth
 		clientSsl.Close("Normal close.");
 		Log.Information("Checking received data...");
 
-		if (shouldConnectSuccessfully)
+		if (shouldConnectSuccessfully) {
 			Assert.AreEqual(sent, received.ToArray());
-		else
+		}
+		else {
 			Assert.AreEqual(new byte[0], received.ToArray());
+		}
 	}
 }

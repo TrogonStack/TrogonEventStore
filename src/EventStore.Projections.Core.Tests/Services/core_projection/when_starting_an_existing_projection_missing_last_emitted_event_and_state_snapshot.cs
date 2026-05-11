@@ -13,12 +13,10 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_starting_an_existing_projection_missing_last_emitted_event_and_state_snapshot<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
+	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
 	private readonly Guid _causedByEventId = Guid.NewGuid();
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		ExistingEvent(
 			"$projections-projection-result", "Result", @"{""c"": 100, ""p"": 50}", "{}");
 		ExistingEvent(
@@ -32,8 +30,7 @@ public class when_starting_an_existing_projection_missing_last_emitted_event_and
 		NoOtherStreams();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -44,8 +41,7 @@ public class when_starting_an_existing_projection_missing_last_emitted_event_and
 	}
 
 	[Test]
-	public void should_write_second_emitted_event_and_state_snapshot()
-	{
+	public void should_write_second_emitted_event_and_state_snapshot() {
 		Assert.AreEqual(1, _writeEventHandler.HandledMessages.OfEventType("Result").Count);
 		Assert.AreEqual(
 			1, _writeEventHandler.HandledMessages.OfEventType(FakeProjectionStateHandler._emit2EventType).Count);

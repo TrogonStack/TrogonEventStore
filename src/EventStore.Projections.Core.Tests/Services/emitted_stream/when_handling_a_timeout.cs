@@ -14,20 +14,17 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream.another_epoch;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_a_timeout<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_handling_a_timeout<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		ExistingEvent("test_stream", "type1", @"{""v"": 1, ""c"": 100, ""p"": 50}", "data");
 		ExistingEvent("test_stream", "type1", @"{""v"": 2, ""c"": 100, ""p"": 50}", "data");
 	}
 
-	private EmittedEvent[] CreateEventBatch()
-	{
+	private EmittedEvent[] CreateEventBatch() {
 		return new EmittedEvent[] {
 			new EmittedDataEvent(
 				(string)"test_stream", Guid.NewGuid(), (string)"type1", (bool)true,
@@ -45,8 +42,7 @@ public class when_handling_a_timeout<TLogFormat, TStreamId> : TestFixtureWithExi
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test_stream",
@@ -61,12 +57,10 @@ public class when_handling_a_timeout<TLogFormat, TStreamId> : TestFixtureWithExi
 	}
 
 	[Test]
-	public void should_retry_the_write_with_the_same_events()
-	{
+	public void should_retry_the_write_with_the_same_events() {
 		var current = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Last();
 		while (_consumer.HandledMessages.Last().GetType() ==
-			   typeof(EventStore.Core.Services.TimerService.TimerMessage.Schedule))
-		{
+			   typeof(EventStore.Core.Services.TimerService.TimerMessage.Schedule)) {
 			var message =
 				_consumer.HandledMessages.Last() as EventStore.Core.Services.TimerService.TimerMessage.Schedule;
 			message.Envelope.ReplyWith(message.ReplyMessage);

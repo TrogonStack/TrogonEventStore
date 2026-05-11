@@ -59,7 +59,7 @@ namespace EventStore.Core.Messages {
 		[DerivedMessage(CoreMessage.Subscription)]
 		public partial class PersistentSubscriptionsRestart : Message {
 			public IEnvelope ReplyEnvelope { get; }
-			
+
 			public PersistentSubscriptionsRestart(IEnvelope replyEnvelope) {
 				ReplyEnvelope = replyEnvelope;
 			}
@@ -77,11 +77,11 @@ namespace EventStore.Core.Messages {
 				Reason = reason;
 			}
 		}
-	
+
 		[DerivedMessage(CoreMessage.Subscription)]
 		public partial class PersistentSubscriptionsStarted : Message {
 		}
-		
+
 		[DerivedMessage(CoreMessage.Subscription)]
 		public partial class PersistentSubscriptionsStopped : Message {
 		}

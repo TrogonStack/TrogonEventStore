@@ -11,13 +11,11 @@ using EventStore.Transport.Tcp.Framing;
 
 namespace EventStore.Core.Services.Replication;
 
-internal sealed class LogRecordFramer : IAsyncMessageFramer<ILogRecord>
-{
+internal sealed class LogRecordFramer : IAsyncMessageFramer<ILogRecord> {
 	private readonly IAsyncMessageFramer<ReadOnlySequence<byte>> _inner;
 	private Func<ILogRecord, CancellationToken, ValueTask> _handler = static (_, _) => ValueTask.CompletedTask;
 
-	public LogRecordFramer(IAsyncMessageFramer<ReadOnlySequence<byte>> inner)
-	{
+	public LogRecordFramer(IAsyncMessageFramer<ReadOnlySequence<byte>> inner) {
 		_inner = inner;
 		_inner.RegisterMessageArrivedCallback(OnMessageArrived);
 	}
@@ -31,15 +29,13 @@ internal sealed class LogRecordFramer : IAsyncMessageFramer<ILogRecord>
 	public ValueTask UnFrameData(ArraySegment<byte> data, CancellationToken token) => _inner.UnFrameData(data, token);
 	public void Reset() => _inner.Reset();
 
-	private ValueTask OnMessageArrived(ReadOnlySequence<byte> recordPayload, CancellationToken token)
-	{
+	private ValueTask OnMessageArrived(ReadOnlySequence<byte> recordPayload, CancellationToken token) {
 		var reader = new SequenceReader(recordPayload);
 		var record = LogRecord.ReadFrom(ref reader);
 		return _handler(record, token);
 	}
 
-	public void RegisterMessageArrivedCallback(Func<ILogRecord, CancellationToken, ValueTask> handler)
-	{
+	public void RegisterMessageArrivedCallback(Func<ILogRecord, CancellationToken, ValueTask> handler) {
 		Ensure.NotNull(handler, nameof(handler));
 		_handler = handler;
 	}

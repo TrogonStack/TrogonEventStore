@@ -9,13 +9,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Transforms.Identity;
 
-public class IdentityDbTransformTests
-{
+public class IdentityDbTransformTests {
 	private readonly IdentityDbTransform _dbTransform;
 	private readonly IChunkTransform _chunkTransform;
 
-	public IdentityDbTransformTests()
-	{
+	public IdentityDbTransformTests() {
 		_dbTransform = new IdentityDbTransform();
 		_chunkTransform = _dbTransform.ChunkFactory.CreateTransform(ReadOnlySpan<byte>.Empty);
 	}
@@ -35,14 +33,12 @@ public class IdentityDbTransformTests
 		Assert.Equal(0, _dbTransform.ChunkFactory.TransformHeaderLength);
 
 	[Fact]
-	public async Task chunk_factory_reads_correct_header()
-	{
+	public async Task chunk_factory_reads_correct_header() {
 		await _dbTransform.ChunkFactory.ReadTransformHeader(Stream.Null, Memory<byte>.Empty);
 	}
 
 	[Fact]
-	public void chunk_transform_properly_transforms_reads()
-	{
+	public void chunk_transform_properly_transforms_reads() {
 		const int dataSize = 1024;
 
 		var data = new byte[dataSize];
@@ -57,8 +53,7 @@ public class IdentityDbTransformTests
 	}
 
 	[Fact]
-	public async Task chunk_transform_properly_transforms_writes()
-	{
+	public async Task chunk_transform_properly_transforms_writes() {
 		const int dataSize = 2000;
 		const int footerSize = 10;
 		const int alignmentSize = 1024;
@@ -91,8 +86,7 @@ public class IdentityDbTransformTests
 	}
 
 	[Fact]
-	public async Task chunk_transform_properly_transforms_writes_async()
-	{
+	public async Task chunk_transform_properly_transforms_writes_async() {
 		const int dataSize = 2000;
 		const int footerSize = 10;
 		const int alignmentSize = 1024;
@@ -124,10 +118,10 @@ public class IdentityDbTransformTests
 		Assert.Equal(MD5.HashData(transformedData), md5.GetHashAndReset());
 	}
 
-	private static int GetAlignedSize(int size, int alignment)
-	{
-		if (size % alignment == 0)
+	private static int GetAlignedSize(int size, int alignment) {
+		if (size % alignment == 0) {
 			return size;
+		}
 
 		return ((size / alignment) + 1) * alignment;
 	}

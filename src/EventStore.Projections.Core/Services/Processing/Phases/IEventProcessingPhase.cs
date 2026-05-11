@@ -6,19 +6,16 @@ using EventStore.Projections.Core.Services.Processing.WorkItems;
 
 namespace EventStore.Projections.Core.Services.Processing.Phases;
 
-public interface IProjectionPhaseCompleter
-{
+public interface IProjectionPhaseCompleter {
 	void Complete();
 }
 
-public interface IProjectionPhaseCheckpointManager
-{
+public interface IProjectionPhaseCheckpointManager {
 	void NewCheckpointStarted(CheckpointTag checkpointTag);
 	void SetCurrentCheckpointSuggestedWorkItem(CheckpointSuggestedWorkItem checkpointSuggestedWorkItem);
 }
 
-public interface IProjectionPhaseStateManager
-{
+public interface IProjectionPhaseStateManager {
 	void BeginGetPartitionStateAt(
 		string statePartition, CheckpointTag at, Action<PartitionState> loadCompleted,
 		bool lockLoaded);
@@ -28,8 +25,7 @@ public interface IProjectionPhaseStateManager
 	CheckpointTag LastProcessedEventPosition { get; }
 }
 
-public interface IEventProcessingProjectionPhase : IProjectionPhaseStateManager
-{
+public interface IEventProcessingProjectionPhase : IProjectionPhaseStateManager {
 	EventProcessedResult ProcessCommittedEvent(EventReaderSubscriptionMessage.CommittedEventReceived message,
 		string partition);
 

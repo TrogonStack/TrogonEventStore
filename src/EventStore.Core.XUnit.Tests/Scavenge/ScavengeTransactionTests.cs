@@ -4,33 +4,27 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ScavengeTransactionTests
-{
-	class MockTransactionFactory : ITransactionFactory<int>
-	{
+public class ScavengeTransactionTests {
+	class MockTransactionFactory : ITransactionFactory<int> {
 		public int BeginCount { get; private set; }
 		public int CommitCount { get; private set; }
 		public int RollbackCount { get; private set; }
 
-		public int Begin()
-		{
+		public int Begin() {
 			return BeginCount++;
 		}
 
-		public void Commit(int transaction)
-		{
+		public void Commit(int transaction) {
 			CommitCount++;
 		}
 
-		public void Rollback(int transaction)
-		{
+		public void Rollback(int transaction) {
 			RollbackCount++;
 		}
 	}
 
 	[Fact]
-	public void can_commit_then_begin()
-	{
+	public void can_commit_then_begin() {
 		var storage = new TestScavengeMap<Unit, ScavengeCheckpoint>();
 		var backend = new MockTransactionFactory();
 		var sut = new TransactionManager<int>(backend, storage);
@@ -65,8 +59,7 @@ public class ScavengeTransactionTests
 	}
 
 	[Fact]
-	public void can_rollback_then_begin()
-	{
+	public void can_rollback_then_begin() {
 		var backend = new MockTransactionFactory();
 		var sut = new TransactionManager<int>(
 			backend,
@@ -96,23 +89,20 @@ public class ScavengeTransactionTests
 	}
 
 	[Fact]
-	public void cannot_begin_twice()
-	{
+	public void cannot_begin_twice() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
 		sut.Begin();
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Begin();
 		});
 	}
 
 	[Fact]
-	public void cannot_commit_twice()
-	{
+	public void cannot_commit_twice() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
@@ -120,15 +110,13 @@ public class ScavengeTransactionTests
 		sut.Begin();
 		sut.Commit(null);
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Commit(null);
 		});
 	}
 
 	[Fact]
-	public void cannot_commit_then_rollback()
-	{
+	public void cannot_commit_then_rollback() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
@@ -136,15 +124,13 @@ public class ScavengeTransactionTests
 		sut.Begin();
 		sut.Commit(null);
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Rollback();
 		});
 	}
 
 	[Fact]
-	public void cannot_rollback_twice()
-	{
+	public void cannot_rollback_twice() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
@@ -152,15 +138,13 @@ public class ScavengeTransactionTests
 		sut.Begin();
 		sut.Rollback();
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Rollback();
 		});
 	}
 
 	[Fact]
-	public void cannot_rollback_then_commit()
-	{
+	public void cannot_rollback_then_commit() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
@@ -168,34 +152,29 @@ public class ScavengeTransactionTests
 		sut.Begin();
 		sut.Rollback();
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Commit(null);
 		});
 	}
 
 	[Fact]
-	public void cannot_commit_without_beginning()
-	{
+	public void cannot_commit_without_beginning() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Commit(null);
 		});
 	}
 
 	[Fact]
-	public void cannot_rollback_without_beginning()
-	{
+	public void cannot_rollback_without_beginning() {
 		var sut = new TransactionManager<int>(
 			new MockTransactionFactory(),
 			new TestScavengeMap<Unit, ScavengeCheckpoint>());
 
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			sut.Rollback();
 		});
 	}

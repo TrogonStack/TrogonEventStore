@@ -14,8 +14,7 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.heading_event_
 
 [TestFixture]
 public class when_the_heading_event_reader_with_a_subscribed_projection_handles_an_idle_notification :
-	TestFixtureWithReadWriteDispatchers
-{
+	TestFixtureWithReadWriteDispatchers {
 	private HeadingEventReader _point;
 
 	//private Exception _exception;
@@ -24,15 +23,12 @@ public class when_the_heading_event_reader_with_a_subscribed_projection_handles_
 	private Guid _projectionSubscriptionId;
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		//_exception = null;
-		try
-		{
+		try {
 			_point = new HeadingEventReader(10, _bus);
 		}
-		catch (Exception)
-		{
+		catch (Exception) {
 			//_exception = ex;
 		}
 
@@ -60,8 +56,7 @@ public class when_the_heading_event_reader_with_a_subscribed_projection_handles_
 
 
 	[Test]
-	public void projection_receives_events_after_the_subscription_point()
-	{
+	public void projection_receives_events_after_the_subscription_point() {
 		Assert.AreEqual(1, _subscription.ReceivedIdleNotifications.Count());
 	}
 }

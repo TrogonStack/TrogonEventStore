@@ -13,8 +13,9 @@ public class InMemoryStreamReader : IInMemoryStreamReader {
 	}
 
 	public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(ClientMessage.ReadStreamEventsForward msg) {
-		if (_readers.TryGetValue(msg.EventStreamId, out var reader))
+		if (_readers.TryGetValue(msg.EventStreamId, out var reader)) {
 			return reader.ReadForwards(msg);
+		}
 
 		return new ClientMessage.ReadStreamEventsForwardCompleted(
 			msg.CorrelationId,
@@ -33,8 +34,9 @@ public class InMemoryStreamReader : IInMemoryStreamReader {
 	}
 
 	public ClientMessage.ReadStreamEventsBackwardCompleted ReadBackwards(ClientMessage.ReadStreamEventsBackward msg) {
-		if (_readers.TryGetValue(msg.EventStreamId, out var reader))
+		if (_readers.TryGetValue(msg.EventStreamId, out var reader)) {
 			return reader.ReadBackwards(msg);
+		}
 
 		return new ClientMessage.ReadStreamEventsBackwardCompleted(
 			msg.CorrelationId,

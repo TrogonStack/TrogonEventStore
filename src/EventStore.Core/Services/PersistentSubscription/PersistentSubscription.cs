@@ -126,7 +126,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					_streamBufferSource.SetResult(new StreamBuffer(_settings.BufferSize, _settings.LiveBufferSize, null,
 					!_settings.StartFrom.IsLivePosition));
 					TryReadingNewBatch();
-				} else {
+				}
+				else {
 					_nextEventToPullFrom = _settings.EventSource.GetStreamPositionFor(checkpoint);
 					_skipFirstEvent = true; //skip the checkpointed event
 
@@ -147,17 +148,23 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public void TryReadingNewBatch() {
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					return;
-				if ((_state & PersistentSubscriptionState.OutstandingPageRequest) > 0)
+				}
+
+				if ((_state & PersistentSubscriptionState.OutstandingPageRequest) > 0) {
 					return;
+				}
+
 				if (streamBuffer.Live) {
 					SetLive();
 					return;
 				}
 
-				if (!streamBuffer.CanAccept(_settings.ReadBatchSize))
+				if (!streamBuffer.CanAccept(_settings.ReadBatchSize)) {
 					return;
+				}
+
 				_state |= PersistentSubscriptionState.OutstandingPageRequest;
 				_settings.StreamReader.BeginReadEvents(_settings.EventSource, _nextEventToPullFrom,
 					Math.Max(_settings.ReadBatchSize, 10), _settings.ReadBatchSize, _settings.MaxCheckPointCount,
@@ -194,15 +201,20 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public void HandleReadCompleted(IReadOnlyList<ResolvedEvent> events, IPersistentSubscriptionStreamPosition newPosition, bool isEndOfStream) {
 			bool shouldSchedule;
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					return;
-				if ((_state & PersistentSubscriptionState.OutstandingPageRequest) == 0)
+				}
+
+				if ((_state & PersistentSubscriptionState.OutstandingPageRequest) == 0) {
 					return;
+				}
 
 				_state &= ~PersistentSubscriptionState.OutstandingPageRequest;
 
-				if (streamBuffer.Live)
+				if (streamBuffer.Live) {
 					return;
+				}
+
 				foreach (var ev in events) {
 					streamBuffer.AddReadMessage(OutstandingMessage.ForNewEvent(ev, _settings.EventSource.GetStreamPositionFor(ev)));
 				}
@@ -235,20 +247,23 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				return false;
 			}
 
-			if (_pushScheduled)
+			if (_pushScheduled) {
 				return false;
+			}
 
 			_pushScheduled = true;
 			return true;
 		}
 
 		private void SchedulePushToClients(bool shouldSchedule) {
-			if (!shouldSchedule)
+			if (!shouldSchedule) {
 				return;
+			}
 
 			try {
 				_settings.PushScheduler.SchedulePush();
-			} catch {
+			}
+			catch {
 				lock (_lock) {
 					_pushScheduled = false;
 				}
@@ -266,8 +281,9 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		private void PushToClients() {
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					return;
+				}
 
 				foreach (StreamBuffer.OutstandingMessagePointer messagePointer in streamBuffer.Scan()) {
 					(OutstandingMessage message, bool newSequenceNumberAssigned) =
@@ -283,15 +299,18 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					if (result == ConsumerPushResult.Sent) {
 						messagePointer.MarkSent();
 						MarkBeginProcessing(message);
-					} else if (result == ConsumerPushResult.Skipped) {
+					}
+					else if (result == ConsumerPushResult.Skipped) {
 						if (newSequenceNumberAssigned) {
 							Debug.Assert(!messagePointer.IsRetry);
 							messagePointer.MarkSent();
 							streamBuffer.AddRetryToEnd(message);
-						} else {
+						}
+						else {
 							Debug.Assert(messagePointer.IsRetry);
 						}
-					} else if (result == ConsumerPushResult.NoMoreCapacity) {
+					}
+					else if (result == ConsumerPushResult.NoMoreCapacity) {
 						return;
 					}
 				}
@@ -301,8 +320,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public void NotifyLiveSubscriptionMessage(ResolvedEvent resolvedEvent) {
 			bool shouldSchedule;
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					return;
+				}
+
 				if (_settings.EventSource.GetStreamPositionFor(resolvedEvent).CompareTo(_settings.StartFrom) < 0) {
 					return;
 				}
@@ -323,8 +344,9 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				streamBuffer.AddLiveMessage(OutstandingMessage.ForNewEvent(resolvedEvent, _settings.EventSource.GetStreamPositionFor(resolvedEvent)));
 				if (!streamBuffer.Live) {
 					SetBehind();
-					if (waslive)
+					if (waslive) {
 						_nextEventToPullFrom = _settings.EventSource.GetStreamPositionFor(resolvedEvent);
+					}
 				}
 
 				shouldSchedule = RequestPushToClients();
@@ -334,8 +356,9 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public IEnumerable<(ResolvedEvent ResolvedEvent, int RetryCount)> GetNextNOrLessMessages(int count) {
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					yield break;
+				}
 
 				foreach (var messagePointer in streamBuffer.Scan().Take(count)) {
 					messagePointer.MarkSent();
@@ -398,13 +421,16 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			bool shouldSchedule;
 			lock (_lock) {
 				if (!_pushClients.RemoveClientByConnectionId(connectionId,
-					    out var unconfirmedEvents))
+						out var unconfirmedEvents)) {
 					return false;
+				}
 
 				var lostMessages = unconfirmedEvents.OrderBy(v => v.ResolvedEvent.OriginalEventNumber);
 				foreach (var m in lostMessages) {
-					if (ActionTakenForRetriedMessage(m))
+					if (ActionTakenForRetriedMessage(m)) {
 						return true;
+					}
+
 					RetryMessage(m);
 				}
 
@@ -430,13 +456,14 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public void TryMarkCheckpoint(bool isTimeCheck) {
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					return;
+				}
 
 				OutstandingMessage? lowestMessage;
 				long lowestSequenceNumber;
 
-				(lowestMessage, lowestSequenceNumber)  = _outstandingMessages.GetLowestPosition();
+				(lowestMessage, lowestSequenceNumber) = _outstandingMessages.GetLowestPosition();
 				var (lowestRetryMessage, lowestRetrySequenceNumber) = streamBuffer.GetLowestRetry();
 
 				if (lowestRetrySequenceNumber < lowestSequenceNumber) {
@@ -459,25 +486,30 @@ namespace EventStore.Core.Services.PersistentSubscription {
 						return;
 					}
 					Debug.Assert(lowestPosition != null && lowestSequenceNumber >= 0L);
-				} else {
+				}
+				else {
 					//no outstanding/retry messages. in this case we can say that the last known
 					//event would be our checkpoint place (we have already completed it)
 					lowestSequenceNumber = _lastKnownSequenceNumber;
 					lowestPosition = _lastKnownMessage;
 					Debug.Assert((lowestPosition != null && lowestSequenceNumber >= 0L) ||
-					             (lowestPosition == null && lowestSequenceNumber == -1L));
+								 (lowestPosition == null && lowestSequenceNumber == -1L));
 				}
 
 				if (lowestSequenceNumber == -1) //we have not even pushed any messages yet
+{
 					return;
+				}
 
 				Debug.Assert(lowestPosition != null);
 
 				var difference = lowestSequenceNumber - _lastCheckpointedSequenceNumber;
 				var now = DateTime.UtcNow;
 				var timedifference = now - _lastCheckPointTime;
-				if (timedifference < _settings.CheckPointAfter && difference < _settings.MaxCheckPointCount)
+				if (timedifference < _settings.CheckPointAfter && difference < _settings.MaxCheckPointCount) {
 					return;
+				}
+
 				if ((difference >= _settings.MinCheckPointCount && isTimeCheck) ||
 					difference >= _settings.MaxCheckPointCount) {
 					_lastCheckPointTime = now;
@@ -577,10 +609,14 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		public void RetryParkedMessages(long? stopAt) {
 			lock (_lock) {
-				if (_state == PersistentSubscriptionState.NotReady)
+				if (_state == PersistentSubscriptionState.NotReady) {
 					return;
-				if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) > 0)
+				}
+
+				if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) > 0) {
 					return; //already replaying
+				}
+
 				_state |= PersistentSubscriptionState.ReplayingParkedMessages;
 				_settings.MessageParker.BeginReadEndSequence(end => {
 					if (!end.HasValue) {
@@ -589,14 +625,15 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					}
 
 					var stopRead = stopAt.HasValue ? Math.Min(stopAt.Value, end.Value + 1) : end.Value + 1;
-					TryReadingParkedMessagesFrom(0,stopRead);
+					TryReadingParkedMessagesFrom(0, stopRead);
 				});
 			}
 		}
 
 		private void TryReadingParkedMessagesFrom(long position, long stopAt) {
-			if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) == 0)
+			if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) == 0) {
 				return; //not replaying
+			}
 
 			Ensure.Positive(stopAt - position, "count");
 
@@ -618,10 +655,13 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public void HandleParkedReadCompleted(IReadOnlyList<ResolvedEvent> events, IPersistentSubscriptionStreamPosition newPosition, bool isEndofStream, long stopAt) {
 			bool shouldSchedule;
 			lock (_lock) {
-				if (!TryGetStreamBuffer(out var streamBuffer))
+				if (!TryGetStreamBuffer(out var streamBuffer)) {
 					return;
-				if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) == 0)
+				}
+
+				if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) == 0) {
 					return;
+				}
 
 				foreach (var ev in events) {
 					if (ev.OriginalEventNumber == stopAt) {
@@ -648,13 +688,15 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 					if (isEndofStream) {
 						_settings.MessageParker.BeginMarkParkedMessagesReprocessed(replayedEnd, null, true);
-					} else {
+					}
+					else {
 						var (replayedEndTimeStamp, updateOldestParkedMessageTimeStamp) = GetOldestParkedMessageTimeStamp(events, replayedEnd);
 						_settings.MessageParker.BeginMarkParkedMessagesReprocessed(replayedEnd, replayedEndTimeStamp, updateOldestParkedMessageTimeStamp);
 					}
 
 					_state ^= PersistentSubscriptionState.ReplayingParkedMessages;
-				}else {
+				}
+				else {
 					TryReadingParkedMessagesFrom(newStreamPosition.StreamEventNumber, stopAt);
 				}
 			}
@@ -663,8 +705,11 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 		private static (DateTime?, bool) GetOldestParkedMessageTimeStamp(IReadOnlyList<ResolvedEvent> events, long replayedEnd) {
 			foreach (var resolvedEvent in events) {
-				if (resolvedEvent.OriginalEvent.EventNumber != replayedEnd) continue;
-					return (resolvedEvent.OriginalEvent.TimeStamp, true);
+				if (resolvedEvent.OriginalEvent.EventNumber != replayedEnd) {
+					continue;
+				}
+
+				return (resolvedEvent.OriginalEvent.TimeStamp, true);
 			}
 
 			return (null, false);
@@ -700,8 +745,9 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public void NotifyClockTick(DateTime time) {
 			bool shouldSchedule;
 			lock (_lock) {
-				if (_state == PersistentSubscriptionState.NotReady)
+				if (_state == PersistentSubscriptionState.NotReady) {
 					return;
+				}
 
 				foreach (var message in _outstandingMessages.GetMessagesExpiringBefore(time)) {
 					if (!ActionTakenForRetriedMessage(message)) {
@@ -713,22 +759,26 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				TryMarkCheckpoint(true);
 				if ((_state & (PersistentSubscriptionState.Behind |
 					 PersistentSubscriptionState.OutstandingPageRequest)) ==
-					PersistentSubscriptionState.Behind)
+					PersistentSubscriptionState.Behind) {
 					TryReadingNewBatch();
+				}
 			}
 			SchedulePushToClients(shouldSchedule);
 		}
 
 		private bool ActionTakenForRetriedMessage(OutstandingMessage message) {
-			if (message.RetryCount < _settings.MaxRetryCount)
+			if (message.RetryCount < _settings.MaxRetryCount) {
 				return false;
+			}
+
 			ParkMessage(message.ResolvedEvent, string.Format("Reached retry count of {0}", _settings.MaxRetryCount), 0);
 			return true;
 		}
 
 		private void RetryMessage(OutstandingMessage message) {
-			if (!TryGetStreamBuffer(out var streamBuffer))
+			if (!TryGetStreamBuffer(out var streamBuffer)) {
 				return;
+			}
 
 			var @event = message.ResolvedEvent;
 			if (!message.IsReplayedEvent) {
@@ -736,7 +786,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 					SubscriptionId,
 					@event.OriginalStreamId, @event.OriginalEventNumber,
 					_settings.EventSource.GetStreamPositionFor(message.ResolvedEvent).ToString());
-			} else {
+			}
+			else {
 				Log.Debug("Retrying parked message: {eventId} {stream}/{eventNumber} on subscription {subscriptionId}",
 					@event.OriginalEvent.EventId, @event.OriginalStreamId, @event.OriginalEventNumber,
 					_settings.SubscriptionId);
@@ -752,8 +803,9 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		}
 
 		public void RetrySingleParkedMessage(ResolvedEvent @event) {
-			if (!TryGetStreamBuffer(out var streamBuffer))
+			if (!TryGetStreamBuffer(out var streamBuffer)) {
 				return;
+			}
 
 			streamBuffer.AddRetry(OutstandingMessage.ForParkedEvent(@event));
 		}

@@ -4,8 +4,7 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public interface IIndexReaderForCalculator<TStreamId>
-{
+public interface IIndexReaderForCalculator<TStreamId> {
 	ValueTask<long> GetLastEventNumber(StreamHandle<TStreamId> streamHandle, ScavengePoint scavengePoint,
 		CancellationToken token);
 

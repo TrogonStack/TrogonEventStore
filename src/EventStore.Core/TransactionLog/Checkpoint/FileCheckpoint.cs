@@ -27,12 +27,15 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 				mustExist ? FileMode.Open : FileMode.OpenOrCreate,
 				FileAccess.ReadWrite,
 				FileShare.ReadWrite);
-			if (_fileStream.Length != 8)
+			if (_fileStream.Length != 8) {
 				_fileStream.SetLength(8);
+			}
+
 			_reader = new BinaryReader(_fileStream);
 			_writer = new BinaryWriter(_fileStream);
-			if (old)
+			if (old) {
 				_last = _lastFlushed = ReadCurrent();
+			}
 			else {
 				_last = initValue;
 				Flush();
@@ -45,8 +48,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 		}
 
 		public void Close(bool flush) {
-			if (flush)
+			if (flush) {
 				Flush();
+			}
 
 			_reader.Close();
 			_writer.Close();
@@ -63,8 +67,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		public void Flush() {
 			var last = Interlocked.Read(ref _last);
-			if (last == _lastFlushed)
+			if (last == _lastFlushed) {
 				return;
+			}
 
 			_fileStream.Seek(0, SeekOrigin.Begin);
 			_writer.Write(last);
@@ -87,8 +92,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		private void OnFlushed(long obj) {
 			var onFlushed = Flushed;
-			if (onFlushed != null)
+			if (onFlushed != null) {
 				onFlushed.Invoke(obj);
+			}
 		}
 	}
 }

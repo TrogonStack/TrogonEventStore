@@ -15,23 +15,20 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.transaction_file_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private TransactionFileEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
 	private Guid _secondEventId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_distibutionPointCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
 		_edp = new TransactionFileEventReader(_bus, _distibutionPointCorrelationId, null, new TFPos(100, 50),
@@ -68,16 +65,14 @@ public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtur
 	}
 
 	[Test]
-	public void publishes_eof_message()
-	{
+	public void publishes_eof_message() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderEof>().Count());
 		var first = _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderEof>().First();
 		Assert.AreEqual(first.CorrelationId, _distibutionPointCorrelationId);
 	}
 
 	[Test]
-	public void does_not_publish_read_messages_anymore()
-	{
+	public void does_not_publish_read_messages_anymore() {
 		Assert.AreEqual(2, _consumer.HandledMessages.OfType<ClientMessage.ReadAllEventsForward>().Count());
 	}
 }

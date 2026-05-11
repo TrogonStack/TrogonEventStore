@@ -7,16 +7,13 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Users
-{
+internal partial class Users {
 	private static readonly Operation DeleteOperation = new Operation(Plugins.Authorization.Operations.Users.Delete);
-	public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context)
-	{
+	public override async Task<DeleteResp> Delete(DeleteReq request, ServerCallContext context) {
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, DeleteOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, DeleteOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 		var deleteSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -29,10 +26,10 @@ internal partial class Users
 
 		return new DeleteResp();
 
-		void OnMessage(Message message)
-		{
-			if (HandleErrors(options.LoginName, message, deleteSource))
+		void OnMessage(Message message) {
+			if (HandleErrors(options.LoginName, message, deleteSource)) {
 				return;
+			}
 
 			deleteSource.TrySetResult(true);
 		}

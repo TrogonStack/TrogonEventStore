@@ -21,14 +21,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_starting_the_projection_manager_with_existing_partially_created_projection<TLogFormat, TStreamId> :
-	TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+	TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private ProjectionManager _manager;
 	private new ITimeProvider _timeProvider;
 	private Guid _workerId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_workerId = Guid.NewGuid();
 		ExistingEvent(ProjectionNamesBuilder.ProjectionsRegistrationStream, ProjectionEventTypes.ProjectionCreated,
 			null, "projection1");
@@ -37,8 +35,7 @@ public class when_starting_the_projection_manager_with_existing_partially_create
 
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_timeProvider = new FakeTimeProvider();
 		var queues = new Dictionary<Guid, IPublisher> { { _workerId, _bus } };
 		_manager = new ProjectionManager(
@@ -57,14 +54,12 @@ public class when_starting_the_projection_manager_with_existing_partially_create
 	}
 
 	[TearDown]
-	public void TearDown()
-	{
+	public void TearDown() {
 		_manager.Dispose();
 	}
 
 	[Test]
-	public void projection_status_can_be_retrieved()
-	{
+	public void projection_status_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, "projection1",
 				true));
@@ -74,8 +69,7 @@ public class when_starting_the_projection_manager_with_existing_partially_create
 	}
 
 	[Test]
-	public void projection_status_is_creating()
-	{
+	public void projection_status_is_creating() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, "projection1",
 				true));

@@ -13,8 +13,7 @@ public class LegacyPolicySelectorFactory(
 	bool allowAnonymousEndpointAccess,
 	bool allowAnonymousStreamAccess,
 	bool overrideAnonymousGossipEndpointAccess)
-	: IPolicySelectorFactory
-{
+	: IPolicySelectorFactory {
 	public const string LegacyPolicySelectorName = "acl";
 	public string CommandLineName => LegacyPolicySelectorName;
 
@@ -33,8 +32,7 @@ public class LegacyPolicySelectorFactory(
 
 	public Task Disable() => Task.CompletedTask;
 
-	public IPolicySelector Create(IPublisher publisher)
-	{
+	public IPolicySelector Create(IPublisher publisher) {
 		var policy = new Policy(LegacyPolicySelectorName, 1, DateTimeOffset.MinValue);
 		var legacyStreamAssertion = new LegacyStreamPermissionAssertion(publisher);
 
@@ -50,12 +48,10 @@ public class LegacyPolicySelectorFactory(
 			? op => policy.AllowAnonymous(op)
 			: op => policy.RequireAuthenticated(op);
 
-		if (overrideAnonymousGossipEndpointAccess)
-		{
+		if (overrideAnonymousGossipEndpointAccess) {
 			policy.AllowAnonymous(Operations.Node.Gossip.ClientRead);
 		}
-		else
-		{
+		else {
 			addToPolicy(Operations.Node.Gossip.ClientRead);
 		}
 

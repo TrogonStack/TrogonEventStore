@@ -12,15 +12,13 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.position_tagging.transaction_file_position_tagger;
 
 [TestFixture]
-public class transaction_file_position_tagger
-{
+public class transaction_file_position_tagger {
 	private ReaderSubscriptionMessage.CommittedEventDistributed _zeroEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _firstEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _secondEvent;
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_zeroEvent = ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 			Guid.NewGuid(), new TFPos(10, 0), "stream", 0, false, Guid.NewGuid(), "StreamCreated", false,
 			new byte[0], new byte[0]);
@@ -33,60 +31,52 @@ public class transaction_file_position_tagger
 	}
 
 	[Test]
-	public void can_be_created()
-	{
+	public void can_be_created() {
 		new TransactionFilePositionTagger(0);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_after_case()
-	{
+	public void is_message_after_checkpoint_tag_after_case() {
 		var t = new TransactionFilePositionTagger(0);
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromPosition(0, 20, 10), _firstEvent);
 		Assert.IsTrue(result);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_before_case()
-	{
+	public void is_message_after_checkpoint_tag_before_case() {
 		var t = new TransactionFilePositionTagger(0);
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromPosition(0, 50, 40), _firstEvent);
 		Assert.IsFalse(result);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_equal_case()
-	{
+	public void is_message_after_checkpoint_tag_equal_case() {
 		var t = new TransactionFilePositionTagger(0);
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromPosition(0, 30, 20), _firstEvent);
 		Assert.IsFalse(result);
 	}
 
 	[Test]
-	public void position_checkpoint_tag_is_compatible()
-	{
+	public void position_checkpoint_tag_is_compatible() {
 		var t = new TransactionFilePositionTagger(0);
 		Assert.IsTrue(t.IsCompatible(CheckpointTag.FromPosition(0, 1000, 500)));
 	}
 
 	[Test]
-	public void stream_checkpoint_tag_is_incompatible()
-	{
+	public void stream_checkpoint_tag_is_incompatible() {
 		var t = new TransactionFilePositionTagger(0);
 		Assert.IsFalse(t.IsCompatible(CheckpointTag.FromStreamPosition(0, "stream2", 100)));
 	}
 
 	[Test]
-	public void adjust_compatible_tag_returns_the_same_tag()
-	{
+	public void adjust_compatible_tag_returns_the_same_tag() {
 		var t = new TransactionFilePositionTagger(0);
 		var tag = CheckpointTag.FromPosition(0, 100, 50);
 		Assert.AreSame(tag, t.AdjustTag(tag));
 	}
 
 	[Test]
-	public void can_adjust_tf_position_tag()
-	{
+	public void can_adjust_tf_position_tag() {
 		var t = new TransactionFilePositionTagger(0);
 		var tag = CheckpointTag.FromPosition(0, 100, 50);
 		var original = CheckpointTag.FromEventTypeIndexPositions(0, new TFPos(100, 50),
@@ -95,8 +85,7 @@ public class transaction_file_position_tagger
 	}
 
 	[Test]
-	public void zero_position_tag_is_before_first_event_possible()
-	{
+	public void zero_position_tag_is_before_first_event_possible() {
 		var t = new TransactionFilePositionTagger(0);
 		var zero = t.MakeZeroCheckpointTag();
 
@@ -106,8 +95,7 @@ public class transaction_file_position_tagger
 	}
 
 	[Test]
-	public void produced_checkpoint_tags_are_correctly_ordered()
-	{
+	public void produced_checkpoint_tags_are_correctly_ordered() {
 		var t = new TransactionFilePositionTagger(0);
 		var zero = t.MakeZeroCheckpointTag();
 

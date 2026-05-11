@@ -9,9 +9,9 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Archive.Archiver;
-using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.Services.Archive.Archiver.Unmerger;
 using EventStore.Core.Services.Archive.Naming;
+using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.TransactionLog.Chunks;
 using Xunit;
 
@@ -36,8 +36,8 @@ public class ArchiverServiceTests {
 		return new ChunkInfo {
 			ChunkStartNumber = chunkStartNumber,
 			ChunkEndNumber = chunkEndNumber,
-			ChunkStartPosition = (long) chunkStartNumber * ChunkSize,
-			ChunkEndPosition = (long) (chunkEndNumber + 1) * ChunkSize,
+			ChunkStartPosition = (long)chunkStartNumber * ChunkSize,
+			ChunkEndPosition = (long)(chunkEndNumber + 1) * ChunkSize,
 			IsCompleted = complete,
 			ChunkLocator = $"{chunkStartNumber}-{chunkEndNumber}",
 			IsRemote = remote
@@ -47,11 +47,13 @@ public class ArchiverServiceTests {
 	private static async Task WaitFor(FakeArchiveStorage archive, int numStores = -1, int numCheckpoints = -1) {
 		var minDelay = TimeSpan.FromMilliseconds(200);
 		await Task.Delay(minDelay);
-		if (numStores >= 0)
+		if (numStores >= 0) {
 			AssertEx.IsOrBecomesTrue(() => archive.NumStores >= numStores, timeout: TimeSpan.FromSeconds(10));
+		}
 
-		if (numCheckpoints >= 0)
+		if (numCheckpoints >= 0) {
 			AssertEx.IsOrBecomesTrue(() => archive.NumCheckpoints >= numCheckpoints, timeout: TimeSpan.FromSeconds(10));
+		}
 	}
 
 	[Fact]
@@ -216,7 +218,7 @@ public class ArchiverServiceTests {
 
 	[Fact]
 	public async Task doesnt_archive_existing_chunks_that_were_already_archived() {
-		var (sut, archive) = CreateSut(existingChunks:	[ "chunk-0-0", "chunk-1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
+		var (sut, archive) = CreateSut(existingChunks: ["chunk-0-0", "chunk-1-1"], existingCheckpoint: 2 * TFConsts.ChunkSize);
 
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(0, 0, complete: true)));
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(1, 1, complete: true)));
@@ -226,12 +228,12 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 2);
 
-		Assert.Equal([ "chunk-0-0", "chunk-1-1", "chunk-2-2.renamed", "chunk-3-3.renamed" ], archive.Chunks);
+		Assert.Equal(["chunk-0-0", "chunk-1-1", "chunk-2-2.renamed", "chunk-3-3.renamed"], archive.Chunks);
 	}
 
 	[Fact]
 	public async Task archives_an_existing_chunk_if_it_starts_before_but_ends_after_the_checkpoint() {
-		var (sut, archive) = CreateSut(existingChunks:	[ "chunk-0-0", "chunk-1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
+		var (sut, archive) = CreateSut(existingChunks: ["chunk-0-0", "chunk-1-1"], existingCheckpoint: 2 * TFConsts.ChunkSize);
 
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(0, 0, complete: true)));
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(1, 2, complete: true))); // <-- the chunk being tested
@@ -240,7 +242,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 3);
 
-		Assert.Equal([ "chunk-0-0", "chunk-1-1", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed" ], archive.Chunks);
+		Assert.Equal(["chunk-0-0", "chunk-1-1", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed"], archive.Chunks);
 	}
 
 	[Fact]
@@ -254,7 +256,7 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 0);
 
-		Assert.Equal([ ], archive.Chunks);
+		Assert.Equal([], archive.Chunks);
 	}
 
 	[Fact]
@@ -340,8 +342,7 @@ internal class FakeArchiveChunkNamer : IArchiveChunkNamer {
 	public string GetFileNameFor(int logicalChunkNumber) => $"{Prefix}{logicalChunkNumber}-{logicalChunkNumber}.renamed";
 }
 
-internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader, IArchiveStorageFactory
-{
+internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader, IArchiveStorageFactory {
 	public List<string> Chunks;
 	public int NumStores => Interlocked.CompareExchange(ref _stores, 0, 0);
 	private int _stores;
@@ -352,8 +353,7 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	public int NumCheckpoints { get; private set; }
 	private long _checkpoint;
 
-	public FakeArchiveStorage(TimeSpan chunkStorageDelay, string[] existingChunks, long existingCheckpoint)
-	{
+	public FakeArchiveStorage(TimeSpan chunkStorageDelay, string[] existingChunks, long existingCheckpoint) {
 		_chunkStorageDelay = chunkStorageDelay;
 		_existingChunks = existingChunks;
 		_checkpoint = existingCheckpoint;
@@ -365,43 +365,36 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	public IArchiveStorageReader CreateReader() => this;
 	public IArchiveStorageWriter CreateWriter() => this;
 
-	public async ValueTask<bool> StoreChunk(string chunkPath, string destinationFile, CancellationToken ct)
-	{
+	public async ValueTask<bool> StoreChunk(string chunkPath, string destinationFile, CancellationToken ct) {
 		await Task.Delay(_chunkStorageDelay, ct);
 		Chunks.Add(destinationFile);
 		Interlocked.Increment(ref _stores);
 		return true;
 	}
 
-	public ValueTask<long> GetCheckpoint(CancellationToken ct)
-	{
+	public ValueTask<long> GetCheckpoint(CancellationToken ct) {
 		return ValueTask.FromResult(_checkpoint);
 	}
 
-	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
-	{
+	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct) {
 		return ValueTask.FromException<long>(new NotImplementedException());
 	}
 
-	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
-	{
+	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct) {
 		_checkpoint = checkpoint;
 		NumCheckpoints++;
 		return ValueTask.FromResult(true);
 	}
 
-	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
-	{
+	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct) {
 		throw new NotImplementedException();
 	}
 
-	public ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
-	{
+	public ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct) {
 		throw new NotImplementedException();
 	}
 
-	public IAsyncEnumerable<string> ListChunks(CancellationToken ct)
-	{
+	public IAsyncEnumerable<string> ListChunks(CancellationToken ct) {
 		return _existingChunks.ToAsyncEnumerable();
 	}
 }

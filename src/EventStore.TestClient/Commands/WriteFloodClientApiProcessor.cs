@@ -9,40 +9,37 @@ using ExpectedVersion = EventStore.Core.Data.ExpectedVersion;
 
 namespace EventStore.TestClient.Commands;
 
-internal class WriteFloodClientApiProcessor : ICmdProcessor
-{
-	public string Usage
-	{
+internal class WriteFloodClientApiProcessor : ICmdProcessor {
+	public string Usage {
 		get { return "WRFLCA [<clients> <requests> [<streams-cnt> [<size>]]]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "WRFLCA"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		int clientsCnt = 1;
 		long requestsCnt = 5000;
 		int streamsCnt = 1000;
 		int size = 256;
-		if (args.Length > 0)
-		{
-			if (args.Length < 2 || args.Length > 4)
+		if (args.Length > 0) {
+			if (args.Length < 2 || args.Length > 4) {
 				return false;
+			}
 
-			try
-			{
+			try {
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
-				if (args.Length >= 3)
+				if (args.Length >= 3) {
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
-				if (args.Length >= 4)
+				}
+
+				if (args.Length >= 4) {
 					size = MetricPrefixValue.ParseInt(args[3]);
+				}
 			}
-			catch
-			{
+			catch {
 				return false;
 			}
 		}
@@ -52,8 +49,7 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 	}
 
 	private void WriteFlood(CommandProcessorContext context, int clientsCnt, long requestsCnt, int streamsCnt,
-		int size)
-	{
+		int size) {
 		context.IsAsync();
 
 		var doneEvent = new ManualResetEventSlim(false);
@@ -64,8 +60,7 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 
 		var streams = Enumerable.Range(0, streamsCnt).Select(x => Guid.NewGuid().ToString()).ToArray();
 		var sw2 = new Stopwatch();
-		for (int i = 0; i < clientsCnt; i++)
-		{
+		for (int i = 0; i < clientsCnt; i++) {
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			var rnd = new Random();
 
@@ -82,13 +77,11 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 				new Uri($"tcp://{context._tcpTestClient.TcpEndpoint.GetHost()}:{context._tcpTestClient.TcpEndpoint.GetPort()}"));
 			clients.Add(client);
 
-			threads.Add(new Thread(_ =>
-			{
+			threads.Add(new Thread(_ => {
 				client.ErrorOccurred += (s, e) => context.Fail(e.Exception, "Error on connection");
 				client.ConnectAsync().Wait();
 
-				for (int j = 0; j < count; ++j)
-				{
+				for (int j = 0; j < count; ++j) {
 					var task = client.AppendToStreamAsync(streams[rnd.Next(streamsCnt)],
 						ExpectedVersion.Any,
 						new EventData(Guid.NewGuid(),
@@ -96,19 +89,18 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 							false,
 							Common.Utils.Helper.UTF8NoBom.GetBytes("DATA" + new string('*', size)),
 							Common.Utils.Helper.UTF8NoBom.GetBytes("METADATA" + new string('$', 100))));
-					task.ContinueWith(x =>
-					{
-						if (x.IsFaulted)
-						{
+					task.ContinueWith(x => {
+						if (x.IsFaulted) {
 							context.Fail(x.Exception.InnerException, "Error on writing operation.");
 							return;
 						}
 
 						var localAll = Interlocked.Increment(ref succ);
-						if (localAll % 1000 == 0)
+						if (localAll % 1000 == 0) {
 							Console.Write('.');
-						if (localAll % 100000 == 0)
-						{
+						}
+
+						if (localAll % 100000 == 0) {
 							var elapsed = sw2.Elapsed;
 							sw2.Restart();
 							context.Log.Debug("\nDONE TOTAL {writes} WRITES IN {elapsed} ({rate:0.0}/s).",
@@ -117,15 +109,13 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 								1000.0 * 100000 / elapsed.TotalMilliseconds);
 						}
 
-						if (localAll == requestsCnt)
-						{
+						if (localAll == requestsCnt) {
 							context.Success();
 							doneEvent.Set();
 						}
 					});
 				}
-			})
-			{ IsBackground = true });
+			}) { IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -160,9 +150,11 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 			string.Format("{0}-c{1}-r{2}-st{3}-s{4}-failureSuccessRate", Keyword, clientsCnt, requestsCnt,
 				streamsCnt, size), failuresRate);
 
-		if (Interlocked.Read(ref succ) != requestsCnt)
+		if (Interlocked.Read(ref succ) != requestsCnt) {
 			context.Fail(reason: "There were errors or not all requests completed.");
-		else
+		}
+		else {
 			context.Success();
+		}
 	}
 }

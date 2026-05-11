@@ -4,8 +4,7 @@ using EventStore.Core.Util;
 
 namespace EventStore.Core.Tests;
 
-public class Constants
-{
+public class Constants {
 	public const int PTableInitialReaderCount = ESConsts.PTableInitialReaderCount;
 
 	public const int PTableMaxReaderCountDefault = 1 /* StorageWriter */

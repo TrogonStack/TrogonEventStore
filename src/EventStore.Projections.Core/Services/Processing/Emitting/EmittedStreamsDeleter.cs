@@ -9,8 +9,7 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Emitting;
 
-public class EmittedStreamsDeleter : IEmittedStreamsDeleter
-{
+public class EmittedStreamsDeleter : IEmittedStreamsDeleter {
 	private static readonly ILogger Log = Serilog.Log.ForContext<EmittedStreamsDeleter>();
 	private readonly IODispatcher _ioDispatcher;
 	private readonly int _checkPointThreshold = 4000;
@@ -21,18 +20,15 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 	private readonly string _emittedStreamsCheckpointStreamId;
 
 	public EmittedStreamsDeleter(IODispatcher ioDispatcher, string emittedStreamsId,
-		string emittedStreamsCheckpointStreamId)
-	{
+		string emittedStreamsCheckpointStreamId) {
 		_ioDispatcher = ioDispatcher;
 		_emittedStreamsId = emittedStreamsId;
 		_emittedStreamsCheckpointStreamId = emittedStreamsCheckpointStreamId;
 	}
 
-	public void DeleteEmittedStreams(Action onEmittedStreamsDeleted)
-	{
+	public void DeleteEmittedStreams(Action onEmittedStreamsDeleted) {
 		_ioDispatcher.ReadBackward(_emittedStreamsCheckpointStreamId, -1, 1, false, SystemAccounts.System,
-			result =>
-			{
+			result => {
 				var deleteFromPosition = GetPositionToDeleteFrom(result);
 				DeleteEmittedStreamsFrom(deleteFromPosition, onEmittedStreamsDeleted);
 			},
@@ -40,18 +36,14 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 			Guid.NewGuid());
 	}
 
-	private int GetPositionToDeleteFrom(ClientMessage.ReadStreamEventsBackwardCompleted onReadCompleted)
-	{
+	private int GetPositionToDeleteFrom(ClientMessage.ReadStreamEventsBackwardCompleted onReadCompleted) {
 		int deleteFromPosition = 0;
-		if (onReadCompleted.Result == ReadStreamResult.Success)
-		{
-			if (onReadCompleted.Events.Count > 0)
-			{
+		if (onReadCompleted.Result == ReadStreamResult.Success) {
+			if (onReadCompleted.Events.Count > 0) {
 				var checkpoint = onReadCompleted.Events
 					.Where(v => v.Event.EventType == ProjectionEventTypes.ProjectionCheckpoint).Select(x => x.Event)
 					.FirstOrDefault();
-				if (checkpoint != null)
-				{
+				if (checkpoint != null) {
 					deleteFromPosition = checkpoint.Data.ParseJson<int>();
 				}
 			}
@@ -60,8 +52,7 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 		return deleteFromPosition;
 	}
 
-	private void DeleteEmittedStreamsFrom(long fromPosition, Action onEmittedStreamsDeleted)
-	{
+	private void DeleteEmittedStreamsFrom(long fromPosition, Action onEmittedStreamsDeleted) {
 		_ioDispatcher.ReadForward(_emittedStreamsId, fromPosition, 1, false, SystemAccounts.System,
 			x => ReadCompleted(x, onEmittedStreamsDeleted),
 			() => DeleteEmittedStreamsFrom(fromPosition, onEmittedStreamsDeleted),
@@ -69,60 +60,48 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 	}
 
 	private void ReadCompleted(ClientMessage.ReadStreamEventsForwardCompleted onReadCompleted,
-		Action onEmittedStreamsDeleted)
-	{
+		Action onEmittedStreamsDeleted) {
 		if (onReadCompleted.Result == ReadStreamResult.Success ||
-			onReadCompleted.Result == ReadStreamResult.NoStream)
-		{
-			if (onReadCompleted.Events.Count == 0 && !onReadCompleted.IsEndOfStream)
-			{
+			onReadCompleted.Result == ReadStreamResult.NoStream) {
+			if (onReadCompleted.Events.Count == 0 && !onReadCompleted.IsEndOfStream) {
 				DeleteEmittedStreamsFrom(onReadCompleted.NextEventNumber, onEmittedStreamsDeleted);
 				return;
 			}
 
-			if (onReadCompleted.Events.Count == 0)
-			{
+			if (onReadCompleted.Events.Count == 0) {
 				_ioDispatcher.DeleteStream(_emittedStreamsCheckpointStreamId, ExpectedVersion.Any, false,
-					SystemAccounts.System, x =>
-					{
+					SystemAccounts.System, x => {
 						// currently, WrongExpectedVersion is returned when deleting non-existing streams, even when specifying ExpectedVersion.Any.
 						// it is not too intuitive but changing the response would break the contract and compatibility with TCP/gRPC/web clients or require adding a new error code to all clients.
 						// note: we don't need to check if CurrentVersion == -1 here to make sure it's a non-existing stream since the deletion is done with ExpectedVersion.Any
-						if (x.Result == OperationResult.WrongExpectedVersion)
-						{
+						if (x.Result == OperationResult.WrongExpectedVersion) {
 							// stream was never created
 							Log.Information("PROJECTIONS: Projection Stream '{stream}' was not deleted since it does not exist", _emittedStreamsCheckpointStreamId);
 						}
-						else if (x.Result == OperationResult.Success || x.Result == OperationResult.StreamDeleted)
-						{
+						else if (x.Result == OperationResult.Success || x.Result == OperationResult.StreamDeleted) {
 							Log.Information("PROJECTIONS: Projection Stream '{stream}' deleted",
 								_emittedStreamsCheckpointStreamId);
 						}
-						else
-						{
+						else {
 							Log.Error("PROJECTIONS: Failed to delete projection stream '{stream}'. Reason: {e}",
 								_emittedStreamsCheckpointStreamId, x.Result);
 						}
 
 						_ioDispatcher.DeleteStream(_emittedStreamsId, ExpectedVersion.Any, false,
-							SystemAccounts.System, y =>
-							{
+							SystemAccounts.System, y => {
 								// currently, WrongExpectedVersion is returned when deleting non-existing streams, even when specifying ExpectedVersion.Any.
 								// it is not too intuitive but changing the response would break the contract and compatibility with TCP/gRPC/web clients or require adding a new error code to all clients.
 								// note: we don't need to check if CurrentVersion == -1 here to make sure it's a non-existing stream since the deletion is done with ExpectedVersion.Any
-								if (x.Result == OperationResult.WrongExpectedVersion)
-								{
+								if (x.Result == OperationResult.WrongExpectedVersion) {
 									// stream was never created
 									Log.Information("PROJECTIONS: Projection Stream '{stream}' was not deleted since it does not exist", _emittedStreamsId);
 								}
 								else if (y.Result == OperationResult.Success ||
-										   y.Result == OperationResult.StreamDeleted)
-								{
+										   y.Result == OperationResult.StreamDeleted) {
 									Log.Information("PROJECTIONS: Projection Stream '{stream}' deleted",
 										_emittedStreamsId);
 								}
-								else
-								{
+								else {
 									Log.Error(
 										"PROJECTIONS: Failed to delete projection stream '{stream}'. Reason: {e}",
 										_emittedStreamsId, y.Result);
@@ -132,8 +111,7 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 							});
 					});
 			}
-			else
-			{
+			else {
 				var streamId = Helper.UTF8NoBom.GetString(onReadCompleted.Events[0].Event.Data.Span);
 				_ioDispatcher.DeleteStream(streamId, ExpectedVersion.Any, false, SystemAccounts.System,
 					x => DeleteStreamCompleted(x, onEmittedStreamsDeleted, streamId,
@@ -143,25 +121,20 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 	}
 
 	private void DeleteStreamCompleted(ClientMessage.DeleteStreamCompleted deleteStreamCompleted,
-		Action onEmittedStreamsDeleted, string streamId, long eventNumber)
-	{
+		Action onEmittedStreamsDeleted, string streamId, long eventNumber) {
 		if (deleteStreamCompleted.Result == OperationResult.Success ||
-			deleteStreamCompleted.Result == OperationResult.StreamDeleted)
-		{
+			deleteStreamCompleted.Result == OperationResult.StreamDeleted) {
 			_retryCount = RetryLimit;
 			_numberOfEventsProcessed++;
-			if (_numberOfEventsProcessed >= _checkPointThreshold)
-			{
+			if (_numberOfEventsProcessed >= _checkPointThreshold) {
 				_numberOfEventsProcessed = 0;
 				TryMarkCheckpoint(eventNumber);
 			}
 
 			DeleteEmittedStreamsFrom(eventNumber + 1, onEmittedStreamsDeleted);
 		}
-		else
-		{
-			if (_retryCount == 0)
-			{
+		else {
+			if (_retryCount == 0) {
 				Log.Error(
 					"PROJECTIONS: Retry limit reached, could not delete stream: {stream}. Manual intervention is required and you may need to delete this stream manually",
 					streamId);
@@ -178,19 +151,15 @@ public class EmittedStreamsDeleter : IEmittedStreamsDeleter
 		}
 	}
 
-	private void TryMarkCheckpoint(long eventNumber)
-	{
+	private void TryMarkCheckpoint(long eventNumber) {
 		_ioDispatcher.WriteEvent(_emittedStreamsCheckpointStreamId, ExpectedVersion.Any,
 			new Event(Guid.NewGuid(), ProjectionEventTypes.PartitionCheckpoint, true, eventNumber.ToJson(), null),
-			SystemAccounts.System, x =>
-			{
-				if (x.Result == OperationResult.Success)
-				{
+			SystemAccounts.System, x => {
+				if (x.Result == OperationResult.Success) {
 					Log.Debug("PROJECTIONS: Emitted Stream Deletion Checkpoint written at {eventNumber}",
 						eventNumber);
 				}
-				else
-				{
+				else {
 					Log.Debug(
 						"PROJECTIONS: Emitted Stream Deletion Checkpoint Failed to be written at {eventNumber}",
 						eventNumber);

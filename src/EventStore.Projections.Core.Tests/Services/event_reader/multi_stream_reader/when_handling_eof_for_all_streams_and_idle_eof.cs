@@ -18,15 +18,13 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_eof_for_all_streams_and_idle_eof<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_handling_eof_for_all_streams_and_idle_eof<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private MultiStreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
 	private Guid _secondEventId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
@@ -35,8 +33,7 @@ public class when_handling_eof_for_all_streams_and_idle_eof<TLogFormat, TStreamI
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -96,8 +93,7 @@ public class when_handling_eof_for_all_streams_and_idle_eof<TLogFormat, TStreamI
 	}
 
 	[Test]
-	public void publishes_event_distribution_idle_messages()
-	{
+	public void publishes_event_distribution_idle_messages() {
 		Assert.AreEqual(2, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderIdle>().Count());
 		var first = _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderIdle>().First();
 		var second = _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderIdle>().Skip(1).First();

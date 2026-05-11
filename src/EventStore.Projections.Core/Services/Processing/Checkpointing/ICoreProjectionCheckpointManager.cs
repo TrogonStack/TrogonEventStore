@@ -3,8 +3,7 @@ using EventStore.Projections.Core.Services.Processing.Partitioning;
 
 namespace EventStore.Projections.Core.Services.Processing.Checkpointing;
 
-public interface ICoreProjectionCheckpointManager
-{
+public interface ICoreProjectionCheckpointManager {
 	void Initialize();
 	void Start(CheckpointTag checkpointTag, PartitionState rootPartitionState);
 	void Stopping();

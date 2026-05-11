@@ -11,62 +11,61 @@ using EventStore.TestClient.Statistics;
 
 namespace EventStore.TestClient.GrpcCommands;
 
-internal class WriteFloodProcessor : ICmdProcessor
-{
+internal class WriteFloodProcessor : ICmdProcessor {
 	private static readonly UTF8Encoding UTF8NoBom = new UTF8Encoding(false);
 
-	public string Usage
-	{
+	public string Usage {
 		//                         0          1            2           3          4              5
 		get { return "WRFLGRPC [<clients> <requests> [<streams-cnt> [<size> [<batchsize> [<stream-prefix>]]]]]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "WRFLGRPC"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		int clientsCnt = 1;
 		long requestsCnt = 5000;
 		int streamsCnt = 1000;
 		int size = 256;
 		int batchSize = 1;
 		string streamNamePrefix = string.Empty;
-		if (args.Length > 0)
-		{
-			if (args.Length < 2 || args.Length > 6)
+		if (args.Length > 0) {
+			if (args.Length < 2 || args.Length > 6) {
 				return false;
+			}
 
-			try
-			{
+			try {
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
-				if (args.Length >= 3)
+				if (args.Length >= 3) {
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
-				if (args.Length >= 4)
+				}
+
+				if (args.Length >= 4) {
 					size = MetricPrefixValue.ParseInt(args[3]);
-				if (args.Length >= 5)
+				}
+
+				if (args.Length >= 5) {
 					batchSize = MetricPrefixValue.ParseInt(args[4]);
-				if (args.Length >= 6)
+				}
+
+				if (args.Length >= 6) {
 					streamNamePrefix = args[5];
+				}
 			}
-			catch
-			{
+			catch {
 				return false;
 			}
 		}
 
 		var stats = new WriteFloodStats(Keyword, context.OutputCsv, args);
 		var monitor = new RequestMonitor();
-		try
-		{
+		try {
 			var task = WriteFlood(context, stats, clientsCnt, requestsCnt, streamsCnt, size, batchSize, streamNamePrefix, monitor);
 			task.Wait();
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			context.Fail(ex);
 		}
 
@@ -74,8 +73,7 @@ internal class WriteFloodProcessor : ICmdProcessor
 	}
 
 	private async Task WriteFlood(CommandProcessorContext context, WriteFloodStats stats, int clientsCnt, long requestsCnt, int streamsCnt,
-		int size, int batchSize, string streamNamePrefix, RequestMonitor monitor)
-	{
+		int size, int batchSize, string streamNamePrefix, RequestMonitor monitor) {
 		context.IsAsync();
 
 		long last = 0;
@@ -99,49 +97,41 @@ internal class WriteFloodProcessor : ICmdProcessor
 		var sw2 = new Stopwatch();
 		var capacity = 2000 / clientsCnt;
 		var clientTasks = new List<Task>();
-		for (int i = 0; i < clientsCnt; i++)
-		{
+		for (int i = 0; i < clientsCnt; i++) {
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			var client = context._grpcTestClient.CreateGrpcClient();
 			clientTasks.Add(RunClient(client, count));
 		}
 
-		async Task RunClient(EventStoreClient client, long count)
-		{
+		async Task RunClient(EventStoreClient client, long count) {
 			var rnd = new Random();
 			List<Task> pending = new List<Task>(capacity);
 			await start.Task;
-			for (int j = 0; j < count; ++j)
-			{
+			for (int j = 0; j < count; ++j) {
 				var events = new EventData[batchSize];
 
-				for (int q = 0; q < batchSize; q++)
-				{
+				for (int q = 0; q < batchSize; q++) {
 					events[q] = new EventData(Uuid.FromGuid(Guid.NewGuid()), "TakeSomeSpaceEvent", data, metadata);
 				}
 
 				var corrid = Guid.NewGuid();
 				monitor.StartOperation(corrid);
 
-				pending.Add(client.AppendToStreamAsync(streams[rnd.Next(streamsCnt)], StreamState.Any, events).ContinueWith(t =>
-				{
-					if (t.IsCompletedSuccessfully)
+				pending.Add(client.AppendToStreamAsync(streams[rnd.Next(streamsCnt)], StreamState.Any, events).ContinueWith(t => {
+					if (t.IsCompletedSuccessfully) {
 						Interlocked.Increment(ref stats.Succ);
-					else
-					{
-						if (Interlocked.Increment(ref stats.Fail) % 1000 == 0)
-						{
+					}
+					else {
+						if (Interlocked.Increment(ref stats.Fail) % 1000 == 0) {
 							Console.Write("#");
-							if (t.Exception != null)
-							{
+							if (t.Exception != null) {
 								var msg = string.Join("\n", t.Exception.ToString().Split("\n").Take(5));
 								context.Log.Error(msg);
 							}
 						}
 					}
 					var localAll = Interlocked.Add(ref stats.All, batchSize);
-					if (localAll - currentInterval > interval)
-					{
+					if (localAll - currentInterval > interval) {
 						var localInterval = Interlocked.Exchange(ref currentInterval, localAll);
 						stats.Elapsed = sw2.Elapsed;
 						stats.Rate = 1000.0 * (localAll - localInterval) / stats.Elapsed.TotalMilliseconds;
@@ -157,22 +147,18 @@ internal class WriteFloodProcessor : ICmdProcessor
 					monitor.EndOperation(corrid);
 				}));
 
-				if (pending.Count >= capacity)
-				{
+				if (pending.Count >= capacity) {
 					await Task.WhenAny(pending);
 
-					while (pending.Count > 0 && Task.WhenAny(pending).IsCompleted)
-					{
+					while (pending.Count > 0 && Task.WhenAny(pending).IsCompleted) {
 						pending
 							.Where(x => x.IsCompleted).ToList()
-							.ForEach(p =>
-							{
+							.ForEach(p => {
 								p.Dispose();
 								pending.Remove(p);
 							});
 
-						if (stats.Succ - last > 1000)
-						{
+						if (stats.Succ - last > 1000) {
 							Console.Write(".");
 							last = stats.Succ;
 						}
@@ -180,8 +166,9 @@ internal class WriteFloodProcessor : ICmdProcessor
 				}
 			}
 
-			if (pending.Count > 0)
+			if (pending.Count > 0) {
 				await Task.WhenAll(pending);
+			}
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -219,9 +206,11 @@ internal class WriteFloodProcessor : ICmdProcessor
 			string.Format("{0}-c{1}-r{2}-st{3}-s{4}-failureSuccessRate", Keyword, clientsCnt, requestsCnt,
 				streamsCnt, size), failuresRate);
 		monitor.GetMeasurementDetails();
-		if (Interlocked.Read(ref stats.Succ) != requestsCnt)
+		if (Interlocked.Read(ref stats.Succ) != requestsCnt) {
 			context.Fail(reason: "There were errors or not all requests completed.");
-		else
+		}
+		else {
 			context.Success();
+		}
 	}
 }

@@ -6,12 +6,11 @@ using EventStore.TestClient.Commands;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class BankAccountEvent
-{
-	public static EventData FromEvent(object accountObject)
-	{
-		if (accountObject == null)
+internal class BankAccountEvent {
+	public static EventData FromEvent(object accountObject) {
+		if (accountObject == null) {
 			throw new ArgumentNullException("accountObject");
+		}
 
 		var type = accountObject.GetType().Name;
 		var encodedData = Helper.UTF8NoBom.GetBytes(TestClientJson.To(accountObject));

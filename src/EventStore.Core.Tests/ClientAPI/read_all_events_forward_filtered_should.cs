@@ -14,12 +14,10 @@ namespace EventStore.Core.Tests.ClientAPI;
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private List<EventData> _testEvents;
 
-	protected override async Task When()
-	{
+	protected override async Task When() {
 		await _conn.SetStreamMetadataAsync("$all", -1,
 				StreamMetadata.Build().SetReadRole(SystemRoles.All),
 				DefaultData.AdminCredentials);
@@ -39,8 +37,7 @@ public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task only_return_events_with_a_given_stream_prefix()
-	{
+	public async Task only_return_events_with_a_given_stream_prefix() {
 		var filter = Filter.StreamId.Prefix("stream-a");
 
 		var read = await _conn.FilteredReadAllEventsForwardAsync(Position.Start, 1000, false, filter, 1000);
@@ -50,8 +47,7 @@ public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task only_return_events_with_a_given_event_prefix()
-	{
+	public async Task only_return_events_with_a_given_event_prefix() {
 		var filter = Filter.EventType.Prefix("AE");
 
 		// Have to order the events as we are writing to two streams and can't guarantee ordering
@@ -62,8 +58,7 @@ public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task only_return_events_that_satisfy_a_given_stream_regex()
-	{
+	public async Task only_return_events_that_satisfy_a_given_stream_regex() {
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
 
 		var read = await _conn.FilteredReadAllEventsForwardAsync(Position.Start, 1000, false, filter, 1000);
@@ -74,8 +69,7 @@ public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task only_return_events_that_satisfy_a_given_event_regex()
-	{
+	public async Task only_return_events_that_satisfy_a_given_event_regex() {
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
 
 		// Have to order the events as we are writing to two streams and can't guarantee ordering
@@ -87,8 +81,7 @@ public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task only_return_events_that_are_not_system_events()
-	{
+	public async Task only_return_events_that_are_not_system_events() {
 		var filter = Filter.ExcludeSystemEvents;
 
 		// Have to order the events as we are writing to two streams and can't guarantee ordering
@@ -98,8 +91,7 @@ public class read_all_events_forward_filtered_should<TLogFormat, TStreamId>
 	}
 }
 
-internal static class EventDataExtensions
-{
+internal static class EventDataExtensions {
 	internal static List<EventData> EvenEvents(this List<EventData> ed) => ed.Where((c, i) => i % 2 == 0).ToList();
 
 	internal static List<EventData> OddEvents(this List<EventData> ed) => ed.Where((c, i) => i % 2 != 0).ToList();

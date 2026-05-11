@@ -68,16 +68,19 @@ public static class ParallelLoop {
 			onConsiderEmit?.Invoke();
 
 			// find the the minimum checkpoint, we can emit it.
-			if (checkpoints.Any(static x => x is null))
+			if (checkpoints.Any(static x => x is null)) {
 				return;
+			}
 
 			var checkpointToEmit = checkpoints.Min().Value;
 
-			if (lastEmittedCheckpoint != null && checkpointToEmit <= lastEmittedCheckpoint)
+			if (lastEmittedCheckpoint != null && checkpointToEmit <= lastEmittedCheckpoint) {
 				return;
+			}
 
-			if (checkpointToEmit is int.MaxValue)
+			if (checkpointToEmit is int.MaxValue) {
 				checkpointToEmit = endCheckpoint.Value;
+			}
 
 			emitCheckpoint(checkpointToEmit);
 			lastEmittedCheckpoint = checkpointToEmit;
@@ -91,7 +94,8 @@ public static class ParallelLoop {
 				PrepareProcessingItem(slotsInUse, item);
 				tasksInProgress[slotsInUse] = SpawnProcess(process, slotsInUse, item, token);
 				slotsInUse++;
-			} else {
+			}
+			else {
 				var task = await Task.WhenAny(tasksInProgress);
 				var slot = await task;
 				PrepareProcessingItem(slot, item);

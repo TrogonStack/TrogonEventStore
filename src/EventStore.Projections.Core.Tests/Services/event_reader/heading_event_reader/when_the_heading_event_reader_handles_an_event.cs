@@ -12,22 +12,18 @@ using HeadingEventReader = EventStore.Projections.Core.Services.Processing.Trans
 namespace EventStore.Projections.Core.Tests.Services.event_reader.heading_event_reader;
 
 [TestFixture]
-public class when_the_heading_event_reader_handles_an_event : TestFixtureWithReadWriteDispatchers
-{
+public class when_the_heading_event_reader_handles_an_event : TestFixtureWithReadWriteDispatchers {
 	private HeadingEventReader _point;
 	private Exception _exception;
 	private Guid _distibutionPointCorrelationId;
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_exception = null;
-		try
-		{
+		try {
 			_point = new HeadingEventReader(10, _bus);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_exception = ex;
 		}
 
@@ -45,8 +41,7 @@ public class when_the_heading_event_reader_handles_an_event : TestFixtureWithRea
 	}
 
 	[Test]
-	public void can_handle_next_event()
-	{
+	public void can_handle_next_event() {
 		_point.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				_distibutionPointCorrelationId, new TFPos(40, 30), "stream", 12, false, Guid.NewGuid(),
@@ -65,10 +60,8 @@ public class when_the_heading_event_reader_handles_an_event : TestFixtureWithRea
 	*/
 
 	[Test]
-	public void cannot_handle_previous_event()
-	{
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+	public void cannot_handle_previous_event() {
+		Assert.Throws<InvalidOperationException>(() => {
 			_point.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_distibutionPointCorrelationId, new TFPos(5, 0), "stream", 8, false, Guid.NewGuid(), "type",
@@ -77,15 +70,13 @@ public class when_the_heading_event_reader_handles_an_event : TestFixtureWithRea
 	}
 
 	[Test]
-	public void a_projection_can_be_subscribed_after_event_position()
-	{
+	public void a_projection_can_be_subscribed_after_event_position() {
 		var subscribed = _point.TrySubscribe(Guid.NewGuid(), new FakeReaderSubscription(), 30);
 		Assert.AreEqual(true, subscribed);
 	}
 
 	[Test]
-	public void a_projection_cannot_be_subscribed_at_earlier_position()
-	{
+	public void a_projection_cannot_be_subscribed_at_earlier_position() {
 		var subscribed = _point.TrySubscribe(Guid.NewGuid(), new FakeReaderSubscription(), 10);
 		Assert.AreEqual(false, subscribed);
 	}

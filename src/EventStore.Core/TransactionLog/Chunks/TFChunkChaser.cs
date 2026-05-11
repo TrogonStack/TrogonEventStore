@@ -5,10 +5,8 @@ using EventStore.Core.TransactionLog.Checkpoint;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
-public class TFChunkChaser : ITransactionFileChaser
-{
-	public ICheckpoint Checkpoint
-	{
+public class TFChunkChaser : ITransactionFileChaser {
+	public ICheckpoint Checkpoint {
 		get { return _chaserCheckpoint; }
 	}
 
@@ -17,8 +15,7 @@ public class TFChunkChaser : ITransactionFileChaser
 	private readonly ICheckpoint _chaserCheckpoint;
 	private TFChunkReader _reader;
 
-	public TFChunkChaser(TFChunkDb db, IReadOnlyCheckpoint writerCheckpoint, ICheckpoint chaserCheckpoint)
-	{
+	public TFChunkChaser(TFChunkDb db, IReadOnlyCheckpoint writerCheckpoint, ICheckpoint chaserCheckpoint) {
 		Ensure.NotNull(db, "dbConfig");
 		Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
 		Ensure.NotNull(chaserCheckpoint, "chaserCheckpoint");
@@ -28,34 +25,31 @@ public class TFChunkChaser : ITransactionFileChaser
 		_chaserCheckpoint = chaserCheckpoint;
 	}
 
-	public void Open()
-	{
+	public void Open() {
 		_reader = new TFChunkReader(_db, _writerCheckpoint, _chaserCheckpoint.Read());
 	}
 
-	public async ValueTask<SeqReadResult> TryReadNext(CancellationToken token)
-	{
+	public async ValueTask<SeqReadResult> TryReadNext(CancellationToken token) {
 		var res = await _reader.TryReadNext(token);
-		if (res.Success)
+		if (res.Success) {
 			_chaserCheckpoint.Write(res.RecordPostPosition);
-		else
+		}
+		else {
 			_chaserCheckpoint.Write(_reader.CurrentPosition);
+		}
 
 		return res;
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		Close();
 	}
 
-	public void Close()
-	{
+	public void Close() {
 		Flush();
 	}
 
-	public void Flush()
-	{
+	public void Flush() {
 		_chaserCheckpoint.Flush();
 	}
 }

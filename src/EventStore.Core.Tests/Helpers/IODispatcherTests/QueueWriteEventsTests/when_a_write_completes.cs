@@ -6,12 +6,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Helpers.IODispatcherTests.QueueWriteEventsTests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_a_write_completes<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_a_write_completes<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private bool _completed = false;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 
 		_ioDispatcher.QueueWriteEvents(Guid.NewGuid(), $"stream-{Guid.NewGuid()}", ExpectedVersion.Any,
@@ -21,8 +19,7 @@ public class when_a_write_completes<TLogFormat, TStreamId> : TestFixtureWithExis
 	}
 
 	[Test]
-	public void should_invoke_callback_when_write_completes()
-	{
+	public void should_invoke_callback_when_write_completes() {
 		Assert.IsTrue(_completed);
 	}
 }

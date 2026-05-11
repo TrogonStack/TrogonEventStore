@@ -19,7 +19,8 @@ namespace EventStore.Core.Metrics {
 			lock (_lock) {
 				if (_subMetricGroups.TryGetValue(group, out var pair)) {
 					pair.Item1.Add(subMetric);
-				} else {
+				}
+				else {
 					var tags = new[] { _genTag(group) };
 					_subMetricGroups[group] = (new() { subMetric }, tags);
 				}

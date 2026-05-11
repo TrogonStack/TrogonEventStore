@@ -11,10 +11,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_updating_a_persistent_projection_emit_enabled_option<TLogFormat, TStreamId> :
-	TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+	TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+	protected override void Given() {
 		NoStream("$projections-test-projection");
 		NoStream("$projections-test-projection-result");
 		NoStream("$projections-test-projection-order");
@@ -26,8 +24,7 @@ public class when_updating_a_persistent_projection_emit_enabled_option<TLogForma
 	private string _projectionName;
 	private string _source;
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		_projectionName = "test-projection";
 		_source = @"fromAll(); on_any(function(){});log(1);";
 		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
@@ -44,8 +41,7 @@ public class when_updating_a_persistent_projection_emit_enabled_option<TLogForma
 	}
 
 	[Test, Category("v8")]
-	public void emit_enabled_options_remains_unchanged()
-	{
+	public void emit_enabled_options_remains_unchanged() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));

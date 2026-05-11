@@ -13,17 +13,13 @@ using OperationResult = EventStore.Client.Messages.OperationResult;
 
 namespace EventStore.TestClient.Commands.DvuBasic;
 
-internal class DvuBasicProcessor : ICmdProcessor
-{
-	public string Keyword
-	{
+internal class DvuBasicProcessor : ICmdProcessor {
+	public string Keyword {
 		get { return "verify"; }
 	}
 
-	public string Usage
-	{
-		get
-		{
+	public string Usage {
+		get {
 			return string.Format("{0} " +
 								 "<writers, default = 20> " +
 								 "<readers, default = 30> " +
@@ -35,8 +31,7 @@ internal class DvuBasicProcessor : ICmdProcessor
 		}
 	}
 
-	public IEnumerable<string> AvailableProducers
-	{
+	public IEnumerable<string> AvailableProducers {
 		get { yield return "bank"; }
 	}
 
@@ -49,61 +44,52 @@ internal class DvuBasicProcessor : ICmdProcessor
 	private volatile bool _stopReading;
 	private readonly object _factoryLock = new object();
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		var writers = 20;
 		var readers = 30;
 		var events = 1000000;
 		var streams = 1000;
 		var producers = new[] { "bank" };
 
-		if (args.Length != 0 && args.Length != 5)
-		{
+		if (args.Length != 0 && args.Length != 5) {
 			context.Log.Error("Invalid number of arguments. Should be 0 or 5");
 			return false;
 		}
 
-		if (args.Length > 0)
-		{
+		if (args.Length > 0) {
 			int writersArg;
 			int readersArg;
 			int eventsArg;
 			int streamsArg;
 
-			if (!int.TryParse(args[0], out writersArg))
-			{
+			if (!int.TryParse(args[0], out writersArg)) {
 				context.Log.Error("Invalid argument value for <writers>");
 				return false;
 			}
 
-			if (!int.TryParse(args[1], out readersArg))
-			{
+			if (!int.TryParse(args[1], out readersArg)) {
 				context.Log.Error("Invalid argument value for <readers>");
 				return false;
 			}
 
-			if (!int.TryParse(args[2], out eventsArg))
-			{
+			if (!int.TryParse(args[2], out eventsArg)) {
 				context.Log.Error("Invalid argument value for <events>");
 				return false;
 			}
 
-			if (!int.TryParse(args[3], out streamsArg))
-			{
+			if (!int.TryParse(args[3], out streamsArg)) {
 				context.Log.Error("Invalid argument value for <streams>");
 				return false;
 			}
 
 			string[] producersArg = args[4].Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries)
 				.Select(p => p.Trim().ToLower()).Distinct().ToArray();
-			if (producersArg.Length <= 0)
-			{
+			if (producersArg.Length <= 0) {
 				context.Log.Error("Invalid argument value for <plugins>");
 				return false;
 			}
 
-			if (producersArg.Any(p => !AvailableProducers.Contains(p)))
-			{
+			if (producersArg.Any(p => !AvailableProducers.Contains(p))) {
 				context.Log.Error("Invalid producers argument. Pass comma-separated subset of [{producers}]",
 					string.Join(",", AvailableProducers));
 				return false;
@@ -120,10 +106,8 @@ internal class DvuBasicProcessor : ICmdProcessor
 		return InitProducers(producers) && Run(context, writers, readers, events, streams);
 	}
 
-	private bool InitProducers(string[] producers)
-	{
-		if (producers.Length == 1 && producers[0] == "bank")
-		{
+	private bool InitProducers(string[] producers) {
+		if (producers.Length == 1 && producers[0] == "bank") {
 			Producers = new IBasicProducer[] { new BankAccountBasicProducer() };
 			return true;
 		}
@@ -131,15 +115,12 @@ internal class DvuBasicProcessor : ICmdProcessor
 		return false;
 	}
 
-	private bool Run(CommandProcessorContext context, int writers, int readers, int events, int streams)
-	{
+	private bool Run(CommandProcessorContext context, int writers, int readers, int events, int streams) {
 		context.IsAsync();
 
 		_streams = new string[streams * Producers.Length];
-		for (var i = 0; i < Producers.Length; i++)
-		{
-			for (var j = i * streams; j < streams * (i + 1); j++)
-			{
+		for (var i = 0; i < Producers.Length; i++) {
+			for (var j = i * streams; j < streams * (i + 1); j++) {
 				_streams[j] = StreamNamesGenerator.GenerateName(Producers[i].Name, j - i * streams);
 			}
 		}
@@ -149,24 +130,21 @@ internal class DvuBasicProcessor : ICmdProcessor
 		return Verify(context, writers, readers, events);
 	}
 
-	private bool Verify(CommandProcessorContext context, int writers, int readers, int events)
-	{
+	private bool Verify(CommandProcessorContext context, int writers, int readers, int events) {
 		var readStatuses = Enumerable.Range(0, readers).Select(x => new Status(context.Log)).ToArray();
 		var readNotifications = Enumerable.Range(0, readers).Select(x => new ManualResetEventSlim(false)).ToArray();
 		var writeStatuses = Enumerable.Range(0, writers).Select(x => new Status(context.Log)).ToArray();
 		var writeNotifications =
 			Enumerable.Range(0, writers).Select(x => new ManualResetEventSlim(false)).ToArray();
 
-		for (int i = 0; i < readers; i++)
-		{
+		for (int i = 0; i < readers; i++) {
 			var i1 = i;
 			var thread = new Thread(() => Read(readStatuses[i1], i1, context, readNotifications[i1]));
 			thread.IsBackground = true;
 			thread.Start();
 		}
 
-		for (int i = 0; i < writers; i++)
-		{
+		for (int i = 0; i < writers; i++) {
 			var i1 = i;
 			var thread = new Thread(() =>
 				Write(writeStatuses[i1], i1, context, events / writers, writeNotifications[i1]));
@@ -174,14 +152,12 @@ internal class DvuBasicProcessor : ICmdProcessor
 			thread.Start();
 		}
 
-		foreach (var writeNotification in writeNotifications)
-		{
+		foreach (var writeNotification in writeNotifications) {
 			writeNotification.Wait();
 		}
 
 		_stopReading = true;
-		foreach (var readNotification in readNotifications)
-		{
+		foreach (var readNotification in readNotifications) {
 			readNotification.Wait();
 		}
 
@@ -189,14 +165,12 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		var writersTable = new ConsoleTable("WRITER ID", "Status");
 
-		foreach (var ws in writeStatuses)
-		{
+		foreach (var ws in writeStatuses) {
 			writersTable.AppendRow(ws.ThreadId.ToString(), ws.Success ? "Success" : "Fail");
 		}
 
 		var readersTable = new ConsoleTable("READER ID", "Status");
-		foreach (var rs in readStatuses)
-		{
+		foreach (var rs in readStatuses) {
 			readersTable.AppendRow(rs.ThreadId.ToString(), rs.Success ? "Success" : "Fail");
 		}
 
@@ -204,16 +178,18 @@ internal class DvuBasicProcessor : ICmdProcessor
 		context.Log.Information(readersTable.CreateIndentedTable());
 
 		var success = writeStatuses.All(s => s.Success) && readStatuses.All(s => s.Success);
-		if (success)
+		if (success) {
 			context.Success();
-		else
+		}
+		else {
 			context.Fail();
+		}
+
 		return success;
 	}
 
 	private void Write(Status status, int writerIdx, CommandProcessorContext context, int requests,
-		ManualResetEventSlim finish)
-	{
+		ManualResetEventSlim finish) {
 		TcpTypedConnection<byte[]> connection;
 		var iteration = new AutoResetEvent(false);
 
@@ -232,14 +208,11 @@ internal class DvuBasicProcessor : ICmdProcessor
 		var streamIdx = -1;
 		var head = -1;
 
-		Action<TcpTypedConnection<byte[]>, TcpPackage> packageHandler = (conn, pkg) =>
-		{
+		Action<TcpTypedConnection<byte[]>, TcpPackage> packageHandler = (conn, pkg) => {
 			var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-			switch (dto.Result)
-			{
+			switch (dto.Result) {
 				case OperationResult.Success:
-					lock (_heads)
-					{
+					lock (_heads) {
 						var currentHead = _heads[streamIdx];
 						Ensure.Equal(currentHead, head, "currentHead");
 						_heads[streamIdx]++;
@@ -271,18 +244,21 @@ internal class DvuBasicProcessor : ICmdProcessor
 			}
 
 			sent++;
-			if (sent % 1000 == 0)
+			if (sent % 1000 == 0) {
 				status.ReportWritesProgress(writerIdx, sent, prepareTimeouts, commitTimeouts, forwardTimeouts,
 					wrongExpectedVersion, streamsDeleted, failed, requests);
+			}
+
 			iteration.Set();
 		};
 
 		Action<TcpTypedConnection<byte[]>> established = _ => { };
 		Action<TcpTypedConnection<byte[]>, SocketError> closed = null;
-		closed = (_, __) =>
-		{
-			if (!context._tcpTestClient.Options.Reconnect)
+		closed = (_, __) => {
+			if (!context._tcpTestClient.Options.Reconnect) {
 				return;
+			}
+
 			Thread.Sleep(TimeSpan.FromSeconds(1));
 			connection =
 				context._tcpTestClient.CreateTcpConnection(context, packageHandler, cn => iteration.Set(), closed, false);
@@ -290,11 +266,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		connection = context._tcpTestClient.CreateTcpConnection(context, packageHandler, established, closed, false);
 
-		for (var i = 0; i < requests; ++i)
-		{
+		for (var i = 0; i < requests; ++i) {
 			streamIdx = NextStreamForWriting(rnd, writerIdx);
-			lock (_heads)
-			{
+			lock (_heads) {
 				head = _heads[streamIdx];
 			}
 
@@ -322,8 +296,7 @@ internal class DvuBasicProcessor : ICmdProcessor
 	}
 
 	private void Read(Status status, int readerIdx, CommandProcessorContext context,
-		ManualResetEventSlim finishedEvent)
-	{
+		ManualResetEventSlim finishedEvent) {
 		TcpTypedConnection<byte[]> connection;
 		var iteration = new AutoResetEvent(false);
 
@@ -335,20 +308,17 @@ internal class DvuBasicProcessor : ICmdProcessor
 		var streamIdx = -1;
 		var eventidx = -1;
 
-		Action<TcpTypedConnection<byte[]>, TcpPackage> packageReceived = (conn, pkg) =>
-		{
+		Action<TcpTypedConnection<byte[]>, TcpPackage> packageReceived = (conn, pkg) => {
 			var dto = pkg.Data.Deserialize<ReadEventCompleted>();
-			switch (dto.Result)
-			{
+			switch (dto.Result) {
 				case ReadEventCompleted.Types.ReadEventResult.Success:
-					if (Equal(_streams[streamIdx], eventidx, dto.Event.Event.EventType, dto.Event.Event.Data.ToByteArray()))
-					{
+					if (Equal(_streams[streamIdx], eventidx, dto.Event.Event.EventType, dto.Event.Event.Data.ToByteArray())) {
 						successes++;
-						if (successes % 1000 == 0)
+						if (successes % 1000 == 0) {
 							status.ReportReadsProgress(readerIdx, successes, fails);
+						}
 					}
-					else
-					{
+					else {
 						fails++;
 						status.ReportReadError(readerIdx, _streams[streamIdx], eventidx);
 					}
@@ -370,10 +340,11 @@ internal class DvuBasicProcessor : ICmdProcessor
 		};
 		Action<TcpTypedConnection<byte[]>> established = _ => { };
 		Action<TcpTypedConnection<byte[]>, SocketError> closed = null;
-		closed = (_, __) =>
-		{
-			if (!context._tcpTestClient.Options.Reconnect)
+		closed = (_, __) => {
+			if (!context._tcpTestClient.Options.Reconnect) {
 				return;
+			}
+
 			Thread.Sleep(TimeSpan.FromSeconds(1));
 			connection =
 				context._tcpTestClient.CreateTcpConnection(context, packageReceived, cn => iteration.Set(), closed, false);
@@ -381,15 +352,14 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		connection = context._tcpTestClient.CreateTcpConnection(context, packageReceived, established, closed, false);
 
-		while (!_stopReading)
-		{
+		while (!_stopReading) {
 			streamIdx = NextStreamForReading(rnd, readerIdx);
 			int head;
-			lock (_heads)
+			lock (_heads) {
 				head = _heads[streamIdx];
+			}
 
-			if (head > 0)
-			{
+			if (head > 0) {
 				eventidx = NextRandomEventVersion(rnd, head);
 				var stream = _streams[streamIdx];
 				var corrid = Guid.NewGuid();
@@ -400,8 +370,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 				connection.EnqueueSend(package.AsByteArray());
 				iteration.WaitOne();
 			}
-			else
+			else {
 				Thread.Sleep(100);
+			}
 		}
 
 		status.ReportReadsProgress(readerIdx, successes, fails);
@@ -411,12 +382,11 @@ internal class DvuBasicProcessor : ICmdProcessor
 		finishedEvent.Set();
 	}
 
-	private int NextStreamForWriting(Random rnd, int writerIdx)
-	{
-		if (_writers >= _streams.Length)
-		{
-			if (_writers > _streams.Length)
+	private int NextStreamForWriting(Random rnd, int writerIdx) {
+		if (_writers >= _streams.Length) {
+			if (_writers > _streams.Length) {
 				return writerIdx % _streams.Length;
+			}
 
 			return writerIdx;
 		}
@@ -424,41 +394,38 @@ internal class DvuBasicProcessor : ICmdProcessor
 		return rnd.Next(_streams.Length);
 	}
 
-	private int NextStreamForReading(Random rnd, int readerIdx)
-	{
+	private int NextStreamForReading(Random rnd, int readerIdx) {
 		return rnd.Next(_streams.Length);
 	}
 
-	private int NextRandomEventVersion(Random rnd, int head)
-	{
+	private int NextRandomEventVersion(Random rnd, int head) {
 		return head % 2 == 0 ? head : rnd.Next(1, head);
 	}
 
-	private IBasicProducer CorrespondingProducer(string stream)
-	{
+	private IBasicProducer CorrespondingProducer(string stream) {
 		return Producers.Single(f => string.Equals(f.Name, stream, StringComparison.OrdinalIgnoreCase));
 	}
 
-	private Event CreateEvent(string stream, int version)
-	{
+	private Event CreateEvent(string stream, int version) {
 		var originalName = StreamNamesGenerator.GetOriginalName(stream);
 		var factory = CorrespondingProducer(originalName);
 
 		Event generated;
-		lock (_factoryLock)
+		lock (_factoryLock) {
 			generated = factory.Create(version);
+		}
 
 		return generated;
 	}
 
-	private bool Equal(string stream, int expectedIdx, string eventType, byte[] actual)
-	{
+	private bool Equal(string stream, int expectedIdx, string eventType, byte[] actual) {
 		var originalName = StreamNamesGenerator.GetOriginalName(stream);
 		var producer = CorrespondingProducer(originalName);
 
 		bool equal;
-		lock (_factoryLock)
+		lock (_factoryLock) {
 			equal = producer.Equal(expectedIdx, eventType, actual);
+		}
 
 		return equal;
 	}

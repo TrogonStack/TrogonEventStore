@@ -19,15 +19,13 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_initializing_projection_with_default_options<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId>
-{
+public class when_initializing_projection_with_default_options<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId> {
 	private ManagedProjection _mp;
 	private Guid _projectionId = Guid.NewGuid();
 	private ProjectionManagementMessage.ProjectionConfig _config;
 	private EventRecord _persistedStateWrite;
 
-	private ManagedProjection.PersistedState _persistedState = new ManagedProjection.PersistedState
-	{
+	private ManagedProjection.PersistedState _persistedState = new ManagedProjection.PersistedState {
 		Enabled = true,
 		HandlerType = "JS",
 		Query = "fromAll().when({});",
@@ -46,13 +44,11 @@ public class when_initializing_projection_with_default_options<TLogFormat, TStre
 		CreateTempStreams = null
 	};
 
-	public when_initializing_projection_with_default_options()
-	{
+	public when_initializing_projection_with_default_options() {
 		AllWritesQueueUp();
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_timeProvider = new FakeTimeProvider();
 		_mp = CreateManagedProjection();
 
@@ -68,23 +64,20 @@ public class when_initializing_projection_with_default_options<TLogFormat, TStre
 	}
 
 	[Test]
-	public void projection_execution_timeout_should_be_null()
-	{
+	public void projection_execution_timeout_should_be_null() {
 		Assert.IsNotNull(_config);
 		Assert.IsNull(_config.ProjectionExecutionTimeout, "ProjectionExecutionTimeout");
 	}
 
 	[Test]
-	public void emit_options_should_default_to_false()
-	{
+	public void emit_options_should_default_to_false() {
 		Assert.IsNotNull(_config);
 		Assert.AreEqual(false, _config.EmitEnabled, "EmitEnabled");
 		Assert.AreEqual(false, _config.TrackEmittedStreams, "TrackEmittedStreams");
 	}
 
 	[Test]
-	public void persisted_state_should_leave_fallback_options_unset()
-	{
+	public void persisted_state_should_leave_fallback_options_unset() {
 		Assert.IsNotNull(_persistedStateWrite);
 		var actualState = _persistedStateWrite.Data.ParseJson<ManagedProjection.PersistedState>();
 		Assert.IsNull(actualState.ProjectionExecutionTimeout, "ProjectionExecutionTimeout");
@@ -92,15 +85,13 @@ public class when_initializing_projection_with_default_options<TLogFormat, TStre
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_initializing_projection_with_persisted_state<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId>
-{
+public class when_initializing_projection_with_persisted_state<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId> {
 	private ManagedProjection _mp;
 	private Guid _projectionId = Guid.NewGuid();
 	private ProjectionManagementMessage.ProjectionConfig _config;
 	private EventRecord _persistedStateWrite;
 
-	private ManagedProjection.PersistedState _persistedState = new ManagedProjection.PersistedState
-	{
+	private ManagedProjection.PersistedState _persistedState = new ManagedProjection.PersistedState {
 		Enabled = true,
 		HandlerType = "JS",
 		Query = "fromAll().when({});",
@@ -120,13 +111,11 @@ public class when_initializing_projection_with_persisted_state<TLogFormat, TStre
 		ProjectionExecutionTimeout = 11
 	};
 
-	public when_initializing_projection_with_persisted_state()
-	{
+	public when_initializing_projection_with_persisted_state() {
 		AllWritesQueueUp();
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_timeProvider = new FakeTimeProvider();
 		_mp = CreateManagedProjection();
 
@@ -142,8 +131,7 @@ public class when_initializing_projection_with_persisted_state<TLogFormat, TStre
 	}
 
 	[Test]
-	public void config_should_be_same_as_persisted_state()
-	{
+	public void config_should_be_same_as_persisted_state() {
 		Assert.IsNotNull(_config);
 		Assert.AreEqual(_persistedState.EmitEnabled, _config.EmitEnabled, "EmitEnabled");
 		Assert.AreEqual(_persistedState.TrackEmittedStreams, _config.TrackEmittedStreams, "TrackEmittedStreams");
@@ -162,8 +150,7 @@ public class when_initializing_projection_with_persisted_state<TLogFormat, TStre
 	}
 
 	[Test]
-	public void persisted_state_is_written_correctly()
-	{
+	public void persisted_state_is_written_correctly() {
 		Assert.IsNotNull(_persistedStateWrite);
 		var actualState = _persistedStateWrite.Data.ParseJson<ManagedProjection.PersistedState>();
 
@@ -186,16 +173,14 @@ public class when_initializing_projection_with_persisted_state<TLogFormat, TStre
 
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_updating_projection_config_to_remove_execution_timeout<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId>
-{
+public class when_updating_projection_config_to_remove_execution_timeout<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId> {
 	private ManagedProjection _mp;
 	private Guid _projectionId = Guid.NewGuid();
 	private ProjectionManagementMessage.ProjectionConfig _config;
 	private EventRecord _persistedStateWrite;
 	private ProjectionManagementMessage.Command.UpdateConfig _updateConfig;
 
-	private ManagedProjection.PersistedState _persistedState => new ManagedProjection.PersistedState
-	{
+	private ManagedProjection.PersistedState _persistedState => new ManagedProjection.PersistedState {
 		Enabled = false,
 		HandlerType = "JS",
 		Query = "fromAll().when({});",
@@ -215,13 +200,11 @@ public class when_updating_projection_config_to_remove_execution_timeout<TLogFor
 		ProjectionExecutionTimeout = 11
 	};
 
-	public when_updating_projection_config_to_remove_execution_timeout()
-	{
+	public when_updating_projection_config_to_remove_execution_timeout() {
 		AllWritesQueueUp();
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_timeProvider = new FakeTimeProvider();
 		_mp = CreateManagedProjection();
 
@@ -247,15 +230,13 @@ public class when_updating_projection_config_to_remove_execution_timeout<TLogFor
 	}
 
 	[Test]
-	public void config_should_have_null_projection_execution_timeout()
-	{
+	public void config_should_have_null_projection_execution_timeout() {
 		Assert.IsNotNull(_config);
 		Assert.IsNull(_config.ProjectionExecutionTimeout, "ProjectionExecutionTimeout");
 	}
 
 	[Test]
-	public void persisted_state_should_have_null_projection_execution_timeout()
-	{
+	public void persisted_state_should_have_null_projection_execution_timeout() {
 		Assert.IsNotNull(_persistedStateWrite);
 		var actualState = _persistedStateWrite.Data.ParseJson<ManagedProjection.PersistedState>();
 		Assert.IsNull(actualState.ProjectionExecutionTimeout, "ProjectionExecutionTimeout");
@@ -263,25 +244,21 @@ public class when_updating_projection_config_to_remove_execution_timeout<TLogFor
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_updating_projection_config_of_faulted_projection<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId>
-{
+public class when_updating_projection_config_of_faulted_projection<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId> {
 	private ManagedProjection _mp;
 	private Guid _projectionId = Guid.NewGuid();
 	private Exception _thrownException;
 	private ProjectionManagementMessage.Command.UpdateConfig _updateConfig;
 
-	public when_updating_projection_config_of_faulted_projection()
-	{
+	public when_updating_projection_config_of_faulted_projection() {
 		AllWritesQueueUp();
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_timeProvider = new FakeTimeProvider();
 		_mp = CreateManagedProjection();
 		_mp.InitializeNew(
-			new ManagedProjection.PersistedState
-			{
+			new ManagedProjection.PersistedState {
 				Enabled = false,
 				HandlerType = "JS",
 				Query = "fromAll().when({});",
@@ -304,33 +281,28 @@ public class when_updating_projection_config_of_faulted_projection<TLogFormat, T
 			"test"));
 
 		_updateConfig = CreateConfig();
-		try
-		{
+		try {
 			_mp.Handle(_updateConfig);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_thrownException = ex;
 		}
 	}
 
 	[Test]
-	public void persisted_state_is_written()
-	{
+	public void persisted_state_is_written() {
 		var writeEvents = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().ToList();
 		Assert.AreEqual(1, writeEvents.Count());
 		Assert.AreEqual(ProjectionStreamId, writeEvents[0].EventStreamId);
 	}
 
 	[Test]
-	public void config_update_does_not_throw_exception()
-	{
+	public void config_update_does_not_throw_exception() {
 		Assert.IsNull(_thrownException);
 	}
 
 	[Test]
-	public void config_is_updated()
-	{
+	public void config_is_updated() {
 		var getConfigResult = GetProjectionConfig(_mp);
 
 		Assert.IsNotNull(getConfigResult);
@@ -347,13 +319,11 @@ public class when_updating_projection_config_of_faulted_projection<TLogFormat, T
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_updating_projection_config_of_running_projection<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId>
-{
+public class when_updating_projection_config_of_running_projection<TLogFormat, TStreamId> : projection_config_test_base<TLogFormat, TStreamId> {
 	private ManagedProjection _mp;
 	private Guid _projectionId = Guid.NewGuid();
 
-	private ManagedProjection.PersistedState _persistedState = new ManagedProjection.PersistedState
-	{
+	private ManagedProjection.PersistedState _persistedState = new ManagedProjection.PersistedState {
 		Enabled = true,
 		HandlerType = "JS",
 		Query = "fromAll().when({});",
@@ -375,13 +345,11 @@ public class when_updating_projection_config_of_running_projection<TLogFormat, T
 
 	private InvalidOperationException _thrownException;
 
-	public when_updating_projection_config_of_running_projection()
-	{
+	public when_updating_projection_config_of_running_projection() {
 		AllWritesQueueUp();
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_timeProvider = new FakeTimeProvider();
 		_mp = CreateManagedProjection();
 
@@ -393,25 +361,21 @@ public class when_updating_projection_config_of_running_projection<TLogFormat, T
 		// Complete write of persisted state to start projection
 		OneWriteCompletes();
 
-		try
-		{
+		try {
 			_mp.Handle(CreateConfig());
 		}
-		catch (InvalidOperationException ex)
-		{
+		catch (InvalidOperationException ex) {
 			_thrownException = ex;
 		}
 	}
 
 	[Test]
-	public void should_throw_exception_when_trying_to_update_config()
-	{
+	public void should_throw_exception_when_trying_to_update_config() {
 		Assert.IsNotNull(_thrownException);
 	}
 
 	[Test]
-	public void config_should_remain_unchanged()
-	{
+	public void config_should_remain_unchanged() {
 		var getConfigResult = GetProjectionConfig(_mp);
 
 		Assert.IsNotNull(getConfigResult);
@@ -434,12 +398,10 @@ public class when_updating_projection_config_of_running_projection<TLogFormat, T
 	}
 }
 
-public abstract class projection_config_test_base<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public abstract class projection_config_test_base<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	protected const string ProjectionName = "name";
 	protected readonly string ProjectionStreamId = ProjectionNamesBuilder.ProjectionsStreamPrefix + ProjectionName;
-	protected ManagedProjection CreateManagedProjection()
-	{
+	protected ManagedProjection CreateManagedProjection() {
 		return new ManagedProjection(
 			Guid.NewGuid(),
 			Guid.NewGuid(),
@@ -466,15 +428,13 @@ public abstract class projection_config_test_base<TLogFormat, TStreamId> : TestF
 			TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault));
 	}
 
-	protected ProjectionManagementMessage.Command.UpdateConfig CreateConfig()
-	{
+	protected ProjectionManagementMessage.Command.UpdateConfig CreateConfig() {
 		return new ProjectionManagementMessage.Command.UpdateConfig(
 			new NoopEnvelope(), ProjectionName, true, false, 100, 200, 300, 400, 500, 600,
 			ProjectionManagementMessage.RunAs.Anonymous, ClusterVNodeOptions.ProjectionOptions.DefaultProjectionExecutionTimeout);
 	}
 
-	protected ProjectionManagementMessage.ProjectionConfig GetProjectionConfig(ManagedProjection mp)
-	{
+	protected ProjectionManagementMessage.ProjectionConfig GetProjectionConfig(ManagedProjection mp) {
 		ProjectionManagementMessage.ProjectionConfig getConfigResult = null;
 		mp.Handle(new ProjectionManagementMessage.Command.GetConfig(
 			new CallbackEnvelope(m => getConfigResult = (ProjectionManagementMessage.ProjectionConfig)m), "name",

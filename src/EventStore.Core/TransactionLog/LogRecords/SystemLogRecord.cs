@@ -19,8 +19,7 @@ public enum SystemRecordSerialization : byte {
 	Bson = 3
 }
 
-public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, ISystemLogRecord
-{
+public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, ISystemLogRecord {
 	public const byte SystemRecordVersion = 0;
 
 	public DateTime TimeStamp { get; }
@@ -34,8 +33,7 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 		SystemRecordType systemRecordType,
 		SystemRecordSerialization systemRecordSerialization,
 		byte[] data)
-		: base(LogRecordType.System, SystemRecordVersion, logPosition)
-	{
+		: base(LogRecordType.System, SystemRecordVersion, logPosition) {
 		TimeStamp = timeStamp;
 		SystemRecordType = systemRecordType;
 		SystemRecordSerialization = systemRecordSerialization;
@@ -44,11 +42,11 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 	}
 
 	internal SystemLogRecord(ref SequenceReader reader, byte version, long logPosition)
-		: base(LogRecordType.System, version, logPosition)
-	{
-		if (version is not SystemRecordVersion)
+		: base(LogRecordType.System, version, logPosition) {
+		if (version is not SystemRecordVersion) {
 			throw new ArgumentException(
 				$"SystemRecord version {version} is incorrect. Supported version: {SystemRecordVersion}.");
+		}
 
 		TimeStamp = new(reader.ReadLittleEndian<long>());
 		SystemRecordType =
@@ -69,20 +67,18 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 			: NoData;
 	}
 
-	public EpochRecord GetEpochRecord()
-	{
-		if (SystemRecordType != SystemRecordType.Epoch)
+	public EpochRecord GetEpochRecord() {
+		if (SystemRecordType != SystemRecordType.Epoch) {
 			throw new ArgumentException(
 				string.Format("Unexpected type of system record. Requested: {0}, actual: {1}.",
 					SystemRecordType.Epoch, SystemRecordType));
+		}
 
-		switch (SystemRecordSerialization)
-		{
-			case SystemRecordSerialization.Json:
-			{
-				var dto = Data.ParseJson<EpochRecord.EpochRecordDto>();
-				return new EpochRecord(dto);
-			}
+		switch (SystemRecordSerialization) {
+			case SystemRecordSerialization.Json: {
+					var dto = Data.ParseJson<EpochRecord.EpochRecordDto>();
+					return new EpochRecord(dto);
+				}
 			default:
 				throw new ArgumentOutOfRangeException(
 					$"Unexpected SystemRecordSerialization type: {SystemRecordSerialization}",
@@ -90,8 +86,7 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 		}
 	}
 
-	public override void WriteTo(ref BufferWriterSlim<byte> writer)
-	{
+	public override void WriteTo(ref BufferWriterSlim<byte> writer) {
 		base.WriteTo(ref writer);
 
 		writer.WriteLittleEndian(TimeStamp.Ticks);
@@ -101,41 +96,51 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 		writer.Write(Data.Span, LengthFormat.LittleEndian);
 	}
 
-	public override int GetSizeWithLengthPrefixAndSuffix()
-	{
+	public override int GetSizeWithLengthPrefixAndSuffix() {
 		return sizeof(int) * 2 /* Length prefix & suffix */
-		       + sizeof(long) /* TimeStamp */
-		       + sizeof(byte) /* SystemRecordType */
-		       + sizeof(byte) /* SystemRecordSerialization */
-		       + sizeof(long) /* Reserved */
-		       + sizeof(int) /* Data.Length */
-		       + Data.Length /* Data */
-		       + BaseSize;
+			   + sizeof(long) /* TimeStamp */
+			   + sizeof(byte) /* SystemRecordType */
+			   + sizeof(byte) /* SystemRecordSerialization */
+			   + sizeof(long) /* Reserved */
+			   + sizeof(int) /* Data.Length */
+			   + Data.Length /* Data */
+			   + BaseSize;
 	}
 
-	public bool Equals(SystemLogRecord other)
-	{
-		if (ReferenceEquals(null, other)) return false;
-		if (ReferenceEquals(this, other)) return true;
+	public bool Equals(SystemLogRecord other) {
+		if (ReferenceEquals(null, other)) {
+			return false;
+		}
+
+		if (ReferenceEquals(this, other)) {
+			return true;
+		}
+
 		return other.LogPosition == LogPosition
-		       && other.TimeStamp.Equals(TimeStamp)
-		       && other.SystemRecordType == SystemRecordType
-		       && other.SystemRecordSerialization == SystemRecordSerialization
-		       && other.Reserved == Reserved;
+			   && other.TimeStamp.Equals(TimeStamp)
+			   && other.SystemRecordType == SystemRecordType
+			   && other.SystemRecordSerialization == SystemRecordSerialization
+			   && other.Reserved == Reserved;
 	}
 
-	public override bool Equals(object obj)
-	{
-		if (ReferenceEquals(null, obj)) return false;
-		if (ReferenceEquals(this, obj)) return true;
-		if (obj.GetType() != typeof(SystemRecordType)) return false;
+	public override bool Equals(object obj) {
+		if (ReferenceEquals(null, obj)) {
+			return false;
+		}
+
+		if (ReferenceEquals(this, obj)) {
+			return true;
+		}
+
+		if (obj.GetType() != typeof(SystemRecordType)) {
+			return false;
+		}
+
 		return Equals((SystemLogRecord)obj);
 	}
 
-	public override int GetHashCode()
-	{
-		unchecked
-		{
+	public override int GetHashCode() {
+		unchecked {
 			int result = LogPosition.GetHashCode();
 			result = (result * 397) ^ TimeStamp.GetHashCode();
 			result = (result * 397) ^ SystemRecordType.GetHashCode();
@@ -145,23 +150,20 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 		}
 	}
 
-	public static bool operator ==(SystemLogRecord left, SystemLogRecord right)
-	{
+	public static bool operator ==(SystemLogRecord left, SystemLogRecord right) {
 		return Equals(left, right);
 	}
 
-	public static bool operator !=(SystemLogRecord left, SystemLogRecord right)
-	{
+	public static bool operator !=(SystemLogRecord left, SystemLogRecord right) {
 		return !Equals(left, right);
 	}
 
-	public override string ToString()
-	{
+	public override string ToString() {
 		return string.Format("LogPosition: {0}, "
-		                     + "TimeStamp: {1}, "
-		                     + "SystemRecordType: {2}, "
-		                     + "SystemRecordSerialization: {3}, "
-		                     + "Reserved: {4}",
+							 + "TimeStamp: {1}, "
+							 + "SystemRecordType: {2}, "
+							 + "SystemRecordSerialization: {3}, "
+							 + "Reserved: {4}",
 			LogPosition,
 			TimeStamp,
 			SystemRecordType,

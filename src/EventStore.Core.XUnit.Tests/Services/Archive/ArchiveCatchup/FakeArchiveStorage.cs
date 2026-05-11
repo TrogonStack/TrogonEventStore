@@ -13,8 +13,7 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.ArchiveCatchup;
 
-internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader, IArchiveStorageFactory
-{
+internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader, IArchiveStorageFactory {
 	private readonly int _chunkSize;
 	private readonly string[] _chunks;
 	private readonly long _checkpoint;
@@ -25,12 +24,9 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 
 	private readonly Action<string> _onGetChunk;
 
-	public string[] ChunkGets
-	{
-		get
-		{
-			lock (_chunkGets)
-			{
+	public string[] ChunkGets {
+		get {
+			lock (_chunkGets) {
 				return _chunkGets.Order().ToArray();
 			}
 		}
@@ -39,8 +35,7 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	private readonly List<string> _chunkGets;
 
 
-	public FakeArchiveStorage(int chunkSize, string[] chunks, long checkpoint, Action<string> onGetChunk)
-	{
+	public FakeArchiveStorage(int chunkSize, string[] chunks, long checkpoint, Action<string> onGetChunk) {
 		_chunkSize = chunkSize;
 		_chunks = chunks;
 		_checkpoint = checkpoint;
@@ -60,18 +55,15 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	public ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct) =>
 		throw new NotImplementedException();
 
-	public ValueTask<long> GetCheckpoint(CancellationToken ct)
-	{
+	public ValueTask<long> GetCheckpoint(CancellationToken ct) {
 		return ValueTask.FromResult(_checkpoint);
 	}
 
-	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
-	{
+	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct) {
 		return ValueTask.FromResult((long)(ChunkHeader.Size + _chunkSize));
 	}
 
-	private ChunkHeader CreateChunkHeader(int chunkStartNumber, int chunkEndNumber)
-	{
+	private ChunkHeader CreateChunkHeader(int chunkStartNumber, int chunkEndNumber) {
 		return new ChunkHeader(
 			version: (int)TFChunk.ChunkVersions.Transformed,
 			minCompatibleVersion: (int)TFChunk.ChunkVersions.Transformed,
@@ -83,10 +75,8 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 			transformType: TransformType.Identity);
 	}
 
-	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
-	{
-		lock (_chunkGets)
-		{
+	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct) {
+		lock (_chunkGets) {
 			_chunkGets.Add(chunkFile);
 		}
 
@@ -101,8 +91,7 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 		return ValueTask.FromResult((Stream)stream);
 	}
 
-	public IAsyncEnumerable<string> ListChunks(CancellationToken ct)
-	{
+	public IAsyncEnumerable<string> ListChunks(CancellationToken ct) {
 		Interlocked.Increment(ref _listings);
 		return _chunks.ToAsyncEnumerable();
 	}

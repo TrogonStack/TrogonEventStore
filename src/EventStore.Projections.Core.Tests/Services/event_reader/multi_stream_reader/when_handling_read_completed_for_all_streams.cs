@@ -16,8 +16,7 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private MultiStreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
@@ -25,8 +24,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	private Guid _thirdEventId;
 	private Guid _fourthEventId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
@@ -34,8 +32,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -89,20 +86,17 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void cannot_be_resumed()
-	{
+	public void cannot_be_resumed() {
 		Assert.Throws<InvalidOperationException>(() => { _edp.Resume(); });
 	}
 
 	[Test]
-	public void cannot_be_paused()
-	{
+	public void cannot_be_paused() {
 		_edp.Pause();
 	}
 
 	[Test]
-	public void publishes_correct_committed_event_received_messages()
-	{
+	public void publishes_correct_committed_event_received_messages() {
 		Assert.AreEqual(
 			3, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 		var first =
@@ -131,8 +125,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void publishes_read_events_from_beginning_with_correct_next_event_number()
-	{
+	public void publishes_read_events_from_beginning_with_correct_next_event_number() {
 		Assert.AreEqual(3, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
@@ -153,10 +146,8 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void cannot_handle_repeated_read_events_completed()
-	{
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+	public void cannot_handle_repeated_read_events_completed() {
+		Assert.Throws<InvalidOperationException>(() => {
 			_edp.Handle(
 				new ClientMessage.ReadStreamEventsForwardCompleted(
 					_distibutionPointCorrelationId, "stream", 100, 100, ReadStreamResult.Success,
@@ -173,8 +164,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void can_handle_following_read_events_completed()
-	{
+	public void can_handle_following_read_events_completed() {
 		var correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
 			.Last(x => x.EventStreamId == "a").CorrelationId;
 		_edp.Handle(
@@ -191,8 +181,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void publishes_committed_event_received_messages_in_correct_order()
-	{
+	public void publishes_committed_event_received_messages_in_correct_order() {
 		Assert.AreEqual(
 			3, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 		var first =

@@ -13,13 +13,11 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ServerFeaturesTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId>
-{
+public class ServerFeaturesTests<TLogFormat, TStreamId> : SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId> {
 	private List<SupportedMethod> _supportedEndPoints = new();
 	private List<SupportedMethod> _expectedEndPoints = new();
 
-	public override Task Given()
-	{
+	public override Task Given() {
 		_expectedEndPoints.AddRange(GetEndPoints(Client.Projections.Projections.Descriptor));
 		var createEndPoint = _expectedEndPoints.FirstOrDefault(ep => ep.MethodName.Contains("create"));
 		createEndPoint?.Features.Add("track_emitted_streams");
@@ -27,13 +25,11 @@ public class ServerFeaturesTests<TLogFormat, TStreamId> : SpecificationWithNodeA
 		return Task.CompletedTask;
 	}
 
-	public override async Task When()
-	{
+	public override async Task When() {
 
 		using var channel = GrpcChannel.ForAddress(
 			new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions
-			{
+			new GrpcChannelOptions {
 				HttpHandler = _node.HttpMessageHandler
 			});
 		var client = new ServerFeatures.ServerFeaturesClient(channel);
@@ -43,15 +39,13 @@ public class ServerFeaturesTests<TLogFormat, TStreamId> : SpecificationWithNodeA
 	}
 
 	private SupportedMethod[] GetEndPoints(ServiceDescriptor desc) =>
-		desc.Methods.Select(x => new SupportedMethod
-		{
+		desc.Methods.Select(x => new SupportedMethod {
 			MethodName = x.Name.ToLower(),
 			ServiceName = x.Service.FullName.ToLower()
 		}).ToArray();
 
 	[Test]
-	public void should_receive_expected_endpoints()
-	{
+	public void should_receive_expected_endpoints() {
 		CollectionAssert.AreEquivalent(_expectedEndPoints, _supportedEndPoints);
 	}
 }

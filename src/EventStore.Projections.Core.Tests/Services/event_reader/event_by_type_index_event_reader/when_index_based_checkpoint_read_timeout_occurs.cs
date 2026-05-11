@@ -17,22 +17,19 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 
 [Category("test")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_index_based_checkpoint_read_timeout_occurs<TLogFormat, TStreamId> : EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId>
-{
+public class when_index_based_checkpoint_read_timeout_occurs<TLogFormat, TStreamId> : EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId> {
 	private EventByTypeIndexEventReader _eventReader;
 	private Guid _distributionCorrelationId;
 	private Guid _checkpointStreamCorrelationId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_distributionCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
 		var fromPositions = new Dictionary<string, long>();
@@ -87,15 +84,13 @@ public class when_index_based_checkpoint_read_timeout_occurs<TLogFormat, TStream
 	}
 
 	[Test]
-	public void should_not_deliver_events()
-	{
+	public void should_not_deliver_events() {
 		Assert.AreEqual(0,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}
 
 	[Test]
-	public void should_attempt_another_checkpoint_read()
-	{
+	public void should_attempt_another_checkpoint_read() {
 		var checkpointReads = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsBackward>()
 			.Where(x => x.EventStreamId == "$et");
 

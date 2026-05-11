@@ -19,8 +19,7 @@ public class FeedReader : IHandle<EventReaderSubscriptionMessage.CommittedEventR
 	IHandle<EventReaderSubscriptionMessage.EofReached>,
 	IHandle<EventReaderSubscriptionMessage.PartitionEofReached>,
 	IHandle<EventReaderSubscriptionMessage.CheckpointSuggested>,
-	IHandle<EventReaderSubscriptionMessage.NotAuthorized>
-{
+	IHandle<EventReaderSubscriptionMessage.NotAuthorized> {
 	private readonly
 		ReaderSubscriptionDispatcher _subscriptionDispatcher;
 
@@ -39,8 +38,7 @@ public class FeedReader : IHandle<EventReaderSubscriptionMessage.CommittedEventR
 	private CheckpointTag _lastReaderPosition;
 
 	public static FeedReader Create(
-		ReaderSubscriptionDispatcher readerSubscriptionDispatcher, FeedReaderMessage.ReadPage message, ITimeProvider timeProvider)
-	{
+		ReaderSubscriptionDispatcher readerSubscriptionDispatcher, FeedReaderMessage.ReadPage message, ITimeProvider timeProvider) {
 		return new FeedReader(
 			readerSubscriptionDispatcher, message.User, message.QuerySource, message.FromPosition, message.MaxEvents,
 			message.CorrelationId, message.Envelope, timeProvider);
@@ -49,14 +47,14 @@ public class FeedReader : IHandle<EventReaderSubscriptionMessage.CommittedEventR
 	public FeedReader(
 		ReaderSubscriptionDispatcher subscriptionDispatcher, ClaimsPrincipal user,
 		QuerySourcesDefinition querySource, CheckpointTag fromPosition,
-		int maxEvents, Guid requestCorrelationId, IEnvelope replyEnvelope, ITimeProvider timeProvider)
-	{
+		int maxEvents, Guid requestCorrelationId, IEnvelope replyEnvelope, ITimeProvider timeProvider) {
 		ArgumentNullException.ThrowIfNull(subscriptionDispatcher);
 		ArgumentNullException.ThrowIfNull(querySource);
 		ArgumentNullException.ThrowIfNull(fromPosition);
 		ArgumentNullException.ThrowIfNull(replyEnvelope);
-		if (maxEvents <= 0)
+		if (maxEvents <= 0) {
 			throw new ArgumentException("non-negative expected", nameof(maxEvents));
+		}
 
 		_subscriptionDispatcher = subscriptionDispatcher;
 		_user = user;
@@ -68,8 +66,7 @@ public class FeedReader : IHandle<EventReaderSubscriptionMessage.CommittedEventR
 		_timeProvider = timeProvider;
 	}
 
-	public void Start()
-	{
+	public void Start() {
 		var readerStrategy = ReaderStrategy.Create(
 			_querySource.ToJson(), // tag
 			0,
@@ -94,52 +91,44 @@ public class FeedReader : IHandle<EventReaderSubscriptionMessage.CommittedEventR
 				_subscriptionId, _fromPosition, readerStrategy, readerOptions), this, false);
 	}
 
-	public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message)
-	{
+	public void Handle(EventReaderSubscriptionMessage.CommittedEventReceived message) {
 		_lastReaderPosition = message.CheckpointTag;
 		_batch.Add(new TaggedResolvedEvent(message.Data, message.CheckpointTag));
 	}
 
-	public void Handle(EventReaderSubscriptionMessage.EofReached message)
-	{
+	public void Handle(EventReaderSubscriptionMessage.EofReached message) {
 		_lastReaderPosition = message.CheckpointTag;
 		Reply();
 		Unsubscribe();
 	}
 
-	public void Handle(EventReaderSubscriptionMessage.PartitionEofReached message)
-	{
+	public void Handle(EventReaderSubscriptionMessage.PartitionEofReached message) {
 		_lastReaderPosition = message.CheckpointTag;
 	}
 
-	public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message)
-	{
+	public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message) {
 		throw new NotSupportedException();
 	}
 
-	private void Unsubscribe()
-	{
+	private void Unsubscribe() {
 		_subscriptionDispatcher.Cancel(_subscriptionId);
 	}
 
-	private void Reply()
-	{
+	private void Reply() {
 		_replyEnvelope.ReplyWith(
 			new FeedReaderMessage.FeedPage(
 				_requestCorrelationId, FeedReaderMessage.FeedPage.ErrorStatus.Success, _batch.ToArray(),
 				_lastReaderPosition));
 	}
 
-	private void ReplyNotAuthorized()
-	{
+	private void ReplyNotAuthorized() {
 		_replyEnvelope.ReplyWith(
 			new FeedReaderMessage.FeedPage(
 				_requestCorrelationId, FeedReaderMessage.FeedPage.ErrorStatus.NotAuthorized, null,
 				_lastReaderPosition));
 	}
 
-	public void Handle(EventReaderSubscriptionMessage.NotAuthorized message)
-	{
+	public void Handle(EventReaderSubscriptionMessage.NotAuthorized message) {
 		ReplyNotAuthorized();
 	}
 }

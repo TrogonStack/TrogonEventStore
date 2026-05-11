@@ -6,8 +6,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
 
-public class EventStoreConfigurationKeysTests
-{
+public class EventStoreConfigurationKeysTests {
 	[Theory]
 	[InlineData("EVENTSTORE_StreamInfoCacheCapacity", "EventStore:StreamInfoCacheCapacity")]
 	[InlineData("EVENTSTORE_STREAM_INFO_CACHE_CAPACITY", "EventStore:StreamInfoCacheCapacity")]
@@ -20,8 +19,7 @@ public class EventStoreConfigurationKeysTests
 	[InlineData("GossipSeed", "EventStore:GossipSeed")]
 	[InlineData("EVENTSTORE_GOSSIP_SEED", "EventStore:GossipSeed")]
 	[InlineData("EVENTSTORE_GOSSIPSEED", "EventStore:GossipSeed")]
-	public void NormalizesEventStoreKeys(string key, string normalizedKey)
-	{
+	public void NormalizesEventStoreKeys(string key, string normalizedKey) {
 		EventStoreConfigurationKeys.Normalize(key).Should().Be(normalizedKey);
 	}
 }

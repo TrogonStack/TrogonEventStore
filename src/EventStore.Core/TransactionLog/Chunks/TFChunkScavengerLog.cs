@@ -107,8 +107,10 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 		public void ChunksScavenged(int chunkStartNumber, int chunkEndNumber, TimeSpan elapsed, long spaceSaved) {
 			Interlocked.Add(ref _spaceSaved, spaceSaved);
-			lock (_updateLock)
+			lock (_updateLock) {
 				_maxChunkScavenged = Math.Max(_maxChunkScavenged, chunkEndNumber);
+			}
+
 			var evnt = new Event(Guid.NewGuid(), SystemEventTypes.ScavengeChunksCompleted, true,
 				new Dictionary<string, object> {
 					{"scavengeId", _scavengeId},
@@ -127,8 +129,10 @@ namespace EventStore.Core.TransactionLog.Chunks {
 		public void ChunksNotScavenged(int chunkStartNumber, int chunkEndNumber, TimeSpan elapsed,
 			string errorMessage) {
 			// We still update the _maxChunkScavenged as we've processed it during our scavenge stage.
-			lock (_updateLock)
+			lock (_updateLock) {
 				_maxChunkScavenged = Math.Max(_maxChunkScavenged, chunkEndNumber);
+			}
+
 			var evnt = new Event(Guid.NewGuid(), SystemEventTypes.ScavengeChunksCompleted, true,
 				new Dictionary<string, object> {
 					{"scavengeId", _scavengeId},
@@ -227,7 +231,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			if (msg.Result != OperationResult.Success) {
 				if (retryCount > 0) {
 					WriteScavengeChunkCompletedEvent(streamId, eventToWrite, --retryCount);
-				} else {
+				}
+				else {
 					Log.Error(
 						"Failed to write an event to the {stream} stream. Retry limit of {retryCount} reached. Reason: {reason}",
 						streamId, _retryAttempts, msg.Result);
@@ -253,7 +258,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 						"Failed to write an event to the {stream} stream. Retrying {retry}/{retryCount}. Reason: {reason}",
 						SystemStreams.ScavengesStream, (_retryAttempts - retryCount) + 1, _retryAttempts, msg.Result);
 					WriteScavengeIndexEvent(linkToEvent, --retryCount);
-				} else {
+				}
+				else {
 					Log.Error(
 						"Failed to write an event to the {stream} stream. Retry limit of {retryCount} reached. Reason: {reason}",
 						SystemStreams.ScavengesStream, _retryAttempts, msg.Result);
@@ -269,12 +275,14 @@ namespace EventStore.Core.TransactionLog.Chunks {
 						"Failed to write an event to the {stream} stream. Retrying {retry}/{retryCount}. Reason: {reason}",
 						streamId, (_retryAttempts - retryCount) + 1, _retryAttempts, msg.Result);
 					WriteScavengeDetailEvent(streamId, eventToWrite, --retryCount);
-				} else {
+				}
+				else {
 					Log.Error(
 						"Failed to write an event to the {stream} stream. Retry limit of {retryCount} reached. Reason: {reason}",
 						streamId, _retryAttempts, msg.Result);
 				}
-			} else {
+			}
+			else {
 				string eventLinkTo = string.Format("{0}@{1}", msg.FirstEventNumber, streamId);
 				var linkToIndexEvent = new Event(Guid.NewGuid(), SystemEventTypes.LinkTo, false, eventLinkTo, null);
 				WriteScavengeIndexEvent(linkToIndexEvent, _retryAttempts);

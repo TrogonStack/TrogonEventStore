@@ -9,8 +9,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientOperations;
 
-public abstract class specification_with_request_manager_integration<TLogFormat, TStreamId> : specification_with_bare_vnode<TLogFormat, TStreamId>
-{
+public abstract class specification_with_request_manager_integration<TLogFormat, TStreamId> : specification_with_bare_vnode<TLogFormat, TStreamId> {
 
 	protected long CompletionMessageCount;
 	protected StorageMessage.RequestCompleted CompletionMessage;
@@ -23,17 +22,14 @@ public abstract class specification_with_request_manager_integration<TLogFormat,
 	protected abstract Message When();
 
 	[SetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		CreateTestNode();
 		Envelope = new FakeEnvelope();
 
-		foreach (var m in WithInitialMessages())
-		{
+		foreach (var m in WithInitialMessages()) {
 			Publish(m);
 		}
-		Subscribe(new AdHocHandler<StorageMessage.RequestCompleted>(msg =>
-		{
+		Subscribe(new AdHocHandler<StorageMessage.RequestCompleted>(msg => {
 			Interlocked.Exchange(ref CompletionMessage, msg);
 			Interlocked.Increment(ref CompletionMessageCount);
 		}));

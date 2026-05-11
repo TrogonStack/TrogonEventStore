@@ -7,19 +7,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class FlushTimeMeter : SpecificationWithFile
-{
+public class FlushTimeMeter : SpecificationWithFile {
 	[Test, Ignore("long running")]
-	public void Test()
-	{
+	public void Test() {
 		var rnd = new Random();
 		var sw = Stopwatch.StartNew();
 		var gw = Stopwatch.StartNew();
-		using (var fs = new FileStream(Filename, FileMode.OpenOrCreate))
-		{
+		using (var fs = new FileStream(Filename, FileMode.OpenOrCreate)) {
 			const int iter = 1000;
-			for (int bytes = 100; bytes < 1000000; bytes *= 2)
-			{
+			for (int bytes = 100; bytes < 1000000; bytes *= 2) {
 				var arr = new byte[bytes];
 				rnd.NextBytes(arr);
 
@@ -27,8 +23,7 @@ public class FlushTimeMeter : SpecificationWithFile
 				TimeSpan max = TimeSpan.Zero;
 
 				gw.Restart();
-				for (int i = 0; i < iter; ++i)
-				{
+				for (int i = 0; i < iter; ++i) {
 					fs.Write(arr, 0, arr.Length);
 
 					sw.Restart();

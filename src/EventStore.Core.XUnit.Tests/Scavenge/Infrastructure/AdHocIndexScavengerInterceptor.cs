@@ -9,14 +9,12 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 public class AdHocIndexScavengerInterceptor(
 	IIndexScavenger wrapped,
 	Func<Func<IndexEntry, CancellationToken, ValueTask<bool>>, Func<IndexEntry, CancellationToken, ValueTask<bool>>> f)
-	: IIndexScavenger
-{
+	: IIndexScavenger {
 	public ValueTask ScavengeIndex(
 		long scavengePoint,
 		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
 		IIndexScavengerLog log,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		return wrapped.ScavengeIndex(scavengePoint, f(shouldKeep), log, cancellationToken);
 	}

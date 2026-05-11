@@ -14,15 +14,13 @@ namespace EventStore.Core.Tests.Index.Scavenge;
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
 public class when_scavenging_an_index_removes_nothing(byte oldVersion, bool skipIndexVerify)
-	: SpecificationWithDirectoryPerTestFixture
-{
+	: SpecificationWithDirectoryPerTestFixture {
 	private PTable _newtable;
 	private PTable _oldTable;
 	private string _expectedOutputFile;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var table = new HashListMemTable(oldVersion, maxSize: 20);
@@ -41,8 +39,7 @@ public class when_scavenging_an_index_removes_nothing(byte oldVersion, bool skip
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_oldTable.Dispose();
 		_newtable?.Dispose();
 
@@ -50,28 +47,22 @@ public class when_scavenging_an_index_removes_nothing(byte oldVersion, bool skip
 	}
 
 	[Test]
-	public void a_null_object_is_returned_if_the_version_is_unchanged()
-	{
-		if (oldVersion == PTableVersions.IndexV4)
-		{
+	public void a_null_object_is_returned_if_the_version_is_unchanged() {
+		if (oldVersion == PTableVersions.IndexV4) {
 			Assert.IsNull(_newtable);
 		}
 	}
 
 	[Test]
-	public void the_output_file_is_deleted_if_version_is_unchanged()
-	{
-		if (oldVersion == PTableVersions.IndexV4)
-		{
+	public void the_output_file_is_deleted_if_version_is_unchanged() {
+		if (oldVersion == PTableVersions.IndexV4) {
 			Assert.That(File.Exists(_expectedOutputFile), Is.False);
 		}
 	}
 
 	[Test]
-	public void a_table_with_all_items_is_returned_with_a_newer_version()
-	{
-		if (oldVersion != PTableVersions.IndexV4)
-		{
+	public void a_table_with_all_items_is_returned_with_a_newer_version() {
+		if (oldVersion != PTableVersions.IndexV4) {
 			Assert.IsNotNull(_newtable);
 			Assert.That(_newtable.Count, Is.EqualTo(4));
 		}

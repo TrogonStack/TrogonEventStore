@@ -12,22 +12,19 @@ namespace EventStore.Core.Tests.Index.Scavenge;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class when_scavenging_an_index : SpecificationWithDirectoryPerTestFixture
-{
+public class when_scavenging_an_index : SpecificationWithDirectoryPerTestFixture {
 	private PTable _newtable;
 	private readonly byte _oldVersion;
 	private bool _skipIndexVerify;
 	private PTable _oldTable;
 
-	public when_scavenging_an_index(byte oldVersion, bool skipIndexVerify)
-	{
+	public when_scavenging_an_index(byte oldVersion, bool skipIndexVerify) {
 		_oldVersion = oldVersion;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var table = new HashListMemTable(_oldVersion, maxSize: 20);
@@ -46,8 +43,7 @@ public class when_scavenging_an_index : SpecificationWithDirectoryPerTestFixture
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_oldTable.Dispose();
 		_newtable.Dispose();
 
@@ -55,20 +51,17 @@ public class when_scavenging_an_index : SpecificationWithDirectoryPerTestFixture
 	}
 
 	[Test]
-	public void scavenged_ptable_is_newest_version()
-	{
+	public void scavenged_ptable_is_newest_version() {
 		Assert.AreEqual(PTableVersions.IndexV4, _newtable.Version);
 	}
 
 	[Test]
-	public void there_are_2_records_in_the_merged_index()
-	{
+	public void there_are_2_records_in_the_merged_index() {
 		Assert.AreEqual(2, _newtable.Count);
 	}
 
 	[Test]
-	public void a_stream_can_be_found()
-	{
+	public void a_stream_can_be_found() {
 		var stream = (ulong)0x010300000000;
 		Assert.True(_newtable.TryGetLatestEntry(stream, out var entry));
 		Assert.AreEqual(stream, entry.Stream);
@@ -77,11 +70,9 @@ public class when_scavenging_an_index : SpecificationWithDirectoryPerTestFixture
 	}
 
 	[Test]
-	public void the_items_are_sorted()
-	{
+	public void the_items_are_sorted() {
 		var last = new IndexEntry(ulong.MaxValue, 0, long.MaxValue);
-		foreach (var item in _newtable.IterateAllInOrder())
-		{
+		foreach (var item in _newtable.IterateAllInOrder()) {
 			Assert.IsTrue((last.Stream == item.Stream ? last.Version > item.Version : last.Stream > item.Stream) ||
 						  ((last.Stream == item.Stream && last.Version == item.Version) &&
 						   last.Position > item.Position));

@@ -7,18 +7,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.CheckCommitStartingAt;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenWritingSinglePrepare<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class WhenWritingSinglePrepare<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private IPrepareLogRecord _prepare;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		_prepare = await WritePrepare("ES", -1, token: token);
 	}
 
 	[Test]
-	public async Task check_commmit_should_return_ok_decision()
-	{
+	public async Task check_commmit_should_return_ok_decision() {
 		var res = await ReadIndex.IndexWriter.CheckCommitStartingAt(_prepare.LogPosition,
 			WriterCheckpoint.ReadNonFlushed(), CancellationToken.None);
 

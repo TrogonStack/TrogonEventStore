@@ -74,7 +74,8 @@ namespace EventStore.Core.Services.VNode {
 		public void Handle(SystemMessage.StateChangeMessage received) {
 			if (received is SystemMessage.BecomePreLeader becomePreLeader) {
 				HandleBecomePreLeader(becomePreLeader);
-			} else {
+			}
+			else {
 				HandleBecomeOtherNodeState(received);
 			}
 		}
@@ -102,13 +103,15 @@ namespace EventStore.Core.Services.VNode {
 			if (State != ManagerState.WaitingForChaser) {
 				// will get this in prereplica and prereadonly replica
 				Ignore(received, "Not waiting for chaser.");
-			} else if (received.CorrelationId != _stateCorrelationId) {
+			}
+			else if (received.CorrelationId != _stateCorrelationId) {
 				Ignore(
 					received,
 					"Current correlation id is {currentCorrelationId} but received {receivedCorrelationId}.",
 					_stateCorrelationId,
 					received.CorrelationId);
-			} else {
+			}
+			else {
 				Respond(
 					received,
 					new SystemMessage.WriteEpoch(_currentEpochNumber),
@@ -121,13 +124,15 @@ namespace EventStore.Core.Services.VNode {
 		public void Handle(SystemMessage.EpochWritten received) {
 			if (State != ManagerState.WritingEpoch) {
 				Ignore(received, "Not writing epoch.");
-			} else if (received.Epoch.EpochNumber != _currentEpochNumber) {
+			}
+			else if (received.Epoch.EpochNumber != _currentEpochNumber) {
 				Ignore(
 					received,
 					"Current epoch number is {currentEpochNumber} but received {receivedEpochNumber}.",
 					_currentEpochNumber,
 					received.Epoch.EpochNumber);
-			} else {
+			}
+			else {
 				Respond(received, new SystemMessage.EnablePreLeaderReplication());
 				State = ManagerState.WaitingForConditions;
 
@@ -145,7 +150,8 @@ namespace EventStore.Core.Services.VNode {
 		public void Handle(ReplicationTrackingMessage.ReplicatedTo received) {
 			if (State != ManagerState.WaitingForConditions) {
 				// silently ignore. we'll get these all the time
-			} else {
+			}
+			else {
 				ConsiderBecomingLeader(received, log: false);
 			}
 		}
@@ -153,7 +159,8 @@ namespace EventStore.Core.Services.VNode {
 		public void Handle(ReplicationTrackingMessage.IndexedTo received) {
 			if (State != ManagerState.WaitingForConditions) {
 				// silently ignore. we'll get these all the time
-			} else {
+			}
+			else {
 				ConsiderBecomingLeader(received, log: false);
 			}
 		}
@@ -161,7 +168,8 @@ namespace EventStore.Core.Services.VNode {
 		public void Handle(SystemMessage.CheckInaugurationConditions received) {
 			if (State != ManagerState.WaitingForConditions) {
 				Ignore(received, "Not waiting for conditions.");
-			} else {
+			}
+			else {
 				Respond(received, _scheduleCheckInaugurationConditions);
 				ConsiderBecomingLeader(received, log: true);
 			}
@@ -226,21 +234,25 @@ namespace EventStore.Core.Services.VNode {
 		}
 
 		private static string Combine(string template2, string template1) {
-			if (template1 is null)
+			if (template1 is null) {
 				return template2;
+			}
 
-			if (template2 is null)
+			if (template2 is null) {
 				return template1;
+			}
 
 			return $"{template1} {template2}";
 		}
 
 		private static object[] Combine(object[] args2, params object[] args1) {
-			if (args1 is null)
+			if (args1 is null) {
 				return args2;
+			}
 
-			if (args2 is null)
+			if (args2 is null) {
 				return args1;
+			}
 
 			return args1.Concat(args2).ToArray();
 		}

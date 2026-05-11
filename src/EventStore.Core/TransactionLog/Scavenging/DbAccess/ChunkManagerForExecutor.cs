@@ -9,16 +9,14 @@ using Serilog;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public class ChunkManagerForExecutor<TStreamId> : IChunkManagerForChunkExecutor<TStreamId, ILogRecord>
-{
+public class ChunkManagerForExecutor<TStreamId> : IChunkManagerForChunkExecutor<TStreamId, ILogRecord> {
 	private readonly ILogger _logger;
 	private readonly TFChunkManager _manager;
 	private readonly TFChunkDbConfig _dbConfig;
 	private readonly DbTransformManager _transformManager;
 
 	public ChunkManagerForExecutor(ILogger logger, TFChunkManager manager, TFChunkDbConfig dbConfig,
-		DbTransformManager transformManager)
-	{
+		DbTransformManager transformManager) {
 		_logger = logger;
 		_manager = manager;
 		_dbConfig = dbConfig;
@@ -31,16 +29,14 @@ public class ChunkManagerForExecutor<TStreamId> : IChunkManagerForChunkExecutor<
 		=> await ChunkWriterForExecutor<TStreamId>.CreateAsync(_logger, this, _dbConfig, sourceChunk,
 			_transformManager, token);
 
-	public IChunkReaderForExecutor<TStreamId, ILogRecord> GetChunkReaderFor(long position)
-	{
+	public IChunkReaderForExecutor<TStreamId, ILogRecord> GetChunkReaderFor(long position) {
 		var tfChunk = _manager.GetChunkFor(position);
 		return new ChunkReaderForExecutor<TStreamId>(tfChunk);
 	}
 
 	public async ValueTask<string> SwitchChunk(
 		TFChunk chunk,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
 		var tfChunk = await _manager.SwitchChunk(
 			chunk: chunk,
@@ -48,8 +44,7 @@ public class ChunkManagerForExecutor<TStreamId> : IChunkManagerForChunkExecutor<
 			removeChunksWithGreaterNumbers: false,
 			token);
 
-		if (tfChunk is null)
-		{
+		if (tfChunk is null) {
 			throw new Exception("Unexpected error: new chunk is null after switch");
 		}
 

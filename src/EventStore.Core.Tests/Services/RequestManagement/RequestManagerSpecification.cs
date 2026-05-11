@@ -13,8 +13,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement;
 
 public abstract class RequestManagerSpecification<TManager>
-	where TManager : RequestManagerBase
-{
+	where TManager : RequestManagerBase {
 	protected readonly TimeSpan PrepareTimeout = TimeSpan.FromMinutes(5);
 	protected readonly TimeSpan CommitTimeout = TimeSpan.FromMinutes(5);
 
@@ -34,18 +33,15 @@ public abstract class RequestManagerSpecification<TManager>
 	protected virtual void Given() { }
 	protected abstract Message When();
 
-	protected Event DummyEvent()
-	{
+	protected Event DummyEvent() {
 		return new Event(Guid.NewGuid(), "test", false, EventData, Metadata);
 	}
 
-	protected RequestManagerSpecification()
-	{
+	protected RequestManagerSpecification() {
 		Dispatcher.Subscribe<ReplicationTrackingMessage.ReplicatedTo>(CommitSource);
 	}
 	[OneTimeSetUp]
-	public virtual void Setup()
-	{
+	public virtual void Setup() {
 		Envelope.Replies.Clear();
 		Publisher.Messages.Clear();
 
@@ -62,8 +58,7 @@ public abstract class RequestManagerSpecification<TManager>
 
 		Manager.Start();
 		Given();
-		foreach (var msg in WithInitialMessages())
-		{
+		foreach (var msg in WithInitialMessages()) {
 			Dispatcher.Publish(msg);
 		}
 

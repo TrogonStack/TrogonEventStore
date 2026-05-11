@@ -19,8 +19,7 @@ using MemberInfo = EventStore.Core.Cluster.MemberInfo;
 
 namespace EventStore.Core.Tests.Services.GossipService;
 
-public abstract class NodeGossipServiceTestFixture
-{
+public abstract class NodeGossipServiceTestFixture {
 	protected NodeGossipService SUT;
 	protected FakePublisher _bus;
 	protected VNodeInfo _currentNode;
@@ -36,8 +35,7 @@ public abstract class NodeGossipServiceTestFixture
 	private readonly TimeSpan _deadMemberRemovalPeriod = TimeSpan.FromSeconds(1800);
 
 
-	public NodeGossipServiceTestFixture()
-	{
+	public NodeGossipServiceTestFixture() {
 		_bus = new FakePublisher();
 		_timeProvider = new FakeTimeProvider();
 
@@ -76,22 +74,19 @@ public abstract class NodeGossipServiceTestFixture
 	}
 
 	[SetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		SUT = new NodeGossipService(_bus, 3, _gossipSeedSource, MemberInfoForVNode(_currentNode, DateTime.UtcNow),
 			new InMemoryCheckpoint(0), new InMemoryCheckpoint(0), new FakeEpochManager(), () => 0L, 0,
 			_gossipInterval, _allowedTimeDifference, _gossipTimeout, _deadMemberRemovalPeriod, _timeProvider, _getNodeToGossipTo);
 
-		foreach (var message in Given())
-		{
+		foreach (var message in Given()) {
 			SUT.Handle((dynamic)message);
 		}
 
 		_bus.Messages.Clear();
 
 		var when = When();
-		if (when != null)
-		{
+		if (when != null) {
 			SUT.Handle((dynamic)when);
 		}
 	}
@@ -106,8 +101,7 @@ public abstract class NodeGossipServiceTestFixture
 	protected void ExpectNoMessages() =>
 		Assert.IsEmpty(_bus.Messages);
 
-	protected Message[] GivenSystemInitializedWithKnownGossipSeedSources(params Message[] additionalGivens)
-	{
+	protected Message[] GivenSystemInitializedWithKnownGossipSeedSources(params Message[] additionalGivens) {
 		return new Message[] {
 			new SystemMessage.SystemInit(),
 			new GossipMessage.GotGossipSeedSources(new[]
@@ -117,8 +111,7 @@ public abstract class NodeGossipServiceTestFixture
 
 	protected static MemberInfo MemberInfoForVNode(VNodeInfo nodeInfo, DateTime utcNow,
 		int? nodePriority = null, int? epochNumber = null, long? writerCheckpoint = null,
-		VNodeState nodeState = VNodeState.Initializing, string esVersion = VersionInfo.DefaultVersion, bool isAlive = true)
-	{
+		VNodeState nodeState = VNodeState.Initializing, string esVersion = VersionInfo.DefaultVersion, bool isAlive = true) {
 		return MemberInfo.ForVNode(nodeInfo.InstanceId, utcNow, nodeState, isAlive,
 			nodeInfo.InternalTcp, nodeInfo.InternalSecureTcp, nodeInfo.ExternalTcp,
 			nodeInfo.ExternalSecureTcp, nodeInfo.HttpEndPoint, null, 0, 0,
@@ -128,14 +121,12 @@ public abstract class NodeGossipServiceTestFixture
 	/// <summary>
 	/// The initial state for a node currently is represented as a Manager
 	/// </summary>
-	protected static MemberInfo InitialStateForVNode(VNodeInfo nodeInfo, DateTime utcNow, bool isAlive = true, string version = VersionInfo.UnknownVersion)
-	{
+	protected static MemberInfo InitialStateForVNode(VNodeInfo nodeInfo, DateTime utcNow, bool isAlive = true, string version = VersionInfo.UnknownVersion) {
 		return MemberInfo.ForManager(Guid.Empty, utcNow, isAlive, nodeInfo.HttpEndPoint, esVersion: version);
 	}
 }
 
-public class when_system_initializes : NodeGossipServiceTestFixture
-{
+public class when_system_initializes : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		Array.Empty<Message>();
 
@@ -143,16 +134,14 @@ public class when_system_initializes : NodeGossipServiceTestFixture
 		new SystemMessage.SystemInit();
 
 	[Test]
-	public void should_get_gossip_sources()
-	{
+	public void should_get_gossip_sources() {
 		ExpectMessages(
 			new GossipMessage.GotGossipSeedSources(new[]
 				{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint}));
 	}
 }
 
-public class when_system_initializes_twice : NodeGossipServiceTestFixture
-{
+public class when_system_initializes_twice : NodeGossipServiceTestFixture {
 	protected override Message[] Given() => new Message[] {
 		new SystemMessage.SystemInit()
 	};
@@ -161,14 +150,12 @@ public class when_system_initializes_twice : NodeGossipServiceTestFixture
 		new SystemMessage.SystemInit();
 
 	[Test]
-	public void should_ignore_system_init()
-	{
+	public void should_ignore_system_init() {
 		ExpectNoMessages();
 	}
 }
 
-public class when_retrieving_gossip_seed_sources : NodeGossipServiceTestFixture
-{
+public class when_retrieving_gossip_seed_sources : NodeGossipServiceTestFixture {
 	protected override Message[] Given() => new Message[] {
 		new SystemMessage.SystemInit()
 	};
@@ -177,31 +164,25 @@ public class when_retrieving_gossip_seed_sources : NodeGossipServiceTestFixture
 		new GossipMessage.RetrieveGossipSeedSources();
 
 	[Test]
-	public void should_get_gossip_seeds()
-	{
+	public void should_get_gossip_seeds() {
 		ExpectMessages(
 			new GossipMessage.GotGossipSeedSources(new[]
 				{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint}));
 	}
 }
 
-public class when_retrieving_gossip_seed_sources_and_gossip_seed_source_throws : NodeGossipServiceTestFixture
-{
-	class ThrowingGossipSeedSource : IGossipSeedSource
-	{
-		public IAsyncResult BeginGetHostEndpoints(AsyncCallback requestCallback, object state)
-		{
+public class when_retrieving_gossip_seed_sources_and_gossip_seed_source_throws : NodeGossipServiceTestFixture {
+	class ThrowingGossipSeedSource : IGossipSeedSource {
+		public IAsyncResult BeginGetHostEndpoints(AsyncCallback requestCallback, object state) {
 			throw new NotImplementedException();
 		}
 
-		public EndPoint[] EndGetHostEndpoints(IAsyncResult asyncResult)
-		{
+		public EndPoint[] EndGetHostEndpoints(IAsyncResult asyncResult) {
 			throw new NotImplementedException();
 		}
 	}
 
-	public when_retrieving_gossip_seed_sources_and_gossip_seed_source_throws()
-	{
+	public when_retrieving_gossip_seed_sources_and_gossip_seed_source_throws() {
 		_gossipSeedSource = new ThrowingGossipSeedSource();
 	}
 
@@ -213,16 +194,14 @@ public class when_retrieving_gossip_seed_sources_and_gossip_seed_source_throws :
 		new GossipMessage.RetrieveGossipSeedSources();
 
 	[Test]
-	public void should_schedule_retry_retrieve_gossip_seed_sources()
-	{
+	public void should_schedule_retry_retrieve_gossip_seed_sources() {
 		ExpectMessages(
 			TimerMessage.Schedule.Create(GossipServiceBase.DnsRetryTimeout, _bus,
 				new GossipMessage.RetrieveGossipSeedSources()));
 	}
 }
 
-public class when_got_gossip_seed_sources : NodeGossipServiceTestFixture
-{
+public class when_got_gossip_seed_sources : NodeGossipServiceTestFixture {
 	protected override Message[] Given() => new Message[] {
 		new SystemMessage.SystemInit()
 	};
@@ -232,8 +211,7 @@ public class when_got_gossip_seed_sources : NodeGossipServiceTestFixture
 			{_currentNode.HttpEndPoint, _nodeTwo.HttpEndPoint, _nodeThree.HttpEndPoint});
 
 	[Test]
-	public void should_start_gossiping_and_schedule_another_gossip()
-	{
+	public void should_start_gossiping_and_schedule_another_gossip() {
 		ExpectMessages(
 			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -245,8 +223,7 @@ public class when_got_gossip_seed_sources : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_gossip : NodeGossipServiceTestFixture
-{
+public class when_gossip : NodeGossipServiceTestFixture {
 	private int _gossipRound = GossipServiceBase.GossipRoundStartupThreshold + 1;
 
 	protected override Message[] Given() =>
@@ -256,8 +233,7 @@ public class when_gossip : NodeGossipServiceTestFixture
 		new GossipMessage.Gossip(_gossipRound);
 
 	[Test]
-	public void should_send_the_gossip_over_http_and_schedule_the_next_gossip()
-	{
+	public void should_send_the_gossip_over_http_and_schedule_the_next_gossip() {
 		ExpectMessages(
 			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -269,12 +245,10 @@ public class when_gossip : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_gossip_and_no_node_is_selected_to_gossip_to : NodeGossipServiceTestFixture
-{
+public class when_gossip_and_no_node_is_selected_to_gossip_to : NodeGossipServiceTestFixture {
 	private int _gossipRound = GossipServiceBase.GossipRoundStartupThreshold + 1;
 
-	public when_gossip_and_no_node_is_selected_to_gossip_to()
-	{
+	public when_gossip_and_no_node_is_selected_to_gossip_to() {
 		_getNodeToGossipTo = infos => null;
 	}
 
@@ -285,29 +259,25 @@ public class when_gossip_and_no_node_is_selected_to_gossip_to : NodeGossipServic
 		new GossipMessage.Gossip(_gossipRound);
 
 	[Test]
-	public void should_just_schedule_next_gossip()
-	{
+	public void should_just_schedule_next_gossip() {
 		ExpectMessages(TimerMessage.Schedule.Create(_gossipInterval, _bus,
 			new GossipMessage.Gossip(_gossipRound)));
 	}
 }
 
-public class when_gossip_and_gossip_service_is_not_in_working_state : NodeGossipServiceTestFixture
-{
+public class when_gossip_and_gossip_service_is_not_in_working_state : NodeGossipServiceTestFixture {
 	protected override Message[] Given() => Array.Empty<Message>();
 
 	protected override Message When() =>
 		new GossipMessage.Gossip(1);
 
 	[Test]
-	public void should_ignore_message()
-	{
+	public void should_ignore_message() {
 		ExpectNoMessages();
 	}
 }
 
-public class when_gossip_and_gossip_round_less_than_startup_gossip_threshold : NodeGossipServiceTestFixture
-{
+public class when_gossip_and_gossip_round_less_than_startup_gossip_threshold : NodeGossipServiceTestFixture {
 	private int _gossipRound = new Random().Next(0, GossipServiceBase.GossipRoundStartupThreshold);
 
 	protected override Message[] Given() =>
@@ -317,8 +287,7 @@ public class when_gossip_and_gossip_round_less_than_startup_gossip_threshold : N
 		new GossipMessage.Gossip(_gossipRound);
 
 	[Test]
-	public void should_use_startup_gossip_interval()
-	{
+	public void should_use_startup_gossip_interval() {
 		ExpectMessages(
 			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -330,8 +299,7 @@ public class when_gossip_and_gossip_round_less_than_startup_gossip_threshold : N
 	}
 }
 
-public class when_gossip_and_gossip_round_larger_than_startup_gossip_threshold : NodeGossipServiceTestFixture
-{
+public class when_gossip_and_gossip_round_larger_than_startup_gossip_threshold : NodeGossipServiceTestFixture {
 	private int _gossipRound = new Random().Next(GossipServiceBase.GossipRoundStartupThreshold, int.MaxValue);
 
 	protected override Message[] Given() =>
@@ -341,8 +309,7 @@ public class when_gossip_and_gossip_round_larger_than_startup_gossip_threshold :
 		new GossipMessage.Gossip(_gossipRound);
 
 	[Test]
-	public void should_use_provided_gossip_interval_for_next_gossip()
-	{
+	public void should_use_provided_gossip_interval_for_next_gossip() {
 		ExpectMessages(
 			new GrpcMessage.SendOverGrpc(_nodeTwo.HttpEndPoint, new GossipMessage.SendGossip(new ClusterInfo(
 					MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -355,8 +322,7 @@ public class when_gossip_and_gossip_round_larger_than_startup_gossip_threshold :
 }
 
 public class when_gossip_received_with_older_timestamp_about_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly DateTime _timestamp = DateTime.Now;
 
 	protected override Message[] Given() =>
@@ -376,8 +342,7 @@ public class when_gossip_received_with_older_timestamp_about_peer_node :
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_about_the_node_even_if_outdated()
-	{
+	public void should_accept_the_information_about_the_node_even_if_outdated() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -386,8 +351,7 @@ public class when_gossip_received_with_older_timestamp_about_peer_node :
 	}
 }
 
-public class if_gossip_reply_includes_es_version : NodeGossipServiceTestFixture
-{
+public class if_gossip_reply_includes_es_version : NodeGossipServiceTestFixture {
 	private Message _capturedMessage;
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources();
@@ -398,16 +362,14 @@ public class if_gossip_reply_includes_es_version : NodeGossipServiceTestFixture
 				MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.3")),
 			_nodeTwo.HttpEndPoint);
 
-	private ClusterInfo GetExpectedClusterInfo()
-	{
+	private ClusterInfo GetExpectedClusterInfo() {
 		return new ClusterInfo(MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 			MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.2"),
 			MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.3"));
 	}
 
 	[Test]
-	public void gossip_update_must_have_es_version()
-	{
+	public void gossip_update_must_have_es_version() {
 		//updated cluster info should have version info of currentNode, nodeTwo and nodeThree
 		ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 		//gossip reply should have version info of currentNode, nodeTwo and nodeThree
@@ -417,8 +379,7 @@ public class if_gossip_reply_includes_es_version : NodeGossipServiceTestFixture
 	private void CaptureGossipReply(Message message) => _capturedMessage = message;
 }
 
-public class if_gossip_read_reply_includes_es_version : NodeGossipServiceTestFixture
-{
+public class if_gossip_read_reply_includes_es_version : NodeGossipServiceTestFixture {
 	private Message _capturedMessage;
 
 	protected override Message[] Given() =>
@@ -431,8 +392,7 @@ public class if_gossip_read_reply_includes_es_version : NodeGossipServiceTestFix
 	protected override Message When() =>
 		new GossipMessage.ReadGossip(new CallbackEnvelope(CaptureGossipReply));
 
-	private ClusterInfo GetExpectedClusterInfo()
-	{
+	private ClusterInfo GetExpectedClusterInfo() {
 		return new ClusterInfo(
 			MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 			MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.2"),
@@ -440,8 +400,7 @@ public class if_gossip_read_reply_includes_es_version : NodeGossipServiceTestFix
 	}
 
 	[Test]
-	public void reply_should_have_version_info()
-	{
+	public void reply_should_have_version_info() {
 		_capturedMessage.Should()
 			.BeEquivalentTo(new GossipMessage.SendGossip(GetExpectedClusterInfo(), _currentNode.HttpEndPoint));
 	}
@@ -449,8 +408,7 @@ public class if_gossip_read_reply_includes_es_version : NodeGossipServiceTestFix
 	private void CaptureGossipReply(Message message) => _capturedMessage = message;
 }
 
-public class if_client_gossip_reply_includes_es_version : NodeGossipServiceTestFixture
-{
+public class if_client_gossip_reply_includes_es_version : NodeGossipServiceTestFixture {
 	private Message _capturedMessage;
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -461,8 +419,7 @@ public class if_client_gossip_reply_includes_es_version : NodeGossipServiceTestF
 	protected override Message When() =>
 		new GossipMessage.ClientGossip(new CallbackEnvelope(CaptureGossipReply));
 
-	private ClientClusterInfo GetExpectedClusterInfo()
-	{
+	private ClientClusterInfo GetExpectedClusterInfo() {
 		return new ClientClusterInfo(new ClusterInfo(
 			MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 			MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.2"),
@@ -470,8 +427,7 @@ public class if_client_gossip_reply_includes_es_version : NodeGossipServiceTestF
 	}
 
 	[Test]
-	public void reply_should_have_version_info()
-	{
+	public void reply_should_have_version_info() {
 		_capturedMessage.Should()
 			.BeEquivalentTo(new GossipMessage.SendClientGossip(GetExpectedClusterInfo()));
 	}
@@ -480,8 +436,7 @@ public class if_client_gossip_reply_includes_es_version : NodeGossipServiceTestF
 }
 
 public class when_gossip_received_with_lower_epoch_number_about_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly int _epochNumber = new Random().Next();
 
 	protected override Message[] Given() =>
@@ -501,8 +456,7 @@ public class when_gossip_received_with_lower_epoch_number_about_peer_node :
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_about_the_node_even_if_outdated()
-	{
+	public void should_accept_the_information_about_the_node_even_if_outdated() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -512,8 +466,7 @@ public class when_gossip_received_with_lower_epoch_number_about_peer_node :
 }
 
 public class when_gossip_received_with_lower_writer_checkpoint_about_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly int _writerCheckpoint = new Random().Next();
 
 	protected override Message[] Given() =>
@@ -533,8 +486,7 @@ public class when_gossip_received_with_lower_writer_checkpoint_about_peer_node :
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_about_the_node_even_if_outdated()
-	{
+	public void should_accept_the_information_about_the_node_even_if_outdated() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -544,8 +496,7 @@ public class when_gossip_received_with_lower_writer_checkpoint_about_peer_node :
 }
 
 public class when_gossip_received_with_more_recent_timestamp_about_non_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly DateTime _timestamp = DateTime.Now;
 
 	protected override Message[] Given() =>
@@ -565,8 +516,7 @@ public class when_gossip_received_with_more_recent_timestamp_about_non_peer_node
 			_nodeThree.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_if_its_more_recent()
-	{
+	public void should_accept_the_information_if_its_more_recent() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -576,8 +526,7 @@ public class when_gossip_received_with_more_recent_timestamp_about_non_peer_node
 }
 
 public class when_gossip_received_with_higher_epoch_number_about_non_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly int _epochNumber = new Random().Next();
 
 	protected override Message[] Given() =>
@@ -597,8 +546,7 @@ public class when_gossip_received_with_higher_epoch_number_about_non_peer_node :
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_if_its_more_recent()
-	{
+	public void should_accept_the_information_if_its_more_recent() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -608,8 +556,7 @@ public class when_gossip_received_with_higher_epoch_number_about_non_peer_node :
 }
 
 public class when_gossip_received_with_higher_writer_checkpoint_about_non_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly int _writerCheckpoint = new Random().Next();
 
 	protected override Message[] Given() =>
@@ -629,8 +576,7 @@ public class when_gossip_received_with_higher_writer_checkpoint_about_non_peer_n
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_if_its_more_recent()
-	{
+	public void should_accept_the_information_if_its_more_recent() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -639,8 +585,7 @@ public class when_gossip_received_with_higher_writer_checkpoint_about_non_peer_n
 	}
 }
 
-public class when_state_changed_to_leader : NodeGossipServiceTestFixture
-{
+public class when_state_changed_to_leader : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -654,8 +599,7 @@ public class when_state_changed_to_leader : NodeGossipServiceTestFixture
 		new SystemMessage.BecomeLeader(Guid.NewGuid());
 
 	[Test]
-	public void should_update_gossip()
-	{
+	public void should_update_gossip() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, nodeState: VNodeState.Leader),
@@ -664,8 +608,7 @@ public class when_state_changed_to_leader : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_state_changed_to_non_leader : NodeGossipServiceTestFixture
-{
+public class when_state_changed_to_non_leader : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -678,8 +621,7 @@ public class when_state_changed_to_non_leader : NodeGossipServiceTestFixture
 		new SystemMessage.BecomeFollower(Guid.NewGuid(), MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow));
 
 	[Test]
-	public void should_update_gossip()
-	{
+	public void should_update_gossip() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, nodeState: VNodeState.Follower),
@@ -688,8 +630,7 @@ public class when_state_changed_to_non_leader : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_gossip_send_failed : NodeGossipServiceTestFixture
-{
+public class when_gossip_send_failed : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources();
 
@@ -697,8 +638,7 @@ public class when_gossip_send_failed : NodeGossipServiceTestFixture
 		new GossipMessage.GossipSendFailed("failed", _nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_mark_the_node_as_dead()
-	{
+	public void should_mark_the_node_as_dead() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -707,8 +647,7 @@ public class when_gossip_send_failed : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_gossip_send_failed_to_a_dead_node : NodeGossipServiceTestFixture
-{
+public class when_gossip_send_failed_to_a_dead_node : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -721,14 +660,12 @@ public class when_gossip_send_failed_to_a_dead_node : NodeGossipServiceTestFixtu
 		_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_ignore_message()
-	{
+	public void should_ignore_message() {
 		ExpectNoMessages();
 	}
 }
 
-public class when_gossip_send_failed_to_the_current_leader_node : NodeGossipServiceTestFixture
-{
+public class when_gossip_send_failed_to_the_current_leader_node : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -743,14 +680,12 @@ public class when_gossip_send_failed_to_the_current_leader_node : NodeGossipServ
 		_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_ignore_message_and_wait_for_tcp_to_decide()
-	{
+	public void should_ignore_message_and_wait_for_tcp_to_decide() {
 		ExpectNoMessages();
 	}
 }
 
-public class when_vnode_connection_lost : NodeGossipServiceTestFixture
-{
+public class when_vnode_connection_lost : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -763,16 +698,14 @@ public class when_vnode_connection_lost : NodeGossipServiceTestFixture
 		new SystemMessage.VNodeConnectionLost(_currentNode.HttpEndPoint, Guid.NewGuid());
 
 	[Test]
-	public void should_issue_get_gossip()
-	{
+	public void should_issue_get_gossip() {
 		ExpectMessages(
 			new GrpcMessage.SendOverGrpc(_currentNode.HttpEndPoint, new GossipMessage.GetGossip(),
 				_timeProvider.LocalTime.Add(_gossipTimeout)));
 	}
 }
 
-public class when_vnode_connection_lost_to_dead_node : NodeGossipServiceTestFixture
-{
+public class when_vnode_connection_lost_to_dead_node : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -785,15 +718,13 @@ public class when_vnode_connection_lost_to_dead_node : NodeGossipServiceTestFixt
 		new SystemMessage.VNodeConnectionLost(_nodeTwo.HttpEndPoint, Guid.NewGuid());
 
 	[Test]
-	public void should_ignore_message()
-	{
+	public void should_ignore_message() {
 		ExpectNoMessages();
 	}
 }
 
 public class when_get_gossip_received_with_more_recent_timestamp_about_non_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly DateTime _timestamp = DateTime.Now;
 
 	protected override Message[] Given() =>
@@ -813,8 +744,7 @@ public class when_get_gossip_received_with_more_recent_timestamp_about_non_peer_
 			_nodeThree.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_if_its_more_recent()
-	{
+	public void should_accept_the_information_if_its_more_recent() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -824,8 +754,7 @@ public class when_get_gossip_received_with_more_recent_timestamp_about_non_peer_
 }
 
 public class when_get_gossip_received_with_higher_epoch_number_about_non_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly int _epochNumber = new Random().Next();
 
 	protected override Message[] Given() =>
@@ -845,8 +774,7 @@ public class when_get_gossip_received_with_higher_epoch_number_about_non_peer_no
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_if_its_more_recent()
-	{
+	public void should_accept_the_information_if_its_more_recent() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -856,8 +784,7 @@ public class when_get_gossip_received_with_higher_epoch_number_about_non_peer_no
 }
 
 public class when_get_gossip_received_with_higher_writer_checkpoint_about_non_peer_node :
-	NodeGossipServiceTestFixture
-{
+	NodeGossipServiceTestFixture {
 	private readonly int _writerCheckpoint = new Random().Next();
 
 	protected override Message[] Given() =>
@@ -879,8 +806,7 @@ public class when_get_gossip_received_with_higher_writer_checkpoint_about_non_pe
 			_nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_accept_the_information_if_its_more_recent()
-	{
+	public void should_accept_the_information_if_its_more_recent() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -891,37 +817,32 @@ public class when_get_gossip_received_with_higher_writer_checkpoint_about_non_pe
 }
 
 public class
-	when_get_gossip_received_and_gossip_service_is_not_in_working_state : NodeGossipServiceTestFixture
-{
+	when_get_gossip_received_and_gossip_service_is_not_in_working_state : NodeGossipServiceTestFixture {
 	protected override Message[] Given() => Array.Empty<Message>();
 
 	protected override Message When() =>
 		new GossipMessage.GetGossipReceived(new ClusterInfo(), _nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_ignore_message()
-	{
+	public void should_ignore_message() {
 		ExpectNoMessages();
 	}
 }
 
 public class
-	when_get_gossip_failed_and_gossip_service_is_not_in_working_state : NodeGossipServiceTestFixture
-{
+	when_get_gossip_failed_and_gossip_service_is_not_in_working_state : NodeGossipServiceTestFixture {
 	protected override Message[] Given() => Array.Empty<Message>();
 
 	protected override Message When() =>
 		new GossipMessage.GetGossipFailed("failed", _nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_ignore_message()
-	{
+	public void should_ignore_message() {
 		ExpectNoMessages();
 	}
 }
 
-public class when_get_gossip_failed : NodeGossipServiceTestFixture
-{
+public class when_get_gossip_failed : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -935,8 +856,7 @@ public class when_get_gossip_failed : NodeGossipServiceTestFixture
 		new GossipMessage.GetGossipFailed("failed", _nodeTwo.HttpEndPoint);
 
 	[Test]
-	public void should_mark_node_as_dead()
-	{
+	public void should_mark_node_as_dead() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -945,8 +865,7 @@ public class when_get_gossip_failed : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_vnode_connection_established : NodeGossipServiceTestFixture
-{
+public class when_vnode_connection_established : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -960,8 +879,7 @@ public class when_vnode_connection_established : NodeGossipServiceTestFixture
 		new SystemMessage.VNodeConnectionEstablished(_nodeTwo.HttpEndPoint, Guid.NewGuid());
 
 	[Test]
-	public void should_mark_node_as_alive()
-	{
+	public void should_mark_node_as_alive() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
@@ -971,8 +889,7 @@ public class when_vnode_connection_established : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_elections_are_done : NodeGossipServiceTestFixture
-{
+public class when_elections_are_done : NodeGossipServiceTestFixture {
 	protected override Message[] Given() =>
 		GivenSystemInitializedWithKnownGossipSeedSources(
 			new GossipMessage.GossipReceived(new NoopEnvelope(), new ClusterInfo(
@@ -989,8 +906,7 @@ public class when_elections_are_done : NodeGossipServiceTestFixture
 			MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, nodeState: VNodeState.Leader));
 
 	[Test]
-	public void should_set_leader_node_and_other_nodes_to_unknown()
-	{
+	public void should_set_leader_node_and_other_nodes_to_unknown() {
 		ExpectMessages(
 			new GossipMessage.GossipUpdated(new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, nodeState: VNodeState.Unknown),
@@ -999,19 +915,16 @@ public class when_elections_are_done : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_updating_node_priority : NodeGossipServiceTestFixture
-{
+public class when_updating_node_priority : NodeGossipServiceTestFixture {
 	private readonly int _nodePriority = new Random().Next();
 	protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
-	protected override Message When()
-	{
+	protected override Message When() {
 		return new GossipMessage.UpdateNodePriority(_nodePriority);
 	}
 
 	[Test]
-	public void should_set_node_priority()
-	{
+	public void should_set_node_priority() {
 		var clusterInfo = new ClusterInfo(
 			MemberInfoForVNode(_currentNode, _timeProvider.UtcNow),
 			MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow),
@@ -1025,10 +938,8 @@ public class when_updating_node_priority : NodeGossipServiceTestFixture
 	}
 }
 
-public class when_updating_cluster
-{
-	private static MemberInfo TestNodeFor(int identifier, bool isAlive, DateTime timeStamp)
-	{
+public class when_updating_cluster {
+	private static MemberInfo TestNodeFor(int identifier, bool isAlive, DateTime timeStamp) {
 		var ipEndpoint = new IPEndPoint(IPAddress.Loopback, identifier);
 		return MemberInfo.ForVNode(Guid.NewGuid(), timeStamp, VNodeState.Initializing, isAlive,
 			ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, null, 0, 0,
@@ -1041,8 +952,7 @@ public class when_updating_cluster
 	[Test]
 	[TestCaseSource(nameof(AllowedNodeRemovalStates))]
 	public void
-		should_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole)
-	{
+		should_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole) {
 		var timeProvider = new FakeTimeProvider();
 		var deadMemberRemovalTimeout = TimeSpan.FromSeconds(1);
 
@@ -1062,8 +972,7 @@ public class when_updating_cluster
 	[Test]
 	[TestCaseSource(nameof(AllowedNodeRemovalStates))]
 	public void
-		should_not_remove_alive_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole)
-	{
+		should_not_remove_alive_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole) {
 		var timeProvider = new FakeTimeProvider();
 		var deadMemberRemovalTimeout = TimeSpan.FromSeconds(1);
 
@@ -1083,8 +992,7 @@ public class when_updating_cluster
 	[Test]
 	[TestCaseSource(nameof(DisallowedNodeRemovalStates))]
 	public void
-		should_not_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout_and_the_current_role_is_unknown(VNodeState currentRole)
-	{
+		should_not_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout_and_the_current_role_is_unknown(VNodeState currentRole) {
 		var timeProvider = new FakeTimeProvider();
 		var deadMemberRemovalTimeout = TimeSpan.FromSeconds(1);
 
@@ -1102,10 +1010,8 @@ public class when_updating_cluster
 	}
 }
 
-public class when_merging_clusters
-{
-	private static MemberInfo TestNodeFor(int identifier, bool isAlive, DateTime timeStamp, VNodeState nodeState)
-	{
+public class when_merging_clusters {
+	private static MemberInfo TestNodeFor(int identifier, bool isAlive, DateTime timeStamp, VNodeState nodeState) {
 		var ipEndpoint = new IPEndPoint(IPAddress.Loopback, identifier);
 		return MemberInfo.ForVNode(Guid.NewGuid(), timeStamp, nodeState, isAlive,
 			ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, ipEndpoint, null, 0, 0,
@@ -1118,8 +1024,7 @@ public class when_merging_clusters
 	[Test]
 	[TestCaseSource(nameof(AllowedNodeRemovalStates))]
 	public void
-		should_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole)
-	{
+		should_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole) {
 		var timeProvider = new FakeTimeProvider();
 		var deadMemberRemovalTimeout = TimeSpan.FromSeconds(1);
 		var allowedTimeDifference = TimeSpan.FromMilliseconds(1000);
@@ -1142,8 +1047,7 @@ public class when_merging_clusters
 	[Test]
 	[TestCaseSource(nameof(AllowedNodeRemovalStates))]
 	public void
-		should_not_remove_alive_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole)
-	{
+		should_not_remove_alive_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout(VNodeState currentRole) {
 		var timeProvider = new FakeTimeProvider();
 		var deadMemberRemovalTimeout = TimeSpan.FromSeconds(1);
 		var allowedTimeDifference = TimeSpan.FromMilliseconds(1000);
@@ -1166,8 +1070,7 @@ public class when_merging_clusters
 	[TestCaseSource(nameof(DisallowedNodeRemovalStates))]
 	public void
 		should_not_remove_dead_members_which_have_timestamps_older_than_the_allowed_dead_member_removal_timeout_and_current_role_is_unknown(
-			VNodeState currentRole)
-	{
+			VNodeState currentRole) {
 		var timeProvider = new FakeTimeProvider();
 		var deadMemberRemovalTimeout = TimeSpan.FromSeconds(1);
 		var allowedTimeDifference = TimeSpan.FromMilliseconds(1000);
@@ -1189,8 +1092,7 @@ public class when_merging_clusters
 	}
 }
 
-public class DeadNodeRemoval
-{
+public class DeadNodeRemoval {
 	public static readonly object[] DisallowedNodeRemovalStates = {
 		new object[] {VNodeState.Initializing},
 		new object[] {VNodeState.DiscoverLeader},

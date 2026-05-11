@@ -8,24 +8,28 @@ namespace EventStore.Core.Services.Monitoring.Stats {
 		private readonly Dictionary<string, object> _stats = new Dictionary<string, object>();
 
 		private const string Separator = "-";
-		private static readonly string[] SplitSeparator = new[] {Separator};
+		private static readonly string[] SplitSeparator = new[] { Separator };
 
 		public void Add(IDictionary<string, object> statGroup) {
 			Ensure.NotNull(statGroup, "statGroup");
 
-			foreach (var stat in statGroup)
+			foreach (var stat in statGroup) {
 				_stats.Add(stat.Key, stat.Value);
+			}
 		}
 
 		public Dictionary<string, object> GetStats(bool useGrouping, bool useMetadata) {
-			if (useGrouping && useMetadata)
+			if (useGrouping && useMetadata) {
 				return GetGroupedStatsWithMetadata();
+			}
 
-			if (useGrouping && !useMetadata)
+			if (useGrouping && !useMetadata) {
 				return GetGroupedStats();
+			}
 
-			if (!useGrouping && useMetadata)
+			if (!useGrouping && useMetadata) {
 				return GetRawStatsWithMetadata();
+			}
 
 			//if (!useGrouping && !useMetadata)
 			return GetRawStats();
@@ -63,8 +67,9 @@ namespace EventStore.Core.Services.Monitoring.Stats {
 		public static Dictionary<string, object> Group(Dictionary<string, object> input) {
 			Ensure.NotNull(input, "input");
 
-			if (input.IsEmpty())
+			if (input.IsEmpty()) {
 				return input;
+			}
 
 			var groupContainer = NewDictionary();
 			var hasSubGroups = false;
@@ -81,24 +86,28 @@ namespace EventStore.Core.Services.Monitoring.Stats {
 				string prefix = groups[0];
 				string remaining = string.Join(Separator, groups.Skip(1).ToArray());
 
-				if (!groupContainer.ContainsKey(prefix))
+				if (!groupContainer.ContainsKey(prefix)) {
 					groupContainer.Add(prefix, NewDictionary());
+				}
 
 				((Dictionary<string, object>)groupContainer[prefix]).Add(remaining, entry.Value);
 			}
 
-			if (!hasSubGroups)
+			if (!hasSubGroups) {
 				return groupContainer;
+			}
 
 			// we must first iterate through all dictionary and then aggregate it again
 			var result = NewDictionary();
 
 			foreach (var entry in groupContainer) {
 				var subgroup = entry.Value as Dictionary<string, object>;
-				if (subgroup != null)
+				if (subgroup != null) {
 					result[entry.Key] = Group(subgroup);
-				else
+				}
+				else {
 					result[entry.Key] = entry.Value;
+				}
 			}
 
 			return result;

@@ -12,19 +12,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_deleting_a_persistent_projection_with_default_options<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
+public class when_deleting_a_persistent_projection_with_default_options<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
 	private string _projectionName;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_projectionName = "test-projection";
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 		yield return
 			new ProjectionManagementMessage.Command.Post(
@@ -41,8 +38,7 @@ public class when_deleting_a_persistent_projection_with_default_options<TLogForm
 	}
 
 	[Test, Category("v8")]
-	public void a_projection_deleted_event_is_written()
-	{
+	public void a_projection_deleted_event_is_written() {
 		var deletedStreamEvents = _consumer.HandledMessages.OfType<ClientMessage.DeleteStream>().ToList();
 		Assert.AreEqual(true, _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Any(x => x.Events[0].EventType == ProjectionEventTypes.ProjectionDeleted && Helper.UTF8NoBom.GetString(x.Events[0].Data) == _projectionName));
 	}

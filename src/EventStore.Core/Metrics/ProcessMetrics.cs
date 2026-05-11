@@ -13,21 +13,22 @@ using static EventStore.Common.Configuration.MetricsConfiguration;
 
 namespace EventStore.Core.Metrics;
 
-public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodInSeconds, Dictionary<ProcessTracker, bool> config) {
-    private readonly Func<DiskIoData> _getDiskIo      = Functions.Debounce(ProcessStats.GetDiskIo, timeout);
-    private readonly Func<Process>    _getCurrentProc = Functions.Debounce(Process.GetCurrentProcess, timeout);
+public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInSeconds, Dictionary<ProcessTracker, bool> config) {
+	private readonly Func<DiskIoData> _getDiskIo = Functions.Debounce(ProcessStats.GetDiskIo, timeout);
+	private readonly Func<Process> _getCurrentProc = Functions.Debounce(Process.GetCurrentProcess, timeout);
 
-    public void CreateObservableMetrics(Dictionary<ProcessTracker, string> metricNames) {
+	public void CreateObservableMetrics(Dictionary<ProcessTracker, string> metricNames) {
 		var enabledNames = metricNames
 			.Where(kvp => config.TryGetValue(kvp.Key, out var enabled) && enabled)
 			.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        if (enabledNames.TryGetValue(ProcessTracker.UpTime, out var upTimeName))
+		if (enabledNames.TryGetValue(ProcessTracker.UpTime, out var upTimeName)) {
 			meter.CreateObservableCounter(upTimeName, () => {
 				var process = _getCurrentProc();
 				var upTime = (DateTime.Now - process.StartTime).TotalSeconds;
 				return new Measurement<double>(upTime, new KeyValuePair<string, object?>("pid", process.Id));
 			});
+		}
 
 		if (enabledNames.TryGetValue(ProcessTracker.GcPauseDuration, out var gcMaxPauseName)) {
 			var maxGcPauseDurationMetric = new DurationMaxMetric(meter, gcMaxPauseName);
@@ -48,19 +49,21 @@ public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodIn
 			var info = GC.GetGCMemoryInfo();
 			return info.HeapSizeBytes != 0 ? info.FragmentedBytes * 100d / info.HeapSizeBytes : 0;
 		});
-        
-        return;
 
-        void CreateObservableCounter<T>(ProcessTracker tracker, Func<T> observe, string? unit = null) where T : struct {
-            if (enabledNames.TryGetValue(tracker, out var name))
-                meter.CreateObservableCounter(name, observe);
-        }
+		return;
 
-        void CreateObservableUpDownCounter<T>(ProcessTracker tracker, Func<T> observe, string? unit = null) where T : struct {
-            if (enabledNames.TryGetValue(tracker, out var name))
-                meter.CreateObservableUpDownCounter(unit is null ? name : $"{name}-{unit}", observe);
-        }
-    }
+		void CreateObservableCounter<T>(ProcessTracker tracker, Func<T> observe, string? unit = null) where T : struct {
+			if (enabledNames.TryGetValue(tracker, out var name)) {
+				meter.CreateObservableCounter(name, observe);
+			}
+		}
+
+		void CreateObservableUpDownCounter<T>(ProcessTracker tracker, Func<T> observe, string? unit = null) where T : struct {
+			if (enabledNames.TryGetValue(tracker, out var name)) {
+				meter.CreateObservableUpDownCounter(unit is null ? name : $"{name}-{unit}", observe);
+			}
+		}
+	}
 
 	public void CreateMemoryMetric(string metricName, Dictionary<ProcessTracker, string> dimNames) {
 		var dims = new Dimensions<ProcessTracker, long>(config, dimNames, tag => new("kind", tag));
@@ -69,8 +72,9 @@ public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodIn
 		dims.Register(ProcessTracker.MemPagedBytes, () => _getCurrentProc().PagedMemorySize64);
 		dims.Register(ProcessTracker.MemVirtualBytes, () => _getCurrentProc().VirtualMemorySize64);
 
-		if (dims.AnyRegistered())
+		if (dims.AnyRegistered()) {
 			meter.CreateObservableGauge($"{metricName}-bytes", dims.GenObserve());
+		}
 	}
 
 	public void CreateGcGenerationSizeMetric(string metricName, Dictionary<ProcessTracker, string> dimNames) {
@@ -85,8 +89,9 @@ public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodIn
 		dims.Register(ProcessTracker.Gen2Size, () => (long)getGcGenerationSize(2));
 		dims.Register(ProcessTracker.LohSize, () => (long)getGcGenerationSize(3));
 
-		if (dims.AnyRegistered())
+		if (dims.AnyRegistered()) {
 			meter.CreateObservableUpDownCounter($"{metricName}-bytes", dims.GenObserve());
+		}
 	}
 
 	public void CreateGcCollectionCountMetric(string metricName, Dictionary<ProcessTracker, string> dimNames) {
@@ -96,8 +101,9 @@ public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodIn
 		dims.Register(ProcessTracker.Gen1CollectionCount, () => GC.CollectionCount(1));
 		dims.Register(ProcessTracker.Gen2CollectionCount, () => GC.CollectionCount(2));
 
-		if (dims.AnyRegistered())
+		if (dims.AnyRegistered()) {
 			meter.CreateObservableCounter(metricName, dims.GenObserve());
+		}
 	}
 
 	public void CreateDiskBytesMetric(string metricName, Dictionary<ProcessTracker, string> dimNames) {
@@ -106,8 +112,9 @@ public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodIn
 		dims.Register(ProcessTracker.DiskReadBytes, () => (long)_getDiskIo().ReadBytes);
 		dims.Register(ProcessTracker.DiskWrittenBytes, () => (long)_getDiskIo().WrittenBytes);
 
-		if (dims.AnyRegistered())
+		if (dims.AnyRegistered()) {
 			meter.CreateObservableCounter($"{metricName}-bytes", dims.GenObserve());
+		}
 	}
 
 	public void CreateDiskOpsMetric(string name, Dictionary<ProcessTracker, string> dimNames) {
@@ -116,7 +123,8 @@ public class ProcessMetrics (Meter meter, TimeSpan timeout, int scrapingPeriodIn
 		dims.Register(ProcessTracker.DiskReadOps, () => (long)_getDiskIo().ReadOps);
 		dims.Register(ProcessTracker.DiskWrittenOps, () => (long)_getDiskIo().WriteOps);
 
-		if (dims.AnyRegistered())
+		if (dims.AnyRegistered()) {
 			meter.CreateObservableCounter($"{name}-operations", dims.GenObserve());
+		}
 	}
 }

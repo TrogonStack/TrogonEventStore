@@ -23,9 +23,13 @@ namespace EventStore.Core.Authorization {
 			while (!remaining.IsEmpty && context.Grant != Grant.Deny) {
 				var pending = remaining.Span[0].Evaluate(cp, operation, policy, context);
 				remaining = remaining.Slice(1);
-				if (!pending.IsCompleted)
+				if (!pending.IsCompleted) {
 					return EvaluateAsync(pending, remaining, cp, operation, policy, context);
-				if (pending.Result) return new ValueTask<bool>(true);
+				}
+
+				if (pending.Result) {
+					return new ValueTask<bool>(true);
+				}
 			}
 
 			return new ValueTask<bool>(false);

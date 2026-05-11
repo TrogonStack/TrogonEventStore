@@ -9,14 +9,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.IndexVAny;
 
 [TestFixture]
-public class saving_empty_index_to_a_file : SpecificationWithDirectoryPerTestFixture
-{
+public class saving_empty_index_to_a_file : SpecificationWithDirectoryPerTestFixture {
 	private string _filename;
 	private IndexMap _map;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_filename = GetFilePathFor("indexfile");
@@ -25,17 +23,14 @@ public class saving_empty_index_to_a_file : SpecificationWithDirectoryPerTestFix
 	}
 
 	[Test]
-	public void the_file_exists()
-	{
+	public void the_file_exists() {
 		Assert.IsTrue(File.Exists(_filename));
 	}
 
 	[Test]
-	public void the_file_contains_correct_data()
-	{
+	public void the_file_contains_correct_data() {
 		using (var fs = File.OpenRead(_filename))
-		using (var reader = new StreamReader(fs))
-		{
+		using (var reader = new StreamReader(fs)) {
 			var text = reader.ReadToEnd();
 			var lines = text.Replace("\r", "").Split('\n');
 
@@ -53,8 +48,7 @@ public class saving_empty_index_to_a_file : SpecificationWithDirectoryPerTestFix
 	}
 
 	[Test]
-	public void saved_file_could_be_read_correctly_and_without_errors()
-	{
+	public void saved_file_could_be_read_correctly_and_without_errors() {
 		var map = IndexMapTestFactory.FromFile(_filename);
 
 		Assert.AreEqual(-1, map.PrepareCheckpoint);

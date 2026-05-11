@@ -24,7 +24,8 @@ public class DeleteTests {
 
 			try {
 				await ReadDetails(_client, "delete-test-user", GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_detailsException = ex;
 			}
 		}
@@ -49,7 +50,8 @@ public class DeleteTests {
 		protected override async Task When() {
 			try {
 				await _client.DeleteAsync(DeleteRequest("missing-delete-test-user"), GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -76,7 +78,8 @@ public class DeleteTests {
 		protected override async Task When() {
 			try {
 				await _client.DeleteAsync(DeleteRequest(LoginName), GetCallOptions((LoginName, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -94,7 +97,7 @@ public class DeleteTests {
 				LoginName = loginName,
 				Password = "Pa55w0rd!",
 				FullName = "Delete Test User",
-				Groups = {"admin", "other"}
+				Groups = { "admin", "other" }
 			}
 		};
 

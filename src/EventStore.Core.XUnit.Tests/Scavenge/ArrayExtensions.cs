@@ -4,12 +4,9 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public static class ArrayExtensions
-{
-	public static T[] KeepIndexes<T>(this T[] self, params int[] indexes)
-	{
-		foreach (var i in indexes)
-		{
+public static class ArrayExtensions {
+	public static T[] KeepIndexes<T>(this T[] self, params int[] indexes) {
+		foreach (var i in indexes) {
 			Assert.True(i < self.Length, $"error in test: index {i} does not exist");
 		}
 

@@ -8,31 +8,26 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Bus;
 
 [TestFixture]
-public class when_publishing_into_memory_bus
-{
+public class when_publishing_into_memory_bus {
 	private InMemoryBus _bus;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_bus = InMemoryBus.CreateTest(false);
 	}
 
 	[TearDown]
-	public void TearDown()
-	{
+	public void TearDown() {
 		_bus = null;
 	}
 
 	[Test, Ignore("We do not check each message for null for performance reasons.")]
-	public void null_message_app_should_throw()
-	{
+	public void null_message_app_should_throw() {
 		Assert.ThrowsAsync<ArgumentNullException>(async () => await _bus.DispatchAsync(null));
 	}
 
 	[Test]
-	public async Task unsubscribed_messages_noone_should_handle_it()
-	{
+	public async Task unsubscribed_messages_noone_should_handle_it() {
 		var handler1 = new TestHandler<TestMessage>();
 		var handler2 = new TestHandler<TestMessage2>();
 		var handler3 = new TestHandler<TestMessage3>();
@@ -47,8 +42,7 @@ public class when_publishing_into_memory_bus
 	}
 
 	[Test]
-	public async Task any_message_no_other_messages_should_be_published()
-	{
+	public async Task any_message_no_other_messages_should_be_published() {
 		var handler1 = new TestHandler<TestMessage>();
 		var handler2 = new TestHandler<TestMessage2>();
 
@@ -61,8 +55,7 @@ public class when_publishing_into_memory_bus
 	}
 
 	[Test]
-	public async Task same_message_n_times_it_should_be_handled_n_times()
-	{
+	public async Task same_message_n_times_it_should_be_handled_n_times() {
 		var handler = new TestHandler<TestMessageWithId>();
 		var message = new TestMessageWithId(11);
 
@@ -76,8 +69,7 @@ public class when_publishing_into_memory_bus
 	}
 
 	[Test]
-	public async Task multiple_messages_of_same_type_they_all_should_be_delivered()
-	{
+	public async Task multiple_messages_of_same_type_they_all_should_be_delivered() {
 		var handler = new TestHandler<TestMessageWithId>();
 		var message1 = new TestMessageWithId(1);
 		var message2 = new TestMessageWithId(2);
@@ -95,8 +87,7 @@ public class when_publishing_into_memory_bus
 	}
 
 	[Test]
-	public async Task message_of_child_type_then_all_subscribed_handlers_of_parent_type_should_handle_message()
-	{
+	public async Task message_of_child_type_then_all_subscribed_handlers_of_parent_type_should_handle_message() {
 		var parentHandler = new TestHandler<ParentTestMessage>();
 		_bus.Subscribe(parentHandler);
 
@@ -106,8 +97,7 @@ public class when_publishing_into_memory_bus
 	}
 
 	[Test]
-	public async Task message_of_parent_type_then_no_subscribed_handlers_of_child_type_should_handle_message()
-	{
+	public async Task message_of_parent_type_then_no_subscribed_handlers_of_child_type_should_handle_message() {
 		var childHandler = new TestHandler<ChildTestMessage>();
 		_bus.Subscribe(childHandler);
 
@@ -117,8 +107,7 @@ public class when_publishing_into_memory_bus
 	}
 
 	[Test]
-	public async Task message_of_grand_child_type_then_all_subscribed_handlers_of_base_types_should_handle_message()
-	{
+	public async Task message_of_grand_child_type_then_all_subscribed_handlers_of_base_types_should_handle_message() {
 		var parentHandler = new TestHandler<ParentTestMessage>();
 		var childHandler = new TestHandler<ChildTestMessage>();
 
@@ -133,8 +122,7 @@ public class when_publishing_into_memory_bus
 
 	[Test]
 	public async Task
-		message_of_grand_child_type_then_all_subscribed_handlers_of_parent_types_including_grand_child_handler_should_handle_message()
-	{
+		message_of_grand_child_type_then_all_subscribed_handlers_of_parent_types_including_grand_child_handler_should_handle_message() {
 		var parentHandler = new TestHandler<ParentTestMessage>();
 		var childHandler = new TestHandler<ChildTestMessage>();
 		var grandChildHandler = new TestHandler<GrandChildTestMessage>();

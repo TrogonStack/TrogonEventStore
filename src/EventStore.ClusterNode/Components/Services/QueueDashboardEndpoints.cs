@@ -10,10 +10,10 @@ internal static class QueueDashboardEndpoints {
 		app.MapGet("/ui/queue-dashboard/payload", async (
 			HttpContext context,
 			QueueDashboardService dashboard) => {
-			var page = await dashboard.Read(context.RequestAborted);
-			context.Response.Headers.CacheControl = "no-store";
-			return Results.Text(page.ClientPayloadJson, "application/json", Encoding.UTF8);
-		}).RequireAuthorization();
+				var page = await dashboard.Read(context.RequestAborted);
+				context.Response.Headers.CacheControl = "no-store";
+				return Results.Text(page.ClientPayloadJson, "application/json", Encoding.UTF8);
+			}).RequireAuthorization();
 
 		return app;
 	}

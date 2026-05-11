@@ -12,20 +12,16 @@ using NUnit.Framework;
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when_building;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
-	{
+public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
 		return options;
 	}
 
-	public with_default_node_as_single_node() : base(disableMemoryOptimization: true)
-	{
+	public with_default_node_as_single_node() : base(disableMemoryOptimization: true) {
 	}
 
 	[Test]
-	public void should_create_single_cluster_node()
-	{
+	public void should_create_single_cluster_node() {
 		Assert.IsNotNull(_node);
 		Assert.AreEqual(1, _options.Cluster.ClusterSize, "ClusterNodeCount");
 		Assert.IsInstanceOf<DelegatedAuthenticationProvider>(_node.AuthenticationProvider);
@@ -33,15 +29,13 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 	}
 
 	[Test]
-	public void should_have_default_endpoints()
-	{
+	public void should_have_default_endpoints() {
 		Assert.AreEqual(new IPEndPoint(IPAddress.Loopback, 1112), _node.NodeInfo.InternalSecureTcp);
 		Assert.AreEqual(new IPEndPoint(IPAddress.Loopback, 2113), _node.NodeInfo.HttpEndPoint);
 	}
 
 	[Test]
-	public void should_set_command_line_args_to_default_values()
-	{
+	public void should_set_command_line_args_to_default_values() {
 		Assert.AreEqual(false, _options.Interface.EnableTrustedAuth, "EnableTrustedAuth");
 		Assert.AreEqual(false, _options.Application.LogHttpRequests, "LogHttpRequests");
 		Assert.AreEqual(0, _options.Application.WorkerThreads, "WorkerThreads");
@@ -79,11 +73,9 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
-{
+public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId> {
 	[Test]
-	public void should_create_single_cluster_node()
-	{
+	public void should_create_single_cluster_node() {
 		Assert.IsNotNull(_node);
 		Assert.AreEqual(_clusterSize, _options.Cluster.ClusterSize, "ClusterNodeCount");
 		Assert.IsInstanceOf<DelegatedAuthenticationProvider>(_node.AuthenticationProvider);
@@ -91,8 +83,7 @@ public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : Clu
 	}
 
 	[Test]
-	public void should_have_default_secure_endpoints()
-	{
+	public void should_have_default_secure_endpoints() {
 		var internalTcp = new IPEndPoint(IPAddress.Loopback, 1112);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
@@ -103,18 +94,15 @@ public class with_default_node_as_node_in_a_cluster<TLogFormat, TStreamId> : Clu
 		Assert.AreEqual(httpEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.HttpEndPoint);
 	}
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
-	{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
 		return options;
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId>
-{
+public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStreamId> : ClusterMemberScenario<TLogFormat, TStreamId> {
 	[Test]
-	public void should_create_single_cluster_node()
-	{
+	public void should_create_single_cluster_node() {
 		Assert.IsNotNull(_node);
 		Assert.AreEqual(_clusterSize, _options.Cluster.ClusterSize, "ClusterNodeCount");
 		Assert.IsInstanceOf<DelegatedAuthenticationProvider>(_node.AuthenticationProvider);
@@ -122,8 +110,7 @@ public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStrea
 	}
 
 	[Test]
-	public void should_have_default_endpoints()
-	{
+	public void should_have_default_endpoints() {
 		var internalTcp = new IPEndPoint(IPAddress.Loopback, 1112);
 		var httpEndPoint = new IPEndPoint(IPAddress.Loopback, 2113);
 
@@ -134,8 +121,7 @@ public class with_default_node_as_node_in_an_insecure_cluster<TLogFormat, TStrea
 		Assert.AreEqual(httpEndPoint.ToDnsEndPoint(), _node.GossipAdvertiseInfo.HttpEndPoint);
 	}
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
-	{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
 		return options.Insecure();
 	}
 }

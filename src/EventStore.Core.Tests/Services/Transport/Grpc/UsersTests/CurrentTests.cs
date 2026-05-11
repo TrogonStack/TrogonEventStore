@@ -67,7 +67,8 @@ public class CurrentTests {
 		protected override async Task When() {
 			try {
 				await _client.CurrentAsync(new CurrentReq(), GetCallOptions());
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}

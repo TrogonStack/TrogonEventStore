@@ -3,8 +3,7 @@ using EventStore.BufferManagement;
 
 namespace EventStore.Transport.Tcp.Formatting;
 
-public interface IMessageFormatter<T>
-{
+public interface IMessageFormatter<T> {
 	/// <summary>
 	/// Converts the object to a <see cref="BufferPool"></see> representing a binary format of it.
 	/// </summary>

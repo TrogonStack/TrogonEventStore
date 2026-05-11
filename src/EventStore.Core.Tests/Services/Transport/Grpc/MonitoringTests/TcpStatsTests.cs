@@ -92,8 +92,9 @@ public class TcpStatsTests {
 		public bool RequestedTcpStats { get; private set; }
 
 		public void Publish(Message message) {
-			if (message is not MonitoringMessage.GetFreshTcpConnectionStats request)
+			if (message is not MonitoringMessage.GetFreshTcpConnectionStats request) {
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
+			}
 
 			RequestedTcpStats = true;
 			request.Envelope.ReplyWith(new MonitoringMessage.GetFreshTcpConnectionStatsCompleted(connectionStats));

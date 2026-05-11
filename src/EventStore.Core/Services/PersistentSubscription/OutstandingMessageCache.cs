@@ -1,7 +1,7 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
 
@@ -50,12 +50,16 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		}
 
 		public void Remove(IEnumerable<Guid> messageIds) {
-			foreach (var m in messageIds) Remove(m);
+			foreach (var m in messageIds) {
+				Remove(m);
+			}
 		}
 
 		public StartMessageResult StartMessage(OutstandingMessage message, DateTime expires) {
-			if (_outstandingRequests.ContainsKey(message.EventId))
+			if (_outstandingRequests.ContainsKey(message.EventId)) {
 				return StartMessageResult.SkippedDuplicate;
+			}
+
 			_outstandingRequests[message.EventId] = new Tuple<DateTime, OutstandingMessage>(expires, message);
 			Debug.Assert(message.IsReplayedEvent || message.EventSequenceNumber.HasValue);
 			if (message.EventSequenceNumber.HasValue) {
@@ -91,9 +95,10 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		}
 
 		public (OutstandingMessage? message, long sequenceNumber) GetLowestPosition() {
-			foreach(var x in _bySequences) {
-				if (!x.Value.IsReplayedEvent)
+			foreach (var x in _bySequences) {
+				if (!x.Value.IsReplayedEvent) {
 					return (x.Value, x.Key);
+				}
 			}
 			return (null, long.MaxValue);
 		}

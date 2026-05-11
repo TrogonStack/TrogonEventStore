@@ -10,8 +10,7 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 
 [TestFixture(PTableVersions.IndexV3)]
 [TestFixture(PTableVersions.IndexV4)]
-public class saving_index_with_six_items_to_a_file : SpecificationWithDirectory
-{
+public class saving_index_with_six_items_to_a_file : SpecificationWithDirectory {
 	private string _filename;
 	private string _tablename;
 	private string _mergeFile;
@@ -19,14 +18,12 @@ public class saving_index_with_six_items_to_a_file : SpecificationWithDirectory
 	private MergeResult _result;
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 
-	public saving_index_with_six_items_to_a_file(byte version)
-	{
+	public saving_index_with_six_items_to_a_file(byte version) {
 		_ptableVersion = version;
 	}
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 
 		_filename = GetFilePathFor("indexfile");
@@ -61,17 +58,14 @@ public class saving_index_with_six_items_to_a_file : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void the_file_exists()
-	{
+	public void the_file_exists() {
 		Assert.IsTrue(File.Exists(_filename));
 	}
 
 	[Test]
-	public void the_file_contains_correct_data()
-	{
+	public void the_file_contains_correct_data() {
 		using (var fs = File.OpenRead(_filename))
-		using (var reader = new StreamReader(fs))
-		{
+		using (var reader = new StreamReader(fs)) {
 			var text = reader.ReadToEnd();
 			var lines = text.Replace("\r", "").Split('\n');
 
@@ -93,8 +87,7 @@ public class saving_index_with_six_items_to_a_file : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void saved_file_could_be_read_correctly_and_without_errors()
-	{
+	public void saved_file_could_be_read_correctly_and_without_errors() {
 		var map = IndexMapTestFactory.FromFile(_filename);
 		map.InOrder().ToList().ForEach(x => x.Dispose());
 

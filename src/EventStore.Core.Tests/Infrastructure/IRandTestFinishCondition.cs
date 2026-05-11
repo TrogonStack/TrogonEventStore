@@ -1,7 +1,6 @@
 namespace EventStore.Core.Tests.Infrastructure;
 
-public interface IRandTestFinishCondition
-{
+public interface IRandTestFinishCondition {
 	bool Done { get; }
 	bool Success { get; }
 

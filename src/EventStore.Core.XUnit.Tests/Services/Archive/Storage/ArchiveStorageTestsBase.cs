@@ -1,32 +1,28 @@
-using EventStore.Core.Services.Archive.Storage;
-using EventStore.Core.Services.Archive;
-using EventStore.Core.Services.Archive.Naming;
-using EventStore.Core.TransactionLog.FileNamingStrategy;
 using System.IO;
 using System.Security.Cryptography;
+using EventStore.Core.Services.Archive;
+using EventStore.Core.Services.Archive.Naming;
+using EventStore.Core.Services.Archive.Storage;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
 
-public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
-{
+public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T> {
 	protected const string ChunkPrefix = "chunk-";
 	protected string ArchivePath => Path.Combine(Fixture.Directory, "archive");
 	protected string DbPath => Path.Combine(Fixture.Directory, "db");
 	protected abstract StorageType StorageType { get; }
 
-	public ArchiveStorageTestsBase()
-	{
+	public ArchiveStorageTestsBase() {
 		Directory.CreateDirectory(ArchivePath);
 		Directory.CreateDirectory(DbPath);
 	}
 
-	protected IArchiveStorageFactory CreateSutFactory(StorageType storageType)
-	{
+	protected IArchiveStorageFactory CreateSutFactory(StorageType storageType) {
 		var namingStrategy = new VersionedPatternFileNamingStrategy(ArchivePath, ChunkPrefix);
 		var chunkNamer = new ArchiveChunkNamer(namingStrategy);
 		var factory = new ArchiveStorageFactory(
-			new()
-			{
+			new() {
 				StorageType = storageType,
 				S3 = new() { Bucket = "archiver-unit-tests", Region = "eu-west-1", }
 			},
@@ -40,8 +36,7 @@ public abstract class ArchiveStorageTestsBase<T> : DirectoryPerTest<T>
 	protected IArchiveStorageReader CreateReaderSut(StorageType storageType) =>
 		CreateSutFactory(storageType).CreateReader();
 
-	protected static string CreateChunk(string path, int chunkStartNumber, int chunkVersion)
-	{
+	protected static string CreateChunk(string path, int chunkStartNumber, int chunkVersion) {
 		var namingStrategy = new VersionedPatternFileNamingStrategy(path, ChunkPrefix);
 
 		var chunk = Path.Combine(path, namingStrategy.GetFilenameFor(chunkStartNumber, chunkVersion));

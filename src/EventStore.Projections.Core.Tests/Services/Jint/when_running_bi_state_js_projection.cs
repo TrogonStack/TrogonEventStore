@@ -8,10 +8,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_running_bi_state_js_projection : TestFixtureWithInterpretedProjection
-{
-	protected override void Given()
-	{
+public class when_running_bi_state_js_projection : TestFixtureWithInterpretedProjection {
+	protected override void Given() {
 		_projection = @"
                 options({
                     biState: true,
@@ -28,8 +26,7 @@ public class when_running_bi_state_js_projection : TestFixtureWithInterpretedPro
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_counts_events()
-	{
+	public void process_event_counts_events() {
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 10, 5), "stream1", "type1", "category", Guid.NewGuid(), 0, "metadata",
 			@"{""a"":""b""}", out var state, out var sharedState, out var emittedEvents);

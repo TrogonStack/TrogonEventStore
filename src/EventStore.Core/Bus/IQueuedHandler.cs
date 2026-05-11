@@ -9,6 +9,6 @@ public interface IQueuedHandler : IPublisher {
 	Task Stop();
 
 	void RequestStop();
-	
+
 	QueueStats GetStatistics();
 }

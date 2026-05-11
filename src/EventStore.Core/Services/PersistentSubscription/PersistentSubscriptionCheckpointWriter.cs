@@ -30,7 +30,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 			if (_version == ExpectedVersion.NoStream) {
 				PublishMetadata(state);
-			} else {
+			}
+			else {
 				PublishCheckpoint(state);
 			}
 		}
@@ -76,7 +77,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			_outstandingWrite = false;
 			if (msg.Result == OperationResult.Success) {
 				_version = msg.LastEventNumber;
-			} else {
+			}
+			else {
 				Log.Debug("Error writing checkpoint for {stream}: {e}", _subscriptionStateStream, msg.Result);
 				_version = ExpectedVersion.Any;
 			}

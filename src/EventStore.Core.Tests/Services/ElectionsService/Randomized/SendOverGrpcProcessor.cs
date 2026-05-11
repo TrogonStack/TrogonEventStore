@@ -7,8 +7,7 @@ using EventStore.Core.Tests.Infrastructure;
 
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
-internal class SendOverGrpcProcessor : IHandle<GrpcMessage.SendOverGrpc>
-{
+internal class SendOverGrpcProcessor : IHandle<GrpcMessage.SendOverGrpc> {
 	private readonly Random _rnd;
 	private readonly Dictionary<EndPoint, IPublisher> _httpBuses = new Dictionary<EndPoint, IPublisher>();
 	private readonly RandomTestRunner _runner;
@@ -17,18 +16,26 @@ internal class SendOverGrpcProcessor : IHandle<GrpcMessage.SendOverGrpc>
 	private readonly int _maxDelay;
 
 	public SendOverGrpcProcessor(Random rnd, RandomTestRunner runner, double lossProb, double dupProb,
-		int maxDelay)
-	{
-		if (rnd == null)
+		int maxDelay) {
+		if (rnd == null) {
 			throw new ArgumentNullException("rnd");
-		if (runner == null)
+		}
+
+		if (runner == null) {
 			throw new ArgumentNullException("runner");
-		if (lossProb < 0.0 || lossProb > 1.0)
+		}
+
+		if (lossProb < 0.0 || lossProb > 1.0) {
 			throw new ArgumentOutOfRangeException("lossProb");
-		if (dupProb < 0.0 || dupProb > 1.0)
+		}
+
+		if (dupProb < 0.0 || dupProb > 1.0) {
 			throw new ArgumentOutOfRangeException("dupProb");
-		if (maxDelay <= 0)
+		}
+
+		if (maxDelay <= 0) {
 			throw new ArgumentOutOfRangeException("maxDelay");
+		}
 
 		_rnd = rnd;
 		_runner = runner;
@@ -37,32 +44,33 @@ internal class SendOverGrpcProcessor : IHandle<GrpcMessage.SendOverGrpc>
 		_maxDelay = maxDelay;
 	}
 
-	public void RegisterEndPoint(EndPoint endPoint, IPublisher bus)
-	{
+	public void RegisterEndPoint(EndPoint endPoint, IPublisher bus) {
 		_httpBuses.Add(endPoint, bus);
 	}
 
-	public void Handle(GrpcMessage.SendOverGrpc message)
-	{
-		if (_rnd.NextDouble() < _lossProb)
+	public void Handle(GrpcMessage.SendOverGrpc message) {
+		if (_rnd.NextDouble() < _lossProb) {
 			return;
+		}
 
-		if (ShouldSkipMessage(message))
+		if (ShouldSkipMessage(message)) {
 			return;
+		}
 
 		IPublisher publisher;
-		if (!_httpBuses.TryGetValue(message.DestinationEndpoint, out publisher))
+		if (!_httpBuses.TryGetValue(message.DestinationEndpoint, out publisher)) {
 			throw new InvalidOperationException(string.Format("No HTTP bus subscribed for EndPoint: {0}.",
 				message.DestinationEndpoint));
+		}
 
 		_runner.Enqueue(message.DestinationEndpoint, message.Message, publisher, 1 + _rnd.Next(_maxDelay));
 
-		if (_rnd.NextDouble() < _dupProb)
+		if (_rnd.NextDouble() < _dupProb) {
 			_runner.Enqueue(message.DestinationEndpoint, message.Message, publisher, 1 + _rnd.Next(_maxDelay));
+		}
 	}
 
-	protected virtual bool ShouldSkipMessage(GrpcMessage.SendOverGrpc message)
-	{
+	protected virtual bool ShouldSkipMessage(GrpcMessage.SendOverGrpc message) {
 		return false;
 	}
 }

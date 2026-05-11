@@ -4,11 +4,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests;
 
 [TestFixture]
-public class VerifyIntPtrSize
-{
+public class VerifyIntPtrSize {
 	[Test]
-	public void TestIntPtrSize()
-	{
+	public void TestIntPtrSize() {
 		Assert.AreEqual(8, IntPtr.Size);
 	}
 }

@@ -8,13 +8,11 @@ using EventStore.ClientAPI.SystemData;
 namespace EventStore.Core.Tests.ClientAPI;
 
 public abstract class SpecificationWithLinkToToMaxCountDeletedEvents<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	protected string LinkedStreamName;
 	protected string DeletedStreamName;
 
-	protected override async Task Given()
-	{
+	protected override async Task Given() {
 		var creds = DefaultData.AdminCredentials;
 		DeletedStreamName = Guid.NewGuid().ToString();
 		LinkedStreamName = Guid.NewGuid().ToString();

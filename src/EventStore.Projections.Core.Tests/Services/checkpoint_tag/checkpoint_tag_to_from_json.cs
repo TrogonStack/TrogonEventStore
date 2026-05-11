@@ -10,11 +10,9 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.checkpoint_tag;
 
 [TestFixture]
-public class checkpoint_tag_to_from_json
-{
+public class checkpoint_tag_to_from_json {
 	[Test]
-	public void stream_position_should_not_overflow()
-	{
+	public void stream_position_should_not_overflow() {
 		var checkpointTag = CheckpointTag.FromStreamPosition(1, "test", 9876543210L);
 		var json = checkpointTag.ToJsonString();
 
@@ -24,8 +22,7 @@ public class checkpoint_tag_to_from_json
 	}
 
 	[Test]
-	public void data_and_catalog_position_should_not_overflow()
-	{
+	public void data_and_catalog_position_should_not_overflow() {
 		var checkpointTag =
 			CheckpointTag.FromByStreamPosition(1, "catalog", 9876543210L, "data", 9876543211L, 9876543212L);
 		var json = checkpointTag.ToJsonString();
@@ -37,8 +34,7 @@ public class checkpoint_tag_to_from_json
 	}
 
 	[Test]
-	public void prepare_and_commit_positions_should_not_overflow()
-	{
+	public void prepare_and_commit_positions_should_not_overflow() {
 		var checkpointTag =
 			CheckpointTag.FromPosition(1, 9876543210L, 9876543211L);
 		var json = checkpointTag.ToJsonString();

@@ -11,11 +11,9 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
 [TestFixture]
-public class when_creating_projection_subscription
-{
+public class when_creating_projection_subscription {
 	[Test]
-	public void it_can_be_created()
-	{
+	public void it_can_be_created() {
 		new ReaderSubscription(
 			"Test Subscription",
 			new FakePublisher(),
@@ -32,10 +30,8 @@ public class when_creating_projection_subscription
 	}
 
 	[Test]
-	public void null_publisher_throws_argument_null_exception()
-	{
-		Assert.Throws<ArgumentNullException>(() =>
-		{
+	public void null_publisher_throws_argument_null_exception() {
+		Assert.Throws<ArgumentNullException>(() => {
 			new ReaderSubscription(
 				"Test Subscription",
 				null,
@@ -53,10 +49,8 @@ public class when_creating_projection_subscription
 	}
 
 	[Test]
-	public void null_checkpoint_strategy_throws_argument_null_exception()
-	{
-		Assert.Throws<ArgumentNullException>(() =>
-		{
+	public void null_checkpoint_strategy_throws_argument_null_exception() {
+		Assert.Throws<ArgumentNullException>(() => {
 			new ReaderSubscription(
 				"Test Subscription",
 				new FakePublisher(),
@@ -74,10 +68,8 @@ public class when_creating_projection_subscription
 	}
 
 	[Test]
-	public void null_time_provider_throws_argument_null_exception()
-	{
-		Assert.Throws<ArgumentNullException>(() =>
-		{
+	public void null_time_provider_throws_argument_null_exception() {
+		Assert.Throws<ArgumentNullException>(() => {
 			new ReaderSubscription(
 				"Test Subscription",
 				new FakePublisher(),
@@ -94,8 +86,7 @@ public class when_creating_projection_subscription
 		});
 	}
 
-	private IReaderStrategy CreateReaderStrategy()
-	{
+	private IReaderStrategy CreateReaderStrategy() {
 		var result = new SourceDefinitionBuilder();
 		result.FromAll();
 		result.AllEvents();

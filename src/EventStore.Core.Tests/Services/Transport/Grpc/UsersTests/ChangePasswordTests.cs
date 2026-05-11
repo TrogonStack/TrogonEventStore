@@ -46,7 +46,8 @@ public class ChangePasswordTests {
 			try {
 				await _client.ChangePasswordAsync(ChangePasswordRequest("admin", "WrongPa55w0rd!", "NewPa55w0rd!"),
 					GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -82,7 +83,8 @@ public class ChangePasswordTests {
 			try {
 				await _client.ChangePasswordAsync(ChangePasswordRequest(LoginName, CurrentPassword, "NewPa55w0rd!"),
 					GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}

@@ -56,8 +56,9 @@ public sealed class ProjectionBrowserService(
 	};
 
 	public async Task<ProjectionListPage> ReadAll(bool includeQueries, CancellationToken cancellationToken = default) {
-		if (!await HasAccess(ListOperation, cancellationToken))
+		if (!await HasAccess(ListOperation, cancellationToken)) {
 			return ProjectionListPage.Unavailable("Projection list access was denied.", includeQueries);
+		}
 
 		var read = await ReadStatistics(includeQueries ? null : ProjectionMode.AllNonTransient, name: null, cancellationToken);
 		return read.IsAvailable
@@ -72,19 +73,23 @@ public sealed class ProjectionBrowserService(
 		string partition = "",
 		CancellationToken cancellationToken = default) {
 		name = NormalizeName(name);
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return ProjectionDetailPage.Unavailable("", "Enter a projection name to inspect it.");
+		}
 
-		if (!await HasAccess(StatisticsOperation, cancellationToken))
+		if (!await HasAccess(StatisticsOperation, cancellationToken)) {
 			return ProjectionDetailPage.Unavailable(name, "Projection statistics access was denied.");
+		}
 
 		var read = await ReadStatistics(mode: null, name, cancellationToken);
-		if (!read.IsAvailable)
+		if (!read.IsAvailable) {
 			return ProjectionDetailPage.Unavailable(name, read.Message);
+		}
 
 		var projection = read.Projections.FirstOrDefault();
-		if (projection is null)
+		if (projection is null) {
 			return ProjectionDetailPage.Unavailable(name, $"Projection '{name}' was not found.");
+		}
 
 		var query = await ReadQuery(name, cancellationToken);
 		var state = await ReadState(name, partition, cancellationToken);
@@ -95,11 +100,13 @@ public sealed class ProjectionBrowserService(
 
 	public async Task<ProjectionQueryPage> ReadProjectionQuery(string name, CancellationToken cancellationToken = default) {
 		name = NormalizeName(name);
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return ProjectionQueryPage.Unavailable(name ?? "", "Enter a projection name.");
+		}
 
-		if (!await HasAccess(ReadOperation, cancellationToken))
+		if (!await HasAccess(ReadOperation, cancellationToken)) {
 			return ProjectionQueryPage.Unavailable(name, "Projection query access was denied.");
+		}
 
 		var read = await ReadQuery(name, cancellationToken);
 		return read.IsAvailable
@@ -109,11 +116,13 @@ public sealed class ProjectionBrowserService(
 
 	public async Task<ProjectionConfigPage> ReadProjectionConfig(string name, CancellationToken cancellationToken = default) {
 		name = NormalizeName(name);
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return ProjectionConfigPage.Unavailable(name ?? "", "Enter a projection name.");
+		}
 
-		if (!await HasAccess(ReadConfigurationOperation, cancellationToken))
+		if (!await HasAccess(ReadConfigurationOperation, cancellationToken)) {
 			return ProjectionConfigPage.Unavailable(name, "Projection configuration access was denied.");
+		}
 
 		var read = await ReadConfig(name, cancellationToken);
 		return read.IsAvailable
@@ -126,8 +135,9 @@ public sealed class ProjectionBrowserService(
 		CancellationToken cancellationToken = default) {
 		var name = NormalizeName(request.Name);
 		var validation = ValidateCreate(request, name);
-		if (!string.IsNullOrWhiteSpace(validation))
+		if (!string.IsNullOrWhiteSpace(validation)) {
 			return ProjectionCommandResult.Failure(name ?? "", validation);
+		}
 
 		var mode = request.Mode == ProjectionCreateMode.Continuous
 			? ProjectionMode.Continuous
@@ -140,8 +150,9 @@ public sealed class ProjectionBrowserService(
 		var trackEmittedStreams = emitEnabled && request.TrackEmittedStreams;
 		var handlerType = NormalizeHandlerType(request.HandlerType);
 
-		if (!await HasAccess(operation, cancellationToken))
+		if (!await HasAccess(operation, cancellationToken)) {
 			return ProjectionCommandResult.Failure(name, "Projection creation access was denied.");
+		}
 
 		return await RunUpdated(
 			name,
@@ -165,13 +176,17 @@ public sealed class ProjectionBrowserService(
 		ProjectionUpdateQueryRequest request,
 		CancellationToken cancellationToken = default) {
 		var name = NormalizeName(request.Name);
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return ProjectionCommandResult.Failure("", "Enter a projection name.");
-		if (string.IsNullOrWhiteSpace(request.Query))
-			return ProjectionCommandResult.Failure(name, "Enter projection source before saving.");
+		}
 
-		if (!await HasAccess(UpdateOperation, cancellationToken))
+		if (string.IsNullOrWhiteSpace(request.Query)) {
+			return ProjectionCommandResult.Failure(name, "Enter projection source before saving.");
+		}
+
+		if (!await HasAccess(UpdateOperation, cancellationToken)) {
 			return ProjectionCommandResult.Failure(name, "Projection update access was denied.");
+		}
 
 		return await RunUpdated(
 			name,
@@ -191,11 +206,13 @@ public sealed class ProjectionBrowserService(
 		var requestName = NormalizeName(request.Name);
 		var normalizedRequest = request with { Name = requestName };
 		var validation = ValidateConfig(normalizedRequest);
-		if (!string.IsNullOrWhiteSpace(validation))
+		if (!string.IsNullOrWhiteSpace(validation)) {
 			return ProjectionCommandResult.Failure(requestName, validation);
+		}
 
-		if (!await HasAccess(UpdateConfigurationOperation, cancellationToken))
+		if (!await HasAccess(UpdateConfigurationOperation, cancellationToken)) {
 			return ProjectionCommandResult.Failure(requestName, "Projection configuration update access was denied.");
+		}
 
 		return await RunUpdated(
 			requestName,
@@ -251,8 +268,9 @@ public sealed class ProjectionBrowserService(
 
 	public async Task<ProjectionBulkCommandResult> EnableAll(bool includeQueries, CancellationToken cancellationToken = default) {
 		var page = await ReadAll(includeQueries, cancellationToken);
-		if (!page.IsAvailable)
+		if (!page.IsAvailable) {
 			return ProjectionBulkCommandResult.Failure(page.Message);
+		}
 
 		var candidates = page.Projections.Where(x => !x.IsRunning).ToArray();
 		return await RunBulk(candidates, projection => Enable(projection.Name, cancellationToken), "enable");
@@ -260,8 +278,9 @@ public sealed class ProjectionBrowserService(
 
 	public async Task<ProjectionBulkCommandResult> DisableAll(bool includeQueries, CancellationToken cancellationToken = default) {
 		var page = await ReadAll(includeQueries, cancellationToken);
-		if (!page.IsAvailable)
+		if (!page.IsAvailable) {
 			return ProjectionBulkCommandResult.Failure(page.Message);
+		}
 
 		var candidates = page.Projections.Where(x => x.IsRunning).ToArray();
 		return await RunBulk(candidates, projection => Disable(projection.Name, cancellationToken), "disable");
@@ -271,11 +290,13 @@ public sealed class ProjectionBrowserService(
 		ProjectionDeleteRequest request,
 		CancellationToken cancellationToken = default) {
 		var name = NormalizeName(request.Name);
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return ProjectionCommandResult.Failure("", "Enter a projection name.");
+		}
 
-		if (!await HasAccess(DeleteOperation, cancellationToken))
+		if (!await HasAccess(DeleteOperation, cancellationToken)) {
 			return ProjectionCommandResult.Failure(name, "Projection delete access was denied.");
+		}
 
 		return await RunUpdated(
 			name,
@@ -291,8 +312,9 @@ public sealed class ProjectionBrowserService(
 	}
 
 	private async Task<ProjectionQueryRead> ReadQuery(string name, CancellationToken cancellationToken) {
-		if (!await HasAccess(ReadOperation, cancellationToken))
+		if (!await HasAccess(ReadOperation, cancellationToken)) {
 			return ProjectionQueryRead.Unavailable("Projection query access was denied.");
+		}
 
 		var envelope = ProjectionEnvelope<ProjectionManagementMessage.ProjectionQuery>();
 
@@ -304,11 +326,14 @@ public sealed class ProjectionBrowserService(
 
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return ProjectionQueryRead.Success(ProjectionQueryView.From(completed));
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ProjectionQueryRead.Unavailable($"Timed out reading query for '{name}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ProjectionQueryRead.Unavailable($"Unable to read query for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -324,11 +349,14 @@ public sealed class ProjectionBrowserService(
 
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return ProjectionConfigRead.Success(ProjectionConfigView.From(completed));
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ProjectionConfigRead.Unavailable($"Timed out reading configuration for '{name}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ProjectionConfigRead.Unavailable($"Unable to read configuration for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -337,23 +365,28 @@ public sealed class ProjectionBrowserService(
 		string name,
 		string partition,
 		CancellationToken cancellationToken) {
-		if (!await HasAccess(StateOperation, cancellationToken))
+		if (!await HasAccess(StateOperation, cancellationToken)) {
 			return ProjectionDataRead.Unavailable("Projection state access was denied.");
+		}
 
 		var envelope = ProjectionEnvelope<ProjectionManagementMessage.ProjectionState>();
 
 		try {
 			publisher.Publish(new ProjectionManagementMessage.Command.GetState(envelope, name, partition ?? ""));
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-			if (completed.Exception is not null)
+			if (completed.Exception is not null) {
 				return ProjectionDataRead.Unavailable(completed.Exception.Message);
+			}
 
 			return ProjectionDataRead.Success(completed.State ?? "", completed.Position?.ToString() ?? "");
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ProjectionDataRead.Unavailable($"Timed out reading state for '{name}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ProjectionDataRead.Unavailable($"Unable to read state for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -362,23 +395,28 @@ public sealed class ProjectionBrowserService(
 		string name,
 		string partition,
 		CancellationToken cancellationToken) {
-		if (!await HasAccess(ResultOperation, cancellationToken))
+		if (!await HasAccess(ResultOperation, cancellationToken)) {
 			return ProjectionDataRead.Unavailable("Projection result access was denied.");
+		}
 
 		var envelope = ProjectionEnvelope<ProjectionManagementMessage.ProjectionResult>();
 
 		try {
 			publisher.Publish(new ProjectionManagementMessage.Command.GetResult(envelope, name, partition ?? ""));
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-			if (completed.Exception is not null)
+			if (completed.Exception is not null) {
 				return ProjectionDataRead.Unavailable(completed.Exception.Message);
+			}
 
 			return ProjectionDataRead.Success(completed.Result ?? "", completed.Position?.ToString() ?? "");
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ProjectionDataRead.Unavailable($"Timed out reading result for '{name}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ProjectionDataRead.Unavailable($"Unable to read result for '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -390,11 +428,13 @@ public sealed class ProjectionBrowserService(
 		Func<string, IEnvelope, Message> createMessage,
 		CancellationToken cancellationToken) {
 		name = NormalizeName(name);
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return ProjectionCommandResult.Failure("", "Enter a projection name.");
+		}
 
-		if (!await HasAccess(operation, cancellationToken))
+		if (!await HasAccess(operation, cancellationToken)) {
 			return ProjectionCommandResult.Failure(name, $"Projection {action} access was denied.");
+		}
 
 		return await RunUpdated(name, action, envelope => createMessage(name, envelope), cancellationToken);
 	}
@@ -411,11 +451,14 @@ public sealed class ProjectionBrowserService(
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			var projectionName = string.IsNullOrWhiteSpace(completed.Name) ? name : completed.Name;
 			return ProjectionCommandResult.Succeeded(projectionName, $"Projection '{projectionName}' {ActionPastTense(action)}.");
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ProjectionCommandResult.Failure(name, $"Timed out trying to {action} '{name}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ProjectionCommandResult.Failure(name, $"Unable to {action} '{name}': {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -424,8 +467,9 @@ public sealed class ProjectionBrowserService(
 		IReadOnlyList<ProjectionView> candidates,
 		Func<ProjectionView, Task<ProjectionCommandResult>> run,
 		string action) {
-		if (candidates.Count == 0)
+		if (candidates.Count == 0) {
 			return ProjectionBulkCommandResult.Succeeded(0, $"No projections needed {action}.");
+		}
 
 		var failures = new List<string>();
 		var completed = 0;
@@ -433,15 +477,18 @@ public sealed class ProjectionBrowserService(
 			ProjectionCommandResult result;
 			try {
 				result = await run(projection);
-			} catch (OperationCanceledException) {
+			}
+			catch (OperationCanceledException) {
 				failures.Add($"{projection.Name}: operation was canceled before this projection was updated.");
 				return ProjectionBulkCommandResult.Partial(completed, failures);
 			}
 
-			if (result.Success)
+			if (result.Success) {
 				completed++;
-			else
+			}
+			else {
 				failures.Add($"{projection.Name}: {result.Message}");
+			}
 		}
 
 		return failures.Count == 0
@@ -463,13 +510,16 @@ public sealed class ProjectionBrowserService(
 			publisher.Publish(new ProjectionManagementMessage.Command.GetStatistics(envelope, mode, name, includeDeleted: true));
 			var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 			return ProjectionStatisticsRead.Success(completed.Projections.Select(ProjectionView.From).ToArray());
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return ProjectionStatisticsRead.Unavailable(name is null
 				? "Timed out reading projections."
 				: $"Timed out reading projection '{name}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return ProjectionStatisticsRead.Unavailable(name is null
 				? $"Unable to read projections: {UiMessages.Friendly(ex)}"
 				: $"Unable to read projection '{name}': {UiMessages.Friendly(ex)}");
@@ -489,28 +539,35 @@ public sealed class ProjectionBrowserService(
 		message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason ?? "" : null;
 
 	private static string NormalizeName(string name) {
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return name;
+		}
 
 		var value = name.Trim();
-		if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+		if (Uri.TryCreate(value, UriKind.Absolute, out var absolute)) {
 			value = absolute.AbsolutePath;
+		}
 
 		var queryStart = value.IndexOfAny(new[] { '?', '#' });
-		if (queryStart >= 0)
+		if (queryStart >= 0) {
 			value = value[..queryStart];
+		}
 
 		value = value.TrimStart('/');
 		const string projectionPrefix = "projection/";
-		if (value.StartsWith(projectionPrefix, StringComparison.OrdinalIgnoreCase))
+		if (value.StartsWith(projectionPrefix, StringComparison.OrdinalIgnoreCase)) {
 			value = value[projectionPrefix.Length..];
+		}
 
 		foreach (var suffix in ProjectionEndpointSuffixes) {
 			var endpointSuffix = $"/{suffix}";
-			if (value.EndsWith(endpointSuffix, StringComparison.OrdinalIgnoreCase))
+			if (value.EndsWith(endpointSuffix, StringComparison.OrdinalIgnoreCase)) {
 				return SafeDecodeName(value[..^endpointSuffix.Length]);
-			if (value.EndsWith(endpointSuffix + "/", StringComparison.OrdinalIgnoreCase))
+			}
+
+			if (value.EndsWith(endpointSuffix + "/", StringComparison.OrdinalIgnoreCase)) {
 				return SafeDecodeName(value[..^(endpointSuffix.Length + 1)]);
+			}
 		}
 
 		return SafeDecodeName(value);
@@ -519,7 +576,8 @@ public sealed class ProjectionBrowserService(
 	private static string SafeDecodeName(string name) {
 		try {
 			return Uri.UnescapeDataString(name);
-		} catch (UriFormatException) {
+		}
+		catch (UriFormatException) {
 			return name;
 		}
 	}
@@ -537,14 +595,21 @@ public sealed class ProjectionBrowserService(
 		};
 
 	private static string ValidateCreate(ProjectionCreateRequest request, string name) {
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(name)) {
 			return "Enter a projection name.";
-		if (string.IsNullOrWhiteSpace(request.Query))
+		}
+
+		if (string.IsNullOrWhiteSpace(request.Query)) {
 			return "Enter projection source before creating it.";
-		if (request.EmitEnabled && !request.CheckpointsEnabled && request.Mode != ProjectionCreateMode.Continuous)
+		}
+
+		if (request.EmitEnabled && !request.CheckpointsEnabled && request.Mode != ProjectionCreateMode.Continuous) {
 			return "Emitting requires checkpoints.";
-		if (!IsKnownHandlerType(request.HandlerType))
+		}
+
+		if (!IsKnownHandlerType(request.HandlerType)) {
 			return "Select a supported projection handler.";
+		}
 
 		return "";
 	}
@@ -559,17 +624,22 @@ public sealed class ProjectionBrowserService(
 	}
 
 	private static string ValidateConfig(ProjectionConfigRequest request) {
-		if (string.IsNullOrWhiteSpace(request.Name))
+		if (string.IsNullOrWhiteSpace(request.Name)) {
 			return "Enter a projection name.";
-		if (request.ProjectionExecutionTimeout is <= 0)
+		}
+
+		if (request.ProjectionExecutionTimeout is <= 0) {
 			return "Projection execution timeout must be positive.";
+		}
+
 		if (request.CheckpointAfterMs < 0 ||
 			request.CheckpointHandledThreshold < 0 ||
 			request.CheckpointUnhandledBytesThreshold < 0 ||
 			request.PendingEventsThreshold < 0 ||
 			request.MaxWriteBatchLength < 0 ||
-			request.MaxAllowedWritesInFlight < 0)
+			request.MaxAllowedWritesInFlight < 0) {
 			return "Projection configuration values cannot be negative.";
+		}
 
 		return "";
 	}

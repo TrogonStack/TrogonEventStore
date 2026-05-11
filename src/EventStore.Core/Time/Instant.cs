@@ -16,7 +16,7 @@ public struct Instant : IEquatable<Instant> {
 
 	static Instant() {
 		TicksPerSecond = Stopwatch.Frequency;
-		SecondsPerTick =  1 / (double)TicksPerSecond;
+		SecondsPerTick = 1 / (double)TicksPerSecond;
 		// Use floating-point division to handle non-divisible frequencies gracefully.
 		// Previously threw an exception if TicksPerSecond % TimeSpan.TicksPerSecond != 0,
 		// which could occur on Windows systems with high-resolution timers.

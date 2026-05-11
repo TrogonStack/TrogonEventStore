@@ -7,17 +7,14 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Users
-{
+internal partial class Users {
 	private static readonly Operation ResetOperation = new Operation(Plugins.Authorization.Operations.Users.ResetPassword);
 	public override async Task<ResetPasswordResp> ResetPassword(ResetPasswordReq request,
-		ServerCallContext context)
-	{
+		ServerCallContext context) {
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, ResetOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, ResetOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 		var resetPasswordSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -31,10 +28,10 @@ internal partial class Users
 
 		return new ResetPasswordResp();
 
-		void OnMessage(Message message)
-		{
-			if (HandleErrors(options.LoginName, message, resetPasswordSource))
+		void OnMessage(Message message) {
+			if (HandleErrors(options.LoginName, message, resetPasswordSource)) {
 				return;
+			}
 
 			resetPasswordSource.TrySetResult(true);
 		}

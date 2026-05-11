@@ -12,26 +12,22 @@ using NUnit.Framework;
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when_building;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_run_on_disk<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+public class with_run_on_disk<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options.RunOnDisk(PathName);
 
 	[Test]
-	public void should_set_the_db_path()
-	{
+	public void should_set_the_db_path() {
 		Assert.AreEqual(PathName, _node.Db.Config.Path);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_custom_ip_endpoints<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+public class with_custom_ip_endpoints<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	private readonly IPEndPoint _httpEndPoint = new(IPAddress.Parse("127.0.1.15"), 1113);
 	private readonly IPEndPoint _internalTcp = new(IPAddress.Parse("127.0.1.15"), 1114);
 	private readonly IPEndPoint _externalTcp = new(IPAddress.Parse("127.0.1.15"), 1115);
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
-	{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
 		return options
 			.WithNodeEndpointOn(_httpEndPoint)
 			.WithExternalTcpOn(_externalTcp)
@@ -39,85 +35,70 @@ public class with_custom_ip_endpoints<TLogFormat, TStreamId> : SingleNodeScenari
 	}
 
 	[Test]
-	public void should_set_http_endpoint()
-	{
+	public void should_set_http_endpoint() {
 		Assert.AreEqual(_httpEndPoint, _node.NodeInfo.HttpEndPoint);
 	}
 
 	[Test]
-	public void should_set_internal_tcp_endpoint()
-	{
+	public void should_set_internal_tcp_endpoint() {
 		Assert.AreEqual(_internalTcp, _node.NodeInfo.InternalSecureTcp);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_custom_chunk_size<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+public class with_custom_chunk_size<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	private readonly int _chunkSize = 268435;
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with
-	{
-		Database = options.Database with
-		{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with {
+		Database = options.Database with {
 			ChunkSize = _chunkSize
 		}
 	};
 
 	[Test]
-	public void should_set_chunk_size()
-	{
+	public void should_set_chunk_size() {
 		Assert.AreEqual(_chunkSize, _node.Db.Config.ChunkSize);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_custom_chunk_cache_size<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+public class with_custom_chunk_cache_size<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	private readonly long _chunkCacheSize = 268435712;
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with
-	{
-		Database = options.Database with
-		{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with {
+		Database = options.Database with {
 			ChunksCacheSize = _chunkCacheSize
 		}
 	};
 
 	[Test]
-	public void should_set_max_chunk_cache_size()
-	{
+	public void should_set_max_chunk_cache_size() {
 		Assert.AreEqual(_chunkCacheSize, _node.Db.Config.MaxChunksCacheSize);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	with_custom_number_of_cached_chunks<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+	with_custom_number_of_cached_chunks<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	private readonly int _cachedChunks = 10;
 	private readonly int _chunkSize = 268435;
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with
-	{
-		Database = options.Database with
-		{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with {
+		Database = options.Database with {
 			CachedChunks = _cachedChunks,
 			ChunkSize = _chunkSize
 		}
 	};
 
 	[Test]
-	public void should_set_max_chunk_size_to_the_size_of_the_number_of_cached_chunks()
-	{
+	public void should_set_max_chunk_size_to_the_size_of_the_number_of_cached_chunks() {
 		var chunkSizeResult = _cachedChunks * ((long)_chunkSize + ChunkHeader.Size + ChunkFooter.Size);
 		Assert.AreEqual(chunkSizeResult, _node.Db.Config.MaxChunksCacheSize);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	private readonly IPEndPoint _intTcpEndpoint = new(IPAddress.Parse(InternalIp), 1111);
 	private readonly IPEndPoint _extTcpEndpoint = new(IPAddress.Parse(ExternalIp), 1113);
 	private readonly IPEndPoint _httpEndpoint = new(IPAddress.Parse(ExternalIp), 1116);
@@ -125,8 +106,7 @@ public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenari
 	const string ExternalIp = "127.0.1.2";
 
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
-	{
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
 		return options
 			.WithNodeEndpointOn(_httpEndpoint)
 			.WithExternalTcpOn(_extTcpEndpoint)
@@ -137,8 +117,7 @@ public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenari
 	}
 
 	[Test]
-	public void should_set_the_advertise_as_info_to_the_specified()
-	{
+	public void should_set_the_advertise_as_info_to_the_specified() {
 		Assert.AreEqual(null, _node.GossipAdvertiseInfo.InternalTcp);
 		Assert.AreEqual(null, _node.GossipAdvertiseInfo.ExternalTcp);
 		Assert.AreEqual(new DnsEndPoint($"{InternalIp}.com", _intTcpEndpoint.Port + 1000),
@@ -153,21 +132,17 @@ public class with_custom_advertise_as<TLogFormat, TStreamId> : SingleNodeScenari
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	with_custom_password_for_admin_and_ops_user<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
-{
+	with_custom_password_for_admin_and_ops_user<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
 	private const string _adminPassword = "Admin";
 	private const string _opsPassword = "Ops";
 
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) =>
-		options with
-		{
-			DefaultUser = new ClusterVNodeOptions.DefaultUserOptions
-			{ DefaultAdminPassword = _adminPassword, DefaultOpsPassword = _opsPassword }
+		options with {
+			DefaultUser = new ClusterVNodeOptions.DefaultUserOptions { DefaultAdminPassword = _adminPassword, DefaultOpsPassword = _opsPassword }
 		};
 
 	[Test]
-	public void should_set_the_custom_admin_and_ops_user_password()
-	{
+	public void should_set_the_custom_admin_and_ops_user_password() {
 		Assert.AreEqual(_adminPassword, _options.DefaultUser.DefaultAdminPassword);
 		Assert.AreEqual(_opsPassword, _options.DefaultUser.DefaultOpsPassword);
 	}
@@ -176,13 +151,11 @@ public class
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	with_custom_settings_check_for_environment_only_options<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat,
-	TStreamId>
-{
+	TStreamId> {
 	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) => options with { };
 
 	[Test]
-	public void should_return_error_when_default_password_options_pass_through_command_line()
-	{
+	public void should_return_error_when_default_password_options_pass_through_command_line() {
 		var configuration = new ConfigurationBuilder()
 			.AddEventStoreDefaultValues()
 			.AddEventStoreCommandLine(
@@ -198,8 +171,7 @@ public class
 	}
 
 	[Test]
-	public void should_return_null_when_default_password_options_pass_through_environment_variables()
-	{
+	public void should_return_null_when_default_password_options_pass_through_environment_variables() {
 		var configuration = new ConfigurationBuilder()
 			.AddEventStoreDefaultValues()
 			.AddEventStoreEnvironmentVariables(
@@ -217,8 +189,7 @@ public class
 	}
 
 	[Test]
-	public void ignores_subsection_arguments()
-	{
+	public void ignores_subsection_arguments() {
 		var configuration = new ConfigurationBuilder()
 			// we should be able to stop doing this soon as long as we bind the options automatically
 			.AddEventStoreDefaultValues()

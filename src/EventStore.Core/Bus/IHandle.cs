@@ -16,7 +16,8 @@ public interface IHandle<in T> : IAsyncHandle<T> where T : Message {
 		var task = ValueTask.CompletedTask;
 		try {
 			Handle(message);
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			task = ValueTask.FromException(e);
 		}
 

@@ -42,7 +42,7 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		protected long LastEventPosition;
 		protected bool Registered;
 		protected long CommitPosition = -1;
-		
+
 		private readonly HashSet<long> _prepareLogPositions = new HashSet<long>();
 
 		private bool _allEventsWritten;
@@ -92,7 +92,7 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 			}
 		}
 		protected DateTime LiveUntil => NextTimeoutTime - _timeoutOffset;
-		
+
 		protected abstract Message WriteRequestMsg { get; }
 		protected abstract Message ClientSuccessMsg { get; }
 		protected abstract Message ClientFailMsg { get; }
@@ -133,11 +133,12 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 			if (_allEventsWritten) { AllEventsWritten(); }
 		}
 		protected virtual void AllPreparesWritten() { }
-		
+
 		protected virtual void AllEventsWritten() {
 			if (CommitSource.IndexedPosition >= LastEventPosition) {
 				Committed();
-			} else if (!Registered) {
+			}
+			else if (!Registered) {
 				CommitSource.NotifyFor(LastEventPosition, Committed);
 				Registered = true;
 			}
@@ -150,8 +151,10 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		}
 		public void Handle(StorageMessage.RequestManagerTimerTick message) {
 			if (_allEventsWritten) { AllEventsWritten(); }
-			if (Interlocked.Read(ref _complete) == 1 || message.UtcNow < NextTimeoutTime)
+			if (Interlocked.Read(ref _complete) == 1 || message.UtcNow < NextTimeoutTime) {
 				return;
+			}
+
 			var result = !_allPreparesWritten ? OperationResult.PrepareTimeout : OperationResult.CommitTimeout;
 			var msg = !_allPreparesWritten ? "Prepare phase timeout." : "Commit phase timeout.";
 			CompleteFailedRequest(result, msg);
@@ -206,7 +209,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 							var msg = "Request canceled by server";
 							CompleteFailedRequest(result, msg);
 						}
-					} catch { /*don't throw in disposed*/}
+					}
+					catch { /*don't throw in disposed*/}
 
 					_disposed = true;
 				}

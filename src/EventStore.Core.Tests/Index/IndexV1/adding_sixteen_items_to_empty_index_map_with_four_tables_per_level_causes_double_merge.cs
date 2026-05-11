@@ -14,8 +14,7 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV4, true)]
 public class
 	adding_sixteen_items_to_empty_index_map_with_four_tables_per_level_causes_double_merge :
-		SpecificationWithDirectoryPerTestFixture
-{
+		SpecificationWithDirectoryPerTestFixture {
 	private string _filename;
 	private IndexMap _map;
 	private string _finalmergefile;
@@ -27,15 +26,13 @@ public class
 	private bool _skipIndexVerify;
 
 	public adding_sixteen_items_to_empty_index_map_with_four_tables_per_level_causes_double_merge(byte version,
-		bool skipIndexVerify)
-	{
+		bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_filename = GetTempFilePath();
@@ -129,8 +126,7 @@ public class
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_result.MergedMap.InOrder().ToList().ForEach(x => x.MarkForDestruction());
 		File.Delete(_filename);
 
@@ -138,40 +134,34 @@ public class
 	}
 
 	[Test]
-	public void the_prepare_checkpoint_is_taken_from_the_latest_added_table()
-	{
+	public void the_prepare_checkpoint_is_taken_from_the_latest_added_table() {
 		Assert.AreEqual(1, _result.MergedMap.PrepareCheckpoint);
 	}
 
 	[Test]
-	public void the_commit_checkpoint_is_taken_from_the_latest_added_table()
-	{
+	public void the_commit_checkpoint_is_taken_from_the_latest_added_table() {
 		Assert.AreEqual(2, _result.MergedMap.CommitCheckpoint);
 	}
 
 	[Test]
-	public void there_are_eight_items_to_delete()
-	{
+	public void there_are_eight_items_to_delete() {
 		Assert.AreEqual(8, _result.ToDelete.Count);
 	}
 
 	[Test]
-	public void the_merged_map_has_a_single_file()
-	{
+	public void the_merged_map_has_a_single_file() {
 		Assert.AreEqual(1, _result.MergedMap.GetAllFilenames().Count());
 		Assert.AreEqual(_finalmergefile2, _result.MergedMap.GetAllFilenames().ToList()[0]);
 	}
 
 	[Test]
-	public void the_original_map_did_not_change()
-	{
+	public void the_original_map_did_not_change() {
 		Assert.AreEqual(0, _map.InOrder().Count());
 		Assert.AreEqual(0, _map.GetAllFilenames().Count());
 	}
 
 	[Test]
-	public void a_merged_file_was_created()
-	{
+	public void a_merged_file_was_created() {
 		Assert.IsTrue(File.Exists(_finalmergefile2));
 	}
 }

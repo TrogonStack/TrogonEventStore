@@ -10,16 +10,14 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class SystemMetricsTests : IDisposable
-{
+public class SystemMetricsTests : IDisposable {
 	private readonly TestMeterListener<float> _floatListener;
 	private readonly TestMeterListener<double> _doubleListener;
 	private readonly TestMeterListener<long> _longListener;
 	private readonly FakeClock _clock = new();
 	private readonly SystemMetrics _sut;
 	private readonly Meter _meter;
-	public SystemMetricsTests()
-	{
+	public SystemMetricsTests() {
 		_meter = new Meter($"{typeof(ProcessMetricsTests)}");
 		_floatListener = new TestMeterListener<float>(_meter);
 		_doubleListener = new TestMeterListener<double>(_meter);
@@ -27,8 +25,7 @@ public class SystemMetricsTests : IDisposable
 
 		var config = new Dictionary<MetricsConfiguration.SystemTracker, bool>();
 
-		foreach (var value in Enum.GetValues<MetricsConfiguration.SystemTracker>())
-		{
+		foreach (var value in Enum.GetValues<MetricsConfiguration.SystemTracker>()) {
 			config[value] = true;
 		}
 		_sut = new SystemMetrics(_meter, TimeSpan.FromSeconds(42), config);
@@ -55,50 +52,43 @@ public class SystemMetricsTests : IDisposable
 		_longListener.Observe();
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		_floatListener.Dispose();
 		_doubleListener.Dispose();
 		_longListener.Dispose();
 	}
 
 	[Fact]
-	public void can_collect_sys_load_avg()
-	{
-		if (RuntimeInformation.IsWindows)
+	public void can_collect_sys_load_avg() {
+		if (RuntimeInformation.IsWindows) {
 			return;
+		}
 
 		Assert.Collection(
 			_doubleListener.RetrieveMeasurements("eventstore-sys-load-avg"),
-			m =>
-			{
+			m => {
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("period", tag.Key);
 						Assert.Equal("1m", tag.Value);
 					});
 			},
-			m =>
-			{
+			m => {
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("period", tag.Key);
 						Assert.Equal("5m", tag.Value);
 					});
 			},
-			m =>
-			{
+			m => {
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("period", tag.Key);
 						Assert.Equal("15m", tag.Value);
 					});
@@ -106,20 +96,17 @@ public class SystemMetricsTests : IDisposable
 	}
 
 	[Fact]
-	public void can_collect_sys_cpu()
-	{
+	public void can_collect_sys_cpu() {
 		Assert.Collection(
 			_doubleListener.RetrieveMeasurements("eventstore-sys-cpu"),
-			m =>
-			{
+			m => {
 				Assert.True(m.Value >= 0);
 				Assert.Empty(m.Tags);
 			});
 	}
 
 	[Fact]
-	public void can_collect_sys_cpu_using_metrics_collector()
-	{
+	public void can_collect_sys_cpu_using_metrics_collector() {
 		// Arrange
 		using var collector = new MetricCollector<double>(
 			null, _meter.Name, "eventstore-sys-cpu"
@@ -136,28 +123,23 @@ public class SystemMetricsTests : IDisposable
 
 
 	[Fact]
-	public void can_collect_sys_mem()
-	{
+	public void can_collect_sys_mem() {
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-sys-mem-bytes"),
-			m =>
-			{
+			m => {
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("free", tag.Value);
 					});
 			},
-			m =>
-			{
+			m => {
 				Assert.True(m.Value > 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("total", tag.Value);
 					});
@@ -165,38 +147,31 @@ public class SystemMetricsTests : IDisposable
 	}
 
 	[Fact]
-	public void can_collect_sys_disk()
-	{
+	public void can_collect_sys_disk() {
 		Assert.Collection(
 			_longListener.RetrieveMeasurements("eventstore-sys-disk-bytes"),
-			m =>
-			{
+			m => {
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("used", tag.Value);
 					},
-					tag =>
-					{
+					tag => {
 						Assert.Equal("disk", tag.Key);
 						Assert.NotNull(tag.Value);
 					});
 			},
-			m =>
-			{
+			m => {
 				Assert.True(m.Value >= 0);
 				Assert.Collection(
 					m.Tags,
-					tag =>
-					{
+					tag => {
 						Assert.Equal("kind", tag.Key);
 						Assert.Equal("total", tag.Value);
 					},
-					tag =>
-					{
+					tag => {
 						Assert.Equal("disk", tag.Key);
 						Assert.NotNull(tag.Value);
 					});

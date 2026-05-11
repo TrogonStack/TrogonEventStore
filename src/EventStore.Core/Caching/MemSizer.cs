@@ -13,14 +13,17 @@ namespace EventStore.Core.Caching {
 		public const int LinkedListEntrySize = 0;
 
 		public static int SizeOf(string s) {
-			if (string.IsNullOrEmpty(s))
+			if (string.IsNullOrEmpty(s)) {
 				return 0;
+			}
+
 			return (StringSize + s.Length * 2 + 1).RoundUpToMultipleOf(IntPtr.Size);
 		}
 
 		public static int SizeOf(string[] arr) {
-			if (arr == null)
+			if (arr == null) {
 				return 0;
+			}
 
 			var size = 0;
 			size += ArraySize; // string array

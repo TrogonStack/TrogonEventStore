@@ -28,8 +28,9 @@ public class CacheHitsMissesMetric {
 	}
 
 	private void Register(Cache cache, string kind, Func<long> func) {
-		if (!_enabledCaches.TryGetValue(cache, out var cacheName))
+		if (!_enabledCaches.TryGetValue(cache, out var cacheName)) {
 			return;
+		}
 
 		lock (_lock) {
 			_funcs.Add(func);

@@ -8,31 +8,26 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Bus;
 
 [TestFixture]
-public class when_subscribing_to_memory_bus
-{
+public class when_subscribing_to_memory_bus {
 	private InMemoryBus _bus;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_bus = InMemoryBus.CreateTest(false);
 	}
 
 	[TearDown]
-	public void TearDown()
-	{
+	public void TearDown() {
 		_bus = null;
 	}
 
 	[Test]
-	public void null_as_handler_app_should_throw_arg_null_exception()
-	{
+	public void null_as_handler_app_should_throw_arg_null_exception() {
 		Assert.Throws<ArgumentNullException>(() => _bus.Subscribe<TestMessage>(null));
 	}
 
 	[Test]
-	public void but_not_publishing_messages_noone_should_handle_any_messages()
-	{
+	public void but_not_publishing_messages_noone_should_handle_any_messages() {
 		var multiHandler = new TestMultiHandler();
 		_bus.Subscribe<TestMessage>(multiHandler);
 		_bus.Subscribe<TestMessage2>(multiHandler);
@@ -42,8 +37,7 @@ public class when_subscribing_to_memory_bus
 	}
 
 	[Test]
-	public async Task one_handler_to_one_message_it_should_be_handled()
-	{
+	public async Task one_handler_to_one_message_it_should_be_handled() {
 		var handler = new TestHandler<TestMessage>();
 		_bus.Subscribe(handler);
 
@@ -53,8 +47,7 @@ public class when_subscribing_to_memory_bus
 	}
 
 	[Test]
-	public async Task one_handler_to_multiple_messages_they_all_should_be_handled()
-	{
+	public async Task one_handler_to_multiple_messages_they_all_should_be_handled() {
 		var multiHandler = new TestMultiHandler();
 		_bus.Subscribe<TestMessage>(multiHandler);
 		_bus.Subscribe<TestMessage2>(multiHandler);
@@ -70,8 +63,7 @@ public class when_subscribing_to_memory_bus
 	}
 
 	[Test]
-	public async Task one_handler_to_few_messages_then_only_subscribed_should_be_handled()
-	{
+	public async Task one_handler_to_few_messages_then_only_subscribed_should_be_handled() {
 		var multiHandler = new TestMultiHandler();
 		_bus.Subscribe<TestMessage>(multiHandler);
 		_bus.Subscribe<TestMessage3>(multiHandler);
@@ -86,8 +78,7 @@ public class when_subscribing_to_memory_bus
 	}
 
 	[Test]
-	public async Task multiple_handlers_to_one_message_then_each_handler_should_handle_message_once()
-	{
+	public async Task multiple_handlers_to_one_message_then_each_handler_should_handle_message_once() {
 		var handler1 = new TestHandler<TestMessage>();
 		var handler2 = new TestHandler<TestMessage>();
 
@@ -101,8 +92,7 @@ public class when_subscribing_to_memory_bus
 	}
 
 	[Test]
-	public async Task multiple_handlers_to_multiple_messages_then_each_handler_should_handle_subscribed_messages()
-	{
+	public async Task multiple_handlers_to_multiple_messages_then_each_handler_should_handle_subscribed_messages() {
 		var handler1 = new TestMultiHandler();
 		var handler2 = new TestMultiHandler();
 		var handler3 = new TestMultiHandler();
@@ -130,8 +120,7 @@ public class when_subscribing_to_memory_bus
 
 	[Test]
 	public async Task
-		multiple_handlers_to_multiple_messages_then_each_handler_should_handle_only_subscribed_messages()
-	{
+		multiple_handlers_to_multiple_messages_then_each_handler_should_handle_only_subscribed_messages() {
 		var handler1 = new TestMultiHandler();
 		var handler2 = new TestMultiHandler();
 		var handler3 = new TestMultiHandler();
@@ -163,8 +152,7 @@ public class when_subscribing_to_memory_bus
 	}
 
 	[Test /*, Ignore("This logic is confused when having hierarchy flattening on subscription in InMemoryBus.")*/]
-	public async Task same_handler_to_same_message_few_times_then_message_should_be_handled_only_once()
-	{
+	public async Task same_handler_to_same_message_few_times_then_message_should_be_handled_only_once() {
 		var handler = new TestHandler<TestMessage>();
 		_bus.Subscribe(handler);
 		_bus.Subscribe(handler);

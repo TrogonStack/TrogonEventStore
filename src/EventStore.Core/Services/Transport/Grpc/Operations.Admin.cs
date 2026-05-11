@@ -9,8 +9,7 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Operations
-{
+internal partial class Operations {
 	private static readonly Operation ShutdownOperation =
 		new Operation(Plugins.Authorization.Operations.Node.Shutdown);
 
@@ -30,11 +29,9 @@ internal partial class Operations
 
 	private static readonly Empty EmptyResult = new Empty();
 
-	public override async Task<Empty> Shutdown(Empty request, ServerCallContext context)
-	{
+	public override async Task<Empty> Shutdown(Empty request, ServerCallContext context) {
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, ShutdownOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, ShutdownOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -42,13 +39,11 @@ internal partial class Operations
 		return EmptyResult;
 	}
 
-	public override async Task<Empty> MergeIndexes(Empty request, ServerCallContext context)
-	{
+	public override async Task<Empty> MergeIndexes(Empty request, ServerCallContext context) {
 		var mergeResultSource = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, MergeIndexesOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, MergeIndexesOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -58,26 +53,21 @@ internal partial class Operations
 		await mergeResultSource.Task;
 		return EmptyResult;
 
-		void OnMessage(Message message)
-		{
+		void OnMessage(Message message) {
 			var completed = message as ClientMessage.MergeIndexesResponse;
-			if (completed is null)
-			{
+			if (completed is null) {
 				mergeResultSource.TrySetException(
 					RpcExceptions.UnknownMessage<ClientMessage.MergeIndexesResponse>(message));
 			}
-			else
-			{
+			else {
 				mergeResultSource.SetResult(completed.CorrelationId.ToString());
 			}
 		}
 	}
 
-	public override async Task<Empty> ResignNode(Empty request, ServerCallContext context)
-	{
+	public override async Task<Empty> ResignNode(Empty request, ServerCallContext context) {
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, ResignOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, ResignOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -85,12 +75,10 @@ internal partial class Operations
 		return EmptyResult;
 	}
 
-	public override async Task<Empty> SetNodePriority(SetNodePriorityReq request, ServerCallContext context)
-	{
+	public override async Task<Empty> SetNodePriority(SetNodePriorityReq request, ServerCallContext context) {
 		var user = context.GetHttpContext().User;
 		if (!await _authorizationProvider
-			.CheckAccessAsync(user, SetNodePriorityOperation, context.CancellationToken))
-		{
+			.CheckAccessAsync(user, SetNodePriorityOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -98,11 +86,9 @@ internal partial class Operations
 		return EmptyResult;
 	}
 
-	public override async Task<Empty> ReloadConfig(Empty request, ServerCallContext context)
-	{
+	public override async Task<Empty> ReloadConfig(Empty request, ServerCallContext context) {
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, ReloadConfigOperation, context.CancellationToken))
-		{
+		if (!await _authorizationProvider.CheckAccessAsync(user, ReloadConfigOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -110,15 +96,13 @@ internal partial class Operations
 		return EmptyResult;
 	}
 
-	public override async Task<Empty> RestartPersistentSubscriptions(Empty request, ServerCallContext context)
-	{
+	public override async Task<Empty> RestartPersistentSubscriptions(Empty request, ServerCallContext context) {
 		var restart = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var envelope = new CallbackEnvelope(OnMessage);
 
 		var user = context.GetHttpContext().User;
 		if (!await _authorizationProvider.CheckAccessAsync(user, RestartPersistentSubscriptionsOperation,
-				context.CancellationToken))
-		{
+				context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -127,10 +111,8 @@ internal partial class Operations
 		await restart.Task;
 		return new Empty();
 
-		void OnMessage(Message message)
-		{
-			switch (message)
-			{
+		void OnMessage(Message message) {
+			switch (message) {
 				case SubscriptionMessage.PersistentSubscriptionsRestarting _:
 					restart.TrySetResult(true);
 					break;

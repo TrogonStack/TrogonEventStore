@@ -7,8 +7,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteDbFixture<T> : IAsyncLifetime
-{
+public class SqliteDbFixture<T> : IAsyncLifetime {
 	private readonly string _connectionString;
 
 	public SqliteConnection DbConnection { get; set; }
@@ -16,8 +15,7 @@ public class SqliteDbFixture<T> : IAsyncLifetime
 
 	public string Directory { get; }
 
-	public SqliteDbFixture(string dir)
-	{
+	public SqliteDbFixture(string dir) {
 		Directory = dir;
 		var fileName = typeof(T).Name + ".db";
 		var connectionStringBuilder = new SqliteConnectionStringBuilder();
@@ -26,29 +24,25 @@ public class SqliteDbFixture<T> : IAsyncLifetime
 		_connectionString = connectionStringBuilder.ConnectionString;
 	}
 
-	public Task InitializeAsync()
-	{
+	public Task InitializeAsync() {
 		DbConnection = new SqliteConnection(_connectionString);
 		DbConnectionPool = new ObjectPool<SqliteConnection>(
 			objectPoolName: "sqlite connections",
 			initialCount: 0,
 			maxCount: TFChunkScavenger.MaxThreadCount + 1,
-			factory: () =>
-			{
+			factory: () => {
 				var dbConnection = new SqliteConnection(_connectionString);
 				dbConnection.Open();
 				return dbConnection;
 			},
-			dispose: dbConnection =>
-			{
+			dispose: dbConnection => {
 				dbConnection.Close();
 				dbConnection.Dispose();
 			});
 		return DbConnection.OpenAsync();
 	}
 
-	public Task DisposeAsync()
-	{
+	public Task DisposeAsync() {
 		DbConnection.Close();
 		DbConnection.Dispose();
 		DbConnectionPool.Dispose();

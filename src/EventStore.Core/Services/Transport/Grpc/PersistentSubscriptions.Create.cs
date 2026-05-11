@@ -17,12 +17,10 @@ using StreamOptionOneofCase = EventStore.Client.PersistentSubscriptions.CreateRe
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class PersistentSubscriptions
-{
+internal partial class PersistentSubscriptions {
 	private static readonly Operation CreateOperation = new Operation(Plugins.Authorization.Operations.Subscriptions.Create);
 
-	public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context)
-	{
+	public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context) {
 		var createPersistentSubscriptionSource = new TaskCompletionSource<CreateResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var settings = request.Options.Settings;
 		var correlationId = Guid.NewGuid();
@@ -30,8 +28,7 @@ internal partial class PersistentSubscriptions
 		var user = context.GetHttpContext().User;
 
 		if (!await _authorizationProvider.CheckAccessAsync(user,
-			CreateOperation, context.CancellationToken))
-		{
+			CreateOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -39,38 +36,32 @@ internal partial class PersistentSubscriptions
 
 		string streamId = null;
 		string consumerStrategy = null;
-		if (string.IsNullOrEmpty(settings.ConsumerStrategy))
-		{ /*for backwards compatibility*/
+		if (string.IsNullOrEmpty(settings.ConsumerStrategy)) { /*for backwards compatibility*/
 #pragma warning disable 612
 			consumerStrategy = settings.NamedConsumerStrategy.ToString();
 #pragma warning restore 612
 
 		}
-		else
-		{
+		else {
 			consumerStrategy = settings.ConsumerStrategy;
 		}
 
-		switch (request.Options.StreamOptionCase)
-		{
+		switch (request.Options.StreamOptionCase) {
 			case StreamOptionOneofCase.Stream:
 			case StreamOptionOneofCase.None: /*for backwards compatibility*/
 				{
 					StreamRevision startRevision;
 
-					if (request.Options.StreamOptionCase == StreamOptionOneofCase.Stream)
-					{
+					if (request.Options.StreamOptionCase == StreamOptionOneofCase.Stream) {
 						streamId = request.Options.Stream.StreamIdentifier;
-						startRevision = request.Options.Stream.RevisionOptionCase switch
-						{
+						startRevision = request.Options.Stream.RevisionOptionCase switch {
 							RevisionOptionOneofCase.Revision => new StreamRevision(request.Options.Stream.Revision),
 							RevisionOptionOneofCase.Start => StreamRevision.Start,
 							RevisionOptionOneofCase.End => StreamRevision.End,
 							_ => throw RpcExceptions.InvalidArgument(request.Options.Stream.RevisionOptionCase)
 						};
 					}
-					else
-					{ /*for backwards compatibility*/
+					else { /*for backwards compatibility*/
 #pragma warning disable 612
 						streamId = request.Options.StreamIdentifier;
 						startRevision = new StreamRevision(request.Options.Settings.Revision);
@@ -86,8 +77,7 @@ internal partial class PersistentSubscriptions
 							request.Options.GroupName,
 							settings.ResolveLinks,
 							startRevision.ToInt64(),
-							settings.MessageTimeoutCase switch
-							{
+							settings.MessageTimeoutCase switch {
 								CreateReq.Types.Settings.MessageTimeoutOneofCase.MessageTimeoutMs => settings
 									.MessageTimeoutMs,
 								CreateReq.Types.Settings.MessageTimeoutOneofCase.MessageTimeoutTicks => (int)TimeSpan
@@ -99,8 +89,7 @@ internal partial class PersistentSubscriptions
 							settings.HistoryBufferSize,
 							settings.LiveBufferSize,
 							settings.ReadBatchSize,
-							settings.CheckpointAfterCase switch
-							{
+							settings.CheckpointAfterCase switch {
 								CreateReq.Types.Settings.CheckpointAfterOneofCase.CheckpointAfterMs => settings
 									.CheckpointAfterMs,
 								CreateReq.Types.Settings.CheckpointAfterOneofCase.CheckpointAfterTicks => (int)TimeSpan
@@ -115,8 +104,7 @@ internal partial class PersistentSubscriptions
 					break;
 				}
 			case StreamOptionOneofCase.All:
-				var startPosition = request.Options.All.AllOptionCase switch
-				{
+				var startPosition = request.Options.All.AllOptionCase switch {
 					AllOptionOneofCase.Position => new Position(
 						request.Options.All.Position.CommitPosition,
 						request.Options.All.Position.PreparePosition),
@@ -124,8 +112,7 @@ internal partial class PersistentSubscriptions
 					AllOptionOneofCase.End => Position.End,
 					_ => throw RpcExceptions.InvalidArgument(request.Options.All.AllOptionCase)
 				};
-				var filter = request.Options.All.FilterOptionCase switch
-				{
+				var filter = request.Options.All.FilterOptionCase switch {
 					CreateReq.Types.AllOptions.FilterOptionOneofCase.NoFilter => null,
 					CreateReq.Types.AllOptions.FilterOptionOneofCase.Filter => ConvertToEventFilter(true,
 						request.Options.All.Filter),
@@ -146,8 +133,7 @@ internal partial class PersistentSubscriptions
 							startPosition.ToInt64().commitPosition,
 							startPosition.ToInt64().preparePosition
 						),
-						settings.MessageTimeoutCase switch
-						{
+						settings.MessageTimeoutCase switch {
 							CreateReq.Types.Settings.MessageTimeoutOneofCase.MessageTimeoutMs => settings
 								.MessageTimeoutMs,
 							CreateReq.Types.Settings.MessageTimeoutOneofCase.MessageTimeoutTicks => (int)TimeSpan
@@ -159,8 +145,7 @@ internal partial class PersistentSubscriptions
 						settings.HistoryBufferSize,
 						settings.LiveBufferSize,
 						settings.ReadBatchSize,
-						settings.CheckpointAfterCase switch
-						{
+						settings.CheckpointAfterCase switch {
 							CreateReq.Types.Settings.CheckpointAfterOneofCase.CheckpointAfterMs => settings
 								.CheckpointAfterMs,
 							CreateReq.Types.Settings.CheckpointAfterOneofCase.CheckpointAfterTicks => (int)TimeSpan
@@ -177,8 +162,7 @@ internal partial class PersistentSubscriptions
 				throw new InvalidOperationException();
 		}
 		IEventFilter ConvertToEventFilter(bool isAllStream, CreateReq.Types.AllOptions.Types.FilterOptions filter) =>
-			filter.FilterCase switch
-			{
+			filter.FilterCase switch {
 				CreateReq.Types.AllOptions.Types.FilterOptions.FilterOneofCase.EventType => (
 					string.IsNullOrEmpty(filter.EventType.Regex)
 						? EventFilter.EventType.Prefixes(isAllStream, filter.EventType.Prefix.ToArray())
@@ -190,41 +174,40 @@ internal partial class PersistentSubscriptions
 				_ => throw RpcExceptions.InvalidArgument(filter.FilterCase)
 			};
 
-		static void ValidateCreateSettings(CreateReq.Types.Settings settings)
-		{
-			if (settings is null)
+		static void ValidateCreateSettings(CreateReq.Types.Settings settings) {
+			if (settings is null) {
 				throw RpcExceptions.InvalidArgument("Subscription settings are required.");
+			}
 
-			if (settings.HistoryBufferSize <= 0)
+			if (settings.HistoryBufferSize <= 0) {
 				throw RpcExceptions.InvalidArgument($"Buffer Size ({settings.HistoryBufferSize}) must be positive");
+			}
 
-			if (settings.LiveBufferSize <= 0)
+			if (settings.LiveBufferSize <= 0) {
 				throw RpcExceptions.InvalidArgument($"Live Buffer Size ({settings.LiveBufferSize}) must be positive");
+			}
 
-			if (settings.ReadBatchSize <= 0)
+			if (settings.ReadBatchSize <= 0) {
 				throw RpcExceptions.InvalidArgument($"Read Batch Size ({settings.ReadBatchSize}) must be positive");
+			}
 
-			if (settings.HistoryBufferSize <= settings.ReadBatchSize)
+			if (settings.HistoryBufferSize <= settings.ReadBatchSize) {
 				throw RpcExceptions.InvalidArgument(
 					$"BufferSize ({settings.HistoryBufferSize}) must be larger than ReadBatchSize ({settings.ReadBatchSize})");
+			}
 		}
 
 		return await createPersistentSubscriptionSource.Task;
 
-		void HandleCreatePersistentSubscriptionCompleted(Message message)
-		{
-			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
-			{
+		void HandleCreatePersistentSubscriptionCompleted(Message message) {
+			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
 				createPersistentSubscriptionSource.TrySetException(ex);
 				return;
 			}
 
-			if (streamId != SystemStreams.AllStream)
-			{
-				if (message is ClientMessage.CreatePersistentSubscriptionToStreamCompleted completed)
-				{
-					switch (completed.Result)
-					{
+			if (streamId != SystemStreams.AllStream) {
+				if (message is ClientMessage.CreatePersistentSubscriptionToStreamCompleted completed) {
+					switch (completed.Result) {
 						case CreatePersistentSubscriptionToStreamResult.Success:
 							createPersistentSubscriptionSource.TrySetResult(new CreateResp());
 							return;
@@ -251,12 +234,9 @@ internal partial class PersistentSubscriptions
 					RpcExceptions.UnknownMessage<ClientMessage.CreatePersistentSubscriptionToStreamCompleted>(
 						message));
 			}
-			else
-			{
-				if (message is ClientMessage.CreatePersistentSubscriptionToAllCompleted completedAll)
-				{
-					switch (completedAll.Result)
-					{
+			else {
+				if (message is ClientMessage.CreatePersistentSubscriptionToAllCompleted completedAll) {
+					switch (completedAll.Result) {
 						case CreatePersistentSubscriptionToAllResult.Success:
 							createPersistentSubscriptionSource.TrySetResult(new CreateResp());
 							return;

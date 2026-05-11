@@ -17,8 +17,7 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_resuming<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_resuming<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private MultiStreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 
@@ -26,8 +25,7 @@ public class when_resuming<TLogFormat, TStreamId> : TestFixtureWithExistingEvent
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -40,20 +38,17 @@ public class when_resuming<TLogFormat, TStreamId> : TestFixtureWithExistingEvent
 	}
 
 	[Test]
-	public void it_cannot_be_resumed()
-	{
+	public void it_cannot_be_resumed() {
 		Assert.Throws<InvalidOperationException>(() => { _edp.Resume(); });
 	}
 
 	[Test]
-	public void it_cannot_be_paused()
-	{
+	public void it_cannot_be_paused() {
 		_edp.Pause();
 	}
 
 	[Test]
-	public void it_publishes_read_events_from_beginning()
-	{
+	public void it_publishes_read_events_from_beginning() {
 		Assert.AreEqual(2, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
@@ -74,8 +69,7 @@ public class when_resuming<TLogFormat, TStreamId> : TestFixtureWithExistingEvent
 	}
 
 	[Test]
-	public void can_handle_read_events_completed()
-	{
+	public void can_handle_read_events_completed() {
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
 				_distibutionPointCorrelationId, "a", 100, 100, ReadStreamResult.Success,

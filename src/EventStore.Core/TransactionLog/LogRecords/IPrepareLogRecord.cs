@@ -5,8 +5,7 @@ namespace EventStore.Core.TransactionLog.LogRecords;
 // This interface specifies what the Storage, TF and Index machinery requires
 // in order to handle a prepare (i.e. data) record.
 // The V2 prepare implements it trivially
-public interface IPrepareLogRecord : ILogRecord
-{
+public interface IPrepareLogRecord : ILogRecord {
 	PrepareFlags Flags { get; }
 	long TransactionPosition { get; }
 	int TransactionOffset { get; }
@@ -18,8 +17,7 @@ public interface IPrepareLogRecord : ILogRecord
 	ReadOnlyMemory<byte> Metadata { get; }
 }
 
-public interface IPrepareLogRecord<TStreamId> : IPrepareLogRecord
-{
+public interface IPrepareLogRecord<TStreamId> : IPrepareLogRecord {
 	TStreamId EventStreamId { get; }
 	TStreamId EventType { get; }
 

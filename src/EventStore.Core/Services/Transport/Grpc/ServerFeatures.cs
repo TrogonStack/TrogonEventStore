@@ -31,12 +31,15 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					};
 
 					if (x.Method.ServiceName.Contains("PersistentSubscriptions")) {
-						method.Features.AddRange(new[] {"stream", "all"});
-					} else if (x.Method.ServiceName.Contains("Streams") && x.Method.Name.Contains("Read")) {
-						method.Features.AddRange(new[] {"position", "events"});
-					} else if (x.Method.ServiceName.Contains("Streams") && x.Method.Name.Contains("BatchAppend")) {
+						method.Features.AddRange(new[] { "stream", "all" });
+					}
+					else if (x.Method.ServiceName.Contains("Streams") && x.Method.Name.Contains("Read")) {
+						method.Features.AddRange(new[] { "position", "events" });
+					}
+					else if (x.Method.ServiceName.Contains("Streams") && x.Method.Name.Contains("BatchAppend")) {
 						method.Features.Add("deadline_duration");
-					} else if (x.Method.ServiceName.Contains("Projections") && x.Method.Name.Contains("Create")) {
+					}
+					else if (x.Method.ServiceName.Contains("Projections") && x.Method.Name.Contains("Create")) {
 						method.Features.Add("track_emitted_streams");
 					}
 

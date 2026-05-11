@@ -6,13 +6,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_unlocking_a_tfchunk_that_has_been_marked_for_deletion : SpecificationWithFile
-{
+public class when_unlocking_a_tfchunk_that_has_been_marked_for_deletion : SpecificationWithFile {
 	private TFChunk _chunk;
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 1000);
 		var reader = await _chunk.AcquireRawReader();
@@ -21,8 +19,7 @@ public class when_unlocking_a_tfchunk_that_has_been_marked_for_deletion : Specif
 	}
 
 	[Test]
-	public void the_file_is_deleted()
-	{
+	public void the_file_is_deleted() {
 		Assert.IsFalse(File.Exists(Filename));
 	}
 }

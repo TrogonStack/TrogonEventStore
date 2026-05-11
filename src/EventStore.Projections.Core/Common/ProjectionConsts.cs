@@ -2,8 +2,7 @@ using System;
 
 namespace EventStore.Projections.Core.Common;
 
-public static class ProjectionConsts
-{
+public static class ProjectionConsts {
 	public const int CheckpointHandledThreshold = 4000;
 	public const int PendingEventsThreshold = 5000;
 	public const int MaxWriteBatchLength = 500;

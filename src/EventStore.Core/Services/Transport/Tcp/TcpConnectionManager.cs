@@ -12,10 +12,10 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.TimerService;
-using EventStore.Transport.Tcp;
-using EventStore.Transport.Tcp.Framing;
 using EventStore.Core.Settings;
 using EventStore.Plugins.Authentication;
+using EventStore.Transport.Tcp;
+using EventStore.Transport.Tcp.Framing;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Transport.Tcp {
@@ -27,7 +27,7 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		public static readonly TimeSpan ConnectionTimeout = TimeSpan.FromMilliseconds(1000);
 
 		private static readonly ILogger Log = Serilog.Log.ForContext<TcpConnectionManager>();
-		private static readonly ClaimsPrincipal Anonymous = new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Anonymous, ""), }));
+		private static readonly ClaimsPrincipal Anonymous = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Anonymous, ""), }));
 		public readonly Guid ConnectionId;
 		public readonly string ConnectionName;
 		public readonly EndPoint RemoteEndPoint;
@@ -180,8 +180,9 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				: connector.ConnectTo(ConnectionId, remoteEndPoint.ResolveDnsToIPAddress(), ConnectionTimeout, OnConnectionEstablished,
 					OnConnectionFailed);
 			_connection.ConnectionClosed += OnConnectionClosed;
-			if (_connection.IsClosed)
+			if (_connection.IsClosed) {
 				OnConnectionClosed(_connection, SocketError.Success);
+			}
 		}
 
 		private void OnConnectionEstablished(ITcpConnection connection) {
@@ -191,20 +192,28 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			ScheduleHeartbeat(0L, 0L);
 
 			var handler = _connectionEstablished;
-			if (handler != null)
+			if (handler != null) {
 				handler(this);
+			}
 		}
 
 		private void OnConnectionFailed(ITcpConnection connection, SocketError socketError) {
-			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0) return;
+			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0) {
+				return;
+			}
+
 			Log.Information("Connection '{connectionName}' ({connectionId:B}) to [{remoteEndPoint}] failed: {e}.",
 				ConnectionName, ConnectionId, connection.RemoteEndPoint, socketError);
-			if (_connectionClosed != null)
+			if (_connectionClosed != null) {
 				_connectionClosed(this, socketError);
+			}
 		}
 
 		private void OnConnectionClosed(ITcpConnection connection, SocketError socketError) {
-			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0) return;
+			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0) {
+				return;
+			}
+
 			Log.Information(
 				"Connection '{connectionName}{clientConnectionName}' [{remoteEndPoint}, {connectionId:B}] closed: {e}.",
 				ConnectionName, ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
@@ -216,8 +225,9 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					RemoteEndPoint, _connection.TotalBytesSent, _connection.TotalBytesReceived);
 			}
 
-			if (_connectionClosed != null)
+			if (_connectionClosed != null) {
 				_connectionClosed(this, socketError);
+			}
 		}
 
 		public void StartReceiving() {
@@ -227,7 +237,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		private void OnRawDataReceived(ITcpConnection connection, IEnumerable<ArraySegment<byte>> data) {
 			try {
 				_framer.UnFrameData(data);
-			} catch (PackageFramingException exc) {
+			}
+			catch (PackageFramingException exc) {
 				SendBadRequestAndClose(Guid.Empty,
 					string.Format("Invalid TCP frame received. Error: {0}.", exc.Message));
 				return;
@@ -240,7 +251,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			TcpPackage package;
 			try {
 				package = TcpPackage.FromArraySegment(data);
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				SendBadRequestAndClose(Guid.Empty, string.Format("Received bad network package. Error: {0}", e));
 				return;
 			}
@@ -251,7 +263,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		private void OnPackageReceived(TcpPackage package) {
 			try {
 				ProcessPackage(package);
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				SendBadRequestAndClose(package.CorrelationId,
 					string.Format("Error while processing package. Error: {0}", e));
 			}
@@ -271,67 +284,73 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					SendPackage(new TcpPackage(TcpCommand.HeartbeatResponseCommand, package.CorrelationId, null));
 					break;
 				case TcpCommand.IdentifyClient: {
-					try {
-						var message =
-							(ClientMessage.IdentifyClient)_dispatcher.UnwrapPackage(package, _tcpEnvelope, null, null,
-								this, _version);
-						Log.Information(
-							"Connection '{connectionName}' ({connectionId:B}) identified by client. Client connection name: '{clientConnectionName}', Client version: {clientVersion}.",
-							ConnectionName, ConnectionId, message.ConnectionName, (ClientVersion)message.Version);
-						_version = (byte)message.Version;
-						_clientConnectionName = message.ConnectionName;
-						_connection.SetClientConnectionName(_clientConnectionName);
-						SendPackage(new TcpPackage(TcpCommand.ClientIdentified, package.CorrelationId, null));
-					} catch (Exception ex) {
-						Log.Error("Error identifying client: {e}", ex);
-					}
-
-					break;
-				}
-				case TcpCommand.BadRequest: {
-					var reason = string.Empty;
-					Helper.EatException(() =>
-						reason = Helper.UTF8NoBom.GetString(package.Data.Array, package.Data.Offset,
-							package.Data.Count));
-					Log.Error(
-						"Bad request received from '{connectionName}{clientConnectionName}' [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}]. CorrelationId: {correlationId:B}, Error: {e}.",
-						ConnectionName,
-						ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
-						RemoteEndPoint,
-						LocalEndPoint, ConnectionId, package.CorrelationId,
-						reason.IsEmptyString() ? "<reason missing>" : reason);
-					break;
-				}
-				case TcpCommand.Authenticate: {
-					if ((package.Flags & TcpFlags.Authenticated) == 0)
-						ReplyNotAuthenticated(package.CorrelationId, "No user credentials provided.");
-					else {
-						var defaultUser = new UserCredentials(package.Tokens, null);
-						Interlocked.Exchange(ref _defaultUser, defaultUser);
-						_authProvider.Authenticate(new TcpDefaultAuthRequest(this, package.CorrelationId, defaultUser));
-					}
-
-					break;
-				}
-				default: {
-					var defaultUser = _defaultUser;
-					if ((package.Flags & TcpFlags.TrustedWrite) != 0) {
-						UnwrapAndPublishPackage(package, UserManagement.SystemAccounts.System, null);
-					} else if ((package.Flags & TcpFlags.Authenticated) != 0) {
-						_authProvider.Authenticate(new TcpAuthRequest(this, package));
-					} else if (defaultUser != null) {
-						if (defaultUser.User != null) {
-							UnwrapAndPublishPackage(package, defaultUser.User, defaultUser.Tokens);
-						} else {
-							// The default credentials aren't authenticated
-							ReplyNotAuthenticated(package.CorrelationId, "Not Authenticated");
+						try {
+							var message =
+								(ClientMessage.IdentifyClient)_dispatcher.UnwrapPackage(package, _tcpEnvelope, null, null,
+									this, _version);
+							Log.Information(
+								"Connection '{connectionName}' ({connectionId:B}) identified by client. Client connection name: '{clientConnectionName}', Client version: {clientVersion}.",
+								ConnectionName, ConnectionId, message.ConnectionName, (ClientVersion)message.Version);
+							_version = (byte)message.Version;
+							_clientConnectionName = message.ConnectionName;
+							_connection.SetClientConnectionName(_clientConnectionName);
+							SendPackage(new TcpPackage(TcpCommand.ClientIdentified, package.CorrelationId, null));
 						}
-					} else {
-						UnwrapAndPublishPackage(package, Anonymous, null);
-					}
+						catch (Exception ex) {
+							Log.Error("Error identifying client: {e}", ex);
+						}
 
-					break;
-				}
+						break;
+					}
+				case TcpCommand.BadRequest: {
+						var reason = string.Empty;
+						Helper.EatException(() =>
+							reason = Helper.UTF8NoBom.GetString(package.Data.Array, package.Data.Offset,
+								package.Data.Count));
+						Log.Error(
+							"Bad request received from '{connectionName}{clientConnectionName}' [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}]. CorrelationId: {correlationId:B}, Error: {e}.",
+							ConnectionName,
+							ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
+							RemoteEndPoint,
+							LocalEndPoint, ConnectionId, package.CorrelationId,
+							reason.IsEmptyString() ? "<reason missing>" : reason);
+						break;
+					}
+				case TcpCommand.Authenticate: {
+						if ((package.Flags & TcpFlags.Authenticated) == 0) {
+							ReplyNotAuthenticated(package.CorrelationId, "No user credentials provided.");
+						}
+						else {
+							var defaultUser = new UserCredentials(package.Tokens, null);
+							Interlocked.Exchange(ref _defaultUser, defaultUser);
+							_authProvider.Authenticate(new TcpDefaultAuthRequest(this, package.CorrelationId, defaultUser));
+						}
+
+						break;
+					}
+				default: {
+						var defaultUser = _defaultUser;
+						if ((package.Flags & TcpFlags.TrustedWrite) != 0) {
+							UnwrapAndPublishPackage(package, UserManagement.SystemAccounts.System, null);
+						}
+						else if ((package.Flags & TcpFlags.Authenticated) != 0) {
+							_authProvider.Authenticate(new TcpAuthRequest(this, package));
+						}
+						else if (defaultUser != null) {
+							if (defaultUser.User != null) {
+								UnwrapAndPublishPackage(package, defaultUser.User, defaultUser.Tokens);
+							}
+							else {
+								// The default credentials aren't authenticated
+								ReplyNotAuthenticated(package.CorrelationId, "Not Authenticated");
+							}
+						}
+						else {
+							UnwrapAndPublishPackage(package, Anonymous, null);
+						}
+
+						break;
+					}
 			}
 		}
 
@@ -340,15 +359,18 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			string error = "";
 			try {
 				message = _dispatcher.UnwrapPackage(package, _tcpEnvelope, user, tokens, this, _version);
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				error = ex.Message;
 			}
 
-			if (message != null)
+			if (message != null) {
 				_authorization.Authorize(message, _publisher);
-			else
+			}
+			else {
 				SendBadRequest(package.CorrelationId,
 					string.Format("Could not unwrap network package for command {0}.\n{1}", package.Command, error));
+			}
 		}
 
 		private void ReplyNotAuthenticated(Guid correlationId, string description) {
@@ -396,13 +418,15 @@ namespace EventStore.Core.Services.Transport.Tcp {
 
 		public void SendMessage(Message message) {
 			var package = _dispatcher.WrapMessage(message, _version);
-			if (package != null)
+			if (package != null) {
 				SendPackage(package.Value);
+			}
 		}
 
 		private void SendPackage(TcpPackage package, bool checkQueueSize = true) {
-			if (IsClosed)
+			if (IsClosed) {
 				return;
+			}
 
 			int queueSize;
 			int queueSendBytes;
@@ -414,7 +438,7 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				}
 
 				if (_connectionPendingSendBytesThreshold > ESConsts.UnrestrictedPendingSendBytes &&
-				    (queueSendBytes = _connection.PendingSendBytes) > _connectionPendingSendBytesThreshold) {
+					(queueSendBytes = _connection.PendingSendBytes) > _connectionPendingSendBytesThreshold) {
 					SendBadRequestAndClose(Guid.Empty,
 						string.Format("Connection pending send bytes is too large: {0}.", queueSendBytes));
 					return;
@@ -427,7 +451,9 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		public void Handle(TcpMessage.Heartbeat message) {
-			if (IsClosed) return;
+			if (IsClosed) {
+				return;
+			}
 
 			var receiveProgressIndicator = _receiveProgressIndicator;
 			var sendProgressIndicator = _sendProgressIndicator;
@@ -460,12 +486,15 @@ namespace EventStore.Core.Services.Transport.Tcp {
 
 		public void Handle(TcpMessage.HeartbeatTimeout message) {
 			_awaitingHeartbeatTimeoutCheck = false;
-			if (IsClosed) return;
+			if (IsClosed) {
+				return;
+			}
 
 			var receiveProgressIndicator = _receiveProgressIndicator;
 			var sendProgressIndicator = _sendProgressIndicator;
-			if (message.ReceiveProgressIndicator == receiveProgressIndicator)
+			if (message.ReceiveProgressIndicator == receiveProgressIndicator) {
 				Stop(string.Format($"HEARTBEAT TIMEOUT at receiveProgressIndicator={receiveProgressIndicator}, sendProgressIndicator={sendProgressIndicator}"));
+			}
 		}
 
 		private void ScheduleHeartbeat(long receiveProgressIndicator, long sendProgressIndicator) {
@@ -484,7 +513,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			public void ReplyWith<T>(T message) where T : Message {
 				if (_receiver.Target is IHandle<T> handle) {
 					handle.Handle(message);
-				} else if (_receiver is IAsyncHandle<T>) {
+				}
+				else if (_receiver is IAsyncHandle<T>) {
 					throw new Exception($"SendToWeakThisEnvelope does not support asynchronous receivers. Receiver: {_receiver}");
 				}
 			}

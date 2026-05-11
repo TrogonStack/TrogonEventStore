@@ -13,8 +13,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.AwakeService;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_subscribing_before_last_position_with_already_committed_events<TLogFormat, TStreamId>
-{
+public class when_subscribing_before_last_position_with_already_committed_events<TLogFormat, TStreamId> {
 	private Core.Services.AwakeReaderService.AwakeService _it;
 	private EventRecord _eventRecord;
 	private StorageMessage.EventCommitted _eventCommitted;
@@ -27,15 +26,13 @@ public class when_subscribing_before_last_position_with_already_committed_events
 	private TestMessage _reply3;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_exception = null;
 		Given();
 		When();
 	}
 
-	private void Given()
-	{
+	private void Given() {
 		_it = new Core.Services.AwakeReaderService.AwakeService();
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
@@ -59,10 +56,8 @@ public class when_subscribing_before_last_position_with_already_committed_events
 		_it.Handle(_eventCommitted);
 	}
 
-	private void When()
-	{
-		try
-		{
+	private void When() {
+		try {
 			_it.Handle(
 				new AwakeServiceMessage.SubscribeAwake(
 					_envelope, Guid.NewGuid(), "Stream", new TFPos(1000, 500), _reply1));
@@ -73,33 +68,28 @@ public class when_subscribing_before_last_position_with_already_committed_events
 				new AwakeServiceMessage.SubscribeAwake(
 					_envelope, Guid.NewGuid(), null, new TFPos(1000, 500), _reply3));
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void it_is_handled()
-	{
+	public void it_is_handled() {
 		Assert.IsNull(_exception, (_exception ?? (object)"").ToString());
 	}
 
 	[Test]
-	public void immediately_awakes_stream_subscriber()
-	{
+	public void immediately_awakes_stream_subscriber() {
 		Assert.That(_handler.HandledMessages.Any(m => m.Kind == 1));
 	}
 
 	[Test]
-	public void immediately_awakes_all_subscriber()
-	{
+	public void immediately_awakes_all_subscriber() {
 		Assert.That(_handler.HandledMessages.Any(m => m.Kind == 4));
 	}
 
 	[Test]
-	public void immediately_awakes_another_stream_subscriber()
-	{
+	public void immediately_awakes_another_stream_subscriber() {
 		Assert.That(_handler.HandledMessages.Any(m => m.Kind == 3));
 	}
 }

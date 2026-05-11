@@ -6,12 +6,10 @@ using EventStore.Projections.Core.Services.Management;
 
 namespace EventStore.Projections.Core.Metrics;
 
-public class ProjectionTracker : IProjectionTracker
-{
+public class ProjectionTracker : IProjectionTracker {
 	private ProjectionStatistics[] _currentStats = [];
 
-	public void OnNewStats(ProjectionStatistics[] newStats)
-	{
+	public void OnNewStats(ProjectionStatistics[] newStats) {
 		_currentStats = newStats ?? [];
 	}
 
@@ -32,8 +30,7 @@ public class ProjectionTracker : IProjectionTracker
 				]));
 
 	public IEnumerable<Measurement<long>> ObserveRunning() =>
-		_currentStats.Select(x =>
-		{
+		_currentStats.Select(x => {
 			var projectionRunning = x.LeaderStatus == ManagedProjectionState.Running
 				? 1
 				: 0;
@@ -44,24 +41,19 @@ public class ProjectionTracker : IProjectionTracker
 				]);
 		});
 
-	public IEnumerable<Measurement<long>> ObserveStatus()
-	{
-		foreach (var statistics in _currentStats)
-		{
+	public IEnumerable<Measurement<long>> ObserveStatus() {
+		foreach (var statistics in _currentStats) {
 			var projectionRunning = 0;
 			var projectionFaulted = 0;
 			var projectionStopped = 0;
 
-			if (statistics.LeaderStatus == ManagedProjectionState.Running)
-			{
+			if (statistics.LeaderStatus == ManagedProjectionState.Running) {
 				projectionRunning = 1;
 			}
-			else if (statistics.LeaderStatus == ManagedProjectionState.Stopped)
-			{
+			else if (statistics.LeaderStatus == ManagedProjectionState.Stopped) {
 				projectionStopped = 1;
 			}
-			else if (statistics.LeaderStatus == ManagedProjectionState.Faulted)
-			{
+			else if (statistics.LeaderStatus == ManagedProjectionState.Faulted) {
 				projectionFaulted = 1;
 			}
 

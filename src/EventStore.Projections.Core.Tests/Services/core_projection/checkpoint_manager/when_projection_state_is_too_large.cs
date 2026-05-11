@@ -11,25 +11,21 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
-{
+	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId> {
 	private Exception _exception;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesSucceed();
 		base.Given();
 		_checkpointHandledThreshold = 2;
 		_maxProjectionStateSize = 1024;
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		base.When();
 		_exception = null;
 
-		try
-		{
+		try {
 			_checkpointReader.BeginLoadState();
 			var checkpointLoaded =
 				_consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.CheckpointLoaded>().First();
@@ -55,21 +51,18 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 			_manager.StateUpdated("", oldState, newState);
 			_manager.EventProcessed(secondEventCheckpointTag, 77.7f);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void messages_are_handled()
-	{
+	public void messages_are_handled() {
 		Assert.IsNull(_exception);
 	}
 
 	[Test]
-	public void publishes_projection_failed_message()
-	{
+	public void publishes_projection_failed_message() {
 		var failedMessages = _consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.Failed>().ToArray();
 
 		Assert.AreEqual(1, failedMessages.Length);
@@ -77,8 +70,7 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public void the_second_event_is_not_processed()
-	{
+	public void the_second_event_is_not_processed() {
 		var stats = new ProjectionStatistics();
 		_manager.GetStatistics(stats);
 

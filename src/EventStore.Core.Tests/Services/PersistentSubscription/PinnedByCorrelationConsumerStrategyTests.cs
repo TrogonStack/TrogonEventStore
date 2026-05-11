@@ -10,43 +10,36 @@ using NUnit.Framework;
 using Replication;
 
 [TestFixture]
-public class PinnedByCorrelationConsumerStrategyTests
-{
+public class PinnedByCorrelationConsumerStrategyTests {
 	[Test]
-	public void live_subscription_with_pinned_by_correlation_pushes_events_without_metadata_to_same_client_for_stream_id()
-	{
+	public void live_subscription_with_pinned_by_correlation_pushes_events_without_metadata_to_same_client_for_stream_id() {
 		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(new byte[0]);
 
 	}
 
 	[Test]
-	public void live_subscription_with_pinned_by_correlation_pushes_events_with_empty_metadata_to_same_client_for_stream_id()
-	{
+	public void live_subscription_with_pinned_by_correlation_pushes_events_with_empty_metadata_to_same_client_for_stream_id() {
 		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(Encoding.UTF8.GetBytes("{}"));
 	}
 
 	[Test]
-	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_without_closing_brace_to_same_client_for_stream_id()
-	{
+	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_without_closing_brace_to_same_client_for_stream_id() {
 		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(Encoding.UTF8.GetBytes("{"));
 	}
 
 	[Test]
-	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_without_correlation_to_same_client_for_stream_id()
-	{
+	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_without_correlation_to_same_client_for_stream_id() {
 		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(Encoding.UTF8.GetBytes(@"{ ""x"": ""x"" }"));
 	}
 
 
 	[Test]
-	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_with_invalid_correlation_to_same_client_for_stream_id()
-	{
+	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_with_invalid_correlation_to_same_client_for_stream_id() {
 		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(Encoding.UTF8.GetBytes(@"{ ""$correlationId"": 0 }"));
 	}
 
 	private static void
-		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(byte[] metaData)
-	{
+		live_subscription_with_pinned_by_correlation_pushes_events_to_same_client_for_stream_id_for_metadata(byte[] metaData) {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -94,8 +87,7 @@ public class PinnedByCorrelationConsumerStrategyTests
 	}
 
 	[Test]
-	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_with_valid_correlation_to_same_client_for_correlation_id()
-	{
+	public void live_subscription_with_pinned_by_correlation_pushes_events_with_metadata_with_valid_correlation_to_same_client_for_correlation_id() {
 
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();

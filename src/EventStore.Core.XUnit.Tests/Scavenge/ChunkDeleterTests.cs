@@ -15,14 +15,12 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ChunkDeleterTests
-{
+public class ChunkDeleterTests {
 	readonly IScavengeStateBackend<string> _backend;
 	readonly ScavengeStateForChunkWorker<string> _scavengeState;
 	readonly FakeChunkManager _chunkManager = new();
 
-	public ChunkDeleterTests()
-	{
+	public ChunkDeleterTests() {
 		_backend = new TestScavengeBackend();
 		_scavengeState = new ScavengeStateForChunkWorker<string>(
 			hasher: new HumanReadableHasher(),
@@ -36,8 +34,7 @@ public class ChunkDeleterTests
 		long retainBytes,
 		Func<long> readArchiveCheckpoint,
 		int maxAttempts = 1,
-		ILogger logger = null)
-	{
+		ILogger logger = null) {
 		_chunkManager.Reset();
 		var sut = new ChunkDeleter<string, ILogRecord>(
 			logger: logger ?? Serilog.Log.Logger,
@@ -51,8 +48,7 @@ public class ChunkDeleterTests
 		return sut;
 	}
 
-	static ScavengePoint GenScavengePoint(long position, DateTime effectiveNow)
-	{
+	static ScavengePoint GenScavengePoint(long position, DateTime effectiveNow) {
 		var scavengePoint = new ScavengePoint(
 			position: position,
 			eventNumber: 0,
@@ -61,8 +57,7 @@ public class ChunkDeleterTests
 		return scavengePoint;
 	}
 
-	public enum ExpectedOutcome
-	{
+	public enum ExpectedOutcome {
 		Deleted,
 		Retained,
 	}
@@ -81,8 +76,7 @@ public class ChunkDeleterTests
 		int retainDays,
 		bool isInArchive,
 		ExpectedOutcome expectedOutcome,
-		string name)
-	{
+		string name) {
 
 		_ = name;
 		var minDateInChunk = new DateTime(2024, 1, 1);
@@ -99,8 +93,7 @@ public class ChunkDeleterTests
 				? chunk.ChunkEndPosition
 				: chunk.ChunkEndPosition - 1);
 
-		var when = async () =>
-		{
+		var when = async () => {
 			var deleted = await sut.DeleteIfNotRetained(
 				scavengePoint: GenScavengePoint(
 					// scavenging > 1000 bytes after the end of the chunk
@@ -114,23 +107,21 @@ public class ChunkDeleterTests
 		};
 
 		var deleted = await when();
-		if (expectedOutcome == ExpectedOutcome.Deleted)
-		{
+		if (expectedOutcome == ExpectedOutcome.Deleted) {
 			Assert.True(deleted);
 			Assert.Equal(new[] { "archived-chunk-1", "archived-chunk-2" }, _chunkManager.InterceptedLocators);
 		}
-		else if (expectedOutcome == ExpectedOutcome.Retained)
-		{
+		else if (expectedOutcome == ExpectedOutcome.Retained) {
 			Assert.False(deleted);
 			Assert.Empty(_chunkManager.InterceptedLocators);
 		}
-		else
+		else {
 			throw new InvalidOperationException();
+		}
 	}
 
 	[Fact]
-	public async Task logs_when_retained_by_logical_bytes()
-	{
+	public async Task logs_when_retained_by_logical_bytes() {
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
@@ -160,8 +151,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task logs_when_retained_by_period()
-	{
+	public async Task logs_when_retained_by_period() {
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
@@ -191,8 +181,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task retries_if_not_yet_present_in_archive()
-	{
+	public async Task retries_if_not_yet_present_in_archive() {
 		var minDateInChunk = new DateTime(2024, 1, 1);
 		var maxDateInChunk = new DateTime(2024, 12, 1);
 		_backend.ChunkTimeStampRanges[1] = new(minDateInChunk, maxDateInChunk);
@@ -205,8 +194,7 @@ public class ChunkDeleterTests
 		var sut = GenSut(
 			retainDays: 10,
 			retainBytes: 1000,
-			readArchiveCheckpoint: () =>
-			{
+			readArchiveCheckpoint: () => {
 				attempts++;
 				// not present in archive
 				return chunk.ChunkEndPosition - 1;
@@ -227,8 +215,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task when_unexpected_error_accessing_archive()
-	{
+	public async Task when_unexpected_error_accessing_archive() {
 		var minDateInChunk = new DateTime(2024, 1, 1);
 		var maxDateInChunk = new DateTime(2024, 12, 1);
 		_backend.ChunkTimeStampRanges[1] = new(minDateInChunk, maxDateInChunk);
@@ -255,8 +242,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task when_archive_presence_check_is_cancelled()
-	{
+	public async Task when_archive_presence_check_is_cancelled() {
 		var minDateInChunk = new DateTime(2024, 1, 1);
 		var maxDateInChunk = new DateTime(2024, 12, 1);
 		_backend.ChunkTimeStampRanges[1] = new(minDateInChunk, maxDateInChunk);
@@ -284,8 +270,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task when_chunk_is_remote()
-	{
+	public async Task when_chunk_is_remote() {
 		var chunk = new FakeChunk(chunkStartNumber: 1, chunkEndNumber: 1, isRemote: true);
 		var sut = GenSut(
 			retainDays: 0,
@@ -303,8 +288,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task when_switch_in_is_rejected()
-	{
+	public async Task when_switch_in_is_rejected() {
 		var minDateInChunk = new DateTime(2024, 1, 1);
 		var maxDateInChunk = new DateTime(2024, 12, 1);
 		_backend.ChunkTimeStampRanges[1] = new(minDateInChunk, maxDateInChunk);
@@ -329,8 +313,7 @@ public class ChunkDeleterTests
 	}
 
 	[Fact]
-	public async Task when_chunk_has_no_prepares()
-	{
+	public async Task when_chunk_has_no_prepares() {
 		// chunk 1 contains records with positions 1000-2000
 		var chunk = new FakeChunk(chunkStartNumber: 1, chunkEndNumber: 1, chunkSize: 1_000);
 
@@ -354,19 +337,16 @@ public class ChunkDeleterTests
 		Assert.True(deleted);
 	}
 
-	sealed class FakeChunkManager : IChunkManagerForChunkDeleter
-	{
+	sealed class FakeChunkManager : IChunkManagerForChunkDeleter {
 		public IReadOnlyList<string> InterceptedLocators { get; private set; } = [];
 		public bool ShouldSucceed { get; set; } = true;
 
-		public void Reset()
-		{
+		public void Reset() {
 			InterceptedLocators = [];
 			ShouldSucceed = true;
 		}
 
-		public ValueTask<bool> SwitchInChunks(IReadOnlyList<string> locators, CancellationToken token)
-		{
+		public ValueTask<bool> SwitchInChunks(IReadOnlyList<string> locators, CancellationToken token) {
 			token.ThrowIfCancellationRequested();
 			InterceptedLocators = locators.ToArray();
 			return ValueTask.FromResult(ShouldSucceed);
@@ -379,8 +359,7 @@ public class ChunkDeleterTests
 		int chunkSize = 1_000,
 		bool isRemote = false)
 
-		: IChunkReaderForExecutor<string, ILogRecord>
-	{
+		: IChunkReaderForExecutor<string, ILogRecord> {
 		public string Name => $"Chunk {chunkStartNumber}-{chunkEndNumber}";
 
 		public int FileSize => throw new NotImplementedException();
@@ -400,14 +379,12 @@ public class ChunkDeleterTests
 		public IAsyncEnumerable<bool> ReadInto(
 			RecordForExecutor<string, ILogRecord>.NonPrepare nonPrepare,
 			RecordForExecutor<string, ILogRecord>.Prepare prepare,
-			CancellationToken token)
-		{
+			CancellationToken token) {
 			throw new NotImplementedException();
 		}
 	}
 
-	private sealed class CollectingSink : ILogEventSink
-	{
+	private sealed class CollectingSink : ILogEventSink {
 		public List<LogEvent> Events { get; } = [];
 
 		public void Emit(LogEvent logEvent) =>

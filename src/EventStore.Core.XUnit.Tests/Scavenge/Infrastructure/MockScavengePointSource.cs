@@ -13,8 +13,7 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 // Also even if we plumbed in the necessary components to the test to get that to work, it would
 // still have to write the scavengepoint to the chunks and also to the index in order to behave in
 // reasonable way.
-public class MockScavengePointSource : IScavengePointSource
-{
+public class MockScavengePointSource : IScavengePointSource {
 	private readonly ILogRecord[][] _log;
 	private readonly DateTime _effectiveNow;
 	private readonly List<ScavengePoint> _added;
@@ -22,8 +21,7 @@ public class MockScavengePointSource : IScavengePointSource
 	public MockScavengePointSource(
 		DbResult dbResult,
 		DateTime effectiveNow,
-		List<ScavengePoint> added)
-	{
+		List<ScavengePoint> added) {
 
 		_log = dbResult.Recs;
 		_effectiveNow = effectiveNow;
@@ -31,16 +29,13 @@ public class MockScavengePointSource : IScavengePointSource
 	}
 
 	public Task<ScavengePoint> GetLatestScavengePointOrDefaultAsync(
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		ScavengePoint scavengePoint = default;
 
-		foreach (var record in AllRecords())
-		{
+		foreach (var record in AllRecords()) {
 			if (record is PrepareLogRecord prepare &&
-				prepare.EventType == SystemEventTypes.ScavengePoint)
-			{
+				prepare.EventType == SystemEventTypes.ScavengePoint) {
 
 				var payload = ScavengePointPayload.FromBytes(prepare.Data);
 
@@ -58,16 +53,14 @@ public class MockScavengePointSource : IScavengePointSource
 	public async Task<ScavengePoint> AddScavengePointAsync(
 		long expectedVersion,
 		int threshold,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		var latestScavengePoint = await GetLatestScavengePointOrDefaultAsync(cancellationToken);
 		var actualVersion = latestScavengePoint != null
 			? latestScavengePoint.EventNumber
 			: -1;
 
-		if (actualVersion != expectedVersion)
-		{
+		if (actualVersion != expectedVersion) {
 			throw new InvalidOperationException(
 				$"wrong version number {expectedVersion} vs {actualVersion}");
 		}
@@ -85,12 +78,9 @@ public class MockScavengePointSource : IScavengePointSource
 		throw new OperationCanceledException();
 	}
 
-	private IEnumerable<ILogRecord> AllRecords()
-	{
-		for (var chunkIndex = 0; chunkIndex < _log.Length; chunkIndex++)
-		{
-			for (var recordIndex = 0; recordIndex < _log[chunkIndex].Length; recordIndex++)
-			{
+	private IEnumerable<ILogRecord> AllRecords() {
+		for (var chunkIndex = 0; chunkIndex < _log.Length; chunkIndex++) {
+			for (var recordIndex = 0; recordIndex < _log[chunkIndex].Length; recordIndex++) {
 				yield return _log[chunkIndex][recordIndex];
 			}
 		}

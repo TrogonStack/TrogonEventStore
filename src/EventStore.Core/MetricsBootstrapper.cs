@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Core.Bus;
-using EventStore.Core.TransactionLog.Chunks;
-using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.Index;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services.VNode;
 using EventStore.Core.TransactionLog;
+using EventStore.Core.TransactionLog.Checkpoint;
+using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Scavenging;
 using Conf = EventStore.Common.Configuration.MetricsConfiguration;
 
@@ -21,7 +21,7 @@ public class Trackers {
 	public IScavengeStatusTracker ScavengeStatusTracker { get; set; } = new ScavengeStatusTracker.NoOp();
 	public GrpcTrackers GrpcTrackers { get; } = new();
 	public QueueTrackers QueueTrackers { get; set; } = new();
-	public GossipTrackers GossipTrackers { get; set; } = new ();
+	public GossipTrackers GossipTrackers { get; set; } = new();
 	public ITransactionFileTracker TransactionFileTracker { get; set; } = new TFChunkTracker.NoOp();
 	public IIndexTracker IndexTracker { get; set; } = new IndexTracker.NoOp();
 	public IMaxTracker<long> WriterFlushSizeTracker { get; set; } = new MaxTracker<long>.NoOp();
@@ -39,8 +39,9 @@ public class GrpcTrackers {
 	public GrpcTrackers() {
 		_trackers = new IDurationTracker[Enum.GetValues<Conf.GrpcMethod>().Cast<int>().Max() + 1];
 		var noOp = new DurationTracker.NoOp();
-		for (var i = 0; i < _trackers.Length; i++)
+		for (var i = 0; i < _trackers.Length; i++) {
 			_trackers[i] = noOp;
+		}
 	}
 
 	public IDurationTracker this[Conf.GrpcMethod index] {
@@ -70,8 +71,9 @@ public static class MetricsBootstrapper {
 		MessageLabelConfigurator.ConfigureMessageLabels(
 			conf.MessageTypes, InMemoryBus.KnownMessageTypes);
 
-		if (conf.ExpectedScrapeIntervalSeconds <= 0)
+		if (conf.ExpectedScrapeIntervalSeconds <= 0) {
 			return;
+		}
 
 		var coreMeter = new Meter("EventStore.Core", version: "1.0.0");
 		var statusMetric = new StatusMetric(coreMeter, "eventstore-statuses");
@@ -135,25 +137,30 @@ public static class MetricsBootstrapper {
 		if (conf.Events.TryGetValue(Conf.EventTracker.Written, out var writtenEnabled) && writtenEnabled) {
 			trackers.IndexTracker = new IndexTracker(new CounterSubMetric(
 				eventMetric,
-				new[] {new KeyValuePair<string, object>("activity", "written")}));
+				new[] { new KeyValuePair<string, object>("activity", "written") }));
 		}
 
 		// gossip
 		if (conf.Gossip.Count != 0) {
-			if (conf.Gossip.TryGetValue(Conf.GossipTracker.PullFromPeer, out var pullFromPeer) && pullFromPeer)
+			if (conf.Gossip.TryGetValue(Conf.GossipTracker.PullFromPeer, out var pullFromPeer) && pullFromPeer) {
 				trackers.GossipTrackers.PullFromPeer = new DurationTracker(gossipLatencyMetric, "pull-from-peer");
+			}
 
-			if (conf.Gossip.TryGetValue(Conf.GossipTracker.PushToPeer, out var pushToPeer) && pushToPeer)
+			if (conf.Gossip.TryGetValue(Conf.GossipTracker.PushToPeer, out var pushToPeer) && pushToPeer) {
 				trackers.GossipTrackers.PushToPeer = new DurationTracker(gossipLatencyMetric, "push-to-peer");
+			}
 
-			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingPushFromPeer, out var processingPushFromPeer) && processingPushFromPeer)
+			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingPushFromPeer, out var processingPushFromPeer) && processingPushFromPeer) {
 				trackers.GossipTrackers.ProcessingPushFromPeer = new DurationTracker(gossipProcessingMetric, "push-from-peer");
+			}
 
-			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingRequestFromPeer, out var processingRequestFromPeer) && processingRequestFromPeer)
+			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingRequestFromPeer, out var processingRequestFromPeer) && processingRequestFromPeer) {
 				trackers.GossipTrackers.ProcessingRequestFromPeer = new DurationTracker(gossipProcessingMetric, "request-from-peer");
+			}
 
-			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingRequestFromGrpcClient, out var processingRequestFromGrpcClient) && processingRequestFromGrpcClient)
+			if (conf.Gossip.TryGetValue(Conf.GossipTracker.ProcessingRequestFromGrpcClient, out var processingRequestFromGrpcClient) && processingRequestFromGrpcClient) {
 				trackers.GossipTrackers.ProcessingRequestFromGrpcClient = new DurationTracker(gossipProcessingMetric, "request-from-grpc-client");
+			}
 		}
 
 		// persistent subscriptions
@@ -199,17 +206,20 @@ public static class MetricsBootstrapper {
 				trackers.InaugurationStatusTracker = tracker;
 			}
 
-			if (conf.Statuses.TryGetValue(Conf.StatusTracker.Index, out var indexStatus) && indexStatus)
+			if (conf.Statuses.TryGetValue(Conf.StatusTracker.Index, out var indexStatus) && indexStatus) {
 				trackers.IndexStatusTracker = new IndexStatusTracker(statusMetric);
+			}
 
-			if (conf.Statuses.TryGetValue(Conf.StatusTracker.Scavenge, out var scavengeStatus) && scavengeStatus)
+			if (conf.Statuses.TryGetValue(Conf.StatusTracker.Scavenge, out var scavengeStatus) && scavengeStatus) {
 				trackers.ScavengeStatusTracker = new ScavengeStatusTracker(statusMetric);
+			}
 		}
 
 		// grpc historgrams
 		foreach (var method in Enum.GetValues<Conf.GrpcMethod>()) {
-			if (conf.GrpcMethods.TryGetValue(method, out var label) && !string.IsNullOrWhiteSpace(label))
+			if (conf.GrpcMethods.TryGetValue(method, out var label) && !string.IsNullOrWhiteSpace(label)) {
 				trackers.GrpcTrackers[method] = new DurationTracker(grpcMethodMetric, label);
+			}
 		}
 
 		// storage writer
@@ -236,17 +246,20 @@ public static class MetricsBootstrapper {
 		Func<string, IDurationMaxTracker> lengthFactory = name => new DurationMaxTracker.NoOp();
 		Func<string, IQueueProcessingTracker> processingFactory = name => new QueueProcessingTracker.NoOp();
 
-		if (conf.Queues.TryGetValue(Conf.QueueTracker.Busy, out var busyEnabled) && busyEnabled)
+		if (conf.Queues.TryGetValue(Conf.QueueTracker.Busy, out var busyEnabled) && busyEnabled) {
 			busyTrackerFactory = name => new QueueBusyTracker(queueBusyMetric, name);
+		}
 
-		if (conf.Queues.TryGetValue(Conf.QueueTracker.Length, out var lengthEnabled) && lengthEnabled)
+		if (conf.Queues.TryGetValue(Conf.QueueTracker.Length, out var lengthEnabled) && lengthEnabled) {
 			lengthFactory = name => new DurationMaxTracker(
 				name: name,
 				metric: queueQueueingDurationMaxMetric,
 				expectedScrapeIntervalSeconds: conf.ExpectedScrapeIntervalSeconds);
+		}
 
-		if (conf.Queues.TryGetValue(Conf.QueueTracker.Processing, out var processingEnabled) && processingEnabled)
+		if (conf.Queues.TryGetValue(Conf.QueueTracker.Processing, out var processingEnabled) && processingEnabled) {
 			processingFactory = name => new QueueProcessingTracker(queueProcessingDurationMetric, name);
+		}
 
 		trackers.QueueTrackers = new QueueTrackers(conf.QueueLabels, busyTrackerFactory, lengthFactory, processingFactory);
 

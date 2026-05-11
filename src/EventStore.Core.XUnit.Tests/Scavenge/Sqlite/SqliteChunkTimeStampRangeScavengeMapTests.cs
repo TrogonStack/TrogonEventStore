@@ -5,12 +5,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteChunkTimeStampRangeScavengeMapTests>
-{
+public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteChunkTimeStampRangeScavengeMapTests> {
 
 	[Fact]
-	public void can_set_chunk_time_stamp_range()
-	{
+	public void can_set_chunk_time_stamp_range() {
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -23,8 +21,7 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 	}
 
 	[Fact]
-	public void can_overwrite_existing()
-	{
+	public void can_overwrite_existing() {
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -39,8 +36,7 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 	}
 
 	[Fact]
-	public void can_get_all_records()
-	{
+	public void can_get_all_records() {
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -53,36 +49,30 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 		sut[4] = osd[4];
 
 		Assert.Collection(sut.AllRecords(),
-			item =>
-			{
+			item => {
 				Assert.Equal(0, item.Key);
 				Assert.Equal(osd[0], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(1, item.Key);
 				Assert.Equal(osd[1], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(2, item.Key);
 				Assert.Equal(osd[2], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(3, item.Key);
 				Assert.Equal(osd[3], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(4, item.Key);
 				Assert.Equal(osd[4], item.Value);
 			});
 	}
 
 	[Fact]
-	public void can_remove_value_from_map()
-	{
+	public void can_remove_value_from_map() {
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -101,16 +91,14 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 	}
 
 	[Fact]
-	public void can_try_remove_value_from_map()
-	{
+	public void can_try_remove_value_from_map() {
 		var sut = new SqliteChunkTimeStampRangeScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
 		Assert.False(sut.TryRemove(33, out _));
 	}
 
-	private ChunkTimeStampRange[] GetChunkTimeStampRangeTestData()
-	{
+	private ChunkTimeStampRange[] GetChunkTimeStampRangeTestData() {
 		return
 		[
 			new ChunkTimeStampRange(Min: DateTime.MinValue, DateTime.UtcNow.AddDays(2)),

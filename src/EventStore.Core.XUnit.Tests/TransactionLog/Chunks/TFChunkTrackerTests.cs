@@ -12,8 +12,7 @@ using static EventStore.Core.TransactionLog.ITransactionFileTracker;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
 
-public class TFChunkTrackerTests : IDisposable
-{
+public class TFChunkTrackerTests : IDisposable {
 	const long WriterCheckpoint = 4_500;
 	const int ChunkSize = 1_000;
 
@@ -22,8 +21,7 @@ public class TFChunkTrackerTests : IDisposable
 	private readonly TestMeterListener<double> _doubleListener;
 	private readonly FakeClock _clock = new();
 
-	public TFChunkTrackerTests()
-	{
+	public TFChunkTrackerTests() {
 		var meter = new Meter($"{typeof(TFChunkTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		_doubleListener = new TestMeterListener<double>(meter);
@@ -39,15 +37,13 @@ public class TFChunkTrackerTests : IDisposable
 			readEvents: new CounterSubMetric(eventMetric, [readTag]));
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		_listener.Dispose();
 		_doubleListener.Dispose();
 	}
 
 	[Fact]
-	public void can_observe_prepare_log()
-	{
+	public void can_observe_prepare_log() {
 		var prepare = CreatePrepare(
 			data: new byte[5],
 			meta: new byte[5]);
@@ -60,8 +56,7 @@ public class TFChunkTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void disregard_system_log()
-	{
+	public void disregard_system_log() {
 		var system = CreateSystemRecord();
 		_sut.OnRead(_clock.Now, system, Source.Unknown);
 		_listener.Observe();
@@ -71,8 +66,7 @@ public class TFChunkTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void disregard_commit_log()
-	{
+	public void disregard_commit_log() {
 		var system = CreateCommit();
 		_sut.OnRead(_clock.Now, system, Source.Unknown);
 		_listener.Observe();
@@ -84,8 +78,7 @@ public class TFChunkTrackerTests : IDisposable
 	[Theory]
 	[InlineData(Source.ChunkCache)]
 	[InlineData(Source.FileSystem)]
-	public void records_record_read_duration(Source source)
-	{
+	public void records_record_read_duration(Source source) {
 		var prepare = CreatePrepare(
 			data: new byte[5],
 			meta: new byte[5]);
@@ -99,13 +92,11 @@ public class TFChunkTrackerTests : IDisposable
 		var actual = _doubleListener.RetrieveMeasurements("eventstore-io-record-read-duration-seconds");
 		Assert.Collection(
 			actual,
-			m =>
-			{
+			m => {
 				Assert.Equal(3, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t =>
-					{
+					t => {
 						Assert.Equal("source", t.Key);
 						Assert.Equal(source, t.Value);
 					});
@@ -124,8 +115,7 @@ public class TFChunkTrackerTests : IDisposable
 	[InlineData(999, 4)]
 	[InlineData(1, 4)]
 	[InlineData(0, 4)]
-	public void records_read_distribution(long logPosition, long expectedChunk)
-	{
+	public void records_read_distribution(long logPosition, long expectedChunk) {
 		_sut.OnRead(
 			_clock.Now,
 			CreatePrepare(data: new byte[5], meta: new byte[5], logPosition: logPosition),
@@ -135,8 +125,7 @@ public class TFChunkTrackerTests : IDisposable
 		var actual = _listener.RetrieveMeasurements("chunk-read-distribution");
 		Assert.Collection(
 			actual,
-			m =>
-			{
+			m => {
 				Assert.Equal(expectedChunk, m.Value);
 				Assert.Empty(m.Tags);
 			});
@@ -148,23 +137,18 @@ public class TFChunkTrackerTests : IDisposable
 	private void AssertBytesRead(long? expectedBytesRead) =>
 		AssertMeasurements("eventstore-io-bytes", expectedBytesRead);
 
-	private void AssertMeasurements(string instrumentName, long? expectedValue)
-	{
+	private void AssertMeasurements(string instrumentName, long? expectedValue) {
 		var actual = _listener.RetrieveMeasurements(instrumentName);
 
-		if (expectedValue is null)
-		{
+		if (expectedValue is null) {
 			Assert.Empty(actual);
 		}
-		else
-		{
+		else {
 			Assert.Collection(
 				actual,
-				m =>
-				{
+				m => {
 					Assert.Equal(expectedValue, m.Value);
-					Assert.Collection(m.Tags.ToArray(), t =>
-					{
+					Assert.Collection(m.Tags.ToArray(), t => {
 						Assert.Equal("activity", t.Key);
 						Assert.Equal("read", t.Value);
 					});
@@ -172,19 +156,16 @@ public class TFChunkTrackerTests : IDisposable
 		}
 	}
 
-	private static PrepareLogRecord CreatePrepare(byte[] data, byte[] meta, long logPosition = 42)
-	{
+	private static PrepareLogRecord CreatePrepare(byte[] data, byte[] meta, long logPosition = 42) {
 		return new PrepareLogRecord(logPosition, Guid.NewGuid(), Guid.NewGuid(), 42, 42, "tests", null, 42, DateTime.UtcNow,
 			PrepareFlags.Data, "type-test", null, data, meta);
 	}
 
-	private static SystemLogRecord CreateSystemRecord()
-	{
+	private static SystemLogRecord CreateSystemRecord() {
 		return new SystemLogRecord(42, DateTime.UtcNow, SystemRecordType.Epoch, SystemRecordSerialization.Binary, Array.Empty<byte>());
 	}
 
-	private static CommitLogRecord CreateCommit()
-	{
+	private static CommitLogRecord CreateCommit() {
 		return new CommitLogRecord(42, Guid.NewGuid(), 42, DateTime.UtcNow, 42);
 	}
 }

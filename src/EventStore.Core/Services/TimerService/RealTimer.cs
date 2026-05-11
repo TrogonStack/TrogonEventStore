@@ -11,8 +11,9 @@ namespace EventStore.Core.Services.TimerService {
 		}
 
 		private void InvokeCallback(object state) {
-			if (_callback != null)
+			if (_callback != null) {
 				_callback();
+			}
 		}
 
 		public void FireIn(int milliseconds, Action callback) {

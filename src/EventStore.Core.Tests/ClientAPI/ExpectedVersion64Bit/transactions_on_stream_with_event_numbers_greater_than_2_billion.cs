@@ -10,15 +10,13 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [Category("ClientAPI"), Category("LongRunning")]
 public class TransactionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
-	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
-{
+	: MiniNodeWithExistingRecords<TLogFormat, TStreamId> {
 	private const string StreamName = "transactions_on_stream_with_event_numbers_greater_than_2_billion";
 	private const long intMaxValue = (long)int.MaxValue;
 
 	private EventRecord _r1, _r2, _r3, _r4, _r5;
 
-	public override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	public override async ValueTask WriteTestScenario(CancellationToken token) {
 		_r1 = await WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000), token: token);
 		_r2 = await WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000), token: token);
 		_r3 = await WriteSingleEvent(StreamName, intMaxValue + 3, new string('.', 3000), token: token);
@@ -26,8 +24,7 @@ public class TransactionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat,
 		_r5 = await WriteSingleEvent(StreamName, intMaxValue + 5, new string('.', 3000), token: token);
 	}
 
-	public override async Task Given()
-	{
+	public override async Task Given() {
 		_store = BuildConnection(Node);
 		await _store.ConnectAsync();
 		await _store.SetStreamMetadataAsync(StreamName, EventStore.ClientAPI.ExpectedVersion.Any,
@@ -35,8 +32,7 @@ public class TransactionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat,
 	}
 
 	[Test]
-	public async Task should_be_able_to_append_to_stream_in_a_transaction()
-	{
+	public async Task should_be_able_to_append_to_stream_in_a_transaction() {
 		var evnt1 = new EventData(Guid.NewGuid(), "EventType", false, new byte[10], new byte[15]);
 		var evnt2 = new EventData(Guid.NewGuid(), "EventType", false, new byte[10], new byte[15]);
 

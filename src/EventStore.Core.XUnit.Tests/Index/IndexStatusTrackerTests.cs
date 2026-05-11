@@ -8,15 +8,13 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Index;
 
-public class IndexStatusTrackerTests : IDisposable
-{
+public class IndexStatusTrackerTests : IDisposable {
 	private readonly TestMeterListener<long> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly StatusMetric _metric;
 	private readonly IndexStatusTracker _sut;
 
-	public IndexStatusTrackerTests()
-	{
+	public IndexStatusTrackerTests() {
 		var meter = new Meter($"{typeof(IndexStatusTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		_metric = new StatusMetric(
@@ -26,19 +24,16 @@ public class IndexStatusTrackerTests : IDisposable
 		_sut = new IndexStatusTracker(_metric);
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		_listener.Dispose();
 	}
 
 	[Fact]
-	public void can_observe_opening()
-	{
+	public void can_observe_opening() {
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Idle", 500);
 
-		using (_sut.StartOpening())
-		{
+		using (_sut.StartOpening()) {
 			_clock.SecondsSinceEpoch = 501;
 			AssertMeasurements("Opening", 501);
 		}
@@ -48,13 +43,11 @@ public class IndexStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_rebuilding()
-	{
+	public void can_observe_rebuilding() {
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Idle", 500);
 
-		using (_sut.StartRebuilding())
-		{
+		using (_sut.StartRebuilding()) {
 			_clock.SecondsSinceEpoch = 501;
 			AssertMeasurements("Rebuilding", 501);
 		}
@@ -64,13 +57,11 @@ public class IndexStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_initializing()
-	{
+	public void can_observe_initializing() {
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Idle", 500);
 
-		using (_sut.StartInitializing())
-		{
+		using (_sut.StartInitializing()) {
 			_clock.SecondsSinceEpoch = 501;
 			AssertMeasurements("Initializing", 501);
 		}
@@ -80,13 +71,11 @@ public class IndexStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_merging()
-	{
+	public void can_observe_merging() {
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Idle", 500);
 
-		using (_sut.StartMerging())
-		{
+		using (_sut.StartMerging()) {
 			_clock.SecondsSinceEpoch = 501;
 			AssertMeasurements("Merging", 501);
 		}
@@ -96,13 +85,11 @@ public class IndexStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_scavenging()
-	{
+	public void can_observe_scavenging() {
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Idle", 500);
 
-		using (_sut.StartScavenging())
-		{
+		using (_sut.StartScavenging()) {
 			_clock.SecondsSinceEpoch = 501;
 			AssertMeasurements("Scavenging", 501);
 		}
@@ -111,24 +98,20 @@ public class IndexStatusTrackerTests : IDisposable
 		AssertMeasurements("Idle", 502);
 	}
 
-	void AssertMeasurements(string expectedStatus, int expectedValue)
-	{
+	void AssertMeasurements(string expectedStatus, int expectedValue) {
 		_listener.Observe();
 
 		Assert.Collection(
 			_listener.RetrieveMeasurements("eventstore-statuses"),
-			m =>
-			{
+			m => {
 				Assert.Equal(expectedValue, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t =>
-					{
+					t => {
 						Assert.Equal("name", t.Key);
 						Assert.Equal("Index", t.Value);
 					},
-					t =>
-					{
+					t => {
 						Assert.Equal("status", t.Key);
 						Assert.Equal(expectedStatus, t.Value);
 					});

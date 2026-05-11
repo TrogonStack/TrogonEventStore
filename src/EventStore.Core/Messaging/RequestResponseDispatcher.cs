@@ -70,8 +70,9 @@ namespace EventStore.Core.Messaging {
 			_publisher.Publish(request);
 			//NOTE: the following condition is required as publishing the message could also process the message 
 			// and the correlationId is already invalid here
-			lock (_map)
+			lock (_map) {
 				return _map.ContainsKey(requestCorrelationId) ? requestCorrelationId : Guid.Empty;
+			}
 		}
 
 		void IHandle<TResponse>.Handle(TResponse message) {
@@ -117,23 +118,29 @@ namespace EventStore.Core.Messaging {
 		}
 
 		public void Cancel(Guid requestId) {
-			if (_cancelMessageFactory != null)
+			if (_cancelMessageFactory != null) {
 				_publisher.Publish(_cancelMessageFactory(requestId));
-			lock (_map)
+			}
+
+			lock (_map) {
 				_map.Remove(requestId);
+			}
 		}
 
 		public void CancelAll() {
 			Guid[] ids = null;
 			lock (_map) {
 				_map.Clear();
-				if (_cancelMessageFactory != null)
+				if (_cancelMessageFactory != null) {
 					ids = _map.Keys.ToArray();
+				}
 			}
 
-			if (ids != null)
-				foreach (var id in ids)
+			if (ids != null) {
+				foreach (var id in ids) {
 					_publisher.Publish(_cancelMessageFactory(id));
+				}
+			}
 		}
 	}
 }

@@ -6,8 +6,10 @@ namespace EventStore.Core.Services.Gossip {
 		private readonly EndPoint[] _ipEndPoints;
 
 		public KnownEndpointGossipSeedSource(EndPoint[] ipEndPoints) {
-			if (ipEndPoints == null)
+			if (ipEndPoints == null) {
 				throw new ArgumentNullException("ipEndPoints");
+			}
+
 			_ipEndPoints = ipEndPoints;
 		}
 

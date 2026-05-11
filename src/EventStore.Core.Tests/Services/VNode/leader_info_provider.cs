@@ -11,12 +11,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode;
 
 [TestFixture]
-public class leader_info_provider
-{
+public class leader_info_provider {
 	private const string DefaultHttpEndPoint = "9.9.9.9:9";
 
-	public static IEnumerable<object[]> TestCases()
-	{
+	public static IEnumerable<object[]> TestCases() {
 		var leaderInfoCases = new TestCase[] {
 			new ("Leader: NoEndPoints",
 				Given: new (Leader: new()),
@@ -104,15 +102,13 @@ public class leader_info_provider
 				Expected: new (HttpEndPoint: "host:9")),
 		};
 
-		foreach (var testCase in leaderInfoCases.Concat(nodeInfoCases))
-		{
+		foreach (var testCase in leaderInfoCases.Concat(nodeInfoCases)) {
 			yield return new object[] { testCase };
 		}
 	}
 
 	[TestCaseSource(nameof(TestCases))]
-	public void should_provide_as_expected(TestCase t)
-	{
+	public void should_provide_as_expected(TestCase t) {
 
 		var given = t.BuildGiven();
 		var expected = t.BuildExpected();
@@ -128,11 +124,9 @@ public class leader_info_provider
 		Assert.AreEqual(expected.IsSecure, result.IsTcpEndPointSecure);
 	}
 
-	private void AssertAreEqual(EndPoint expected, EndPoint actual, string msg)
-	{
+	private void AssertAreEqual(EndPoint expected, EndPoint actual, string msg) {
 
-		if (expected == null)
-		{
+		if (expected == null) {
 			Assert.IsNull(actual);
 			return;
 		}
@@ -141,8 +135,7 @@ public class leader_info_provider
 		Assert.AreEqual(expected.GetPort(), actual.GetPort(), $"{msg} port");
 	}
 
-	public record TestCase(string Test, GivenInput Given, ExpectedInput Expected)
-	{
+	public record TestCase(string Test, GivenInput Given, ExpectedInput Expected) {
 		public override string ToString() => Test;
 
 		public Given BuildGiven() => Given.Build();
@@ -171,13 +164,10 @@ public class leader_info_provider
 
 	public record GivenInput(
 		LeaderInput Leader = null,
-		GossipInput Gossip = null)
-	{
+		GossipInput Gossip = null) {
 
-		public MemberInfo BuildLeaderInfo()
-		{
-			if (Leader == null)
-			{
+		public MemberInfo BuildLeaderInfo() {
+			if (Leader == null) {
 				return null;
 			}
 
@@ -198,8 +188,7 @@ public class leader_info_provider
 				isReadOnlyReplica: false);
 		}
 
-		public GossipAdvertiseInfo BuildGossipInfo()
-		{
+		public GossipAdvertiseInfo BuildGossipInfo() {
 			return new GossipAdvertiseInfo(
 				externalTcp: ParseDnsEndPoint(Gossip?.TcpEndPoint),
 				externalSecureTcp: ParseDnsEndPoint(Gossip?.SecureTcpEndPoint),
@@ -214,18 +203,15 @@ public class leader_info_provider
 				advertiseHttpPortAs: 0);
 		}
 
-		public Given Build()
-		{
+		public Given Build() {
 			return new Given(
 				BuildLeaderInfo(),
 				BuildGossipInfo());
 		}
 	}
 
-	public record ExpectedInput(string TcpEndPoint = null, string HttpEndPoint = null, bool IsTcpSecure = false)
-	{
-		public Expected Build()
-		{
+	public record ExpectedInput(string TcpEndPoint = null, string HttpEndPoint = null, bool IsTcpSecure = false) {
+		public Expected Build() {
 			return new Expected(
 				ParseEndPoint(TcpEndPoint),
 				IsTcpSecure,
@@ -233,25 +219,20 @@ public class leader_info_provider
 		}
 	}
 
-	private static EndPoint ParseEndPoint(string s)
-	{
-		if (s == null)
-		{
+	private static EndPoint ParseEndPoint(string s) {
+		if (s == null) {
 			return null;
 		}
 
-		if (IPEndPoint.TryParse(s, out var ipEndPoint))
-		{
+		if (IPEndPoint.TryParse(s, out var ipEndPoint)) {
 			return ipEndPoint;
 		}
 
 		return ParseDnsEndPoint(s);
 	}
 
-	private static DnsEndPoint ParseDnsEndPoint(string s)
-	{
-		if (s == null)
-		{
+	private static DnsEndPoint ParseDnsEndPoint(string s) {
+		if (s == null) {
 			return null;
 		}
 

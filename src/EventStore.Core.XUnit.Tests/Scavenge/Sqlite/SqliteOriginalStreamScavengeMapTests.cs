@@ -7,17 +7,14 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOriginalStreamScavengeMapTests>
-{
+public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOriginalStreamScavengeMapTests> {
 
 	[Fact]
-	public void can_set_original_stream_data()
-	{
+	public void can_set_original_stream_data() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		var data = new OriginalStreamData
-		{
+		var data = new OriginalStreamData {
 			DiscardPoint = DiscardPoint.DiscardIncluding(5),
 			IsTombstoned = true,
 			MaxAge = TimeSpan.FromDays(13),
@@ -34,13 +31,11 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_overwrite_existing()
-	{
+	public void can_overwrite_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OverwriteOriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		sut[33] = new OriginalStreamData
-		{
+		sut[33] = new OriginalStreamData {
 			DiscardPoint = DiscardPoint.DiscardIncluding(5),
 			IsTombstoned = true,
 			MaxAge = TimeSpan.FromDays(13),
@@ -50,8 +45,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 			Status = CalculationStatus.Active
 		};
 
-		var data = new OriginalStreamData
-		{
+		var data = new OriginalStreamData {
 			DiscardPoint = DiscardPoint.DiscardIncluding(50),
 			IsTombstoned = true,
 			MaxAge = TimeSpan.FromDays(30),
@@ -68,13 +62,11 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_tombstone_of_existing()
-	{
+	public void can_set_tombstone_of_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		var data = new OriginalStreamData
-		{
+		var data = new OriginalStreamData {
 			DiscardPoint = DiscardPoint.DiscardIncluding(5),
 			MaxAge = TimeSpan.FromDays(13),
 			MaxCount = 33,
@@ -94,29 +86,25 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_tombstone_of_non_existing()
-	{
+	public void can_set_tombstone_of_non_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
 		sut.SetTombstone(33);
 
 		Assert.True(sut.TryGetValue(33, out var v));
-		Assert.Equal(new OriginalStreamData
-		{
+		Assert.Equal(new OriginalStreamData {
 			IsTombstoned = true,
 			Status = CalculationStatus.Active
 		}, v, OriginalStreamDataComparer.Default);
 	}
 
 	[Fact]
-	public void can_set_stream_metadata_of_existing()
-	{
+	public void can_set_stream_metadata_of_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		var data = new OriginalStreamData()
-		{
+		var data = new OriginalStreamData() {
 			DiscardPoint = DiscardPoint.DiscardIncluding(5),
 			MaybeDiscardPoint = DiscardPoint.DiscardBefore(12),
 			Status = CalculationStatus.Archived
@@ -140,8 +128,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_stream_metadata_without_max_age()
-	{
+	public void can_set_stream_metadata_without_max_age() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -152,8 +139,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut.SetMetadata(33, metadata);
 
 		Assert.True(sut.TryGetValue(33, out var v));
-		Assert.Equal(new OriginalStreamData()
-		{
+		Assert.Equal(new OriginalStreamData() {
 			MaxCount = metadata.MaxCount,
 			TruncateBefore = metadata.TruncateBefore,
 			Status = CalculationStatus.Active
@@ -161,8 +147,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_stream_metadata_without_max_count()
-	{
+	public void can_set_stream_metadata_without_max_count() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -173,8 +158,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut.SetMetadata(33, metadata);
 
 		Assert.True(sut.TryGetValue(33, out var v));
-		Assert.Equal(new OriginalStreamData()
-		{
+		Assert.Equal(new OriginalStreamData() {
 			MaxAge = metadata.MaxAge,
 			TruncateBefore = metadata.TruncateBefore,
 			Status = CalculationStatus.Active
@@ -182,8 +166,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_stream_metadata_without_truncating()
-	{
+	public void can_set_stream_metadata_without_truncating() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -194,8 +177,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut.SetMetadata(33, metadata);
 
 		Assert.True(sut.TryGetValue(33, out var v));
-		Assert.Equal(new OriginalStreamData()
-		{
+		Assert.Equal(new OriginalStreamData() {
 			MaxAge = metadata.MaxAge,
 			MaxCount = metadata.MaxCount,
 			Status = CalculationStatus.Active
@@ -203,8 +185,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_stream_metadata_of_non_existing()
-	{
+	public void can_set_stream_metadata_of_non_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -216,8 +197,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut.SetMetadata(33, metadata);
 
 		Assert.True(sut.TryGetValue(33, out var v));
-		Assert.Equal(new OriginalStreamData()
-		{
+		Assert.Equal(new OriginalStreamData() {
 			MaxAge = metadata.MaxAge,
 			MaxCount = metadata.MaxCount,
 			TruncateBefore = metadata.TruncateBefore,
@@ -226,13 +206,11 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_discard_points_of_existing()
-	{
+	public void can_set_discard_points_of_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		var data = new OriginalStreamData()
-		{
+		var data = new OriginalStreamData() {
 			MaxAge = TimeSpan.FromDays(13),
 			MaxCount = 33,
 			TruncateBefore = 43,
@@ -250,8 +228,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_set_discard_points_of_non_existing()
-	{
+	public void can_set_discard_points_of_non_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -260,8 +237,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut.SetDiscardPoints(33, CalculationStatus.Archived, discardPoint, maybeDiscardPoint);
 
 		Assert.True(sut.TryGetValue(33, out var v));
-		Assert.Equal(new OriginalStreamData()
-		{
+		Assert.Equal(new OriginalStreamData() {
 			DiscardPoint = discardPoint,
 			MaybeDiscardPoint = maybeDiscardPoint,
 			Status = CalculationStatus.Archived
@@ -269,13 +245,11 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_get_chunk_execution_info()
-	{
+	public void can_get_chunk_execution_info() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
-		var data = new OriginalStreamData()
-		{
+		var data = new OriginalStreamData() {
 			DiscardPoint = DiscardPoint.DiscardIncluding(5),
 			MaybeDiscardPoint = DiscardPoint.DiscardIncluding(43),
 			MaxAge = TimeSpan.FromDays(13),
@@ -293,8 +267,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_try_get_chunk_execution_info_when_only_tombstoned()
-	{
+	public void can_try_get_chunk_execution_info_when_only_tombstoned() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -308,8 +281,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_try_get_chunk_execution_info_of_non_existing()
-	{
+	public void can_try_get_chunk_execution_info_of_non_existing() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -318,8 +290,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_get_all_records()
-	{
+	public void can_get_all_records() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -332,36 +303,30 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut[4] = osd[4];
 
 		Assert.Collection(sut.AllRecords(),
-			item =>
-			{
+			item => {
 				Assert.Equal(0, item.Key);
 				Assert.Equal(osd[0], item.Value, OriginalStreamDataComparer.Default);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(1, item.Key);
 				Assert.Equal(osd[1], item.Value, OriginalStreamDataComparer.Default);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(2, item.Key);
 				Assert.Equal(osd[2], item.Value, OriginalStreamDataComparer.Default);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(3, item.Key);
 				Assert.Equal(osd[3], item.Value, OriginalStreamDataComparer.Default);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(4, item.Key);
 				Assert.Equal(osd[4], item.Value, OriginalStreamDataComparer.Default);
 			});
 	}
 
 	[Fact]
-	public void can_get_active_records()
-	{
+	public void can_get_active_records() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -380,21 +345,18 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut[4] = osd[4];
 
 		Assert.Collection(sut.ActiveRecords(),
-			item =>
-			{
+			item => {
 				Assert.Equal(2, item.Key);
 				Assert.Equal(osd[2], item.Value, OriginalStreamDataComparer.Default);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(3, item.Key);
 				Assert.Equal(osd[3], item.Value, OriginalStreamDataComparer.Default);
 			});
 	}
 
 	[Fact]
-	public void can_get_all_active_records_from_checkpoint()
-	{
+	public void can_get_all_active_records_from_checkpoint() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -413,21 +375,18 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		sut[4] = osd[4];
 
 		Assert.Collection(sut.ActiveRecordsFromCheckpoint(1),
-			item =>
-			{
+			item => {
 				Assert.Equal(2, item.Key);
 				Assert.Equal(osd[2], item.Value, OriginalStreamDataComparer.Default);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(3, item.Key);
 				Assert.Equal(osd[3], item.Value, OriginalStreamDataComparer.Default);
 			});
 	}
 
 	[Fact]
-	public void can_remove_value_from_map()
-	{
+	public void can_remove_value_from_map() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -446,8 +405,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_try_remove_value_from_map()
-	{
+	public void can_try_remove_value_from_map() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -455,8 +413,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_remove_multiple_records_at_once()
-	{
+	public void can_remove_multiple_records_at_once() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -483,8 +440,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 	}
 
 	[Fact]
-	public void can_remove_multiple_records_at_once_including_archived()
-	{
+	public void can_remove_multiple_records_at_once_including_archived() {
 		var sut = new SqliteOriginalStreamScavengeMap<int>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -508,8 +464,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 			item => { Assert.Equal(CalculationStatus.Active, item.Value.Status); });
 	}
 
-	private OriginalStreamData[] GetOriginalStreamTestData()
-	{
+	private OriginalStreamData[] GetOriginalStreamTestData() {
 		return new[] {
 			new OriginalStreamData() {
 				IsTombstoned = false,
@@ -546,15 +501,12 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 		};
 	}
 
-	public class OriginalStreamDataComparer : IEqualityComparer<OriginalStreamData>
-	{
+	public class OriginalStreamDataComparer : IEqualityComparer<OriginalStreamData> {
 
 		public static readonly OriginalStreamDataComparer Default = new OriginalStreamDataComparer();
 
-		public bool Equals(OriginalStreamData x, OriginalStreamData y)
-		{
-			if (x is null || y is null)
-			{
+		public bool Equals(OriginalStreamData x, OriginalStreamData y) {
+			if (x is null || y is null) {
 				return false;
 			}
 
@@ -567,8 +519,7 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 				   x.Status == y.Status;
 		}
 
-		public int GetHashCode(OriginalStreamData obj)
-		{
+		public int GetHashCode(OriginalStreamData obj) {
 			throw new NotImplementedException();
 		}
 	}

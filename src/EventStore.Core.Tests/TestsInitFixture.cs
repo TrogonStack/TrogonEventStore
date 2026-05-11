@@ -9,16 +9,13 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 namespace EventStore.Core.Tests;
 
 [SetUpFixture]
-public class TestsInitFixture
-{
+public class TestsInitFixture {
 	[OneTimeSetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		LogEnvironmentInfo();
 	}
 
-	private void LogEnvironmentInfo()
-	{
+	private void LogEnvironmentInfo() {
 		var log = Serilog.Log.ForContext<TestsInitFixture>();
 
 		log.Information("\n{0,-25} {1} ({2}/{3}, {4})\n"
@@ -36,8 +33,7 @@ public class TestsInitFixture
 	}
 
 	[OneTimeTearDown]
-	public void TearDown()
-	{
+	public void TearDown() {
 		var runCount = Math.Max(1, MiniNode<LogFormat.V2, string>.RunCount);
 		var msg = string.Format("Total running time of MiniNode (Log V2): {0} (mean {1})\n" +
 								"Total starting time of MiniNode (Log V2): {2} (mean {3})\n" +

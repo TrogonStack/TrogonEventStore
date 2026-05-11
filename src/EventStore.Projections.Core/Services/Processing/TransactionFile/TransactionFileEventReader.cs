@@ -14,8 +14,7 @@ namespace EventStore.Projections.Core.Services.Processing.AllStream;
 
 public class TransactionFileEventReader : EventReader,
 	IHandle<ClientMessage.ReadAllEventsForwardCompleted>,
-	IHandle<ProjectionManagementMessage.Internal.ReadTimeout>
-{
+	IHandle<ProjectionManagementMessage.Internal.ReadTimeout> {
 	private bool _eventsRequested;
 	private int _maxReadCount = 250;
 	private TFPos _from;
@@ -35,38 +34,41 @@ public class TransactionFileEventReader : EventReader,
 		bool stopOnEof = false,
 		bool deliverEndOfTFPosition = true,
 		bool resolveLinkTos = true)
-		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof)
-	{
-		if (publisher == null)
+		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof) {
+		if (publisher == null) {
 			throw new ArgumentNullException("publisher");
+		}
+
 		_from = @from;
 		_deliverEndOfTfPosition = deliverEndOfTFPosition;
 		_resolveLinkTos = resolveLinkTos;
 		_timeProvider = timeProvider;
 	}
 
-	protected override bool AreEventsRequested()
-	{
+	protected override bool AreEventsRequested() {
 		return _eventsRequested;
 	}
 
-	public void Handle(ClientMessage.ReadAllEventsForwardCompleted message)
-	{
-		if (_disposed)
+	public void Handle(ClientMessage.ReadAllEventsForwardCompleted message) {
+		if (_disposed) {
 			return;
-		if (!_eventsRequested)
+		}
+
+		if (!_eventsRequested) {
 			throw new InvalidOperationException("Read events has not been requested");
-		if (Paused)
+		}
+
+		if (Paused) {
 			throw new InvalidOperationException("Paused");
-		if (message.CorrelationId != _pendingRequestCorrelationId)
-		{
+		}
+
+		if (message.CorrelationId != _pendingRequestCorrelationId) {
 			return;
 		}
 
 		_eventsRequested = false;
 		_lastPosition = message.TfLastCommitPosition;
-		if (message.Result == ReadAllResult.AccessDenied)
-		{
+		if (message.Result == ReadAllResult.AccessDenied) {
 			SendNotAuthorized();
 			return;
 		}
@@ -77,62 +79,66 @@ public class TransactionFileEventReader : EventReader,
 		var oldFrom = _from;
 		_from = message.NextPos;
 
-		if (!willDispose)
-		{
+		if (!willDispose) {
 			PauseOrContinueProcessing();
 		}
 
-		if (eof)
-		{
+		if (eof) {
 			// the end
-			if (_deliverEndOfTfPosition)
+			if (_deliverEndOfTfPosition) {
 				DeliverLastCommitPosition(_from);
+			}
 			// allow joining heading distribution
 			SendIdle();
 			SendEof();
 		}
-		else
-		{
-			foreach (var @event in message.Events)
-			{
+		else {
+			foreach (var @event in message.Events) {
 				DeliverEvent(@event, message.TfLastCommitPosition, oldFrom);
 			}
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
-	{
-		if (_disposed)
+	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message) {
+		if (_disposed) {
 			return;
-		if (Paused)
+		}
+
+		if (Paused) {
 			return;
-		if (message.CorrelationId != _pendingRequestCorrelationId)
+		}
+
+		if (message.CorrelationId != _pendingRequestCorrelationId) {
 			return;
+		}
 
 		_eventsRequested = false;
 		PauseOrContinueProcessing();
 	}
 
-	private void SendIdle()
-	{
+	private void SendIdle() {
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.EventReaderIdle(EventReaderCorrelationId, _timeProvider.UtcNow));
 	}
 
-	protected override void RequestEvents()
-	{
-		if (_disposed)
+	protected override void RequestEvents() {
+		if (_disposed) {
 			throw new InvalidOperationException("Disposed");
-		if (_eventsRequested)
+		}
+
+		if (_eventsRequested) {
 			throw new InvalidOperationException("Read operation is already in progress");
-		if (PauseRequested || Paused)
+		}
+
+		if (PauseRequested || Paused) {
 			throw new InvalidOperationException("Paused or pause requested");
+		}
+
 		_eventsRequested = true;
 
 		_pendingRequestCorrelationId = Guid.NewGuid();
 		var readEventsForward = CreateReadEventsMessage(_pendingRequestCorrelationId);
-		if (_eof)
-		{
+		if (_eof) {
 			_publisher.Publish(
 				new AwakeServiceMessage.SubscribeAwake(
 					_publisher, Guid.NewGuid(), null,
@@ -143,38 +149,35 @@ public class TransactionFileEventReader : EventReader,
 					_publisher, Guid.NewGuid(), null,
 					new TFPos(_lastPosition, _lastPosition), readEventsForward));
 		}
-		else
-		{
+		else {
 			_publisher.Publish(readEventsForward);
 			ScheduleReadTimeoutMessage(_pendingRequestCorrelationId, "$all");
 		}
 	}
 
-	private void ScheduleReadTimeoutMessage(Guid correlationId, string streamId)
-	{
+	private void ScheduleReadTimeoutMessage(Guid correlationId, string streamId) {
 		_publisher.Publish(CreateReadTimeoutMessage(correlationId, streamId));
 	}
 
-	private Message CreateReadTimeoutMessage(Guid correlationId, string streamId)
-	{
+	private Message CreateReadTimeoutMessage(Guid correlationId, string streamId) {
 		return TimerMessage.Schedule.Create(
 			TimeSpan.FromMilliseconds(ESConsts.ReadRequestTimeout),
 			new SendToThisEnvelope(this),
 			new ProjectionManagementMessage.Internal.ReadTimeout(correlationId, streamId));
 	}
 
-	private Message CreateReadEventsMessage(Guid correlationId)
-	{
+	private Message CreateReadEventsMessage(Guid correlationId) {
 		return new ClientMessage.ReadAllEventsForward(
 			correlationId, correlationId, new SendToThisEnvelope(this), _from.CommitPosition,
 			_from.PreparePosition == -1 ? _from.CommitPosition : _from.PreparePosition, _maxReadCount,
 			_resolveLinkTos, false, null, ReadAs, replyOnExpired: false);
 	}
 
-	private void DeliverLastCommitPosition(TFPos lastPosition)
-	{
-		if (_stopOnEof)
+	private void DeliverLastCommitPosition(TFPos lastPosition) {
+		if (_stopOnEof) {
 			return;
+		}
+
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.CommittedEventDistributed(
 				EventReaderCorrelationId, null, lastPosition.PreparePosition, 100.0f, source: this.GetType()));
@@ -182,24 +185,25 @@ public class TransactionFileEventReader : EventReader,
 	}
 
 	private void DeliverEvent(
-		EventStore.Core.Data.ResolvedEvent @event, long lastCommitPosition, TFPos currentFrom)
-	{
+		EventStore.Core.Data.ResolvedEvent @event, long lastCommitPosition, TFPos currentFrom) {
 		EventRecord linkEvent = @event.Link;
 		EventRecord targetEvent = @event.Event ?? linkEvent;
 		EventRecord positionEvent = (linkEvent ?? targetEvent);
 
 		TFPos receivedPosition = @event.OriginalPosition.Value;
-		if (currentFrom > receivedPosition)
+		if (currentFrom > receivedPosition) {
 			throw new Exception(
 				string.Format(
 					"ReadFromTF returned events in incorrect order.  Last known position is: {0}.  Received position is: {1}",
 					currentFrom, receivedPosition));
+		}
 
 		var resolvedEvent = new ResolvedEvent(@event, null);
 
 		string deletedPartitionStreamId;
-		if (resolvedEvent.IsLinkToDeletedStream && !resolvedEvent.IsLinkToDeletedStreamTombstone)
+		if (resolvedEvent.IsLinkToDeletedStream && !resolvedEvent.IsLinkToDeletedStreamTombstone) {
 			return;
+		}
 
 		bool isDeletedStreamEvent = StreamDeletedHelper.IsStreamDeletedEventOrLinkToStreamDeletedEvent(
 			resolvedEvent, @event.ResolveResult, out deletedPartitionStreamId);
@@ -211,12 +215,13 @@ public class TransactionFileEventReader : EventReader,
 				_stopOnEof ? (long?)null : receivedPosition.PreparePosition,
 				100.0f * positionEvent.LogPosition / lastCommitPosition,
 				source: this.GetType()));
-		if (isDeletedStreamEvent)
+		if (isDeletedStreamEvent) {
 			_publisher.Publish(
 				new ReaderSubscriptionMessage.EventReaderPartitionDeleted(
 					EventReaderCorrelationId, deletedPartitionStreamId, source: this.GetType(), lastEventNumber: -1,
 					deleteEventOrLinkTargetPosition: resolvedEvent.EventOrLinkTargetPosition,
 					deleteLinkOrEventPosition: resolvedEvent.LinkOrEventPosition,
 					positionStreamId: positionEvent.EventStreamId, positionEventNumber: positionEvent.EventNumber));
+		}
 	}
 }

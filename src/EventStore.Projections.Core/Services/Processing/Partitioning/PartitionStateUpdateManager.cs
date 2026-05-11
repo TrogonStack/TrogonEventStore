@@ -7,10 +7,8 @@ using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 
 namespace EventStore.Projections.Core.Services.Processing.Partitioning;
 
-public class PartitionStateUpdateManager
-{
-	private class State
-	{
+public class PartitionStateUpdateManager {
+	private class State {
 		public PartitionState PartitionState;
 		public CheckpointTag ExpectedTag;
 	}
@@ -21,33 +19,28 @@ public class PartitionStateUpdateManager
 	private readonly EmittedStream.WriterConfiguration.StreamMetadata _partitionCheckpointStreamMetadata =
 		new EmittedStream.WriterConfiguration.StreamMetadata(maxCount: 2);
 
-	public PartitionStateUpdateManager(ProjectionNamesBuilder namingBuilder)
-	{
-		if (namingBuilder == null)
+	public PartitionStateUpdateManager(ProjectionNamesBuilder namingBuilder) {
+		if (namingBuilder == null) {
 			throw new ArgumentNullException("namingBuilder");
+		}
+
 		_namingBuilder = namingBuilder;
 	}
 
-	public void StateUpdated(string partition, PartitionState state, CheckpointTag basedOn)
-	{
+	public void StateUpdated(string partition, PartitionState state, CheckpointTag basedOn) {
 		State stateEntry;
-		if (_states.TryGetValue(partition, out stateEntry))
-		{
+		if (_states.TryGetValue(partition, out stateEntry)) {
 			stateEntry.PartitionState = state;
 		}
-		else
-		{
+		else {
 			_states.Add(partition, new State { PartitionState = state, ExpectedTag = basedOn });
 		}
 	}
 
-	public void EmitEvents(IEventWriter eventWriter)
-	{
-		if (_states.Count > 0)
-		{
+	public void EmitEvents(IEventWriter eventWriter) {
+		if (_states.Count > 0) {
 			var list = new List<EmittedEventEnvelope>();
-			foreach (var entry in _states)
-			{
+			foreach (var entry in _states) {
 				var partition = entry.Key;
 				var streamId = _namingBuilder.MakePartitionCheckpointStreamName(partition);
 				var data = entry.Value.PartitionState.Serialize();
@@ -67,8 +60,7 @@ public class PartitionStateUpdateManager
 		}
 	}
 
-	public void PartitionCompleted(string partition)
-	{
+	public void PartitionCompleted(string partition) {
 		_states.Remove(partition);
 	}
 }

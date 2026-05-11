@@ -2,12 +2,10 @@ using EventStore.Projections.Core.Messages;
 
 namespace EventStore.Projections.Core.Services.Processing.Checkpointing;
 
-public abstract class PositionTagger
-{
+public abstract class PositionTagger {
 	public readonly int Phase;
 
-	public PositionTagger(int phase)
-	{
+	public PositionTagger(int phase) {
 		Phase = phase;
 	}
 

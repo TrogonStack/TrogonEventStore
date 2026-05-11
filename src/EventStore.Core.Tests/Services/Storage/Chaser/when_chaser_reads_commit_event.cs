@@ -7,14 +7,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.Chaser;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_chaser_reads_commit_event<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId>
-{
+public class when_chaser_reads_commit_event<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId> {
 	private long _logPosition;
 	private Guid _eventId;
 	private Guid _transactionId;
 
-	public override async ValueTask When(CancellationToken token)
-	{
+	public override async ValueTask When(CancellationToken token) {
 		_eventId = Guid.NewGuid();
 		_transactionId = Guid.NewGuid();
 
@@ -53,8 +51,7 @@ public class when_chaser_reads_commit_event<TLogFormat, TStreamId> : with_storag
 		await Writer.Flush(token);
 	}
 	[Test]
-	public void commit_ack_should_be_published()
-	{
+	public void commit_ack_should_be_published() {
 		AssertEx.IsOrBecomesTrue(() => CommitAcks.Count == 1, msg: "CommitAck msg not received");
 		Assert.True(CommitAcks.TryDequeue(out var commitAck));
 		Assert.AreEqual(_transactionId, commitAck.CorrelationId);

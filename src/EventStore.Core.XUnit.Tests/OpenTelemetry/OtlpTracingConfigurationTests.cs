@@ -8,22 +8,18 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.OpenTelemetry;
 
-public class OtlpTracingConfigurationTests
-{
+public class OtlpTracingConfigurationTests {
 	[Fact]
-	public void IsDisabledByDefault()
-	{
+	public void IsDisabledByDefault() {
 		var configuration = new ConfigurationBuilder().Build();
 
 		configuration.OtlpTracesEnabled().Should().BeFalse();
 	}
 
 	[Fact]
-	public void DoesNotEnableTracesWhenOnlySharedOpenTelemetryOtlpSectionExists()
-	{
+	public void DoesNotEnableTracesWhenOnlySharedOpenTelemetryOtlpSectionExists() {
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string>
-			{
+			.AddInMemoryCollection(new Dictionary<string, string> {
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 			})
 			.Build();
@@ -32,11 +28,9 @@ public class OtlpTracingConfigurationTests
 	}
 
 	[Fact]
-	public void EnablesTracesWhenRuntimeSwitchUsesSharedOpenTelemetryOtlpSettings()
-	{
+	public void EnablesTracesWhenRuntimeSwitchUsesSharedOpenTelemetryOtlpSettings() {
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string>
-			{
+			.AddInMemoryCollection(new Dictionary<string, string> {
 				["EventStore:OpenTelemetry:Traces:Enabled"] = "true",
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 			})
@@ -49,11 +43,9 @@ public class OtlpTracingConfigurationTests
 	}
 
 	[Fact]
-	public void EnablesTracesWhenPerSignalOpenTelemetryOtlpSectionExists()
-	{
+	public void EnablesTracesWhenPerSignalOpenTelemetryOtlpSectionExists() {
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string>
-			{
+			.AddInMemoryCollection(new Dictionary<string, string> {
 				["EventStore:OpenTelemetry:Traces:Otlp:Endpoint"] = "http://traces:4317",
 			})
 			.Build();
@@ -62,11 +54,9 @@ public class OtlpTracingConfigurationTests
 	}
 
 	[Fact]
-	public void PerSignalTracesOtlpOverridesSharedSettings()
-	{
+	public void PerSignalTracesOtlpOverridesSharedSettings() {
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string>
-			{
+			.AddInMemoryCollection(new Dictionary<string, string> {
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 				["EventStore:OpenTelemetry:Otlp:Headers"] = "key=shared",
 				["EventStore:OpenTelemetry:Traces:Otlp:Endpoint"] = "http://traces:4317",

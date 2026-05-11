@@ -24,7 +24,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		private void IncreaseChunkWeight(int logicalChunkNumber, float extraWeight) {
 			if (_weights.TryGetValue(logicalChunkNumber, out var current)) {
 				_weights[logicalChunkNumber] = extraWeight + current;
-			} else {
+			}
+			else {
 				_weights[logicalChunkNumber] = extraWeight;
 			}
 		}

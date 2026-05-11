@@ -3,8 +3,7 @@ using System.Runtime.Serialization;
 namespace EventStore.Projections.Core.Messages;
 
 [DataContract]
-public class QuerySourcesDefinitionOptions
-{
+public class QuerySourcesDefinitionOptions {
 	[DataMember(Name = "producesResults")] public bool ProducesResults { get; set; }
 
 	[DataMember(Name = "definesFold")] public bool DefinesFold { get; set; }

@@ -11,10 +11,8 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	WhenHavingStreamWithBothMaxAgeAndMaxCountWithStricterMaxAgeSpecified<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
-	{
+	WhenHavingStreamWithBothMaxAgeAndMaxCountWithStricterMaxAgeSpecified<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator
 			.Chunk(
 				Rec.Prepare(3, "$$bla", metadata: new StreamMetadata(5, TimeSpan.FromMinutes(5), null, null, null)),
@@ -36,8 +34,7 @@ public class
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
 		var keep = LogFormatHelper<TLogFormat, TStreamId>.IsV2
 			? new int[] { 0, 1, 11, 12, 13, 14 }
 			: new int[] { 0, 1, 2, 12, 13, 14, 15 };
@@ -48,8 +45,7 @@ public class
 	}
 
 	[Test]
-	public async Task expired_prepares_are_scavenged()
-	{
+	public async Task expired_prepares_are_scavenged() {
 		await CheckRecords();
 	}
 }

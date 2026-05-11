@@ -11,11 +11,9 @@ using EndPoint = System.Net.EndPoint;
 
 namespace EventStore.Core.Messages;
 
-public static partial class ReplicationMessage
-{
+public static partial class ReplicationMessage {
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class SubscribeReplica : Message
-	{
+	public partial class SubscribeReplica : Message {
 		public readonly int Version;
 		public readonly long LogPosition;
 		public readonly Guid ChunkId;
@@ -29,8 +27,7 @@ public static partial class ReplicationMessage
 			int version,
 			long logPosition, Guid chunkId, IReadOnlyList<EpochRecord> lastEpochs,
 			EndPoint replicaEndPoint,
-			Guid leaderId, Guid subscriptionId, bool isPromotable)
-		{
+			Guid leaderId, Guid subscriptionId, bool isPromotable) {
 
 			Ensure.Nonnegative(version, "version");
 			Ensure.Nonnegative(logPosition, "logPosition");
@@ -51,8 +48,7 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class AckLogPosition : Message
-	{
+	public partial class AckLogPosition : Message {
 		public readonly Guid SubscriptionId;
 
 		// where the replication subscription is up to.
@@ -67,8 +63,7 @@ public static partial class ReplicationMessage
 		public AckLogPosition(
 			Guid subscriptionId,
 			long replicationLogPosition,
-			long writerLogPosition)
-		{
+			long writerLogPosition) {
 
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			SubscriptionId = subscriptionId;
@@ -78,8 +73,7 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class ReplicaLogPositionAck : Message
-	{
+	public partial class ReplicaLogPositionAck : Message {
 		public readonly Guid SubscriptionId;
 		public readonly long ReplicationLogPosition;
 		public readonly long WriterLogPosition;
@@ -87,8 +81,7 @@ public static partial class ReplicationMessage
 		public ReplicaLogPositionAck(
 			Guid subscriptionId,
 			long replicationLogPosition,
-			long writerLogPosition)
-		{
+			long writerLogPosition) {
 
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 
@@ -99,8 +92,7 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class ReplicaSubscriptionRequest : Message
-	{
+	public partial class ReplicaSubscriptionRequest : Message {
 		public readonly Guid CorrelationId;
 		public readonly IEnvelope Envelope;
 		public readonly TcpConnectionManager Connection;
@@ -124,8 +116,7 @@ public static partial class ReplicationMessage
 			EndPoint replicaEndPoint,
 			Guid leaderId,
 			Guid subscriptionId,
-			bool isPromotable)
-		{
+			bool isPromotable) {
 			Ensure.NotEmptyGuid(correlationId, "correlationId");
 			Ensure.NotNull(envelope, "envelope");
 			Ensure.NotNull(connection, "connection");
@@ -151,13 +142,11 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class ReconnectToLeader : Message
-	{
+	public partial class ReconnectToLeader : Message {
 		public readonly MemberInfo Leader;
 		public readonly Guid ConnectionCorrelationId;
 
-		public ReconnectToLeader(Guid connectionCorrelationId, MemberInfo leader)
-		{
+		public ReconnectToLeader(Guid connectionCorrelationId, MemberInfo leader) {
 			Ensure.NotEmptyGuid(connectionCorrelationId, nameof(connectionCorrelationId));
 			Ensure.NotNull(leader, nameof(leader));
 			ConnectionCorrelationId = connectionCorrelationId;
@@ -166,13 +155,11 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class LeaderConnectionFailed : Message
-	{
+	public partial class LeaderConnectionFailed : Message {
 		public readonly MemberInfo Leader;
 		public readonly Guid LeaderConnectionCorrelationId;
 
-		public LeaderConnectionFailed(Guid leaderConnectionCorrelationId, MemberInfo leader)
-		{
+		public LeaderConnectionFailed(Guid leaderConnectionCorrelationId, MemberInfo leader) {
 			Ensure.NotEmptyGuid(leaderConnectionCorrelationId, nameof(leaderConnectionCorrelationId));
 			Ensure.NotNull(leader, nameof(leader));
 			LeaderConnectionCorrelationId = leaderConnectionCorrelationId;
@@ -180,22 +167,18 @@ public static partial class ReplicationMessage
 		}
 	}
 
-	public interface IReplicationMessage
-	{
+	public interface IReplicationMessage {
 		Guid LeaderId { get; }
 		Guid SubscriptionId { get; }
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class SubscribeToLeader : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class SubscribeToLeader : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
@@ -203,8 +186,7 @@ public static partial class ReplicationMessage
 		public readonly Guid LeaderId;
 		public readonly Guid SubscriptionId;
 
-		public SubscribeToLeader(Guid stateCorrelationId, Guid leaderId, Guid subscriptionId)
-		{
+		public SubscribeToLeader(Guid stateCorrelationId, Guid leaderId, Guid subscriptionId) {
 			Ensure.NotEmptyGuid(stateCorrelationId, "stateCorrelationId");
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
@@ -216,23 +198,19 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class ReplicaSubscriptionRetry : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class ReplicaSubscriptionRetry : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
 		public readonly Guid LeaderId;
 		public readonly Guid SubscriptionId;
 
-		public ReplicaSubscriptionRetry(Guid leaderId, Guid subscriptionId)
-		{
+		public ReplicaSubscriptionRetry(Guid leaderId, Guid subscriptionId) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			LeaderId = leaderId;
@@ -241,15 +219,12 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class ReplicaSubscribed : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class ReplicaSubscribed : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
@@ -259,8 +234,7 @@ public static partial class ReplicationMessage
 
 		public readonly EndPoint LeaderEndPoint;
 
-		public ReplicaSubscribed(Guid leaderId, Guid subscriptionId, long subscriptionPosition)
-		{
+		public ReplicaSubscribed(Guid leaderId, Guid subscriptionId, long subscriptionPosition) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			Ensure.Nonnegative(subscriptionPosition, "subscriptionPosition");
@@ -271,8 +245,7 @@ public static partial class ReplicationMessage
 		}
 
 		public ReplicaSubscribed(Guid leaderId, Guid subscriptionId, long subscriptionPosition,
-			EndPoint leaderEndPoint)
-		{
+			EndPoint leaderEndPoint) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			Ensure.Nonnegative(subscriptionPosition, "subscriptionPosition");
@@ -286,23 +259,19 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class FollowerAssignment : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class FollowerAssignment : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
 		public readonly Guid LeaderId;
 		public readonly Guid SubscriptionId;
 
-		public FollowerAssignment(Guid leaderId, Guid subscriptionId)
-		{
+		public FollowerAssignment(Guid leaderId, Guid subscriptionId) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			LeaderId = leaderId;
@@ -311,23 +280,19 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class CloneAssignment : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class CloneAssignment : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
 		public readonly Guid LeaderId;
 		public readonly Guid SubscriptionId;
 
-		public CloneAssignment(Guid leaderId, Guid subscriptionId)
-		{
+		public CloneAssignment(Guid leaderId, Guid subscriptionId) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			LeaderId = leaderId;
@@ -336,15 +301,12 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class CreateChunk : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class CreateChunk : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
@@ -358,8 +320,7 @@ public static partial class ReplicationMessage
 		public ReadOnlyMemory<byte> TransformHeader;
 
 		public CreateChunk(Guid leaderId, Guid subscriptionId, ChunkHeader chunkHeader, int fileSize,
-			bool isScavengedChunk, ReadOnlyMemory<byte> transformHeader)
-		{
+			bool isScavengedChunk, ReadOnlyMemory<byte> transformHeader) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			Ensure.NotNull(chunkHeader, "chunkHeader");
@@ -372,8 +333,7 @@ public static partial class ReplicationMessage
 			TransformHeader = transformHeader;
 		}
 
-		public override string ToString()
-		{
+		public override string ToString() {
 			return string.Format(
 				"CreateChunk message: LeaderId: {0}, SubscriptionId: {1}, ChunkHeader: {2}, FileSize: {3}, IsScavengedChunk: {4}, TransformHeader size: {5}",
 				LeaderId, SubscriptionId, ChunkHeader, FileSize, IsScavengedChunk, TransformHeader.Length);
@@ -381,15 +341,12 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class RawChunkBulk : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class RawChunkBulk : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
@@ -406,8 +363,7 @@ public static partial class ReplicationMessage
 			Guid subscriptionId,
 			int chunkStartNumber, int chunkEndNumber,
 			int rawPosition, byte[] rawBytes,
-			bool completeChunk)
-		{
+			bool completeChunk) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			Ensure.NotNull(rawBytes, "rawBytes");
@@ -422,8 +378,7 @@ public static partial class ReplicationMessage
 			CompleteChunk = completeChunk;
 		}
 
-		public override string ToString()
-		{
+		public override string ToString() {
 			return string.Format(
 				"RawChunkBulk message: LeaderId: {0}, SubscriptionId: {1}, ChunkStartNumber: {2}, ChunkEndNumber: {3}, RawPosition: {4}, RawBytes length: {5}, CompleteChunk: {6}",
 				LeaderId, SubscriptionId,
@@ -432,15 +387,12 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class DataChunkBulk : Message, IReplicationMessage, StorageMessage.IFlushableMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class DataChunkBulk : Message, IReplicationMessage, StorageMessage.IFlushableMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
@@ -459,8 +411,7 @@ public static partial class ReplicationMessage
 			int chunkEndNumber,
 			long subscriptionPosition,
 			byte[] dataBytes,
-			bool completeChunk)
-		{
+			bool completeChunk) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			Ensure.NotNull(dataBytes, "rawBytes");
@@ -476,8 +427,7 @@ public static partial class ReplicationMessage
 			CompleteChunk = completeChunk;
 		}
 
-		public override string ToString()
-		{
+		public override string ToString() {
 			return string.Format(
 				"DataChunkBulk message: LeaderId: {0}, SubscriptionId: {1}, ChunkStartNumber: {2}, ChunkEndNumber: {3}, SubscriptionPosition: {4}, DataBytes length: {5}, CompleteChunk: {6}",
 				LeaderId, SubscriptionId, ChunkStartNumber, ChunkEndNumber,
@@ -486,23 +436,19 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class DropSubscription : Message, IReplicationMessage
-	{
-		Guid IReplicationMessage.LeaderId
-		{
+	public partial class DropSubscription : Message, IReplicationMessage {
+		Guid IReplicationMessage.LeaderId {
 			get { return LeaderId; }
 		}
 
-		Guid IReplicationMessage.SubscriptionId
-		{
+		Guid IReplicationMessage.SubscriptionId {
 			get { return SubscriptionId; }
 		}
 
 		public readonly Guid LeaderId;
 		public readonly Guid SubscriptionId;
 
-		public DropSubscription(Guid leaderId, Guid subscriptionId)
-		{
+		public DropSubscription(Guid leaderId, Guid subscriptionId) {
 			Ensure.NotEmptyGuid(leaderId, "leaderId");
 			Ensure.NotEmptyGuid(subscriptionId, "subscriptionId");
 			LeaderId = leaderId;
@@ -511,29 +457,24 @@ public static partial class ReplicationMessage
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class GetReplicationStats : Message
-	{
+	public partial class GetReplicationStats : Message {
 		public IEnvelope Envelope;
 
-		public GetReplicationStats(IEnvelope envelope)
-		{
+		public GetReplicationStats(IEnvelope envelope) {
 			Envelope = envelope;
 		}
 	}
 
 	[DerivedMessage(CoreMessage.Replication)]
-	public partial class GetReplicationStatsCompleted : Message
-	{
+	public partial class GetReplicationStatsCompleted : Message {
 		public List<ReplicationMessage.ReplicationStats> ReplicationStats;
 
-		public GetReplicationStatsCompleted(List<ReplicationMessage.ReplicationStats> replicationStats)
-		{
+		public GetReplicationStatsCompleted(List<ReplicationMessage.ReplicationStats> replicationStats) {
 			ReplicationStats = replicationStats;
 		}
 	}
 
-	public class ReplicationStats
-	{
+	public class ReplicationStats {
 		public Guid SubscriptionId { get; private set; }
 		public Guid ConnectionId { get; private set; }
 		public string SubscriptionEndpoint { get; private set; }
@@ -545,8 +486,7 @@ public static partial class ReplicationMessage
 
 		public ReplicationStats(Guid subscriptionId, Guid connectionId, string subscriptionEndpoint,
 			int sendQueueSize,
-			long totalBytesSent, long totalBytesReceived, int pendingSendBytes, int pendingReceivedBytes)
-		{
+			long totalBytesSent, long totalBytesReceived, int pendingSendBytes, int pendingReceivedBytes) {
 			SubscriptionId = subscriptionId;
 			ConnectionId = connectionId;
 			SubscriptionEndpoint = subscriptionEndpoint;

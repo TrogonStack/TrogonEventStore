@@ -11,17 +11,13 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
-public static class checkpoint_suggested
-{
+public static class checkpoint_suggested {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_the_checkpoint_is_suggested<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-	{
-		protected override void Given()
-		{
+	public class when_the_checkpoint_is_suggested<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+		protected override void Given() {
 			_checkpointHandledThreshold = 10;
 			_checkpointUnhandledBytesThreshold = 41;
-			_configureBuilderByQuerySource = source =>
-			{
+			_configureBuilderByQuerySource = source => {
 				source.FromAll();
 				source.IncludeEvent("non-existing");
 			};
@@ -33,8 +29,7 @@ public static class checkpoint_suggested
 			AllWritesSucceed();
 		}
 
-		protected override void When()
-		{
+		protected override void When() {
 			//projection subscribes here
 			_bus.Publish(
 				new EventReaderSubscriptionMessage.CheckpointSuggested(
@@ -44,8 +39,7 @@ public static class checkpoint_suggested
 		}
 
 		[Test]
-		public void a_projection_checkpoint_event_is_published()
-		{
+		public void a_projection_checkpoint_event_is_published() {
 			// projection checkpoint is written even though no events are passing the projection event filter
 			Assert.AreEqual(
 				1,
@@ -55,14 +49,11 @@ public static class checkpoint_suggested
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_the_second_checkpoint_is_suggested<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-	{
-		protected override void Given()
-		{
+	public class when_the_second_checkpoint_is_suggested<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+		protected override void Given() {
 			_checkpointHandledThreshold = 10;
 			_checkpointUnhandledBytesThreshold = 41;
-			_configureBuilderByQuerySource = source =>
-			{
+			_configureBuilderByQuerySource = source => {
 				source.FromAll();
 				source.IncludeEvent("non-existing");
 			};
@@ -79,8 +70,7 @@ public static class checkpoint_suggested
 			AllWritesQueueUp();
 		}
 
-		protected override void When()
-		{
+		protected override void When() {
 			//projection subscribes here
 			_bus.Publish(
 				new EventReaderSubscriptionMessage.CheckpointSuggested(
@@ -95,8 +85,7 @@ public static class checkpoint_suggested
 		}
 
 		[Test]
-		public void a_projection_checkpoint_event_is_published()
-		{
+		public void a_projection_checkpoint_event_is_published() {
 			// projection checkpoint is written even though no events are passing the projection event filter
 			Assert.AreEqual(
 				1,
@@ -106,14 +95,11 @@ public static class checkpoint_suggested
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_the_second_checkpoint_is_suggested_and_write_succeeds<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-	{
-		protected override void Given()
-		{
+	public class when_the_second_checkpoint_is_suggested_and_write_succeeds<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+		protected override void Given() {
 			_checkpointHandledThreshold = 10;
 			_checkpointUnhandledBytesThreshold = 41;
-			_configureBuilderByQuerySource = source =>
-			{
+			_configureBuilderByQuerySource = source => {
 				source.FromAll();
 				source.IncludeEvent("non-existing");
 			};
@@ -125,8 +111,7 @@ public static class checkpoint_suggested
 			AllWritesSucceed();
 		}
 
-		protected override void When()
-		{
+		protected override void When() {
 			//projection subscribes here
 			_bus.Publish(
 				new EventReaderSubscriptionMessage.CheckpointSuggested(
@@ -141,8 +126,7 @@ public static class checkpoint_suggested
 		}
 
 		[Test]
-		public void a_projection_checkpoint_event_is_published()
-		{
+		public void a_projection_checkpoint_event_is_published() {
 			// projection checkpoint is written even though no events are passing the projection event filter
 			Assert.AreEqual(
 				2,

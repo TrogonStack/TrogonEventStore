@@ -70,8 +70,10 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 			Committed();
 		}
 		protected override void Committed() {
-			if (!_transactionWritten)
+			if (!_transactionWritten) {
 				return;
+			}
+
 			base.Committed();
 		}
 		protected override void ReturnCommitAt(long logPosition, long firstEvent, long lastEvent) {

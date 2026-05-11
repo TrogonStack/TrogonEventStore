@@ -12,8 +12,7 @@ using Serilog;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
-{
+public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId> {
 	private readonly ILogger _logger;
 	private readonly IMetastreamLookup<TStreamId> _metastreamLookup;
 	private readonly IChunkDeleter<TStreamId, TRecord> _chunkDeleter;
@@ -35,8 +34,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		int cancellationCheckPeriod,
 		bool isArchiver,
 		int threads,
-		Throttle throttle)
-	{
+		Throttle throttle) {
 
 		_logger = logger;
 		_metastreamLookup = metastreamLookup;
@@ -49,8 +47,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		_threads = Math.Clamp(threads, TFChunkScavenger.MinThreadCount, TFChunkScavenger.MaxThreadCount);
 		_throttle = throttle;
 
-		if (_threads != threads)
-		{
+		if (_threads != threads) {
 			_logger.Warning(
 				"SCAVENGING: Number of threads specified ({SpecifiedThreads}) is out of range. Clamping to {AdjustedThreads}",
 				threads, _threads);
@@ -61,8 +58,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		ScavengePoint scavengePoint,
 		IScavengeStateForChunkExecutor<TStreamId> state,
 		ITFChunkScavengerLog scavengerLogger,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		_logger.Debug("SCAVENGING: Started new scavenge chunk execution phase for {scavengePoint}",
 			scavengePoint.GetName());
@@ -78,8 +74,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		ScavengeCheckpoint.ExecutingChunks checkpoint,
 		IScavengeStateForChunkExecutor<TStreamId> state,
 		ITFChunkScavengerLog scavengerLogger,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		_logger.Debug("SCAVENGING: Executing chunks from checkpoint: {checkpoint}", checkpoint);
 
@@ -91,26 +86,24 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		var borrowedStates = new IScavengeStateForChunkExecutorWorker<TStreamId>[_threads];
 		var stopwatches = new Stopwatch[_threads];
 
-		for (var i = 0; i < borrowedStates.Length; i++)
-		{
+		for (var i = 0; i < borrowedStates.Length; i++) {
 			borrowedStates[i] = state.BorrowStateForWorker();
 			stopwatches[i] = new Stopwatch();
 		}
 
-		try
-		{
+		try {
 			await ParallelLoop.RunWithTrailingCheckpointAsync(
 				source: physicalChunks,
 				degreeOfParallelism: _threads,
 				getCheckpointInclusive: physicalChunk => physicalChunk.ChunkEndNumber,
-				getCheckpointExclusive: physicalChunk =>
-				{
-					if (physicalChunk.ChunkStartNumber == 0)
+				getCheckpointExclusive: physicalChunk => {
+					if (physicalChunk.ChunkStartNumber == 0) {
 						return null;
+					}
+
 					return physicalChunk.ChunkStartNumber - 1;
 				},
-				process: async (slot, physicalChunk, cancellationToken) =>
-				{
+				process: async (slot, physicalChunk, cancellationToken) => {
 					// this is called on other threads
 					var concurrentState = borrowedStates[slot];
 					var sw = stopwatches[slot];
@@ -121,8 +114,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 						physicalChunk.ChunkStartNumber,
 						physicalChunk.ChunkEndNumber);
 
-					if (physicalChunk.IsRemote)
-					{
+					if (physicalChunk.IsRemote) {
 						// Later the archiver node will scavenge remote chunks
 						// The other nodes will never scavenge them (because the archiver will)
 						_logger.Debug(
@@ -133,11 +125,10 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 
 					}
 					else if (await _chunkDeleter.DeleteIfNotRetained(
-						         scavengePoint,
-						         concurrentState,
-						         physicalChunk,
-						         cancellationToken))
-					{
+								 scavengePoint,
+								 concurrentState,
+								 physicalChunk,
+								 cancellationToken)) {
 
 						// delete occurs regardless of weight
 						// skip scavenging this chunk, still reset the weights
@@ -146,16 +137,14 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 							physicalChunk.ChunkEndNumber);
 
 					}
-					else if (_isArchiver)
-					{
+					else if (_isArchiver) {
 						_logger.Debug(
 							"SCAVENGING: Skipped physical chunk: {oldChunkName} " +
 							"with weight {physicalWeight:N0} because we are the archiver.",
 							physicalChunk.Name,
 							physicalWeight);
 					}
-					else if (physicalWeight > scavengePoint.Threshold || _unsafeIgnoreHardDeletes)
-					{
+					else if (physicalWeight > scavengePoint.Threshold || _unsafeIgnoreHardDeletes) {
 						await ExecutePhysicalChunk(
 							physicalWeight,
 							scavengePoint,
@@ -172,8 +161,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 							physicalChunk.ChunkStartNumber,
 							physicalChunk.ChunkEndNumber);
 					}
-					else
-					{
+					else {
 						_logger.Debug(
 							"SCAVENGING: Skipped physical chunk: {oldChunkName} " +
 							"with weight {physicalWeight:N0}. ",
@@ -183,8 +171,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 
 					cancellationToken.ThrowIfCancellationRequested();
 				},
-				emitCheckpoint: chunkEndNumber =>
-				{
+				emitCheckpoint: chunkEndNumber => {
 					// this is called on the thread that called the loop, which does not do any of
 					// the processing.
 					// it is called after an item has been processed and before the slot is used
@@ -194,22 +181,18 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 							scavengePoint,
 							chunkEndNumber));
 
-					if (_threads == 1)
-					{
+					if (_threads == 1) {
 						_throttle.Rest(cancellationToken);
 					}
-					else
-					{
+					else {
 						// validation rejects multithreaded scavenges with throttle < 100
 						// before execution reaches this path.
 					}
 				},
 				token: cancellationToken);
 		}
-		finally
-		{
-			for (var i = 0; i < borrowedStates.Length; i++)
-			{
+		finally {
+			for (var i = 0; i < borrowedStates.Length; i++) {
 				borrowedStates[i].Dispose();
 			}
 		}
@@ -217,20 +200,19 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 
 	private IEnumerable<IChunkReaderForExecutor<TStreamId, TRecord>> GetAllPhysicalChunks(
 		int startFromChunk,
-		ScavengePoint scavengePoint)
-	{
+		ScavengePoint scavengePoint) {
 
 		var scavengePos = _chunkSize * startFromChunk;
 		var upTo = scavengePoint.Position;
-		while (scavengePos < upTo)
-		{
+		while (scavengePos < upTo) {
 			// in bounds because we stop before the scavenge point
 			var physicalChunk = _chunkManager.GetChunkReaderFor(scavengePos);
 
-			if (!physicalChunk.IsReadOnly)
+			if (!physicalChunk.IsReadOnly) {
 				throw new Exception(
 					$"Reached open chunk before scavenge point. " +
 					$"Chunk {physicalChunk.ChunkStartNumber}. ScavengePoint: {upTo}.");
+			}
 
 			yield return physicalChunk;
 
@@ -245,8 +227,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		ITFChunkScavengerLog scavengerLogger,
 		IChunkReaderForExecutor<TStreamId, TRecord> sourceChunk,
 		Stopwatch sw,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		sw.Restart();
 
@@ -265,24 +246,21 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			chunkStartNumber, chunkEndNumber, chunkStartPos, chunkEndPos);
 
 		IChunkWriterForExecutor<TStreamId, TRecord> outputChunk;
-		try
-		{
+		try {
 			outputChunk = await _chunkManager.CreateChunkWriter(sourceChunk, cancellationToken);
 			_logger.Debug(
 				"SCAVENGING: Resulting temp chunk file: {tmpChunkPath}.",
 				Path.GetFileName(outputChunk.LocalFileName));
 
 		}
-		catch (IOException ex)
-		{
+		catch (IOException ex) {
 			_logger.Error(ex,
 				"IOException during creating new chunk for scavenging purposes. " +
 				"Stopping scavenging process...");
 			throw;
 		}
 
-		try
-		{
+		try {
 			var cancellationCheckCounter = 0;
 			var discardedCount = 0;
 			var keptCount = 0;
@@ -291,28 +269,22 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			var nonPrepareRecord = new RecordForExecutor<TStreamId, TRecord>.NonPrepare();
 			var prepareRecord = new RecordForExecutor<TStreamId, TRecord>.Prepare();
 
-			await foreach (var isPrepare in sourceChunk.ReadInto(nonPrepareRecord, prepareRecord, cancellationToken))
-			{
-				if (isPrepare)
-				{
-					if (ShouldDiscard(state, scavengePoint, prepareRecord))
-					{
+			await foreach (var isPrepare in sourceChunk.ReadInto(nonPrepareRecord, prepareRecord, cancellationToken)) {
+				if (isPrepare) {
+					if (ShouldDiscard(state, scavengePoint, prepareRecord)) {
 						discardedCount++;
 					}
-					else
-					{
+					else {
 						keptCount++;
 						await outputChunk.WriteRecord(prepareRecord, cancellationToken);
 					}
 				}
-				else
-				{
+				else {
 					keptCount++;
 					await outputChunk.WriteRecord(nonPrepareRecord, cancellationToken);
 				}
 
-				if (++cancellationCheckCounter == _cancellationCheckPeriod)
-				{
+				if (++cancellationCheckCounter == _cancellationCheckPeriod) {
 					cancellationCheckCounter = 0;
 					cancellationToken.ThrowIfCancellationRequested();
 				}
@@ -343,8 +315,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			scavengerLogger.ChunksScavenged(chunkStartNumber, chunkEndNumber, elapsed, spaceSaved);
 
 		}
-		catch (FileBeingDeletedException exc)
-		{
+		catch (FileBeingDeletedException exc) {
 			_logger.Information(
 				"SCAVENGING: Got FileBeingDeletedException exception during scavenging, that probably means some chunks were re-replicated."
 				+ "\nStopping scavenging and removing temp chunk '{tmpChunkPath}'..."
@@ -356,15 +327,13 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			throw;
 
 		}
-		catch (OperationCanceledException)
-		{
+		catch (OperationCanceledException) {
 			_logger.Information("SCAVENGING: Cancelled at: {oldChunkName}", oldChunkName);
 			outputChunk.Abort(deleteImmediately: false);
 			throw;
 
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_logger.Information(
 				ex,
 				"SCAVENGING: Got exception while scavenging chunk: #{chunkStartNumber}-{chunkEndNumber}.",
@@ -378,48 +347,41 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 	private bool ShouldDiscard(
 		IScavengeStateForChunkExecutorWorker<TStreamId> state,
 		ScavengePoint scavengePoint,
-		RecordForExecutor<TStreamId, TRecord>.Prepare record)
-	{
+		RecordForExecutor<TStreamId, TRecord>.Prepare record) {
 
 		// the discard points ought to be sufficient, but sometimes this will be quicker
 		// and it is a nice safety net
-		if (record.LogPosition >= scavengePoint.Position)
+		if (record.LogPosition >= scavengePoint.Position) {
 			return false;
+		}
 
 		var details = GetStreamExecutionDetails(
 			state,
 			record.StreamId);
 
-		if (!record.IsSelfCommitted)
-		{
+		if (!record.IsSelfCommitted) {
 			// deal with transactions first. since it is not self committed, this prepare is
 			// associated with an explicit transaction. is one of: begin, data, end.
-			if (details.IsTombstoned)
-			{
+			if (details.IsTombstoned) {
 				// explicit transaction in a tombstoned stream.
-				if (_unsafeIgnoreHardDeletes)
-				{
+				if (_unsafeIgnoreHardDeletes) {
 					// remove all prepares including the tombstone
 					return true;
 				}
-				else
-				{
+				else {
 					// remove all the prepares except
 					// - the tombstone itself and
 					// - any TransactionBegins (because old scavenge keeps these if there is any
 					//   doubt about whether it has been committed)
-					if (record.IsTombstone || record.IsTransactionBegin)
-					{
+					if (record.IsTombstone || record.IsTransactionBegin) {
 						return false;
 					}
-					else
-					{
+					else {
 						return true;
 					}
 				}
 			}
-			else
-			{
+			else {
 				// keep it all.
 				// we could discard from transactions sometimes, either by accumulating a state for them
 				// or doing a similar trick as old scavenge and limiting it to transactions that were
@@ -430,10 +392,8 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			}
 		}
 
-		if (details.IsTombstoned)
-		{
-			if (_unsafeIgnoreHardDeletes)
-			{
+		if (details.IsTombstoned) {
+			if (_unsafeIgnoreHardDeletes) {
 				// remove _everything_ for metadata and original streams
 				_logger.Information(
 					"SCAVENGING: Removing hard deleted stream tombstone for stream {stream} at position {transactionPosition}",
@@ -441,8 +401,7 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 				return true;
 			}
 
-			if (_metastreamLookup.IsMetaStream(record.StreamId))
-			{
+			if (_metastreamLookup.IsMetaStream(record.StreamId)) {
 				// when the original stream is tombstoned we can discard the _whole_ metadata stream
 				return true;
 			}
@@ -451,21 +410,18 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		}
 
 		// if discardPoint says discard then discard.
-		if (details.DiscardPoint.ShouldDiscard(record.EventNumber))
-		{
+		if (details.DiscardPoint.ShouldDiscard(record.EventNumber)) {
 			return true;
 		}
 
 		// if maybeDiscardPoint says discard then maybe we can discard - depends on maxage
-		if (!details.MaybeDiscardPoint.ShouldDiscard(record.EventNumber))
-		{
+		if (!details.MaybeDiscardPoint.ShouldDiscard(record.EventNumber)) {
 			// both discard points said do not discard, so dont.
 			return false;
 		}
 
 		// discard said no, but maybe discard said yes
-		if (!details.MaxAge.HasValue)
-		{
+		if (!details.MaxAge.HasValue) {
 			return false;
 		}
 
@@ -474,13 +430,10 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 
 	private ChunkExecutionInfo GetStreamExecutionDetails(
 		IScavengeStateForChunkExecutorWorker<TStreamId> state,
-		TStreamId streamId)
-	{
+		TStreamId streamId) {
 
-		if (_metastreamLookup.IsMetaStream(streamId))
-		{
-			if (!state.TryGetMetastreamData(streamId, out var metastreamData))
-			{
+		if (_metastreamLookup.IsMetaStream(streamId)) {
+			if (!state.TryGetMetastreamData(streamId, out var metastreamData)) {
 				metastreamData = MetastreamData.Empty;
 			}
 
@@ -490,15 +443,12 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 				maybeDiscardPoint: DiscardPoint.KeepAll,
 				maxAge: null);
 		}
-		else
-		{
+		else {
 			// original stream
-			if (state.TryGetChunkExecutionInfo(streamId, out var details))
-			{
+			if (state.TryGetChunkExecutionInfo(streamId, out var details)) {
 				return details;
 			}
-			else
-			{
+			else {
 				return new ChunkExecutionInfo(
 					isTombstoned: false,
 					discardPoint: DiscardPoint.KeepAll,

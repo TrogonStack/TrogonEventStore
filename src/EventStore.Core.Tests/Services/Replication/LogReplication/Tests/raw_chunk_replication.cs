@@ -7,8 +7,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LogReplication.Tests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
-{
+public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> {
 	private const int NumCheckpoints = 1 + /* chunk 0-0 (raw): 1 chunk completion */
 									   1 + /* chunk 1-2 (raw): 1 chunk completion */
 									   4 + /* chunk 3-3 (non-raw): 3 complete transactions, 1 chunk completion */
@@ -20,10 +19,8 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 
 	private const int NumLogicalChunks = 11;
 
-	protected override async Task CreateChunks(TFChunkDb db)
-	{
-		LogFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+	protected override async Task CreateChunks(TFChunkDb db) {
+		LogFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = Path.Combine(db.Config.Path, "index")
 		});
 
@@ -48,8 +45,7 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 
 
 	[Test]
-	public async Task can_replicate()
-	{
+	public async Task can_replicate() {
 		await ConnectReplica();
 		await Replicated();
 
@@ -58,8 +54,7 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 	}
 
 	[Test]
-	public async Task can_replicate_when_interrupted_in_raw_chunk_then_resumed()
-	{
+	public async Task can_replicate_when_interrupted_in_raw_chunk_then_resumed() {
 		await ConnectReplica(pauseReplication: true);
 		await ResumeReplicationUntil(
 			rawChunkStartNumber: 1,
@@ -79,8 +74,7 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 	}
 
 	[Test]
-	public async Task can_replicate_when_interrupted_at_boundary_of_raw_chunk_with_complete_transactions_then_resumed()
-	{
+	public async Task can_replicate_when_interrupted_at_boundary_of_raw_chunk_with_complete_transactions_then_resumed() {
 		await ConnectReplica(pauseReplication: true);
 		await ResumeReplicationUntil(
 			rawChunkStartNumber: 1,
@@ -100,8 +94,7 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 	}
 
 	[Test]
-	public async Task can_replicate_when_interrupted_at_boundary_of_raw_chunk_with_incomplete_transactions_then_resumed()
-	{
+	public async Task can_replicate_when_interrupted_at_boundary_of_raw_chunk_with_incomplete_transactions_then_resumed() {
 		await ConnectReplica(pauseReplication: true);
 		await ResumeReplicationUntil(maxLogPosition: 3 * ChunkSize, expectedFlushes: 2);
 
@@ -117,8 +110,7 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 	}
 
 	[Test]
-	public async Task can_replicate_when_interrupted_at_boundary_of_raw_chunk_with_no_transactions_then_resumed()
-	{
+	public async Task can_replicate_when_interrupted_at_boundary_of_raw_chunk_with_no_transactions_then_resumed() {
 		await ConnectReplica(pauseReplication: true);
 		await ResumeReplicationUntil(
 			rawChunkStartNumber: 6,
@@ -138,8 +130,7 @@ public class raw_chunk_replication<TLogFormat, TStreamId> : LogReplicationWithEx
 	}
 
 	[Test]
-	public async Task can_replicate_when_interrupted_in_data_chunk_then_resumed()
-	{
+	public async Task can_replicate_when_interrupted_in_data_chunk_then_resumed() {
 		await ConnectReplica(pauseReplication: true);
 		await ResumeReplicationUntil(maxLogPosition: 3 * ChunkSize + 5 * DataSize, expectedFlushes: 4);
 

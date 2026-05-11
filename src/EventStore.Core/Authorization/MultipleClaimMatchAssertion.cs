@@ -12,14 +12,17 @@ namespace EventStore.Core.Authorization {
 		private readonly MultipleMatchMode _mode;
 
 		public MultipleClaimMatchAssertion(Grant grant, MultipleMatchMode mode, params Claim[] claims) {
-			if (claims.Length == 0) throw new ArgumentException("Value cannot be an empty collection.", nameof(claims));
-
+			if (claims.Length == 0) {
+				throw new ArgumentException("Value cannot be an empty collection.", nameof(claims));
+			}
 
 			_mode = mode;
 			Grant = grant;
 			_claims = claims.OrderBy(x => x.Type).ToArray();
 			var sb = new StringBuilder();
-			foreach (var claim in _claims) sb.AppendLine($"{claim.Type} {claim.Value}");
+			foreach (var claim in _claims) {
+				sb.AppendLine($"{claim.Type} {claim.Value}");
+			}
 
 			var assertion = sb.ToString();
 			Information = mode switch {
@@ -38,13 +41,16 @@ namespace EventStore.Core.Authorization {
 			EvaluationContext context) {
 			var matches = new List<Claim>(_claims.Count);
 
-			foreach (var claim in _claims)
+			foreach (var claim in _claims) {
 				if (cp.FindFirst(x =>
 					string.Equals(x.Type, claim.Type, StringComparison.Ordinal) &&
 					string.Equals(x.Value, claim.Value, StringComparison.Ordinal)) is Claim matched) {
 					matches.Add(matched);
-					if (_mode != MultipleMatchMode.All) break;
+					if (_mode != MultipleMatchMode.All) {
+						break;
+					}
 				}
+			}
 
 			var matchFound = false;
 			switch (_mode) {
@@ -80,18 +86,25 @@ namespace EventStore.Core.Authorization {
 
 		public int CompareTo(MultipleClaimMatchAssertion other) {
 			var grant = Grant.CompareTo(other.Grant);
-			if (grant != 0)
+			if (grant != 0) {
 				return grant * -1;
+			}
+
 			var length = Comparer<int>.Default.Compare(_claims.Count, other._claims.Count);
-			if (length != 0)
+			if (length != 0) {
 				return length;
+			}
+
 			for (int i = 0; i < _claims.Count; i++) {
 				var type = string.CompareOrdinal(_claims[i].Type, other._claims[i].Type);
-				if (type != 0)
+				if (type != 0) {
 					return type;
+				}
+
 				var value = string.CompareOrdinal(_claims[i].Value, other._claims[i].Value);
-				if (value != 0)
+				if (value != 0) {
 					return value;
+				}
 			}
 
 			return 0;

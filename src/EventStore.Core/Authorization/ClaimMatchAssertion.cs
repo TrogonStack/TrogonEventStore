@@ -31,15 +31,20 @@ namespace EventStore.Core.Authorization {
 		}
 
 		public int CompareTo(ClaimMatchAssertion other) {
-			if (other == null)
+			if (other == null) {
 				throw new ArgumentNullException(nameof(other));
+			}
 
 			var grant = Grant.CompareTo(other.Grant);
-			if (grant != 0)
+			if (grant != 0) {
 				return grant * -1;
+			}
+
 			var type = string.CompareOrdinal(_claim.Type, other._claim.Type);
-			if (type != 0)
+			if (type != 0) {
 				return type;
+			}
+
 			return string.CompareOrdinal(_claim.Value, other._claim.Value);
 		}
 	}

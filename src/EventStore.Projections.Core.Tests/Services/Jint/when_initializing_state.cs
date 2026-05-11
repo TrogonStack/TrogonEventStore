@@ -9,10 +9,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_initializing_state : TestFixtureWithInterpretedProjection
-{
-	protected override void Given()
-	{
+public class when_initializing_state : TestFixtureWithInterpretedProjection {
+	protected override void Given() {
 		_projection = @"
                 fromAll().when({
                     $init: function() {
@@ -27,8 +25,7 @@ public class when_initializing_state : TestFixtureWithInterpretedProjection
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_should_return_initialized_state()
-	{
+	public void process_event_should_return_initialized_state() {
 		string state;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category",
@@ -37,8 +34,7 @@ public class when_initializing_state : TestFixtureWithInterpretedProjection
 	}
 
 	[Test, Category(_projectionType)]
-	public void transform_state_should_return_initialized_state()
-	{
+	public void transform_state_should_return_initialized_state() {
 		var result = _stateHandler.TransformStateToResult();
 		Assert.IsTrue(result.Contains("\"test\":\"1\""));
 	}

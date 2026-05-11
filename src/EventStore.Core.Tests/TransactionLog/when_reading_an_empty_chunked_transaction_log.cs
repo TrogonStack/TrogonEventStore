@@ -13,11 +13,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenReadingAnEmptyChunkedTransactionLog<TLogFormat, TStreamId> : SpecificationWithDirectory
-{
+public class WhenReadingAnEmptyChunkedTransactionLog<TLogFormat, TStreamId> : SpecificationWithDirectory {
 	[Test]
-	public async Task try_read_returns_false_when_writer_checksum_is_zero()
-	{
+	public async Task try_read_returns_false_when_writer_checksum_is_zero() {
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(0);
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
@@ -28,8 +26,7 @@ public class WhenReadingAnEmptyChunkedTransactionLog<TLogFormat, TStreamId> : Sp
 	}
 
 	[Test]
-	public async Task try_read_does_not_cache_anything_and_returns_record_once_it_is_written_later()
-	{
+	public async Task try_read_does_not_cache_anything_and_returns_record_once_it_is_written_later() {
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(0);
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));

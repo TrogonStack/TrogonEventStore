@@ -1,7 +1,6 @@
 namespace EventStore.Projections.Core.Messages;
 
-public interface IQuerySources
-{
+public interface IQuerySources {
 	bool AllStreams { get; }
 
 	string[] Categories { get; }
@@ -39,22 +38,18 @@ public interface IQuerySources
 	long? LimitingCommitPosition { get; }
 }
 
-public static class QuerySourcesExtensions
-{
-	public static bool HasStreams(this IQuerySources sources)
-	{
+public static class QuerySourcesExtensions {
+	public static bool HasStreams(this IQuerySources sources) {
 		var streams = sources.Streams;
 		return streams != null && streams.Length > 0;
 	}
 
-	public static bool HasCategories(this IQuerySources sources)
-	{
+	public static bool HasCategories(this IQuerySources sources) {
 		var categories = sources.Categories;
 		return categories != null && categories.Length > 0;
 	}
 
-	public static bool HasEvents(this IQuerySources sources)
-	{
+	public static bool HasEvents(this IQuerySources sources) {
 		var events = sources.Events;
 		return events != null && events.Length > 0;
 	}

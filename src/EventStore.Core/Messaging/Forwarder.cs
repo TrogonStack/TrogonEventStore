@@ -59,10 +59,13 @@ namespace EventStore.Core.Messaging {
 
 			public void Handle(T message) {
 				var last = _last;
-				if (last == _to.Count - 1)
+				if (last == _to.Count - 1) {
 					_last = 0;
-				else
+				}
+				else {
 					_last = last + 1;
+				}
+
 				_to[_last].Publish(message);
 			}
 		}

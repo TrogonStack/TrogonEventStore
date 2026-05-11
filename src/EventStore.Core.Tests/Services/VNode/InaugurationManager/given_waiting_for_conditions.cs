@@ -6,10 +6,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode.InaugurationManagement;
 
 [TestFixture]
-public class given_waiting_for_conditions : InaugurationManagerTests
-{
-	protected override void Given()
-	{
+public class given_waiting_for_conditions : InaugurationManagerTests {
+	protected override void Given() {
 		_sut.Handle(new ElectionMessage.ElectionsDone(123, _epochNumber, _leader));
 		_sut.Handle(new SystemMessage.BecomePreLeader(_correlationId1));
 		_sut.Handle(new SystemMessage.ChaserCaughtUp(_correlationId1));
@@ -18,8 +16,7 @@ public class given_waiting_for_conditions : InaugurationManagerTests
 	}
 
 	[Test]
-	public void when_transition_triggered_by_indexedto()
-	{
+	public void when_transition_triggered_by_indexedto() {
 		ProgressReplication();
 		ProgressIndexing();
 		CompleteReplication();
@@ -32,8 +29,7 @@ public class given_waiting_for_conditions : InaugurationManagerTests
 	}
 
 	[Test]
-	public void when_transition_triggered_by_replicatedto()
-	{
+	public void when_transition_triggered_by_replicatedto() {
 		ProgressReplication();
 		ProgressIndexing();
 		CompleteReplication();
@@ -46,8 +42,7 @@ public class given_waiting_for_conditions : InaugurationManagerTests
 	}
 
 	[Test]
-	public void when_transition_triggered_by_checkconditions()
-	{
+	public void when_transition_triggered_by_checkconditions() {
 		CompleteReplication();
 		CompleteIndexing();
 		Assert.IsEmpty(_publisher.Messages);
@@ -62,8 +57,7 @@ public class given_waiting_for_conditions : InaugurationManagerTests
 	}
 
 	[Test]
-	public void cant_become_leader_twice()
-	{
+	public void cant_become_leader_twice() {
 		CompleteReplication();
 		CompleteIndexing();
 		Assert.IsEmpty(_publisher.Messages);
@@ -75,29 +69,25 @@ public class given_waiting_for_conditions : InaugurationManagerTests
 	}
 
 	[Test]
-	public void when_epoch_written()
-	{
+	public void when_epoch_written() {
 		When(GenEpoch(_epochNumber));
 		Assert.IsEmpty(_publisher.Messages);
 	}
 
 	[Test]
-	public void when_chaser_caught_up()
-	{
+	public void when_chaser_caught_up() {
 		When(new SystemMessage.ChaserCaughtUp(_correlationId1));
 		Assert.IsEmpty(_publisher.Messages);
 	}
 
 	[Test]
-	public void when_become_pre_leader()
-	{
+	public void when_become_pre_leader() {
 		When(new SystemMessage.BecomePreLeader(_correlationId2));
 		AssertWaitingForChaser(_correlationId2);
 	}
 
 	[Test]
-	public void when_become_other_node_state()
-	{
+	public void when_become_other_node_state() {
 		When(new SystemMessage.BecomeUnknown(Guid.NewGuid()));
 		AssertInitial();
 	}

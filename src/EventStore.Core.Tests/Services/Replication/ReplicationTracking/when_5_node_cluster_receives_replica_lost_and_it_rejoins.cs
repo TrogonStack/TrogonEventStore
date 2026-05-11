@@ -6,8 +6,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.ReplicationTracking;
 
 [TestFixture]
-public class when_5_node_cluster_receives_replica_lost_and_it_rejoins : with_clustered_replication_tracking_service
-{
+public class when_5_node_cluster_receives_replica_lost_and_it_rejoins : with_clustered_replication_tracking_service {
 	//n.b. the replica may get a new id, but we shouldn't fail if it doesn't
 
 	private readonly long _logPosition = 4000;
@@ -17,8 +16,7 @@ public class when_5_node_cluster_receives_replica_lost_and_it_rejoins : with_clu
 
 	protected override int ClusterSize => 5;
 
-	public override void When()
-	{
+	public override void When() {
 		BecomeLeader();
 		WriterCheckpoint.Write(_logPosition);
 		WriterCheckpoint.Flush();
@@ -39,15 +37,13 @@ public class when_5_node_cluster_receives_replica_lost_and_it_rejoins : with_clu
 	}
 
 	[Test]
-	public void replicated_to_should_be_sent()
-	{
+	public void replicated_to_should_be_sent() {
 		AssertEx.IsOrBecomesTrue(() => 1 == ReplicatedTos.Count);
 		Assert.True(ReplicatedTos.TryDequeue(out var msg));
 		Assert.AreEqual(_logPosition2, msg.LogPosition);
 	}
 	[Test]
-	public void replication_checkpoint_should_advance()
-	{
+	public void replication_checkpoint_should_advance() {
 		Assert.AreEqual(_logPosition2, ReplicationCheckpoint.Read());
 		Assert.AreEqual(_logPosition2, ReplicationCheckpoint.ReadNonFlushed());
 	}

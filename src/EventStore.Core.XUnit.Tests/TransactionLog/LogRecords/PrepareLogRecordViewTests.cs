@@ -7,8 +7,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.LogRecords;
 
-public class PrepareLogRecordViewTests
-{
+public class PrepareLogRecordViewTests {
 	private PrepareLogRecordView _prepare;
 	private const long LogPosition = 123;
 	private readonly Guid _correlationId = Guid.NewGuid();
@@ -24,8 +23,7 @@ public class PrepareLogRecordViewTests
 	private readonly byte[] _metadata = { 0XC0, 0xDE };
 	private const byte Version = 1;
 
-	public PrepareLogRecordViewTests()
-	{
+	public PrepareLogRecordViewTests() {
 		var prepare = new PrepareLogRecord(
 			LogPosition,
 			_correlationId,
@@ -53,8 +51,7 @@ public class PrepareLogRecordViewTests
 	}
 
 	[Fact]
-	public void should_have_correct_properties()
-	{
+	public void should_have_correct_properties() {
 		Assert.Equal(LogPosition, _prepare.LogPosition);
 		Assert.Equal(_correlationId, _prepare.CorrelationId);
 		Assert.Equal(_eventId, _prepare.EventId);

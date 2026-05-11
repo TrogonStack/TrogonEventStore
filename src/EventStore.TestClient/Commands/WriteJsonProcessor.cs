@@ -9,36 +9,34 @@ using EventStore.Core.Services.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class WriteJsonProcessor : ICmdProcessor
-{
-	public string Usage
-	{
+internal class WriteJsonProcessor : ICmdProcessor {
+	public string Usage {
 		get { return "WRJ [<stream-id> <expected-version> <data> [<metadata>]]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "WRJ"; }
 	}
 
 	private readonly Random _random = new Random();
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		var eventStreamId = "test-stream";
 		var expectedVersion = ExpectedVersion.Any;
 		var data = GenerateTestData();
 		string metadata = null;
 
-		if (args.Length > 0)
-		{
-			if (args.Length < 3 || args.Length > 4)
+		if (args.Length > 0) {
+			if (args.Length < 3 || args.Length > 4) {
 				return false;
+			}
+
 			eventStreamId = args[0];
 			expectedVersion = args[1].ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
 			data = args[2];
-			if (args.Length == 4)
+			if (args.Length == 4) {
 				metadata = args[3];
+			}
 		}
 
 		context.IsAsync();
@@ -60,17 +58,14 @@ internal class WriteJsonProcessor : ICmdProcessor
 
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn =>
-			{
+			connectionEstablished: conn => {
 				context.Log.Information("[{remoteEndPoint}, L{localEndPoint}]: Writing...", conn.RemoteEndPoint,
 					conn.LocalEndPoint);
 				sw.Start();
 				conn.EnqueueSend(package.AsByteArray());
 			},
-			handlePackage: (conn, pkg) =>
-			{
-				if (pkg.Command != TcpCommand.WriteEventsCompleted)
-				{
+			handlePackage: (conn, pkg) => {
+				if (pkg.Command != TcpCommand.WriteEventsCompleted) {
 					context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 					return;
 				}
@@ -79,14 +74,12 @@ internal class WriteJsonProcessor : ICmdProcessor
 				sw.Stop();
 
 				var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-				if (dto.Result == OperationResult.Success)
-				{
+				if (dto.Result == OperationResult.Success) {
 					context.Log.Information("Successfully written. EventId: {correlationId}.", package.CorrelationId);
 					PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 						(int)Math.Round(sw.Elapsed.TotalMilliseconds));
 				}
-				else
-				{
+				else {
 					context.Log.Information("Error while writing: {message} ({e}).", dto.Message, dto.Result);
 				}
 
@@ -94,35 +87,32 @@ internal class WriteJsonProcessor : ICmdProcessor
 				conn.Close();
 				context.Success();
 			},
-			connectionClosed: (connection, error) =>
-			{
-				if (dataReceived && error == SocketError.Success)
+			connectionClosed: (connection, error) => {
+				if (dataReceived && error == SocketError.Success) {
 					context.Success();
-				else
+				}
+				else {
 					context.Fail();
+				}
 			});
 
 		context.WaitForCompletion();
 		return true;
 	}
 
-	private string GenerateTestData()
-	{
+	private string GenerateTestData() {
 		return TestClientJson.To(new TestData(Guid.NewGuid().ToString(), _random.Next(1, 101)));
 	}
 }
 
-internal class TestData
-{
+internal class TestData {
 	public string Name { get; set; }
 	public int Version { get; set; }
 
-	public TestData()
-	{
+	public TestData() {
 	}
 
-	public TestData(string name, int version)
-	{
+	public TestData(string name, int version) {
 		Name = name;
 		Version = version;
 	}

@@ -16,8 +16,7 @@ using EventStore.Projections.Core.Services.Processing.Subscriptions;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public class ReaderStrategy : IReaderStrategy
-{
+public class ReaderStrategy : IReaderStrategy {
 	private readonly bool _allStreams;
 	private readonly HashSet<string> _categories;
 	private readonly HashSet<string> _streams;
@@ -43,41 +42,52 @@ public class ReaderStrategy : IReaderStrategy
 		IQuerySources sources,
 		ITimeProvider timeProvider,
 		bool stopOnEof,
-		ClaimsPrincipal runAs)
-	{
-		if (!sources.AllStreams && !sources.HasCategories() && !sources.HasStreams())
+		ClaimsPrincipal runAs) {
+		if (!sources.AllStreams && !sources.HasCategories() && !sources.HasStreams()) {
 			throw new InvalidOperationException("None of streams and categories are included");
-		if (!sources.AllEvents && !sources.HasEvents())
+		}
+
+		if (!sources.AllEvents && !sources.HasEvents()) {
 			throw new InvalidOperationException("None of events are included");
-		if (sources.HasStreams() && sources.HasCategories())
+		}
+
+		if (sources.HasStreams() && sources.HasCategories()) {
 			throw new InvalidOperationException(
 				"Streams and categories cannot be included in a filter at the same time");
-		if (sources.AllStreams && (sources.HasCategories() || sources.HasStreams()))
-			throw new InvalidOperationException("Both FromAll and specific categories/streams cannot be set");
-		if (sources.AllEvents && sources.HasEvents())
-			throw new InvalidOperationException("Both AllEvents and specific event filters cannot be set");
+		}
 
-		if (sources.ByStreams && sources.HasStreams())
+		if (sources.AllStreams && (sources.HasCategories() || sources.HasStreams())) {
+			throw new InvalidOperationException("Both FromAll and specific categories/streams cannot be set");
+		}
+
+		if (sources.AllEvents && sources.HasEvents()) {
+			throw new InvalidOperationException("Both AllEvents and specific event filters cannot be set");
+		}
+
+		if (sources.ByStreams && sources.HasStreams()) {
 			throw new InvalidOperationException(
 				"foreachStream projections are not supported on stream based sources");
+		}
 
-		if (sources.ReorderEventsOption)
-		{
-			if (sources.AllStreams)
+		if (sources.ReorderEventsOption) {
+			if (sources.AllStreams) {
 				throw new InvalidOperationException("Event reordering cannot be used with fromAll()");
-			if (!(sources.HasStreams() && sources.Streams.Length > 1))
-			{
+			}
+
+			if (!(sources.HasStreams() && sources.Streams.Length > 1)) {
 				throw new InvalidOperationException(
 					"Event reordering is only available in fromStreams([]) projections");
 			}
 
-			if (sources.ProcessingLagOption < 50)
+			if (sources.ProcessingLagOption < 50) {
 				throw new InvalidOperationException("Event reordering requires processing lag at least of 50ms");
+			}
 		}
 
-		if (sources.HandlesDeletedNotifications && !sources.ByStreams)
+		if (sources.HandlesDeletedNotifications && !sources.ByStreams) {
 			throw new InvalidOperationException(
 				"Deleted stream notifications are only supported with foreachStream()");
+		}
 
 		var readerStrategy = new ReaderStrategy(
 			tag,
@@ -109,8 +119,7 @@ public class ReaderStrategy : IReaderStrategy
 		int? processingLag,
 		bool reorderEvents,
 		ClaimsPrincipal runAs,
-		ITimeProvider timeProvider)
-	{
+		ITimeProvider timeProvider) {
 		_tag = tag;
 		_phase = phase;
 		_allStreams = allStreams;
@@ -129,31 +138,26 @@ public class ReaderStrategy : IReaderStrategy
 		_timeProvider = timeProvider;
 	}
 
-	public bool IsReadingOrderRepeatable
-	{
+	public bool IsReadingOrderRepeatable {
 		get { return !(_streams != null && _streams.Count > 1); }
 	}
 
-	public EventFilter EventFilter
-	{
+	public EventFilter EventFilter {
 		get { return _eventFilter; }
 	}
 
-	public PositionTagger PositionTagger
-	{
+	public PositionTagger PositionTagger {
 		get { return _positionTagger; }
 	}
 
-	public int Phase
-	{
+	public int Phase {
 		get { return _phase; }
 	}
 
 	public IReaderSubscription CreateReaderSubscription(
 		IPublisher publisher, CheckpointTag fromCheckpointTag, Guid subscriptionId,
-		ReaderSubscriptionOptions readerSubscriptionOptions)
-	{
-		if (_reorderEvents)
+		ReaderSubscriptionOptions readerSubscriptionOptions) {
+		if (_reorderEvents) {
 			return new EventReorderingReaderSubscription(
 				publisher,
 				subscriptionId,
@@ -167,7 +171,8 @@ public class ReaderStrategy : IReaderStrategy
 				readerSubscriptionOptions.StopOnEof,
 				readerSubscriptionOptions.StopAfterNEvents,
 				readerSubscriptionOptions.EnableContentTypeValidation);
-		else
+		}
+		else {
 			return new ReaderSubscription(
 				_tag,
 				publisher,
@@ -181,30 +186,27 @@ public class ReaderStrategy : IReaderStrategy
 				readerSubscriptionOptions.StopOnEof,
 				readerSubscriptionOptions.StopAfterNEvents,
 				readerSubscriptionOptions.EnableContentTypeValidation);
+		}
 	}
 
 	public IEventReader CreatePausedEventReader(
 		Guid eventReaderId, IPublisher publisher, IODispatcher ioDispatcher, CheckpointTag checkpointTag,
-		bool stopOnEof, int? stopAfterNEvents)
-	{
-		if (_allStreams && _events != null && _events.Count >= 1)
-		{
+		bool stopOnEof, int? stopAfterNEvents) {
+		if (_allStreams && _events != null && _events.Count >= 1) {
 			//IEnumerable<string> streams = GetEventIndexStreams();
 			return CreatePausedEventIndexEventReader(
 				eventReaderId, ioDispatcher, publisher, checkpointTag, stopOnEof, stopAfterNEvents, true, _events,
 				_includeStreamDeletedNotification);
 		}
 
-		if (_allStreams)
-		{
+		if (_allStreams) {
 			var eventReader = new TransactionFileEventReader(publisher, eventReaderId, _runAs,
 				new TFPos(checkpointTag.CommitPosition.Value, checkpointTag.PreparePosition.Value), _timeProvider,
 				deliverEndOfTFPosition: true, stopOnEof: stopOnEof, resolveLinkTos: false);
 			return eventReader;
 		}
 
-		if (_streams != null && _streams.Count == 1)
-		{
+		if (_streams != null && _streams.Count == 1) {
 			var streamName = checkpointTag.Streams.Keys.First();
 			//TODO: handle if not the same
 			return CreatePausedStreamEventReader(
@@ -212,16 +214,14 @@ public class ReaderStrategy : IReaderStrategy
 				stopAfterNEvents: stopAfterNEvents, produceStreamDeletes: _includeStreamDeletedNotification);
 		}
 
-		if (_categories != null && _categories.Count == 1)
-		{
+		if (_categories != null && _categories.Count == 1) {
 			var streamName = checkpointTag.Streams.Keys.First();
 			return CreatePausedStreamEventReader(
 				eventReaderId, ioDispatcher, publisher, checkpointTag, streamName, stopOnEof, resolveLinkTos: true,
 				stopAfterNEvents: stopAfterNEvents, produceStreamDeletes: _includeStreamDeletedNotification);
 		}
 
-		if (_streams != null && _streams.Count > 1)
-		{
+		if (_streams != null && _streams.Count > 1) {
 			return CreatePausedMultiStreamEventReader(
 				eventReaderId, ioDispatcher, publisher, checkpointTag, stopOnEof, stopAfterNEvents, true, _streams);
 		}
@@ -231,44 +231,67 @@ public class ReaderStrategy : IReaderStrategy
 
 	//TODO: clean up $deleted event notification vs $streamDeleted event
 
-	private EventFilter CreateEventFilter()
-	{
-		if (_allStreams && _events != null && _events.Count >= 1)
+	private EventFilter CreateEventFilter() {
+		if (_allStreams && _events != null && _events.Count >= 1) {
 			return new EventByTypeIndexEventFilter(_events);
-		if (_allStreams)
+		}
+
+		if (_allStreams) {
 			//NOTE: a projection cannot handle both stream deleted notifications
 			// and real stream tombstone/stream deleted events as they have the same position
 			// and thus processing cannot be correctly checkpointed
 			return new TransactionFileEventFilter(
 				_allEvents, !_includeStreamDeletedNotification, _events, includeLinks: _includeLinks);
-		if (_categories != null && _categories.Count == 1)
+		}
+
+		if (_categories != null && _categories.Count == 1) {
 			return new CategoryEventFilter(_categories.First(), _allEvents, _events);
-		if (_categories != null)
+		}
+
+		if (_categories != null) {
 			throw new NotSupportedException();
-		if (_streams != null && _streams.Count == 1)
+		}
+
+		if (_streams != null && _streams.Count == 1) {
 			return new StreamEventFilter(_streams.First(), _allEvents, _events);
-		if (_streams != null && _streams.Count > 1)
+		}
+
+		if (_streams != null && _streams.Count > 1) {
 			return new MultiStreamEventFilter(_streams, _allEvents, _events);
+		}
+
 		throw new NotSupportedException();
 	}
 
-	private PositionTagger CreatePositionTagger()
-	{
-		if (_allStreams && _events != null && _events.Count >= 1)
+	private PositionTagger CreatePositionTagger() {
+		if (_allStreams && _events != null && _events.Count >= 1) {
 			return new EventByTypeIndexPositionTagger(_phase, _events.ToArray(), _includeStreamDeletedNotification);
-		if (_allStreams && _reorderEvents)
+		}
+
+		if (_allStreams && _reorderEvents) {
 			return new PreparePositionTagger(_phase);
-		if (_allStreams)
+		}
+
+		if (_allStreams) {
 			return new TransactionFilePositionTagger(_phase);
-		if (_categories != null && _categories.Count == 1)
+		}
+
+		if (_categories != null && _categories.Count == 1) {
 			//TODO: '-' is a hardcoded separator
 			return new StreamPositionTagger(_phase, "$ce-" + _categories.First());
-		if (_categories != null)
+		}
+
+		if (_categories != null) {
 			throw new NotSupportedException();
-		if (_streams != null && _streams.Count == 1)
+		}
+
+		if (_streams != null && _streams.Count == 1) {
 			return new StreamPositionTagger(_phase, _streams.First());
-		if (_streams != null && _streams.Count > 1)
+		}
+
+		if (_streams != null && _streams.Count > 1) {
 			return new MultiStreamPositionTagger(_phase, _streams.ToArray());
+		}
 		//TODO: consider passing projection phase from outside (above)
 		throw new NotSupportedException();
 	}
@@ -276,8 +299,7 @@ public class ReaderStrategy : IReaderStrategy
 
 	private IEventReader CreatePausedStreamEventReader(
 		Guid eventReaderId, IODispatcher ioDispatcher, IPublisher publisher, CheckpointTag checkpointTag,
-		string streamName, bool stopOnEof, int? stopAfterNEvents, bool resolveLinkTos, bool produceStreamDeletes)
-	{
+		string streamName, bool stopOnEof, int? stopAfterNEvents, bool resolveLinkTos, bool produceStreamDeletes) {
 		var lastProcessedSequenceNumber = checkpointTag.Streams.Values.First();
 		var fromSequenceNumber = lastProcessedSequenceNumber + 1;
 		var eventReader = new StreamEventReader(publisher, eventReaderId, _runAs, streamName, fromSequenceNumber,
@@ -289,15 +311,15 @@ public class ReaderStrategy : IReaderStrategy
 	private IEventReader CreatePausedEventIndexEventReader(
 		Guid eventReaderId, IODispatcher ioDispatcher, IPublisher publisher, CheckpointTag checkpointTag,
 		bool stopOnEof, int? stopAfterNEvents, bool resolveLinkTos, IEnumerable<string> eventTypes,
-		bool includeStreamDeletedNotification)
-	{
+		bool includeStreamDeletedNotification) {
 		//NOTE: just optimization - anyway if reading from TF events may reappear
 		long p;
 		var nextPositions = eventTypes.ToDictionary(
 			v => "$et-" + v, v => checkpointTag.Streams.TryGetValue(v, out p) ? p + 1 : 0);
 
-		if (includeStreamDeletedNotification)
+		if (includeStreamDeletedNotification) {
 			nextPositions.Add("$et-$deleted", checkpointTag.Streams.TryGetValue("$deleted", out p) ? p + 1 : 0);
+		}
 
 		return new EventByTypeIndexEventReader(publisher, eventReaderId, _runAs, eventTypes.ToArray(),
 			includeStreamDeletedNotification,
@@ -306,8 +328,7 @@ public class ReaderStrategy : IReaderStrategy
 
 	private IEventReader CreatePausedMultiStreamEventReader(
 		Guid eventReaderId, IODispatcher ioDispatcher, IPublisher publisher, CheckpointTag checkpointTag,
-		bool stopOnEof, int? stopAfterNEvents, bool resolveLinkTos, IEnumerable<string> streams)
-	{
+		bool stopOnEof, int? stopAfterNEvents, bool resolveLinkTos, IEnumerable<string> streams) {
 		var nextPositions = checkpointTag.Streams.ToDictionary(v => v.Key, v => v.Value + 1);
 
 		return new MultiStreamEventReader(

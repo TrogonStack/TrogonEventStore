@@ -4,10 +4,8 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ScavengeCheckpointTests
-{
-	private T RoundTrip<T>(T input, string expectedJson) where T : ScavengeCheckpoint
-	{
+public class ScavengeCheckpointTests {
+	private T RoundTrip<T>(T input, string expectedJson) where T : ScavengeCheckpoint {
 		var json = ScavengeCheckpointJsonPersistence<string>.Serialize(input);
 		Assert.True(ScavengeCheckpointJsonPersistence<string>.TryDeserialize(
 			json,
@@ -27,15 +25,13 @@ public class ScavengeCheckpointTests
 	[Theory]
 	[InlineData(null, @"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Accumulating""}")]
 	[InlineData(5, @"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Accumulating"",""doneLogicalChunkNumber"":5}")]
-	public void can_round_trip_accumulating(int? x, string expectedJson)
-	{
+	public void can_round_trip_accumulating(int? x, string expectedJson) {
 		var cp = RoundTrip(new ScavengeCheckpoint.Accumulating(_scavengePoint, x), expectedJson);
 		Assert.Equal(x, cp.DoneLogicalChunkNumber);
 	}
 
 	[Fact]
-	public void can_round_trip_calculating_default()
-	{
+	public void can_round_trip_calculating_default() {
 		var cp = RoundTrip(
 			new ScavengeCheckpoint.Calculating<string>(_scavengePoint, default),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Calculating""}");
@@ -43,8 +39,7 @@ public class ScavengeCheckpointTests
 	}
 
 	[Fact]
-	public void can_round_trip_calculating_streamid()
-	{
+	public void can_round_trip_calculating_streamid() {
 		var cp = RoundTrip(
 			new ScavengeCheckpoint.Calculating<string>(_scavengePoint, StreamHandle.ForStreamId("stream1")),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Calculating""," +
@@ -53,8 +48,7 @@ public class ScavengeCheckpointTests
 	}
 
 	[Fact]
-	public void can_round_trip_calculating_hash()
-	{
+	public void can_round_trip_calculating_hash() {
 		var cp = RoundTrip(
 			new ScavengeCheckpoint.Calculating<string>(_scavengePoint, StreamHandle.ForHash<string>(97)),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Calculating""," +
@@ -65,39 +59,34 @@ public class ScavengeCheckpointTests
 	[Theory]
 	[InlineData(null, @"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""ExecutingChunks""}")]
 	[InlineData(5, @"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""ExecutingChunks"",""doneLogicalChunkNumber"":5}")]
-	public void can_round_trip_executing_chunks(int? x, string expectedJson)
-	{
+	public void can_round_trip_executing_chunks(int? x, string expectedJson) {
 		var cp = RoundTrip(new ScavengeCheckpoint.ExecutingChunks(_scavengePoint, x), expectedJson);
 		Assert.Equal(x, cp.DoneLogicalChunkNumber);
 	}
 
 	[Fact]
-	public void can_round_trip_merging_chunks()
-	{
+	public void can_round_trip_merging_chunks() {
 		RoundTrip(
 			new ScavengeCheckpoint.MergingChunks(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""MergingChunks""}");
 	}
 
 	[Fact]
-	public void can_round_trip_executing_index()
-	{
+	public void can_round_trip_executing_index() {
 		RoundTrip(
 			new ScavengeCheckpoint.ExecutingIndex(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""ExecutingIndex""}");
 	}
 
 	[Fact]
-	public void can_round_trip_cleaning()
-	{
+	public void can_round_trip_cleaning() {
 		RoundTrip(
 			new ScavengeCheckpoint.Cleaning(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Cleaning""}");
 	}
 
 	[Fact]
-	public void can_round_trip_done()
-	{
+	public void can_round_trip_done() {
 		RoundTrip(
 			new ScavengeCheckpoint.Done(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Done""}");

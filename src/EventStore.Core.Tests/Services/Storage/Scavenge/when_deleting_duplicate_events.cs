@@ -9,8 +9,7 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
 	: ReadIndexTestScenario<TLogFormat, TStreamId>(indexBitnessVersion: EventStore.Core.Index.PTableVersions.IndexV1,
-		performAdditionalChecks: false)
-{
+		performAdditionalChecks: false) {
 	private EventRecord _event1;
 	private EventRecord _event2;
 	private EventRecord _event3;
@@ -20,8 +19,7 @@ public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
 	private EventRecord _event7;
 	private EventRecord _event8;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		_event1 = await WriteSingleEvent("account--696193173", 0, new string('.', 3000), retryOnFail: true,
 			token: token);
 		await WriteSingleEvent("account--696193173", 0, new string('.', 3000), retryOnFail: true, token: token);
@@ -61,8 +59,7 @@ public class WhenDeletingDuplicateEvents<TLogFormat, TStreamId>()
 	}
 
 	[Test]
-	public async Task read_all_events_forward_does_not_return_duplicate()
-	{
+	public async Task read_all_events_forward_does_not_return_duplicate() {
 		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
 			.EventRecords()
 			.Select(r => r.Event)

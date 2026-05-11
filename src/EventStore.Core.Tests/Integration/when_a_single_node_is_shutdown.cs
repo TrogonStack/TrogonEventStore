@@ -6,22 +6,18 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Integration;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_a_single_node_is_shutdown<TLogFormat, TStreamId> : SpecificationWithDirectory
-{
+public class when_a_single_node_is_shutdown<TLogFormat, TStreamId> : SpecificationWithDirectory {
 	[Test]
-	public async Task throws_on_timeout()
-	{
+	public async Task throws_on_timeout() {
 		var node = new MiniNode<TLogFormat, TStreamId>(PathName);
-		try
-		{
+		try {
 			await node.Start();
 			await node.AdminUserCreated.WithTimeout(TimeSpan.FromSeconds(60));
 
 			var shutdownTask = node.Node.StopAsync(TimeSpan.FromMilliseconds(1));
 			Assert.ThrowsAsync<TimeoutException>(() => shutdownTask);
 		}
-		finally
-		{
+		finally {
 			await node.Shutdown();
 		}
 	}

@@ -31,11 +31,13 @@ namespace EventStore.Core.Services.Transport.Http {
 		}
 
 		public void Handle(SystemMessage.BecomeShuttingDown message) {
-			if (!_isListening)
+			if (!_isListening) {
 				return;
+			}
 
-			if (message.ShutdownHttp)
+			if (message.ShutdownHttp) {
 				Shutdown();
+			}
 
 			_inputBus.Publish(new SystemMessage.ServiceShutdown(ServiceName));
 		}

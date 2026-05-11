@@ -10,13 +10,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private const int LongRunningTimeout = 120000;
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task everything_should_go_fine()
-	{
+	public async Task everything_should_go_fine() {
 		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await miniNode.Start();
 
@@ -70,8 +68,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 	}
 
 	[Test, Category("LongRunning"), Category("Network"), Timeout(LongRunningTimeout)]
-	public async Task with_truncate_position_in_completed_chunk_everything_should_go_fine()
-	{
+	public async Task with_truncate_position_in_completed_chunk_everything_should_go_fine() {
 		const int chunkSize = 1024 * 1024;
 		const int cachedSize = chunkSize * 3;
 
@@ -123,14 +120,11 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown();
 	}
 
-	private static void WriteEvents(int cnt, MiniNode<TLogFormat, TStreamId> miniNode, CountdownEvent countdown, int dataSize = 4000)
-	{
-		for (int i = 0; i < cnt; ++i)
-		{
+	private static void WriteEvents(int cnt, MiniNode<TLogFormat, TStreamId> miniNode, CountdownEvent countdown, int dataSize = 4000) {
+		for (int i = 0; i < cnt; ++i) {
 			miniNode.Node.MainQueue.Publish(
 				new ClientMessage.WriteEvents(Guid.NewGuid(), Guid.NewGuid(),
-					new CallbackEnvelope(m =>
-					{
+					new CallbackEnvelope(m => {
 						Assert.IsInstanceOf<ClientMessage.WriteEventsCompleted>(m);
 						var msg = (ClientMessage.WriteEventsCompleted)m;
 						Assert.AreEqual(OperationResult.Success, msg.Result);

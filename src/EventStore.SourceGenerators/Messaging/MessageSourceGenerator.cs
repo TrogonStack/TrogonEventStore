@@ -18,47 +18,38 @@ using Microsoft.CodeAnalysis.Text;
 namespace EventStore.SourceGenerators.Messaging;
 
 [Generator]
-public class MessageSourceGenerator : ISourceGenerator
-{
+public class MessageSourceGenerator : ISourceGenerator {
 	GeneratorExecutionContext _context;
 
-	public void Initialize(GeneratorInitializationContext context)
-	{
+	public void Initialize(GeneratorInitializationContext context) {
 		context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
 	}
 
-	public void Execute(GeneratorExecutionContext context)
-	{
-		try
-		{
+	public void Execute(GeneratorExecutionContext context) {
+		try {
 			ExecuteImpl(context);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			// tooling only shows the first line of the exception, so make the most of it
 			var stack = ex.StackTrace.Replace("\r\n", " >> ");
 			throw new Exception($"{ex.Message}. Stack: {stack}", ex);
 		}
 	}
 
-	void ExecuteImpl(GeneratorExecutionContext context)
-	{
+	void ExecuteImpl(GeneratorExecutionContext context) {
 		_context = context;
 
-		if (context.SyntaxReceiver is not SyntaxReceiver syntaxReceiver)
-		{
+		if (context.SyntaxReceiver is not SyntaxReceiver syntaxReceiver) {
 			throw new Exception("Unexpected syntax receiver");
 		}
 
 		var roots = new HashSet<CompilationUnitSyntax>();
 		var members = new MemberTree();
-		foreach (var candidate in syntaxReceiver.Candidates)
-		{
+		foreach (var candidate in syntaxReceiver.Candidates) {
 			RegisterMember(candidate, members, roots);
 		}
 
-		foreach (var node in roots)
-		{
+		foreach (var node in roots) {
 			context.AddSource(
 				GenFileName(node),
 				SourceText.From(
@@ -74,32 +65,25 @@ using System.Threading;
 {Transform(node, members).NormalizeWhitespace(indentation: "\t", eol: Environment.NewLine).ToFullString()}
 ";
 
-	string GenFileName(SyntaxNode node)
-	{
+	string GenFileName(SyntaxNode node) {
 		var path = node.SyntaxTree.FilePath;
 		var fileName = Path.GetFileNameWithoutExtension(path);
 		return $"{fileName}-{(uint)path.GetHashCode()}.g.cs";
 	}
 
-	void RegisterMember(MemberDeclarationSyntax member, MemberTree members, HashSet<CompilationUnitSyntax> roots)
-	{
-		if (members.TryGetValue(member.Parent, out var siblings))
-		{
+	void RegisterMember(MemberDeclarationSyntax member, MemberTree members, HashSet<CompilationUnitSyntax> roots) {
+		if (members.TryGetValue(member.Parent, out var siblings)) {
 			siblings.Add(member);
 		}
-		else
-		{
+		else {
 			members[member.Parent] = new HashSet<MemberDeclarationSyntax> { member };
-			if (member.Parent is MemberDeclarationSyntax mds)
-			{
+			if (member.Parent is MemberDeclarationSyntax mds) {
 				RegisterMember(mds, members, roots);
 			}
-			else if (member.Parent is CompilationUnitSyntax cus)
-			{
+			else if (member.Parent is CompilationUnitSyntax cus) {
 				roots.Add(cus);
 			}
-			else
-			{
+			else {
 				throw new Exception($"Unexpected parent: \"{member.Parent.Kind()}\"");
 			}
 		}
@@ -118,8 +102,7 @@ using System.Threading;
 			: Array.Empty<MemberDeclarationSyntax>();
 
 	MemberDeclarationSyntax Transform(MemberDeclarationSyntax node, MemberTree members) =>
-		node switch
-		{
+		node switch {
 			NamespaceDeclarationSyntax x => Transform(x, members),
 			FileScopedNamespaceDeclarationSyntax x => Transform(x, members),
 			ClassDeclarationSyntax x => Transform(x, members),
@@ -146,10 +129,10 @@ using System.Threading;
 				members: default)
 			.AddMembers(TransformChildren(node, members));
 
-	ClassDeclarationSyntax Transform(ClassDeclarationSyntax node, MemberTree members)
-	{
-		if (!node.Modifiers.Any(SyntaxKind.PartialKeyword))
+	ClassDeclarationSyntax Transform(ClassDeclarationSyntax node, MemberTree members) {
+		if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
 			_context.ReportImpartialMessage(node);
+		}
 
 		return SyntaxFactory
 			.ClassDeclaration(
@@ -165,23 +148,19 @@ using System.Threading;
 			.WithoutTrivia();
 	}
 
-	class SyntaxReceiver : ISyntaxReceiver
-	{
+	class SyntaxReceiver : ISyntaxReceiver {
 		public List<MemberDeclarationSyntax> Candidates { get; } = new();
 
-		public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
-		{
+		public void OnVisitSyntaxNode(SyntaxNode syntaxNode) {
 			if (syntaxNode is ClassDeclarationSyntax classDeclarationSyntax &&
 				(classDeclarationSyntax.TryGetDerivedMessageAttribute(out _) ||
-				 classDeclarationSyntax.TryGetBaseMessageAttribute(out _)))
-			{
+				 classDeclarationSyntax.TryGetBaseMessageAttribute(out _))) {
 
 				Candidates.Add(classDeclarationSyntax);
 			}
 		}
 	}
 
-	class MemberTree : Dictionary<SyntaxNode, HashSet<MemberDeclarationSyntax>>
-	{
+	class MemberTree : Dictionary<SyntaxNode, HashSet<MemberDeclarationSyntax>> {
 	}
 }

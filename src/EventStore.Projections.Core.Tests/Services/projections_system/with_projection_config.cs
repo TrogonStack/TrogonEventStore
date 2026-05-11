@@ -2,16 +2,14 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_system;
 
-public abstract class with_projection_config<TLogFormat, TStreamId> : with_projections_subsystem<TLogFormat, TStreamId>
-{
+public abstract class with_projection_config<TLogFormat, TStreamId> : with_projections_subsystem<TLogFormat, TStreamId> {
 	protected string _projectionName;
 	protected string _projectionSource;
 	protected bool _checkpointsEnabled;
 	protected bool _trackEmittedStreams;
 	protected bool _emitEnabled;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		base.Given();
 
 		_projectionName = "test-projection";

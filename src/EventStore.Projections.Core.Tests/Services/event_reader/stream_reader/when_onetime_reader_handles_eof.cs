@@ -17,8 +17,7 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private StreamEventReader _edp;
 
 	//private Guid _publishWithCorrelationId;
@@ -27,14 +26,12 @@ public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtur
 	private Guid _secondEventId;
 	private FakeTimeProvider _fakeTimeProvider;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		//_publishWithCorrelationId = Guid.NewGuid();
 		_distibutionPointCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
@@ -71,16 +68,14 @@ public class when_onetime_reader_handles_eof<TLogFormat, TStreamId> : TestFixtur
 	}
 
 	[Test]
-	public void publishes_eof_message()
-	{
+	public void publishes_eof_message() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderEof>().Count());
 		var first = _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderEof>().First();
 		Assert.AreEqual(first.CorrelationId, _distibutionPointCorrelationId);
 	}
 
 	[Test]
-	public void does_not_publish_read_messages_anymore()
-	{
+	public void does_not_publish_read_messages_anymore() {
 		Assert.AreEqual(2, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 	}
 }

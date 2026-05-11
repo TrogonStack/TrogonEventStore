@@ -9,8 +9,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixture
-{
+public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixture {
 	private TFChunk _chunk;
 	private ThrowingRemoteChunkHandle _remoteHandle;
 	private IChunkHandle _originalHandle;
@@ -19,8 +18,7 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 	private FieldInfo _filenameField;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
@@ -43,8 +41,7 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 	}
 
 	[OneTimeTearDown]
-	public override void TestFixtureTearDown()
-	{
+	public override void TestFixtureTearDown() {
 		_handleField?.SetValue(_chunk, _originalHandle);
 		_filenameField?.SetValue(_chunk, _originalFilename);
 		_chunk.Dispose();
@@ -52,16 +49,14 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 	}
 
 	[Test]
-	public async Task hash_verification_does_not_require_a_local_chunk_file()
-	{
+	public async Task hash_verification_does_not_require_a_local_chunk_file() {
 		Assert.That(_chunk.IsRemote, Is.True);
 
 		await _chunk.VerifyFileHash(CancellationToken.None);
 	}
 
 	[Test]
-	public void cancelled_hash_verification_is_observed_before_returning()
-	{
+	public void cancelled_hash_verification_is_observed_before_returning() {
 		using var cancellationTokenSource = new CancellationTokenSource();
 		cancellationTokenSource.Cancel();
 
@@ -69,8 +64,7 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 			await _chunk.VerifyFileHash(cancellationTokenSource.Token));
 	}
 
-	private sealed class ThrowingRemoteChunkHandle : IChunkHandle
-	{
+	private sealed class ThrowingRemoteChunkHandle : IChunkHandle {
 		public int StreamRequests { get; private set; }
 		public int ReadRequests { get; private set; }
 

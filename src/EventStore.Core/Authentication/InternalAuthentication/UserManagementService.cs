@@ -138,8 +138,9 @@ public class UserManagementService :
 		ReadUpdateWriteReply(
 			message,
 			data => {
-				if (_passwordHashAlgorithm.Verify(message.CurrentPassword, data.Hash, data.Salt))
+				if (_passwordHashAlgorithm.Verify(message.CurrentPassword, data.Hash, data.Salt)) {
 					return data.SetPassword(hash, salt);
+				}
 
 				ReplyUnauthorized(message);
 				return null;
@@ -170,12 +171,13 @@ public class UserManagementService :
 	public void Handle(UserManagementMessage.Get message) {
 		ReadUserDetailsAnd(
 			message, (completed, data) => {
-				if (completed.Result == ReadStreamResult.Success && completed.Events.Count is 1)
+				if (completed.Result == ReadStreamResult.Success && completed.Events.Count is 1) {
 					message.Envelope.ReplyWith(
 						new UserManagementMessage.UserDetailsResult(
 							new UserManagementMessage.UserData(
 								message.LoginName, data.FullName, data.Groups, data.Disabled,
 								new DateTimeOffset(completed.Events[0].Event.TimeStamp, TimeSpan.FromHours(0)))));
+				}
 				else {
 					switch (completed.Result) {
 						case ReadStreamResult.NoStream:
@@ -207,20 +209,26 @@ public class UserManagementService :
 		if (!_skipInitializeStandardUsersCheck) {
 			BeginReadUserDetails(
 				"admin", completed => {
-					if (completed.Result == ReadStreamResult.NoStream)
+					if (completed.Result == ReadStreamResult.NoStream) {
 						CreateAdminUser();
-					else
+					}
+					else {
 						NotifyInitialized();
+					}
 				});
 			BeginReadUserDetails(
 				"ops", completed => {
-					if (completed.Result == ReadStreamResult.NoStream)
+					if (completed.Result == ReadStreamResult.NoStream) {
 						CreateOperationsUser();
-					else
+					}
+					else {
 						NotifyInitialized();
+					}
 				});
-		} else
+		}
+		else {
 			_tcs.TrySetResult(true);
+		}
 	}
 
 	public void Handle(SystemMessage.BecomeFollower message) =>
@@ -231,7 +239,9 @@ public class UserManagementService :
 
 	void NotifyInitialized() {
 		var remainingUsers = Interlocked.Decrement(ref _numberOfStandardUsersToBeCreated);
-		if (remainingUsers == 0) _tcs.TrySetResult(true);
+		if (remainingUsers == 0) {
+			_tcs.TrySetResult(true);
+		}
 	}
 
 	UserData CreateUserData(UserManagementMessage.Create message) =>
@@ -256,8 +266,9 @@ public class UserManagementService :
 						ReplyNotFound(message);
 						break;
 					case ReadStreamResult.Success:
-						if (completed.Events is [])
+						if (completed.Events is []) {
 							ReplyNotFound(message);
+						}
 						else {
 							var data1 = completed.Events[0].Event.Data.ParseJson<UserData>();
 							action(completed, data1);
@@ -288,13 +299,15 @@ public class UserManagementService :
 
 	void WritePasswordChangedEventConditionalAnd(
 		UserManagementMessage.UserManagementRequestMessage message, bool resetPasswordCache, Action onCompleted) {
-		if (resetPasswordCache)
+		if (resetPasswordCache) {
 			BeginWritePasswordChangedEvent(
 				message.LoginName,
 				eventsCompleted => WritePasswordChangedEventCompleted(message, eventsCompleted, onCompleted)
 			);
-		else
+		}
+		else {
 			onCompleted();
+		}
 
 		return;
 
@@ -334,7 +347,7 @@ public class UserManagementService :
 	}
 
 	static Event CreatePasswordChangedEvent(string loginName) =>
-		new(Guid.NewGuid(), PasswordChanged, true, new {LoginName = loginName}.ToJsonBytes(), null);
+		new(Guid.NewGuid(), PasswordChanged, true, new { LoginName = loginName }.ToJsonBytes(), null);
 
 	void ReadUpdateCheckAnd(UserManagementMessage.UserManagementRequestMessage message,
 		Action<ClientMessage.ReadStreamEventsBackwardCompleted, UserData> action) {
@@ -385,10 +398,12 @@ public class UserManagementService :
 	static void WriteUserCreatedCompleted(ClientMessage.WriteEventsCompleted completed,
 		UserManagementMessage.UserManagementRequestMessage message, Action after) {
 		if (completed.Result == OperationResult.Success) {
-			if (after is not null)
+			if (after is not null) {
 				after();
-			else
+			}
+			else {
 				ReplyUpdated(message);
+			}
 
 			return;
 		}
@@ -432,10 +447,12 @@ public class UserManagementService :
 
 	static void ReplyError(UserManagementMessage.UserManagementRequestMessage message, UserManagementMessage.Error error) {
 		//TODO: avoid 'is'
-		if (message is UserManagementMessage.Get)
+		if (message is UserManagementMessage.Get) {
 			message.Envelope.ReplyWith(new UserManagementMessage.UserDetailsResult(error));
-		else
+		}
+		else {
 			message.Envelope.ReplyWith(new UserManagementMessage.UpdateResult(message.LoginName, error));
+		}
 	}
 
 	static void ReplyByWriteResult(UserManagementMessage.UserManagementRequestMessage message, OperationResult operationResult) {
@@ -486,7 +503,8 @@ public class UserManagementService :
 										WriteUsersStreamEvent("admin", x => {
 											if (x.Result == OperationResult.Success) {
 												Logger.Information("'admin' user added to $users.");
-											} else {
+											}
+											else {
 												Logger.Error("unable to add 'admin' to $users. {OperationResult}", x.Result);
 											}
 
@@ -537,7 +555,8 @@ public class UserManagementService :
 										WriteUsersStreamEvent("ops", x => {
 											if (x.Result == OperationResult.Success) {
 												Logger.Information("'ops' user added to $users.");
-											} else {
+											}
+											else {
 												Logger.Error("unable to add 'ops' to $users. {OperationResult}", x.Result);
 											}
 

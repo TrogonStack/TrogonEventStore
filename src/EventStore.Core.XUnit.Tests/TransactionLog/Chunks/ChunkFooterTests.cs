@@ -5,13 +5,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
 
-public class ChunkFooterTests
-{
+public class ChunkFooterTests {
 	[Theory]
 	[InlineData(false)]
 	[InlineData(true)]
-	public void can_round_trip(bool isCompleted)
-	{
+	public void can_round_trip(bool isCompleted) {
 		Span<byte> hash = stackalloc byte[ChunkFooter.ChecksumSize];
 		Random.Shared.NextBytes(hash);
 
@@ -31,8 +29,7 @@ public class ChunkFooterTests
 	}
 
 	[Fact]
-	public void rejects_deprecated_position_map_footer()
-	{
+	public void rejects_deprecated_position_map_footer() {
 		var bytes = new ChunkFooter(
 			isCompleted: true,
 			physicalDataSize: 500,
@@ -44,8 +41,7 @@ public class ChunkFooterTests
 	}
 
 	[Fact]
-	public void accepts_zeroed_incomplete_footer()
-	{
+	public void accepts_zeroed_incomplete_footer() {
 		var footer = new ChunkFooter(new byte[ChunkFooter.Size]);
 
 		Assert.False(footer.IsCompleted);

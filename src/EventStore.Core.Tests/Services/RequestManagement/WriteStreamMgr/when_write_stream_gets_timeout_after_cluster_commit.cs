@@ -11,12 +11,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.WriteStreamMgr;
 
 [TestFixture]
-public class when_write_stream_gets_timeout_after_cluster_commit : RequestManagerSpecification<WriteEvents>
-{
+public class when_write_stream_gets_timeout_after_cluster_commit : RequestManagerSpecification<WriteEvents> {
 	private long _prepareLogPosition = 100;
 	private long _commitPosition = 100;
-	protected override WriteEvents OnManager(FakePublisher publisher)
-	{
+	protected override WriteEvents OnManager(FakePublisher publisher) {
 		return new WriteEvents(
 			publisher,
 			CommitTimeout,
@@ -29,26 +27,22 @@ public class when_write_stream_gets_timeout_after_cluster_commit : RequestManage
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages()
-	{
+	protected override IEnumerable<Message> WithInitialMessages() {
 		yield return new StorageMessage.PrepareAck(InternalCorrId, _prepareLogPosition, PrepareFlags.SingleWrite | PrepareFlags.Data);
 		yield return new StorageMessage.CommitIndexed(InternalCorrId, _commitPosition, 1, 0, 0);
 		yield return new ReplicationTrackingMessage.ReplicatedTo(_commitPosition);
 	}
 
-	protected override Message When()
-	{
+	protected override Message When() {
 		return new StorageMessage.RequestManagerTimerTick(DateTime.UtcNow + TimeSpan.FromMinutes(1));
 	}
 
 	[Test]
-	public void no_additional_messages_are_published()
-	{
+	public void no_additional_messages_are_published() {
 		Assert.That(Produced.Count == 0);
 	}
 	[Test]
-	public void the_envelope_has_no_additional_replies()
-	{
+	public void the_envelope_has_no_additional_replies() {
 		Assert.AreEqual(0, Envelope.Replies.Count);
 	}
 }

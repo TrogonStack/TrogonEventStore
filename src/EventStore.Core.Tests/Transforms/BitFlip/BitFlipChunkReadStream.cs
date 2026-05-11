@@ -6,27 +6,24 @@ using EventStore.Plugins.Transforms;
 namespace EventStore.Core.Tests.Transforms.BitFlip;
 
 public class BitFlipChunkReadStream(ChunkDataReadStream stream)
-	: ChunkDataReadStream(stream.ChunkFileStream)
-{
-	public override int Read(Span<byte> buffer)
-	{
+	: ChunkDataReadStream(stream.ChunkFileStream) {
+	public override int Read(Span<byte> buffer) {
 		var bytesRead = base.Read(buffer);
 
 		FlipBits(buffer[..bytesRead]);
 		return bytesRead;
 	}
 
-	public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
-	{
+	public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default) {
 		var bytesRead = await base.ReadAsync(buffer, token);
 
 		FlipBits(buffer.Span[..bytesRead]);
 		return bytesRead;
 	}
 
-	private static void FlipBits(Span<byte> buffer)
-	{
-		for (int i = 0; i < buffer.Length; i++)
+	private static void FlipBits(Span<byte> buffer) {
+		for (int i = 0; i < buffer.Length; i++) {
 			buffer[i] ^= 0xFF;
+		}
 	}
 }

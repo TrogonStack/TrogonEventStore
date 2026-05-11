@@ -22,13 +22,15 @@ namespace EventStore.Core.DataStructures {
 		}
 
 		public PairingHeap(IComparer<T> comparer) : this(null, comparer) {
-			if (comparer == null)
+			if (comparer == null) {
 				throw new ArgumentNullException("comparer");
+			}
 		}
 
 		public PairingHeap(Func<T, T, bool> compare) : this(null, compare) {
-			if (compare == null)
+			if (compare == null) {
 				throw new ArgumentNullException("compare");
+			}
 		}
 
 		public PairingHeap(IEnumerable<T> items) : this(items, null as IComparer<T>) {
@@ -38,7 +40,8 @@ namespace EventStore.Core.DataStructures {
 			if (compare == null) {
 				var comparer = Comparer<T>.Default;
 				_compare = (x, y) => comparer.Compare(x, y) < 0;
-			} else {
+			}
+			else {
 				_compare = compare;
 			}
 
@@ -72,14 +75,17 @@ namespace EventStore.Core.DataStructures {
 		}
 
 		public T FindMin() {
-			if (Count == 0)
+			if (Count == 0) {
 				throw new InvalidOperationException();
+			}
+
 			return _root.Item;
 		}
 
 		public T DeleteMin() {
-			if (Count == 0)
+			if (Count == 0) {
 				throw new InvalidOperationException();
+			}
 
 			var oldRoot = _root;
 			var res = _root.Item;
@@ -94,16 +100,20 @@ namespace EventStore.Core.DataStructures {
 		}
 
 		private HeapNode Meld(HeapNode heap1, HeapNode heap2) {
-			if (heap1 == null)
+			if (heap1 == null) {
 				return heap2;
-			if (heap2 == null)
+			}
+
+			if (heap2 == null) {
 				return heap1;
+			}
 
 			if (_compare(heap1.Item, heap2.Item)) {
 				heap2.Next = heap1.SubHeaps;
 				heap1.SubHeaps = heap2;
 				return heap1;
-			} else {
+			}
+			else {
 				heap1.Next = heap2.SubHeaps;
 				heap2.SubHeaps = heap1;
 				return heap2;
@@ -147,10 +157,13 @@ namespace EventStore.Core.DataStructures {
 			private readonly Func<TItem> _creator;
 
 			public ObjectPool(int count, Func<TItem> creator) {
-				if (count < 0)
+				if (count < 0) {
 					throw new ArgumentOutOfRangeException();
-				if (creator == null)
+				}
+
+				if (creator == null) {
 					throw new ArgumentNullException("creator");
+				}
 
 				_count = count;
 				_creator = creator;
@@ -162,14 +175,17 @@ namespace EventStore.Core.DataStructures {
 
 			public TItem Get() {
 				TItem res;
-				if (_items.TryDequeue(out res))
+				if (_items.TryDequeue(out res)) {
 					return res;
+				}
+
 				return _creator();
 			}
 
 			public void Return(TItem item) {
-				if (_items.Count < _count)
+				if (_items.Count < _count) {
 					_items.Enqueue(item);
+				}
 			}
 		}
 #endif

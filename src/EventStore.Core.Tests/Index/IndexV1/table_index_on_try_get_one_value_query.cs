@@ -14,8 +14,7 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class table_index_on_try_get_one_value_query : SpecificationWithDirectoryPerTestFixture
-{
+public class table_index_on_try_get_one_value_query : SpecificationWithDirectoryPerTestFixture {
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -23,15 +22,13 @@ public class table_index_on_try_get_one_value_query : SpecificationWithDirectory
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
 
-	public table_index_on_try_get_one_value_query(byte version, bool skipIndexVerify)
-	{
+	public table_index_on_try_get_one_value_query(byte version, bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
@@ -69,30 +66,26 @@ public class table_index_on_try_get_one_value_query : SpecificationWithDirectory
 
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_return_empty_collection_when_stream_is_not_in_db()
-	{
+	public void should_return_empty_collection_when_stream_is_not_in_db() {
 		Assert.IsFalse(_tableIndex.TryGetOneValue("0xFEED", 0, out _));
 	}
 
 	[Test]
-	public void should_return_element_with_largest_position_when_hash_collisions()
-	{
+	public void should_return_element_with_largest_position_when_hash_collisions() {
 		long position;
 		Assert.IsTrue(_tableIndex.TryGetOneValue("0xDEAD", 0, out position));
 		Assert.AreEqual(0xFF10, position);
 	}
 
 	[Test]
-	public void should_return_only_one_element_if_concurrency_duplicate_happens_on_range_query_as_well()
-	{
+	public void should_return_only_one_element_if_concurrency_duplicate_happens_on_range_query_as_well() {
 		var res = _tableIndex.GetRange("0xADA", 0, 100).ToList();
 		ulong hash = (ulong)_lowHasher.Hash("0xADA");
 		hash = _ptableVersion == PTableVersions.IndexV1 ? hash : hash << 32 | _highHasher.Hash("0xADA");

@@ -30,7 +30,7 @@ namespace EventStore.Core.LogAbstraction {
 
 			return preExisting;
 		}
-		
+
 		public static bool GetOrReserveEventType<TStreamId>(
 			this INameIndex<TStreamId> eventTypeIndex,
 			IRecordFactory<TStreamId> recordFactory,
@@ -63,8 +63,9 @@ namespace EventStore.Core.LogAbstraction {
 			this INameIndex<TStreamId> nameIndex,
 			string name) {
 
-			if (!nameIndex.GetOrReserve(name, out var value, out _, out _))
+			if (!nameIndex.GetOrReserve(name, out var value, out _, out _)) {
 				throw new Exception($"{name} was expected to already exist but it didn not");
+			}
 
 			return value;
 		}

@@ -17,8 +17,7 @@ namespace EventStore.Core.Tests.TransactionLog;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_having_scavenged_tfchunk_with_all_records_removed<TLogFormat, TStreamId> :
-	SpecificationWithDirectoryPerTestFixture
-{
+	SpecificationWithDirectoryPerTestFixture {
 	private LogFormatAbstractor<TStreamId> _logFormat;
 	private TFChunkDb _db;
 	private TFChunk _scavengedChunk;
@@ -28,13 +27,11 @@ public class
 	private RecordWriteResult _res1, _res2, _res3;
 	private RecordWriteResult _cres1, _cres2, _cres3;
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_logFormat =
-			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-			{
+			LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 				IndexDirectory = GetFilePathFor("index"),
 			});
 
@@ -46,16 +43,14 @@ public class
 		var pos = 0L;
 		_logFormat.StreamNameIndex.GetOrReserve(_logFormat.RecordFactory, streamName, 0, out var streamId,
 			out var streamRecord);
-		if (streamRecord is not null)
-		{
+		if (streamRecord is not null) {
 			var res = await chunk.TryAppend(streamRecord, CancellationToken.None);
 			pos = res.NewPosition;
 		}
 
 		_logFormat.EventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, "et1", pos, out var eventTypeId,
 			out var eventTypeRecord);
-		if (eventTypeRecord is not null)
-		{
+		if (eventTypeRecord is not null) {
 			var res = await chunk.TryAppend(eventTypeRecord, CancellationToken.None);
 			pos = res.NewPosition;
 		}
@@ -103,8 +98,7 @@ public class
 		_scavengedChunk = _db.Manager.GetChunk(0);
 	}
 
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		await _db.DisposeAsync();
 
@@ -112,100 +106,85 @@ public class
 	}
 
 	[Test]
-	public void first_record_was_written()
-	{
+	public void first_record_was_written() {
 		Assert.IsTrue(_res1.Success);
 		Assert.IsTrue(_cres1.Success);
 	}
 
 	[Test]
-	public void second_record_was_written()
-	{
+	public void second_record_was_written() {
 		Assert.IsTrue(_res2.Success);
 		Assert.IsTrue(_cres2.Success);
 	}
 
 	[Test]
-	public void third_record_was_written()
-	{
+	public void third_record_was_written() {
 		Assert.IsTrue(_res3.Success);
 		Assert.IsTrue(_cres3.Success);
 	}
 
 	[Test]
-	public async Task prepare1_cant_be_read_at_position()
-	{
+	public async Task prepare1_cant_be_read_at_position() {
 		var res = await _scavengedChunk.TryReadAt((int)_p1.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public async Task commit1_cant_be_read_at_position()
-	{
+	public async Task commit1_cant_be_read_at_position() {
 		var res = await _scavengedChunk.TryReadAt((int)_c1.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public async Task prepare2_cant_be_read_at_position()
-	{
+	public async Task prepare2_cant_be_read_at_position() {
 		var res = await _scavengedChunk.TryReadAt((int)_p2.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public async Task commit2_cant_be_read_at_position()
-	{
+	public async Task commit2_cant_be_read_at_position() {
 		var res = await _scavengedChunk.TryReadAt((int)_c2.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public async Task prepare3_cant_be_read_at_position()
-	{
+	public async Task prepare3_cant_be_read_at_position() {
 		var res = await _scavengedChunk.TryReadAt((int)_p3.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public async Task commit3_cant_be_read_at_position()
-	{
+	public async Task commit3_cant_be_read_at_position() {
 		var res = await _scavengedChunk.TryReadAt((int)_c3.LogPosition, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}
 
 	[Test]
-	public async Task sequencial_read_returns_no_records()
-	{
+	public async Task sequencial_read_returns_no_records() {
 		var records = new List<ILogRecord>();
 		RecordReadResult res = await _scavengedChunk.TryReadFirst(CancellationToken.None);
-		while (res.Success)
-		{
+		while (res.Success) {
 			records.Add(res.LogRecord);
 			res = await _scavengedChunk.TryReadClosestForward((int)res.NextPosition, CancellationToken.None);
 		}
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
-		{
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
 			Assert.AreEqual(0, records.Count);
 		}
-		else
-		{
+		else {
 			Assert.AreEqual(2, records.Count);
 		}
 	}
 
 	[Test]
-	public void scavenged_chunk_should_have_saved_space()
-	{
+	public void scavenged_chunk_should_have_saved_space() {
 		Assert.IsTrue(_scavengedChunk.FileSize < _originalFileSize,
 			String.Format("Expected scavenged file size ({0}) to be less than original file size ({1})",
 				_scavengedChunk.FileSize, _originalFileSize));
 	}
 
 	[Test]
-	public void scavenged_chunk_should_be_aligned()
-	{
+	public void scavenged_chunk_should_be_aligned() {
 		Assert.IsTrue(_scavengedChunk.FileSize % 4096 == 0);
 	}
 }

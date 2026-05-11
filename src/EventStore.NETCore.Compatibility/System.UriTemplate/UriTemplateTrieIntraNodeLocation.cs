@@ -4,8 +4,7 @@
 
 namespace System;
 
-enum UriTemplateTrieIntraNodeLocation
-{
+enum UriTemplateTrieIntraNodeLocation {
 	BeforeLiteral,
 	AfterLiteral,
 	AfterCompound,

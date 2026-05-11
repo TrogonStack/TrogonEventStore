@@ -9,11 +9,9 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 
 namespace EventStore.Core.Tests.Helpers.IODispatcherTests;
 
-public static class IODispatcherTestHelpers
-{
+public static class IODispatcherTestHelpers {
 	public static ResolvedEvent[] CreateResolvedEvent<TLogFormat, TStreamId>(string stream, string eventType, string data,
-		string metadata = "", long eventNumber = 0)
-	{
+		string metadata = "", long eventNumber = 0) {
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamIdIgnored = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeIdIgnored = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
@@ -25,8 +23,7 @@ public static class IODispatcherTestHelpers
 		};
 	}
 
-	public static void SubscribeIODispatcher(IODispatcher ioDispatcher, ISubscriber bus)
-	{
+	public static void SubscribeIODispatcher(IODispatcher ioDispatcher, ISubscriber bus) {
 		bus.Subscribe<IODispatcherDelayedMessage>(ioDispatcher);
 		bus.Subscribe<ClientMessage.NotHandled>(ioDispatcher);
 		bus.Subscribe(ioDispatcher.ForwardReader);

@@ -34,13 +34,14 @@ namespace EventStore.Core.Services.Transport.Tcp {
 
 		public IReadOnlyDictionary<string, string> Tokens => (_login, _authToken) switch {
 			(null, null) => NotAuthenticated,
-			(null, _) => new Dictionary<string, string> {["jwt"] = _authToken},
-			_ => new Dictionary<string, string> {["uid"] = _login, ["pwd"] = _password}
+			(null, _) => new Dictionary<string, string> { ["jwt"] = _authToken },
+			_ => new Dictionary<string, string> { ["uid"] = _login, ["pwd"] = _password }
 		};
 
 		public static TcpPackage FromArraySegment(ArraySegment<byte> data) {
-			if (data.Count < MandatorySize)
+			if (data.Count < MandatorySize) {
 				throw new ArgumentException($"ArraySegment too short, length: {data.Count}", nameof(data));
+			}
 
 			var command = (TcpCommand)data.Array[data.Offset + CommandOffset];
 			var flags = (TcpFlags)data.Array[data.Offset + FlagsOffset];
@@ -108,7 +109,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					throw new ArgumentException($"Password length must be less than {MaxPasswordLength} bytes.",
 						nameof(password));
 				}
-			} else {
+			}
+			else {
 				if (login != null) {
 					throw new ArgumentException("Login provided for non-authorized TcpPackage", nameof(login));
 				}
@@ -168,7 +170,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 
 					Buffer.BlockCopy(Data.Array, Data.Offset, res, res.Length - Data.Count, Data.Count);
 					return res;
-				} else {
+				}
+				else {
 					var authTokenLength = Helper.UTF8NoBom.GetByteCount(_authToken);
 					var res = new byte[MandatorySize + 2 + authTokenLength + Data.Count];
 					res[CommandOffset] = (byte)Command;
@@ -181,7 +184,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					Buffer.BlockCopy(Data.Array, Data.Offset, res, res.Length - Data.Count, Data.Count);
 					return res;
 				}
-			} else {
+			}
+			else {
 				var res = new byte[MandatorySize + Data.Count];
 				res[CommandOffset] = (byte)Command;
 				res[FlagsOffset] = (byte)Flags;

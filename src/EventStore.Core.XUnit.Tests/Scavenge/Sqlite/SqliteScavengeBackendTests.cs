@@ -8,26 +8,22 @@ using Xunit.Abstractions;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendTests>
-{
+public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendTests> {
 	private readonly ITestOutputHelper _testOutputHelper;
 
-	public SqliteScavengeBackendTests(ITestOutputHelper testOutputHelper)
-	{
+	public SqliteScavengeBackendTests(ITestOutputHelper testOutputHelper) {
 		_testOutputHelper = testOutputHelper;
 	}
 
 	[Fact]
-	public void should_successfully_enable_features_on_initialization()
-	{
+	public void should_successfully_enable_features_on_initialization() {
 		var sut = new SqliteScavengeBackend<string>(Serilog.Log.Logger);
 		var result = Record.Exception(() => sut.Initialize(Fixture.DbConnection));
 		Assert.Null(result);
 	}
 
 	[Fact]
-	public void should_initialize_multiple_times_without_error()
-	{
+	public void should_initialize_multiple_times_without_error() {
 		var sut = new SqliteScavengeBackend<string>(Serilog.Log.Logger);
 		var result = Record.Exception(() => sut.Initialize(Fixture.DbConnection));
 		Assert.Null(result);
@@ -37,8 +33,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 	}
 
 	[Fact]
-	public void should_commit_and_read_in_a_transaction_successfully()
-	{
+	public void should_commit_and_read_in_a_transaction_successfully() {
 		var sut = new SqliteScavengeBackend<string>(Serilog.Log.Logger);
 		sut.Initialize(Fixture.DbConnection);
 
@@ -51,8 +46,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 		sut.Hashes[0] = "hash-one";
 		sut.MetaCollisionStorage["collision-1"] = MetastreamData.Empty;
 		sut.MetaStorage[0] = MetastreamData.Empty;
-		sut.OriginalStorage[0] = new OriginalStreamData()
-		{
+		sut.OriginalStorage[0] = new OriginalStreamData() {
 			Status = CalculationStatus.Active,
 			DiscardPoint = DiscardPoint.KeepAll,
 			IsTombstoned = true,
@@ -76,8 +70,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 	}
 
 	[Fact]
-	public void should_commit_and_read_all_in_a_transaction_successfully()
-	{
+	public void should_commit_and_read_all_in_a_transaction_successfully() {
 		var sut = new SqliteScavengeBackend<string>(Serilog.Log.Logger);
 		sut.Initialize(Fixture.DbConnection);
 
@@ -88,8 +81,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 		sut.Hashes[0] = "hash-one";
 		sut.MetaCollisionStorage["collision-1"] = MetastreamData.Empty;
 		sut.MetaStorage[0] = MetastreamData.Empty;
-		sut.OriginalStorage[0] = new OriginalStreamData()
-		{
+		sut.OriginalStorage[0] = new OriginalStreamData() {
 			Status = CalculationStatus.Active,
 			DiscardPoint = DiscardPoint.KeepAll,
 			IsTombstoned = true,
@@ -112,8 +104,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 	}
 
 	[Fact]
-	public void should_commit_and_delete_in_a_transaction_successfully()
-	{
+	public void should_commit_and_delete_in_a_transaction_successfully() {
 		var sut = new SqliteScavengeBackend<string>(Serilog.Log.Logger);
 		sut.Initialize(Fixture.DbConnection);
 
@@ -127,8 +118,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 		sut.Hashes[0] = "hash-one";
 		sut.MetaCollisionStorage["collision-1"] = MetastreamData.Empty;
 		sut.MetaStorage[0] = MetastreamData.Empty;
-		sut.OriginalStorage[0] = new OriginalStreamData()
-		{
+		sut.OriginalStorage[0] = new OriginalStreamData() {
 			Status = CalculationStatus.Active,
 			DiscardPoint = DiscardPoint.KeepAll,
 			IsTombstoned = true,
@@ -152,8 +142,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 	}
 
 	[Fact]
-	public void should_restore_previous_state_on_rollback()
-	{
+	public void should_restore_previous_state_on_rollback() {
 		var sut = new SqliteScavengeBackend<string>(Serilog.Log.Logger);
 		sut.Initialize(Fixture.DbConnection);
 
@@ -186,8 +175,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 	}
 
 	[Fact(Skip = "Long running, run manually")]
-	public void test_memory_usage()
-	{
+	public void test_memory_usage() {
 		const ulong streamCount = 1_000_000;
 		const int chunkCount = 100;
 		const int collisionStorageCount = 5;
@@ -200,13 +188,11 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 		stopwatch.Start();
 
 		var transaction = sut.TransactionFactory.Begin();
-		for (ulong i = 0; i < streamCount; i++)
-		{
+		for (ulong i = 0; i < streamCount; i++) {
 			var streamId = Guid.NewGuid().ToString();
 			sut.Hashes[i] = streamId;
 			sut.MetaStorage[i] = new MetastreamData(false, DiscardPoint.KeepAll);
-			sut.OriginalStorage[i] = new OriginalStreamData()
-			{
+			sut.OriginalStorage[i] = new OriginalStreamData() {
 				Status = CalculationStatus.Active,
 				DiscardPoint = DiscardPoint.KeepAll,
 				IsTombstoned = false,
@@ -217,18 +203,15 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 			};
 		}
 
-		for (int i = 0; i < chunkCount; i++)
-		{
+		for (int i = 0; i < chunkCount; i++) {
 			sut.ChunkWeights[i] = 0.5f;
 			sut.ChunkTimeStampRanges[i] = new ChunkTimeStampRange(DateTime.Today, DateTime.Today.AddHours(1 * i));
 		}
 
-		for (int i = 0; i < collisionStorageCount; i++)
-		{
+		for (int i = 0; i < collisionStorageCount; i++) {
 			sut.CollisionStorage[$"stream-collision-{i}"] = Unit.Instance;
 			sut.MetaCollisionStorage[$"meta-stream-collision-{i}"] = new MetastreamData(isTombstoned: true, DiscardPoint.KeepAll);
-			sut.OriginalCollisionStorage[$"stream-collision-{i}"] = new OriginalStreamData()
-			{
+			sut.OriginalCollisionStorage[$"stream-collision-{i}"] = new OriginalStreamData() {
 				Status = CalculationStatus.Archived,
 				DiscardPoint = DiscardPoint.KeepAll,
 				IsTombstoned = false,
@@ -250,8 +233,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 	}
 
 	[Fact(Skip = "Long running, run manually")]
-	public void test_index_with_archived()
-	{
+	public void test_index_with_archived() {
 		const ulong archivedCount = 50_000_000;
 		const ulong streamCount = 1_000_000;
 		const int chunkCount = 100;
@@ -265,13 +247,11 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 		insert.Start();
 
 		var transaction = sut.TransactionFactory.Begin();
-		for (ulong i = 0; i < archivedCount + streamCount; i++)
-		{
+		for (ulong i = 0; i < archivedCount + streamCount; i++) {
 			var streamId = Guid.NewGuid().ToString();
 			sut.Hashes[i] = streamId;
 			sut.MetaStorage[i] = new MetastreamData(false, DiscardPoint.KeepAll);
-			sut.OriginalStorage[i] = new OriginalStreamData()
-			{
+			sut.OriginalStorage[i] = new OriginalStreamData() {
 				Status = i < archivedCount ? CalculationStatus.Archived : CalculationStatus.Active,
 				DiscardPoint = DiscardPoint.KeepAll,
 				IsTombstoned = false,
@@ -282,18 +262,15 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 			};
 		}
 
-		for (int i = 0; i < chunkCount; i++)
-		{
+		for (int i = 0; i < chunkCount; i++) {
 			sut.ChunkWeights[i] = 0.5f;
 			sut.ChunkTimeStampRanges[i] = new ChunkTimeStampRange(DateTime.Today, DateTime.Today.AddHours(1 * i));
 		}
 
-		for (int i = 0; i < collisionStorageCount; i++)
-		{
+		for (int i = 0; i < collisionStorageCount; i++) {
 			sut.CollisionStorage[$"stream-collision-{i}"] = Unit.Instance;
 			sut.MetaCollisionStorage[$"meta-stream-collision-{i}"] = new MetastreamData(isTombstoned: true, DiscardPoint.KeepAll);
-			sut.OriginalCollisionStorage[$"stream-collision-{i}"] = new OriginalStreamData()
-			{
+			sut.OriginalCollisionStorage[$"stream-collision-{i}"] = new OriginalStreamData() {
 				Status = CalculationStatus.Archived,
 				DiscardPoint = DiscardPoint.KeepAll,
 				IsTombstoned = false,
@@ -310,8 +287,7 @@ public class SqliteScavengeBackendTests : SqliteDbPerTest<SqliteScavengeBackendT
 		var readStopwatch = new Stopwatch();
 		readStopwatch.Start();
 		ulong k = 0;
-		foreach (var active in sut.OriginalStorage.ActiveRecordsFromCheckpoint(1_000_000))
-		{
+		foreach (var active in sut.OriginalStorage.ActiveRecordsFromCheckpoint(1_000_000)) {
 			k += active.Key;
 		}
 		readStopwatch.Stop();

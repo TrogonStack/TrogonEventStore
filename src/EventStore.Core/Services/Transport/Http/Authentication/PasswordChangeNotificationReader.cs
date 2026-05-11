@@ -1,12 +1,12 @@
 using System;
+using EventStore.Common.Utils;
+using EventStore.Core.Authentication.InternalAuthentication;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Helpers;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.UserManagement;
 using Newtonsoft.Json;
-using EventStore.Common.Utils;
-using EventStore.Core.Authentication.InternalAuthentication;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Transport.Http.Authentication {
@@ -33,10 +33,13 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 							ReadNotificationsFrom(0);
 							break;
 						case ReadStreamResult.Success:
-							if (completed.Events.Count == 0)
+							if (completed.Events.Count == 0) {
 								ReadNotificationsFrom(0);
-							else
+							}
+							else {
 								ReadNotificationsFrom(completed.Events[0].Event.EventNumber + 1);
+							}
+
 							break;
 						default:
 							throw new Exception(
@@ -48,11 +51,17 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 		}
 
 		private void ReadNotificationsFrom(long fromEventNumber) {
-			if (_stopped) return;
+			if (_stopped) {
+				return;
+			}
+
 			_ioDispatcher.ReadForward(
 				UserManagementService.UserPasswordNotificationsStreamId, fromEventNumber, 100, false,
 				SystemAccounts.System, completed => {
-					if (_stopped) return;
+					if (_stopped) {
+						return;
+					}
+
 					switch (completed.Result) {
 						case ReadStreamResult.AccessDenied:
 						case ReadStreamResult.Error:
@@ -68,13 +77,18 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 								TimeSpan.FromSeconds(1), _ => ReadNotificationsFrom(0));
 							break;
 						case ReadStreamResult.Success:
-							foreach (var @event in completed.Events)
+							foreach (var @event in completed.Events) {
 								PublishPasswordChangeNotificationFrom(@event);
-							if (completed.IsEndOfStream)
+							}
+
+							if (completed.IsEndOfStream) {
 								_ioDispatcher.Delay(
 									TimeSpan.FromSeconds(1), _ => ReadNotificationsFrom(completed.NextEventNumber));
-							else
+							}
+							else {
 								ReadNotificationsFrom(completed.NextEventNumber);
+							}
+
 							break;
 						default:
 							throw new NotSupportedException();
@@ -100,7 +114,8 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 				var notification = data.ParseJson<Notification>();
 				_publisher.Publish(
 					new InternalAuthenticationProviderMessages.ResetPasswordCache(notification.LoginName));
-			} catch (JsonException ex) {
+			}
+			catch (JsonException ex) {
 				_log.Error("Failed to de-serialize event #{eventNumber}. Error: '{e}'", @event.OriginalEventNumber,
 					ex.Message);
 			}

@@ -5,99 +5,85 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core.Messages;
 
-public static partial class CoreProjectionManagementMessage
-{
+public static partial class CoreProjectionManagementMessage {
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class Start : CoreProjectionManagementControlMessage
-	{
+	public partial class Start : CoreProjectionManagementControlMessage {
 		public Start(Guid projectionId, Guid workerId)
-			: base(projectionId, workerId)
-		{
+			: base(projectionId, workerId) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class LoadStopped : CoreProjectionManagementControlMessage
-	{
+	public partial class LoadStopped : CoreProjectionManagementControlMessage {
 		public LoadStopped(Guid correlationId, Guid workerId)
-			: base(correlationId, workerId)
-		{
+			: base(correlationId, workerId) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class Stop : CoreProjectionManagementControlMessage
-	{
+	public partial class Stop : CoreProjectionManagementControlMessage {
 		public Stop(Guid projectionId, Guid workerId)
-			: base(projectionId, workerId)
-		{
+			: base(projectionId, workerId) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class Kill : CoreProjectionManagementControlMessage
-	{
+	public partial class Kill : CoreProjectionManagementControlMessage {
 		public Kill(Guid projectionId, Guid workerId)
-			: base(projectionId, workerId)
-		{
+			: base(projectionId, workerId) {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class GetState : CoreProjectionManagementControlMessage
-	{
+	public partial class GetState : CoreProjectionManagementControlMessage {
 		private readonly Guid _correlationId;
 		private readonly string _partition;
 
 		public GetState(Guid correlationId, Guid projectionId, string partition, Guid workerId)
-			: base(projectionId, workerId)
-		{
-			if (partition == null)
+			: base(projectionId, workerId) {
+			if (partition == null) {
 				throw new ArgumentNullException("partition");
+			}
+
 			_correlationId = correlationId;
 			_partition = partition;
 		}
 
-		public string Partition
-		{
+		public string Partition {
 			get { return _partition; }
 		}
 
-		public Guid CorrelationId
-		{
+		public Guid CorrelationId {
 			get { return _correlationId; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class GetResult : CoreProjectionManagementControlMessage
-	{
+	public partial class GetResult : CoreProjectionManagementControlMessage {
 		private readonly Guid _correlationId;
 		private readonly string _partition;
 
 		public GetResult(Guid correlationId, Guid projectionId, string partition, Guid workerId)
-			: base(projectionId, workerId)
-		{
-			if (partition == null)
+			: base(projectionId, workerId) {
+			if (partition == null) {
 				throw new ArgumentNullException("partition");
+			}
+
 			_correlationId = correlationId;
 			_partition = partition;
 		}
 
-		public string Partition
-		{
+		public string Partition {
 			get { return _partition; }
 		}
 
-		public Guid CorrelationId
-		{
+		public Guid CorrelationId {
 			get { return _correlationId; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class CreateAndPrepare : CoreProjectionManagementControlMessage
-	{
+	public partial class CreateAndPrepare : CoreProjectionManagementControlMessage {
 		private readonly ProjectionConfig _config;
 		private readonly string _handlerType;
 		private readonly string _query;
@@ -114,8 +100,7 @@ public static partial class CoreProjectionManagementMessage
 			string handlerType,
 			string query,
 			bool enableContentTypeValidation)
-			: base(projectionId, workerId)
-		{
+			: base(projectionId, workerId) {
 			_name = name;
 			_version = version;
 			_config = config;
@@ -124,40 +109,33 @@ public static partial class CoreProjectionManagementMessage
 			_enableContentTypeValidation = enableContentTypeValidation;
 		}
 
-		public ProjectionConfig Config
-		{
+		public ProjectionConfig Config {
 			get { return _config; }
 		}
 
-		public string Name
-		{
+		public string Name {
 			get { return _name; }
 		}
 
-		public ProjectionVersion Version
-		{
+		public ProjectionVersion Version {
 			get { return _version; }
 		}
 
-		public string HandlerType
-		{
+		public string HandlerType {
 			get { return _handlerType; }
 		}
 
-		public string Query
-		{
+		public string Query {
 			get { return _query; }
 		}
 
-		public bool EnableContentTypeValidation
-		{
+		public bool EnableContentTypeValidation {
 			get { return _enableContentTypeValidation; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class CreatePrepared : CoreProjectionManagementControlMessage
-	{
+	public partial class CreatePrepared : CoreProjectionManagementControlMessage {
 		private readonly ProjectionConfig _config;
 		private readonly QuerySourcesDefinition _sourceDefinition;
 		private readonly string _handlerType;
@@ -176,18 +154,27 @@ public static partial class CoreProjectionManagementMessage
 			string handlerType,
 			string query,
 			bool enableContentTypeValidation)
-			: base(projectionId, workerId)
-		{
-			if (name == null)
+			: base(projectionId, workerId) {
+			if (name == null) {
 				throw new ArgumentNullException("name");
-			if (config == null)
+			}
+
+			if (config == null) {
 				throw new ArgumentNullException("config");
-			if (sourceDefinition == null)
+			}
+
+			if (sourceDefinition == null) {
 				throw new ArgumentNullException("sourceDefinition");
-			if (handlerType == null)
+			}
+
+			if (handlerType == null) {
 				throw new ArgumentNullException("handlerType");
-			if (query == null)
+			}
+
+			if (query == null) {
 				throw new ArgumentNullException("query");
+			}
+
 			_name = name;
 			_version = version;
 			_config = config;
@@ -197,48 +184,39 @@ public static partial class CoreProjectionManagementMessage
 			_enableContentTypeValidation = enableContentTypeValidation;
 		}
 
-		public ProjectionConfig Config
-		{
+		public ProjectionConfig Config {
 			get { return _config; }
 		}
 
-		public string Name
-		{
+		public string Name {
 			get { return _name; }
 		}
 
-		public QuerySourcesDefinition SourceDefinition
-		{
+		public QuerySourcesDefinition SourceDefinition {
 			get { return _sourceDefinition; }
 		}
 
-		public ProjectionVersion Version
-		{
+		public ProjectionVersion Version {
 			get { return _version; }
 		}
 
-		public string HandlerType
-		{
+		public string HandlerType {
 			get { return _handlerType; }
 		}
 
-		public string Query
-		{
+		public string Query {
 			get { return _query; }
 		}
 
-		public bool EnableContentTypeValidation
-		{
+		public bool EnableContentTypeValidation {
 			get { return _enableContentTypeValidation; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.CoreManagement)]
-	public partial class Dispose : CoreProjectionManagementControlMessage
-	{
+	public partial class Dispose : CoreProjectionManagementControlMessage {
 		public Dispose(Guid projectionId, Guid workerId)
-			: base(projectionId, workerId)
-		{
+			: base(projectionId, workerId) {
 		}
 	}
 }

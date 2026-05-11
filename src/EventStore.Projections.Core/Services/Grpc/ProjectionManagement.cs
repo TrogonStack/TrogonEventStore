@@ -9,29 +9,27 @@ using EventStore.Plugins.Authorization;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
-namespace EventStore.Client.Projections
-{
-	partial class Projections
-	{
-		partial class ProjectionsBase : ServiceBase
-		{
+namespace EventStore.Client.Projections {
+	partial class Projections {
+		partial class ProjectionsBase : ServiceBase {
 		}
 	}
 }
 
-namespace EventStore.Projections.Core.Services.Grpc
-{
-	internal partial class ProjectionManagement : EventStore.Client.Projections.Projections.ProjectionsBase
-	{
+namespace EventStore.Projections.Core.Services.Grpc {
+	internal partial class ProjectionManagement : EventStore.Client.Projections.Projections.ProjectionsBase {
 		private readonly IPublisher _publisher;
 		private readonly IAuthorizationProvider _authorizationProvider;
 
-		public ProjectionManagement(IPublisher publisher, IAuthorizationProvider authorizationProvider)
-		{
-			if (publisher == null)
+		public ProjectionManagement(IPublisher publisher, IAuthorizationProvider authorizationProvider) {
+			if (publisher == null) {
 				throw new ArgumentNullException(nameof(publisher));
-			if (authorizationProvider == null)
+			}
+
+			if (authorizationProvider == null) {
 				throw new ArgumentNullException(nameof(authorizationProvider));
+			}
+
 			_publisher = publisher;
 			_authorizationProvider = authorizationProvider;
 		}
@@ -49,13 +47,10 @@ namespace EventStore.Projections.Core.Services.Grpc
 			new RpcException(new Status(StatusCode.NotFound, $"Projection '{name}' not found"));
 
 		private static Value GetProtoValue(JsonElement element) =>
-			element.ValueKind switch
-			{
+			element.ValueKind switch {
 				JsonValueKind.Null => new Value { NullValue = NullValue.NullValue },
-				JsonValueKind.Array => new Value
-				{
-					ListValue = new ListValue
-					{
+				JsonValueKind.Array => new Value {
+					ListValue = new ListValue {
 						Values = {
 							element.EnumerateArray().Select(GetProtoValue)
 						}
@@ -70,11 +65,9 @@ namespace EventStore.Projections.Core.Services.Grpc
 				_ => throw new InvalidOperationException()
 			};
 
-		private static Struct GetProtoStruct(JsonElement element)
-		{
+		private static Struct GetProtoStruct(JsonElement element) {
 			var structValue = new Struct();
-			foreach (var property in element.EnumerateObject())
-			{
+			foreach (var property in element.EnumerateObject()) {
 				structValue.Fields.Add(property.Name, GetProtoValue(property.Value));
 			}
 
@@ -84,29 +77,24 @@ namespace EventStore.Projections.Core.Services.Grpc
 		private static string ToJson<T>(T value) where T : class =>
 			value is null ? "{}" : value.ToJson();
 
-		private static Value GetProtoValue(string value, bool isJson)
-		{
-			if (string.IsNullOrEmpty(value))
-			{
+		private static Value GetProtoValue(string value, bool isJson) {
+			if (string.IsNullOrEmpty(value)) {
 				return new Value {
 					StructValue = new Struct()
 				};
 			}
 
-			if (!isJson)
-			{
+			if (!isJson) {
 				return new Value {
 					StringValue = value
 				};
 			}
 
-			try
-			{
+			try {
 				using var document = JsonDocument.Parse(value);
 				return GetProtoValue(document.RootElement);
 			}
-			catch (JsonException)
-			{
+			catch (JsonException) {
 				return new Value {
 					StringValue = value
 				};

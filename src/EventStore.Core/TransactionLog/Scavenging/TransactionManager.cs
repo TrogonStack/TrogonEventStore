@@ -19,8 +19,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public void RegisterOnRollback(Action onRollback) {
-			if (_onRollback != null)
+			if (_onRollback != null) {
 				throw new InvalidOperationException();
+			}
 
 			_onRollback = onRollback;
 		}
@@ -30,16 +31,18 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public void Begin() {
-			if (_began)
+			if (_began) {
 				throw new InvalidOperationException("Cannot begin a transaction that has already begun.");
+			}
 
 			_transaction = _factory.Begin();
 			_began = true;
 		}
 
 		public void Rollback() {
-			if (!_began)
+			if (!_began) {
 				throw new InvalidOperationException("Cannot rollback a transaction that has not begun.");
+			}
 
 			_factory.Rollback(_transaction);
 			_onRollback?.Invoke();
@@ -47,8 +50,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public void Commit(ScavengeCheckpoint checkpoint) {
-			if (!_began)
+			if (!_began) {
 				throw new InvalidOperationException("Cannot commit a transaction that has not begun.");
+			}
 
 			_storage[Unit.Instance] = checkpoint;
 

@@ -75,8 +75,9 @@ public class QueueTrackers {
 					pattern: pattern,
 					replacement: @case.Label);
 
-				if (string.IsNullOrWhiteSpace(label))
+				if (string.IsNullOrWhiteSpace(label)) {
 					return _noOpShared;
+				}
 
 				Log.Information(
 					"Metrics matched queue {queueName} with pattern {pattern}. Label: {label}",

@@ -12,11 +12,9 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 namespace EventStore.Core.XUnit.Tests.Scavenge.PortedFromOldScavenge;
 
 // old scavenge tests that derived from ScavengeTestScenario
-public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeTestScenarioPortedScavengeTests>
-{
+public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeTestScenarioPortedScavengeTests> {
 	[Fact]
-	public async Task when_scavenging_tfchunk_with_version0_log_records_and_incomplete_chunk()
-	{
+	public async Task when_scavenging_tfchunk_with_version0_log_records_and_incomplete_chunk() {
 		const byte version = LogRecordVersion.LogRecordV0;
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -51,8 +49,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 
 
 	[Fact]
-	public async Task when_deleted_stream_with_a_lot_of_data_is_scavenged()
-	{
+	public async Task when_deleted_stream_with_a_lot_of_data_is_scavenged() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -78,8 +75,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_deleted_stream_with_a_lot_of_data_is_scavenged_with_ingore_harddelete()
-	{
+	public async Task when_deleted_stream_with_a_lot_of_data_is_scavenged_with_ingore_harddelete() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -106,8 +102,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_deleted_stream_with_explicit_transaction_is_scavenged()
-	{
+	public async Task when_deleted_stream_with_explicit_transaction_is_scavenged() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -134,8 +129,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_deleted_stream_with_metadata_is_scavenged()
-	{
+	public async Task when_deleted_stream_with_metadata_is_scavenged() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -154,8 +148,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_nothing_to_scavenge()
-	{
+	public async Task when_having_nothing_to_scavenge() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -177,8 +170,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_stream_with_both_max_age_and_max_count_with_stricter_max_age_specified()
-	{
+	public async Task when_having_stream_with_both_max_age_and_max_count_with_stricter_max_age_specified() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -214,8 +206,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_stream_with_both_max_age_and_max_count_with_stricter_max_count_specified()
-	{
+	public async Task when_having_stream_with_both_max_age_and_max_count_with_stricter_max_count_specified() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -243,8 +234,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_stream_with_max_age_specified()
-	{
+	public async Task when_having_stream_with_max_age_specified() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -279,8 +269,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_stream_with_max_count_specified()
-	{
+	public async Task when_having_stream_with_max_count_specified() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -308,8 +297,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_stream_with_truncatebefore_specified()
-	{
+	public async Task when_having_stream_with_truncatebefore_specified() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -336,8 +324,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_having_stream_with_strict_max_age_leaving_no_events_in_stream()
-	{
+	public async Task when_having_stream_with_strict_max_age_leaving_no_events_in_stream() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -366,8 +353,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_metastream_is_scavenged_and_read_index_is_set_to_keep_just_last_metaevent()
-	{
+	public async Task when_metastream_is_scavenged_and_read_index_is_set_to_keep_just_last_metaevent() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -387,8 +373,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_stream_is_deleted()
-	{
+	public async Task when_stream_is_deleted() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -409,8 +394,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_stream_is_deleted_with_ignore_hard_deletes()
-	{
+	public async Task when_stream_is_deleted_with_ignore_hard_deletes() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -435,8 +419,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	// old scavenge keeps the begin and commit for transaction 1 because it spans chunks
 	// new scavenge has less transaction handling and treats both transactions the same.
 	[Fact]
-	public async Task when_stream_is_deleted_and_bulk_transaction_spans_chunks_boundary()
-	{
+	public async Task when_stream_is_deleted_and_bulk_transaction_spans_chunks_boundary() {
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
 			.WithDb(x => x
@@ -471,8 +454,7 @@ public class ScavengeTestScenarioPortedScavengeTests : SqliteDbPerTest<ScavengeT
 	}
 
 	[Fact]
-	public async Task when_stream_is_deleted_and_explicit_transaction_spans_chunks_boundary()
-	{
+	public async Task when_stream_is_deleted_and_explicit_transaction_spans_chunks_boundary() {
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
 			.WithDb(x => x

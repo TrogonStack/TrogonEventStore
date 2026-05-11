@@ -4,12 +4,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeightScavengeMapTests>
-{
+public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeightScavengeMapTests> {
 
 	[Fact]
-	public void can_increase_existing_chunk_weight()
-	{
+	public void can_increase_existing_chunk_weight() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -22,8 +20,7 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_decrease_existing_chunk_weight()
-	{
+	public void can_decrease_existing_chunk_weight() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -36,8 +33,7 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_increase_non_existing_chunk_weight()
-	{
+	public void can_increase_non_existing_chunk_weight() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -48,8 +44,7 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_see_if_all_weights_zero_false()
-	{
+	public void can_see_if_all_weights_zero_false() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 		sut[2] = 0.1f;
@@ -58,8 +53,7 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_see_if_all_weights_zero_true()
-	{
+	public void can_see_if_all_weights_zero_true() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 		sut[2] = 0.0f;
@@ -67,16 +61,14 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_see_if_all_weights_zero_true_empty()
-	{
+	public void can_see_if_all_weights_zero_true_empty() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 		Assert.True(sut.AllWeightsAreZero());
 	}
 
 	[Fact]
-	public void can_sum_chunk_weights()
-	{
+	public void can_sum_chunk_weights() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -92,8 +84,7 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_sum_non_existing_chunk_weights()
-	{
+	public void can_sum_non_existing_chunk_weights() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -103,8 +94,7 @@ public class SqliteChunkWeightScavengeMapTests : SqliteDbPerTest<SqliteChunkWeig
 	}
 
 	[Fact]
-	public void can_reset_chunk_weights()
-	{
+	public void can_reset_chunk_weights() {
 		var sut = new SqliteChunkWeightScavengeMap();
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 

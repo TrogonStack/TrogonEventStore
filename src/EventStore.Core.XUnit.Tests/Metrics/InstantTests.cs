@@ -4,11 +4,9 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class InstantTests
-{
+public class InstantTests {
 	[Fact]
-	public void can_measure_elapsed()
-	{
+	public void can_measure_elapsed() {
 		var x = Instant.FromSeconds(4);
 		var y = Instant.FromSeconds(6);
 		Assert.Equal(2, y.ElapsedSecondsSince(x));
@@ -18,70 +16,61 @@ public class InstantTests
 	[InlineData(10, 10, 0)]
 	[InlineData(5, 8, 3_000_000)]
 	[InlineData(100, 2_000_000_000, 1_999_999_900_000_000)]
-	public void can_measure_elapsed_time(int startSecs, int endSecs, long elapsedMicroseconds)
-	{
+	public void can_measure_elapsed_time(int startSecs, int endSecs, long elapsedMicroseconds) {
 		var x = Instant.FromSeconds(startSecs);
 		var y = Instant.FromSeconds(endSecs);
 		Assert.Equal(elapsedMicroseconds, y.ElapsedTimeSince(x).TotalMicroseconds);
 	}
 
 	[Fact]
-	public void rounds_up_elapsed_time()
-	{
+	public void rounds_up_elapsed_time() {
 		var x = Instant.Now;
 		var y = new Instant(x.Ticks + 1);
 		Assert.True(y.ElapsedTimeSince(x).Ticks > 0);
 	}
 
 	[Fact]
-	public void add()
-	{
+	public void add() {
 		Assert.Equal(
 			Instant.FromSeconds(4),
 			Instant.FromSeconds(3).Add(TimeSpan.FromSeconds(1)));
 	}
 
 	[Fact]
-	public void equal_to()
-	{
+	public void equal_to() {
 		Assert.False(Instant.FromSeconds(3) == Instant.FromSeconds(4));
 		Assert.True(Instant.FromSeconds(3) == Instant.FromSeconds(3));
 	}
 
 	[Fact]
-	public void not_equal_to()
-	{
+	public void not_equal_to() {
 		Assert.True(Instant.FromSeconds(3) != Instant.FromSeconds(4));
 		Assert.False(Instant.FromSeconds(3) != Instant.FromSeconds(3));
 	}
 
 	[Fact]
-	public void less_than()
-	{
+	public void less_than() {
 		Assert.True(Instant.FromSeconds(3) < Instant.FromSeconds(4));
 		Assert.False(Instant.FromSeconds(3) < Instant.FromSeconds(3));
 		Assert.False(Instant.FromSeconds(3) < Instant.FromSeconds(2));
 	}
 
 	[Fact]
-	public void greater_than()
-	{
+	public void greater_than() {
 		Assert.False(Instant.FromSeconds(3) > Instant.FromSeconds(4));
 		Assert.False(Instant.FromSeconds(3) > Instant.FromSeconds(3));
 		Assert.True(Instant.FromSeconds(3) > Instant.FromSeconds(2));
 	}
 
 	[Fact]
-	public void less_than_or_equal_to()
-	{
+	public void less_than_or_equal_to() {
 		Assert.True(Instant.FromSeconds(3) <= Instant.FromSeconds(4));
 		Assert.True(Instant.FromSeconds(3) <= Instant.FromSeconds(3));
 		Assert.False(Instant.FromSeconds(3) <= Instant.FromSeconds(2));
 	}
 
 	[Fact]
-	public void greater_than_or_equal_to()
-	{
+	public void greater_than_or_equal_to() {
 		Assert.False(Instant.FromSeconds(3) >= Instant.FromSeconds(4));
 		Assert.True(Instant.FromSeconds(3) >= Instant.FromSeconds(3));
 		Assert.True(Instant.FromSeconds(3) >= Instant.FromSeconds(2));

@@ -11,10 +11,8 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_the_projection_with_pending_writes_is_stopped<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+public class when_the_projection_with_pending_writes_is_stopped<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	protected override void Given() {
 		_checkpointHandledThreshold = 2;
 		NoStream("$projections-projection-result");
 		NoStream("$projections-projection-order");
@@ -24,8 +22,7 @@ public class when_the_projection_with_pending_writes_is_stopped<TLogFormat, TStr
 		AllWritesQueueUp();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -49,8 +46,7 @@ public class when_the_projection_with_pending_writes_is_stopped<TLogFormat, TStr
 	}
 
 	[Test]
-	public void a_projection_checkpoint_event_is_published()
-	{
+	public void a_projection_checkpoint_event_is_published() {
 		AllWriteComplete();
 		Assert.AreEqual(
 			1,
@@ -59,8 +55,7 @@ public class when_the_projection_with_pending_writes_is_stopped<TLogFormat, TStr
 	}
 
 	[Test]
-	public void other_events_are_not_written_after_the_checkpoint_write()
-	{
+	public void other_events_are_not_written_after_the_checkpoint_write() {
 		AllWriteComplete();
 		var index =
 			_writeEventHandler.HandledMessages.FindIndex(

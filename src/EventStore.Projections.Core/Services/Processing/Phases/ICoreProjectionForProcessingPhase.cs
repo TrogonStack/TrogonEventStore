@@ -4,8 +4,7 @@ using EventStore.Projections.Core.Services.Processing.WorkItems;
 
 namespace EventStore.Projections.Core.Services.Processing.Phases;
 
-public interface ICoreProjectionForProcessingPhase
-{
+public interface ICoreProjectionForProcessingPhase {
 	void CompletePhase();
 	void SetFaulted(string reason);
 	void SetFaulted(Exception ex);

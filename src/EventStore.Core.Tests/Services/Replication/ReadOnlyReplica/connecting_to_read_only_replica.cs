@@ -11,23 +11,22 @@ namespace EventStore.Core.Tests.Replication.ReadOnlyReplica;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
-{
+public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
 	protected override MiniClusterNode<TLogFormat, TStreamId> CreateNode(int index, Endpoints endpoints, EndPoint[] gossipSeeds,
-		bool wait = true)
-	{
+		bool wait = true) {
 		var isReadOnly = index == 2;
 		var node = new MiniClusterNode<TLogFormat, TStreamId>(
 			PathName, index, endpoints.InternalTcp,
 			endpoints.ExternalTcp, endpoints.HttpEndPoint, gossipSeeds,
 			readOnlyReplica: isReadOnly);
-		if (wait && !isReadOnly)
+		if (wait && !isReadOnly) {
 			WaitIdle();
+		}
+
 		return node;
 	}
 
-	protected override IEventStoreConnection CreateConnection()
-	{
+	protected override IEventStoreConnection CreateConnection() {
 		var settings = ConnectionSettings.Create()
 			.DisableServerCertificateValidation()
 			.PerformOnAnyNode();
@@ -35,24 +34,21 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 	}
 
 	[Test]
-	public async Task append_to_stream_should_fail_with_not_supported_exception()
-	{
+	public async Task append_to_stream_should_fail_with_not_supported_exception() {
 		const string stream = "append_to_stream_should_fail_with_not_supported_exception";
 		await AssertEx.ThrowsAsync<OperationNotSupportedException>(
 			() => _conn.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent()));
 	}
 
 	[Test]
-	public async Task delete_stream_should_fail_with_not_supported_exception()
-	{
+	public async Task delete_stream_should_fail_with_not_supported_exception() {
 		const string stream = "delete_stream_should_fail_with_not_supported_exception";
 		await AssertEx.ThrowsAsync<OperationNotSupportedException>(() =>
 			_conn.DeleteStreamAsync(stream, ExpectedVersion.Any));
 	}
 
 	[Test]
-	public async Task start_transaction_should_fail_with_not_supported_exception()
-	{
+	public async Task start_transaction_should_fail_with_not_supported_exception() {
 		const string stream = "start_transaction_should_fail_with_not_supported_exception";
 		await AssertEx.ThrowsAsync<OperationNotSupportedException>(() =>
 			_conn.StartTransactionAsync(stream, ExpectedVersion.Any));

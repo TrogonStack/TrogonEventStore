@@ -11,25 +11,27 @@ public class ConnectionMetric : EventListener {
 	}
 
 	protected override void OnEventSourceCreated(EventSource eventSource) {
-		if (eventSource.Name is not "Microsoft-AspNetCore-Server-Kestrel")
+		if (eventSource.Name is not "Microsoft-AspNetCore-Server-Kestrel") {
 			return;
+		}
 
 		EnableEvents(eventSource, EventLevel.Verbose);
 	}
 
 	protected override void OnEventWritten(EventWrittenEventArgs eventData) {
-		if (_connectionsMetric == null)
+		if (_connectionsMetric == null) {
 			return;
+		}
 
 		switch (eventData.EventName) {
 			case "ConnectionStart": {
-				_connectionsMetric.Add(1);
-				break;
-			}
+					_connectionsMetric.Add(1);
+					break;
+				}
 			case "ConnectionStop": {
-				_connectionsMetric.Add(-1);
-				break;
-			}
+					_connectionsMetric.Add(-1);
+					break;
+				}
 		}
 	}
 }

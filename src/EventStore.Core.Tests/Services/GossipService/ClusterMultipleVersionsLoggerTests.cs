@@ -10,11 +10,9 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.GossipService;
 
-public abstract class ClusterMultipleVersionsLoggerTests
-{
+public abstract class ClusterMultipleVersionsLoggerTests {
 
-	public class if_gossip_received_has_alive_nodes_on_old_version : NodeGossipServiceTestFixture
-	{
+	public class if_gossip_received_has_alive_nodes_on_old_version : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -28,8 +26,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1,
 						esVersion: VersionInfo.OldVersion)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1,
@@ -39,8 +36,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1, esVersion: VersionInfo.OldVersion));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeFour.HttpEndPoint, VersionInfo.OldVersion },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.DefaultVersion },
@@ -50,8 +46,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_detect_version_mismatch()
-		{
+		public void should_detect_version_mismatch() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			Dictionary<EndPoint, string> ipAddressVsVersion =
@@ -62,15 +57,13 @@ public abstract class ClusterMultipleVersionsLoggerTests
 			Assert.AreEqual(2, numDistinctKnownVersions);
 		}
 
-		private void AssertGossipReply(Message message)
-		{
+		private void AssertGossipReply(Message message) {
 			message.Should()
 				.BeEquivalentTo(new GossipMessage.SendGossip(GetExpectedClusterInfo(), _currentNode.HttpEndPoint));
 		}
 	}
 
-	public class if_gossip_received_has_alive_nodes_on_different_version : NodeGossipServiceTestFixture
-	{
+	public class if_gossip_received_has_alive_nodes_on_different_version : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -84,8 +77,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.4")),
 				_nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1,
@@ -95,8 +87,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.4"));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeFour.HttpEndPoint, "1.1.1.4" },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.DefaultVersion },
@@ -106,8 +97,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_detect_version_mismatch()
-		{
+		public void should_detect_version_mismatch() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			Dictionary<EndPoint, string> ipAddressVsVersion =
@@ -118,8 +108,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_gossip_received_has_alive_nodes_on_same_version : NodeGossipServiceTestFixture
-	{
+	public class if_gossip_received_has_alive_nodes_on_same_version : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -133,8 +122,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1,
 						esVersion: VersionInfo.DefaultVersion)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1,
@@ -146,8 +134,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_not_detect_version_mismatch()
-		{
+		public void should_not_detect_version_mismatch() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			ClusterMultipleVersionsLogger.GetIPAddressVsVersion(GetExpectedClusterInfo(),
@@ -156,8 +143,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_gossip_received_from_old_node_with_NO_previous_version_info : NodeGossipServiceTestFixture
-	{
+	public class if_gossip_received_from_old_node_with_NO_previous_version_info : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -167,8 +153,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 1, esVersion: null,
 						isAlive: true)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1, esVersion: VersionInfo.OldVersion),
@@ -177,8 +162,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					esVersion: VersionInfo.UnknownVersion));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeThree.HttpEndPoint, VersionInfo.UnknownVersion },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.OldVersion },
@@ -188,8 +172,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void version_should_be_unknown()
-		{
+		public void version_should_be_unknown() {
 			// version of nodeThree is Unknown
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
@@ -201,8 +184,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_gossip_received_from_old_node_with_previous_version_info : NodeGossipServiceTestFixture
-	{
+	public class if_gossip_received_from_old_node_with_previous_version_info : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources(
 			//after this gossip from nodeThree, currentNode has information about nodeThree
 			new GossipMessage.GossipReceived(new NoopEnvelope(),
@@ -217,8 +199,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 2, esVersion: null,
 						isAlive: true)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 2, esVersion: VersionInfo.OldVersion),
@@ -226,8 +207,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 2, esVersion: "1.1.1.3"));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeThree.HttpEndPoint, "1.1.1.3" },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.OldVersion },
@@ -237,8 +217,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_retain_previous_version_info()
-		{
+		public void should_retain_previous_version_info() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			Dictionary<EndPoint, string> ipAddressVsVersion =
@@ -249,8 +228,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_Get_gossip_received_has_alive_nodes_on_old_version : NodeGossipServiceTestFixture
-	{
+	public class if_Get_gossip_received_has_alive_nodes_on_old_version : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -264,8 +242,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 						esVersion: VersionInfo.OldVersion)),
 				_nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1,
@@ -275,8 +252,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1, esVersion: VersionInfo.OldVersion));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeFour.HttpEndPoint, VersionInfo.OldVersion },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.DefaultVersion },
@@ -286,8 +262,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_detect_version_mismatch()
-		{
+		public void should_detect_version_mismatch() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			Dictionary<EndPoint, string> ipAddressVsVersion =
@@ -298,8 +273,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_Get_gossip_received_has_alive_nodes_on_different_version : NodeGossipServiceTestFixture
-	{
+	public class if_Get_gossip_received_has_alive_nodes_on_different_version : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -312,8 +286,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.4")),
 				_nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1,
@@ -323,8 +296,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1, esVersion: "1.1.1.4"));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeFour.HttpEndPoint, "1.1.1.4" },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.DefaultVersion },
@@ -334,8 +306,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_detect_version_mismatch()
-		{
+		public void should_detect_version_mismatch() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			Dictionary<EndPoint, string> ipAddressVsVersion =
@@ -346,8 +317,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_Get_gossip_received_has_alive_nodes_on_same_versions : NodeGossipServiceTestFixture
-	{
+	public class if_Get_gossip_received_has_alive_nodes_on_same_versions : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -360,8 +330,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeFour, _timeProvider.UtcNow, epochNumber: 1,
 					esVersion: VersionInfo.DefaultVersion)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1,
@@ -373,8 +342,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_not_detect_version_mismatch()
-		{
+		public void should_not_detect_version_mismatch() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			ClusterMultipleVersionsLogger.GetIPAddressVsVersion(GetExpectedClusterInfo(),
@@ -383,8 +351,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_GET_gossip_received_from_old_node_with_NO_previous_version_info : NodeGossipServiceTestFixture
-	{
+	public class if_GET_gossip_received_from_old_node_with_NO_previous_version_info : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources();
 
 		protected override Message When() =>
@@ -394,8 +361,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 1, esVersion: null,
 						isAlive: true)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 1, esVersion: VersionInfo.OldVersion),
@@ -404,8 +370,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					esVersion: VersionInfo.UnknownVersion));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeThree.HttpEndPoint, VersionInfo.UnknownVersion },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.OldVersion },
@@ -415,8 +380,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void version_should_be_unknown()
-		{
+		public void version_should_be_unknown() {
 			// version of nodeThree is Unknown
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
@@ -428,8 +392,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 	}
 
-	public class if_GET_gossip_received_from_old_node_with_previous_version_info : NodeGossipServiceTestFixture
-	{
+	public class if_GET_gossip_received_from_old_node_with_previous_version_info : NodeGossipServiceTestFixture {
 		protected override Message[] Given() => GivenSystemInitializedWithKnownGossipSeedSources(
 			//after this gossip from nodeThree, currentNode has information about nodeThree
 			new GossipMessage.GossipReceived(new NoopEnvelope(),
@@ -444,8 +407,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 					MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 2, esVersion: null,
 						isAlive: true)), _nodeTwo.HttpEndPoint);
 
-		private ClusterInfo GetExpectedClusterInfo()
-		{
+		private ClusterInfo GetExpectedClusterInfo() {
 			return new ClusterInfo(
 				MemberInfoForVNode(_currentNode, _timeProvider.UtcNow, esVersion: VersionInfo.DefaultVersion),
 				MemberInfoForVNode(_nodeTwo, _timeProvider.UtcNow, epochNumber: 2, esVersion: VersionInfo.OldVersion),
@@ -453,8 +415,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 				MemberInfoForVNode(_nodeThree, _timeProvider.UtcNow, epochNumber: 2, esVersion: "1.1.1.3"));
 		}
 
-		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion()
-		{
+		private Dictionary<EndPoint, string> GetExpectedEndPointVsVersion() {
 			Dictionary<EndPoint, string> endpointVsVersion = new Dictionary<EndPoint, string> {
 				{ _nodeThree.HttpEndPoint, "1.1.1.3" },
 				{ _nodeTwo.HttpEndPoint, VersionInfo.OldVersion },
@@ -464,8 +425,7 @@ public abstract class ClusterMultipleVersionsLoggerTests
 		}
 
 		[Test]
-		public void should_retain_previous_version_info()
-		{
+		public void should_retain_previous_version_info() {
 			ExpectMessages(new GossipMessage.GossipUpdated(GetExpectedClusterInfo()));
 
 			Dictionary<EndPoint, string> ipAddressVsVersion =

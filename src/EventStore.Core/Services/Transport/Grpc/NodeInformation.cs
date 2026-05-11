@@ -15,20 +15,22 @@ public sealed class NodeInformation(
 
 	public override async Task<NodeInfo> Read(Empty request, ServerCallContext context) {
 		if (!await authorizationProvider.CheckAccessAsync(
-			    context.GetHttpContext().User,
-			    ReadOperation,
-			    context.CancellationToken))
+				context.GetHttpContext().User,
+				ReadOperation,
+				context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
+		}
 
 		return provider.Read();
 	}
 
 	public override async Task<NodeOptions> Options(Empty request, ServerCallContext context) {
 		if (!await authorizationProvider.CheckAccessAsync(
-			    context.GetHttpContext().User,
-			    OptionsOperation,
-			    context.CancellationToken))
+				context.GetHttpContext().User,
+				OptionsOperation,
+				context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
+		}
 
 		return provider.Options();
 	}

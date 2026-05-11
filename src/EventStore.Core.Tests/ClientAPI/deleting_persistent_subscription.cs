@@ -11,8 +11,7 @@ namespace EventStore.Core.Tests.ClientAPI;
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class deleting_existing_persistent_subscription_group_with_permissions<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
@@ -24,16 +23,14 @@ public class deleting_existing_persistent_subscription_group_with_permissions<TL
 			DefaultData.AdminCredentials);
 
 	[Test]
-	public async Task the_delete_of_group_succeeds()
-	{
+	public async Task the_delete_of_group_succeeds() {
 		await _conn.DeletePersistentSubscriptionAsync(_stream, "groupname123", DefaultData.AdminCredentials);
 	}
 }
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class deleting_existing_persistent_subscription_with_subscriber<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class deleting_existing_persistent_subscription_with_subscriber<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
@@ -41,8 +38,7 @@ public class deleting_existing_persistent_subscription_with_subscriber<TLogForma
 	private readonly string _stream = Guid.NewGuid().ToString();
 	private readonly ManualResetEvent _called = new ManualResetEvent(false);
 
-	protected override async Task Given()
-	{
+	protected override async Task Given() {
 		await base.Given();
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "groupname123", _settings,
 			DefaultData.AdminCredentials);
@@ -51,14 +47,12 @@ public class deleting_existing_persistent_subscription_with_subscriber<TLogForma
 			(s, r, e) => _called.Set(), DefaultData.AdminCredentials);
 	}
 
-	protected override Task When()
-	{
+	protected override Task When() {
 		return _conn.DeletePersistentSubscriptionAsync(_stream, "groupname123", DefaultData.AdminCredentials);
 	}
 
 	[Test]
-	public void the_subscription_is_dropped()
-	{
+	public void the_subscription_is_dropped() {
 		Assert.IsTrue(_called.WaitOne(TimeSpan.FromSeconds(5)));
 	}
 }
@@ -66,15 +60,13 @@ public class deleting_existing_persistent_subscription_with_subscriber<TLogForma
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class deleting_persistent_subscription_group_that_doesnt_exist<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class deleting_persistent_subscription_group_that_doesnt_exist<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_delete_fails_with_argument_exception()
-	{
+	public async Task the_delete_fails_with_argument_exception() {
 		await AssertEx.ThrowsAsync<InvalidOperationException>(
 			() =>
 				_conn.DeletePersistentSubscriptionAsync(_stream, Guid.NewGuid().ToString(),
@@ -85,15 +77,13 @@ public class deleting_persistent_subscription_group_that_doesnt_exist<TLogFormat
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class deleting_persistent_subscription_group_without_permissions<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class deleting_persistent_subscription_group_without_permissions<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_delete_fails_with_access_denied()
-	{
+	public async Task the_delete_fails_with_access_denied() {
 		await AssertEx.ThrowsAsync<AccessDeniedException>(
 			() => _conn.DeletePersistentSubscriptionAsync(_stream, Guid.NewGuid().ToString()));
 	}

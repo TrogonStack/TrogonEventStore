@@ -28,8 +28,9 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 		public void Initialise() {
 			// We only initialise on first election so we don't incorrectly mark running scavenges as interrupted.
-			if (Interlocked.Exchange(ref _isInitialised, 1) != 0)
+			if (Interlocked.Exchange(ref _isInitialised, 1) != 0) {
 				return;
+			}
 
 			SetScavengeStreamMetadata();
 
@@ -120,11 +121,14 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 							var scavengeId = scavengeIdEntry.ToString();
 							if (recentScavenges.Count <= 1000) //bound size
+{
 								recentScavenges.Add(scavengeId);
+							}
 
 							if (ev.Event.EventType == SystemEventTypes.ScavengeCompleted) {
 								completedScavenges.Add(scavengeId);
-							} else if (ev.Event.EventType == SystemEventTypes.ScavengeStarted) {
+							}
+							else if (ev.Event.EventType == SystemEventTypes.ScavengeStarted) {
 								if (!completedScavenges.Contains(scavengeId)) {
 									incompleteScavenges.Add(scavengeId);
 								}
@@ -135,7 +139,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 					if (readResult.IsEndOfStream || readResult.Events.Count == 0) {
 						SetOpsPermissions(recentScavenges);
 						CompleteInterruptedScavenges(incompleteScavenges);
-					} else {
+					}
+					else {
 						GatherIncompleteScavenges(readResult.NextEventNumber, completedScavenges, incompleteScavenges, recentScavenges);
 					}
 				});
@@ -147,13 +152,16 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 			var last30ScavengeIds = new HashSet<string>();
 			foreach (var scavengeId in recentScavengeIds) {
-				if (last30ScavengeIds.Count >= 30)
+				if (last30ScavengeIds.Count >= 30) {
 					break;
+				}
+
 				last30ScavengeIds.Add(scavengeId);
 			}
 
-			if (last30ScavengeIds.Count > 0)
+			if (last30ScavengeIds.Count > 0) {
 				Log.Debug("Setting $ops read permission on last {count} $scavenges-<scavenge id> streams.", last30ScavengeIds.Count);
+			}
 
 			foreach (var scavengeId in last30ScavengeIds) {
 				var acl = new StreamAcl(
@@ -183,7 +191,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 		private void CompleteInterruptedScavenges(IList<string> incompletedScavenges) {
 			if (incompletedScavenges.Count == 0) {
 				Log.Debug("No incomplete scavenges found on node {nodeEndPoint}.", _nodeEndpoint);
-			} else {
+			}
+			else {
 				Log.Information(
 					"Found {incomplete} incomplete scavenge{s} on node {nodeEndPoint}. Marking as failed:{newLine}{incompleteScavenges}",
 					incompletedScavenges.Count, incompletedScavenges.Count == 1 ? "" : "s", _nodeEndpoint,
@@ -230,7 +239,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 
 					if (readResult.IsEndOfStream || readResult.Events.Count == 0) {
 						CompleteScavengeWithStats(incompleteScavengeStats);
-					} else {
+					}
+					else {
 						GatherIncompleteScavengeStats(readResult.NextEventNumber, incompleteScavengeStats);
 					}
 				});

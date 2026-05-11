@@ -11,19 +11,16 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Tests.Services.handlers;
 
-public static class categorize_events_by_stream_path
-{
+public static class categorize_events_by_stream_path {
 	[TestFixture]
-	public class when_handling_simple_event
-	{
+	public class when_handling_simple_event {
 		private CategorizeEventsByStreamPath _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when()
-		{
+		public void when() {
 			_handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -35,20 +32,17 @@ public static class categorize_events_by_stream_path
 		}
 
 		[Test]
-		public void result_is_true()
-		{
+		public void result_is_true() {
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null()
-		{
+		public void state_stays_null() {
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link()
-		{
+		public void emits_correct_link() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -59,16 +53,14 @@ public static class categorize_events_by_stream_path
 	}
 
 	[TestFixture]
-	public class when_handling_link_to_event
-	{
+	public class when_handling_link_to_event {
 		private CategorizeEventsByStreamPath _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when()
-		{
+		public void when() {
 			_handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -80,20 +72,17 @@ public static class categorize_events_by_stream_path
 		}
 
 		[Test]
-		public void result_is_true()
-		{
+		public void result_is_true() {
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null()
-		{
+		public void state_stays_null() {
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link()
-		{
+		public void emits_correct_link() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -104,16 +93,14 @@ public static class categorize_events_by_stream_path
 	}
 
 	[TestFixture]
-	public class when_handling_normal_stream_metadata_event
-	{
+	public class when_handling_normal_stream_metadata_event {
 		private CategorizeEventsByStreamPath _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when()
-		{
+		public void when() {
 			_handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -125,35 +112,30 @@ public static class categorize_events_by_stream_path
 		}
 
 		[Test]
-		public void result_is_true()
-		{
+		public void result_is_true() {
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null()
-		{
+		public void state_stays_null() {
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void does_not_emit_events()
-		{
+		public void does_not_emit_events() {
 			Assert.IsNull(_emittedEvents);
 		}
 	}
 
 	[TestFixture]
-	public class when_handling_soft_deleted_stream_metadata_event
-	{
+	public class when_handling_soft_deleted_stream_metadata_event {
 		private CategorizeEventsByStreamPath _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when()
-		{
+		public void when() {
 			_handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -165,20 +147,17 @@ public static class categorize_events_by_stream_path
 		}
 
 		[Test]
-		public void result_is_true()
-		{
+		public void result_is_true() {
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null()
-		{
+		public void state_stays_null() {
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link()
-		{
+		public void emits_correct_link() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -186,8 +165,7 @@ public static class categorize_events_by_stream_path
 			Assert.AreEqual("$ce-cat4", @event.StreamId);
 			Assert.AreEqual("20@$$cat4-stream4", @event.Data);
 			var metadata = new Dictionary<string, string>();
-			foreach (var kvp in @event.ExtraMetaData())
-			{
+			foreach (var kvp in @event.ExtraMetaData()) {
 				metadata[kvp.Key] = kvp.Value;
 			}
 			Assert.NotNull(metadata["$o"]);
@@ -198,16 +176,14 @@ public static class categorize_events_by_stream_path
 	}
 
 	[TestFixture]
-	public class when_handling_hard_deleted_stream_event
-	{
+	public class when_handling_hard_deleted_stream_event {
 		private CategorizeEventsByStreamPath _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when()
-		{
+		public void when() {
 			_handler = new CategorizeEventsByStreamPath("-", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -219,20 +195,17 @@ public static class categorize_events_by_stream_path
 		}
 
 		[Test]
-		public void result_is_true()
-		{
+		public void result_is_true() {
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null()
-		{
+		public void state_stays_null() {
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link()
-		{
+		public void emits_correct_link() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -241,8 +214,7 @@ public static class categorize_events_by_stream_path
 			Assert.AreEqual("20@cat5-stream5", @event.Data);
 
 			var metadata = new Dictionary<string, string>();
-			foreach (var kvp in @event.ExtraMetaData())
-			{
+			foreach (var kvp in @event.ExtraMetaData()) {
 				metadata[kvp.Key] = kvp.Value;
 			}
 			Assert.NotNull(metadata["$o"]);

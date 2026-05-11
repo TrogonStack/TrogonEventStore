@@ -19,8 +19,7 @@ namespace EventStore.Projections.Core.Services.Processing.MultiStream;
 
 public class MultiStreamEventReader : EventReader,
 	IHandle<ClientMessage.ReadStreamEventsForwardCompleted>,
-	IHandle<ProjectionManagementMessage.Internal.ReadTimeout>
-{
+	IHandle<ProjectionManagementMessage.Internal.ReadTimeout> {
 	private readonly HashSet<string> _streams;
 	private CheckpointTag _fromPositions;
 	private readonly bool _resolveLinkTos;
@@ -47,14 +46,19 @@ public class MultiStreamEventReader : EventReader,
 		int phase,
 		string[] streams, Dictionary<string, long> fromPositions, bool resolveLinkTos, ITimeProvider timeProvider,
 		bool stopOnEof = false, int? stopAfterNEvents = null)
-		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof)
-	{
-		if (streams == null)
+		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof) {
+		if (streams == null) {
 			throw new ArgumentNullException("streams");
-		if (timeProvider == null)
+		}
+
+		if (timeProvider == null) {
 			throw new ArgumentNullException("timeProvider");
-		if (streams.Length == 0)
+		}
+
+		if (streams.Length == 0) {
 			throw new ArgumentException("streams");
+		}
+
 		_streams = new HashSet<string>(streams);
 		_eofs = new ConcurrentDictionary<string, bool>(_streams.ToDictionary(v => v, v => false));
 		var positions = CheckpointTag.FromStreamPositions(phase, fromPositions);
@@ -63,73 +67,83 @@ public class MultiStreamEventReader : EventReader,
 		_resolveLinkTos = resolveLinkTos;
 		_timeProvider = timeProvider;
 		_pendingRequests = new ConcurrentDictionary<string, Guid>();
-		foreach (var stream in streams)
-		{
+		foreach (var stream in streams) {
 			_pendingRequests[stream] = Guid.Empty;
 			_preparePositions.Add(stream, null);
 		}
 	}
 
-	private void ValidateTag(CheckpointTag fromPositions)
-	{
-		if (_streams.Count != fromPositions.Streams.Count)
+	private void ValidateTag(CheckpointTag fromPositions) {
+		if (_streams.Count != fromPositions.Streams.Count) {
 			throw new ArgumentException("Number of streams does not match", "fromPositions");
+		}
 
-		foreach (var stream in _streams)
-		{
-			if (!fromPositions.Streams.ContainsKey(stream))
+		foreach (var stream in _streams) {
+			if (!fromPositions.Streams.ContainsKey(stream)) {
 				throw new ArgumentException(
 					string.Format("The '{0}' stream position has not been set", stream), "fromPositions");
+			}
 		}
 	}
 
-	protected override void RequestEvents()
-	{
-		if (PauseRequested || Paused)
+	protected override void RequestEvents() {
+		if (PauseRequested || Paused) {
 			return;
-		if (_eofs.Any(v => v.Value))
+		}
+
+		if (_eofs.Any(v => v.Value)) {
 			_publisher.Publish(
 				TimerMessage.Schedule.Create(
 					TimeSpan.FromMilliseconds(250), _publisher,
 					new UnwrapEnvelopeMessage(ProcessBuffers2)));
-		foreach (var stream in _streams)
+		}
+
+		foreach (var stream in _streams) {
 			RequestEvents(stream, delay: _eofs[stream]);
+		}
 	}
 
-	private void ProcessBuffers2()
-	{
+	private void ProcessBuffers2() {
 		ProcessBuffers();
 		CheckIdle();
 	}
 
-	protected override bool AreEventsRequested()
-	{
+	protected override bool AreEventsRequested() {
 		return _eventsRequested.Count != 0;
 	}
 
-	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message)
-	{
-		if (_disposed)
+	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message) {
+		if (_disposed) {
 			return;
-		if (!_streams.Contains(message.EventStreamId))
+		}
+
+		if (!_streams.Contains(message.EventStreamId)) {
 			throw new InvalidOperationException(string.Format("Invalid stream name: {0}", message.EventStreamId));
-		if (!_eventsRequested.Contains(message.EventStreamId))
+		}
+
+		if (!_eventsRequested.Contains(message.EventStreamId)) {
 			throw new InvalidOperationException("Read events has not been requested");
-		if (Paused)
+		}
+
+		if (Paused) {
 			throw new InvalidOperationException("Paused");
-		if (!_pendingRequests.Values.Any(x => x == message.CorrelationId))
+		}
+
+		if (!_pendingRequests.Values.Any(x => x == message.CorrelationId)) {
 			return;
+		}
 
 		_lastPosition = message.TfLastCommitPosition;
-		switch (message.Result)
-		{
+		switch (message.Result) {
 			case ReadStreamResult.StreamDeleted:
 			case ReadStreamResult.NoStream:
 				_eofs[message.EventStreamId] = true;
 				UpdateSafePositionToJoin(message.EventStreamId, MessageToLastCommitPosition(message));
 				if (message.Result == ReadStreamResult.StreamDeleted
-					|| (message.Result == ReadStreamResult.NoStream && message.LastEventNumber >= 0))
+					|| (message.Result == ReadStreamResult.NoStream && message.LastEventNumber >= 0)) {
 					EnqueueItem(null, message.EventStreamId);
+				}
+
 				ProcessBuffers();
 				_eventsRequested.Remove(message.EventStreamId);
 				PauseOrContinueProcessing();
@@ -137,23 +151,19 @@ public class MultiStreamEventReader : EventReader,
 				CheckEof();
 				break;
 			case ReadStreamResult.Success:
-				if ((message.Events.Count == 0) && message.IsEndOfStream)
-				{
+				if ((message.Events.Count == 0) && message.IsEndOfStream) {
 					// the end
 					_eofs[message.EventStreamId] = true;
 					UpdateSafePositionToJoin(message.EventStreamId, MessageToLastCommitPosition(message));
 					CheckIdle();
 					CheckEof();
 				}
-				else
-				{
+				else {
 					_eofs[message.EventStreamId] = false;
-					if (message.Events.Count == 0)
-					{
+					if (message.Events.Count == 0) {
 						_fromPositions.Streams[message.EventStreamId] = message.NextEventNumber;
 					}
-					for (int index = 0; index < message.Events.Count; index++)
-					{
+					for (int index = 0; index < message.Events.Count; index++) {
 						var @event = message.Events[index].Event;
 						var @link = message.Events[index].Link;
 						EventRecord positionEvent = (link ?? @event);
@@ -179,24 +189,26 @@ public class MultiStreamEventReader : EventReader,
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
-	{
-		if (_disposed)
+	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message) {
+		if (_disposed) {
 			return;
-		if (Paused)
+		}
+
+		if (Paused) {
 			return;
-		if (!_pendingRequests.Values.Any(x => x == message.CorrelationId))
+		}
+
+		if (!_pendingRequests.Values.Any(x => x == message.CorrelationId)) {
 			return;
+		}
 
 		_eventsRequested.Remove(message.StreamId);
 		PauseOrContinueProcessing();
 	}
 
-	private void EnqueueItem(Tuple<EventStore.Core.Data.ResolvedEvent, float> itemToEnqueue, string streamId)
-	{
+	private void EnqueueItem(Tuple<EventStore.Core.Data.ResolvedEvent, float> itemToEnqueue, string streamId) {
 		Queue<Tuple<EventStore.Core.Data.ResolvedEvent, float>> queue;
-		if (!_buffers.TryGetValue(streamId, out queue))
-		{
+		if (!_buffers.TryGetValue(streamId, out queue)) {
 			queue = new Queue<Tuple<EventStore.Core.Data.ResolvedEvent, float>>();
 			_buffers.Add(streamId, queue);
 		}
@@ -205,27 +217,29 @@ public class MultiStreamEventReader : EventReader,
 		queue.Enqueue(itemToEnqueue);
 	}
 
-	private void CheckEof()
-	{
-		if (_eofs.All(v => v.Value))
+	private void CheckEof() {
+		if (_eofs.All(v => v.Value)) {
 			SendEof();
+		}
 	}
 
-	private void CheckIdle()
-	{
-		if (_eofs.All(v => v.Value))
+	private void CheckIdle() {
+		if (_eofs.All(v => v.Value)) {
 			_publisher.Publish(
 				new ReaderSubscriptionMessage.EventReaderIdle(EventReaderCorrelationId, _timeProvider.UtcNow));
+		}
 	}
 
-	private void ProcessBuffers()
-	{
-		if (_disposed)
+	private void ProcessBuffers() {
+		if (_disposed) {
 			return;
-		if (_safePositionToJoin == null)
+		}
+
+		if (_safePositionToJoin == null) {
 			return;
-		while (true)
-		{
+		}
+
+		while (true) {
 			var anyNonEmpty = false;
 
 			var anyEvent = false;
@@ -235,70 +249,74 @@ public class MultiStreamEventReader : EventReader,
 			var anyDeletedStream = false;
 			var deletedStreamId = "";
 
-			foreach (var buffer in _buffers)
-			{
-				if (buffer.Value.Count == 0)
+			foreach (var buffer in _buffers) {
+				if (buffer.Value.Count == 0) {
 					continue;
+				}
+
 				anyNonEmpty = true;
 				var head = buffer.Value.Peek();
 
 				var currentStreamId = buffer.Key;
 
-				if (head != null)
-				{
+				if (head != null) {
 					var itemPosition = GetItemPosition(head);
 					if (_safePositionToJoin != null
 						&& itemPosition.CompareTo(_safePositionToJoin.GetValueOrDefault()) <= 0
-						&& itemPosition.CompareTo(minPosition) < 0)
-					{
+						&& itemPosition.CompareTo(minPosition) < 0) {
 						minPosition = itemPosition;
 						minStreamId = currentStreamId;
 						anyEvent = true;
 					}
 				}
-				else
-				{
+				else {
 					anyDeletedStream = true;
 					deletedStreamId = currentStreamId;
 				}
 			}
 
-			if (!anyEvent && !anyDeletedStream)
-			{
-				if (!anyNonEmpty)
+			if (!anyEvent && !anyDeletedStream) {
+				if (!anyNonEmpty) {
 					DeliverSafePositionToJoin();
+				}
+
 				break;
 			}
 
-			if (anyEvent)
-			{
+			if (anyEvent) {
 				var minHead = _buffers[minStreamId].Dequeue();
 				DeliverEvent(minHead.Item1, minHead.Item2);
 
-				if (_buffers[minStreamId].Count == 0)
+				if (_buffers[minStreamId].Count == 0) {
 					PauseOrContinueProcessing();
+				}
 			}
 
-			if (anyDeletedStream)
-			{
+			if (anyDeletedStream) {
 				_buffers[deletedStreamId].Dequeue();
 				SendPartitionDeleted_WhenReadingDataStream(deletedStreamId, -1, null, null, null, null);
 			}
 		}
 	}
 
-	private void RequestEvents(string stream, bool delay)
-	{
-		if (_disposed)
+	private void RequestEvents(string stream, bool delay) {
+		if (_disposed) {
 			throw new InvalidOperationException("Disposed");
-		if (PauseRequested || Paused)
-			throw new InvalidOperationException("Paused or pause requested");
+		}
 
-		if (_eventsRequested.Contains(stream))
+		if (PauseRequested || Paused) {
+			throw new InvalidOperationException("Paused or pause requested");
+		}
+
+		if (_eventsRequested.Contains(stream)) {
 			return;
+		}
+
 		Queue<Tuple<EventStore.Core.Data.ResolvedEvent, float>> queue;
-		if (_buffers.TryGetValue(stream, out queue) && queue.Count > 0)
+		if (_buffers.TryGetValue(stream, out queue) && queue.Count > 0) {
 			return;
+		}
+
 		_eventsRequested.Add(stream);
 
 		var pendingRequestCorrelationId = Guid.NewGuid();
@@ -308,8 +326,7 @@ public class MultiStreamEventReader : EventReader,
 			Guid.NewGuid(), pendingRequestCorrelationId, new SendToThisEnvelope(this), stream,
 			_fromPositions.Streams[stream],
 			_maxReadCount, _resolveLinkTos, false, null, ReadAs, replyOnExpired: false);
-		if (delay)
-		{
+		if (delay) {
 			_publisher.Publish(
 				new AwakeServiceMessage.SubscribeAwake(
 					_publisher, Guid.NewGuid(), null,
@@ -320,30 +337,27 @@ public class MultiStreamEventReader : EventReader,
 					_publisher, Guid.NewGuid(), null,
 					new TFPos(_lastPosition, _lastPosition), readEventsForward));
 		}
-		else
-		{
+		else {
 			_publisher.Publish(readEventsForward);
 			ScheduleReadTimeoutMessage(pendingRequestCorrelationId, stream);
 		}
 	}
 
-	private void ScheduleReadTimeoutMessage(Guid correlationId, string streamId)
-	{
+	private void ScheduleReadTimeoutMessage(Guid correlationId, string streamId) {
 		_publisher.Publish(CreateReadTimeoutMessage(correlationId, streamId));
 	}
 
-	private Message CreateReadTimeoutMessage(Guid correlationId, string streamId)
-	{
+	private Message CreateReadTimeoutMessage(Guid correlationId, string streamId) {
 		return TimerMessage.Schedule.Create(
 			TimeSpan.FromMilliseconds(ESConsts.ReadRequestTimeout),
 			new SendToThisEnvelope(this),
 			new ProjectionManagementMessage.Internal.ReadTimeout(correlationId, streamId));
 	}
 
-	private void DeliverSafePositionToJoin()
-	{
-		if (_stopOnEof || _safePositionToJoin == null)
+	private void DeliverSafePositionToJoin() {
+		if (_stopOnEof || _safePositionToJoin == null) {
 			return;
+		}
 		// deliver if already available
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.CommittedEventDistributed(
@@ -351,28 +365,25 @@ public class MultiStreamEventReader : EventReader,
 				source: this.GetType()));
 	}
 
-	private void UpdateSafePositionToJoin(string streamId, long? preparePosition)
-	{
+	private void UpdateSafePositionToJoin(string streamId, long? preparePosition) {
 		_preparePositions[streamId] = preparePosition;
-		if (_preparePositions.All(v => v.Value != null))
+		if (_preparePositions.All(v => v.Value != null)) {
 			_safePositionToJoin = _preparePositions.Min(v => v.Value.GetValueOrDefault());
+		}
 	}
 
-	private void DeliverEvent(EventStore.Core.Data.ResolvedEvent pair, float progress)
-	{
+	private void DeliverEvent(EventStore.Core.Data.ResolvedEvent pair, float progress) {
 		_deliveredEvents++;
 		var positionEvent = pair.OriginalEvent;
 		string streamId = positionEvent.EventStreamId;
 		long fromPosition = _fromPositions.Streams[streamId];
 
 		//if events have been deleted from the beginning of the stream, start from the first event we find
-		if (fromPosition == 0 && positionEvent.EventNumber > 0)
-		{
+		if (fromPosition == 0 && positionEvent.EventNumber > 0) {
 			fromPosition = positionEvent.EventNumber;
 		}
 
-		if (positionEvent.EventNumber != fromPosition)
-		{
+		if (positionEvent.EventNumber != fromPosition) {
 			// This can happen when the original stream has $maxAge/$maxCount set
 			_publisher.Publish(new ReaderSubscriptionMessage.Faulted(EventReaderCorrelationId, string.Format(
 				"Event number {0} was expected in the stream {1}, but event number {2} was received. This may happen if events have been deleted from the beginning of your stream, please reset your projection.",
@@ -388,28 +399,23 @@ public class MultiStreamEventReader : EventReader,
 				_stopOnEof ? (long?)null : positionEvent.LogPosition, progress, source: this.GetType()));
 	}
 
-	private long? EventPairToPosition(EventStore.Core.Data.ResolvedEvent resolvedEvent)
-	{
+	private long? EventPairToPosition(EventStore.Core.Data.ResolvedEvent resolvedEvent) {
 		return resolvedEvent.OriginalEvent.LogPosition;
 	}
 
-	private long? MessageToLastCommitPosition(ClientMessage.ReadStreamEventsForwardCompleted message)
-	{
+	private long? MessageToLastCommitPosition(ClientMessage.ReadStreamEventsForwardCompleted message) {
 		return GetLastCommitPositionFrom(message);
 	}
 
-	private long GetItemPosition(Tuple<EventStore.Core.Data.ResolvedEvent, float> head)
-	{
+	private long GetItemPosition(Tuple<EventStore.Core.Data.ResolvedEvent, float> head) {
 		return head.Item1.OriginalEvent.LogPosition;
 	}
 
-	private long GetMaxPosition()
-	{
+	private long GetMaxPosition() {
 		return long.MaxValue;
 	}
 
-	private long? PositionToSafeJoinPosition(long? safePositionToJoin)
-	{
+	private long? PositionToSafeJoinPosition(long? safePositionToJoin) {
 		return safePositionToJoin;
 	}
 }

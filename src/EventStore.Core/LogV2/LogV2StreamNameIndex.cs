@@ -14,42 +14,36 @@ public class LogV2StreamNameIndex :
 	INameIndex<string>,
 	INameIndexConfirmer<string>,
 	IValueLookup<string>,
-	INameLookup<string>
-{
+	INameLookup<string> {
 
 	private readonly INameExistenceFilter _existenceFilter;
 
-	public LogV2StreamNameIndex(INameExistenceFilter existenceFilter)
-	{
+	public LogV2StreamNameIndex(INameExistenceFilter existenceFilter) {
 		_existenceFilter = existenceFilter;
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 	}
 
 	public ValueTask InitializeWithConfirmed(INameLookup<string> source, CancellationToken token)
 		=> token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;
 
-	public void CancelReservations()
-	{
+	public void CancelReservations() {
 	}
 
-	public void Confirm(IList<IPrepareLogRecord<string>> prepares, bool catchingUp, IIndexBackend<string> backend)
-	{
-		if (catchingUp)
-		{
+	public void Confirm(IList<IPrepareLogRecord<string>> prepares, bool catchingUp, IIndexBackend<string> backend) {
+		if (catchingUp) {
 			// after the main index is caught up we will initialize the stream existence filter
 			return;
 		}
 
-		if (prepares.Count == 0)
+		if (prepares.Count == 0) {
 			return;
+		}
 
 		var lastPrepare = prepares[prepares.Count - 1];
 
-		if (prepares[0].ExpectedVersion == ExpectedVersion.NoStream)
-		{
+		if (prepares[0].ExpectedVersion == ExpectedVersion.NoStream) {
 			_existenceFilter.Add(lastPrepare.EventStreamId);
 		}
 
@@ -62,17 +56,14 @@ public class LogV2StreamNameIndex :
 		IList<IPrepareLogRecord<string>> prepares,
 		CommitLogRecord commit,
 		bool catchingUp,
-		IIndexBackend<string> backend)
-	{
+		IIndexBackend<string> backend) {
 
-		if (catchingUp)
-		{
+		if (catchingUp) {
 			// after the main index is caught up we will initialize the stream existence filter
 			return;
 		}
 
-		if (prepares.Count != 0 && commit.FirstEventNumber == 0)
-		{
+		if (prepares.Count != 0 && commit.FirstEventNumber == 0) {
 			var lastPrepare = prepares[prepares.Count - 1];
 			_existenceFilter.Add(lastPrepare.EventStreamId);
 		}
@@ -80,8 +71,7 @@ public class LogV2StreamNameIndex :
 		_existenceFilter.CurrentCheckpoint = commit.LogPosition;
 	}
 
-	public bool GetOrReserve(string streamName, out string streamId, out string createdId, out string createdName)
-	{
+	public bool GetOrReserve(string streamName, out string streamId, out string createdId, out string createdName) {
 		Ensure.NotNullOrEmpty(streamName, "streamName");
 		streamId = streamName;
 		createdId = default;

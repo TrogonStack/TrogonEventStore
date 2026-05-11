@@ -10,8 +10,7 @@ using EventStore.Core.Services.VNode;
 
 namespace EventStore.Core.Tests.Services.Replication.LogReplication;
 
-internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
-{
+internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message> {
 	private readonly IQueuedHandler _inputQueue;
 	private readonly IPublisher _outputBus;
 	private readonly LeaderInfo<TStreamId> _leaderInfo;
@@ -21,19 +20,14 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 
 	private Guid _subscriptionId;
 	private readonly object _subscriptionIdLock = new();
-	private Guid SubscriptionId
-	{
-		get
-		{
-			lock (_subscriptionIdLock)
-			{
+	private Guid SubscriptionId {
+		get {
+			lock (_subscriptionIdLock) {
 				return _subscriptionId;
 			}
 		}
-		set
-		{
-			lock (_subscriptionIdLock)
-			{
+		set {
+			lock (_subscriptionIdLock) {
 				_subscriptionId = value;
 			}
 		}
@@ -46,8 +40,7 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	public IPublisher Publisher => _inputQueue;
 	public int NumWriterFlushes => Interlocked.CompareExchange(ref _numWriterFlushes, 0, 0);
 
-	public AdHocReplicaController(IPublisher outputBus, LeaderInfo<TStreamId> leaderInfo)
-	{
+	public AdHocReplicaController(IPublisher outputBus, LeaderInfo<TStreamId> leaderInfo) {
 		_inputQueue = new QueuedHandlerThreadPool(
 			consumer: this,
 			name: "InputQueue",
@@ -78,36 +71,32 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 		_inputQueue.Start();
 	}
 
-	public void ResetSubscription()
-	{
+	public void ResetSubscription() {
 		SubscriptionId = Guid.Empty;
 	}
 
 	public ValueTask HandleAsync(Message message, CancellationToken token)
 		=> _fsm.HandleAsync(message, token);
 
-	private void Handle(SystemMessage.VNodeConnectionEstablished message)
-	{
+	private void Handle(SystemMessage.VNodeConnectionEstablished message) {
 		ConnectionToLeaderEstablished.Set();
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(SystemMessage.BecomePreReplica message)
-	{
+	private void Handle(SystemMessage.BecomePreReplica message) {
 		_state = VNodeState.PreReplica;
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.SubscribeToLeader message)
-	{
+	private void Handle(ReplicationMessage.SubscribeToLeader message) {
 		SubscriptionId = message.SubscriptionId;
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.ReplicaSubscribed message)
-	{
-		if (SubscriptionId != message.SubscriptionId)
+	private void Handle(ReplicationMessage.ReplicaSubscribed message) {
+		if (SubscriptionId != message.SubscriptionId) {
 			return;
+		}
 
 		_state = VNodeState.CatchingUp;
 		_outputBus.Publish(new SystemMessage.BecomeCatchingUp(
@@ -116,10 +105,10 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.CloneAssignment message)
-	{
-		if (SubscriptionId != message.SubscriptionId)
+	private void Handle(ReplicationMessage.CloneAssignment message) {
+		if (SubscriptionId != message.SubscriptionId) {
 			return;
+		}
 
 		_state = VNodeState.Clone;
 		_outputBus.Publish(new SystemMessage.BecomeClone(
@@ -128,10 +117,10 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.FollowerAssignment message)
-	{
-		if (SubscriptionId != message.SubscriptionId)
+	private void Handle(ReplicationMessage.FollowerAssignment message) {
+		if (SubscriptionId != message.SubscriptionId) {
 			return;
+		}
 
 		_state = VNodeState.Follower;
 		_outputBus.Publish(new SystemMessage.BecomeFollower(
@@ -140,37 +129,36 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.CreateChunk message)
-	{
-		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+	private void Handle(ReplicationMessage.CreateChunk message) {
+		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica()) {
 			return;
+		}
 
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.DataChunkBulk message)
-	{
-		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+	private void Handle(ReplicationMessage.DataChunkBulk message) {
+		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica()) {
 			return;
+		}
 
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.RawChunkBulk message)
-	{
-		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+	private void Handle(ReplicationMessage.RawChunkBulk message) {
+		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica()) {
 			return;
+		}
 
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationMessage.AckLogPosition message)
-	{
-		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+	private void Handle(ReplicationMessage.AckLogPosition message) {
+		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica()) {
 			return;
+		}
 
-		LastAck = new ReplicationAck
-		{
+		LastAck = new ReplicationAck {
 			ReplicationPosition = message.ReplicationLogPosition,
 			WriterPosition = message.WriterLogPosition
 		};
@@ -178,8 +166,7 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 		_outputBus.Publish(message);
 	}
 
-	private void Handle(ReplicationTrackingMessage.WriterCheckpointFlushed message)
-	{
+	private void Handle(ReplicationTrackingMessage.WriterCheckpointFlushed message) {
 		Interlocked.Increment(ref _numWriterFlushes);
 		_outputBus.Publish(message);
 	}

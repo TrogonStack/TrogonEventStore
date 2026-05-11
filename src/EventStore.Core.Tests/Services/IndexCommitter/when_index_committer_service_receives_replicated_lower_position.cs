@@ -9,20 +9,17 @@ namespace EventStore.Core.Tests.Services.IndexCommitter;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_index_committer_service_receives_replicated_lower_position<TLogFormat, TStreamId>
-	: with_index_committer_service<TLogFormat, TStreamId>
-{
+	: with_index_committer_service<TLogFormat, TStreamId> {
 	private readonly Guid _correlationId = Guid.NewGuid();
 	private readonly long _logPosition = 2000;
 
 	[OneTimeSetUp]
-	public override Task TestFixtureSetUp()
-	{
+	public override Task TestFixtureSetUp() {
 		ReplicationCheckpoint = new InMemoryCheckpoint(100);
 		return base.TestFixtureSetUp();
 	}
 	public override void Given() { }
-	public override void When()
-	{
+	public override void When() {
 		Service.Handle(new StorageMessage.CommitAck(_correlationId, _logPosition, _logPosition, 0, 0));
 		ReplicationCheckpoint.Write(_logPosition - 1);
 		ReplicationCheckpoint.Flush();
@@ -30,23 +27,19 @@ public class
 	}
 
 	[Test]
-	public void commit_replicated_message_should_not_have_been_published()
-	{
+	public void commit_replicated_message_should_not_have_been_published() {
 		Assert.AreEqual(0, CommitReplicatedMgs.Count);
 	}
 	[Test]
-	public void index_written_message_should_have_not_been_published()
-	{
+	public void index_written_message_should_have_not_been_published() {
 		Assert.AreEqual(0, IndexWrittenMgs.Count);
 	}
 	[Test]
-	public void index_written_message_should_not_have_been_published()
-	{
+	public void index_written_message_should_not_have_been_published() {
 		Assert.AreEqual(0, IndexWrittenMgs.Count);
 	}
 	[Test]
-	public void index_should_not_have_been_updated()
-	{
+	public void index_should_not_have_been_updated() {
 		Assert.AreEqual(0, IndexCommitter.CommittedPrepares.Count);
 	}
 }

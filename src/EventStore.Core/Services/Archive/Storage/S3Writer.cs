@@ -3,11 +3,9 @@ using Serilog;
 
 namespace EventStore.Core.Services.Archive.Storage;
 
-public class S3Writer : FluentWriter, IArchiveStorageWriter
-{
+public class S3Writer : FluentWriter, IArchiveStorageWriter {
 	public S3Writer(S3Options options, string archiveCheckpointFile) : base(
-		archiveCheckpointFile)
-	{
+		archiveCheckpointFile) {
 		AwsTraceLogging.Configure();
 		BlobStorage = S3Storage.Create(options);
 	}

@@ -10,12 +10,10 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("LongRunning"), Category("ClientAPI")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class read_from_persistent_subscription_with_link_resolution_when_stream_name_contains_at_symbol<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public class read_from_persistent_subscription_with_link_resolution_when_stream_name_contains_at_symbol<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	private string _result;
 
-	protected override async Task When()
-	{
+	protected override async Task When() {
 		var task = new TaskCompletionSource<string>();
 
 		var setts = PersistentSubscriptionSettings.Create()
@@ -26,8 +24,7 @@ public class read_from_persistent_subscription_with_link_resolution_when_stream_
 		await _conn.ConnectToPersistentSubscriptionAsync(
 			"link",
 			"Agroup",
-			(sub, @event) =>
-			{
+			(sub, @event) => {
 				var data = Encoding.Default.GetString(@event.Event.Data);
 				task.TrySetResult(data);
 				return Task.CompletedTask;
@@ -41,8 +38,7 @@ public class read_from_persistent_subscription_with_link_resolution_when_stream_
 	}
 
 	[Test]
-	public void the_subscription_resolve_the_link_properly()
-	{
+	public void the_subscription_resolve_the_link_properly() {
 		Assert.AreEqual(_result, "data");
 	}
 }

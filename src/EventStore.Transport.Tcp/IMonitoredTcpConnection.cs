@@ -2,8 +2,7 @@ using System;
 
 namespace EventStore.Transport.Tcp;
 
-public interface IMonitoredTcpConnection
-{
+public interface IMonitoredTcpConnection {
 	bool IsReadyForSend { get; }
 	bool IsReadyForReceive { get; }
 	bool IsInitialized { get; }

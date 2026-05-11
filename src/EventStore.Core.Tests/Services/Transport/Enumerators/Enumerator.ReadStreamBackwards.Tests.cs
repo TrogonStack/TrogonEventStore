@@ -12,10 +12,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests
-{
-	private static EnumeratorWrapper ReadStreamBackwards(IPublisher publisher, string streamName)
-	{
+public partial class EnumeratorTests {
+	private static EnumeratorWrapper ReadStreamBackwards(IPublisher publisher, string streamName) {
 		return new EnumeratorWrapper(new Enumerator.ReadStreamBackwards(
 			bus: publisher,
 			streamName: streamName,
@@ -30,12 +28,10 @@ public partial class EnumeratorTests
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class read_stream_backwards<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-	{
+	public class read_stream_backwards<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 		private readonly List<Guid> _eventIds = new();
 
-		protected override void Given()
-		{
+		protected override void Given() {
 			EnableReadAll();
 			_eventIds.Add(WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId);
 			_eventIds.Add(WriteEvent("test-stream-all", "type1", "{}", "{Data: 1}").Item1.EventId);
@@ -44,8 +40,7 @@ public partial class EnumeratorTests
 		}
 
 		[Test]
-		public async Task should_read_backwards_from_a_particular_stream()
-		{
+		public async Task should_read_backwards_from_a_particular_stream() {
 			await using var enumerator = ReadStreamBackwards(_publisher, "test-stream");
 
 			Assert.AreEqual(_eventIds[3], ((Event)await enumerator.GetNext()).Id);

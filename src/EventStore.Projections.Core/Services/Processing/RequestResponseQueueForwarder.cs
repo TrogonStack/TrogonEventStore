@@ -15,8 +15,7 @@ public class RequestResponseQueueForwarder(IPublisher inputQueue, IPublisher ext
 		IHandle<ClientMessage.DeleteStream>,
 		IHandle<SystemMessage.SubSystemInitialized>,
 		IHandle<ProjectionCoreServiceMessage.SubComponentStarted>,
-		IHandle<ProjectionCoreServiceMessage.SubComponentStopped>
-{
+		IHandle<ProjectionCoreServiceMessage.SubComponentStopped> {
 	public void Handle(ClientMessage.ReadEvent msg) =>
 		externalRequestQueue.Publish(
 			new ClientMessage.ReadEvent(

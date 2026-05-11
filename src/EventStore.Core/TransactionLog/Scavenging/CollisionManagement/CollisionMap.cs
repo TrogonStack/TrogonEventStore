@@ -55,7 +55,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			set {
 				if (_isCollision(key)) {
 					_collisions[key] = value;
-				} else {
+				}
+				else {
 					_nonCollisions[_hasher.Hash(key)] = value;
 				}
 			}
@@ -68,7 +69,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			var hash = _hasher.Hash(key);
 			if (_nonCollisions.TryRemove(hash, out var value)) {
 				_collisions[key] = value;
-			} else {
+			}
+			else {
 				// we are notified that the key is a collision, but we dont have any entry for it
 				// so nothing to do
 			}

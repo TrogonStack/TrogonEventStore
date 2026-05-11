@@ -7,32 +7,29 @@ using EventStore.Plugins.Authorization;
 
 namespace EventStore.Core.Authorization;
 
-public class MultiPolicyEvaluator(IAuthorizationPolicyRegistry registry) : IPolicyEvaluator
-{
+public class MultiPolicyEvaluator(IAuthorizationPolicyRegistry registry) : IPolicyEvaluator {
 	private static readonly AssertionInformation DeniedByDefault = new("default", "denied by default", Grant.Deny);
 
 	private readonly PolicyInformation _policyInfo = new("multi-policy", 1, DateTimeOffset.MinValue);
 
 	public async ValueTask<EvaluationResult>
-		EvaluateAsync(ClaimsPrincipal cp, Operation operation, CancellationToken ct)
-	{
+		EvaluateAsync(ClaimsPrincipal cp, Operation operation, CancellationToken ct) {
 		var evaluationContext = new EvaluationContext(operation, ct);
-		foreach (var policy in registry.EffectivePolicies)
-		{
+		foreach (var policy in registry.EffectivePolicies) {
 			var policyInfo = policy.Information;
-			if (policy.TryGetAssertions(operation, out var assertions))
-			{
-				while (!assertions.IsEmpty && evaluationContext.Grant != Grant.Deny)
-				{
-					if (ct.IsCancellationRequested) break;
+			if (policy.TryGetAssertions(operation, out var assertions)) {
+				while (!assertions.IsEmpty && evaluationContext.Grant != Grant.Deny) {
+					if (ct.IsCancellationRequested) {
+						break;
+					}
+
 					var assertion = assertions.Span[0];
 					assertions = assertions.Slice(1);
 					await assertion.Evaluate(cp, operation, policyInfo, evaluationContext);
 				}
 			}
 
-			if (evaluationContext.Grant != Grant.Unknown)
-			{
+			if (evaluationContext.Grant != Grant.Unknown) {
 				return evaluationContext.ToResult();
 			}
 		}

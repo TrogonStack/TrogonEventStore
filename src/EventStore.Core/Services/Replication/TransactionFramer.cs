@@ -8,16 +8,14 @@ using EventStore.Transport.Tcp.Framing;
 
 namespace EventStore.Core.Services.Replication;
 
-internal sealed class TransactionFramer : IAsyncMessageFramer<IEnumerable<ILogRecord>>
-{
+internal sealed class TransactionFramer : IAsyncMessageFramer<IEnumerable<ILogRecord>> {
 	private readonly List<ILogRecord> _records;
 	private readonly IAsyncMessageFramer<ILogRecord> _inner;
 
 	private Func<IEnumerable<ILogRecord>, CancellationToken, ValueTask> _handler = static (_, _) =>
 		ValueTask.CompletedTask;
 
-	public TransactionFramer(IAsyncMessageFramer<ILogRecord> inner)
-	{
+	public TransactionFramer(IAsyncMessageFramer<ILogRecord> inner) {
 		_records = new List<ILogRecord>(capacity: 1024);
 		_inner = inner;
 		_inner.RegisterMessageArrivedCallback(OnLogRecordUnframed);
@@ -31,32 +29,28 @@ internal sealed class TransactionFramer : IAsyncMessageFramer<IEnumerable<ILogRe
 
 	public ValueTask UnFrameData(ArraySegment<byte> data, CancellationToken token) => _inner.UnFrameData(data, token);
 
-	public void Reset()
-	{
+	public void Reset() {
 		_records.Clear();
 		_inner.Reset();
 	}
 
-	private async ValueTask OnLogRecordUnframed(ILogRecord record, CancellationToken token)
-	{
+	private async ValueTask OnLogRecordUnframed(ILogRecord record, CancellationToken token) {
 		_records.Add(record);
-		if (record.IsTransactionBoundary())
-		{
+		if (record.IsTransactionBoundary()) {
 			await _handler(_records, token);
 			_records.Clear();
 		}
 	}
 
-	public void RegisterMessageArrivedCallback(Func<IEnumerable<ILogRecord>, CancellationToken, ValueTask> handler)
-	{
+	public void RegisterMessageArrivedCallback(Func<IEnumerable<ILogRecord>, CancellationToken, ValueTask> handler) {
 		Ensure.NotNull(handler, nameof(handler));
 		_handler = handler;
 	}
 
-	public async ValueTask<int?> UnFramePendingLogRecords(CancellationToken token)
-	{
-		if (_records is [])
+	public async ValueTask<int?> UnFramePendingLogRecords(CancellationToken token) {
+		if (_records is []) {
 			return null;
+		}
 
 		var numLogRecordsUnframed = _records.Count;
 		await _handler(_records, token);

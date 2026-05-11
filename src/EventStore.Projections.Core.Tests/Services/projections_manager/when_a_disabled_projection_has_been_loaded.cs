@@ -12,10 +12,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_a_disabled_projection_has_been_loaded<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+public class when_a_disabled_projection_has_been_loaded<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+	protected override void Given() {
 		base.Given();
 		NoStream("$projections-test-projection-result");
 		NoStream("$projections-test-projection-order");
@@ -40,15 +38,13 @@ public class when_a_disabled_projection_has_been_loaded<TLogFormat, TStreamId> :
 
 	private string _projectionName;
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		_projectionName = "test-projection";
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 	}
 
 	[Test]
-	public void the_projection_source_can_be_retrieved()
-	{
+	public void the_projection_source_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
@@ -59,8 +55,7 @@ public class when_a_disabled_projection_has_been_loaded<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public void the_projection_status_is_stopped()
-	{
+	public void the_projection_status_is_stopped() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, _projectionName,
 				false));
@@ -80,8 +75,7 @@ public class when_a_disabled_projection_has_been_loaded<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public void the_projection_state_can_be_retrieved()
-	{
+	public void the_projection_state_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetState(_bus, _projectionName, ""));
 		_queue.Process();

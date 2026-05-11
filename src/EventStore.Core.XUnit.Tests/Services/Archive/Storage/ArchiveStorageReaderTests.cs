@@ -10,11 +10,9 @@ using Xunit;
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
 
 [Collection("ArchiveStorageTests")]
-public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
-{
+public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T> {
 	[Fact]
-	public async Task can_read_chunk_entirely()
-	{
+	public async Task can_read_chunk_entirely() {
 		var sut = CreateReaderSut(StorageType);
 
 		// create a chunk and upload it
@@ -34,8 +32,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task can_read_chunk_partially()
-	{
+	public async Task can_read_chunk_partially() {
 		var sut = CreateReaderSut(StorageType);
 
 		// create a chunk and upload it
@@ -57,8 +54,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task can_read_chunk_subrange_without_including_the_end_position()
-	{
+	public async Task can_read_chunk_subrange_without_including_the_end_position() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunkPath = CreateLocalChunk(0, 0);
@@ -76,8 +72,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task can_read_empty_range()
-	{
+	public async Task can_read_empty_range() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunkPath = CreateLocalChunk(0, 0);
@@ -89,8 +84,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task reading_beyond_the_end_returns_an_empty_stream()
-	{
+	public async Task reading_beyond_the_end_returns_an_empty_stream() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunkPath = CreateLocalChunk(0, 0);
@@ -105,8 +99,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task reading_a_range_that_partially_overlaps_the_end_returns_available_bytes()
-	{
+	public async Task reading_a_range_that_partially_overlaps_the_end_returns_available_bytes() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunkPath = CreateLocalChunk(0, 0);
@@ -121,45 +114,38 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task reading_with_a_negative_start_throws_ArgumentOutOfRangeException()
-	{
+	public async Task reading_with_a_negative_start_throws_ArgumentOutOfRangeException() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunkPath = CreateLocalChunk(0, 0);
 		var chunkFile = Path.GetFileName(chunkPath);
 		await CreateWriterSut(StorageType).StoreChunk(chunkPath, chunkFile, CancellationToken.None);
 
-		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
-		{
+		await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => {
 			using var _ = await sut.GetChunk(chunkFile, -1, 10, CancellationToken.None);
 		});
 	}
 
 	[Fact]
-	public async Task read_missing_chunk_throws_ChunkDeletedException()
-	{
+	public async Task read_missing_chunk_throws_ChunkDeletedException() {
 		var sut = CreateReaderSut(StorageType);
 
-		await Assert.ThrowsAsync<ChunkDeletedException>(async () =>
-		{
+		await Assert.ThrowsAsync<ChunkDeletedException>(async () => {
 			using var _ = await sut.GetChunk("missing-chunk", CancellationToken.None);
 		});
 	}
 
 	[Fact]
-	public async Task partial_read_missing_chunk_throws_ChunkDeletedException()
-	{
+	public async Task partial_read_missing_chunk_throws_ChunkDeletedException() {
 		var sut = CreateReaderSut(StorageType);
 
-		await Assert.ThrowsAsync<ChunkDeletedException>(async () =>
-		{
+		await Assert.ThrowsAsync<ChunkDeletedException>(async () => {
 			using var _ = await sut.GetChunk("missing-chunk", 1, 2, CancellationToken.None);
 		});
 	}
 
 	[Fact]
-	public async Task can_list_chunks()
-	{
+	public async Task can_list_chunks() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunk0 = CreateLocalChunk(0, 0);
@@ -180,8 +166,7 @@ public abstract class ArchiveStorageReaderTests<T> : ArchiveStorageTestsBase<T>
 	}
 
 	[Fact]
-	public async Task listing_ignores_files_outside_the_chunk_prefix()
-	{
+	public async Task listing_ignores_files_outside_the_chunk_prefix() {
 		var sut = CreateReaderSut(StorageType);
 
 		var chunk = CreateLocalChunk(0, 0);

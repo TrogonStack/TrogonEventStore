@@ -8,10 +8,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_deleted_stream_with_explicit_transaction_is_scavenged<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
-	{
+public class when_deleted_stream_with_explicit_transaction_is_scavenged<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator
 			.Chunk(Rec.TransSt(0, "bla"),
 				Rec.Prepare(0, "bla"),
@@ -26,16 +24,14 @@ public class when_deleted_stream_with_explicit_transaction_is_scavenged<TLogForm
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
 		return new[] {
 			dbResult.Recs[0].Where((x, i) => new[] {7, 8}.Contains(i)).ToArray(),
 		};
 	}
 
 	[Test]
-	public async Task only_delete_tombstone_records_with_their_commits_are_kept()
-	{
+	public async Task only_delete_tombstone_records_with_their_commits_are_kept() {
 		await CheckRecords();
 	}
 }

@@ -13,17 +13,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream_manager.when_tracking;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_tracking_enabled_with_duplicate_event_streams<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId>
-{
+public class with_tracking_enabled_with_duplicate_event_streams<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> {
 	private CountdownEvent _eventAppeared = new CountdownEvent(2);
 	private UserCredentials _credentials = new UserCredentials("admin", "changeit");
 
 	protected override TimeSpan Timeout { get; } = TimeSpan.FromSeconds(10);
 
-	protected override async Task When()
-	{
-		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) =>
-		{
+	protected override async Task When() {
+		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) => {
 			_eventAppeared.Signal();
 			return Task.CompletedTask;
 		}, userCredentials: _credentials);
@@ -42,8 +39,7 @@ public class with_tracking_enabled_with_duplicate_event_streams<TLogFormat, TStr
 	}
 
 	[Test]
-	public async Task should_at_best_attempt_to_track_a_unique_list_of_streams()
-	{
+	public async Task should_at_best_attempt_to_track_a_unique_list_of_streams() {
 		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsName(), 0, 200,
 			false, _credentials);
 		Assert.AreEqual(1, result.Events.Length);

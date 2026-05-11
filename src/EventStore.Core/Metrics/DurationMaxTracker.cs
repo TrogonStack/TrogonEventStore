@@ -40,8 +40,10 @@ public class DurationMaxTracker : IDurationMaxTracker {
 		_recentMax = new RecentMax<double>(expectedScrapeIntervalSeconds);
 
 		var maxTags = new List<KeyValuePair<string, object>>();
-		if (!string.IsNullOrWhiteSpace(name))
+		if (!string.IsNullOrWhiteSpace(name)) {
 			maxTags.Add(new("name", name));
+		}
+
 		maxTags.Add(new("range", $"{_recentMax.MinPeriodSeconds}-{_recentMax.MaxPeriodSeconds} seconds"));
 		_maxTags = maxTags.ToArray();
 

@@ -37,8 +37,9 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		public void Flush() {
 			var last = Interlocked.Read(ref _last);
-			if (last == _lastFlushed)
+			if (last == _lastFlushed) {
 				return;
+			}
 
 			Interlocked.Exchange(ref _lastFlushed, last);
 
@@ -49,13 +50,15 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		private void OnFlushed(long obj) {
 			var onFlushed = Flushed;
-			if (onFlushed != null)
+			if (onFlushed != null) {
 				onFlushed.Invoke(obj);
+			}
 		}
 
 		public void Close(bool flush) {
-			if (flush)
+			if (flush) {
 				Flush();
+			}
 		}
 	}
 }

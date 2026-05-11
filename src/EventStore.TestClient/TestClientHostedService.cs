@@ -5,8 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace EventStore.TestClient;
 
-internal class TestClientHostedService : IHostedService
-{
+internal class TestClientHostedService : IHostedService {
 	private readonly Client _client;
 	private readonly CancellationTokenSource _stopped;
 	private readonly TaskCompletionSource<int> _exitCode;
@@ -15,28 +14,23 @@ internal class TestClientHostedService : IHostedService
 
 	public CancellationToken CancellationToken => _stopped.Token;
 
-	public TestClientHostedService(ClientOptions options)
-	{
+	public TestClientHostedService(ClientOptions options) {
 		_exitCode = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
 		_stopped = new CancellationTokenSource();
 		_stopped.Token.Register(() => _exitCode.TrySetResult(0));
 		_client = new Client(options, _stopped);
 	}
-	public Task StartAsync(CancellationToken cancellationToken)
-	{
+	public Task StartAsync(CancellationToken cancellationToken) {
 		cancellationToken.Register(_stopped.Cancel);
-		return Task.Run(() =>
-		{
+		return Task.Run(() => {
 			_exitCode.TrySetResult(_client.Run(cancellationToken));
-			if (!_client.InteractiveMode)
-			{
+			if (!_client.InteractiveMode) {
 				_stopped.Cancel();
 			}
 		}, _stopped.Token);
 	}
 
-	public Task StopAsync(CancellationToken cancellationToken)
-	{
+	public Task StopAsync(CancellationToken cancellationToken) {
 		_stopped.Cancel();
 		return Task.CompletedTask;
 	}

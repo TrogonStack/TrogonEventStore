@@ -17,8 +17,7 @@ namespace EventStore.TestClient;
 /// <summary>
 /// A test client that connects over Raw TCP connections
 /// </summary>
-public class TcpTestClient
-{
+public class TcpTestClient {
 	private readonly BufferManager _bufferManager =
 		new BufferManager(TcpConfiguration.BufferChunksCount, TcpConfiguration.SocketBufferSize);
 
@@ -43,8 +42,7 @@ public class TcpTestClient
 	/// <param name="options"></param>
 	/// <param name="interactiveMode"></param>
 	/// <param name="log"></param>
-	public TcpTestClient(ClientOptions options, bool interactiveMode, ILogger log)
-	{
+	public TcpTestClient(ClientOptions options, bool interactiveMode, ILogger log) {
 		_interactiveMode = interactiveMode;
 		_log = log;
 		_useSsl = options.UseTls;
@@ -69,46 +67,46 @@ public class TcpTestClient
 		Action<Connection> connectionEstablished = null,
 		Action<Connection, SocketError> connectionClosed = null,
 		bool failContextOnError = true,
-		IPEndPoint tcpEndPoint = null)
-	{
+		IPEndPoint tcpEndPoint = null) {
 		var connectionCreatedEvent = new ManualResetEventSlim(false);
 		Connection typedConnection = null;
 
-		Action<ITcpConnection> onConnectionEstablished = conn =>
-		{
+		Action<ITcpConnection> onConnectionEstablished = conn => {
 			// we execute callback on ThreadPool because on FreeBSD it can be called synchronously
 			// causing deadlock
-			ThreadPool.QueueUserWorkItem(_ =>
-			{
-				if (!_interactiveMode)
+			ThreadPool.QueueUserWorkItem(_ => {
+				if (!_interactiveMode) {
 					_log.Information(
 						"TcpTypedConnection: connected to [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}].",
 						conn.RemoteEndPoint, conn.LocalEndPoint, conn.ConnectionId);
-				if (connectionEstablished != null)
-				{
-					if (!connectionCreatedEvent.Wait(10000))
+				}
+
+				if (connectionEstablished != null) {
+					if (!connectionCreatedEvent.Wait(10000)) {
 						throw new Exception("TcpTypedConnection: creation took too long!");
+					}
+
 					connectionEstablished(typedConnection);
 				}
 			});
 		};
-		Action<ITcpConnection, SocketError> onConnectionFailed = (conn, error) =>
-		{
+		Action<ITcpConnection, SocketError> onConnectionFailed = (conn, error) => {
 			_log.Error(
 				"TcpTypedConnection: connection to [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}] failed. Error: {e}.",
 				conn.RemoteEndPoint, conn.LocalEndPoint, conn.ConnectionId, error);
 
-			if (connectionClosed != null)
+			if (connectionClosed != null) {
 				connectionClosed(null, error);
+			}
 
-			if (failContextOnError)
+			if (failContextOnError) {
 				context.Fail(reason: string.Format("Socket connection failed with error {0}.", error));
+			}
 		};
 
 		var endpoint = tcpEndPoint ?? TcpEndpoint;
 		ITcpConnection connection;
-		if (_useSsl)
-		{
+		if (_useSsl) {
 			connection = _connector.ConnectSslTo(
 				Guid.NewGuid(),
 				endpoint.GetHost(),
@@ -121,8 +119,7 @@ public class TcpTestClient
 				onConnectionFailed,
 				verbose: false);
 		}
-		else
-		{
+		else {
 			connection = _connector.ConnectTo(
 				Guid.NewGuid(),
 				endpoint.ResolveDnsToIPAddress(),
@@ -135,35 +132,32 @@ public class TcpTestClient
 		typedConnection = new Connection(connection, new RawMessageFormatter(_bufferManager),
 			new LengthPrefixMessageFramer());
 		typedConnection.ConnectionClosed +=
-			(conn, error) =>
-			{
-				if (!_interactiveMode || error != SocketError.Success)
-				{
+			(conn, error) => {
+				if (!_interactiveMode || error != SocketError.Success) {
 					_log.Information(
 						"TcpTypedConnection: connection [{remoteEndPoint}, L{localEndPoint}] was closed {status}",
 						conn.RemoteEndPoint, conn.LocalEndPoint,
 						error == SocketError.Success ? "cleanly." : "with error: " + error + ".");
 				}
 
-				if (connectionClosed != null)
+				if (connectionClosed != null) {
 					connectionClosed(conn, error);
-				else
+				}
+				else {
 					_log.Information("connectionClosed callback was null");
+				}
 			};
 		connectionCreatedEvent.Set();
 
 		typedConnection.ReceiveAsync(
-			(conn, pkg) =>
-			{
+			(conn, pkg) => {
 				var package = new TcpPackage();
 				bool validPackage = false;
-				try
-				{
+				try {
 					package = TcpPackage.FromArraySegment(new ArraySegment<byte>(pkg));
 					validPackage = true;
 
-					if (package.Command == TcpCommand.HeartbeatRequestCommand)
-					{
+					if (package.Command == TcpCommand.HeartbeatRequestCommand) {
 						var resp = new TcpPackage(TcpCommand.HeartbeatResponseCommand, Guid.NewGuid(), null);
 						conn.EnqueueSend(resp.AsByteArray());
 						return;
@@ -171,16 +165,16 @@ public class TcpTestClient
 
 					handlePackage(conn, package);
 				}
-				catch (Exception ex)
-				{
+				catch (Exception ex) {
 					_log.Information(ex,
 						"TcpTypedConnection: [{remoteEndPoint}, L{localEndPoint}] ERROR for {package}. Connection will be closed.",
 						conn.RemoteEndPoint, conn.LocalEndPoint,
 						validPackage ? package.Command as object : "<invalid package>");
 					conn.Close(ex.Message);
 
-					if (failContextOnError)
+					if (failContextOnError) {
 						context.Fail(ex);
+					}
 				}
 			});
 

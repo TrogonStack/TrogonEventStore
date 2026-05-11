@@ -25,7 +25,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			if (_hasher != null) {
 				var hash = _hasher.Hash(stream);
 				Add(GetSpan(ref hash));
-			} else {
+			}
+			else {
 				Add(MemoryMarshal.AsBytes(stream.AsSpan()));
 			}
 		}
@@ -39,7 +40,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			if (_hasher != null) {
 				var hash = _hasher.Hash(stream);
 				return MightContain(GetSpan(ref hash));
-			} else {
+			}
+			else {
 				return MightContain(MemoryMarshal.AsBytes(stream.AsSpan()));
 			}
 		}

@@ -3,10 +3,8 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Tests.Fakes;
 
-public class NoopPublisher : IPublisher
-{
-	public void Publish(Message message)
-	{
+public class NoopPublisher : IPublisher {
+	public void Publish(Message message) {
 		// do nothing
 	}
 }

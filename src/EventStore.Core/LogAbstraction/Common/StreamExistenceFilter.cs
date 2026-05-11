@@ -68,7 +68,8 @@ namespace EventStore.Core.LogAbstraction.Common {
 						create: create),
 					hasher: hasher,
 					corruptionRebuildCount: 0);
-			} catch (Exception exc) when (
+			}
+			catch (Exception exc) when (
 					exc is CorruptedFileException ||
 					exc is CorruptedHashException ||
 					exc is SizeMismatchException ||
@@ -78,12 +79,15 @@ namespace EventStore.Core.LogAbstraction.Common {
 
 				if (exc is CorruptedFileException) {
 					Log.Error(exc, "{filterName} is corrupted. Rebuilding...", _filterName);
-				} else if (exc is CorruptedHashException corruptedHashException) {
+				}
+				else if (exc is CorruptedHashException corruptedHashException) {
 					corruptionRebuildCount = corruptedHashException.RebuildCount + 1;
 					Log.Error(exc, "{filterName} has too many corrupted hashes. Rebuilding...", _filterName);
-				} else if (exc is SizeMismatchException) {
+				}
+				else if (exc is SizeMismatchException) {
 					Log.Error(exc, "{filterName} does not have the expected size. Rebuilding...", _filterName);
-				} else if (exc is FileNotFoundException) {
+				}
+				else if (exc is FileNotFoundException) {
 					Log.Error(exc, "{filterName} does not exist even though the checkpoint does. Rebuilding...", _filterName);
 				}
 
@@ -100,15 +104,17 @@ namespace EventStore.Core.LogAbstraction.Common {
 					corruptionRebuildCount: corruptionRebuildCount);
 			}
 
-			if (_persistentBloomFilter.CorruptionRebuildCount == 0)
+			if (_persistentBloomFilter.CorruptionRebuildCount == 0) {
 				Log.Information("{filterName} has successfully loaded.", _filterName);
-			else
+			}
+			else {
 				Log.Information("{filterName} has successfully loaded. Filter has been rebuilt due to hash corruption {count} times.",
 					_filterName, _persistentBloomFilter.CorruptionRebuildCount);
+			}
 
 			const double p = PersistentBloomFilter.RecommendedFalsePositiveProbability;
 			Log.Debug("Optimal number of items for a {filterName} with a configured size of " +
-			                "{size:N0} MB is approximately equal to: {n:N0} with false positive probability: {p:N2}",
+							"{size:N0} MB is approximately equal to: {n:N0} with false positive probability: {p:N2}",
 				_filterName,
 				size / 1000 / 1000,
 				_persistentBloomFilter.CalculateOptimalNumItems(p),
@@ -136,7 +142,7 @@ namespace EventStore.Core.LogAbstraction.Common {
 				_persistentBloomFilter.Flush();
 				var endTime = DateTime.UtcNow;
 				Log.Verbose("{filterName} has flushed at {checkpoint:N0}. Diff {diff:N0}. Took {flushLength}",
-					       _filterName, checkpoint, diff, endTime - startTime);
+						   _filterName, checkpoint, diff, endTime - startTime);
 
 				// safety precaution against anything in the stack lying about the data
 				// truly being on disk.
@@ -147,7 +153,8 @@ namespace EventStore.Core.LogAbstraction.Common {
 				Log.Verbose("{filterName} took checkpoint at position: {position:N0}.",
 					_filterName,
 					_checkpoint.Read());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "{filterName} could not take checkpoint at position: {position:N0}", _filterName, checkpoint);
 			}
 		}
@@ -205,8 +212,10 @@ namespace EventStore.Core.LogAbstraction.Common {
 		}
 
 		public bool MightContain(string name) {
-			if (Interlocked.CompareExchange(ref _initialized, 0, 0) == 0)
+			if (Interlocked.CompareExchange(ref _initialized, 0, 0) == 0) {
 				throw new InvalidOperationException("Initialize the filter before querying");
+			}
+
 			return _persistentBloomFilter.MightContain(name);
 		}
 

@@ -175,12 +175,15 @@ namespace EventStore.Core.Messages {
 				Ensure.NotEmptyGuid(correlationId, "correlationId");
 				Ensure.Nonnegative(logPosition, "logPosition");
 				Ensure.Nonnegative(transactionPosition, "transactionPosition");
-				if (firstEventNumber < -1)
+				if (firstEventNumber < -1) {
 					throw new ArgumentOutOfRangeException("firstEventNumber",
 						string.Format("FirstEventNumber: {0}", firstEventNumber));
-				if (lastEventNumber - firstEventNumber + 1 < 0)
+				}
+
+				if (lastEventNumber - firstEventNumber + 1 < 0) {
 					throw new ArgumentOutOfRangeException("lastEventNumber",
 						string.Format("LastEventNumber {0}, FirstEventNumber {1}.", lastEventNumber, firstEventNumber));
+				}
 
 				CorrelationId = correlationId;
 				LogPosition = logPosition;
@@ -203,12 +206,16 @@ namespace EventStore.Core.Messages {
 				Ensure.NotEmptyGuid(correlationId, "correlationId");
 				Ensure.Nonnegative(logPosition, "logPosition");
 				Ensure.Nonnegative(transactionPosition, "transactionPosition");
-				if (firstEventNumber < -1)
+				if (firstEventNumber < -1) {
 					throw new ArgumentOutOfRangeException("firstEventNumber",
 						string.Format("FirstEventNumber: {0}", firstEventNumber));
-				if (lastEventNumber - firstEventNumber + 1 < 0)
+				}
+
+				if (lastEventNumber - firstEventNumber + 1 < 0) {
 					throw new ArgumentOutOfRangeException("lastEventNumber",
 						string.Format("LastEventNumber {0}, FirstEventNumber {1}.", lastEventNumber, firstEventNumber));
+				}
+
 				CorrelationId = correlationId;
 				LogPosition = logPosition;
 				TransactionPosition = transactionPosition;
@@ -395,11 +402,15 @@ namespace EventStore.Core.Messages {
 					_tcs = new TaskCompletionSource<EffectiveAcl>(TaskCreationOptions.RunContinuationsAsynchronously);
 				}
 				public void ReplyWith<T>(T message) where T : Message {
-					if (message == null) throw new ArgumentNullException(nameof(message));
+					if (message == null) {
+						throw new ArgumentNullException(nameof(message));
+					}
+
 					if (message is EffectiveStreamAclResponse response) {
 						_tcs.TrySetResult(response.Acl);
 						return;
-					} else {
+					}
+					else {
 						if (message is OperationCancelledMessage cancelled) {
 							_tcs.TrySetCanceled(cancelled.CancellationToken);
 						}
@@ -433,7 +444,7 @@ namespace EventStore.Core.Messages {
 		public partial class StreamIdFromTransactionIdResponse : Message {
 			public readonly string StreamId;
 
-			public StreamIdFromTransactionIdResponse(string streamId){
+			public StreamIdFromTransactionIdResponse(string streamId) {
 				StreamId = streamId;
 			}
 		}

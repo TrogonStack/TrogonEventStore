@@ -32,8 +32,7 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.Core.Tests.Helpers;
 
-public class MiniClusterNode<TLogFormat, TStreamId>
-{
+public class MiniClusterNode<TLogFormat, TStreamId> {
 	public static int RunCount = 0;
 	public static readonly Stopwatch RunningTime = new Stopwatch();
 	public static readonly Stopwatch StartingTime = new Stopwatch();
@@ -64,8 +63,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		IPEndPoint httpEndPoint, EndPoint[] gossipSeeds, ISubsystem[] subsystems = null,
 		bool enableTrustedAuth = false, int memTableSize = 1000,
 		bool disableFlushToDisk = false, bool readOnlyReplica = false, int nodePriority = 0,
-		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null)
-	{
+		string intHostAdvertiseAs = null, IExpiryStrategy expiryStrategy = null) {
 
 		RunningTime.Start();
 		RunCount += 1;
@@ -85,18 +83,15 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		subsystems ??= [];
 		subsystems = [.. subsystems, new TcpApiTestPlugin()];
 
-		var options = new ClusterVNodeOptions
-		{
-			Application = new()
-			{
+		var options = new ClusterVNodeOptions {
+			Application = new() {
 				AllowAnonymousEndpointAccess = true,
 				AllowAnonymousStreamAccess = true,
 				Insecure = false,
 				WorkerThreads = 1,
 				StatsPeriodSec = (int)TimeSpan.FromHours(1).TotalSeconds
 			},
-			Cluster = new()
-			{
+			Cluster = new() {
 				DiscoverViaDns = false,
 				ClusterDns = string.Empty,
 				GossipSeed = gossipSeeds,
@@ -110,8 +105,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				Archiver = false,
 				StreamInfoCacheCapacity = 10_000
 			},
-			Interface = new()
-			{
+			Interface = new() {
 				ReplicationIp = InternalTcpEndPoint.Address,
 				NodeIp = ExternalTcpEndPoint.Address,
 				ReplicationPort = InternalTcpEndPoint.Port,
@@ -121,8 +115,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				EnableTrustedAuth = enableTrustedAuth,
 				ReplicationHostAdvertiseAs = intHostAdvertiseAs
 			},
-			Database = new()
-			{
+			Database = new() {
 				MinFlushDelayMs = TFConsts.MinFlushDelayMs.TotalMilliseconds,
 				PrepareTimeoutMs = 10_000,
 				CommitTimeoutMs = 10_000,
@@ -137,8 +130,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 				ChunksCacheSize = MiniNode.CachedChunkSize,
 				StreamExistenceFilterSize = 10_000
 			},
-			Projection = new()
-			{
+			Projection = new() {
 				RunProjections = ProjectionType.None
 			},
 			PlugableComponents = subsystems
@@ -187,24 +179,18 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			expiryStrategy,
 			Guid.NewGuid(), debugIndex);
 		_host = new HostBuilder()
-			.ConfigureWebHost(webHost =>
-			{
+			.ConfigureWebHost(webHost => {
 				webHost
-					.UseKestrel(o =>
-					{
-						o.Listen(HttpEndPoint, options =>
-						{
-							options.UseHttps(new HttpsConnectionAdapterOptions
-							{
+					.UseKestrel(o => {
+						o.Listen(HttpEndPoint, options => {
+							options.UseHttps(new HttpsConnectionAdapterOptions {
 								ServerCertificate = serverCertificate,
 								ClientCertificateMode = ClientCertificateMode.AllowCertificate,
-								ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
-								{
+								ClientCertificateValidation = (certificate, chain, sslPolicyErrors) => {
 									var (isValid, error) =
 										ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors,
 											() => null, () => trustedRootCertificates);
-									if (!isValid && error != null)
-									{
+									if (!isValid && error != null) {
 										Log.Error("Client certificate validation error: {e}", error);
 									}
 									return isValid;
@@ -217,35 +203,28 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 			.Build();
 	}
 
-	public void Start()
-	{
+	public void Start() {
 		StartingTime.Start();
 
 		Node.MainBus.Subscribe(
-			new AdHocHandler<SystemMessage.StateChangeMessage>(m =>
-			{
+			new AdHocHandler<SystemMessage.StateChangeMessage>(m => {
 				NodeState = m.State;
 			}));
-		if (!_isReadOnlyReplica)
-		{
+		if (!_isReadOnlyReplica) {
 			Node.MainBus.Subscribe(
-				new AdHocHandler<SystemMessage.BecomeLeader>(m =>
-				{
+				new AdHocHandler<SystemMessage.BecomeLeader>(m => {
 					NodeState = VNodeState.Leader;
 					_started.TrySetResult(true);
 				}));
 			Node.MainBus.Subscribe(
-				new AdHocHandler<SystemMessage.BecomeFollower>(m =>
-				{
+				new AdHocHandler<SystemMessage.BecomeFollower>(m => {
 					NodeState = VNodeState.Follower;
 					_started.TrySetResult(true);
 				}));
 		}
-		else
-		{
+		else {
 			Node.MainBus.Subscribe(
-				new AdHocHandler<SystemMessage.BecomeReadOnlyReplica>(m =>
-				{
+				new AdHocHandler<SystemMessage.BecomeReadOnlyReplica>(m => {
 					NodeState = VNodeState.ReadOnlyReplica;
 					_started.TrySetResult(true);
 				}));
@@ -255,10 +234,8 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		waitForAdminUser = new AdHocHandler<StorageMessage.EventCommitted>(WaitForAdminUser);
 		Node.MainBus.Subscribe(waitForAdminUser);
 
-		void WaitForAdminUser(StorageMessage.EventCommitted m)
-		{
-			if (m.Event.EventStreamId != "$user-admin")
-			{
+		void WaitForAdminUser(StorageMessage.EventCommitted m) {
+			if (m.Event.EventStreamId != "$user-admin") {
 				return;
 			}
 
@@ -270,10 +247,8 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		Node.StartAsync(false).GetAwaiter().GetResult();
 	}
 
-	public HttpClient CreateHttpClient()
-	{
-		var httpClient = new HttpClient(new SocketsHttpHandler
-		{
+	public HttpClient CreateHttpClient() {
+		var httpClient = new HttpClient(new SocketsHttpHandler {
 			AllowAutoRedirect = false,
 			SslOptions = {
 				RemoteCertificateValidationCallback = delegate { return true; }
@@ -285,8 +260,7 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		return httpClient;
 	}
 
-	public async Task Shutdown(bool keepDb = false)
-	{
+	public async Task Shutdown(bool keepDb = false) {
 		StoppingTime.Start();
 		_host?.Dispose();
 		await Node.StopAsync().WithTimeout(TimeSpan.FromSeconds(20));
@@ -296,28 +270,25 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		// For now let's wait for a moment before we try to delete the directory.
 		await Task.Delay(500);
 
-		if (!keepDb)
+		if (!keepDb) {
 			TryDeleteDirectory(_dbPath);
+		}
 
 		StoppingTime.Stop();
 		RunningTime.Stop();
 	}
 
-	public void WaitIdle()
-	{
+	public void WaitIdle() {
 #if DEBUG
 		Node.QueueStatsManager.WaitIdle();
 #endif
 	}
 
-	private void TryDeleteDirectory(string directory)
-	{
-		try
-		{
+	private void TryDeleteDirectory(string directory) {
+		try {
 			Directory.Delete(directory, true);
 		}
-		catch (Exception e)
-		{
+		catch (Exception e) {
 			Debug.WriteLine("Failed to remove directory {0}", directory);
 			Debug.WriteLine(e);
 		}

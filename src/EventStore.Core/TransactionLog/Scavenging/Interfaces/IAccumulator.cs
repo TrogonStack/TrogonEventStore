@@ -14,8 +14,7 @@ namespace EventStore.Core.TransactionLog.Scavenging;
 //  4. discard points for metadata streams
 //  5. data for maxage calculations - maybe that can be another IScavengeMap
 
-public interface IAccumulator<TStreamId>
-{
+public interface IAccumulator<TStreamId> {
 	ValueTask Accumulate(
 		ScavengePoint prevScavengePoint,
 		ScavengePoint scavengePoint,

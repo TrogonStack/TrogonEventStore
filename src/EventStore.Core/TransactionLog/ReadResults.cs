@@ -3,8 +3,7 @@ using EventStore.LogCommon;
 
 namespace EventStore.Core.TransactionLog;
 
-public readonly struct RecordReadResult(bool success, long nextPosition, ILogRecord logRecord, int recordLength)
-{
+public readonly struct RecordReadResult(bool success, long nextPosition, ILogRecord logRecord, int recordLength) {
 	public static readonly RecordReadResult Failure = new(false, -1, null, 0);
 
 	public readonly bool Success = success;
@@ -16,8 +15,7 @@ public readonly struct RecordReadResult(bool success, long nextPosition, ILogRec
 		$"Success: {Success}, NextPosition: {NextPosition}, RecordLength: {RecordLength}, LogRecord: {LogRecord}";
 }
 
-public readonly struct RawReadResult(bool success, long nextPosition, byte[] record, int recordLength)
-{
+public readonly struct RawReadResult(bool success, long nextPosition, byte[] record, int recordLength) {
 	public static readonly RawReadResult Failure = new RawReadResult(false, -1, null, 0);
 
 	public readonly bool Success = success;
@@ -37,8 +35,7 @@ public readonly struct SeqReadResult(
 	ILogRecord logRecord,
 	int recordLength,
 	long recordPrePosition,
-	long recordPostPosition)
-{
+	long recordPostPosition) {
 	public static readonly SeqReadResult Failure = new SeqReadResult(false, true, null, 0, -1, -1);
 
 	public readonly bool Success = success;

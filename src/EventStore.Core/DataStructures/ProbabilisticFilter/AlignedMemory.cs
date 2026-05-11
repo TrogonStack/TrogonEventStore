@@ -31,14 +31,17 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		public byte* Pointer { get; }
 
 		public Span<byte> AsSpan() {
-			if (_size > int.MaxValue)
+			if (_size > int.MaxValue) {
 				throw new InvalidOperationException("Size is too big to fit in one span");
+			}
+
 			return new(Pointer, (int)_size);
 		}
 
 		public void Dispose() {
-			if (_disposed)
+			if (_disposed) {
 				return;
+			}
 
 			_disposed = true;
 			GC.SuppressFinalize(this);

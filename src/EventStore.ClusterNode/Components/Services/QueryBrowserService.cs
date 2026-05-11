@@ -20,11 +20,13 @@ public sealed class QueryBrowserService(
 		.WithParameter(Operations.Projections.Parameters.Query);
 
 	public async Task<QueryRunPage> RunTransient(string query, CancellationToken cancellationToken = default) {
-		if (string.IsNullOrWhiteSpace(query))
+		if (string.IsNullOrWhiteSpace(query)) {
 			return QueryRunPage.Unavailable(query ?? "", "Enter a query before running it.");
+		}
 
-		if (!await HasAccess(CreateQueryOperation, cancellationToken))
+		if (!await HasAccess(CreateQueryOperation, cancellationToken)) {
 			return QueryRunPage.Unavailable(query, "Transient query access was denied.");
+		}
 
 		var projectionName = Guid.NewGuid().ToString("D");
 		var envelope = new TaskCompletionEnvelope<ProjectionManagementMessage.Updated>(
@@ -46,12 +48,15 @@ public sealed class QueryBrowserService(
 				enableRunAs: true));
 
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return QueryRunPage.Unavailable(query,
 				$"Timed out creating transient query '{projectionName}'. It may still be visible temporarily before automatic expiry.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return QueryRunPage.Unavailable(query, $"Unable to create transient query: {UiMessages.Friendly(ex)}");
 		}
 

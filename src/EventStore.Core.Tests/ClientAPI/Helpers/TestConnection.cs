@@ -9,21 +9,18 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientAPI.Helpers;
 
-public static class TestConnection
-{
+public static class TestConnection {
 	private static int _nextConnId = -1;
 
 	public static IEventStoreConnection Create(IPEndPoint endPoint, TcpType tcpType = TcpType.Ssl,
-		UserCredentials userCredentials = null)
-	{
+		UserCredentials userCredentials = null) {
 		return EventStoreConnection.Create(Settings(tcpType, userCredentials),
 			endPoint.ToESTcpUri(),
 			$"ESC-{Interlocked.Increment(ref _nextConnId)}");
 	}
 
 	public static IEventStoreConnection CreateMiniNodeClient(IPEndPoint endPoint, TcpType tcpType = TcpType.Ssl,
-		UserCredentials userCredentials = null)
-	{
+		UserCredentials userCredentials = null) {
 		return EventStoreConnection.Create(Settings(
 				tcpType,
 				userCredentials,
@@ -34,8 +31,7 @@ public static class TestConnection
 	}
 
 	public static IEventStoreConnection To(MiniNode miniNode, TcpType tcpType,
-		UserCredentials userCredentials = null)
-	{
+		UserCredentials userCredentials = null) {
 		return EventStoreConnection.Create(Settings(tcpType, userCredentials),
 			miniNode.TcpEndPoint.ToESTcpUri(),
 			$"ESC-{Interlocked.Increment(ref _nextConnId)}");
@@ -45,8 +41,7 @@ public static class TestConnection
 		TcpType tcpType,
 		UserCredentials userCredentials,
 		int limitAttemptsForOperationTo = 1,
-		TimeSpan? reconnectionDelay = null)
-	{
+		TimeSpan? reconnectionDelay = null) {
 		var settings = ConnectionSettings.Create()
 			.SetDefaultUserCredentials(userCredentials)
 			.UseCustomLogger(ClientApiLoggerBridge.Default)
@@ -58,12 +53,10 @@ public static class TestConnection
 			.FailOnNoServerResponse()
 			//.SetOperationTimeoutTo(TimeSpan.FromDays(1))
 			;
-		if (tcpType == TcpType.Ssl)
-		{
+		if (tcpType == TcpType.Ssl) {
 			settings.DisableServerCertificateValidation();
 		}
-		else
-		{
+		else {
 			settings.DisableTls();
 		}
 

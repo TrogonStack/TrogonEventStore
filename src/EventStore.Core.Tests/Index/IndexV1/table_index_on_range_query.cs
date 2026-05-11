@@ -13,23 +13,20 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class table_index_on_range_query : SpecificationWithDirectoryPerTestFixture
-{
+public class table_index_on_range_query : SpecificationWithDirectoryPerTestFixture {
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
 
-	public table_index_on_range_query(byte version, bool skipIndexVerify)
-	{
+	public table_index_on_range_query(byte version, bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_lowHasher = new XXHashUnsafe();
@@ -64,22 +61,19 @@ public class table_index_on_range_query : SpecificationWithDirectoryPerTestFixtu
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_tableIndex.Close();
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_return_empty_collection_when_stream_is_not_in_db()
-	{
+	public void should_return_empty_collection_when_stream_is_not_in_db() {
 		var res = _tableIndex.GetRange("0xFEED", 0, 100);
 		Assert.That(res, Is.Empty);
 	}
 
 	[Test]
-	public void should_return_all_applicable_elements_in_correct_order()
-	{
+	public void should_return_all_applicable_elements_in_correct_order() {
 		var res = _tableIndex.GetRange("0xJEEP", 0, 100).ToList();
 		ulong hash = (ulong)_lowHasher.Hash("0xJEEP");
 		hash = _ptableVersion == PTableVersions.IndexV1 ? hash : hash << 32 | _highHasher.Hash("0xJEEP");
@@ -103,8 +97,7 @@ public class table_index_on_range_query : SpecificationWithDirectoryPerTestFixtu
 	}
 
 	[Test]
-	public void should_return_all_elements_with_hash_collisions_in_correct_order()
-	{
+	public void should_return_all_elements_with_hash_collisions_in_correct_order() {
 		var res = _tableIndex.GetRange("0xDEAD", 0, 100).ToList();
 		ulong hash = (ulong)_lowHasher.Hash("0xDEAD");
 		hash = _ptableVersion == PTableVersions.IndexV1 ? hash : hash << 32 | _highHasher.Hash("0xDEAD");

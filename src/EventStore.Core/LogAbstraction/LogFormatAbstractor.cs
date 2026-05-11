@@ -94,7 +94,7 @@ namespace EventStore.Core.LogAbstraction {
 	}
 
 	public class LogFormatAbstractor<TStreamId> : IDisposable {
-		private readonly Func<ITransactionFileReader,ITransactionFileWriter,IPartitionManager> _partitionManagerFactory;
+		private readonly Func<ITransactionFileReader, ITransactionFileWriter, IPartitionManager> _partitionManagerFactory;
 
 		public LogFormatAbstractor(
 			IHasher<TStreamId> lowHasher,
@@ -115,8 +115,8 @@ namespace EventStore.Core.LogAbstraction {
 			IExistenceFilterReader<TStreamId> streamExistenceFilterReader,
 			IRecordFactory<TStreamId> recordFactory,
 			bool supportsExplicitTransactions,
-			Func<ITransactionFileReader,ITransactionFileWriter,IPartitionManager> partitionManagerFactory) {
-			
+			Func<ITransactionFileReader, ITransactionFileWriter, IPartitionManager> partitionManagerFactory) {
+
 			_partitionManagerFactory = partitionManagerFactory;
 
 			LowHasher = lowHasher;
@@ -168,7 +168,7 @@ namespace EventStore.Core.LogAbstraction {
 		public ISystemStreamLookup<TStreamId> SystemStreams => StreamNamesProvider.SystemStreams;
 		public INameExistenceFilterInitializer StreamExistenceFilterInitializer => StreamNamesProvider.StreamExistenceFilterInitializer;
 		public bool SupportsExplicitTransactions { get; }
-		
+
 		public IPartitionManager CreatePartitionManager(ITransactionFileReader reader, ITransactionFileWriter writer) {
 			return _partitionManagerFactory(reader, writer);
 		}

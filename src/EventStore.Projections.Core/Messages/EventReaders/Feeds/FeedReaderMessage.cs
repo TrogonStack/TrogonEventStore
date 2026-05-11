@@ -6,16 +6,13 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Messages.EventReaders.Feeds;
 
-public static partial class FeedReaderMessage
-{
+public static partial class FeedReaderMessage {
 	[DerivedMessage]
-	public abstract partial class FeedReaderMessageBase : Message
-	{
+	public abstract partial class FeedReaderMessageBase : Message {
 	}
 
 	[DerivedMessage(ProjectionMessage.FeedReader)]
-	public sealed partial class ReadPage : FeedReaderMessageBase
-	{
+	public sealed partial class ReadPage : FeedReaderMessageBase {
 		public readonly Guid CorrelationId;
 		public readonly IEnvelope Envelope;
 		public readonly ClaimsPrincipal User;
@@ -27,8 +24,7 @@ public static partial class FeedReaderMessage
 		public ReadPage(
 			Guid correlationId, IEnvelope envelope, ClaimsPrincipal user, QuerySourcesDefinition querySource,
 			CheckpointTag fromPosition,
-			int maxEvents)
-		{
+			int maxEvents) {
 			User = user;
 			CorrelationId = correlationId;
 			Envelope = envelope;
@@ -39,10 +35,8 @@ public static partial class FeedReaderMessage
 	}
 
 	[DerivedMessage(ProjectionMessage.FeedReader)]
-	public sealed partial class FeedPage : FeedReaderMessageBase
-	{
-		public enum ErrorStatus
-		{
+	public sealed partial class FeedPage : FeedReaderMessageBase {
+		public enum ErrorStatus {
 			Success,
 			NotAuthorized
 		}
@@ -53,8 +47,7 @@ public static partial class FeedReaderMessage
 		public readonly CheckpointTag LastReaderPosition;
 
 		public FeedPage(
-			Guid correlationId, ErrorStatus error, TaggedResolvedEvent[] events, CheckpointTag lastReaderPosition)
-		{
+			Guid correlationId, ErrorStatus error, TaggedResolvedEvent[] events, CheckpointTag lastReaderPosition) {
 			CorrelationId = correlationId;
 			Error = error;
 			Events = events;

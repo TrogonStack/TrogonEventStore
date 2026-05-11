@@ -42,7 +42,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			try {
 				CleanImpl(state, cancellationToken);
 				transaction.Commit(checkpoint);
-			} catch {
+			}
+			catch {
 				transaction.Rollback();
 				throw;
 			}
@@ -65,7 +66,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 					_unsafeIgnoreHardDeletes);
 				state.DeleteOriginalStreamData(deleteArchived: _unsafeIgnoreHardDeletes);
 
-			} else {
+			}
+			else {
 				// one or more chunks was not executed, due to error or not meeting the threshold
 				// either way, we cannot clean up the stream datas
 				if (_unsafeIgnoreHardDeletes) {
@@ -74,7 +76,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 					// we could have removed the tombstone without removing all the other records.
 					throw new Exception(
 						"UnsafeIgnoreHardDeletes is true but not all chunks have been executed");
-				} else {
+				}
+				else {
 					_logger.Debug("SCAVENGING: Skipping cleanup because some chunks have not been executed");
 				}
 			}

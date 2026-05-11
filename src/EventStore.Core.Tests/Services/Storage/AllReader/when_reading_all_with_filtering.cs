@@ -10,13 +10,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.AllReader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	TFPos _forwardReadPos;
 	TFPos _backwardReadPos;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var firstEvent = await WriteSingleEvent("ES1", 1, new string('.', 3000), eventId: Guid.NewGuid(),
 			eventType: "event-type-1", retryOnFail: true, token: token);
 		await WriteSingleEvent("ES2", 1, new string('.', 3000), eventId: Guid.NewGuid(),
@@ -33,8 +31,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_forward_with_event_type_prefix()
-	{
+	public async Task should_read_only_events_forward_with_event_type_prefix() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Prefix, ["event-type"]);
@@ -45,8 +42,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_forward_with_event_type_regex()
-	{
+	public async Task should_read_only_events_forward_with_event_type_regex() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Regex, [@"^.*other-event.*$"]);
@@ -57,8 +53,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_forward_with_stream_id_prefix()
-	{
+	public async Task should_read_only_events_forward_with_stream_id_prefix() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Prefix, ["ES2"]);
@@ -69,8 +64,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_forward_with_stream_id_regex()
-	{
+	public async Task should_read_only_events_forward_with_stream_id_regex() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Regex, [@"^.*ES2.*$"]);
@@ -81,8 +75,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_backward_with_event_type_prefix()
-	{
+	public async Task should_read_only_events_backward_with_event_type_prefix() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Prefix, ["event-type"]);
@@ -95,8 +88,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_backward_with_event_type_regex()
-	{
+	public async Task should_read_only_events_backward_with_event_type_regex() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Regex, new[] { @"^.*other-event.*$" });
@@ -109,8 +101,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_backward_with_stream_id_prefix()
-	{
+	public async Task should_read_only_events_backward_with_stream_id_prefix() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Prefix, ["ES2"]);
@@ -123,8 +114,7 @@ public class WhenReadingAllWithFiltering<TLogFormat, TStreamId> : ReadIndexTestS
 	}
 
 	[Test]
-	public async Task should_read_only_events_backward_with_stream_id_regex()
-	{
+	public async Task should_read_only_events_backward_with_stream_id_regex() {
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Regex, [@"^.*ES2.*$"]);

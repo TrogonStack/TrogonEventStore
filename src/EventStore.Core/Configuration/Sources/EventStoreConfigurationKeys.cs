@@ -44,8 +44,9 @@ namespace EventStore.Core.Configuration.Sources {
 			// if the key doesn't contain any delimiters,
 			// we can just get out, transforming the key
 			// if needed because of cli lowercase args
-			if (!key.Any(Delimiters.Contains))
+			if (!key.Any(Delimiters.Contains)) {
 				return $"{Prefix}:{Transform(key)}";
+			}
 
 			// remove the prefix and normalize the key
 			var keys = (key.StartsWith(Prefix, OrdinalIgnoreCase) ? key.Remove(0, Prefix.Length) : key)
@@ -74,7 +75,7 @@ namespace EventStore.Core.Configuration.Sources {
 		/// <summary>
 		/// Determines if the given key is an event store environment variable.
 		/// </summary>
-		public static bool IsEventStoreEnvVar(string? key) => 
+		public static bool IsEventStoreEnvVar(string? key) =>
 			key is not null && key.StartsWith($"{Prefix}{EnvVarWordDelimiter}", OrdinalIgnoreCase);
 
 		/// <summary>

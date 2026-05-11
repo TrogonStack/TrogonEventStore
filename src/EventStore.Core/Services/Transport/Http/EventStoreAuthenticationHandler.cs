@@ -23,8 +23,9 @@ public class EventStoreAuthenticationHandler : AuthenticationHandler<Authenticat
 	}
 
 	protected override Task<AuthenticateResult> HandleAuthenticateAsync() {
-		if (!Context.User.Identity.IsAuthenticated)
+		if (!Context.User.Identity.IsAuthenticated) {
 			return Task.FromResult(AuthenticateResult.Fail("Not authenticated"));
+		}
 
 		var ticket = new AuthenticationTicket(
 			principal: Context.User,

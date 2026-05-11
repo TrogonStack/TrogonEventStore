@@ -28,7 +28,8 @@ namespace EventStore.Core.Services.Transport.Http {
 				}
 
 				return feature.Trailers;
-			} else {
+			}
+			else {
 				// The response is "Trailers-Only". There are no gRPC messages in the response so the status
 				// and other trailers can be placed in the header HEADERS frame
 				return response.Headers;
@@ -55,7 +56,8 @@ namespace EventStore.Core.Services.Transport.Http {
 				// The value portion of Status-Message is conceptually a Unicode string description of the error,
 				// physically encoded as UTF-8 followed by percent-encoding.
 				escapedDetail = PercentEncode(status.Detail);
-			} else {
+			}
+			else {
 				escapedDetail = null;
 			}
 
@@ -90,7 +92,8 @@ namespace EventStore.Core.Services.Transport.Http {
 					var utf8ByteCount = Encoding.UTF8.GetByteCount(value.AsSpan(i, unicodeCharCount));
 					encodedLength += (long)utf8ByteCount * 3;
 					i += unicodeCharCount - 1;
-				} else {
+				}
+				else {
 					encodedLength += IsUnreservedCharacter(c) ? 1 : 3;
 				}
 			}
@@ -127,9 +130,11 @@ namespace EventStore.Core.Services.Transport.Http {
 							EscapeAsciiChar(span, ref writePosition, (char)unicodeBytesBuffer[count]);
 						}
 						i += unicodeCharCount - 1;
-					} else if (IsUnreservedCharacter(current)) {
+					}
+					else if (IsUnreservedCharacter(current)) {
 						span[writePosition++] = current;
-					} else {
+					}
+					else {
 						EscapeAsciiChar(span, ref writePosition, current);
 					}
 				}

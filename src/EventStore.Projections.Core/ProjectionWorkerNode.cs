@@ -14,8 +14,7 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core;
 
-public class ProjectionWorkerNode
-{
+public class ProjectionWorkerNode {
 	private readonly ProjectionType _runProjections;
 	private readonly ProjectionCoreService _projectionCoreService;
 	private readonly ISubscriber _coreOutputBus;
@@ -37,8 +36,7 @@ public class ProjectionWorkerNode
 		ProjectionType runProjections,
 		bool faultOutOfOrderProjections,
 		IPublisher leaderOutputQueue,
-		ProjectionsStandardComponents configuration)
-	{
+		ProjectionsStandardComponents configuration) {
 		_runProjections = runProjections;
 		Ensure.NotNull(dbConfig, "dbConfig");
 
@@ -57,8 +55,7 @@ public class ProjectionWorkerNode
 			faultOutOfOrderProjections: faultOutOfOrderProjections);
 
 		_feedReaderService = new FeedReaderService(_subscriptionDispatcher, timeProvider);
-		if (runProjections >= ProjectionType.System)
-		{
+		if (runProjections >= ProjectionType.System) {
 			_projectionCoreService = new ProjectionCoreService(
 				workerId,
 				inputQueue,
@@ -70,13 +67,11 @@ public class ProjectionWorkerNode
 		}
 	}
 
-	public ISubscriber CoreOutputBus
-	{
+	public ISubscriber CoreOutputBus {
 		get { return _coreOutputBus; }
 	}
 
-	public void SetupMessaging(ISubscriber coreInputBus)
-	{
+	public void SetupMessaging(ISubscriber coreInputBus) {
 		coreInputBus.Subscribe(_subscriptionDispatcher
 			.CreateSubscriber<EventReaderSubscriptionMessage.CheckpointSuggested>());
 		coreInputBus.Subscribe(_subscriptionDispatcher
@@ -101,8 +96,7 @@ public class ProjectionWorkerNode
 
 		coreInputBus.Subscribe(_feedReaderService);
 
-		if (_runProjections >= ProjectionType.System)
-		{
+		if (_runProjections >= ProjectionType.System) {
 			coreInputBus.Subscribe<ProjectionCoreServiceMessage.StartCore>(_projectionCoreService);
 			coreInputBus.Subscribe<ProjectionCoreServiceMessage.StopCore>(_projectionCoreService);
 			coreInputBus.Subscribe<ProjectionCoreServiceMessage.StopCoreTimeout>(_projectionCoreService);

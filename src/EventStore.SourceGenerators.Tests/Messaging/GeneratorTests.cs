@@ -11,19 +11,16 @@ namespace EventStore.SourceGenerators.Tests.Messaging;
 
 using Test = CSharpSourceGeneratorVerifier<MessageSourceGenerator>.Test;
 
-public class GeneratorTests
-{
+public class GeneratorTests {
 	private static uint GenHash(int fileNumber) => (uint)$"/0/Test{fileNumber}.cs".GetHashCode();
 	private static string ReadFile(string fileName) => File.ReadAllText($"./Messaging/Cases/{fileName}");
 
 	private static async Task RunTestAsync(
 		string sourcePath,
 		string expectedPath,
-		params DiagnosticResult[] expectedDiagnostics)
-	{
+		params DiagnosticResult[] expectedDiagnostics) {
 
-		var test = new Test()
-		{
+		var test = new Test() {
 			TestState =
 			{
 				Sources = { ReadFile("Message.cs"), ReadFile(sourcePath), },

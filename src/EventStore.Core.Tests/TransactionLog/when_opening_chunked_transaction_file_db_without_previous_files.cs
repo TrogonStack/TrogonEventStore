@@ -10,11 +10,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class WhenOpeningChunkedTransactionFileDbWithoutPreviousFiles : SpecificationWithDirectory
-{
+public class WhenOpeningChunkedTransactionFileDbWithoutPreviousFiles : SpecificationWithDirectory {
 	[Test]
-	public async Task with_a_writer_checksum_of_zero_the_first_chunk_is_created_with_correct_name_and_is_aligned()
-	{
+	public async Task with_a_writer_checksum_of_zero_the_first_chunk_is_created_with_correct_name_and_is_aligned() {
 		var config = TFChunkHelper.CreateDbConfig(PathName, 0);
 		var db = new TFChunkDb(config);
 		await db.Open();

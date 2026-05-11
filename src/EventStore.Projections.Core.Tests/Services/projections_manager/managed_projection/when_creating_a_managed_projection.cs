@@ -12,8 +12,7 @@ using TestFixtureWithReadWriteDispatchers =
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed_projection;
 
 [TestFixture]
-public class when_creating_a_managed_projection : TestFixtureWithReadWriteDispatchers
-{
+public class when_creating_a_managed_projection : TestFixtureWithReadWriteDispatchers {
 	private new ITimeProvider _timeProvider;
 
 	private
@@ -26,8 +25,7 @@ public class when_creating_a_managed_projection : TestFixtureWithReadWriteDispat
 		_getResultDispatcher;
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_timeProvider = new FakeTimeProvider();
 		_getStateDispatcher =
 			new RequestResponseDispatcher
@@ -47,10 +45,8 @@ public class when_creating_a_managed_projection : TestFixtureWithReadWriteDispat
 
 
 	[Test]
-	public void empty_guid_throws_invalid_argument_exception()
-	{
-		Assert.Throws<ArgumentException>(() =>
-		{
+	public void empty_guid_throws_invalid_argument_exception() {
+		Assert.Throws<ArgumentException>(() => {
 			new ManagedProjection(
 				Guid.NewGuid(),
 				Guid.Empty,
@@ -71,10 +67,8 @@ public class when_creating_a_managed_projection : TestFixtureWithReadWriteDispat
 	}
 
 	[Test]
-	public void null_name_throws_argument_null_exception()
-	{
-		Assert.Throws<ArgumentNullException>(() =>
-		{
+	public void null_name_throws_argument_null_exception() {
+		Assert.Throws<ArgumentNullException>(() => {
 			new ManagedProjection(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -95,10 +89,8 @@ public class when_creating_a_managed_projection : TestFixtureWithReadWriteDispat
 	}
 
 	[Test]
-	public void empty_name_throws_argument_exception()
-	{
-		Assert.Throws<ArgumentException>(() =>
-		{
+	public void empty_name_throws_argument_exception() {
+		Assert.Throws<ArgumentException>(() => {
 			new ManagedProjection(
 				Guid.NewGuid(),
 				Guid.NewGuid(),

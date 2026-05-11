@@ -21,12 +21,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 
 [TestFixture]
-public abstract class ScavengeTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class ScavengeTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected IReadIndex<TStreamId> ReadIndex;
 
-	protected TFChunkDb Db
-	{
+	protected TFChunkDb Db {
 		get { return _dbResult.Db; }
 	}
 
@@ -36,23 +34,19 @@ public abstract class ScavengeTestScenario<TLogFormat, TStreamId> : Specificatio
 	private bool _checked;
 	private LogFormatAbstractor<TStreamId> _logFormat;
 
-	protected virtual bool UnsafeIgnoreHardDelete()
-	{
+	protected virtual bool UnsafeIgnoreHardDelete() {
 		return false;
 	}
 
-	protected ScavengeTestScenario(int metastreamMaxCount = 1)
-	{
+	protected ScavengeTestScenario(int metastreamMaxCount = 1) {
 		_metastreamMaxCount = metastreamMaxCount;
 	}
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = indexDirectory,
 		});
 
@@ -107,16 +101,16 @@ public abstract class ScavengeTestScenario<TLogFormat, TStreamId> : Specificatio
 		await scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: false);
 	}
 
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_logFormat?.Dispose();
 		ReadIndex.Close();
 		await _dbResult.Db.DisposeAsync();
 
 		await base.TestFixtureTearDown();
 
-		if (!_checked)
+		if (!_checked) {
 			throw new Exception("Records were not checked. Probably you forgot to call CheckRecords() method.");
+		}
 	}
 
 	protected abstract ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,
@@ -124,27 +118,23 @@ public abstract class ScavengeTestScenario<TLogFormat, TStreamId> : Specificatio
 
 	protected abstract ILogRecord[][] KeptRecords(DbResult dbResult);
 
-	protected async Task CheckRecords(CancellationToken token = default)
-	{
+	protected async Task CheckRecords(CancellationToken token = default) {
 		_checked = true;
 		Assert.AreEqual(_keptRecords.Length, _dbResult.Db.Manager.ChunksCount, "Wrong chunks count.");
 
-		for (int i = 0; i < _keptRecords.Length; ++i)
-		{
+		for (int i = 0; i < _keptRecords.Length; ++i) {
 			var chunk = _dbResult.Db.Manager.GetChunk(i);
 
 			var chunkRecords = new List<ILogRecord>();
 			RecordReadResult result = await chunk.TryReadFirst(token);
-			while (result.Success)
-			{
+			while (result.Success) {
 				chunkRecords.Add(result.LogRecord);
 				result = await chunk.TryReadClosestForward((int)result.NextPosition, CancellationToken.None);
 			}
 
 			Assert.AreEqual(_keptRecords[i].Length, chunkRecords.Count, "Wrong number of records in chunk #{0}", i);
 
-			for (int j = 0; j < _keptRecords[i].Length; ++j)
-			{
+			for (int j = 0; j < _keptRecords[i].Length; ++j) {
 				Assert.AreEqual(_keptRecords[i][j], chunkRecords[j], "Wrong log record #{0} read from chunk #{1}",
 					j, i);
 			}

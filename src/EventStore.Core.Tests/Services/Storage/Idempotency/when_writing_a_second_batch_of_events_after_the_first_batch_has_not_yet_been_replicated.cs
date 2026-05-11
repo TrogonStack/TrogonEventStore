@@ -12,20 +12,17 @@ namespace EventStore.Core.Tests.Services.Storage.Idempotency;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_writing_a_second_batch_of_events_after_the_first_batch_has_not_yet_been_replicated<TLogFormat, TStreamId> :
-	WriteEventsToIndexScenario<TLogFormat, TStreamId>
-{
+	WriteEventsToIndexScenario<TLogFormat, TStreamId> {
 	private const int _numEvents = 10;
 	private List<Guid> _eventIds = new List<Guid>();
 	private TStreamId _streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 
-	public override ValueTask WriteEvents(CancellationToken token)
-	{
+	public override ValueTask WriteEvents(CancellationToken token) {
 		var expectedEventNumber = -1;
 		var transactionPosition = 1000;
 		var eventTypes = new List<TStreamId>();
 
-		for (var i = 0; i < _numEvents; i++)
-		{
+		for (var i = 0; i < _numEvents; i++) {
 			_eventIds.Add(Guid.NewGuid());
 			eventTypes.Add(LogFormatHelper<TLogFormat, TStreamId>.EventTypeId);
 		}
@@ -44,8 +41,7 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_same_expectedversion_should_return_idempotentnotready_decision()
-	{
+	public async Task check_commit_with_same_expectedversion_should_return_idempotentnotready_decision() {
 		/*Second, idempotent write*/
 		var commitCheckResult =
 			await _indexWriter.CheckCommit(_streamId, -1, _eventIds, streamMightExist: true, CancellationToken.None);
@@ -53,8 +49,7 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_expectedversion_any_should_return_idempotentnotready_decision()
-	{
+	public async Task check_commit_with_expectedversion_any_should_return_idempotentnotready_decision() {
 		/*Second, idempotent write*/
 		var commitCheckResult = await _indexWriter.CheckCommit(_streamId, ExpectedVersion.Any, _eventIds,
 			streamMightExist: true, CancellationToken.None);
@@ -62,16 +57,14 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_next_expectedversion_should_return_ok_decision()
-	{
+	public async Task check_commit_with_next_expectedversion_should_return_ok_decision() {
 		var commitCheckResult = await _indexWriter.CheckCommit(_streamId, _numEvents - 1, _eventIds,
 			streamMightExist: true, CancellationToken.None);
 		Assert.AreEqual(CommitDecision.Ok, commitCheckResult.Decision);
 	}
 
 	[Test]
-	public async Task check_commit_with_incorrect_expectedversion_should_return_wrongexpectedversion_decision()
-	{
+	public async Task check_commit_with_incorrect_expectedversion_should_return_wrongexpectedversion_decision() {
 		var commitCheckResult = await _indexWriter.CheckCommit(_streamId, _numEvents, _eventIds, streamMightExist: true,
 			CancellationToken.None);
 		Assert.AreEqual(CommitDecision.WrongExpectedVersion, commitCheckResult.Decision);
@@ -79,12 +72,12 @@ public class
 
 	[Test]
 	public async Task
-		check_commit_with_same_expectedversion_but_different_non_first_event_id_should_return_corruptedidempotency_decision()
-	{
+		check_commit_with_same_expectedversion_but_different_non_first_event_id_should_return_corruptedidempotency_decision() {
 		/*Second, idempotent write but one of the event ids is different*/
 		var ids = new List<Guid>();
-		foreach (var id in _eventIds)
+		foreach (var id in _eventIds) {
 			ids.Add(id);
+		}
 
 		ids[ids.Count - 2] = Guid.NewGuid();
 
@@ -95,12 +88,12 @@ public class
 
 	[Test]
 	public async Task
-		check_commit_with_same_expectedversion_but_different_first_event_id_should_return_wrongexpectedversion_decision()
-	{
+		check_commit_with_same_expectedversion_but_different_first_event_id_should_return_wrongexpectedversion_decision() {
 		/*Second, idempotent write but one of the event ids is different*/
 		var ids = new List<Guid>();
-		foreach (var id in _eventIds)
+		foreach (var id in _eventIds) {
 			ids.Add(id);
+		}
 
 		ids[0] = Guid.NewGuid();
 

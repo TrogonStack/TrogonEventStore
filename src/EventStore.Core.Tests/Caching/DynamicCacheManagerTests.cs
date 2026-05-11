@@ -14,8 +14,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Caching;
 
 [TestFixture]
-public class DynamicCacheManagerTests
-{
+public class DynamicCacheManagerTests {
 	private readonly FakePublisher _fakePublisher = new();
 
 	private DynamicCacheManager GenSut(
@@ -28,8 +27,7 @@ public class DynamicCacheManagerTests
 		TimeSpan monitoringInterval,
 		TimeSpan minResizeInterval,
 		long minResizeThreshold,
-		ICacheResizer rootCacheResizer)
-	{
+		ICacheResizer rootCacheResizer) {
 		var sut = new DynamicCacheManager(
 			_fakePublisher,
 			getFreeSystemMem,
@@ -50,17 +48,16 @@ public class DynamicCacheManagerTests
 		return sut;
 	}
 
-	private async Task TickPublished()
-	{
-		while (!_fakePublisher.Messages.ToArray().Any(x => x is TimerMessage.Schedule))
+	private async Task TickPublished() {
+		while (!_fakePublisher.Messages.ToArray().Any(x => x is TimerMessage.Schedule)) {
 			await Task.Delay(10);
+		}
 
 		_fakePublisher.Messages.Clear();
 	}
 
 	[Test]
-	public async Task ticks()
-	{
+	public async Task ticks() {
 		var sut = GenSut(
 			() => 100,
 			() => 0,
@@ -81,8 +78,7 @@ public class DynamicCacheManagerTests
 	[TestCase(0, 20, true)]
 	[TestCase(20, 0, false)]
 	[TestCase(0, 20, false)]
-	public async Task caches_resized_depending_on_whether_total_free_memory_is_above_or_below_keep_free_mem(int percent, long bytes, bool aboveKeepFreeMem)
-	{
+	public async Task caches_resized_depending_on_whether_total_free_memory_is_above_or_below_keep_free_mem(int percent, long bytes, bool aboveKeepFreeMem) {
 		long cache1Mem = -1, cache2Mem = -1;
 		var cache1 = new DynamicCacheResizer(ResizerUnit.Bytes, 1, 100_000, 60, new AdHocDynamicCache(
 			() => 0,
@@ -120,14 +116,12 @@ public class DynamicCacheManagerTests
 
 		await TickPublished();
 
-		if (aboveKeepFreeMem)
-		{
+		if (aboveKeepFreeMem) {
 			// caches not resized to minimum amount
 			Assert.AreNotEqual(1, Interlocked.Read(ref cache1Mem));
 			Assert.AreNotEqual(2, Interlocked.Read(ref cache2Mem));
 		}
-		else
-		{
+		else {
 			// caches resized to minimum amount
 			Assert.AreEqual(1, Interlocked.Read(ref cache1Mem));
 			Assert.AreEqual(2, Interlocked.Read(ref cache2Mem));
@@ -136,8 +130,7 @@ public class DynamicCacheManagerTests
 
 	[TestCase(true)]
 	[TestCase(false)]
-	public async Task caches_resized_depending_on_whether_min_resize_interval_was_exceeded(bool minResizeIntervalExceeded)
-	{
+	public async Task caches_resized_depending_on_whether_min_resize_interval_was_exceeded(bool minResizeIntervalExceeded) {
 		long cache1Mem = -1, cache2Mem = -1;
 		var cache1 = new DynamicCacheResizer(ResizerUnit.Bytes, 1, 100_000, 60, new AdHocDynamicCache(
 			() => 0,
@@ -165,14 +158,12 @@ public class DynamicCacheManagerTests
 
 		await TickPublished();
 
-		if (minResizeIntervalExceeded)
-		{
+		if (minResizeIntervalExceeded) {
 			// caches resized according to 90% free memory
 			Assert.AreEqual(54, Interlocked.Read(ref cache1Mem));
 			Assert.AreEqual(36, Interlocked.Read(ref cache2Mem));
 		}
-		else
-		{
+		else {
 			// caches not resized
 			Assert.AreNotEqual(54, Interlocked.Read(ref cache1Mem));
 			Assert.AreNotEqual(36, Interlocked.Read(ref cache2Mem));
@@ -181,8 +172,7 @@ public class DynamicCacheManagerTests
 
 	[TestCase(20, 0, true)]
 	[TestCase(0, 20, false)]
-	public async Task caches_resized_depending_on_whether_min_resize_threshold_was_exceeded(int percent, long bytes, bool minResizeThresholdExceeded)
-	{
+	public async Task caches_resized_depending_on_whether_min_resize_threshold_was_exceeded(int percent, long bytes, bool minResizeThresholdExceeded) {
 		long cache1Mem = -1, cache2Mem = -1;
 		var cache1 = new DynamicCacheResizer(ResizerUnit.Bytes, 1, 100_000, 60, new AdHocDynamicCache(
 			() => 0,
@@ -211,14 +201,12 @@ public class DynamicCacheManagerTests
 
 		await TickPublished();
 
-		if (minResizeThresholdExceeded)
-		{
+		if (minResizeThresholdExceeded) {
 			// caches resized to minimum amount
 			Assert.AreEqual(1, Interlocked.Read(ref cache1Mem));
 			Assert.AreEqual(2, Interlocked.Read(ref cache2Mem));
 		}
-		else
-		{
+		else {
 			// memory below keep free mem and min resize interval is zero
 			// but caches not resized to minimum amount due to high min resize threshold (100)
 			Assert.AreNotEqual(1, Interlocked.Read(ref cache1Mem));
@@ -227,8 +215,7 @@ public class DynamicCacheManagerTests
 	}
 
 	[Test]
-	public async Task freed_size_is_reset_when_gc_occurs()
-	{
+	public async Task freed_size_is_reset_when_gc_occurs() {
 		var tcs = new TaskCompletionSource<bool>();
 
 		var cache = new AdHocDynamicCache(
@@ -259,8 +246,7 @@ public class DynamicCacheManagerTests
 	}
 
 	[Test]
-	public async Task available_memory_is_recalculated_when_gc_occurs()
-	{
+	public async Task available_memory_is_recalculated_when_gc_occurs() {
 		var cacheCapacity = -1L;
 
 		var cache = new AdHocDynamicCache(
@@ -294,8 +280,7 @@ public class DynamicCacheManagerTests
 	}
 
 	[Test]
-	public void correct_stats_are_produced()
-	{
+	public void correct_stats_are_produced() {
 		var cache1 = new DynamicCacheResizer(ResizerUnit.Bytes, 10, 100_000, 100, new AdHocDynamicCache(
 			() => 12,
 			mem => { },

@@ -11,8 +11,7 @@ using Microsoft.Data.Sqlite;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ScavengeStateBuilder<TStreamId>
-{
+public class ScavengeStateBuilder<TStreamId> {
 	private readonly ILongHasher<TStreamId> _hasher;
 	private readonly IMetastreamLookup<TStreamId> _metastreamLookup;
 
@@ -24,8 +23,7 @@ public class ScavengeStateBuilder<TStreamId>
 
 	public ScavengeStateBuilder(
 		ILongHasher<TStreamId> hasher,
-		IMetastreamLookup<TStreamId> metastreamLookup)
-	{
+		IMetastreamLookup<TStreamId> metastreamLookup) {
 
 		_hasher = hasher;
 		_metastreamLookup = metastreamLookup;
@@ -36,56 +34,49 @@ public class ScavengeStateBuilder<TStreamId>
 		Func<ScavengeStateBuilder<TStreamId>, ScavengeStateBuilder<TStreamId>> f) =>
 		f(this);
 
-	public ScavengeStateBuilder<TStreamId> CancelWhenCheckpointing(Type type, CancellationTokenSource cts)
-	{
+	public ScavengeStateBuilder<TStreamId> CancelWhenCheckpointing(Type type, CancellationTokenSource cts) {
 		_cancelWhenCheckpointingType = type;
 		_cancellationTokenSource = cts;
 		return this;
 	}
 
-	public ScavengeStateBuilder<TStreamId> MutateState(Action<ScavengeState<TStreamId>> f)
-	{
+	public ScavengeStateBuilder<TStreamId> MutateState(Action<ScavengeState<TStreamId>> f) {
 		var wrapped = _mutateState;
-		_mutateState = state =>
-		{
+		_mutateState = state => {
 			wrapped(state);
 			f(state);
 		};
 		return this;
 	}
 
-	public ScavengeStateBuilder<TStreamId> WithTracer(Tracer tracer)
-	{
+	public ScavengeStateBuilder<TStreamId> WithTracer(Tracer tracer) {
 		_tracer = tracer;
 		return this;
 	}
 
-	public ScavengeStateBuilder<TStreamId> WithConnectionPool(ObjectPool<SqliteConnection> connectionPool)
-	{
+	public ScavengeStateBuilder<TStreamId> WithConnectionPool(ObjectPool<SqliteConnection> connectionPool) {
 		_connectionPool = connectionPool;
 		return this;
 	}
 
-	public ScavengeState<TStreamId> Build()
-	{
+	public ScavengeState<TStreamId> Build() {
 		var state = BuildInternal();
 		state.Init();
 		_mutateState(state);
 		return state;
 	}
 
-	private ScavengeState<TStreamId> BuildInternal()
-	{
-		if (_connectionPool == null)
+	private ScavengeState<TStreamId> BuildInternal() {
+		if (_connectionPool == null) {
 			throw new Exception("call WithConnectionPool(...)");
+		}
 
 		var map = new ConcurrentDictionary<IScavengeStateBackend<TStreamId>, SqliteConnection>();
 		var backendPool = new ObjectPool<IScavengeStateBackend<TStreamId>>(
 			objectPoolName: "scavenge backend pool",
 			initialCount: 1,
 			maxCount: TFChunkScavenger.MaxThreadCount + 1,
-			factory: () =>
-			{
+			factory: () => {
 				var connection = _connectionPool.Get();
 				var sqlite = new SqliteScavengeBackend<TStreamId>(Serilog.Log.Logger);
 				sqlite.Initialize(connection);
@@ -94,8 +85,9 @@ public class ScavengeStateBuilder<TStreamId>
 
 				var transactionFactory = sqlite.TransactionFactory;
 
-				if (_tracer != null)
+				if (_tracer != null) {
 					transactionFactory = new TracingTransactionFactory<SqliteTransaction>(transactionFactory, _tracer);
+				}
 
 				ITransactionManager transactionManager = new TransactionManager<SqliteTransaction>(
 					transactionFactory,
@@ -103,17 +95,14 @@ public class ScavengeStateBuilder<TStreamId>
 
 				transactionManager = new AdHocTransactionManager(
 					transactionManager,
-					(continuation, checkpoint) =>
-					{
-						if (checkpoint.GetType() == _cancelWhenCheckpointingType)
-						{
+					(continuation, checkpoint) => {
+						if (checkpoint.GetType() == _cancelWhenCheckpointingType) {
 							_cancellationTokenSource.Cancel();
 						}
 						continuation(checkpoint);
 					});
 
-				if (_tracer != null)
-				{
+				if (_tracer != null) {
 					backend.TransactionManager = new TracingTransactionManager(transactionManager, _tracer);
 					backend.OriginalStorage =
 						new TracingOriginalStreamScavengeMap<ulong>(backend.OriginalStorage, _tracer);

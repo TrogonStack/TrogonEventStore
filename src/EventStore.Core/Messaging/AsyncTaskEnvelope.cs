@@ -24,7 +24,8 @@ public class AsyncTaskEnvelope : IEnvelope {
 	public void ReplyWith<T>(T message) where T : Message {
 		try {
 			_onMessage(message, _cancellationToken);
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			// depending on the implementation of _onMessage, the OperationCancelled exception might be caught here or
 			// it might end up on the Task according to whether it is thrown synchronously or not. this isn't a problem
 			// as we're ignoring the exception in both cases.

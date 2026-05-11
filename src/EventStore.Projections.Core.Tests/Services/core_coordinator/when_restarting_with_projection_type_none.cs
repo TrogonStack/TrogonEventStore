@@ -11,8 +11,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_coordinator;
 
 [TestFixture]
-public class when_restarting_with_projection_type_none
-{
+public class when_restarting_with_projection_type_none {
 	private FakePublisher[] queues;
 	private FakePublisher publisher;
 	private ProjectionCoreCoordinator _coordinator;
@@ -20,8 +19,7 @@ public class when_restarting_with_projection_type_none
 	private Guid queueId;
 
 	[SetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		queues = new List<FakePublisher>() { new FakePublisher() }.ToArray();
 		publisher = new FakePublisher();
 
@@ -44,8 +42,7 @@ public class when_restarting_with_projection_type_none
 	}
 
 	[Test]
-	public void should_not_start_reader_if_subcomponents_not_stopped()
-	{
+	public void should_not_start_reader_if_subcomponents_not_stopped() {
 		// None of the subcomponents stopped
 
 		// Start components
@@ -56,8 +53,7 @@ public class when_restarting_with_projection_type_none
 
 
 	[Test]
-	public void should_start_reader_if_subcomponents_stopped_before_starting_components_again()
-	{
+	public void should_start_reader_if_subcomponents_stopped_before_starting_components_again() {
 		// Component stopped
 		_coordinator.Handle(
 			new ProjectionCoreServiceMessage.SubComponentStopped(EventReaderCoreService.SubComponentName,
@@ -70,8 +66,7 @@ public class when_restarting_with_projection_type_none
 	}
 
 	[Test]
-	public void should_not_stop_reader_if_subcomponents_not_started_yet()
-	{
+	public void should_not_stop_reader_if_subcomponents_not_started_yet() {
 		var newInstanceCorrelationId = Guid.NewGuid();
 
 		// Stop components
@@ -89,8 +84,7 @@ public class when_restarting_with_projection_type_none
 	}
 
 	[Test]
-	public void should_not_stop_reader_if_subcomponents_not_started()
-	{
+	public void should_not_stop_reader_if_subcomponents_not_started() {
 		// Stop components
 		_coordinator.Handle(
 			new ProjectionCoreServiceMessage.SubComponentStopped(EventReaderCoreService.SubComponentName,

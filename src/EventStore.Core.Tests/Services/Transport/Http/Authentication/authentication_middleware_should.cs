@@ -64,8 +64,9 @@ public class authentication_middleware_should {
 		string userAgent = null) {
 		var context = new DefaultHttpContext();
 		context.Request.Path = path;
-		if (userAgent is not null)
+		if (userAgent is not null) {
 			context.Request.Headers.UserAgent = userAgent;
+		}
 
 		var middleware = new AuthenticationMiddleware(
 			[httpAuthenticationProvider],

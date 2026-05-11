@@ -5,26 +5,23 @@ using EventStore.Core.Services.Transport.Http.Authentication;
 using EventStore.Core.Services.UserManagement;
 using NUnit.Framework;
 
-namespace EventStore.Core.Tests.Services.UserManagementService
-{
-	namespace password_change_notification_reader
-	{
+namespace EventStore.Core.Tests.Services.UserManagementService {
+	namespace password_change_notification_reader {
 		public abstract class with_password_change_notification_reader<TLogFormat, TStreamId> :
-			user_management_service.TestFixtureWithUserManagementService<TLogFormat, TStreamId>
-		{
+			user_management_service.TestFixtureWithUserManagementService<TLogFormat, TStreamId> {
 			protected PasswordChangeNotificationReader _passwordChangeNotificationReader;
 
-			protected override void Given()
-			{
+			protected override void Given() {
 				base.Given();
 				_passwordChangeNotificationReader = new PasswordChangeNotificationReader(_bus, _ioDispatcher);
 				_bus.Subscribe<SystemMessage.SystemStart>(_passwordChangeNotificationReader);
 			}
 
-			protected override IEnumerable<WhenStep> PreWhen()
-			{
-				foreach (var m in base.PreWhen())
+			protected override IEnumerable<WhenStep> PreWhen() {
+				foreach (var m in base.PreWhen()) {
 					yield return m;
+				}
+
 				yield return new SystemMessage.SystemStart();
 				yield return
 					new UserManagementMessage.Create(
@@ -32,25 +29,21 @@ namespace EventStore.Core.Tests.Services.UserManagementService
 			}
 
 			[TearDown]
-			public void TearDown()
-			{
+			public void TearDown() {
 				_passwordChangeNotificationReader = null;
 			}
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class when_notification_has_been_written<TLogFormat, TStreamId> : with_password_change_notification_reader<TLogFormat, TStreamId>
-		{
-			protected override void Given()
-			{
+		public class when_notification_has_been_written<TLogFormat, TStreamId> : with_password_change_notification_reader<TLogFormat, TStreamId> {
+			protected override void Given() {
 				base.Given();
 				NoOtherStreams();
 				AllWritesSucceed();
 			}
 
 
-			protected override IEnumerable<WhenStep> When()
-			{
+			protected override IEnumerable<WhenStep> When() {
 				yield return
 					new UserManagementMessage.ChangePassword(
 						Envelope, SystemAccounts.System, "user1", "password", "drowssap");

@@ -44,18 +44,21 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 					"ClientRemoved was called for a client the consumer strategy didn't have.");
 			}
 
-			if (node.State == Node.NodeState.Disconnected)
+			if (node.State == Node.NodeState.Disconnected) {
 				throw new InvalidOperationException();
+			}
 
 			node.State = Node.NodeState.Disconnected;
 
 			AssignmentCount -= node.AssignmentCount;
-			if (AssignmentCount < 0)
+			if (AssignmentCount < 0) {
 				throw new InvalidOperationException();
+			}
 
 			TotalCapacity -= node.MaximumInFlightMessages;
-			if (TotalCapacity < 0)
+			if (TotalCapacity < 0) {
 				throw new InvalidOperationException();
+			}
 
 			for (int i = 0; i < Assignments.Length; i++) {
 				if (Assignments[i].NodeId == nodeId) {
@@ -84,7 +87,7 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 					var assignmentsToMove = Assignments
 						.Select((node, bucket) => Tuple.Create(node, bucket))
 						.Where(_ => _.Item1.NodeId == existingClient.NodeId &&
-						            _.Item1.State == BucketAssignment.BucketState.Assigned)
+									_.Item1.State == BucketAssignment.BucketState.Assigned)
 						.OrderBy(_ => _.Item1.InFlightCount) // Take buckets without inflight messages first.
 						.Take(existingClient.AssignmentCount - maxBalancedClientAssignmentCount);
 

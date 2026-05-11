@@ -17,11 +17,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture]
-public class when_cancelling_storage_reader_worker
-{
+public class when_cancelling_storage_reader_worker {
 	[Test]
-	public void read_event_cancellation_from_message_token_is_rethrown_without_reply()
-	{
+	public void read_event_cancellation_from_message_token_is_rethrown_without_reply() {
 		using var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
 		var reply = default(Message);
@@ -51,8 +49,7 @@ public class when_cancelling_storage_reader_worker
 	}
 
 	[Test]
-	public async Task effective_stream_acl_cancellation_from_message_token_replies_with_operation_cancelled()
-	{
+	public async Task effective_stream_acl_cancellation_from_message_token_replies_with_operation_cancelled() {
 		using var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
 		var reply = default(Message);
@@ -76,8 +73,7 @@ public class when_cancelling_storage_reader_worker
 	}
 
 	[Test]
-	public void effective_stream_acl_cancellation_from_queue_token_is_rethrown_without_reply()
-	{
+	public void effective_stream_acl_cancellation_from_queue_token_is_rethrown_without_reply() {
 		using var readIndex = new BlockingReadIndex();
 		var worker = CreateWorker(readIndex);
 		var reply = default(Message);
@@ -110,8 +106,7 @@ public class when_cancelling_storage_reader_worker
 			new StubInMemoryStreamReader(),
 			queueId: 0);
 
-	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable
-	{
+	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable {
 		public ManualResetEventSlim ReadEventStarted { get; } = new(false);
 		public ManualResetEventSlim EffectiveAclStarted { get; } = new(false);
 
@@ -177,22 +172,19 @@ public class when_cancelling_storage_reader_worker
 			IEventFilter eventFilter, CancellationToken token) =>
 			throw new NotSupportedException();
 		public void Close() => throw new NotSupportedException();
-		public void Dispose()
-		{
+		public void Dispose() {
 			ReadEventStarted.Dispose();
 			EffectiveAclStarted.Dispose();
 		}
 
-		private static async ValueTask<T> AwaitCancellation<T>(ManualResetEventSlim started, CancellationToken token)
-		{
+		private static async ValueTask<T> AwaitCancellation<T>(ManualResetEventSlim started, CancellationToken token) {
 			started.Set();
 			await Task.Delay(Timeout.InfiniteTimeSpan, token);
 			throw new InvalidOperationException("Expected cancellation before completion.");
 		}
 	}
 
-	private sealed class StubSystemStreamLookup : ISystemStreamLookup<string>
-	{
+	private sealed class StubSystemStreamLookup : ISystemStreamLookup<string> {
 		public string AllStream => "$all";
 		public string SettingsStream => "$settings";
 
@@ -202,11 +194,9 @@ public class when_cancelling_storage_reader_worker
 		public ValueTask<bool> IsSystemStream(string streamId, CancellationToken token) => new(false);
 	}
 
-	private sealed class StubCheckpoint : IReadOnlyCheckpoint
-	{
+	private sealed class StubCheckpoint : IReadOnlyCheckpoint {
 		public string Name => "stub";
-		public event Action<long> Flushed
-		{
+		public event Action<long> Flushed {
 			add { }
 			remove { }
 		}
@@ -215,8 +205,7 @@ public class when_cancelling_storage_reader_worker
 		public long ReadNonFlushed() => 0;
 	}
 
-	private sealed class StubInMemoryStreamReader : IInMemoryStreamReader
-	{
+	private sealed class StubInMemoryStreamReader : IInMemoryStreamReader {
 		public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(ClientMessage.ReadStreamEventsForward msg) =>
 			throw new NotSupportedException();
 

@@ -12,12 +12,10 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV4, true, 10)]
 public class
 	searching_ptable_with_items_spanning_few_cache_segments_and_all_items_in_cache :
-		ptable_read_scenario_with_items_spanning_few_cache_segments
-{
+		ptable_read_scenario_with_items_spanning_few_cache_segments {
 	public searching_ptable_with_items_spanning_few_cache_segments_and_all_items_in_cache(byte ptableVersion,
 		bool skipIndexVerify, int midpointCacheDepth)
-		: base(ptableVersion, skipIndexVerify, midpointCacheDepth)
-	{
+		: base(ptableVersion, skipIndexVerify, midpointCacheDepth) {
 	}
 }
 
@@ -29,25 +27,20 @@ public class
 [TestFixture(PTableVersions.IndexV4, true, 0)]
 public class
 	searching_ptable_with_items_spanning_few_cache_segments_and_only_some_items_in_cache :
-		ptable_read_scenario_with_items_spanning_few_cache_segments
-{
+		ptable_read_scenario_with_items_spanning_few_cache_segments {
 	public searching_ptable_with_items_spanning_few_cache_segments_and_only_some_items_in_cache(byte ptableVersion,
 		bool skipIndexVerify, int midpointCacheDepth)
-		: base(ptableVersion, skipIndexVerify, midpointCacheDepth)
-	{
+		: base(ptableVersion, skipIndexVerify, midpointCacheDepth) {
 	}
 }
 
-public abstract class ptable_read_scenario_with_items_spanning_few_cache_segments : PTableReadScenario
-{
+public abstract class ptable_read_scenario_with_items_spanning_few_cache_segments : PTableReadScenario {
 	protected ptable_read_scenario_with_items_spanning_few_cache_segments(byte ptableVersion, bool skipIndexVerify,
 		int midpointCacheDepth)
-		: base(ptableVersion, skipIndexVerify, midpointCacheDepth)
-	{
+		: base(ptableVersion, skipIndexVerify, midpointCacheDepth) {
 	}
 
-	protected override void AddItemsForScenario(IMemTable memTable)
-	{
+	protected override void AddItemsForScenario(IMemTable memTable) {
 		memTable.Add(0x010100000000, 0, 0x0001);
 		memTable.Add(0x010100000000, 0, 0x0002);
 		memTable.Add(0x010500000000, 0, 0x0003);
@@ -55,28 +48,24 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 		memTable.Add(0x010500000000, 0, 0x0005);
 	}
 
-	private ulong GetHash(ulong value)
-	{
+	private ulong GetHash(ulong value) {
 		return _ptableVersion == PTableVersions.IndexV1 ? value >> 32 : value;
 	}
 
 	[Test]
-	public void the_table_has_five_items()
-	{
+	public void the_table_has_five_items() {
 		Assert.AreEqual(5, PTable.Count);
 	}
 
 	[Test]
-	public void the_smallest_items_can_be_found()
-	{
+	public void the_smallest_items_can_be_found() {
 		long position;
 		Assert.IsTrue(PTable.TryGetOneValue(0x010100000000, 0, out position));
 		Assert.AreEqual(0x0002, position);
 	}
 
 	[Test]
-	public void the_smallest_items_are_returned_in_descending_order()
-	{
+	public void the_smallest_items_are_returned_in_descending_order() {
 		var entries = PTable.GetRange(0x010100000000, 0, 0).ToArray();
 		Assert.AreEqual(2, entries.Length);
 		Assert.AreEqual(GetHash(0x010100000000), entries[0].Stream);
@@ -88,8 +77,7 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	}
 
 	[Test]
-	public void try_get_latest_entry_for_smallest_hash_returns_correct_index_entry()
-	{
+	public void try_get_latest_entry_for_smallest_hash_returns_correct_index_entry() {
 		IndexEntry entry;
 		Assert.IsTrue(PTable.TryGetLatestEntry(0x010100000000, out entry));
 		Assert.AreEqual(GetHash(0x010100000000), entry.Stream);
@@ -98,8 +86,7 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	}
 
 	[Test]
-	public void try_get_oldest_entry_for_smallest_hash_returns_correct_index_entry()
-	{
+	public void try_get_oldest_entry_for_smallest_hash_returns_correct_index_entry() {
 		IndexEntry entry;
 		Assert.IsTrue(PTable.TryGetOldestEntry(0x010100000000, out entry));
 		Assert.AreEqual(GetHash(0x010100000000), entry.Stream);
@@ -108,16 +95,14 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	}
 
 	[Test]
-	public void the_largest_items_can_be_found()
-	{
+	public void the_largest_items_can_be_found() {
 		long position;
 		Assert.IsTrue(PTable.TryGetOneValue(0x010500000000, 0, out position));
 		Assert.AreEqual(0x0005, position);
 	}
 
 	[Test]
-	public void the_largest_items_are_returned_in_descending_order()
-	{
+	public void the_largest_items_are_returned_in_descending_order() {
 		var entries = PTable.GetRange(0x010500000000, 0, 0).ToArray();
 		Assert.AreEqual(3, entries.Length);
 		Assert.AreEqual(GetHash(0x010500000000), entries[0].Stream);
@@ -132,8 +117,7 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	}
 
 	[Test]
-	public void try_get_latest_entry_for_largest_hash_returns_correct_index_entry()
-	{
+	public void try_get_latest_entry_for_largest_hash_returns_correct_index_entry() {
 		IndexEntry entry;
 		Assert.IsTrue(PTable.TryGetLatestEntry(0x010500000000, out entry));
 		Assert.AreEqual(GetHash(0x010500000000), entry.Stream);
@@ -142,8 +126,7 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	}
 
 	[Test]
-	public void try_get_oldest_entry_for_largest_hash_returns_correct_index_entry()
-	{
+	public void try_get_oldest_entry_for_largest_hash_returns_correct_index_entry() {
 		IndexEntry entry;
 		Assert.IsTrue(PTable.TryGetOldestEntry(0x010500000000, out entry));
 		Assert.AreEqual(GetHash(0x010500000000), entry.Stream);
@@ -152,27 +135,23 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	}
 
 	[Test]
-	public void non_existent_item_cannot_be_found()
-	{
+	public void non_existent_item_cannot_be_found() {
 		Assert.IsFalse(PTable.TryGetOneValue(2, 0, out _));
 	}
 
 	[Test]
-	public void range_query_returns_nothing_for_nonexistent_stream()
-	{
+	public void range_query_returns_nothing_for_nonexistent_stream() {
 		var entries = PTable.GetRange(0x010200000000, 0, long.MaxValue).ToArray();
 		Assert.AreEqual(0, entries.Length);
 	}
 
 	[Test]
-	public void try_get_latest_entry_returns_nothing_for_nonexistent_stream()
-	{
+	public void try_get_latest_entry_returns_nothing_for_nonexistent_stream() {
 		Assert.IsFalse(PTable.TryGetLatestEntry(0x010200000000, out _));
 	}
 
 	[Test]
-	public void try_get_oldest_entry_returns_nothing_for_nonexistent_stream()
-	{
+	public void try_get_oldest_entry_returns_nothing_for_nonexistent_stream() {
 		Assert.IsFalse(PTable.TryGetOldestEntry(0x010200000000, out _));
 	}
 }

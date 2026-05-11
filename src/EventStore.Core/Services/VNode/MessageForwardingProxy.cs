@@ -40,8 +40,9 @@ namespace EventStore.Core.Services.VNode {
 
 			foreach (var forwPair in _forwardings) {
 				Forwarding forwarding;
-				if (forwPair.Value.TimeoutTimestamp <= now && _forwardings.TryRemove(forwPair.Key, out forwarding))
+				if (forwPair.Value.TimeoutTimestamp <= now && _forwardings.TryRemove(forwPair.Key, out forwarding)) {
 					forwarding.Envelope.ReplyWith(forwarding.TimeoutMessage);
+				}
 			}
 		}
 

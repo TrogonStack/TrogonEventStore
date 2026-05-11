@@ -1,7 +1,6 @@
 namespace EventStore.Projections.Core.Services;
 
-public enum ProjectionMode
-{
+public enum ProjectionMode {
 	Transient = 0,
 	OneTime = 1,
 

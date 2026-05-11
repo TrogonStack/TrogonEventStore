@@ -20,8 +20,7 @@ namespace EventStore.Projections.Core.Tests.Services.emitted_streams_deleter.whe
 
 public abstract class with_emitted_stream_deleter<TLogFormat, TStreamId> : IHandle<ClientMessage.ReadStreamEventsForward>,
 	IHandle<ClientMessage.ReadStreamEventsBackward>,
-	IHandle<ClientMessage.DeleteStream>
-{
+	IHandle<ClientMessage.DeleteStream> {
 	protected SynchronousScheduler _bus = new();
 	protected IODispatcher _ioDispatcher;
 	protected EmittedStreamsDeleter _deleter;
@@ -32,8 +31,7 @@ public abstract class with_emitted_stream_deleter<TLogFormat, TStreamId> : IHand
 	private bool _hasReadForward;
 
 	[OneTimeSetUp]
-	protected virtual void SetUp()
-	{
+	protected virtual void SetUp() {
 		_ioDispatcher = new IODispatcher(_bus, _bus, true);
 		_projectionNamesBuilder = ProjectionNamesBuilder.CreateForTest(_projectionName);
 		_checkpointName = _projectionNamesBuilder.GetEmittedStreamsCheckpointName();
@@ -53,8 +51,7 @@ public abstract class with_emitted_stream_deleter<TLogFormat, TStreamId> : IHand
 
 	public abstract void When();
 
-	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message)
-	{
+	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message) {
 		var events = IODispatcherTestHelpers.CreateResolvedEvent<TLogFormat, TStreamId>(message.EventStreamId,
 			ProjectionEventTypes.ProjectionCheckpoint, "0");
 		var reply = new ClientMessage.ReadStreamEventsBackwardCompleted(message.CorrelationId,
@@ -64,12 +61,10 @@ public abstract class with_emitted_stream_deleter<TLogFormat, TStreamId> : IHand
 		message.Envelope.ReplyWith(reply);
 	}
 
-	public virtual void Handle(ClientMessage.ReadStreamEventsForward message)
-	{
+	public virtual void Handle(ClientMessage.ReadStreamEventsForward message) {
 		ClientMessage.ReadStreamEventsForwardCompleted reply;
 
-		if (!_hasReadForward)
-		{
+		if (!_hasReadForward) {
 			_hasReadForward = true;
 			var events = IODispatcherTestHelpers.CreateResolvedEvent<TLogFormat, TStreamId>(message.EventStreamId,
 				ProjectionEventTypes.ProjectionCheckpoint, _testStreamName);
@@ -78,8 +73,7 @@ public abstract class with_emitted_stream_deleter<TLogFormat, TStreamId> : IHand
 				ReadStreamResult.Success, events, null, false, String.Empty, message.FromEventNumber + 1,
 				message.FromEventNumber, true, 1000);
 		}
-		else
-		{
+		else {
 			reply = new ClientMessage.ReadStreamEventsForwardCompleted(message.CorrelationId, message.EventStreamId,
 				message.FromEventNumber, message.MaxCount,
 				ReadStreamResult.Success, new ResolvedEvent[] { }, null, false, String.Empty,

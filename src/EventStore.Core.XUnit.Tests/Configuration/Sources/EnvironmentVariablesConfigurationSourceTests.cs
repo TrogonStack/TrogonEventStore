@@ -7,12 +7,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
 
-public class EventStoreEnvironmentVariablesSourceTests
-{
+public class EventStoreEnvironmentVariablesSourceTests {
 	[Theory]
 	[InlineData("EVENTSTORE_STREAM_INFO_CACHE_CAPACITY", "EventStore:StreamInfoCacheCapacity")]
-	public void AddsEventStoreEnvVars(string key, string normalizedKey)
-	{
+	public void AddsEventStoreEnvVars(string key, string normalizedKey) {
 		// Arrange
 		var environment = new Dictionary<string, string> { { key, key } };
 
@@ -33,8 +31,7 @@ public class EventStoreEnvironmentVariablesSourceTests
 	[InlineData("stream-info-cache-capacity")]
 	[InlineData("EventStore:Cluster:StreamInfoCacheCapacity")]
 	[InlineData("UNSUPPORTED_EVENTSTORE_TCP_API_ENABLED")]
-	public void IgnoresOtherEnvVars(string key)
-	{
+	public void IgnoresOtherEnvVars(string key) {
 		// Arrange
 		var environment = new Dictionary<string, string> { { key, key } };
 

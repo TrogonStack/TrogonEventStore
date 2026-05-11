@@ -52,8 +52,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			var cacheToHash = cacheLine[..^HashSize];
 			var hash = _hasher.Hash(cacheToHash);
 			var targetHash = MemoryMarshal.Cast<byte, uint>(cacheLine)[UintHashIndex];
-			if (hash == targetHash)
+			if (hash == targetHash) {
 				return true;
+			}
 
 			// corrupt, try to recover.
 			if (CanRehash(cacheToHash, targetHash)) {
@@ -81,13 +82,15 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 			for (var byteIndex1 = 0; byteIndex1 < copy.Length; byteIndex1++) {
 				for (var bitIndex1 = 0; bitIndex1 < 8; bitIndex1++) {
-					if (!copy[byteIndex1].IsBitSet(bitIndex1))
+					if (!copy[byteIndex1].IsBitSet(bitIndex1)) {
 						continue;
+					}
 
 					copy[byteIndex1] = copy[byteIndex1].UnsetBit(bitIndex1);
 
-					if (_hasher.Hash(copy) == targetHash)
+					if (_hasher.Hash(copy) == targetHash) {
 						return true;
+					}
 
 					copy[byteIndex1] = copy[byteIndex1].SetBit(bitIndex1);
 				}
@@ -99,8 +102,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		private static bool IsAllZeros(ReadOnlySpan<byte> cacheLine) {
 			var ulongs = MemoryMarshal.Cast<byte, ulong>(cacheLine);
 			for (int i = 0; i < ulongs.Length; i++) {
-				if (ulongs[i] != ulong.MinValue)
+				if (ulongs[i] != ulong.MinValue) {
 					return false;
+				}
 			}
 			return true;
 		}
@@ -108,8 +112,9 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		private static bool IsAllOnes(ReadOnlySpan<byte> cacheLine) {
 			var ulongs = MemoryMarshal.Cast<byte, ulong>(cacheLine);
 			for (int i = 0; i < ulongs.Length; i++) {
-				if (ulongs[i] != ulong.MaxValue)
+				if (ulongs[i] != ulong.MaxValue) {
 					return false;
+				}
 			}
 			return true;
 		}

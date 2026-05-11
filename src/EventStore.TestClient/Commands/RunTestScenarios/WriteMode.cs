@@ -1,7 +1,6 @@
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal enum WriteMode
-{
+internal enum WriteMode {
 	SingleEventAtTime,
 	Bucket,
 	Transactional

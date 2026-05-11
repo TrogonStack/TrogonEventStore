@@ -25,19 +25,26 @@ namespace EventStore.Core.Data {
 		public StreamMetadata(long? maxCount = null, TimeSpan? maxAge = null,
 			long? truncateBefore = null, bool? tempStream = null,
 			TimeSpan? cacheControl = null, StreamAcl acl = null) {
-			if (maxCount <= 0)
+			if (maxCount <= 0) {
 				throw new ArgumentOutOfRangeException(
 					"maxCount", string.Format("{0} should be positive value.", SystemMetadata.MaxCount));
-			if (maxAge <= TimeSpan.Zero)
+			}
+
+			if (maxAge <= TimeSpan.Zero) {
 				throw new ArgumentOutOfRangeException(
 					"maxAge", string.Format("{0} should be positive time span.", SystemMetadata.MaxAge));
-			if (truncateBefore < 0)
+			}
+
+			if (truncateBefore < 0) {
 				throw new ArgumentOutOfRangeException(
 					"truncateBefore",
 					string.Format("{0} should be non-negative value.", SystemMetadata.TruncateBefore));
-			if (cacheControl <= TimeSpan.Zero)
+			}
+
+			if (cacheControl <= TimeSpan.Zero) {
 				throw new ArgumentOutOfRangeException(
 					"cacheControl", string.Format("{0} should be positive time span.", SystemMetadata.CacheControl));
+			}
 
 			MaxCount = maxCount;
 			MaxAge = maxAge;
@@ -61,7 +68,8 @@ namespace EventStore.Core.Data {
 				var metadata = FromJsonBytes(json);
 				metadata = UpgradeMetadata(prepareVersion, metadata);
 				return metadata;
-			} catch {
+			}
+			catch {
 				// this can happen if the json is malformed, or if any of the things that we expect to be
 				// longs are bigger than longs which can happen if you try to set something to
 				// long.maxvalue in the webui because javascript translates it into a number that is
@@ -111,51 +119,53 @@ namespace EventStore.Core.Data {
 
 			while (true) {
 				Check(reader.Read(), reader);
-				if (reader.TokenType == JsonToken.EndObject)
+				if (reader.TokenType == JsonToken.EndObject) {
 					break;
+				}
+
 				Check(JsonToken.PropertyName, reader);
 				var name = (string)reader.Value;
 				switch (name) {
 					case SystemMetadata.MaxCount: {
-						Check(reader.Read(), reader);
-						Check(JsonToken.Integer, reader);
-						maxCount = (long)reader.Value;
-						break;
-					}
+							Check(reader.Read(), reader);
+							Check(JsonToken.Integer, reader);
+							maxCount = (long)reader.Value;
+							break;
+						}
 					case SystemMetadata.MaxAge: {
-						Check(reader.Read(), reader);
-						Check(JsonToken.Integer, reader);
-						maxAge = TimeSpan.FromSeconds((long)reader.Value);
-						break;
-					}
+							Check(reader.Read(), reader);
+							Check(JsonToken.Integer, reader);
+							maxAge = TimeSpan.FromSeconds((long)reader.Value);
+							break;
+						}
 					case SystemMetadata.TruncateBefore: {
-						Check(reader.Read(), reader);
-						Check(JsonToken.Integer, reader);
-						truncateBefore = (long)reader.Value;
-						break;
-					}
+							Check(reader.Read(), reader);
+							Check(JsonToken.Integer, reader);
+							truncateBefore = (long)reader.Value;
+							break;
+						}
 					case SystemMetadata.TempStream: {
-						Check(reader.Read(), reader);
-						Check(JsonToken.Boolean, reader);
-						tempStream = (bool)reader.Value;
-						break;
-					}
+							Check(reader.Read(), reader);
+							Check(JsonToken.Boolean, reader);
+							tempStream = (bool)reader.Value;
+							break;
+						}
 					case SystemMetadata.CacheControl: {
-						Check(reader.Read(), reader);
-						Check(JsonToken.Integer, reader);
-						cacheControl = TimeSpan.FromSeconds((long)reader.Value);
-						break;
-					}
+							Check(reader.Read(), reader);
+							Check(JsonToken.Integer, reader);
+							cacheControl = TimeSpan.FromSeconds((long)reader.Value);
+							break;
+						}
 					case SystemMetadata.Acl: {
-						acl = ReadAcl(reader);
-						break;
-					}
+							acl = ReadAcl(reader);
+							break;
+						}
 					default: {
-						Check(reader.Read(), reader);
-						// skip
-						JToken.ReadFrom(reader);
-						break;
-					}
+							Check(reader.Read(), reader);
+							// skip
+							JToken.ReadFrom(reader);
+							break;
+						}
 				}
 			}
 
@@ -177,8 +187,10 @@ namespace EventStore.Core.Data {
 
 			while (true) {
 				Check(reader.Read(), reader);
-				if (reader.TokenType == JsonToken.EndObject)
+				if (reader.TokenType == JsonToken.EndObject) {
 					break;
+				}
+
 				Check(JsonToken.PropertyName, reader);
 				var name = (string)reader.Value;
 				switch (name) {
@@ -205,15 +217,18 @@ namespace EventStore.Core.Data {
 
 		private static string[] ReadRoles(JsonTextReader reader) {
 			Check(reader.Read(), reader);
-			if (reader.TokenType == JsonToken.String)
-				return new[] {(string)reader.Value};
+			if (reader.TokenType == JsonToken.String) {
+				return new[] { (string)reader.Value };
+			}
 
 			if (reader.TokenType == JsonToken.StartArray) {
 				var roles = new List<string>();
 				while (true) {
 					Check(reader.Read(), reader);
-					if (reader.TokenType == JsonToken.EndArray)
+					if (reader.TokenType == JsonToken.EndArray) {
 						break;
+					}
+
 					Check(JsonToken.String, reader);
 					roles.Add((string)reader.Value);
 				}
@@ -225,13 +240,15 @@ namespace EventStore.Core.Data {
 		}
 
 		private static void Check(JsonToken type, JsonTextReader reader) {
-			if (reader.TokenType != type)
+			if (reader.TokenType != type) {
 				throw new Exception("Invalid JSON");
+			}
 		}
 
 		private static void Check(bool read, JsonTextReader reader) {
-			if (!read)
+			if (!read) {
 				throw new Exception("Invalid JSON");
+			}
 		}
 
 		public byte[] ToJsonBytes() {
@@ -300,12 +317,15 @@ namespace EventStore.Core.Data {
 		}
 
 		private static void WriteAclRoles(JsonTextWriter jsonWriter, string propertyName, string[] roles) {
-			if (roles == null)
+			if (roles == null) {
 				return;
+			}
+
 			jsonWriter.WritePropertyName(propertyName);
 			if (roles.Length == 1) {
 				jsonWriter.WriteValue(roles[0]);
-			} else {
+			}
+			else {
 				jsonWriter.WriteStartArray();
 				Array.ForEach(roles, jsonWriter.WriteValue);
 				jsonWriter.WriteEndArray();

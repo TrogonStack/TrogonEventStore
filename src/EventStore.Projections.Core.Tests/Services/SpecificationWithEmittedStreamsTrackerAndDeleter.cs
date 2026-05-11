@@ -8,8 +8,7 @@ using EventStore.Projections.Core.Services.Processing.Emitting;
 
 namespace EventStore.Projections.Core.Tests.Services;
 
-public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
-{
+public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
 	protected IEmittedStreamsTracker _emittedStreamsTracker;
 	protected IEmittedStreamsDeleter _emittedStreamsDeleter;
 	protected ProjectionNamesBuilder _projectionNamesBuilder;
@@ -18,8 +17,7 @@ public abstract class SpecificationWithEmittedStreamsTrackerAndDeleter<TLogForma
 	protected bool _trackEmittedStreams = true;
 	protected string _projectionName = "test_projection";
 
-	protected override Task Given()
-	{
+	protected override Task Given() {
 		_ioDispatcher = new IODispatcher(_node.Node.MainQueue, _node.Node.MainQueue, true);
 		_node.Node.MainBus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(_ioDispatcher.BackwardReader);
 		_node.Node.MainBus.Subscribe<ClientMessage.NotHandled>(_ioDispatcher.BackwardReader);

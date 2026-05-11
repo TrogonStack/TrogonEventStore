@@ -1,7 +1,6 @@
 #nullable enable
 namespace EventStore.Core.Authorization.AuthorizationPolicies;
 
-public interface IPolicySelector
-{
+public interface IPolicySelector {
 	ReadOnlyPolicy Select();
 }

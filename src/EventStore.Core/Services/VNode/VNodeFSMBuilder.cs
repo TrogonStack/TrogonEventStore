@@ -45,8 +45,9 @@ public sealed class VNodeFSMBuilder {
 
 	internal void AddDefaultHandler(VNodeState state, Func<Message, CancellationToken, ValueTask> handler) {
 		ref var defaultHandler = ref _defaultHandlers[(int)state];
-		if (defaultHandler is not null)
+		if (defaultHandler is not null) {
 			throw new InvalidOperationException($"Default handler already defined for state {state}");
+		}
 
 		defaultHandler = handler;
 	}

@@ -28,8 +28,7 @@ public class Scavenger<TStreamId>(
 	int thresholdForNewScavenge,
 	bool syncOnly,
 	Func<string> getThrottleStats)
-	: IScavenger
-{
+	: IScavenger {
 	private readonly Dictionary<string, TimeSpan> _recordedTimes = new();
 
 	public string ScavengeId => scavengerLogger.ScavengeId;
@@ -39,14 +38,12 @@ public class Scavenger<TStreamId>(
 
 	// following old scavenging design the returned task must complete successfully
 	[AsyncMethodBuilder(typeof(SpawningAsyncTaskMethodBuilder<>))] // get off the main queue
-	public async Task<ScavengeResult> ScavengeAsync(CancellationToken cancellationToken)
-	{
+	public async Task<ScavengeResult> ScavengeAsync(CancellationToken cancellationToken) {
 		_recordedTimes.Clear();
 		var stopwatch = Stopwatch.StartNew();
 		var result = ScavengeResult.Success;
 		string error = null;
-		try
-		{
+		try {
 			logger.Debug("SCAVENGING: Scavenge Initializing State.");
 			state.Init();
 			state.LogStats();
@@ -62,29 +59,24 @@ public class Scavenger<TStreamId>(
 				stopwatch.Elapsed, scavengerLogger.SpaceSaved);
 
 		}
-		catch (OperationCanceledException)
-		{
+		catch (OperationCanceledException) {
 			logger.Information("SCAVENGING: Scavenge Stopped. Total time taken: {elapsed}.",
 				stopwatch.Elapsed);
 			result = ScavengeResult.Stopped;
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			result = ScavengeResult.Errored;
 			logger.Error(exc, "SCAVENGING: Scavenge Failed. Total time taken: {elapsed}.",
 				stopwatch.Elapsed);
 			error = string.Format("Error while scavenging DB: {0}.", exc.Message);
 		}
-		finally
-		{
-			try
-			{
+		finally {
+			try {
 				scavengerLogger.ScavengeCompleted(result, error, stopwatch.Elapsed);
 				LogCollisions();
 				LogTimes();
 			}
-			catch (Exception ex)
-			{
+			catch (Exception ex) {
 				logger.Error(
 					ex,
 					"SCAVENGING: Error whilst recording scavenge completed. " +
@@ -96,13 +88,11 @@ public class Scavenger<TStreamId>(
 		return result;
 	}
 
-	private void LogCollisions()
-	{
+	private void LogCollisions() {
 		var collisions = state.AllCollisions().ToArray();
 		logger.Debug("SCAVENGING: {count} KNOWN COLLISIONS", collisions.Length);
 
-		foreach (var collision in collisions)
-		{
+		foreach (var collision in collisions) {
 			logger.Debug("SCAVENGING: KNOWN COLLISION: \"{collision}\"", collision);
 		}
 	}
@@ -110,8 +100,7 @@ public class Scavenger<TStreamId>(
 	private async Task RunInternal(
 		ITFChunkScavengerLog scavengerLogger,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		checkPreconditions();
 
@@ -124,8 +113,7 @@ public class Scavenger<TStreamId>(
 		// scavengepoint.
 		//
 		// otherwise, start the whole scavenge fresh from whichever scavengepoint is applicable.
-		if (!state.TryGetCheckpoint(out var checkpoint))
-		{
+		if (!state.TryGetCheckpoint(out var checkpoint)) {
 			// there is no checkpoint, so this is the first scavenge of this scavenge state
 			// (not necessarily the first scavenge of this database, old scavenged may have been run
 			// or new scavenges run and the scavenge state deleted)
@@ -137,8 +125,7 @@ public class Scavenger<TStreamId>(
 				cancellationToken);
 
 		}
-		else if (checkpoint is ScavengeCheckpoint.Done done)
-		{
+		else if (checkpoint is ScavengeCheckpoint.Done done) {
 			// start of a subsequent scavenge.
 			logger.Debug("SCAVENGING: Started a new scavenge after checkpoint {checkpoint}", checkpoint);
 			await StartNewAsync(
@@ -148,13 +135,11 @@ public class Scavenger<TStreamId>(
 				cancellationToken);
 
 		}
-		else
-		{
+		else {
 			// the other cases are continuing an incomplete scavenge
 			logger.Debug("SCAVENGING: Continuing a scavenge from {checkpoint}", checkpoint);
 
-			switch (checkpoint)
-			{
+			switch (checkpoint) {
 				case ScavengeCheckpoint.Accumulating accumulating:
 					await Time(stopwatch, "Accumulation", cancellationToken =>
 							accumulator.Accumulate(accumulating, state, cancellationToken)
@@ -191,8 +176,7 @@ public class Scavenger<TStreamId>(
 						executingIndex.ScavengePoint, stopwatch, cancellationToken);
 					break;
 				case ScavengeCheckpoint.Cleaning cleaning:
-					await Time(stopwatch, "Cleaning", cancellationToken =>
-					{
+					await Time(stopwatch, "Cleaning", cancellationToken => {
 						cleaner.Clean(cleaning, state, cancellationToken);
 						return ValueTask.CompletedTask;
 					}, cancellationToken);
@@ -205,8 +189,7 @@ public class Scavenger<TStreamId>(
 	}
 
 	private async ValueTask Time(Stopwatch stopwatch, string name, Func<CancellationToken, ValueTask> f,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 		using var _ = statusTracker.StartActivity(name);
 		logger.Debug("SCAVENGING: Scavenge " + name + " Phase Started.");
 		var start = stopwatch.Elapsed;
@@ -218,10 +201,8 @@ public class Scavenger<TStreamId>(
 		_recordedTimes[name] = elapsed;
 	}
 
-	private void LogTimes()
-	{
-		foreach (var key in _recordedTimes.Keys.OrderBy(x => x))
-		{
+	private void LogTimes() {
+		foreach (var key in _recordedTimes.Keys.OrderBy(x => x)) {
 			logger.Debug("SCAVENGING: {name} took {elapsed}", key, _recordedTimes[key]);
 		}
 	}
@@ -230,8 +211,7 @@ public class Scavenger<TStreamId>(
 		ScavengePoint prevScavengePoint,
 		ITFChunkScavengerLog scavengerLogger,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		// prevScavengePoint is the previous one that was completed
 		// latestScavengePoint is the latest one in the database
@@ -240,15 +220,12 @@ public class Scavenger<TStreamId>(
 		ScavengePoint nextScavengePoint;
 		var latestScavengePoint = await scavengePointSource
 			.GetLatestScavengePointOrDefaultAsync(cancellationToken);
-		if (latestScavengePoint == null)
-		{
-			if (syncOnly)
-			{
+		if (latestScavengePoint == null) {
+			if (syncOnly) {
 				logger.Debug("SCAVENGING: No existing scavenge point to sync with, nothing to do.");
 				return;
 			}
-			else
-			{
+			else {
 				logger.Debug("SCAVENGING: Creating the first scavenge point.");
 				// no latest scavenge point, create the first one
 				nextScavengePoint = await scavengePointSource
@@ -258,27 +235,22 @@ public class Scavenger<TStreamId>(
 						cancellationToken);
 			}
 		}
-		else
-		{
+		else {
 			// got the latest scavenge point
 			if (prevScavengePoint == null ||
-			    prevScavengePoint.EventNumber < latestScavengePoint.EventNumber)
-			{
+				prevScavengePoint.EventNumber < latestScavengePoint.EventNumber) {
 				// the latest scavengepoint is suitable
 				logger.Debug(
 					"SCAVENGING: Using existing scavenge point {scavengePointNumber}",
 					latestScavengePoint.EventNumber);
 				nextScavengePoint = latestScavengePoint;
 			}
-			else
-			{
-				if (syncOnly)
-				{
+			else {
+				if (syncOnly) {
 					logger.Debug("SCAVENGING: No existing scavenge point to sync with, nothing to do.");
 					return;
 				}
-				else
-				{
+				else {
 					// the latest scavengepoint is the prev scavenge point, so create a new one
 					var expectedVersion = prevScavengePoint.EventNumber;
 					logger.Debug(
@@ -305,8 +277,7 @@ public class Scavenger<TStreamId>(
 		ScavengePoint scavengepoint,
 		ITFChunkScavengerLog scavengerLogger,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		LogCollisions();
 		await Time(stopwatch, "Calculation", cancellationToken =>
@@ -319,8 +290,7 @@ public class Scavenger<TStreamId>(
 		ScavengePoint scavengePoint,
 		ITFChunkScavengerLog scavengerLogger,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		await Time(stopwatch, "Chunk execution", cancellationToken =>
 			chunkExecutor.Execute(scavengePoint, state, scavengerLogger, cancellationToken), cancellationToken);
@@ -331,8 +301,7 @@ public class Scavenger<TStreamId>(
 		ScavengePoint scavengePoint,
 		ITFChunkScavengerLog scavengerLogger,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		await Time(stopwatch, "Chunk merging", cancellationToken =>
 			chunkMerger.MergeChunks(scavengePoint, state, scavengerLogger, cancellationToken), cancellationToken);
@@ -343,8 +312,7 @@ public class Scavenger<TStreamId>(
 		ScavengePoint scavengePoint,
 		ITFChunkScavengerLog scavengerLogger,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 		await Time(stopwatch, "Index execution", cancellationToken =>
 				indexExecutor.Execute(scavengePoint, state, scavengerLogger, cancellationToken),
 			cancellationToken);
@@ -354,19 +322,16 @@ public class Scavenger<TStreamId>(
 	private async ValueTask AfterIndexExecution(
 		ScavengePoint scavengePoint,
 		Stopwatch stopwatch,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
-		await Time(stopwatch, "Cleaning", cancellationToken =>
-		{
+		await Time(stopwatch, "Cleaning", cancellationToken => {
 			cleaner.Clean(scavengePoint, state, cancellationToken);
 			return ValueTask.CompletedTask;
 		}, cancellationToken);
 		AfterCleaning(scavengePoint);
 	}
 
-	private void AfterCleaning(ScavengePoint scavengePoint)
-	{
+	private void AfterCleaning(ScavengePoint scavengePoint) {
 		state.SetCheckpoint(new ScavengeCheckpoint.Done(scavengePoint));
 	}
 }

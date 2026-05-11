@@ -25,8 +25,7 @@ namespace System;
 	AttributeTargets.Method | AttributeTargets.Parameter |
 	AttributeTargets.Property | AttributeTargets.Delegate |
 	AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
-internal sealed class CanBeNullAttribute : Attribute
-{
+internal sealed class CanBeNullAttribute : Attribute {
 }
 
 /// <summary>
@@ -41,8 +40,7 @@ internal sealed class CanBeNullAttribute : Attribute
 	AttributeTargets.Method | AttributeTargets.Parameter |
 	AttributeTargets.Property | AttributeTargets.Delegate |
 	AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
-internal sealed class NotNullAttribute : Attribute
-{
+internal sealed class NotNullAttribute : Attribute {
 }
 
 /// <summary>
@@ -60,13 +58,11 @@ internal sealed class NotNullAttribute : Attribute
 [AttributeUsage(
 	AttributeTargets.Constructor | AttributeTargets.Method,
 	AllowMultiple = false, Inherited = true)]
-internal sealed class StringFormatMethodAttribute : Attribute
-{
+internal sealed class StringFormatMethodAttribute : Attribute {
 	/// <param name="formatParameterName">
 	/// Specifies which parameter of an annotated method should be treated as format-string
 	/// </param>
-	public StringFormatMethodAttribute(string formatParameterName)
-	{
+	public StringFormatMethodAttribute(string formatParameterName) {
 		FormatParameterName = formatParameterName;
 	}
 
@@ -85,8 +81,7 @@ internal sealed class StringFormatMethodAttribute : Attribute
 /// }
 /// </code></example>
 [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = true)]
-internal sealed class InvokerParameterNameAttribute : Attribute
-{
+internal sealed class InvokerParameterNameAttribute : Attribute {
 }
 
 /// <summary>
@@ -126,14 +121,11 @@ internal sealed class InvokerParameterNameAttribute : Attribute
 /// </list>
 /// </example>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-internal sealed class NotifyPropertyChangedInvocatorAttribute : Attribute
-{
-	public NotifyPropertyChangedInvocatorAttribute()
-	{
+internal sealed class NotifyPropertyChangedInvocatorAttribute : Attribute {
+	public NotifyPropertyChangedInvocatorAttribute() {
 	}
 
-	public NotifyPropertyChangedInvocatorAttribute(string parameterName)
-	{
+	public NotifyPropertyChangedInvocatorAttribute(string parameterName) {
 		ParameterName = parameterName;
 	}
 
@@ -183,15 +175,12 @@ internal sealed class NotifyPropertyChangedInvocatorAttribute : Attribute
 /// </code></item>
 /// </list></examples>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
-internal sealed class ContractAnnotationAttribute : Attribute
-{
+internal sealed class ContractAnnotationAttribute : Attribute {
 	public ContractAnnotationAttribute([NotNull] string contract)
-		: this(contract, false)
-	{
+		: this(contract, false) {
 	}
 
-	public ContractAnnotationAttribute([NotNull] string contract, bool forceFullStates)
-	{
+	public ContractAnnotationAttribute([NotNull] string contract, bool forceFullStates) {
 		Contract = contract;
 		ForceFullStates = forceFullStates;
 	}
@@ -210,14 +199,11 @@ internal sealed class ContractAnnotationAttribute : Attribute
 /// }
 /// </code></example>
 [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = true)]
-internal sealed class LocalizationRequiredAttribute : Attribute
-{
-	public LocalizationRequiredAttribute() : this(true)
-	{
+internal sealed class LocalizationRequiredAttribute : Attribute {
+	public LocalizationRequiredAttribute() : this(true) {
 	}
 
-	public LocalizationRequiredAttribute(bool required)
-	{
+	public LocalizationRequiredAttribute(bool required) {
 		Required = required;
 	}
 
@@ -246,8 +232,7 @@ internal sealed class LocalizationRequiredAttribute : Attribute
 [AttributeUsage(
 	AttributeTargets.Interface | AttributeTargets.Class |
 	AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
-internal sealed class CannotApplyEqualityOperatorAttribute : Attribute
-{
+internal sealed class CannotApplyEqualityOperatorAttribute : Attribute {
 }
 
 /// <summary>
@@ -262,10 +247,8 @@ internal sealed class CannotApplyEqualityOperatorAttribute : Attribute
 /// </code></example>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
 [BaseTypeRequired(typeof(Attribute))]
-internal sealed class BaseTypeRequiredAttribute : Attribute
-{
-	public BaseTypeRequiredAttribute([NotNull] Type baseType)
-	{
+internal sealed class BaseTypeRequiredAttribute : Attribute {
+	public BaseTypeRequiredAttribute([NotNull] Type baseType) {
 		BaseType = baseType;
 	}
 
@@ -278,26 +261,21 @@ internal sealed class BaseTypeRequiredAttribute : Attribute
 /// will not be marked as unused (as well as by other usage inspections)
 /// </summary>
 [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = true)]
-internal sealed class UsedImplicitlyAttribute : Attribute
-{
+internal sealed class UsedImplicitlyAttribute : Attribute {
 	public UsedImplicitlyAttribute()
-		: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default)
-	{
+		: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) {
 	}
 
 	public UsedImplicitlyAttribute(ImplicitUseKindFlags useKindFlags)
-		: this(useKindFlags, ImplicitUseTargetFlags.Default)
-	{
+		: this(useKindFlags, ImplicitUseTargetFlags.Default) {
 	}
 
 	public UsedImplicitlyAttribute(ImplicitUseTargetFlags targetFlags)
-		: this(ImplicitUseKindFlags.Default, targetFlags)
-	{
+		: this(ImplicitUseKindFlags.Default, targetFlags) {
 	}
 
 	public UsedImplicitlyAttribute(
-		ImplicitUseKindFlags useKindFlags, ImplicitUseTargetFlags targetFlags)
-	{
+		ImplicitUseKindFlags useKindFlags, ImplicitUseTargetFlags targetFlags) {
 		UseKindFlags = useKindFlags;
 		TargetFlags = targetFlags;
 	}
@@ -312,26 +290,21 @@ internal sealed class UsedImplicitlyAttribute : Attribute
 /// (as well as by other usage inspections)
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-internal sealed class MeansImplicitUseAttribute : Attribute
-{
+internal sealed class MeansImplicitUseAttribute : Attribute {
 	public MeansImplicitUseAttribute()
-		: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default)
-	{
+		: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) {
 	}
 
 	public MeansImplicitUseAttribute(ImplicitUseKindFlags useKindFlags)
-		: this(useKindFlags, ImplicitUseTargetFlags.Default)
-	{
+		: this(useKindFlags, ImplicitUseTargetFlags.Default) {
 	}
 
 	public MeansImplicitUseAttribute(ImplicitUseTargetFlags targetFlags)
-		: this(ImplicitUseKindFlags.Default, targetFlags)
-	{
+		: this(ImplicitUseKindFlags.Default, targetFlags) {
 	}
 
 	public MeansImplicitUseAttribute(
-		ImplicitUseKindFlags useKindFlags, ImplicitUseTargetFlags targetFlags)
-	{
+		ImplicitUseKindFlags useKindFlags, ImplicitUseTargetFlags targetFlags) {
 		UseKindFlags = useKindFlags;
 		TargetFlags = targetFlags;
 	}
@@ -341,8 +314,7 @@ internal sealed class MeansImplicitUseAttribute : Attribute
 }
 
 [Flags]
-internal enum ImplicitUseKindFlags
-{
+internal enum ImplicitUseKindFlags {
 	Default = Access | Assign | InstantiatedWithFixedConstructorSignature,
 
 	/// <summary>Only entity marked with attribute considered used</summary>
@@ -367,8 +339,7 @@ internal enum ImplicitUseKindFlags
 /// or <see cref="UsedImplicitlyAttribute"/>
 /// </summary>
 [Flags]
-internal enum ImplicitUseTargetFlags
-{
+internal enum ImplicitUseTargetFlags {
 	Default = Itself,
 	Itself = 1,
 
@@ -384,14 +355,11 @@ internal enum ImplicitUseTargetFlags
 /// which should not be removed and so is treated as used
 /// </summary>
 [MeansImplicitUse]
-internal sealed class PublicAPIAttribute : Attribute
-{
-	public PublicAPIAttribute()
-	{
+internal sealed class PublicAPIAttribute : Attribute {
+	public PublicAPIAttribute() {
 	}
 
-	public PublicAPIAttribute([NotNull] string comment)
-	{
+	public PublicAPIAttribute([NotNull] string comment) {
 		Comment = comment;
 	}
 
@@ -406,8 +374,7 @@ internal sealed class PublicAPIAttribute : Attribute
 /// while the method is executed
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter, Inherited = true)]
-internal sealed class InstantHandleAttribute : Attribute
-{
+internal sealed class InstantHandleAttribute : Attribute {
 }
 
 /// <summary>
@@ -422,8 +389,7 @@ internal sealed class InstantHandleAttribute : Attribute
 /// }
 /// </code></example>
 [AttributeUsage(AttributeTargets.Method, Inherited = true)]
-internal sealed class PureAttribute : Attribute
-{
+internal sealed class PureAttribute : Attribute {
 }
 
 /// <summary>
@@ -432,14 +398,11 @@ internal sealed class PureAttribute : Attribute
 /// starting from web root (~)
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal class PathReferenceAttribute : Attribute
-{
-	public PathReferenceAttribute()
-	{
+internal class PathReferenceAttribute : Attribute {
+	public PathReferenceAttribute() {
 	}
 
-	public PathReferenceAttribute([PathReference] string basePath)
-	{
+	public PathReferenceAttribute([PathReference] string basePath) {
 		BasePath = basePath;
 	}
 
@@ -449,50 +412,38 @@ internal class PathReferenceAttribute : Attribute
 // ASP.NET MVC attributes
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class AspMvcAreaMasterLocationFormatAttribute : Attribute
-{
-	public AspMvcAreaMasterLocationFormatAttribute(string format)
-	{
+internal sealed class AspMvcAreaMasterLocationFormatAttribute : Attribute {
+	public AspMvcAreaMasterLocationFormatAttribute(string format) {
 	}
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class AspMvcAreaPartialViewLocationFormatAttribute : Attribute
-{
-	public AspMvcAreaPartialViewLocationFormatAttribute(string format)
-	{
+internal sealed class AspMvcAreaPartialViewLocationFormatAttribute : Attribute {
+	public AspMvcAreaPartialViewLocationFormatAttribute(string format) {
 	}
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class AspMvcAreaViewLocationFormatAttribute : Attribute
-{
-	public AspMvcAreaViewLocationFormatAttribute(string format)
-	{
+internal sealed class AspMvcAreaViewLocationFormatAttribute : Attribute {
+	public AspMvcAreaViewLocationFormatAttribute(string format) {
 	}
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class AspMvcMasterLocationFormatAttribute : Attribute
-{
-	public AspMvcMasterLocationFormatAttribute(string format)
-	{
+internal sealed class AspMvcMasterLocationFormatAttribute : Attribute {
+	public AspMvcMasterLocationFormatAttribute(string format) {
 	}
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class AspMvcPartialViewLocationFormatAttribute : Attribute
-{
-	public AspMvcPartialViewLocationFormatAttribute(string format)
-	{
+internal sealed class AspMvcPartialViewLocationFormatAttribute : Attribute {
+	public AspMvcPartialViewLocationFormatAttribute(string format) {
 	}
 }
 
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-internal sealed class AspMvcViewLocationFormatAttribute : Attribute
-{
-	public AspMvcViewLocationFormatAttribute(string format)
-	{
+internal sealed class AspMvcViewLocationFormatAttribute : Attribute {
+	public AspMvcViewLocationFormatAttribute(string format) {
 	}
 }
 
@@ -503,14 +454,11 @@ internal sealed class AspMvcViewLocationFormatAttribute : Attribute
 /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
-internal sealed class AspMvcActionAttribute : Attribute
-{
-	public AspMvcActionAttribute()
-	{
+internal sealed class AspMvcActionAttribute : Attribute {
+	public AspMvcActionAttribute() {
 	}
 
-	public AspMvcActionAttribute([NotNull] string anonymousProperty)
-	{
+	public AspMvcActionAttribute([NotNull] string anonymousProperty) {
 		AnonymousProperty = anonymousProperty;
 	}
 
@@ -523,14 +471,11 @@ internal sealed class AspMvcActionAttribute : Attribute
 /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal sealed class AspMvcAreaAttribute : PathReferenceAttribute
-{
-	public AspMvcAreaAttribute()
-	{
+internal sealed class AspMvcAreaAttribute : PathReferenceAttribute {
+	public AspMvcAreaAttribute() {
 	}
 
-	public AspMvcAreaAttribute([NotNull] string anonymousProperty)
-	{
+	public AspMvcAreaAttribute([NotNull] string anonymousProperty) {
 		AnonymousProperty = anonymousProperty;
 	}
 
@@ -545,14 +490,11 @@ internal sealed class AspMvcAreaAttribute : PathReferenceAttribute
 /// <c>System.Web.Mvc.Html.ChildActionExtensions.RenderAction(HtmlHelper, String, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
-internal sealed class AspMvcControllerAttribute : Attribute
-{
-	public AspMvcControllerAttribute()
-	{
+internal sealed class AspMvcControllerAttribute : Attribute {
+	public AspMvcControllerAttribute() {
 	}
 
-	public AspMvcControllerAttribute([NotNull] string anonymousProperty)
-	{
+	public AspMvcControllerAttribute([NotNull] string anonymousProperty) {
 		AnonymousProperty = anonymousProperty;
 	}
 
@@ -565,8 +507,7 @@ internal sealed class AspMvcControllerAttribute : Attribute
 /// <c>System.Web.Mvc.Controller.View(String, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal sealed class AspMvcMasterAttribute : Attribute
-{
+internal sealed class AspMvcMasterAttribute : Attribute {
 }
 
 /// <summary>
@@ -575,8 +516,7 @@ internal sealed class AspMvcMasterAttribute : Attribute
 /// <c>System.Web.Mvc.Controller.View(String, Object)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal sealed class AspMvcModelTypeAttribute : Attribute
-{
+internal sealed class AspMvcModelTypeAttribute : Attribute {
 }
 
 /// <summary>
@@ -587,8 +527,7 @@ internal sealed class AspMvcModelTypeAttribute : Attribute
 /// <c>System.Web.Mvc.Html.RenderPartialExtensions.RenderPartial(HtmlHelper, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
-internal sealed class AspMvcPartialViewAttribute : PathReferenceAttribute
-{
+internal sealed class AspMvcPartialViewAttribute : PathReferenceAttribute {
 }
 
 /// <summary>
@@ -596,8 +535,7 @@ internal sealed class AspMvcPartialViewAttribute : PathReferenceAttribute
 /// for MVC views within a class or a method.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-internal sealed class AspMvcSupressViewErrorAttribute : Attribute
-{
+internal sealed class AspMvcSupressViewErrorAttribute : Attribute {
 }
 
 /// <summary>
@@ -606,8 +544,7 @@ internal sealed class AspMvcSupressViewErrorAttribute : Attribute
 /// <c>System.Web.Mvc.Html.DisplayExtensions.DisplayForModel(HtmlHelper, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal sealed class AspMvcDisplayTemplateAttribute : Attribute
-{
+internal sealed class AspMvcDisplayTemplateAttribute : Attribute {
 }
 
 /// <summary>
@@ -616,8 +553,7 @@ internal sealed class AspMvcDisplayTemplateAttribute : Attribute
 /// <c>System.Web.Mvc.Html.EditorExtensions.EditorForModel(HtmlHelper, String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal sealed class AspMvcEditorTemplateAttribute : Attribute
-{
+internal sealed class AspMvcEditorTemplateAttribute : Attribute {
 }
 
 /// <summary>
@@ -626,8 +562,7 @@ internal sealed class AspMvcEditorTemplateAttribute : Attribute
 /// <c>System.ComponentModel.DataAnnotations.UIHintAttribute(System.String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter)]
-internal sealed class AspMvcTemplateAttribute : Attribute
-{
+internal sealed class AspMvcTemplateAttribute : Attribute {
 }
 
 /// <summary>
@@ -637,8 +572,7 @@ internal sealed class AspMvcTemplateAttribute : Attribute
 /// <c>System.Web.Mvc.Controller.View(Object)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
-internal sealed class AspMvcViewAttribute : PathReferenceAttribute
-{
+internal sealed class AspMvcViewAttribute : PathReferenceAttribute {
 }
 
 /// <summary>
@@ -653,21 +587,17 @@ internal sealed class AspMvcViewAttribute : PathReferenceAttribute
 /// }
 /// </code></example>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
-internal sealed class AspMvcActionSelectorAttribute : Attribute
-{
+internal sealed class AspMvcActionSelectorAttribute : Attribute {
 }
 
 [AttributeUsage(
 	AttributeTargets.Parameter | AttributeTargets.Property |
 	AttributeTargets.Field, Inherited = true)]
-internal sealed class HtmlElementAttributesAttribute : Attribute
-{
-	public HtmlElementAttributesAttribute()
-	{
+internal sealed class HtmlElementAttributesAttribute : Attribute {
+	public HtmlElementAttributesAttribute() {
 	}
 
-	public HtmlElementAttributesAttribute([NotNull] string name)
-	{
+	public HtmlElementAttributesAttribute([NotNull] string name) {
 		Name = name;
 	}
 
@@ -677,10 +607,8 @@ internal sealed class HtmlElementAttributesAttribute : Attribute
 [AttributeUsage(
 	AttributeTargets.Parameter | AttributeTargets.Field |
 	AttributeTargets.Property, Inherited = true)]
-internal sealed class HtmlAttributeValueAttribute : Attribute
-{
-	public HtmlAttributeValueAttribute([NotNull] string name)
-	{
+internal sealed class HtmlAttributeValueAttribute : Attribute {
+	public HtmlAttributeValueAttribute([NotNull] string name) {
 		Name = name;
 	}
 
@@ -695,6 +623,5 @@ internal sealed class HtmlAttributeValueAttribute : Attribute
 /// <c>System.Web.WebPages.WebPageBase.RenderSection(String)</c>
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, Inherited = true)]
-internal sealed class RazorSectionAttribute : Attribute
-{
+internal sealed class RazorSectionAttribute : Attribute {
 }

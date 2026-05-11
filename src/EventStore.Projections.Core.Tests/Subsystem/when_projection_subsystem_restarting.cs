@@ -12,13 +12,11 @@ namespace EventStore.Projections.Core.Tests.Subsystem;
 
 [TestFixture]
 public class when_projection_subsystem_restarted
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Guid _instanceCorrelation;
 	private Message _restartResponse;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -36,21 +34,18 @@ public class when_projection_subsystem_restarted
 	}
 
 	[Test]
-	public void should_respond_that_subsystem_is_restarting()
-	{
+	public void should_respond_that_subsystem_is_restarting() {
 		Assert.IsInstanceOf<ProjectionSubsystemMessage.SubsystemRestarting>(_restartResponse);
 	}
 
 	[Test]
-	public void should_stop_the_subsystem()
-	{
+	public void should_stop_the_subsystem() {
 		var stopMsg = WaitForStopMessage();
 		Assert.AreEqual(_instanceCorrelation, stopMsg.InstanceCorrelationId);
 	}
 
 	[Test]
-	public void should_start_the_subsystem_when_fully_stopped()
-	{
+	public void should_start_the_subsystem_when_fully_stopped() {
 		WaitForStopMessage();
 
 		Subsystem.Handle(new ProjectionSubsystemMessage.ComponentStopped(
@@ -68,15 +63,13 @@ public class when_projection_subsystem_restarted
 
 [TestFixture, Explicit]
 public class when_projection_subsystem_restarted_twice
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Guid _instanceCorrelation;
 	private Guid _restartInstanceCorrelation;
 
 	private Message _secondRestartResponse;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		// Start subsystem
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
@@ -116,21 +109,18 @@ public class when_projection_subsystem_restarted_twice
 	}
 
 	[Test]
-	public void should_respond_success_on_second_restart()
-	{
+	public void should_respond_success_on_second_restart() {
 		Assert.IsInstanceOf<ProjectionSubsystemMessage.SubsystemRestarting>(_secondRestartResponse);
 	}
 
 	[Test]
-	public void should_stop_the_subsystem()
-	{
+	public void should_stop_the_subsystem() {
 		var stopMsg = WaitForStopMessage("Timed out waiting for StopComponents on second restart");
 		Assert.AreEqual(_restartInstanceCorrelation, stopMsg.InstanceCorrelationId);
 	}
 
 	[Test]
-	public void should_start_the_subsystem()
-	{
+	public void should_start_the_subsystem() {
 		WaitForStopMessage("Timed out waiting for StopComponents on second restart");
 		Subsystem.Handle(new ProjectionSubsystemMessage.ComponentStopped(
 			ProjectionManager.ServiceName, _restartInstanceCorrelation));
@@ -144,13 +134,11 @@ public class when_projection_subsystem_restarted_twice
 
 [TestFixture]
 public class when_projection_subsystem_restarting_and_node_becomes_unknown
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Guid _instanceCorrelation;
 	private ProjectionSubsystemMessage.StopComponents _stopMsg;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -179,14 +167,12 @@ public class when_projection_subsystem_restarting_and_node_becomes_unknown
 	}
 
 	[Test]
-	public void should_stop_the_subsystem_for_the_restart()
-	{
+	public void should_stop_the_subsystem_for_the_restart() {
 		Assert.AreEqual(_instanceCorrelation, _stopMsg.InstanceCorrelationId);
 	}
 
 	[Test]
-	public void should_not_start_the_subsystem()
-	{
+	public void should_not_start_the_subsystem() {
 		var startMsg = WaitForStartMessage(failOnTimeout: false);
 		Assert.IsNull(startMsg);
 	}
@@ -194,12 +180,10 @@ public class when_projection_subsystem_restarting_and_node_becomes_unknown
 
 [TestFixture]
 public class when_projection_subsystem_starting_and_told_to_restart
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Message _restartResponse;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -211,21 +195,18 @@ public class when_projection_subsystem_starting_and_told_to_restart
 	}
 
 	[Test]
-	public void should_report_restart_failure()
-	{
+	public void should_report_restart_failure() {
 		Assert.IsInstanceOf<ProjectionSubsystemMessage.InvalidSubsystemRestart>(_restartResponse);
 	}
 }
 
 [TestFixture]
 public class when_projection_subsystem_stopping_and_told_to_restart
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Guid _instanceCorrelation;
 	private Message _restartResponse;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -250,21 +231,18 @@ public class when_projection_subsystem_stopping_and_told_to_restart
 	}
 
 	[Test]
-	public void should_report_restart_failure()
-	{
+	public void should_report_restart_failure() {
 		Assert.IsInstanceOf<ProjectionSubsystemMessage.InvalidSubsystemRestart>(_restartResponse);
 	}
 }
 
 [TestFixture]
 public class when_projection_subsystem_restarting_and_told_to_restart
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Guid _instanceCorrelation;
 	private Message _restartResponse;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -289,20 +267,17 @@ public class when_projection_subsystem_restarting_and_told_to_restart
 	}
 
 	[Test]
-	public void should_report_restart_failure()
-	{
+	public void should_report_restart_failure() {
 		Assert.IsInstanceOf<ProjectionSubsystemMessage.InvalidSubsystemRestart>(_restartResponse);
 	}
 }
 
 [TestFixture]
 public class when_projection_subsystem_stopped_and_told_to_restart
-	: TestFixtureWithProjectionSubsystem
-{
+	: TestFixtureWithProjectionSubsystem {
 	private Message _restartResponse;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		// Don't start the subsystem
 		Subsystem.Handle(new SystemMessage.BecomeUnknown(Guid.NewGuid()));
@@ -313,8 +288,7 @@ public class when_projection_subsystem_stopped_and_told_to_restart
 	}
 
 	[Test]
-	public void should_report_restart_failure()
-	{
+	public void should_report_restart_failure() {
 		Assert.IsInstanceOf<ProjectionSubsystemMessage.InvalidSubsystemRestart>(_restartResponse);
 	}
 }

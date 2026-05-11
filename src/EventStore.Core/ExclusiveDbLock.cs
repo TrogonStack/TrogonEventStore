@@ -23,14 +23,16 @@ namespace EventStore.Core {
 		}
 
 		public bool Acquire() {
-			if (_acquired)
+			if (_acquired) {
 				throw new InvalidOperationException($"DB mutex '{MutexName}' is already acquired.");
+			}
 
 			try {
 				_dbMutex?.Dispose();
 				_dbMutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out _acquired);
 				_dbMutex.WaitOne(TimeSpan.FromSeconds(5));
-			} catch (AbandonedMutexException exc) {
+			}
+			catch (AbandonedMutexException exc) {
 				Log.Warning(exc,
 					"DB mutex '{mutex}' is said to be abandoned. "
 					+ "Probably previous instance of server was terminated abruptly.",
@@ -46,13 +48,17 @@ namespace EventStore.Core {
 		}
 
 		public void Release() {
-			if (!_acquired)
+			if (!_acquired) {
 				throw new InvalidOperationException($"DB mutex '{MutexName}' was not acquired.");
+			}
+
 			try {
 				_dbMutex.ReleaseMutex();
-			} catch (ApplicationException ex) {
+			}
+			catch (ApplicationException ex) {
 				Log.Warning(ex, "Error occurred while releasing lock.");
-			} finally {
+			}
+			finally {
 				_acquired = false;
 			}
 		}

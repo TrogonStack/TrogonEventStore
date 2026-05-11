@@ -11,8 +11,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.ReplicationTracking;
 
 public abstract class with_clustered_replication_tracking_service :
-	IHandle<ReplicationTrackingMessage.ReplicatedTo>
-{
+	IHandle<ReplicationTrackingMessage.ReplicatedTo> {
 	protected string EventStreamId = "test_stream";
 	protected SynchronousScheduler Publisher = new("publisher");
 	protected ReplicationTrackingService Service;
@@ -23,8 +22,7 @@ public abstract class with_clustered_replication_tracking_service :
 	protected abstract int ClusterSize { get; }
 
 	[OneTimeSetUp]
-	public virtual void TestFixtureSetUp()
-	{
+	public virtual void TestFixtureSetUp() {
 		Publisher.Subscribe<ReplicationTrackingMessage.ReplicatedTo>(this);
 
 		Service = new ReplicationTrackingService(Publisher, ClusterSize, ReplicationCheckpoint, WriterCheckpoint);
@@ -33,25 +31,21 @@ public abstract class with_clustered_replication_tracking_service :
 	}
 
 	[OneTimeTearDown]
-	public virtual void TestFixtureTearDown()
-	{
+	public virtual void TestFixtureTearDown() {
 		Service.Stop();
 	}
 
 	public abstract void When();
 
-	protected void BecomeLeader()
-	{
+	protected void BecomeLeader() {
 		Service.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 	}
 
-	protected void BecomeUnknown()
-	{
+	protected void BecomeUnknown() {
 		Service.Handle(new SystemMessage.BecomeUnknown(Guid.NewGuid()));
 	}
 
-	public void Handle(ReplicationTrackingMessage.ReplicatedTo message)
-	{
+	public void Handle(ReplicationTrackingMessage.ReplicatedTo message) {
 		ReplicatedTos.Enqueue(message);
 	}
 }

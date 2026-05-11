@@ -8,8 +8,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.partition_state_update_manager;
 
 [TestFixture]
-public class when_two_states_were_updated
-{
+public class when_two_states_were_updated {
 	private PartitionStateUpdateManager _updateManager;
 	private readonly CheckpointTag _zero = CheckpointTag.FromPosition(0, 100, 50);
 	private readonly CheckpointTag _one = CheckpointTag.FromPosition(0, 200, 150);
@@ -17,36 +16,31 @@ public class when_two_states_were_updated
 	private readonly CheckpointTag _three = CheckpointTag.FromPosition(0, 400, 350);
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_updateManager = new PartitionStateUpdateManager(ProjectionNamesBuilder.CreateForTest("projection"));
 		_updateManager.StateUpdated("partition1", new PartitionState("{\"state\":1}", null, _one), _zero);
 		_updateManager.StateUpdated("partition2", new PartitionState("{\"state\":2}", null, _two), _zero);
 	}
 
 	[Test]
-	public void handles_state_updated_for_the_same_partition()
-	{
+	public void handles_state_updated_for_the_same_partition() {
 		_updateManager.StateUpdated("partition1", new PartitionState("{\"state\":0}", null, _three), _two);
 	}
 
 	[Test]
-	public void handles_state_updated_for_another_partition()
-	{
+	public void handles_state_updated_for_another_partition() {
 		_updateManager.StateUpdated("partition3", new PartitionState("{\"state\":0}", null, _three), _two);
 	}
 
 	[Test]
-	public void emit_events_writes_both_state_updated_event()
-	{
+	public void emit_events_writes_both_state_updated_event() {
 		var eventWriter = new FakeEventWriter();
 		_updateManager.EmitEvents(eventWriter);
 		Assert.AreEqual(2, (eventWriter.Writes.SelectMany(write => write)).Count());
 	}
 
 	[Test]
-	public void emit_events_writes_to_correct_streams()
-	{
+	public void emit_events_writes_to_correct_streams() {
 		var eventWriter = new FakeEventWriter();
 		_updateManager.EmitEvents(eventWriter);
 		var events = eventWriter.Writes.SelectMany(write => write).ToArray();
@@ -55,8 +49,7 @@ public class when_two_states_were_updated
 	}
 
 	[Test]
-	public void emit_events_writes_correct_state_data()
-	{
+	public void emit_events_writes_correct_state_data() {
 		var eventWriter = new FakeEventWriter();
 		_updateManager.EmitEvents(eventWriter);
 		var events = eventWriter.Writes.SelectMany(write => write).ToArray();
@@ -68,8 +61,7 @@ public class when_two_states_were_updated
 	}
 
 	[Test]
-	public void emit_events_writes_event_with_correct_caused_by_tag()
-	{
+	public void emit_events_writes_event_with_correct_caused_by_tag() {
 		var eventWriter = new FakeEventWriter();
 		_updateManager.EmitEvents(eventWriter);
 		var events = eventWriter.Writes.SelectMany(write => write).ToArray();
@@ -80,8 +72,7 @@ public class when_two_states_were_updated
 	}
 
 	[Test]
-	public void emit_events_writes_event_with_correct_expected_tag()
-	{
+	public void emit_events_writes_event_with_correct_expected_tag() {
 		var eventWriter = new FakeEventWriter();
 		_updateManager.EmitEvents(eventWriter);
 		var events = eventWriter.Writes.SelectMany(write => write).ToArray();

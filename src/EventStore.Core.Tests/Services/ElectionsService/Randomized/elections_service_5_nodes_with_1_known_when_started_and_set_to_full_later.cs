@@ -12,13 +12,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
 [TestFixture, Ignore("Not sure the finish criteria is correct")]
-public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full_later
-{
+public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full_later {
 	private RandomizedElectionsAndGossipTestCase _randomCase;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_randomCase = new RandomizedElectionsAndGossipTestCase(ElectionParams.MaxIterationCount,
 			instancesCnt: 5,
 			httpLossProbability: 0.3,
@@ -33,8 +31,7 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full
 		_randomCase.Init();
 	}
 
-	private MemberInfo[] CreateInitialGossip(ElectionsInstance instance, ElectionsInstance[] allInstances)
-	{
+	private MemberInfo[] CreateInitialGossip(ElectionsInstance instance, ElectionsInstance[] allInstances) {
 		return new[] {
 			MemberInfo.ForVNode(instance.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
 				instance.EndPoint, null, instance.EndPoint, null, instance.EndPoint, null, 0, 0,
@@ -46,13 +43,12 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full
 		RandTestQueueItem item,
 		ElectionsInstance[] instances,
 		MemberInfo[] initialGossip,
-		Dictionary<EndPoint, MemberInfo[]> previousGossip)
-	{
-		if (iteration == 1 || (iteration % 100 != (item.EndPoint.GetPort() % 1000) && _randomCase.Next(100) < 30))
+		Dictionary<EndPoint, MemberInfo[]> previousGossip) {
+		if (iteration == 1 || (iteration % 100 != (item.EndPoint.GetPort() % 1000) && _randomCase.Next(100) < 30)) {
 			return null;
+		}
 
-		if (previousGossip[item.EndPoint].Length < 5)
-		{
+		if (previousGossip[item.EndPoint].Length < 5) {
 			return instances.Select((x, i) =>
 					MemberInfo.ForVNode(x.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
 						x.EndPoint, null, x.EndPoint, null, x.EndPoint, null, 0, 0,
@@ -65,11 +61,11 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public void should_complete_successfully([Range(0, ElectionParams.TestRunCount - 1)]
-		int run)
-	{
+		int run) {
 		var success = _randomCase.Run();
-		if (!success)
+		if (!success) {
 			_randomCase.Logger.LogMessages();
+		}
 
 		Console.WriteLine("There were a total of {0} messages in this run.",
 			_randomCase.Logger.ProcessedItems.Count());

@@ -7,7 +7,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			var transaction = state.BeginTransaction();
 			try {
 				transaction.Commit(checkpoint);
-			} catch {
+			}
+			catch {
 				transaction.Rollback();
 				throw;
 			}

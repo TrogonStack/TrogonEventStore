@@ -6,15 +6,13 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services;
 
 [TestFixture]
-public class mixed_checkpoint_tags
-{
+public class mixed_checkpoint_tags {
 	private readonly CheckpointTag _a = CheckpointTag.FromStreamPosition(0, "stream1", 9);
 	private readonly CheckpointTag _b = CheckpointTag.FromStreamPosition(0, "stream2", 15);
 	private readonly CheckpointTag _c = CheckpointTag.FromPosition(0, 50, 29);
 
 	[Test]
-	public void are_not_equal()
-	{
+	public void are_not_equal() {
 		Assert.AreNotEqual(_a, _b);
 		Assert.AreNotEqual(_a, _c);
 		Assert.AreNotEqual(_b, _c);
@@ -25,8 +23,7 @@ public class mixed_checkpoint_tags
 	}
 
 	[Test]
-	public void cannot_be_compared()
-	{
+	public void cannot_be_compared() {
 		Assert.IsTrue(throws(() => _a > _b));
 		Assert.IsTrue(throws(() => _a >= _b));
 		Assert.IsTrue(throws(() => _a > _c));
@@ -41,15 +38,12 @@ public class mixed_checkpoint_tags
 		Assert.IsTrue(throws(() => _b <= _c));
 	}
 
-	private bool throws(Func<bool> func)
-	{
-		try
-		{
+	private bool throws(Func<bool> func) {
+		try {
 			func();
 			return false;
 		}
-		catch (Exception)
-		{
+		catch (Exception) {
 			return true;
 		}
 	}

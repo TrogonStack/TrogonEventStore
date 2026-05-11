@@ -8,8 +8,7 @@ namespace EventStore.TestClient;
 /// <summary>
 /// A test client that connects using the dotnet gRPC client
 /// </summary>
-public class GrpcTestClient
-{
+public class GrpcTestClient {
 	private ClientOptions _options;
 	private ILogger _log;
 
@@ -18,8 +17,7 @@ public class GrpcTestClient
 	/// </summary>
 	/// <param name="options"></param>
 	/// <param name="log"></param>
-	public GrpcTestClient(ClientOptions options, ILogger log)
-	{
+	public GrpcTestClient(ClientOptions options, ILogger log) {
 		_options = options;
 		_log = log;
 	}
@@ -28,8 +26,7 @@ public class GrpcTestClient
 	/// Creates a new gRPC client
 	/// </summary>
 	/// <returns></returns>
-	public EventStoreClient CreateGrpcClient()
-	{
+	public EventStoreClient CreateGrpcClient() {
 		_log.Debug("Creating gRPC client with connection string '{connectionString}'.", ConnectionString);
 		return new EventStoreClient(Settings);
 	}

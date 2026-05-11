@@ -91,8 +91,9 @@ public class ReplicationStatsTests {
 		public bool RequestedReplicationStats { get; private set; }
 
 		public void Publish(Message message) {
-			if (message is not ReplicationMessage.GetReplicationStats request)
+			if (message is not ReplicationMessage.GetReplicationStats request) {
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
+			}
 
 			RequestedReplicationStats = true;
 			request.Envelope.ReplyWith(new ReplicationMessage.GetReplicationStatsCompleted(replicationStats));

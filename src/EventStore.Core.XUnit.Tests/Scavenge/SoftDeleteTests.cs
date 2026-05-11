@@ -9,11 +9,9 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
-{
+public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests> {
 	[Fact]
-	public async Task undelete_when_soft_delete_across_chunk_boundary()
-	{
+	public async Task undelete_when_soft_delete_across_chunk_boundary() {
 		// accumulation has to go up to the scavenge point and not stop at the end of the chunk
 		// before, otherwise we could accidentally scavenge the new stream.
 		// the important point is that the scavenge point can't 'appear' to be between the
@@ -46,8 +44,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 	}
 
 	[Fact]
-	public async Task simple_soft_delete()
-	{
+	public async Task simple_soft_delete() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -59,8 +56,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 					Rec.Write(t++, "$$ab-1", "$metadata", metadata: SoftDelete))
 				.Chunk(ScavengePointRec(t++)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.False(state.TryGetOriginalStreamData("ab-1", out _));
 				Assert.False(state.TryGetMetastreamData("$$ab-1", out _));
 			})
@@ -72,8 +68,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 	}
 
 	[Fact]
-	public async Task soft_delete_and_recreate()
-	{
+	public async Task soft_delete_and_recreate() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -95,8 +90,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 	}
 
 	[Fact]
-	public async Task can_recreate_soft_deleted_stream_after_scavenge()
-	{
+	public async Task can_recreate_soft_deleted_stream_after_scavenge() {
 		var t = 0;
 
 		// SP-0 scavenge
@@ -118,8 +112,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 					Rec.Write(t++, "$$ab-1", "$metadata", metadata: TruncateBefore3))
 				.Chunk(ScavengePointRec(t++))) // SP-1
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x =>
-			{
+			.MutateState(x => {
 				// make it scavenge SP-0
 				x.SetCheckpoint(new ScavengeCheckpoint.Accumulating(
 					ScavengePoint(
@@ -130,8 +123,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 			.AssertTrace(
 				Tracer.Line("Accumulating from checkpoint: Accumulating SP-0 done None"),
 				Tracer.AnythingElse)
-			.AssertState(state =>
-			{
+			.AssertState(state => {
 				Assert.False(state.TryGetOriginalStreamData("ab-1", out _));
 				Assert.False(state.TryGetMetastreamData("$$ab-1", out _));
 			})
@@ -161,8 +153,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 	}
 
 	[Fact]
-	public async Task can_soft_delete_recreate_and_hard_delete()
-	{
+	public async Task can_soft_delete_recreate_and_hard_delete() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -188,8 +179,7 @@ public class SoftDeleteTests : SqliteDbPerTest<SoftDeleteTests>
 	}
 
 	[Fact]
-	public async Task can_soft_delete_and_hard_delete()
-	{
+	public async Task can_soft_delete_and_hard_delete() {
 		// this might not actually be supported by the database
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()

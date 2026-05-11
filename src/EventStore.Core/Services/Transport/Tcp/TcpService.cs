@@ -105,7 +105,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		public void Handle(SystemMessage.SystemInit message) {
 			try {
 				_serverListener.StartListening(OnConnectionAccepted, _securityType.ToString());
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				Application.Exit(ExitCode.Error, e.Message);
 			}
 		}

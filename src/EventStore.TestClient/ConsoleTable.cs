@@ -7,14 +7,12 @@ using EventStore.Common.Utils;
 
 namespace EventStore.TestClient;
 
-public class ConsoleTable
-{
+public class ConsoleTable {
 	private readonly string[] _header;
 	private readonly int[] _columnWidths;
 	private readonly List<string> _rows;
 
-	public ConsoleTable(params string[] header)
-	{
+	public ConsoleTable(params string[] header) {
 		Ensure.NotNull(header, "header");
 
 		_header = header;
@@ -24,18 +22,15 @@ public class ConsoleTable
 		AppendRow(_header);
 	}
 
-	public string CreateIndentedTable()
-	{
+	public string CreateIndentedTable() {
 		return string.Format("{0}{1}{0}", Environment.NewLine, CreateTable());
 	}
 
-	public string CreateTable()
-	{
+	public string CreateTable() {
 		var lineSeparator = RowSeparator(_columnWidths.Sum() + _columnWidths.Length + 1);
 
 		var table = new StringBuilder();
-		foreach (var row in _rows)
-		{
+		foreach (var row in _rows) {
 			table.AppendLine(lineSeparator);
 			table.AppendLine(row);
 		}
@@ -45,19 +40,17 @@ public class ConsoleTable
 		return table.ToString();
 	}
 
-	private string RowSeparator(int width)
-	{
+	private string RowSeparator(int width) {
 		return new string('-', width);
 	}
 
-	public void AppendRow(params string[] cells)
-	{
-		if (cells == null || cells.Length != _header.Length)
+	public void AppendRow(params string[] cells) {
+		if (cells == null || cells.Length != _header.Length) {
 			return;
+		}
 
 		var row = new StringBuilder();
-		for (int i = 0; i < cells.Length; i++)
-		{
+		for (int i = 0; i < cells.Length; i++) {
 			var format = "|{0," + _columnWidths[i] + "}";
 			row.AppendFormat(format, cells[i]);
 		}

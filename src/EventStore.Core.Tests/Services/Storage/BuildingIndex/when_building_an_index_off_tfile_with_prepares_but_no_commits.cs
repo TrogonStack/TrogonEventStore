@@ -12,10 +12,8 @@ namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 public class
 	WhenBuildingAnIndexOffTfileWithPreparesButNoCommits<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat,
-	TStreamId>
-{
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	TStreamId> {
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var (streamId1, _) = await GetOrReserve("test1", token);
 		var (streamId2, _) = await GetOrReserve("test2", token);
 		var (streamId3, p0) = await GetOrReserve("test3", token);
@@ -38,40 +36,35 @@ public class
 	}
 
 	[Test]
-	public async Task the_first_stream_is_not_in_index_yet()
-	{
+	public async Task the_first_stream_is_not_in_index_yet() {
 		var result = await ReadIndex.ReadEvent("test1", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public async Task the_second_stream_is_not_in_index_yet()
-	{
+	public async Task the_second_stream_is_not_in_index_yet() {
 		var result = await ReadIndex.ReadEvent("test2", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public async Task the_last_event_is_not_returned_for_stream()
-	{
+	public async Task the_last_event_is_not_returned_for_stream() {
 		var result = await ReadIndex.ReadEvent("test2", -1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NoStream, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public async Task read_all_events_forward_returns_no_events()
-	{
+	public async Task read_all_events_forward_returns_no_events() {
 		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(0, records.Count);
 	}
 
 	[Test]
-	public async Task read_all_events_backward_returns_no_events()
-	{
+	public async Task read_all_events_backward_returns_no_events() {
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 10, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(0, records.Count);

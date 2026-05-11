@@ -12,35 +12,30 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class when_creating_ptable_from_memtable : SpecificationWithFile
-{
+public class when_creating_ptable_from_memtable : SpecificationWithFile {
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
 
-	public when_creating_ptable_from_memtable(byte version, bool skipIndexVerify)
-	{
+	public when_creating_ptable_from_memtable(byte version, bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[Test]
-	public void null_file_throws_null_exception()
-	{
+	public void null_file_throws_null_exception() {
 		Assert.Throws<ArgumentNullException>(() =>
 			PTable.FromMemtable(new HashListMemTable(_ptableVersion, maxSize: 10), null, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault,
 				skipIndexVerify: _skipIndexVerify));
 	}
 
 	[Test]
-	public void null_memtable_throws_null_exception()
-	{
+	public void null_memtable_throws_null_exception() {
 		Assert.Throws<ArgumentNullException>(() =>
 			PTable.FromMemtable(null, "C:\\foo.txt", Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: _skipIndexVerify));
 	}
 
 	[Test]
-	public void wait_for_destroy_will_timeout()
-	{
+	public void wait_for_destroy_will_timeout() {
 		var table = new HashListMemTable(_ptableVersion, maxSize: 10);
 		table.Add(0x010100000000, 0x0001, 0x0001);
 		var ptable = PTable.FromMemtable(table, Filename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: _skipIndexVerify);
@@ -62,19 +57,15 @@ public class when_creating_ptable_from_memtable : SpecificationWithFile
 	//}
 
 	[Test]
-	public void the_file_gets_created_and_can_be_read()
-	{
+	public void the_file_gets_created_and_can_be_read() {
 		var indexEntrySize = PTable.IndexEntryV4Size;
-		if (_ptableVersion == PTableVersions.IndexV1)
-		{
+		if (_ptableVersion == PTableVersions.IndexV1) {
 			indexEntrySize = PTable.IndexEntryV1Size;
 		}
-		else if (_ptableVersion == PTableVersions.IndexV2)
-		{
+		else if (_ptableVersion == PTableVersions.IndexV2) {
 			indexEntrySize = PTable.IndexEntryV2Size;
 		}
-		else if (_ptableVersion == PTableVersions.IndexV3)
-		{
+		else if (_ptableVersion == PTableVersions.IndexV3) {
 			indexEntrySize = PTable.IndexEntryV3Size;
 		}
 
@@ -85,8 +76,7 @@ public class when_creating_ptable_from_memtable : SpecificationWithFile
 		table.Add(0x010200000000, 0x0002, 0x0003);
 		using (var sstable = PTable.FromMemtable(table, Filename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault,
 			skipIndexVerify: _skipIndexVerify,
-			useBloomFilter: true))
-		{
+			useBloomFilter: true)) {
 
 			var fileinfo = new FileInfo(Filename);
 			var midpointsCached = PTable.GetRequiredMidpointCountCached(4, _ptableVersion);
@@ -112,23 +102,19 @@ public class when_creating_ptable_from_memtable : SpecificationWithFile
 	}
 
 	[Test]
-	public void the_hash_of_file_is_valid()
-	{
+	public void the_hash_of_file_is_valid() {
 		var table = new HashListMemTable(_ptableVersion, maxSize: 10);
 		table.Add(0x010100000000, 0x0001, 0x0001);
 		table.Add(0x010500000000, 0x0001, 0x0002);
 		table.Add(0x010200000000, 0x0001, 0x0003);
 		table.Add(0x010200000000, 0x0002, 0x0003);
-		Assert.DoesNotThrow(() =>
-		{
-			using (var sstable = PTable.FromMemtable(table, Filename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: false))
-			{
+		Assert.DoesNotThrow(() => {
+			using (var sstable = PTable.FromMemtable(table, Filename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: false)) {
 			}
 		});
 	}
 
-	private ulong GetHash(ulong value)
-	{
+	private ulong GetHash(ulong value) {
 		return _ptableVersion == PTableVersions.IndexV1 ? value >> 32 : value;
 	}
 }

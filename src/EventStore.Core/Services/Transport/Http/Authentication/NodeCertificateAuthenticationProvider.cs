@@ -33,22 +33,25 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 
 			// if the connection doesn't have a client certificate, take a shortcut
 			var clientCertificate = context.Connection.ClientCertificate;
-			if (clientCertificate is null)
+			if (clientCertificate is null) {
 				return false;
+			}
 
 			bool authenticated;
 
 			var connectionItems = context.Features.Get<IConnectionItemsFeature>()?.Items;
 			const string connectionItemsKey = "NodeCertificateAuthenticationStatus";
 			if (TryGetDictionaryValue(connectionItems, connectionItemsKey, out var wasAuthenticated)) {
-				authenticated = (bool) wasAuthenticated;
-			} else {
+				authenticated = (bool)wasAuthenticated;
+			}
+			else {
 				authenticated = AuthenticateUncached(context, clientCertificate);
 				TrySetDictionaryValue(connectionItems, connectionItemsKey, authenticated);
 			}
 
-			if (!authenticated)
+			if (!authenticated) {
 				return false;
+			}
 
 			request = new HttpAuthenticationRequest(context, "system", "");
 			request.Authenticated(SystemAccounts.System);
@@ -68,8 +71,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 		}
 
 		private static bool TrySetDictionaryValue(IDictionary<object, object> dictionary, string key, object value) {
-			if (dictionary == null)
+			if (dictionary == null) {
 				return false;
+			}
 
 			lock (dictionary) {
 				return dictionary.TryAdd(key, value);
@@ -84,9 +88,11 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 			bool hasReservedNodeCN;
 			try {
 				hasReservedNodeCN = clientCertificate.ClientCertificateMatchesName(reservedNodeCN);
-			} catch (CryptographicException) {
+			}
+			catch (CryptographicException) {
 				return false;
-			} catch (NullReferenceException) {
+			}
+			catch (NullReferenceException) {
 				return false;
 			}
 

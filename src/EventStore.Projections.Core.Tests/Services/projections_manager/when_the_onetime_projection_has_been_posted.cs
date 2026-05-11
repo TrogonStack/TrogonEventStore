@@ -9,18 +9,15 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
-{
+public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
 	private string _projectionName;
 	private string _projectionQuery;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		NoOtherStreams();
 	}
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		_projectionQuery = @"fromAll(); on_any(function(){});log(1);";
 		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 		yield return
@@ -31,14 +28,12 @@ public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> 
 	}
 
 	[Test, Category("v8")]
-	public void it_has_been_posted()
-	{
+	public void it_has_been_posted() {
 		Assert.IsFalse(string.IsNullOrEmpty(_projectionName));
 	}
 
 	[Test, Category("v8")]
-	public void it_cab_be_listed()
-	{
+	public void it_cab_be_listed() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, null, false));
 
@@ -49,8 +44,7 @@ public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> 
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_status_can_be_retrieved()
-	{
+	public void the_projection_status_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(
 				_bus, null, _projectionName, false));
@@ -66,8 +60,7 @@ public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> 
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_state_can_be_retrieved()
-	{
+	public void the_projection_state_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetState(_bus, _projectionName, ""));
 		_queue.Process();
@@ -81,8 +74,7 @@ public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> 
 	}
 
 	[Test, Category("v8")]
-	public void the_projection_source_can_be_retrieved()
-	{
+	public void the_projection_source_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));

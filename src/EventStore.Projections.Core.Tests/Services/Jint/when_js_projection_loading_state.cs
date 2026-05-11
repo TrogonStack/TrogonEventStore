@@ -9,10 +9,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_js_projection_loading_state : TestFixtureWithInterpretedProjection
-{
-	protected override void Given()
-	{
+public class when_js_projection_loading_state : TestFixtureWithInterpretedProjection {
+	protected override void Given() {
 		_projection = @"
                 fromAll().when({$any: 
                     function(state, event) {
@@ -24,8 +22,7 @@ public class when_js_projection_loading_state : TestFixtureWithInterpretedProjec
 	}
 
 	[Test, Category(_projectionType)]
-	public void the_state_is_loaded()
-	{
+	public void the_state_is_loaded() {
 		string state;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,

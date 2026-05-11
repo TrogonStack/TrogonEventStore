@@ -6,10 +6,8 @@ using EventStore.Projections.Core.Standard;
 
 namespace EventStore.Projections.Core.Services.Processing.EventByType;
 
-public partial class EventByTypeIndexEventReader
-{
-	private abstract class State : IDisposable
-	{
+public partial class EventByTypeIndexEventReader {
+	private abstract class State : IDisposable {
 		public abstract void RequestEvents();
 		public abstract bool AreEventsRequested();
 		public abstract void Dispose();
@@ -17,33 +15,33 @@ public partial class EventByTypeIndexEventReader
 		protected readonly EventByTypeIndexEventReader _reader;
 		protected readonly ClaimsPrincipal _readAs;
 
-		protected State(EventByTypeIndexEventReader reader, ClaimsPrincipal readAs)
-		{
+		protected State(EventByTypeIndexEventReader reader, ClaimsPrincipal readAs) {
 			_reader = reader;
 			_readAs = readAs;
 		}
 
 		protected void DeliverEvent(float progress, ResolvedEvent resolvedEvent, TFPos position,
-			EventStore.Core.Data.ResolvedEvent pair)
-		{
-			if (resolvedEvent.EventOrLinkTargetPosition <= _reader._lastEventPosition)
+			EventStore.Core.Data.ResolvedEvent pair) {
+			if (resolvedEvent.EventOrLinkTargetPosition <= _reader._lastEventPosition) {
 				return;
+			}
+
 			_reader._lastEventPosition = resolvedEvent.EventOrLinkTargetPosition;
 			//TODO: this is incomplete.  where reading from TF we need to handle actual deletes
 
 			string deletedPartitionStreamId;
 
 
-			if (resolvedEvent.IsLinkToDeletedStream && !resolvedEvent.IsLinkToDeletedStreamTombstone)
+			if (resolvedEvent.IsLinkToDeletedStream && !resolvedEvent.IsLinkToDeletedStreamTombstone) {
 				return;
+			}
 
 			bool isDeletedStreamEvent = StreamDeletedHelper.IsStreamDeletedEventOrLinkToStreamDeletedEvent(
 				resolvedEvent, pair.ResolveResult, out deletedPartitionStreamId);
-			if (isDeletedStreamEvent)
-			{
+			if (isDeletedStreamEvent) {
 				var deletedPartition = deletedPartitionStreamId;
 
-				if (_reader._includeDeletedStreamNotification)
+				if (_reader._includeDeletedStreamNotification) {
 					_reader._publisher.Publish(
 						//TODO: publish both link and event data
 						new ReaderSubscriptionMessage.EventReaderPartitionDeleted(
@@ -52,18 +50,19 @@ public partial class EventByTypeIndexEventReader
 							deleteLinkOrEventPosition: resolvedEvent.EventOrLinkTargetPosition,
 							positionStreamId: resolvedEvent.PositionStreamId,
 							positionEventNumber: resolvedEvent.PositionSequenceNumber));
+				}
 			}
-			else
+			else {
 				_reader._publisher.Publish(
 					//TODO: publish both link and event data
 					new ReaderSubscriptionMessage.CommittedEventDistributed(
 						_reader.EventReaderCorrelationId, resolvedEvent,
 						_reader._stopOnEof ? (long?)null : position.PreparePosition, progress,
 						source: this.GetType()));
+			}
 		}
 
-		protected void SendNotAuthorized()
-		{
+		protected void SendNotAuthorized() {
 			_reader.SendNotAuthorized();
 		}
 	}

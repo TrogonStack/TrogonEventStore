@@ -9,17 +9,14 @@ namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 [TestFixture]
 public class
 	when_handling_enough_events_for_a_checkpoint_before_specified_time_elapses :
-		TestFixtureWithProjectionSubscription
-{
-	protected override void Given()
-	{
+		TestFixtureWithProjectionSubscription {
+	protected override void Given() {
 		_checkpointAfterMs = 1000;
 		_checkpointProcessedEventsThreshold = 1;
 		_timeProvider = new FakeTimeProvider();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(200, 200), "test-stream", 1, false, Guid.NewGuid(),
@@ -33,8 +30,7 @@ public class
 	}
 
 	[Test]
-	public void checkpoint_is_not_suggested()
-	{
+	public void checkpoint_is_not_suggested() {
 		Assert.AreEqual(0, _checkpointHandler.HandledMessages.Count);
 	}
 }
@@ -42,12 +38,9 @@ public class
 [TestFixture]
 public class
 	when_handling_enough_events_for_a_checkpoint_before_specified_time_elapses_and_not_passing_filter :
-		TestFixtureWithProjectionSubscription
-{
-	protected override void Given()
-	{
-		_source = source =>
-		{
+		TestFixtureWithProjectionSubscription {
+	protected override void Given() {
+		_source = source => {
 			source.FromAll();
 			source.IncludeEvent("specific-event");
 		};
@@ -57,8 +50,7 @@ public class
 		_timeProvider = new FakeTimeProvider();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(200, 200), "test-stream", 1, false, Guid.NewGuid(),
@@ -76,8 +68,7 @@ public class
 	}
 
 	[Test]
-	public void checkpoint_is_not_suggested()
-	{
+	public void checkpoint_is_not_suggested() {
 		Assert.AreEqual(0, _checkpointHandler.HandledMessages.Count);
 	}
 }

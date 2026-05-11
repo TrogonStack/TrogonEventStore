@@ -6,12 +6,11 @@ using EventStore.TestClient.Commands;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal static class JsonEventContainer
-{
-	public static EventData ForEvent(object @event)
-	{
-		if (@event == null)
+internal static class JsonEventContainer {
+	public static EventData ForEvent(object @event) {
+		if (@event == null) {
 			throw new ArgumentNullException("event");
+		}
 
 		var encodedData = Helper.UTF8NoBom.GetBytes(TestClientJson.To(@event));
 		var encodedMetadata =

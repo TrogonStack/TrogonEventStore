@@ -12,8 +12,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.Scavenge;
 
 [TestFixture]
-class when_scavenging_a_table_index_cancelled_while_scavenging_table : SpecificationWithDirectoryPerTestFixture
-{
+class when_scavenging_a_table_index_cancelled_while_scavenging_table : SpecificationWithDirectoryPerTestFixture {
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -21,16 +20,14 @@ class when_scavenging_a_table_index_cancelled_while_scavenging_table : Specifica
 	private FakeTFScavengerLog _log;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
 
 		var cancellationTokenSource = new CancellationTokenSource();
 
-		var fakeReader = new TFReaderLease(new FakeIndexReader(l =>
-		{
+		var fakeReader = new TFReaderLease(new FakeIndexReader(l => {
 			cancellationTokenSource.Cancel();
 			return true;
 		}));
@@ -74,16 +71,14 @@ class when_scavenging_a_table_index_cancelled_while_scavenging_table : Specifica
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_have_logged_a_failure()
-	{
+	public void should_have_logged_a_failure() {
 		Assert.That(_log.ScavengedIndices.Count, Is.EqualTo(1));
 		Assert.That(_log.ScavengedIndices[0].Scavenged, Is.False);
 		Assert.That(_log.ScavengedIndices[0].Error, Is.EqualTo("Scavenge cancelled"));
@@ -91,8 +86,7 @@ class when_scavenging_a_table_index_cancelled_while_scavenging_table : Specifica
 	}
 
 	[Test]
-	public void should_still_have_all_entries_in_sorted_order()
-	{
+	public void should_still_have_all_entries_in_sorted_order() {
 		var streamId = "testStream-1";
 		var result = _tableIndex.GetRange(streamId, 0, 5).ToArray();
 		var hash = (ulong)_lowHasher.Hash(streamId) << 32 | _highHasher.Hash(streamId);

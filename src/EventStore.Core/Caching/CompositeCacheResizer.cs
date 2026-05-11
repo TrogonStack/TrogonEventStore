@@ -49,13 +49,15 @@ namespace EventStore.Core.Caching {
 		}
 
 		private static ResizerUnit GetUniqueUnit(ICacheResizer[] children) {
-			if (children.Length < 1)
+			if (children.Length < 1) {
 				throw new ArgumentException("There must be at least one child", nameof(children));
+			}
 
 			var unit = children[0].Unit;
 
-			if (children.Any(x => x.Unit != unit))
+			if (children.Any(x => x.Unit != unit)) {
 				throw new ArgumentException("All children must have the same unit", nameof(children));
+			}
 
 			return unit;
 		}
@@ -88,8 +90,9 @@ namespace EventStore.Core.Caching {
 			}
 
 			public void ResetFreedSize() {
-				foreach (var child in _children)
+				foreach (var child in _children) {
 					child.ResetFreedSize();
+				}
 			}
 
 			public long Size => _children.Sum(static x => x.Size);

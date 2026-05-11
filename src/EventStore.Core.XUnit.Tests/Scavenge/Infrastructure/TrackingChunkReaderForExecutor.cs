@@ -9,8 +9,7 @@ public class TrackingChunkReaderForExecutor<TStreamId, TRecord>(
 	bool isRemote,
 	Tracer tracer)
 	:
-		IChunkReaderForExecutor<TStreamId, TRecord>
-{
+		IChunkReaderForExecutor<TStreamId, TRecord> {
 	public string Name => wrapped.Name;
 
 	public int FileSize => wrapped.FileSize;
@@ -29,8 +28,7 @@ public class TrackingChunkReaderForExecutor<TStreamId, TRecord>(
 	public IAsyncEnumerable<bool> ReadInto(
 		RecordForExecutor<TStreamId, TRecord>.NonPrepare nonPrepare,
 		RecordForExecutor<TStreamId, TRecord>.Prepare prepare,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
 		tracer.Trace($"Opening Chunk {ChunkStartNumber}-{ChunkEndNumber}");
 		return wrapped.ReadInto(nonPrepare, prepare, token);

@@ -14,11 +14,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode;
 
 [TestFixture]
-public class auth_providers_should : SpecificationWithDirectory
-{
+public class auth_providers_should : SpecificationWithDirectory {
 	[Test]
-	public async Task be_registered_with_di()
-	{
+	public async Task be_registered_with_di() {
 		var authenticationConfigured = new TaskCompletionSource();
 		var authenticationServicesConfigured = new TaskCompletionSource();
 		var authorizationConfigured = new TaskCompletionSource();
@@ -37,13 +35,11 @@ public class auth_providers_should : SpecificationWithDirectory
 		await authorizationServicesConfigured.Task.WithTimeout(TimeSpan.FromSeconds(5));
 	}
 
-	class FakeAuthenticationProviderFactory(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : IAuthenticationProviderFactory
-	{
+	class FakeAuthenticationProviderFactory(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : IAuthenticationProviderFactory {
 		public IAuthenticationProvider Build(bool logFailedAuthenticationAttempts) =>
 			new FakeAuthenticationProvider(configureAppTcs, configureServicesTcs);
 
-		class FakeAuthenticationProvider(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : AuthenticationProviderBase
-		{
+		class FakeAuthenticationProvider(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : AuthenticationProviderBase {
 			public override void ConfigureServices(IServiceCollection services, IConfiguration configuration) =>
 				configureServicesTcs.TrySetResult();
 
@@ -58,12 +54,10 @@ public class auth_providers_should : SpecificationWithDirectory
 		}
 	}
 
-	class FakeAuthorizationProviderFactory(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : IAuthorizationProviderFactory
-	{
+	class FakeAuthorizationProviderFactory(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : IAuthorizationProviderFactory {
 		public IAuthorizationProvider Build() => new FakeAuthorizationProvider(configureAppTcs, configureServicesTcs);
 
-		class FakeAuthorizationProvider(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : AuthorizationProviderBase
-		{
+		class FakeAuthorizationProvider(TaskCompletionSource configureAppTcs, TaskCompletionSource configureServicesTcs) : AuthorizationProviderBase {
 			public override void ConfigureServices(IServiceCollection services, IConfiguration configuration) =>
 				configureServicesTcs.TrySetResult();
 

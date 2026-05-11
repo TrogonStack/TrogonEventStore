@@ -25,14 +25,12 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Core.Tests.Services.Transport.Tcp;
 
 [TestFixture]
-public class TcpConnectionManagerTests
-{
+public class TcpConnectionManagerTests {
 	private int _connectionPendingSendBytesThreshold = 10 * 1024;
 	private int _connectionQueueSizeThreshold = 50000;
 
 	[Test]
-	public void when_handling_trusted_write_on_external_service()
-	{
+	public void when_handling_trusted_write_on_external_service() {
 		var package = new TcpPackage(TcpCommand.WriteEvents, TcpFlags.TrustedWrite, Guid.NewGuid(), null, null,
 			new byte[] { });
 
@@ -58,8 +56,7 @@ public class TcpConnectionManagerTests
 	}
 
 	[Test]
-	public void when_handling_trusted_write_on_internal_service()
-	{
+	public void when_handling_trusted_write_on_internal_service() {
 		ManualResetEvent waiter = new ManualResetEvent(false);
 		ClientMessage.WriteEvents publishedWrite = null;
 		var evnt = new Event(Guid.NewGuid(), "TestEventType", true, new byte[] { }, new byte[] { });
@@ -76,8 +73,7 @@ public class TcpConnectionManagerTests
 		var dummyConnection = new DummyTcpConnection();
 		var publisher = new SynchronousScheduler();
 
-		publisher.Subscribe(new AdHocHandler<ClientMessage.WriteEvents>(x =>
-		{
+		publisher.Subscribe(new AdHocHandler<ClientMessage.WriteEvents>(x => {
 			publishedWrite = x;
 			waiter.Set();
 		}));
@@ -93,8 +89,7 @@ public class TcpConnectionManagerTests
 
 		tcpConnectionManager.ProcessPackage(package);
 
-		if (!waiter.WaitOne(TimeSpan.FromSeconds(5)))
-		{
+		if (!waiter.WaitOne(TimeSpan.FromSeconds(5))) {
 			throw new Exception("Timed out waiting for events.");
 		}
 
@@ -105,8 +100,7 @@ public class TcpConnectionManagerTests
 
 	[Test]
 	public void
-		when_limit_pending_and_sending_message_smaller_than_threshold_and_pending_bytes_over_threshold_should_close_connection()
-	{
+		when_limit_pending_and_sending_message_smaller_than_threshold_and_pending_bytes_over_threshold_should_close_connection() {
 		var mre = new ManualResetEventSlim();
 
 		var messageSize = _connectionPendingSendBytesThreshold / 2;
@@ -131,16 +125,14 @@ public class TcpConnectionManagerTests
 
 		tcpConnectionManager.SendMessage(message);
 
-		if (!mre.Wait(2000))
-		{
+		if (!mre.Wait(2000)) {
 			Assert.Fail("Timed out waiting for connection to close");
 		}
 	}
 
 	[Test]
 	public void
-		when_limit_pending_and_sending_message_larger_than_pending_bytes_threshold_but_no_bytes_pending_should_not_close_connection()
-	{
+		when_limit_pending_and_sending_message_larger_than_pending_bytes_threshold_but_no_bytes_pending_should_not_close_connection() {
 		var messageSize = _connectionPendingSendBytesThreshold + 1000;
 		var evnt = new EventRecord(0, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, "testStream", 0, DateTime.Now,
 			PrepareFlags.None, "eventType", new byte[messageSize], new byte[0]);
@@ -171,8 +163,7 @@ public class TcpConnectionManagerTests
 
 	[Test]
 	public void
-		when_not_limit_pending_and_sending_message_smaller_than_threshold_and_pending_bytes_over_threshold_should_not_close_connection()
-	{
+		when_not_limit_pending_and_sending_message_smaller_than_threshold_and_pending_bytes_over_threshold_should_not_close_connection() {
 		var mre = new ManualResetEventSlim();
 
 		var messageSize = _connectionPendingSendBytesThreshold / 2;
@@ -205,8 +196,7 @@ public class TcpConnectionManagerTests
 
 	[Test]
 	public void
-		when_send_queue_size_is_smaller_than_threshold_should_not_close_connection()
-	{
+		when_send_queue_size_is_smaller_than_threshold_should_not_close_connection() {
 		var mre = new ManualResetEventSlim();
 
 		var messageSize = _connectionPendingSendBytesThreshold;
@@ -239,8 +229,7 @@ public class TcpConnectionManagerTests
 
 	[Test]
 	public void
-		when_send_queue_size_is_larger_than_threshold_should_close_connection()
-	{
+		when_send_queue_size_is_larger_than_threshold_should_close_connection() {
 		var mre = new ManualResetEventSlim();
 
 		var messageSize = _connectionPendingSendBytesThreshold;
@@ -264,55 +253,46 @@ public class TcpConnectionManagerTests
 
 		tcpConnectionManager.SendMessage(message);
 
-		if (!mre.Wait(2000))
-		{
+		if (!mre.Wait(2000)) {
 			Assert.Fail("Timed out waiting for connection to close");
 		}
 	}
 }
 
-internal class DummyTcpConnection : ITcpConnection
-{
-	public Guid ConnectionId
-	{
+internal class DummyTcpConnection : ITcpConnection {
+	public Guid ConnectionId {
 		get { return _connectionId; }
 		set { _connectionId = value; }
 	}
 	private Guid _connectionId = Guid.NewGuid();
-	public string ClientConnectionName
-	{
+	public string ClientConnectionName {
 		get { return _clientConnectionName; }
 	}
 
 	public long TotalBytesSent { get; }
 	public long TotalBytesReceived { get; }
 
-	public bool IsClosed
-	{
+	public bool IsClosed {
 		get { return false; }
 	}
 
-	public IPEndPoint LocalEndPoint
-	{
+	public IPEndPoint LocalEndPoint {
 		get { return new IPEndPoint(IPAddress.Loopback, 2); }
 	}
 
-	public IPEndPoint RemoteEndPoint
-	{
+	public IPEndPoint RemoteEndPoint {
 		get { return new IPEndPoint(IPAddress.Loopback, 1); }
 	}
 
 	private int _sendQueueSize;
-	public int SendQueueSize
-	{
+	public int SendQueueSize {
 		get { return _sendQueueSize; }
 		set { _sendQueueSize = value; }
 	}
 
 	private int _pendingSendBytes;
 
-	public int PendingSendBytes
-	{
+	public int PendingSendBytes {
 		get { return _pendingSendBytes; }
 		set { _pendingSendBytes = value; }
 	}
@@ -320,27 +300,24 @@ internal class DummyTcpConnection : ITcpConnection
 	public event Action<ITcpConnection, SocketError> ConnectionClosed;
 	private string _clientConnectionName;
 
-	public void Close(string reason)
-	{
+	public void Close(string reason) {
 		var handler = ConnectionClosed;
-		if (handler != null)
+		if (handler != null) {
 			handler(this, SocketError.Shutdown);
+		}
 	}
 
 	public IEnumerable<ArraySegment<byte>> ReceivedData;
 
-	public void EnqueueSend(IEnumerable<ArraySegment<byte>> data)
-	{
+	public void EnqueueSend(IEnumerable<ArraySegment<byte>> data) {
 		ReceivedData = data;
 	}
 
-	public void ReceiveAsync(Action<ITcpConnection, IEnumerable<ArraySegment<byte>>> callback)
-	{
+	public void ReceiveAsync(Action<ITcpConnection, IEnumerable<ArraySegment<byte>>> callback) {
 		throw new NotImplementedException();
 	}
 
-	public void SetClientConnectionName(string clientConnectionName)
-	{
+	public void SetClientConnectionName(string clientConnectionName) {
 		_clientConnectionName = clientConnectionName;
 	}
 }

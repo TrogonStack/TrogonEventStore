@@ -11,8 +11,7 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
-{
+public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy {
 	public QueryProcessingStrategy(
 		string name, ProjectionVersion projectionVersion, IProjectionStateHandler stateHandler,
 		ProjectionConfig projectionConfig, IQuerySources sourceDefinition, ILogger logger,
@@ -20,22 +19,18 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 		int maxProjectionStateSize = int.MaxValue)
 		: base(
 			name, projectionVersion, stateHandler, projectionConfig, sourceDefinition, logger,
-			subscriptionDispatcher, enableContentTypeValidation, maxProjectionStateSize)
-	{
+			subscriptionDispatcher, enableContentTypeValidation, maxProjectionStateSize) {
 	}
 
-	public override bool GetStopOnEof()
-	{
+	public override bool GetStopOnEof() {
 		return true;
 	}
 
-	public override bool GetUseCheckpoints()
-	{
+	public override bool GetUseCheckpoints() {
 		return false;
 	}
 
-	public override bool GetProducesRunningResults()
-	{
+	public override bool GetProducesRunningResults() {
 		return !_sourceDefinition.DefinesFold;
 	}
 
@@ -43,8 +38,7 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 		IPublisher publisher, IPublisher inputQueue, Guid projectionCorrelationId,
 		ProjectionNamesBuilder namingBuilder,
 		PartitionStateCache partitionStateCache, CoreProjection coreProjection, IODispatcher ioDispatcher,
-		IProjectionProcessingPhase firstPhase)
-	{
+		IProjectionProcessingPhase firstPhase) {
 		var coreProjectionCheckpointWriter =
 			new CoreProjectionCheckpointWriter(
 				namingBuilder.MakeCheckpointStreamName(), ioDispatcher, _projectionVersion, _name);
@@ -54,7 +48,7 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 			_sourceDefinition.DefinesFold, coreProjectionCheckpointWriter, _maxProjectionStateSize);
 
 		IProjectionProcessingPhase writeResultsPhase;
-		if (GetProducesRunningResults())
+		if (GetProducesRunningResults()) {
 			writeResultsPhase = new WriteQueryEofProjectionProcessingPhase(
 				publisher,
 				1,
@@ -64,7 +58,8 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 				checkpointManager2,
 				checkpointManager2,
 				firstPhase.EmittedStreamsTracker);
-		else
+		}
+		else {
 			writeResultsPhase = new WriteQueryResultProjectionProcessingPhase(
 				publisher,
 				1,
@@ -74,12 +69,12 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 				checkpointManager2,
 				checkpointManager2,
 				firstPhase.EmittedStreamsTracker);
+		}
 
 		return new[] { firstPhase, writeResultsPhase };
 	}
 
-	protected override IResultEventEmitter CreateFirstPhaseResultEmitter(ProjectionNamesBuilder namingBuilder)
-	{
+	protected override IResultEventEmitter CreateFirstPhaseResultEmitter(ProjectionNamesBuilder namingBuilder) {
 		return new ResultEventEmitter(namingBuilder);
 	}
 }

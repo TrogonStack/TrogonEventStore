@@ -36,11 +36,13 @@ public class SemaphoreSlimLock : IDisposable {
 
 	public bool TryRelease(Guid acquisitionId) {
 		lock (_idLock) {
-			if (_acquisitionId == Guid.Empty)
+			if (_acquisitionId == Guid.Empty) {
 				return false;
+			}
 
-			if (_acquisitionId != acquisitionId)
+			if (_acquisitionId != acquisitionId) {
 				return false;
+			}
 
 			_acquisitionId = Guid.Empty;
 		}

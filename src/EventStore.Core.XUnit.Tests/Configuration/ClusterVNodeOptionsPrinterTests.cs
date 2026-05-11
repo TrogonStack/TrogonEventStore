@@ -11,11 +11,9 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
 
-public class ClusterVNodeOptionsPrinterTests
-{
+public class ClusterVNodeOptionsPrinterTests {
 	[Fact]
-	public void prints_options()
-	{
+	public void prints_options() {
 		var config = new ConfigurationBuilder()
 			.AddEventStoreDefaultValues(new Dictionary<string, string?> {
 				{ "ChunkSize", "10000"},
@@ -66,8 +64,7 @@ DEFAULT OPTIONS:
 	}
 
 	[Fact]
-	public void loaded_options_do_not_contain_sensitive_values()
-	{
+	public void loaded_options_do_not_contain_sensitive_values() {
 		var secretText = Guid.NewGuid().ToString();
 
 		var config = new ConfigurationBuilder()
@@ -83,8 +80,7 @@ DEFAULT OPTIONS:
 	}
 
 	[Fact]
-	public void loaded_options_show_allowed_values()
-	{
+	public void loaded_options_show_allowed_values() {
 		var config = new ConfigurationBuilder()
 			.AddEventStoreDefaultValues()
 			.Build();
@@ -97,8 +93,7 @@ DEFAULT OPTIONS:
 	}
 
 	[Fact]
-	public void loaded_option_provided_by_another_source_shows_the_correct_source()
-	{
+	public void loaded_option_provided_by_another_source_shows_the_correct_source() {
 		var config = new ConfigurationBuilder()
 			.AddEventStoreDefaultValues()
 			.AddEventStoreEnvironmentVariables(

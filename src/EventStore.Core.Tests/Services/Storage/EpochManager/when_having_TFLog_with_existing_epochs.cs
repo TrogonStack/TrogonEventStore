@@ -25,8 +25,7 @@ namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture,
-	IDisposable
-{
+	IDisposable {
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
 	private LogFormatAbstractor<TStreamId> _logFormat;
@@ -38,15 +37,13 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 	private readonly List<Message> _published = new List<Message>();
 	private List<EpochRecord> _epochs;
 
-	private int GetNextEpoch()
-	{
+	private int GetNextEpoch() {
 		return (int)Interlocked.Increment(ref _currentEpoch);
 	}
 
 	private long _currentEpoch = -1;
 
-	private EpochManager<TStreamId> GetManager()
-	{
+	private EpochManager<TStreamId> GetManager() {
 		return new EpochManager<TStreamId>(_mainBus,
 			10,
 			_db.Config.EpochCheckpoint,
@@ -63,16 +60,14 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 			_instanceId);
 	}
 
-	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager)
-	{
+	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager) {
 		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>)
 			.GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
 			.GetValue(_epochManager);
 	}
 
 	private async ValueTask<EpochRecord> WriteEpoch(int epochNumber, long lastPos, Guid instanceId,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 		long pos = _writer.Position;
 		var epoch = new EpochRecord(pos, epochNumber, Guid.NewGuid(), lastPos, DateTime.UtcNow, instanceId);
 		var rec = _logFormat.RecordFactory.CreateEpoch(epoch);
@@ -82,8 +77,7 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
@@ -105,8 +99,7 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 		Assert.That(_cache.Count == 0);
 		_epochs = new List<EpochRecord>();
 		var lastPos = 0L;
-		for (int i = 0; i < 30; i++)
-		{
+		for (int i = 0; i < 30; i++) {
 			var epoch = await WriteEpoch(GetNextEpoch(), lastPos, _instanceId, CancellationToken.None);
 			_epochs.Add(epoch);
 			lastPos = epoch.EpochPosition;
@@ -114,8 +107,7 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		this.Dispose();
 		await base.TestFixtureTearDown();
 	}
@@ -126,8 +118,7 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 	// so this test will run through the test cases
 	// in order
 	[Test]
-	public async Task can_add_epochs_to_cache()
-	{
+	public async Task can_add_epochs_to_cache() {
 
 		Assert.That(_cache.Count == 0);
 		//add fist epoch to empty cache
@@ -274,17 +265,14 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 		await _epochManager.WriteNewEpoch(GetNextEpoch(), CancellationToken.None);
 		var epochsWritten = _published.OfType<SystemMessage.EpochWritten>().ToArray();
 		Assert.AreEqual(2, epochsWritten.Length);
-		for (int i = 0; i < epochsWritten.Length; i++)
-		{
+		for (int i = 0; i < epochsWritten.Length; i++) {
 			_reader.Reposition(epochsWritten[i].Epoch.EpochPosition);
 			await _reader.TryReadNext(CancellationToken.None); // read epoch
 			IPrepareLogRecord<TStreamId> epochInfo;
-			while (true)
-			{
+			while (true) {
 				var result = await _reader.TryReadNext(CancellationToken.None);
 				Assert.True(result.Success);
-				if (result.LogRecord is IPrepareLogRecord<TStreamId> prepare)
-				{
+				if (result.LogRecord is IPrepareLogRecord<TStreamId> prepare) {
 					epochInfo = prepare;
 					break;
 				}
@@ -301,28 +289,23 @@ public class WhenHavingTfLogWithExistingEpochs<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	public class EpochDto
-	{
+	public class EpochDto {
 		public Guid LeaderInstanceId { get; set; }
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		//epochManager?.Dispose();
 		//reader?.Dispose();
-		try
-		{
+		try {
 			_logFormat?.Dispose();
 			using var task = _writer?.DisposeAsync().AsTask() ?? Task.CompletedTask;
 			task.Wait();
 		}
-		catch
-		{
+		catch {
 			//workaround for TearDown error
 		}
 
-		using (var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask)
-		{
+		using (var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask) {
 			task.Wait();
 		}
 	}

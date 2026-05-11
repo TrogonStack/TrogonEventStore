@@ -10,12 +10,10 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_starting_an_existing_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
+public class when_starting_an_existing_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
 	private string _testProjectionState = @"{""test"":1}";
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		ExistingEvent(
 			"$projections-projection-result", "Result", @"{""c"": 100, ""p"": 50}",
 			_testProjectionState);
@@ -32,8 +30,7 @@ public class when_starting_an_existing_projection_and_an_event_is_received<TLogF
 		AllWritesToSucceed("$projections-projection-order");
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		var eventId = Guid.NewGuid();
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -44,8 +41,7 @@ public class when_starting_an_existing_projection_and_an_event_is_received<TLogF
 
 
 	[Test]
-	public void should_load_projection_state_handler()
-	{
+	public void should_load_projection_state_handler() {
 		Assert.AreEqual(1, _stateHandler._loadCalled);
 		Assert.AreEqual(_testProjectionState + "data", _stateHandler._loadedState);
 	}

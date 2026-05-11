@@ -78,9 +78,11 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 					};
 
 					source.Process();
-				} catch (ObjectDisposedException) {
+				}
+				catch (ObjectDisposedException) {
 					// ignore exception on shutdown
-				} catch (Exception exception) {
+				}
+				catch (Exception exception) {
 					Log.Warning(exception, "Error encountered while processing events");
 				}
 			});
@@ -115,7 +117,10 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 		}
 
 		private double GetCounterValue(string name) {
-			if (!_collectedStats.TryGetValue(name, out var value)) return InvalidCounterResult;
+			if (!_collectedStats.TryGetValue(name, out var value)) {
+				return InvalidCounterResult;
+			}
+
 			return value;
 		}
 
@@ -137,7 +142,8 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 		public void Dispose() {
 			try {
 				_session?.Stop();
-			} catch (ServerNotAvailableException) {
+			}
+			catch (ServerNotAvailableException) {
 			}
 
 			_session?.Dispose();

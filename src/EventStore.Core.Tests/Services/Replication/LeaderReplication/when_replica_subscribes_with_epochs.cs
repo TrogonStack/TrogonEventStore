@@ -12,12 +12,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 public class WhenReplicaSubscribesWithNoCommonEpochs<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -35,8 +33,7 @@ public class WhenReplicaSubscribesWithNoCommonEpochs<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void subscription_is_sent_a_replica_subscribed_message_from_start()
-	{
+	public void subscription_is_sent_a_replica_subscribed_message_from_start() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -48,14 +45,12 @@ public class WhenReplicaSubscribesWithNoCommonEpochs<TLogFormat, TStreamId>
 }
 
 public class WhenReplicaWithSameEpochsSubscribesFromLastEpochPosition<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private EpochRecord _lastEpoch;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -72,8 +67,7 @@ public class WhenReplicaWithSameEpochsSubscribesFromLastEpochPosition<TLogFormat
 	}
 
 	[Test]
-	public void subscription_is_sent_a_replica_subscribed_message_from_last_epoch_position()
-	{
+	public void subscription_is_sent_a_replica_subscribed_message_from_last_epoch_position() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -85,15 +79,13 @@ public class WhenReplicaWithSameEpochsSubscribesFromLastEpochPosition<TLogFormat
 }
 
 public class WhenReplicaWithSameEpochsSubscribesFromPositionLessThanLastEpochPosition<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private EpochRecord _lastEpoch;
 	private long _subscribedPosition;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -110,8 +102,7 @@ public class WhenReplicaWithSameEpochsSubscribesFromPositionLessThanLastEpochPos
 	}
 
 	[Test]
-	public void subscription_is_sent_a_replica_subscribed_message_from_requested_position()
-	{
+	public void subscription_is_sent_a_replica_subscribed_message_from_requested_position() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -123,14 +114,12 @@ public class WhenReplicaWithSameEpochsSubscribesFromPositionLessThanLastEpochPos
 }
 
 public class WhenReplicaWithAdditionalEpochsSubscribesToPositionPastLeadersLastEpoch<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -157,8 +146,7 @@ public class WhenReplicaWithAdditionalEpochsSubscribesToPositionPastLeadersLastE
 	}
 
 	[Test]
-	public void subscription_is_sent_replica_subscribed_message_for_epoch_after_common_epoch()
-	{
+	public void subscription_is_sent_replica_subscribed_message_for_epoch_after_common_epoch() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -170,14 +158,12 @@ public class WhenReplicaWithAdditionalEpochsSubscribesToPositionPastLeadersLastE
 }
 
 public class WhenReplicaSubscribesWithEpochThatDoesntExistOnLeaderButIsBeforeLeadersLastEpoch<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -198,8 +184,7 @@ public class WhenReplicaSubscribesWithEpochThatDoesntExistOnLeaderButIsBeforeLea
 	}
 
 	[Test]
-	public void subscription_is_sent_replica_subscribed_message_for_epoch_after_common_epoch()
-	{
+	public void subscription_is_sent_replica_subscribed_message_for_epoch_after_common_epoch() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -211,14 +196,12 @@ public class WhenReplicaSubscribesWithEpochThatDoesntExistOnLeaderButIsBeforeLea
 }
 
 public class WhenReplicaSubscribesWithAdditionalEpochPastLeadersWriterCheckpoint<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -239,8 +222,7 @@ public class WhenReplicaSubscribesWithAdditionalEpochPastLeadersWriterCheckpoint
 	}
 
 	[Test]
-	public void subscription_is_sent_replica_subscribed_message_for_leaders_writer_checkpoint()
-	{
+	public void subscription_is_sent_replica_subscribed_message_for_leaders_writer_checkpoint() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -252,14 +234,12 @@ public class WhenReplicaSubscribesWithAdditionalEpochPastLeadersWriterCheckpoint
 }
 
 public class WhenReplicaSubscribesWithAdditionalEpochAndLeaderHasEpochAfterCommonEpoch<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await Writer.Write(CreateLogRecord(1), token);
@@ -279,8 +259,7 @@ public class WhenReplicaSubscribesWithAdditionalEpochAndLeaderHasEpochAfterCommo
 	}
 
 	[Test]
-	public void subscription_is_sent_replica_subscribed_message_for_leaders_epoch_after_common_epoch()
-	{
+	public void subscription_is_sent_replica_subscribed_message_for_leaders_epoch_after_common_epoch() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -292,13 +271,11 @@ public class WhenReplicaSubscribesWithAdditionalEpochAndLeaderHasEpochAfterCommo
 }
 
 public class WhenReplicaSubscribesWithUncachedEpoch<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
-	public override async Task When(CancellationToken token)
-	{
+	public override async Task When(CancellationToken token) {
 		await EpochManager.WriteNewEpoch(0, token);
 		await Writer.Write(CreateLogRecord(0), token);
 		await EpochManager.WriteNewEpoch(1, token);
@@ -323,8 +300,7 @@ public class WhenReplicaSubscribesWithUncachedEpoch<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public void subscription_is_sent_a_replica_subscribed_message_common_epoch()
-	{
+	public void subscription_is_sent_a_replica_subscribed_message_common_epoch() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);
@@ -336,15 +312,13 @@ public class WhenReplicaSubscribesWithUncachedEpoch<TLogFormat, TStreamId>
 }
 
 public class WhenReplicaSubscribesWithUncachedEpochThatDoesNotExistOnLeader<TLogFormat, TStreamId>
-	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId>
-{
+	: WithReplicationServiceAndEpochManager<TLogFormat, TStreamId> {
 	private readonly Guid _replicaId = Guid.NewGuid();
 	private TcpConnectionManager _replicaManager;
 	private List<Epoch> _replicaEpochs;
 	private EpochRecord[] _uncachedLeaderEpochs;
 
-	public override async Task When(CancellationToken token = default)
-	{
+	public override async Task When(CancellationToken token = default) {
 		// The EpochManager for these tests only caches 5 epochs
 		// Epochs 2 and 3 don't exist
 		await EpochManager.WriteNewEpoch(0, token);
@@ -384,8 +358,7 @@ public class WhenReplicaSubscribesWithUncachedEpochThatDoesNotExistOnLeader<TLog
 	}
 
 	[Test]
-	public async Task subscription_is_sent_a_replica_subscribed_message_to_epoch_position_after_common_epoch()
-	{
+	public async Task subscription_is_sent_a_replica_subscribed_message_to_epoch_position_after_common_epoch() {
 		var message = GetTcpSendsFor(_replicaManager).Select(x => x.Message).First();
 
 		Assert.IsInstanceOf<ReplicationMessage.ReplicaSubscribed>(message);

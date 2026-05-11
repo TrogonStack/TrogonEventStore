@@ -15,36 +15,30 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class isjson_flag_on_event<TLogFormat, TStreamId> : SpecificationWithDirectory
-{
+public class isjson_flag_on_event<TLogFormat, TStreamId> : SpecificationWithDirectory {
 	private MiniNode<TLogFormat, TStreamId> _node;
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 	}
 
 	[TearDown]
-	public override async Task TearDown()
-	{
+	public override async Task TearDown() {
 		await _node.Shutdown();
 		await base.TearDown();
 	}
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.To(node, TcpType.Ssl);
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task should_be_preserved_with_all_possible_write_and_read_methods()
-	{
+	public async Task should_be_preserved_with_all_possible_write_and_read_methods() {
 		const string stream = "should_be_preserved_with_all_possible_write_methods";
-		using (var connection = BuildConnection(_node))
-		{
+		using (var connection = BuildConnection(_node)) {
 			await connection.ConnectAsync();
 
 			await connection.AppendToStreamAsync(
@@ -59,10 +53,8 @@ public class isjson_flag_on_event<TLogFormat, TStreamId> : SpecificationWithDire
 						Helper.UTF8NoBom.GetBytes("{\"some\":\"json\"}")));
 			var expectedEvents = 3;
 
-			if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
-			{
-				using (var transaction = await connection.StartTransactionAsync(stream, ExpectedVersion.Any))
-				{
+			if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+				using (var transaction = await connection.StartTransactionAsync(stream, ExpectedVersion.Any)) {
 					await transaction.WriteAsync(
 						new EventData(Guid.NewGuid(), "some-type", true,
 							Helper.UTF8NoBom.GetBytes("{\"some\":\"json\"}"), null),
@@ -78,8 +70,7 @@ public class isjson_flag_on_event<TLogFormat, TStreamId> : SpecificationWithDire
 
 			var done = new ManualResetEventSlim();
 			_node.Node.MainQueue.Publish(new ClientMessage.ReadStreamEventsForward(
-				Guid.NewGuid(), Guid.NewGuid(), new CallbackEnvelope(message =>
-				{
+				Guid.NewGuid(), Guid.NewGuid(), new CallbackEnvelope(message => {
 					Assert.IsInstanceOf<ClientMessage.ReadStreamEventsForwardCompleted>(message);
 					var msg = (ClientMessage.ReadStreamEventsForwardCompleted)message;
 					Assert.AreEqual(Data.ReadStreamResult.Success, msg.Result);

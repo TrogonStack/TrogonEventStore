@@ -2,15 +2,13 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace EventStore.Core.Tests.Certificates;
 
-public class with_certificate_chain_of_length_3 : with_certificates
-{
+public class with_certificate_chain_of_length_3 : with_certificates {
 	protected readonly X509Certificate2 _root, _intermediate, _leaf;
 
 	public with_certificate_chain_of_length_3(
 		bool leafExpired = false,
 		bool intermediateExpired = false,
-		bool rootExpired = false)
-	{
+		bool rootExpired = false) {
 		var root = CreateCertificate(issuer: true, expired: rootExpired);
 		var intermediate = CreateCertificate(issuer: true, parent: root, expired: intermediateExpired);
 		var leaf = CreateCertificate(issuer: false, parent: intermediate, expired: leafExpired);

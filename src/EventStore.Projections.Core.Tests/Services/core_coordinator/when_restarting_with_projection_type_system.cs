@@ -11,8 +11,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_coordinator;
 
 [TestFixture]
-public class when_restarting_with_projection_type_system
-{
+public class when_restarting_with_projection_type_system {
 	private FakePublisher[] queues;
 	private FakePublisher publisher;
 	private ProjectionCoreCoordinator _coordinator;
@@ -20,8 +19,7 @@ public class when_restarting_with_projection_type_system
 	private Guid queueId;
 
 	[SetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		queues = new List<FakePublisher>() { new FakePublisher() }.ToArray();
 		publisher = new FakePublisher();
 
@@ -47,8 +45,7 @@ public class when_restarting_with_projection_type_system
 	}
 
 	[Test]
-	public void should_not_start_if_subcomponents_not_stopped()
-	{
+	public void should_not_start_if_subcomponents_not_stopped() {
 		// None of the subcomponents stopped
 
 		// Start Components
@@ -59,8 +56,7 @@ public class when_restarting_with_projection_type_system
 	}
 
 	[Test]
-	public void should_not_start_if_not_all_subcomponents_stopped()
-	{
+	public void should_not_start_if_not_all_subcomponents_stopped() {
 		// Not all components stopped
 		_coordinator.Handle(
 			new ProjectionCoreServiceMessage.SubComponentStopped(EventReaderCoreService.SubComponentName,
@@ -74,8 +70,7 @@ public class when_restarting_with_projection_type_system
 	}
 
 	[Test]
-	public void should_start_if_subcomponents_stopped_before_starting_components_again()
-	{
+	public void should_start_if_subcomponents_stopped_before_starting_components_again() {
 		// All components stopped
 		_coordinator.Handle(
 			new ProjectionCoreServiceMessage.SubComponentStopped(EventReaderCoreService.SubComponentName,
@@ -92,8 +87,7 @@ public class when_restarting_with_projection_type_system
 	}
 
 	[Test]
-	public void should_not_stop_if_all_subcomponents_not_started()
-	{
+	public void should_not_stop_if_all_subcomponents_not_started() {
 		var newInstanceCorrelationId = Guid.NewGuid();
 
 		// All components stopped
@@ -122,8 +116,7 @@ public class when_restarting_with_projection_type_system
 	}
 
 	[Test]
-	public void should_not_stop_if_not_started()
-	{
+	public void should_not_stop_if_not_started() {
 		// All components stopped
 		_coordinator.Handle(
 			new ProjectionCoreServiceMessage.SubComponentStopped(EventReaderCoreService.SubComponentName,
@@ -142,8 +135,7 @@ public class when_restarting_with_projection_type_system
 	}
 
 	[Test]
-	public void should_not_stop_if_correlation_id_is_different()
-	{
+	public void should_not_stop_if_correlation_id_is_different() {
 		var newInstanceCorrelationId = Guid.NewGuid();
 
 		// All components stopped

@@ -12,16 +12,14 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [Category("ClientAPI"), Category("LongRunning")]
 public class
 	ReadStreamWithLinkToEventWithEventNumberGreaterThanIntMaxvalue<TLogFormat, TStreamId>
-	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
-{
+	: MiniNodeWithExistingRecords<TLogFormat, TStreamId> {
 	private const string StreamName = "read_stream_with_link_to_event_with_event_number_greater_than_int_maxvalue";
 	private const long intMaxValue = (long)int.MaxValue;
 
 	private string _linkedStreamName = "linked-" + StreamName;
 	private EventRecord _event1, _event2;
 
-	public override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	public override async ValueTask WriteTestScenario(CancellationToken token) {
 		_event1 = await WriteSingleEvent(StreamName, intMaxValue + 1, new string('.', 3000), token: token);
 		_event2 = await WriteSingleEvent(StreamName, intMaxValue + 2, new string('.', 3000), token: token);
 		await WriteSingleEvent(_linkedStreamName, 0, string.Format("{0}@{1}", intMaxValue + 1, StreamName),
@@ -30,15 +28,13 @@ public class
 			eventType: SystemEventTypes.LinkTo, token: token);
 	}
 
-	public override async Task Given()
-	{
+	public override async Task Given() {
 		_store = BuildConnection(Node);
 		await _store.ConnectAsync();
 	}
 
 	[Test]
-	public async Task should_be_able_to_read_link_stream_forward_and_resolve_link_tos()
-	{
+	public async Task should_be_able_to_read_link_stream_forward_and_resolve_link_tos() {
 		var readResult = await _store
 			.ReadStreamEventsForwardAsync(_linkedStreamName, 0, 100, true, DefaultData.AdminCredentials);
 		Assert.AreEqual(SliceReadStatus.Success, readResult.Status);
@@ -50,8 +46,7 @@ public class
 	}
 
 	[Test]
-	public async Task should_be_able_to_read_link_stream_backward_and_resolve_link_tos()
-	{
+	public async Task should_be_able_to_read_link_stream_backward_and_resolve_link_tos() {
 		var readResult = await _store
 			.ReadStreamEventsBackwardAsync(_linkedStreamName, 10, 100, true, DefaultData.AdminCredentials);
 		Assert.AreEqual(SliceReadStatus.Success, readResult.Status);
@@ -63,8 +58,7 @@ public class
 	}
 
 	[Test]
-	public async Task should_be_able_to_read_all_stream_forward_and_resolve_link_tos()
-	{
+	public async Task should_be_able_to_read_all_stream_forward_and_resolve_link_tos() {
 		var readResult = await _store.ReadAllEventsForwardAsync(Position.Start, 100, true, DefaultData.AdminCredentials)
 			;
 		var linkedEvents = readResult.Events.Where(x => x.OriginalStreamId == _linkedStreamName).ToList();
@@ -76,8 +70,7 @@ public class
 	}
 
 	[Test]
-	public async Task should_be_able_to_read_all_stream_backward_and_resolve_link_tos()
-	{
+	public async Task should_be_able_to_read_all_stream_backward_and_resolve_link_tos() {
 		var readResult = await _store.ReadAllEventsBackwardAsync(Position.End, 100, true, DefaultData.AdminCredentials)
 			;
 		var linkedEvents = readResult.Events.Where(x => x.OriginalStreamId == _linkedStreamName).ToList();

@@ -32,20 +32,27 @@ namespace EventStore.Core.Cluster {
 		}
 
 		public bool HasChangedSince(ClusterInfo other) {
-			if (ReferenceEquals(null, other)) return true;
-			if (ReferenceEquals(this, other)) return false;
-
-			if (other.Members.Length != Members.Length)
+			if (ReferenceEquals(null, other)) {
 				return true;
+			}
+
+			if (ReferenceEquals(this, other)) {
+				return false;
+			}
+
+			if (other.Members.Length != Members.Length) {
+				return true;
+			}
 
 			for (int i = 0; i < Members.Length; i++) {
-				if (!Members[i].Equals(other.Members[i]))
+				if (!Members[i].Equals(other.Members[i])) {
 					return true;
+				}
 			}
 
 			return false;
 		}
-		
+
 		internal static ClusterInfo FromGrpcClusterInfo(EventStore.Cluster.ClusterInfo grpcCluster, string clusterDns) {
 			var receivedMembers = Array.ConvertAll(grpcCluster.Members.ToArray(), x =>
 				new MemberInfo(

@@ -4,12 +4,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastreamScavengeMapTests>
-{
+public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastreamScavengeMapTests> {
 
 	[Fact]
-	public void can_set_metastream_data()
-	{
+	public void can_set_metastream_data() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("SetData");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -22,8 +20,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_overwrite_existing()
-	{
+	public void can_overwrite_existing() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("Overwrite");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -38,8 +35,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_set_tombstone_of_existing()
-	{
+	public void can_set_tombstone_of_existing() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("TombstoneSetExisting");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -55,8 +51,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_set_tombstone_of_non_existing()
-	{
+	public void can_set_tombstone_of_non_existing() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("TombstoneSetNonExisting");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -67,8 +62,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_set_discard_point_of_existing()
-	{
+	public void can_set_discard_point_of_existing() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("DiscardPointExisting");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -84,8 +78,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_set_discard_point_of_non_existing()
-	{
+	public void can_set_discard_point_of_non_existing() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("DiscardPointNonExisting");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -98,8 +91,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_get_all_records()
-	{
+	public void can_get_all_records() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("EnumerateAll");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -112,36 +104,30 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 		sut[4] = osd[4];
 
 		Assert.Collection(sut.AllRecords(),
-			item =>
-			{
+			item => {
 				Assert.Equal(0ul, item.Key);
 				Assert.Equal(osd[0], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(1ul, item.Key);
 				Assert.Equal(osd[1], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(2ul, item.Key);
 				Assert.Equal(osd[2], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(3ul, item.Key);
 				Assert.Equal(osd[3], item.Value);
 			},
-			item =>
-			{
+			item => {
 				Assert.Equal(4ul, item.Key);
 				Assert.Equal(osd[4], item.Value);
 			});
 	}
 
 	[Fact]
-	public void can_remove_value_from_map()
-	{
+	public void can_remove_value_from_map() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("Remove");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -160,8 +146,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_try_remove_value_from_map()
-	{
+	public void can_try_remove_value_from_map() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("OriginalStreamScavengeMap");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -169,8 +154,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 	}
 
 	[Fact]
-	public void can_remove_all()
-	{
+	public void can_remove_all() {
 		var sut = new SqliteMetastreamScavengeMap<ulong>("EnumerateAll");
 		sut.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -187,8 +171,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 		Assert.Empty(sut.AllRecords());
 	}
 
-	private MetastreamData[] GetMetastreamTestData()
-	{
+	private MetastreamData[] GetMetastreamTestData() {
 		return new[] {
 			new MetastreamData(isTombstoned: false, DiscardPoint.DiscardIncluding(5)),
 			new MetastreamData(isTombstoned: false, DiscardPoint.DiscardIncluding(50)),

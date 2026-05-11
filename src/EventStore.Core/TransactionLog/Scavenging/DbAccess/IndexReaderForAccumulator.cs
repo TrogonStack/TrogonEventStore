@@ -6,19 +6,16 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 namespace EventStore.Core.TransactionLog.Scavenging;
 
 public class IndexReaderForAccumulator<TStreamId>(IReadIndex<TStreamId> readIndex)
-	: IIndexReaderForAccumulator<TStreamId>
-{
+	: IIndexReaderForAccumulator<TStreamId> {
 	// reads a stream forward but only returns event info not the full event.
 	public ValueTask<IndexReadEventInfoResult> ReadEventInfoForward(
 		StreamHandle<TStreamId> handle,
 		long fromEventNumber,
 		int maxCount,
 		ScavengePoint scavengePoint,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
-		switch (handle.Kind)
-		{
+		switch (handle.Kind) {
 			case StreamHandle.Kind.Hash:
 				// uses the index only
 				return readIndex.ReadEventInfoForward_NoCollisions(
@@ -48,11 +45,9 @@ public class IndexReaderForAccumulator<TStreamId>(IReadIndex<TStreamId> readInde
 		long fromEventNumber,
 		int maxCount,
 		ScavengePoint scavengePoint,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 
-		switch (handle.Kind)
-		{
+		switch (handle.Kind) {
 			case StreamHandle.Kind.Hash:
 				// uses the index only
 				return readIndex.ReadEventInfoBackward_NoCollisions(

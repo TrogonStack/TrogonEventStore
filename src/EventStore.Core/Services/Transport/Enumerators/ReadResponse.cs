@@ -4,7 +4,7 @@ using EventStore.Core.Services.Transport.Common;
 namespace EventStore.Core.Services.Transport.Enumerators;
 
 public abstract class ReadResponse {
-	public class EventReceived: ReadResponse {
+	public class EventReceived : ReadResponse {
 		public ResolvedEvent Event;
 
 		public EventReceived(ResolvedEvent @event) {
@@ -12,11 +12,11 @@ public abstract class ReadResponse {
 		}
 	}
 
-	public class SubscriptionCaughtUp: ReadResponse { }
+	public class SubscriptionCaughtUp : ReadResponse { }
 
-	public class SubscriptionFellBehind: ReadResponse { }
+	public class SubscriptionFellBehind : ReadResponse { }
 
-	public class CheckpointReceived: ReadResponse {
+	public class CheckpointReceived : ReadResponse {
 		public readonly ulong CommitPosition;
 		public readonly ulong PreparePosition;
 
@@ -26,7 +26,7 @@ public abstract class ReadResponse {
 		}
 	}
 
-	public class StreamNotFound: ReadResponse {
+	public class StreamNotFound : ReadResponse {
 		public readonly string StreamName;
 
 		public StreamNotFound(string streamName) {
@@ -34,7 +34,7 @@ public abstract class ReadResponse {
 		}
 	}
 
-	public class SubscriptionConfirmed: ReadResponse {
+	public class SubscriptionConfirmed : ReadResponse {
 		public readonly string SubscriptionId;
 
 		public SubscriptionConfirmed(string subscriptionId) {

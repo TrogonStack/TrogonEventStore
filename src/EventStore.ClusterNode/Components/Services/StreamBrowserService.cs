@@ -42,8 +42,9 @@ public sealed class StreamBrowserService(
 		long fromEventNumber = -1,
 		int count = DefaultCount,
 		CancellationToken cancellationToken = default) {
-		if (string.IsNullOrWhiteSpace(streamId))
+		if (string.IsNullOrWhiteSpace(streamId)) {
 			return StreamReadPage.Empty("", "Enter a stream id to inspect events.");
+		}
 
 		count = NormalizeCount(count);
 		fromEventNumber = NormalizeFromEventNumber(fromEventNumber);
@@ -65,11 +66,14 @@ public sealed class StreamBrowserService(
 				CurrentUser,
 				cancellationToken: cancellationToken));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return StreamReadPage.Empty(streamId, $"Timed out reading '{streamId}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {UiMessages.Friendly(ex)}");
 		}
 
@@ -97,8 +101,9 @@ public sealed class StreamBrowserService(
 		long fromEventNumber = 0,
 		int count = DefaultCount,
 		CancellationToken cancellationToken = default) {
-		if (string.IsNullOrWhiteSpace(streamId))
+		if (string.IsNullOrWhiteSpace(streamId)) {
 			return StreamReadPage.Empty("", "Enter a stream id to inspect events.");
+		}
 
 		count = NormalizeCount(count);
 		fromEventNumber = Math.Max(fromEventNumber, 0);
@@ -121,11 +126,14 @@ public sealed class StreamBrowserService(
 				replyOnExpired: false,
 				cancellationToken: cancellationToken));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return StreamReadPage.Empty(streamId, $"Timed out reading '{streamId}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return StreamReadPage.Empty(streamId, $"Unable to read '{streamId}': {UiMessages.Friendly(ex)}");
 		}
 
@@ -171,11 +179,14 @@ public sealed class StreamBrowserService(
 				CurrentUser,
 				cancellationToken: cancellationToken));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return RecentEventsPage.Unavailable("Timed out reading recent events.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return RecentEventsPage.Unavailable($"Unable to read recent events: {UiMessages.Friendly(ex)}");
 		}
 
@@ -192,11 +203,13 @@ public sealed class StreamBrowserService(
 		string streamId,
 		long eventNumber,
 		CancellationToken cancellationToken = default) {
-		if (string.IsNullOrWhiteSpace(streamId))
+		if (string.IsNullOrWhiteSpace(streamId)) {
 			return StreamEventDetailPage.Unavailable("", eventNumber, "Enter a stream id to inspect an event.");
+		}
 
-		if (eventNumber < 0)
+		if (eventNumber < 0) {
 			return StreamEventDetailPage.Unavailable(streamId, eventNumber, "Event number must be zero or greater.");
+		}
 
 		var correlationId = Guid.NewGuid();
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ReadEventCompleted>();
@@ -214,11 +227,14 @@ public sealed class StreamBrowserService(
 				CurrentUser,
 				cancellationToken: cancellationToken));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return StreamEventDetailPage.Unavailable(streamId, eventNumber, $"Timed out reading event #{eventNumber}.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return StreamEventDetailPage.Unavailable(streamId, eventNumber, $"Unable to read event #{eventNumber}: {UiMessages.Friendly(ex)}");
 		}
 
@@ -241,17 +257,23 @@ public sealed class StreamBrowserService(
 		string streamId,
 		CancellationToken cancellationToken = default) {
 		var validation = ValidateUserStream(streamId);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return StreamAclPage.Unavailable(streamId, validation.Message);
+		}
 
 		var metadataStream = SystemStreams.MetastreamOf(streamId.Trim());
 		var metadata = await ReadStreamBackward(metadataStream, count: 1, cancellationToken: cancellationToken);
-		if (!metadata.HasEvents && string.IsNullOrWhiteSpace(metadata.Message))
+		if (!metadata.HasEvents && string.IsNullOrWhiteSpace(metadata.Message)) {
 			return StreamAclPage.Success(streamId.Trim(), ExpectedVersion.NoStream, "", StreamAclInput.Empty(streamId.Trim()), "No stream metadata exists yet.");
-		if (!metadata.HasEvents && metadata.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase))
+		}
+
+		if (!metadata.HasEvents && metadata.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase)) {
 			return StreamAclPage.Success(streamId.Trim(), ExpectedVersion.NoStream, "", StreamAclInput.Empty(streamId.Trim()), "No stream metadata exists yet.");
-		if (!metadata.HasEvents)
+		}
+
+		if (!metadata.HasEvents) {
 			return StreamAclPage.Unavailable(streamId.Trim(), metadata.Message);
+		}
 
 		var latestMetadata = metadata.Events[0];
 		var rawMetadata = latestMetadata.Data;
@@ -262,17 +284,23 @@ public sealed class StreamBrowserService(
 		string streamId,
 		CancellationToken cancellationToken = default) {
 		var validation = ValidateUserStream(streamId);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return StreamMetadataPage.Unavailable(streamId, validation.Message);
+		}
 
 		streamId = streamId.Trim();
 		var metadata = await ReadStreamBackward(SystemStreams.MetastreamOf(streamId), count: 1, cancellationToken: cancellationToken);
-		if (!metadata.HasEvents && string.IsNullOrWhiteSpace(metadata.Message))
+		if (!metadata.HasEvents && string.IsNullOrWhiteSpace(metadata.Message)) {
 			return StreamMetadataPage.Empty(streamId, "No stream metadata exists yet.");
-		if (!metadata.HasEvents && metadata.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase))
+		}
+
+		if (!metadata.HasEvents && metadata.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase)) {
 			return StreamMetadataPage.Empty(streamId, "No stream metadata exists yet.");
-		if (!metadata.HasEvents)
+		}
+
+		if (!metadata.HasEvents) {
 			return StreamMetadataPage.Unavailable(streamId, metadata.Message);
+		}
 
 		return StreamMetadataPage.Success(streamId, metadata.Events[0]);
 	}
@@ -281,8 +309,9 @@ public sealed class StreamBrowserService(
 		StreamAppendRequest request,
 		CancellationToken cancellationToken = default) {
 		var validation = ValidateAppend(request);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
 		var streamId = request.StreamId.Trim();
 		var eventId = string.IsNullOrWhiteSpace(request.EventId)
@@ -315,13 +344,15 @@ public sealed class StreamBrowserService(
 		StreamAclUpdateRequest request,
 		CancellationToken cancellationToken = default) {
 		var validation = ValidateUserStream(request.StreamId);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
 		var streamId = request.StreamId.Trim();
 		var metadata = await ReadAcl(streamId, cancellationToken);
-		if (!metadata.IsAvailable)
+		if (!metadata.IsAvailable) {
 			return StreamCommandResult.Failure(streamId, metadata.Message);
+		}
 
 		var payload = MergeAcl(metadata.RawMetadata, request);
 		var @event = new Event(Guid.NewGuid(), SystemEventTypes.StreamMetadata, isJson: true, payload, null);
@@ -350,8 +381,9 @@ public sealed class StreamBrowserService(
 		bool hardDelete,
 		CancellationToken cancellationToken = default) {
 		var validation = ValidateUserStream(streamId);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
 		streamId = streamId.Trim();
 		var completed = await Delete(
@@ -394,11 +426,14 @@ public sealed class StreamBrowserService(
 		try {
 			publisher.Publish(createMessage(envelope));
 			return await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException ex) {
+		}
+		catch (TimeoutException ex) {
 			return new ClientMessage.WriteEventsCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, timeoutMessage ?? ex.Message);
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return new ClientMessage.WriteEventsCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, $"{errorPrefix}: {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -412,11 +447,14 @@ public sealed class StreamBrowserService(
 		try {
 			publisher.Publish(createMessage(envelope));
 			return await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException ex) {
+		}
+		catch (TimeoutException ex) {
 			return new ClientMessage.DeleteStreamCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, timeoutMessage ?? ex.Message);
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return new ClientMessage.DeleteStreamCompleted(Guid.NewGuid(), OperationResult.PrepareTimeout, $"{errorPrefix}: {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -441,34 +479,41 @@ public sealed class StreamBrowserService(
 	private static string StreamReferenceToStreamId(StreamViewEvent ev) {
 		try {
 			return SystemEventTypes.StreamReferenceEventToStreamId(ev.EventType, ev.Data);
-		} catch (Exception) {
+		}
+		catch (Exception) {
 			return ev.ResolvedStreamId;
 		}
 	}
 
 	private static StreamCommandResult ValidateAppend(StreamAppendRequest request) {
 		var streamValidation = ValidateWritableStream(request.StreamId);
-		if (!streamValidation.Success)
+		if (!streamValidation.Success) {
 			return streamValidation;
+		}
 
-		if (!string.IsNullOrWhiteSpace(request.EventId) && !Guid.TryParse(request.EventId, out _))
+		if (!string.IsNullOrWhiteSpace(request.EventId) && !Guid.TryParse(request.EventId, out _)) {
 			return StreamCommandResult.Failure(request.StreamId, "Enter a valid event id.");
+		}
 
-		if (string.IsNullOrWhiteSpace(request.EventType))
+		if (string.IsNullOrWhiteSpace(request.EventType)) {
 			return StreamCommandResult.Failure(request.StreamId, "Enter an event type.");
+		}
 
-		if (!IsJson(request.Data))
+		if (!IsJson(request.Data)) {
 			return StreamCommandResult.Failure(request.StreamId, "Event data must be valid JSON.");
+		}
 
-		if (!IsJson(request.Metadata))
+		if (!IsJson(request.Metadata)) {
 			return StreamCommandResult.Failure(request.StreamId, "Event metadata must be valid JSON.");
+		}
 
 		return StreamCommandResult.Succeeded(request.StreamId.Trim(), "");
 	}
 
 	private static StreamCommandResult ValidateWritableStream(string streamId) {
-		if (string.IsNullOrWhiteSpace(streamId))
+		if (string.IsNullOrWhiteSpace(streamId)) {
 			return StreamCommandResult.Failure("", "Enter a stream id.");
+		}
 
 		streamId = streamId.Trim();
 		return SystemStreams.IsSystemStream(streamId)
@@ -477,15 +522,18 @@ public sealed class StreamBrowserService(
 	}
 
 	private static StreamCommandResult ValidateUserStream(string streamId) {
-		if (string.IsNullOrWhiteSpace(streamId))
+		if (string.IsNullOrWhiteSpace(streamId)) {
 			return StreamCommandResult.Failure("", "Enter a stream id.");
+		}
 
 		streamId = streamId.Trim();
-		if (string.Equals(streamId, SystemStreams.AllStream, StringComparison.OrdinalIgnoreCase))
+		if (string.Equals(streamId, SystemStreams.AllStream, StringComparison.OrdinalIgnoreCase)) {
 			return StreamCommandResult.Failure(streamId, "$all cannot be edited or deleted.");
+		}
 
-		if (SystemStreams.IsSystemStream(streamId))
+		if (SystemStreams.IsSystemStream(streamId)) {
 			return StreamCommandResult.Failure(streamId, "System streams cannot be edited or deleted from the stream browser.");
+		}
 
 		return SystemStreams.IsMetastream(streamId)
 			? StreamCommandResult.Failure(streamId, "Metadata streams cannot be edited or deleted directly.")
@@ -493,13 +541,15 @@ public sealed class StreamBrowserService(
 	}
 
 	private static bool IsJson(string value) {
-		if (string.IsNullOrWhiteSpace(value))
+		if (string.IsNullOrWhiteSpace(value)) {
 			return true;
+		}
 
 		try {
 			JsonNode.Parse(value);
 			return true;
-		} catch (JsonException) {
+		}
+		catch (JsonException) {
 			return false;
 		}
 	}
@@ -522,8 +572,9 @@ public sealed class StreamBrowserService(
 	}
 
 	private static JsonObject ParseMetadataObject(string rawMetadata) {
-		if (string.IsNullOrWhiteSpace(rawMetadata))
+		if (string.IsNullOrWhiteSpace(rawMetadata)) {
 			return new JsonObject();
+		}
 
 		return JsonNode.Parse(rawMetadata) as JsonObject ?? new JsonObject();
 	}
@@ -544,11 +595,13 @@ public sealed class StreamBrowserService(
 			.ToArray();
 
 	private static void RemoveNullAclProperties(JsonObject metadata) {
-		if (metadata[SystemMetadata.Acl] is not JsonObject acl)
+		if (metadata[SystemMetadata.Acl] is not JsonObject acl) {
 			return;
+		}
 
-		foreach (var key in acl.Where(x => x.Value is null).Select(x => x.Key).ToArray())
+		foreach (var key in acl.Where(x => x.Value is null).Select(x => x.Key).ToArray()) {
 			acl.Remove(key);
+		}
 	}
 
 	private static string FriendlyWriteError(OperationResult result, string message) =>
@@ -696,8 +749,9 @@ public sealed record StreamAclInput(
 	public static StreamAclInput Empty(string streamId) => new(streamId, "", "", "", "", "");
 
 	public static StreamAclInput FromMetadata(string streamId, string rawMetadata) {
-		if (string.IsNullOrWhiteSpace(rawMetadata))
+		if (string.IsNullOrWhiteSpace(rawMetadata)) {
 			return Empty(streamId);
+		}
 
 		try {
 			var acl = JsonNode.Parse(rawMetadata)?[SystemMetadata.Acl];
@@ -708,7 +762,8 @@ public sealed record StreamAclInput(
 				ParseRolesNode(acl?[SystemMetadata.AclDelete]),
 				ParseRolesNode(acl?[SystemMetadata.AclMetaRead]),
 				ParseRolesNode(acl?[SystemMetadata.AclMetaWrite]));
-		} catch (JsonException) {
+		}
+		catch (JsonException) {
 			return Empty(streamId);
 		}
 	}
@@ -771,16 +826,19 @@ public sealed record StreamViewEvent(
 	public string AppendLikeHref => $"/ui/streams/append/{Uri.EscapeDataString(StreamId)}?fromEvent={EventNumber}";
 
 	private static string FormatBody(string value, bool preferJson) {
-		if (string.IsNullOrWhiteSpace(value))
+		if (string.IsNullOrWhiteSpace(value)) {
 			return "";
+		}
 
-		if (!preferJson)
+		if (!preferJson) {
 			return value;
+		}
 
 		try {
 			using var document = JsonDocument.Parse(value);
 			return JsonSerializer.Serialize(document.RootElement, JsonOptions);
-		} catch (JsonException) {
+		}
+		catch (JsonException) {
 			return value;
 		}
 	}
@@ -789,8 +847,9 @@ public sealed record StreamViewEvent(
 file static class StreamBrowserMapping {
 	public static StreamViewEvent ToViewEvent(this ResolvedEvent resolvedEvent) {
 		var record = resolvedEvent.Event ?? resolvedEvent.Link;
-		if (record is null)
+		if (record is null) {
 			return null;
+		}
 
 		var position = resolvedEvent.OriginalPosition;
 		var identity = resolvedEvent.Link ?? record;
@@ -815,8 +874,9 @@ file static class StreamBrowserMapping {
 		var result = new List<StreamViewEvent>(events.Count);
 		foreach (var resolvedEvent in events) {
 			var viewEvent = resolvedEvent.ToViewEvent();
-			if (viewEvent is null)
+			if (viewEvent is null) {
 				continue;
+			}
 
 			result.Add(viewEvent);
 		}

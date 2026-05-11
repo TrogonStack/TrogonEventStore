@@ -94,7 +94,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			// initialize the aligned memory
 			if (Create) {
 				DataAccessor.FillWithZeros();
-			} else {
+			}
+			else {
 				// load the whole filter into memory for rapid access
 				BulkLoadExisting();
 			}
@@ -117,10 +118,11 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				// consider if we should do something similar to chunk file reduce file cache pressure?
 				options: FileOptions.SequentialScan);
 
-			if (bulkFileStream.Length != DataAccessor.FileSize)
+			if (bulkFileStream.Length != DataAccessor.FileSize) {
 				throw new SizeMismatchException(
 					$"The expected file size ({DataAccessor.FileSize:N0}) does not match " +
 					$"the actual file size ({bulkFileStream.Length:N0}) of file {_path}");
+			}
 
 			// linux only reads 2147479552 at a time (4095 bytes less than intmax)
 			var blockSize = int.MaxValue / 2;
@@ -130,11 +132,13 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				var bytesToReadInBlock = bytesToRead > blockSize
 					? blockSize
 					: (int)bytesToRead;
-				
+
 				// consider reading in buffer size blocks. or using random access in net6
 				var read = bulkFileStream.Read(new Span<byte>(DataAccessor.Pointer + bytesRead, bytesToReadInBlock));
-				if (read != bytesToReadInBlock)
+				if (read != bytesToReadInBlock) {
 					throw new Exception($"Read fewer bytes ({read}) from bloom filter ({_path}) than expected ({bytesToReadInBlock})");
+				}
+
 				bytesRead += bytesToReadInBlock;
 				bytesToRead -= bytesToReadInBlock;
 			}
@@ -208,13 +212,14 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 						}
 
 						pageNumber++;
-						if (pageNumber == DataAccessor.NumPages)
+						if (pageNumber == DataAccessor.NumPages) {
 							goto Done;
+						}
 					}
 				}
 			}
 
-			Done:
+Done:
 			fileStream.FlushToDisk();
 
 			activelyFlushing.Stop();
@@ -265,7 +270,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				}
 
 				return MemoryMarshal.AsRef<Header>(headerBytes);
-			} catch (Exception exc) when (exc is not CorruptedFileException) {
+			}
+			catch (Exception exc) when (exc is not CorruptedFileException) {
 				throw new CorruptedFileException("Failed to read the header", exc);
 			}
 		}
@@ -298,13 +304,15 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 		public void Dispose() {
 			lock (_bitmapLock) {
-				if (_disposed)
+				if (_disposed) {
 					return;
+				}
 
 				_disposed = true;
 
-				if (DataAccessor is not null)
+				if (DataAccessor is not null) {
 					DataAccessor.Pointer = default;
+				}
 
 				_bloomFilterMemory?.Dispose();
 				_dirtyPageBitmap?.Dispose();

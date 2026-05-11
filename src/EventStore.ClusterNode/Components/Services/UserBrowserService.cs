@@ -36,8 +36,9 @@ public sealed class UserBrowserService(
 
 	public async Task<UserListPage> ReadAll(CancellationToken cancellationToken = default) {
 		var currentUser = CurrentUserView.From(CurrentUser);
-		if (!await HasAccess(ListOperation, cancellationToken))
+		if (!await HasAccess(ListOperation, cancellationToken)) {
 			return UserListPage.Unavailable(currentUser, "User list access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<UserManagementMessage.AllUserDetailsResult>();
 		publisher.Publish(new UserManagementMessage.GetAll(envelope, CurrentUser));
@@ -45,11 +46,14 @@ public sealed class UserBrowserService(
 		UserManagementMessage.AllUserDetailsResult completed;
 		try {
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return UserListPage.Unavailable(currentUser, "Timed out reading users.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return UserListPage.Unavailable(currentUser, $"Unable to read users: {UserInterfaceMessages.Friendly(ex)}");
 		}
 
@@ -63,12 +67,14 @@ public sealed class UserBrowserService(
 
 	public async Task<UserDetailPage> Read(string loginName, CancellationToken cancellationToken = default) {
 		var currentUser = CurrentUserView.From(CurrentUser);
-		if (string.IsNullOrWhiteSpace(loginName))
+		if (string.IsNullOrWhiteSpace(loginName)) {
 			return UserDetailPage.Unavailable("", currentUser, "Enter a user name to inspect it.");
+		}
 
 		var readOperation = ReadOperation.WithParameter(Operations.Users.Parameters.User(loginName));
-		if (!await HasAccess(readOperation, cancellationToken))
+		if (!await HasAccess(readOperation, cancellationToken)) {
 			return UserDetailPage.Unavailable(loginName, currentUser, $"User '{loginName}' access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<UserManagementMessage.UserDetailsResult>();
 		publisher.Publish(new UserManagementMessage.Get(envelope, CurrentUser, loginName));
@@ -76,16 +82,20 @@ public sealed class UserBrowserService(
 		UserManagementMessage.UserDetailsResult completed;
 		try {
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return UserDetailPage.Unavailable(loginName, currentUser, $"Timed out reading user '{loginName}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return UserDetailPage.Unavailable(loginName, currentUser, $"Unable to read user '{loginName}': {UserInterfaceMessages.Friendly(ex)}");
 		}
 
-		if (!completed.Success)
+		if (!completed.Success) {
 			return UserDetailPage.Unavailable(loginName, currentUser, FriendlyError(completed.Error));
+		}
 
 		return completed.Data is null
 			? UserDetailPage.Unavailable(loginName, currentUser, $"User '{loginName}' details were not returned.")
@@ -94,11 +104,13 @@ public sealed class UserBrowserService(
 
 	public async Task<UserCommandResult> Create(UserCreateRequest request, CancellationToken cancellationToken = default) {
 		var validation = ValidateCreate(request);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
-		if (!TryReadGroups(request.Role, out var groups))
+		if (!TryReadGroups(request.Role, out var groups)) {
 			return UserCommandResult.Failure(request.LoginName, "Choose a valid user role.");
+		}
 
 		var loginName = request.LoginName.Trim();
 		var fullName = request.FullName.Trim();
@@ -120,19 +132,23 @@ public sealed class UserBrowserService(
 
 	public async Task<UserCommandResult> Update(UserUpdateRequest request, CancellationToken cancellationToken = default) {
 		var validation = ValidateUserName(request.LoginName);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
-		if (string.IsNullOrWhiteSpace(request.FullName))
+		if (string.IsNullOrWhiteSpace(request.FullName)) {
 			return UserCommandResult.Failure(request.LoginName, "Enter a full name.");
+		}
 
-		if (!TryReadGroups(request.Role, out var selectedGroups))
+		if (!TryReadGroups(request.Role, out var selectedGroups)) {
 			return UserCommandResult.Failure(request.LoginName, "Choose a valid user role.");
+		}
 
 		var loginName = request.LoginName.Trim();
 		var existing = await Read(loginName, cancellationToken);
-		if (existing.User is null)
+		if (existing.User is null) {
 			return UserCommandResult.Failure(loginName, existing.Message);
+		}
 
 		var groups = MergeRoleWithCustomGroups(existing.User.Groups, selectedGroups);
 		return await ExecuteCommand(
@@ -147,8 +163,9 @@ public sealed class UserBrowserService(
 
 	public async Task<UserCommandResult> Enable(string loginName, CancellationToken cancellationToken = default) {
 		var validation = ValidateUserName(loginName);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
 		loginName = loginName.Trim();
 		return await ExecuteCommand(
@@ -163,8 +180,9 @@ public sealed class UserBrowserService(
 
 	public async Task<UserCommandResult> Disable(string loginName, CancellationToken cancellationToken = default) {
 		var validation = ValidateUserName(loginName);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
 		loginName = loginName.Trim();
 		return await ExecuteCommand(
@@ -179,8 +197,9 @@ public sealed class UserBrowserService(
 
 	public async Task<UserCommandResult> Delete(string loginName, CancellationToken cancellationToken = default) {
 		var validation = ValidateUserName(loginName);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
 		loginName = loginName.Trim();
 		return await ExecuteCommand(
@@ -195,14 +214,17 @@ public sealed class UserBrowserService(
 
 	public async Task<UserCommandResult> ResetPassword(UserPasswordResetRequest request, CancellationToken cancellationToken = default) {
 		var validation = ValidateUserName(request.LoginName);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
-		if (string.IsNullOrWhiteSpace(request.Password))
+		if (string.IsNullOrWhiteSpace(request.Password)) {
 			return UserCommandResult.Failure(request.LoginName, "Enter a new password.");
+		}
 
-		if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+		if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal)) {
 			return UserCommandResult.Failure(request.LoginName, "The password confirmation does not match.");
+		}
 
 		var loginName = request.LoginName.Trim();
 		return await ExecuteCommand(
@@ -229,19 +251,23 @@ public sealed class UserBrowserService(
 		string successMessage,
 		string deniedMessage,
 		CancellationToken cancellationToken) {
-		if (!await HasAccess(operation, cancellationToken))
+		if (!await HasAccess(operation, cancellationToken)) {
 			return UserCommandResult.Failure(loginName, deniedMessage);
+		}
 
 		var envelope = new TaskCompletionEnvelope<UserManagementMessage.UpdateResult>();
 		UserManagementMessage.UpdateResult completed;
 		try {
 			publisher.Publish(createMessage(envelope));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return UserCommandResult.Failure(loginName, $"Timed out trying to {actionDescription} user '{loginName}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException) {
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return UserCommandResult.Failure(loginName, $"Unable to {actionDescription} user '{loginName}': {UserInterfaceMessages.Friendly(ex)}");
 		}
 
@@ -252,17 +278,21 @@ public sealed class UserBrowserService(
 
 	private static UserCommandResult ValidateCreate(UserCreateRequest request) {
 		var validation = ValidateUserName(request.LoginName);
-		if (!validation.Success)
+		if (!validation.Success) {
 			return validation;
+		}
 
-		if (string.IsNullOrWhiteSpace(request.FullName))
+		if (string.IsNullOrWhiteSpace(request.FullName)) {
 			return UserCommandResult.Failure(request.LoginName, "Enter a full name.");
+		}
 
-		if (string.IsNullOrWhiteSpace(request.Password))
+		if (string.IsNullOrWhiteSpace(request.Password)) {
 			return UserCommandResult.Failure(request.LoginName, "Enter a password.");
+		}
 
-		if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+		if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal)) {
 			return UserCommandResult.Failure(request.LoginName, "The password confirmation does not match.");
+		}
 
 		return UserCommandResult.Succeeded(request.LoginName.Trim(), "");
 	}

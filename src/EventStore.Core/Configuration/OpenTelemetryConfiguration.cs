@@ -5,8 +5,7 @@ using OpenTelemetry.Exporter;
 
 namespace EventStore.Core.Configuration;
 
-public static class OpenTelemetryConfiguration
-{
+public static class OpenTelemetryConfiguration {
 	public const string RootPrefix = "EventStore";
 	public const string OpenTelemetryPrefix = $"{RootPrefix}:OpenTelemetry";
 	public const string OtlpConfigPrefix = $"{OpenTelemetryPrefix}:Otlp";
@@ -32,8 +31,7 @@ public static class OpenTelemetryConfiguration
 	public static OtlpExporterOptions GetOtlpExporterOptions(
 		this IConfiguration configuration,
 		string perSignalOtlpPrefix,
-		Action<OtlpExporterOptions> configure = null)
-	{
+		Action<OtlpExporterOptions> configure = null) {
 		var options = configuration.GetSection(OtlpConfigPrefix).Get<OtlpExporterOptions>() ?? new();
 		configuration.GetSection(perSignalOtlpPrefix).Bind(options);
 		configure?.Invoke(options);
@@ -43,8 +41,7 @@ public static class OpenTelemetryConfiguration
 	public static void BindOtlpExporterOptions(
 		this IConfiguration configuration,
 		string perSignalOtlpPrefix,
-		OtlpExporterOptions options)
-	{
+		OtlpExporterOptions options) {
 		configuration.GetSection(OtlpConfigPrefix).Bind(options);
 		configuration.GetSection(perSignalOtlpPrefix).Bind(options);
 	}

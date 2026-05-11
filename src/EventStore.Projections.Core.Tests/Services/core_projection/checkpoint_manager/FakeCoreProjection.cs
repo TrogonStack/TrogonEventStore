@@ -11,8 +11,7 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 
 public class FakeCoreProjection : ICoreProjection,
 	ICoreProjectionForProcessingPhase,
-	IHandle<EventReaderSubscriptionMessage.ReaderAssignedReader>
-{
+	IHandle<EventReaderSubscriptionMessage.ReaderAssignedReader> {
 	public readonly List<CoreProjectionProcessingMessage.CheckpointCompleted> _checkpointCompletedMessages =
 		new List<CoreProjectionProcessingMessage.CheckpointCompleted>();
 
@@ -25,76 +24,62 @@ public class FakeCoreProjection : ICoreProjection,
 	public readonly List<CoreProjectionProcessingMessage.Failed> _failedMessages =
 		new List<CoreProjectionProcessingMessage.Failed>();
 
-	public void Handle(CoreProjectionProcessingMessage.CheckpointCompleted message)
-	{
+	public void Handle(CoreProjectionProcessingMessage.CheckpointCompleted message) {
 		_checkpointCompletedMessages.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message)
-	{
+	public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message) {
 		_checkpointLoadedMessages.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.RestartRequested message)
-	{
+	public void Handle(CoreProjectionProcessingMessage.RestartRequested message) {
 		throw new System.NotImplementedException();
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.Failed message)
-	{
+	public void Handle(CoreProjectionProcessingMessage.Failed message) {
 		_failedMessages.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message)
-	{
+	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message) {
 		_prerecordedEventsLoadedMessages.Add(message);
 	}
 
-	public void CompletePhase()
-	{
+	public void CompletePhase() {
 		CompletePhaseInvoked++;
 	}
 
-	public void SetFaulted(string reason)
-	{
+	public void SetFaulted(string reason) {
 		throw new NotImplementedException();
 	}
 
-	public void SetFaulted(Exception ex)
-	{
+	public void SetFaulted(Exception ex) {
 		throw new NotImplementedException();
 	}
 
-	public void SetFaulting(string reason)
-	{
+	public void SetFaulting(string reason) {
 		throw new NotImplementedException();
 	}
 
-	public void SetCurrentCheckpointSuggestedWorkItem(CheckpointSuggestedWorkItem checkpointSuggestedWorkItem)
-	{
+	public void SetCurrentCheckpointSuggestedWorkItem(CheckpointSuggestedWorkItem checkpointSuggestedWorkItem) {
 		throw new NotImplementedException();
 	}
 
-	public void EnsureTickPending()
-	{
+	public void EnsureTickPending() {
 		throw new NotImplementedException();
 	}
 
-	public CheckpointTag LastProcessedEventPosition
-	{
+	public CheckpointTag LastProcessedEventPosition {
 		get { throw new NotImplementedException(); }
 	}
 
 	public int SubscribedInvoked { get; set; }
 	public int CompletePhaseInvoked { get; set; }
 
-	public void Subscribed()
-	{
+	public void Subscribed() {
 		SubscribedInvoked++;
 	}
 
-	public void Handle(EventReaderSubscriptionMessage.ReaderAssignedReader message)
-	{
+	public void Handle(EventReaderSubscriptionMessage.ReaderAssignedReader message) {
 		throw new NotImplementedException();
 	}
 }

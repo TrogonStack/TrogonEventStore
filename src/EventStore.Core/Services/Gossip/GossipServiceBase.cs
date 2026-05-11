@@ -83,8 +83,10 @@ namespace EventStore.Core.Services.Gossip {
 		protected abstract MemberInfo GetUpdatedMe(MemberInfo me);
 
 		public void Handle(SystemMessage.SystemInit message) {
-			if (_state != GossipState.Startup)
+			if (_state != GossipState.Startup) {
 				return;
+			}
+
 			_cluster = new ClusterInfo(GetInitialMe());
 			Handle(new GossipMessage.RetrieveGossipSeedSources());
 		}
@@ -93,7 +95,8 @@ namespace EventStore.Core.Services.Gossip {
 			_state = GossipState.RetrievingGossipSeeds;
 			try {
 				_gossipSeedSource.BeginGetHostEndpoints(OnGotGossipSeedSources, null);
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "Error while retrieving cluster members through DNS.");
 				_bus.Publish(TimerMessage.Schedule.Create(DnsRetryTimeout, _publishEnvelope,
 					new GossipMessage.RetrieveGossipSeedSources()));
@@ -104,7 +107,8 @@ namespace EventStore.Core.Services.Gossip {
 			try {
 				var entries = _gossipSeedSource.EndGetHostEndpoints(ar);
 				_bus.Publish(new GossipMessage.GotGossipSeedSources(entries));
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "Error while retrieving cluster members through DNS.");
 				_bus.Publish(TimerMessage.Schedule.Create(DnsRetryTimeout, _publishEnvelope,
 					new GossipMessage.RetrieveGossipSeedSources()));
@@ -127,8 +131,9 @@ namespace EventStore.Core.Services.Gossip {
 		}
 
 		public void Handle(GossipMessage.Gossip message) {
-			if (_state != GossipState.Working)
+			if (_state != GossipState.Working) {
 				return;
+			}
 
 			TimeSpan interval;
 			int gossipRound;
@@ -138,7 +143,8 @@ namespace EventStore.Core.Services.Gossip {
 					_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
 				interval = GossipInterval;
 				gossipRound = Math.Min(int.MaxValue - 1, message.GossipRound + 1);
-			} else {
+			}
+			else {
 				var node = _getNodeToGossipTo(_cluster.Members);
 				if (node != null) {
 					_cluster = UpdateCluster(_cluster, x => x.InstanceId == _memberInfo.InstanceId ? GetUpdatedMe(x) : x,
@@ -157,20 +163,24 @@ namespace EventStore.Core.Services.Gossip {
 		}
 
 		private MemberInfo GetNodeToGossipTo(MemberInfo[] members) {
-			if (members.Length == 0)
+			if (members.Length == 0) {
 				return null;
+			}
+
 			for (int i = 0; i < 5; ++i) {
 				var node = members[_rnd.Next(members.Length)];
-				if (node.InstanceId != _memberInfo.InstanceId)
+				if (node.InstanceId != _memberInfo.InstanceId) {
 					return node;
+				}
 			}
 
 			return null;
 		}
 
 		public void Handle(GossipMessage.GossipReceived message) {
-			if (_state != GossipState.Working)
+			if (_state != GossipState.Working) {
 				return;
+			}
 
 			var oldCluster = _cluster;
 			_cluster = MergeClusters(_cluster,
@@ -182,8 +192,10 @@ namespace EventStore.Core.Services.Gossip {
 
 			message.Envelope.ReplyWith(new GossipMessage.SendGossip(_cluster, _memberInfo.HttpEndPoint));
 
-			if (_cluster.HasChangedSince(oldCluster))
+			if (_cluster.HasChangedSince(oldCluster)) {
 				LogClusterChange(oldCluster, _cluster, $"gossip received from [{message.Server}]");
+			}
+
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
 		}
 
@@ -211,8 +223,9 @@ namespace EventStore.Core.Services.Gossip {
 			var replicaState = message as SystemMessage.ReplicaStateMessage;
 			CurrentLeader = replicaState == null ? null : replicaState.Leader;
 
-			if (_cluster is null)
+			if (_cluster is null) {
 				return;
+			}
 
 			_cluster = UpdateCluster(_cluster, x => x.InstanceId == _memberInfo.InstanceId ? GetUpdatedMe(x) : x,
 				_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
@@ -222,8 +235,9 @@ namespace EventStore.Core.Services.Gossip {
 
 		public void Handle(GossipMessage.GossipSendFailed message) {
 			var node = _cluster.Members.FirstOrDefault(x => x.Is(message.Recipient));
-			if (node == null || !node.IsAlive)
+			if (node == null || !node.IsAlive) {
 				return;
+			}
 
 			if (node.InstanceId == CurrentLeader?.InstanceId) {
 				Log.Information(
@@ -239,15 +253,18 @@ namespace EventStore.Core.Services.Gossip {
 					? x.Updated(_timeProvider.UtcNow, isAlive: false)
 					: x,
 				_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
-			if (_cluster.HasChangedSince(oldCluster))
+			if (_cluster.HasChangedSince(oldCluster)) {
 				LogClusterChange(oldCluster, _cluster, $"gossip send failed to [{message.Recipient}]");
+			}
+
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
 		}
 
 		public void Handle(SystemMessage.VNodeConnectionLost message) {
 			var node = _cluster.Members.FirstOrDefault(x => x.Is(message.VNodeEndPoint));
-			if (node == null || !node.IsAlive)
+			if (node == null || !node.IsAlive) {
 				return;
+			}
 
 			Log.Information("Looks like node [{nodeEndPoint}] is DEAD (TCP connection lost). Issuing a gossip to confirm.",
 				message.VNodeEndPoint);
@@ -257,8 +274,9 @@ namespace EventStore.Core.Services.Gossip {
 		}
 
 		public void Handle(GossipMessage.GetGossipReceived message) {
-			if (_state != GossipState.Working)
+			if (_state != GossipState.Working) {
 				return;
+			}
 
 			Log.Information("Gossip Received, The node [{nodeEndpoint}] is not DEAD.", message.Server);
 
@@ -270,15 +288,17 @@ namespace EventStore.Core.Services.Gossip {
 				_timeProvider.UtcNow, _memberInfo, CurrentLeader?.InstanceId, AllowedTimeDifference,
 				DeadMemberRemovalPeriod);
 
-			if (_cluster.HasChangedSince(oldCluster))
+			if (_cluster.HasChangedSince(oldCluster)) {
 				LogClusterChange(oldCluster, _cluster, string.Format("gossip received from [{0}]", message.Server));
+			}
 
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
 		}
 
 		public void Handle(GossipMessage.GetGossipFailed message) {
-			if (_state != GossipState.Working)
+			if (_state != GossipState.Working) {
 				return;
+			}
 
 			Log.Information("Gossip Failed, The node [{nodeEndpoint}] is being marked as DEAD. Reason: {reason}",
 				message.Recipient,
@@ -290,9 +310,11 @@ namespace EventStore.Core.Services.Gossip {
 						_timeProvider.UtcNow, isAlive: false)
 					: x,
 				_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
-			if (_cluster.HasChangedSince(oldCluster))
+			if (_cluster.HasChangedSince(oldCluster)) {
 				LogClusterChange(oldCluster, _cluster,
 					string.Format("TCP connection lost to [{0}]", message.Recipient));
+			}
+
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
 		}
 
@@ -303,9 +325,11 @@ namespace EventStore.Core.Services.Gossip {
 						_timeProvider.UtcNow, isAlive: true)
 					: x,
 				_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
-			if (_cluster.HasChangedSince(oldCluster))
+			if (_cluster.HasChangedSince(oldCluster)) {
 				LogClusterChange(oldCluster, _cluster,
 					string.Format("TCP connection established to [{0}]", message.VNodeEndPoint));
+			}
+
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
 		}
 
@@ -316,8 +340,10 @@ namespace EventStore.Core.Services.Gossip {
 					? x.Updated(_timeProvider.UtcNow, VNodeState.Leader)
 					: x.Updated(_timeProvider.UtcNow, VNodeState.Unknown),
 				_timeProvider, DeadMemberRemovalPeriod, CurrentRole);
-			if (_cluster.HasChangedSince(oldCluster))
+			if (_cluster.HasChangedSince(oldCluster)) {
 				LogClusterChange(oldCluster, _cluster, "Elections Done");
+			}
+
 			_bus.Publish(new GossipMessage.GossipUpdated(_cluster));
 		}
 
@@ -333,28 +359,34 @@ namespace EventStore.Core.Services.Gossip {
 			foreach (var member in othersCluster.Members) {
 				if (member.InstanceId == me.InstanceId || member.Is(me.HttpEndPoint)
 				) // we know about ourselves better
+{
 					continue;
+				}
+
 				if (member.Equals(peerNode)) // peer knows about itself better
 				{
 					if ((utcNow - member.TimeStamp).Duration() > allowedTimeDifference) {
 						Log.Error("Time difference between us and [{peerEndPoint}] is too great! "
-						          + "UTC now: {dateTime:yyyy-MM-dd HH:mm:ss.fff}, peer's time stamp: {peerTimestamp:yyyy-MM-dd HH:mm:ss.fff}.",
+								  + "UTC now: {dateTime:yyyy-MM-dd HH:mm:ss.fff}, peer's time stamp: {peerTimestamp:yyyy-MM-dd HH:mm:ss.fff}.",
 							peerEndPoint, utcNow, member.TimeStamp);
 					}
 					members[member.HttpEndPoint] = member.Updated(utcNow: member.TimeStamp, esVersion: isPeerOld ? VersionInfo.OldVersion : member.ESVersion);
-				} else {
+				}
+				else {
 					MemberInfo existingMem;
 					// if there is no data about this member or data is stale -- update
 					if (!members.TryGetValue(member.HttpEndPoint, out existingMem) ||
-					    IsMoreUpToDate(member, existingMem)) {
+						IsMoreUpToDate(member, existingMem)) {
 						// we do not trust leader's alive status and state to come from outside
 						if (currentLeaderInstanceId != null && existingMem != null &&
-						    member.InstanceId == currentLeaderInstanceId)
+							member.InstanceId == currentLeaderInstanceId) {
 							members[member.HttpEndPoint] =
 								member.Updated(utcNow: utcNow, isAlive: existingMem.IsAlive,
 									state: existingMem.State);
-						else
+						}
+						else {
 							members[member.HttpEndPoint] = member;
+						}
 					}
 
 					if (peerNode != null && isPeerOld) {
@@ -372,10 +404,14 @@ namespace EventStore.Core.Services.Gossip {
 		}
 
 		private static bool IsMoreUpToDate(MemberInfo member, MemberInfo existingMem) {
-			if (member.EpochNumber != existingMem.EpochNumber)
+			if (member.EpochNumber != existingMem.EpochNumber) {
 				return member.EpochNumber > existingMem.EpochNumber;
-			if (member.WriterCheckpoint != existingMem.WriterCheckpoint)
+			}
+
+			if (member.WriterCheckpoint != existingMem.WriterCheckpoint) {
 				return member.WriterCheckpoint > existingMem.WriterCheckpoint;
+			}
+
 			return member.TimeStamp > existingMem.TimeStamp;
 		}
 

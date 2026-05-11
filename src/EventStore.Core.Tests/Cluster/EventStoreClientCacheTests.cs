@@ -14,12 +14,10 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Cluster;
 
-public class EventStoreClientCacheTests
-{
+public class EventStoreClientCacheTests {
 	private static readonly INodeHttpClientFactory NodeHttpClientFactory = new NodeHttpClientFactory(
 		uriScheme: Uri.UriSchemeHttps,
-		nodeCertificateValidator: delegate
-		{ return (true, null); },
+		nodeCertificateValidator: delegate { return (true, null); },
 		clientCertificateSelector: null);
 
 	private static readonly Func<EndPoint, IPublisher, EventStoreClusterClient> EventStoreClusterClientFactory =
@@ -30,22 +28,19 @@ public class EventStoreClientCacheTests
 				new DurationTracker.NoOp());
 
 	[Test]
-	public void BusShouldNotBeNull()
-	{
+	public void BusShouldNotBeNull() {
 		Assert.Throws<ArgumentNullException>(() =>
 			new EventStoreClusterClientCache(null, EventStoreClusterClientFactory));
 	}
 
 	[Test]
-	public void ClientFactoryShouldNotBeNull()
-	{
+	public void ClientFactoryShouldNotBeNull() {
 		Assert.Throws<ArgumentNullException>(() =>
 			new EventStoreClusterClientCache(new FakePublisher(), null));
 	}
 
 	[Test]
-	public void CanGetClientForEndpoint()
-	{
+	public void CanGetClientForEndpoint() {
 		var sut = new EventStoreClusterClientCache(new FakePublisher(), EventStoreClusterClientFactory);
 
 		var client = sut.Get(new IPEndPoint(IPAddress.Loopback, 1113));
@@ -54,8 +49,7 @@ public class EventStoreClientCacheTests
 	}
 
 	[Test]
-	public async Task CleansCacheOnThreshold()
-	{
+	public async Task CleansCacheOnThreshold() {
 		var interval = TimeSpan.FromMinutes(30);
 		var oldItemThreshold = TimeSpan.FromMilliseconds(500);
 		var sut = new EventStoreClusterClientCache(new FakePublisher(), EventStoreClusterClientFactory, interval,
@@ -71,8 +65,7 @@ public class EventStoreClientCacheTests
 	}
 
 	[Test]
-	public void ShouldScheduleCacheCleanOnTimer()
-	{
+	public void ShouldScheduleCacheCleanOnTimer() {
 		var interval = TimeSpan.FromMilliseconds(1);
 		var bus = new FakePublisher();
 		var sut = new EventStoreClusterClientCache(bus, EventStoreClusterClientFactory, interval, interval);
@@ -83,8 +76,7 @@ public class EventStoreClientCacheTests
 	}
 
 	[Test]
-	public async Task ShouldDisposeClientOnceEvictedFromCache()
-	{
+	public async Task ShouldDisposeClientOnceEvictedFromCache() {
 		var interval = TimeSpan.FromMinutes(30);
 		var oldItemThreshold = TimeSpan.FromMilliseconds(500);
 		var sut = new EventStoreClusterClientCache(new FakePublisher(), EventStoreClusterClientFactory, interval,

@@ -13,24 +13,21 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV4, true, 1_000_000)]
 [TestFixture(PTableVersions.IndexV4, false, 0)]
 [TestFixture(PTableVersions.IndexV4, true, 0)]
-public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
-{
+public class ptable_range_query_tests : SpecificationWithFilePerTestFixture {
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private PTable _ptable;
 	private readonly bool _skipIndexVerify;
 	private readonly bool _useBloomFilter;
 	private readonly int _lruCacheSize;
 
-	public ptable_range_query_tests(byte version, bool skipIndexVerify, int lruCacheSize)
-	{
+	public ptable_range_query_tests(byte version, bool skipIndexVerify, int lruCacheSize) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 		_useBloomFilter = skipIndexVerify; // bloomfilter orthogonal
 		_lruCacheSize = lruCacheSize;
 	}
 
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		var table = new HashListMemTable(_ptableVersion, maxSize: 50);
@@ -47,34 +44,29 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 			lruCacheSize: _lruCacheSize);
 	}
 
-	public override void TestFixtureTearDown()
-	{
+	public override void TestFixtureTearDown() {
 		_ptable.Dispose();
 		base.TestFixtureTearDown();
 	}
 
-	private ulong GetHash(ulong value)
-	{
+	private ulong GetHash(ulong value) {
 		return _ptableVersion == PTableVersions.IndexV1 ? value >> 32 : value;
 	}
 
 	[Test]
-	public void range_query_of_non_existing_stream_returns_nothing()
-	{
+	public void range_query_of_non_existing_stream_returns_nothing() {
 		var list = _ptable.GetRange(0x14, 0x01, 0x02).ToArray();
 		Assert.AreEqual(0, list.Length);
 	}
 
 	[Test]
-	public void range_query_of_non_existing_version_returns_nothing()
-	{
+	public void range_query_of_non_existing_version_returns_nothing() {
 		var list = _ptable.GetRange(0x010100000000, 0x03, 0x05).ToArray();
 		Assert.AreEqual(0, list.Length);
 	}
 
 	[Test]
-	public void range_query_with_hole_returns_items_included()
-	{
+	public void range_query_with_hole_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x01, 0x05).ToArray();
 		Assert.AreEqual(3, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -89,8 +81,7 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_start_in_range_but_not_end_results_returns_items_included()
-	{
+	public void query_with_start_in_range_but_not_end_results_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x01, 0x04).ToArray();
 		Assert.AreEqual(2, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -102,8 +93,7 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_end_in_range_but_not_start_results_returns_items_included()
-	{
+	public void query_with_end_in_range_but_not_start_results_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x00, 0x03).ToArray();
 		Assert.AreEqual(2, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -115,8 +105,7 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_end_and_start_exclusive_results_returns_items_included()
-	{
+	public void query_with_end_and_start_exclusive_results_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x00, 0x06).ToArray();
 		Assert.AreEqual(3, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -131,8 +120,7 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_end_inside_the_hole_in_list_returns_items_included()
-	{
+	public void query_with_end_inside_the_hole_in_list_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x00, 0x04).ToArray();
 		Assert.AreEqual(2, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -144,8 +132,7 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_start_inside_the_hole_in_list_returns_items_included()
-	{
+	public void query_with_start_inside_the_hole_in_list_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x02, 0x06).ToArray();
 		Assert.AreEqual(2, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -157,8 +144,7 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_start_and_end_inside_the_hole_in_list_returns_items_included()
-	{
+	public void query_with_start_and_end_inside_the_hole_in_list_returns_items_included() {
 		var list = _ptable.GetRange(0x010300000000, 0x02, 0x04).ToArray();
 		Assert.AreEqual(1, list.Length);
 		Assert.AreEqual(GetHash(0x010300000000), list[0].Stream);
@@ -167,15 +153,13 @@ public class ptable_range_query_tests : SpecificationWithFilePerTestFixture
 	}
 
 	[Test]
-	public void query_with_start_and_end_less_than_all_items_returns_nothing()
-	{
+	public void query_with_start_and_end_less_than_all_items_returns_nothing() {
 		var list = _ptable.GetRange(0x010300000000, 0x00, 0x00).ToArray();
 		Assert.AreEqual(0, list.Length);
 	}
 
 	[Test]
-	public void query_with_start_and_end_greater_than_all_items_returns_nothing()
-	{
+	public void query_with_start_and_end_greater_than_all_items_returns_nothing() {
 		var list = _ptable.GetRange(0x010300000000, 0x06, 0x06).ToArray();
 		Assert.AreEqual(0, list.Length);
 	}

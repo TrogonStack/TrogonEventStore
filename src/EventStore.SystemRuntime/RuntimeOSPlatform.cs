@@ -6,8 +6,7 @@ namespace System.Runtime;
 /// <summary>
 /// Enum representing the operating system platform.
 /// </summary>
-public enum RuntimeOSPlatform
-{
+public enum RuntimeOSPlatform {
 	/// <summary>
 	/// Represents an unknown operating system platform.
 	/// </summary>

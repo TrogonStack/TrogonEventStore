@@ -32,13 +32,19 @@ namespace EventStore.Core.Authorization {
 		}
 
 		public void Add(OperationDefinition operation, IAssertion assertion) {
-			if (_sealed)
+			if (_sealed) {
 				throw new InvalidOperationException("policy has been sealed and no further changes can be made");
-			if (!_assertions.TryGetValue(operation, out var assertions))
+			}
+
+			if (!_assertions.TryGetValue(operation, out var assertions)) {
 				_assertions[operation] = assertions = new List<IAssertion>();
+			}
+
 			var insertAt = assertions.BinarySearch(assertion, AssertionComparer.Instance);
-			if (insertAt >= 0)
+			if (insertAt >= 0) {
 				throw new InvalidOperationException("Assertion already exists");
+			}
+
 			assertions.Insert(~insertAt, assertion);
 		}
 

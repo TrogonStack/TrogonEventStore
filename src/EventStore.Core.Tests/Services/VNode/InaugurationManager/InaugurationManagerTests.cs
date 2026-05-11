@@ -11,8 +11,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.VNode.InaugurationManagement;
 
-public abstract class InaugurationManagerTests
-{
+public abstract class InaugurationManagerTests {
 	protected readonly Guid _correlationId1 = Guid.Parse("00000000-0000-0000-0000-0000000000c1");
 	protected readonly Guid _correlationId2 = Guid.Parse("00000000-0000-0000-0000-0000000000c2");
 	protected readonly Guid _correlationId3 = Guid.Parse("00000000-0000-0000-0000-0000000000c3");
@@ -32,8 +31,7 @@ public abstract class InaugurationManagerTests
 	protected InMemoryCheckpoint _indexCheckpoint;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_publisher = new FakePublisher();
 		_replicationCheckpoint = new InMemoryCheckpoint();
 		_indexCheckpoint = new InMemoryCheckpoint();
@@ -43,13 +41,11 @@ public abstract class InaugurationManagerTests
 
 	protected abstract void Given();
 
-	protected void When(Message m)
-	{
+	protected void When(Message m) {
 		_sut.Handle((dynamic)m);
 	}
 
-	protected SystemMessage.EpochWritten GenEpoch(int epochNumber)
-	{
+	protected SystemMessage.EpochWritten GenEpoch(int epochNumber) {
 		var epoch = new SystemMessage.EpochWritten(new EpochRecord(
 						epochPosition: _replicationTarget - 1,
 						epochNumber: epochNumber,
@@ -60,40 +56,34 @@ public abstract class InaugurationManagerTests
 		return epoch;
 	}
 
-	protected void ProgressReplication()
-	{
+	protected void ProgressReplication() {
 		_replicationCheckpoint.Write(_replicationTarget / 2);
 		_replicationCheckpoint.Flush();
 	}
 
-	protected void CompleteReplication()
-	{
+	protected void CompleteReplication() {
 		_replicationCheckpoint.Write(_replicationTarget);
 		_replicationCheckpoint.Flush();
 	}
 
-	protected void ProgressIndexing()
-	{
+	protected void ProgressIndexing() {
 		_indexCheckpoint.Write(_indexTarget / 2);
 		_indexCheckpoint.Flush();
 	}
 
-	protected void CompleteIndexing()
-	{
+	protected void CompleteIndexing() {
 		_indexCheckpoint.Write(_indexTarget);
 		_indexCheckpoint.Flush();
 	}
 
-	protected static T AssertIsType<T>(object o)
-	{
+	protected static T AssertIsType<T>(object o) {
 		Assert.IsInstanceOf<T>(o);
 		return (T)o;
 	}
 
 	// check that we have reset to initial state, do this by checking we can
 	// proceed forward from it
-	protected void AssertInitial()
-	{
+	protected void AssertInitial() {
 		Assert.IsEmpty(_publisher.Messages);
 		_sut.Handle(new SystemMessage.BecomePreLeader(_correlationId3));
 		AssertWaitingForChaser(_correlationId3);
@@ -101,16 +91,14 @@ public abstract class InaugurationManagerTests
 
 	// check that we have reset to waiting fo chaser, do this by checking we can
 	// proceed forward from it
-	protected void AssertWaitingForChaser(Guid expectedCorrelationId)
-	{
+	protected void AssertWaitingForChaser(Guid expectedCorrelationId) {
 		Assert.IsEmpty(_publisher.Messages);
 		_sut.Handle(new SystemMessage.ChaserCaughtUp(expectedCorrelationId));
 		Assert.AreEqual(1, _publisher.Messages.Count);
 		Assert.IsInstanceOf<SystemMessage.WriteEpoch>(_publisher.Messages[0]);
 	}
 
-	protected void AssertSentBecomeLeader()
-	{
+	protected void AssertSentBecomeLeader() {
 		Assert.AreEqual(1, _publisher.Messages.Count);
 		var becomeLeader = AssertIsType<SystemMessage.BecomeLeader>(_publisher.Messages[0]);
 		Assert.AreEqual(_correlationId1, becomeLeader.CorrelationId);

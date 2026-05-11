@@ -6,11 +6,9 @@ using EventNumberCached = EventStore.Core.Services.Storage.ReaderIndex.IndexBack
 
 namespace EventStore.Core.Tests.Caching;
 
-public class EventNumberCachedTests
-{
+public class EventNumberCachedTests {
 	[Test]
-	public void size_is_measured_correctly()
-	{
+	public void size_is_measured_correctly() {
 		var mem = MemUsage.Calculate(() =>
 			new EventNumberCached[] { // we need an array to force an allocation
 				new(10, 123)
@@ -20,8 +18,7 @@ public class EventNumberCachedTests
 	}
 
 	[Test]
-	public void size_in_lru_cache_is_measured_correctly_with_string_key()
-	{
+	public void size_in_lru_cache_is_measured_correctly_with_string_key() {
 		var lruCache = new LRUCache<string, EventNumberCached>(string.Empty, 1, (_, _) => 0);
 
 		// initialize any underlying data structures (the dictionary in this case)
@@ -40,8 +37,7 @@ public class EventNumberCachedTests
 	}
 
 	[Test]
-	public void size_in_lru_cache_is_measured_correctly_with_long_key()
-	{
+	public void size_in_lru_cache_is_measured_correctly_with_long_key() {
 		var lruCache = new LRUCache<long, EventNumberCached>(string.Empty, 1, (_, _) => 0);
 
 		// initialize any underlying data structures (the dictionary in this case)

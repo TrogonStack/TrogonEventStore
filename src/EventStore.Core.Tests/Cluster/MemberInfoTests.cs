@@ -6,11 +6,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Cluster;
 
 [TestFixture]
-public class MemberInfoTests
-{
+public class MemberInfoTests {
 	[Test]
-	public void member_with_dns_endpoint_should_equal()
-	{
+	public void member_with_dns_endpoint_should_equal() {
 		var ipAddress = "127.0.0.1";
 		var port = 1113;
 		var memberWithDnsEndPoint = EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,
@@ -31,8 +29,7 @@ public class MemberInfoTests
 	}
 
 	[Test]
-	public void member_with_ip_endpoint_should_equal()
-	{
+	public void member_with_ip_endpoint_should_equal() {
 		var ipAddress = "127.0.0.1";
 		var port = 1113;
 		var memberWithDnsEndPoint = EventStore.Core.Cluster.MemberInfo.Initial(Guid.Empty, DateTime.UtcNow,

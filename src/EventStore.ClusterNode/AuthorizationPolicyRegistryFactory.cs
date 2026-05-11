@@ -17,18 +17,15 @@ using Serilog;
 
 namespace EventStore.ClusterNode;
 
-public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin
-{
+public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin {
 	private readonly ILogger _logger = Log.ForContext<AuthorizationPolicyRegistryFactory>();
 	private readonly IPolicySelectorFactory[] _pluginSelectorFactories = [];
 	private readonly Func<IPublisher, IAuthorizationPolicyRegistry> _createRegistry;
 	private IAuthorizationPolicyRegistry? _authorizationPolicyRegistry;
 
 	public AuthorizationPolicyRegistryFactory(ClusterVNodeOptions options, IConfiguration configuration,
-		PluginLoader pluginLoader)
-	{
-		if (options.Application.Insecure)
-		{
+		PluginLoader pluginLoader) {
+		if (options.Application.Insecure) {
 			_createRegistry = _ => new StaticAuthorizationPolicyRegistry([]);
 			return;
 		}
@@ -36,8 +33,7 @@ public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin
 		// Load up all policy selectors in the plugins directory
 		var factories = pluginLoader.Load<IPolicySelectorFactory>();
 		_pluginSelectorFactories = factories?
-			.Select(x =>
-			{
+			.Select(x => {
 				_logger.Information("Loaded Authorization Policy plugin: {plugin}.", x.CommandLineName);
 				return x;
 			}).ToArray() ?? [];
@@ -55,29 +51,24 @@ public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin
 		var defaultPolicyType =
 			configuration.GetValue<string>("EventStore:Authorization:DefaultPolicyType") ?? string.Empty;
 		AuthorizationPolicySettings defaultSettings;
-		if (!string.IsNullOrEmpty(defaultPolicyType))
-		{
-			if (_pluginSelectorFactories.Any(x => x.CommandLineName == defaultPolicyType))
-			{
+		if (!string.IsNullOrEmpty(defaultPolicyType)) {
+			if (_pluginSelectorFactories.Any(x => x.CommandLineName == defaultPolicyType)) {
 				defaultSettings = new AuthorizationPolicySettings(defaultPolicyType);
 			}
-			else
-			{
+			else {
 				throw new InvalidConfigurationException(
 					$"No authorization policy with the name '{defaultPolicyType}' has been registered. " +
 					$"Available authorization policies are: {string.Join(", ", _pluginSelectorFactories.Select(x => x.CommandLineName))}");
 			}
 		}
-		else
-		{
+		else {
 			// No default policy type configured. Use ACLs.
 			defaultSettings = new AuthorizationPolicySettings(LegacyPolicySelectorFactory.LegacyPolicySelectorName);
 		}
 
 		// There are no plugins and a default policy type wasn't configured.
 		// Don't use the stream based registry
-		if (_pluginSelectorFactories.Length == 0)
-		{
+		if (_pluginSelectorFactories.Length == 0) {
 			_logger.Information("No authorization policy plugins found. Only ACLs will be used.");
 			_createRegistry = publisher =>
 				new StaticAuthorizationPolicyRegistry([legacyPolicyFactory.Create(publisher)]);
@@ -91,10 +82,8 @@ public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin
 
 	// Use a factory rather than ConfigureApplication because the authorization providers
 	// are built (and requires this registry) before ConfigureApplication is called
-	public IAuthorizationPolicyRegistry Create(IPublisher publisher)
-	{
-		if (_authorizationPolicyRegistry is not null)
-		{
+	public IAuthorizationPolicyRegistry Create(IPublisher publisher) {
+		if (_authorizationPolicyRegistry is not null) {
 			return _authorizationPolicyRegistry;
 		}
 
@@ -102,21 +91,18 @@ public class AuthorizationPolicyRegistryFactory : SubsystemsPlugin
 		return _authorizationPolicyRegistry;
 	}
 
-	public override IReadOnlyList<ISubsystem> GetSubsystems()
-	{
+	public override IReadOnlyList<ISubsystem> GetSubsystems() {
 		var subsystems = new List<ISubsystem> { this };
 		// ReSharper disable once SuspiciousTypeConversion.Global
 		subsystems.AddRange(_pluginSelectorFactories.OfType<ISubsystem>());
 		return subsystems.ToArray();
 	}
 
-	public override Task Start()
-	{
+	public override Task Start() {
 		return _authorizationPolicyRegistry!.Start();
 	}
 
-	public override Task Stop()
-	{
+	public override Task Stop() {
 		return _authorizationPolicyRegistry!.Stop();
 	}
 }

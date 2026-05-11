@@ -12,23 +12,19 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_multiple_event_processed_received_the_core_projection_checkpoint_manager<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
-{
+	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId> {
 	private Exception _exception;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesSucceed();
 		base.Given();
 		this._checkpointHandledThreshold = 2;
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		base.When();
 		_exception = null;
-		try
-		{
+		try {
 			_checkpointReader.BeginLoadState();
 			var checkpointLoaded =
 				_consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.CheckpointLoaded>().First();
@@ -41,58 +37,48 @@ public class when_multiple_event_processed_received_the_core_projection_checkpoi
 			//                _manager.StateUpdated("", @"{""state"":""state2""}");
 			_manager.EventProcessed(CheckpointTag.FromStreamPosition(0, "stream", 12), 77.7f);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void messages_are_handled()
-	{
+	public void messages_are_handled() {
 		Assert.IsNull(_exception);
 	}
 
 	[Test]
-	public void accepts_stopping()
-	{
+	public void accepts_stopping() {
 		_manager.Stopping();
 	}
 
 	[Test]
-	public void accepts_stopped()
-	{
+	public void accepts_stopped() {
 		_manager.Stopped();
 	}
 
 	[Test]
-	public void accepts_event_processed()
-	{
+	public void accepts_event_processed() {
 		//            _manager.StateUpdated("", @"{""state"":""state""}");
 		_manager.EventProcessed(CheckpointTag.FromStreamPosition(0, "stream", 13), 77.7f);
 	}
 
 	[Test]
-	public void event_processed_at_the_start_position_throws_invalid_operation_exception()
-	{
+	public void event_processed_at_the_start_position_throws_invalid_operation_exception() {
 		//            _manager.StateUpdated("", @"{""state"":""state""}");
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+		Assert.Throws<InvalidOperationException>(() => {
 			_manager.EventProcessed(CheckpointTag.FromStreamPosition(0, "stream", 10), 77.7f);
 		});
 	}
 
 	[Test]
-	public void accepts_checkpoint_suggested()
-	{
+	public void accepts_checkpoint_suggested() {
 		_manager.CheckpointSuggested(CheckpointTag.FromStreamPosition(0, "stream", 13), 77.7f);
 	}
 
 	[Test]
-	public void checkpoint_suggested_at_the_start_position_throws_invalid_operation_exception()
-	{
-		Assert.Throws<InvalidOperationException>(() =>
-		{
+	public void checkpoint_suggested_at_the_start_position_throws_invalid_operation_exception() {
+		Assert.Throws<InvalidOperationException>(() => {
 			_manager.CheckpointSuggested(CheckpointTag.FromStreamPosition(0, "stream", 10), 77.7f);
 		});
 	}

@@ -11,8 +11,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.IndexV3;
 
 [TestFixture, Category("LongRunning")]
-public class when_upgrading_index_to_64bit_stream_version : SpecificationWithDirectoryPerTestFixture
-{
+public class when_upgrading_index_to_64bit_stream_version : SpecificationWithDirectoryPerTestFixture {
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -20,8 +19,7 @@ public class when_upgrading_index_to_64bit_stream_version : SpecificationWithDir
 	protected byte _ptableVersion = PTableVersions.IndexV3;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
@@ -64,16 +62,14 @@ public class when_upgrading_index_to_64bit_stream_version : SpecificationWithDir
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_have_entries_in_sorted_order()
-	{
+	public void should_have_entries_in_sorted_order() {
 		var streamId = "testStream-2";
 		var result = _tableIndex.GetRange(streamId, 0, 4).ToArray();
 		var hash = (ulong)_lowHasher.Hash(streamId) << 32 | _highHasher.Hash(streamId);
@@ -128,10 +124,8 @@ public class when_upgrading_index_to_64bit_stream_version : SpecificationWithDir
 	}
 }
 
-public class FakeIndexReader : ITransactionFileReader
-{
-	public void Reposition(long position)
-	{
+public class FakeIndexReader : ITransactionFileReader {
+	public void Reposition(long position) {
 		throw new NotImplementedException();
 	}
 
@@ -141,8 +135,7 @@ public class FakeIndexReader : ITransactionFileReader
 	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
 		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
-	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
-	{
+	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token) {
 		var record = (LogRecord)new PrepareLogRecord(position, Guid.NewGuid(), Guid.NewGuid(), 0, 0,
 			position % 2 == 0 ? "testStream-2" : "testStream-1", null, -1, DateTime.UtcNow, PrepareFlags.None, "type",
 			null, Array.Empty<byte>(), null);

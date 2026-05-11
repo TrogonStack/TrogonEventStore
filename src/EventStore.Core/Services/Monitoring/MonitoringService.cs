@@ -88,7 +88,8 @@ namespace EventStore.Core.Services.Monitoring {
 			if (statsCollectionPeriod > TimeSpan.Zero) {
 				_timerTokenSource = new();
 				_timerToken = _timerTokenSource.Token;
-			} else {
+			}
+			else {
 				_timerToken = new(canceled: true);
 			}
 
@@ -101,8 +102,9 @@ namespace EventStore.Core.Services.Monitoring {
 		}
 
 		public void Handle(SystemMessage.SystemInit message) {
-			if (_timerToken.IsCancellationRequested)
+			if (_timerToken.IsCancellationRequested) {
 				return;
+			}
 
 			_timer = CollectRegularStatsJob();
 		}
@@ -118,8 +120,9 @@ namespace EventStore.Core.Services.Monitoring {
 						// to be consistent with all the other awaits
 						ConfigureAwaitOptions.ContinueOnCapturedContext);
 
-				if (_timerToken.IsCancellationRequested)
+				if (_timerToken.IsCancellationRequested) {
 					break;
+				}
 
 				await CollectRegularStats(_timerToken);
 			}
@@ -130,15 +133,18 @@ namespace EventStore.Core.Services.Monitoring {
 				if (await CollectStats(token) is { } stats) {
 					var rawStats = stats.GetStats(useGrouping: false, useMetadata: false);
 
-					if ((_statsStorage & StatsStorage.File) != 0)
+					if ((_statsStorage & StatsStorage.File) != 0) {
 						SaveStatsToFile(StatsContainer.Group(rawStats));
+					}
 
 					if ((_statsStorage & StatsStorage.Stream) != 0) {
-						if (_statsStreamCreated)
+						if (_statsStreamCreated) {
 							SaveStatsToStream(rawStats);
+						}
 					}
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "Error on regular stats collection.");
 			}
 		}
@@ -150,9 +156,11 @@ namespace EventStore.Core.Services.Monitoring {
 				await _statsCollectionDispatcher.HandleAsync(
 					new MonitoringMessage.InternalStatsRequest(new StatsCollectorEnvelope(statsContainer)),
 					token);
-			} catch (OperationCanceledException e) when (e.CancellationToken == token) {
+			}
+			catch (OperationCanceledException e) when (e.CancellationToken == token) {
 				statsContainer = null;
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "Error while collecting stats");
 				statsContainer = null;
 			}
@@ -165,21 +173,23 @@ namespace EventStore.Core.Services.Monitoring {
 			RegularLog.Information("{@stats}", rawStats);
 		}
 
-        private void SaveStatsToStream(Dictionary<string, object> rawStats) {
+		private void SaveStatsToStream(Dictionary<string, object> rawStats) {
 			var data = rawStats.ToJsonBytes();
 			var evnt = new Event(Guid.NewGuid(), SystemEventTypes.StatsCollection, true, data, null);
 			var corrId = Guid.NewGuid();
 			var msg = new ClientMessage.WriteEvents(corrId, corrId, NoopEnvelope, false, _nodeStatsStream,
-				ExpectedVersion.Any, new[] {evnt}, SystemAccounts.System);
+				ExpectedVersion.Any, new[] { evnt }, SystemAccounts.System);
 			_mainQueue.Publish(msg);
 		}
 
 		public void Handle(SystemMessage.StateChangeMessage message) {
-			if ((_statsStorage & StatsStorage.Stream) == 0)
+			if ((_statsStorage & StatsStorage.Stream) == 0) {
 				return;
+			}
 
-			if (_statsStreamCreated)
+			if (_statsStreamCreated) {
 				return;
+			}
 
 			switch (message.State) {
 				case VNodeState.CatchingUp:
@@ -187,9 +197,9 @@ namespace EventStore.Core.Services.Monitoring {
 				case VNodeState.Follower:
 				case VNodeState.ReadOnlyReplica:
 				case VNodeState.Leader: {
-					SetStatsStreamMetadata();
-					break;
-				}
+						SetStatsStreamMetadata();
+						break;
+					}
 			}
 		}
 
@@ -198,7 +208,8 @@ namespace EventStore.Core.Services.Monitoring {
 				try {
 					cts.Cancel();
 					await _timer.WaitAsync(token);
-				} finally {
+				}
+				finally {
 					cts.Dispose();
 					_systemStats.Dispose();
 				}
@@ -216,41 +227,43 @@ namespace EventStore.Core.Services.Monitoring {
 				new ClientMessage.WriteEvents(
 					_streamMetadataWriteCorrId, _streamMetadataWriteCorrId, _monitoringQueue,
 					false, SystemStreams.MetastreamOf(_nodeStatsStream), ExpectedVersion.NoStream,
-					new[] {new Event(Guid.NewGuid(), SystemEventTypes.StreamMetadata, true, metadata, null)},
+					new[] { new Event(Guid.NewGuid(), SystemEventTypes.StreamMetadata, true, metadata, null) },
 					SystemAccounts.System));
 		}
 
 		public void Handle(ClientMessage.WriteEventsCompleted message) {
-			if (message.CorrelationId != _streamMetadataWriteCorrId)
+			if (message.CorrelationId != _streamMetadataWriteCorrId) {
 				return;
+			}
+
 			switch (message.Result) {
 				case OperationResult.Success:
 				case OperationResult.WrongExpectedVersion: // already created
 				{
-					Log.Debug("Created stats stream '{stream}', code = {result}", _nodeStatsStream, message.Result);
-					_statsStreamCreated = true;
-					break;
-				}
+						Log.Debug("Created stats stream '{stream}', code = {result}", _nodeStatsStream, message.Result);
+						_statsStreamCreated = true;
+						break;
+					}
 				case OperationResult.PrepareTimeout:
 				case OperationResult.CommitTimeout:
 				case OperationResult.ForwardTimeout: {
-					Log.Debug("Failed to create stats stream '{stream}'. Reason : {e}({message}). Retrying...",
-						_nodeStatsStream, message.Result, message.Message);
-					SetStatsStreamMetadata();
-					break;
-				}
+						Log.Debug("Failed to create stats stream '{stream}'. Reason : {e}({message}). Retrying...",
+							_nodeStatsStream, message.Result, message.Message);
+						SetStatsStreamMetadata();
+						break;
+					}
 				case OperationResult.AccessDenied: {
-					// can't do anything about that right now
-					break;
-				}
+						// can't do anything about that right now
+						break;
+					}
 				case OperationResult.StreamDeleted:
 				case OperationResult.InvalidTransaction: // should not happen at all
 				{
-					Log.Error(
-						"Monitoring service got unexpected response code when trying to create stats stream ({e}).",
-						message.Result);
-					break;
-				}
+						Log.Error(
+							"Monitoring service got unexpected response code when trying to create stats stream ({e}).",
+							message.Result);
+						break;
+					}
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
@@ -270,13 +283,15 @@ namespace EventStore.Core.Services.Monitoring {
 				Dictionary<string, object> selectedStats = null;
 				if (stats != null) {
 					selectedStats = stats.GetStats(message.UseGrouping, message.UseMetadata);
-					if (message.UseGrouping)
+					if (message.UseGrouping) {
 						selectedStats = message.StatsSelector(selectedStats);
+					}
 				}
 
 				message.Envelope.ReplyWith(
 					new MonitoringMessage.GetFreshStatsCompleted(success: selectedStats != null, stats: selectedStats));
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "Error on getting fresh stats");
 			}
 		}
@@ -314,7 +329,7 @@ namespace EventStore.Core.Services.Monitoring {
 					var tcpConnSsl = conn as TcpConnectionSsl;
 					if (tcpConnSsl != null) {
 						var isExternalConnection = _tcpSecureEndpoint != null &&
-						                           _tcpSecureEndpoint.Port == tcpConnSsl.LocalEndPoint.GetPort();
+												   _tcpSecureEndpoint.Port == tcpConnSsl.LocalEndPoint.GetPort();
 						connStats.Add(new MonitoringMessage.TcpConnectionStats {
 							IsExternalConnection = isExternalConnection,
 							RemoteEndPoint = tcpConnSsl.RemoteEndPoint.ToString(),
@@ -333,7 +348,8 @@ namespace EventStore.Core.Services.Monitoring {
 				message.Envelope.ReplyWith(
 					new MonitoringMessage.GetFreshTcpConnectionStatsCompleted(connStats)
 				);
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Log.Error(ex, "Error on getting fresh tcp connection stats");
 			}
 		}

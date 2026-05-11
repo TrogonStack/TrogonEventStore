@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -11,10 +12,9 @@ using EventStore.Core.Services.Storage.EpochManager;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
-using System.Threading.Tasks;
-using ILogger = Serilog.ILogger;
 using EventStore.LogCommon;
 using static System.Threading.Timeout;
+using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage;
 
@@ -26,8 +26,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 	IHandle<SystemMessage.SystemInit>,
 	IHandle<SystemMessage.SystemStart>,
 	IHandle<SystemMessage.BecomeShuttingDown>,
-	IThreadPoolWorkItem
-{
+	IThreadPoolWorkItem {
 
 	private static readonly int TicksPerMs = (int)(Stopwatch.Frequency / 1000);
 	private static readonly int MinFlushDelay = 2 * TicksPerMs;
@@ -57,8 +56,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 
 	private readonly TaskCompletionSource<object> _tcs = new();
 
-	public Task Task
-	{
+	public Task Task {
 		get { return _tcs.Task; }
 	}
 
@@ -67,8 +65,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 		ITransactionFileChaser chaser,
 		IIndexCommitterService<TStreamId> indexCommitterService,
 		IEpochManager epochManager,
-		QueueStatsManager queueStatsManager)
-	{
+		QueueStatsManager queueStatsManager) {
 		Ensure.NotNull(leaderBus, "leaderBus");
 		Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
 		Ensure.NotNull(chaser, "chaser");
@@ -95,10 +92,8 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 	public void Handle(SystemMessage.SystemStart message) =>
 		_systemStarted = true;
 
-	async void IThreadPoolWorkItem.Execute()
-	{
-		try
-		{
+	async void IThreadPoolWorkItem.Execute() {
+		try {
 			_queueStats.Start();
 			QueueMonitor.Default.Register(this);
 
@@ -113,17 +108,17 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			await _indexCommitterService.Init(_chaser.Checkpoint.Read(), _stopToken);
 			_leaderBus.Publish(new SystemMessage.ServiceInitialized(nameof(StorageChaser)));
 
-			while (!_stopToken.IsCancellationRequested)
-			{
-				if (_systemStarted)
+			while (!_stopToken.IsCancellationRequested) {
+				if (_systemStarted) {
 					await ChaserIteration(_stopToken);
-				else
+				}
+				else {
 					await Task.Delay(1, _stopToken).ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext |
-					                                               ConfigureAwaitOptions.SuppressThrowing);
+																   ConfigureAwaitOptions.SuppressThrowing);
+				}
 			}
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			Log.Fatal(exc, "Error in StorageChaser. Terminating...");
 			_queueStats.EnterIdle();
 			_queueStats.ProcessingStarted<FaultedChaserState>(0);
@@ -132,12 +127,11 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			Application.Exit(ExitCode.Error, "Error in StorageChaser. Terminating...\nError: " + exc.Message);
 			await Task.Delay(InfiniteTimeSpan, _stopToken)
 				.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing |
-				                ConfigureAwaitOptions.ContinueOnCapturedContext);
+								ConfigureAwaitOptions.ContinueOnCapturedContext);
 
 			_queueStats.ProcessingEnded(0);
 		}
-		finally
-		{
+		finally {
 			_queueStats.Stop();
 			QueueMonitor.Default.Unregister(this);
 		}
@@ -150,24 +144,21 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 	private void OnWriterFlushed(long obj) =>
 		FlushSignal.Set();
 
-	private async ValueTask ChaserIteration(CancellationToken token)
-	{
+	private async ValueTask ChaserIteration(CancellationToken token) {
 		_queueStats.EnterBusy();
 
 		FlushSignal.Reset(); // Reset the flush signal just before a read to reduce pointless reads from [flush flush read] patterns.
 
 		var result = await _chaser.TryReadNext(token);
 
-		if (result.Success)
-		{
+		if (result.Success) {
 			_queueStats.ProcessingStarted(result.LogRecord.GetType(), 0);
 			await ProcessLogRecord(result, token);
 			_queueStats.ProcessingEnded(1);
 		}
 
 		var start = _watch.ElapsedTicks;
-		if (!result.Success || start - _lastFlush >= _flushDelay + MinFlushDelay)
-		{
+		if (!result.Success || start - _lastFlush >= _flushDelay + MinFlushDelay) {
 			_queueStats.ProcessingStarted<ChaserCheckpointFlush>(0);
 			// todo: histogram metric?
 			_chaser.Flush();
@@ -178,39 +169,33 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			_lastFlush = end;
 		}
 
-		if (!result.Success)
-		{
+		if (!result.Success) {
 			_queueStats.EnterIdle();
 			// todo: histogram metric?
 			FlushSignal.Wait(FlushWaitTimeout, token);
 		}
 	}
 
-	private async ValueTask ProcessLogRecord(SeqReadResult result, CancellationToken token)
-	{
-		switch (result.LogRecord.RecordType)
-		{
+	private async ValueTask ProcessLogRecord(SeqReadResult result, CancellationToken token) {
+		switch (result.LogRecord.RecordType) {
 			case LogRecordType.Stream:
 			case LogRecordType.EventType:
-			case LogRecordType.Prepare:
-			{
-				var record = (IPrepareLogRecord<TStreamId>)result.LogRecord;
-				ProcessPrepareRecord(record, result.RecordPostPosition);
-				break;
-			}
-			case LogRecordType.Commit:
-			{
-				_commitsAfterEof = !result.Eof;
-				var record = (CommitLogRecord)result.LogRecord;
-				await ProcessCommitRecord(record, result.RecordPostPosition, token);
-				break;
-			}
-			case LogRecordType.System:
-			{
-				var record = (ISystemLogRecord)result.LogRecord;
-				await ProcessSystemRecord(record, token);
-				break;
-			}
+			case LogRecordType.Prepare: {
+					var record = (IPrepareLogRecord<TStreamId>)result.LogRecord;
+					ProcessPrepareRecord(record, result.RecordPostPosition);
+					break;
+				}
+			case LogRecordType.Commit: {
+					_commitsAfterEof = !result.Eof;
+					var record = (CommitLogRecord)result.LogRecord;
+					await ProcessCommitRecord(record, result.RecordPostPosition, token);
+					break;
+				}
+			case LogRecordType.System: {
+					var record = (ISystemLogRecord)result.LogRecord;
+					await ProcessSystemRecord(record, token);
+					break;
+				}
 			case LogRecordType.Partition:
 			case LogRecordType.PartitionType:
 				break;
@@ -218,36 +203,35 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 				throw new ArgumentOutOfRangeException();
 		}
 
-		if (result.Eof && result.LogRecord.RecordType != LogRecordType.Commit && _commitsAfterEof)
-		{
+		if (result.Eof && result.LogRecord.RecordType != LogRecordType.Commit && _commitsAfterEof) {
 			_commitsAfterEof = false;
 			_leaderBus.Publish(new StorageMessage.TfEofAtNonCommitRecord());
 		}
 	}
 
-	private void ProcessPrepareRecord(IPrepareLogRecord<TStreamId> record, long postPosition)
-	{
-		if (_transaction.Count > 0 && _transaction[0].TransactionPosition != record.TransactionPosition)
+	private void ProcessPrepareRecord(IPrepareLogRecord<TStreamId> record, long postPosition) {
+		if (_transaction.Count > 0 && _transaction[0].TransactionPosition != record.TransactionPosition) {
 			CommitPendingTransaction(_transaction, postPosition);
+		}
 
-		if (record.Flags.HasAnyOf(PrepareFlags.IsCommitted))
-		{
-			if (record.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
+		if (record.Flags.HasAnyOf(PrepareFlags.IsCommitted)) {
+			if (record.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete)) {
 				_transaction.Add(record);
+			}
 
-			if (!record.Flags.HasAnyOf(PrepareFlags.TransactionEnd)) return;
+			if (!record.Flags.HasAnyOf(PrepareFlags.TransactionEnd)) {
+				return;
+			}
 
 			CommitPendingTransaction(_transaction, postPosition);
 
 			long firstEventNumber;
 			long lastEventNumber;
-			if (record.Flags.HasAnyOf(PrepareFlags.Data))
-			{
+			if (record.Flags.HasAnyOf(PrepareFlags.Data)) {
 				firstEventNumber = record.ExpectedVersion + 1 - record.TransactionOffset;
 				lastEventNumber = record.ExpectedVersion + 1;
 			}
-			else
-			{
+			else {
 				firstEventNumber = record.ExpectedVersion + 1;
 				lastEventNumber = record.ExpectedVersion;
 			}
@@ -258,31 +242,32 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 				firstEventNumber,
 				lastEventNumber));
 		}
-		else if (record.Flags.HasAnyOf(PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd | PrepareFlags.Data))
-		{
+		else if (record.Flags.HasAnyOf(PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd | PrepareFlags.Data)) {
 			_leaderBus.Publish(
 				new StorageMessage.PrepareAck(record.CorrelationId, record.LogPosition, record.Flags));
 		}
 	}
 
-	private async ValueTask ProcessCommitRecord(CommitLogRecord record, long postPosition, CancellationToken token)
-	{
+	private async ValueTask ProcessCommitRecord(CommitLogRecord record, long postPosition, CancellationToken token) {
 		CommitPendingTransaction(_transaction, postPosition);
 
 		var firstEventNumber = record.FirstEventNumber;
 		var lastEventNumber = await _indexCommitterService.GetCommitLastEventNumber(record, token);
 		_indexCommitterService.AddPendingCommit(record, postPosition);
-		if (lastEventNumber is EventNumber.Invalid)
+		if (lastEventNumber is EventNumber.Invalid) {
 			lastEventNumber = record.FirstEventNumber - 1;
+		}
+
 		_leaderBus.Publish(new StorageMessage.CommitAck(record.CorrelationId, record.LogPosition,
 			record.TransactionPosition, firstEventNumber, lastEventNumber));
 	}
 
-	private ValueTask ProcessSystemRecord(ISystemLogRecord record, CancellationToken token)
-	{
+	private ValueTask ProcessSystemRecord(ISystemLogRecord record, CancellationToken token) {
 		CommitPendingTransaction(_transaction, record.LogPosition);
 
-		if (record.SystemRecordType is not SystemRecordType.Epoch) return ValueTask.CompletedTask;
+		if (record.SystemRecordType is not SystemRecordType.Epoch) {
+			return ValueTask.CompletedTask;
+		}
 
 		// Epoch record is written to TF, but possibly is not added to EpochManager
 		// as we could be in Follower/Clone mode. We try to add epoch to EpochManager
@@ -292,17 +277,19 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 		return _epochManager.CacheEpoch(epoch, token);
 	}
 
-	private void CommitPendingTransaction(List<IPrepareLogRecord<TStreamId>> transaction, long postPosition)
-	{
-		if (transaction.Count <= 0) return;
+	private void CommitPendingTransaction(List<IPrepareLogRecord<TStreamId>> transaction, long postPosition) {
+		if (transaction.Count <= 0) {
+			return;
+		}
 
 		_indexCommitterService.AddPendingPrepare(transaction.ToArray(), postPosition);
 		_transaction.Clear();
 	}
 
-	public void Handle(SystemMessage.BecomeShuttingDown message)
-	{
-		if (_stop.IsCancellationRequested) return;
+	public void Handle(SystemMessage.BecomeShuttingDown message) {
+		if (_stop.IsCancellationRequested) {
+			return;
+		}
 
 		_stop.Cancel();
 		_stop.Dispose();

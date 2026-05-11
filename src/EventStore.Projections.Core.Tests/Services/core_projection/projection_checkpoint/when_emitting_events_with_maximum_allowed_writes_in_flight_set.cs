@@ -18,21 +18,18 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_
 [TestFixture(typeof(LogFormat.V2), typeof(string), 1)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), 2)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), 3)]
-public class when_emitting_events_with_maximum_allowed_writes_in_flight_set<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_emitting_events_with_maximum_allowed_writes_in_flight_set<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
 	private int _maximumNumberOfAllowedWritesInFlight;
 
 	public when_emitting_events_with_maximum_allowed_writes_in_flight_set(
-		int maximumNumberOfAllowedWritesInFlight)
-	{
+		int maximumNumberOfAllowedWritesInFlight) {
 		_maximumNumberOfAllowedWritesInFlight = maximumNumberOfAllowedWritesInFlight;
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		AllWritesToSucceed("$$stream1");
 		AllWritesToSucceed("$$stream2");
@@ -41,8 +38,7 @@ public class when_emitting_events_with_maximum_allowed_writes_in_flight_set<TLog
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_checkpoint = new ProjectionCheckpoint(
 			_bus, _ioDispatcher, new ProjectionVersion(1, 0, 0), null, _readyHandler,
@@ -67,8 +63,7 @@ public class when_emitting_events_with_maximum_allowed_writes_in_flight_set<TLog
 	}
 
 	[Test]
-	public void should_have_the_same_number_writes_in_flight_as_configured()
-	{
+	public void should_have_the_same_number_writes_in_flight_as_configured() {
 		var writeEvents =
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.ExceptOfEventType(SystemEventTypes.StreamMetadata);
@@ -78,13 +73,11 @@ public class when_emitting_events_with_maximum_allowed_writes_in_flight_set<TLog
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_emitting_events_with_maximum_allowed_writes_in_flight_set_to_unlimited<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+	when_emitting_events_with_maximum_allowed_writes_in_flight_set_to_unlimited<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		AllWritesToSucceed("$$stream1");
 		AllWritesToSucceed("$$stream2");
@@ -93,8 +86,7 @@ public class
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_checkpoint = new ProjectionCheckpoint(
 			_bus, _ioDispatcher, new ProjectionVersion(1, 0, 0), null, _readyHandler,
@@ -119,8 +111,7 @@ public class
 	}
 
 	[Test]
-	public void should_have_as_many_writes_in_flight_as_requested()
-	{
+	public void should_have_as_many_writes_in_flight_as_requested() {
 		var writeEvents =
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.ExceptOfEventType(SystemEventTypes.StreamMetadata);

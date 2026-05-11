@@ -7,18 +7,13 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Certificates;
 
-public class name_matching
-{
-	private X509Certificate2 GenSut(string subjectName, (string name, string type)[] sans)
-	{
-		using (RSA rsa = RSA.Create())
-		{
+public class name_matching {
+	private X509Certificate2 GenSut(string subjectName, (string name, string type)[] sans) {
+		using (RSA rsa = RSA.Create()) {
 			var certReq = new CertificateRequest(subjectName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 			var sanBuilder = new SubjectAlternativeNameBuilder();
-			foreach (var (name, type) in sans)
-			{
-				switch (type)
-				{
+			foreach (var (name, type) in sans) {
+				switch (type) {
 					case CertificateNameType.IpAddress:
 						sanBuilder.AddIpAddress(IPAddress.Parse(name));
 						break;
@@ -34,8 +29,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void ip_address_matches_ip_san()
-	{
+	public void ip_address_matches_ip_san() {
 		var sut = GenSut("CN=test", new[] {
 				("10.123.45.6", CertificateNameType.IpAddress)
 		});
@@ -45,8 +39,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_dns_san()
-	{
+	public void dns_name_matches_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("subdomain.domain.com", CertificateNameType.DnsName)
 		});
@@ -63,8 +56,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_dns_san_case_insensitive()
-	{
+	public void dns_name_matches_dns_san_case_insensitive() {
 		var sut = GenSut("CN=test", new[] {
 			("website.tld", CertificateNameType.DnsName)
 		});
@@ -73,8 +65,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void cn_is_ignored_when_dns_san_is_present()
-	{
+	public void cn_is_ignored_when_dns_san_is_present() {
 		var sut = GenSut("CN=test", new[] {
 			("website.tld", CertificateNameType.DnsName)
 		});
@@ -83,8 +74,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void cn_is_ignored_when_ip_san_is_present()
-	{
+	public void cn_is_ignored_when_ip_san_is_present() {
 		var sut = GenSut("CN=test", new[] {
 			("127.0.0.1", CertificateNameType.IpAddress)
 		});
@@ -93,30 +83,26 @@ public class name_matching
 	}
 
 	[Test]
-	public void cn_is_considered_when_no_san_is_present()
-	{
+	public void cn_is_considered_when_no_san_is_present() {
 		var sut = GenSut("CN=test", Array.Empty<(string name, string type)>());
 		Assert.True(sut.MatchesName("test"));
 	}
 
 	[Test]
-	public void dns_name_matches_cn_case_insensitive()
-	{
+	public void dns_name_matches_cn_case_insensitive() {
 		var sut = GenSut("CN=subdomain.domain.com", Array.Empty<(string name, string type)>());
 		Assert.True(sut.MatchesName("SubDomain.DoMaiN.COm"));
 	}
 
 	[Test]
-	public void cn_matches_when_subject_name_contains_other_fields()
-	{
+	public void cn_matches_when_subject_name_contains_other_fields() {
 		var sut = GenSut("CN=a.b.c,OU=Engineering,O=Company, C=Country", Array.Empty<(string name, string type)>());
 		Assert.True(sut.MatchesName("a.b.c"));
 		Assert.False(sut.MatchesName("a.b.c,OU"));
 	}
 
 	[Test]
-	public void dns_name_matches_wildcard_cn()
-	{
+	public void dns_name_matches_wildcard_cn() {
 		var sut = GenSut("CN=*.example.com", Array.Empty<(string name, string type)>());
 
 		Assert.True(sut.MatchesName("foo.example.com"));
@@ -128,8 +114,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_wildcard_cn_with_less_than_three_domain_labels()
-	{
+	public void dns_name_does_not_match_wildcard_cn_with_less_than_three_domain_labels() {
 		var sut = GenSut("CN=*", Array.Empty<(string name, string type)>());
 		Assert.False(sut.MatchesName("tld"));
 
@@ -138,15 +123,13 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_wildcard_cn_with_four_domain_labels()
-	{
+	public void dns_name_matches_wildcard_cn_with_four_domain_labels() {
 		var sut = GenSut("CN=*.test.example.com", Array.Empty<(string name, string type)>());
 		Assert.True(sut.MatchesName("abc.test.example.com"));
 	}
 
 	[Test]
-	public void dns_name_matches_wildcard_dns_san()
-	{
+	public void dns_name_matches_wildcard_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("*.example.com", CertificateNameType.DnsName)
 		});
@@ -160,8 +143,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_wildcard_dns_san_case_insensitive()
-	{
+	public void dns_name_matches_wildcard_dns_san_case_insensitive() {
 		var sut = GenSut("CN=test", new[] {
 			("*.example.com", CertificateNameType.DnsName)
 		});
@@ -170,8 +152,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_partial_wildcard_prefix_dns_san()
-	{
+	public void dns_name_does_not_match_partial_wildcard_prefix_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("*s.abcd", CertificateNameType.DnsName)
 		});
@@ -181,8 +162,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_partial_wildcard_suffix_dns_san()
-	{
+	public void dns_name_does_not_match_partial_wildcard_suffix_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("t*.abc", CertificateNameType.DnsName)
 		});
@@ -192,8 +172,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_partial_wildcard_dns_san()
-	{
+	public void dns_name_does_not_match_partial_wildcard_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("abc*def.tld", CertificateNameType.DnsName)
 		});
@@ -203,8 +182,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_wildcard_in_non_first_dns_san_label()
-	{
+	public void dns_name_does_not_match_wildcard_in_non_first_dns_san_label() {
 		var sut = GenSut("CN=test", new[] {
 			("hello.*.com", CertificateNameType.DnsName)
 		});
@@ -214,8 +192,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_multiple_wildcards_in_first_dns_san_label()
-	{
+	public void dns_name_does_not_match_multiple_wildcards_in_first_dns_san_label() {
 		var sut = GenSut("CN=test", new[] {
 			("a*bc*d.test.com", CertificateNameType.DnsName)
 		});
@@ -226,8 +203,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void invalid_dns_name_does_not_match_wildcard_dns_san()
-	{
+	public void invalid_dns_name_does_not_match_wildcard_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("*.example.com", CertificateNameType.DnsName)
 		});
@@ -239,8 +215,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void ip_address_does_not_match_wildcard_dns_san()
-	{
+	public void ip_address_does_not_match_wildcard_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("*", CertificateNameType.DnsName)
 		});
@@ -249,15 +224,13 @@ public class name_matching
 	}
 
 	[Test]
-	public void ip_address_does_not_match_wildcard_cn()
-	{
+	public void ip_address_does_not_match_wildcard_cn() {
 		var sut = GenSut("CN=*", Array.Empty<(string name, string type)>());
 		Assert.False(sut.MatchesName("127.0.0.1"));
 	}
 
 	[Test]
-	public void dns_name_matches_internationalized_dns_san()
-	{
+	public void dns_name_matches_internationalized_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("سلام", CertificateNameType.DnsName),
 			("和平.tld", CertificateNameType.DnsName),
@@ -275,8 +248,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_internationalized_dns_san_with_ace_prefix()
-	{
+	public void dns_name_matches_internationalized_dns_san_with_ace_prefix() {
 		var sut = GenSut("CN=test", new[] {
 			("xn--mgbx5cf", CertificateNameType.DnsName),
 			("xn--0tr63u.tld", CertificateNameType.DnsName),
@@ -294,8 +266,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_internationalized_dns_san_case_insensitive()
-	{
+	public void dns_name_matches_internationalized_dns_san_case_insensitive() {
 		var sut = GenSut("CN=test", new[] {
 			("سلام", CertificateNameType.DnsName)
 		});
@@ -304,23 +275,20 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_matches_internationalized_cn()
-	{
+	public void dns_name_matches_internationalized_cn() {
 		var sut = GenSut("CN=xn--mgbx5cf", Array.Empty<(string name, string type)>());
 		Assert.True(sut.MatchesName("سلام"));
 		Assert.True(sut.MatchesName("xn--mgbx5cf"));
 	}
 
 	[Test]
-	public void dns_name_matches_internationalized_cn_case_insensitive()
-	{
+	public void dns_name_matches_internationalized_cn_case_insensitive() {
 		var sut = GenSut("CN=xn--mgbx5cf", Array.Empty<(string name, string type)>());
 		Assert.True(sut.MatchesName("Xn--MgBx5Cf"));
 	}
 
 	[Test]
-	public void dns_name_matches_wildcard_internationalized_dns_san()
-	{
+	public void dns_name_matches_wildcard_internationalized_dns_san() {
 		var sut = GenSut("CN=test", new[] {
 			("*.สันติภาพ.com", CertificateNameType.DnsName)
 		});
@@ -333,8 +301,7 @@ public class name_matching
 	}
 
 	[Test]
-	public void dns_name_does_not_match_internationalized_dns_san_with_illegal_wildcard_characters()
-	{
+	public void dns_name_does_not_match_internationalized_dns_san_with_illegal_wildcard_characters() {
 		var sut = GenSut("CN=test", new[] {
 			("*.สันติภาพ*.com", CertificateNameType.DnsName),
 			("*.xn--*-yxflvj1d7blq.com", CertificateNameType.DnsName)

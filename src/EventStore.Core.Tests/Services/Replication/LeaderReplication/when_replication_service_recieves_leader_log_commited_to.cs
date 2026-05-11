@@ -5,19 +5,16 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture]
-public class WhenReplicationServiceRecievesLeaderLogCommitedTo : WithReplicationService
-{
+public class WhenReplicationServiceRecievesLeaderLogCommitedTo : WithReplicationService {
 	private long _logPosition;
 
-	public override void When()
-	{
+	public override void When() {
 		_logPosition = 4000;
 		Service.Handle(new ReplicationTrackingMessage.ReplicatedTo(_logPosition));
 	}
 
 	[Test]
-	public void replicated_to_should_be_sent_to_subscriptions()
-	{
+	public void replicated_to_should_be_sent_to_subscriptions() {
 		AssertEx.IsOrBecomesTrue(() => TcpSends.Count > 4, msg: "TcpSend msg not recieved");
 		var sends = TcpSends.Where(tcpSend => tcpSend.Message is ReplicationTrackingMessage.ReplicatedTo).ToList();
 		Assert.AreEqual(4 * 2,

@@ -4,8 +4,7 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 
 namespace EventStore.Core.Tests;
 
-public static class IIndexReaderExtensions
-{
+public static class IIndexReaderExtensions {
 	public static ValueTask<IndexReadEventResult> ReadEvent(this IIndexReader<string> index, string streamName, long eventNumber, CancellationToken token) =>
 		index.ReadEvent(streamName, streamName, eventNumber, token);
 

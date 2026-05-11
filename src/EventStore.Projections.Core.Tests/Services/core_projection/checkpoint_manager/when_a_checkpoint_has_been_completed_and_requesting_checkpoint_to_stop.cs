@@ -10,23 +10,19 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_a_checkpoint_has_been_completed_and_requesting_checkpoint_to_stop<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
-{
+	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId> {
 	private Exception _exception;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesSucceed();
 		base.Given();
 		this._checkpointHandledThreshold = 2; //NOTE: does not play any role anymore here
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		base.When();
 		_exception = null;
-		try
-		{
+		try {
 			_checkpointReader.BeginLoadState();
 			var checkpointLoaded =
 				_consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.CheckpointLoaded>().First();
@@ -41,28 +37,24 @@ public class when_a_checkpoint_has_been_completed_and_requesting_checkpoint_to_s
 			_manager.CheckpointSuggested(CheckpointTag.FromStreamPosition(0, "stream", 12), 77.8f);
 			_manager.Stopping();
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void does_not_throw()
-	{
+	public void does_not_throw() {
 		Assert.IsNull(_exception);
 	}
 
 	[Test]
-	public void two_checkpoints_are_completed()
-	{
+	public void two_checkpoints_are_completed() {
 		Assert.AreEqual(2, _projection._checkpointCompletedMessages.Count);
 	}
 
 
 	[Test]
-	public void only_one_checkpoint_has_been_written()
-	{
+	public void only_one_checkpoint_has_been_written() {
 		Assert.AreEqual(
 			1,
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()

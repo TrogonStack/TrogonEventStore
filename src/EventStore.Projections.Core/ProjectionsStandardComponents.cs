@@ -3,8 +3,7 @@ using EventStore.Core.Bus;
 
 namespace EventStore.Projections.Core;
 
-public class ProjectionsStandardComponents
-{
+public class ProjectionsStandardComponents {
 	public ProjectionsStandardComponents(
 		int projectionWorkerThreadCount,
 		ProjectionType runProjections,
@@ -15,8 +14,7 @@ public class ProjectionsStandardComponents
 		bool faultOutOfOrderProjections,
 		int projectionCompilationTimeout,
 		int projectionExecutionTimeout,
-		int maxProjectionStateSize = int.MaxValue)
-	{
+		int maxProjectionStateSize = int.MaxValue) {
 		ProjectionWorkerThreadCount = projectionWorkerThreadCount;
 		RunProjections = runProjections;
 		LeaderOutputBus = leaderOutputBus;

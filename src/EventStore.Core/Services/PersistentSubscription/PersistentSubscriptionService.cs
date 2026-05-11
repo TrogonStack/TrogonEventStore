@@ -21,8 +21,7 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Services.PersistentSubscription;
 
-public abstract class PersistentSubscriptionService
-{
+public abstract class PersistentSubscriptionService {
 	protected static readonly ILogger Log = Serilog.Log.ForContext<PersistentSubscriptionService>();
 }
 
@@ -53,8 +52,7 @@ public class PersistentSubscriptionService<TStreamId> :
 	IHandle<TelemetryMessage.Request>,
 	IHandle<MonitoringMessage.GetAllPersistentSubscriptionStats>,
 	IHandle<MonitoringMessage.GetPersistentSubscriptionStats>,
-	IHandle<MonitoringMessage.GetStreamPersistentSubscriptionStats>
-{
+	IHandle<MonitoringMessage.GetStreamPersistentSubscriptionStats> {
 
 	private Dictionary<string, List<PersistentSubscription>> _subscriptionTopics;
 	private SortedDictionary<string, List<PersistentSubscription>> _sortedSubscriptionTopics;
@@ -80,8 +78,7 @@ public class PersistentSubscriptionService<TStreamId> :
 	public PersistentSubscriptionService(IQueuedHandler queuedHandler, IReadIndex<TStreamId> readIndex,
 		IODispatcher ioDispatcher, IPublisher bus,
 		PersistentSubscriptionConsumerStrategyRegistry consumerStrategyRegistry,
-		IPersistentSubscriptionTracker persistentSubscriptionTracker)
-	{
+		IPersistentSubscriptionTracker persistentSubscriptionTracker) {
 		Ensure.NotNull(queuedHandler, "queuedHandler");
 		Ensure.NotNull(readIndex, "readIndex");
 		Ensure.NotNull(ioDispatcher, "ioDispatcher");
@@ -100,13 +97,10 @@ public class PersistentSubscriptionService<TStreamId> :
 				new CallbackEnvelope(PushStatsToPersistentSubscriptionTracker)));
 	}
 
-	private void PushStatsToPersistentSubscriptionTracker(Message message)
-	{
-		if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted stats)
-		{
+	private void PushStatsToPersistentSubscriptionTracker(Message message) {
+		if (message is MonitoringMessage.GetPersistentSubscriptionStatsCompleted stats) {
 			SubscriptionStats = stats.SubscriptionStats;
-			if (SubscriptionStats != null)
-			{
+			if (SubscriptionStats != null) {
 				_persistentSubscriptionTracker.OnNewStats(SubscriptionStats);
 			}
 		}
@@ -114,40 +108,36 @@ public class PersistentSubscriptionService<TStreamId> :
 		_bus.Publish(_getStats);
 	}
 
-	public List<MonitoringMessage.PersistentSubscriptionInfo> GetPersistentSubscriptionStats()
-	{
+	public List<MonitoringMessage.PersistentSubscriptionInfo> GetPersistentSubscriptionStats() {
 		return SubscriptionStats;
 	}
 
-	public void InitToEmpty()
-	{
+	public void InitToEmpty() {
 		_handleTick = false;
 		_subscriptionTopics = new Dictionary<string, List<PersistentSubscription>>();
 		_sortedSubscriptionTopics = new SortedDictionary<string, List<PersistentSubscription>>(StringComparer.Ordinal);
 		_subscriptionsById = new Dictionary<string, PersistentSubscription>();
 	}
 
-	public void Handle(SystemMessage.StateChangeMessage message)
-	{
+	public void Handle(SystemMessage.StateChangeMessage message) {
 		_state = message.State;
 
-		if (message.State == VNodeState.Leader)
+		if (message.State == VNodeState.Leader) {
 			return;
+		}
+
 		Log.Debug("Persistent subscriptions received state change to {state}. Stopping listening", _state);
 		ShutdownSubscriptions();
 		Stop();
 	}
 
-	public void Handle(SystemMessage.BecomeLeader message)
-	{
+	public void Handle(SystemMessage.BecomeLeader message) {
 		Log.Debug("Persistent subscriptions Became Leader so now handling subscriptions");
 		StartSubscriptions();
 	}
 
-	public void Handle(SubscriptionMessage.PersistentSubscriptionsRestart message)
-	{
-		if (!_started)
-		{
+	public void Handle(SubscriptionMessage.PersistentSubscriptionsRestart message) {
+		if (!_started) {
 			message.ReplyEnvelope.ReplyWith(new SubscriptionMessage.InvalidPersistentSubscriptionsRestart(
 				"The Persistent Subscriptions subsystem cannot be restarted because it is not started."));
 			return;
@@ -161,8 +151,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		StartSubscriptions();
 	}
 
-	private void StartSubscriptions()
-	{
+	private void StartSubscriptions() {
 		InitToEmpty();
 		_handleTick = true;
 		_timerTickCorrelationId = Guid.NewGuid();
@@ -172,53 +161,47 @@ public class PersistentSubscriptionService<TStreamId> :
 		LoadConfiguration(Start);
 	}
 
-	public void Handle(SystemMessage.BecomeShuttingDown message)
-	{
+	public void Handle(SystemMessage.BecomeShuttingDown message) {
 		ShutdownSubscriptions();
 		Stop();
 		_queuedHandler.RequestStop();
 	}
 
-	private void ShutdownSubscriptions()
-	{
-		if (_subscriptionsById == null)
+	private void ShutdownSubscriptions() {
+		if (_subscriptionsById == null) {
 			return;
-		foreach (var subscription in _subscriptionsById.Values)
-		{
+		}
+
+		foreach (var subscription in _subscriptionsById.Values) {
 			subscription.Shutdown();
 		}
 	}
 
-	public void Start()
-	{
+	public void Start() {
 		_started = true;
 		_bus.Publish(new SubscriptionMessage.PersistentSubscriptionsStarted());
 		_bus.Publish(_getStats);
 		Log.Debug("Persistent Subscriptions have been started.");
 	}
 
-	public void Stop()
-	{
+	public void Stop() {
 		_started = false;
 		_bus.Publish(new SubscriptionMessage.PersistentSubscriptionsStopped());
 		Log.Debug("Persistent Subscriptions have been stopped.");
 	}
 
-	public void Handle(ClientMessage.UnsubscribeFromStream message)
-	{
-		if (!_started)
+	public void Handle(ClientMessage.UnsubscribeFromStream message) {
+		if (!_started) {
 			return;
+		}
+
 		UnsubscribeFromStream(message.CorrelationId, true);
 	}
 
-	private bool ValidateStartFrom(IPersistentSubscriptionStreamPosition startFromPosition, out string error)
-	{
-		switch (startFromPosition)
-		{
-			case PersistentSubscriptionSingleStreamPosition startFromStream:
-				{
-					if (startFromStream.StreamEventNumber < -1)
-					{
+	private bool ValidateStartFrom(IPersistentSubscriptionStreamPosition startFromPosition, out string error) {
+		switch (startFromPosition) {
+			case PersistentSubscriptionSingleStreamPosition startFromStream: {
+					if (startFromStream.StreamEventNumber < -1) {
 						error = "Invalid Start From position: event number must be greater than or equal to -1.";
 						return false;
 					}
@@ -226,26 +209,22 @@ public class PersistentSubscriptionService<TStreamId> :
 					error = null;
 					return true;
 				}
-			case PersistentSubscriptionAllStreamPosition startFromAll:
-				{
+			case PersistentSubscriptionAllStreamPosition startFromAll: {
 					var (commit, prepare) = startFromAll.TFPosition;
 
-					if (prepare > commit)
-					{
+					if (prepare > commit) {
 						error =
 							"Invalid Start From position: prepare position must be less than or equal to the commit position.";
 						return false;
 					}
 
-					if (commit > _readIndex.LastIndexedPosition)
-					{
+					if (commit > _readIndex.LastIndexedPosition) {
 						error =
 							"Invalid Start From position: commit position must be less than or equal to the last commit position in the transaction file.";
 						return false;
 					}
 
-					if ((prepare <= -1 || commit <= -1) && !(prepare == -1 && commit == -1))
-					{
+					if ((prepare <= -1 || commit <= -1) && !(prepare == -1 && commit == -1)) {
 						error =
 							"Invalid Start From position: prepare and commit positions must be greater than or equal to 0 or both equal to -1.";
 						return false;
@@ -280,20 +259,17 @@ public class PersistentSubscriptionService<TStreamId> :
 		Action<string> onExists,
 		Action<string> onAccessDenied,
 		string user
-	)
-	{
+	) {
 		var stream = eventSource.ToString();
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		Log.Debug("Creating persistent subscription {subscriptionKey}", key);
 
-		if (!_consumerStrategyRegistry.ValidateStrategy(namedConsumerStrategy))
-		{
+		if (!_consumerStrategyRegistry.ValidateStrategy(namedConsumerStrategy)) {
 			onFail($"Consumer strategy {namedConsumerStrategy} does not exist.");
 			return;
 		}
 
-		if (!ValidateStartFrom(startFrom, out var startFromValidationError))
-		{
+		if (!ValidateStartFrom(startFrom, out var startFromValidationError)) {
 			onFail(startFromValidationError);
 			return;
 		}
@@ -315,15 +291,13 @@ public class PersistentSubscriptionService<TStreamId> :
 			ToMessageTimeout(messageTimeoutMilliseconds)
 		);
 
-		if (!result)
-		{
+		if (!result) {
 			onExists($"Group '{groupName}' already exists.");
 			return;
 		}
 
 		Log.Debug("New persistent subscription {subscriptionKey}", key);
-		var createEntry = new PersistentSubscriptionEntry
-		{
+		var createEntry = new PersistentSubscriptionEntry {
 			Stream = stream, //'Stream' name kept for backward compatibility
 			Filter = EventFilter.ParseToDto(eventSource.EventFilter),
 			Group = groupName,
@@ -348,16 +322,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		SaveConfiguration(() => onSuccess(""));
 	}
 
-	public void Handle(ClientMessage.CreatePersistentSubscriptionToStream message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.CreatePersistentSubscriptionToStream message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
 
-		if (string.IsNullOrEmpty(message.EventStreamId))
-		{
+		if (string.IsNullOrEmpty(message.EventStreamId)) {
 			message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.CreatePersistentSubscriptionToStreamCompleted
@@ -366,8 +337,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		if (message.EventStreamId == SystemStreams.AllStream)
-		{
+		if (message.EventStreamId == SystemStreams.AllStream) {
 			message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.CreatePersistentSubscriptionToStreamCompleted
@@ -376,8 +346,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		try
-		{
+		try {
 			CreatePersistentSubscription(
 				new PersistentSubscriptionSingleStreamEventSource(message.EventStreamId),
 				message.GroupName,
@@ -394,8 +363,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.MinCheckPointCount,
 				message.CheckPointAfterMilliseconds,
 				message.RecordStatistics,
-				(msg) =>
-				{
+				(msg) => {
 					message.Envelope.ReplyWith(
 						new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 							message.CorrelationId,
@@ -403,24 +371,21 @@ public class PersistentSubscriptionService<TStreamId> :
 								.CreatePersistentSubscriptionToStreamResult.Success,
 							msg));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 						message.CorrelationId,
 						ClientMessage.CreatePersistentSubscriptionToStreamCompleted
 							.CreatePersistentSubscriptionToStreamResult.Fail,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 						message.CorrelationId,
 						ClientMessage.CreatePersistentSubscriptionToStreamCompleted
 							.CreatePersistentSubscriptionToStreamResult.AlreadyExists,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 						message.CorrelationId,
 						ClientMessage.CreatePersistentSubscriptionToStreamCompleted
@@ -430,8 +395,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.User?.Identity?.Name
 			);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.CreatePersistentSubscriptionToStreamCompleted
@@ -440,16 +404,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	public void Handle(ClientMessage.CreatePersistentSubscriptionToAll message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.CreatePersistentSubscriptionToAll message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
 
-		try
-		{
+		try {
 			CreatePersistentSubscription(
 				new PersistentSubscriptionAllStreamEventSource(message.EventFilter),
 				message.GroupName,
@@ -467,8 +428,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.MinCheckPointCount,
 				message.CheckPointAfterMilliseconds,
 				message.RecordStatistics,
-				(msg) =>
-				{
+				(msg) => {
 					message.Envelope.ReplyWith(
 						new ClientMessage.CreatePersistentSubscriptionToAllCompleted(
 							message.CorrelationId,
@@ -476,24 +436,21 @@ public class PersistentSubscriptionService<TStreamId> :
 								.CreatePersistentSubscriptionToAllResult.Success,
 							msg));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToAllCompleted(
 						message.CorrelationId,
 						ClientMessage.CreatePersistentSubscriptionToAllCompleted
 							.CreatePersistentSubscriptionToAllResult.Fail,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToAllCompleted(
 						message.CorrelationId,
 						ClientMessage.CreatePersistentSubscriptionToAllCompleted
 							.CreatePersistentSubscriptionToAllResult.AlreadyExists,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToAllCompleted(
 						message.CorrelationId,
 						ClientMessage.CreatePersistentSubscriptionToAllCompleted
@@ -503,8 +460,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.User?.Identity?.Name
 			);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			message.Envelope.ReplyWith(new ClientMessage.CreatePersistentSubscriptionToAllCompleted(
 				message.CorrelationId,
 				ClientMessage.CreatePersistentSubscriptionToAllCompleted.CreatePersistentSubscriptionToAllResult.Fail,
@@ -535,25 +491,21 @@ public class PersistentSubscriptionService<TStreamId> :
 		Action<string> onNotExist,
 		Action<string> onAccessDenied,
 		string user
-	)
-	{
+	) {
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		Log.Debug("Updating persistent subscription {subscriptionKey}", key);
 
-		if (!_subscriptionsById.TryGetValue(key, out var oldSubscription))
-		{
+		if (!_subscriptionsById.TryGetValue(key, out var oldSubscription)) {
 			onNotExist($"Group '{groupName}' does not exist.");
 			return;
 		}
 
-		if (!_consumerStrategyRegistry.ValidateStrategy(namedConsumerStrategy))
-		{
+		if (!_consumerStrategyRegistry.ValidateStrategy(namedConsumerStrategy)) {
 			onFail($"Consumer strategy {namedConsumerStrategy} does not exist.");
 			return;
 		}
 
-		if (!ValidateStartFrom(startFrom, out var startFromValidationError))
-		{
+		if (!ValidateStartFrom(startFrom, out var startFromValidationError)) {
 			onFail(startFromValidationError);
 			return;
 		}
@@ -583,8 +535,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				new PersistentSubscriptionMessageParker(key, _ioDispatcher),
 				new PersistentSubscriptionPushScheduler(key, _bus)));
 
-		var updateEntry = new PersistentSubscriptionEntry
-		{
+		var updateEntry = new PersistentSubscriptionEntry {
 			Stream = stream, //'Stream' name kept for backward compatibility
 			Group = groupName,
 			Filter = EventFilter.ParseToDto(eventSource.EventFilter),
@@ -613,16 +564,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		SaveConfiguration(() => onSuccess(""));
 	}
 
-	public void Handle(ClientMessage.UpdatePersistentSubscriptionToStream message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.UpdatePersistentSubscriptionToStream message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
 
-		if (string.IsNullOrEmpty(message.EventStreamId))
-		{
+		if (string.IsNullOrEmpty(message.EventStreamId)) {
 			message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
@@ -631,8 +579,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		if (message.EventStreamId == SystemStreams.AllStream)
-		{
+		if (message.EventStreamId == SystemStreams.AllStream) {
 			message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
@@ -641,8 +588,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		try
-		{
+		try {
 			UpdatePersistentSubscription(
 				message.EventStreamId,
 				_ => new PersistentSubscriptionSingleStreamEventSource(message.EventStreamId),
@@ -660,8 +606,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.MinCheckPointCount,
 				message.CheckPointAfterMilliseconds,
 				message.RecordStatistics,
-				(msg) =>
-				{
+				(msg) => {
 					message.Envelope.ReplyWith(
 						new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 							message.CorrelationId,
@@ -669,24 +614,21 @@ public class PersistentSubscriptionService<TStreamId> :
 								.UpdatePersistentSubscriptionToStreamResult.Success,
 							msg));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 						message.CorrelationId,
 						ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
 							.UpdatePersistentSubscriptionToStreamResult.Fail,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 						message.CorrelationId,
 						ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
 							.UpdatePersistentSubscriptionToStreamResult.DoesNotExist,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 						message.CorrelationId,
 						ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
@@ -696,8 +638,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.User?.Identity?.Name
 			);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
@@ -706,16 +647,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	public void Handle(ClientMessage.UpdatePersistentSubscriptionToAll message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.UpdatePersistentSubscriptionToAll message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
 
-		try
-		{
+		try {
 			UpdatePersistentSubscription(
 				SystemStreams.AllStream,
 				sub => new PersistentSubscriptionAllStreamEventSource(sub.EventSource?.EventFilter),
@@ -734,8 +672,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.MinCheckPointCount,
 				message.CheckPointAfterMilliseconds,
 				message.RecordStatistics,
-				(msg) =>
-				{
+				(msg) => {
 					message.Envelope.ReplyWith(
 						new ClientMessage.UpdatePersistentSubscriptionToAllCompleted(
 							message.CorrelationId,
@@ -743,24 +680,21 @@ public class PersistentSubscriptionService<TStreamId> :
 								.UpdatePersistentSubscriptionToAllResult.Success,
 							msg));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToAllCompleted(
 						message.CorrelationId,
 						ClientMessage.UpdatePersistentSubscriptionToAllCompleted
 							.UpdatePersistentSubscriptionToAllResult.Fail,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToAllCompleted(
 						message.CorrelationId,
 						ClientMessage.UpdatePersistentSubscriptionToAllCompleted
 							.UpdatePersistentSubscriptionToAllResult.DoesNotExist,
 						error));
 				},
-				(error) =>
-				{
+				(error) => {
 					message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToAllCompleted(
 						message.CorrelationId,
 						ClientMessage.UpdatePersistentSubscriptionToAllCompleted
@@ -770,8 +704,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				message.User?.Identity?.Name
 			);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			message.Envelope.ReplyWith(new ClientMessage.UpdatePersistentSubscriptionToAllCompleted(
 				message.CorrelationId,
 				ClientMessage.UpdatePersistentSubscriptionToAllCompleted.UpdatePersistentSubscriptionToAllResult
@@ -794,13 +727,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		int maxCheckPointCount,
 		int maxSubscriberCount,
 		string namedConsumerStrategy,
-		TimeSpan messageTimeout)
-	{
+		TimeSpan messageTimeout) {
 		var stream = eventSource.ToString();
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 
-		if (_subscriptionsById.ContainsKey(key))
+		if (_subscriptionsById.ContainsKey(key)) {
 			return false;
+		}
 
 		var subscription = new PersistentSubscription(
 			new PersistentSubscriptionParams(
@@ -839,21 +772,18 @@ public class PersistentSubscriptionService<TStreamId> :
 		Action<string> onNotExist,
 		Action<string> onAccessDenied,
 		string user
-	)
-	{
+	) {
 		var stream = eventSource.ToString();
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		Log.Debug("Deleting persistent subscription {subscriptionKey}", key);
 
 		PersistentSubscription subscription;
-		if (!_subscriptionsById.TryGetValue(key, out subscription))
-		{
+		if (!_subscriptionsById.TryGetValue(key, out subscription)) {
 			onNotExist($"Group '{groupName}' does not exist.");
 			return;
 		}
 
-		if (!_subscriptionTopics.ContainsKey(stream))
-		{
+		if (!_subscriptionTopics.ContainsKey(stream)) {
 			onFail($"Group '{groupName}' does not exist.");
 			return;
 		}
@@ -865,16 +795,13 @@ public class PersistentSubscriptionService<TStreamId> :
 	}
 
 
-	public void Handle(ClientMessage.DeletePersistentSubscriptionToStream message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.DeletePersistentSubscriptionToStream message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
 
-		if (string.IsNullOrEmpty(message.EventStreamId))
-		{
+		if (string.IsNullOrEmpty(message.EventStreamId)) {
 			message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.DeletePersistentSubscriptionToStreamCompleted
@@ -883,8 +810,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		if (message.EventStreamId == SystemStreams.AllStream)
-		{
+		if (message.EventStreamId == SystemStreams.AllStream) {
 			message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
 				message.CorrelationId,
 				ClientMessage.DeletePersistentSubscriptionToStreamCompleted
@@ -896,31 +822,27 @@ public class PersistentSubscriptionService<TStreamId> :
 		DeletePersistentSubscription(
 			new PersistentSubscriptionSingleStreamEventSource(message.EventStreamId),
 			message.GroupName,
-			(msg) =>
-			{
+			(msg) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToStreamCompleted
 						.DeletePersistentSubscriptionToStreamResult.Success, msg));
 			},
-			(error) =>
-			{
+			(error) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToStreamCompleted
 						.DeletePersistentSubscriptionToStreamResult.Fail,
 					error));
 			},
-			(error) =>
-			{
+			(error) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToStreamCompleted
 						.DeletePersistentSubscriptionToStreamResult.DoesNotExist,
 					error));
 			},
-			(error) =>
-			{
+			(error) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToStreamCompleted
@@ -931,10 +853,8 @@ public class PersistentSubscriptionService<TStreamId> :
 		);
 	}
 
-	public void Handle(ClientMessage.DeletePersistentSubscriptionToAll message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.DeletePersistentSubscriptionToAll message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
@@ -942,31 +862,27 @@ public class PersistentSubscriptionService<TStreamId> :
 		DeletePersistentSubscription(
 			new PersistentSubscriptionAllStreamEventSource(),
 			message.GroupName,
-			(msg) =>
-			{
+			(msg) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToAllCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToAllCompleted
 						.DeletePersistentSubscriptionToAllResult.Success, msg));
 			},
-			(error) =>
-			{
+			(error) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToAllCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToAllCompleted.DeletePersistentSubscriptionToAllResult
 						.Fail,
 					error));
 			},
-			(error) =>
-			{
+			(error) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToAllCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToAllCompleted.DeletePersistentSubscriptionToAllResult
 						.DoesNotExist,
 					error));
 			},
-			(error) =>
-			{
+			(error) => {
 				message.Envelope.ReplyWith(new ClientMessage.DeletePersistentSubscriptionToAllCompleted(
 					message.CorrelationId,
 					ClientMessage.DeletePersistentSubscriptionToAllCompleted.DeletePersistentSubscriptionToAllResult
@@ -978,16 +894,13 @@ public class PersistentSubscriptionService<TStreamId> :
 	}
 
 	private void UpdateSubscriptionConfig(string username, string eventSource, string groupName,
-		PersistentSubscriptionEntry replaceBy)
-	{
+		PersistentSubscriptionEntry replaceBy) {
 		_config.Updated = DateTime.Now;
 		_config.UpdatedBy = username;
 		var index = _config.Entries.FindLastIndex(x => x.Stream == eventSource && x.Group == groupName);
 
-		if (index < 0)
-		{
-			if (replaceBy == null)
-			{
+		if (index < 0) {
+			if (replaceBy == null) {
 				var key = BuildSubscriptionGroupKey(eventSource, groupName);
 				throw new ArgumentException($"Config for subscription: '{key}' does not exist");
 			}
@@ -995,21 +908,22 @@ public class PersistentSubscriptionService<TStreamId> :
 			// create
 			_config.Entries.Add(replaceBy);
 		}
-		else
-		{
+		else {
 			if (replaceBy != null) // update
+{
 				_config.Entries[index] = replaceBy;
+			}
 			else // delete
+			{
 				_config.Entries.RemoveAt(index);
+			}
 		}
 	}
 
-	private void UpdateSubscription(string eventSource, string groupName, PersistentSubscription replaceBy)
-	{
+	private void UpdateSubscription(string eventSource, string groupName, PersistentSubscription replaceBy) {
 		var key = BuildSubscriptionGroupKey(eventSource, groupName);
 
-		if (!_subscriptionTopics.TryGetValue(eventSource, out var subscribers))
-		{
+		if (!_subscriptionTopics.TryGetValue(eventSource, out var subscribers)) {
 			subscribers = new List<PersistentSubscription>();
 			_subscriptionTopics.Add(eventSource, subscribers);
 			_sortedSubscriptionTopics.Add(eventSource, subscribers);
@@ -1017,19 +931,17 @@ public class PersistentSubscriptionService<TStreamId> :
 
 		// shut down any existing subscription
 		var subscriptionIndex = -1;
-		for (int i = 0; i < subscribers.Count; i++)
-		{
-			if (subscribers[i].SubscriptionId != key)
+		for (int i = 0; i < subscribers.Count; i++) {
+			if (subscribers[i].SubscriptionId != key) {
 				continue;
+			}
 
 			subscriptionIndex = i;
 			var sub = subscribers[i];
-			try
-			{
+			try {
 				sub.Shutdown();
 			}
-			catch (Exception ex)
-			{
+			catch (Exception ex) {
 				Log.Error(ex, "Failed to shut down subscription with id: {subscriptionId}",
 					sub.SubscriptionId);
 			}
@@ -1037,35 +949,32 @@ public class PersistentSubscriptionService<TStreamId> :
 			break;
 		}
 
-		if (_subscriptionsById.ContainsKey(key))
-		{
-			if (subscriptionIndex == -1)
+		if (_subscriptionsById.ContainsKey(key)) {
+			if (subscriptionIndex == -1) {
 				throw new ArgumentException(
 					$"Subscription: '{key}' exists but it's not present in the list of subscribers");
+			}
 
-			if (replaceBy != null)
-			{
+			if (replaceBy != null) {
 				// update
 				_subscriptionsById[key] = replaceBy;
 				subscribers[subscriptionIndex] = replaceBy;
 			}
-			else
-			{
+			else {
 				// delete
 				_subscriptionsById.Remove(key);
 				subscribers.RemoveAt(subscriptionIndex);
-				if (subscribers.Count == 0)
-				{
+				if (subscribers.Count == 0) {
 					_subscriptionTopics.Remove(eventSource);
 					_sortedSubscriptionTopics.Remove(eventSource);
 				}
 			}
 		}
-		else
-		{
-			if (subscriptionIndex != -1)
+		else {
+			if (subscriptionIndex != -1) {
 				throw new ArgumentException(
 					$"Subscription: '{key}' does not exist but it's present in the list of subscribers");
+			}
 
 			// create
 			_subscriptionsById.Add(key, replaceBy);
@@ -1073,25 +982,23 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	private void UnsubscribeFromStream(Guid correlationId, bool sendDropNotification)
-	{
-		foreach (var subscription in _subscriptionsById.Values)
-		{
+	private void UnsubscribeFromStream(Guid correlationId, bool sendDropNotification) {
+		foreach (var subscription in _subscriptionsById.Values) {
 			subscription.RemoveClientByCorrelationId(correlationId, sendDropNotification);
 		}
 	}
 
-	public void Handle(TcpMessage.ConnectionClosed message)
-	{
-		if (_subscriptionsById == null)
+	public void Handle(TcpMessage.ConnectionClosed message) {
+		if (_subscriptionsById == null) {
 			return; //haven't built yet.
+		}
 
-		foreach (var subscription in _subscriptionsById.Values)
-		{
-			if (subscription.RemoveClientByConnectionId(message.Connection.ConnectionId))
+		foreach (var subscription in _subscriptionsById.Values) {
+			if (subscription.RemoveClientByConnectionId(message.Connection.ConnectionId)) {
 				Log.Debug("Persistent subscription {subscription} lost connection from {remoteEndPoint}",
 					subscription.SubscriptionId,
 					message.Connection.RemoteEndPoint);
+			}
 		}
 	}
 
@@ -1105,17 +1012,14 @@ public class PersistentSubscriptionService<TStreamId> :
 		Guid correlationId,
 		IEnvelope envelope,
 		string user,
-		CancellationToken token)
-	{
-		if (!_started)
-		{
+		CancellationToken token) {
+		if (!_started) {
 			ReplyWithNotReady(envelope, correlationId);
 			return;
 		}
 
 		var stream = eventSource.ToString();
-		if (!_subscriptionTopics.TryGetValue(stream, out _))
-		{
+		if (!_subscriptionTopics.TryGetValue(stream, out _)) {
 			envelope.ReplyWith(new ClientMessage.SubscriptionDropped(correlationId,
 				SubscriptionDropReason.NotFound));
 			return;
@@ -1123,14 +1027,12 @@ public class PersistentSubscriptionService<TStreamId> :
 
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 		PersistentSubscription subscription;
-		if (!_subscriptionsById.TryGetValue(key, out subscription))
-		{
+		if (!_subscriptionsById.TryGetValue(key, out subscription)) {
 			envelope.ReplyWith(new ClientMessage.SubscriptionDropped(correlationId, SubscriptionDropReason.NotFound));
 			return;
 		}
 
-		if (subscription.HasReachedMaxClientCount)
-		{
+		if (subscription.HasReachedMaxClientCount) {
 			envelope.ReplyWith(new ClientMessage.SubscriptionDropped(correlationId,
 				SubscriptionDropReason.SubscriberMaxCountReached));
 			return;
@@ -1138,8 +1040,7 @@ public class PersistentSubscriptionService<TStreamId> :
 
 		Log.Debug("New connection to persistent subscription {subscriptionKey} by {connectionId}", key, connectionId);
 		long? lastEventNumber = null;
-		if (eventSource.FromStream)
-		{
+		if (eventSource.FromStream) {
 			var streamId = _readIndex.GetStreamId(eventSource.EventStreamId);
 			lastEventNumber = await _readIndex.GetStreamLastEventNumber(streamId, token);
 		}
@@ -1154,8 +1055,7 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	}
 
-	ValueTask IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToStream>.HandleAsync(ClientMessage.ConnectToPersistentSubscriptionToStream message, CancellationToken token)
-	{
+	ValueTask IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToStream>.HandleAsync(ClientMessage.ConnectToPersistentSubscriptionToStream message, CancellationToken token) {
 		return ConnectToPersistentSubscription(
 			new PersistentSubscriptionSingleStreamEventSource(message.EventStreamId),
 			message.GroupName,
@@ -1169,8 +1069,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			token);
 	}
 
-	ValueTask IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToAll>.HandleAsync(ClientMessage.ConnectToPersistentSubscriptionToAll message, CancellationToken token)
-	{
+	ValueTask IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToAll>.HandleAsync(ClientMessage.ConnectToPersistentSubscriptionToAll message, CancellationToken token) {
 		return ConnectToPersistentSubscription(
 			new PersistentSubscriptionAllStreamEventSource(),
 			message.GroupName,
@@ -1183,61 +1082,54 @@ public class PersistentSubscriptionService<TStreamId> :
 			message.User?.Identity?.Name, token);
 	}
 
-	private static string BuildSubscriptionGroupKey(string stream, string groupName)
-	{
+	private static string BuildSubscriptionGroupKey(string stream, string groupName) {
 		return stream + "::" + groupName;
 	}
 
-	ValueTask IAsyncHandle<StorageMessage.EventCommitted>.HandleAsync(StorageMessage.EventCommitted message, CancellationToken token)
-	{
+	ValueTask IAsyncHandle<StorageMessage.EventCommitted>.HandleAsync(StorageMessage.EventCommitted message, CancellationToken token) {
 		return _started
 			? ProcessEventCommited(message.Event.EventStreamId, message.CommitPosition, message.Event, token)
 			: ValueTask.CompletedTask;
 	}
 
-	private async ValueTask ProcessEventCommited(string eventStreamId, long commitPosition, EventRecord evnt, CancellationToken token)
-	{
+	private async ValueTask ProcessEventCommited(string eventStreamId, long commitPosition, EventRecord evnt, CancellationToken token) {
 		var subscriptions = new List<PersistentSubscription>();
 		if (EventFilter.DefaultStreamFilter.IsEventAllowed(evnt)
-			&& _subscriptionTopics.TryGetValue(eventStreamId, out var subscriptionsToStream))
-		{
+			&& _subscriptionTopics.TryGetValue(eventStreamId, out var subscriptionsToStream)) {
 			subscriptions.AddRange(subscriptionsToStream);
 		}
 
 		if (EventFilter.DefaultAllFilter.IsEventAllowed(evnt)
-			&& _subscriptionTopics.TryGetValue(SystemStreams.AllStream, out var subscriptionsToAll))
-		{
+			&& _subscriptionTopics.TryGetValue(SystemStreams.AllStream, out var subscriptionsToAll)) {
 			subscriptions.AddRange(subscriptionsToAll);
 		}
 
-		for (int i = 0, n = subscriptions.Count; i < n; i++)
-		{
+		for (int i = 0, n = subscriptions.Count; i < n; i++) {
 			var subscr = subscriptions[i];
 			var pair = ResolvedEvent.ForUnresolvedEvent(evnt, commitPosition);
-			if (subscr.ResolveLinkTos)
+			if (subscr.ResolveLinkTos) {
 				pair = await ResolveLinkToEvent(evnt, commitPosition, token);  //TODO this can be cached
+			}
+
 			subscr.NotifyLiveSubscriptionMessage(pair);
 		}
 	}
 
-	private async ValueTask<ResolvedEvent> ResolveLinkToEvent(EventRecord eventRecord, long commitPosition, CancellationToken token)
-	{
-		if (eventRecord.EventType is SystemEventTypes.LinkTo)
-		{
-			try
-			{
+	private async ValueTask<ResolvedEvent> ResolveLinkToEvent(EventRecord eventRecord, long commitPosition, CancellationToken token) {
+		if (eventRecord.EventType is SystemEventTypes.LinkTo) {
+			try {
 				string[] parts = Helper.UTF8NoBom.GetString(eventRecord.Data.Span).Split('@', 2);
 				long eventNumber = long.Parse(parts[0]);
 				string streamName = parts[1];
 				var streamId = _readIndex.GetStreamId(streamName);
 				var res = await _readIndex.ReadEvent(streamName, streamId, eventNumber, token);
-				if (res.Result is ReadEventResult.Success)
+				if (res.Result is ReadEventResult.Success) {
 					return ResolvedEvent.ForResolvedLink(res.Record, eventRecord, commitPosition);
+				}
 
 				return ResolvedEvent.ForFailedResolvedLink(eventRecord, res.Result, commitPosition);
 			}
-			catch (Exception exc)
-			{
+			catch (Exception exc) {
 				Log.Error(exc, "Error while resolving link for event record: {eventRecord}",
 					eventRecord.ToString());
 			}
@@ -1248,39 +1140,36 @@ public class PersistentSubscriptionService<TStreamId> :
 		return ResolvedEvent.ForUnresolvedEvent(eventRecord, commitPosition);
 	}
 
-	public void Handle(ClientMessage.PersistentSubscriptionAckEvents message)
-	{
-		if (!_started)
+	public void Handle(ClientMessage.PersistentSubscriptionAckEvents message) {
+		if (!_started) {
 			return;
+		}
+
 		PersistentSubscription subscription;
-		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription))
-		{
+		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription)) {
 			subscription.AcknowledgeMessagesProcessed(message.CorrelationId, message.ProcessedEventIds);
 		}
 	}
 
-	public void Handle(ClientMessage.PersistentSubscriptionNackEvents message)
-	{
-		if (!_started)
+	public void Handle(ClientMessage.PersistentSubscriptionNackEvents message) {
+		if (!_started) {
 			return;
+		}
+
 		PersistentSubscription subscription;
-		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription))
-		{
+		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription)) {
 			subscription.NotAcknowledgeMessagesProcessed(message.CorrelationId, message.ProcessedEventIds,
 				(NakAction)message.Action, message.Message);
 		}
 	}
 
-	public void Handle(ClientMessage.ReadNextNPersistentMessages message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.ReadNextNPersistentMessages message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
 
-		if (string.IsNullOrEmpty(message.EventStreamId))
-		{
+		if (string.IsNullOrEmpty(message.EventStreamId)) {
 			message.Envelope.ReplyWith(new ClientMessage.ReadNextNPersistentMessagesCompleted(
 				message.CorrelationId,
 				ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Fail,
@@ -1288,8 +1177,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		if (message.EventStreamId == SystemStreams.AllStream)
-		{
+		if (message.EventStreamId == SystemStreams.AllStream) {
 			message.Envelope.ReplyWith(new ClientMessage.ReadNextNPersistentMessagesCompleted(
 				message.CorrelationId,
 				ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult.Fail,
@@ -1297,8 +1185,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out _))
-		{
+		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out _)) {
 			message.Envelope.ReplyWith(
 				new ClientMessage.ReadNextNPersistentMessagesCompleted(message.CorrelationId,
 					ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult
@@ -1310,8 +1197,7 @@ public class PersistentSubscriptionService<TStreamId> :
 
 		var key = BuildSubscriptionGroupKey(message.EventStreamId, message.GroupName);
 		PersistentSubscription subscription;
-		if (!_subscriptionsById.TryGetValue(key, out subscription))
-		{
+		if (!_subscriptionsById.TryGetValue(key, out subscription)) {
 			message.Envelope.ReplyWith(
 				new ClientMessage.ReadNextNPersistentMessagesCompleted(message.CorrelationId,
 					ClientMessage.ReadNextNPersistentMessagesCompleted.ReadNextNPersistentMessagesResult
@@ -1329,10 +1215,8 @@ public class PersistentSubscriptionService<TStreamId> :
 				messages));
 	}
 
-	public void Handle(ClientMessage.ReplayParkedMessages message)
-	{
-		if (!_started)
-		{
+	public void Handle(ClientMessage.ReplayParkedMessages message) {
+		if (!_started) {
 			ReplyWithNotReady(message.Envelope, message.CorrelationId);
 			return;
 		}
@@ -1343,16 +1227,14 @@ public class PersistentSubscriptionService<TStreamId> :
 			key,
 			message.StopAt.HasValue ? $" (To: '{message.StopAt.ToString()}')" : " (All)");
 
-		if (message.StopAt.HasValue && message.StopAt.Value < 0)
-		{
+		if (message.StopAt.HasValue && message.StopAt.Value < 0) {
 			message.Envelope.ReplyWith(new ClientMessage.ReplayMessagesReceived(message.CorrelationId,
 				ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.Fail,
 				"Cannot stop replaying parked message at a negative version."));
 			return;
 		}
 
-		if (!_subscriptionsById.TryGetValue(key, out subscription))
-		{
+		if (!_subscriptionsById.TryGetValue(key, out subscription)) {
 			message.Envelope.ReplyWith(new ClientMessage.ReplayMessagesReceived(message.CorrelationId,
 				ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.DoesNotExist,
 				"Unable to locate '" + key + "'"));
@@ -1364,13 +1246,11 @@ public class PersistentSubscriptionService<TStreamId> :
 			ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.Success, ""));
 	}
 
-	public void Handle(ClientMessage.ReplayParkedMessage message)
-	{
+	public void Handle(ClientMessage.ReplayParkedMessage message) {
 		var key = BuildSubscriptionGroupKey(message.EventStreamId, message.GroupName);
 		PersistentSubscription subscription;
 
-		if (!_subscriptionsById.TryGetValue(key, out subscription))
-		{
+		if (!_subscriptionsById.TryGetValue(key, out subscription)) {
 			message.Envelope.ReplyWith(new ClientMessage.ReplayMessagesReceived(message.CorrelationId,
 				ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.DoesNotExist,
 				"Unable to locate '" + key + "'"));
@@ -1392,20 +1272,15 @@ public class PersistentSubscriptionService<TStreamId> :
 				HandleLoadCompleted(continueWith, x), expires: DateTime.MaxValue);
 
 	private void HandleLoadCompleted(Action continueWith,
-		ClientMessage.ReadStreamEventsBackwardCompleted readStreamEventsBackwardCompleted)
-	{
-		switch (readStreamEventsBackwardCompleted.Result)
-		{
+		ClientMessage.ReadStreamEventsBackwardCompleted readStreamEventsBackwardCompleted) {
+		switch (readStreamEventsBackwardCompleted.Result) {
 			case ReadStreamResult.Success:
-				try
-				{
+				try {
 					_config =
 						PersistentSubscriptionConfig.FromSerializedForm(
 							readStreamEventsBackwardCompleted.Events[0].Event.Data);
-					foreach (var entry in _config.Entries)
-					{
-						if (!_consumerStrategyRegistry.ValidateStrategy(entry.NamedConsumerStrategy))
-						{
+					foreach (var entry in _config.Entries) {
+						if (!_consumerStrategyRegistry.ValidateStrategy(entry.NamedConsumerStrategy)) {
 							Log.Error(
 								"A persistent subscription exists with an invalid consumer strategy '{strategy}'. Ignoring it.",
 								entry.NamedConsumerStrategy);
@@ -1413,14 +1288,11 @@ public class PersistentSubscriptionService<TStreamId> :
 						}
 
 						IPersistentSubscriptionEventSource eventSource;
-						if (entry.Stream == SystemStreams.AllStream)
-						{
+						if (entry.Stream == SystemStreams.AllStream) {
 							IEventFilter filter = null;
-							if (entry.Filter != null)
-							{
+							if (entry.Filter != null) {
 								var (success, reason) = EventFilter.TryParse(entry.Filter, out filter);
-								if (!success)
-								{
+								if (!success) {
 									Log.Error(
 										"Could not load filtered persistent subscription to $all for group {group}. The filter could not be parsed: '{reason}",
 										entry.Group, reason);
@@ -1430,8 +1302,7 @@ public class PersistentSubscriptionService<TStreamId> :
 
 							eventSource = new PersistentSubscriptionAllStreamEventSource(filter);
 						}
-						else
-						{
+						else {
 							eventSource = new PersistentSubscriptionSingleStreamEventSource(entry.Stream);
 						}
 
@@ -1453,8 +1324,7 @@ public class PersistentSubscriptionService<TStreamId> :
 							entry.NamedConsumerStrategy,
 							ToMessageTimeout(entry.MessageTimeout));
 
-						if (!result)
-						{
+						if (!result) {
 							var key = BuildSubscriptionGroupKey(eventSource.ToString(), entry.Group);
 							Log.Warning(
 								"A duplicate persistent subscription: {subscriptionKey} was found in the configuration. Ignoring it.",
@@ -1465,8 +1335,7 @@ public class PersistentSubscriptionService<TStreamId> :
 
 					continueWith();
 				}
-				catch (Exception ex)
-				{
+				catch (Exception ex) {
 					Log.Error(ex, "There was an error loading configuration from storage.");
 				}
 
@@ -1481,8 +1350,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	private void SaveConfiguration(Action continueWith)
-	{
+	private void SaveConfiguration(Action continueWith) {
 		Log.Debug("Saving persistent subscription configuration");
 		var data = _config.GetSerializedForm();
 		var ev = new Event(Guid.NewGuid(), SystemEventTypes.PersistentSubscriptionConfig, true, data, new byte[0]);
@@ -1494,10 +1362,8 @@ public class PersistentSubscriptionService<TStreamId> :
 			x => HandleSaveConfigurationCompleted(continueWith, x));
 	}
 
-	private void HandleSaveConfigurationCompleted(Action continueWith, ClientMessage.WriteEventsCompleted obj)
-	{
-		switch (obj.Result)
-		{
+	private void HandleSaveConfigurationCompleted(Action continueWith, ClientMessage.WriteEventsCompleted obj) {
+		switch (obj.Result) {
 			case OperationResult.Success:
 				continueWith();
 				break;
@@ -1512,24 +1378,20 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	public void Handle(TelemetryMessage.Request message)
-	{
+	public void Handle(TelemetryMessage.Request message) {
 		message.Envelope.ReplyWith(new TelemetryMessage.Response("persistentSubscriptions",
 			new JsonObject { ["count"] = _subscriptionsById?.Count ?? 0 }));
 	}
 
-	private static void ReplyWithNotReady(IEnvelope envelope, Guid correlationId)
-	{
+	private static void ReplyWithNotReady(IEnvelope envelope, Guid correlationId) {
 		envelope.ReplyWith(new ClientMessage.NotHandled(
 			correlationId,
 			ClientMessage.NotHandled.Types.NotHandledReason.NotReady,
 			(string)null));
 	}
 
-	public void Handle(MonitoringMessage.GetPersistentSubscriptionStats message)
-	{
-		if (!_started)
-		{
+	public void Handle(MonitoringMessage.GetPersistentSubscriptionStats message) {
+		if (!_started) {
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotReady, null)
 			);
@@ -1537,8 +1399,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 
 		List<PersistentSubscription> subscribers;
-		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out subscribers) || subscribers == null)
-		{
+		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out subscribers) || subscribers == null) {
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotFound, null)
 			);
@@ -1546,8 +1407,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 
 		var subscription = subscribers.FirstOrDefault(x => x.GroupName == message.GroupName);
-		if (subscription == null)
-		{
+		if (subscription == null) {
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotFound, null)
 			);
@@ -1560,10 +1420,8 @@ public class PersistentSubscriptionService<TStreamId> :
 		);
 	}
 
-	public void Handle(MonitoringMessage.GetStreamPersistentSubscriptionStats message)
-	{
-		if (!_started)
-		{
+	public void Handle(MonitoringMessage.GetStreamPersistentSubscriptionStats message) {
+		if (!_started) {
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotReady, null)
 			);
@@ -1571,8 +1429,7 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 
 		List<PersistentSubscription> subscribers;
-		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out subscribers))
-		{
+		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out subscribers)) {
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotFound, null)
 			);
@@ -1585,10 +1442,8 @@ public class PersistentSubscriptionService<TStreamId> :
 		);
 	}
 
-	public void Handle(MonitoringMessage.GetAllPersistentSubscriptionStats message)
-	{
-		if (!_started)
-		{
+	public void Handle(MonitoringMessage.GetAllPersistentSubscriptionStats message) {
+		if (!_started) {
 			message.Envelope.ReplyWith(new MonitoringMessage.GetPersistentSubscriptionStatsCompleted(
 				MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.NotReady, null,
 				message.Offset, message.Count, 0)
@@ -1611,16 +1466,15 @@ public class PersistentSubscriptionService<TStreamId> :
 		);
 	}
 
-	public void Handle(SubscriptionMessage.PersistentSubscriptionTimerTick message)
-	{
-		if (!_handleTick || _timerTickCorrelationId != message.CorrelationId)
+	public void Handle(SubscriptionMessage.PersistentSubscriptionTimerTick message) {
+		if (!_handleTick || _timerTickCorrelationId != message.CorrelationId) {
 			return;
-		try
-		{
+		}
+
+		try {
 			WakeSubscriptions();
 		}
-		finally
-		{
+		finally {
 			_timerTickCorrelationId = Guid.NewGuid();
 			_bus.Publish(TimerMessage.Schedule.Create(TimeSpan.FromMilliseconds(1000),
 				_bus,
@@ -1628,33 +1482,30 @@ public class PersistentSubscriptionService<TStreamId> :
 		}
 	}
 
-	public void Handle(SubscriptionMessage.PersistentSubscriptionPushToClients message)
-	{
-		if (!_started)
+	public void Handle(SubscriptionMessage.PersistentSubscriptionPushToClients message) {
+		if (!_started) {
 			return;
+		}
 
-		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out var subscription))
+		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out var subscription)) {
 			subscription.PushToClientsFromSchedule();
+		}
 	}
 
-	private void WakeSubscriptions()
-	{
+	private void WakeSubscriptions() {
 		var now = DateTime.UtcNow;
 
-		foreach (var subscription in _subscriptionsById.Values)
-		{
+		foreach (var subscription in _subscriptionsById.Values) {
 			subscription.NotifyClockTick(now);
 		}
 	}
 
 
-	private TimeSpan ToCheckPointAfterTimeout(int milliseconds)
-	{
+	private TimeSpan ToCheckPointAfterTimeout(int milliseconds) {
 		return milliseconds == 0 ? TimeSpan.MaxValue : TimeSpan.FromMilliseconds(milliseconds);
 	}
 
-	private TimeSpan ToMessageTimeout(int milliseconds)
-	{
+	private TimeSpan ToMessageTimeout(int milliseconds) {
 		return milliseconds == 0 ? TimeSpan.Zero : TimeSpan.FromMilliseconds(milliseconds);
 	}
 }

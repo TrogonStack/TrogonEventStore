@@ -14,17 +14,22 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 			}
 			request = new HttpAuthenticationRequest(context, null, null);
 			var principal = CreatePrincipal(values[0]);
-			if (principal != null)
+			if (principal != null) {
 				request.Authenticated(principal);
-			else
+			}
+			else {
 				request.Unauthorized();
+			}
+
 			return true;
 		}
 
 		private ClaimsPrincipal CreatePrincipal(string header) {
 			var loginAndGroups = header.Split(';');
-			if (loginAndGroups.Length == 0 || loginAndGroups.Length > 2)
+			if (loginAndGroups.Length == 0 || loginAndGroups.Length > 2) {
 				return null;
+			}
+
 			var login = loginAndGroups[0];
 			var claims = new List<Claim>() {
 				new Claim(ClaimTypes.Name, login)
@@ -32,9 +37,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication {
 			if (loginAndGroups.Length == 2) {
 				var groups = loginAndGroups[1];
 				var roles = groups.Split(',');
-				for (var i = 0; i < roles.Length; i++)
+				for (var i = 0; i < roles.Length; i++) {
 					claims.Add(new Claim(ClaimTypes.Role, roles[i].Trim()));
-
+				}
 			}
 			return new ClaimsPrincipal(new ClaimsIdentity(claims, SystemHeaders.TrustedAuth));
 		}

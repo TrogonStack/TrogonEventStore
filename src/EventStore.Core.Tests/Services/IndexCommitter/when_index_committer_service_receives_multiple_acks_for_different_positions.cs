@@ -5,8 +5,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.IndexCommitter;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_index_committer_service_receives_multiple_acks_for_different_positions<TLogFormat, TStreamId> : with_index_committer_service<TLogFormat, TStreamId>
-{
+public class when_index_committer_service_receives_multiple_acks_for_different_positions<TLogFormat, TStreamId> : with_index_committer_service<TLogFormat, TStreamId> {
 
 	private readonly long _logPositionP1 = 1000;
 	private readonly long _logPositionP2 = 2000;
@@ -15,8 +14,7 @@ public class when_index_committer_service_receives_multiple_acks_for_different_p
 	private readonly long _logPositionCommit2 = 3200;
 	private readonly long _logPositionCommit3 = 3300;
 
-	public override void Given()
-	{
+	public override void Given() {
 
 		AddPendingPrepare(_logPositionP1);
 		AddPendingPrepare(_logPositionP2);
@@ -27,8 +25,7 @@ public class when_index_committer_service_receives_multiple_acks_for_different_p
 		Service.Handle(new StorageMessage.CommitAck(Guid.NewGuid(), _logPositionCommit3, _logPositionP3, 0, 0));
 	}
 
-	public override void When()
-	{
+	public override void When() {
 		// Reach quorum for middle commit
 		ReplicationCheckpoint.Write(_logPositionCommit2 + 1);
 		ReplicationCheckpoint.Flush();
@@ -37,8 +34,7 @@ public class when_index_committer_service_receives_multiple_acks_for_different_p
 	}
 
 	[Test]
-	public void commit_replicated_message_should_have_been_published_for_first_two_events()
-	{
+	public void commit_replicated_message_should_have_been_published_for_first_two_events() {
 		AssertEx.IsOrBecomesTrue(() => 2 == CommitReplicatedMgs.Count);
 		Assert.True(CommitReplicatedMgs.TryDequeue(out var msg));
 		Assert.AreEqual(_logPositionP1, msg.TransactionPosition);
@@ -46,8 +42,7 @@ public class when_index_committer_service_receives_multiple_acks_for_different_p
 		Assert.AreEqual(_logPositionP2, msg.TransactionPosition);
 	}
 	[Test]
-	public void index_written_message_should_have_been_published_for_first_two_events()
-	{
+	public void index_written_message_should_have_been_published_for_first_two_events() {
 		AssertEx.IsOrBecomesTrue(() => 2 == IndexWrittenMgs.Count);
 		Assert.True(IndexWrittenMgs.TryDequeue(out var msg));
 		Assert.AreEqual(_logPositionCommit1, msg.LogPosition);
@@ -56,8 +51,7 @@ public class when_index_committer_service_receives_multiple_acks_for_different_p
 	}
 
 	[Test]
-	public void index_should_have_been_updated()
-	{
+	public void index_should_have_been_updated() {
 		AssertEx.IsOrBecomesTrue(() => 2 == IndexCommitter.CommittedPrepares.Count);
 		Assert.True(IndexCommitter.CommittedPrepares.TryDequeue(out var msg));
 		Assert.AreEqual(_logPositionP1, msg.LogPosition);

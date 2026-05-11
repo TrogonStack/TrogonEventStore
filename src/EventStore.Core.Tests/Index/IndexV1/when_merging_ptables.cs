@@ -12,8 +12,7 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class when_merging_ptables : SpecificationWithDirectoryPerTestFixture
-{
+public class when_merging_ptables : SpecificationWithDirectoryPerTestFixture {
 	private readonly List<string> _files = new List<string>();
 	private readonly List<PTable> _tables = new List<PTable>();
 
@@ -21,15 +20,13 @@ public class when_merging_ptables : SpecificationWithDirectoryPerTestFixture
 	private readonly byte _ptableVersion;
 	private readonly bool _skipIndexVerify;
 
-	public when_merging_ptables(byte version, bool skipIndexVerify)
-	{
+	public when_merging_ptables(byte version, bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_files.Add(GetTempFilePath());
 		var table = new HashListMemTable(_ptableVersion, maxSize: 20);
@@ -55,11 +52,9 @@ public class when_merging_ptables : SpecificationWithDirectoryPerTestFixture
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_newtable.Dispose();
-		foreach (var ssTable in _tables)
-		{
+		foreach (var ssTable in _tables) {
 			ssTable.Dispose();
 		}
 
@@ -67,20 +62,17 @@ public class when_merging_ptables : SpecificationWithDirectoryPerTestFixture
 	}
 
 	[Test]
-	public void merged_ptable_is_64bit()
-	{
+	public void merged_ptable_is_64bit() {
 		Assert.AreEqual(PTableVersions.IndexV4, _newtable.Version);
 	}
 
 	[Test]
-	public void there_are_8_records_in_the_merged_index()
-	{
+	public void there_are_8_records_in_the_merged_index() {
 		Assert.AreEqual(8, _newtable.Count);
 	}
 
 	[Test]
-	public void a_stream_can_be_found()
-	{
+	public void a_stream_can_be_found() {
 		Assert.True(_newtable.TryGetLatestEntry(0x0108, out var entry));
 		Assert.AreEqual(0x0108, entry.Stream);
 		Assert.AreEqual(0, entry.Version);
@@ -88,10 +80,8 @@ public class when_merging_ptables : SpecificationWithDirectoryPerTestFixture
 	}
 
 	[Test]
-	public void no_entries_should_have_changed()
-	{
-		foreach (var item in _newtable.IterateAllInOrder())
-		{
+	public void no_entries_should_have_changed() {
+		foreach (var item in _newtable.IterateAllInOrder()) {
 			Assert.IsTrue((ulong)item.Position == item.Stream, "Expected the Stream (Hash) {0:X} to be equal to {1:X}",
 				item.Stream - 1, item.Position);
 		}

@@ -19,24 +19,32 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					TaskCreationOptions.RunContinuationsAsynchronously);
 
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, StartOperation, context.CancellationToken))
+			if (!await _authorizationProvider.CheckAccessAsync(user, StartOperation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
+			}
 
 			var options = request.Options ?? new StartScavengeReq.Types.Options();
 			var threads = options.ThreadCount == 0 ? 1 : options.ThreadCount;
-			if (options.StartFromChunk < 0)
+			if (options.StartFromChunk < 0) {
 				throw new RpcException(new Status(StatusCode.InvalidArgument, "start_from_chunk must be a non-negative integer"));
-			if (threads < 1)
+			}
+
+			if (threads < 1) {
 				throw new RpcException(new Status(StatusCode.InvalidArgument, "thread_count must be 1 or above"));
+			}
+
 			if (options.HasThrottlePercent) {
-				if (options.ThrottlePercent is <= 0 or > 100)
+				if (options.ThrottlePercent is <= 0 or > 100) {
 					throw new RpcException(new Status(
 						StatusCode.InvalidArgument,
 						"throttle_percent must be between 1 and 100 inclusive"));
-				if (options.ThrottlePercent != 100 && threads > 1)
+				}
+
+				if (options.ThrottlePercent != 100 && threads > 1) {
 					throw new RpcException(new Status(
 						StatusCode.InvalidArgument,
 						"throttle_percent must be 100 for a multi-threaded scavenge"));
+				}
 			}
 
 			_publisher.Publish(new ClientMessage.ScavengeDatabase(
@@ -65,12 +73,14 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					TaskCreationOptions.RunContinuationsAsynchronously);
 
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, StopOperation, context.CancellationToken))
+			if (!await _authorizationProvider.CheckAccessAsync(user, StopOperation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
+			}
 
 			var options = request.Options;
-			if (options is null || string.IsNullOrWhiteSpace(options.ScavengeId))
+			if (options is null || string.IsNullOrWhiteSpace(options.ScavengeId)) {
 				throw new RpcException(new Status(StatusCode.InvalidArgument, "scavenge_id is required"));
+			}
 
 			_publisher.Publish(new ClientMessage.StopDatabaseScavenge(
 				new CallbackEnvelope(OnMessage),
@@ -95,8 +105,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				new TaskCompletionSource<ScavengeStatusResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken))
+			if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
+			}
 
 			_publisher.Publish(new ClientMessage.GetCurrentDatabaseScavenge(
 				new CallbackEnvelope(OnMessage),
@@ -113,8 +124,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				new TaskCompletionSource<ScavengeStatusResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken))
+			if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken)) {
 				throw RpcExceptions.AccessDenied();
+			}
 
 			_publisher.Publish(new ClientMessage.GetLastDatabaseScavenge(
 				new CallbackEnvelope(OnMessage),

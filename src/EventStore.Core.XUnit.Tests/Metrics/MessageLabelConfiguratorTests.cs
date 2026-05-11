@@ -7,8 +7,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-enum TestGroup
-{
+enum TestGroup {
 	Reads,
 }
 
@@ -28,12 +27,10 @@ partial class ReadStreamForward : ReadMessage { }
 partial class ReadStreamBackward : ReadMessage { }
 
 [Collection("MetricsLabelTests")]
-public class MessageLabelConfiguratorTests
-{
+public class MessageLabelConfiguratorTests {
 	private readonly Type[] _messageTypes;
 
-	public MessageLabelConfiguratorTests()
-	{
+	public MessageLabelConfiguratorTests() {
 		_messageTypes = new[] {
 			typeof(ReadMessage),
 			typeof(ReadAllForward),
@@ -43,17 +40,14 @@ public class MessageLabelConfiguratorTests
 		};
 	}
 
-	private MetricsConfiguration.LabelMappingCase CreateMapping(string regex, string label) => new()
-	{
+	private MetricsConfiguration.LabelMappingCase CreateMapping(string regex, string label) => new() {
 		Regex = regex,
 		Label = label,
 	};
 
-	private void ResetLabels()
-	{
+	private void ResetLabels() {
 		var flags = BindingFlags.Static | BindingFlags.Public;
-		foreach (var type in _messageTypes)
-		{
+		foreach (var type in _messageTypes) {
 			var labelProperty = type.GetProperty("LabelStatic", flags);
 			var originalLabelProperty = type.GetProperty("OriginalLabelStatic", flags);
 
@@ -61,15 +55,13 @@ public class MessageLabelConfiguratorTests
 		}
 	}
 
-	private void Run(params MetricsConfiguration.LabelMappingCase[] mappings)
-	{
+	private void Run(params MetricsConfiguration.LabelMappingCase[] mappings) {
 		ResetLabels();
 		MessageLabelConfigurator.ConfigureMessageLabels(mappings, _messageTypes);
 	}
 
 	[Fact]
-	public void no_map()
-	{
+	public void no_map() {
 		Run();
 
 		Assert.Equal("TestGroup-Reads-ReadAllForward", ReadAllForward.LabelStatic);
@@ -90,8 +82,7 @@ public class MessageLabelConfiguratorTests
 	}
 
 	[Fact]
-	public void simple_map()
-	{
+	public void simple_map() {
 		Run(
 			CreateMapping("TestGroup-Reads-ReadAll.*", "ReadAll"),
 			CreateMapping("TestGroup-Reads-ReadStream.*", "ReadStream"));
@@ -103,8 +94,7 @@ public class MessageLabelConfiguratorTests
 	}
 
 	[Fact]
-	public void map_with_capture()
-	{
+	public void map_with_capture() {
 		Run(
 			CreateMapping("TestGroup-Reads-ReadAll(.*)", "$1AllRead"),
 			CreateMapping("TestGroup-Reads-ReadStream(.*)", "$1StreamRead"));
@@ -116,8 +106,7 @@ public class MessageLabelConfiguratorTests
 	}
 
 	[Fact]
-	public void cases_matched_in_order()
-	{
+	public void cases_matched_in_order() {
 		Run(
 			CreateMapping(".*Forward.*", "Forward"),
 			CreateMapping(".*Stream.*", "Stream"),
@@ -130,10 +119,8 @@ public class MessageLabelConfiguratorTests
 	}
 
 	[Fact]
-	public void unspecified_label()
-	{
-		Run(new MetricsConfiguration.LabelMappingCase()
-		{
+	public void unspecified_label() {
+		Run(new MetricsConfiguration.LabelMappingCase() {
 			Regex = "TestGroup-Reads-ReadAll.*",
 			// no Label
 		});
@@ -145,10 +132,8 @@ public class MessageLabelConfiguratorTests
 	}
 
 	[Fact]
-	public void unspecified_regex()
-	{
-		Run(new MetricsConfiguration.LabelMappingCase()
-		{
+	public void unspecified_regex() {
+		Run(new MetricsConfiguration.LabelMappingCase() {
 			// no Regex
 			Label = "TheLabel",
 		});

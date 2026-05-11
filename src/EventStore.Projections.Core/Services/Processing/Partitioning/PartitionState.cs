@@ -6,40 +6,33 @@ using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Services.Processing.Partitioning;
 
-public class PartitionState
-{
-	private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
-	{
+public class PartitionState {
+	private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings {
 		DateParseHandling = DateParseHandling.None,
 	};
 
-	public bool IsChanged(PartitionState newState)
-	{
+	public bool IsChanged(PartitionState newState) {
 		return State != newState.State || Result != newState.Result;
 	}
 
-	public static PartitionState Deserialize(string serializedState, CheckpointTag causedBy)
-	{
-		if (serializedState == null)
+	public static PartitionState Deserialize(string serializedState, CheckpointTag causedBy) {
+		if (serializedState == null) {
 			return new PartitionState("", null, causedBy);
+		}
 
 		JToken state = null;
 		JToken result = null;
 
-		if (!string.IsNullOrEmpty(serializedState))
-		{
+		if (!string.IsNullOrEmpty(serializedState)) {
 			var deserialized = JsonConvert.DeserializeObject(serializedState, JsonSettings);
 			var array = deserialized as JArray;
-			if (array != null && array.Count > 0)
-			{
+			if (array != null && array.Count > 0) {
 				state = array[0] as JToken;
-				if (array.Count == 2)
-				{
+				if (array.Count == 2) {
 					result = array[1] as JToken;
 				}
 			}
-			else
-			{
+			else {
 				state = deserialized as JObject;
 			}
 		}
@@ -50,8 +43,7 @@ public class PartitionState
 		return new PartitionState(stateJson, resultJson, causedBy);
 	}
 
-	private static void Error(JsonTextReader reader, string message)
-	{
+	private static void Error(JsonTextReader reader, string message) {
 		throw new Exception(string.Format("{0} (At: {1}, {2})", message, reader.LineNumber, reader.LinePosition));
 	}
 
@@ -60,12 +52,14 @@ public class PartitionState
 	private readonly CheckpointTag _causedBy;
 	private readonly int _size;
 
-	public PartitionState(string state, string result, CheckpointTag causedBy)
-	{
-		if (state == null)
+	public PartitionState(string state, string result, CheckpointTag causedBy) {
+		if (state == null) {
 			throw new ArgumentNullException("state");
-		if (causedBy == null)
+		}
+
+		if (causedBy == null) {
 			throw new ArgumentNullException("causedBy");
+		}
 
 		_state = state;
 		_result = result;
@@ -74,31 +68,28 @@ public class PartitionState
 			+ (_result is null ? 0 : Helper.UTF8NoBom.GetByteCount(_result));
 	}
 
-	public string State
-	{
+	public string State {
 		get { return _state; }
 	}
 
-	public CheckpointTag CausedBy
-	{
+	public CheckpointTag CausedBy {
 		get { return _causedBy; }
 	}
 
-	public string Result
-	{
+	public string Result {
 		get { return _result; }
 	}
 
-	public int Size
-	{
+	public int Size {
 		get { return _size; }
 	}
 
-	public string Serialize()
-	{
+	public string Serialize() {
 		var state = _state;
-		if (state == "" && Result != null)
+		if (state == "" && Result != null) {
 			throw new Exception("state == \"\" && Result != null");
+		}
+
 		return Result != null
 			? "[" + state + "," + _result + "]"
 			: "[" + state + "]";

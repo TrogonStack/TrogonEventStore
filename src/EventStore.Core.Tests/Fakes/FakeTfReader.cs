@@ -5,8 +5,7 @@ using EventStore.Core.TransactionLog;
 
 namespace EventStore.Core.Tests.Fakes;
 
-public class FakeTfReader : ITransactionFileReader
-{
+public class FakeTfReader : ITransactionFileReader {
 	public void Reposition(long position) => throw new NotImplementedException();
 
 	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token)

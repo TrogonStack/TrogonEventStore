@@ -17,8 +17,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.IndexCommitter;
 
-public abstract class with_index_committer_service<TLogFormat, TStreamId>
-{
+public abstract class with_index_committer_service<TLogFormat, TStreamId> {
 	protected ITableIndex TableIndex;
 
 	protected ICheckpoint ReplicationCheckpoint;
@@ -32,8 +31,7 @@ public abstract class with_index_committer_service<TLogFormat, TStreamId>
 	protected ITFChunkScavengerLogManager TfChunkScavengerLogManager;
 
 	[OneTimeSetUp]
-	public virtual async Task TestFixtureSetUp()
-	{
+	public virtual async Task TestFixtureSetUp() {
 		IndexCommitter = new FakeIndexCommitter<TStreamId>();
 		ReplicationCheckpoint = new InMemoryCheckpoint();
 		WriterCheckpoint = new InMemoryCheckpoint(0);
@@ -50,33 +48,28 @@ public abstract class with_index_committer_service<TLogFormat, TStreamId>
 	}
 
 	[OneTimeTearDown]
-	public virtual void TestFixtureTearDown()
-	{
+	public virtual void TestFixtureTearDown() {
 		Service.Stop();
 	}
 	public abstract void Given();
 	public abstract void When();
 
-	protected void AddPendingPrepare(long transactionPosition, long postPosition = -1)
-	{
+	protected void AddPendingPrepare(long transactionPosition, long postPosition = -1) {
 		postPosition = postPosition == -1 ? transactionPosition : postPosition;
 		var prepare = CreatePrepare(transactionPosition, transactionPosition);
 		Service.AddPendingPrepare(new[] { prepare }, postPosition);
 	}
 
-	protected void AddPendingPrepares(long transactionPosition, long[] logPositions)
-	{
+	protected void AddPendingPrepares(long transactionPosition, long[] logPositions) {
 		var prepares = new List<IPrepareLogRecord<TStreamId>>();
-		foreach (var pos in logPositions)
-		{
+		foreach (var pos in logPositions) {
 			prepares.Add(CreatePrepare(transactionPosition, pos));
 		}
 
 		Service.AddPendingPrepare(prepares.ToArray(), logPositions[^1]);
 	}
 
-	private IPrepareLogRecord<TStreamId> CreatePrepare(long transactionPosition, long logPosition)
-	{
+	private IPrepareLogRecord<TStreamId> CreatePrepare(long transactionPosition, long logPosition) {
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
@@ -86,16 +79,14 @@ public abstract class with_index_committer_service<TLogFormat, TStreamId>
 	}
 
 
-	protected void AddPendingCommit(long transactionPosition, long logPosition, long postPosition = -1)
-	{
+	protected void AddPendingCommit(long transactionPosition, long logPosition, long postPosition = -1) {
 		postPosition = postPosition == -1 ? logPosition : postPosition;
 		var commit = LogRecord.Commit(logPosition, Guid.NewGuid(), transactionPosition, 0);
 		Service.AddPendingCommit(commit, postPosition);
 	}
 }
 
-public class FakeIndexCommitter<TStreamId> : IIndexCommitter<TStreamId>
-{
+public class FakeIndexCommitter<TStreamId> : IIndexCommitter<TStreamId> {
 	public ConcurrentQueue<IPrepareLogRecord<TStreamId>> CommittedPrepares = new();
 	public ConcurrentQueue<CommitLogRecord> CommittedCommits = new();
 
@@ -104,22 +95,18 @@ public class FakeIndexCommitter<TStreamId> : IIndexCommitter<TStreamId>
 	public ValueTask Init(long buildToPosition, CancellationToken token)
 		=> ValueTask.CompletedTask;
 
-	public void Dispose()
-	{
+	public void Dispose() {
 	}
 
 	public ValueTask<long> Commit(CommitLogRecord commit, bool isTfEof, bool cacheLastEventNumber,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 		CommittedCommits.Enqueue(commit);
 		return new(0L);
 	}
 
 	public ValueTask<long> Commit(IReadOnlyList<IPrepareLogRecord<TStreamId>> committedPrepares, bool isTfEof,
-		bool cacheLastEventNumber, CancellationToken token)
-	{
-		foreach (var prepare in committedPrepares)
-		{
+		bool cacheLastEventNumber, CancellationToken token) {
+		foreach (var prepare in committedPrepares) {
 			CommittedPrepares.Enqueue(prepare);
 		}
 

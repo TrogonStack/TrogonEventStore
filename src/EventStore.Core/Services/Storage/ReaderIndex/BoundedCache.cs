@@ -22,10 +22,13 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 
 		public BoundedCache(int maxCachedEntries, long maxDataSize, Func<TValue, long> valueSize) {
 			Ensure.NotNull(valueSize, "valueSize");
-			if (maxCachedEntries <= 0)
+			if (maxCachedEntries <= 0) {
 				throw new ArgumentOutOfRangeException("maxCachedEntries");
-			if (maxDataSize <= 0)
+			}
+
+			if (maxDataSize <= 0) {
 				throw new ArgumentOutOfRangeException("maxDataSize");
+			}
 
 			_maxCachedEntries = maxCachedEntries;
 			_maxDataSize = maxDataSize;
@@ -34,10 +37,13 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 
 		public bool TryGetRecord(TKey key, out TValue value) {
 			var found = _cache.TryGetValue(key, out value);
-			if (found)
+			if (found) {
 				_hitCount++;
-			else
+			}
+			else {
 				_missCount++;
+			}
+
 			return found;
 		}
 
@@ -53,14 +59,17 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 
 			_currentSize += _valueSize(value);
 			_queue.Enqueue(key);
-			if (!throwOnDuplicate && _cache.ContainsKey(key))
+			if (!throwOnDuplicate && _cache.ContainsKey(key)) {
 				return;
+			}
+
 			_cache.Add(key, value);
 		}
 
 		public bool TryPutRecord(TKey key, TValue value) {
-			if (IsFull())
+			if (IsFull()) {
 				return false;
+			}
 
 			_currentSize += _valueSize(value);
 			_queue.Enqueue(key);
@@ -76,7 +85,7 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 
 		private bool IsFull() {
 			return _queue.Count >= _maxCachedEntries
-			       || (_currentSize > _maxDataSize && _queue.Count > 0);
+				   || (_currentSize > _maxDataSize && _queue.Count > 0);
 		}
 
 		public void RemoveRecord(TKey key) {

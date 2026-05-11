@@ -10,8 +10,7 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Transport.Tcp;
 
-public class TcpClientConnector
-{
+public class TcpClientConnector {
 	private const int CheckPeriodMs = 200;
 
 	private readonly SocketArgsPool _connectSocketArgsPool;
@@ -20,8 +19,7 @@ public class TcpClientConnector
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<TcpClientConnector>();
 
-	public TcpClientConnector()
-	{
+	public TcpClientConnector() {
 		_connectSocketArgsPool = new SocketArgsPool("TcpClientConnector._connectSocketArgsPool",
 			TcpConfiguration.ConnectPoolSize,
 			CreateConnectSocketArgs);
@@ -31,8 +29,7 @@ public class TcpClientConnector
 		_timer.Change(CheckPeriodMs, Timeout.Infinite);
 	}
 
-	private SocketAsyncEventArgs CreateConnectSocketArgs()
-	{
+	private SocketAsyncEventArgs CreateConnectSocketArgs() {
 		var socketArgs = new SocketAsyncEventArgs();
 		socketArgs.Completed += ConnectCompleted;
 		socketArgs.UserToken = new CallbacksStateToken();
@@ -44,8 +41,7 @@ public class TcpClientConnector
 		TimeSpan connectionTimeout,
 		Action<ITcpConnection> onConnectionEstablished = null,
 		Action<ITcpConnection, SocketError> onConnectionFailed = null,
-		bool verbose = true)
-	{
+		bool verbose = true) {
 		Ensure.NotNull(remoteEndPoint, "remoteEndPoint");
 		return TcpConnection.CreateConnectingTcpConnection(connectionId, remoteEndPoint, this, connectionTimeout,
 			onConnectionEstablished, onConnectionFailed, verbose);
@@ -60,8 +56,7 @@ public class TcpClientConnector
 		Func<X509CertificateCollection> clientCertificatesSelector,
 		Action<ITcpConnection> onConnectionEstablished = null,
 		Action<ITcpConnection, SocketError> onConnectionFailed = null,
-		bool verbose = true)
-	{
+		bool verbose = true) {
 		Ensure.NotNull(remoteEndPoint, "remoteEndPoint");
 		return TcpConnectionSsl.CreateConnectingConnection(connectionId, targetHost, otherNames, remoteEndPoint, sslServerCertValidator,
 			clientCertificatesSelector, this, connectionTimeout, onConnectionEstablished, onConnectionFailed, verbose);
@@ -72,16 +67,22 @@ public class TcpClientConnector
 		Action<IPEndPoint, Socket> onConnectionEstablished,
 		Action<IPEndPoint, SocketError> onConnectionFailed,
 		ITcpConnection connection,
-		TimeSpan connectionTimeout)
-	{
-		if (serverEndPoint == null)
+		TimeSpan connectionTimeout) {
+		if (serverEndPoint == null) {
 			throw new ArgumentNullException("serverEndPoint");
-		if (onSocketAssigned == null)
+		}
+
+		if (onSocketAssigned == null) {
 			throw new ArgumentNullException("onSocketAssigned");
-		if (onConnectionEstablished == null)
+		}
+
+		if (onConnectionEstablished == null) {
 			throw new ArgumentNullException("onConnectionEstablished");
-		if (onConnectionFailed == null)
+		}
+
+		if (onConnectionFailed == null) {
 			throw new ArgumentNullException("onConnectionFailed");
+		}
 
 		var socketArgs = _connectSocketArgsPool.Get();
 		var connectingSocket = new Socket(serverEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -95,33 +96,31 @@ public class TcpClientConnector
 
 		AddToConnecting(callbacks.PendingConnection);
 
-		try
-		{
+		try {
 			var firedAsync = connectingSocket.ConnectAsync(socketArgs);
-			if (!firedAsync)
+			if (!firedAsync) {
 				ProcessConnect(socketArgs);
+			}
 		}
-		catch (ObjectDisposedException)
-		{
+		catch (ObjectDisposedException) {
 			HandleBadConnect(socketArgs);
 		}
 	}
 
-	private void ConnectCompleted(object sender, SocketAsyncEventArgs e)
-	{
+	private void ConnectCompleted(object sender, SocketAsyncEventArgs e) {
 		ProcessConnect(e);
 	}
 
-	private void ProcessConnect(SocketAsyncEventArgs e)
-	{
-		if (e.SocketError != SocketError.Success)
+	private void ProcessConnect(SocketAsyncEventArgs e) {
+		if (e.SocketError != SocketError.Success) {
 			HandleBadConnect(e);
-		else
+		}
+		else {
 			OnSocketConnected(e);
+		}
 	}
 
-	private void HandleBadConnect(SocketAsyncEventArgs socketArgs)
-	{
+	private void HandleBadConnect(SocketAsyncEventArgs socketArgs) {
 		var serverEndPoint = socketArgs.RemoteEndPoint;
 		var socketError = socketArgs.SocketError;
 		var callbacks = (CallbacksStateToken)socketArgs.UserToken;
@@ -133,12 +132,12 @@ public class TcpClientConnector
 		callbacks.Reset();
 		_connectSocketArgsPool.Return(socketArgs);
 
-		if (RemoveFromConnecting(pendingConnection))
+		if (RemoveFromConnecting(pendingConnection)) {
 			onConnectionFailed((IPEndPoint)serverEndPoint, socketError);
+		}
 	}
 
-	private void OnSocketConnected(SocketAsyncEventArgs socketArgs)
-	{
+	private void OnSocketConnected(SocketAsyncEventArgs socketArgs) {
 		var remoteEndPoint = (IPEndPoint)socketArgs.RemoteEndPoint;
 		var socket = socketArgs.AcceptSocket;
 		var callbacks = (CallbacksStateToken)socketArgs.UserToken;
@@ -149,38 +148,33 @@ public class TcpClientConnector
 		callbacks.Reset();
 		_connectSocketArgsPool.Return(socketArgs);
 
-		if (RemoveFromConnecting(pendingConnection))
+		if (RemoveFromConnecting(pendingConnection)) {
 			onConnectionEstablished(remoteEndPoint, socket);
+		}
 	}
 
-	private void TimerCallback(object state)
-	{
-		foreach (var pendingConnection in _pendingConections.Values)
-		{
-			if (DateTime.UtcNow >= pendingConnection.WhenToKill && RemoveFromConnecting(pendingConnection))
+	private void TimerCallback(object state) {
+		foreach (var pendingConnection in _pendingConections.Values) {
+			if (DateTime.UtcNow >= pendingConnection.WhenToKill && RemoveFromConnecting(pendingConnection)) {
 				Helper.EatException(() => pendingConnection.Connection.Close("Connection establishment timeout."));
+			}
 		}
 
-		try
-		{
+		try {
 			_timer.Change(CheckPeriodMs, Timeout.Infinite);
 		}
-		catch (ObjectDisposedException)
-		{
+		catch (ObjectDisposedException) {
 			// ignore
 		}
 	}
 
-	private void AddToConnecting(PendingConnection pendingConnection)
-	{
+	private void AddToConnecting(PendingConnection pendingConnection) {
 		_pendingConections.TryAdd(pendingConnection.Connection.ConnectionId, pendingConnection);
 	}
 
-	private bool RemoveFromConnecting(PendingConnection pendingConnection)
-	{
+	private bool RemoveFromConnecting(PendingConnection pendingConnection) {
 		PendingConnection conn;
-		if (pendingConnection.Connection == null)
-		{
+		if (pendingConnection.Connection == null) {
 			Log.Warning("Network Card disconnected");
 			return false;
 		}
@@ -189,28 +183,24 @@ public class TcpClientConnector
 			   && Interlocked.CompareExchange(ref conn.Done, 1, 0) == 0;
 	}
 
-	private class CallbacksStateToken
-	{
+	private class CallbacksStateToken {
 		public Action<IPEndPoint, Socket> OnConnectionEstablished;
 		public Action<IPEndPoint, SocketError> OnConnectionFailed;
 		public PendingConnection PendingConnection;
 
-		public void Reset()
-		{
+		public void Reset() {
 			OnConnectionEstablished = null;
 			OnConnectionFailed = null;
 			PendingConnection = null;
 		}
 	}
 
-	private class PendingConnection
-	{
+	private class PendingConnection {
 		public readonly ITcpConnection Connection;
 		public readonly DateTime WhenToKill;
 		public int Done;
 
-		public PendingConnection(ITcpConnection connection, DateTime whenToKill)
-		{
+		public PendingConnection(ITcpConnection connection, DateTime whenToKill) {
 			Connection = connection;
 			WhenToKill = whenToKill;
 		}

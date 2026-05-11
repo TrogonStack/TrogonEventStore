@@ -42,8 +42,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			long hits = 0;
 			long misses = 0;
 
-			if (_hashUsers is LruCachingScavengeMap<ulong, T> lru)
+			if (_hashUsers is LruCachingScavengeMap<ulong, T> lru) {
 				lru.GetStats(out hits, out misses);
+			}
 
 			_logger.Debug(
 				"SCAVENGING: CollisionDetector stats: " +
@@ -83,10 +84,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		private void EnsureCollisionsCache() {
-			if (_collisionsCache == null)
+			if (_collisionsCache == null) {
 				_collisionsCache = _collisions.AllRecords().ToDictionary(
 					x => x.Key,
 					x => x.Value);
+			}
 		}
 
 		// Proof by induction that DetectCollisions works
@@ -137,8 +139,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				collision = default;
 				_oldCollisions++;
 				return CollisionResult.OldCollision; // previously known collision. 1a or 1b.
-				// _hashes must already have this hash, otherwise it wouldn't be a collision.
-				// so no need to add it it.
+													 // _hashes must already have this hash, otherwise it wouldn't be a collision.
+													 // so no need to add it it.
 			}
 
 			// collision not previously known, but might be a new one now.
@@ -165,8 +167,9 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public T LookupUniqueHashUser(ulong streamHash) {
-			if (!_hashUsers.TryGetValue(streamHash, out var stream))
+			if (!_hashUsers.TryGetValue(streamHash, out var stream)) {
 				throw new Exception($"Tried to get unique user for stream hash: {streamHash} but it is unused");
+			}
 
 			if (IsCollisionHash(streamHash)) {
 				var collisions = AllCollisions().Where(x => _hasher.Hash(x) == streamHash);

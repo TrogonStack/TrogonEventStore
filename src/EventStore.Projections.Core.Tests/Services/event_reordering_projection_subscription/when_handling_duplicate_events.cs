@@ -6,12 +6,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.event_reordering_projection_subscription;
 
 [TestFixture]
-public class when_handling_duplicate_events : TestFixtureWithEventReorderingProjectionSubscription
-{
+public class when_handling_duplicate_events : TestFixtureWithEventReorderingProjectionSubscription {
 	private DateTime _timestamp;
 
-	protected override void When()
-	{
+	protected override void When() {
 		_timestamp = DateTime.UtcNow;
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
@@ -31,8 +29,7 @@ public class when_handling_duplicate_events : TestFixtureWithEventReorderingProj
 	}
 
 	[Test]
-	public void duplicates_are_not_passed_to_downstream_handler()
-	{
+	public void duplicates_are_not_passed_to_downstream_handler() {
 		Assert.AreEqual(2, _eventHandler.HandledMessages.Count);
 	}
 }

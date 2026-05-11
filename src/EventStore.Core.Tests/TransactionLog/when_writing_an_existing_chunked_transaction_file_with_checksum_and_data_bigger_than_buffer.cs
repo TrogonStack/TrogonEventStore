@@ -17,15 +17,13 @@ namespace EventStore.Core.Tests.TransactionLog;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_writing_an_existing_chunked_transaction_file_with_checksum_and_data_bigger_than_buffer<TLogFormat, TStreamId> :
-	SpecificationWithDirectory
-{
+	SpecificationWithDirectory {
 	private readonly Guid _correlationId = Guid.NewGuid();
 	private readonly Guid _eventId = Guid.NewGuid();
 	private InMemoryCheckpoint _checkpoint;
 
 	[Test]
-	public async Task a_record_can_be_written()
-	{
+	public async Task a_record_can_be_written() {
 		var filename = GetFilePathFor("chunk-000000.000000");
 		var chunkHeader = new ChunkHeader(TFChunk.CurrentChunkVersion, TFChunk.CurrentChunkVersion, 10000, 0, 0, false,
 			Guid.NewGuid(), TransformType.Identity);
@@ -70,8 +68,7 @@ public class
 
 		Assert.AreEqual(record.GetSizeWithLengthPrefixAndSuffix() + 137, _checkpoint.Read());
 		await using var filestream = File.Open(filename,
-			new FileStreamOptions
-			{
+			new FileStreamOptions {
 				Mode = FileMode.Open,
 				Access = FileAccess.Read,
 				Options = FileOptions.Asynchronous

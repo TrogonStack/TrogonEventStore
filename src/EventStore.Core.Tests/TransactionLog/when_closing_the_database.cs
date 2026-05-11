@@ -12,13 +12,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_closing_the_database<TLogFormat, TStreamId> : SpecificationWithDirectory
-{
+public class when_closing_the_database<TLogFormat, TStreamId> : SpecificationWithDirectory {
 
 	private TFChunkDb _db;
 
-	private static void CreateChunk(string path, int size)
-	{
+	private static void CreateChunk(string path, int size) {
 		var chunkHeader = new ChunkHeader(TFChunk.CurrentChunkVersion, TFChunk.CurrentChunkVersion, size, 0, 0, false, Guid.NewGuid(), TransformType.Identity);
 		var chunkBytes = chunkHeader.AsByteArray();
 		var buf = new byte[ChunkHeader.Size + ChunkFooter.Size + chunkHeader.ChunkSize];
@@ -26,8 +24,7 @@ public class when_closing_the_database<TLogFormat, TStreamId> : SpecificationWit
 		File.WriteAllBytes(path, buf);
 	}
 
-	private static IPrepareLogRecord<TStreamId> CreateRecord()
-	{
+	private static IPrepareLogRecord<TStreamId> CreateRecord() {
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
@@ -52,8 +49,7 @@ public class when_closing_the_database<TLogFormat, TStreamId> : SpecificationWit
 		new FileCheckpoint(path, Path.GetFileName(path));
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 
 		CreateChunk(GetFilePathFor("chunk-000000.000000"), 10_000);
@@ -70,10 +66,8 @@ public class when_closing_the_database<TLogFormat, TStreamId> : SpecificationWit
 
 	[TestCase(true)]
 	[TestCase(false)]
-	public async Task checkpoints_should_be_flushed_only_when_chunks_are_properly_closed(bool chunksClosed)
-	{
-		if (!chunksClosed)
-		{
+	public async Task checkpoints_should_be_flushed_only_when_chunks_are_properly_closed(bool chunksClosed) {
+		if (!chunksClosed) {
 			// acquire a reader to prevent the chunk from being properly closed
 			await _db.Manager.GetChunk(0).AcquireRawReader();
 		}
@@ -90,13 +84,11 @@ public class when_closing_the_database<TLogFormat, TStreamId> : SpecificationWit
 		var writerChk = OpenCheckpoint(GetFilePathFor("writer.chk"));
 		var chaserChk = OpenCheckpoint(GetFilePathFor("chaser.chk"));
 
-		if (chunksClosed)
-		{
+		if (chunksClosed) {
 			Assert.Greater(writerChk.Read(), 0L);
 			Assert.Greater(chaserChk.Read(), 0L);
 		}
-		else
-		{
+		else {
 			Assert.AreEqual(0L, writerChk.Read());
 			Assert.AreEqual(0L, chaserChk.Read());
 		}

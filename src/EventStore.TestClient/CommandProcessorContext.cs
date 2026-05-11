@@ -10,8 +10,7 @@ namespace EventStore.TestClient;
 /// This context is passed to the instances of <see cref="ICmdProcessor"/>
 /// when they are executed. It can also be used for async synchronization
 /// </summary>
-public class CommandProcessorContext
-{
+public class CommandProcessorContext {
 	public int ExitCode;
 	public Exception Error;
 	public string Reason;
@@ -42,8 +41,7 @@ public class CommandProcessorContext
 
 	public CommandProcessorContext(TcpTestClient tcpTestClient, GrpcTestClient grpcTestClient,
 		ClientApiTcpTestClient clientApiTestClient, int timeout, ILogger log, ILogger statsLogger, bool outputCsv,
-		ManualResetEventSlim doneEvent, CancellationToken cancellationToken)
-	{
+		ManualResetEventSlim doneEvent, CancellationToken cancellationToken) {
 
 		_tcpTestClient = tcpTestClient;
 		_grpcTestClient = grpcTestClient;
@@ -57,11 +55,9 @@ public class CommandProcessorContext
 	}
 
 	public void Completed(int exitCode = (int)Common.Utils.ExitCode.Success, Exception error = null,
-		string reason = null)
-	{
+		string reason = null) {
 
-		if (Interlocked.CompareExchange(ref _completed, 1, 0) == 0)
-		{
+		if (Interlocked.CompareExchange(ref _completed, 1, 0) == 0) {
 			ExitCode = exitCode;
 
 			Error = error ?? Error;
@@ -71,34 +67,30 @@ public class CommandProcessorContext
 		}
 	}
 
-	public void Fail(Exception exc = null, string reason = null)
-	{
+	public void Fail(Exception exc = null, string reason = null) {
 		Completed((int)Common.Utils.ExitCode.Error, exc, reason);
 	}
 
-	public void Success()
-	{
+	public void Success() {
 		Completed();
 	}
 
-	public void IsAsync()
-	{
+	public void IsAsync() {
 		_doneEvent.Reset();
 	}
 
-	public void WaitForCompletion()
-	{
-		if (_timeout < 0)
+	public void WaitForCompletion() {
+		if (_timeout < 0) {
 			_doneEvent.Wait(_cancellationToken);
-		else
-		{
-			if (!_doneEvent.Wait(_timeout * 1000, _cancellationToken))
+		}
+		else {
+			if (!_doneEvent.Wait(_timeout * 1000, _cancellationToken)) {
 				throw new TimeoutException("Command didn't finished within timeout.");
+			}
 		}
 	}
 
-	public TimeSpan Time(Action action)
-	{
+	public TimeSpan Time(Action action) {
 		var sw = Stopwatch.StartNew();
 		action();
 		sw.Stop();

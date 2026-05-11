@@ -11,10 +11,8 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_the_state_handler_fails_to_process_an_event_the_projection_should<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	protected override void Given() {
 		ExistingEvent(
 			"$projections-projection-result", "Result", @"{""c"": 100, ""p"": 50}", "{}");
 		ExistingEvent(
@@ -24,13 +22,11 @@ public class when_the_state_handler_fails_to_process_an_event_the_projection_sho
 		AllWritesToSucceed("$projections-projection-order");
 	}
 
-	protected override FakeProjectionStateHandler GivenProjectionStateHandler()
-	{
+	protected override FakeProjectionStateHandler GivenProjectionStateHandler() {
 		return new FakeProjectionStateHandler(failOnProcessEvent: true);
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -41,14 +37,12 @@ public class when_the_state_handler_fails_to_process_an_event_the_projection_sho
 	}
 
 	[Test]
-	public void should_publish_faulted_message()
-	{
+	public void should_publish_faulted_message() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<CoreProjectionStatusMessage.Faulted>().Count());
 	}
 
 	[Test]
-	public void not_emit_a_state_updated_event()
-	{
+	public void not_emit_a_state_updated_event() {
 		Assert.AreEqual(0, _writeEventHandler.HandledMessages.OfEventType("Result").Count());
 	}
 }

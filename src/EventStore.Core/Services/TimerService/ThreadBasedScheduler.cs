@@ -1,12 +1,12 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.DataStructures;
-using EventStore.Core.Time;
-using EventStore.Core.Services.Monitoring.Stats;
-using System.Threading.Tasks;
 using EventStore.Core.Metrics;
+using EventStore.Core.Services.Monitoring.Stats;
+using EventStore.Core.Time;
 using Serilog;
 
 namespace EventStore.Core.Services.TimerService {
@@ -62,8 +62,9 @@ namespace EventStore.Core.Services.TimerService {
 			_pending.Enqueue(new ScheduledTask(dueTime, callback, state));
 
 			// don't unnecessarily wake up the timer thread if it's going to wake up before this task's due time anyway
-			if (nextWakeup < now.Ticks || nextWakeup > dueTime.Ticks)
+			if (nextWakeup < now.Ticks || nextWakeup > dueTime.Ticks) {
 				_pendingEvent.Set();
+			}
 		}
 
 		private void DoTiming() {
@@ -99,8 +100,9 @@ namespace EventStore.Core.Services.TimerService {
 						}
 
 						nextTaskDueTime = _tasks.FindMin().DueTime;
-						if (nextTaskDueTime > _timeProvider.Now)
+						if (nextTaskDueTime > _timeProvider.Now) {
 							break;
+						}
 
 						processed += 1;
 						var scheduledTask = _tasks.DeleteMin();
@@ -120,16 +122,18 @@ namespace EventStore.Core.Services.TimerService {
 
 						var timeout = nextTaskDueTime?.ElapsedTimeSince(_timeProvider.Now) ?? maxTimeout;
 
-						if (timeout <= TimeSpan.Zero)
+						if (timeout <= TimeSpan.Zero) {
 							// we have already reached the due time of the next task, so we process it immediately
 							continue;
+						}
 
 						timeout = new TimeSpan(Math.Clamp(timeout.Ticks, minTimeout.Ticks, maxTimeout.Ticks));
 						Interlocked.Exchange(ref _nextWakeupTimeTicks, _timeProvider.Now.Add(timeout).Ticks);
 						_pendingEvent.Wait(timeout);
 					}
 
-				} catch (Exception ex) {
+				}
+				catch (Exception ex) {
 					Log.Error(ex, "Error executing scheduled task");
 					_tcs.TrySetException(ex);
 				}

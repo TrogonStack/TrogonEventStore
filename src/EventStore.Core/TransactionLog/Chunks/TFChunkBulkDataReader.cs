@@ -9,19 +9,17 @@ using EventStore.Core.TransactionLog.Chunks.TFChunk;
 namespace EventStore.Core.TransactionLog.Chunks;
 
 public sealed class TFChunkBulkDataReader(TFChunk.TFChunk chunk, Stream streamToUse, bool isMemory)
-	: TFChunkBulkReader(chunk, streamToUse, isMemory)
-{
+	: TFChunkBulkReader(chunk, streamToUse, isMemory) {
 
-	public override void SetPosition(long dataPosition)
-	{
+	public override void SetPosition(long dataPosition) {
 		var rawPos = dataPosition + ChunkHeader.Size;
 		Stream.Position = rawPos;
 	}
 
-	public override async ValueTask<BulkReadResult> ReadNextBytes(Memory<byte> buffer, CancellationToken token)
-	{
-		if (Stream.Position is 0)
+	public override async ValueTask<BulkReadResult> ReadNextBytes(Memory<byte> buffer, CancellationToken token) {
+		if (Stream.Position is 0) {
 			Stream.Position = ChunkHeader.Size;
+		}
 
 		var oldPos = (int)Stream.Position - ChunkHeader.Size;
 		var toRead = Math.Min(Chunk.PhysicalDataSize - oldPos, buffer.Length);

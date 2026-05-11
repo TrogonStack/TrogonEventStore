@@ -44,12 +44,14 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 			if (Create) {
 				_fileStream.SetLength(DataAccessor.FileSize);
-			} else {
+			}
+			else {
 				// existing
-				if (_fileStream.Length != DataAccessor.FileSize)
+				if (_fileStream.Length != DataAccessor.FileSize) {
 					throw new SizeMismatchException(
 						$"The expected file size ({DataAccessor.FileSize:N0}) does not match " +
 						$"the actual file size ({_fileStream.Length:N0}) of file {_path}");
+				}
 			}
 
 			_mmf = MemoryMappedFile.CreateFromFile(
@@ -73,7 +75,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 			if (Create) {
 				DataAccessor.FillWithZeros();
-			} else {
+			}
+			else {
 				// do not fill with zeros; would overwrite the data.
 			}
 		}
@@ -106,7 +109,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				}
 
 				return MemoryMarshal.AsRef<Header>(headerBytes);
-			} catch (Exception exc) when (exc is not CorruptedFileException) {
+			}
+			catch (Exception exc) when (exc is not CorruptedFileException) {
 				throw new CorruptedFileException("Failed to read the header", exc);
 			}
 		}
@@ -120,13 +124,16 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		}
 
 		public void Dispose() {
-			if (_disposed)
+			if (_disposed) {
 				return;
+			}
 
 			_disposed = true;
 
-			if (DataAccessor is not null)
+			if (DataAccessor is not null) {
 				DataAccessor.Pointer = default;
+			}
+
 			_mmfWriteAccessor?.SafeMemoryMappedViewHandle.ReleasePointer();
 			_mmfWriteAccessor?.Dispose();
 			_mmf?.Dispose();

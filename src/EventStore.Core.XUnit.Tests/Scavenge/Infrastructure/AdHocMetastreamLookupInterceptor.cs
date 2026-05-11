@@ -3,15 +3,13 @@ using EventStore.Core.LogAbstraction;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class AdHocMetastreamLookupInterceptor<TStreamId> : IMetastreamLookup<TStreamId>
-{
+public class AdHocMetastreamLookupInterceptor<TStreamId> : IMetastreamLookup<TStreamId> {
 	private readonly IMetastreamLookup<TStreamId> _wrapped;
 	private readonly Func<Func<TStreamId, bool>, TStreamId, bool> _f;
 
 	public AdHocMetastreamLookupInterceptor(
 		IMetastreamLookup<TStreamId> wrapped,
-		Func<Func<TStreamId, bool>, TStreamId, bool> f)
-	{
+		Func<Func<TStreamId, bool>, TStreamId, bool> f) {
 
 		_wrapped = wrapped;
 		_f = f;

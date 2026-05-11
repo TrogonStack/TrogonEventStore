@@ -5,8 +5,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archiver;
 
-public class ChunkPrioritizerTests
-{
+public class ChunkPrioritizerTests {
 	[Theory]
 	// start takes priority
 	[InlineData(1, 0, 2, 0, -1)]
@@ -17,8 +16,7 @@ public class ChunkPrioritizerTests
 	[InlineData(0, 1, 0, 2, -1)]
 	[InlineData(0, 2, 0, 1, 1)]
 	[InlineData(0, 0, 0, 0, 0)]
-	public void compares_correctly(int xStart, int xEnd, int yStart, int yEnd, int expected)
-	{
+	public void compares_correctly(int xStart, int xEnd, int yStart, int yEnd, int expected) {
 		var x = new Commands.ArchiveChunk { ChunkPath = "x path", ChunkStartNumber = xStart, ChunkEndNumber = xEnd, };
 
 		var y = new Commands.ArchiveChunk { ChunkPath = "y path", ChunkStartNumber = yStart, ChunkEndNumber = yEnd, };

@@ -1,10 +1,8 @@
 using System.Security.Cryptography;
 using EventStore.Core.Authentication.InternalAuthentication;
 
-namespace EventStore.Core.Services.Transport.Http.Authentication
-{
-	public class Rfc2898PasswordHashAlgorithm : PasswordHashAlgorithm
-	{
+namespace EventStore.Core.Services.Transport.Http.Authentication {
+	public class Rfc2898PasswordHashAlgorithm : PasswordHashAlgorithm {
 		private const int HashSize = 32;
 		private const int SaltSize = 16;
 		private const int MinimumIterations = 600_000;
@@ -12,8 +10,7 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 		private const string Version = "v2";
 		private const string HashAlgorithm = "SHA256";
 
-		public override void Hash(string password, out string hash, out string salt)
-		{
+		public override void Hash(string password, out string hash, out string salt) {
 			var saltData = new byte[SaltSize];
 			RandomNumberGenerator.Fill(saltData);
 
@@ -27,16 +24,18 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			salt = System.Convert.ToBase64String(saltData);
 		}
 
-		public override bool Verify(string password, string hash, string salt)
-		{
-			if (string.IsNullOrEmpty(hash) || string.IsNullOrEmpty(salt))
+		public override bool Verify(string password, string hash, string salt) {
+			if (string.IsNullOrEmpty(hash) || string.IsNullOrEmpty(salt)) {
 				return false;
+			}
 
-			if (!TryParseHash(hash, out var hashAlgorithm, out var iterations, out var expectedHash))
+			if (!TryParseHash(hash, out var hashAlgorithm, out var iterations, out var expectedHash)) {
 				return false;
+			}
 
-			if (!TryReadSalt(salt, out var saltData))
+			if (!TryReadSalt(salt, out var saltData)) {
 				return false;
+			}
 
 			var actualHash = Rfc2898DeriveBytes.Pbkdf2(
 				password,
@@ -52,40 +51,37 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			string hash,
 			out HashAlgorithmName hashAlgorithm,
 			out int iterations,
-			out byte[] expectedHash)
-		{
+			out byte[] expectedHash) {
 			hashAlgorithm = HashAlgorithmName.SHA256;
 			iterations = CurrentIterations;
 			expectedHash = null;
 
-			if (string.IsNullOrEmpty(hash))
+			if (string.IsNullOrEmpty(hash)) {
 				return false;
+			}
 
 			var parts = hash.Split('$');
 			if (parts.Length != 4 ||
 				parts[0] != Version ||
 				parts[1] != HashAlgorithm ||
 				!int.TryParse(parts[2], out iterations) ||
-				iterations < MinimumIterations)
+				iterations < MinimumIterations) {
 				return false;
+			}
 
 			return TryReadHash(parts[3], HashSize, out expectedHash);
 		}
 
-		private static bool TryReadSalt(string salt, out byte[] saltData)
-		{
-			if (string.IsNullOrEmpty(salt))
-			{
+		private static bool TryReadSalt(string salt, out byte[] saltData) {
+			if (string.IsNullOrEmpty(salt)) {
 				saltData = null;
 				return false;
 			}
 
-			try
-			{
+			try {
 				saltData = System.Convert.FromBase64String(salt);
 			}
-			catch (System.FormatException)
-			{
+			catch (System.FormatException) {
 				saltData = null;
 				return false;
 			}
@@ -93,20 +89,16 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			return saltData.Length == SaltSize;
 		}
 
-		private static bool TryReadHash(string hash, int hashSize, out byte[] expectedHash)
-		{
-			if (string.IsNullOrEmpty(hash))
-			{
+		private static bool TryReadHash(string hash, int hashSize, out byte[] expectedHash) {
+			if (string.IsNullOrEmpty(hash)) {
 				expectedHash = null;
 				return false;
 			}
 
-			try
-			{
+			try {
 				expectedHash = System.Convert.FromBase64String(hash);
 			}
-			catch (System.FormatException)
-			{
+			catch (System.FormatException) {
 				expectedHash = null;
 				return false;
 			}

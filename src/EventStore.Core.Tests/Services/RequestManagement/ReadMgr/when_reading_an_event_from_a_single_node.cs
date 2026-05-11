@@ -14,26 +14,22 @@ namespace EventStore.Core.Tests.Services.RequestManagement.ReadMgr;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_reading_an_event_from_a_single_node<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
-{
+public class when_reading_an_event_from_a_single_node<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
 	private CountdownEvent _expectedNumberOfRoleAssignments;
 	private string _streamId = "test-stream";
 	private long _commitPosition;
 
 	private MiniClusterNode<TLogFormat, TStreamId> _liveNode;
 
-	protected override void BeforeNodesStart()
-	{
+	protected override void BeforeNodesStart() {
 		_nodes.ToList().ForEach(x =>
 			x.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.StateChangeMessage>(Handle)));
 		_expectedNumberOfRoleAssignments = new CountdownEvent(3);
 		base.BeforeNodesStart();
 	}
 
-	private void Handle(SystemMessage.StateChangeMessage msg)
-	{
-		switch (msg.State)
-		{
+	private void Handle(SystemMessage.StateChangeMessage msg) {
+		switch (msg.State) {
 			case Data.VNodeState.Leader:
 				_expectedNumberOfRoleAssignments.Signal();
 				break;
@@ -43,8 +39,7 @@ public class when_reading_an_event_from_a_single_node<TLogFormat, TStreamId> : s
 		}
 	}
 
-	protected override async Task Given()
-	{
+	protected override async Task Given() {
 		_expectedNumberOfRoleAssignments.Wait(5000);
 
 		_liveNode = GetLeader();
@@ -56,8 +51,7 @@ public class when_reading_an_event_from_a_single_node<TLogFormat, TStreamId> : s
 		_commitPosition = writeResult.CommitPosition;
 
 		var followers = GetFollowers();
-		foreach (var s in followers)
-		{
+		foreach (var s in followers) {
 			await ShutdownNode(s.DebugIndex);
 		}
 
@@ -65,38 +59,33 @@ public class when_reading_an_event_from_a_single_node<TLogFormat, TStreamId> : s
 	}
 
 	[Test]
-	public void should_be_able_to_read_event_from_all_forward()
-	{
+	public void should_be_able_to_read_event_from_all_forward() {
 		var readResult = ReplicationTestHelper.ReadAllEventsForward(_liveNode, _commitPosition);
 		Assert.AreEqual(1, readResult.Events.Where(x => x.OriginalStreamId == _streamId).Count());
 	}
 
 	[Test]
-	public void should_be_able_to_read_event_from_all_backward()
-	{
+	public void should_be_able_to_read_event_from_all_backward() {
 		var readResult = ReplicationTestHelper.ReadAllEventsBackward(_liveNode, _commitPosition);
 		Assert.AreEqual(1, readResult.Events.Where(x => x.OriginalStreamId == _streamId).Count());
 	}
 
 	[Test]
-	public void should_not_be_able_to_read_event_from_stream_forward()
-	{
+	public void should_not_be_able_to_read_event_from_stream_forward() {
 		var readResult = ReplicationTestHelper.ReadStreamEventsForward(_liveNode, _streamId);
 		Assert.AreEqual(1, readResult.Events.Count());
 		Assert.AreEqual(ReadStreamResult.Success, readResult.Result);
 	}
 
 	[Test]
-	public void should_not_be_able_to_read_event_from_stream_backward()
-	{
+	public void should_not_be_able_to_read_event_from_stream_backward() {
 		var readResult = ReplicationTestHelper.ReadStreamEventsBackward(_liveNode, _streamId);
 		Assert.AreEqual(1, readResult.Events.Count());
 		Assert.AreEqual(ReadStreamResult.Success, readResult.Result);
 	}
 
 	[Test]
-	public void should_not_be_able_to_read_event()
-	{
+	public void should_not_be_able_to_read_event() {
 		var readResult = ReplicationTestHelper.ReadEvent(_liveNode, _streamId, 0);
 		Assert.AreEqual(ReadEventResult.Success, readResult.Result);
 	}

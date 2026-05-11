@@ -19,7 +19,7 @@ namespace EventStore.Core.Authorization {
 		public ValueTask<bool> Evaluate(ClaimsPrincipal cp, Operation operation, PolicyInformation policy,
 			EvaluationContext context) {
 			if (operation == Operations.Subscriptions.ProcessMessages ||
-			    operation == Operations.Subscriptions.ReplayParked) {
+				operation == Operations.Subscriptions.ReplayParked) {
 				var stream = FindStreamId(operation.Parameters.Span);
 				return _streamAssertion.Evaluate(cp,
 					StreamRead.WithParameter(Operations.Streams.Parameters.StreamId(stream)), policy, context);
@@ -29,9 +29,11 @@ namespace EventStore.Core.Authorization {
 		}
 
 		private string FindStreamId(ReadOnlySpan<Parameter> parameters) {
-			for (int i = 0; i < parameters.Length; i++)
-				if (parameters[i].Name == "streamId")
+			for (int i = 0; i < parameters.Length; i++) {
+				if (parameters[i].Name == "streamId") {
 					return parameters[i].Value;
+				}
+			}
 
 			return null;
 		}

@@ -16,15 +16,13 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private MultiStreamEventReader _eventReader;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _streamReadACorrelationId;
 	private Guid _streamReadBCorrelationId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
@@ -32,8 +30,7 @@ public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithEx
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -87,15 +84,13 @@ public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithEx
 	}
 
 	[Test]
-	public void should_not_deliver_events()
-	{
+	public void should_not_deliver_events() {
 		Assert.AreEqual(0,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}
 
 	[Test]
-	public void should_attempt_another_read_for_the_timed_out_reads()
-	{
+	public void should_attempt_another_read_for_the_timed_out_reads() {
 		var streamAReads = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
 			.Where(x => x.EventStreamId == "a");
 

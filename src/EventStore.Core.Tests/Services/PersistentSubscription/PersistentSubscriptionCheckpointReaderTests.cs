@@ -12,16 +12,13 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
-public class PersistentSubscriptionCheckpointReaderTests
-{
+public class PersistentSubscriptionCheckpointReaderTests {
 	[TestCase("SubscriptionCheckpoint")] // old checkpoints
 	[TestCase("$SubscriptionCheckpoint")] // new checkpoints
-	public void can_read_checkpoints(string checkpointEventType)
-	{
+	public void can_read_checkpoints(string checkpointEventType) {
 		var bus = new SynchronousScheduler("persistent subscription test bus");
 
-		bus.Subscribe(new AdHocHandler<Messages.ClientMessage.ReadStreamEventsBackward>(msg =>
-		{
+		bus.Subscribe(new AdHocHandler<Messages.ClientMessage.ReadStreamEventsBackward>(msg => {
 			var lastEventNumber = msg.FromEventNumber + 1;
 			var nextEventNumber = lastEventNumber + 1;
 
@@ -51,8 +48,7 @@ public class PersistentSubscriptionCheckpointReaderTests
 		var sut = new PersistentSubscriptionCheckpointReader(ioDispatcher);
 
 		var loadedState = "";
-		sut.BeginLoadState("subscriptionA", state =>
-		{
+		sut.BeginLoadState("subscriptionA", state => {
 			loadedState = state;
 		});
 

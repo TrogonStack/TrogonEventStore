@@ -14,13 +14,11 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_emitting_events_in_correct_order_the_started_projection_checkpoint<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+	when_emitting_events_in_correct_order_the_started_projection_checkpoint<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		AllWritesQueueUp();
 		AllWritesToSucceed("$$stream1");
 		AllWritesToSucceed("$$stream2");
@@ -29,8 +27,7 @@ public class
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_checkpoint = new ProjectionCheckpoint(
 			_bus, _ioDispatcher, new ProjectionVersion(1, 0, 0), null, _readyHandler,
@@ -63,8 +60,7 @@ public class
 	}
 
 	[Test]
-	public void should_publish_write_events()
-	{
+	public void should_publish_write_events() {
 		var writeEvents =
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.ExceptOfEventType(SystemEventTypes.StreamMetadata);
@@ -72,8 +68,7 @@ public class
 	}
 
 	[Test]
-	public void should_publish_write_events_to_correct_streams()
-	{
+	public void should_publish_write_events_to_correct_streams() {
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Any(v => v.EventStreamId == "stream1"));
 		Assert.IsTrue(
@@ -83,8 +78,7 @@ public class
 	}
 
 	[Test]
-	public void should_group_events_to_the_same_stream_caused_by_the_same_event()
-	{
+	public void should_group_events_to_the_same_stream_caused_by_the_same_event() {
 		// this is important for the projection to be able to recover by CausedBy.  Unless we commit all the events
 		// to the stream in a single transaction we can get into situation when only part of events CausedBy the same event
 		// are present in a stream
@@ -95,8 +89,7 @@ public class
 	}
 
 	[Test]
-	public void should_not_write_a_second_group_until_the_first_write_completes()
-	{
+	public void should_not_write_a_second_group_until_the_first_write_completes() {
 		_checkpoint.ValidateOrderAndEmitEvents(
 			new[] {
 				new EmittedEventEnvelope(

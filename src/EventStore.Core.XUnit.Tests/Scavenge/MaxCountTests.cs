@@ -8,11 +8,9 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 // for testing the maxcount functionality specifically
-public class MaxCountTests : SqliteDbPerTest<MaxCountTests>
-{
+public class MaxCountTests : SqliteDbPerTest<MaxCountTests> {
 	[Fact]
-	public async Task simple_maxcount()
-	{
+	public async Task simple_maxcount() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -32,8 +30,7 @@ public class MaxCountTests : SqliteDbPerTest<MaxCountTests>
 	}
 
 	[Fact]
-	public async Task no_stream()
-	{
+	public async Task no_stream() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -49,8 +46,7 @@ public class MaxCountTests : SqliteDbPerTest<MaxCountTests>
 	}
 
 	[Fact]
-	public async Task large_maxcount()
-	{
+	public async Task large_maxcount() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

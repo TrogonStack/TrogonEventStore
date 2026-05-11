@@ -8,10 +8,8 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_partitioning_by_custom_rule_returning_a_number : TestFixtureWithInterpretedProjection
-{
-	protected override void Given()
-	{
+public class when_partitioning_by_custom_rule_returning_a_number : TestFixtureWithInterpretedProjection {
+	protected override void Given() {
 		_projection = @"
                 fromAll().partitionBy(function(event){
                     return event.body.index;
@@ -22,8 +20,7 @@ public class when_partitioning_by_custom_rule_returning_a_number : TestFixtureWi
 	}
 
 	[Test]
-	public void get_state_partition_returns_correct_result()
-	{
+	public void get_state_partition_returns_correct_result() {
 		var result = _stateHandler.GetStatePartition(
 			CheckpointTag.FromPosition(0, 100, 50), "category",
 			new ResolvedEvent(

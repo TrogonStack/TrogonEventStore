@@ -14,8 +14,9 @@ namespace EventStore.Core.Services.Monitoring {
 
 		public void ReplyWith<T>(T message) where T : Message {
 			var msg = message as MonitoringMessage.InternalStatsRequestResponse;
-			if (msg != null)
+			if (msg != null) {
 				_statsContainer.Add(msg.Stats);
+			}
 		}
 	}
 }

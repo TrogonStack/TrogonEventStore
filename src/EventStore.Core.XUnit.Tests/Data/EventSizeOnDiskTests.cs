@@ -3,11 +3,9 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.CoreData;
 
-public class EventSizeOnDiskTests
-{
+public class EventSizeOnDiskTests {
 	[Fact]
-	public void includes_data_metadata_and_event_type_bytes()
-	{
+	public void includes_data_metadata_and_event_type_bytes() {
 		var size = Event.SizeOnDisk(
 			eventType: "type",
 			data: [1, 2, 3],
@@ -20,8 +18,7 @@ public class EventSizeOnDiskTests
 	[InlineData(null, null, 8)]
 	[InlineData(null, 2, 10)]
 	[InlineData(3, null, 11)]
-	public void treats_missing_payload_sections_as_zero(int? dataLength, int? metadataLength, int expectedSize)
-	{
+	public void treats_missing_payload_sections_as_zero(int? dataLength, int? metadataLength, int expectedSize) {
 		var size = Event.SizeOnDisk(
 			eventType: "type",
 			data: dataLength is { } data ? new byte[data] : null,
@@ -31,8 +28,7 @@ public class EventSizeOnDiskTests
 	}
 
 	[Fact]
-	public void treats_missing_event_type_as_zero_bytes()
-	{
+	public void treats_missing_event_type_as_zero_bytes() {
 		var size = Event.SizeOnDisk(
 			eventType: null,
 			data: [1, 2, 3],

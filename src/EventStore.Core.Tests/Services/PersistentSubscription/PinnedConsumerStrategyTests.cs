@@ -9,11 +9,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture]
-public class PinnedConsumerStrategyTests
-{
+public class PinnedConsumerStrategyTests {
 	[Test]
-	public void live_subscription_with_pinned_pushes_events_to_same_client_for_stream_id()
-	{
+	public void live_subscription_with_pinned_pushes_events_to_same_client_for_stream_id() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -54,8 +52,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void new_stream_is_round_robinned_to_next_consumer()
-	{
+	public void new_stream_is_round_robinned_to_next_consumer() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -93,8 +90,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void resolved_link_events_use_event_stream_id()
-	{
+	public void resolved_link_events_use_event_stream_id() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -137,8 +133,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void link_events_use_data_to_detect_stream_id()
-	{
+	public void link_events_use_data_to_detect_stream_id() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -181,8 +176,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void unsubscribed_client_has_assigned_streams_sent_to_another_client()
-	{
+	public void unsubscribed_client_has_assigned_streams_sent_to_another_client() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -216,8 +210,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void new_subscription_gets_work()
-	{
+	public void new_subscription_gets_work() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var client3Envelope = new FakeEnvelope();
@@ -260,8 +253,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void bad_availablecapacity_scneanrio_causing_null_reference()
-	{
+	public void bad_availablecapacity_scneanrio_causing_null_reference() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -297,8 +289,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void disconnected_client_has_assigned_streams_sent_to_another_client()
-	{
+	public void disconnected_client_has_assigned_streams_sent_to_another_client() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -332,8 +323,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void available_capacity_is_tracked()
-	{
+	public void available_capacity_is_tracked() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -369,8 +359,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void available_capacity_is_tracked_with_inflight_messages()
-	{
+	public void available_capacity_is_tracked_with_inflight_messages() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -415,8 +404,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void available_capacity_is_tracked_with_acked_messages()
-	{
+	public void available_capacity_is_tracked_with_acked_messages() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -463,8 +451,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void events_are_skipped_if_assigned_client_full()
-	{
+	public void events_are_skipped_if_assigned_client_full() {
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();
 		var reader = new FakeCheckpointReader();
@@ -517,8 +504,7 @@ public class PinnedConsumerStrategyTests
 	}
 
 	[Test]
-	public void reconnect_with_reused_correlation_id_routes_pinned_stream_to_live_client()
-	{
+	public void reconnect_with_reused_correlation_id_routes_pinned_stream_to_live_client() {
 		var correlationId = Guid.NewGuid();
 		var client1Envelope = new FakeEnvelope();
 		var client2Envelope = new FakeEnvelope();

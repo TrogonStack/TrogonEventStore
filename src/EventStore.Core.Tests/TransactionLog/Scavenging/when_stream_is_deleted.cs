@@ -7,10 +7,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_stream_is_deleted<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
-	{
+public class when_stream_is_deleted<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "bla"), Rec.Prepare(0, "bla"), Rec.Commit(0, "bla"))
 			.Chunk(Rec.Delete(1, "bla"), Rec.Commit(1, "bla"))
@@ -18,10 +16,8 @@ public class when_stream_is_deleted<TLogFormat, TStreamId> : ScavengeTestScenari
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
-		{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
 			return new[] {
 				new ILogRecord[0],
 				dbResult.Recs[1]
@@ -37,22 +33,18 @@ public class when_stream_is_deleted<TLogFormat, TStreamId> : ScavengeTestScenari
 	}
 
 	[Test]
-	public async Task stream_created_and_delete_tombstone_with_corresponding_commits_are_kept()
-	{
+	public async Task stream_created_and_delete_tombstone_with_corresponding_commits_are_kept() {
 		await CheckRecords();
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_stream_is_deleted_with_ignore_hard_deletes<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
-{
-	protected override bool UnsafeIgnoreHardDelete()
-	{
+public class when_stream_is_deleted_with_ignore_hard_deletes<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+	protected override bool UnsafeIgnoreHardDelete() {
 		return true;
 	}
 
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
-	{
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
 		return dbCreator
 			.Chunk(Rec.Prepare(0, "bla"), Rec.Prepare(0, "bla"), Rec.Commit(0, "bla"))
 			.Chunk(Rec.Delete(1, "bla"), Rec.Commit(1, "bla"))
@@ -60,10 +52,8 @@ public class when_stream_is_deleted_with_ignore_hard_deletes<TLogFormat, TStream
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
-	{
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
-		{
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
 			return new[] {
 				new ILogRecord[0],
 				new ILogRecord[0]
@@ -79,8 +69,7 @@ public class when_stream_is_deleted_with_ignore_hard_deletes<TLogFormat, TStream
 	}
 
 	[Test]
-	public async Task stream_created_and_delete_tombstone_with_corresponding_commits_are_kept()
-	{
+	public async Task stream_created_and_delete_tombstone_with_corresponding_commits_are_kept() {
 		await CheckRecords();
 	}
 }

@@ -4,12 +4,10 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Index.IndexV1;
 
-public class when_creating_large_bloom_filter : SpecificationWithDirectory
-{
+public class when_creating_large_bloom_filter : SpecificationWithDirectory {
 	[Ignore("Quick but requires 4gb disk")]
 	[Test]
-	public void ptable_exceeding_maximum_filter_size_succeeds()
-	{
+	public void ptable_exceeding_maximum_filter_size_succeeds() {
 		var file = GetTempFilePath();
 
 		// create
@@ -26,8 +24,7 @@ public class when_creating_large_bloom_filter : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void out_of_memory_returns_null()
-	{
+	public void out_of_memory_returns_null() {
 		var filter = PTable.ConstructBloomFilter(
 			useBloomFilter: true,
 			filename: GetTempFilePath(),

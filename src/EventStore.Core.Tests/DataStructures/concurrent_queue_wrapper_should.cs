@@ -6,11 +6,9 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.DataStructures;
 
 [TestFixture]
-public class concurrent_queue_wrapper_should
-{
+public class concurrent_queue_wrapper_should {
 	[Test]
-	public void return_correct_counts_and_values_1()
-	{
+	public void return_correct_counts_and_values_1() {
 		var queue = new ConcurrentQueueWrapper<int>();
 		Assert.AreEqual(0, queue.Count);
 		queue.Enqueue(1234);
@@ -32,18 +30,15 @@ public class concurrent_queue_wrapper_should
 	}
 
 	[Test]
-	public void return_correct_counts_and_values_2()
-	{
+	public void return_correct_counts_and_values_2() {
 		var queue = new ConcurrentQueueWrapper<int>();
-		for (int i = 1; i <= 1000; i++)
-		{
+		for (int i = 1; i <= 1000; i++) {
 			queue.Enqueue(i);
 			Assert.AreEqual(i, queue.Count);
 		}
 
 		int x;
-		for (int i = 1; i <= 1000; i++)
-		{
+		for (int i = 1; i <= 1000; i++) {
 			Assert.AreEqual(true, queue.TryDequeue(out x));
 			Assert.AreEqual(i, x);
 			Assert.AreEqual(1000 - i, queue.Count);
@@ -52,54 +47,52 @@ public class concurrent_queue_wrapper_should
 }
 
 [TestFixture]
-public class concurrent_queue_wrapper_with_parallel_dequeues_should
-{
+public class concurrent_queue_wrapper_with_parallel_dequeues_should {
 	private ConcurrentQueueWrapper<int> _concurrentQueue;
 	private const int TOTAL_ENQUEUED_ITEMS = 1000000;
 	private const int NUM_THREADS = 4;
 	private volatile bool _seenNegativeCount;
 	private volatile int _totalDequeued;
 
-	public concurrent_queue_wrapper_with_parallel_dequeues_should()
-	{
+	public concurrent_queue_wrapper_with_parallel_dequeues_should() {
 		_concurrentQueue = new ConcurrentQueueWrapper<int>();
 		_seenNegativeCount = false;
 		_totalDequeued = 0;
 	}
 
-	private void DequeueThread()
-	{
-		while (_totalDequeued < TOTAL_ENQUEUED_ITEMS)
-		{
+	private void DequeueThread() {
+		while (_totalDequeued < TOTAL_ENQUEUED_ITEMS) {
 			var dequeued = _concurrentQueue.TryDequeue(out _);
-			if (_concurrentQueue.Count < 0)
+			if (_concurrentQueue.Count < 0) {
 				_seenNegativeCount = true;
-			if (dequeued)
+			}
+
+			if (dequeued) {
 				Interlocked.Increment(ref _totalDequeued);
+			}
 		}
 	}
 
 	[Test]
-	public void always_return_non_negative_count()
-	{
+	public void always_return_non_negative_count() {
 		var threads = new Thread[NUM_THREADS];
-		for (int i = 0; i < NUM_THREADS; i++)
-		{
+		for (int i = 0; i < NUM_THREADS; i++) {
 			threads[i] = new Thread(DequeueThread);
 			threads[i].Start();
 		}
 
 		int x;
-		for (int i = 0; i < TOTAL_ENQUEUED_ITEMS; i++)
-		{
+		for (int i = 0; i < TOTAL_ENQUEUED_ITEMS; i++) {
 			_concurrentQueue.Enqueue(1);
 			var dequeued = _concurrentQueue.TryDequeue(out x);
-			if (dequeued)
+			if (dequeued) {
 				Interlocked.Increment(ref _totalDequeued);
+			}
 		}
 
-		for (int i = 0; i < NUM_THREADS; i++)
+		for (int i = 0; i < NUM_THREADS; i++) {
 			threads[i].Join(TimeSpan.FromSeconds(5));
+		}
 
 		Assert.AreEqual(false, _seenNegativeCount);
 	}

@@ -12,22 +12,19 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : EventStore.Core.Tests.Helpers.TestFixtureWithExistingEvents<TLogFormat, TStreamId>,
-	IHandle<ProjectionCoreServiceMessage.CoreTick>
-{
+	IHandle<ProjectionCoreServiceMessage.CoreTick> {
 	protected ReaderSubscriptionDispatcher _subscriptionDispatcher;
 
 	private bool _ticksAreHandledImmediately;
 	protected AwakeService AwakeService;
 
-	protected override void Given1()
-	{
+	protected override void Given1() {
 		base.Given1();
 		_ticksAreHandledImmediately = false;
 	}
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_subscriptionDispatcher = new ReaderSubscriptionDispatcher(_bus);
 		_bus.Subscribe(
 			_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CommittedEventReceived>());
@@ -53,21 +50,19 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Eve
 		_bus.Subscribe(new UnwrapEnvelopeHandler());
 	}
 
-	public void Handle(ProjectionCoreServiceMessage.CoreTick message)
-	{
-		if (_ticksAreHandledImmediately)
+	public void Handle(ProjectionCoreServiceMessage.CoreTick message) {
+		if (_ticksAreHandledImmediately) {
 			message.Action();
+		}
 	}
 
-	protected void TicksAreHandledImmediately()
-	{
+	protected void TicksAreHandledImmediately() {
 		_ticksAreHandledImmediately = true;
 	}
 
 	protected ClientMessage.WriteEvents CreateWriteEvent(
 		string streamId, string eventType, string data, string metadata = null, bool isJson = true,
-		Guid? correlationId = null)
-	{
+		Guid? correlationId = null) {
 		return new ClientMessage.WriteEvents(
 			Guid.NewGuid(), correlationId ?? Guid.NewGuid(), GetInputQueue(), false, streamId,
 			ExpectedVersion.Any, new Event(Guid.NewGuid(), eventType, isJson, data, metadata), null);

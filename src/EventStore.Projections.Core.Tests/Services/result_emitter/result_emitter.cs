@@ -8,35 +8,29 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.result_emitter;
 
-public static class result_emitter
-{
+public static class result_emitter {
 	[TestFixture]
-	public class when_creating
-	{
+	public class when_creating {
 		private ProjectionNamesBuilder _namesBuilder;
 
 		[SetUp]
-		public void setup()
-		{
+		public void setup() {
 			_namesBuilder = ProjectionNamesBuilder.CreateForTest("projection");
 		}
 
 		[Test]
-		public void it_can_be_created()
-		{
+		public void it_can_be_created() {
 			new ResultEventEmitter(_namesBuilder);
 		}
 
 		[Test]
-		public void null_names_builder_throws_argument_null_exception()
-		{
+		public void null_names_builder_throws_argument_null_exception() {
 			Assert.Throws<ArgumentNullException>(() => { new ResultEventEmitter(null); });
 		}
 	}
 
 	[TestFixture]
-	public class when_result_updated
-	{
+	public class when_result_updated {
 		private ProjectionNamesBuilder _namesBuilder;
 		private ResultEventEmitter _re;
 		private string _partition;
@@ -46,14 +40,12 @@ public static class result_emitter
 		private string _result;
 
 		[SetUp]
-		public void setup()
-		{
+		public void setup() {
 			Given();
 			When();
 		}
 
-		private void Given()
-		{
+		private void Given() {
 			_projection = "projection";
 			_resultAt = CheckpointTag.FromPosition(0, 100, 50);
 			_partition = "partition";
@@ -62,14 +54,12 @@ public static class result_emitter
 			_re = new ResultEventEmitter(_namesBuilder);
 		}
 
-		private void When()
-		{
+		private void When() {
 			_emittedEvents = _re.ResultUpdated(_partition, _result, _resultAt);
 		}
 
 		[Test]
-		public void emits_result_event()
-		{
+		public void emits_result_event() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(2, _emittedEvents.Length);
 			var @event = _emittedEvents[0];
@@ -91,8 +81,7 @@ public static class result_emitter
 	}
 
 	[TestFixture]
-	public class when_result_removed
-	{
+	public class when_result_removed {
 		private ProjectionNamesBuilder _namesBuilder;
 		private ResultEventEmitter _re;
 		private string _partition;
@@ -101,14 +90,12 @@ public static class result_emitter
 		private EmittedEventEnvelope[] _emittedEvents;
 
 		[SetUp]
-		public void setup()
-		{
+		public void setup() {
 			Given();
 			When();
 		}
 
-		private void Given()
-		{
+		private void Given() {
 			_projection = "projection";
 			_resultAt = CheckpointTag.FromPosition(0, 100, 50);
 			_partition = "partition";
@@ -116,14 +103,12 @@ public static class result_emitter
 			_re = new ResultEventEmitter(_namesBuilder);
 		}
 
-		private void When()
-		{
+		private void When() {
 			_emittedEvents = _re.ResultUpdated(_partition, null, _resultAt);
 		}
 
 		[Test]
-		public void emits_result_event()
-		{
+		public void emits_result_event() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(2, _emittedEvents.Length);
 			var @event = _emittedEvents[0];
@@ -145,8 +130,7 @@ public static class result_emitter
 	}
 
 	[TestFixture]
-	public class when_result_updated_on_root_partition
-	{
+	public class when_result_updated_on_root_partition {
 		private ProjectionNamesBuilder _namesBuilder;
 		private ResultEventEmitter _re;
 		private string _partition;
@@ -156,14 +140,12 @@ public static class result_emitter
 		private string _result;
 
 		[SetUp]
-		public void setup()
-		{
+		public void setup() {
 			Given();
 			When();
 		}
 
-		private void Given()
-		{
+		private void Given() {
 			_projection = "projection";
 			_resultAt = CheckpointTag.FromPosition(0, 100, 50);
 			_partition = "";
@@ -172,14 +154,12 @@ public static class result_emitter
 			_re = new ResultEventEmitter(_namesBuilder);
 		}
 
-		private void When()
-		{
+		private void When() {
 			_emittedEvents = _re.ResultUpdated(_partition, _result, _resultAt);
 		}
 
 		[Test]
-		public void emits_result_event()
-		{
+		public void emits_result_event() {
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;

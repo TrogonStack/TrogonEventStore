@@ -37,7 +37,8 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 			events = [];
 			nextEventNumber = -1;
 			lastEventNumber = ExpectedVersion.NoStream;
-		} else {
+		}
+		else {
 			result = ReadStreamResult.Success;
 			nextEventNumber = lastEvent.EventNumber + 1;
 			lastEventNumber = lastEvent.EventNumber;
@@ -45,7 +46,8 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 			if (msg.FromEventNumber > lastEvent.EventNumber) {
 				// from too high. empty read
 				events = [];
-			} else {
+			}
+			else {
 				// read containing the event
 				events = [ResolvedEvent.ForUnresolvedEvent(lastEvent)];
 			}
@@ -81,7 +83,8 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 			result = ReadStreamResult.NoStream;
 			events = [];
 			lastEventNumber = ExpectedVersion.NoStream;
-		} else {
+		}
+		else {
 			result = ReadStreamResult.Success;
 			lastEventNumber = lastEvent.EventNumber;
 
@@ -91,7 +94,8 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 			if (adjustedFromEventNumber < lastEvent.EventNumber) {
 				// from too low. empty read
 				events = [];
-			} else {
+			}
+			else {
 				// read containing the event
 				events = [ResolvedEvent.ForUnresolvedEvent(lastEvent)];
 			}

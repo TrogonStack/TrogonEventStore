@@ -5,8 +5,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Unbuffered;
 
-internal static unsafe class WinNative
-{
+internal static unsafe class WinNative {
 	[DllImport("KERNEL32", SetLastError = true, CharSet = CharSet.Auto, BestFitMapping = false)]
 	public static extern bool GetDiskFreeSpace(string path,
 		out uint sectorsPerCluster,
@@ -51,8 +50,7 @@ internal static unsafe class WinNative
 		int flagsAndAttributes,
 		IntPtr templateFile);
 
-	public enum EMoveMethod : uint
-	{
+	public enum EMoveMethod : uint {
 		Begin = 0,
 		Current = 1,
 		End = 2

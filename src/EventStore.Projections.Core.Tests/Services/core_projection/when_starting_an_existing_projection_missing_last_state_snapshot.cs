@@ -12,12 +12,10 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_starting_an_existing_projection_missing_last_state_snapshot<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
+	when_starting_an_existing_projection_missing_last_state_snapshot<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
 	private readonly Guid _causedByEventId = Guid.NewGuid();
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		ExistingEvent(
 			"$projections-projection-result", "Result", @"{""c"": 100, ""p"": 50}", "{}");
 		ExistingEvent(
@@ -30,8 +28,7 @@ public class
 		AllWritesToSucceed("$projections-projection-order");
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -42,8 +39,7 @@ public class
 	}
 
 	[Test]
-	public void should_not_emit_events_but_write_the_new_state_snapshot()
-	{
+	public void should_not_emit_events_but_write_the_new_state_snapshot() {
 		Assert.AreEqual(2, _writeEventHandler.HandledMessages.Count);
 
 		var data = Helper.UTF8NoBom.GetString(_writeEventHandler.HandledMessages[1].Events[0].Data);

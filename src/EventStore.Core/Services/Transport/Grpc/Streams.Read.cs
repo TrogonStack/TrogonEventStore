@@ -75,15 +75,18 @@ internal partial class Streams<TStreamId> {
 				await using (enumerator) {
 					await using (context.CancellationToken.Register(DisposeEnumerator)) {
 						while (await enumerator.MoveNextAsync()) {
-							if (TryConvertReadResponse(enumerator.Current, uuidOption, out var readResponse))
+							if (TryConvertReadResponse(enumerator.Current, uuidOption, out var readResponse)) {
 								await responseStream.WriteAsync(readResponse);
+							}
 						}
 					}
 				}
-			} catch (ReadResponseException ex) {
+			}
+			catch (ReadResponseException ex) {
 				ConvertReadResponseException(ex);
 			}
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			duration.SetException(ex);
 			throw;
 		}
@@ -318,7 +321,10 @@ internal partial class Streams<TStreamId> {
 	private static ReadResp.Types.ReadEvent.Types.RecordedEvent ConvertToRecordedEvent(
 		ReadReq.Types.Options.Types.UUIDOption uuidOption, EventRecord e, long? commitPosition,
 		long? preparePosition) {
-		if (e == null) return null;
+		if (e == null) {
+			return null;
+		}
+
 		var position = Position.FromInt64(commitPosition ?? -1, preparePosition ?? -1);
 		return new ReadResp.Types.ReadEvent.Types.RecordedEvent {
 			Id = uuidOption.ContentCase switch {
@@ -356,7 +362,8 @@ internal partial class Streams<TStreamId> {
 				e.OriginalPosition.Value.CommitPosition,
 				e.OriginalPosition.Value.PreparePosition);
 			readEvent.CommitPosition = position.CommitPosition;
-		} else {
+		}
+		else {
 			readEvent.NoPosition = new Empty();
 		}
 

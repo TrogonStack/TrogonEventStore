@@ -7,8 +7,7 @@ using EventStore.Core.Tests.Infrastructure;
 
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
-internal class RandomizedElectionsAndGossipTestCase : RandomizedElectionsTestCase
-{
+internal class RandomizedElectionsAndGossipTestCase : RandomizedElectionsTestCase {
 	public delegate MemberInfo[] CreateInitialGossip(ElectionsInstance instance, ElectionsInstance[] allInstances);
 
 	public delegate MemberInfo[] CreateUpdatedGossip(int iteration,
@@ -40,8 +39,7 @@ internal class RandomizedElectionsAndGossipTestCase : RandomizedElectionsTestCas
 			httpMaxDelay,
 			timerMinDelay,
 			timerMaxDelay,
-			rndSeed)
-	{
+			rndSeed) {
 		_createInitialGossip = createInitialGossip;
 		_createUpdatedGossip = createUpdatedGossip;
 
@@ -58,37 +56,31 @@ internal class RandomizedElectionsAndGossipTestCase : RandomizedElectionsTestCas
 		);
 	}
 
-	private void Enqueue(RandTestQueueItem item, Message message)
-	{
+	private void Enqueue(RandTestQueueItem item, Message message) {
 		Runner.Enqueue(item.EndPoint, message, item.Bus, 10);
 	}
 
-	protected override IRandTestFinishCondition GetFinishCondition()
-	{
+	protected override IRandTestFinishCondition GetFinishCondition() {
 		return new ElectionsProgressCondition(InstancesCnt);
 	}
 
-	protected override IRandTestItemProcessor[] GetAdditionalProcessors()
-	{
+	protected override IRandTestItemProcessor[] GetAdditionalProcessors() {
 		return new IRandTestItemProcessor[] { _updateGossipProcessor };
 	}
 
 	protected override GossipMessage.GossipUpdated GetInitialGossipFor(ElectionsInstance instance,
-		List<ElectionsInstance> allInstances)
-	{
+		List<ElectionsInstance> allInstances) {
 		var members = _createInitialGossip(instance, allInstances.ToArray());
 		_updateGossipProcessor.SetInitialData(allInstances, members);
 
 		return new GossipMessage.GossipUpdated(new ClusterInfo(members));
 	}
 
-	protected override SendOverGrpcProcessor GetSendOverHttpProcessor()
-	{
+	protected override SendOverGrpcProcessor GetSendOverHttpProcessor() {
 		return _sendOverGrpcBlockingProcessor;
 	}
 
-	public int Next(int maxValue)
-	{
+	public int Next(int maxValue) {
 		return Rnd.Next(maxValue);
 	}
 }

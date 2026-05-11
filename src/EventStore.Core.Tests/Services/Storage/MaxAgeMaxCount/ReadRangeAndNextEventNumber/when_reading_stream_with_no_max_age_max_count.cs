@@ -8,16 +8,14 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNext
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_reading_stream_with_no_max_age_max_count<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+	when_reading_stream_with_no_max_age_max_count<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private EventRecord _event0;
 	private EventRecord _event1;
 	private EventRecord _event2;
 	private EventRecord _event3;
 	private EventRecord _event4;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		_event0 = await WriteSingleEvent("ES", 0, "bla", token: token);
 		_event1 = await WriteSingleEvent("ES", 1, "bla", token: token);
 		_event2 = await WriteSingleEvent("ES", 2, "bla", token: token);
@@ -27,8 +25,7 @@ public class
 
 	[Test]
 	public async Task
-		on_read_forward_from_start_to_middle_next_event_number_is_middle_plus_1_and_its_not_end_of_stream()
-	{
+		on_read_forward_from_start_to_middle_next_event_number_is_middle_plus_1_and_its_not_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsForward("ES", 0, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(3, res.NextEventNumber);
@@ -43,8 +40,7 @@ public class
 	}
 
 	[Test]
-	public async Task on_read_forward_from_the_middle_to_end_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+	public async Task on_read_forward_from_the_middle_to_end_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsForward("ES", 1, 4, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -61,8 +57,7 @@ public class
 
 	[Test]
 	public async Task
-		on_read_forward_from_the_middle_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+		on_read_forward_from_the_middle_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsForward("ES", 1, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -79,8 +74,7 @@ public class
 
 	[Test]
 	public async Task
-		on_read_forward_from_the_out_of_bounds_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream()
-	{
+		on_read_forward_from_the_out_of_bounds_to_out_of_bounds_next_event_number_is_end_plus_1_and_its_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsForward("ES", 6, 2, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(5, res.NextEventNumber);
@@ -94,8 +88,7 @@ public class
 
 	[Test]
 	public async Task
-		on_read_backward_from_the_end_to_middle_next_event_number_is_middle_minus_1_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_the_end_to_middle_next_event_number_is_middle_minus_1_and_its_not_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsBackward("ES", 4, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(1, res.NextEventNumber);
@@ -110,8 +103,7 @@ public class
 	}
 
 	[Test]
-	public async Task on_read_backward_from_middle_to_start_next_event_number_is_minus_1_and_its_end_of_stream()
-	{
+	public async Task on_read_backward_from_middle_to_start_next_event_number_is_minus_1_and_its_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsBackward("ES", 2, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -126,8 +118,7 @@ public class
 	}
 
 	[Test]
-	public async Task on_read_backward_from_middle_to_before_start_next_event_number_is_minus_1_and_its_end_of_stream()
-	{
+	public async Task on_read_backward_from_middle_to_before_start_next_event_number_is_minus_1_and_its_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsBackward("ES", 2, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(-1, res.NextEventNumber);
@@ -143,8 +134,7 @@ public class
 
 	[Test]
 	public async Task
-		on_read_backward_from_out_of_bounds_to_middle_next_event_number_is_middle_minus_1_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_out_of_bounds_to_middle_next_event_number_is_middle_minus_1_and_its_not_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsBackward("ES", 6, 5, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(1, res.NextEventNumber);
@@ -160,8 +150,7 @@ public class
 
 	[Test]
 	public async Task
-		on_read_backward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_and_its_not_end_of_stream()
-	{
+		on_read_backward_from_out_of_bounds_to_out_of_bounds_next_event_number_is_end_and_its_not_end_of_stream() {
 		var res = await ReadIndex.ReadStreamEventsBackward("ES", 10, 3, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, res.Result);
 		Assert.AreEqual(4, res.NextEventNumber);

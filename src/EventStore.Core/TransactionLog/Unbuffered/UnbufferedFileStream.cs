@@ -24,10 +24,10 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 		private long _readLocation = -1;
 		private bool _needsRead;
 
-		static UnbufferedFileStream() => 
-            NativeFile = RuntimeInformation.IsWindows ? new NativeFileWindows() : new NativeFileUnix();
+		static UnbufferedFileStream() =>
+			NativeFile = RuntimeInformation.IsWindows ? new NativeFileWindows() : new NativeFileUnix();
 
-        private UnbufferedFileStream(SafeFileHandle handle, uint blockSize, int internalWriteBufferSize,
+		private UnbufferedFileStream(SafeFileHandle handle, uint blockSize, int internalWriteBufferSize,
 			int internalReadBufferSize) {
 			_handle = handle;
 			_readBufferSize = internalReadBufferSize;
@@ -57,10 +57,13 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 			uint minBlockSize) {
 			var blockSize = NativeFile.GetDriveSectorSize(path);
 			blockSize = blockSize > minBlockSize ? blockSize : minBlockSize;
-			if (internalWriteBufferSize % blockSize != 0)
+			if (internalWriteBufferSize % blockSize != 0) {
 				throw new Exception("write buffer size must be aligned to block size of " + blockSize + " bytes");
-			if (internalReadBufferSize % blockSize != 0)
+			}
+
+			if (internalReadBufferSize % blockSize != 0) {
 				throw new Exception("read buffer size must be aligned to block size of " + blockSize + " bytes");
+			}
 
 			var handle = NativeFile.CreateUnbufferedRW(path, acc, share, mode, writeThrough);
 			return new UnbufferedFileStream(handle, blockSize, internalWriteBufferSize, internalReadBufferSize);
@@ -68,7 +71,10 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 
 		public override void Flush() {
 			CheckDisposed();
-			if (!_needsFlush) return;
+			if (!_needsFlush) {
+				return;
+			}
+
 			var alignedbuffer = (int)GetLowestAlignment(_bufferedCount);
 			var positionAligned = GetLowestAlignment(_lastPosition);
 			if (!_aligned) {
@@ -80,7 +86,8 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 				_lastPosition = positionAligned + _bufferedCount;
 				_bufferedCount = 0;
 				_aligned = true;
-			} else {
+			}
+			else {
 				var left = _bufferedCount - alignedbuffer;
 				InternalWrite(_writeBuffer, (uint)(alignedbuffer + _blockSize));
 				_lastPosition = positionAligned + alignedbuffer;
@@ -127,8 +134,14 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 		public override long Seek(long offset, SeekOrigin origin) {
 			long mungedOffset = offset;
 			CheckDisposed();
-			if (origin == SeekOrigin.Current) throw new NotImplementedException("only supports seek origin begin/end");
-			if (origin == SeekOrigin.End) mungedOffset = Length + offset;
+			if (origin == SeekOrigin.Current) {
+				throw new NotImplementedException("only supports seek origin begin/end");
+			}
+
+			if (origin == SeekOrigin.End) {
+				mungedOffset = Length + offset;
+			}
+
 			var aligned = GetLowestAlignment(mungedOffset);
 			var left = (int)(mungedOffset - aligned);
 			Flush();
@@ -150,16 +163,25 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 			var aligned = GetLowestAlignment(value);
 			aligned = aligned == value ? aligned : aligned + _blockSize;
 			NativeFile.SetFileSize(_handle, aligned);
-			if(Position > aligned)
+			if (Position > aligned) {
 				Seek(aligned, SeekOrigin.Begin);
+			}
 		}
 
 		public override int Read(byte[] buffer, int offset, int count) {
 			CheckDisposed();
-			if (offset < 0 || buffer.Length < offset) throw new ArgumentException("offset");
-			if (count < 0 || buffer.Length < count) throw new ArgumentException("offset");
-			if (offset + count > buffer.Length)
+			if (offset < 0 || buffer.Length < offset) {
+				throw new ArgumentException("offset");
+			}
+
+			if (count < 0 || buffer.Length < count) {
+				throw new ArgumentException("offset");
+			}
+
+			if (offset + count > buffer.Length) {
 				throw new ArgumentException("offset + count must be less than size of array");
+			}
+
 			var position = GetLowestAlignment(Position);
 			var roffset = (int)(Position - position);
 
@@ -168,17 +190,24 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 				SeekInternal(position, SeekOrigin.Begin);
 				bytesRead = NativeFile.Read(_handle, _readBuffer, 0, _readBufferSize);
 				_readLocation = position;
-			} else if (_readLocation != position) {
+			}
+			else if (_readLocation != position) {
 				roffset += (int)(position - _readLocation);
 			}
 
 			var bytesAvailable = bytesRead - roffset;
-			if (bytesAvailable <= 0) return 0;
+			if (bytesAvailable <= 0) {
+				return 0;
+			}
+
 			var toCopy = count > bytesAvailable ? bytesAvailable : count;
 
 			MemCopy(_readBuffer, roffset, buffer, offset, toCopy);
 			_bufferedCount += toCopy;
-			if (count - toCopy == 0) return toCopy;
+			if (count - toCopy == 0) {
+				return toCopy;
+			}
+
 			return toCopy + Read(buffer, offset + toCopy, count - toCopy);
 		}
 
@@ -200,7 +229,8 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 					CopyBuffer(buffer, current, left);
 					done = true;
 					current += left;
-				} else {
+				}
+				else {
 					var toFill = _writeBufferSize - _bufferedCount;
 					CopyBuffer(buffer, current, toFill);
 					Flush();
@@ -247,8 +277,10 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 		public override long Position {
 			get {
 				CheckDisposed();
-				if (_aligned)
+				if (_aligned) {
 					return _lastPosition + _bufferedCount;
+				}
+
 				return GetLowestAlignment(_lastPosition) + _bufferedCount;
 			}
 			set {
@@ -264,11 +296,16 @@ namespace EventStore.Core.TransactionLog.Unbuffered {
 		[System.Diagnostics.Conditional("DEBUG")]
 		private void CheckDisposed() {
 			//only check in debug
-			if (_handle == null) throw new ObjectDisposedException("object is disposed.");
+			if (_handle == null) {
+				throw new ObjectDisposedException("object is disposed.");
+			}
 		}
 
 		protected override void Dispose(bool disposing) {
-			if (_handle == null) return;
+			if (_handle == null) {
+				return;
+			}
+
 			Flush();
 			_handle.Close();
 			_handle = null;

@@ -12,14 +12,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_restarting_with_a_connected_subscription<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId>
-{
+public class when_restarting_with_a_connected_subscription<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId> {
 	private readonly ManualResetEvent _subscriptionDropped = new ManualResetEvent(false);
 	private readonly ManualResetEvent _serviceStarted = new ManualResetEvent(false);
 	private readonly ManualResetEvent _serviceStopped = new ManualResetEvent(false);
 
-	protected override Task Given()
-	{
+	protected override Task Given() {
 		var testUser = new ClaimsPrincipal(new ClaimsIdentity(
 			new[] {
 				new Claim(ClaimTypes.Name, "admin"),
@@ -39,8 +37,7 @@ public class when_restarting_with_a_connected_subscription<TLogFormat, TStreamId
 			testUser, DateTime.UtcNow));
 
 		_node.Node.MainQueue.Handle(new ClientMessage.ConnectToPersistentSubscriptionToStream(Guid.NewGuid(),
-			Guid.NewGuid(), new CallbackEnvelope(message =>
-			{
+			Guid.NewGuid(), new CallbackEnvelope(message => {
 				_subscriptionDropped.Set();
 			}), Guid.NewGuid(), Guid.NewGuid().ToString(), group, streamId, 1, "0",
 			testUser));
@@ -51,20 +48,17 @@ public class when_restarting_with_a_connected_subscription<TLogFormat, TStreamId
 	}
 
 	[Test]
-	public void should_drop_subscription()
-	{
+	public void should_drop_subscription() {
 		Assert.IsTrue(_subscriptionDropped.WaitOne(TimeSpan.FromSeconds(5)));
 	}
 
 	[Test]
-	public void should_have_stopped_the_service()
-	{
+	public void should_have_stopped_the_service() {
 		Assert.IsTrue(_serviceStopped.WaitOne(TimeSpan.FromSeconds(5)));
 	}
 
 	[Test]
-	public void should_have_started_the_service()
-	{
+	public void should_have_started_the_service() {
 		Assert.IsTrue(_serviceStarted.WaitOne(TimeSpan.FromSeconds(5)));
 	}
 }

@@ -17,14 +17,16 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public static PersistentSubscriptionConfig FromSerializedForm(ReadOnlyMemory<byte> data) {
 			try {
 				var ret = data.ParseJson<PersistentSubscriptionConfig>();
-				if (ret.Version == null)
+				if (ret.Version == null) {
 					throw new BadConfigDataException("Deserialized but no version present, invalid configuration data.",
 						null);
+				}
 
 				UpdateIfRequired(ret);
 
 				return ret;
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				throw new BadConfigDataException("The config data appears to be invalid", ex);
 			}
 		}

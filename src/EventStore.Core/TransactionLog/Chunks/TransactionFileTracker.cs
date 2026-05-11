@@ -30,8 +30,9 @@ public class TFChunkTracker : ITransactionFileTracker {
 			start,
 			new KeyValuePair<string, object>("source", source));
 
-		if (record is not PrepareLogRecord prepare)
+		if (record is not PrepareLogRecord prepare) {
 			return;
+		}
 
 		_readBytes.Add(prepare.Data.Length + prepare.Metadata.Length);
 		_readEvents.Add(1);

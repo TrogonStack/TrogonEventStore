@@ -7,53 +7,45 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
-{
+public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory {
 	[Test]
-	public void when_constructed_with_null_path_should_throws_argumentnullexception()
-	{
+	public void when_constructed_with_null_path_should_throws_argumentnullexception() {
 		Assert.Throws<ArgumentNullException>(() => new VersionedPatternFileNamingStrategy(null, "prefix"));
 	}
 
 	[Test]
-	public void when_constructed_with_null_prefix_should_throws_argumentnullexception()
-	{
+	public void when_constructed_with_null_prefix_should_throws_argumentnullexception() {
 		Assert.Throws<ArgumentNullException>(() => new VersionedPatternFileNamingStrategy("path", null));
 	}
 
 	[Test]
-	public void when_getting_file_for_positive_index_and_no_version_appends_index_to_name_with_zero_version()
-	{
+	public void when_getting_file_for_positive_index_and_no_version_appends_index_to_name_with_zero_version() {
 		var strategy = new VersionedPatternFileNamingStrategy("path", "prefix-");
 		Assert.AreEqual("path" + Path.DirectorySeparatorChar + "prefix-000001.000000",
 			strategy.GetFilenameFor(1, 0));
 	}
 
 	[Test]
-	public void when_getting_file_for_nonnegative_index_and_version_appends_value_and_provided_version()
-	{
+	public void when_getting_file_for_nonnegative_index_and_version_appends_value_and_provided_version() {
 		var strategy = new VersionedPatternFileNamingStrategy("path", "prefix-");
 		Assert.AreEqual("path" + Path.DirectorySeparatorChar + "prefix-000001.000007",
 			strategy.GetFilenameFor(1, 7));
 	}
 
 	[Test]
-	public void when_getting_file_for_negative_index_throws_argumentoutofrangeexception()
-	{
+	public void when_getting_file_for_negative_index_throws_argumentoutofrangeexception() {
 		var strategy = new VersionedPatternFileNamingStrategy("Path", "prefix");
 		Assert.Throws<ArgumentOutOfRangeException>(() => strategy.GetFilenameFor(-1, 0));
 	}
 
 	[Test]
-	public void when_getting_file_for_negative_version_throws_argumentoutofrangeexception()
-	{
+	public void when_getting_file_for_negative_version_throws_argumentoutofrangeexception() {
 		var strategy = new VersionedPatternFileNamingStrategy("Path", "prefix");
 		Assert.Throws<ArgumentOutOfRangeException>(() => strategy.GetFilenameFor(0, -1));
 	}
 
 	[Test]
-	public void returns_all_existing_versions_of_the_same_chunk_in_descending_order_of_versions()
-	{
+	public void returns_all_existing_versions_of_the_same_chunk_in_descending_order_of_versions() {
 		File.Create(GetFilePathFor("foo")).Close();
 		File.Create(GetFilePathFor("bla")).Close();
 
@@ -76,8 +68,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void returns_all_existing_not_temporary_files_with_correct_pattern()
-	{
+	public void returns_all_existing_not_temporary_files_with_correct_pattern() {
 		File.Create(GetFilePathFor("foo")).Close();
 		File.Create(GetFilePathFor("bla")).Close();
 		File.Create(GetFilePathFor("chunk-000001.000000.tmp")).Close();
@@ -106,8 +97,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void returns_all_temp_files_in_directory()
-	{
+	public void returns_all_temp_files_in_directory() {
 		File.Create(GetFilePathFor("bla")).Close();
 		File.Create(GetFilePathFor("bla.tmp")).Close();
 		File.Create(GetFilePathFor("bla.temp")).Close();
@@ -126,8 +116,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void does_not_return_temp_file_that_is_named_as_chunk()
-	{
+	public void does_not_return_temp_file_that_is_named_as_chunk() {
 		File.Create(GetFilePathFor("chunk-000000.000000.tmp")).Close();
 
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
@@ -137,8 +126,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void returns_temp_filenames_detectable_by_getalltempfiles_method()
-	{
+	public void returns_temp_filenames_detectable_by_getalltempfiles_method() {
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		Assert.AreEqual(0, strategy.GetAllTempFiles().Length);
 
@@ -157,8 +145,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void returns_file_index_for_correctly_formatted_filename()
-	{
+	public void returns_file_index_for_correctly_formatted_filename() {
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		Assert.AreEqual(0, strategy.GetIndexFor("chunk-000000.000000"));
 		Assert.AreEqual(1, strategy.GetIndexFor("chunk-000001.000000"));
@@ -166,8 +153,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void returns_file_version_for_correctly_formatted_filename()
-	{
+	public void returns_file_version_for_correctly_formatted_filename() {
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		Assert.AreEqual(0, strategy.GetVersionFor("chunk-000002.000000"));
 		Assert.AreEqual(1, strategy.GetVersionFor("chunk-000002.000001"));
@@ -175,8 +161,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void throws_for_incorrectly_formatted_filename()
-	{
+	public void throws_for_incorrectly_formatted_filename() {
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		Assert.Throws<ArgumentException>(() => strategy.GetIndexFor("chunk-000000.a"));
 		Assert.Throws<ArgumentException>(() => strategy.GetIndexFor("chunk-00000a.000000"));
@@ -192,8 +177,7 @@ public class versioned_pattern_filenaming_strategy : SpecificationWithDirectory
 	}
 
 	[Test]
-	public void returns_chunk_prefix()
-	{
+	public void returns_chunk_prefix() {
 		var strategy = new VersionedPatternFileNamingStrategy(PathName, "chunk-");
 		Assert.AreEqual("chunk-", strategy.Prefix);
 	}

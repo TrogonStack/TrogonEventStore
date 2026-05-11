@@ -8,70 +8,56 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.TimeService;
 
-public class FakeScheduler : TimerBasedScheduler
-{
-	public FakeScheduler(ITimer timer, ITimeProvider timeProvider) : base(timer, timeProvider)
-	{
+public class FakeScheduler : TimerBasedScheduler {
+	public FakeScheduler(ITimer timer, ITimeProvider timeProvider) : base(timer, timeProvider) {
 	}
 
-	public void TriggerProcessing()
-	{
+	public void TriggerProcessing() {
 		ProcessOperations();
 	}
 }
 
-public class FakeTimeProvider : ITimeProvider
-{
+public class FakeTimeProvider : ITimeProvider {
 	public DateTime UtcNow { get; private set; }
 	public DateTime LocalTime { get; private set; }
 
-	public FakeTimeProvider()
-	{
+	public FakeTimeProvider() {
 		UtcNow = DateTime.UtcNow;
 		LocalTime = DateTime.Now;
 	}
 
-	public void SetNewUtcTime(DateTime newTime)
-	{
+	public void SetNewUtcTime(DateTime newTime) {
 		UtcNow = newTime;
 	}
 
-	public void AddToUtcTime(TimeSpan timeSpan)
-	{
+	public void AddToUtcTime(TimeSpan timeSpan) {
 		UtcNow = UtcNow.Add(timeSpan);
 	}
 
-	public void AddToLocalTime(TimeSpan timeSpan)
-	{
+	public void AddToLocalTime(TimeSpan timeSpan) {
 		UtcNow = LocalTime.Add(timeSpan);
 	}
 }
 
-public class FakeTimer : ITimer
-{
-	public void FireIn(int milliseconds, Action callback)
-	{
+public class FakeTimer : ITimer {
+	public void FireIn(int milliseconds, Action callback) {
 		// do smth
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 	}
 }
 
-public class TestResponseMessage : Message
-{
+public class TestResponseMessage : Message {
 	public int Id { get; }
 
-	public TestResponseMessage(int id)
-	{
+	public TestResponseMessage(int id) {
 		Id = id;
 	}
 }
 
 [TestFixture]
-public class time_service_should : IHandle<TestResponseMessage>
-{
+public class time_service_should : IHandle<TestResponseMessage> {
 	private Action<int, int> _startTimeout;
 	private List<TestResponseMessage> _timerMessages;
 
@@ -79,8 +65,7 @@ public class time_service_should : IHandle<TestResponseMessage>
 	private FakeScheduler _scheduler;
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		_timerMessages = new List<TestResponseMessage>();
 
 		_timeProvider = new FakeTimeProvider();
@@ -94,19 +79,16 @@ public class time_service_should : IHandle<TestResponseMessage>
 				new TestResponseMessage(id)));
 	}
 
-	public void Handle(TestResponseMessage message)
-	{
+	public void Handle(TestResponseMessage message) {
 		_timerMessages.Add(message);
 	}
 
 	[TearDown]
-	public void TearDown()
-	{
+	public void TearDown() {
 	}
 
 	[Test]
-	public void respond_with_correct_message()
-	{
+	public void respond_with_correct_message() {
 		const int id = 101;
 
 		_startTimeout(0, id);
@@ -116,8 +98,7 @@ public class time_service_should : IHandle<TestResponseMessage>
 	}
 
 	[Test]
-	public void respond_even_if_fired_too_late()
-	{
+	public void respond_even_if_fired_too_late() {
 		_startTimeout(-5, 100);
 		_scheduler.TriggerProcessing();
 
@@ -125,8 +106,7 @@ public class time_service_should : IHandle<TestResponseMessage>
 	}
 
 	[Test]
-	public void not_respond_until_time_elapses()
-	{
+	public void not_respond_until_time_elapses() {
 		_startTimeout(5, 100);
 
 		_timeProvider.AddToUtcTime(TimeSpan.FromMilliseconds(4));
@@ -136,8 +116,7 @@ public class time_service_should : IHandle<TestResponseMessage>
 	}
 
 	[Test]
-	public void respond_in_correct_time()
-	{
+	public void respond_in_correct_time() {
 		_startTimeout(5, 100);
 
 		_timeProvider.AddToUtcTime(TimeSpan.FromMilliseconds(5));
@@ -147,8 +126,7 @@ public class time_service_should : IHandle<TestResponseMessage>
 	}
 
 	[Test]
-	public void fire_timeouts_gradually()
-	{
+	public void fire_timeouts_gradually() {
 		_startTimeout(5, 100);
 		_startTimeout(25, 102);
 		_startTimeout(45, 104);
@@ -186,8 +164,7 @@ public class time_service_should : IHandle<TestResponseMessage>
 	}
 
 	[Test]
-	public void fire_all_timeouts_that_are_scheduled_at_same_time()
-	{
+	public void fire_all_timeouts_that_are_scheduled_at_same_time() {
 		_startTimeout(5, 100);
 		_startTimeout(5, 101);
 		_startTimeout(5, 102);
@@ -199,10 +176,10 @@ public class time_service_should : IHandle<TestResponseMessage>
 	}
 
 	[Test]
-	public void fire_all_timeouts_after_long_pause()
-	{
-		for (int i = 0; i < 20; i++)
+	public void fire_all_timeouts_after_long_pause() {
+		for (int i = 0; i < 20; i++) {
 			_startTimeout(10 + i, 100 + i);
+		}
 
 		Assert.That(_timerMessages.ContainsNo<TestResponseMessage>());
 

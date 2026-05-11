@@ -59,16 +59,19 @@ namespace EventStore.Core.Data {
 		}
 
 		private TFPos? CalculatePosition(EventRecord @event) {
-			if (@event is null)
+			if (@event is null) {
 				return null;
+			}
 
 			// if this is the original event and we know where it was committed
-			if (@event == OriginalEvent && _originalEventCommitPosition.HasValue)
+			if (@event == OriginalEvent && _originalEventCommitPosition.HasValue) {
 				return new TFPos(_originalEventCommitPosition.Value, @event.LogPosition);
+			}
 
 			// we don't know where this event was committed, unless it committed itself
-			if (@event.IsSelfCommitted)
+			if (@event.IsSelfCommitted) {
 				return new TFPos(@event.LogPosition, @event.LogPosition);
+			}
 
 			// we don't know where this event was committed
 			return null;

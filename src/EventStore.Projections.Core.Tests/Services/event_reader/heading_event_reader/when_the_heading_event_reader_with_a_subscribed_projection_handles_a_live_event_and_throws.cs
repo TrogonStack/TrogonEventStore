@@ -13,15 +13,13 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.heading_event_
 
 [TestFixture]
 public class when_the_heading_event_reader_with_a_subscribed_projection_handles_a_live_event_and_throws :
-	TestFixtureWithReadWriteDispatchers
-{
+	TestFixtureWithReadWriteDispatchers {
 	private HeadingEventReader _point;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _projectionSubscriptionId;
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_point = new HeadingEventReader(10, _bus);
 
 		_distibutionPointCorrelationId = Guid.NewGuid();
@@ -46,8 +44,7 @@ public class when_the_heading_event_reader_with_a_subscribed_projection_handles_
 	}
 
 	[Test]
-	public void projection_is_notified_that_it_is_to_fault()
-	{
+	public void projection_is_notified_that_it_is_to_fault() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.Failed>().Count());
 	}
 }

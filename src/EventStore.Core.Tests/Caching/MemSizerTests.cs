@@ -7,40 +7,33 @@ namespace EventStore.Core.Tests.Caching;
 // these tests may break in the future if there are changes in the CLR.
 // the constants can then be adjusted accordingly.
 [TestFixture]
-public class MemSizerTests
-{
+public class MemSizerTests {
 
-	private class TestObject1
-	{
+	private class TestObject1 {
 		public readonly long TestField1;
 
-		public TestObject1()
-		{
+		public TestObject1() {
 			TestField1 = 0;
 		}
 	}
 
-	private class TestObject2
-	{
+	private class TestObject2 {
 		public readonly long TestField1;
 		public readonly long TestField2;
 
-		public TestObject2()
-		{
+		public TestObject2() {
 			TestField1 = 0;
 			TestField2 = 0;
 		}
 	}
 
-	private struct TestStruct
-	{
+	private struct TestStruct {
 		public readonly long TestField1;
 		public readonly int TestField2;
 		public readonly bool TestField3;
 		public readonly int TestField4;
 
-		public TestStruct(long testField1, int testField2, bool testField3, int testField4)
-		{
+		public TestStruct(long testField1, int testField2, bool testField3, int testField4) {
 			TestField1 = testField1;
 			TestField2 = testField2;
 			TestField3 = testField3;
@@ -49,8 +42,7 @@ public class MemSizerTests
 	}
 
 	[Test]
-	public void object_header_size_is_correct()
-	{
+	public void object_header_size_is_correct() {
 		// .NET objects have a minimum size of 24 bytes, but the object header size is 16 bytes long.
 		// to be able to test the correctness of the object header size constant, we need to have at
 		// least one field in the object
@@ -64,8 +56,7 @@ public class MemSizerTests
 	}
 
 	[Test]
-	public void array_size_is_correct()
-	{
+	public void array_size_is_correct() {
 		Assert.AreEqual(
 			MemSizer.ArraySize,
 			MemUsage.Calculate(() => new object[0], out _));
@@ -76,24 +67,20 @@ public class MemSizerTests
 	}
 
 	[Test]
-	public void string_size_is_correct()
-	{
+	public void string_size_is_correct() {
 		var mem = MemUsage.Calculate(() => new string('x', 1234), out var s);
 		Assert.AreEqual(mem, MemSizer.SizeOf(s));
 	}
 
 	[Test]
-	public void empty_string_size_is_correct()
-	{
+	public void empty_string_size_is_correct() {
 		var mem = MemUsage.Calculate(() => new string('x', 0), out var s);
 		Assert.AreEqual(mem, MemSizer.SizeOf(s));
 	}
 
 	[Test]
-	public void string_array_size_is_correct()
-	{
-		var mem = MemUsage.Calculate(() =>
-		{
+	public void string_array_size_is_correct() {
+		var mem = MemUsage.Calculate(() => {
 			var s1 = new string('x', 123);
 			var s2 = new string('y', 321);
 			return new[] { s1, s2 };
@@ -109,8 +96,7 @@ public class MemSizerTests
 	[TestCase(12L, 12)]
 	[TestCase("key", true)]
 	[TestCase(12, true)]
-	public void dictionary_entry_size_is_correct_with_primitives<TKey, TValue>(TKey key, TValue value)
-	{
+	public void dictionary_entry_size_is_correct_with_primitives<TKey, TValue>(TKey key, TValue value) {
 		var mem3 = MemUsage.Calculate(() => new Dictionary<TKey, TValue>(3));
 		var mem7 = MemUsage.Calculate(() => new Dictionary<TKey, TValue>(7));
 
@@ -119,8 +105,7 @@ public class MemSizerTests
 
 
 	[Test]
-	public void dictionary_entry_size_is_correct_with_object()
-	{
+	public void dictionary_entry_size_is_correct_with_object() {
 		var mem3 = MemUsage.Calculate(() => new Dictionary<string, TestObject2>(3));
 		var mem7 = MemUsage.Calculate(() => new Dictionary<string, TestObject2>(7));
 
@@ -128,8 +113,7 @@ public class MemSizerTests
 	}
 
 	[Test]
-	public void dictionary_entry_size_is_correct_with_struct()
-	{
+	public void dictionary_entry_size_is_correct_with_struct() {
 		var mem3 = MemUsage.Calculate(() => new Dictionary<string, TestStruct>(3));
 		var mem7 = MemUsage.Calculate(() => new Dictionary<string, TestStruct>(7));
 
@@ -140,16 +124,14 @@ public class MemSizerTests
 	[TestCase(12)]
 	[TestCase(12L)]
 	[TestCase(true)]
-	public void linked_list_node_size_is_correct_with_primitives<T>(T item)
-	{
+	public void linked_list_node_size_is_correct_with_primitives<T>(T item) {
 		var mem = MemUsage.Calculate(() => new LinkedListNode<T>(item));
 
 		Assert.AreEqual(mem, MemSizer.SizeOfLinkedListNode<T>());
 	}
 
 	[Test]
-	public void linked_list_node_size_is_correct_with_object()
-	{
+	public void linked_list_node_size_is_correct_with_object() {
 		var x = new TestObject1();
 		var mem = MemUsage.Calculate(() => new LinkedListNode<TestObject1>(x));
 
@@ -157,8 +139,7 @@ public class MemSizerTests
 	}
 
 	[Test]
-	public void linked_list_node_size_is_correct_with_struct()
-	{
+	public void linked_list_node_size_is_correct_with_struct() {
 		var x = new TestStruct();
 		var mem = MemUsage.Calculate(() => new LinkedListNode<TestStruct>(x));
 
@@ -166,8 +147,7 @@ public class MemSizerTests
 	}
 
 	[Test]
-	public void linked_list_entry_size_is_correct()
-	{
+	public void linked_list_entry_size_is_correct() {
 		var linkedList = new LinkedList<string>();
 		var node = new LinkedListNode<string>("test");
 

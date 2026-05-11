@@ -16,14 +16,12 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_resuming_stream_event_reader<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_resuming_stream_event_reader<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private StreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_distibutionPointCorrelationId = Guid.NewGuid();
 		_edp = new StreamEventReader(_bus, _distibutionPointCorrelationId, null, "stream", 10,
 			new RealTimeProvider(), false,
@@ -32,20 +30,17 @@ public class when_resuming_stream_event_reader<TLogFormat, TStreamId> : TestFixt
 	}
 
 	[Test]
-	public void it_cannot_be_resumed()
-	{
+	public void it_cannot_be_resumed() {
 		Assert.Throws<InvalidOperationException>(() => { _edp.Resume(); });
 	}
 
 	[Test]
-	public void it_cannot_be_paused()
-	{
+	public void it_cannot_be_paused() {
 		_edp.Pause();
 	}
 
 	[Test]
-	public void it_publishes_read_events_from_beginning()
-	{
+	public void it_publishes_read_events_from_beginning() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.AreEqual(
 			"stream",
@@ -55,8 +50,7 @@ public class when_resuming_stream_event_reader<TLogFormat, TStreamId> : TestFixt
 	}
 
 	[Test]
-	public void can_handle_read_events_completed()
-	{
+	public void can_handle_read_events_completed() {
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
 				_distibutionPointCorrelationId, "stream", 100, 100, ReadStreamResult.Success,

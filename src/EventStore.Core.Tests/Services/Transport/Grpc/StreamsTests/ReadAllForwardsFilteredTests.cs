@@ -11,23 +11,18 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
 [TestFixture]
-public class ReadAllForwardsFilteredTests
-{
+public class ReadAllForwardsFilteredTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class when_reading_all_forwards_filtered<TLogFormat, TStreamId>
-	  : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	  : GrpcSpecification<TLogFormat, TStreamId> {
 		private const string StreamId = nameof(when_reading_all_forwards_filtered<TLogFormat, TStreamId>);
 
 		private Position _positionOfLastWrite;
 		private readonly List<ReadResp> _responses = new();
 
-		protected override async Task Given()
-		{
-			var response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task Given() {
+			var response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamId) },
 					Any = new()
 				},
@@ -40,22 +35,17 @@ public class ReadAllForwardsFilteredTests
 				response.Success.Position.PreparePosition);
 		}
 
-		protected override async Task When()
-		{
-			using var call = StreamsClient.Read(new()
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			using var call = StreamsClient.Read(new() {
+				Options = new() {
 					UuidOption = new() { Structured = new() },
 					Count = 20,
 					ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Forwards,
 					ResolveLinks = true,
-					All = new()
-					{
+					All = new() {
 						Start = new()
 					},
-					Filter = new()
-					{
+					Filter = new() {
 						Max = 32,
 						CheckpointIntervalMultiplier = 4,
 						StreamIdentifier = new() { Prefix = { StreamId } }
@@ -66,22 +56,19 @@ public class ReadAllForwardsFilteredTests
 		}
 
 		[Test]
-		public void should_not_receive_null_events()
-		{
+		public void should_not_receive_null_events() {
 			Assert.False(_responses
 				.Where(x => x.ContentCase == ReadResp.ContentOneofCase.Event)
 				.Any(x => x.Event is null));
 		}
 
 		[Test]
-		public void should_read_a_number_of_events_equal_to_the_max_count()
-		{
+		public void should_read_a_number_of_events_equal_to_the_max_count() {
 			Assert.AreEqual(20, _responses.Count(x => x.Event is not null));
 		}
 
 		[Test]
-		public void should_read_the_correct_events()
-		{
+		public void should_read_the_correct_events() {
 			Assert.True(_responses
 				.Where(x => x.Event is not null)
 				.All(x =>

@@ -12,8 +12,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Integration;
 
-public abstract class specification_with_cluster<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class specification_with_cluster<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected readonly MiniClusterNode<TLogFormat, TStreamId>[] _nodes = new MiniClusterNode<TLogFormat, TStreamId>[3];
 	protected readonly Endpoints[] _nodeEndpoints = new Endpoints[3];
 	protected IEventStoreConnection _conn;
@@ -21,14 +20,12 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 	private readonly Dictionary<int, Func<bool, MiniClusterNode<TLogFormat, TStreamId>>> _nodeCreationFactory = new();
 
-	protected class Endpoints
-	{
+	protected class Endpoints {
 		public readonly IPEndPoint InternalTcp;
 		public readonly IPEndPoint ExternalTcp;
 		public readonly IPEndPoint HttpEndPoint;
 
-		public IEnumerable<int> Ports()
-		{
+		public IEnumerable<int> Ports() {
 			yield return InternalTcp.Port;
 			yield return ExternalTcp.Port;
 			yield return HttpEndPoint.Port;
@@ -36,8 +33,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 
 		private readonly List<Socket> _sockets;
 
-		public Endpoints()
-		{
+		public Endpoints() {
 			_sockets = new List<Socket>();
 
 			var defaultLoopBack = new IPEndPoint(IPAddress.Loopback, 0);
@@ -59,10 +55,8 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			HttpEndPoint = CopyEndpoint((IPEndPoint)httpEndPoint.LocalEndPoint);
 		}
 
-		public void DisposeSockets()
-		{
-			foreach (var socket in _sockets)
-			{
+		public void DisposeSockets() {
+			foreach (var socket in _sockets) {
 				socket.Dispose();
 			}
 		}
@@ -72,8 +66,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		MiniNodeLogging.Setup();
@@ -115,14 +108,11 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		_nodes[1].Start();
 		_nodes[2].Start();
 
-		try
-		{
+		try {
 			await Task.WhenAll(_nodes.Select(x => x.Started)).WithTimeout(TimeSpan.FromSeconds(60));
 		}
-		catch (TimeoutException ex)
-		{
-			if (_nodes.Select(x => x.Started).Count() < 2)
-			{
+		catch (TimeoutException ex) {
+			if (_nodes.Select(x => x.Started).Count() < 2) {
 				MiniNodeLogging.WriteLogs();
 				throw new TimeoutException($"Cluster nodes did not start. Statuses: {_nodes[0].NodeState}/{_nodes[1].NodeState}/{_nodes[2].NodeState}", ex);
 			}
@@ -150,8 +140,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 	protected virtual IEventStoreConnection CreateConnection() =>
 		EventStoreConnection.Create(_nodes[0].ExternalTcpEndPoint);
 
-	protected virtual void BeforeNodesStart()
-	{
+	protected virtual void BeforeNodesStart() {
 	}
 
 	protected virtual Task Given() => Task.CompletedTask;
@@ -165,8 +154,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_conn?.Close();
 		await Task.WhenAll(
 			_nodes[0].Shutdown(),
@@ -178,20 +166,17 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		await base.TestFixtureTearDown();
 	}
 
-	protected static void WaitIdle()
-	{
+	protected static void WaitIdle() {
 	}
 
-	protected MiniClusterNode<TLogFormat, TStreamId> GetLeader()
-	{
+	protected MiniClusterNode<TLogFormat, TStreamId> GetLeader() {
 		var leader = _nodes.First(x => x.NodeState == Data.VNodeState.Leader);
 		Assert.NotNull(leader, "Cluster doesn't have a leader available!");
 
 		return leader;
 	}
 
-	protected MiniClusterNode<TLogFormat, TStreamId>[] GetFollowers()
-	{
+	protected MiniClusterNode<TLogFormat, TStreamId>[] GetFollowers() {
 		var followers = _nodes.Where(x => x.NodeState == Data.VNodeState.Follower).ToArray();
 		Assert.IsNotEmpty(followers, "Cluster doesn't have followers available!");
 

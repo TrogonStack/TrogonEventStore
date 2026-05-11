@@ -16,20 +16,16 @@ using static EventStore.Common.Configuration.MetricsConfiguration;
 
 namespace EventStore.Core.Services.Storage.ReaderIndex;
 
-public sealed class ReadIndex<TStreamId> : IDisposable, IReadIndex<TStreamId>
-{
-	public long LastIndexedPosition
-	{
+public sealed class ReadIndex<TStreamId> : IDisposable, IReadIndex<TStreamId> {
+	public long LastIndexedPosition {
 		get { return _indexCommitter.LastIndexedPosition; }
 	}
 
-	public IIndexWriter<TStreamId> IndexWriter
-	{
+	public IIndexWriter<TStreamId> IndexWriter {
 		get { return _indexWriter; }
 	}
 
-	public IIndexCommitter<TStreamId> IndexCommitter
-	{
+	public IIndexCommitter<TStreamId> IndexCommitter {
 		get { return _indexCommitter; }
 	}
 
@@ -62,8 +58,7 @@ public sealed class ReadIndex<TStreamId> : IDisposable, IReadIndex<TStreamId>
 		ICheckpoint indexCheckpoint,
 		IIndexStatusTracker indexStatusTracker,
 		IIndexTracker indexTracker,
-		ICacheHitsMissesTracker cacheTracker)
-	{
+		ICacheHitsMissesTracker cacheTracker) {
 
 		Ensure.NotNull(bus, "bus");
 		Ensure.NotNull(readerPool, "readerPool");
@@ -184,8 +179,7 @@ public sealed class ReadIndex<TStreamId> : IDisposable, IReadIndex<TStreamId>
 		=> _indexReader.GetEffectiveAcl(streamId, token);
 
 
-	void RegisterHitsMisses(ICacheHitsMissesTracker tracker)
-	{
+	void RegisterHitsMisses(ICacheHitsMissesTracker tracker) {
 		tracker.Register(
 			Cache.Chunk,
 			() => Interlocked.Read(ref TFChunkReader.CachedReads),
@@ -197,8 +191,7 @@ public sealed class ReadIndex<TStreamId> : IDisposable, IReadIndex<TStreamId>
 			() => _indexReader.NotCachedStreamInfo);
 	}
 
-	ReadIndexStats IReadIndex.GetStatistics()
-	{
+	ReadIndexStats IReadIndex.GetStatistics() {
 		return new ReadIndexStats(Interlocked.Read(ref TFChunkReader.CachedReads),
 			Interlocked.Read(ref TFChunkReader.NotCachedReads),
 			_indexReader.CachedStreamInfo,

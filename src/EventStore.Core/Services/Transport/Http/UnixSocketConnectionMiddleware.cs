@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 
 namespace EventStore.Core.Services.Transport.Http;
+
 public class UnixSocketConnectionMiddleware {
 	private readonly ConnectionDelegate _next;
 	public const string UnixSocketConnectionKey = "UnixSocketConnection";

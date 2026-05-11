@@ -14,22 +14,19 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.transaction_file_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private TransactionFileEventReader _eventReader;
 	private Guid _distributionCorrelationId;
 	private Guid _readAllEventsForwardCorrelationId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		TicksAreHandledImmediately();
 	}
 
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When()
-	{
+	public new void When() {
 		_distributionCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
 		_eventReader = new TransactionFileEventReader(_bus, _distributionCorrelationId, null, new TFPos(100, 50),
@@ -60,15 +57,13 @@ public class when_read_timeout_occurs<TLogFormat, TStreamId> : TestFixtureWithEx
 	}
 
 	[Test]
-	public void should_not_deliver_events()
-	{
+	public void should_not_deliver_events() {
 		Assert.AreEqual(0,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}
 
 	[Test]
-	public void should_attempt_another_read_for_the_timed_out_reads()
-	{
+	public void should_attempt_another_read_for_the_timed_out_reads() {
 		var readAllEventsForwardMessages = _consumer.HandledMessages.OfType<ClientMessage.ReadAllEventsForward>();
 
 		Assert.AreEqual(readAllEventsForwardMessages.First().CorrelationId, _readAllEventsForwardCorrelationId);

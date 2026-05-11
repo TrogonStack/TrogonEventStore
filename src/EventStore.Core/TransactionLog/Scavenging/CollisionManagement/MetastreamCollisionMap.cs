@@ -24,17 +24,21 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		}
 
 		public void SetTombstone(TStreamId streamId) {
-			if (_isCollision(streamId))
+			if (_isCollision(streamId)) {
 				_collisions.SetTombstone(streamId);
-			else
+			}
+			else {
 				_nonCollisions.SetTombstone(_hasher.Hash(streamId));
+			}
 		}
 
 		public void SetDiscardPoint(TStreamId streamId, DiscardPoint discardPoint) {
-			if (_isCollision(streamId))
+			if (_isCollision(streamId)) {
 				_collisions.SetDiscardPoint(streamId, discardPoint);
-			else
+			}
+			else {
 				_nonCollisions.SetDiscardPoint(_hasher.Hash(streamId), discardPoint);
+			}
 		}
 
 		public void DeleteAll() {

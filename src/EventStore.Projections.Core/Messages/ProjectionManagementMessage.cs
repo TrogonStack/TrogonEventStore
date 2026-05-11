@@ -11,42 +11,34 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Messages;
 
-public static partial class ProjectionManagementMessage
-{
-	public static partial class Command
-	{
+public static partial class ProjectionManagementMessage {
+	public static partial class Command {
 		[DerivedMessage]
-		public abstract partial class ControlMessage : Message
-		{
+		public abstract partial class ControlMessage : Message {
 			private readonly IEnvelope _envelope;
 			public readonly RunAs RunAs;
 
-			protected ControlMessage(IEnvelope envelope, RunAs runAs)
-			{
+			protected ControlMessage(IEnvelope envelope, RunAs runAs) {
 				_envelope = envelope;
 				RunAs = runAs;
 			}
 
-			public IEnvelope Envelope
-			{
+			public IEnvelope Envelope {
 				get { return _envelope; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class PostBatch : ControlMessage
-		{
+		public partial class PostBatch : ControlMessage {
 			public ProjectionPost[] Projections { get; }
 
 			public PostBatch(
 				IEnvelope envelope, RunAs runAs, ProjectionPost[] projections)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				Projections = projections;
 			}
 
-			public class ProjectionPost
-			{
+			public class ProjectionPost {
 				public ProjectionMode Mode { get; }
 				public RunAs RunAs { get; }
 				public string Name { get; }
@@ -61,8 +53,7 @@ public static partial class ProjectionManagementMessage
 				public ProjectionPost(
 					ProjectionMode mode, RunAs runAs, string name, string handlerType, string query,
 					bool enabled, bool checkpointsEnabled, bool emitEnabled, bool enableRunAs,
-					bool trackEmittedStreams)
-				{
+					bool trackEmittedStreams) {
 					Mode = mode;
 					RunAs = runAs;
 					Name = name;
@@ -78,8 +69,7 @@ public static partial class ProjectionManagementMessage
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Post : ControlMessage
-		{
+		public partial class Post : ControlMessage {
 			private readonly ProjectionMode _mode;
 			private readonly string _name;
 			private readonly string _handlerType;
@@ -94,8 +84,7 @@ public static partial class ProjectionManagementMessage
 				IEnvelope envelope, ProjectionMode mode, string name, RunAs runAs, string handlerType, string query,
 				bool enabled, bool checkpointsEnabled, bool emitEnabled, bool trackEmittedStreams,
 				bool enableRunAs = false)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 				_handlerType = handlerType;
 				_mode = mode;
@@ -111,8 +100,7 @@ public static partial class ProjectionManagementMessage
 				IEnvelope envelope, ProjectionMode mode, string name, RunAs runAs, Type handlerType, string query,
 				bool enabled, bool checkpointsEnabled, bool emitEnabled, bool trackEmittedStreams,
 				bool enableRunAs = false)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 				_handlerType = "native:" + handlerType.Namespace + "." + handlerType.Name;
 				_mode = mode;
@@ -126,8 +114,7 @@ public static partial class ProjectionManagementMessage
 
 			// shortcut for posting ad-hoc JS queries
 			public Post(IEnvelope envelope, RunAs runAs, string query, bool enabled)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = Guid.NewGuid().ToString("D");
 				_handlerType = "JS";
 				_mode = ProjectionMode.Transient;
@@ -138,108 +125,88 @@ public static partial class ProjectionManagementMessage
 				_trackEmittedStreams = false;
 			}
 
-			public ProjectionMode Mode
-			{
+			public ProjectionMode Mode {
 				get { return _mode; }
 			}
 
-			public string Query
-			{
+			public string Query {
 				get { return _query; }
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public string HandlerType
-			{
+			public string HandlerType {
 				get { return _handlerType; }
 			}
 
-			public bool Enabled
-			{
+			public bool Enabled {
 				get { return _enabled; }
 			}
 
-			public bool EmitEnabled
-			{
+			public bool EmitEnabled {
 				get { return _emitEnabled; }
 			}
 
-			public bool CheckpointsEnabled
-			{
+			public bool CheckpointsEnabled {
 				get { return _checkpointsEnabled; }
 			}
 
-			public bool EnableRunAs
-			{
+			public bool EnableRunAs {
 				get { return _enableRunAs; }
 			}
 
-			public bool TrackEmittedStreams
-			{
+			public bool TrackEmittedStreams {
 				get { return _trackEmittedStreams; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Disable : ControlMessage
-		{
+		public partial class Disable : ControlMessage {
 			private readonly string _name;
 
 			public Disable(IEnvelope envelope, string name, RunAs runAs)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Enable : ControlMessage
-		{
+		public partial class Enable : ControlMessage {
 			private readonly string _name;
 
 			public Enable(IEnvelope envelope, string name, RunAs runAs)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Abort : ControlMessage
-		{
+		public partial class Abort : ControlMessage {
 			private readonly string _name;
 
 			public Abort(IEnvelope envelope, string name, RunAs runAs)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class SetRunAs : ControlMessage
-		{
-			public enum SetRemove
-			{
+		public partial class SetRunAs : ControlMessage {
+			public enum SetRemove {
 				Set,
 				Remove
 			};
@@ -248,75 +215,63 @@ public static partial class ProjectionManagementMessage
 			private readonly SetRemove _action;
 
 			public SetRunAs(IEnvelope envelope, string name, RunAs runAs, SetRemove action)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 				_action = action;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public SetRemove Action
-			{
+			public SetRemove Action {
 				get { return _action; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class UpdateQuery : ControlMessage
-		{
+		public partial class UpdateQuery : ControlMessage {
 			private readonly string _name;
 			private readonly string _query;
 			private readonly bool? _emitEnabled;
 
 			public UpdateQuery(
 				IEnvelope envelope, string name, RunAs runAs, string query, bool? emitEnabled)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 				_query = query;
 				_emitEnabled = emitEnabled;
 			}
 
-			public string Query
-			{
+			public string Query {
 				get { return _query; }
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public bool? EmitEnabled
-			{
+			public bool? EmitEnabled {
 				get { return _emitEnabled; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Reset : ControlMessage
-		{
+		public partial class Reset : ControlMessage {
 			private readonly string _name;
 
 			public Reset(IEnvelope envelope, string name, RunAs runAs)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Delete : ControlMessage
-		{
+		public partial class Delete : ControlMessage {
 			private readonly string _name;
 			private readonly bool _deleteCheckpointStream;
 			private readonly bool _deleteStateStream;
@@ -325,72 +280,60 @@ public static partial class ProjectionManagementMessage
 			public Delete(
 				IEnvelope envelope, string name, RunAs runAs, bool deleteCheckpointStream, bool deleteStateStream,
 				bool deleteEmittedStreams)
-				: base(envelope, runAs)
-			{
+				: base(envelope, runAs) {
 				_name = name;
 				_deleteCheckpointStream = deleteCheckpointStream;
 				_deleteStateStream = deleteStateStream;
 				_deleteEmittedStreams = deleteEmittedStreams;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public bool DeleteCheckpointStream
-			{
+			public bool DeleteCheckpointStream {
 				get { return _deleteCheckpointStream; }
 			}
 
-			public bool DeleteStateStream
-			{
+			public bool DeleteStateStream {
 				get { return _deleteStateStream; }
 			}
 
-			public bool DeleteEmittedStreams
-			{
+			public bool DeleteEmittedStreams {
 				get { return _deleteEmittedStreams; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class GetQuery : ControlMessage
-		{
+		public partial class GetQuery : ControlMessage {
 			private readonly string _name;
 
 			public GetQuery(IEnvelope envelope, string name, RunAs runAs) :
-				base(envelope, runAs)
-			{
+				base(envelope, runAs) {
 				_name = name;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class GetConfig : ControlMessage
-		{
+		public partial class GetConfig : ControlMessage {
 			private readonly string _name;
 
 			public GetConfig(IEnvelope envelope, string name, RunAs runAs) :
-				base(envelope, runAs)
-			{
+				base(envelope, runAs) {
 				_name = name;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class UpdateConfig : ControlMessage
-		{
+		public partial class UpdateConfig : ControlMessage {
 			private readonly string _name;
 			private readonly bool _emitEnabled;
 			private readonly bool _trackEmittedStreams;
@@ -406,8 +349,7 @@ public static partial class ProjectionManagementMessage
 				int checkpointAfterMs,
 				int checkpointHandledThreshold, int checkpointUnhandledBytesThreshold, int pendingEventsThreshold,
 				int maxWriteBatchLength, int maxAllowedWritesInFlight, RunAs runAs, int? projectionExecutionTimeout) :
-				base(envelope, runAs)
-			{
+				base(envelope, runAs) {
 				_name = name;
 				_emitEnabled = emitEnabled;
 				_trackEmittedStreams = trackEmittedStreams;
@@ -420,48 +362,39 @@ public static partial class ProjectionManagementMessage
 				_projectionExecutionTimeout = projectionExecutionTimeout;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public bool EmitEnabled
-			{
+			public bool EmitEnabled {
 				get { return _emitEnabled; }
 			}
 
-			public bool TrackEmittedStreams
-			{
+			public bool TrackEmittedStreams {
 				get { return _trackEmittedStreams; }
 			}
 
-			public int CheckpointAfterMs
-			{
+			public int CheckpointAfterMs {
 				get { return _checkpointAfterMs; }
 			}
 
-			public int CheckpointHandledThreshold
-			{
+			public int CheckpointHandledThreshold {
 				get { return _checkpointHandledThreshold; }
 			}
 
-			public int CheckpointUnhandledBytesThreshold
-			{
+			public int CheckpointUnhandledBytesThreshold {
 				get { return _checkpointUnhandledBytesThreshold; }
 			}
 
-			public int PendingEventsThreshold
-			{
+			public int PendingEventsThreshold {
 				get { return _pendingEventsThreshold; }
 			}
 
-			public int MaxWriteBatchLength
-			{
+			public int MaxWriteBatchLength {
 				get { return _maxWriteBatchLength; }
 			}
 
-			public int MaxAllowedWritesInFlight
-			{
+			public int MaxAllowedWritesInFlight {
 				get { return _maxAllowedWritesInFlight; }
 			}
 
@@ -469,207 +402,187 @@ public static partial class ProjectionManagementMessage
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class GetStatistics : Message
-		{
+		public partial class GetStatistics : Message {
 			private readonly IEnvelope _envelope;
 			private readonly ProjectionMode? _mode;
 			private readonly string _name;
 			private readonly bool _includeDeleted;
 
-			public GetStatistics(IEnvelope envelope, ProjectionMode? mode, string name, bool includeDeleted)
-			{
+			public GetStatistics(IEnvelope envelope, ProjectionMode? mode, string name, bool includeDeleted) {
 				_envelope = envelope;
 				_mode = mode;
 				_name = name;
 				_includeDeleted = includeDeleted;
 			}
 
-			public ProjectionMode? Mode
-			{
+			public ProjectionMode? Mode {
 				get { return _mode; }
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public bool IncludeDeleted
-			{
+			public bool IncludeDeleted {
 				get { return _includeDeleted; }
 			}
 
-			public IEnvelope Envelope
-			{
+			public IEnvelope Envelope {
 				get { return _envelope; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class GetState : Message
-		{
+		public partial class GetState : Message {
 			private readonly IEnvelope _envelope;
 			private readonly string _name;
 			private readonly string _partition;
 
-			public GetState(IEnvelope envelope, string name, string partition)
-			{
-				if (envelope == null)
+			public GetState(IEnvelope envelope, string name, string partition) {
+				if (envelope == null) {
 					throw new ArgumentNullException("envelope");
-				if (name == null)
+				}
+
+				if (name == null) {
 					throw new ArgumentNullException("name");
-				if (partition == null)
+				}
+
+				if (partition == null) {
 					throw new ArgumentNullException("partition");
+				}
+
 				_envelope = envelope;
 				_name = name;
 				_partition = partition;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public IEnvelope Envelope
-			{
+			public IEnvelope Envelope {
 				get { return _envelope; }
 			}
 
-			public string Partition
-			{
+			public string Partition {
 				get { return _partition; }
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class GetResult : Message
-		{
+		public partial class GetResult : Message {
 			private readonly IEnvelope _envelope;
 			private readonly string _name;
 			private readonly string _partition;
 
-			public GetResult(IEnvelope envelope, string name, string partition)
-			{
-				if (envelope == null)
+			public GetResult(IEnvelope envelope, string name, string partition) {
+				if (envelope == null) {
 					throw new ArgumentNullException("envelope");
-				if (name == null)
+				}
+
+				if (name == null) {
 					throw new ArgumentNullException("name");
-				if (partition == null)
+				}
+
+				if (partition == null) {
 					throw new ArgumentNullException("partition");
+				}
+
 				_envelope = envelope;
 				_name = name;
 				_partition = partition;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public IEnvelope Envelope
-			{
+			public IEnvelope Envelope {
 				get { return _envelope; }
 			}
 
-			public string Partition
-			{
+			public string Partition {
 				get { return _partition; }
 			}
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class OperationFailed : Message
-	{
+	public partial class OperationFailed : Message {
 		private readonly string _reason;
 
-		public OperationFailed(string reason)
-		{
+		public OperationFailed(string reason) {
 			_reason = reason;
 		}
 
-		public string Reason
-		{
+		public string Reason {
 			get { return _reason; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class NotFound : OperationFailed
-	{
+	public partial class NotFound : OperationFailed {
 		public NotFound()
-			: base("Not Found")
-		{
+			: base("Not Found") {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class NotAuthorized : OperationFailed
-	{
+	public partial class NotAuthorized : OperationFailed {
 		public NotAuthorized()
-			: base("Not authorized")
-		{
+			: base("Not authorized") {
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class Conflict : OperationFailed
-	{
+	public partial class Conflict : OperationFailed {
 		public Conflict(string reason)
-			: base(reason)
-		{
+			: base(reason) {
 		}
 	}
 
-	public sealed class RunAs
-	{
+	public sealed class RunAs {
 		private readonly ClaimsPrincipal _runAs;
 
-		public RunAs(ClaimsPrincipal runAs)
-		{
+		public RunAs(ClaimsPrincipal runAs) {
 			_runAs = runAs;
 		}
 
 		private static readonly RunAs _anonymous = new RunAs(SystemAccounts.Anonymous);
 		private static readonly RunAs _system = new RunAs(SystemAccounts.System);
 
-		public static RunAs Anonymous
-		{
+		public static RunAs Anonymous {
 			get { return _anonymous; }
 		}
 
-		public static RunAs System
-		{
+		public static RunAs System {
 			get { return _system; }
 		}
 
-		public ClaimsPrincipal Principal
-		{
+		public ClaimsPrincipal Principal {
 			get { return _runAs; }
 		}
 
 		public static bool ValidateRunAs(ProjectionMode mode, ReadWrite readWrite, ClaimsPrincipal existingRunAs,
-			Command.ControlMessage message, bool replace = false)
-		{
+			Command.ControlMessage message, bool replace = false) {
 			if (mode > ProjectionMode.Transient && readWrite == ReadWrite.Write
 												&& (message.RunAs == null || message.RunAs.Principal == null
 																		  || !(
 																				   message.RunAs.Principal.LegacyRoleCheck(SystemRoles.Admins)
 																		  		|| message.RunAs.Principal.LegacyRoleCheck(SystemRoles.Operations)
-																			  )))
-			{
+																			  ))) {
 				message.Envelope.ReplyWith(new NotAuthorized());
 				return false;
 			}
 
-			if (replace && message.RunAs.Principal == null)
-			{
+			if (replace && message.RunAs.Principal == null) {
 				message.Envelope.ReplyWith(new NotAuthorized());
 				return false;
 			}
 
-			if (replace && message.RunAs.Principal != null)
+			if (replace && message.RunAs.Principal != null) {
 				return true; // enable this operation while no projection permissions are defined
+			}
 
 			return true;
 
@@ -688,114 +601,95 @@ public static partial class ProjectionManagementMessage
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class Updated : Message
-	{
+	public partial class Updated : Message {
 		private readonly string _name;
 
-		public Updated(string name)
-		{
+		public Updated(string name) {
 			_name = name;
 		}
 
-		public string Name
-		{
+		public string Name {
 			get { return _name; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class Statistics : Message
-	{
+	public partial class Statistics : Message {
 		private readonly ProjectionStatistics[] _projections;
 
-		public Statistics(ProjectionStatistics[] projections)
-		{
+		public Statistics(ProjectionStatistics[] projections) {
 			_projections = projections;
 		}
 
-		public ProjectionStatistics[] Projections
-		{
+		public ProjectionStatistics[] Projections {
 			get { return _projections; }
 		}
 	}
 
 	[DerivedMessage]
-	public abstract partial class ProjectionDataBase : Message
-	{
+	public abstract partial class ProjectionDataBase : Message {
 		private readonly string _name;
 		private readonly string _partition;
 		private readonly CheckpointTag _position;
 		private readonly Exception _exception;
 
 		protected ProjectionDataBase(
-			string name, string partition, CheckpointTag position, Exception exception = null)
-		{
+			string name, string partition, CheckpointTag position, Exception exception = null) {
 			_name = name;
 			_partition = partition;
 			_position = position;
 			_exception = exception;
 		}
 
-		public string Name
-		{
+		public string Name {
 			get { return _name; }
 		}
 
-		public Exception Exception
-		{
+		public Exception Exception {
 			get { return _exception; }
 		}
 
-		public string Partition
-		{
+		public string Partition {
 			get { return _partition; }
 		}
 
-		public CheckpointTag Position
-		{
+		public CheckpointTag Position {
 			get { return _position; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class ProjectionState : ProjectionDataBase
-	{
+	public partial class ProjectionState : ProjectionDataBase {
 		private readonly string _state;
 
 		public ProjectionState(
 			string name, string partition, string state, CheckpointTag position, Exception exception = null)
-			: base(name, partition, position, exception)
-		{
+			: base(name, partition, position, exception) {
 			_state = state;
 		}
 
-		public string State
-		{
+		public string State {
 			get { return _state; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class ProjectionResult : ProjectionDataBase
-	{
+	public partial class ProjectionResult : ProjectionDataBase {
 		private readonly string _result;
 
 		public ProjectionResult(
 			string name, string partition, string result, CheckpointTag position, Exception exception = null)
-			: base(name, partition, position, exception)
-		{
+			: base(name, partition, position, exception) {
 			_result = result;
 		}
 
-		public string Result
-		{
+		public string Result {
 			get { return _result; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class ProjectionQuery : Message
-	{
+	public partial class ProjectionQuery : Message {
 		private readonly string _name;
 		private readonly string _query;
 		private readonly bool _emitEnabled;
@@ -813,8 +707,7 @@ public static partial class ProjectionManagementMessage
 			bool? trackEmittedStreams,
 			bool? checkpointsEnabled,
 			ProjectionSourceDefinition definition,
-			ProjectionOutputConfig outputConfig)
-		{
+			ProjectionOutputConfig outputConfig) {
 			_name = name;
 			_query = query;
 			_emitEnabled = emitEnabled;
@@ -825,116 +718,95 @@ public static partial class ProjectionManagementMessage
 			_outputConfig = outputConfig;
 		}
 
-		public string Name
-		{
+		public string Name {
 			get { return _name; }
 		}
 
-		public string Query
-		{
+		public string Query {
 			get { return _query; }
 		}
 
-		public bool EmitEnabled
-		{
+		public bool EmitEnabled {
 			get { return _emitEnabled; }
 		}
 
-		public bool? TrackEmittedStreams
-		{
+		public bool? TrackEmittedStreams {
 			get { return _trackEmittedStreams; }
 		}
 
-		public bool? CheckpointsEnabled
-		{
+		public bool? CheckpointsEnabled {
 			get { return _checkpointsEnabled; }
 		}
 
-		public string Type
-		{
+		public string Type {
 			get { return _projectionType; }
 		}
 
-		public ProjectionSourceDefinition Definition
-		{
+		public ProjectionSourceDefinition Definition {
 			get { return _definition; }
 		}
 
-		public ProjectionOutputConfig OutputConfig
-		{
+		public ProjectionOutputConfig OutputConfig {
 			get { return _outputConfig; }
 		}
 	}
 
-	public static partial class Internal
-	{
+	public static partial class Internal {
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class CleanupExpired : Message
-		{
+		public partial class CleanupExpired : Message {
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class ReadTimeout : Message
-		{
+		public partial class ReadTimeout : Message {
 			private readonly Guid _correlationId;
 			private readonly string _streamId;
 			private readonly Dictionary<string, object> _parameters;
 
-			public Guid CorrelationId
-			{
+			public Guid CorrelationId {
 				get { return _correlationId; }
 			}
 
-			public string StreamId
-			{
+			public string StreamId {
 				get { return _streamId; }
 			}
 
-			public Dictionary<string, object> Parameters
-			{
+			public Dictionary<string, object> Parameters {
 				get { return _parameters; }
 			}
 
-			public ReadTimeout(Guid correlationId, string streamId, Dictionary<string, object> parameters)
-			{
+			public ReadTimeout(Guid correlationId, string streamId, Dictionary<string, object> parameters) {
 				_correlationId = correlationId;
 				_streamId = streamId;
 				_parameters = parameters;
 			}
 
 			public ReadTimeout(Guid correlationId, string streamId) : this(correlationId, streamId,
-				new Dictionary<string, object>())
-			{
+				new Dictionary<string, object>()) {
 			}
 		}
 
 		[DerivedMessage(ProjectionMessage.Management)]
-		public partial class Deleted : Message
-		{
+		public partial class Deleted : Message {
 			private readonly string _name;
 			private readonly Guid _id;
 
-			public Deleted(string name, Guid id)
-			{
+			public Deleted(string name, Guid id) {
 				_name = name;
 				_id = id;
 			}
 
-			public string Name
-			{
+			public string Name {
 				get { return _name; }
 			}
 
-			public Guid Id
-			{
+			public Guid Id {
 				get { return _id; }
 			}
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.Management)]
-	public partial class ProjectionConfig : Message
-	{
+	public partial class ProjectionConfig : Message {
 		private readonly bool _emitEnabled;
 		private readonly bool _trackEmittedStreams;
 		private readonly int _checkpointAfterMs;
@@ -948,8 +820,7 @@ public static partial class ProjectionManagementMessage
 		public ProjectionConfig(bool emitEnabled, bool trackEmittedStreams, int checkpointAfterMs,
 			int checkpointHandledThreshold,
 			int checkpointUnhandledBytesThreshold, int pendingEventsThreshold, int maxWriteBatchLength,
-			int maxAllowedWritesInFlight, int? projectionExecutionTimeout)
-		{
+			int maxAllowedWritesInFlight, int? projectionExecutionTimeout) {
 			_emitEnabled = emitEnabled;
 			_trackEmittedStreams = trackEmittedStreams;
 			_checkpointAfterMs = checkpointAfterMs;
@@ -961,43 +832,35 @@ public static partial class ProjectionManagementMessage
 			_projectionExecutionTimeout = projectionExecutionTimeout;
 		}
 
-		public bool EmitEnabled
-		{
+		public bool EmitEnabled {
 			get { return _emitEnabled; }
 		}
 
-		public bool TrackEmittedStreams
-		{
+		public bool TrackEmittedStreams {
 			get { return _trackEmittedStreams; }
 		}
 
-		public int CheckpointAfterMs
-		{
+		public int CheckpointAfterMs {
 			get { return _checkpointAfterMs; }
 		}
 
-		public int CheckpointHandledThreshold
-		{
+		public int CheckpointHandledThreshold {
 			get { return _checkpointHandledThreshold; }
 		}
 
-		public int CheckpointUnhandledBytesThreshold
-		{
+		public int CheckpointUnhandledBytesThreshold {
 			get { return _checkpointUnhandledBytesThreshold; }
 		}
 
-		public int PendingEventsThreshold
-		{
+		public int PendingEventsThreshold {
 			get { return _pendingEventsThreshold; }
 		}
 
-		public int MaxWriteBatchLength
-		{
+		public int MaxWriteBatchLength {
 			get { return _maxWriteBatchLength; }
 		}
 
-		public int MaxAllowedWritesInFlight
-		{
+		public int MaxAllowedWritesInFlight {
 			get { return _maxAllowedWritesInFlight; }
 		}
 

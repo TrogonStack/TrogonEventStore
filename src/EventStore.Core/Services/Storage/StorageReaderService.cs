@@ -95,7 +95,8 @@ namespace EventStore.Core.Services.Storage {
 		async ValueTask IAsyncHandle<SystemMessage.BecomeShuttingDown>.HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token) {
 			try {
 				await _workersMultiHandler.Stop();
-			} catch (Exception exc) {
+			}
+			catch (Exception exc) {
 				Log.Error(exc, "Error while stopping readers multi handler.");
 			}
 

@@ -8,18 +8,15 @@ namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture(EventSource.SingleStream)]
 [TestFixture(EventSource.AllStream)]
-public class StreamBufferTests
-{
+public class StreamBufferTests {
 	private EventSource _eventSource;
 
-	public StreamBufferTests(EventSource eventSource)
-	{
+	public StreamBufferTests(EventSource eventSource) {
 		_eventSource = eventSource;
 	}
 
 	[Test]
-	public void adding_read_message_in_correct_order()
-	{
+	public void adding_read_message_in_correct_order() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddReadMessage(BuildMessageAt(0));
 		Assert.AreEqual(1, buffer.BufferCount);
@@ -29,8 +26,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void adding_multiple_read_message_in_correct_order()
-	{
+	public void adding_multiple_read_message_in_correct_order() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddReadMessage(BuildMessageAt(0));
 		buffer.AddReadMessage(BuildMessageAt(1));
@@ -48,8 +44,7 @@ public class StreamBufferTests
 
 
 	[Test]
-	public void adding_multiple_read_message_in_wrong_order()
-	{
+	public void adding_multiple_read_message_in_wrong_order() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddReadMessage(BuildMessageAt(1));
 		buffer.AddReadMessage(BuildMessageAt(0));
@@ -66,8 +61,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void adding_multiple_same_read_message()
-	{
+	public void adding_multiple_same_read_message() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddReadMessage(BuildMessageAt(0));
 		buffer.AddReadMessage(BuildMessageAt(0));
@@ -84,8 +78,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void adding_messages_to_read_after_same_on_live_switches_to_live()
-	{
+	public void adding_messages_to_read_after_same_on_live_switches_to_live() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddLiveMessage(BuildMessageAt(0));
 		buffer.AddReadMessage(BuildMessageAt(0));
@@ -98,8 +91,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void adding_messages_to_read_after_later_live_does_not_switch()
-	{
+	public void adding_messages_to_read_after_later_live_does_not_switch() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddLiveMessage(BuildMessageAt(5));
 		buffer.AddReadMessage(BuildMessageAt(0));
@@ -112,8 +104,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void adding_messages_to_live_without_start_from_beginning()
-	{
+	public void adding_messages_to_live_without_start_from_beginning() {
 		var buffer = new StreamBuffer(10, 10, null, false);
 		buffer.AddLiveMessage(BuildMessageAt(6));
 		buffer.AddLiveMessage(BuildMessageAt(7));
@@ -130,8 +121,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void adding_messages_with_lower_in_live()
-	{
+	public void adding_messages_with_lower_in_live() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		var id = Guid.NewGuid();
 		buffer.AddLiveMessage(BuildMessageAt(5));
@@ -147,8 +137,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void skipped_messages_are_not_removed()
-	{
+	public void skipped_messages_are_not_removed() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddReadMessage(BuildMessageAt(0));
 		buffer.AddReadMessage(BuildMessageAt(1));
@@ -166,8 +155,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void retried_messages_appear_first()
-	{
+	public void retried_messages_appear_first() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddReadMessage(BuildMessageAt(0));
 		buffer.AddRetry(BuildMessageAt(2));
@@ -193,8 +181,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void retried_messages_appear_in_version_order()
-	{
+	public void retried_messages_appear_in_version_order() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		var id2Retry1 = Guid.NewGuid();
 		var id2Retry2 = Guid.NewGuid();
@@ -222,8 +209,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void lowest_retry_doesnt_assume_order()
-	{
+	public void lowest_retry_doesnt_assume_order() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddRetry(BuildMessageAt(4));
 		buffer.AddRetry(BuildMessageAt(2));
@@ -232,8 +218,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void lowest_retry_ignores_replayed_events()
-	{
+	public void lowest_retry_ignores_replayed_events() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		buffer.AddRetry(BuildMessageAt(4));
 		buffer.AddRetry(BuildMessageAt(2));
@@ -244,8 +229,7 @@ public class StreamBufferTests
 	}
 
 	[Test]
-	public void can_add_retries_after_replayed_events()
-	{
+	public void can_add_retries_after_replayed_events() {
 		var buffer = new StreamBuffer(10, 10, null, true);
 		var parkedEvent = BuildMessageAt(1);
 		buffer.AddRetry(OutstandingMessage.ForParkedEvent(Helper.BuildLinkEvent(
@@ -266,8 +250,7 @@ public class StreamBufferTests
 		Assert.AreEqual(GetEventIdFor(4), messagePointers[3].Message.EventId);
 	}
 
-	private OutstandingMessage BuildMessageAt(int position, Guid? forcedEventId = null)
-	{
+	private OutstandingMessage BuildMessageAt(int position, Guid? forcedEventId = null) {
 		IPersistentSubscriptionStreamPosition previousEventPosition =
 			position > 0 ? Helper.GetStreamPositionFor(position - 1, _eventSource) : null;
 		var @event = BuildEventAt(position, forcedEventId);
@@ -275,13 +258,11 @@ public class StreamBufferTests
 			OutstandingMessage.ForNewEvent(@event, Helper.GetStreamPositionFor(position, _eventSource)), position, previousEventPosition).message;
 	}
 
-	private Guid GetEventIdFor(int position)
-	{
+	private Guid GetEventIdFor(int position) {
 		return Helper.GetEventIdFor(position);
 	}
 
-	private ResolvedEvent BuildEventAt(int position, Guid? forcedEventId = null)
-	{
+	private ResolvedEvent BuildEventAt(int position, Guid? forcedEventId = null) {
 		return Helper.GetFakeEventFor(position, _eventSource, forcedEventId);
 	}
 }

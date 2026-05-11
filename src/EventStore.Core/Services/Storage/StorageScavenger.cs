@@ -64,13 +64,15 @@ namespace EventStore.Core.Services.Storage {
 							message.CorrelationId,
 							_currentScavenge.ScavengeId,
 							"Scavenge is already running"));
-					} else if (!_switchChunksLock.TryAcquire(out _switchChunksLockId)) {
+					}
+					else if (!_switchChunksLock.TryAcquire(out _switchChunksLockId)) {
 						Log.Information("SCAVENGING: Failed to acquire the chunks lock");
 						message.Envelope.ReplyWith(new ClientMessage.ScavengeDatabaseInProgressResponse(
 							message.CorrelationId,
 							Guid.Empty.ToString(),
 							"Failed to acquire the chunk switch lock"));
-					} else {
+					}
+					else {
 						Log.Information("SCAVENGING: Acquired the chunks lock");
 						var tfChunkScavengerLog = _logManager.CreateLog();
 						var logger = Log.ForContext("ScavengeId", tfChunkScavengerLog.ScavengeId);
@@ -102,7 +104,8 @@ namespace EventStore.Core.Services.Storage {
 							message.Envelope.ReplyWith(new ClientMessage.ScavengeDatabaseStoppedResponse(message.CorrelationId,
 								_currentScavenge.ScavengeId));
 						});
-					} else {
+					}
+					else {
 						message.Envelope.ReplyWith(new ClientMessage.ScavengeDatabaseNotFoundResponse(message.CorrelationId,
 							_currentScavenge?.ScavengeId, "Scavenge Id does not exist"));
 					}
@@ -118,7 +121,8 @@ namespace EventStore.Core.Services.Storage {
 							message.CorrelationId,
 							ClientMessage.ScavengeDatabaseGetCurrentResponse.ScavengeResult.InProgress,
 							_currentScavenge.ScavengeId));
-					} else {
+					}
+					else {
 						message.Envelope.ReplyWith(new ClientMessage.ScavengeDatabaseGetCurrentResponse(
 							message.CorrelationId, ClientMessage.ScavengeDatabaseGetCurrentResponse.ScavengeResult.Stopped, scavengeId: null));
 					}
@@ -127,8 +131,9 @@ namespace EventStore.Core.Services.Storage {
 		}
 
 		public void Handle(ClientMessage.GetLastDatabaseScavenge message) {
-			if (!IsAllowed(message.User, message.CorrelationId, message.Envelope))
+			if (!IsAllowed(message.User, message.CorrelationId, message.Envelope)) {
 				return;
+			}
 
 			lock (_lock) {
 				var response = new ClientMessage.ScavengeDatabaseGetLastResponse(
@@ -160,16 +165,19 @@ namespace EventStore.Core.Services.Storage {
 						_ => throw new ArgumentOutOfRangeException(nameof(result))
 					};
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				logger.Error(ex, "SCAVENGING: Unexpected error when scavenging");
 
 				lock (_lock) {
 					_lastScavengeResult = LastScavengeResult.Errored;
 				}
-			} finally {
+			}
+			finally {
 				try {
 					newScavenge.Dispose();
-				} catch (Exception ex) {
+				}
+				catch (Exception ex) {
 					logger.Error(ex, "SCAVENGING: Unexpected error when disposing the scavenger");
 				}
 			}
@@ -182,10 +190,12 @@ namespace EventStore.Core.Services.Storage {
 			try {
 				if (_switchChunksLock.TryRelease(switchChunksLockId)) {
 					logger.Information("SCAVENGING: Released the chunks lock");
-				} else {
+				}
+				else {
 					logger.Information("SCAVENGING: Failed to release the chunks lock");
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				logger.Error(ex, "SCAVENGING: Unexpected error when releasing the chunks lock");
 			}
 

@@ -8,44 +8,43 @@ using EventStore.Core.Services.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class MultiWriteProcessor : ICmdProcessor
-{
-	public string Usage
-	{
+internal class MultiWriteProcessor : ICmdProcessor {
+	public string Usage {
 		get { return "MWR [<write-count=10> [<stream=test-stream> [<expected-version=ANY>]]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "MWR"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		const string data = "test-data";
 		var eventStreamId = "test-stream";
 		var writeCount = 10;
 		var expectedVersion = ExpectedVersion.Any;
 
-		if (args.Length > 0)
-		{
-			if (args.Length > 3)
+		if (args.Length > 0) {
+			if (args.Length > 3) {
 				return false;
+			}
+
 			writeCount = MetricPrefixValue.ParseInt(args[0]);
-			if (args.Length >= 2)
+			if (args.Length >= 2) {
 				eventStreamId = args[1];
-			if (args.Length >= 3)
+			}
+
+			if (args.Length >= 3) {
 				expectedVersion = args[2].Trim().ToUpper() == "ANY"
 					? ExpectedVersion.Any
 					: int.Parse(args[2].Trim());
+			}
 		}
 
 		context.IsAsync();
 		var sw = new Stopwatch();
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn =>
-			{
+			connectionEstablished: conn => {
 				context.Log.Information("[{remoteEndPoint}, L{localEndPoint}]: Writing...", conn.RemoteEndPoint,
 					conn.LocalEndPoint);
 				var writeDto = new WriteEvents(
@@ -63,27 +62,23 @@ internal class MultiWriteProcessor : ICmdProcessor
 				sw.Start();
 				conn.EnqueueSend(package);
 			},
-			handlePackage: (conn, pkg) =>
-			{
+			handlePackage: (conn, pkg) => {
 				sw.Stop();
 				context.Log.Information("Write request took: {elapsed}.", sw.Elapsed);
 
-				if (pkg.Command != TcpCommand.WriteEventsCompleted)
-				{
+				if (pkg.Command != TcpCommand.WriteEventsCompleted) {
 					context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 					return;
 				}
 
 				var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-				if (dto.Result == EventStore.Client.Messages.OperationResult.Success)
-				{
+				if (dto.Result == EventStore.Client.Messages.OperationResult.Success) {
 					context.Log.Information("Successfully written {writeCount} events.", writeCount);
 					PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 						(int)Math.Round(sw.Elapsed.TotalMilliseconds));
 					context.Success();
 				}
-				else
-				{
+				else {
 					context.Log.Information("Error while writing: {e}.", dto.Result);
 					context.Fail();
 				}

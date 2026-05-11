@@ -4,8 +4,7 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.LogAbstraction;
 
-public interface INameExistenceFilter : IExistenceFilterReader<string>, IDisposable
-{
+public interface INameExistenceFilter : IExistenceFilterReader<string>, IDisposable {
 	ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition, CancellationToken token);
 	void TruncateTo(long checkpoint);
 	void Verify(double corruptionThreshold);
@@ -14,7 +13,6 @@ public interface INameExistenceFilter : IExistenceFilterReader<string>, IDisposa
 	long CurrentCheckpoint { get; set; }
 }
 
-public interface IExistenceFilterReader<T>
-{
+public interface IExistenceFilterReader<T> {
 	bool MightContain(T item);
 }

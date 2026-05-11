@@ -15,14 +15,12 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_scavenging_tfchunk_with_deleted_records<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+	when_scavenging_tfchunk_with_deleted_records<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	private const string _eventStreamId = "ES";
 	private const string _deletedEventStreamId = "Deleted-ES";
 	private EventRecord _event1, _event2, _event3, _event4, _deleted;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		// Stream that will be kept
 		_event1 = await WriteSingleEvent(_eventStreamId, 0, "bla1", token: token);
 		_event2 = await WriteSingleEvent(_eventStreamId, 1, "bla1", token: token);
@@ -43,8 +41,7 @@ public class
 	}
 
 	[Test]
-	public async Task should_be_able_to_read_the_all_stream()
-	{
+	public async Task should_be_able_to_read_the_all_stream() {
 		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
 			.EventRecords()
 			.Select(r => r.Event)
@@ -58,13 +55,11 @@ public class
 	}
 
 	[Test]
-	public async Task should_have_updated_deleted_stream_event_number()
-	{
+	public async Task should_have_updated_deleted_stream_event_number() {
 		var chunk = Db.Manager.GetChunk(0);
 		var chunkRecords = new List<ILogRecord>();
 		RecordReadResult result = await chunk.TryReadFirst(CancellationToken.None);
-		while (result.Success)
-		{
+		while (result.Success) {
 			chunkRecords.Add(result.LogRecord);
 			result = await chunk.TryReadClosestForward(result.NextPosition, CancellationToken.None);
 		}
@@ -77,8 +72,7 @@ public class
 	}
 
 	[Test]
-	public async Task should_be_able_to_read_the_stream()
-	{
+	public async Task should_be_able_to_read_the_stream() {
 		var events = await ReadIndex.ReadStreamEventsForward(_eventStreamId, 0, 10, CancellationToken.None);
 		Assert.AreEqual(4, events.Records.Length);
 		Assert.AreEqual(_event1.EventId, events.Records[0].EventId);
@@ -88,8 +82,7 @@ public class
 	}
 
 	[Test]
-	public async Task the_deleted_stream_should_be_deleted()
-	{
+	public async Task the_deleted_stream_should_be_deleted() {
 		var lastNumber = await ReadIndex.GetStreamLastEventNumber(_deletedEventStreamId, CancellationToken.None);
 		Assert.AreEqual(EventNumber.DeletedStream, lastNumber);
 	}

@@ -38,16 +38,18 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 		private readonly int _metadataOffset;
 
 		public PrepareLogRecordView(byte[] record, int length) {
-			if (!BitConverter.IsLittleEndian)
+			if (!BitConverter.IsLittleEndian) {
 				throw new NotSupportedException();
+			}
 
 			_record = record;
 			_length = length;
 
 			Version = _record[1];
-			if (Version != LogRecordVersion.LogRecordV0 && Version != LogRecordVersion.LogRecordV1)
+			if (Version != LogRecordVersion.LogRecordV0 && Version != LogRecordVersion.LogRecordV1) {
 				throw new ArgumentException(
 					$"PrepareRecord version {Version} is incorrect. Supported version: {PrepareLogRecord.PrepareRecordVersion}.");
+			}
 
 			var currentOffset = 24;
 
@@ -55,7 +57,8 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 				int expectedVersion = BitConverter.ToInt32(_record, currentOffset);
 				_expectedVersion = expectedVersion == int.MaxValue - 1 ? long.MaxValue - 1 : expectedVersion;
 				currentOffset += 4;
-			} else {
+			}
+			else {
 				_expectedVersion = BitConverter.ToInt64(_record, 24);
 				currentOffset += 8;
 			}
@@ -93,24 +96,25 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 
 			// this is smaller than the actual record size but should be good enough to detect potential corruption
 			// or reading at a wrong position
-			if (_streamIdSize + _dataSize + _metadataSize > TFConsts.MaxLogRecordSize)
+			if (_streamIdSize + _dataSize + _metadataSize > TFConsts.MaxLogRecordSize) {
 				throw new Exception("Record too large.");
+			}
 		}
 
 		public override string ToString() {
 			return $"Version: {Version}, " +
-			       $"LogPosition: {LogPosition}, " +
-			       $"Flags: {Flags}, " +
-			       $"TransactionPosition: {TransactionPosition}, " +
-			       $"TransactionOffset: {TransactionOffset}, " +
-			       $"ExpectedVersion: {ExpectedVersion}, " +
-			       $"EventStreamId: {Encoding.UTF8.GetString(EventStreamId.ToArray())}, " +
-			       $"EventId: {EventId}, " +
-			       $"CorrelationId: {CorrelationId}, " +
-			       $"TimeStamp: {TimeStamp}, " +
-			       $"EventType: {Encoding.UTF8.GetString(EventType.ToArray())}, " +
-			       $"Data size: {Data.Length}, " +
-			       $"Metadata size: {Metadata.Length}";
+				   $"LogPosition: {LogPosition}, " +
+				   $"Flags: {Flags}, " +
+				   $"TransactionPosition: {TransactionPosition}, " +
+				   $"TransactionOffset: {TransactionOffset}, " +
+				   $"ExpectedVersion: {ExpectedVersion}, " +
+				   $"EventStreamId: {Encoding.UTF8.GetString(EventStreamId.ToArray())}, " +
+				   $"EventId: {EventId}, " +
+				   $"CorrelationId: {CorrelationId}, " +
+				   $"TimeStamp: {TimeStamp}, " +
+				   $"EventType: {Encoding.UTF8.GetString(EventType.ToArray())}, " +
+				   $"Data size: {Data.Length}, " +
+				   $"Metadata size: {Metadata.Length}";
 		}
 
 		// copied and adapted from https://github.com/microsoft/referencesource/blob/master/mscorlib/system/io/binaryreader.cs
@@ -124,7 +128,9 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 				// Check for a corrupted stream.  Read a max of 5 bytes.
 				// In a future version, add a DataFormatException.
 				if (shift == 5 * 7)  // 5 bytes max per Int32, shift += 7
+{
 					throw new FormatException();
+				}
 
 				b = bytes[offset++];
 				count |= (b & 0x7F) << shift;

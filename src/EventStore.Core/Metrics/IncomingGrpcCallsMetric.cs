@@ -73,8 +73,9 @@ public class IncomingGrpcCallsMetric : EventListener {
 	}
 
 	protected override void OnEventSourceCreated(EventSource eventSource) {
-		if (eventSource.Name != "Grpc.AspNetCore.Server")
+		if (eventSource.Name != "Grpc.AspNetCore.Server") {
 			return;
+		}
 
 		EnableEvents(eventSource, EventLevel.Verbose);
 	}

@@ -8,16 +8,14 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_appending_past_end_of_a_tfchunk<TLogFormat, TStreamId> : SpecificationWithFile
-{
+public class when_appending_past_end_of_a_tfchunk<TLogFormat, TStreamId> : SpecificationWithFile {
 	private TFChunk _chunk;
 	private readonly Guid _corrId = Guid.NewGuid();
 	private readonly Guid _eventId = Guid.NewGuid();
 	private bool _written;
 
 	[SetUp]
-	public override async Task SetUp()
-	{
+	public override async Task SetUp() {
 		await base.SetUp();
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
@@ -31,15 +29,13 @@ public class when_appending_past_end_of_a_tfchunk<TLogFormat, TStreamId> : Speci
 	}
 
 	[TearDown]
-	public override void TearDown()
-	{
+	public override void TearDown() {
 		_chunk.Dispose();
 		base.TearDown();
 	}
 
 	[Test]
-	public void the_record_is_not_appended()
-	{
+	public void the_record_is_not_appended() {
 		Assert.IsFalse(_written);
 	}
 }

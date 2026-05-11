@@ -14,21 +14,18 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_checkpoint_requested_with_all_writes_already_completed<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_checkpoint_requested_with_all_writes_already_completed<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		base.Given();
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
 	[SetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test",
@@ -48,8 +45,7 @@ public class when_checkpoint_requested_with_all_writes_already_completed<TLogFor
 	}
 
 	[Test]
-	public void publishes_ready_for_checkpoint()
-	{
+	public void publishes_ready_for_checkpoint() {
 		Assert.IsTrue(
 			_readyHandler.HandledMessages.ContainsSingle<CoreProjectionProcessingMessage.ReadyForCheckpoint>());
 	}

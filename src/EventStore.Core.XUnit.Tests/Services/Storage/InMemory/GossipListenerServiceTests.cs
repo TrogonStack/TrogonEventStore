@@ -14,21 +14,18 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Storage.InMemory;
 
-public class GossipListenerServiceTests
-{
+public class GossipListenerServiceTests {
 	private readonly GossipListenerService _sut;
 	private readonly ChannelReader<Message> _channelReader;
 	private readonly Guid _nodeId = Guid.NewGuid();
 
-	private readonly JsonSerializerOptions _options = new()
-	{
+	private readonly JsonSerializerOptions _options = new() {
 		Converters = {
 			new JsonStringEnumConverter(),
 		},
 	};
 
-	public GossipListenerServiceTests()
-	{
+	public GossipListenerServiceTests() {
 		var channel = Channel.CreateUnbounded<Message>();
 		_channelReader = channel.Reader;
 		_sut = new GossipListenerService(
@@ -38,8 +35,7 @@ public class GossipListenerServiceTests
 	}
 
 	[Fact]
-	public async Task notify_state_change()
-	{
+	public async Task notify_state_change() {
 		static int random() => Random.Shared.Next(65000);
 
 		var member = MemberInfo.ForVNode(
@@ -75,8 +71,7 @@ public class GossipListenerServiceTests
 		Assert.Equal(0, @event.Event.EventNumber);
 
 		var expectedBytes = JsonSerializer.SerializeToUtf8Bytes(
-			new
-			{
+			new {
 				NodeId = _nodeId,
 				Members = new[] { new ClientClusterInfo.ClientMemberInfo(member) },
 			},

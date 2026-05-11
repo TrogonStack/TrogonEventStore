@@ -2,21 +2,17 @@ using System;
 
 namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.PinnedState;
 
-internal class Node
-{
-	internal enum NodeState
-	{
+internal class Node {
+	internal enum NodeState {
 		Connected,
 		Disconnected
 	}
 
-	public Node()
-	{
+	public Node() {
 	}
 
 	public Node(Guid connectionId, Guid nodeId, string host, int port, NodeState state,
-		PersistentSubscriptionClient client, int maximumInFlightMessages, int assignmentCount)
-	{
+		PersistentSubscriptionClient client, int maximumInFlightMessages, int assignmentCount) {
 		ConnectionId = connectionId;
 		NodeId = nodeId;
 		Host = host;
@@ -27,19 +23,16 @@ internal class Node
 		AssignmentCount = assignmentCount;
 	}
 
-	public Node(PersistentSubscriptionClient client)
-	{
+	public Node(PersistentSubscriptionClient client) {
 		Client = client;
 		ConnectionId = client.ConnectionId;
 		NodeId = client.InstanceId;
 
 		var portSplit = client.From.IndexOf(':');
-		if (portSplit == -1)
-		{
+		if (portSplit == -1) {
 			Host = client.From;
 		}
-		else
-		{
+		else {
 			Host = client.From.Substring(0, portSplit);
 			Port = Int32.Parse(client.From.Substring(portSplit + 1));
 		}

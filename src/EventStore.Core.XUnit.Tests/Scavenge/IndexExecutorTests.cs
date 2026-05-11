@@ -10,11 +10,9 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 // these systemtically exercise the cases in the IndexExecutor
 // we still do so by testing high level scavenge cases because we are well geared up
 // for that and testing the IndexExeecutor directly would involve more mocks than it is worth.
-public class IndexExecutorTests : SqliteDbPerTest<IndexExecutorTests>
-{
+public class IndexExecutorTests : SqliteDbPerTest<IndexExecutorTests> {
 	[Fact]
-	public async Task nothing_to_scavenge()
-	{
+	public async Task nothing_to_scavenge() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -32,8 +30,7 @@ public class IndexExecutorTests : SqliteDbPerTest<IndexExecutorTests>
 	}
 
 	[Fact]
-	public async Task simple_scavenge()
-	{
+	public async Task simple_scavenge() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -52,8 +49,7 @@ public class IndexExecutorTests : SqliteDbPerTest<IndexExecutorTests>
 	}
 
 	[Fact]
-	public async Task with_collision()
-	{
+	public async Task with_collision() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

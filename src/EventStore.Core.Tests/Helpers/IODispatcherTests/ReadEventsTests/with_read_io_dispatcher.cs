@@ -13,8 +13,7 @@ namespace EventStore.Core.Tests.Helpers.IODispatcherTests.ReadEventsTests;
 
 public abstract class with_read_io_dispatcher<TLogFormat, TStreamId> : IHandle<ClientMessage.ReadStreamEventsForward>,
 	IHandle<ClientMessage.ReadStreamEventsBackward>,
-	IHandle<TimerMessage.Schedule>
-{
+	IHandle<TimerMessage.Schedule> {
 	protected IODispatcher _ioDispatcher;
 	protected readonly ClaimsPrincipal _principal = SystemAccounts.System;
 	protected readonly SynchronousScheduler _bus = new();
@@ -30,8 +29,7 @@ public abstract class with_read_io_dispatcher<TLogFormat, TStreamId> : IHandle<C
 	protected readonly string _eventStreamId = "test";
 
 	[OneTimeSetUp]
-	public virtual void TestFixtureSetUp()
-	{
+	public virtual void TestFixtureSetUp() {
 		var _queue = new QueuedHandlerThreadPool(_bus, "TestQueuedHandler", new QueueStatsManager(), new());
 		_ioDispatcher = new IODispatcher(_bus, _queue);
 		IODispatcherTestHelpers.SubscribeIODispatcher(_ioDispatcher, _bus);
@@ -41,24 +39,20 @@ public abstract class with_read_io_dispatcher<TLogFormat, TStreamId> : IHandle<C
 		_queue.Start();
 	}
 
-	public virtual void Handle(ClientMessage.ReadStreamEventsForward message)
-	{
+	public virtual void Handle(ClientMessage.ReadStreamEventsForward message) {
 		_readForward = message;
 	}
 
-	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message)
-	{
+	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message) {
 		_readBackward = message;
 	}
 
-	public virtual void Handle(TimerMessage.Schedule message)
-	{
+	public virtual void Handle(TimerMessage.Schedule message) {
 		_timeoutMessage = message;
 	}
 
 	public ClientMessage.ReadStreamEventsForwardCompleted CreateReadStreamEventsForwardCompleted(
-		ClientMessage.ReadStreamEventsForward msg)
-	{
+		ClientMessage.ReadStreamEventsForward msg) {
 		var lastEventNumber = msg.FromEventNumber + 1;
 		var nextEventNumber = lastEventNumber + 1;
 		var events =
@@ -71,8 +65,7 @@ public abstract class with_read_io_dispatcher<TLogFormat, TStreamId> : IHandle<C
 	}
 
 	public ClientMessage.ReadStreamEventsBackwardCompleted CreateReadStreamEventsBackwardCompleted(
-		ClientMessage.ReadStreamEventsBackward msg)
-	{
+		ClientMessage.ReadStreamEventsBackward msg) {
 		var startEventNumber = msg.FromEventNumber;
 		var nextEventNumber = startEventNumber - 1;
 		var events =

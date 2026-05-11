@@ -11,22 +11,17 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
 [TestFixture]
-public class ReadAllBackwardsTests
-{
+public class ReadAllBackwardsTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_reading_all_backwards<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	public class when_reading_all_backwards<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private const string StreamId = nameof(when_reading_all_backwards<TLogFormat, TStreamId>);
 
 		private readonly List<ReadResp> _responses = new();
 		private Position _positionOfLastWrite;
 
-		protected override async Task Given()
-		{
-			var response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task Given() {
+			var response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamId) },
 					Any = new()
 				},
@@ -39,20 +34,15 @@ public class ReadAllBackwardsTests
 				response.Success.Position.PreparePosition);
 		}
 
-		protected override async Task When()
-		{
-			using var call = StreamsClient.Read(new()
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			using var call = StreamsClient.Read(new() {
+				Options = new() {
 					UuidOption = new() { Structured = new() },
 					Count = 20,
 					ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Backwards,
 					ResolveLinks = false,
-					All = new()
-					{
-						Position = new()
-						{
+					All = new() {
+						Position = new() {
 							CommitPosition = _positionOfLastWrite.CommitPosition,
 							PreparePosition = _positionOfLastWrite.PreparePosition
 						}
@@ -64,22 +54,19 @@ public class ReadAllBackwardsTests
 		}
 
 		[Test]
-		public void should_not_receive_null_events()
-		{
+		public void should_not_receive_null_events() {
 			Assert.False(_responses
 				.Where(x => x.ContentCase == ReadResp.ContentOneofCase.Event)
 				.Any(x => x.Event is null));
 		}
 
 		[Test]
-		public void should_read_a_number_of_events_equal_to_the_max_count()
-		{
+		public void should_read_a_number_of_events_equal_to_the_max_count() {
 			Assert.AreEqual(20, _responses.Count(x => x.Event is not null));
 		}
 
 		[Test]
-		public void should_read_the_correct_events()
-		{
+		public void should_read_the_correct_events() {
 			Assert.True(_responses
 				.Where(x => x.Event is not null)
 				.All(x =>
@@ -90,17 +77,13 @@ public class ReadAllBackwardsTests
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
-		when_reading_all_backwards_from_end<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+		when_reading_all_backwards_from_end<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private readonly List<ReadResp> _responses = new();
 		private const string StreamId = nameof(when_reading_all_backwards_from_end<TLogFormat, TStreamId>);
 
-		protected override async Task Given()
-		{
-			await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task Given() {
+			await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamId) },
 					Any = new()
 				},
@@ -110,12 +93,9 @@ public class ReadAllBackwardsTests
 			});
 		}
 
-		protected override async Task When()
-		{
-			using var call = StreamsClient.Read(new()
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			using var call = StreamsClient.Read(new() {
+				Options = new() {
 					UuidOption = new() { Structured = new() },
 					Count = 20,
 					ReadDirection = ReadReq.Types.Options.Types.ReadDirection.Backwards,
@@ -128,22 +108,19 @@ public class ReadAllBackwardsTests
 		}
 
 		[Test]
-		public void should_not_receive_null_events()
-		{
+		public void should_not_receive_null_events() {
 			Assert.False(_responses
 				.Where(x => x.ContentCase == ReadResp.ContentOneofCase.Event)
 				.Any(x => x.Event is null));
 		}
 
 		[Test]
-		public void should_read_a_number_of_events_equal_to_the_max_count()
-		{
+		public void should_read_a_number_of_events_equal_to_the_max_count() {
 			Assert.AreEqual(20, _responses.Count(x => x.Event is not null));
 		}
 
 		[Test]
-		public void should_read_the_correct_events()
-		{
+		public void should_read_the_correct_events() {
 			Assert.AreEqual(49, _responses.First(x => x.Event is not null).Event.Event.StreamRevision);
 			Assert.AreEqual(30, _responses.Last(x => x.Event is not null).Event.Event.StreamRevision);
 		}

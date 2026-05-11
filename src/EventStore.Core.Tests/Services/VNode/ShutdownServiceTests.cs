@@ -10,8 +10,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.VNode;
 
-public class ShutdownServiceTests
-{
+public class ShutdownServiceTests {
 	private VNodeInfo BogusNodeInfo { get; }
 		= new(
 			Guid.NewGuid(),
@@ -23,8 +22,7 @@ public class ShutdownServiceTests
 			new HttpEndPoint(new Uri("http://www.trogondb.com")), true);
 
 	[Test]
-	public void GracefulShutdown_ShouldTriggerTerminationCallback_AndScheduleMessages()
-	{
+	public void GracefulShutdown_ShouldTriggerTerminationCallback_AndScheduleMessages() {
 		var queue = new FakeQueuedHandler();
 		var sut = new ShutdownService(queue, BogusNodeInfo);
 		var terminated = false;
@@ -39,8 +37,7 @@ public class ShutdownServiceTests
 	}
 
 	[Test]
-	public void Shutdown_ShouldProceed_WhenComponentAlreadyReportedTermination()
-	{
+	public void Shutdown_ShouldProceed_WhenComponentAlreadyReportedTermination() {
 		var queue = new FakeQueuedHandler();
 		var sut = new ShutdownService(queue, BogusNodeInfo);
 		var notCalled = true;
@@ -55,8 +52,7 @@ public class ShutdownServiceTests
 	}
 
 	[Test]
-	public void Shutdown_ShouldProceed_WhenComponentDoesNotReportTermination_AfterTimeout()
-	{
+	public void Shutdown_ShouldProceed_WhenComponentDoesNotReportTermination_AfterTimeout() {
 		var queue = new FakeQueuedHandler();
 		var sut = new ShutdownService(queue, BogusNodeInfo);
 		var called = false;

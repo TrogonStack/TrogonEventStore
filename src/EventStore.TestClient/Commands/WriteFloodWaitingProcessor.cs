@@ -9,37 +9,32 @@ using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class WriteFloodWaitingProcessor : ICmdProcessor
-{
-	public string Usage
-	{
+internal class WriteFloodWaitingProcessor : ICmdProcessor {
+	public string Usage {
 		get { return "WRFLW [<clients> <requests> [payload-size]]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "WRFLW"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		int clientsCnt = 1;
 		int requestsCnt = 5000;
 		int payloadSize = 256 + 100;
-		if (args.Length > 0)
-		{
-			if (args.Length > 3 || args.Length < 2)
+		if (args.Length > 0) {
+			if (args.Length > 3 || args.Length < 2) {
 				return false;
+			}
 
-			try
-			{
+			try {
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseInt(args[1]);
-				if (args.Length == 3)
+				if (args.Length == 3) {
 					payloadSize = MetricPrefixValue.ParseInt(args[2]);
+				}
 			}
-			catch
-			{
+			catch {
 				return false;
 			}
 		}
@@ -48,8 +43,7 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 		return true;
 	}
 
-	private void WriteFlood(CommandProcessorContext context, int clientsCnt, int requestsCnt, int payloadSize)
-	{
+	private void WriteFlood(CommandProcessorContext context, int clientsCnt, int requestsCnt, int payloadSize) {
 		context.IsAsync();
 
 		var dataSize = Math.Max(0, payloadSize - 100);
@@ -61,37 +55,33 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 		var succ = 0;
 		var fail = 0;
 		var all = 0;
-		for (int i = 0; i < clientsCnt; i++)
-		{
+		for (int i = 0; i < clientsCnt; i++) {
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			var autoEvent = new AutoResetEvent(false);
 			var eventStreamId = "es" + Guid.NewGuid();
 			var received = 0;
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, pkg) =>
-				{
-					if (pkg.Command != TcpCommand.WriteEventsCompleted)
-					{
+				(conn, pkg) => {
+					if (pkg.Command != TcpCommand.WriteEventsCompleted) {
 						context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 						return;
 					}
 
 					Interlocked.Increment(ref received);
 					var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-					if (dto.Result == OperationResult.Success)
-					{
-						if (Interlocked.Increment(ref succ) % 1000 == 0)
+					if (dto.Result == OperationResult.Success) {
+						if (Interlocked.Increment(ref succ) % 1000 == 0) {
 							Console.Write(".");
+						}
 					}
-					else
-					{
-						if (Interlocked.Increment(ref fail) % 1000 == 0)
+					else {
+						if (Interlocked.Increment(ref fail) % 1000 == 0) {
 							Console.Write("#");
+						}
 					}
 
-					if (Interlocked.Increment(ref all) == requestsCnt)
-					{
+					if (Interlocked.Increment(ref all) == requestsCnt) {
 						doneEvent.Set();
 					}
 
@@ -100,10 +90,8 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 				connectionClosed: (conn, err) => context.Fail(reason: "Connection was closed prematurely."));
 			clients.Add(client);
 
-			threads.Add(new Thread(() =>
-			{
-				for (int j = 0; j < count; ++j)
-				{
+			threads.Add(new Thread(() => {
+				for (int j = 0; j < count; ++j) {
 					var write = new WriteEvents(
 						eventStreamId,
 						ExpectedVersion.Any,
@@ -119,8 +107,7 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 					client.EnqueueSend(package.AsByteArray());
 					autoEvent.WaitOne();
 				}
-			})
-			{ IsBackground = true });
+			}) { IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -147,9 +134,11 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 		PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 			(int)Math.Round(sw.Elapsed.TotalMilliseconds / requestsCnt));
 
-		if (succ != requestsCnt)
+		if (succ != requestsCnt) {
 			context.Fail(reason: "There were errors or not all requests completed.");
-		else
+		}
+		else {
 			context.Success();
+		}
 	}
 }

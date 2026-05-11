@@ -13,7 +13,7 @@ public class PolicyAuthorizationProvider(IPolicyEvaluator policyEvaluator, bool 
 	static readonly ILogger Logger = Log.ForContext<PolicyAuthorizationProvider>();
 	static readonly TimeProvider Time = TimeProvider.System;
 
-	bool LogAccessDenied  => logAuthorization;
+	bool LogAccessDenied => logAuthorization;
 	bool LogAccessGranted => LogAccessDenied && logSuccesses;
 
 	public override ValueTask<bool> CheckAccessAsync(ClaimsPrincipal principal, Operation operation, CancellationToken ct) {

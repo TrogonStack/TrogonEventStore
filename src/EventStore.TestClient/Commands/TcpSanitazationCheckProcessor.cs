@@ -11,22 +11,18 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.TestClient.Commands;
 
-internal class TcpSanitazationCheckProcessor : ICmdProcessor
-{
+internal class TcpSanitazationCheckProcessor : ICmdProcessor {
 	private static readonly ILogger Log = Serilog.Log.ForContext<TcpSanitazationCheckProcessor>();
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "CHKTCP"; }
 	}
 
-	public string Usage
-	{
+	public string Usage {
 		get { return Keyword; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		context.IsAsync();
 
 		var commandsToCheck = new[] {
@@ -53,23 +49,24 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 			});
 
 		int step = 0;
-		foreach (var pkg in packages)
-		{
+		foreach (var pkg in packages) {
 			var established = new AutoResetEvent(false);
 			var dropped = new AutoResetEvent(false);
 
-			if (step < commandsToCheck.Length)
+			if (step < commandsToCheck.Length) {
 				Console.WriteLine("{0} Starting step {1} ({2}) {0}", new string('#', 20), step,
 					(TcpCommand)commandsToCheck[step]);
-			else
+			}
+			else {
 				Console.WriteLine("{0} Starting step {1} (RANDOM BYTES) {0}", new string('#', 20), step);
+			}
 
 			var connection = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, package) =>
-				{
-					if (package.Command != TcpCommand.BadRequest)
+				(conn, package) => {
+					if (package.Command != TcpCommand.BadRequest) {
 						context.Fail(null, string.Format("Bad request expected, got {0}!", package.Command));
+					}
 				},
 				conn => established.Set(),
 				(conn, err) => dropped.Set());
@@ -78,11 +75,13 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 			connection.EnqueueSend(pkg);
 			dropped.WaitOne();
 
-			if (step < commandsToCheck.Length)
+			if (step < commandsToCheck.Length) {
 				Console.WriteLine("{0} Step {1} ({2}) Completed {0}", new string('#', 20), step,
 					(TcpCommand)commandsToCheck[step]);
-			else
+			}
+			else {
 				Console.WriteLine("{0} Step {1} (RANDOM BYTES) Completed {0}", new string('#', 20), step);
+			}
 
 			step++;
 		}
@@ -95,8 +94,7 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 			packages.Count());
 
 		Log.Information("Now sending raw bytes...");
-		try
-		{
+		try {
 			SendRaw(context._tcpTestClient.TcpEndpoint, BitConverter.GetBytes(int.MaxValue));
 			SendRaw(context._tcpTestClient.TcpEndpoint, BitConverter.GetBytes(int.MinValue));
 
@@ -105,8 +103,7 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 
 			SendRaw(context._tcpTestClient.TcpEndpoint, BitConverter.GetBytes(new Random().NextDouble()));
 		}
-		catch (Exception e)
-		{
+		catch (Exception e) {
 			context.Fail(e, "Raw bytes sent failed");
 			return false;
 		}
@@ -115,8 +112,7 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 		return true;
 	}
 
-	private void SendRaw(EndPoint endPoint, byte[] package)
-	{
+	private void SendRaw(EndPoint endPoint, byte[] package) {
 		using var client = new TcpClient();
 		client.Connect(endPoint.ResolveDnsToIPAddress());
 		using var stream = client.GetStream();

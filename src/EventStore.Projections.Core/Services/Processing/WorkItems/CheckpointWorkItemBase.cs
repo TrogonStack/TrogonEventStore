@@ -1,17 +1,14 @@
 namespace EventStore.Projections.Core.Services.Processing.WorkItems;
 
-public class CheckpointWorkItemBase : WorkItem
-{
+public class CheckpointWorkItemBase : WorkItem {
 	private static readonly object _correlationId = new object();
 
 	protected CheckpointWorkItemBase()
-		: base(_correlationId)
-	{
+		: base(_correlationId) {
 		_requiresRunning = true;
 	}
 
 	protected CheckpointWorkItemBase(object correlation)
-		: base(correlation)
-	{
+		: base(correlation) {
 	}
 }

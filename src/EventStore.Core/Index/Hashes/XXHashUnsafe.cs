@@ -39,8 +39,9 @@ namespace EventStore.Core.Index.Hashes {
 		}
 
 		private unsafe static uint Hash(byte* data, uint len, uint seed) {
-			if (len < 16)
+			if (len < 16) {
 				return HashSmall(data, len, seed);
+			}
 
 			uint v1 = seed + PRIME1;
 			uint v2 = v1 * PRIME2 + len;

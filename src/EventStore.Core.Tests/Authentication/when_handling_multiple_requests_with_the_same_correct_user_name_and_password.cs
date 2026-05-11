@@ -7,21 +7,18 @@ namespace EventStore.Core.Tests.Authentication;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_handling_multiple_requests_with_the_same_correct_user_name_and_password<TLogFormat, TStreamId> :
-	with_internal_authentication_provider<TLogFormat, TStreamId>
-{
+	with_internal_authentication_provider<TLogFormat, TStreamId> {
 	private bool _unauthorized;
 	private ClaimsPrincipal _authenticatedAs;
 	private bool _error;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		base.Given();
 		ExistingEvent("$user-user", "$user", null, "{LoginName:'user', Salt:'drowssap',Hash:'password'}");
 	}
 
 	[SetUp]
-	public void SetUp()
-	{
+	public void SetUp() {
 		SetUpProvider();
 
 		_internalAuthenticationProvider.Authenticate(
@@ -36,8 +33,7 @@ public class when_handling_multiple_requests_with_the_same_correct_user_name_and
 	}
 
 	[Test]
-	public void authenticates_user()
-	{
+	public void authenticates_user() {
 		Assert.IsFalse(_unauthorized);
 		Assert.IsFalse(_error);
 		Assert.NotNull(_authenticatedAs);
@@ -45,8 +41,7 @@ public class when_handling_multiple_requests_with_the_same_correct_user_name_and
 	}
 
 	[Test]
-	public void does_not_publish_any_read_requests()
-	{
+	public void does_not_publish_any_read_requests() {
 		Assert.AreEqual(0, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsBackward>().Count());
 		Assert.AreEqual(0, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 	}

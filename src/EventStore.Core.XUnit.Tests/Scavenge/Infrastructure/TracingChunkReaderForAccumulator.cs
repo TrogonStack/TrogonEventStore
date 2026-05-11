@@ -8,15 +8,13 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 public class TracingChunkReaderForAccumulator<TStreamId>(
 	IChunkReaderForAccumulator<TStreamId> wrapped,
 	Action<string> trace)
-	: IChunkReaderForAccumulator<TStreamId>
-{
+	: IChunkReaderForAccumulator<TStreamId> {
 	public IAsyncEnumerable<AccumulatorRecordType> ReadChunkInto(
 		int logicalChunkNumber,
 		RecordForAccumulator<TStreamId>.OriginalStreamRecord originalStreamRecord,
 		RecordForAccumulator<TStreamId>.MetadataStreamRecord metadataStreamRecord,
 		RecordForAccumulator<TStreamId>.TombStoneRecord tombStoneRecord,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		var ret = wrapped.ReadChunkInto(
 			logicalChunkNumber,

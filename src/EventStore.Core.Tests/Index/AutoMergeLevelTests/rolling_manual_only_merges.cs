@@ -5,19 +5,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.AutoMergeLevelTests;
 
 [TestFixture]
-public class rolling_manual_only_merges : when_max_auto_merge_level_is_set
-{
-	public rolling_manual_only_merges() : base(0)
-	{
+public class rolling_manual_only_merges : when_max_auto_merge_level_is_set {
+	public rolling_manual_only_merges() : base(0) {
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public void alternating_table_dumps_and_manual_merges_should_merge_correctly()
-	{
+	public void alternating_table_dumps_and_manual_merges_should_merge_correctly() {
 		AddTables(1);
 		Assert.AreEqual(1, _result.MergedMap.InOrder().Count());
-		for (int i = 0; i < 100; i++)
-		{
+		for (int i = 0; i < 100; i++) {
 			AddTables(1);
 			Assert.AreEqual(2, _result.MergedMap.InOrder().Count());
 

@@ -12,21 +12,18 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Tcp;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_invalid_data_is_sent_over_tcp<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
-{
+public class when_invalid_data_is_sent_over_tcp<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
 
 	[Timeout(15000)]
 	[TestCase("InternalTcpEndPoint", false)]
 	[TestCase("ExternalTcpEndPoint", false)]
-	public async Task connection_should_be_closed_by_remote_party(string endpointProperty, bool secure)
-	{
+	public async Task connection_should_be_closed_by_remote_party(string endpointProperty, bool secure) {
 		IPEndPoint endpoint = (IPEndPoint)_nodes[0].GetType().GetProperty(endpointProperty).GetValue(_nodes[0], null);
 		var closedEvent = new ManualResetEventSlim();
 		TaskCompletionSource<SocketError> connectionResult = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		ITcpConnection connection;
-		if (!secure)
-		{
+		if (!secure) {
 			connection = TcpConnection.CreateConnectingTcpConnection(
 				Guid.NewGuid(),
 				endpoint,
@@ -36,15 +33,13 @@ public class when_invalid_data_is_sent_over_tcp<TLogFormat, TStreamId> : specifi
 				(conn, error) => connectionResult.TrySetResult(error),
 				false);
 		}
-		else
-		{
+		else {
 			connection = TcpConnectionSsl.CreateConnectingConnection(
 				Guid.NewGuid(),
 				endpoint.GetHost(),
 				null,
 				endpoint,
-				delegate
-				{ return (true, null); },
+				delegate { return (true, null); },
 				null,
 				new TcpClientConnector(),
 				TimeSpan.FromSeconds(5),

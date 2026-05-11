@@ -15,8 +15,7 @@ using EventStore.Core.TransactionLog.Checkpoint;
 
 namespace EventStore.Core.Tests.Services.ElectionsService;
 
-public class ElectionsServiceUnit
-{
+public class ElectionsServiceUnit {
 	private const int LastCommitPosition = -1;
 	private const int WriterCheckpoint = 0;
 	private const int ChaserCheckpoint = 0;
@@ -25,8 +24,7 @@ public class ElectionsServiceUnit
 
 	public ClusterInfo ClusterInfo { get; private set; }
 
-	public EndPoint OwnEndPoint
-	{
+	public EndPoint OwnEndPoint {
 		get { return InitialClusterSettings.Self.NodeInfo.HttpEndPoint; }
 	}
 
@@ -40,8 +38,7 @@ public class ElectionsServiceUnit
 	protected readonly ClusterSettings InitialClusterSettings;
 	protected readonly ClusterInfo InitialClusterInfo;
 
-	public ElectionsServiceUnit(ClusterSettings clusterSettings)
-	{
+	public ElectionsServiceUnit(ClusterSettings clusterSettings) {
 		Publisher = new FakePublisher();
 
 		_bus = new(GetType().Name);
@@ -72,8 +69,7 @@ public class ElectionsServiceUnit
 		ClusterInfo = new ClusterInfo(InitialClusterInfo.Members);
 	}
 
-	private ClusterInfo BuildClusterInfo(ClusterSettings clusterSettings)
-	{
+	private ClusterInfo BuildClusterInfo(ClusterSettings clusterSettings) {
 		var members =
 			(new[] {
 				MemberInfo.ForManager(Guid.Empty, InitialDate, true, clusterSettings.ClusterManager)
@@ -114,34 +110,27 @@ public class ElectionsServiceUnit
 		return new ClusterInfo(ordered.ToArray());
 	}
 
-	public void Publish(Message message)
-	{
+	public void Publish(Message message) {
 		InputMessages.Add(message);
 		_bus.Publish(message);
 	}
 
-	public void Publish(IEnumerable<Message> messages)
-	{
-		foreach (var message in messages)
-		{
+	public void Publish(IEnumerable<Message> messages) {
+		foreach (var message in messages) {
 			Publish(message);
 		}
 	}
 
-	public T[] ClearMessageFromQueue<T>()
-	{
+	public T[] ClearMessageFromQueue<T>() {
 		return ClearMessageFromQueue(x => (x is T)).Cast<T>().ToArray();
 	}
 
-	public Message[] ClearMessageFromQueue(Func<Message, bool> predicate)
-	{
+	public Message[] ClearMessageFromQueue(Func<Message, bool> predicate) {
 		var removedList = new List<Message>();
 		var removedCount = 0;
 		var index = 0;
-		foreach (var message in Publisher.Messages.ToList())
-		{
-			if (predicate(message))
-			{
+		foreach (var message in Publisher.Messages.ToList()) {
+			if (predicate(message)) {
 				removedList.Add(message);
 				Publisher.Messages.RemoveAt(index - removedCount);
 
@@ -154,42 +143,35 @@ public class ElectionsServiceUnit
 		return removedList.ToArray();
 	}
 
-	public void RepublishFromPublisher(bool skipScheduledMessages = false)
-	{
+	public void RepublishFromPublisher(bool skipScheduledMessages = false) {
 		var messages = new List<Message>();
 		messages.AddRange(Publisher.Messages);
 		Publisher.Messages.Clear();
 
 		messages.Where(x => !(x is TimerMessage.Schedule)).ToList()
-			.ForEach(x =>
-			{
+			.ForEach(x => {
 				messages.Remove(x);
 				Publish(x);
 			});
 
-		if (skipScheduledMessages == false)
-		{
+		if (skipScheduledMessages == false) {
 			messages.OfType<TimerMessage.Schedule>().ToList()
-				.ForEach(x =>
-				{
+				.ForEach(x => {
 					messages.Remove(x);
 					x.Reply();
 				});
 		}
 	}
 
-	public bool IsCurrent(IPEndPoint endPoint)
-	{
+	public bool IsCurrent(IPEndPoint endPoint) {
 		return InitialClusterSettings.Self.NodeInfo.Is(endPoint);
 	}
 
-	public MemberInfo GetNodeAt(int index)
-	{
+	public MemberInfo GetNodeAt(int index) {
 		return InitialClusterInfo.Members.Where(x => x.State != VNodeState.Manager).ElementAt(index);
 	}
 
-	public IEnumerable<MemberInfo> ListMembers(Func<MemberInfo, bool> predicate = null)
-	{
+	public IEnumerable<MemberInfo> ListMembers(Func<MemberInfo, bool> predicate = null) {
 		predicate = predicate ?? (x => true);
 		return ClusterInfo.Members.Where(predicate).Select(x =>
 			x.State == VNodeState.Manager
@@ -203,8 +185,7 @@ public class ElectionsServiceUnit
 					x.EpochPosition, x.EpochNumber, x.EpochId, x.NodePriority, x.IsReadOnlyReplica));
 	}
 
-	public IEnumerable<MemberInfo> ListAliveMembers(Func<MemberInfo, bool> predicate = null)
-	{
+	public IEnumerable<MemberInfo> ListAliveMembers(Func<MemberInfo, bool> predicate = null) {
 		return ListMembers(predicate).Where(x => x.IsAlive);
 	}
 
@@ -212,8 +193,7 @@ public class ElectionsServiceUnit
 		VNodeState? role = null,
 		bool? isAlive = null,
 		long? writerCheckpoint = null,
-		long? chaserCheckpoint = null)
-	{
+		long? chaserCheckpoint = null) {
 		ClusterInfo.Members[nodeIndex] = ClusterInfo.Members[nodeIndex].Updated(
 			DateTime.UtcNow,
 			state: role,

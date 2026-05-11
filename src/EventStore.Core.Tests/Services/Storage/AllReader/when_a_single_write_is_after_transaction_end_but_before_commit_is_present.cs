@@ -8,11 +8,9 @@ namespace EventStore.Core.Tests.Services.Storage.AllReader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class WhenASingleWriteIsAfterTransactionEndButBeforeCommitIsPresent<TLogFormat, TStreamId>
-	: RepeatableDbTestScenario<TLogFormat, TStreamId>
-{
+	: RepeatableDbTestScenario<TLogFormat, TStreamId> {
 	[Test]
-	public async Task should_be_able_to_read_the_transactional_writes_when_the_commit_is_present()
-	{
+	public async Task should_be_able_to_read_the_transactional_writes_when_the_commit_is_present() {
 		await CreateDb([Rec.TransSt(0, "transaction_stream_id"),
 			Rec.Prepare(0, "transaction_stream_id"),
 			Rec.TransEnd(0, "transaction_stream_id"),

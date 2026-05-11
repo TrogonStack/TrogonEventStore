@@ -8,15 +8,13 @@ using Xunit;
 
 namespace EventStore.Core.TransactionLog.Services.VNode;
 
-public class NodeStatusTrackerTests : IDisposable
-{
+public class NodeStatusTrackerTests : IDisposable {
 	private readonly TestMeterListener<long> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly StatusMetric _metric;
 	private readonly NodeStatusTracker _sut;
 
-	public NodeStatusTrackerTests()
-	{
+	public NodeStatusTrackerTests() {
 		var meter = new Meter($"{typeof(NodeStatusTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		_metric = new StatusMetric(
@@ -26,14 +24,12 @@ public class NodeStatusTrackerTests : IDisposable
 		_sut = new NodeStatusTracker(_metric);
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		_listener?.Dispose();
 	}
 
 	[Fact]
-	public void can_observe_state_change()
-	{
+	public void can_observe_state_change() {
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Initializing", 500);
 
@@ -47,8 +43,7 @@ public class NodeStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_initial()
-	{
+	public void can_observe_initial() {
 		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
 		_sut.OnStateChange(InaugurationManager.ManagerState.BecomingLeader);
@@ -60,8 +55,7 @@ public class NodeStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_waiting_for_chaser()
-	{
+	public void can_observe_waiting_for_chaser() {
 		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
 		AssertMeasurements("PreLeader", 500);
@@ -72,8 +66,7 @@ public class NodeStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_writing_epoch()
-	{
+	public void can_observe_writing_epoch() {
 		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
 		AssertMeasurements("PreLeader", 500);
@@ -84,8 +77,7 @@ public class NodeStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_waiting_for_conditions()
-	{
+	public void can_observe_waiting_for_conditions() {
 		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
 		AssertMeasurements("PreLeader", 500);
@@ -96,8 +88,7 @@ public class NodeStatusTrackerTests : IDisposable
 	}
 
 	[Fact]
-	public void can_observe_becoming_leader()
-	{
+	public void can_observe_becoming_leader() {
 		_clock.SecondsSinceEpoch = 500;
 		_sut.OnStateChange(Data.VNodeState.PreLeader);
 		AssertMeasurements("PreLeader", 500);
@@ -107,24 +98,20 @@ public class NodeStatusTrackerTests : IDisposable
 		AssertMeasurements("PreLeader - BecomingLeader", 502);
 	}
 
-	void AssertMeasurements(string expectedStatus, int expectedValue)
-	{
+	void AssertMeasurements(string expectedStatus, int expectedValue) {
 		_listener.Observe();
 
 		Assert.Collection(
 			_listener.RetrieveMeasurements("eventstore-statuses"),
-			m =>
-			{
+			m => {
 				Assert.Equal(expectedValue, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t =>
-					{
+					t => {
 						Assert.Equal("name", t.Key);
 						Assert.Equal("Node", t.Value);
 					},
-					t =>
-					{
+					t => {
 						Assert.Equal("status", t.Key);
 						Assert.Equal(expectedStatus, t.Value);
 					});

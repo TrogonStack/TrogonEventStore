@@ -9,11 +9,9 @@ namespace EventStore.Core.Tests.Services.Storage.AllReader;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	WhenMultipleSingleWritesAreAfterTransactionEndButBeforeCommitIsPresent<TLogFormat, TStreamId>
-	: RepeatableDbTestScenario<TLogFormat, TStreamId>
-{
+	: RepeatableDbTestScenario<TLogFormat, TStreamId> {
 	[Test]
-	public async Task should_be_able_to_read_the_transactional_writes_when_the_commit_is_present()
-	{
+	public async Task should_be_able_to_read_the_transactional_writes_when_the_commit_is_present() {
 		/*
 		 * create a db with a transaction where the commit is not present yet (read happened before the chaser could commit)
 		 * in the following case the read will return the event for the single non-transactional write

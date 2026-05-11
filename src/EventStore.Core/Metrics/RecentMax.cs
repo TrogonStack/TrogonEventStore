@@ -42,7 +42,7 @@ public class RecentMax<T> {
 
 		_maxBuckets = new T[_numBuckets];
 	}
-	 
+
 	public long MinPeriodSeconds { get; init; }
 	public long MaxPeriodSeconds { get; init; }
 
@@ -52,8 +52,9 @@ public class RecentMax<T> {
 		ResetStaleBuckets(currentSubPeriod);
 
 		var currentIndex = (int)(currentSubPeriod % _numBuckets);
-		if (_comparer.Compare(value, _maxBuckets[currentIndex]) > 0)
+		if (_comparer.Compare(value, _maxBuckets[currentIndex]) > 0) {
 			_maxBuckets[currentIndex] = value;
+		}
 
 		return now;
 	}
@@ -93,22 +94,27 @@ public class RecentMax<T> {
 				// observed durations in the range 0-1s
 				NumBuckets = 1;
 				SecondsPerBucket = 1;
-			} else if (expectedScrapeIntervalSeconds == 1) {
+			}
+			else if (expectedScrapeIntervalSeconds == 1) {
 				// observed durations in the range 2-3s
 				NumBuckets = 3;
 				SecondsPerBucket = 1;
-			} else if (expectedScrapeIntervalSeconds == 5) {
+			}
+			else if (expectedScrapeIntervalSeconds == 5) {
 				// observed durations in the range 6-8s
 				NumBuckets = 4;
 				SecondsPerBucket = 2;
-			} else if (expectedScrapeIntervalSeconds == 10) {
+			}
+			else if (expectedScrapeIntervalSeconds == 10) {
 				// observed durations in the range 12-15s
 				NumBuckets = 5;
 				SecondsPerBucket = 3;
-			} else if (expectedScrapeIntervalSeconds % 15 == 0) {
+			}
+			else if (expectedScrapeIntervalSeconds % 15 == 0) {
 				NumBuckets = 5;
 				SecondsPerBucket = expectedScrapeIntervalSeconds / 15 * 4;
-			} else {
+			}
+			else {
 				throw new ArgumentException(
 					$"ExpectedScrapeIntervalSeconds must be 0, 1, 5, 10 or a multiple of 15, " +
 					$"but was {expectedScrapeIntervalSeconds}");

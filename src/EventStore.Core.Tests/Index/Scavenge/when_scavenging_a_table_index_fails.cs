@@ -14,8 +14,7 @@ namespace EventStore.Core.Tests.Index.Scavenge;
 
 [TestFixture(false)]
 [TestFixture(true)]
-class when_scavenging_a_table_index_fails : SpecificationWithDirectoryPerTestFixture
-{
+class when_scavenging_a_table_index_fails : SpecificationWithDirectoryPerTestFixture {
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -23,14 +22,12 @@ class when_scavenging_a_table_index_fails : SpecificationWithDirectoryPerTestFix
 	private FakeTFScavengerLog _log;
 	private readonly bool _useBloomFilter;
 
-	public when_scavenging_a_table_index_fails(bool useBloomFilter)
-	{
+	public when_scavenging_a_table_index_fails(bool useBloomFilter) {
 		_useBloomFilter = useBloomFilter;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
@@ -75,16 +72,14 @@ class when_scavenging_a_table_index_fails : SpecificationWithDirectoryPerTestFix
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_have_logged_a_failure()
-	{
+	public void should_have_logged_a_failure() {
 		Assert.That(_log.ScavengedIndices.Count, Is.EqualTo(1));
 		Assert.That(_log.ScavengedIndices[0].Scavenged, Is.False);
 		Assert.That(_log.ScavengedIndices[0].Error, Is.EqualTo("Expected exception"));
@@ -92,8 +87,7 @@ class when_scavenging_a_table_index_fails : SpecificationWithDirectoryPerTestFix
 	}
 
 	[Test]
-	public void should_still_have_all_entries_in_sorted_order()
-	{
+	public void should_still_have_all_entries_in_sorted_order() {
 		var streamId = "testStream-1";
 		var result = _tableIndex.GetRange(streamId, 0, 5).ToArray();
 		var hash = (ulong)_lowHasher.Hash(streamId) << 32 | _highHasher.Hash(streamId);
@@ -126,14 +120,11 @@ class when_scavenging_a_table_index_fails : SpecificationWithDirectoryPerTestFix
 	}
 
 	[Test]
-	public void old_index_tables_are_deleted()
-	{
-		if (_useBloomFilter)
-		{
+	public void old_index_tables_are_deleted() {
+		if (_useBloomFilter) {
 			Assert.That(Directory.EnumerateFiles(_indexDir).Count(), Is.EqualTo(7), "Expected IndexMap and 3 tables and 3 bloom filters.");
 		}
-		else
-		{
+		else {
 			Assert.That(Directory.EnumerateFiles(_indexDir).Count(), Is.EqualTo(4), "Expected IndexMap and 3 tables.");
 		}
 	}

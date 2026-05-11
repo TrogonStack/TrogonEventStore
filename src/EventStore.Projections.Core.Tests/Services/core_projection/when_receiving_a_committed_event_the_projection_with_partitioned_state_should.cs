@@ -16,14 +16,11 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_receiving_a_committed_event_the_projection_with_partitioned_state_should<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
+	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
 	private Guid _eventId;
 
-	protected override void Given()
-	{
-		_configureBuilderByQuerySource = source =>
-		{
+	protected override void Given() {
+		_configureBuilderByQuerySource = source => {
 			source.FromAll();
 			source.AllEvents();
 			source.SetByStream();
@@ -35,8 +32,7 @@ public class when_receiving_a_committed_event_the_projection_with_partitioned_st
 		NoOtherStreams();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_consumer.HandledMessages.Clear();
@@ -48,8 +44,7 @@ public class when_receiving_a_committed_event_the_projection_with_partitioned_st
 	}
 
 	[Test]
-	public void request_partition_state_from_the_correct_stream()
-	{
+	public void request_partition_state_from_the_correct_stream() {
 		// 1 - for load state
 		Assert.AreEqual(
 			1,
@@ -58,8 +53,7 @@ public class when_receiving_a_committed_event_the_projection_with_partitioned_st
 	}
 
 	[Test]
-	public void update_state_snapshot_is_written_to_the_correct_stream()
-	{
+	public void update_state_snapshot_is_written_to_the_correct_stream() {
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "Result")).ToList();
 		Assert.AreEqual(1, writeEvents.Count);
@@ -69,8 +63,7 @@ public class when_receiving_a_committed_event_the_projection_with_partitioned_st
 	}
 
 	[Test]
-	public void update_state_snapshot_at_correct_position()
-	{
+	public void update_state_snapshot_at_correct_position() {
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "Result")).ToList();
 		Assert.AreEqual(1, writeEvents.Count);
@@ -83,8 +76,7 @@ public class when_receiving_a_committed_event_the_projection_with_partitioned_st
 	}
 
 	[Test]
-	public void pass_event_to_state_handler()
-	{
+	public void pass_event_to_state_handler() {
 		Assert.AreEqual(1, _stateHandler._eventsProcessed);
 		Assert.AreEqual("account-01", _stateHandler._lastProcessedStreamId);
 		Assert.AreEqual("handle_this_type", _stateHandler._lastProcessedEventType);
@@ -95,8 +87,7 @@ public class when_receiving_a_committed_event_the_projection_with_partitioned_st
 	}
 
 	[Test]
-	public void register_new_partition_state_stream()
-	{
+	public void register_new_partition_state_stream() {
 		var writes =
 			_writeEventHandler.HandledMessages.Where(v => v.EventStreamId == "$projections-projection-partitions")
 				.ToArray();

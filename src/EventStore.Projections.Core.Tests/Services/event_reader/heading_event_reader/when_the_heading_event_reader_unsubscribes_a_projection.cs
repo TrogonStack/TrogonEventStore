@@ -12,8 +12,7 @@ using HeadingEventReader = EventStore.Projections.Core.Services.Processing.Trans
 namespace EventStore.Projections.Core.Tests.Services.event_reader.heading_event_reader;
 
 [TestFixture]
-public class when_the_heading_event_reader_unsubscribes_a_projection : TestFixtureWithReadWriteDispatchers
-{
+public class when_the_heading_event_reader_unsubscribes_a_projection : TestFixtureWithReadWriteDispatchers {
 	private HeadingEventReader _point;
 	private Exception _exception;
 	private Guid _distibutionPointCorrelationId;
@@ -21,15 +20,12 @@ public class when_the_heading_event_reader_unsubscribes_a_projection : TestFixtu
 	private Guid _projectionSubscriptionId;
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_exception = null;
-		try
-		{
+		try {
 			_point = new HeadingEventReader(10, _bus);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_exception = ex;
 		}
 
@@ -57,8 +53,7 @@ public class when_the_heading_event_reader_unsubscribes_a_projection : TestFixtu
 
 
 	[Test]
-	public void projection_does_not_receive_any_events_after_unsubscribing()
-	{
+	public void projection_does_not_receive_any_events_after_unsubscribing() {
 		var count = _subscription.ReceivedEvents.Count;
 		_point.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
@@ -68,14 +63,12 @@ public class when_the_heading_event_reader_unsubscribes_a_projection : TestFixtu
 	}
 
 	[Test]
-	public void it_cannot_be_unsubscribed_twice()
-	{
+	public void it_cannot_be_unsubscribed_twice() {
 		Assert.Throws<InvalidOperationException>(() => { _point.Unsubscribe(_projectionSubscriptionId); });
 	}
 
 	[Test]
-	public void projection_can_resubscribe_with()
-	{
+	public void projection_can_resubscribe_with() {
 		var subscribed = _point.TrySubscribe(_projectionSubscriptionId, _subscription, 30);
 		Assert.AreEqual(true, subscribed);
 	}

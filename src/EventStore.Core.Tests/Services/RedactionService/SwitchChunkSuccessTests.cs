@@ -9,14 +9,11 @@ using MD5 = EventStore.Core.Hashing.MD5;
 
 namespace EventStore.Core.Tests.Services.RedactionService;
 
-public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFormat, TStreamId>
-{
+public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFormat, TStreamId> {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class CanSwitchWithExactCopy : SwitchChunkSuccess<TLogFormat, TStreamId>
-	{
+	public class CanSwitchWithExactCopy : SwitchChunkSuccess<TLogFormat, TStreamId> {
 		[Test]
-		public async Task can_switch_with_exact_copy()
-		{
+		public async Task can_switch_with_exact_copy() {
 			var newChunk = Path.Combine(PathName, $"{nameof(can_switch_with_exact_copy)}.tmp");
 
 			File.Copy(GetChunk(1, 0, true), newChunk);
@@ -42,19 +39,16 @@ public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFo
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class CanSwitchWithModifiedCopy : SwitchChunkSuccess<TLogFormat, TStreamId>
-	{
+	public class CanSwitchWithModifiedCopy : SwitchChunkSuccess<TLogFormat, TStreamId> {
 		[Test]
-		public async Task can_switch_with_modified_copy()
-		{
+		public async Task can_switch_with_modified_copy() {
 			var newChunk = Path.Combine(PathName, $"{nameof(can_switch_with_modified_copy)}.tmp");
 
 			File.Copy(GetChunk(1, 0, true), newChunk);
 
 			// edit the chunk file
 			File.SetAttributes(newChunk, FileAttributes.Normal);
-			await using (var fs = new FileStream(newChunk, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-			{
+			await using (var fs = new FileStream(newChunk, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
 				// jump in the data and make some modifications
 				fs.Seek(ChunkHeader.Size + 123, SeekOrigin.Begin);
 				fs.WriteByte(0xAB);
@@ -66,8 +60,9 @@ public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFo
 				// recompute the hash
 				byte[] newHash;
 				fs.Seek(0, SeekOrigin.Begin);
-				using (var md5 = MD5.Create())
+				using (var md5 = MD5.Create()) {
 					newHash = await md5.ComputeHashAsync(fs);
+				}
 
 				// write the new hash
 				fs.Seek(0, SeekOrigin.End);

@@ -8,10 +8,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Helpers.IODispatcherTests.QueueWriteEventsTests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_requesting_multiple_writes_with_the_same_key<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+public class when_requesting_multiple_writes_with_the_same_key<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	protected override void Given() {
 		AllWritesQueueUp();
 
 		var key = Guid.NewGuid();
@@ -27,14 +25,12 @@ public class when_requesting_multiple_writes_with_the_same_key<TLogFormat, TStre
 	}
 
 	[Test]
-	public void should_only_have_a_single_write_in_flight()
-	{
+	public void should_only_have_a_single_write_in_flight() {
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Count());
 	}
 
 	[Test]
-	public void should_continue_to_only_have_a_single_write_in_flight_as_writes_complete()
-	{
+	public void should_continue_to_only_have_a_single_write_in_flight_as_writes_complete() {
 		var writeRequests = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>();
 
 		//first write

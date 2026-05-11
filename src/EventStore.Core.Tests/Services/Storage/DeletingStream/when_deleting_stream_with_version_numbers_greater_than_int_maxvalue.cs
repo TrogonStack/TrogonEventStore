@@ -5,14 +5,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenDeletingStreamWithVersionNumbersGreaterThanIntMaxvalue<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
-{
+public class WhenDeletingStreamWithVersionNumbersGreaterThanIntMaxvalue<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
 	long firstEventNumber = (long)int.MaxValue + 1;
 	long secondEventNumber = (long)int.MaxValue + 2;
 	long thirdEventNumber = (long)int.MaxValue + 3;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		await WriteSingleEvent("ES", firstEventNumber, new string('.', 3000), token: token);
 		await WriteSingleEvent("KEEP", firstEventNumber, new string('.', 3000), token: token);
 		await WriteSingleEvent("KEEP", secondEventNumber, new string('.', 3000), token: token);
@@ -24,14 +22,12 @@ public class WhenDeletingStreamWithVersionNumbersGreaterThanIntMaxvalue<TLogForm
 	}
 
 	[Test]
-	public async Task indicate_that_stream_is_deleted()
-	{
+	public async Task indicate_that_stream_is_deleted() {
 		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public async Task indicate_that_other_stream_is_not_deleted()
-	{
+	public async Task indicate_that_other_stream_is_not_deleted() {
 		Assert.IsFalse(await ReadIndex.IsStreamDeleted("KEEP", CancellationToken.None));
 	}
 }

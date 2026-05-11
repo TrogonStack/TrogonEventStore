@@ -13,8 +13,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private ITransactionFileWriter _writer;
 	private InMemoryCheckpoint _writerCheckpoint;
 	private readonly Guid _eventId = Guid.NewGuid();
@@ -23,8 +22,7 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 	private TFChunkDb _db;
 
 	[OneTimeSetUp]
-	public async Task SetUp()
-	{
+	public async Task SetUp() {
 		_writerCheckpoint = new InMemoryCheckpoint();
 		_db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, _writerCheckpoint, new InMemoryCheckpoint(),
 			1024));
@@ -55,15 +53,13 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 	}
 
 	[OneTimeTearDown]
-	public async Task Teardown()
-	{
+	public async Task Teardown() {
 		await _writer.DisposeAsync();
 		await _db.DisposeAsync();
 	}
 
 	[Test]
-	public async Task the_data_is_written()
-	{
+	public async Task the_data_is_written() {
 		//TODO MAKE THIS ACTUALLY ASSERT OFF THE FILE AND READER FROM KNOWN FILE
 		using var reader = new TFChunkChaser(_db, _writerCheckpoint, _db.Config.ChaserCheckpoint);
 		reader.Open();
@@ -94,14 +90,12 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test]
-	public void the_checksum_is_updated()
-	{
+	public void the_checksum_is_updated() {
 		Assert.AreEqual(_record.GetSizeWithLengthPrefixAndSuffix(), _writerCheckpoint.Read());
 	}
 
 	[Test]
-	public async Task trying_to_read_past_writer_checksum_returns_false()
-	{
+	public async Task trying_to_read_past_writer_checksum_returns_false() {
 		var reader = new TFChunkReader(_db, _writerCheckpoint);
 		Assert.IsFalse(
 			(await reader.TryReadAt(_writerCheckpoint.Read(), couldBeScavenged: true, CancellationToken.None)).Success);

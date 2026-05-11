@@ -7,26 +7,21 @@ namespace EventStore.Core.Tests.Index.IndexV4;
 [TestFixture(PTableVersions.IndexV4, true)]
 public class
 	when_merging_ptables_with_entries_to_nonexisting_record : IndexV1.
-		when_merging_ptables_with_entries_to_nonexisting_record_in_newer_index_versions
-{
+		when_merging_ptables_with_entries_to_nonexisting_record_in_newer_index_versions {
 	public when_merging_ptables_with_entries_to_nonexisting_record(byte version, bool skipIndexVerify) : base(
-		version, skipIndexVerify)
-	{
+		version, skipIndexVerify) {
 	}
 
 	[Test]
-	public void the_correct_midpoints_are_cached()
-	{
+	public void the_correct_midpoints_are_cached() {
 		var midpoints = _newtable.GetMidPoints();
 		var requiredMidpoints = PTable.GetRequiredMidpointCountCached(_newtable.Count, _ptableVersion);
 
 		Assert.AreEqual(requiredMidpoints, midpoints.Length);
 
 		var position = 0;
-		foreach (var item in _newtable.IterateAllInOrder())
-		{
-			if (Utils.IsMidpointIndex(position, _newtable.Count, requiredMidpoints))
-			{
+		foreach (var item in _newtable.IterateAllInOrder()) {
+			if (Utils.IsMidpointIndex(position, _newtable.Count, requiredMidpoints)) {
 				Assert.AreEqual(item.Stream, midpoints[position].Key.Stream);
 				Assert.AreEqual(item.Version, midpoints[position].Key.Version);
 				Assert.AreEqual(position, midpoints[position].ItemIndex);

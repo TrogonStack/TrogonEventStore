@@ -12,19 +12,16 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class appending_to_streams_across_restart<TLogFormat, TStreamId> : SpecificationWithDirectory
-{
+public class appending_to_streams_across_restart<TLogFormat, TStreamId> : SpecificationWithDirectory {
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 
-	virtual protected IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	virtual protected IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
 	[TearDown]
-	public override async Task TearDown()
-	{
+	public override async Task TearDown() {
 		await _node?.Shutdown();
 		await base.TearDown();
 	}
@@ -32,10 +29,8 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 	[Test]
 	[Category("Network")]
 	[Timeout(80000)]
-	public async Task detect_existing_streams_flush()
-	{
-		void CreateNode()
-		{
+	public async Task detect_existing_streams_flush() {
+		void CreateNode() {
 			_node = new MiniNode<TLogFormat, TStreamId>(
 				pathname: PathName,
 				dbPath: Path.Combine(PathName, "mini-node-db"),
@@ -63,8 +58,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 
 		var uncommittedTransId = 0L;
 
-		using (var store = BuildConnection(_node))
-		{
+		using (var store = BuildConnection(_node)) {
 			await store.ConnectAsync();
 
 			// normal
@@ -77,8 +71,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 				.Apply(x => x.SetStreamMetadataAsync("meta", ExpectedVersion.NoStream, StreamMetadata.Create(maxCount: 5)))
 				.Apply(x => x.NextExpectedVersion));
 
-			if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
-			{
+			if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
 				// committed
 				Assert.AreEqual(9, await new TransactionalWriter(store, committed)
 					.Apply(x => x.StartTransaction(-1))
@@ -107,8 +100,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 		await WaitForNodeReadiness();
 
 		// THEN the streams all exist
-		using (var store = BuildConnection(_node))
-		{
+		using (var store = BuildConnection(_node)) {
 			await store.ConnectAsync();
 
 			// normal
@@ -127,8 +119,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 
 			Assert.AreEqual(0, await EventsStream.Count(store, meta));
 
-			if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
-			{
+			if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
 				// committed
 				Assert.AreEqual(10, await store
 					.Apply(x => x.AppendToStreamAsync(committed, 9, TestEvent.NewTestEvent(Guid.NewGuid())))
@@ -151,8 +142,7 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	private async Task WaitForNodeReadiness()
-	{
+	private async Task WaitForNodeReadiness() {
 		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);
 		using var connection = await TestConnectionLifecycle.ReconnectUntilReady(
 			() => BuildConnection(_node),
@@ -161,26 +151,21 @@ public class appending_to_streams_across_restart<TLogFormat, TStreamId> : Specif
 	}
 }
 
-public static class Extensions
-{
-	public async static Task<U> Apply<T, U>(this Task<T> x, Func<T, Task<U>> f)
-	{
+public static class Extensions {
+	public async static Task<U> Apply<T, U>(this Task<T> x, Func<T, Task<U>> f) {
 		var r = await x;
 		return await f(r);
 	}
 
-	public static U Apply<T, U>(this T x, Func<T, U> f)
-	{
+	public static U Apply<T, U>(this T x, Func<T, U> f) {
 		return f(x);
 	}
 
-	public async static Task<U> Apply<T, U>(this T x, Func<T, Task<U>> f)
-	{
+	public async static Task<U> Apply<T, U>(this T x, Func<T, Task<U>> f) {
 		return await f(x);
 	}
 
-	public async static Task<U> Apply<T, U>(this Task<T> x, Func<T, U> f)
-	{
+	public async static Task<U> Apply<T, U>(this Task<T> x, Func<T, U> f) {
 		var r = await x;
 		return f(r);
 	}

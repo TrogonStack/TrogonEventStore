@@ -7,8 +7,9 @@ namespace EventStore.Core.TransactionLog {
 		public readonly long NewPosition;
 
 		public RecordWriteResult(bool success, long oldPosition, long newPosition) {
-			if (newPosition < oldPosition)
+			if (newPosition < oldPosition) {
 				throw new ArgumentException("New position is less than old position.");
+			}
 
 			Success = success;
 			OldPosition = oldPosition;

@@ -3,8 +3,7 @@ using System.Runtime.Serialization;
 namespace EventStore.Projections.Core.Services.Processing;
 
 [DataContract]
-public class QuerySourceOptions
-{
+public class QuerySourceOptions {
 	[DataMember] public string ResultStreamName { get; set; }
 
 	[DataMember] public string PartitionResultStreamNamePattern { get; set; }
@@ -25,8 +24,7 @@ public class QuerySourceOptions
 
 	[DataMember] public bool IncludeLinks { get; set; }
 
-	protected bool Equals(QuerySourceOptions other)
-	{
+	protected bool Equals(QuerySourceOptions other) {
 		return string.Equals(ResultStreamName, other.ResultStreamName)
 			   && string.Equals(PartitionResultStreamNamePattern, other.PartitionResultStreamNamePattern)
 			   && ReorderEvents.Equals(other.ReorderEvents) && ProcessingLag == other.ProcessingLag
@@ -36,21 +34,24 @@ public class QuerySourceOptions
 			   && IncludeLinks.Equals(other.IncludeLinks);
 	}
 
-	public override bool Equals(object obj)
-	{
-		if (ReferenceEquals(null, obj))
+	public override bool Equals(object obj) {
+		if (ReferenceEquals(null, obj)) {
 			return false;
-		if (ReferenceEquals(this, obj))
+		}
+
+		if (ReferenceEquals(this, obj)) {
 			return true;
-		if (obj.GetType() != this.GetType())
+		}
+
+		if (obj.GetType() != this.GetType()) {
 			return false;
+		}
+
 		return Equals((QuerySourceOptions)obj);
 	}
 
-	public override int GetHashCode()
-	{
-		unchecked
-		{
+	public override int GetHashCode() {
+		unchecked {
 			int hashCode = (ResultStreamName != null ? ResultStreamName.GetHashCode() : 0);
 			hashCode = (hashCode * 397) ^ (PartitionResultStreamNamePattern != null
 				? PartitionResultStreamNamePattern.GetHashCode()

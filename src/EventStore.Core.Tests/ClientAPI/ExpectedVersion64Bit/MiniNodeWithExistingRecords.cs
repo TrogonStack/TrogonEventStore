@@ -23,8 +23,7 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 
-public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	private readonly TcpType _tcpType = TcpType.Ssl;
 	protected MiniNode<TLogFormat, TStreamId> Node;
 
@@ -45,27 +44,25 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 
 	protected IEventStoreConnection _store;
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
-	{
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
 		return TestConnection.To(node, _tcpType);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		string dbPath = Path.Combine(PathName, string.Format("mini-node-db-{0}", Guid.NewGuid()));
 
-		_logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
-		{
+		_logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
 			IndexDirectory = GetFilePathFor("index"),
 		});
 
 		Bus = new();
 		IODispatcher = new IODispatcher(Bus, Bus);
 
-		if (!Directory.Exists(dbPath))
+		if (!Directory.Exists(dbPath)) {
 			Directory.CreateDirectory(dbPath);
+		}
 
 		var writerCheckFilename = Path.Combine(dbPath, Checkpoint.Writer + ".chk");
 		var chaserCheckFilename = Path.Combine(dbPath, Checkpoint.Chaser + ".chk");
@@ -98,19 +95,16 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 		Node = new MiniNode<TLogFormat, TStreamId>(PathName, dbPath: dbPath);
 		await Node.Start();
 
-		try
-		{
+		try {
 			await Given().WithTimeout();
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			throw new Exception("Given Failed", ex);
 		}
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
+	public override async Task TestFixtureTearDown() {
 		_store?.Dispose();
 		_logFormatFactory?.Dispose();
 
@@ -127,8 +121,7 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 		DateTime? timestamp = null,
 		Guid eventId = default(Guid),
 		string eventType = "some-type",
-		CancellationToken token = default)
-	{
+		CancellationToken token = default) {
 
 		long pos = Writer.Position;
 		_logFormatFactory.StreamNameIndex.GetOrReserve(
@@ -138,8 +131,7 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 			out var eventStreamId,
 			out var streamRecord);
 
-		if (streamRecord != null)
-		{
+		if (streamRecord != null) {
 			(_, pos) = await Writer.Write(streamRecord, token);
 		}
 
@@ -150,8 +142,7 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 			out var eventTypeId,
 			out var eventTypeRecord);
 
-		if (eventTypeRecord != null)
-		{
+		if (eventTypeRecord != null) {
 			(_, pos) = await Writer.Write(eventTypeRecord, token);
 		}
 

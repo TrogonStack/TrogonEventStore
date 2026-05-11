@@ -7,35 +7,29 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.multi_phase;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-class when_completing_phase1_of_a_multiphase_projection<TLogFormat, TStreamId> : specification_with_multi_phase_core_projection<TLogFormat, TStreamId>
-{
-	protected override void When()
-	{
+class when_completing_phase1_of_a_multiphase_projection<TLogFormat, TStreamId> : specification_with_multi_phase_core_projection<TLogFormat, TStreamId> {
+	protected override void When() {
 		_coreProjection.Start();
 		Phase1.Complete();
 	}
 
 	[Test]
-	public void stops_phase1_checkpoint_manager()
-	{
+	public void stops_phase1_checkpoint_manager() {
 		Assert.IsTrue(Phase1CheckpointManager.Stopped_);
 	}
 
 	[Test]
-	public void initializes_phase2()
-	{
+	public void initializes_phase2() {
 		Assert.IsTrue(Phase2.InitializedFromCheckpoint);
 	}
 
 	[Test]
-	public void updates_checkpoint_tag_phase()
-	{
+	public void updates_checkpoint_tag_phase() {
 		Assert.AreEqual(1, _coreProjection.LastProcessedEventPosition.Phase);
 	}
 
 	[Test]
-	public void publishes_subscribe_message()
-	{
+	public void publishes_subscribe_message() {
 		Assert.AreEqual(1, Phase2.SubscribeInvoked);
 	}
 }

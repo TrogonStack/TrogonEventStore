@@ -12,14 +12,12 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Helpers;
 
-public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySequence<byte>>
-{
+public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySequence<byte>> {
 	private static readonly ILogger Log = Serilog.Log.ForContext<LengthPrefixSuffixFramer>();
 
 	private const int PrefixLength = sizeof(int);
 
-	public bool HasData
-	{
+	public bool HasData {
 		get { return _memStream.Length > 0; }
 	}
 
@@ -33,34 +31,29 @@ public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySeque
 	private int _prefixBytes;
 	private int _packageLength;
 
-	public LengthPrefixSuffixFramer(int maxPackageSize = TFConsts.MaxLogRecordSize)
-	{
+	public LengthPrefixSuffixFramer(int maxPackageSize = TFConsts.MaxLogRecordSize) {
 		Ensure.Positive(maxPackageSize, "maxPackageSize");
 
 		_maxPackageSize = maxPackageSize;
 		_memStream = new MemoryStream();
 	}
 
-	public void Reset()
-	{
+	public void Reset() {
 		_memStream.SetLength(0);
 		_prefixBytes = 0;
 		_packageLength = 0;
 	}
 
-	public async ValueTask UnFrameData(IEnumerable<ArraySegment<byte>> data, CancellationToken token)
-	{
+	public async ValueTask UnFrameData(IEnumerable<ArraySegment<byte>> data, CancellationToken token) {
 		Ensure.NotNull(data, nameof(data));
 
-		foreach (ArraySegment<byte> buffer in data)
-		{
+		foreach (ArraySegment<byte> buffer in data) {
 			await Parse(buffer, token);
 		}
 	}
 
 	public void RegisterMessageArrivedCallback(
-		Func<ReadOnlySequence<byte>, CancellationToken, ValueTask> packageHandler)
-	{
+		Func<ReadOnlySequence<byte>, CancellationToken, ValueTask> packageHandler) {
 		Ensure.NotNull(packageHandler, nameof(packageHandler));
 		_packageHandler = packageHandler;
 	}
@@ -68,22 +61,17 @@ public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySeque
 	public ValueTask UnFrameData(ArraySegment<byte> data, CancellationToken token) => Parse(data, token);
 
 	// Parses a stream chunking based on length-prefixed-suffixed framing. Calls are re-entrant and hold state internally.
-	private async ValueTask Parse(ArraySegment<byte> bytes, CancellationToken token)
-	{
+	private async ValueTask Parse(ArraySegment<byte> bytes, CancellationToken token) {
 		byte[] data = bytes.Array;
 		Debug.Assert(data is not null);
 
-		for (int i = bytes.Offset; i < bytes.Offset + bytes.Count;)
-		{
-			if (_prefixBytes < PrefixLength)
-			{
+		for (int i = bytes.Offset; i < bytes.Offset + bytes.Count;) {
+			if (_prefixBytes < PrefixLength) {
 				_packageLength |= (data[i] << (_prefixBytes * 8)); // little-endian order
 				_prefixBytes += 1;
 				i += 1;
-				if (_prefixBytes == PrefixLength)
-				{
-					if (_packageLength <= 0 || _packageLength > _maxPackageSize)
-					{
+				if (_prefixBytes == PrefixLength) {
+					if (_packageLength <= 0 || _packageLength > _maxPackageSize) {
 						Log.Error("FRAMING ERROR! Data:\n{data}", Helper.FormatBinaryDump(bytes));
 						throw new PackageFramingException(string.Format(
 							"Package size is out of bounds: {0} (max: {1}).",
@@ -93,24 +81,21 @@ public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySeque
 					_packageLength += PrefixLength; // we need to read suffix as well
 				}
 			}
-			else
-			{
+			else {
 				int copyCnt = Math.Min(bytes.Count + bytes.Offset - i, _packageLength - (int)_memStream.Length);
 				_memStream.Write(data, i, copyCnt);
 				i += copyCnt;
 
-				if (_memStream.Length == _packageLength)
-				{
+				if (_memStream.Length == _packageLength) {
 					byte[] buf;
 					var messageLength = _packageLength - PrefixLength;
 #if DEBUG
 					buf = _memStream.GetBuffer();
 					int suffixLength = (buf[_packageLength - 4] << 0)
-					                   | (buf[_packageLength - 3] << 8)
-					                   | (buf[_packageLength - 2] << 16)
-					                   | (buf[_packageLength - 1] << 24);
-					if (messageLength != suffixLength)
-					{
+									   | (buf[_packageLength - 3] << 8)
+									   | (buf[_packageLength - 2] << 16)
+									   | (buf[_packageLength - 1] << 24);
+					if (messageLength != suffixLength) {
 						throw new Exception(string.Format("Prefix length: {0} is not equal to suffix length: {1}.",
 							messageLength, suffixLength));
 					}
@@ -129,8 +114,7 @@ public sealed class LengthPrefixSuffixFramer : IAsyncMessageFramer<ReadOnlySeque
 		}
 	}
 
-	public IEnumerable<ArraySegment<byte>> FrameData(ArraySegment<byte> data)
-	{
+	public IEnumerable<ArraySegment<byte>> FrameData(ArraySegment<byte> data) {
 		var length = data.Count;
 
 		var lengthArray = new ArraySegment<byte>(

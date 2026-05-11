@@ -12,8 +12,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-internal sealed class WriterWorkItem : Disposable
-{
+internal sealed class WriterWorkItem : Disposable {
 	public const int BufferSize = 8192;
 
 	public Stream WorkingStream { get; private set; }
@@ -23,11 +22,9 @@ internal sealed class WriterWorkItem : Disposable
 	public readonly IncrementalHash MD5;
 
 	public unsafe WriterWorkItem(nint memoryPtr, int length, IncrementalHash md5,
-		IChunkWriteTransform chunkWriteTransform, int initialStreamPosition)
-	{
+		IChunkWriteTransform chunkWriteTransform, int initialStreamPosition) {
 		var memStream =
-			new UnmanagedMemoryStream((byte*)memoryPtr, length, length, FileAccess.ReadWrite)
-			{
+			new UnmanagedMemoryStream((byte*)memoryPtr, length, length, FileAccess.ReadWrite) {
 				Position = initialStreamPosition,
 			};
 
@@ -37,8 +34,7 @@ internal sealed class WriterWorkItem : Disposable
 	}
 
 	public WriterWorkItem(IChunkHandle handle, IncrementalHash md5, bool unbuffered,
-		IChunkWriteTransform chunkWriteTransform, int initialStreamPosition)
-	{
+		IChunkWriteTransform chunkWriteTransform, int initialStreamPosition) {
 		var chunkStream = handle.CreateStream();
 		var fileStream = unbuffered
 			? chunkStream
@@ -50,15 +46,14 @@ internal sealed class WriterWorkItem : Disposable
 		MD5 = md5;
 	}
 
-	public void SetMemStream(UnmanagedMemoryStream memStream)
-	{
+	public void SetMemStream(UnmanagedMemoryStream memStream) {
 		_memStream = memStream;
-		if (_fileStream is null)
+		if (_fileStream is null) {
 			WorkingStream = memStream;
+		}
 	}
 
-	public ValueTask AppendData(ReadOnlyMemory<byte> buf, CancellationToken _)
-	{
+	public ValueTask AppendData(ReadOnlyMemory<byte> buf, CancellationToken _) {
 		// MEMORY (in-memory write doesn't require async I/O)
 		_memStream?.Write(buf.Span);
 
@@ -66,8 +61,7 @@ internal sealed class WriterWorkItem : Disposable
 		return _fileStream?.WriteAsync(buf, CancellationToken.None) ?? ValueTask.CompletedTask;
 	}
 
-	public void ResizeStream(int fileSize)
-	{
+	public void ResizeStream(int fileSize) {
 		_fileStream?.SetLength(fileSize);
 		// REMOVED: Memory stream should not be resized here.
 		// The memory stream is managed separately and resizing it here was causing issues
@@ -75,10 +69,8 @@ internal sealed class WriterWorkItem : Disposable
 		// _memStream?.SetLength(fileSize);
 	}
 
-	protected override void Dispose(bool disposing)
-	{
-		if (disposing)
-		{
+	protected override void Dispose(bool disposing) {
+		if (disposing) {
 			_fileStream?.Dispose();
 			DisposeMemStream();
 			MD5.Dispose();
@@ -87,14 +79,12 @@ internal sealed class WriterWorkItem : Disposable
 		base.Dispose(disposing);
 	}
 
-	public void FlushToDisk()
-	{
+	public void FlushToDisk() {
 		_fileStream?.Flush();
 		_memStream?.Flush();
 	}
 
-	public void DisposeMemStream()
-	{
+	public void DisposeMemStream() {
 		_memStream?.Dispose();
 		_memStream = null;
 	}

@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
-using System.Collections.Concurrent;
 using Google.Protobuf;
 using ILogger = Serilog.ILogger;
 
@@ -27,8 +27,9 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					return ret;
 				}
 
-				if ((i + 1) % 5 == 0)
+				if ((i + 1) % 5 == 0) {
 					Thread.Sleep(1); //need to do better than this
+				}
 			}
 
 			throw new UnableToAcquireStreamException();
@@ -38,11 +39,11 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_streams.Push(stream);
 		}
 
-		public static T Deserialize<T>(this byte[] data) where T: IMessage<T>, new() {
+		public static T Deserialize<T>(this byte[] data) where T : IMessage<T>, new() {
 			return Deserialize<T>(new ArraySegment<byte>(data));
 		}
 
-		public static T Deserialize<T>(this ArraySegment<byte> data) where T: IMessage<T>, new() {
+		public static T Deserialize<T>(this ArraySegment<byte> data) where T : IMessage<T>, new() {
 			try {
 				using (var memory = new MemoryStream(data.Array, data.Offset, data.Count)
 				) //uses original buffer as memory
@@ -51,33 +52,36 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					res.MergeFrom(memory);
 					return res;
 				}
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				Log.Information(e, "Deserialization to {type} failed", typeof(T).FullName);
 				return default(T);
 			}
 		}
 
-		public static ArraySegment<byte> Serialize<T>(this T protoContract) where T: IMessage<T> {
+		public static ArraySegment<byte> Serialize<T>(this T protoContract) where T : IMessage<T> {
 			MemoryStream stream = null;
 			try {
 				stream = AcquireStream();
 				protoContract.WriteTo(stream);
 				var res = new ArraySegment<byte>(stream.ToArray(), 0, (int)stream.Length);
 				return res;
-			} finally {
+			}
+			finally {
 				if (stream != null) {
 					ReleaseStream(stream);
 				}
 			}
 		}
 
-		public static byte[] SerializeToArray<T>(this T protoContract) where T: IMessage<T>{
+		public static byte[] SerializeToArray<T>(this T protoContract) where T : IMessage<T> {
 			MemoryStream stream = null;
 			try {
 				stream = AcquireStream();
 				protoContract.WriteTo(stream);
 				return stream.ToArray();
-			} finally {
+			}
+			finally {
 				if (stream != null) {
 					ReleaseStream(stream);
 				}

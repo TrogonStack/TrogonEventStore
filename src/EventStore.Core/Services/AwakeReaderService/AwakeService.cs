@@ -25,8 +25,10 @@ namespace EventStore.Core.Services.AwakeReaderService {
 		private int _processedEventsAwakeThreshold = 1000;
 
 		private void BeginReplyBatch() {
-			if (_batchedReplies.Count > 0)
+			if (_batchedReplies.Count > 0) {
 				throw new Exception();
+			}
+
 			_processedEvents = 0;
 		}
 
@@ -92,15 +94,19 @@ namespace EventStore.Core.Services.AwakeReaderService {
 					if (subscriber.From < new TFPos(message.CommitPosition, message.Event.LogPosition)) {
 						_batchedReplies.Add(subscriber);
 						_map.Remove(subscriber.CorrelationId);
-						if (toRemove == null)
+						if (toRemove == null) {
 							toRemove = new List<AwakeServiceMessage.SubscribeAwake>();
+						}
+
 						toRemove.Add(subscriber);
 					}
 				}
 
 				if (toRemove != null) {
-					foreach (var item in toRemove)
+					foreach (var item in toRemove) {
 						list.Remove(item);
+					}
+
 					if (list.Count == 0) {
 						_subscribers.Remove(streamId);
 					}

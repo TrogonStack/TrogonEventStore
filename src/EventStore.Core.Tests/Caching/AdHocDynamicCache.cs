@@ -3,8 +3,7 @@ using EventStore.Core.Caching;
 
 namespace EventStore.Core.Tests.Caching;
 
-public class AdHocDynamicCache : IDynamicCache
-{
+public class AdHocDynamicCache : IDynamicCache {
 	private readonly Func<long> _getSize;
 	private readonly Action<long> _setCapacity;
 	private readonly Func<long> _getFreedSize;
@@ -15,8 +14,7 @@ public class AdHocDynamicCache : IDynamicCache
 		Action<long> setCapacity,
 		Func<long> getFreedSize = null,
 		Action resetFreedSize = null,
-		string name = null)
-	{
+		string name = null) {
 
 		_getSize = getSize;
 		_setCapacity = setCapacity;
@@ -30,14 +28,12 @@ public class AdHocDynamicCache : IDynamicCache
 
 	public long Capacity { get; private set; }
 
-	public void SetCapacity(long value)
-	{
+	public void SetCapacity(long value) {
 		Capacity = value;
 		_setCapacity(value);
 	}
 
-	public void ResetFreedSize()
-	{
+	public void ResetFreedSize() {
 		_resetFreedSize();
 	}
 

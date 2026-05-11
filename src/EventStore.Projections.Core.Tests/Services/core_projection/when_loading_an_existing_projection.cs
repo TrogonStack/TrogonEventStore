@@ -8,12 +8,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_loading_an_existing_projection<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionLoaded<TLogFormat, TStreamId>
-{
+public class when_loading_an_existing_projection<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionLoaded<TLogFormat, TStreamId> {
 	private string _testProjectionState = @"{""test"":1}";
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		ExistingEvent(
 			"$projections-projection-result", "Result",
 			@"{""c"": 100, ""p"": 50}", _testProjectionState);
@@ -28,26 +26,22 @@ public class when_loading_an_existing_projection<TLogFormat, TStreamId> : TestFi
 			@"{""c"": 300, ""p"": 250}", _testProjectionState);
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 	}
 
 
 	[Test]
-	public void should_not_subscribe()
-	{
+	public void should_not_subscribe() {
 		Assert.AreEqual(0, _subscribeProjectionHandler.HandledMessages.Count);
 	}
 
 	[Test]
-	public void should_not_load_projection_state_handler()
-	{
+	public void should_not_load_projection_state_handler() {
 		Assert.AreEqual(0, _stateHandler._loadCalled);
 	}
 
 	[Test]
-	public void should_not_publish_started_message()
-	{
+	public void should_not_publish_started_message() {
 		Assert.AreEqual(0, _consumer.HandledMessages.OfType<CoreProjectionStatusMessage.Started>().Count());
 	}
 }

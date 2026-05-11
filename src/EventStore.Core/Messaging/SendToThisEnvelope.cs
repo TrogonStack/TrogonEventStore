@@ -16,7 +16,8 @@ namespace EventStore.Core.Messaging {
 		public void ReplyWith<T>(T message) where T : Message {
 			if (_receiver is IHandle<T> handle) {
 				handle.Handle(message);
-			} else if (_receiver is IAsyncHandle<T>) {
+			}
+			else if (_receiver is IAsyncHandle<T>) {
 				throw new Exception($"SendToThisEnvelope does not support asynchronous receivers. Receiver: {_receiver}");
 			}
 		}

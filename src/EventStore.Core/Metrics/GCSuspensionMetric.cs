@@ -23,31 +23,34 @@ public class GcSuspensionMetric : EventListener {
 	}
 
 	protected override void OnEventWritten(EventWrittenEventArgs eventData) {
-		if (_tracker == null)
+		if (_tracker == null) {
 			return;
+		}
 
 		switch (eventData.EventId) {
 			case GCSuspendEEBegin: {
-				var idx = eventData.PayloadNames!.IndexOf("Reason");
-				var value = (uint)eventData.Payload![idx]!;
+					var idx = eventData.PayloadNames!.IndexOf("Reason");
+					var value = (uint)eventData.Payload![idx]!;
 
-				// We only track suspensions that are meant for garbage collection.
-				// See https://learn.microsoft.com/en-us/dotnet/fundamentals/diagnostics/runtime-garbage-collection-events
-				if (value is SuspendForGc or SuspendForGcPrep)
-					_started = eventData.TimeStamp;
+					// We only track suspensions that are meant for garbage collection.
+					// See https://learn.microsoft.com/en-us/dotnet/fundamentals/diagnostics/runtime-garbage-collection-events
+					if (value is SuspendForGc or SuspendForGcPrep) {
+						_started = eventData.TimeStamp;
+					}
 
-				break;
-			}
+					break;
+				}
 
 			case GCRestartEEEnd: {
-				// Means that the suspension end event comes from a suspension that was not due to garbage collection.
-				if (!_started.HasValue)
-					return;
+					// Means that the suspension end event comes from a suspension that was not due to garbage collection.
+					if (!_started.HasValue) {
+						return;
+					}
 
-				_tracker.RecordNow(eventData.TimeStamp.Subtract(_started.Value));
-				_started = null;
-				break;
-			}
+					_tracker.RecordNow(eventData.TimeStamp.Subtract(_started.Value));
+					_started = null;
+					break;
+				}
 		}
 	}
 }

@@ -14,8 +14,7 @@ namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
 [TestFixture(33)]
 [TestFixture(123)]
 [TestFixture(523)]
-public class ReadEventInfoForward_NoCollisions_Randomized : ReadIndexTestScenario<LogFormat.V2, string>
-{
+public class ReadEventInfoForward_NoCollisions_Randomized : ReadIndexTestScenario<LogFormat.V2, string> {
 	private const string Stream = "ab-1";
 	private const ulong Hash = 98;
 	private const string NonCollidingStream = "cd-1";
@@ -28,35 +27,28 @@ public class ReadEventInfoForward_NoCollisions_Randomized : ReadIndexTestScenari
 		chunkSize: 1_000_000,
 		maxEntriesInMemTable: maxEntriesInMemTable,
 		lowHasher: new ConstantHasher(0),
-		highHasher: new HumanReadableHasher32())
-	{
+		highHasher: new HumanReadableHasher32()) {
 		_numEvents = _random.Next(100, 400);
 		_events = new List<EventRecord>(_numEvents);
 	}
 
-	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result)
-	{
+	private static void CheckResult(EventRecord[] events, IndexReadEventInfoResult result) {
 		Assert.AreEqual(events.Length, result.EventInfos.Length);
-		for (int i = 0; i < events.Length; i++)
-		{
+		for (int i = 0; i < events.Length; i++) {
 			Assert.AreEqual(events[i].EventNumber, result.EventInfos[i].EventNumber);
 			Assert.AreEqual(events[i].LogPosition, result.EventInfos[i].LogPosition);
 		}
 	}
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token)
-	{
+	protected override async ValueTask WriteTestScenario(CancellationToken token) {
 		var streamLast = 0L;
 		var nonCollidingStreamLast = 0L;
 
-		for (int i = 0; i < _numEvents; i++)
-		{
-			if (_random.Next(2) == 0)
-			{
+		for (int i = 0; i < _numEvents; i++) {
+			if (_random.Next(2) == 0) {
 				_events.Add(await WriteSingleEvent(Stream, streamLast++, "test data", token: token));
 			}
-			else
-			{
+			else {
 				_events.Add(await WriteSingleEvent(NonCollidingStream, nonCollidingStreamLast++, "testing",
 					token: token));
 			}
@@ -64,34 +56,35 @@ public class ReadEventInfoForward_NoCollisions_Randomized : ReadIndexTestScenari
 	}
 
 	[Test]
-	public async Task returns_correct_events_before_position()
-	{
+	public async Task returns_correct_events_before_position() {
 		var curEvents = new List<EventRecord>();
 
-		foreach (var @event in _events)
-		{
+		foreach (var @event in _events) {
 			var result = await ReadIndex.ReadEventInfoForward_NoCollisions(Hash, 0, int.MaxValue, @event.LogPosition,
 				CancellationToken.None);
 			CheckResult(curEvents.ToArray(), result);
-			if (curEvents.Count == 0)
+			if (curEvents.Count == 0) {
 				Assert.True(result.IsEndOfStream);
-			else
+			}
+			else {
 				Assert.AreEqual(int.MaxValue, result.NextEventNumber);
+			}
 
-			if (@event.EventStreamId == Stream)
+			if (@event.EventStreamId == Stream) {
 				curEvents.Add(@event);
+			}
 		}
 	}
 
 	[Test]
-	public async Task returns_correct_events_with_max_count()
-	{
+	public async Task returns_correct_events_with_max_count() {
 		var curEvents = new List<EventRecord>();
 
-		foreach (var @event in _events)
-		{
-			if (@event.EventStreamId != Stream)
+		foreach (var @event in _events) {
+			if (@event.EventStreamId != Stream) {
 				continue;
+			}
+
 			curEvents.Add(@event);
 
 			int maxCount = Math.Min((int)@event.EventNumber + 1, _random.Next(10, 100));

@@ -6,18 +6,15 @@ namespace EventStore.Core.Tests.Services.VNode.InaugurationManagement;
 
 
 [TestFixture]
-public class given_waiting_for_chaser : InaugurationManagerTests
-{
-	protected override void Given()
-	{
+public class given_waiting_for_chaser : InaugurationManagerTests {
+	protected override void Given() {
 		_sut.Handle(new ElectionMessage.ElectionsDone(123, _epochNumber, _leader));
 		_sut.Handle(new SystemMessage.BecomePreLeader(_correlationId1));
 		_publisher.Messages.Clear();
 	}
 
 	[Test]
-	public void when_chaser_caught_up()
-	{
+	public void when_chaser_caught_up() {
 		When(new SystemMessage.ChaserCaughtUp(_correlationId1));
 		Assert.AreEqual(1, _publisher.Messages.Count);
 		var writeEpoch = AssertIsType<SystemMessage.WriteEpoch>(_publisher.Messages[0]);
@@ -25,22 +22,19 @@ public class given_waiting_for_chaser : InaugurationManagerTests
 	}
 
 	[Test]
-	public void when_chaser_caught_up_with_unknown_correlation_id()
-	{
+	public void when_chaser_caught_up_with_unknown_correlation_id() {
 		When(new SystemMessage.ChaserCaughtUp(_correlationId2));
 		Assert.IsEmpty(_publisher.Messages);
 	}
 
 	[Test]
-	public void when_become_pre_leader()
-	{
+	public void when_become_pre_leader() {
 		When(new SystemMessage.BecomePreLeader(_correlationId2));
 		AssertWaitingForChaser(_correlationId2);
 	}
 
 	[Test]
-	public void when_become_other_node_state()
-	{
+	public void when_become_other_node_state() {
 		When(new SystemMessage.BecomeUnknown(Guid.NewGuid()));
 		AssertInitial();
 	}

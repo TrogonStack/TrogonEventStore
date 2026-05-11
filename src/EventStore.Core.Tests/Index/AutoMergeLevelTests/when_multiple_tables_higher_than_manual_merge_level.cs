@@ -5,10 +5,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.AutoMergeLevelTests;
 
 [TestFixture]
-public class when_multiple_tables_higher_than_manual_merge_level : when_max_auto_merge_level_is_set
-{
-	public override void Setup()
-	{
+public class when_multiple_tables_higher_than_manual_merge_level : when_max_auto_merge_level_is_set {
+	public override void Setup() {
 		base.Setup();
 		AddTables(8);
 		_map.Dispose(TimeSpan.FromMilliseconds(100));
@@ -19,8 +17,7 @@ public class when_multiple_tables_higher_than_manual_merge_level : when_max_auto
 	}
 
 	[Test]
-	public void tables_should_be_merged()
-	{
+	public void tables_should_be_merged() {
 		_result = _map.TryManualMerge(
 			_fileNameProvider,
 			_ptableVersion,

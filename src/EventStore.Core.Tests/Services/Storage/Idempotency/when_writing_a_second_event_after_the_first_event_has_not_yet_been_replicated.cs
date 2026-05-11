@@ -11,13 +11,11 @@ namespace EventStore.Core.Tests.Services.Storage.Idempotency;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_writing_a_second_event_after_the_first_event_has_not_yet_been_replicated<TLogFormat, TStreamId> :
-	WriteEventsToIndexScenario<TLogFormat, TStreamId>
-{
+	WriteEventsToIndexScenario<TLogFormat, TStreamId> {
 	private Guid _eventId = Guid.NewGuid();
 	private TStreamId _streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 
-	public override ValueTask WriteEvents(CancellationToken token)
-	{
+	public override ValueTask WriteEvents(CancellationToken token) {
 		var expectedEventNumber = -1;
 		var transactionPosition = 1000;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
@@ -35,8 +33,7 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_same_expectedversion_should_return_idempotentnotready_decision()
-	{
+	public async Task check_commit_with_same_expectedversion_should_return_idempotentnotready_decision() {
 		/*Second, idempotent write*/
 		var commitCheckResult =
 			await _indexWriter.CheckCommit(_streamId, -1, [_eventId], streamMightExist: true, CancellationToken.None);
@@ -44,8 +41,7 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_expectedversion_any_should_return_idempotentnotready_decision()
-	{
+	public async Task check_commit_with_expectedversion_any_should_return_idempotentnotready_decision() {
 		/*Second, idempotent write*/
 		var commitCheckResult = await _indexWriter.CheckCommit(_streamId, ExpectedVersion.Any, [_eventId],
 			streamMightExist: true, CancellationToken.None);
@@ -53,8 +49,7 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_next_expectedversion_should_return_ok_decision()
-	{
+	public async Task check_commit_with_next_expectedversion_should_return_ok_decision() {
 		/*Second, idempotent write*/
 		var commitCheckResult =
 			await _indexWriter.CheckCommit(_streamId, 0, [_eventId], streamMightExist: true, CancellationToken.None);
@@ -62,8 +57,7 @@ public class
 	}
 
 	[Test]
-	public async Task check_commit_with_incorrect_expectedversion_should_return_wrongexpectedversion_decision()
-	{
+	public async Task check_commit_with_incorrect_expectedversion_should_return_wrongexpectedversion_decision() {
 		/*Second, idempotent write*/
 		var commitCheckResult =
 			await _indexWriter.CheckCommit(_streamId, 1, [_eventId], streamMightExist: true, CancellationToken.None);

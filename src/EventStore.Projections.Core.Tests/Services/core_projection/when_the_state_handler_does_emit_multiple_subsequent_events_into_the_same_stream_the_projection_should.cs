@@ -13,10 +13,8 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_the_state_handler_does_emit_multiple_subsequent_events_into_the_same_stream_the_projection_should<TLogFormat, TStreamId> :
-		TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
-{
-	protected override void Given()
-	{
+		TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	protected override void Given() {
 		ExistingEvent(
 			"$projections-projection-result", "Result", @"{""c"": 100, ""p"": 50}", "{}");
 		ExistingEvent(
@@ -26,8 +24,7 @@ public class
 		NoOtherStreams();
 	}
 
-	protected override void When()
-	{
+	protected override void When() {
 		//projection subscribes here
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -39,21 +36,18 @@ public class
 
 
 	[Test]
-	public void write_events_in_a_single_transaction()
-	{
+	public void write_events_in_a_single_transaction() {
 		Assert.IsTrue(_writeEventHandler.HandledMessages.Any(v => v.Events.Length == 2));
 	}
 
 	[Test]
-	public void write_all_the_emitted_events()
-	{
+	public void write_all_the_emitted_events() {
 		Assert.AreEqual(
 			2, _writeEventHandler.HandledMessages.Single(v => v.EventStreamId == "/emit2").Events.Length);
 	}
 
 	[Test]
-	public void write_events_in_correct_order()
-	{
+	public void write_events_in_correct_order() {
 		Assert.AreEqual(
 			FakeProjectionStateHandler._emit1Data,
 			Helper.UTF8NoBom.GetString(

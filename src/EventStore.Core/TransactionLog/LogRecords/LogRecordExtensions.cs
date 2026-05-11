@@ -6,8 +6,8 @@ public static class LogRecordExtensions {
 	public static bool IsTransactionBoundary(this ILogRecord rec) {
 		return rec.RecordType switch {
 			LogRecordType.Prepare => rec is IPrepareLogRecord prepare &&
-			                         (!prepare.Flags.HasFlag(PrepareFlags.IsCommitted) || // explicit transaction
-			                         prepare.Flags.HasFlag(PrepareFlags.TransactionEnd)), // last prepare in implicit transaction
+									 (!prepare.Flags.HasFlag(PrepareFlags.IsCommitted) || // explicit transaction
+									 prepare.Flags.HasFlag(PrepareFlags.TransactionEnd)), // last prepare in implicit transaction
 			_ => true
 		};
 	}

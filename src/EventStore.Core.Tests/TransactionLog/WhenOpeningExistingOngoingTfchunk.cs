@@ -10,15 +10,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class WhenOpeningExistingOngoingTfchunk : SpecificationWithFilePerTestFixture
-{
+public class WhenOpeningExistingOngoingTfchunk : SpecificationWithFilePerTestFixture {
 	private TFChunk _chunk;
 	private TFChunk _testChunk;
 	private long _nextLogPosition;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, chunkSize: 10 * 1024);
 		var seedResult = await _chunk.TryAppend(
@@ -42,28 +40,24 @@ public class WhenOpeningExistingOngoingTfchunk : SpecificationWithFilePerTestFix
 	}
 
 	[OneTimeTearDown]
-	public override void TestFixtureTearDown()
-	{
+	public override void TestFixtureTearDown() {
 		_chunk.Dispose();
 		_testChunk.Dispose();
 		base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void the_chunk_is_cached()
-	{
+	public void the_chunk_is_cached() {
 		Assert.IsTrue(_testChunk.IsCached);
 	}
 
 	[Test]
-	public void the_chunk_is_not_readonly()
-	{
+	public void the_chunk_is_not_readonly() {
 		Assert.IsFalse(_testChunk.IsReadOnly);
 	}
 
 	[Test]
-	public async Task can_flush_and_then_write()
-	{
+	public async Task can_flush_and_then_write() {
 		await _testChunk.Flush(CancellationToken.None);
 
 		var result = await _testChunk.TryAppend(

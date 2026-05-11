@@ -23,16 +23,14 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Core.Tests.Services.Transport.Tcp;
 
 [TestFixture]
-public class TcpClientDispatcherTests
-{
+public class TcpClientDispatcherTests {
 	private readonly NoopEnvelope _envelope = new NoopEnvelope();
 
 	private ClientTcpDispatcher _dispatcher;
 	private TcpConnectionManager _connection;
 
 	[OneTimeSetUp]
-	public void Setup()
-	{
+	public void Setup() {
 		_dispatcher = new ClientTcpDispatcher(2000);
 
 		var dummyConnection = new DummyTcpConnection();
@@ -48,8 +46,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_read_stream_events_forward_and_stream_was_deleted_should_not_downgrade_last_event_number_for_v2_clients()
-	{
+		when_wrapping_read_stream_events_forward_and_stream_was_deleted_should_not_downgrade_last_event_number_for_v2_clients() {
 		var msg = new ClientMessage.ReadStreamEventsForwardCompleted(Guid.NewGuid(), "test-stream", 0, 100,
 			ReadStreamResult.StreamDeleted, new ResolvedEvent[0], new StreamMetadata(),
 			true, "", -1, long.MaxValue, true, 1000);
@@ -66,8 +63,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_read_stream_events_backward_and_stream_was_deleted_should_not_downgrade_last_event_number_for_v2_clients()
-	{
+		when_wrapping_read_stream_events_backward_and_stream_was_deleted_should_not_downgrade_last_event_number_for_v2_clients() {
 		var msg = new ClientMessage.ReadStreamEventsBackwardCompleted(Guid.NewGuid(), "test-stream", 0, 100,
 			ReadStreamResult.StreamDeleted, new ResolvedEvent[0], new StreamMetadata(),
 			true, "", -1, long.MaxValue, true, 1000);
@@ -84,8 +80,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_read_all_events_forward_completed_with_deleted_event_should_not_downgrade_last_event_number_for_v2_clients()
-	{
+		when_wrapping_read_all_events_forward_completed_with_deleted_event_should_not_downgrade_last_event_number_for_v2_clients() {
 		var events = new ResolvedEvent[] {
 			ResolvedEvent.ForUnresolvedEvent(CreateDeletedEventRecord(), 0),
 		};
@@ -106,8 +101,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_read_all_events_forward_completed_with_link_to_deleted_event_should_not_downgrade_version_for_v2_clients()
-	{
+		when_wrapping_read_all_events_forward_completed_with_link_to_deleted_event_should_not_downgrade_version_for_v2_clients() {
 		var events = new ResolvedEvent[] {
 			ResolvedEvent.ForResolvedLink(CreateLinkEventRecord(), CreateDeletedEventRecord(), 100)
 		};
@@ -129,8 +123,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_read_all_events_backward_completed_with_deleted_event_should_not_downgrade_version_for_v2_clients()
-	{
+		when_wrapping_read_all_events_backward_completed_with_deleted_event_should_not_downgrade_version_for_v2_clients() {
 		var events = new ResolvedEvent[] {
 			ResolvedEvent.ForUnresolvedEvent(CreateDeletedEventRecord(), 0),
 		};
@@ -152,8 +145,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_read_all_events_backward_completed_with_link_to_deleted_event_should_not_downgrade_version_for_v2_clients()
-	{
+		when_wrapping_read_all_events_backward_completed_with_link_to_deleted_event_should_not_downgrade_version_for_v2_clients() {
 		var events = new ResolvedEvent[] {
 			ResolvedEvent.ForResolvedLink(CreateLinkEventRecord(), CreateDeletedEventRecord(), 100)
 		};
@@ -176,8 +168,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_stream_event_appeared_with_deleted_event_should_not_downgrade_version_for_v2_clients()
-	{
+		when_wrapping_stream_event_appeared_with_deleted_event_should_not_downgrade_version_for_v2_clients() {
 		var msg = new ClientMessage.StreamEventAppeared(Guid.NewGuid(),
 			ResolvedEvent.ForUnresolvedEvent(CreateDeletedEventRecord(), 0));
 
@@ -192,8 +183,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_subscribe_to_stream_confirmation_when_stream_deleted_should_not_downgrade_version_for_v2_clients()
-	{
+		when_wrapping_subscribe_to_stream_confirmation_when_stream_deleted_should_not_downgrade_version_for_v2_clients() {
 		var msg = new ClientMessage.SubscriptionConfirmation(Guid.NewGuid(), 100, long.MaxValue);
 		var package = _dispatcher.WrapMessage(msg, (byte)ClientVersion.V2);
 		Assert.IsNotNull(package, "Package is null");
@@ -206,8 +196,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_subscribe_to_stream_confirmation_when_stream_deleted_should_not_downgrade_last_event_number_for_v2_clients()
-	{
+		when_wrapping_subscribe_to_stream_confirmation_when_stream_deleted_should_not_downgrade_last_event_number_for_v2_clients() {
 		var msg = new ClientMessage.SubscriptionConfirmation(Guid.NewGuid(), 100, long.MaxValue);
 		var package = _dispatcher.WrapMessage(msg, (byte)ClientVersion.V2);
 		Assert.IsNotNull(package, "Package is null");
@@ -220,8 +209,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_stream_event_appeared_with_link_to_deleted_event_should_not_downgrade_version_for_v2_clients()
-	{
+		when_wrapping_stream_event_appeared_with_link_to_deleted_event_should_not_downgrade_version_for_v2_clients() {
 		var msg = new ClientMessage.StreamEventAppeared(Guid.NewGuid(),
 			ResolvedEvent.ForResolvedLink(CreateLinkEventRecord(), CreateDeletedEventRecord(), 0));
 
@@ -237,8 +225,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_persistent_subscription_confirmation_when_stream_deleted_should_not_downgrade_last_event_number_for_v2_clients()
-	{
+		when_wrapping_persistent_subscription_confirmation_when_stream_deleted_should_not_downgrade_last_event_number_for_v2_clients() {
 		var msg = new ClientMessage.PersistentSubscriptionConfirmation("subscription", Guid.NewGuid(), 100,
 			long.MaxValue);
 		var package = _dispatcher.WrapMessage(msg, (byte)ClientVersion.V2);
@@ -252,8 +239,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_scavenge_started_response_should_return_result_and_scavengeId_for_v2_clients()
-	{
+		when_wrapping_scavenge_started_response_should_return_result_and_scavengeId_for_v2_clients() {
 		var scavengeId = Guid.NewGuid().ToString();
 		var msg = new ClientMessage.ScavengeDatabaseStartedResponse(Guid.NewGuid(), scavengeId);
 
@@ -269,8 +255,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_scavenge_inprogress_response_should_return_result_and_scavengeId_for_v2_clients()
-	{
+		when_wrapping_scavenge_inprogress_response_should_return_result_and_scavengeId_for_v2_clients() {
 		var scavengeId = Guid.NewGuid().ToString();
 		var msg = new ClientMessage.ScavengeDatabaseInProgressResponse(Guid.NewGuid(), scavengeId, reason: "In Progress");
 
@@ -286,8 +271,7 @@ public class TcpClientDispatcherTests
 
 	[Test]
 	public void
-		when_wrapping_scavenge_unauthorized_response_should_return_result_and_scavengeId_for_v2_clients()
-	{
+		when_wrapping_scavenge_unauthorized_response_should_return_result_and_scavengeId_for_v2_clients() {
 		var scavengeId = Guid.NewGuid().ToString();
 		var msg = new ClientMessage.ScavengeDatabaseUnauthorizedResponse(Guid.NewGuid(), scavengeId, "Unauthorized");
 
@@ -301,15 +285,13 @@ public class TcpClientDispatcherTests
 		Assert.AreEqual(dto.ScavengeId, scavengeId);
 	}
 
-	private EventRecord CreateDeletedEventRecord()
-	{
+	private EventRecord CreateDeletedEventRecord() {
 		return new EventRecord(long.MaxValue,
 			LogRecord.DeleteTombstone(new LogV2RecordFactory(), 0, Guid.NewGuid(), Guid.NewGuid(),
 				"test-stream", "test-type", long.MaxValue), "test-stream", SystemEventTypes.StreamDeleted);
 	}
 
-	private EventRecord CreateLinkEventRecord()
-	{
+	private EventRecord CreateLinkEventRecord() {
 		return new EventRecord(0, LogRecord.Prepare(new LogV2RecordFactory(), 100, Guid.NewGuid(), Guid.NewGuid(), 0, 0,
 			"link-stream", -1, PrepareFlags.SingleWrite | PrepareFlags.Data, SystemEventTypes.LinkTo,
 			Encoding.UTF8.GetBytes(string.Format("{0}@test-stream", long.MaxValue)), new byte[0]), "link-stream", SystemEventTypes.LinkTo);

@@ -98,7 +98,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(AdminCredentials),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -122,7 +123,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(OpsCredentials),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -146,7 +148,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -171,7 +174,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(AdminCredentials),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -195,7 +199,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(OpsCredentials),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -219,7 +224,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -248,7 +254,8 @@ public class AdminTests {
 							ThreadCount = -1
 						}
 					});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -277,7 +284,8 @@ public class AdminTests {
 							StartFromChunk = -1
 						}
 					});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -306,7 +314,8 @@ public class AdminTests {
 							ThreadCount = -1
 						}
 					});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -335,7 +344,8 @@ public class AdminTests {
 							ThrottlePercent = 0
 						}
 					});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -365,7 +375,8 @@ public class AdminTests {
 							ThrottlePercent = 50
 						}
 					});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -394,7 +405,8 @@ public class AdminTests {
 							ScavengeId = "current"
 						}
 					});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -419,7 +431,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(AdminCredentials),
 					new StopScavengeReq());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -465,7 +478,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -511,7 +525,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -536,7 +551,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(AdminCredentials),
 					new SetNodePriorityReq { Priority = 17 });
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -560,7 +576,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(OpsCredentials),
 					new SetNodePriorityReq { Priority = 17 });
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -584,7 +601,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new SetNodePriorityReq { Priority = 17 });
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -609,7 +627,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(AdminCredentials),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -633,7 +652,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(OpsCredentials),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -657,7 +677,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}
@@ -682,7 +703,8 @@ public class AdminTests {
 					null,
 					GetCallOptions(),
 					new Empty());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				_exception = ex;
 			}
 		}

@@ -65,7 +65,8 @@ public class EnableDisableTests {
 		protected override async Task When() {
 			try {
 				await _client.DisableAsync(DisableRequest("missing-disable-test-user"), GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -90,7 +91,8 @@ public class EnableDisableTests {
 		protected override async Task When() {
 			try {
 				await _client.EnableAsync(EnableRequest("missing-enable-test-user"), GetCallOptions(AdminCredentials));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -119,7 +121,8 @@ public class EnableDisableTests {
 		protected override async Task When() {
 			try {
 				await _client.DisableAsync(DisableRequest(TargetLogin), GetCallOptions((ActorLogin, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -149,7 +152,8 @@ public class EnableDisableTests {
 		protected override async Task When() {
 			try {
 				await _client.EnableAsync(EnableRequest(TargetLogin), GetCallOptions((ActorLogin, Password)));
-			} catch (RpcException ex) {
+			}
+			catch (RpcException ex) {
 				_exception = ex;
 			}
 		}
@@ -167,7 +171,7 @@ public class EnableDisableTests {
 				LoginName = loginName,
 				Password = "Pa55w0rd!",
 				FullName = "Enable Disable Test User",
-				Groups = {"admin", "other"}
+				Groups = { "admin", "other" }
 			}
 		};
 

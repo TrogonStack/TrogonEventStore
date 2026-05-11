@@ -102,8 +102,10 @@ namespace EventStore.Core.Bus {
 			Debug.Assert(_started,
 				string.Format("QueueStatsCollector [{0}] was not started when EnterIdle() entered", Name));
 #endif
-			if (_wasIdle)
+			if (_wasIdle) {
 				return;
+			}
+
 			_wasIdle = true;
 
 			//NOTE: the following locks are primarily acquired in main thread,
@@ -122,8 +124,10 @@ namespace EventStore.Core.Bus {
 			Debug.Assert(_started,
 				string.Format("QueueStatsCollector [{0}] was not started when EnterBusy() entered", Name));
 #endif
-			if (!_wasIdle)
+			if (!_wasIdle) {
 				return;
+			}
+
 			_wasIdle = false;
 
 			lock (_statisticsLock) {

@@ -7,8 +7,7 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Tests.Services.Storage;
 
-public class FakeInMemoryTfReader(int recordOffset) : ITransactionFileReader
-{
+public class FakeInMemoryTfReader(int recordOffset) : ITransactionFileReader {
 	private Dictionary<long, ILogRecord> _records = new();
 	private long _curPosition;
 
@@ -18,19 +17,16 @@ public class FakeInMemoryTfReader(int recordOffset) : ITransactionFileReader
 
 	public void Reposition(long position) => _curPosition = position;
 
-	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token)
-	{
+	public ValueTask<SeqReadResult> TryReadNext(CancellationToken token) {
 		NumReads++;
 
 		SeqReadResult result;
-		if (_records.ContainsKey(_curPosition))
-		{
+		if (_records.ContainsKey(_curPosition)) {
 			var pos = _curPosition;
 			_curPosition += recordOffset;
 			result = new SeqReadResult(true, false, _records[pos], recordOffset, pos, pos + recordOffset);
 		}
-		else
-		{
+		else {
 			result = new SeqReadResult(false, false, null, 0, 0, 0);
 		}
 
@@ -40,17 +36,14 @@ public class FakeInMemoryTfReader(int recordOffset) : ITransactionFileReader
 	public ValueTask<SeqReadResult> TryReadPrev(CancellationToken token)
 		=> ValueTask.FromException<SeqReadResult>(new NotImplementedException());
 
-	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token)
-	{
+	public ValueTask<RecordReadResult> TryReadAt(long position, bool couldBeScavenged, CancellationToken token) {
 		NumReads++;
 
 		RecordReadResult result;
-		if (_records.ContainsKey(position))
-		{
+		if (_records.ContainsKey(position)) {
 			result = new RecordReadResult(true, 0, _records[position], 0);
 		}
-		else
-		{
+		else {
 			result = new RecordReadResult(false, 0, _records[position], 0);
 		}
 

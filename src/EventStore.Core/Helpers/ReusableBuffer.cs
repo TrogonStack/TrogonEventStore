@@ -18,8 +18,9 @@ namespace EventStore.Core.Helpers {
 		}
 
 		public ReusableBuffer(int defaultSize) {
-			if (defaultSize <= 0)
+			if (defaultSize <= 0) {
 				throw new ArgumentOutOfRangeException(nameof(defaultSize), "default size must be positive");
+			}
 
 			_buffer = new byte[ClosestPowerOf2(defaultSize)];
 			_state = (int)State.Free;
@@ -32,8 +33,9 @@ namespace EventStore.Core.Helpers {
 				y++;
 			}
 
-			if (y >= 31)
+			if (y >= 31) {
 				throw new ArgumentOutOfRangeException();
+			}
 
 			return 1 << y;
 		}
@@ -41,13 +43,15 @@ namespace EventStore.Core.Helpers {
 		// Note: The acquired buffer size can be larger than the requested size
 		// It is better to use AcquireAsSpan() or AcquireAsMemory() where possible.
 		public byte[] AcquireAsByteArray(int size) {
-			if (size <= 0)
+			if (size <= 0) {
 				throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
+			}
 
 			TrySwitchState(State.Free, State.LockedToAcquire);
 
-			if (_buffer.Length < size)
+			if (_buffer.Length < size) {
 				_buffer = new byte[ClosestPowerOf2(size)];
+			}
 
 			TrySwitchState(State.LockedToAcquire, State.Acquired);
 			return _buffer;
@@ -64,8 +68,9 @@ namespace EventStore.Core.Helpers {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void TrySwitchState(State from, State to) {
 			var was = (State)Interlocked.CompareExchange(ref _state, (int)to, (int)from);
-			if (was != from)
+			if (was != from) {
 				throw new InvalidOperationException($"Failed to transition buffer from state: {from} to {to}. Was {was}.");
+			}
 		}
 	}
 }

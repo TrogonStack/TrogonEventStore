@@ -23,8 +23,7 @@ public abstract class ClusterVNodeController {
 	public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
 }
 
-public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
-{
+public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController {
 	public static readonly TimeSpan LeaderReconnectionDelay = TimeSpan.FromMilliseconds(500);
 	private static readonly TimeSpan LeaderSubscriptionRetryDelay = TimeSpan.FromMilliseconds(500);
 	private static readonly TimeSpan LeaderSubscriptionTimeout = TimeSpan.FromMilliseconds(1000);
@@ -38,11 +37,9 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 	private VNodeState _state = VNodeState.Initializing;
 
-	private VNodeState State
-	{
+	private VNodeState State {
 		get => _state;
-		set
-		{
+		set {
 			_state = value;
 			_statusTracker.OnStateChange(value);
 		}
@@ -70,8 +67,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 	private bool _exitProcessOnShutdown;
 
-	private enum ServiceState
-	{
+	private enum ServiceState {
 		Initialized,
 		Shutdown
 	}
@@ -83,8 +79,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		TFChunkDb db,
 		INodeStatusTracker statusTracker,
 		ClusterVNodeOptions options, ClusterVNode<TStreamId> node, MessageForwardingProxy forwardingProxy,
-		Action startSubsystems)
-	{
+		Action startSubsystems) {
 		Ensure.NotNull(nodeInfo, "nodeInfo");
 		Ensure.NotNull(db, "dbConfig");
 		Ensure.NotNull(node, "node");
@@ -102,7 +97,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 		_forwardingProxy = forwardingProxy;
 		_forwardingTimeout = TimeSpan.FromMilliseconds(options.Database.PrepareTimeoutMs +
-		                                               options.Database.CommitTimeoutMs + 300);
+													   options.Database.CommitTimeoutMs + 300);
 
 		_outputBus = new InMemoryBus("MainBus");
 		_fsm = CreateFSM();
@@ -114,8 +109,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 	public ISubscriber MainBus => _outputBus;
 
-	private VNodeFSM CreateFSM()
-	{
+	private VNodeFSM CreateFSM() {
 		var stm = new VNodeFSMBuilder(new(this, in _state))
 			.InAnyState()
 			.When<SystemMessage.StateChangeMessage>()
@@ -352,14 +346,12 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 	public Task Start() => _mainQueue.Start();
 
-	private ValueTask Handle(SystemMessage.SystemInit message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.SystemInit message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] SYSTEM INIT...", _nodeInfo.HttpEndPoint);
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask Handle(SystemMessage.SystemStart message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.SystemStart message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] SYSTEM START...", _nodeInfo.HttpEndPoint);
 		await _outputBus.DispatchAsync(message, token);
 
@@ -373,8 +365,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _fsm.HandleAsync(msg, token);
 	}
 
-	private async ValueTask Handle(SystemMessage.BecomeUnknown message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.BecomeUnknown message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] IS UNKNOWN...", _nodeInfo.HttpEndPoint);
 
 		State = VNodeState.Unknown;
@@ -383,8 +374,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_mainQueue.Publish(new ElectionMessage.StartElections());
 	}
 
-	private async ValueTask Handle(SystemMessage.BecomeDiscoverLeader message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.BecomeDiscoverLeader message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] IS ATTEMPTING TO DISCOVER EXISTING LEADER...",
 			_nodeInfo.HttpEndPoint);
 
@@ -395,36 +385,36 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_mainQueue.Publish(TimerMessage.Schedule.Create(LeaderDiscoveryTimeout, _publishEnvelope, msg));
 	}
 
-	private ValueTask Handle(SystemMessage.InitiateLeaderResignation message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.InitiateLeaderResignation message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] IS INITIATING LEADER RESIGNATION...", _nodeInfo.HttpEndPoint);
 
 		return _fsm.HandleAsync(new SystemMessage.BecomeResigningLeader(_stateCorrelationId), token);
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeResigningLeader message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.BecomeResigningLeader message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] IS RESIGNING LEADER...", _nodeInfo.HttpEndPoint);
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		State = VNodeState.ResigningLeader;
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask Handle(SystemMessage.RequestQueueDrained message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.RequestQueueDrained message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] REQUEST QUEUE DRAINED. RESIGNATION COMPLETE.",
 			_nodeInfo.HttpEndPoint);
 		return _fsm.HandleAsync(new SystemMessage.BecomeUnknown(Guid.NewGuid()), token);
 	}
 
-	private async ValueTask Handle(SystemMessage.BecomePreReplica message, CancellationToken token)
-	{
-		if (_leader is null)
+	private async ValueTask Handle(SystemMessage.BecomePreReplica message, CancellationToken token) {
+		if (_leader is null) {
 			throw new Exception("_leader == null");
-		if (_stateCorrelationId != message.CorrelationId)
+		}
+
+		if (_stateCorrelationId != message.CorrelationId) {
 			return;
+		}
 
 		Log.Information(
 			"========== [{httpEndPoint}] PRE-REPLICA STATE, WAITING FOR CHASER TO CATCH UP... LEADER IS [{masterHttp},{masterId:B}]",
@@ -435,13 +425,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_mainQueue.Publish(new SystemMessage.WaitForChaserToCatchUp(_stateCorrelationId, TimeSpan.Zero));
 	}
 
-	private async ValueTask Handle(SystemMessage.BecomePreReadOnlyReplica message, CancellationToken token)
-	{
-		if (_stateCorrelationId != message.CorrelationId)
+	private async ValueTask Handle(SystemMessage.BecomePreReadOnlyReplica message, CancellationToken token) {
+		if (_stateCorrelationId != message.CorrelationId) {
 			return;
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			throw new Exception("_leader == null");
+		}
 
 		Log.Information(
 			"========== [{httpEndPoint}] READ ONLY PRE-REPLICA STATE, WAITING FOR CHASER TO CATCH UP... LEADER IS [{leaderHttp},{leaderId:B}]",
@@ -452,13 +443,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_mainQueue.Publish(new SystemMessage.WaitForChaserToCatchUp(_stateCorrelationId, TimeSpan.Zero));
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeCatchingUp message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask Handle(SystemMessage.BecomeCatchingUp message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("========== [{httpEndPoint}] IS CATCHING UP... LEADER IS [{leaderHttp},{leaderId:B}]",
 			_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, _leader.InstanceId);
@@ -467,13 +459,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeClone message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask Handle(SystemMessage.BecomeClone message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("========== [{httpEndPoint}] IS CLONE... LEADER IS [{leaderHttp},{leaderId:B}]",
 			_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, _leader.InstanceId);
@@ -482,13 +475,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeFollower message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask Handle(SystemMessage.BecomeFollower message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("========== [{httpEndPoint}] IS FOLLOWER... LEADER IS [{leaderHttp},{leaderId:B}]",
 			_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, _leader.InstanceId);
@@ -497,8 +491,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeReadOnlyLeaderless message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.BecomeReadOnlyLeaderless message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] IS READ ONLY REPLICA WITH UNKNOWN LEADER...",
 			_nodeInfo.HttpEndPoint);
 
@@ -507,13 +500,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeReadOnlyReplica message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask Handle(SystemMessage.BecomeReadOnlyReplica message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("========== [{httpEndPoint}] IS READ ONLY REPLICA... LEADER IS [{leaderHttp},{leaderId:B}]",
 			_nodeInfo.HttpEndPoint, _leader.HttpEndPoint, _leader.InstanceId);
@@ -522,12 +516,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask Handle(SystemMessage.BecomePreLeader message, CancellationToken token)
-	{
-		if (_leader is null)
+	private async ValueTask Handle(SystemMessage.BecomePreLeader message, CancellationToken token) {
+		if (_leader is null) {
 			throw new Exception("_leader == null");
-		if (_stateCorrelationId != message.CorrelationId)
+		}
+
+		if (_stateCorrelationId != message.CorrelationId) {
 			return;
+		}
 
 		Log.Information("========== [{httpEndPoint}] PRE-LEADER STATE, WAITING FOR CHASER TO CATCH UP...",
 			_nodeInfo.HttpEndPoint);
@@ -537,16 +533,18 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_mainQueue.Publish(new SystemMessage.WaitForChaserToCatchUp(_stateCorrelationId, TimeSpan.Zero));
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeLeader message, CancellationToken token)
-	{
-		if (State is VNodeState.Leader)
+	private ValueTask Handle(SystemMessage.BecomeLeader message, CancellationToken token) {
+		if (State is VNodeState.Leader) {
 			return ValueTask.FromException(new Exception("We should not BecomeLeader twice in a row."));
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("========== [{httpEndPoint}] IS LEADER... SPARTA!", _nodeInfo.HttpEndPoint);
 
@@ -554,10 +552,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask Handle(SystemMessage.BecomeShuttingDown message, CancellationToken token)
-	{
-		if (State is VNodeState.ShuttingDown or VNodeState.Shutdown)
+	private ValueTask Handle(SystemMessage.BecomeShuttingDown message, CancellationToken token) {
+		if (State is VNodeState.ShuttingDown or VNodeState.Shutdown) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("========== [{httpEndPoint}] IS SHUTTING DOWN...", _nodeInfo.HttpEndPoint);
 		_leader = null;
@@ -570,42 +568,33 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask Handle(SystemMessage.BecomeShutdown message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.BecomeShutdown message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] IS SHUT DOWN.", _nodeInfo.HttpEndPoint);
 		State = VNodeState.Shutdown;
-		try
-		{
+		try {
 			await _outputBus.DispatchAsync(message, token);
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			Log.Error(exc, "Error when publishing {message}.", message);
 		}
 
-		try
-		{
+		try {
 			await _node.WorkersHandler.Stop();
 			_mainQueue.RequestStop();
 		}
-		catch (Exception exc)
-		{
+		catch (Exception exc) {
 			Log.Error(exc, "Error when stopping workers/main queue.");
 		}
 
-		if (_exitProcessOnShutdown)
-		{
+		if (_exitProcessOnShutdown) {
 			Application.Exit(ExitCode.Success, "Shutdown and exit from process was requested.");
 		}
 	}
 
-	private async ValueTask Handle(ElectionMessage.ElectionsDone message, CancellationToken token)
-	{
-		if (_leader != null && _leader.InstanceId == message.Leader.InstanceId)
-		{
+	private async ValueTask Handle(ElectionMessage.ElectionsDone message, CancellationToken token) {
+		if (_leader != null && _leader.InstanceId == message.Leader.InstanceId) {
 			//if the leader hasn't changed, we skip state changes through PreLeader or PreReplica
-			if (_leader.InstanceId == _nodeInfo.InstanceId && State == VNodeState.Leader)
-			{
+			if (_leader.InstanceId == _nodeInfo.InstanceId && State == VNodeState.Leader) {
 				//transitioning from leader to leader, we just write a new epoch
 				await _fsm.HandleAsync(new SystemMessage.WriteEpoch(message.ProposalNumber), token);
 			}
@@ -626,38 +615,33 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _fsm.HandleAsync(msg, token);
 	}
 
-	private async ValueTask Handle(SystemMessage.ServiceInitialized message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.ServiceInitialized message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] Service '{service}' initialized.", _nodeInfo.HttpEndPoint,
 			message.ServiceName);
 
 		_initializedServices[message.ServiceName] = ServiceState.Initialized;
 		await _outputBus.DispatchAsync(message, token);
 
-		if (!_publishedSystemStart && CoreServicesInitialized())
-		{
+		if (!_publishedSystemStart && CoreServicesInitialized()) {
 			_mainQueue.Publish(new SystemMessage.SystemStart());
 			_publishedSystemStart = true;
 		}
 	}
 
 	private async ValueTask Handle(AuthenticationMessage.AuthenticationProviderInitialized message,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 		_startSubsystems();
 		await _outputBus.DispatchAsync(message, token);
 		await _fsm.HandleAsync(new SystemMessage.SystemCoreReady(), token);
 	}
 
 	private ValueTask Handle(AuthenticationMessage.AuthenticationProviderInitializationFailed message,
-		CancellationToken token)
-	{
+		CancellationToken token) {
 		Log.Error("Authentication Provider Initialization Failed. Shutting Down.");
 		return _fsm.HandleAsync(new SystemMessage.BecomeShutdown(Guid.NewGuid()), token);
 	}
 
-	private ValueTask Handle(SystemMessage.SystemCoreReady message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.SystemCoreReady message, CancellationToken token) {
 		Message msg = _subsystemCount is 0
 			? new SystemMessage.SystemReady()
 			: message;
@@ -665,8 +649,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(msg, token);
 	}
 
-	private ValueTask Handle(SystemMessage.SubSystemInitialized message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.SubSystemInitialized message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] Sub System '{subSystemName}' initialized.", _nodeInfo.HttpEndPoint,
 			message.SubSystemName);
 
@@ -675,230 +658,237 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			: ValueTask.CompletedTask;
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.WriteEvents message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.WriteEvents message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.TransactionStart message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.TransactionStart message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.TransactionWrite message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.TransactionWrite message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.TransactionCommit message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.TransactionCommit message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.DeleteStream message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.DeleteStream message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.CreatePersistentSubscriptionToStream message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.CreatePersistentSubscriptionToStream message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.ConnectToPersistentSubscriptionToStream message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.ConnectToPersistentSubscriptionToStream message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.UpdatePersistentSubscriptionToStream message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.UpdatePersistentSubscriptionToStream message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.DeletePersistentSubscriptionToStream message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.DeletePersistentSubscriptionToStream message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.CreatePersistentSubscriptionToAll message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.CreatePersistentSubscriptionToAll message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.ConnectToPersistentSubscriptionToAll message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.ConnectToPersistentSubscriptionToAll message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.UpdatePersistentSubscriptionToAll message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.UpdatePersistentSubscriptionToAll message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private void HandleAsResigningLeader(ClientMessage.DeletePersistentSubscriptionToAll message)
-	{
+	private void HandleAsResigningLeader(ClientMessage.DeletePersistentSubscriptionToAll message) {
 		DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.ReadEvent message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.ReadEvent message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.ReadStreamEventsForward message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.ReadStreamEventsForward message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.ReadStreamEventsBackward message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.ReadStreamEventsBackward message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.ReadAllEventsForward message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.ReadAllEventsForward message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.FilteredReadAllEventsForward message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.FilteredReadAllEventsForward message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.ReadAllEventsBackward message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.ReadAllEventsBackward message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.FilteredReadAllEventsBackward message, CancellationToken token)
-	{
-		if (!message.RequireLeader)
+	private ValueTask HandleAsNonLeader(ClientMessage.FilteredReadAllEventsBackward message, CancellationToken token) {
+		if (!message.RequireLeader) {
 			return _outputBus.DispatchAsync(message, token);
+		}
 
-		if (_leader is null)
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 
 		return ValueTask.CompletedTask;
 	}
 
-	private void HandleAsNonLeader(ClientMessage.CreatePersistentSubscriptionToStream message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.CreatePersistentSubscriptionToStream message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.ConnectToPersistentSubscriptionToStream message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.ConnectToPersistentSubscriptionToStream message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.UpdatePersistentSubscriptionToStream message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.UpdatePersistentSubscriptionToStream message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.DeletePersistentSubscriptionToStream message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.DeletePersistentSubscriptionToStream message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.CreatePersistentSubscriptionToAll message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.CreatePersistentSubscriptionToAll message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.ConnectToPersistentSubscriptionToAll message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.ConnectToPersistentSubscriptionToAll message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.UpdatePersistentSubscriptionToAll message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.UpdatePersistentSubscriptionToAll message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private void HandleAsNonLeader(ClientMessage.DeletePersistentSubscriptionToAll message)
-	{
-		if (_leader is null)
+	private void HandleAsNonLeader(ClientMessage.DeletePersistentSubscriptionToAll message) {
+		if (_leader is null) {
 			DenyRequestBecauseNotReady(message.Envelope, message.CorrelationId);
-		else
+		}
+		else {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
+		}
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.WriteEvents message, CancellationToken token)
-	{
-		if (message.RequireLeader)
-		{
+	private ValueTask HandleAsNonLeader(ClientMessage.WriteEvents message, CancellationToken token) {
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
@@ -908,10 +898,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return ForwardRequest(message, timeoutMessage, token);
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.TransactionStart message, CancellationToken token)
-	{
-		if (message.RequireLeader)
-		{
+	private ValueTask HandleAsNonLeader(ClientMessage.TransactionStart message, CancellationToken token) {
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
@@ -921,10 +909,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return ForwardRequest(message, timeoutMessage, token);
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.TransactionWrite message, CancellationToken token)
-	{
-		if (message.RequireLeader)
-		{
+	private ValueTask HandleAsNonLeader(ClientMessage.TransactionWrite message, CancellationToken token) {
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
@@ -934,10 +920,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return ForwardRequest(message, timeoutMessage, token);
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.TransactionCommit message, CancellationToken token)
-	{
-		if (message.RequireLeader)
-		{
+	private ValueTask HandleAsNonLeader(ClientMessage.TransactionCommit message, CancellationToken token) {
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
@@ -947,10 +931,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return ForwardRequest(message, timeoutMessage, token);
 	}
 
-	private ValueTask HandleAsNonLeader(ClientMessage.DeleteStream message, CancellationToken token)
-	{
-		if (message.RequireLeader)
-		{
+	private ValueTask HandleAsNonLeader(ClientMessage.DeleteStream message, CancellationToken token) {
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
@@ -961,23 +943,19 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	}
 
 	private ValueTask ForwardRequest(ClientMessage.WriteRequestMessage msg, Message timeoutMessage,
-		CancellationToken token)
-	{
-		try
-		{
+		CancellationToken token) {
+		try {
 			_forwardingProxy.Register(msg.InternalCorrId, msg.CorrelationId, msg.Envelope, _forwardingTimeout,
 				timeoutMessage);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			return ValueTask.FromException(ex);
 		}
 
 		return _outputBus.DispatchAsync(new ClientMessage.TcpForwardMessage(msg), token);
 	}
 
-	private void DenyRequestBecauseNotLeader(Guid correlationId, IEnvelope envelope)
-	{
+	private void DenyRequestBecauseNotLeader(Guid correlationId, IEnvelope envelope) {
 		LeaderInfoProvider leaderInfoProvider = new LeaderInfoProvider(_node.GossipAdvertiseInfo, _leader);
 		var endpoints = leaderInfoProvider.GetLeaderInfoEndPoints();
 		envelope.ReplyWith(
@@ -989,16 +967,13 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 				)));
 	}
 
-	private ValueTask HandleAsReadOnlyReplica(ClientMessage.WriteEvents message, CancellationToken token)
-	{
-		if (message.RequireLeader)
-		{
+	private ValueTask HandleAsReadOnlyReplica(ClientMessage.WriteEvents message, CancellationToken token) {
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
 
-		if (message.User != SystemAccounts.System)
-		{
+		if (message.User != SystemAccounts.System) {
 			DenyRequestBecauseReadOnly(message.CorrelationId, message.Envelope);
 			return ValueTask.CompletedTask;
 		}
@@ -1008,19 +983,15 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return ForwardRequest(message, timeoutMessage, token);
 	}
 
-	private ValueTask HandleAsReadOnlyReplica(ClientMessage.TransactionStart message, CancellationToken token)
-	{
+	private ValueTask HandleAsReadOnlyReplica(ClientMessage.TransactionStart message, CancellationToken token) {
 		var task = ValueTask.CompletedTask;
-		if (message.RequireLeader)
-		{
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 		}
-		else if (message.User != SystemAccounts.System)
-		{
+		else if (message.User != SystemAccounts.System) {
 			DenyRequestBecauseReadOnly(message.CorrelationId, message.Envelope);
 		}
-		else
-		{
+		else {
 			var timeoutMessage = new ClientMessage.TransactionStartCompleted(
 				message.CorrelationId, -1, OperationResult.ForwardTimeout, "Forwarding timeout");
 			task = ForwardRequest(message, timeoutMessage, token);
@@ -1029,19 +1000,15 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return task;
 	}
 
-	private ValueTask HandleAsReadOnlyReplica(ClientMessage.TransactionWrite message, CancellationToken token)
-	{
+	private ValueTask HandleAsReadOnlyReplica(ClientMessage.TransactionWrite message, CancellationToken token) {
 		var task = ValueTask.CompletedTask;
-		if (message.RequireLeader)
-		{
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 		}
-		else if (message.User != SystemAccounts.System)
-		{
+		else if (message.User != SystemAccounts.System) {
 			DenyRequestBecauseReadOnly(message.CorrelationId, message.Envelope);
 		}
-		else
-		{
+		else {
 			var timeoutMessage = new ClientMessage.TransactionWriteCompleted(
 				message.CorrelationId, message.TransactionId, OperationResult.ForwardTimeout, "Forwarding timeout");
 			task = ForwardRequest(message, timeoutMessage, token);
@@ -1050,19 +1017,15 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return task;
 	}
 
-	private ValueTask HandleAsReadOnlyReplica(ClientMessage.TransactionCommit message, CancellationToken token)
-	{
+	private ValueTask HandleAsReadOnlyReplica(ClientMessage.TransactionCommit message, CancellationToken token) {
 		var task = ValueTask.CompletedTask;
-		if (message.RequireLeader)
-		{
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 		}
-		else if (message.User != SystemAccounts.System)
-		{
+		else if (message.User != SystemAccounts.System) {
 			DenyRequestBecauseReadOnly(message.CorrelationId, message.Envelope);
 		}
-		else
-		{
+		else {
 			var timeoutMessage = new ClientMessage.TransactionCommitCompleted(
 				message.CorrelationId, message.TransactionId, OperationResult.ForwardTimeout, "Forwarding timeout");
 			task = ForwardRequest(message, timeoutMessage, token);
@@ -1071,19 +1034,15 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return task;
 	}
 
-	private ValueTask HandleAsReadOnlyReplica(ClientMessage.DeleteStream message, CancellationToken token)
-	{
+	private ValueTask HandleAsReadOnlyReplica(ClientMessage.DeleteStream message, CancellationToken token) {
 		var task = ValueTask.CompletedTask;
-		if (message.RequireLeader)
-		{
+		if (message.RequireLeader) {
 			DenyRequestBecauseNotLeader(message.CorrelationId, message.Envelope);
 		}
-		else if (message.User != SystemAccounts.System)
-		{
+		else if (message.User != SystemAccounts.System) {
 			DenyRequestBecauseReadOnly(message.CorrelationId, message.Envelope);
 		}
-		else
-		{
+		else {
 			var timeoutMessage = new ClientMessage.DeleteStreamCompleted(
 				message.CorrelationId, OperationResult.ForwardTimeout, "Forwarding timeout", -1, -1, -1);
 			task = ForwardRequest(message, timeoutMessage, token);
@@ -1092,8 +1051,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return task;
 	}
 
-	private void DenyRequestBecauseReadOnly(Guid correlationId, IEnvelope envelope)
-	{
+	private void DenyRequestBecauseReadOnly(Guid correlationId, IEnvelope envelope) {
 		LeaderInfoProvider leaderInfoProvider = new LeaderInfoProvider(_node.GossipAdvertiseInfo, _leader);
 		var endpoints = leaderInfoProvider.GetLeaderInfoEndPoints();
 		envelope.ReplyWith(
@@ -1105,14 +1063,12 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 				)));
 	}
 
-	private void DenyRequestBecauseNotReady(IEnvelope envelope, Guid correlationId)
-	{
+	private void DenyRequestBecauseNotReady(IEnvelope envelope, Guid correlationId) {
 		envelope.ReplyWith(new ClientMessage.NotHandled(correlationId,
 			ClientMessage.NotHandled.Types.NotHandledReason.NotReady, ((string)null)));
 	}
 
-	private ValueTask Handle(SystemMessage.VNodeConnectionLost message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.VNodeConnectionLost message, CancellationToken token) {
 		if (_leader?.Is(message.VNodeEndPoint) ?? false) // leader connection failed
 		{
 			_leaderConnectionCorrelationId = Guid.NewGuid();
@@ -1125,8 +1081,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask HandleAsReadOnlyReplica(SystemMessage.VNodeConnectionLost message, CancellationToken token)
-	{
+	private ValueTask HandleAsReadOnlyReplica(SystemMessage.VNodeConnectionLost message, CancellationToken token) {
 		if (_leader?.Is(message.VNodeEndPoint) ?? false) // leader connection failed
 		{
 			_leaderConnectionCorrelationId = Guid.NewGuid();
@@ -1140,13 +1095,12 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask HandleAsLeader(GossipMessage.GossipUpdated message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask HandleAsLeader(GossipMessage.GossipUpdated message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
-		if (message.ClusterInfo.Members.Count(IsAliveLeader) > 1)
-		{
+		if (message.ClusterInfo.Members.Count(IsAliveLeader) > 1) {
 			Log.Debug("There are MULTIPLE LEADERS according to gossip, need to start elections. LEADER: [{leader}]",
 				_leader);
 			Log.Debug("GOSSIP:");
@@ -1157,10 +1111,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask HandleAsReadOnlyReplica(GossipMessage.GossipUpdated message, CancellationToken token)
-	{
-		if (_leader is null)
+	private async ValueTask HandleAsReadOnlyReplica(GossipMessage.GossipUpdated message, CancellationToken token) {
+		if (_leader is null) {
 			throw new Exception("_leader == null");
+		}
 
 		var aliveLeaders = message
 			.ClusterInfo
@@ -1169,8 +1123,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 
 		var leaderIsStillLeader = aliveLeaders.FirstOrDefault(x => x.InstanceId == _leader.InstanceId) is not null;
 
-		if (!leaderIsStillLeader)
-		{
+		if (!leaderIsStillLeader) {
 			var noLeader = !aliveLeaders.Any();
 			Log.Debug(
 				(noLeader ? "NO LEADER found" : "LEADER CHANGE detected") +
@@ -1184,15 +1137,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask HandleAsReadOnlyLeaderLess(GossipMessage.GossipUpdated message, CancellationToken token)
-	{
-		if (_leader is not null)
+	private async ValueTask HandleAsReadOnlyLeaderLess(GossipMessage.GossipUpdated message, CancellationToken token) {
+		if (_leader is not null) {
 			return;
+		}
 
 		var aliveLeaders = message.ClusterInfo.Members.Where(IsAliveLeader);
 		var leaderCount = aliveLeaders.Count();
-		if (leaderCount is 1)
-		{
+		if (leaderCount is 1) {
 			_leader = aliveLeaders.First();
 			Log.Information(
 				"LEADER found in READ ONLY LEADERLESS state. LEADER: [{leader}]. Proceeding to READ ONLY PRE-REPLICA state.",
@@ -1203,8 +1155,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 				new SystemMessage.BecomePreReadOnlyReplica(_stateCorrelationId, _leaderConnectionCorrelationId,
 					_leader), token);
 		}
-		else
-		{
+		else {
 			Log.Debug(
 				"{leadersFound} found in READ ONLY LEADERLESS state, making further attempts.",
 				(leaderCount is 0 ? "NO LEADER" : "MULTIPLE LEADERS"));
@@ -1213,21 +1164,19 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask HandleAsNonLeader(GossipMessage.GossipUpdated message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask HandleAsNonLeader(GossipMessage.GossipUpdated message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
 		var leader = message.ClusterInfo.Members.FirstOrDefault(x => x.InstanceId == _leader.InstanceId);
-		if (leader is null or { IsAlive: false })
-		{
+		if (leader is null or { IsAlive: false }) {
 			Log.Debug(
 				"There is NO LEADER or LEADER is DEAD according to GOSSIP. Starting new elections. LEADER: [{leader}].",
 				_leader);
 			_mainQueue.Publish(new ElectionMessage.StartElections());
 		}
-		else if (leader.State is not VNodeState.PreLeader and not VNodeState.Leader and not VNodeState.ResigningLeader)
-		{
+		else if (leader.State is not VNodeState.PreLeader and not VNodeState.Leader and not VNodeState.ResigningLeader) {
 			Log.Debug(
 				"LEADER node is still alive but is no longer in a LEADER state according to GOSSIP. Starting new elections. LEADER: [{leader}].",
 				_leader);
@@ -1237,15 +1186,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask HandleAsDiscoverLeader(GossipMessage.GossipUpdated message, CancellationToken token)
-	{
-		if (_leader is not null)
+	private async ValueTask HandleAsDiscoverLeader(GossipMessage.GossipUpdated message, CancellationToken token) {
+		if (_leader is not null) {
 			return;
+		}
 
 		var aliveLeaders = message.ClusterInfo.Members.Where(IsAliveLeader);
 		var leaderCount = aliveLeaders.Count();
-		if (leaderCount is 1)
-		{
+		if (leaderCount is 1) {
 			_leader = aliveLeaders.First();
 			Log.Information(
 				"Existing LEADER found during LEADER DISCOVERY stage. LEADER: [{leader}]. Proceeding to PRE-REPLICA state.",
@@ -1257,8 +1205,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 				new SystemMessage.BecomePreReplica(_stateCorrelationId, _leaderConnectionCorrelationId, _leader),
 				token);
 		}
-		else
-		{
+		else {
 			Log.Debug(
 				"{leadersFound} found during LEADER DISCOVERY stage, making further attempts.",
 				(leaderCount is 0 ? "NO LEADER" : "MULTIPLE LEADERS"));
@@ -1267,64 +1214,62 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _outputBus.DispatchAsync(message, token);
 	}
 
-	private ValueTask HandleAsDiscoverLeader(LeaderDiscoveryMessage.DiscoveryTimeout _, CancellationToken token)
-	{
-		if (_leader is not null)
+	private ValueTask HandleAsDiscoverLeader(LeaderDiscoveryMessage.DiscoveryTimeout _, CancellationToken token) {
+		if (_leader is not null) {
 			return ValueTask.CompletedTask;
+		}
 
 		Log.Information("LEADER DISCOVERY timed out. Proceeding to UNKNOWN state.");
 		return _fsm.HandleAsync(new SystemMessage.BecomeUnknown(Guid.NewGuid()), token);
 	}
 
-	private ValueTask Handle(SystemMessage.NoQuorumMessage message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.NoQuorumMessage message, CancellationToken token) {
 		Log.Information("=== NO QUORUM EMERGED WITHIN TIMEOUT... RETIRING...");
 		return _fsm.HandleAsync(new SystemMessage.BecomeUnknown(Guid.NewGuid()), token);
 	}
 
-	private ValueTask Handle(SystemMessage.WaitForChaserToCatchUp message, CancellationToken token)
-	{
+	private ValueTask Handle(SystemMessage.WaitForChaserToCatchUp message, CancellationToken token) {
 		return message.CorrelationId == _stateCorrelationId
 			? _outputBus.DispatchAsync(message, token)
 			: ValueTask.CompletedTask;
 	}
 
-	private ValueTask HandleAsPreLeader(SystemMessage.ChaserCaughtUp message, CancellationToken token)
-	{
-		if (_leader is null)
+	private ValueTask HandleAsPreLeader(SystemMessage.ChaserCaughtUp message, CancellationToken token) {
+		if (_leader is null) {
 			return ValueTask.FromException(new Exception("_leader == null"));
+		}
 
 		return _stateCorrelationId == message.CorrelationId
 			? _outputBus.DispatchAsync(message, token)
 			: ValueTask.CompletedTask;
 	}
 
-	private async ValueTask HandleAsPreReplica(SystemMessage.ChaserCaughtUp message, CancellationToken token)
-	{
-		if (_leader is null)
+	private async ValueTask HandleAsPreReplica(SystemMessage.ChaserCaughtUp message, CancellationToken token) {
+		if (_leader is null) {
 			throw new Exception("_leader == null");
+		}
 
-		if (_stateCorrelationId != message.CorrelationId)
+		if (_stateCorrelationId != message.CorrelationId) {
 			return;
+		}
 
 		await _outputBus.DispatchAsync(message, token);
 		await _fsm.HandleAsync(
 			new ReplicationMessage.SubscribeToLeader(_stateCorrelationId, _leader.InstanceId, Guid.NewGuid()), token);
 	}
 
-	private ValueTask Handle(ReplicationMessage.ReconnectToLeader message, CancellationToken token)
-	{
+	private ValueTask Handle(ReplicationMessage.ReconnectToLeader message, CancellationToken token) {
 		return _leader.InstanceId == message.Leader.InstanceId
-		       && _leaderConnectionCorrelationId == message.ConnectionCorrelationId
+			   && _leaderConnectionCorrelationId == message.ConnectionCorrelationId
 			? _outputBus.DispatchAsync(message, token)
 			: ValueTask.CompletedTask;
 	}
 
-	private ValueTask Handle(ReplicationMessage.LeaderConnectionFailed message, CancellationToken token)
-	{
+	private ValueTask Handle(ReplicationMessage.LeaderConnectionFailed message, CancellationToken token) {
 		if (_leader.InstanceId != message.Leader.InstanceId ||
-		    _leaderConnectionCorrelationId != message.LeaderConnectionCorrelationId)
+			_leaderConnectionCorrelationId != message.LeaderConnectionCorrelationId) {
 			return ValueTask.CompletedTask;
+		}
 
 		_leaderConnectionCorrelationId = Guid.NewGuid();
 		var msg = new ReplicationMessage.ReconnectToLeader(_leaderConnectionCorrelationId, message.Leader);
@@ -1334,10 +1279,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 			token);
 	}
 
-	private async ValueTask Handle(ReplicationMessage.SubscribeToLeader message, CancellationToken token)
-	{
-		if (message.LeaderId != _leader.InstanceId || _stateCorrelationId != message.StateCorrelationId)
+	private async ValueTask Handle(ReplicationMessage.SubscribeToLeader message, CancellationToken token) {
+		if (message.LeaderId != _leader.InstanceId || _stateCorrelationId != message.StateCorrelationId) {
 			return;
+		}
 
 		_subscriptionId = message.SubscriptionId;
 		await _outputBus.DispatchAsync(message, token);
@@ -1346,10 +1291,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_mainQueue.Publish(TimerMessage.Schedule.Create(LeaderSubscriptionTimeout, _publishEnvelope, msg));
 	}
 
-	private async ValueTask Handle(ReplicationMessage.ReplicaSubscriptionRetry message, CancellationToken token)
-	{
-		if (IsLegitimateReplicationMessage(message))
-		{
+	private async ValueTask Handle(ReplicationMessage.ReplicaSubscriptionRetry message, CancellationToken token) {
+		if (IsLegitimateReplicationMessage(message)) {
 			await _outputBus.DispatchAsync(message, token);
 
 			var msg = new ReplicationMessage.SubscribeToLeader(_stateCorrelationId, _leader.InstanceId,
@@ -1358,10 +1301,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		}
 	}
 
-	private async ValueTask Handle(ReplicationMessage.ReplicaSubscribed message, CancellationToken token)
-	{
-		if (IsLegitimateReplicationMessage(message))
-		{
+	private async ValueTask Handle(ReplicationMessage.ReplicaSubscribed message, CancellationToken token) {
+		if (IsLegitimateReplicationMessage(message)) {
 			await _outputBus.DispatchAsync(message, token);
 
 			Message msg = _nodeInfo.IsReadOnlyReplica
@@ -1373,24 +1314,19 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 	}
 
 	private ValueTask ForwardReplicationMessage<T>(T message, CancellationToken token)
-		where T : Message, ReplicationMessage.IReplicationMessage
-	{
-		try
-		{
+		where T : Message, ReplicationMessage.IReplicationMessage {
+		try {
 			return IsLegitimateReplicationMessage(message)
 				? _outputBus.DispatchAsync(message, token)
 				: ValueTask.CompletedTask;
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			return ValueTask.FromException(ex);
 		}
 	}
 
-	private async ValueTask Handle(ReplicationMessage.FollowerAssignment message, CancellationToken token)
-	{
-		if (IsLegitimateReplicationMessage(message))
-		{
+	private async ValueTask Handle(ReplicationMessage.FollowerAssignment message, CancellationToken token) {
+		if (IsLegitimateReplicationMessage(message)) {
 			Log.Information(
 				"========== [{httpEndPoint}] FOLLOWER ASSIGNMENT RECEIVED FROM [{internalTcp},{internalSecureTcp},{leaderId:B}].",
 				_nodeInfo.HttpEndPoint,
@@ -1402,10 +1338,8 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		}
 	}
 
-	private async ValueTask Handle(ReplicationMessage.CloneAssignment message, CancellationToken token)
-	{
-		if (IsLegitimateReplicationMessage(message))
-		{
+	private async ValueTask Handle(ReplicationMessage.CloneAssignment message, CancellationToken token) {
+		if (IsLegitimateReplicationMessage(message)) {
 			Log.Information(
 				"========== [{httpEndPoint}] CLONE ASSIGNMENT RECEIVED FROM [{internalTcp},{internalSecureTcp},{leaderId:B}].",
 				_nodeInfo.HttpEndPoint,
@@ -1417,13 +1351,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		}
 	}
 
-	private ValueTask Handle(ReplicationMessage.DropSubscription message, CancellationToken token)
-	{
+	private ValueTask Handle(ReplicationMessage.DropSubscription message, CancellationToken token) {
 		ValueTask task;
-		try
-		{
-			if (IsLegitimateReplicationMessage(message))
-			{
+		try {
+			if (IsLegitimateReplicationMessage(message)) {
 				Log.Information(
 					"========== [{httpEndPoint}] DROP SUBSCRIPTION REQUEST RECEIVED FROM [{internalTcp},{internalSecureTcp},{leaderId:B}]. THIS MEANS THAT THERE IS A SURPLUS OF NODES IN THE CLUSTER, SHUTTING DOWN.",
 					_nodeInfo.HttpEndPoint,
@@ -1433,38 +1364,35 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 				task = _outputBus.DispatchAsync(
 					new ClientMessage.RequestShutdown(exitProcess: true, shutdownHttp: true), token);
 			}
-			else
-			{
+			else {
 				task = ValueTask.CompletedTask;
 			}
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			task = ValueTask.FromException(ex);
 		}
 
 		return task;
 	}
 
-	private bool IsLegitimateReplicationMessage(ReplicationMessage.IReplicationMessage message)
-	{
-		if (message.SubscriptionId == Guid.Empty)
+	private bool IsLegitimateReplicationMessage(ReplicationMessage.IReplicationMessage message) {
+		if (message.SubscriptionId == Guid.Empty) {
 			throw new Exception("IReplicationMessage with empty SubscriptionId provided.");
-		if (message.SubscriptionId != _subscriptionId)
-		{
+		}
+
+		if (message.SubscriptionId != _subscriptionId) {
 			Log.Debug(
 				"Ignoring {message} because SubscriptionId {receivedSubscriptionId:B} is wrong. Current SubscriptionId is {subscriptionId:B}.",
 				message.GetType().Name, message.SubscriptionId, _subscriptionId);
 			return false;
 		}
 
-		if (_leader == null || _leader.InstanceId != message.LeaderId)
-		{
+		if (_leader == null || _leader.InstanceId != message.LeaderId) {
 			var msg = string.Format("{0} message passed SubscriptionId check, but leader is either null or wrong. "
-			                        + "Message.Leader: [{1:B}], VNode Leader: {2}.",
+									+ "Message.Leader: [{1:B}], VNode Leader: {2}.",
 				message.GetType().Name, message.LeaderId, _leader);
 			Log.Fatal("{messageType} message passed SubscriptionId check, but leader is either null or wrong. "
-			          + "Message.Leader: [{leaderId:B}], VNode Leader: {leaderInfo}.",
+					  + "Message.Leader: [{leaderId:B}], VNode Leader: {leaderInfo}.",
 				message.GetType().Name, message.LeaderId, _leader);
 			Application.Exit(ExitCode.Error, msg);
 			return false;
@@ -1473,26 +1401,22 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		return true;
 	}
 
-	private async ValueTask Handle(SystemMessage.ServiceShutdown message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.ServiceShutdown message, CancellationToken token) {
 		Log.Information("========== [{httpEndPoint}] Service '{service}' has shut down.", _nodeInfo.HttpEndPoint,
 			message.ServiceName);
 
-		if (_initializedServices.ContainsKey(message.ServiceName))
-		{
+		if (_initializedServices.ContainsKey(message.ServiceName)) {
 			_initializedServices[message.ServiceName] = ServiceState.Shutdown;
 		}
-		else
-		{
+		else {
 			Log.Debug(
 				"========== [{httpEndPoint}] Ignoring shutdown for untracked service '{service}'.",
 				_nodeInfo.HttpEndPoint, message.ServiceName);
 		}
 
 		if (_initializedServices.Count > 0
-		    && _initializedServices.All(kvp => kvp.Value is ServiceState.Shutdown)
-		    && TryFinalizeShutdown())
-		{
+			&& _initializedServices.All(kvp => kvp.Value is ServiceState.Shutdown)
+			&& TryFinalizeShutdown()) {
 			Log.Information("========== [{httpEndPoint}] All Services Shutdown.", _nodeInfo.HttpEndPoint);
 			await Shutdown(token);
 		}
@@ -1500,31 +1424,28 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		await _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask Handle(SystemMessage.ShutdownTimeout message, CancellationToken token)
-	{
+	private async ValueTask Handle(SystemMessage.ShutdownTimeout message, CancellationToken token) {
 		Debug.Assert(State is VNodeState.ShuttingDown);
 
 		var pendingServices = string.Join(", ", _initializedServices
 			.Where(kvp => kvp.Value is not ServiceState.Shutdown)
 			.Select(kvp => kvp.Key));
 
-		if (string.IsNullOrEmpty(pendingServices))
-		{
+		if (string.IsNullOrEmpty(pendingServices)) {
 			Log.Error("========== [{httpEndPoint}] Shutdown Timeout.", _nodeInfo.HttpEndPoint);
 		}
-		else
-		{
+		else {
 			Log.Error("========== [{httpEndPoint}] Shutdown Timeout. Gave up waiting for services: [{services}]",
 				_nodeInfo.HttpEndPoint, pendingServices);
 		}
-		if (TryFinalizeShutdown())
+		if (TryFinalizeShutdown()) {
 			await Shutdown(token);
+		}
 
 		await _outputBus.DispatchAsync(message, token);
 	}
 
-	private async ValueTask Shutdown(CancellationToken token)
-	{
+	private async ValueTask Shutdown(CancellationToken token) {
 		Debug.Assert(State is VNodeState.ShuttingDown);
 
 		await _db.Close(token);
@@ -1536,10 +1457,10 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		   && HasInitialized("StorageReader")
 		   && HasInitialized("StorageWriter");
 
-	private bool TryFinalizeShutdown()
-	{
-		if (_finalizingShutdown)
+	private bool TryFinalizeShutdown() {
+		if (_finalizingShutdown) {
 			return false;
+		}
 
 		_finalizingShutdown = true;
 		return true;

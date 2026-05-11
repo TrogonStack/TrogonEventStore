@@ -28,8 +28,9 @@ public sealed class NodeInformationProvider(
 			State = ((VNodeState)Volatile.Read(ref _currentState)).ToString().ToLowerInvariant(),
 			Authentication = AuthenticationInfo()
 		};
-		foreach (var (key, value) in features)
+		foreach (var (key, value) in features) {
 			result.Features.Add(key, value);
+		}
 
 		return result;
 	}
@@ -47,14 +48,16 @@ public sealed class NodeInformationProvider(
 		Volatile.Write(ref _currentState, (int)message.State);
 
 	private AuthenticationInfo AuthenticationInfo() {
-		if (authenticationProvider is null)
+		if (authenticationProvider is null) {
 			return new AuthenticationInfo();
+		}
 
 		var result = new AuthenticationInfo {
 			Type = authenticationProvider.Name
 		};
-		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? [])
+		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? []) {
 			result.Properties.Add(key, value);
+		}
 
 		return result;
 	}

@@ -4,7 +4,6 @@ using DotNext;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public interface IChunkReaderForIndexExecutor<TStreamId>
-{
+public interface IChunkReaderForIndexExecutor<TStreamId> {
 	ValueTask<Optional<TStreamId>> TryGetStreamId(long position, CancellationToken token);
 }

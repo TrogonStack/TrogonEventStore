@@ -8,19 +8,16 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class PersistentSubscriptions
-{
+internal partial class PersistentSubscriptions {
 	private static readonly Operation RestartOperation = new Operation(Plugins.Authorization.Operations.Subscriptions.Restart);
 
-	public override async Task<Empty> RestartSubsystem(Empty request, ServerCallContext context)
-	{
+	public override async Task<Empty> RestartSubsystem(Empty request, ServerCallContext context) {
 		var restartSubsystemSource = new TaskCompletionSource<Empty>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var user = context.GetHttpContext().User;
 
 		if (!await _authorizationProvider.CheckAccessAsync(user,
-			RestartOperation, context.CancellationToken))
-		{
+			RestartOperation, context.CancellationToken)) {
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -28,17 +25,14 @@ internal partial class PersistentSubscriptions
 			new CallbackEnvelope(HandleRestartSubsystemCompleted)));
 		return await restartSubsystemSource.Task;
 
-		void HandleRestartSubsystemCompleted(Message message)
-		{
+		void HandleRestartSubsystemCompleted(Message message) {
 			if (message is ClientMessage.NotHandled notHandled &&
-				RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
-			{
+				RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
 				restartSubsystemSource.TrySetException(ex);
 				return;
 			}
 
-			switch (message)
-			{
+			switch (message) {
 				case SubscriptionMessage.PersistentSubscriptionsRestarting _:
 					restartSubsystemSource.TrySetResult(new Empty());
 					return;

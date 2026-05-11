@@ -14,8 +14,7 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.grpc_service;
 
-public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection _connection;
 	protected UserCredentials _credentials;
@@ -27,8 +26,7 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_credentials = new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword);
 		_timeout = TimeSpan.FromSeconds(20);
@@ -45,40 +43,31 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 			connection => connection.ReadAllEventsForwardAsync(Position.Start, 1, false, _credentials),
 			StartupTimeout);
 
-		try
-		{
+		try {
 			await Given().WithTimeout(_timeout);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			throw new Exception("Given Failed", ex);
 		}
 
-		try
-		{
+		try {
 			await When().WithTimeout(_timeout);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			throw new Exception("When Failed", ex);
 		}
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
-		if (_connection != null)
-		{
-			try
-			{
+	public override async Task TestFixtureTearDown() {
+		if (_connection != null) {
+			try {
 				await TestConnectionLifecycle.CloseConnectionAndWait(_connection, _timeout);
 			}
-			catch
-			{
+			catch {
 				TestConnectionLifecycle.TryCloseConnection(_connection);
 			}
-			finally
-			{
+			finally {
 				TestConnectionLifecycle.DisposeIfNeeded(_connection);
 			}
 		}
@@ -92,8 +81,7 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 	public abstract Task Given();
 	public abstract Task When();
 
-	protected MiniNode<TLogFormat, TStreamId> CreateNode()
-	{
+	protected MiniNode<TLogFormat, TStreamId> CreateNode() {
 		_projectionsSubsystem = new ProjectionsSubsystem(new ProjectionSubsystemOptions(1, ProjectionType.All, false, TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault), Opts.FaultOutOfOrderProjectionsDefault, 500, 250));
 		_systemProjectionsCreated = SystemProjections.Created(_projectionsSubsystem.LeaderInputBus);
 		return new MiniNode<TLogFormat, TStreamId>(
@@ -101,18 +89,15 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
 			subsystems: [_projectionsSubsystem]);
 	}
 
-	protected EventData CreateEvent(string eventType, string data)
-	{
+	protected EventData CreateEvent(string eventType, string data) {
 		return new EventData(Guid.NewGuid(), eventType, true, Encoding.UTF8.GetBytes(data), null);
 	}
 
-	protected Task PostEvent(string stream, string eventType, string data)
-	{
+	protected Task PostEvent(string stream, string eventType, string data) {
 		return _connection.AppendToStreamAsync(stream, ExpectedVersion.Any, new[] { CreateEvent(eventType, data) });
 	}
 
-	protected string CreateStandardQuery(string stream)
-	{
+	protected string CreateStandardQuery(string stream) {
 		return @"fromStream(""" + stream + @""")
                 .when({
                     ""$any"":function(s,e) {
@@ -122,8 +107,7 @@ public abstract class SpecificationWithNodeAndProjectionSubsystem<TLogFormat, TS
             });";
 	}
 
-	protected string CreateEmittingQuery(string stream, string emittingStream)
-	{
+	protected string CreateEmittingQuery(string stream, string emittingStream) {
 		return @"fromStream(""" + stream + @""")
                 .when({
                     ""$any"":function(s,e) {

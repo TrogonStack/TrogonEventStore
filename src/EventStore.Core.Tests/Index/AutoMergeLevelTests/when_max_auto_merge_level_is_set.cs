@@ -12,8 +12,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.AutoMergeLevelTests;
 
 [TestFixture]
-public abstract class when_max_auto_merge_level_is_set : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class when_max_auto_merge_level_is_set : SpecificationWithDirectoryPerTestFixture {
 	protected const int LongRunningTimeout = 120000;
 	protected readonly int _maxAutoMergeLevel;
 	protected string _filename;
@@ -23,31 +22,29 @@ public abstract class when_max_auto_merge_level_is_set : SpecificationWithDirect
 	protected bool _skipIndexVerify = true;
 	protected GuidFilenameProvider _fileNameProvider;
 
-	public when_max_auto_merge_level_is_set(int maxAutoMergeLevel = 2)
-	{
+	public when_max_auto_merge_level_is_set(int maxAutoMergeLevel = 2) {
 		_maxAutoMergeLevel = maxAutoMergeLevel;
 	}
 
 	[OneTimeSetUp]
-	public virtual void Setup()
-	{
+	public virtual void Setup() {
 		_filename = GetTempFilePath();
 		_fileNameProvider = new GuidFilenameProvider(PathName);
 		_map = IndexMapTestFactory.FromFile(_filename, maxTablesPerLevel: 2, maxAutoMergeLevel: _maxAutoMergeLevel);
 	}
 
-	protected void AddTables(int count)
-	{
+	protected void AddTables(int count) {
 		var memtable = new HashListMemTable(_ptableVersion, maxSize: 10);
 		memtable.Add(0, 1, 0);
 		var first = _map;
-		if (_result != null)
+		if (_result != null) {
 			first = _result.MergedMap;
+		}
+
 		var pTable = PTable.FromMemtable(memtable, GetTempFilePath(), Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: _skipIndexVerify);
 		_result = first.AddAndMergePTable(pTable,
 			10, 20, _fileNameProvider, _ptableVersion, 0, skipIndexVerify: _skipIndexVerify);
-		for (int i = 3; i <= count * 2; i += 2)
-		{
+		for (int i = 3; i <= count * 2; i += 2) {
 			pTable = PTable.FromMemtable(memtable, GetTempFilePath(), Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: _skipIndexVerify);
 			_result = _result.MergedMap.AddAndMergePTable(
 				pTable,
@@ -59,8 +56,7 @@ public abstract class when_max_auto_merge_level_is_set : SpecificationWithDirect
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown()
-	{
+	public override Task TestFixtureTearDown() {
 		_result.ToDelete.ForEach(x => x.MarkForDestruction());
 		_result.MergedMap.InOrder().ToList().ForEach(x => x.MarkForDestruction());
 		_result.MergedMap.Dispose(TimeSpan.FromMilliseconds(100));

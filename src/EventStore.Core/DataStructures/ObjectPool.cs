@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using EventStore.Common.Utils;
-using System.Collections.Concurrent;
 
 namespace EventStore.Core.DataStructures {
 	public class ObjectPoolDisposingException : Exception {
@@ -51,8 +51,10 @@ namespace EventStore.Core.DataStructures {
 			Ensure.NotNullOrEmpty(objectPoolName, "objectPoolName");
 			Ensure.Nonnegative(initialCount, "initialCount");
 			Ensure.Nonnegative(maxCount, "maxCount");
-			if (initialCount > maxCount)
+			if (initialCount > maxCount) {
 				throw new ArgumentOutOfRangeException("initialCount", "initialCount is greater than maxCount.");
+			}
+
 			Ensure.NotNull(factory, "factory");
 
 			ObjectPoolName = objectPoolName;
@@ -78,23 +80,29 @@ namespace EventStore.Core.DataStructures {
 		}
 
 		public T Get() {
-			if (_disposing)
+			if (_disposing) {
 				throw new ObjectPoolDisposingException(ObjectPoolName);
+			}
 
 			T item;
-			if (_queue.TryDequeue(out item))
+			if (_queue.TryDequeue(out item)) {
 				return item;
-
-			if (_disposing)
-				throw new ObjectPoolDisposingException(ObjectPoolName);
-
-			var newCount = Interlocked.Increment(ref _count);
-			if (newCount > _maxCount)
-				throw new ObjectPoolMaxLimitReachedException(ObjectPoolName, _maxCount);
+			}
 
 			if (_disposing) {
-				if (Interlocked.Decrement(ref _count) == 0)
+				throw new ObjectPoolDisposingException(ObjectPoolName);
+			}
+
+			var newCount = Interlocked.Increment(ref _count);
+			if (newCount > _maxCount) {
+				throw new ObjectPoolMaxLimitReachedException(ObjectPoolName, _maxCount);
+			}
+
+			if (_disposing) {
+				if (Interlocked.Decrement(ref _count) == 0) {
 					OnPoolDisposed(); // now we possibly should "turn light off"
+				}
+
 				throw new ObjectPoolDisposingException(ObjectPoolName);
 			}
 
@@ -106,8 +114,9 @@ namespace EventStore.Core.DataStructures {
 		public void Return(T item) {
 			_queue.Enqueue(item);
 			Thread.MemoryBarrier();
-			if (_disposing)
+			if (_disposing) {
 				TryDestruct();
+			}
 		}
 
 		private void TryDestruct() {
@@ -119,16 +128,21 @@ namespace EventStore.Core.DataStructures {
 				count = Interlocked.Decrement(ref _count);
 			}
 
-			if (count < 0)
+			if (count < 0) {
 				throw new Exception("Somehow we managed to decrease count of pool items below zero.");
+			}
+
 			if (count == 0) // we are the last who should "turn the light off" 
+{
 				OnPoolDisposed();
+			}
 		}
 
 		private void OnPoolDisposed() {
 			// ensure that we call _onPoolDisposed just once
-			if (Interlocked.CompareExchange(ref _poolDisposed, 1, 0) == 0)
+			if (Interlocked.CompareExchange(ref _poolDisposed, 1, 0) == 0) {
 				_onPoolDisposed(this);
+			}
 		}
 	}
 }

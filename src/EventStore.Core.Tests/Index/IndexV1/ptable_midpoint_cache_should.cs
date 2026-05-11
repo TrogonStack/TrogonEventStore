@@ -11,39 +11,31 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class ptable_midpoint_cache_should : SpecificationWithDirectory
-{
+public class ptable_midpoint_cache_should : SpecificationWithDirectory {
 	private const int LongRunningTimeout = 120000;
 	private static readonly ILogger Log = Serilog.Log.ForContext<ptable_midpoint_cache_should>();
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
 
-	public ptable_midpoint_cache_should(byte version, bool skipIndexVerify)
-	{
+	public ptable_midpoint_cache_should(byte version, bool skipIndexVerify) {
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
-	private void construct_valid_cache_for_any_combination_of_params(int maxIndexEntries)
-	{
+	private void construct_valid_cache_for_any_combination_of_params(int maxIndexEntries) {
 		var rnd = new Random(123987);
-		for (int count = 0; count < maxIndexEntries; ++count)
-		{
-			for (int depth = 0; depth < 15; ++depth)
-			{
+		for (int count = 0; count < maxIndexEntries; ++count) {
+			for (int depth = 0; depth < 15; ++depth) {
 				PTable ptable = null;
-				try
-				{
+				try {
 					Log.Verbose("Creating PTable with count {0}, depth {1}", count, depth);
 					ptable = ConstructPTable(
 						GetFilePathFor(string.Format("{0}-{1}-indexv{2}.ptable", count, depth, _ptableVersion)),
 						count, rnd, depth);
 					ValidateCache(ptable.GetMidPoints(), count, depth);
 				}
-				finally
-				{
-					if (ptable != null)
-					{
+				finally {
+					if (ptable != null) {
 						ptable.Dispose();
 					}
 				}
@@ -51,11 +43,9 @@ public class ptable_midpoint_cache_should : SpecificationWithDirectory
 		}
 	}
 
-	private PTable ConstructPTable(string file, int count, Random rnd, int depth)
-	{
+	private PTable ConstructPTable(string file, int count, Random rnd, int depth) {
 		var memTable = new HashListMemTable(_ptableVersion, 20000);
-		for (int i = 0; i < count; ++i)
-		{
+		for (int i = 0; i < count; ++i) {
 			memTable.Add((uint)rnd.Next(), rnd.Next(0, 1 << 20), Math.Abs(rnd.Next() * rnd.Next()));
 		}
 
@@ -63,16 +53,13 @@ public class ptable_midpoint_cache_should : SpecificationWithDirectory
 		return ptable;
 	}
 
-	private void ValidateCache(ReadOnlySpan<PTable.Midpoint> cache, int count, int depth)
-	{
-		if (count == 0 || depth == 0)
-		{
+	private void ValidateCache(ReadOnlySpan<PTable.Midpoint> cache, int count, int depth) {
+		if (count == 0 || depth == 0) {
 			Assert.True(cache.IsEmpty);
 			return;
 		}
 
-		if (count == 1)
-		{
+		if (count == 1) {
 			Assert.False(cache.IsEmpty);
 			Assert.AreEqual(2, cache.Length);
 			Assert.AreEqual(0, cache[0].ItemIndex);
@@ -84,8 +71,7 @@ public class ptable_midpoint_cache_should : SpecificationWithDirectory
 		Assert.AreEqual(Math.Min(count, 1 << depth), cache.Length);
 
 		Assert.AreEqual(0, cache[0].ItemIndex);
-		for (int i = 1; i < cache.Length; ++i)
-		{
+		for (int i = 1; i < cache.Length; ++i) {
 			Assert.IsTrue(cache[i - 1].Key.GreaterEqualsThan(cache[i].Key), "Expected {0} to be >= {1}",
 				cache[i - 1].Key, cache[i].Key);
 			Assert.Less(cache[i - 1].ItemIndex, cache[i].ItemIndex);
@@ -95,14 +81,12 @@ public class ptable_midpoint_cache_should : SpecificationWithDirectory
 	}
 
 	[Test, Category("LongRunning"), Ignore("Veerrrryyy long running :)")]
-	public void construct_valid_cache_for_any_combination_of_params_large()
-	{
+	public void construct_valid_cache_for_any_combination_of_params_large() {
 		construct_valid_cache_for_any_combination_of_params(4096);
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public void construct_valid_cache_for_any_combination_of_params_small()
-	{
+	public void construct_valid_cache_for_any_combination_of_params_small() {
 		construct_valid_cache_for_any_combination_of_params(20);
 	}
 }

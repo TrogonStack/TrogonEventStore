@@ -7,13 +7,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.Chaser;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenChaserReadsSystemEvent<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId>
-{
+public class WhenChaserReadsSystemEvent<TLogFormat, TStreamId> : with_storage_chaser_service<TLogFormat, TStreamId> {
 	private Guid _epochId;
 	private int _epochNumber;
 
-	public override async ValueTask When(CancellationToken token)
-	{
+	public override async ValueTask When(CancellationToken token) {
 		_epochId = Guid.NewGuid();
 		_epochNumber = 7;
 		var epoch = new EpochRecord(0, _epochNumber, _epochId, -1, DateTime.UtcNow, Guid.Empty);
@@ -24,8 +22,7 @@ public class WhenChaserReadsSystemEvent<TLogFormat, TStreamId> : with_storage_ch
 		await Writer.Flush(token);
 	}
 	[Test]
-	public void epoch_should_be_updated()
-	{
+	public void epoch_should_be_updated() {
 		AssertEx.IsOrBecomesTrue(() => EpochManager.GetLastEpoch() != null);
 		Assert.AreEqual(_epochId, EpochManager.GetLastEpoch().EpochId);
 		Assert.AreEqual(_epochNumber, EpochManager.GetLastEpoch().EpochNumber);

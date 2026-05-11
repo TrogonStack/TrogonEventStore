@@ -2,8 +2,7 @@ using System;
 
 namespace EventStore.Transport.Tcp;
 
-public class TcpStats
-{
+public class TcpStats {
 	///<summary>
 	///Number of TCP connections to Event Store
 	///</summary>
@@ -57,8 +56,7 @@ public class TcpStats
 		long pendingSend,
 		long inSend,
 		long pendingReceived,
-		TimeSpan measureTime)
-	{
+		TimeSpan measureTime) {
 		Connections = connections;
 		SentBytesTotal = sentBytesTotal;
 		ReceivedBytesTotal = receivedBytesTotal;

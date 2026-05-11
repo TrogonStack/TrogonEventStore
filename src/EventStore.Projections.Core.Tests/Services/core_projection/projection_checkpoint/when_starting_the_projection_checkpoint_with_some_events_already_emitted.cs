@@ -14,21 +14,18 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_starting_the_projection_checkpoint_with_some_events_already_emitted<TLogFormat, TStreamId> :
-	TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+	TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		NoStream("stream1");
 		NoStream("stream2");
 		NoStream("stream3");
 	}
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_checkpoint = new ProjectionCheckpoint(
 			_bus, _ioDispatcher, new ProjectionVersion(1, 0, 0), null, _readyHandler,
@@ -60,8 +57,7 @@ public class when_starting_the_projection_checkpoint_with_some_events_already_em
 	}
 
 	[Test]
-	public void should_publish_write_events()
-	{
+	public void should_publish_write_events() {
 		Assert.AreEqual(3, _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Count());
 	}
 }

@@ -5,13 +5,11 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
-{
+public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId> {
 	private readonly IIndexExecutor<TStreamId> _wrapped;
 	private readonly Tracer _tracer;
 
-	public TracingIndexExecutor(IIndexExecutor<TStreamId> wrapped, Tracer tracer)
-	{
+	public TracingIndexExecutor(IIndexExecutor<TStreamId> wrapped, Tracer tracer) {
 		_wrapped = wrapped;
 		_tracer = tracer;
 	}
@@ -20,17 +18,14 @@ public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
 		ScavengePoint scavengePoint,
 		IScavengeStateForIndexExecutor<TStreamId> state,
 		IIndexScavengerLog scavengerLogger,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		_tracer.TraceIn($"Executing index for {scavengePoint.GetName()}");
-		try
-		{
+		try {
 			await _wrapped.Execute(scavengePoint, state, scavengerLogger, cancellationToken);
 			_tracer.TraceOut("Done");
 		}
-		catch
-		{
+		catch {
 			_tracer.TraceOut("Exception executing index");
 			throw;
 		}
@@ -40,17 +35,14 @@ public class TracingIndexExecutor<TStreamId> : IIndexExecutor<TStreamId>
 		ScavengeCheckpoint.ExecutingIndex checkpoint,
 		IScavengeStateForIndexExecutor<TStreamId> state,
 		IIndexScavengerLog scavengerLogger,
-		CancellationToken cancellationToken)
-	{
+		CancellationToken cancellationToken) {
 
 		_tracer.TraceIn($"Executing index from checkpoint: {checkpoint}");
-		try
-		{
+		try {
 			await _wrapped.Execute(checkpoint, state, scavengerLogger, cancellationToken);
 			_tracer.TraceOut("Done");
 		}
-		catch
-		{
+		catch {
 			_tracer.TraceOut("Exception executing index");
 			throw;
 		}

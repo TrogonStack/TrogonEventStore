@@ -22,14 +22,12 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_starting_the_projection_manager_with_existing_projection<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_starting_the_projection_manager_with_existing_projection<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private new ITimeProvider _timeProvider;
 	private ProjectionManager _manager;
 	private Guid _workerId;
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_workerId = Guid.NewGuid();
 		ExistingEvent(ProjectionNamesBuilder.ProjectionsRegistrationStream, ProjectionEventTypes.ProjectionCreated,
 			null, "projection1");
@@ -40,8 +38,7 @@ public class when_starting_the_projection_manager_with_existing_projection<TLogF
 
 
 	[SetUp]
-	public void setup()
-	{
+	public void setup() {
 		_timeProvider = new FakeTimeProvider();
 		var queues = new Dictionary<Guid, IPublisher> { { _workerId, _bus } };
 		_manager = new ProjectionManager(
@@ -60,14 +57,12 @@ public class when_starting_the_projection_manager_with_existing_projection<TLogF
 	}
 
 	[TearDown]
-	public void TearDown()
-	{
+	public void TearDown() {
 		_manager.Dispose();
 	}
 
 	[Test]
-	public void projection_status_can_be_retrieved()
-	{
+	public void projection_status_can_be_retrieved() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, "projection1",
 				true));
@@ -77,8 +72,7 @@ public class when_starting_the_projection_manager_with_existing_projection<TLogF
 	}
 
 	[Test]
-	public void projection_status_is_starting()
-	{
+	public void projection_status_is_starting() {
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, "projection1",
 				true));
@@ -89,8 +83,7 @@ public class when_starting_the_projection_manager_with_existing_projection<TLogF
 	}
 
 	[Test]
-	public void projection_telemetry_working()
-	{
+	public void projection_telemetry_working() {
 		_manager.Handle(
 			new TelemetryMessage.Request(
 				_bus));
@@ -99,8 +92,7 @@ public class when_starting_the_projection_manager_with_existing_projection<TLogF
 
 		Assert.AreEqual("projections", actual.Key);
 		Assert.AreEqual(
-			new JsonObject
-			{
+			new JsonObject {
 				["customProjectionCount"] = 1,
 				["standardProjectionCount"] = 0,
 				["customProjectionRunningCount"] = 0,

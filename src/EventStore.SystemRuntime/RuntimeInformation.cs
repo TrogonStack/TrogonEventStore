@@ -10,32 +10,27 @@ using static System.String;
 namespace System.Runtime;
 
 [PublicAPI]
-public static class RuntimeInformation
-{
-	static RuntimeInformation()
-	{
-		if (IsOSPlatform(OSPlatform.OSX))
-		{
+public static class RuntimeInformation {
+	static RuntimeInformation() {
+		if (IsOSPlatform(OSPlatform.OSX)) {
 			OsPlatform = RuntimeOSPlatform.OSX;
 			IsOSX = true;
 		}
-		else if (IsOSPlatform(OSPlatform.Linux))
-		{
+		else if (IsOSPlatform(OSPlatform.Linux)) {
 			OsPlatform = RuntimeOSPlatform.Linux;
 			IsLinux = true;
 		}
-		else if (IsOSPlatform(OSPlatform.Windows))
-		{
+		else if (IsOSPlatform(OSPlatform.Windows)) {
 			OsPlatform = RuntimeOSPlatform.Windows;
 			IsWindows = true;
 		}
-		else if (IsOSPlatform(OSPlatform.FreeBSD))
-		{
+		else if (IsOSPlatform(OSPlatform.FreeBSD)) {
 			OsPlatform = RuntimeOSPlatform.FreeBSD;
 			IsFreeBSD = true;
 		}
-		else
+		else {
 			OsPlatform = RuntimeOSPlatform.Unknown;
+		}
 
 		IsUnix = IsLinux || IsFreeBSD || IsOSX;
 
@@ -127,20 +122,17 @@ public readonly record struct DotNetHostInfo(
 	Architecture Architecture,
 	int Mode,
 	string Commit,
-	string RuntimeVersion)
-{
+	string RuntimeVersion) {
 	public override string ToString() => RuntimeVersion;
 
-	public static DotNetHostInfo Collect()
-	{
+	public static DotNetHostInfo Collect() {
 		var assemblyVersion = typeof(object).Assembly
 			.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
 			?.InformationalVersion!;
 
 		var commit = assemblyVersion.Substring(assemblyVersion.IndexOf('+') + 1, 9);
 
-		return new DotNetHostInfo
-		{
+		return new DotNetHostInfo {
 			Version = Environment.Version.ToString(),
 			Architecture = OSArchitecture,
 			Mode = IntPtr.Size * 8,

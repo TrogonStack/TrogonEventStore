@@ -10,27 +10,21 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
 [TestFixture]
-public class AppendBatchToStreamTests
-{
+public class AppendBatchToStreamTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class single_batch<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	public class single_batch<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private BatchAppendResp _response;
 		private readonly Uuid _correlationId;
 
-		public single_batch()
-		{
+		public single_batch() {
 			_correlationId = Uuid.NewUuid();
 		}
 
 		protected override Task Given() => Task.CompletedTask;
 
-		protected override async Task When()
-		{
-			_response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			_response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("stream") }
 				},
@@ -41,37 +35,30 @@ public class AppendBatchToStreamTests
 		}
 
 		[Test]
-		public void is_success()
-		{
+		public void is_success() {
 			Assert.AreEqual(_response.ResultCase, BatchAppendResp.ResultOneofCase.Success);
 		}
 
 		[Test]
-		public void is_correlated()
-		{
+		public void is_correlated() {
 			Assert.AreEqual(_correlationId.ToDto(), _response.CorrelationId);
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class single_batch_non_structured_uuid<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	public class single_batch_non_structured_uuid<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private BatchAppendResp _response;
 		private readonly Uuid _correlationId;
 
-		public single_batch_non_structured_uuid()
-		{
+		public single_batch_non_structured_uuid() {
 			_correlationId = Uuid.NewUuid();
 		}
 
 		protected override Task Given() => Task.CompletedTask;
 
-		protected override async Task When()
-		{
-			_response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			_response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("stream") }
 				},
@@ -82,39 +69,32 @@ public class AppendBatchToStreamTests
 		}
 
 		[Test]
-		public void is_success()
-		{
+		public void is_success() {
 			Assert.AreEqual(_response.ResultCase, BatchAppendResp.ResultOneofCase.Success);
 		}
 
 		[Test]
-		public void is_correlated()
-		{
+		public void is_correlated() {
 			Assert.AreEqual(new UUID() { String = _correlationId.ToString() }, _response.CorrelationId);
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class multiple_batches<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	public class multiple_batches<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private BatchAppendResp _response;
 		protected override Task Given() => Task.CompletedTask;
 
-		protected override async Task When()
-		{
+		protected override async Task When() {
 			var correlationId = Uuid.NewUuid();
-			_response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+			_response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("stream") }
 				},
 				IsFinal = false,
 				ProposedMessages = { CreateEvents(1) },
 				CorrelationId = correlationId.ToDto(),
-			}, new()
-			{
+			}, new() {
 				IsFinal = true,
 				ProposedMessages = { CreateEvents(1) },
 				CorrelationId = correlationId.ToDto()
@@ -122,31 +102,25 @@ public class AppendBatchToStreamTests
 		}
 
 		[Test]
-		public void is_success()
-		{
+		public void is_success() {
 			Assert.AreEqual(_response.ResultCase, BatchAppendResp.ResultOneofCase.Success);
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class exceeded_deadline<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	public class exceeded_deadline<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private BatchAppendResp _response;
 		private readonly Uuid _correlationId;
 
-		public exceeded_deadline()
-		{
+		public exceeded_deadline() {
 			_correlationId = Uuid.NewUuid();
 		}
 
 		protected override Task Given() => Task.CompletedTask;
 
-		protected override async Task When()
-		{
-			_response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			_response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("stream") },
 					Deadline = Duration.FromTimeSpan(TimeSpan.Zero)
@@ -158,38 +132,31 @@ public class AppendBatchToStreamTests
 		}
 
 		[Test]
-		public void is_error()
-		{
+		public void is_error() {
 			Assert.AreEqual(_response.ResultCase, BatchAppendResp.ResultOneofCase.Error);
 			Assert.AreEqual(_response.Error.Code, Google.Rpc.Code.DeadlineExceeded);
 		}
 
 		[Test]
-		public void is_correlated()
-		{
+		public void is_correlated() {
 			Assert.AreEqual(_correlationId.ToDto(), _response.CorrelationId);
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class exceeded_deadline_timestamp<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
-	{
+	public class exceeded_deadline_timestamp<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
 		private BatchAppendResp _response;
 		private readonly Uuid _correlationId;
 
-		public exceeded_deadline_timestamp()
-		{
+		public exceeded_deadline_timestamp() {
 			_correlationId = Uuid.NewUuid();
 		}
 
 		protected override Task Given() => Task.CompletedTask;
 
-		protected override async Task When()
-		{
-			_response = await AppendToStreamBatch(new BatchAppendReq
-			{
-				Options = new()
-				{
+		protected override async Task When() {
+			_response = await AppendToStreamBatch(new BatchAppendReq {
+				Options = new() {
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("stream") },
 					Deadline21100 = Timestamp.FromDateTime(DateTime.UtcNow)
@@ -201,15 +168,13 @@ public class AppendBatchToStreamTests
 		}
 
 		[Test]
-		public void is_error()
-		{
+		public void is_error() {
 			Assert.AreEqual(_response.ResultCase, BatchAppendResp.ResultOneofCase.Error);
 			Assert.AreEqual(_response.Error.Code, Google.Rpc.Code.DeadlineExceeded);
 		}
 
 		[Test]
-		public void is_correlated()
-		{
+		public void is_correlated() {
 			Assert.AreEqual(_correlationId.ToDto(), _response.CorrelationId);
 		}
 	}

@@ -19,8 +19,7 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 // have been merged but these will be similar to the before-merge case as the
 // new scavenger works on logical chunk numbers.
 
-public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
-{
+public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests> {
 	// let's assume we have an index entry X pointing to an empty, scavenged chunk.
 	// call the stream for that index entry: S.
 	//
@@ -60,8 +59,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 	// iii) 'maybe discardable' events cannot occur after 'kept for sure' events
 
 	[Fact]
-	public async Task case_a()
-	{
+	public async Task case_a() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -72,8 +70,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 				.Chunk(ScavengePointRec(t++)))
 			.EmptyChunk(0)
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(x =>
-			{
+			.AssertState(x => {
 				Assert.False(x.TryGetOriginalStreamData("ab-1", out _)); // no scavenge data accumulated
 			})
 			.RunAsync(
@@ -89,8 +86,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 	}
 
 	[Fact]
-	public async Task case_b()
-	{
+	public async Task case_b() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -130,10 +126,10 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 			.EmptyChunk(4)
 			.EmptyChunk(6)
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(x =>
-			{
-				if (!x.TryGetOriginalStreamData("ab-1", out var data))
+			.AssertState(x => {
+				if (!x.TryGetOriginalStreamData("ab-1", out var data)) {
 					Assert.Fail("Failed to get original stream data");
+				}
 
 				Assert.Equal(DiscardPoint.DiscardIncluding(5), data.DiscardPoint);
 				Assert.Equal(DiscardPoint.DiscardIncluding(8), data.MaybeDiscardPoint);
@@ -165,8 +161,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 	}
 
 	[Fact]
-	public async Task case_b_with_no_events_in_the_log()
-	{
+	public async Task case_b_with_no_events_in_the_log() {
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -180,10 +175,10 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 				.Chunk(ScavengePointRec(t++)))
 			.EmptyChunk(0)
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(x =>
-			{
-				if (!x.TryGetOriginalStreamData("ab-1", out var data))
+			.AssertState(x => {
+				if (!x.TryGetOriginalStreamData("ab-1", out var data)) {
 					Assert.Fail("Failed to get original stream data");
+				}
 
 				Assert.Equal(DiscardPoint.DiscardIncluding(1), data.DiscardPoint);
 			})
@@ -202,8 +197,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 	}
 
 	[Fact]
-	public async Task case_b_with_modified_tb_metadata()
-	{
+	public async Task case_b_with_modified_tb_metadata() {
 		// in a real-life scenario, $tb would normally be 4. but in this test, we change it to 2 to illustrate that
 		// the $tb metadata will take precedence. Given that this stream doesn't have maxage metadata, for performance
 		// reasons we don't consult the chunk's time stamp range and thus won't know if these index entries have already
@@ -228,8 +222,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 				.Chunk(ScavengePointRec(t++)))
 			.EmptyChunk(1)
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(x =>
-			{
+			.AssertState(x => {
 				Assert.False(x.TryGetOriginalStreamData("ab-1", out _)); // calculation status is 'spent'
 			})
 			.RunAsync(
@@ -251,8 +244,7 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 	}
 
 	[Fact]
-	public async Task case_b_with_modified_maxage_metadata()
-	{
+	public async Task case_b_with_modified_maxage_metadata() {
 		// in a real-life scenario, the timestamp of events in the emptied chunk would normally be 'Expired'.
 		// but in this test, we change it to 'Active' to illustrate that the stale index entries will still be deleted.
 
@@ -275,10 +267,10 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 				.Chunk(ScavengePointRec(t++)))
 			.EmptyChunk(1)
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(x =>
-			{
-				if (!x.TryGetOriginalStreamData("ab-1", out var data))
+			.AssertState(x => {
+				if (!x.TryGetOriginalStreamData("ab-1", out var data)) {
 					Assert.Fail("Failed to get original stream data");
+				}
 
 				Assert.Equal(DiscardPoint.DiscardIncluding(3), data.DiscardPoint);
 			})

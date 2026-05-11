@@ -43,7 +43,7 @@ namespace EventStore.Core {
 
 				return type.GetProperties().Select(property =>
 					new KeyValuePair<string, object?>(property.Name, property.PropertyType switch {
-						{IsArray: true} => string.Join(",",
+						{ IsArray: true } => string.Join(",",
 							((Array)(property.GetValue(defaultInstance) ?? Array.Empty<object>())).OfType<object>()),
 						_ => property.GetValue(defaultInstance)
 					}));
@@ -62,13 +62,13 @@ namespace EventStore.Core {
 			var defaultValues = new Dictionary<string, object?>(DefaultValues, StringComparer.OrdinalIgnoreCase);
 
 			var deprecationWarnings = from section in OptionSections
-				from option in section.GetProperties()
-				let deprecationWarning = option.GetCustomAttribute<DeprecatedAttribute>()?.Message
-				where deprecationWarning is not null
-				let value = ConfigurationRoot?.GetValue<string?>(EventStoreConfigurationKeys.Normalize(option.Name))
-				where defaultValues.TryGetValue(option.Name, out var defaultValue)
-				      && !string.Equals(value, defaultValue?.ToString(), StringComparison.OrdinalIgnoreCase)
-				      select deprecationWarning;
+									  from option in section.GetProperties()
+									  let deprecationWarning = option.GetCustomAttribute<DeprecatedAttribute>()?.Message
+									  where deprecationWarning is not null
+									  let value = ConfigurationRoot?.GetValue<string?>(EventStoreConfigurationKeys.Normalize(option.Name))
+									  where defaultValues.TryGetValue(option.Name, out var defaultValue)
+											&& !string.Equals(value, defaultValue?.ToString(), StringComparison.OrdinalIgnoreCase)
+									  select deprecationWarning;
 
 			var builder = deprecationWarnings
 				.Aggregate(new StringBuilder(), (builder, deprecationWarning) => builder.AppendLine(deprecationWarning));
@@ -87,22 +87,25 @@ namespace EventStore.Core {
 			foreach (var provider in configurationRoot.Providers) {
 
 				foreach (var option in Metadata.SelectMany(x => x.Options)) {
-					if (!provider.TryGet(option.Value.Key, out var value)) continue;
+					if (!provider.TryGet(option.Value.Key, out var value)) {
+						continue;
+					}
 
 					var title = GetTitle(option);
 					var sourceDisplayName = GetSourceDisplayName(option.Value.Key, provider);
 					var isDefault = provider.GetType() == typeof(EventStoreDefaultValuesConfigurationProvider);
 
 					// Handle array-style options; currently only GossipSeed uses this
-					if (sourceDisplayName is "<UNKNOWN>" && value is null)
-					{
+					if (sourceDisplayName is "<UNKNOWN>" && value is null) {
 						var parentPath = option.Value.Key;
 						var childValues = new List<string>();
 
-						foreach (var childKey in provider.GetChildKeys([], parentPath))
-						{
+						foreach (var childKey in provider.GetChildKeys([], parentPath)) {
 							var absoluteChildKey = parentPath + ":" + childKey;
-							if (!provider.TryGet(absoluteChildKey, out var childValue) || childValue is null) continue;
+							if (!provider.TryGet(absoluteChildKey, out var childValue) || childValue is null) {
+								continue;
+							}
+
 							childValues.Add(childValue);
 							sourceDisplayName = GetSourceDisplayName(absoluteChildKey, provider);
 						}
@@ -126,10 +129,8 @@ namespace EventStore.Core {
 				CombineByPascalCase(EventStoreConfigurationKeys.StripConfigurationPrefix(option.Value.Key)).ToUpper();
 		}
 
-		public static string GetSourceDisplayName(string key, IConfigurationProvider provider)
-		{
-			return provider switch
-			{
+		public static string GetSourceDisplayName(string key, IConfigurationProvider provider) {
+			return provider switch {
 				EventStoreDefaultValuesConfigurationProvider => "<DEFAULT>",
 				SectionProvider sectionProvider => sectionProvider.TryGetProviderFor(key, out var innerProvider)
 					? GetSourceDisplayName(key, innerProvider)
@@ -208,8 +209,8 @@ namespace EventStore.Core {
 				return (value, RuntimeInformation.IsWindows) switch {
 					(bool b, false) => b.ToString().ToLower(),
 					(bool b, true) => b.ToString(),
-					(Array {Length: 0}, _) => string.Empty,
-					(Array {Length: >0} a, _) => string.Join(",", a.OfType<object>()),
+					(Array { Length: 0 }, _) => string.Empty,
+					(Array { Length: > 0 } a, _) => string.Join(",", a.OfType<object>()),
 					_ => value?.ToString() ?? string.Empty
 				};
 			}

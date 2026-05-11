@@ -15,15 +15,13 @@ namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests;
 
 [TestFixture]
 public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemoryOptimization = false)
-	: SpecificationWithDirectoryPerTestFixture
-{
+	: SpecificationWithDirectoryPerTestFixture {
 	protected ClusterVNode _node;
 	protected ClusterVNodeOptions _options;
 	private ILogFormatAbstractorFactory<TStreamId> _logFormatFactory;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 
@@ -48,14 +46,11 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
-		try
-		{
+	public override async Task TestFixtureTearDown() {
+		try {
 			await (_node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask);
 		}
-		finally
-		{
+		finally {
 			await base.TestFixtureTearDown();
 		}
 	}
@@ -65,8 +60,7 @@ public abstract class SingleNodeScenario<TLogFormat, TStreamId>(bool disableMemo
 }
 
 [TestFixture, Category("LongRunning")]
-public abstract class ClusterMemberScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
-{
+public abstract class ClusterMemberScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
 	protected ClusterVNode _node;
 	protected int _clusterSize = 3;
 	protected int _quorumSize;
@@ -74,8 +68,7 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId> : Specificati
 	protected ILogFormatAbstractorFactory<TStreamId> _logFormatFactory;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp()
-	{
+	public override async Task TestFixtureSetUp() {
 		await base.TestFixtureSetUp();
 		_logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 		_quorumSize = _clusterSize / 2 + 1;
@@ -99,14 +92,11 @@ public abstract class ClusterMemberScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown()
-	{
-		try
-		{
+	public override async Task TestFixtureTearDown() {
+		try {
 			await (_node?.StopAsync(TimeSpan.FromSeconds(30)) ?? Task.CompletedTask);
 		}
-		finally
-		{
+		finally {
 			await base.TestFixtureTearDown();
 		}
 	}

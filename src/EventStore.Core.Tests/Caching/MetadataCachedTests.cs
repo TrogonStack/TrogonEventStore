@@ -9,8 +9,7 @@ using MetadataCached = EventStore.Core.Services.Storage.ReaderIndex.IndexBackend
 
 namespace EventStore.Core.Tests.Caching;
 
-public class MetadataCachedTests
-{
+public class MetadataCachedTests {
 	private static MetadataCached CreateMetadataCachedObject() =>
 		new(0, new StreamMetadata(
 			maxCount: 10,
@@ -27,8 +26,7 @@ public class MetadataCachedTests
 			)));
 
 	[Test]
-	public void size_is_measured_correctly()
-	{
+	public void size_is_measured_correctly() {
 		var mem = MemUsage.Calculate(() =>
 			new[] { // we need an array to force an allocation
 				CreateMetadataCachedObject()
@@ -38,8 +36,7 @@ public class MetadataCachedTests
 	}
 
 	[Test]
-	public void size_in_lru_cache_is_measured_correctly_with_string_key()
-	{
+	public void size_in_lru_cache_is_measured_correctly_with_string_key() {
 		var lruCache = new LRUCache<string, MetadataCached>(string.Empty, 1, (_, _) => 0);
 
 		// initialize any underlying data structures (the dictionary in this case)
@@ -59,8 +56,7 @@ public class MetadataCachedTests
 	}
 
 	[Test]
-	public void size_in_lru_cache_is_measured_correctly_with_long_key()
-	{
+	public void size_in_lru_cache_is_measured_correctly_with_long_key() {
 		var lruCache = new LRUCache<long, MetadataCached>(string.Empty, 1, (_, _) => 0);
 
 		// initialize any underlying data structures (the dictionary in this case)

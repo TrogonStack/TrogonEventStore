@@ -36,8 +36,9 @@ public sealed class QueueDashboardService {
 	}
 
 	public async Task<QueueDashboardPage> Read(CancellationToken cancellationToken = default) {
-		if (!await HasAccess(StatisticsOperation, cancellationToken))
+		if (!await HasAccess(StatisticsOperation, cancellationToken)) {
 			return QueueDashboardPage.Unavailable("Runtime statistics access was denied.");
+		}
 
 		try {
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -46,14 +47,18 @@ public sealed class QueueDashboardService {
 			var queues = await ReadQueueStats(timeout.Token);
 			var tcp = await ReadTcpStatsSafe(timeout.Token, cancellationToken);
 			return QueueDashboardPage.Success(queues, tcp.Rows, tcp.Message);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.");
-		} catch (OperationCanceledException) {
-			if (cancellationToken.IsCancellationRequested)
+		}
+		catch (OperationCanceledException) {
+			if (cancellationToken.IsCancellationRequested) {
 				throw;
+			}
 
 			return QueueDashboardPage.Unavailable("Timed out reading queue statistics.");
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return QueueDashboardPage.Unavailable($"Unable to read queue statistics: {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -69,22 +74,25 @@ public sealed class QueueDashboardService {
 		_monitoringQueue.Publish(new MonitoringMessage.GetFreshStats(envelope, x => x, useMetadata: false, useGrouping: true));
 		var completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		if (!completed.Success ||
-		    !QueueDashboardStats.TryReadDictionary(completed.Stats, "es", out var es) ||
-		    !QueueDashboardStats.TryReadDictionary(es, "queue", out var queueStats))
+			!QueueDashboardStats.TryReadDictionary(completed.Stats, "es", out var es) ||
+			!QueueDashboardStats.TryReadDictionary(es, "queue", out var queueStats)) {
 			return Array.Empty<QueueDashboardRow>();
+		}
 
 		var queues = new List<QueueDashboardRow>();
 		foreach (var entry in queueStats) {
-			if (QueueDashboardRow.TryFrom(entry, out var queue))
+			if (QueueDashboardRow.TryFrom(entry, out var queue)) {
 				queues.Add(queue);
+			}
 		}
 
 		return queues;
 	}
 
 	private async Task<TcpConnectionResult> ReadTcpStats(CancellationToken cancellationToken) {
-		if (!await HasAccess(TcpStatisticsOperation, cancellationToken))
+		if (!await HasAccess(TcpStatisticsOperation, cancellationToken)) {
 			return new TcpConnectionResult(Array.Empty<TcpConnectionRow>(), "TCP statistics access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<MonitoringMessage.GetFreshTcpConnectionStatsCompleted>();
 		_monitoringQueue.Publish(new MonitoringMessage.GetFreshTcpConnectionStats(envelope));
@@ -97,14 +105,18 @@ public sealed class QueueDashboardService {
 		CancellationToken cancellationToken) {
 		try {
 			return await ReadTcpStats(timeoutToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException) {
 			return new TcpConnectionResult(Array.Empty<TcpConnectionRow>(), "Timed out reading TCP statistics.");
-		} catch (OperationCanceledException) {
-			if (cancellationToken.IsCancellationRequested)
+		}
+		catch (OperationCanceledException) {
+			if (cancellationToken.IsCancellationRequested) {
 				throw;
+			}
 
 			return new TcpConnectionResult(Array.Empty<TcpConnectionRow>(), "Timed out reading TCP statistics.");
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			return new TcpConnectionResult(
 				Array.Empty<TcpConnectionRow>(),
 				$"Unable to read TCP statistics: {UiMessages.Friendly(ex)}");
@@ -139,8 +151,8 @@ file static class QueueDashboardStats {
 		out IReadOnlyDictionary<string, object> value) {
 		value = null;
 		return stats is not null &&
-		       stats.TryGetValue(key, out var item) &&
-		       TryReadDictionary(item, out value);
+			   stats.TryGetValue(key, out var item) &&
+			   TryReadDictionary(item, out value);
 	}
 
 	public static bool TryReadDictionary(object value, out IReadOnlyDictionary<string, object> dictionary) {
@@ -196,12 +208,13 @@ public sealed record QueueDashboardPage(
 	private static IReadOnlyList<QueueDashboardBlock> BuildBlocks(IReadOnlyList<QueueDashboardRow> queues) {
 		var blocks = new List<QueueDashboardBlock>();
 
-		foreach (var queue in queues.Where(x => string.IsNullOrWhiteSpace(x.GroupName)))
+		foreach (var queue in queues.Where(x => string.IsNullOrWhiteSpace(x.GroupName))) {
 			blocks.Add(new QueueDashboardBlock(queue.Name, queue, Array.Empty<QueueDashboardRow>()));
+		}
 
 		foreach (var group in queues
-			         .Where(x => !string.IsNullOrWhiteSpace(x.GroupName))
-			         .GroupBy(x => x.GroupName, StringComparer.OrdinalIgnoreCase)) {
+					 .Where(x => !string.IsNullOrWhiteSpace(x.GroupName))
+					 .GroupBy(x => x.GroupName, StringComparer.OrdinalIgnoreCase)) {
 			var children = group
 				.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
 				.Select(x => x.AsGroupMember())
@@ -426,12 +439,14 @@ public sealed record QueueDashboardRow(
 
 	private static double WeightedAverageProcessingTime(IReadOnlyList<QueueDashboardRow> rows) {
 		var rate = rows.Sum(x => x.AvgItemsPerSecond);
-		if (rate > 0)
+		if (rate > 0) {
 			return rows.Sum(x => x.AvgProcessingTime * x.AvgItemsPerSecond) / rate;
+		}
 
 		var processed = rows.Sum(x => x.TotalItemsProcessed);
-		if (processed > 0)
+		if (processed > 0) {
 			return rows.Sum(x => x.AvgProcessingTime * x.TotalItemsProcessed) / processed;
+		}
 
 		return rows.Count == 0 ? 0 : rows.Average(x => x.AvgProcessingTime);
 	}
@@ -445,8 +460,9 @@ public sealed record QueueDashboardRow(
 		(int)Math.Min(int.MaxValue, Math.Max(int.MinValue, ReadLong(stats, key)));
 
 	private static long ReadLong(IReadOnlyDictionary<string, object> stats, string key) {
-		if (!stats.TryGetValue(key, out var value) || value is null)
+		if (!stats.TryGetValue(key, out var value) || value is null) {
 			return 0;
+		}
 
 		return value switch {
 			long longValue => longValue,
@@ -464,8 +480,9 @@ public sealed record QueueDashboardRow(
 	}
 
 	private static double ReadDouble(IReadOnlyDictionary<string, object> stats, string key) {
-		if (!stats.TryGetValue(key, out var value) || value is null)
+		if (!stats.TryGetValue(key, out var value) || value is null) {
 			return 0;
+		}
 
 		return value switch {
 			double doubleValue => doubleValue,

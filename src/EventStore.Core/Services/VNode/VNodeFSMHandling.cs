@@ -26,7 +26,8 @@ public readonly ref struct VNodeFSMHandling<TMessage>
 			foreach (var state in _stateDef.States) {
 				_stateDef.FSM.AddDefaultHandler(state, handler.InvokeWithDowncast);
 			}
-		} else {
+		}
+		else {
 			foreach (var state in _stateDef.States) {
 				_stateDef.FSM.AddHandler(state, handler);
 			}

@@ -10,14 +10,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.TransactionMgr;
 
 [TestFixture]
-public class when_transaction_single_write_completes_successfully : RequestManagerSpecification<TransactionWrite>
-{
+public class when_transaction_single_write_completes_successfully : RequestManagerSpecification<TransactionWrite> {
 
 	private long _transactionId = 1000;
 	private long _event1Position = 1500;
 
-	protected override TransactionWrite OnManager(FakePublisher publisher)
-	{
+	protected override TransactionWrite OnManager(FakePublisher publisher) {
 		return new TransactionWrite(
 		 	publisher,
 			PrepareTimeout,
@@ -29,26 +27,22 @@ public class when_transaction_single_write_completes_successfully : RequestManag
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages()
-	{
+	protected override IEnumerable<Message> WithInitialMessages() {
 		yield return new StorageMessage.PrepareAck(InternalCorrId, _event1Position, PrepareFlags.Data);
 	}
 
-	protected override Message When()
-	{
+	protected override Message When() {
 		return new ReplicationTrackingMessage.ReplicatedTo(_event1Position);
 	}
 
 	[Test]
-	public void successful_request_message_is_published()
-	{
+	public void successful_request_message_is_published() {
 		Assert.That(Produced.ContainsSingle<StorageMessage.RequestCompleted>(
 			x => x.CorrelationId == InternalCorrId && x.Success));
 	}
 
 	[Test]
-	public void the_envelope_is_replied_to_with_success()
-	{
+	public void the_envelope_is_replied_to_with_success() {
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.TransactionWriteCompleted>(
 			x =>
 				x.CorrelationId == ClientCorrId &&

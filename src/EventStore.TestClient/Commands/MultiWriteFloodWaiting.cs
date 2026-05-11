@@ -11,39 +11,33 @@ using OperationResult = EventStore.Client.Messages.OperationResult;
 
 namespace EventStore.TestClient.Commands;
 
-internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
-{
-	public string Usage
-	{
+internal class MultiWriteFloodWaitingProcessor : ICmdProcessor {
+	public string Usage {
 		get { return "MWRFLW [<events-count> [<clients> <requests>]]"; }
 	}
 
-	public string Keyword
-	{
+	public string Keyword {
 		get { return "MWRFLW"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args)
-	{
+	public bool Execute(CommandProcessorContext context, string[] args) {
 		int clientsCnt = 1;
 		long requestsCnt = 5000;
 		var writeCount = 10;
 
-		if (args.Length > 0)
-		{
-			if (args.Length != 1 && args.Length != 3)
+		if (args.Length > 0) {
+			if (args.Length != 1 && args.Length != 3) {
 				return false;
-			try
-			{
+			}
+
+			try {
 				writeCount = MetricPrefixValue.ParseInt(args[0]);
-				if (args.Length > 1)
-				{
+				if (args.Length > 1) {
 					clientsCnt = MetricPrefixValue.ParseInt(args[1]);
 					requestsCnt = MetricPrefixValue.ParseLong(args[2]);
 				}
 			}
-			catch
-			{
+			catch {
 				return false;
 			}
 		}
@@ -52,8 +46,7 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 		return true;
 	}
 
-	private void WriteFlood(CommandProcessorContext context, int writeCnt, int clientsCnt, long requestsCnt)
-	{
+	private void WriteFlood(CommandProcessorContext context, int writeCnt, int clientsCnt, long requestsCnt) {
 		const string data = "test-data";
 
 		context.IsAsync();
@@ -65,35 +58,31 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 		long fail = 0;
 		long all = 0;
 
-		for (int i = 0; i < clientsCnt; i++)
-		{
+		for (int i = 0; i < clientsCnt; i++) {
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			var localDoneEvent = new AutoResetEvent(false);
 			var eventStreamId = "es" + Guid.NewGuid();
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, pkg) =>
-				{
-					if (pkg.Command != TcpCommand.WriteEventsCompleted)
-					{
+				(conn, pkg) => {
+					if (pkg.Command != TcpCommand.WriteEventsCompleted) {
 						context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 						return;
 					}
 
 					var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-					if (dto.Result == OperationResult.Success)
-					{
-						if (Interlocked.Increment(ref succ) % 1000 == 0)
+					if (dto.Result == OperationResult.Success) {
+						if (Interlocked.Increment(ref succ) % 1000 == 0) {
 							Console.Write(".");
+						}
 					}
-					else
-					{
-						if (Interlocked.Increment(ref fail) % 1000 == 0)
+					else {
+						if (Interlocked.Increment(ref fail) % 1000 == 0) {
 							Console.Write("#");
+						}
 					}
 
-					if (Interlocked.Increment(ref all) == requestsCnt)
-					{
+					if (Interlocked.Increment(ref all) == requestsCnt) {
 						context.Success();
 						doneEvent.Set();
 					}
@@ -103,10 +92,8 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 				connectionClosed: (conn, err) => context.Fail(reason: "Connection was closed prematurely."));
 			clients.Add(client);
 
-			threads.Add(new Thread(() =>
-			{
-				for (int j = 0; j < count; ++j)
-				{
+			threads.Add(new Thread(() => {
+				for (int j = 0; j < count; ++j) {
 					var writeDto = new WriteEvents(
 						eventStreamId,
 						ExpectedVersion.Any,
@@ -121,8 +108,7 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 					client.EnqueueSend(package.AsByteArray());
 					localDoneEvent.WaitOne();
 				}
-			})
-			{ IsBackground = true });
+			}) { IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -149,9 +135,11 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 		PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 			(int)Math.Round(sw.Elapsed.TotalMilliseconds / requestsCnt));
 
-		if (succ != requestsCnt)
+		if (succ != requestsCnt) {
 			context.Fail(reason: "There were errors or not all requests completed.");
-		else
+		}
+		else {
 			context.Success();
+		}
 	}
 }

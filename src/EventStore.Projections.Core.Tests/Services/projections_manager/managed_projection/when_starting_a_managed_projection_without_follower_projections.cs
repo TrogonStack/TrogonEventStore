@@ -16,8 +16,7 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_starting_a_managed_projection_without_follower_projections<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId>
-{
+public class when_starting_a_managed_projection_without_follower_projections<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
 	private new ITimeProvider _timeProvider;
 
 	private ManagedProjection _mp;
@@ -25,18 +24,15 @@ public class when_starting_a_managed_projection_without_follower_projections<TLo
 	private string _projectionName;
 
 	[SetUp]
-	public new void SetUp()
-	{
+	public new void SetUp() {
 		WhenLoop();
 	}
 
-	protected override ManualQueue GiveInputQueue()
-	{
+	protected override ManualQueue GiveInputQueue() {
 		return new ManualQueue(_bus, _timeProvider);
 	}
 
-	protected override void Given()
-	{
+	protected override void Given() {
 		_projectionName = "projection";
 		_coreProjectionId = Guid.NewGuid();
 		_timeProvider = new FakeTimeProvider();
@@ -65,14 +61,12 @@ public class when_starting_a_managed_projection_without_follower_projections<TLo
 			TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault));
 	}
 
-	protected override IEnumerable<WhenStep> When()
-	{
+	protected override IEnumerable<WhenStep> When() {
 		ProjectionManagementMessage.Command.Post message = new ProjectionManagementMessage.Command.Post(
 			Envelope, ProjectionMode.Transient, _projectionName, ProjectionManagementMessage.RunAs.System,
 			typeof(FakeForeachStreamProjection), "", true, false, false, false);
 		_mp.InitializeNew(
-			new ManagedProjection.PersistedState
-			{
+			new ManagedProjection.PersistedState {
 				Enabled = message.Enabled,
 				HandlerType = message.HandlerType,
 				Query = message.Query,
@@ -95,8 +89,7 @@ public class when_starting_a_managed_projection_without_follower_projections<TLo
 	}
 
 	[Test]
-	public void publishes_start_message()
-	{
+	public void publishes_start_message() {
 		var startMessage = HandledMessages.OfType<CoreProjectionManagementMessage.Start>().LastOrDefault();
 		Assert.IsNotNull(startMessage);
 	}

@@ -47,7 +47,8 @@ namespace EventStore.Core.Services.RequestManager {
 			if (!notificationDictionary.TryGetValue(position, out var actionList)) {
 				actionList = new List<Action> { target };
 				notificationDictionary.TryAdd(position, actionList);
-			} else {
+			}
+			else {
 				lock (actionList) {
 					actionList.Add(target);
 				}

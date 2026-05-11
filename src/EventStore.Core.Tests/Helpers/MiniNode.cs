@@ -39,8 +39,7 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.Core.Tests.Helpers;
 
-public class MiniNode
-{
+public class MiniNode {
 	public const int ChunkSize = 1024 * 1024;
 	public const int CachedChunkSize = ChunkSize + ChunkHeader.Size + ChunkFooter.Size;
 
@@ -50,8 +49,7 @@ public class MiniNode
 	public IPEndPoint HttpEndPoint { get; protected set; }
 }
 
-public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
-{
+public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable {
 	public static int RunCount;
 	public static readonly Stopwatch RunningTime = new Stopwatch();
 	public static readonly Stopwatch StartingTime = new Stopwatch();
@@ -89,8 +87,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		IAuthorizationProviderFactory authorizationProviderFactory = null,
 		IExpiryStrategy expiryStrategy = null,
 		string transform = "identity",
-		IReadOnlyList<IDbTransform> newTransforms = null)
-	{
+		IReadOnlyList<IDbTransform> newTransforms = null) {
 
 		RunningTime.Start();
 		RunCount += 1;
@@ -101,13 +98,11 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		int httpEndPointPort = httpPort ?? PortsHelper.GetAvailablePort(ip);
 		int intTcpPort = PortsHelper.GetAvailablePort(ip);
 
-		if (string.IsNullOrEmpty(dbPath))
-		{
+		if (string.IsNullOrEmpty(dbPath)) {
 			DbPath = Path.Combine(pathname,
 				$"mini-node-db-{extTcpPort}-{httpEndPointPort}");
 		}
-		else
-		{
+		else {
 			DbPath = dbPath;
 		}
 
@@ -118,31 +113,26 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		subsystems ??= [];
 		subsystems = [.. subsystems, new TcpApiTestPlugin()];
 
-		var options = new ClusterVNodeOptions
-		{
+		var options = new ClusterVNodeOptions {
 			IndexBitnessVersion = indexBitnessVersion,
-			Application = new()
-			{
+			Application = new() {
 				AllowAnonymousEndpointAccess = true,
 				AllowAnonymousStreamAccess = true,
 				StatsPeriodSec = 60 * 60,
 				WorkerThreads = 1
 			},
-			Interface = new()
-			{
+			Interface = new() {
 				ReplicationHeartbeatInterval = 10_000,
 				ReplicationHeartbeatTimeout = 10_000,
 				EnableTrustedAuth = enableTrustedAuth
 			},
-			Cluster = new()
-			{
+			Cluster = new() {
 				DiscoverViaDns = false,
 				ReadOnlyReplica = isReadOnlyReplica,
 				Archiver = false,
 				StreamInfoCacheCapacity = 10_000
 			},
-			Database = new()
-			{
+			Database = new() {
 				ChunkSize = chunkSize,
 				ChunksCacheSize = cachedChunkSize,
 				SkipDbVerify = true,
@@ -178,8 +168,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 				new("EventStore:TcpUnitTestPlugin:Insecure", options.Application.Insecure.ToString()),
 			}).Build();
 
-		if (advertisedExtHostAddress != null)
+		if (advertisedExtHostAddress != null) {
 			options = options.AdvertiseNodeAs(new DnsEndPoint(advertisedExtHostAddress, advertisedHttpPort));
+		}
 
 		options = options.RunOnDisk(DbPath);
 
@@ -202,8 +193,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			"HTTP ENDPOINT:", HttpEndPoint);
 
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory
-			.Configure(options => options with
-			{
+			.Configure(options => options with {
 				StreamExistenceFilterCheckpointDelay = TimeSpan.FromMilliseconds(streamExistenceFilterCheckpointDelayMs),
 				StreamExistenceFilterCheckpointInterval = TimeSpan.FromMilliseconds(streamExistenceFilterCheckpointIntervalMs),
 				HighHasher = hash32bit ? new ConstantHasher(0) : options.HighHasher,
@@ -227,29 +217,21 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		Db = Node.Db;
 
 		_kestrelTestHost = new HostBuilder()
-			.ConfigureWebHost(webHost =>
-			{
+			.ConfigureWebHost(webHost => {
 				webHost
-					.UseKestrel(o =>
-					{
-						o.Listen(HttpEndPoint, options =>
-						{
-							if (RuntimeInformation.IsOSX)
-							{
+					.UseKestrel(o => {
+						o.Listen(HttpEndPoint, options => {
+							if (RuntimeInformation.IsOSX) {
 								options.Protocols = HttpProtocols.Http2;
 							}
-							else
-							{
-								options.UseHttps(new HttpsConnectionAdapterOptions
-								{
+							else {
+								options.UseHttps(new HttpsConnectionAdapterOptions {
 									ServerCertificate = ssl_connections.GetServerCertificate(),
 									ClientCertificateMode = ClientCertificateMode.AllowCertificate,
-									ClientCertificateValidation = (certificate, chain, sslPolicyErrors) =>
-									{
+									ClientCertificateValidation = (certificate, chain, sslPolicyErrors) => {
 										var (isValid, error) =
 											ClusterVNode<string>.ValidateClientCertificate(certificate, chain, sslPolicyErrors, () => null, () => new X509Certificate2Collection(ssl_connections.GetRootCertificate()));
-										if (!isValid && error != null)
-										{
+										if (!isValid && error != null) {
 											Log.Error("Client certificate validation error: {e}", error);
 										}
 										return isValid;
@@ -266,11 +248,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		_started = new TaskCompletionSource<bool>();
 		_adminUserCreated = new TaskCompletionSource<bool>();
 		HttpMessageHandler = _kestrelTestServer.CreateHandler();
-		HttpClient = new HttpClient(HttpMessageHandler)
-		{
+		HttpClient = new HttpClient(HttpMessageHandler) {
 			Timeout = TimeSpan.FromSeconds(httpClientTimeoutSec),
-			BaseAddress = new UriBuilder
-			{
+			BaseAddress = new UriBuilder {
 				Scheme = Uri.UriSchemeHttps
 			}.Uri
 		};
@@ -278,10 +258,10 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 
 	private static void ConfigureMiniNodeServices(
 		IServiceCollection services,
-		IReadOnlyList<IDbTransform> newTransforms)
-	{
-		if (newTransforms == null)
+		IReadOnlyList<IDbTransform> newTransforms) {
+		if (newTransforms == null) {
 			return;
+		}
 
 		services.Decorate<IReadOnlyList<IDbTransform>>(existingTransforms =>
 			DecorateTransforms(existingTransforms, newTransforms));
@@ -289,19 +269,16 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 
 	private static IReadOnlyList<IDbTransform> DecorateTransforms(
 		IReadOnlyList<IDbTransform> existingTransforms,
-		IReadOnlyList<IDbTransform> newTransforms)
-	{
+		IReadOnlyList<IDbTransform> newTransforms) {
 		var transforms = existingTransforms.ToList();
 		transforms.AddRange(newTransforms);
 		return transforms;
 	}
 
-	public async Task Start(TimeSpan? startupTimeout = null)
-	{
+	public async Task Start(TimeSpan? startupTimeout = null) {
 		StartingTime.Start();
 		Node.MainBus.Subscribe(
-			new AdHocHandler<SystemMessage.BecomeLeader>(m =>
-			{
+			new AdHocHandler<SystemMessage.BecomeLeader>(m => {
 				_started.TrySetResult(true);
 			}));
 
@@ -309,10 +286,8 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		waitForAdminUser = new AdHocHandler<StorageMessage.EventCommitted>(WaitForAdminUser);
 		Node.MainBus.Subscribe(waitForAdminUser);
 
-		void WaitForAdminUser(StorageMessage.EventCommitted m)
-		{
-			if (m.Event.EventStreamId != "$user-admin")
-			{
+		void WaitForAdminUser(StorageMessage.EventCommitted m) {
+			if (m.Event.EventStreamId != "$user-admin") {
 				return;
 			}
 
@@ -320,8 +295,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			Node.MainBus.Unsubscribe(waitForAdminUser);
 		}
 
-		if (Node.IsShutdown)
+		if (Node.IsShutdown) {
 			_started.TrySetResult(true);
+		}
 
 		await Node.StartAsync(true).WithTimeout(startupTimeout ?? TimeSpan.FromSeconds(60));
 
@@ -329,27 +305,22 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		Log.Information("MiniNode successfully started!");
 	}
 
-	public async Task WaitForTcpEndPoint()
-	{
-		while (true)
-		{
+	public async Task WaitForTcpEndPoint() {
+		while (true) {
 			using var client = new TcpClient();
 
-			try
-			{
+			try {
 				await client.ConnectAsync(TcpEndPoint.Address, TcpEndPoint.Port)
 					.WaitAsync(TimeSpan.FromMilliseconds(250));
 				return;
 			}
-			catch (Exception ex) when (ex is SocketException or TimeoutException)
-			{
+			catch (Exception ex) when (ex is SocketException or TimeoutException) {
 				await Task.Delay(100);
 			}
 		}
 	}
 
-	public async Task Shutdown(bool keepDb = false)
-	{
+	public async Task Shutdown(bool keepDb = false) {
 
 		StoppingTime.Start();
 
@@ -358,35 +329,31 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		_kestrelTestHost.Dispose();
 		await Node.StopAsync(TimeSpan.FromSeconds(20));
 
-		if (!keepDb)
+		if (!keepDb) {
 			TryDeleteDirectory(DbPath);
+		}
 
 		StoppingTime.Stop();
 		RunningTime.Stop();
 	}
 
-	public void WaitIdle()
-	{
+	public void WaitIdle() {
 #if DEBUG
 		Node.QueueStatsManager.WaitIdle();
 #endif
 	}
 
-	private void TryDeleteDirectory(string directory)
-	{
-		try
-		{
+	private void TryDeleteDirectory(string directory) {
+		try {
 			Directory.Delete(directory, true);
 		}
-		catch (Exception e)
-		{
+		catch (Exception e) {
 			Debug.WriteLine("Failed to remove directory {0}", directory);
 			Debug.WriteLine(e);
 		}
 	}
 
-	public async ValueTask DisposeAsync()
-	{
+	public async ValueTask DisposeAsync() {
 		await Shutdown();
 	}
 }

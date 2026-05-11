@@ -17,22 +17,19 @@ using Serilog;
 
 namespace EventStore.TcpUnitTestPlugin;
 
-public class PublicTcpApiTestService : IHostedService
-{
+public class PublicTcpApiTestService : IHostedService {
 	static readonly ILogger Logger = Log.ForContext<PublicTcpApiTestService>();
 	private readonly TcpService _tcpService;
 	private int _systemInitialized;
 
-	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus)
-	{
+	PublicTcpApiTestService(TcpService tcpService, ISubscriber bus) {
 		_tcpService = tcpService;
 
 		bus.Subscribe<SystemMessage.SystemInit>(new AdHocHandler<SystemMessage.SystemInit>(_ => StartTcpService()));
 		bus.Subscribe<SystemMessage.SystemStart>(new AdHocHandler<SystemMessage.SystemStart>(_ => StartTcpService()));
 		bus.Subscribe<SystemMessage.BecomeShuttingDown>(tcpService);
 
-		_ = Task.Run(async () =>
-		{
+		_ = Task.Run(async () => {
 			await Task.Delay(TimeSpan.FromHours(1));
 			Logger.Warning("Shutting down TCP unit tests");
 			tcpService.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), true, true));
@@ -44,8 +41,7 @@ public class PublicTcpApiTestService : IHostedService
 		IAuthenticationProvider authProvider,
 		AuthorizationGateway authGateway,
 		StandardComponents components
-	)
-	{
+	) {
 		var endpoint = new IPEndPoint(IPAddress.Loopback, options.NodeTcpPort);
 
 		var tcpService = new TcpService(
@@ -74,8 +70,7 @@ public class PublicTcpApiTestService : IHostedService
 		AuthorizationGateway authGateway,
 		StandardComponents components,
 		CertificateProvider? certificateProvider
-	)
-	{
+	) {
 		var endpoint = new IPEndPoint(IPAddress.Loopback, options.NodeTcpPort);
 
 		var tcpService = new TcpService(
@@ -89,13 +84,11 @@ public class PublicTcpApiTestService : IHostedService
 			authProvider: authProvider,
 			authorizationGateway: authGateway,
 			certificateSelector: () => certificateProvider?.Certificate,
-			intermediatesSelector: () =>
-			{
+			intermediatesSelector: () => {
 				var intermediates = certificateProvider?.IntermediateCerts;
 				return intermediates == null ? null : new X509Certificate2Collection(intermediates);
 			},
-			sslClientCertValidator: delegate
-			{ return (true, null); },
+			sslClientCertValidator: delegate { return (true, null); },
 			connectionPendingSendBytesThreshold: options.ConnectionPendingSendBytesThreshold,
 			connectionQueueSizeThreshold: options.ConnectionQueueSizeThreshold
 		);
@@ -103,18 +96,17 @@ public class PublicTcpApiTestService : IHostedService
 		return new(tcpService, components.MainBus);
 	}
 
-	public Task StartAsync(CancellationToken cancellationToken)
-	{
+	public Task StartAsync(CancellationToken cancellationToken) {
 		StartTcpService();
 		return Task.CompletedTask;
 	}
 
 	public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-	private void StartTcpService()
-	{
-		if (Interlocked.Exchange(ref _systemInitialized, 1) == 1)
+	private void StartTcpService() {
+		if (Interlocked.Exchange(ref _systemInitialized, 1) == 1) {
 			return;
+		}
 
 		_tcpService.Handle(new SystemMessage.SystemInit());
 	}

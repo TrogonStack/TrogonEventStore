@@ -9,13 +9,15 @@ namespace EventStore.Core.Services.Transport.Grpc;
 
 internal static class MonitoringStats {
 	public static Func<Dictionary<string, object>, Dictionary<string, object>> GetStatSelector(string statPath) {
-		if (string.IsNullOrEmpty(statPath))
+		if (string.IsNullOrEmpty(statPath)) {
 			return dict => dict;
+		}
 
 		if (statPath.StartsWith("stats/")) {
 			statPath = statPath.Substring(6);
-			if (string.IsNullOrEmpty(statPath))
+			if (string.IsNullOrEmpty(statPath)) {
 				return dict => dict;
+			}
 		}
 
 		var groups = statPath.Split('/');
@@ -24,12 +26,14 @@ internal static class MonitoringStats {
 			Ensure.NotNull(dict, "dictionary");
 
 			foreach (var groupName in groups) {
-				if (!dict.TryGetValue(groupName, out var item))
+				if (!dict.TryGetValue(groupName, out var item)) {
 					return null;
+				}
 
 				dict = item as Dictionary<string, object>;
-				if (dict is null)
+				if (dict is null) {
 					return null;
+				}
 			}
 
 			return dict;
@@ -69,8 +73,9 @@ internal static class MonitoringStats {
 
 	private static Value ToStructValue(IEnumerable<KeyValuePair<string, object>> values) {
 		var structValue = new Struct();
-		foreach (var (key, value) in values)
+		foreach (var (key, value) in values) {
 			structValue.Fields.Add(key, ToValue(value));
+		}
 
 		return new Value { StructValue = structValue };
 	}

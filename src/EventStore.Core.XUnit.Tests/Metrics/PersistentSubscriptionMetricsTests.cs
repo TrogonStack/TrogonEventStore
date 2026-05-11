@@ -8,14 +8,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class PersistentSubscriptionMetricsTests
-{
+public class PersistentSubscriptionMetricsTests {
 	readonly PersistentSubscriptionTracker _sut = new();
 
-	public PersistentSubscriptionMetricsTests()
-	{
-		var statsSampleOne = new MonitoringMessage.PersistentSubscriptionInfo()
-		{
+	public PersistentSubscriptionMetricsTests() {
+		var statsSampleOne = new MonitoringMessage.PersistentSubscriptionInfo() {
 			EventSource = "test",
 			GroupName = "testGroup",
 			AveragePerSecond = 1,
@@ -47,8 +44,7 @@ public class PersistentSubscriptionMetricsTests
 			TotalItems = 1009,
 		};
 
-		var statsSampleTwo = new MonitoringMessage.PersistentSubscriptionInfo()
-		{
+		var statsSampleTwo = new MonitoringMessage.PersistentSubscriptionInfo() {
 			EventSource = "$all",
 			GroupName = "testGroup",
 			AveragePerSecond = 1,
@@ -87,8 +83,7 @@ public class PersistentSubscriptionMetricsTests
 	}
 
 	[Fact]
-	public void ObserveConnectionsCount()
-	{
+	public void ObserveConnectionsCount() {
 		var measurements = _sut.ObserveConnectionsCount();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1001),
@@ -96,8 +91,7 @@ public class PersistentSubscriptionMetricsTests
 	}
 
 	[Fact]
-	public void ObserveParkedMessages()
-	{
+	public void ObserveParkedMessages() {
 		var measurements = _sut.ObserveParkedMessages();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1003),
@@ -105,8 +99,7 @@ public class PersistentSubscriptionMetricsTests
 	}
 
 	[Fact]
-	public void ObserveInFlightMessages()
-	{
+	public void ObserveInFlightMessages() {
 		var measurements = _sut.ObserveInFlightMessages();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1005),
@@ -114,8 +107,7 @@ public class PersistentSubscriptionMetricsTests
 	}
 
 	[Fact]
-	public void ObserveOldestParkedMessage()
-	{
+	public void ObserveOldestParkedMessage() {
 		var measurements = _sut.ObserveOldestParkedMessage();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1007),
@@ -123,8 +115,7 @@ public class PersistentSubscriptionMetricsTests
 	}
 
 	[Fact]
-	public void ObserveItemsProcessed()
-	{
+	public void ObserveItemsProcessed() {
 		var measurements = _sut.ObserveItemsProcessed();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1009),
@@ -132,32 +123,28 @@ public class PersistentSubscriptionMetricsTests
 	}
 
 	[Fact]
-	public void ObserveLastKnownEvent()
-	{
+	public void ObserveLastKnownEvent() {
 		var measurements = _sut.ObserveLastKnownEvent();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1011));
 	}
 
 	[Fact]
-	public void ObserveLastKnownEventCommitPosition()
-	{
+	public void ObserveLastKnownEventCommitPosition() {
 		var measurements = _sut.ObserveLastKnownEventCommitPosition();
 		Assert.Collection(measurements,
 			AssertMeasurement("$all", "testGroup", 1012));
 	}
 
 	[Fact]
-	public void ObserveLastCheckpointedEvent()
-	{
+	public void ObserveLastCheckpointedEvent() {
 		var measurements = _sut.ObserveLastCheckpointedEvent();
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1013));
 	}
 
 	[Fact]
-	public void ObserveLastCheckpointedEventCommitPosition()
-	{
+	public void ObserveLastCheckpointedEventCommitPosition() {
 		var measurements = _sut.ObserveLastCheckpointedEventCommitPosition();
 		Assert.Collection(measurements,
 			AssertMeasurement("$all", "testGroup", 1014));
@@ -168,18 +155,15 @@ public class PersistentSubscriptionMetricsTests
 		string groupName,
 		long expectedValue) =>
 
-		actualMeasurement =>
-		{
+		actualMeasurement => {
 			Assert.Equal(expectedValue, actualMeasurement.Value);
 			Assert.Collection(
 				actualMeasurement.Tags.ToArray(),
-				tag =>
-				{
+				tag => {
 					Assert.Equal("event_stream_id", tag.Key);
 					Assert.Equal(sourceName, tag.Value);
 				},
-				tag =>
-				{
+				tag => {
 					Assert.Equal("group_name", tag.Key);
 					Assert.Equal(groupName, tag.Value);
 				}

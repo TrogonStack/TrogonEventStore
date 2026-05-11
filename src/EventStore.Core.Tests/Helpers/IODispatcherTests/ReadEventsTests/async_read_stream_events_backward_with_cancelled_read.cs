@@ -6,26 +6,22 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Helpers.IODispatcherTests.ReadEventsTests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class async_read_stream_events_backward_with_cancelled_read<TLogFormat, TStreamId> : with_read_io_dispatcher<TLogFormat, TStreamId>
-{
+public class async_read_stream_events_backward_with_cancelled_read<TLogFormat, TStreamId> : with_read_io_dispatcher<TLogFormat, TStreamId> {
 	private bool _hasTimedOut;
 	private bool _hasRead;
 	private bool _eventSet;
 
 	[OneTimeSetUp]
-	public override void TestFixtureSetUp()
-	{
+	public override void TestFixtureSetUp() {
 		base.TestFixtureSetUp();
 		var mre = new ManualResetEvent(false);
 		var step = _ioDispatcher.BeginReadBackward(
 			_cancellationScope, _eventStreamId, _fromEventNumber, _maxCount, true, _principal,
-			res =>
-			{
+			res => {
 				_hasRead = true;
 				mre.Set();
 			},
-			() =>
-			{
+			() => {
 				_hasTimedOut = true;
 				mre.Set();
 			}
@@ -37,8 +33,7 @@ public class async_read_stream_events_backward_with_cancelled_read<TLogFormat, T
 	}
 
 	[Test]
-	public void should_ignore_read()
-	{
+	public void should_ignore_read() {
 		Assert.IsFalse(_eventSet);
 		Assert.IsFalse(_hasRead, "Should not have completed read before replying on read message");
 		_readBackward.Envelope.ReplyWith(CreateReadStreamEventsBackwardCompleted(_readBackward));
@@ -46,8 +41,7 @@ public class async_read_stream_events_backward_with_cancelled_read<TLogFormat, T
 	}
 
 	[Test]
-	public void should_ignore_timeout_message()
-	{
+	public void should_ignore_timeout_message() {
 		Assert.IsFalse(_hasTimedOut, "Should not have timed out before replying on timeout message");
 		_timeoutMessage.Reply();
 		Assert.IsFalse(_hasTimedOut);

@@ -11,14 +11,12 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
-{
+public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests> {
 	async Task RunAsync(
 		CalculationStatus expected,
 		StreamMetadata metadata,
 		int numEvents,
-		bool isTombstoned)
-	{
+		bool isTombstoned) {
 
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -34,15 +32,12 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 					: Rec.Write(t++, "cd-2"))
 				.Chunk(ScavengePointRec(t++)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state =>
-			{
-				if (expected == CalculationStatus.Spent)
-				{
+			.AssertState(state => {
+				if (expected == CalculationStatus.Spent) {
 					// it should be deleted
 					Assert.False(state.TryGetOriginalStreamData("ab-1", out _));
 				}
-				else
-				{
+				else {
 					// it should be present with the expected status
 					Assert.True(state.TryGetOriginalStreamData("ab-1", out var data));
 					Assert.Equal(expected, data.Status);
@@ -53,8 +48,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task max_age()
-	{
+	public async Task max_age() {
 		await RunAsync(
 			expected: CalculationStatus.Active,
 			metadata: new StreamMetadata(maxAge: TimeSpan.FromMinutes(1)),
@@ -63,8 +57,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task max_count()
-	{
+	public async Task max_count() {
 		await RunAsync(
 			expected: CalculationStatus.Active,
 			metadata: new StreamMetadata(maxCount: 1),
@@ -73,8 +66,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task truncate_before_active()
-	{
+	public async Task truncate_before_active() {
 		await RunAsync(
 			expected: CalculationStatus.Active,
 			metadata: new StreamMetadata(truncateBefore: 5),
@@ -83,8 +75,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task truncate_before_spent()
-	{
+	public async Task truncate_before_spent() {
 		await RunAsync(
 			expected: CalculationStatus.Spent,
 			metadata: new StreamMetadata(truncateBefore: 5),
@@ -93,8 +84,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task truncate_before_max()
-	{
+	public async Task truncate_before_max() {
 		await RunAsync(
 			expected: CalculationStatus.Spent,
 			metadata: SoftDelete,
@@ -103,8 +93,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task tombstoned()
-	{
+	public async Task tombstoned() {
 		await RunAsync(
 			expected: CalculationStatus.Archived,
 			metadata: new StreamMetadata(),
@@ -113,8 +102,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task tombstoned_and_max_age()
-	{
+	public async Task tombstoned_and_max_age() {
 		await RunAsync(
 			expected: CalculationStatus.Archived,
 			metadata: new StreamMetadata(maxAge: TimeSpan.FromMinutes(1)),
@@ -123,8 +111,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task tombstoned_and_max_count()
-	{
+	public async Task tombstoned_and_max_count() {
 		await RunAsync(
 			expected: CalculationStatus.Archived,
 			metadata: new StreamMetadata(maxCount: 1),
@@ -133,8 +120,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task tombstoned_and_truncate_before_active()
-	{
+	public async Task tombstoned_and_truncate_before_active() {
 		await RunAsync(
 			expected: CalculationStatus.Archived,
 			metadata: new StreamMetadata(truncateBefore: 5),
@@ -143,8 +129,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task tombstoned_and_truncate_before_spent()
-	{
+	public async Task tombstoned_and_truncate_before_spent() {
 		await RunAsync(
 			expected: CalculationStatus.Archived,
 			metadata: new StreamMetadata(truncateBefore: 5),
@@ -153,8 +138,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task tombstoned_and_truncate_before_max()
-	{
+	public async Task tombstoned_and_truncate_before_max() {
 		await RunAsync(
 			expected: CalculationStatus.Archived,
 			metadata: SoftDelete,
@@ -163,8 +147,7 @@ public class CalculationStatusTests : SqliteDbPerTest<CalculationStatusTests>
 	}
 
 	[Fact]
-	public async Task blank()
-	{
+	public async Task blank() {
 		await RunAsync(
 			expected: CalculationStatus.Spent,
 			metadata: new StreamMetadata(),
