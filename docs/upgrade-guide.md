@@ -96,8 +96,6 @@ Like with anonymous access to streams, anonymous access to gRPC and protected HT
 
 Any tools or monitoring scripts still using legacy HTTP diagnostics endpoints must move to the supported metrics and gRPC monitoring surfaces in this release.
 
-If you want to revert back to the old behavior, you can enable the `AllowAnonymousStreamAccess` and `AllowAnonymousEndpointAccess` options in EventStoreDB.
-
 ##### PrepareCount and CommitCount options have been removed
 
 We have removed the `PrepareCount` and `CommitCount` options from EventStoreDB. EventStoreDB will now fail if these options are present in the config on startup.
