@@ -4,8 +4,11 @@
 		<OutputType>Exe</OutputType>
 		<ApplicationIcon>app2.ico</ApplicationIcon>
 		<GenerateSupportedRuntime>false</GenerateSupportedRuntime>
-		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<ServerGarbageCollection>true</ServerGarbageCollection>
 	</PropertyGroup>
+	<ItemGroup>
+		<RuntimeHostConfigurationOption Include="System.GC.HeapHardLimitPercent" Value="60" />
+	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="SharpDotYaml.Extensions.Configuration" />
 		<PackageReference Include="System.ComponentModel.Composition" />

@@ -110,7 +110,7 @@ $ eventstored --what-if
 [68443, 1,17:38:39.186,INF] "OS ARCHITECTURE:"        X64 
 [68443, 1,17:38:39.207,INF] "OS:"                     Linux ("Unix 5.19.0.1025")
 [68443, 1,17:38:39.210,INF] "RUNTIME:"                ".NET 6.0.21/e40b3abf1" (64-bit)
-[68443, 1,17:38:39.211,INF] "GC:"                     "3 GENERATIONS" "IsServerGC: False" "Latency Mode: Interactive"
+[68443, 1,17:38:39.211,INF] "GC:"                     "3 GENERATIONS" "IsServerGC: True" "Latency Mode: Interactive"
 [68443, 1,17:38:39.212,INF] "LOGS:"                   "/var/log/eventstore"
 [68443, 1,17:38:39.251,INF] 
 MODIFIED OPTIONS:
