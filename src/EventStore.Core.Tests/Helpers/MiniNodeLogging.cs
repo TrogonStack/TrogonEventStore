@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Serilog;
 using Serilog.Core;
 using Serilog.Core.Enrichers;
+using Serilog.Events;
 using Serilog.Formatting.Display;
 using Serilog.Sinks.InMemory;
 
@@ -12,13 +13,18 @@ namespace EventStore.Core.Tests.Helpers;
 
 public static class MiniNodeLogging
 {
+	// A shared sink captures cluster callbacks that can write outside the test context.
+	private static readonly object SinkLock = new();
+	private static InMemorySink _inMemorySink = new();
 
-	private static readonly ILogger _logger = new LoggerConfiguration()
+	private static ILogger _logger = CreateLogger(_inMemorySink);
+
+	private static ILogger CreateLogger(InMemorySink sink) => new LoggerConfiguration()
 		.Enrich.WithProcessId()
 		.Enrich.WithThreadId()
 		.Enrich.FromLogContext()
 		.MinimumLevel.Debug()
-		.WriteTo.InMemory()
+		.WriteTo.Sink(sink)
 		.CreateLogger();
 
 	private const string Template =
@@ -26,7 +32,13 @@ public static class MiniNodeLogging
 
 	public static void Setup()
 	{
-		Serilog.Log.Logger = _logger;
+		lock (SinkLock)
+		{
+			_inMemorySink.Dispose();
+			_inMemorySink = new InMemorySink();
+			_logger = CreateLogger(_inMemorySink);
+			Serilog.Log.Logger = _logger;
+		}
 	}
 
 	public static void WriteLogs()
@@ -36,9 +48,15 @@ public static class MiniNodeLogging
 		var sb = new StringBuilder(256);
 		var f = new MessageTemplateTextFormatter(Template);
 		using var tw = new StringWriter(sb);
-		using var snapshot = InMemorySink.Instance.Snapshot();
+		LogEvent[] logEvents;
 
-		foreach (var e in snapshot.LogEvents.ToList())
+		lock (SinkLock)
+		{
+			using var snapshot = _inMemorySink.Snapshot();
+			logEvents = snapshot.LogEvents.ToArray();
+		}
+
+		foreach (var e in logEvents)
 		{
 			sb.Clear();
 			f.Format(e, tw);
@@ -50,7 +68,12 @@ public static class MiniNodeLogging
 
 	public static void Clear()
 	{
-		Serilog.Log.Logger = Logger.None;
-		InMemorySink.Instance.Dispose();
+		lock (SinkLock)
+		{
+			Serilog.Log.Logger = Logger.None;
+			_logger = Logger.None;
+			_inMemorySink.Dispose();
+			_inMemorySink = new InMemorySink();
+		}
 	}
 }
