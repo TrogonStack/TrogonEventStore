@@ -32,18 +32,7 @@ public static class ProcessStats
 		};
 
 		static DiskIoData GetDiskIoLinux(Process process)
-		{
-			var procIoFile = $"/proc/{process.Id}/io";
-
-			try
-			{
-				return ParseLinuxDiskIo(File.ReadLines(procIoFile));
-			}
-			catch (Exception ex)
-			{
-				throw new ApplicationException("Failed to get Linux process I/O info", ex);
-			}
-		}
+			=> ProcessStats.GetDiskIoLinux($"/proc/{process.Id}/io");
 
 		static DiskIoData GetDiskIoOsx(Process process) =>
 			OsxNative.IO.GetDiskIo(process.Id);
@@ -54,6 +43,23 @@ public static class ProcessStats
 
 	public static DiskIoData GetDiskIo() =>
 		GetDiskIo(Process.GetCurrentProcess());
+
+	internal static DiskIoData GetDiskIoLinux(string procIoFile)
+	{
+		if (!File.Exists(procIoFile))
+		{
+			return default;
+		}
+
+		try
+		{
+			return ParseLinuxDiskIo(File.ReadLines(procIoFile));
+		}
+		catch (Exception ex)
+		{
+			throw new ApplicationException("Failed to get Linux process I/O info", ex);
+		}
+	}
 
 	internal static DiskIoData ParseLinuxDiskIo(IEnumerable<string> lines)
 	{

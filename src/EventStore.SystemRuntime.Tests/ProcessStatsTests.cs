@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 
 namespace EventStore.SystemRuntime.Tests;
 
@@ -39,6 +40,16 @@ public class ProcessStatsTests
 			writtenBytes: 0,
 			readOps: 0,
 			writeOps: 0), result);
+	}
+
+	[Fact]
+	public void linux_reader_returns_default_when_proc_io_file_is_missing()
+	{
+		var missingPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "io");
+
+		var result = ProcessStats.GetDiskIoLinux(missingPath);
+
+		Assert.Equal(default, result);
 	}
 
 	[Fact]
