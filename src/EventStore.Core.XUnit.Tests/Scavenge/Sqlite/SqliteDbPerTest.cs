@@ -3,6 +3,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
+[Collection("ScavengeScenarioTests")]
 public class SqliteDbPerTest<T> : IAsyncLifetime
 {
 	protected SqliteDbFixture<T> Fixture { get; }
