@@ -72,7 +72,7 @@ A 10x improvement has been observed in testing.
 
 ### X.509 authentication in client APIs <Badge type="warning" text="Commercial" vertical="middle" />
 
-Refer to the [clients documentation](@clients/grpc/authentication.md) for instructions on how to enable and use X.509 certificates with the EventStoreDB clients.
+Refer to the [user certificate documentation](security.md#connecting-with-a-user-certificate) for instructions on how to enable and use X.509 certificates with EventStoreDB clients.
 
 ### Metrics support for Linux, FreeBSD, OSX
 

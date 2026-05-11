@@ -51,7 +51,7 @@ If your network setup requires any kind of IP address, DNS name and port transla
 
 ### Keep-alive pings
 
-The reliability of the connection between the client application and database is crucial for the stability of the solution. If the network is not stable or has some periodic issues, the client may drop the connection. Stability is essential for the [stream subscriptions](@clients/grpc/subscriptions.md) where a client is listening to database notifications. Having an existing connection open when an app resumes activity allows for the initial gRPC calls to be made quickly, without any delay caused by the reestablished connection.
+The reliability of the connection between the client application and database is crucial for the stability of the solution. If the network is not stable or has some periodic issues, the client may drop the connection. Stability is essential for stream subscriptions where a client is listening to database notifications. Having an existing connection open when an app resumes activity allows for the initial gRPC calls to be made quickly, without any delay caused by the reestablished connection.
 
 EventStoreDB supports the built-in gRPC mechanism for keeping the connection alive. If the other side does not acknowledge the ping within a certain period, the connection will be closed. Note that pings are only necessary when there's no activity on the connection.
 
@@ -443,4 +443,3 @@ When the plugin starts, you should see a log similar to the following:
 ```
 [11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
 ```
-
