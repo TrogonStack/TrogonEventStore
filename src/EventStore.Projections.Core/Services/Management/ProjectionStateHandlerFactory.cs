@@ -49,11 +49,15 @@ public class ProjectionStateHandlerFactory
 				var type = Type.GetType(rest);
 				if (type == null)
 				{
-					//TODO: explicitly list all the assemblies to look for handlers
 					type =
 						AppDomain.CurrentDomain.GetAssemblies()
 							.Select(v => v.GetType(rest))
 							.FirstOrDefault(v => v != null);
+				}
+
+				if (type == null)
+				{
+					throw new NotSupportedException($"Could not find projection handler type \"{rest}\".");
 				}
 
 				var handler = Activator.CreateInstance(type, source, logger);
