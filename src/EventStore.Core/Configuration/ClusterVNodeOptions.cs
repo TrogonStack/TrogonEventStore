@@ -307,7 +307,7 @@ public partial record ClusterVNodeOptions
 		[Description("The number of nodes in the cluster.")]
 		public int ClusterSize { get; init; } = 1;
 
-		[Description("The node priority used during leader election.")]
+		[Description("The node priority used as one criterion during leader election. This does not guarantee the election outcome.")]
 		public int NodePriority { get; init; } = 0;
 
 		[Description("Whether to use DNS lookup to discover other cluster nodes.")]
