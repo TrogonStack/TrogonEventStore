@@ -91,7 +91,7 @@ Windows respectively to simplify the build process.
 To start a single node, you can then run:
 
 ```bash
-node="./src/EventStore.ClusterNode/bin/x64/Release/net10.0/EventStore.ClusterNode.dll"
+node="./src/EventStore.ClusterNode/bin/Release/net10.0/EventStore.ClusterNode.dll"
 dotnet "$node" --dev --db ./tmp/data --index ./tmp/index --log ./tmp/log
 ```
 
