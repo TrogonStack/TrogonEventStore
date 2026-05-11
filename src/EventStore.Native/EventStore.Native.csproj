@@ -7,6 +7,6 @@
 		<PackageReference Include="Mono.Posix.NETStandard" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\EventStore.SystemRuntime\EventStore.SystemRuntime.csproj" />
+		<ProjectReference Include="..\EventStore.SystemRuntime\EventStore.SystemRuntime.csproj" />
 	</ItemGroup>
 </Project>

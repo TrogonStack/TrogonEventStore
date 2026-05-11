@@ -12,7 +12,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
-    <PackageReference Include="NetEscapades.Configuration.Yaml" />
+		<PackageReference Include="NetEscapades.Configuration.Yaml" />
 		<PackageReference Include="Newtonsoft.Json" />
 
 		<PackageReference Include="Serilog" />
@@ -29,12 +29,12 @@
 		<PackageReference Include="YamlDotnet" />
 	</ItemGroup>
 	<ItemGroup>
-	  <None Update="Utils\version.properties">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </None>
+		<None Update="Utils\version.properties">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\EventStore.SystemRuntime\EventStore.SystemRuntime.csproj" />
+		<ProjectReference Include="..\EventStore.SystemRuntime\EventStore.SystemRuntime.csproj" />
 	</ItemGroup>
 
 </Project>
