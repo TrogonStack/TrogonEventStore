@@ -35,7 +35,7 @@ public static class HelperExtensions
 				propertyName = "$" + propertyName.Substring(3);
 			if (propertyName.EndsWith("___"))
 			{
-				if (response.TryGetValue(propertyName.Substring(0, propertyName.Length - "___".Length), out vv))
+				if (response.TryGetValue(propertyName.Substring(0, propertyName.Length - "___".Length), out _))
 				{
 					Assert.Fail("{0}/{1} found, but it is explicitly forbidden", path, propertyName);
 				}
@@ -43,7 +43,7 @@ public static class HelperExtensions
 			else if (propertyName.EndsWith("___exists"))
 			{
 				if (!response.TryGetValue(propertyName.Substring(0, propertyName.Length - "___exists".Length),
-					out vv))
+					out _))
 				{
 					Assert.Fail("{0}/{1} not found, but it is explicitly required", path, propertyName);
 				}

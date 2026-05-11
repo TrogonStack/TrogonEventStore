@@ -21,7 +21,8 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Services.PersistentSubscription;
 
-public abstract class PersistentSubscriptionService {
+public abstract class PersistentSubscriptionService
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<PersistentSubscriptionService>();
 }
 
@@ -130,7 +131,8 @@ public class PersistentSubscriptionService<TStreamId> :
 	{
 		_state = message.State;
 
-		if (message.State == VNodeState.Leader) return;
+		if (message.State == VNodeState.Leader)
+			return;
 		Log.Debug("Persistent subscriptions received state change to {state}. Stopping listening", _state);
 		ShutdownSubscriptions();
 		Stop();
@@ -179,7 +181,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	private void ShutdownSubscriptions()
 	{
-		if (_subscriptionsById == null) return;
+		if (_subscriptionsById == null)
+			return;
 		foreach (var subscription in _subscriptionsById.Values)
 		{
 			subscription.Shutdown();
@@ -203,7 +206,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.UnsubscribeFromStream message)
 	{
-		if (!_started) return;
+		if (!_started)
+			return;
 		UnsubscribeFromStream(message.CorrelationId, true);
 	}
 
@@ -212,44 +216,44 @@ public class PersistentSubscriptionService<TStreamId> :
 		switch (startFromPosition)
 		{
 			case PersistentSubscriptionSingleStreamPosition startFromStream:
-			{
-				if (startFromStream.StreamEventNumber < -1)
 				{
-					error = "Invalid Start From position: event number must be greater than or equal to -1.";
-					return false;
-				}
+					if (startFromStream.StreamEventNumber < -1)
+					{
+						error = "Invalid Start From position: event number must be greater than or equal to -1.";
+						return false;
+					}
 
-				error = null;
-				return true;
-			}
+					error = null;
+					return true;
+				}
 			case PersistentSubscriptionAllStreamPosition startFromAll:
-			{
-				var (commit, prepare) = startFromAll.TFPosition;
-
-				if (prepare > commit)
 				{
-					error =
-						"Invalid Start From position: prepare position must be less than or equal to the commit position.";
-					return false;
-				}
+					var (commit, prepare) = startFromAll.TFPosition;
 
-				if (commit > _readIndex.LastIndexedPosition)
-				{
-					error =
-						"Invalid Start From position: commit position must be less than or equal to the last commit position in the transaction file.";
-					return false;
-				}
+					if (prepare > commit)
+					{
+						error =
+							"Invalid Start From position: prepare position must be less than or equal to the commit position.";
+						return false;
+					}
 
-				if ((prepare <= -1 || commit <= -1) && !(prepare == -1 && commit == -1))
-				{
-					error =
-						"Invalid Start From position: prepare and commit positions must be greater than or equal to 0 or both equal to -1.";
-					return false;
-				}
+					if (commit > _readIndex.LastIndexedPosition)
+					{
+						error =
+							"Invalid Start From position: commit position must be less than or equal to the last commit position in the transaction file.";
+						return false;
+					}
 
-				error = null;
-				return true;
-			}
+					if ((prepare <= -1 || commit <= -1) && !(prepare == -1 && commit == -1))
+					{
+						error =
+							"Invalid Start From position: prepare and commit positions must be greater than or equal to 0 or both equal to -1.";
+						return false;
+					}
+
+					error = null;
+					return true;
+				}
 			default:
 				throw new InvalidOperationException();
 		}
@@ -1015,7 +1019,8 @@ public class PersistentSubscriptionService<TStreamId> :
 		var subscriptionIndex = -1;
 		for (int i = 0; i < subscribers.Count; i++)
 		{
-			if (subscribers[i].SubscriptionId != key) continue;
+			if (subscribers[i].SubscriptionId != key)
+				continue;
 
 			subscriptionIndex = i;
 			var sub = subscribers[i];
@@ -1078,7 +1083,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(TcpMessage.ConnectionClosed message)
 	{
-		if (_subscriptionsById == null) return; //haven't built yet.
+		if (_subscriptionsById == null)
+			return; //haven't built yet.
 
 		foreach (var subscription in _subscriptionsById.Values)
 		{
@@ -1182,7 +1188,8 @@ public class PersistentSubscriptionService<TStreamId> :
 		return stream + "::" + groupName;
 	}
 
-	ValueTask IAsyncHandle<StorageMessage.EventCommitted>.HandleAsync(StorageMessage.EventCommitted message, CancellationToken token) {
+	ValueTask IAsyncHandle<StorageMessage.EventCommitted>.HandleAsync(StorageMessage.EventCommitted message, CancellationToken token)
+	{
 		return _started
 			? ProcessEventCommited(message.Event.EventStreamId, message.CommitPosition, message.Event, token)
 			: ValueTask.CompletedTask;
@@ -1192,13 +1199,13 @@ public class PersistentSubscriptionService<TStreamId> :
 	{
 		var subscriptions = new List<PersistentSubscription>();
 		if (EventFilter.DefaultStreamFilter.IsEventAllowed(evnt)
-		    && _subscriptionTopics.TryGetValue(eventStreamId, out var subscriptionsToStream))
+			&& _subscriptionTopics.TryGetValue(eventStreamId, out var subscriptionsToStream))
 		{
 			subscriptions.AddRange(subscriptionsToStream);
 		}
 
 		if (EventFilter.DefaultAllFilter.IsEventAllowed(evnt)
-		    && _subscriptionTopics.TryGetValue(SystemStreams.AllStream, out var subscriptionsToAll))
+			&& _subscriptionTopics.TryGetValue(SystemStreams.AllStream, out var subscriptionsToAll))
 		{
 			subscriptions.AddRange(subscriptionsToAll);
 		}
@@ -1243,7 +1250,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.PersistentSubscriptionAckEvents message)
 	{
-		if (!_started) return;
+		if (!_started)
+			return;
 		PersistentSubscription subscription;
 		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription))
 		{
@@ -1253,7 +1261,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(ClientMessage.PersistentSubscriptionNackEvents message)
 	{
-		if (!_started) return;
+		if (!_started)
+			return;
 		PersistentSubscription subscription;
 		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription))
 		{
@@ -1288,8 +1297,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			return;
 		}
 
-		List<PersistentSubscription> subscribers;
-		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out subscribers))
+		if (!_subscriptionTopics.TryGetValue(message.EventStreamId, out _))
 		{
 			message.Envelope.ReplyWith(
 				new ClientMessage.ReadNextNPersistentMessagesCompleted(message.CorrelationId,
@@ -1469,7 +1477,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				break;
 			default:
 				throw new Exception(readStreamEventsBackwardCompleted.Result +
-				                    " is an unexpected result writing subscription configuration.");
+									" is an unexpected result writing subscription configuration.");
 		}
 	}
 
@@ -1500,7 +1508,7 @@ public class PersistentSubscriptionService<TStreamId> :
 				break;
 			default:
 				throw new Exception(obj.Result +
-				                    " is an unexpected result writing persistent subscription configuration.");
+									" is an unexpected result writing persistent subscription configuration.");
 		}
 	}
 
@@ -1605,7 +1613,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(SubscriptionMessage.PersistentSubscriptionTimerTick message)
 	{
-		if (!_handleTick || _timerTickCorrelationId != message.CorrelationId) return;
+		if (!_handleTick || _timerTickCorrelationId != message.CorrelationId)
+			return;
 		try
 		{
 			WakeSubscriptions();
@@ -1621,7 +1630,8 @@ public class PersistentSubscriptionService<TStreamId> :
 
 	public void Handle(SubscriptionMessage.PersistentSubscriptionPushToClients message)
 	{
-		if (!_started) return;
+		if (!_started)
+			return;
 
 		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out var subscription))
 			subscription.PushToClientsFromSchedule();

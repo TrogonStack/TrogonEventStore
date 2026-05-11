@@ -108,9 +108,8 @@ public class ResolvedEvent
 					: new TFPos(-1, positionEvent.LogPosition);
 			}
 
-			JToken deletedValue;
 			IsLinkToDeletedStreamTombstone = extraMetadata != null
-											 && extraMetadata.TryGetValue("$deleted", out deletedValue);
+											 && extraMetadata.TryGetValue("$deleted", out _);
 			if (resolvedEvent.ResolveResult == ReadEventResult.NoStream
 				|| resolvedEvent.ResolveResult == ReadEventResult.StreamDeleted || IsLinkToDeletedStreamTombstone)
 			{
@@ -230,8 +229,7 @@ public class ResolvedEvent
 	{
 		get
 		{
-			string temp;
-			return StreamDeletedHelper.IsStreamDeletedEvent(EventStreamId, EventType, Data, out temp);
+			return StreamDeletedHelper.IsStreamDeletedEvent(EventStreamId, EventType, Data, out _);
 		}
 	}
 }

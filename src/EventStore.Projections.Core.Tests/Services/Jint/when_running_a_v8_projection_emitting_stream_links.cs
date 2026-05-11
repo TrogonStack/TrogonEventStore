@@ -25,12 +25,10 @@ public class when_running_a_v8_projection_emitting_stream_links : TestFixtureWit
 	[Test, Category(_projectionType)]
 	public void process_event_returns_true()
 	{
-		string state;
-		EmittedEventEnvelope[] emittedEvents;
 		var result = _stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 			"metadata",
-			@"{""a"":""b""}", out state, out emittedEvents);
+			@"{""a"":""b""}", out _, out _);
 
 		Assert.IsTrue(result);
 	}
@@ -38,12 +36,11 @@ public class when_running_a_v8_projection_emitting_stream_links : TestFixtureWit
 	[Test, Category(_projectionType)]
 	public void process_event_returns_emitted_event()
 	{
-		string state;
 		EmittedEventEnvelope[] emittedEvents;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 			"metadata",
-			@"{""a"":""b""}", out state, out emittedEvents);
+			@"{""a"":""b""}", out _, out emittedEvents);
 
 		Assert.IsNotNull(emittedEvents);
 		Assert.AreEqual(1, emittedEvents.Length);

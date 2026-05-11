@@ -154,8 +154,7 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	[Test]
 	public void non_existent_item_cannot_be_found()
 	{
-		long position;
-		Assert.IsFalse(PTable.TryGetOneValue(2, 0, out position));
+		Assert.IsFalse(PTable.TryGetOneValue(2, 0, out _));
 	}
 
 	[Test]
@@ -168,14 +167,12 @@ public abstract class ptable_read_scenario_with_items_spanning_few_cache_segment
 	[Test]
 	public void try_get_latest_entry_returns_nothing_for_nonexistent_stream()
 	{
-		IndexEntry entry;
-		Assert.IsFalse(PTable.TryGetLatestEntry(0x010200000000, out entry));
+		Assert.IsFalse(PTable.TryGetLatestEntry(0x010200000000, out _));
 	}
 
 	[Test]
 	public void try_get_oldest_entry_returns_nothing_for_nonexistent_stream()
 	{
-		IndexEntry entry;
-		Assert.IsFalse(PTable.TryGetOldestEntry(0x010200000000, out entry));
+		Assert.IsFalse(PTable.TryGetOldestEntry(0x010200000000, out _));
 	}
 }

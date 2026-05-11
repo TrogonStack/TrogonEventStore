@@ -37,10 +37,9 @@ public class ByCorrelationId : IProjectionStateHandler
 	private bool TryParseCorrelationIdProperty(string source, out string correlationIdProperty)
 	{
 		correlationIdProperty = null;
-		JObject obj = null;
 		try
 		{
-			obj = JObject.Parse(source);
+			var obj = JObject.Parse(source);
 			string prop = obj["correlationIdProperty"].Value<string>();
 			if (prop != null)
 			{
@@ -99,8 +98,7 @@ public class ByCorrelationId : IProjectionStateHandler
 		if (data.Metadata == null)
 			return false;
 
-		JObject metadata = null;
-
+		JObject metadata;
 		try
 		{
 			metadata = JObject.Parse(data.Metadata);

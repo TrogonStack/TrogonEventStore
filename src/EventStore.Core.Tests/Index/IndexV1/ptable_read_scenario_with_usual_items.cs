@@ -107,8 +107,7 @@ public abstract class ptable_read_scenario_with_usual_items : PTableReadScenario
 	[Test]
 	public void non_existent_item_cannot_be_found()
 	{
-		long position;
-		Assert.IsFalse(PTable.TryGetOneValue(0x0106, 0x0001, out position));
+		Assert.IsFalse(PTable.TryGetOneValue(0x0106, 0x0001, out _));
 	}
 
 	[Test]

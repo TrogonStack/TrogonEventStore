@@ -201,8 +201,7 @@ static class UriTemplateHelpers
 		{
 			return false;
 		}
-		UriTemplatePartType partType;
-		return IsWildcardSegment(path, out partType);
+		return IsWildcardSegment(path, out _);
 	}
 
 	[SuppressMessage("Microsoft.Design", "CA1021:AvoidOutParameters", Justification = "This is internal method that needs to return multiple things")]
@@ -285,8 +284,7 @@ static class UriTemplateHelpers
 				}
 			}
 		}
-		queryVarNamesWithLiteralVals = null; // ensure we don't reference this variable any more
-											 // now we have the set of names that every operation has as a literal
+		// now we have the set of names that every operation has as a literal
 		if (queryVarNamesAllLiterals.Count == 0)
 		{
 			if (allowDuplicateEquivalentUriTemplates && AllTemplatesAreEquivalent(array, a, b))

@@ -65,8 +65,8 @@ public class EventStoreClientCacheTests
 		sut.Handle(new ClusterClientMessage.CleanCache());
 		await Task.Delay(oldItemThreshold.Add(TimeSpan.FromMilliseconds(500)));
 
+		sut.Get(new IPEndPoint(IPAddress.Loopback, 1113));
 		var newClient = sut.Get(new IPEndPoint(IPAddress.Loopback, 1113));
-		newClient = sut.Get(new IPEndPoint(IPAddress.Loopback, 1113));
 		Assert.AreNotEqual(oldClient, newClient);
 	}
 

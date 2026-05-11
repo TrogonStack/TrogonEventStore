@@ -22,7 +22,7 @@ public unsafe class NativeFileWindows : INativeFile
 	{
 		var low = (int)(count & 0xffffffff);
 		var high = (int)(count >> 32);
-		WinNative.SetFilePointer(handle, low, out high, WinNative.EMoveMethod.Begin);
+		WinNative.SetFilePointer(handle, low, ref high, WinNative.EMoveMethod.Begin);
 		if (!WinNative.SetEndOfFile(handle))
 		{
 			throw new Win32Exception();
@@ -110,7 +110,13 @@ public unsafe class NativeFileWindows : INativeFile
 	{
 		var low = (int)(position & 0xffffffff);
 		var high = (int)(position >> 32);
-		var f = WinNative.SetFilePointer(handle, low, out high, WinNative.EMoveMethod.Begin);
+		var moveMethod = origin switch
+		{
+			SeekOrigin.Current => WinNative.EMoveMethod.Current,
+			SeekOrigin.End => WinNative.EMoveMethod.End,
+			_ => WinNative.EMoveMethod.Begin
+		};
+		var f = WinNative.SetFilePointer(handle, low, ref high, moveMethod);
 		if (f == WinNative.INVALID_SET_FILE_POINTER)
 		{
 			throw new Win32Exception();

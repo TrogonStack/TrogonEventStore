@@ -83,8 +83,7 @@ public abstract class MemTableTestsFixture
 	public void non_existent_item_is_not_found()
 	{
 		MemTable.Add(0x11, 0x01, 0xffff);
-		long position;
-		Assert.IsFalse(MemTable.TryGetOneValue(0x11, 0x02, out position));
+		Assert.IsFalse(MemTable.TryGetOneValue(0x11, 0x02, out _));
 	}
 
 
@@ -92,8 +91,7 @@ public abstract class MemTableTestsFixture
 	public void existing_item_is_found()
 	{
 		MemTable.Add(0x11, 0x01, 0xffff);
-		long position;
-		Assert.IsTrue(MemTable.TryGetOneValue(0x11, 0x01, out position));
+		Assert.IsTrue(MemTable.TryGetOneValue(0x11, 0x01, out _));
 	}
 
 	[Test]
@@ -454,16 +452,14 @@ public abstract class MemTableTestsFixture
 	[Test]
 	public void try_get_latest_entry_finds_nothing_on_empty_memtable()
 	{
-		IndexEntry entry;
-		Assert.IsFalse(MemTable.TryGetLatestEntry(0x12, out entry));
+		Assert.IsFalse(MemTable.TryGetLatestEntry(0x12, out _));
 	}
 
 	[Test]
 	public void try_get_latest_entry_finds_nothing_on_empty_stream()
 	{
 		MemTable.Add(0x11, 0x01, 0xffff);
-		IndexEntry entry;
-		Assert.IsFalse(MemTable.TryGetLatestEntry(0x12, out entry));
+		Assert.IsFalse(MemTable.TryGetLatestEntry(0x12, out _));
 	}
 
 	[Test]
@@ -519,16 +515,14 @@ public abstract class MemTableTestsFixture
 	[Test]
 	public void try_get_oldest_entry_finds_nothing_on_empty_memtable()
 	{
-		IndexEntry entry;
-		Assert.IsFalse(MemTable.TryGetOldestEntry(0x12, out entry));
+		Assert.IsFalse(MemTable.TryGetOldestEntry(0x12, out _));
 	}
 
 	[Test]
 	public void try_get_oldest_entry_finds_nothing_on_empty_stream()
 	{
 		MemTable.Add(0x11, 0x01, 0xffff);
-		IndexEntry entry;
-		Assert.IsFalse(MemTable.TryGetOldestEntry(0x12, out entry));
+		Assert.IsFalse(MemTable.TryGetOldestEntry(0x12, out _));
 	}
 
 	[Test]

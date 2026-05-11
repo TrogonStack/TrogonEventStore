@@ -71,7 +71,7 @@ internal static unsafe class WinNative
 
 	[DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
 	public static extern int SetFilePointer(SafeFileHandle handle, int lDistanceToMove,
-		out int lpDistanceToMoveHigh, EMoveMethod dwMoveMethod);
+		ref int lpDistanceToMoveHigh, EMoveMethod dwMoveMethod);
 
 	// ReSharper disable once InconsistentNaming
 	public const int INVALID_SET_FILE_POINTER = -1;

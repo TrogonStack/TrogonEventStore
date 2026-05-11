@@ -30,10 +30,9 @@ public class when_initializing_state : TestFixtureWithInterpretedProjection
 	public void process_event_should_return_initialized_state()
 	{
 		string state;
-		EmittedEventEnvelope[] emittedEvents;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category",
-			Guid.NewGuid(), 0, "metadata", @"{""a"":""b""}", out state, out emittedEvents);
+			Guid.NewGuid(), 0, "metadata", @"{""a"":""b""}", out state, out _);
 		Assert.IsTrue(state.Contains("\"test\":\"1\""));
 	}
 

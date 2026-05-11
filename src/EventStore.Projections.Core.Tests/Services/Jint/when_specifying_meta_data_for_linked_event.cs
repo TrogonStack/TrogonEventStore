@@ -25,13 +25,12 @@ public class when_specifying_meta_data_for_linked_event : TestFixtureWithInterpr
 	[Test, Category(_projectionType)]
 	public void meta_data_should_be_set()
 	{
-		string state = null;
-		EmittedEventEnvelope[] emittedEvents = null;
+		EmittedEventEnvelope[] emittedEvents;
 
-		var result = _stateHandler.ProcessEvent(
+		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 			"metadata",
-			null, out state, out emittedEvents, isJson: false);
+			null, out _, out emittedEvents, isJson: false);
 
 		Assert.IsNotNull(emittedEvents);
 		Assert.AreEqual(1, emittedEvents.Length);

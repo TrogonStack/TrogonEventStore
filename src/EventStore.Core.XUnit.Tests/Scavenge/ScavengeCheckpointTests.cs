@@ -74,7 +74,7 @@ public class ScavengeCheckpointTests
 	[Fact]
 	public void can_round_trip_merging_chunks()
 	{
-		var cp = RoundTrip(
+		RoundTrip(
 			new ScavengeCheckpoint.MergingChunks(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""MergingChunks""}");
 	}
@@ -82,7 +82,7 @@ public class ScavengeCheckpointTests
 	[Fact]
 	public void can_round_trip_executing_index()
 	{
-		var cp = RoundTrip(
+		RoundTrip(
 			new ScavengeCheckpoint.ExecutingIndex(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""ExecutingIndex""}");
 	}
@@ -90,7 +90,7 @@ public class ScavengeCheckpointTests
 	[Fact]
 	public void can_round_trip_cleaning()
 	{
-		var cp = RoundTrip(
+		RoundTrip(
 			new ScavengeCheckpoint.Cleaning(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Cleaning""}");
 	}
@@ -98,7 +98,7 @@ public class ScavengeCheckpointTests
 	[Fact]
 	public void can_round_trip_done()
 	{
-		var cp = RoundTrip(
+		RoundTrip(
 			new ScavengeCheckpoint.Done(_scavengePoint),
 			@"{""scavengePoint"":{""position"":1234,""eventNumber"":5,""effectiveNow"":""2022-01-05T00:00:00"",""threshold"":567},""schemaVersion"":""V0"",""checkpointStage"":""Done""}");
 	}

@@ -27,8 +27,8 @@ public class concurrent_queue_wrapper_should
 		Assert.AreEqual(12345, val);
 		Assert.AreEqual(0, queue.Count);
 
-		Assert.AreEqual(false, queue.TryDequeue(out val));
-		Assert.AreEqual(false, queue.TryDequeue(out val));
+		Assert.AreEqual(false, queue.TryDequeue(out _));
+		Assert.AreEqual(false, queue.TryDequeue(out _));
 	}
 
 	[Test]
@@ -69,10 +69,9 @@ public class concurrent_queue_wrapper_with_parallel_dequeues_should
 
 	private void DequeueThread()
 	{
-		int x;
 		while (_totalDequeued < TOTAL_ENQUEUED_ITEMS)
 		{
-			var dequeued = _concurrentQueue.TryDequeue(out x);
+			var dequeued = _concurrentQueue.TryDequeue(out _);
 			if (_concurrentQueue.Count < 0)
 				_seenNegativeCount = true;
 			if (dequeued)
