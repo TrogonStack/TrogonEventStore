@@ -276,7 +276,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 	{
 
 		if (string.IsNullOrEmpty(_dbPath))
+		{
 			throw new Exception("call WithDbPath");
+		}
 
 		var indexPath = Path.Combine(_dbPath, "index");
 		var logFormat =
@@ -406,7 +408,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				(continuation, streamId) =>
 				{
 					if (StreamIdComparer.Equals(streamId, _accumulatingCancellationTrigger))
+					{
 						cancellationTokenSource.Cancel();
+					}
+
 					return continuation(streamId);
 				});
 
@@ -418,14 +423,16 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				(f, handle, from, maxCount, x, token) =>
 				{
 					if (_calculatingCancellationTrigger != null)
+					{
 						if ((handle.Kind == StreamHandle.Kind.Hash &&
-						     handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
-						    (handle.Kind == StreamHandle.Kind.Id &&
-						     StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
+							 handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
+							(handle.Kind == StreamHandle.Kind.Id &&
+							 StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
 						{
 
 							cancellationTokenSource.Cancel();
 						}
+					}
 
 					return f(handle, from, maxCount, x, token);
 				});
@@ -435,7 +442,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				(continuation, streamId) =>
 				{
 					if (StreamIdComparer.Equals(streamId, _executingChunkCancellationTrigger))
+					{
 						cancellationTokenSource.Cancel();
+					}
+
 					return continuation(streamId);
 				});
 
@@ -445,10 +455,12 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				f => (entry, token) =>
 				{
 					if (token.IsCancellationRequested)
+					{
 						return ValueTask.FromCanceled<bool>(token);
+					}
 
 					if (_executingIndexEntryCancellationTrigger is not null &&
-					    entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger))
+						entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger))
 					{
 
 						cancellationTokenSource.Cancel();
@@ -646,7 +658,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				foreach (var record in chunk)
 				{
 					if (record is not IPrepareLogRecord<TStreamId> prepare)
+					{
 						continue;
+					}
 
 					RegisterUse(prepare.EventStreamId);
 
@@ -679,8 +693,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			{
 				await CheckRecords(keptRecords, dbResult, cancellationTokenSource.Token);
 				if (!_skipIndexCheck)
+				{
 					await CheckIndex(keptIndexEntries, readIndex, collidingStreams, hasher,
 						cancellationTokenSource.Token);
+				}
 			}
 
 			_assertState?.Invoke(scavengeState);
@@ -758,7 +774,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 			foreach (var record in chunk)
 			{
 				if (record is not IPrepareLogRecord<TStreamId> prepare)
+				{
 					throw new Exception("expected to find commit record in index but this is impossible");
+				}
 
 				var streamId = prepare.EventStreamId;
 				var eventNumber = prepare.ExpectedVersion + 1;
@@ -766,15 +784,23 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 				// indexcommitter blesses tombstones with EventNumber.DeletedStream when they are
 				// committed with an explicit commit record
 				if (prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete) &&
-				    prepare.Flags.HasNoneOf(PrepareFlags.IsCommitted))
+					prepare.Flags.HasNoneOf(PrepareFlags.IsCommitted))
+				{
 					eventNumber = EventNumber.DeletedStream;
+				}
 
 				if (!minEventNumbers.TryGetValue(streamId, out var min))
+				{
 					min = eventNumber;
+				}
+
 				minEventNumbers[streamId] = Math.Min(eventNumber, min);
 
 				if (!maxEventNumbers.TryGetValue(streamId, out var max))
+				{
 					max = eventNumber;
+				}
+
 				maxEventNumbers[streamId] = Math.Max(eventNumber, max);
 
 				var result = await (collisions.Contains(streamId)
@@ -831,7 +857,9 @@ public class Scenario<TLogFormat, TStreamId> : Scenario
 					token));
 
 			if (result.EventInfos.Length > 100)
+			{
 				throw new Exception("wasn't expecting a stream this long in the tests");
+			}
 
 			Assert.All(result.EventInfos, info =>
 			{

@@ -72,7 +72,9 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		int nodeProcessId = -1;
 
 		if (ShouldRestartNode)
+		{
 			nodeProcessId = StartNode();
+		}
 
 		EnableProjectionByCategory();
 
@@ -95,7 +97,9 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 		while (stopWatch.Elapsed < waitDuration)
 		{
 			if (writeTask.IsFaulted)
+			{
 				throw new ApplicationException("Failed to write data");
+			}
 
 			if (writeTask.IsCompleted && !stopWatch.IsRunning)
 			{
@@ -104,20 +108,28 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 			}
 
 			if (isWatchStarted)
+			{
 				stopWatch.Stop();
+			}
 
 			failed = CheckIsFaulted(projections, out failReason);
 			if (failed)
+			{
 				break;
+			}
 
 			if (CheckIsCompleted(projections, expectedAllEventsCount))
+			{
 				break;
+			}
 
 			Thread.Sleep((int)(waitDuration.TotalMilliseconds / 6));
 
 			failed = CheckIsFaulted(projections, out failReason);
 			if (failed)
+			{
 				break;
+			}
 
 			if (ShouldRestartNode)
 			{
@@ -126,7 +138,9 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 			}
 
 			if (isWatchStarted)
+			{
 				stopWatch.Start();
+			}
 		}
 
 		writeTask.Wait();
@@ -138,14 +152,20 @@ internal class ProjForeachForcedCommonNameScenario : ProjectionsScenarioBase
 			failed = CheckIsFaulted(new[] { newSumCheckForBankAccounts }, out failReason);
 
 			if (failed)
+			{
 				break;
+			}
 		}
 
 		if (ShouldRestartNode)
+		{
 			KillNode(nodeProcessId);
+		}
 
 		if (failed)
+		{
 			throw new ApplicationException(string.Format("Projection failed due to reason: {0}.", failReason));
+		}
 	}
 
 	private bool CheckIsFaulted(IEnumerable<string> projectionsNames, out string failReason)

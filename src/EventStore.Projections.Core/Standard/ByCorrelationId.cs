@@ -93,10 +93,14 @@ public class ByCorrelationId : IProjectionStateHandler
 		emittedEvents = null;
 		newState = null;
 		if (data.EventStreamId != data.PositionStreamId)
+		{
 			return false;
+		}
 
 		if (data.Metadata == null)
+		{
 			return false;
+		}
 
 		JObject metadata;
 		try
@@ -109,17 +113,25 @@ public class ByCorrelationId : IProjectionStateHandler
 		}
 
 		if (metadata[CorrelationIdPropertyContext.CorrelationIdProperty] == null)
+		{
 			return false;
+		}
 
 		string correlationId = metadata[CorrelationIdPropertyContext.CorrelationIdProperty].Value<string>();
 		if (correlationId == null)
+		{
 			return false;
+		}
 
 		string linkTarget;
 		if (data.EventType == SystemEventTypes.LinkTo)
+		{
 			linkTarget = data.Data;
+		}
 		else
+		{
 			linkTarget = data.EventSequenceNumber + "@" + data.EventStreamId;
+		}
 
 		var metadataDict = new Dictionary<string, string>();
 		metadataDict.Add("$eventTimestamp", "\"" + data.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") + "\"");

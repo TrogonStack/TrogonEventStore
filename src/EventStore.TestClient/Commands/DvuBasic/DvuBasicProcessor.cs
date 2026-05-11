@@ -205,9 +205,14 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		var success = writeStatuses.All(s => s.Success) && readStatuses.All(s => s.Success);
 		if (success)
+		{
 			context.Success();
+		}
 		else
+		{
 			context.Fail();
+		}
+
 		return success;
 	}
 
@@ -272,8 +277,11 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 			sent++;
 			if (sent % 1000 == 0)
+			{
 				status.ReportWritesProgress(writerIdx, sent, prepareTimeouts, commitTimeouts, forwardTimeouts,
 					wrongExpectedVersion, streamsDeleted, failed, requests);
+			}
+
 			iteration.Set();
 		};
 
@@ -282,7 +290,10 @@ internal class DvuBasicProcessor : ICmdProcessor
 		closed = (_, __) =>
 		{
 			if (!context._tcpTestClient.Options.Reconnect)
+			{
 				return;
+			}
+
 			Thread.Sleep(TimeSpan.FromSeconds(1));
 			connection =
 				context._tcpTestClient.CreateTcpConnection(context, packageHandler, cn => iteration.Set(), closed, false);
@@ -345,7 +356,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 					{
 						successes++;
 						if (successes % 1000 == 0)
+						{
 							status.ReportReadsProgress(readerIdx, successes, fails);
+						}
 					}
 					else
 					{
@@ -373,7 +386,10 @@ internal class DvuBasicProcessor : ICmdProcessor
 		closed = (_, __) =>
 		{
 			if (!context._tcpTestClient.Options.Reconnect)
+			{
 				return;
+			}
+
 			Thread.Sleep(TimeSpan.FromSeconds(1));
 			connection =
 				context._tcpTestClient.CreateTcpConnection(context, packageReceived, cn => iteration.Set(), closed, false);
@@ -386,7 +402,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 			streamIdx = NextStreamForReading(rnd, readerIdx);
 			int head;
 			lock (_heads)
+			{
 				head = _heads[streamIdx];
+			}
 
 			if (head > 0)
 			{
@@ -401,7 +419,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 				iteration.WaitOne();
 			}
 			else
+			{
 				Thread.Sleep(100);
+			}
 		}
 
 		status.ReportReadsProgress(readerIdx, successes, fails);
@@ -416,7 +436,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 		if (_writers >= _streams.Length)
 		{
 			if (_writers > _streams.Length)
+			{
 				return writerIdx % _streams.Length;
+			}
 
 			return writerIdx;
 		}
@@ -446,7 +468,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		Event generated;
 		lock (_factoryLock)
+		{
 			generated = factory.Create(version);
+		}
 
 		return generated;
 	}
@@ -458,7 +482,9 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		bool equal;
 		lock (_factoryLock)
+		{
 			equal = producer.Equal(expectedIdx, eventType, actual);
+		}
 
 		return equal;
 	}

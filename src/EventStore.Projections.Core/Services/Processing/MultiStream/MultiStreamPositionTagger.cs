@@ -14,9 +14,15 @@ public class MultiStreamPositionTagger : PositionTagger
 	public MultiStreamPositionTagger(int phase, string[] streams) : base(phase)
 	{
 		if (streams == null)
+		{
 			throw new ArgumentNullException("streams");
+		}
+
 		if (streams.Length == 0)
+		{
 			throw new ArgumentException("streams");
+		}
+
 		_streams = new HashSet<string>(streams);
 	}
 
@@ -24,9 +30,15 @@ public class MultiStreamPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase < Phase)
+		{
 			return true;
+		}
+
 		if (previous.Mode_ != CheckpointTag.Mode.MultiStream)
+		{
 			throw new ArgumentException("Mode.MultiStream expected", "previous");
+		}
+
 		return _streams.Contains(committedEvent.Data.PositionStreamId)
 			   && committedEvent.Data.PositionSequenceNumber >
 			   previous.Streams[committedEvent.Data.PositionStreamId];
@@ -36,12 +48,17 @@ public class MultiStreamPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		if (!_streams.Contains(committedEvent.Data.PositionStreamId))
+		{
 			throw new InvalidOperationException(
 				string.Format("Invalid stream '{0}'", committedEvent.Data.EventStreamId));
+		}
+
 		return previous.UpdateStreamPosition(
 			committedEvent.Data.PositionStreamId, committedEvent.Data.PositionSequenceNumber);
 	}
@@ -74,11 +91,16 @@ public class MultiStreamPositionTagger : PositionTagger
 	public override CheckpointTag AdjustTag(CheckpointTag tag)
 	{
 		if (tag.Phase < Phase)
+		{
 			return tag;
+		}
+
 		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
+		}
 
 		if (tag.Mode_ == CheckpointTag.Mode.MultiStream)
 		{

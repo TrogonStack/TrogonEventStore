@@ -89,9 +89,13 @@ internal class WriterInterceptor :
 		lock (_lock)
 		{
 			if (!_paused)
+			{
 				Bus.Publish(message);
+			}
 			else
+			{
 				_queue.Enqueue(message);
+			}
 		}
 	}
 
@@ -111,10 +115,14 @@ internal class WriterInterceptor :
 
 			var msgs = new List<Message>();
 			while (_queue.TryDequeue(out var msg))
+			{
 				msgs.Add(msg);
+			}
 
 			foreach (var msg in msgs)
+			{
 				Process(msg);
+			}
 		}
 	}
 

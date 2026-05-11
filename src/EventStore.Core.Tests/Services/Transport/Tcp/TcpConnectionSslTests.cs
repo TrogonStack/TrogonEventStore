@@ -86,7 +86,9 @@ public class TcpConnectionSslTests
 					{
 						b.SignalAndWait();
 						for (int i = 0; i < 1000; i++)
+						{
 							serverTcpConnection.EnqueueSend(GenerateData());
+						}
 					}, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
 					Task closeConnection = Task.Factory.StartNew(() =>

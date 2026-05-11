@@ -538,9 +538,13 @@ public class ClusterVNode<TStreamId> :
 				subsystem.Start().ContinueWith(t =>
 				{
 					if (t.IsCompletedSuccessfully)
+					{
 						_mainQueue.Publish(new SystemMessage.SubSystemInitialized(subSystemName));
+					}
 					else
+					{
 						Log.Error(t.Exception, "Failed to initialize subsystem {subSystemName}", subSystemName);
+					}
 				});
 			}
 		}
@@ -646,24 +650,30 @@ public class ClusterVNode<TStreamId> :
 		var totalMem = RuntimeStats.GetTotalMemory();
 
 		if (options.Cluster.StreamInfoCacheCapacity > 0)
+		{
 			CreateStaticStreamInfoCache(
 				options.Cluster.StreamInfoCacheCapacity,
 				out streamLastEventNumberCache,
 				out streamMetadataCache,
 				out streamInfoCacheResizer);
+		}
 		else if (isRunningInContainer)
+		{
 			CreateStaticStreamInfoCache(
 				ContainerizedEnvironment.StreamInfoCacheCapacity,
 				out streamLastEventNumberCache,
 				out streamMetadataCache,
 				out streamInfoCacheResizer);
+		}
 		else
+		{
 			CreateDynamicStreamInfoCache(
 				logFormat.StreamIdSizer,
 				totalMem,
 				out streamLastEventNumberCache,
 				out streamMetadataCache,
 				out streamInfoCacheResizer);
+		}
 
 		var dynamicCacheManager = new DynamicCacheManager(
 			bus: _mainQueue,
@@ -1048,10 +1058,14 @@ public class ClusterVNode<TStreamId> :
 				new NodeCertificateAuthenticationProvider(() => _certificateProvider.GetReservedNodeCommonName()));
 
 			if (options.Interface.EnableTrustedAuth)
+			{
 				httpAuthenticationProviders.Add(new TrustedHttpAuthenticationProvider());
+			}
 
 			if (EnableUnixSocket)
+			{
 				httpAuthenticationProviders.Add(new UnixSocketAuthenticationProvider());
+			}
 		}
 
 		//default authentication provider
@@ -1249,7 +1263,9 @@ public class ClusterVNode<TStreamId> :
 				activePercent: message.ThrottlePercent ?? 100);
 
 			if (logFormat is not LogFormatAbstractor<string>)
+			{
 				throw new NotSupportedException("Scavenge requires the string stream id log format.");
+			}
 
 			var cancellationCheckPeriod = 1024;
 
@@ -1371,8 +1387,10 @@ public class ClusterVNode<TStreamId> :
 					tableIndex.Visit(table =>
 					{
 						if (table.Version <= PTableVersions.IndexV1)
+						{
 							throw new NotSupportedException(
 								$"PTable {table.Filename} has version {table.Version}. Scavenge requires V2 index files and above. Please rebuild the indexes to upgrade them.");
+						}
 					});
 				},
 				state: state,
@@ -1462,7 +1480,10 @@ public class ClusterVNode<TStreamId> :
 			memberInfo.InstanceId
 		);
 		if (modifiedOptions.Cluster.ReadOnlyReplica)
+		{
 			_mainBus.Subscribe<SystemMessage.ReplicaStateMessage>(telemetryService);
+		}
+
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(telemetryService);
 		_mainBus.Subscribe<ElectionMessage.ElectionsDone>(telemetryService);
 		_mainBus.Subscribe<LeaderDiscoveryMessage.LeaderFound>(telemetryService);
@@ -1615,8 +1636,10 @@ public class ClusterVNode<TStreamId> :
 			Db.TransformManager.LoadTransforms(dbTransforms);
 
 			if (!Db.TransformManager.TrySetActiveTransform(options.Database.Transform))
+			{
 				throw new InvalidConfigurationException(
 					$"Unknown {nameof(options.Database.Transform)} specified: {options.Database.Transform}");
+			}
 
 			startupTasks = app.ApplicationServices.GetRequiredService<IReadOnlyList<IClusterVNodeStartupTask>>();
 		}
@@ -1661,7 +1684,9 @@ public class ClusterVNode<TStreamId> :
 			}
 
 			foreach (var startupTask in startupTasks)
+			{
 				await startupTask.Run(token);
+			}
 
 			AddTask(_controller.Start());
 
@@ -1821,7 +1846,9 @@ public class ClusterVNode<TStreamId> :
 			(streamId, eventNumberCached, keyFreed, valueFreed, nodeFreed) =>
 			{
 				if (nodeFreed)
+				{
 					return LastEventNumberCacheItemSize(streamId, eventNumberCached);
+				}
 
 				return keyFreed ? sizer.GetSizeInBytes(streamId) : 0;
 			}, "bytes");
@@ -1840,7 +1867,9 @@ public class ClusterVNode<TStreamId> :
 			(streamId, metadataCached, keyFreed, valueFreed, nodeFreed) =>
 			{
 				if (nodeFreed)
+				{
 					return MetadataCacheItemSize(streamId, metadataCached);
+				}
 
 				return
 					(keyFreed ? sizer.GetSizeInBytes(streamId) : 0) +
@@ -1897,10 +1926,14 @@ public class ClusterVNode<TStreamId> :
 		lock (_systemInitGate)
 		{
 			if (_shutdownStarted != 0 || IsShutdown)
+			{
 				return;
+			}
 
 			if (_systemInitPublished != 0)
+			{
 				return;
+			}
 
 			_systemInitPublished = 1;
 			_mainQueue.Publish(new SystemMessage.SystemInit());
@@ -1935,7 +1968,9 @@ public class ClusterVNode<TStreamId> :
 	public async ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
 	{
 		lock (_systemInitGate)
+		{
 			_shutdownStarted = 1;
+		}
 
 		Log.Information("========== [{httpEndPoint}] Is shutting down subsystems", NodeInfo.HttpEndPoint);
 
@@ -1943,7 +1978,9 @@ public class ClusterVNode<TStreamId> :
 		_reloadConfigSignalRegistration = null;
 
 		foreach (var subsystem in _subsystems ?? [])
+		{
 			await subsystem.Stop().WaitAsync(token);
+		}
 	}
 
 	public void Handle(SystemMessage.BecomeShutdown message)
@@ -2013,7 +2050,9 @@ public class ClusterVNode<TStreamId> :
 		PublishSystemInitIfNeeded();
 
 		if (IsShutdown)
+		{
 			tcs.TrySetResult(this);
+		}
 
 		return await tcs.Task;
 	}
@@ -2043,7 +2082,9 @@ public class ClusterVNode<TStreamId> :
 		string certificateOrigin, string[] otherNames)
 	{
 		if (certificate == null)
+		{
 			return (false, $"No certificate was provided by the {certificateOrigin}");
+		}
 
 		var intermediates = intermediateCertsSelector();
 
@@ -2063,10 +2104,14 @@ public class ClusterVNode<TStreamId> :
 		var chainStatus = CertificateUtils.BuildChain(certificate, intermediates, trustedRootCertsSelector(),
 			out var chainStatusInformation);
 		if (chainStatus == X509ChainStatusFlags.NoError)
+		{
 			sslPolicyErrors &=
 				~SslPolicyErrors.RemoteCertificateChainErrors; //clear the RemoteCertificateChainErrors flag
+		}
 		else
+		{
 			sslPolicyErrors |= SslPolicyErrors.RemoteCertificateChainErrors; //set the RemoteCertificateChainErrors flag
+		}
 
 		if (otherNames != null && (sslPolicyErrors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
 		{
@@ -2125,7 +2170,9 @@ public class ClusterVNode<TStreamId> :
 	{
 		var transform = options.Database.Transform;
 		if (!Db.TransformManager.TrySetActiveTransform(transform))
+		{
 			Log.Error($"Unknown {nameof(options.Database.Transform)} specified: {options.Database.Transform}");
+		}
 	}
 
 	private void ReloadLogOptions(ClusterVNodeOptions options)

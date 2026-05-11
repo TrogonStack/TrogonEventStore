@@ -19,7 +19,8 @@ public class ChunkFooterTests
 			isCompleted: isCompleted,
 			physicalDataSize: Random.Shared.Next(500, 600),
 			logicalDataSize: Random.Shared.Next(600, 700),
-			mapSize: Random.Shared.Next(500, 600).RoundUpToMultipleOf(12)) { MD5Hash = hash };
+			mapSize: Random.Shared.Next(500, 600).RoundUpToMultipleOf(12))
+		{ MD5Hash = hash };
 
 		var destination = new ChunkFooter(source.AsByteArray());
 

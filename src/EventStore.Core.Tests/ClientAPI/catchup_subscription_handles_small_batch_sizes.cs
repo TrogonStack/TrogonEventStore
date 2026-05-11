@@ -79,7 +79,9 @@ public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamI
 		}, (sub) => { mre.Set(); }, null, new UserCredentials("admin", "changeit"));
 
 		if (!mre.WaitOne(TimeSpan.FromMinutes(10)))
+		{
 			Assert.Fail("Timed out waiting for test to complete");
+		}
 	}
 
 	[Test]
@@ -97,6 +99,8 @@ public class catchup_subscription_handles_small_batch_sizes<TLogFormat, TStreamI
 		}, (sub) => { mre.Set(); }, null, new UserCredentials("admin", "changeit"));
 
 		if (!mre.WaitOne(TimeSpan.FromMinutes(10)))
+		{
 			Assert.Fail("Timed out waiting for test to complete");
+		}
 	}
 }

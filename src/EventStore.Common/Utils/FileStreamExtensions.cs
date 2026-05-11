@@ -44,14 +44,18 @@ public static class FileStreamExtensions
 		}
 
 		if (!RuntimeInformation.IsWindows)
+		{
 			FlushSafe = f => f.Flush(flushToDisk: true);
+		}
 		else
 		{
 			FlushSafe = f =>
 			{
 				f.Flush(flushToDisk: false);
 				if (!FlushFileBuffers(f.SafeFileHandle))
+				{
 					throw new Exception($"FlushFileBuffers failed with err: {Marshal.GetLastWin32Error()}");
+				}
 			};
 		}
 	}

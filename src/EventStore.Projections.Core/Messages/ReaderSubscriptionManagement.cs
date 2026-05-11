@@ -38,9 +38,15 @@ public static partial class ReaderSubscriptionManagement
 			subscriptionId)
 		{
 			if (@from == null)
+			{
 				throw new ArgumentNullException("from");
+			}
+
 			if (readerStrategy == null)
+			{
 				throw new ArgumentNullException("readerStrategy");
+			}
+
 			_fromPosition = @from;
 			_readerStrategy = readerStrategy;
 			_options = readerSubscriptionOptions;

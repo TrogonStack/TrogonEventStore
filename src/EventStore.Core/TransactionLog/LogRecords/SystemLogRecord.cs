@@ -7,12 +7,14 @@ using EventStore.LogCommon;
 
 namespace EventStore.Core.TransactionLog.LogRecords;
 
-public enum SystemRecordType : byte {
+public enum SystemRecordType : byte
+{
 	Invalid = 0,
 	Epoch = 1
 }
 
-public enum SystemRecordSerialization : byte {
+public enum SystemRecordSerialization : byte
+{
 	Invalid = 0,
 	Binary = 1,
 	Json = 2,
@@ -47,8 +49,10 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 		: base(LogRecordType.System, version, logPosition)
 	{
 		if (version is not SystemRecordVersion)
+		{
 			throw new ArgumentException(
 				$"SystemRecord version {version} is incorrect. Supported version: {SystemRecordVersion}.");
+		}
 
 		TimeStamp = new(reader.ReadLittleEndian<long>());
 		SystemRecordType =
@@ -72,17 +76,19 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 	public EpochRecord GetEpochRecord()
 	{
 		if (SystemRecordType != SystemRecordType.Epoch)
+		{
 			throw new ArgumentException(
 				string.Format("Unexpected type of system record. Requested: {0}, actual: {1}.",
 					SystemRecordType.Epoch, SystemRecordType));
+		}
 
 		switch (SystemRecordSerialization)
 		{
 			case SystemRecordSerialization.Json:
-			{
-				var dto = Data.ParseJson<EpochRecord.EpochRecordDto>();
-				return new EpochRecord(dto);
-			}
+				{
+					var dto = Data.ParseJson<EpochRecord.EpochRecordDto>();
+					return new EpochRecord(dto);
+				}
 			default:
 				throw new ArgumentOutOfRangeException(
 					$"Unexpected SystemRecordSerialization type: {SystemRecordSerialization}",
@@ -104,31 +110,51 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 	public override int GetSizeWithLengthPrefixAndSuffix()
 	{
 		return sizeof(int) * 2 /* Length prefix & suffix */
-		       + sizeof(long) /* TimeStamp */
-		       + sizeof(byte) /* SystemRecordType */
-		       + sizeof(byte) /* SystemRecordSerialization */
-		       + sizeof(long) /* Reserved */
-		       + sizeof(int) /* Data.Length */
-		       + Data.Length /* Data */
-		       + BaseSize;
+			   + sizeof(long) /* TimeStamp */
+			   + sizeof(byte) /* SystemRecordType */
+			   + sizeof(byte) /* SystemRecordSerialization */
+			   + sizeof(long) /* Reserved */
+			   + sizeof(int) /* Data.Length */
+			   + Data.Length /* Data */
+			   + BaseSize;
 	}
 
 	public bool Equals(SystemLogRecord other)
 	{
-		if (ReferenceEquals(null, other)) return false;
-		if (ReferenceEquals(this, other)) return true;
+		if (ReferenceEquals(null, other))
+		{
+			return false;
+		}
+
+		if (ReferenceEquals(this, other))
+		{
+			return true;
+		}
+
 		return other.LogPosition == LogPosition
-		       && other.TimeStamp.Equals(TimeStamp)
-		       && other.SystemRecordType == SystemRecordType
-		       && other.SystemRecordSerialization == SystemRecordSerialization
-		       && other.Reserved == Reserved;
+			   && other.TimeStamp.Equals(TimeStamp)
+			   && other.SystemRecordType == SystemRecordType
+			   && other.SystemRecordSerialization == SystemRecordSerialization
+			   && other.Reserved == Reserved;
 	}
 
 	public override bool Equals(object obj)
 	{
-		if (ReferenceEquals(null, obj)) return false;
-		if (ReferenceEquals(this, obj)) return true;
-		if (obj.GetType() != typeof(SystemRecordType)) return false;
+		if (ReferenceEquals(null, obj))
+		{
+			return false;
+		}
+
+		if (ReferenceEquals(this, obj))
+		{
+			return true;
+		}
+
+		if (obj.GetType() != typeof(SystemRecordType))
+		{
+			return false;
+		}
+
 		return Equals((SystemLogRecord)obj);
 	}
 
@@ -158,10 +184,10 @@ public sealed class SystemLogRecord : LogRecord, IEquatable<SystemLogRecord>, IS
 	public override string ToString()
 	{
 		return string.Format("LogPosition: {0}, "
-		                     + "TimeStamp: {1}, "
-		                     + "SystemRecordType: {2}, "
-		                     + "SystemRecordSerialization: {3}, "
-		                     + "Reserved: {4}",
+							 + "TimeStamp: {1}, "
+							 + "SystemRecordType: {2}, "
+							 + "SystemRecordSerialization: {3}, "
+							 + "Reserved: {4}",
 			LogPosition,
 			TimeStamp,
 			SystemRecordType,

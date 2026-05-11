@@ -62,7 +62,10 @@ public class EventReaderCoreService :
 		_publisher = publisher;
 		_ioDispatcher = ioDispatcher;
 		if (runHeadingReader)
+		{
 			_headingEventReader = new HeadingEventReader(eventCacheSize, _publisher);
+		}
+
 		_writerCheckpoint = writerCheckpoint;
 		_runHeadingReader = runHeadingReader;
 		_faultOutOfOrderProjections = faultOutOfOrderProjections;
@@ -72,11 +75,15 @@ public class EventReaderCoreService :
 	public void Handle(ReaderSubscriptionManagement.Pause message)
 	{
 		if (!_pausedSubscriptions.Add(message.SubscriptionId))
+		{
 			throw new InvalidOperationException("Already paused projection");
+		}
 
 		IReaderSubscription projectionSubscription;
 		if (!_subscriptions.TryGetValue(message.SubscriptionId, out projectionSubscription))
+		{
 			return; // may be already unsubscribed when self-unsubscribing
+		}
 
 		var eventReaderId = _subscriptionEventReaders[message.SubscriptionId];
 		if (eventReaderId == Guid.Empty) // head
@@ -102,7 +109,10 @@ public class EventReaderCoreService :
 	public void Handle(ReaderSubscriptionManagement.Resume message)
 	{
 		if (!_pausedSubscriptions.Remove(message.SubscriptionId))
+		{
 			throw new InvalidOperationException("Not a paused projection");
+		}
+
 		var eventReader = _subscriptionEventReaders[message.SubscriptionId];
 		_eventReaders[eventReader].Resume();
 	}
@@ -146,7 +156,10 @@ public class EventReaderCoreService :
 	public void Handle(ReaderSubscriptionManagement.Unsubscribe message)
 	{
 		if (!_pausedSubscriptions.Contains(message.SubscriptionId))
+		{
 			Handle(new ReaderSubscriptionManagement.Pause(message.SubscriptionId));
+		}
+
 		_subscriptionEventReaders.TryGetValue(message.SubscriptionId, out var eventReaderId);
 		if (eventReaderId != Guid.Empty)
 		{
@@ -166,14 +179,25 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (_runHeadingReader && _headingEventReader.Handle(message))
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
 
 		if (TrySubscribeHeadingEventReader(message, projectionId))
+		{
 			return;
+		}
+
 		if (message.Data != null)
 		{
 			try
@@ -196,11 +220,20 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (_runHeadingReader && _headingEventReader.Handle(message))
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
+
 		_subscriptions[projectionId].Handle(message);
 	}
 
@@ -208,9 +241,15 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
+
 		_subscriptions[projectionId].Handle(message);
 	}
 
@@ -218,9 +257,15 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
+
 		_subscriptions[projectionId].Handle(message);
 
 		//            _pausedSubscriptions.Add(projectionId); // it is actually disposed -- workaround
@@ -231,9 +276,15 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
+
 		_subscriptions[projectionId].Handle(message);
 	}
 
@@ -241,11 +292,20 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (_runHeadingReader && _headingEventReader.Handle(message))
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
+
 		_subscriptions[projectionId].Handle(message);
 	}
 
@@ -253,9 +313,15 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
+
 		_subscriptions[projectionId].Handle(message);
 
 		_pausedSubscriptions.Add(projectionId); // it is actually disposed -- workaround
@@ -266,9 +332,14 @@ public class EventReaderCoreService :
 	{
 		Guid projectionId;
 		if (_stopped)
+		{
 			return;
+		}
+
 		if (!_eventReaderSubscriptions.TryGetValue(message.CorrelationId, out projectionId))
+		{
 			return; // unsubscribed
+		}
 
 		if (!_faultOutOfOrderProjections && message.Reason.Contains("was expected in the stream"))
 		{
@@ -285,7 +356,9 @@ public class EventReaderCoreService :
 	public void Handle(ReaderSubscriptionMessage.ReportProgress message)
 	{
 		if (_stopped || message.CorrelationId != _reportProgressId)
+		{
 			return;
+		}
 
 		foreach (var subscription in _subscriptions.Values)
 		{
@@ -312,7 +385,9 @@ public class EventReaderCoreService :
 
 		_eventReaders.Add(_defaultEventReaderId, transactionFileReader);
 		if (_runHeadingReader)
+		{
 			_headingEventReader.Start(_defaultEventReaderId, transactionFileReader);
+		}
 	}
 
 	private void StopReaders(ReaderCoreServiceMessage.StopReader message)
@@ -350,7 +425,10 @@ public class EventReaderCoreService :
 		}
 
 		if (_runHeadingReader)
+		{
 			_headingEventReader.Stop();
+		}
+
 		_stopped = true;
 
 		_publisher.Publish(
@@ -361,20 +439,28 @@ public class EventReaderCoreService :
 		ReaderSubscriptionMessage.CommittedEventDistributed message, Guid projectionId)
 	{
 		if (message.SafeTransactionFileReaderJoinPosition == null)
+		{
 			return false;
+		}
 
 		if (!_runHeadingReader)
+		{
 			return false;
+		}
 
 		if (_pausedSubscriptions.Contains(projectionId))
+		{
 			return false;
+		}
 
 		var projectionSubscription = _subscriptions[projectionId];
 
 		if (
 			!_headingEventReader.TrySubscribe(
 				projectionId, projectionSubscription, message.SafeTransactionFileReaderJoinPosition.Value))
+		{
 			return false;
+		}
 
 		Guid eventReaderId = message.CorrelationId;
 		_eventReaders[eventReaderId].Dispose();

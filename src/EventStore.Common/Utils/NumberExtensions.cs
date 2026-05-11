@@ -37,10 +37,14 @@ public static class NumberExtensions
 	public static long ScaleByWeight(this long x, int weight, int totalWeight)
 	{
 		if (totalWeight <= 0)
+		{
 			throw new ArgumentOutOfRangeException(nameof(totalWeight));
+		}
 
 		if (weight < 0 || weight > totalWeight)
+		{
 			throw new ArgumentOutOfRangeException(nameof(weight));
+		}
 
 		return (long)((double)x * weight / totalWeight);
 	}

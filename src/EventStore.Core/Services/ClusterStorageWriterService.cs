@@ -131,17 +131,21 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 
 			var lastIndexedPosition = _getLastIndexedPosition();
 			if (message.SubscriptionPosition > lastIndexedPosition)
+			{
 				Log.Information(
 					"ONLINE TRUNCATION IS NEEDED. NOT IMPLEMENTED. OFFLINE TRUNCATION WILL BE PERFORMED. SHUTTING DOWN NODE.");
+			}
 			else
+			{
 				Log.Information(
 					"OFFLINE TRUNCATION IS NEEDED (SubscribedAt {subscriptionPosition} (0x{subscriptionPosition:X}) <= LastCommitPosition {lastCommitPosition} (0x{lastCommitPosition:X})). SHUTTING DOWN NODE.",
 					message.SubscriptionPosition, message.SubscriptionPosition, lastIndexedPosition,
 					lastIndexedPosition);
+			}
 
 			EpochRecord lastEpoch = EpochManager.GetLastEpoch();
 			if (AreAnyCommittedRecordsTruncatedWithLastEpoch(message.SubscriptionPosition, lastEpoch,
-				    lastIndexedPosition))
+					lastIndexedPosition))
 			{
 				Log.Error(
 					"Leader [{leaderEndPoint},{leaderId:B}] subscribed us at {subscriptionPosition} (0x{subscriptionPosition:X}), which is less than our last epoch and LastCommitPosition {lastCommitPosition} (0x{lastCommitPosition:X}) >= lastEpoch.EpochPosition {lastEpochPosition} (0x{lastEpochPosition:X}). That might be bad, especially if the LastCommitPosition is way beyond EpochPosition.",
@@ -166,8 +170,8 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 				if (newEpoch.EpochId != oldEpoch.EpochId)
 				{
 					Log.Information("Truncated epoch from "
-					                + "E{oldEpochNumber}@{oldEpochPosition}:{oldEpochId:B} to "
-					                + "E{newEpochNumber}@{newEpochPosition}:{newEpochId:B}",
+									+ "E{oldEpochNumber}@{oldEpochPosition}:{oldEpochId:B} to "
+									+ "E{newEpochNumber}@{newEpochPosition}:{newEpochId:B}",
 						oldEpoch.EpochNumber, oldEpoch.EpochPosition, oldEpoch.EpochId,
 						newEpoch.EpochNumber, newEpoch.EpochPosition, newEpoch.EpochId);
 				}
@@ -215,13 +219,16 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 		long lastCommitPosition)
 	{
 		return lastEpoch != null && subscriptionPosition <= lastEpoch.EpochPosition &&
-		       lastCommitPosition >= lastEpoch.EpochPosition;
+			   lastCommitPosition >= lastEpoch.EpochPosition;
 	}
 
 	async ValueTask IAsyncHandle<ReplicationMessage.CreateChunk>.HandleAsync(ReplicationMessage.CreateChunk message,
 		CancellationToken token)
 	{
-		if (_subscriptionId != message.SubscriptionId) return;
+		if (_subscriptionId != message.SubscriptionId)
+		{
+			return;
+		}
 
 		if (_activeChunk != null)
 		{
@@ -276,14 +283,20 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 	async ValueTask IAsyncHandle<ReplicationMessage.RawChunkBulk>.HandleAsync(ReplicationMessage.RawChunkBulk message,
 		CancellationToken token)
 	{
-		if (_subscriptionId != message.SubscriptionId) return;
+		if (_subscriptionId != message.SubscriptionId)
+		{
+			return;
+		}
+
 		if (_activeChunk is null)
+		{
 			ReplicationFail(
 				"Physical chunk bulk received, but we do not have active chunk.",
 				"Physical chunk bulk received, but we do not have active chunk.");
+		}
 
 		if (_activeChunk.ChunkHeader.ChunkStartNumber != message.ChunkStartNumber ||
-		    _activeChunk.ChunkHeader.ChunkEndNumber != message.ChunkEndNumber)
+			_activeChunk.ChunkHeader.ChunkEndNumber != message.ChunkEndNumber)
 		{
 			Log.Error(
 				"Received RawChunkBulk for TFChunk {chunkStartNumber}-{chunkEndNumber}, but active chunk is {activeChunk}.",
@@ -339,11 +352,17 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 		Interlocked.Decrement(ref FlushMessagesInQueue);
 		try
 		{
-			if (_subscriptionId != message.SubscriptionId) return;
+			if (_subscriptionId != message.SubscriptionId)
+			{
+				return;
+			}
+
 			if (_activeChunk != null)
+			{
 				ReplicationFail(
 					"Data chunk bulk received, but we have active chunk for receiving raw chunk bulks.",
 					"Data chunk bulk received, but we have active chunk for receiving raw chunk bulks.");
+			}
 
 			if (Writer.NeedsNewChunk)
 			{
@@ -354,7 +373,7 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 			var chunk = Writer.CurrentChunk;
 
 			if (chunk.ChunkHeader.ChunkStartNumber != message.ChunkStartNumber ||
-			    chunk.ChunkHeader.ChunkEndNumber != message.ChunkEndNumber)
+				chunk.ChunkHeader.ChunkEndNumber != message.ChunkEndNumber)
 			{
 				Log.Error(
 					"Received DataChunkBulk for TFChunk {chunkStartNumber}-{chunkEndNumber}, but active chunk is {activeChunkStartNumber}-{activeChunkEndNumber}.",
@@ -378,18 +397,22 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 			{
 				// for backwards compatibility with logs having incomplete transactions at the end of a chunk
 				if (await _framer.UnFramePendingLogRecords(token) is { } numRecordsUnframed)
+				{
 					Log.Warning(
 						"Incomplete transaction consisting of {numRecords} log records was found at the end of chunk: {chunkStartNumber}-{chunkEndNumber}.",
 						numRecordsUnframed, message.ChunkStartNumber, message.ChunkEndNumber);
+				}
 
 				Log.Debug("Completing data chunk {chunkStartNumber}-{chunkEndNumber}...", message.ChunkStartNumber,
 					message.ChunkEndNumber);
 				await Writer.CompleteChunk(token);
 
 				if (_framer.HasData)
+				{
 					ReplicationFail(
 						"There is some data left in framer when completing chunk.",
 						"There is some data left in framer when completing chunk.");
+				}
 
 				_subscriptionPos = chunk.ChunkHeader.ChunkEndPosition;
 				_framer.Reset();
@@ -405,7 +428,10 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 			await Flush(token: token);
 		}
 
-		if (!message.CompleteChunk && _subscriptionPos <= _ackedSubscriptionPos) return;
+		if (!message.CompleteChunk && _subscriptionPos <= _ackedSubscriptionPos)
+		{
+			return;
+		}
 
 		_ackedSubscriptionPos = _subscriptionPos;
 		Bus.Publish(new ReplicationMessage.AckLogPosition(
@@ -421,11 +447,16 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 
 		Writer.OpenTransaction();
 		foreach (var record in records)
+		{
 			if (await Writer.WriteToTransaction(record, CancellationToken.None) is null)
+			{
 				ReplicationFail(
 					"Failed to write replicated log record at position: {0}. Writer's position: {1}.",
 					"Failed to write replicated log record at position: {recordPos}. Writer's position: {writerPos}.",
 					record.LogPosition, Writer.Position);
+			}
+		}
+
 		Writer.CommitTransaction();
 	}
 
@@ -433,7 +464,8 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 	private void ReplicationFail(string message, string messageStructured, params object[] args)
 	{
 		string msg;
-		if (args is []) {
+		if (args is [])
+		{
 			Log.Fatal(messageStructured);
 			msg = message;
 		}

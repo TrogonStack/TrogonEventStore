@@ -2,7 +2,8 @@ using System;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 
-namespace EventStore.Core.Services.TimerService {
+namespace EventStore.Core.Services.TimerService
+{
 	/// <summary>
 	/// Timer service uses scheduler that is expected to be already running 
 	/// when it is passed to constructor and stopped on the disposal. This is done to
@@ -11,30 +12,36 @@ namespace EventStore.Core.Services.TimerService {
 	/// </summary>
 	public class TimerService : IDisposable,
 		IHandle<SystemMessage.BecomeShutdown>,
-		IHandle<TimerMessage.Schedule> {
+		IHandle<TimerMessage.Schedule>
+	{
 		private readonly IScheduler _scheduler;
 
-		public TimerService(IScheduler scheduler) {
+		public TimerService(IScheduler scheduler)
+		{
 			_scheduler = scheduler;
 		}
 
-		public void Handle(SystemMessage.BecomeShutdown message) {
+		public void Handle(SystemMessage.BecomeShutdown message)
+		{
 			_scheduler.Stop();
 		}
 
-		public void Handle(TimerMessage.Schedule message) {
+		public void Handle(TimerMessage.Schedule message)
+		{
 			_scheduler.Schedule(
 				message.TriggerAfter,
 				static (scheduler, state) => OnTimerCallback(scheduler, state),
 				message);
 		}
 
-		private static void OnTimerCallback(IScheduler scheduler, object state) {
+		private static void OnTimerCallback(IScheduler scheduler, object state)
+		{
 			var msg = (TimerMessage.Schedule)state;
 			msg.Reply();
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_scheduler.Dispose();
 		}
 	}

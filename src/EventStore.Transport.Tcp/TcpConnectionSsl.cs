@@ -127,7 +127,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 	{
 		InitConnectionBase(socket);
 		if (verbose)
+		{
 			Console.WriteLine("TcpConnectionSsl::InitClientSocket({0}, L{1})", RemoteEndPoint, LocalEndPoint);
+		}
 
 		_clientCertValidator = clientCertValidator;
 
@@ -189,7 +191,10 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 			lock (_streamLock)
 			{
 				if (_verbose)
+				{
 					DisplaySslStreamInfo(_sslStream);
+				}
+
 				_isAuthenticated = true;
 			}
 		}
@@ -224,7 +229,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 		Ensure.NotNull(targetHost, "targetHost");
 		InitConnectionBase(_socket);
 		if (verbose)
+		{
 			Console.WriteLine("TcpConnectionSsl::InitClientSslStream({0}, L{1})", RemoteEndPoint, LocalEndPoint);
+		}
 
 		_serverCertValidator = serverCertValidator;
 		_otherNames = otherNames;
@@ -293,7 +300,10 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 				var sslStream = (SslStream)ar.AsyncState;
 				sslStream.EndAuthenticateAsClient(ar);
 				if (_verbose)
+				{
 					DisplaySslStreamInfo(sslStream);
+				}
+
 				_isAuthenticated = true;
 			}
 
@@ -371,20 +381,28 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 
 		X509Certificate localCert = stream.LocalCertificate;
 		if (localCert != null)
+		{
 			Log.Information(
 				"Local certificate was issued to {subject} and is valid from {effectiveDate} until {expirationDate}.",
 				localCert.Subject, localCert.GetEffectiveDateString(), localCert.GetExpirationDateString());
+		}
 		else
+		{
 			Log.Information("Local certificate is null.");
+		}
 
 		// Display the properties of the client's certificate.
 		X509Certificate remoteCert = stream.RemoteCertificate;
 		if (remoteCert != null)
+		{
 			Log.Information(
 				"Remote certificate was issued to {subject} and is valid from {remoteCertEffectiveDate} until {remoteCertExpirationDate}.",
 				remoteCert.Subject, remoteCert.GetEffectiveDateString(), remoteCert.GetExpirationDateString());
+		}
 		else
+		{
 			Log.Information("Remote certificate is null.");
+		}
 	}
 
 	public void EnqueueSend(IEnumerable<ArraySegment<byte>> data)
@@ -414,9 +432,15 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 				lock (_streamLock)
 				{
 					if (_isSending || (_sendQueue.IsEmpty && _memoryStreamOffset >= _memoryStream.Length) || _sslStream == null || !_isAuthenticated)
+					{
 						return;
+					}
+
 					if (TcpConnectionMonitor.Default.IsSendBlocked())
+					{
 						return;
+					}
+
 					_isSending = true;
 				}
 
@@ -430,7 +454,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 					{
 						_memoryStream.Write(sendPiece.Array, sendPiece.Offset, sendPiece.Count);
 						if (_memoryStream.Length >= TcpConnection.MaxSendPacketSize)
+						{
 							break;
+						}
 					}
 				}
 
@@ -465,7 +491,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 	private void OnEndWrite(IAsyncResult ar)
 	{
 		if (ar.CompletedSynchronously)
+		{
 			return;
+		}
 
 		EndWrite(ar);
 		TrySend();
@@ -551,7 +579,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 	private void OnEndRead(IAsyncResult ar)
 	{
 		if (ar.CompletedSynchronously)
+		{
 			return;
+		}
 
 		EndRead(ar);
 		StartReceive();
@@ -596,7 +626,10 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 
 		var buffer = TcpConnection.BufferManager.CheckOut();
 		if (buffer.Array == null || buffer.Count == 0 || buffer.Array.Length < buffer.Offset + buffer.Count)
+		{
 			throw new Exception("Invalid buffer allocated.");
+		}
+
 		Buffer.BlockCopy(_receiveBuffer, 0, buffer.Array, buffer.Offset, bytesRead);
 		var buf = new ArraySegment<byte>(buffer.Array, buffer.Offset, buffer.Count);
 		_receiveQueue.Enqueue(new ReceivedData(buf, bytesRead));
@@ -607,7 +640,10 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 	private void TryDequeueReceivedData()
 	{
 		if (Interlocked.CompareExchange(ref _receiveHandling, 1, 0) != 0)
+		{
 			return;
+		}
+
 		do
 		{
 			if (!_receiveQueue.IsEmpty && _receiveCallback != null)
@@ -638,7 +674,9 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 				lock (_closeLock)
 				{
 					if (!_isClosed)
+					{
 						callback(this, data);
+					}
 				}
 
 				for (int i = 0, n = res.Count; i < n; ++i)
@@ -663,15 +701,22 @@ public class TcpConnectionSsl : TcpConnectionBase, ITcpConnection
 		lock (_closeLock)
 		{
 			if (_isClosing)
+			{
 				return;
+			}
+
 			_isClosing = true;
 		}
 
 		if (_sslStream != null)
+		{
 			Helper.EatException(() => _sslStream.Close());
+		}
 
 		if (_socket != null)
+		{
 			Helper.EatException(() => _socket.Dispose());
+		}
 
 		lock (_closeLock)
 		{

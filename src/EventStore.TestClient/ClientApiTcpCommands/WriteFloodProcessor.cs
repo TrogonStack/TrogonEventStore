@@ -39,20 +39,33 @@ internal class WriteFloodProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length < 2 || args.Length > 6)
+			{
 				return false;
+			}
 
 			try
 			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
 				if (args.Length >= 3)
+				{
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
+				}
+
 				if (args.Length >= 4)
+				{
 					size = MetricPrefixValue.ParseInt(args[3]);
+				}
+
 				if (args.Length >= 5)
+				{
 					batchSize = MetricPrefixValue.ParseInt(args[4]);
+				}
+
 				if (args.Length >= 6)
+				{
 					streamPrefix = args[5];
+				}
 			}
 			catch
 			{
@@ -127,7 +140,9 @@ internal class WriteFloodProcessor : ICmdProcessor
 					{
 						monitor.EndOperation(corrid);
 						if (t.IsCompletedSuccessfully)
+						{
 							Interlocked.Add(ref stats.Succ, batchSize);
+						}
 						else
 						{
 							if (Interlocked.Increment(ref stats.Fail) % 1000 == 0)
@@ -197,7 +212,9 @@ internal class WriteFloodProcessor : ICmdProcessor
 			}
 
 			if (pending.Count > 0)
+			{
 				await Task.WhenAll(pending);
+			}
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -239,8 +256,12 @@ internal class WriteFloodProcessor : ICmdProcessor
 				streamsCnt, size), failuresRate);
 		monitor.GetMeasurementDetails();
 		if (Interlocked.Read(ref stats.Succ) != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
+		}
 		else
+		{
 			context.Success();
+		}
 	}
 }

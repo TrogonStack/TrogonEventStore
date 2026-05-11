@@ -34,19 +34,39 @@ public abstract class WriteQueryResultProjectionProcessingPhaseBase : IProjectio
 		IEmittedStreamsTracker emittedStreamsTracker)
 	{
 		if (resultStream == null)
+		{
 			throw new ArgumentNullException("resultStream");
+		}
+
 		if (coreProjection == null)
+		{
 			throw new ArgumentNullException("coreProjection");
+		}
+
 		if (stateCache == null)
+		{
 			throw new ArgumentNullException("stateCache");
+		}
+
 		if (checkpointManager == null)
+		{
 			throw new ArgumentNullException("checkpointManager");
+		}
+
 		if (emittedEventWriter == null)
+		{
 			throw new ArgumentNullException("emittedEventWriter");
+		}
+
 		if (emittedStreamsTracker == null)
+		{
 			throw new ArgumentNullException("emittedStreamsTracker");
+		}
+
 		if (string.IsNullOrEmpty(resultStream))
+		{
 			throw new ArgumentException("resultStream");
+		}
 
 		_publisher = publisher;
 		_phase = phase;
@@ -116,9 +136,14 @@ public abstract class WriteQueryResultProjectionProcessingPhaseBase : IProjectio
 	public void ProcessEvent()
 	{
 		if (!_subscribed)
+		{
 			throw new InvalidOperationException();
+		}
+
 		if (_projectionState != PhaseState.Running)
+		{
 			return;
+		}
 
 		var phaseCheckpointTag = CheckpointTag.FromPhase(_phase, completed: true);
 		var writeResults = WriteResults(phaseCheckpointTag);

@@ -66,15 +66,15 @@ public class Accumulator<TStreamId>(
 		var tombstoneRecord = new RecordForAccumulator<TStreamId>.TombStoneRecord();
 
 		while (await AccumulateChunkAndRecordRange(
-			       scavengePoint,
-			       state,
-			       weights,
-			       logicalChunkNumber,
-			       originalStreamRecord,
-			       metadataStreamRecord,
-			       tombstoneRecord,
-			       stopwatch,
-			       cancellationToken))
+				   scavengePoint,
+				   state,
+				   weights,
+				   logicalChunkNumber,
+				   originalStreamRecord,
+				   metadataStreamRecord,
+				   tombstoneRecord,
+				   stopwatch,
+				   cancellationToken))
 		{
 			logicalChunkNumber++;
 		}
@@ -196,11 +196,11 @@ public class Accumulator<TStreamId>(
 
 		var cancellationCheckCounter = 0;
 		await foreach (var recordType in chunkReader.ReadChunkInto(
-			               logicalChunkNumber,
-			               originalStreamRecord,
-			               metadataStreamRecord,
-			               tombStoneRecord,
-			               cancellationToken))
+						   logicalChunkNumber,
+						   originalStreamRecord,
+						   metadataStreamRecord,
+						   tombStoneRecord,
+						   cancellationToken))
 		{
 
 			RecordForAccumulator<TStreamId> record;
@@ -227,10 +227,14 @@ public class Accumulator<TStreamId>(
 			}
 
 			if (record.TimeStamp < chunkMinTimeStamp)
+			{
 				chunkMinTimeStamp = record.TimeStamp;
+			}
 
 			if (record.TimeStamp > chunkMaxTimeStamp)
+			{
 				chunkMaxTimeStamp = record.TimeStamp;
+			}
 
 			countAccumulatedRecords++;
 
@@ -255,7 +259,7 @@ public class Accumulator<TStreamId>(
 
 		@continue = true;
 
-		Return:
+Return:
 		return new AccumulationResult
 		{
 			AccumulatedRecordsCount = countAccumulatedRecords,
@@ -304,8 +308,10 @@ public class Accumulator<TStreamId>(
 		state.DetectCollisions(record.StreamId);
 
 		if (record.EventNumber < 0)
+		{
 			throw new InvalidOperationException(
 				$"Found metadata in transaction in stream {record.StreamId}");
+		}
 
 		var (isInOrder, replacedPosition) = await CheckMetadataOrdering(
 			record,
@@ -448,7 +454,7 @@ public class Accumulator<TStreamId>(
 		foreach (var eventInfo in eventInfos)
 		{
 			if (eventInfo.LogPosition < record.LogPosition &&
-			    eventInfo.EventNumber >= record.EventNumber)
+				eventInfo.EventNumber >= record.EventNumber)
 			{
 
 				// found an event that is before us in the log but has our event number or higher.
@@ -461,8 +467,8 @@ public class Accumulator<TStreamId>(
 		if (isInOrder)
 		{
 			if (eventInfos.Length > 0 &&
-			    eventInfos[0].EventNumber < record.EventNumber &&
-			    eventInfos[0].LogPosition < record.LogPosition)
+				eventInfos[0].EventNumber < record.EventNumber &&
+				eventInfos[0].LogPosition < record.LogPosition)
 			{
 				replacedPosition = eventInfos[0].LogPosition;
 			}

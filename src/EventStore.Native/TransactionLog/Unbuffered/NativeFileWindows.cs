@@ -90,7 +90,10 @@ public unsafe class NativeFileWindows : INativeFile
 	{
 		var flags = ExtendedFileOptions.NoBuffering;
 		if (writeThrough)
+		{
 			flags = flags | ExtendedFileOptions.WriteThrough;
+		}
+
 		var handle = WinNative.CreateFile(path,
 			acc,
 			share,

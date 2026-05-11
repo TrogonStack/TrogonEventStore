@@ -27,10 +27,15 @@ internal class DeleteProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 2)
+			{
 				return false;
+			}
+
 			eventStreamId = args[0];
 			if (args.Length == 2)
+			{
 				expectedVersion = args[1].Trim().ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
+			}
 		}
 
 		context.IsAsync();

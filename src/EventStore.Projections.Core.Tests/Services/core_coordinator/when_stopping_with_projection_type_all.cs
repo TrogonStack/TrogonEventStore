@@ -50,9 +50,11 @@ public class when_stopping_with_projection_type_all
 			.Select(x => x as ProjectionCoreServiceMessage.StopCore)
 			.ToList();
 		foreach (var msg in stopCoreMessages)
+		{
 			_coordinator.Handle(
 				new ProjectionCoreServiceMessage.SubComponentStopped(ProjectionCoreService.SubComponentName,
 					msg.QueueId));
+		}
 	}
 
 	[Test]

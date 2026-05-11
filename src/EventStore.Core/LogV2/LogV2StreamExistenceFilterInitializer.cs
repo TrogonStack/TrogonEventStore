@@ -82,7 +82,9 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 				var entry = enumerator.Current;
 				checkpoint = Math.Max(checkpoint, entry.Position);
 				if (entry.Stream == previousHash)
+				{
 					continue;
+				}
 
 				// add regardless of version because event 0 may be scavenged
 				filter.Add(entry.Stream);
@@ -118,8 +120,10 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 						table.Id, table.GetType(), table.Count, table.Version);
 
 					if (table.Version == PTableVersions.IndexV1)
+					{
 						throw new NotSupportedException(
 							"The Stream Existence Filter is not supported with V1 index files. Please disable the filter by setting StreamExistenceFilterSize to 0, or rebuild the indexes.");
+					}
 
 					var enumerator = table.IterateAllInOrder().GetEnumerator();
 
@@ -141,13 +145,19 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 			catch (NotSupportedException)
 			{
 				foreach (var pair in enumerators)
+				{
 					pair.Enumerator.Dispose();
+				}
+
 				throw;
 			}
 			catch (FileBeingDeletedException)
 			{
 				foreach (var pair in enumerators)
+				{
 					pair.Enumerator.Dispose();
+				}
+
 				Log.Debug("PTable is being deleted.");
 			}
 		}
@@ -175,7 +185,7 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 					filter.Add(prepare.EventStreamId);
 					filter.CurrentCheckpoint = result.RecordPostPosition;
 					break;
-				// no need to handle commits here, see comments in the prepare handling.
+					// no need to handle commits here, see comments in the prepare handling.
 			}
 		}
 	}

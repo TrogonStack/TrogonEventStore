@@ -1,41 +1,53 @@
 using System;
 
-namespace EventStore.Core.Index.Hashes {
-	public class Murmur3AUnsafe : IHasher, IHasher<string> {
+namespace EventStore.Core.Index.Hashes
+{
+	public class Murmur3AUnsafe : IHasher, IHasher<string>
+	{
 		private readonly uint _seed;
 
 		private const UInt32 c1 = 0xcc9e2d51;
 		private const UInt32 c2 = 0x1b873593;
 
-		public Murmur3AUnsafe(uint seed = 0xc58f1a7b) {
+		public Murmur3AUnsafe(uint seed = 0xc58f1a7b)
+		{
 			_seed = seed;
 		}
 
-		public unsafe UInt32 Hash(string s) {
-			fixed (char* input = s) {
+		public unsafe UInt32 Hash(string s)
+		{
+			fixed (char* input = s)
+			{
 				return Hash((byte*)input, (uint)s.Length * sizeof(char), _seed);
 			}
 		}
 
-		public unsafe uint Hash(byte[] data) {
-			fixed (byte* input = &data[0]) {
+		public unsafe uint Hash(byte[] data)
+		{
+			fixed (byte* input = &data[0])
+			{
 				return Hash(input, (uint)data.Length, _seed);
 			}
 		}
 
-		public unsafe uint Hash(byte[] data, int offset, uint len, uint seed) {
-			fixed (byte* input = &data[offset]) {
+		public unsafe uint Hash(byte[] data, int offset, uint len, uint seed)
+		{
+			fixed (byte* input = &data[offset])
+			{
 				return Hash(input, len, seed);
 			}
 		}
 
-		public unsafe uint Hash(ReadOnlySpan<byte> data) {
-			fixed (byte* input = data) {
+		public unsafe uint Hash(ReadOnlySpan<byte> data)
+		{
+			fixed (byte* input = data)
+			{
 				return Hash(input, (uint)data.Length, _seed);
 			}
 		}
 
-		private unsafe static uint Hash(byte* data, uint len, uint seed) {
+		private unsafe static uint Hash(byte* data, uint len, uint seed)
+		{
 			UInt32 nblocks = len / 4;
 			UInt32 h1 = seed;
 
@@ -44,7 +56,8 @@ namespace EventStore.Core.Index.Hashes {
 
 			UInt32 k1;
 			UInt32* block = (UInt32*)data;
-			for (UInt32 i = nblocks; i > 0; --i, ++block) {
+			for (UInt32 i = nblocks; i > 0; --i, ++block)
+			{
 				k1 = *block;
 
 				k1 *= c1;
@@ -64,10 +77,17 @@ namespace EventStore.Core.Index.Hashes {
 			uint rem = len & 3;
 			byte* tail = (byte*)block;
 			if (rem >= 3)
+			{
 				k1 ^= (uint)(tail[2] << 16);
+			}
+
 			if (rem >= 2)
+			{
 				k1 ^= (uint)(tail[1] << 8);
-			if (rem > 0) {
+			}
+
+			if (rem > 0)
+			{
 				k1 ^= tail[0];
 				k1 *= c1;
 				k1 = Rotl32(k1, 15);
@@ -89,7 +109,8 @@ namespace EventStore.Core.Index.Hashes {
 			return h1;
 		}
 
-		private static UInt32 Rotl32(UInt32 x, int r) {
+		private static UInt32 Rotl32(UInt32 x, int r)
+		{
 			return (x << r) | (x >> (32 - r));
 		}
 	}

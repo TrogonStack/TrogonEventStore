@@ -10,12 +10,16 @@ namespace EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
 public class NodeHttpClientFactory(
 	string uriScheme,
 	CertificateDelegates.ServerCertificateValidator nodeCertificateValidator,
-	Func<X509Certificate> clientCertificateSelector) : INodeHttpClientFactory {
+	Func<X509Certificate> clientCertificateSelector) : INodeHttpClientFactory
+{
 
-	public HttpClient CreateHttpClient(string[] additionalCertificateNames) {
+	public HttpClient CreateHttpClient(string[] additionalCertificateNames)
+	{
 		HttpMessageHandler httpMessageHandler;
-		if (uriScheme == Uri.UriSchemeHttps){
-			var socketsHttpHandler = new SocketsHttpHandler {
+		if (uriScheme == Uri.UriSchemeHttps)
+		{
+			var socketsHttpHandler = new SocketsHttpHandler
+			{
 				SslOptions = {
 					CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
 					RemoteCertificateValidationCallback = (sender, certificate, chain, errors) => {
@@ -34,7 +38,9 @@ public class NodeHttpClientFactory(
 			};
 
 			httpMessageHandler = socketsHttpHandler;
-		} else {
+		}
+		else
+		{
 			httpMessageHandler = new SocketsHttpHandler();
 		}
 

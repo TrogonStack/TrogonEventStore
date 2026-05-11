@@ -719,7 +719,9 @@ public class
 			await connection.AppendToStreamAsync(_stream, ExpectedVersion.Any, DefaultData.AdminCredentials,
 				new EventData(id, "test", true, Encoding.UTF8.GetBytes("{'foo' : 'bar'}"), new byte[0]));
 			if (i == 4)
+			{
 				_id = id;
+			}
 		}
 	}
 
@@ -734,7 +736,10 @@ public class
 	private Task HandleEvent(EventStorePersistentSubscriptionBase sub, ResolvedEvent resolvedEvent)
 	{
 		if (_set)
+		{
 			return Task.CompletedTask;
+		}
+
 		_set = true;
 		_firstEvent = resolvedEvent;
 		_resetEvent.Set();

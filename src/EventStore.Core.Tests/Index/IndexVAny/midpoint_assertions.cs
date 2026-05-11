@@ -17,9 +17,15 @@ public class midpoint_assertions
 	private static int getIncrement(long numIndexEntries)
 	{
 		if (numIndexEntries < 100)
+		{
 			return 1;
+		}
+
 		if (numIndexEntries < 1000000)
+		{
 			return 1337;
+		}
+
 		return 133333337;
 	}
 

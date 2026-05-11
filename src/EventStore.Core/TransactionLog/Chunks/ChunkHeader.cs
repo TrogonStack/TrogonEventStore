@@ -4,12 +4,12 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Common.Utils;
-using EventStore.Core.Exceptions;
-using EventStore.Core.Index;
 using DotNext.Buffers;
 using DotNext.Buffers.Binary;
 using DotNext.IO;
+using EventStore.Common.Utils;
+using EventStore.Core.Exceptions;
+using EventStore.Core.Index;
 using EventStore.Plugins.Transforms;
 using ChunkVersions = EventStore.Core.TransactionLog.Chunks.TFChunk.TFChunk.ChunkVersions;
 
@@ -46,8 +46,10 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		Ensure.Nonnegative(chunkStartNumber, "chunkStartNumber");
 		Ensure.Nonnegative(chunkEndNumber, "chunkEndNumber");
 		if (chunkStartNumber > chunkEndNumber)
+		{
 			throw new ArgumentOutOfRangeException("chunkStartNumber",
 				"chunkStartNumber is greater than ChunkEndNumber.");
+		}
 
 		Version = version;
 		MinCompatibleVersion = minCompatibleVersion;
@@ -69,7 +71,9 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		SpanReader<byte> reader = new(source.Slice(0, Size));
 
 		if ((FileType)reader.Read() is not FileType.ChunkFile)
+		{
 			throw new CorruptDatabaseException(new InvalidFileException());
+		}
 
 		MinCompatibleVersion = reader.Read();
 
@@ -88,13 +92,20 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		Version = reader.Read();
 
 		if (Version is 0)
+		{
 			Version = MinCompatibleVersion;
+		}
+
 		Debug.Assert(Version >= MinCompatibleVersion);
 
 		if (Version >= (byte)ChunkVersions.Transformed)
+		{
 			TransformType = (TransformType)reader.Read();
+		}
 		else
+		{
 			TransformType = TransformType.Identity;
+		}
 
 		ChunkStartPosition = ChunkStartNumber * (long)ChunkSize;
 		ChunkEndPosition = (ChunkEndNumber + 1) * (long)ChunkSize;
@@ -116,12 +127,16 @@ public sealed class ChunkHeader : IBinaryFormattable<ChunkHeader>
 		ChunkId.TryWriteBytes(writer.Slide(16));
 
 		if (Version >= (byte)ChunkVersions.Transformed)
+		{
 			// we started to use this byte of the chunk header to store `Version` as from `ChunkVersions.Transformed`
 			// so, we don't write it for older versions to keep the previous formats the same.
 			writer.Add(Version);
+		}
 
 		if (Version >= (byte)ChunkVersions.Transformed)
+		{
 			writer.Add((byte)TransformType);
+		}
 
 		// reserved bytes must be zero
 		writer.RemainingSpan.Clear();

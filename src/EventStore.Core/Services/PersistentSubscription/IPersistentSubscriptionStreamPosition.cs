@@ -1,8 +1,10 @@
 using System;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Services.PersistentSubscription {
-	public interface IPersistentSubscriptionStreamPosition : IEquatable<IPersistentSubscriptionStreamPosition>, IComparable<IPersistentSubscriptionStreamPosition> {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public interface IPersistentSubscriptionStreamPosition : IEquatable<IPersistentSubscriptionStreamPosition>, IComparable<IPersistentSubscriptionStreamPosition>
+	{
 		bool IsSingleStreamPosition { get; }
 		long StreamEventNumber { get; }
 		bool IsAllStreamPosition { get; }

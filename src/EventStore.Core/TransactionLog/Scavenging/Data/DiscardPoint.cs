@@ -1,11 +1,16 @@
 using System;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public readonly struct DiscardPoint : IEquatable<DiscardPoint> {
-		private DiscardPoint(long firstEventNumberToKeep) {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public readonly struct DiscardPoint : IEquatable<DiscardPoint>
+	{
+		private DiscardPoint(long firstEventNumberToKeep)
+		{
 			if (firstEventNumberToKeep < 0)
+			{
 				firstEventNumberToKeep = 0;
+			}
 
 			FirstEventNumberToKeep = firstEventNumberToKeep;
 		}
@@ -13,12 +18,15 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public static DiscardPoint DiscardBefore(long eventNumber) =>
 			new DiscardPoint(eventNumber);
 
-		public static DiscardPoint DiscardIncluding(long eventNumber) {
+		public static DiscardPoint DiscardIncluding(long eventNumber)
+		{
 			if (eventNumber == long.MaxValue)
+			{
 				throw new ArgumentOutOfRangeException(
 					nameof(eventNumber),
 					eventNumber,
 					"eventNumber must be less than long.MaxValue");
+			}
 
 			return DiscardBefore(eventNumber + 1);
 		}
@@ -58,16 +66,22 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public override int GetHashCode() =>
 			FirstEventNumberToKeep.GetHashCode();
 
-		public bool ShouldDiscard(long eventNumber) {
+		public bool ShouldDiscard(long eventNumber)
+		{
 			Ensure.Nonnegative(eventNumber, nameof(eventNumber));
 			return eventNumber < FirstEventNumberToKeep;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			if (this == KeepAll)
+			{
 				return "Keep all";
+			}
 			else
+			{
 				return $"Discard before {FirstEventNumberToKeep}";
+			}
 		}
 	}
 }

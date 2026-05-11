@@ -30,14 +30,22 @@ internal class MultiWriteProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 3)
+			{
 				return false;
+			}
+
 			writeCount = MetricPrefixValue.ParseInt(args[0]);
 			if (args.Length >= 2)
+			{
 				eventStreamId = args[1];
+			}
+
 			if (args.Length >= 3)
+			{
 				expectedVersion = args[2].Trim().ToUpper() == "ANY"
 					? ExpectedVersion.Any
 					: int.Parse(args[2].Trim());
+			}
 		}
 
 		context.IsAsync();

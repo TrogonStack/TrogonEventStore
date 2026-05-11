@@ -20,7 +20,9 @@ public static class OpenTelemetryLogger
 		Action<OtlpExporterOptions> configureOtlp = null)
 	{
 		if (configuration is null || !configuration.OtlpLogsEnabled())
+		{
 			return loggerConfiguration;
+		}
 
 		var logExporterConfig = configuration
 			.GetSection(OpenTelemetryConfiguration.OtlpLogsPrefix)
@@ -76,7 +78,9 @@ public static class OpenTelemetryLogger
 		var path = builder.Path.Trim('/');
 
 		if (string.IsNullOrWhiteSpace(path))
+		{
 			builder.Path = "v1/logs";
+		}
 
 		return builder.Uri.AbsoluteUri;
 	}

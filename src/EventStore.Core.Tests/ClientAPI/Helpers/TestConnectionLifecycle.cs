@@ -27,7 +27,9 @@ public static class TestConnectionLifecycle
 			catch (Exception ex)
 			{
 				if (connection != null)
+				{
 					TryCloseConnection(connection);
+				}
 
 				if (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
 				{
@@ -68,6 +70,8 @@ public static class TestConnectionLifecycle
 	public static void DisposeIfNeeded(object candidate)
 	{
 		if (candidate is IDisposable disposable)
+		{
 			disposable.Dispose();
+		}
 	}
 }

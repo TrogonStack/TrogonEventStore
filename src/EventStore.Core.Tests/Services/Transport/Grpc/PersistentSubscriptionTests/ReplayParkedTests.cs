@@ -367,7 +367,9 @@ public class ReplayParkedTests
 			{
 				events.Add(evnt);
 				if (events.Count >= count)
+				{
 					break;
+				}
 			}
 		}
 		return events.ToArray();

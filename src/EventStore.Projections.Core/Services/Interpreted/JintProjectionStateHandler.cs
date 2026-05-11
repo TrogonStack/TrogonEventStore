@@ -103,10 +103,12 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			if (_definitionBuilder.IsBiState)
 			{
 				if (_state == null || _state == JsValue.Undefined)
+				{
 					_state = new JsArray(_engine, new[]
 					{
 						JsValue.Undefined, JsValue.Undefined
 					});
+				}
 
 				_state.AsArray()[0] = jsValue;
 			}
@@ -135,10 +137,12 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			if (_definitionBuilder.IsBiState)
 			{
 				if (_state == null || _state == JsValue.Undefined)
+				{
 					_state = new JsArray(_engine, new[]
 					{
 						JsValue.Undefined, JsValue.Undefined,
 					});
+				}
 
 				_state.AsArray()[1] = jsValue;
 			}
@@ -170,7 +174,9 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			var envelope = CreateEnvelope("", data, category);
 			var partition = _interpreterRuntime.GetPartition(envelope);
 			if (partition == JsValue.Null || partition == JsValue.Undefined || !(partition.IsString() || partition.IsNumber()))
+			{
 				return null;
+			}
 
 			return partition.IsNumber() ? partition.AsNumber().ToString() : partition.AsString();
 		}
@@ -203,7 +209,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			_engine.Constraints.Reset();
 			var result = _interpreterRuntime.TransformStateToResult(_state);
 			if (result == JsValue.Null || result == JsValue.Undefined)
+			{
 				return null;
+			}
+
 			return Serialize(result);
 		}
 
@@ -273,22 +282,29 @@ namespace EventStore.Projections.Core.Services.Interpreted
 		private string? ConvertToStringHandlingNulls(JsValue value)
 		{
 			if (value.IsNull() || value.IsUndefined())
+			{
 				return null;
+			}
+
 			return Serialize(value);
 		}
 
 		JsValue Emit(JsValue thisValue, JsValue[] parameters)
 		{
 			if (parameters.Length < 3)
+			{
 				throw new ArgumentException("invalid number of parameters");
+			}
 
 			string stream = EnsureNonNullStringValue(parameters.At(0), "streamId");
 			var eventType = EnsureNonNullStringValue(parameters.At(1), "eventName");
 			var eventBody = EnsureNonNullObjectValue(parameters.At(2), "eventBody");
 
 			if (parameters.Length == 4 && !parameters.At(3).IsObject())
+			{
 #pragma warning disable CA2208 // ReSharper disable once NotResolvedInText
 				throw new ArgumentException("object expected", "metadata");
+			}
 #pragma warning restore CA2208
 
 			var data = Serialize(eventBody);
@@ -300,7 +316,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				foreach (var kvp in md.GetOwnProperties())
 				{
 					if (kvp.Value.Value.Type is Types.Empty or Types.Undefined)
+					{
 						continue;
+					}
+
 					d.Add(kvp.Key.AsString(), Serialize(kvp.Value.Value));
 				}
 
@@ -313,9 +332,15 @@ namespace EventStore.Projections.Core.Services.Interpreted
 		private static ObjectInstance EnsureNonNullObjectValue(JsValue parameter, string parameterName)
 		{
 			if (parameter == JsValue.Null || parameter == JsValue.Undefined)
+			{
 				throw new ArgumentNullException(parameterName);
+			}
+
 			if (!parameter.IsObject())
+			{
 				throw new ArgumentException("object expected", parameterName);
+			}
+
 			return parameter.AsObject();
 		}
 
@@ -325,10 +350,14 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				parameter.IsString() &&
 				(parameter.AsString() is { } value &&
 				 !string.IsNullOrWhiteSpace(value)))
+			{
 				return value;
+			}
 
 			if (parameter == JsValue.Null || parameter == JsValue.Undefined || parameter.IsString())
+			{
 				throw new ArgumentNullException(parameterName);
+			}
 
 			throw new ArgumentException("string expected", parameterName);
 		}
@@ -350,7 +379,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 		JsValue LinkTo(JsValue thisValue, JsValue[] parameters)
 		{
 			if (parameters.Length != 2 && parameters.Length != 3)
+			{
 				throw new ArgumentException("wrong number of parameters");
+			}
+
 			var stream = EnsureNonNullStringValue(parameters.At(0), "streamId");
 			var @event = EnsureNonNullObjectValue(parameters.At(1), "event");
 
@@ -418,14 +450,23 @@ namespace EventStore.Projections.Core.Services.Interpreted
 		private JsValue Log(JsValue thisValue, JsValue[] parameters)
 		{
 			if (parameters.Length == 0)
+			{
 				return JsValue.Undefined;
+			}
+
 			if (parameters.Length == 1)
 			{
 				var p0 = parameters.At(0);
 				if (p0 != null && p0.IsPrimitive())
+				{
 					Log(p0.ToString());
+				}
+
 				if (p0 is ObjectInstance oi)
+				{
 					Log(Serialize(oi));
+				}
+
 				return JsValue.Undefined;
 			}
 
@@ -436,12 +477,20 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				for (int i = 0; i < parameters.Length; i++)
 				{
 					if (i > 1)
+					{
 						sb.Append(" ,");
+					}
+
 					var p = parameters.At(i);
 					if (p != null && p.IsPrimitive())
+					{
 						Log(p.ToString());
+					}
+
 					if (p is ObjectInstance oi)
+					{
 						sb.Append(Serialize(oi));
+					}
 				}
 
 				Log(sb.ToString());
@@ -592,7 +641,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			{
 				var stream = parameters.At(0);
 				if (stream is not JsString)
+				{
 					throw new ArgumentException("stream");
+				}
+
 				_definitionBuilder.FromStream(stream.AsString());
 				RestrictProperties("fromStream");
 
@@ -602,7 +654,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			private JsValue FromCategory(JsValue thisValue, JsValue[] parameters)
 			{
 				if (parameters.Length == 0)
+				{
 					return this;
+				}
+
 				if (parameters.Length == 1 && parameters.At(0).IsArray())
 				{
 					foreach (var cat in parameters.At(0).AsArray())
@@ -629,7 +684,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				{
 					var p0 = parameters.At(0);
 					if (p0 is not JsString s)
+					{
 						throw new ArgumentException("category");
+					}
+
 					_definitionBuilder.FromCategory(s.AsString());
 				}
 
@@ -688,16 +746,27 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			private JsValue OutputTo(JsValue thisValue, JsValue[] parameters)
 			{
 				if (parameters.Length != 1 && parameters.Length != 2)
+				{
 					throw new ArgumentException("invalid number of parameters");
+				}
+
 				if (!parameters.At(0).IsString())
+				{
 #pragma warning disable CA2208 // ReSharper disable NotResolvedInText
 					throw new ArgumentException("expected string value", "resultStream");
+				}
+
 				if (parameters.Length == 2 && !parameters.At(1).IsString())
+				{
 					throw new ArgumentException("expected string value", "partitionResultStreamPattern");
+				}
 #pragma warning restore CA2208 // ReSharper restore NotResolvedInText
 				_definitionBuilder.SetResultStreamNameOption(parameters.At(0).AsString());
 				if (parameters.Length == 2)
+				{
 					_definitionBuilder.SetPartitionResultStreamNamePatternOption(parameters.At(1).AsString());
+				}
+
 				RestrictProperties("outputTo");
 				return this;
 			}
@@ -740,13 +809,22 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			private JsValue OnEvent(JsValue thisValue, JsValue[] parameters)
 			{
 				if (parameters.Length != 2)
+				{
 					throw new ArgumentException("invalid number of parameters");
+				}
+
 				var eventName = parameters.At(0);
 				var handler = parameters.At(1);
 				if (!eventName.IsString())
+				{
 					throw new ArgumentException("eventName");
+				}
+
 				if (handler is not ScriptFunction fi)
+				{
 					throw new ArgumentException("eventHandler");
+				}
+
 				AddHandler(eventName.AsString(), fi);
 				return Undefined;
 			}
@@ -754,9 +832,15 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			private JsValue OnAny(JsValue thisValue, JsValue[] parameters)
 			{
 				if (parameters.Length != 1)
+				{
 					throw new ArgumentException("invalid number of parameters");
+				}
+
 				if (parameters.At(0) is not ScriptFunction fi)
+				{
 					throw new ArgumentException("eventHandler");
+				}
+
 				AddHandler("$any", fi);
 				return Undefined;
 			}
@@ -865,7 +949,9 @@ namespace EventStore.Projections.Core.Services.Interpreted
 					}
 
 					if (state == Null || state == Undefined)
+					{
 						return Null;
+					}
 				}
 
 				return state;
@@ -887,7 +973,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 					while (streams.MoveNext())
 					{
 						if (!streams.Current.IsString())
+						{
 							throw new ArgumentException("streams");
+						}
+
 						_definitionBuilder.FromStream(streams.Current.AsString());
 					}
 				}
@@ -925,7 +1014,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			public JsValue GetPartition(EventEnvelope envelope)
 			{
 				if (_partitionFunction != null)
+				{
 					return _partitionFunction.Call(envelope);
+				}
+
 				return Null;
 			}
 
@@ -1005,9 +1097,14 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				get
 				{
 					if (TryGetValue("body", out var value) && value is ObjectInstance oi)
+					{
 						return oi;
+					}
+
 					if (EnsureBody(out JsValue objectInstance))
+					{
 						return objectInstance;
+					}
 
 					return Undefined;
 				}
@@ -1046,9 +1143,14 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				get
 				{
 					if (TryGetValue("metadata", out var value) && value is ObjectInstance oi)
+					{
 						return oi;
+					}
+
 					if (EnsureMetadata(out value))
+					{
 						return value;
+					}
 
 					return Undefined;
 				}
@@ -1080,9 +1182,14 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				get
 				{
 					if (TryGetValue("linkMetadata", out var value) && value is ObjectInstance oi)
+					{
 						return oi;
+					}
+
 					if (EnsureLinkMetadata(out value))
+					{
 						return value;
+					}
 
 					return Undefined;
 				}
@@ -1307,7 +1414,10 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				public WriteState(JsValue instance)
 				{
 					if (instance.Type == Types.Object)
+					{
 						throw new ArgumentException("Primitive overload called for object instance");
+					}
+
 					_position = -1;
 					_length = -1;
 					_instance = instance;
@@ -1371,7 +1481,9 @@ namespace EventStore.Projections.Core.Services.Interpreted
 								var (name, propertyDescriptor) = _iterator.Current;
 								var value = propertyDescriptor.Value;
 								if (value.Type == Types.Undefined)
+								{
 									continue;
+								}
 
 								WriteMaybeCachedPropertyName(name.AsString(), knownPropertyNames, writer);
 								if (value.Type == Types.Object)
@@ -1433,9 +1545,14 @@ namespace EventStore.Projections.Core.Services.Interpreted
 						break;
 					case Types.Boolean:
 						if (ReferenceEquals(value, JsBoolean.False))
+						{
 							writer.WriteBooleanValue(false);
+						}
 						else
+						{
 							writer.WriteBooleanValue(true);
+						}
+
 						break;
 					case Types.Number:
 						writer.WriteNumberValue(value.AsNumber());

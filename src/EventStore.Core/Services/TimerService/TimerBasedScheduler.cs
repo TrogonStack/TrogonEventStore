@@ -3,8 +3,10 @@ using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.DataStructures;
 
-namespace EventStore.Core.Services.TimerService {
-	public class TimerBasedScheduler : IDisposable, IScheduler {
+namespace EventStore.Core.Services.TimerService
+{
+	public class TimerBasedScheduler : IDisposable, IScheduler
+	{
 		private readonly PairingHeap<ScheduledTask> _tasks =
 			new PairingHeap<ScheduledTask>((x, y) => x.DueTime < y.DueTime);
 
@@ -13,7 +15,8 @@ namespace EventStore.Core.Services.TimerService {
 
 		private readonly object _queueLock = new object();
 
-		public TimerBasedScheduler(ITimer timer, ITimeProvider timeProvider) {
+		public TimerBasedScheduler(ITimer timer, ITimeProvider timeProvider)
+		{
 			Ensure.NotNull(timer, "timer");
 			Ensure.NotNull(timeProvider, "timeProvider");
 
@@ -21,50 +24,64 @@ namespace EventStore.Core.Services.TimerService {
 			_timeProvider = timeProvider;
 		}
 
-		public void Stop() {
+		public void Stop()
+		{
 			Dispose();
 		}
 
-		public void Schedule(TimeSpan after, Action<IScheduler, object> callback, object state) {
-			lock (_queueLock) {
+		public void Schedule(TimeSpan after, Action<IScheduler, object> callback, object state)
+		{
+			lock (_queueLock)
+			{
 				_tasks.Add(new ScheduledTask(_timeProvider.UtcNow.Add(after), callback, state));
 				ResetTimer();
 			}
 		}
 
-		protected void ProcessOperations() {
-			while (_tasks.Count > 0 && _tasks.FindMin().DueTime <= _timeProvider.UtcNow) {
+		protected void ProcessOperations()
+		{
+			while (_tasks.Count > 0 && _tasks.FindMin().DueTime <= _timeProvider.UtcNow)
+			{
 				var scheduledTask = _tasks.DeleteMin();
 				scheduledTask.Action(this, scheduledTask.State);
 			}
 		}
 
-		private void OnTimerFired() {
-			lock (_queueLock) {
+		private void OnTimerFired()
+		{
+			lock (_queueLock)
+			{
 				ProcessOperations();
 				ResetTimer();
 			}
 		}
 
-		private void ResetTimer() {
-			if (_tasks.Count > 0) {
+		private void ResetTimer()
+		{
+			if (_tasks.Count > 0)
+			{
 				var tuple = _tasks.FindMin();
 				_timer.FireIn((int)(tuple.DueTime - _timeProvider.UtcNow).TotalMilliseconds, OnTimerFired);
-			} else {
+			}
+			else
+			{
 				_timer.FireIn(Timeout.Infinite, OnTimerFired);
 			}
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_timer.Dispose();
 		}
 
-		private struct ScheduledTask {
+		private struct ScheduledTask
+		{
 			public readonly DateTime DueTime;
 			public readonly Action<IScheduler, object> Action;
 			public readonly object State;
 
-			public ScheduledTask(DateTime dueTime, Action<IScheduler, object> action, object state) {
+			public ScheduledTask(DateTime dueTime, Action<IScheduler, object> action, object state)
+			{
 				DueTime = dueTime;
 				Action = action;
 				State = state;

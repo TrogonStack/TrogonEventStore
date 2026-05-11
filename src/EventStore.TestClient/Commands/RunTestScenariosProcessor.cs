@@ -41,7 +41,9 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 	public bool Execute(CommandProcessorContext context, string[] args)
 	{
 		if (args.Length != 0 && false == (args.Length == 7 || args.Length == 8))
+		{
 			return false;
+		}
 
 		var maxConcurrentRequests = 20;
 		var connections = 10;
@@ -98,7 +100,9 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 					{
 						var envDbPath = Environment.GetEnvironmentVariable("EVENTSTORE_DATABASEPATH");
 						if (!string.IsNullOrEmpty(envDbPath))
+						{
 							dbParentPath = envDbPath;
+						}
 					}
 				}
 				catch (Exception e)
@@ -233,7 +237,9 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 		Log.Information("Finished running test scenarios");
 
 		if (context.ExitCode == 0)
+		{
 			context.Success();
+		}
 
 		return true;
 	}
@@ -264,7 +270,9 @@ internal class RunTestScenariosProcessor : ICmdProcessor
 
 			context._tcpTestClient.CreateTcpConnection(context, handlePackage, established, closed, false, tcpEndPoint);
 			if (!sent.WaitOne(timeoutMilliseconds))
+			{
 				throw new ApplicationException("Connection to server was not closed in time.");
+			}
 		};
 
 		return sender;

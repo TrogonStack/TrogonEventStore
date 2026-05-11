@@ -14,7 +14,8 @@ public class S3StorageCredentialTests
 	public void native_s3_uses_explicit_credentials_when_configured()
 	{
 		const string accessKeyId = "explicit-access-key";
-		var writer = new InspectableS3Writer(new S3Options {
+		var writer = new InspectableS3Writer(new S3Options
+		{
 			Bucket = "archive",
 			Region = "us-east-1",
 			AccessKeyId = accessKeyId,
@@ -30,7 +31,8 @@ public class S3StorageCredentialTests
 	[Fact]
 	public void s3_compatible_storage_without_session_token_uses_basic_credentials()
 	{
-		var writer = new InspectableS3Writer(new S3Options {
+		var writer = new InspectableS3Writer(new S3Options
+		{
 			Bucket = "archive",
 			Region = "us-east-1",
 			ServiceUrl = "https://s3-compatible.example",

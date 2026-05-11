@@ -13,7 +13,8 @@ using EventStore.LogCommon;
 namespace EventStore.Core.TransactionLog.LogRecords;
 
 [Flags]
-public enum PrepareFlags : ushort {
+public enum PrepareFlags : ushort
+{
 	None = 0x00,
 	Data = 0x01, // prepare contains data
 	TransactionBegin = 0x02, // prepare starts transaction
@@ -21,7 +22,7 @@ public enum PrepareFlags : ushort {
 	StreamDelete = 0x08, // prepare deletes stream
 
 	IsCommitted = 0x20, // prepare should be considered committed immediately, no commit will follow in TF
-	//Update = 0x30,                  // prepare updates previous instance of the same event, DANGEROUS!
+						//Update = 0x30,                  // prepare updates previous instance of the same event, DANGEROUS!
 
 	IsJson = 0x100, // indicates data & metadata are valid json
 	IsRedacted = 0x200,
@@ -31,16 +32,20 @@ public enum PrepareFlags : ushort {
 	SingleWrite = Data | TransactionBegin | TransactionEnd
 }
 
-public static class PrepareFlagsExtensions {
-	public static bool HasAllOf(this PrepareFlags flags, PrepareFlags flagSet) {
+public static class PrepareFlagsExtensions
+{
+	public static bool HasAllOf(this PrepareFlags flags, PrepareFlags flagSet)
+	{
 		return (flags & flagSet) == flagSet;
 	}
 
-	public static bool HasAnyOf(this PrepareFlags flags, PrepareFlags flagSet) {
+	public static bool HasAnyOf(this PrepareFlags flags, PrepareFlags flagSet)
+	{
 		return (flags & flagSet) != 0;
 	}
 
-	public static bool HasNoneOf(this PrepareFlags flags, PrepareFlags flagSet) {
+	public static bool HasNoneOf(this PrepareFlags flags, PrepareFlags flagSet)
+	{
 		return (flags & flagSet) == 0;
 	}
 }
@@ -71,19 +76,19 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 		get
 		{
 			return sizeof(LogRecordType)
-			       + 1
-			       + 8
-			       + sizeof(PrepareFlags)
-			       + 8
-			       + 4
-			       + 4
-			       + IntPtr.Size + EventStreamId.Length * 2
-			       + 16
-			       + 16
-			       + 8
-			       + IntPtr.Size + EventType.Length * 2
-			       + IntPtr.Size + _dataOnDisk.Length
-			       + IntPtr.Size + Metadata.Length;
+				   + 1
+				   + 8
+				   + sizeof(PrepareFlags)
+				   + 8
+				   + 4
+				   + 4
+				   + IntPtr.Size + EventStreamId.Length * 2
+				   + 16
+				   + 16
+				   + 8
+				   + IntPtr.Size + EventType.Length * 2
+				   + IntPtr.Size + _dataOnDisk.Length
+				   + IntPtr.Size + Metadata.Length;
 		}
 	}
 
@@ -140,10 +145,15 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 		Ensure.NotEmptyGuid(eventId, "eventId");
 		Ensure.Nonnegative(transactionPosition, "transactionPosition");
 		if (transactionOffset < -1)
+		{
 			throw new ArgumentOutOfRangeException("transactionOffset");
+		}
+
 		Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
 		if (expectedVersion < Core.Data.ExpectedVersion.Any)
+		{
 			throw new ArgumentOutOfRangeException("expectedVersion");
+		}
 
 		Flags = flags;
 		TransactionPosition = transactionPosition;
@@ -159,15 +169,20 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 		_eventTypeSize = eventTypeSize;
 		_dataOnDisk = data;
 		Metadata = metadata;
-		if (InMemorySize > TFConsts.MaxLogRecordSize) throw new Exception("Record too large.");
+		if (InMemorySize > TFConsts.MaxLogRecordSize)
+		{
+			throw new Exception("Record too large.");
+		}
 	}
 
 	internal PrepareLogRecord(ref SequenceReader reader, byte version, long logPosition)
 		: base(LogRecordType.Prepare, version, logPosition)
 	{
 		if (version is not LogRecordVersion.LogRecordV0 and not LogRecordVersion.LogRecordV1)
+		{
 			throw new ArgumentException(
 				$"PrepareRecord version {version} is incorrect. Supported version: {PrepareRecordVersion}.");
+		}
 
 		var context = new DecodingContext(Encoding.UTF8, reuseDecoder: true);
 		Flags = (PrepareFlags)reader.ReadLittleEndian<ushort>();
@@ -189,7 +204,9 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 			: NoData;
 
 		if (InMemorySize > TFConsts.MaxLogRecordSize)
+		{
 			throw new Exception("Record too large.");
+		}
 
 		static long AdjustVersion(int version)
 			=> version is int.MaxValue - 1 ? long.MaxValue - 1L : version;
@@ -269,28 +286,48 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 
 	public bool Equals(PrepareLogRecord other)
 	{
-		if (ReferenceEquals(null, other)) return false;
-		if (ReferenceEquals(this, other)) return true;
+		if (ReferenceEquals(null, other))
+		{
+			return false;
+		}
+
+		if (ReferenceEquals(this, other))
+		{
+			return true;
+		}
+
 		return other.LogPosition == LogPosition
-		       && other.Flags == Flags
-		       && other.TransactionPosition == TransactionPosition
-		       && other.TransactionOffset == TransactionOffset
-		       && other.ExpectedVersion == ExpectedVersion
-		       && other.EventStreamId.Equals(EventStreamId)
-		       && other.EventId == EventId
-		       && other.CorrelationId == CorrelationId
-		       && other.TimeStamp.Equals(TimeStamp)
-		       && other.EventType.Equals(EventType)
-		       && other.Data.Span.SequenceEqual(Data.Span)
-		       && other._dataOnDisk.Span.SequenceEqual(_dataOnDisk.Span)
-		       && other.Metadata.Span.SequenceEqual(Metadata.Span);
+			   && other.Flags == Flags
+			   && other.TransactionPosition == TransactionPosition
+			   && other.TransactionOffset == TransactionOffset
+			   && other.ExpectedVersion == ExpectedVersion
+			   && other.EventStreamId.Equals(EventStreamId)
+			   && other.EventId == EventId
+			   && other.CorrelationId == CorrelationId
+			   && other.TimeStamp.Equals(TimeStamp)
+			   && other.EventType.Equals(EventType)
+			   && other.Data.Span.SequenceEqual(Data.Span)
+			   && other._dataOnDisk.Span.SequenceEqual(_dataOnDisk.Span)
+			   && other.Metadata.Span.SequenceEqual(Metadata.Span);
 	}
 
 	public override bool Equals(object obj)
 	{
-		if (ReferenceEquals(null, obj)) return false;
-		if (ReferenceEquals(this, obj)) return true;
-		if (obj.GetType() != typeof(PrepareLogRecord)) return false;
+		if (ReferenceEquals(null, obj))
+		{
+			return false;
+		}
+
+		if (ReferenceEquals(this, obj))
+		{
+			return true;
+		}
+
+		if (obj.GetType() != typeof(PrepareLogRecord))
+		{
+			return false;
+		}
+
 		return Equals((PrepareLogRecord)obj);
 	}
 
@@ -328,16 +365,16 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 	public override string ToString()
 	{
 		return string.Format("LogPosition: {0}, "
-		                     + "Flags: {1}, "
-		                     + "TransactionPosition: {2}, "
-		                     + "TransactionOffset: {3}, "
-		                     + "ExpectedVersion: {4}, "
-		                     + "EventStreamId: {5}, "
-		                     + "EventId: {6}, "
-		                     + "CorrelationId: {7}, "
-		                     + "TimeStamp: {8}, "
-		                     + "EventType: {9}, "
-		                     + "InMemorySize: {10}",
+							 + "Flags: {1}, "
+							 + "TransactionPosition: {2}, "
+							 + "TransactionOffset: {3}, "
+							 + "ExpectedVersion: {4}, "
+							 + "EventStreamId: {5}, "
+							 + "EventId: {6}, "
+							 + "CorrelationId: {7}, "
+							 + "TimeStamp: {8}, "
+							 + "EventType: {9}, "
+							 + "InMemorySize: {10}",
 			LogPosition,
 			Flags,
 			TransactionPosition,

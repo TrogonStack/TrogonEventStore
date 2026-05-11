@@ -124,7 +124,9 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests>
 		for (var i = 0; i < data.Length; i++)
 		{
 			foreach (var newCollision in data[i].NewCollisions)
+			{
 				expectedCollisions.Add(newCollision);
+			}
 
 			var result = sut.DetectCollisions(data[i].StreamName, out var oldUser);
 			Assert.Equal(result, data[i].CollisionResult);
@@ -133,7 +135,9 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests>
 				sut.AllCollisions());
 
 			if (result == CollisionResult.NewCollision)
+			{
 				Assert.Equal(data[i].ExpectedOldUser, oldUser);
+			}
 		}
 	}
 }

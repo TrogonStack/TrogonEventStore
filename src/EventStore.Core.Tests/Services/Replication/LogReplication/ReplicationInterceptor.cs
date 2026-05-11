@@ -41,20 +41,28 @@ internal class ReplicationInterceptor : WriterInterceptor
 	private void PauseIfConditionsAreMet(Message message, int bytesToAdd)
 	{
 		if (Paused)
+		{
 			return;
+		}
 
 		switch (message)
 		{
 			case ReplicationMessage.DataChunkBulk dataChunkBulk:
 				if (dataChunkBulk.SubscriptionPosition + dataChunkBulk.DataBytes.Length + bytesToAdd >
 					_dataInfo.MaxLogPosition)
+				{
 					Pause();
+				}
+
 				break;
 			case ReplicationMessage.RawChunkBulk rawChunkBulk:
 				if (rawChunkBulk.ChunkStartNumber == _rawInfo.ChunkStartNumber &&
 					rawChunkBulk.ChunkEndNumber == _rawInfo.ChunkEndNumber &&
 					rawChunkBulk.RawPosition + rawChunkBulk.RawBytes.Length + bytesToAdd > _rawInfo.MaxRawPosition)
+				{
 					Pause();
+				}
+
 				break;
 		}
 	}
@@ -113,7 +121,9 @@ internal class ReplicationInterceptor : WriterInterceptor
 
 			base.Reset();
 			if (pauseReplication)
+			{
 				base.Pause();
+			}
 		}
 	}
 }

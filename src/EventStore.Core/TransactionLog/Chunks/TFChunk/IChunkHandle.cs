@@ -87,7 +87,9 @@ public interface IChunkHandle : IFlushable, IDisposable
 		{
 			// leave fast without sync over async
 			if (buffer.IsEmpty)
+			{
 				return;
+			}
 
 			LogSynchronousWriteOnce();
 
@@ -101,7 +103,7 @@ public interface IChunkHandle : IFlushable, IDisposable
 				task.Wait();
 			}
 			catch (AggregateException e) when (e.InnerExceptions is [OperationCanceledException canceledEx] &&
-			                                   canceledEx.CancellationToken == timeoutToken)
+											   canceledEx.CancellationToken == timeoutToken)
 			{
 				throw new TimeoutException(e.Message, canceledEx);
 			}
@@ -141,7 +143,7 @@ public interface IChunkHandle : IFlushable, IDisposable
 					bufferCopy.Span.Slice(0, bytesRead).CopyTo(buffer);
 				}
 				catch (AggregateException e) when (e.InnerExceptions is [OperationCanceledException canceledEx] &&
-				                                   canceledEx.CancellationToken == timeoutToken)
+												   canceledEx.CancellationToken == timeoutToken)
 				{
 					throw new TimeoutException(e.Message, canceledEx);
 				}
@@ -163,7 +165,9 @@ public interface IChunkHandle : IFlushable, IDisposable
 		private void LogSynchronousReadOnce()
 		{
 			if (Interlocked.Exchange(ref _readWarningLogged, 1) != 0)
+			{
 				return;
+			}
 
 			Log.Warning("Synchronous reads should be uncommon. Handle: {Handle}", handle.Name);
 		}
@@ -171,7 +175,9 @@ public interface IChunkHandle : IFlushable, IDisposable
 		private void LogSynchronousWriteOnce()
 		{
 			if (Interlocked.Exchange(ref _writeWarningLogged, 1) != 0)
+			{
 				return;
+			}
 
 			Log.Warning("Synchronous writes should be uncommon. Handle: {Handle}", handle.Name);
 		}
@@ -199,7 +205,9 @@ public interface IChunkHandle : IFlushable, IDisposable
 			{
 				_timeoutSource?.Dispose();
 				if (!leaveOpen)
+				{
 					handle.Dispose();
+				}
 			}
 
 			base.Dispose(disposing);

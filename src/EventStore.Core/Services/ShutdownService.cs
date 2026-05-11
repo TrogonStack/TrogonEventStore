@@ -53,7 +53,9 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 		}
 
 		if (!_shutdownActions.TryAdd(message.ComponentName, message.Action))
+		{
 			throw new InvalidOperationException($"Component {message.ComponentName} already registered");
+		}
 
 		Log.Information("========== [{HttpEndPoint}] Component '{Component}' is registered for graceful termination",
 			nodeInfo.HttpEndPoint,
@@ -101,12 +103,17 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 	public void Handle(SystemMessage.ComponentTerminated message)
 	{
 		if (!_shutdownActions.Remove(message.ComponentName))
+		{
 			throw new InvalidOperationException($"Component {message.ComponentName} already terminated");
+		}
 
 		Log.Information("========== [{HttpEndPoint}] Component '{ComponentName}' has shut down.", nodeInfo.HttpEndPoint,
 			message.ComponentName);
 
-		if (_state is not State.ShuttingDownPeriphery || _shutdownActions.Count != 0) return;
+		if (_state is not State.ShuttingDownPeriphery || _shutdownActions.Count != 0)
+		{
+			return;
+		}
 
 		Log.Information("========== [{HttpEndPoint}] All Components Shutdown.", nodeInfo.HttpEndPoint);
 		ShutDownInternalCore();

@@ -39,7 +39,10 @@ public abstract class TestFixtureWithReadWriteDispatchers
 		get
 		{
 			if (_envelope == null)
+			{
 				_envelope = GetInputQueue();
+			}
+
 			return _envelope;
 		}
 	}
@@ -120,13 +123,19 @@ public abstract class TestFixtureWithReadWriteDispatchers
 			foreach (var message in step)
 			{
 				if (message != null)
+				{
 					_queue.Publish(message);
+				}
 			}
 
 			_queue.ProcessTimer();
 			if (_otherQueues != null)
+			{
 				foreach (var other in _otherQueues)
+				{
 					other.ProcessTimer();
+				}
+			}
 
 			var count = 1;
 			var total = 0;
@@ -135,11 +144,18 @@ public abstract class TestFixtureWithReadWriteDispatchers
 				count = 0;
 				count += _queue.ProcessNonTimer();
 				if (_otherQueues != null)
+				{
 					foreach (var other in _otherQueues)
+					{
 						count += other.ProcessNonTimer();
+					}
+				}
+
 				total += count;
 				if (total > 2000)
+				{
 					throw new Exception("Infinite loop?");
+				}
 			}
 
 			// process final timer messages
@@ -147,8 +163,12 @@ public abstract class TestFixtureWithReadWriteDispatchers
 
 		_queue.Process();
 		if (_otherQueues != null)
+		{
 			foreach (var other in _otherQueues)
+			{
 				other.Process();
+			}
+		}
 	}
 
 	public static T EatException<T>(Func<T> func, T defaultValue = default(T))
@@ -206,12 +226,20 @@ public abstract class TestFixtureWithReadWriteDispatchers
 		private IEnumerable<Message> GetMessages()
 		{
 			if (Message != null)
+			{
 				yield return Message;
+			}
 			else if (Messages != null)
+			{
 				foreach (var message in Messages)
+				{
 					yield return message;
+				}
+			}
 			else
+			{
 				yield return null;
+			}
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()

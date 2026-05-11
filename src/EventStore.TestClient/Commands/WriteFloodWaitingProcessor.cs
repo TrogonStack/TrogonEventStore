@@ -29,14 +29,18 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 3 || args.Length < 2)
+			{
 				return false;
+			}
 
 			try
 			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseInt(args[1]);
 				if (args.Length == 3)
+				{
 					payloadSize = MetricPrefixValue.ParseInt(args[2]);
+				}
 			}
 			catch
 			{
@@ -82,12 +86,16 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 					if (dto.Result == OperationResult.Success)
 					{
 						if (Interlocked.Increment(ref succ) % 1000 == 0)
+						{
 							Console.Write(".");
+						}
 					}
 					else
 					{
 						if (Interlocked.Increment(ref fail) % 1000 == 0)
+						{
 							Console.Write("#");
+						}
 					}
 
 					if (Interlocked.Increment(ref all) == requestsCnt)
@@ -148,8 +156,12 @@ internal class WriteFloodWaitingProcessor : ICmdProcessor
 			(int)Math.Round(sw.Elapsed.TotalMilliseconds / requestsCnt));
 
 		if (succ != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
+		}
 		else
+		{
 			context.Success();
+		}
 	}
 }

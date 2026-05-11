@@ -27,12 +27,17 @@ public abstract class WorkItem : StagedTask
 	public override void Process(int onStage, Action<int, object> readyForStage)
 	{
 		if (_checkpointTag == null)
+		{
 			throw new InvalidOperationException("CheckpointTag has not been initialized");
+		}
+
 		_complete = readyForStage;
 		_onStage = onStage;
 		//TODO:
 		if (_requiresRunning && !Queue.IsRunning)
+		{
 			NextStage();
+		}
 		else
 		{
 			switch (onStage)

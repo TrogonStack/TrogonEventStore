@@ -21,6 +21,8 @@ public class SpecificationWithFilePerTestFixture
 	public virtual void TestFixtureTearDown()
 	{
 		if (File.Exists(Filename))
+		{
 			File.Delete(Filename);
+		}
 	}
 }

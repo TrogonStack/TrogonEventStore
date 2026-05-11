@@ -47,7 +47,9 @@ internal partial class Users
 		void OnMessage(Message message)
 		{
 			if (HandleErrors(loginName, message, detailsSource))
+			{
 				return;
+			}
 
 			switch (message)
 			{
@@ -72,8 +74,7 @@ internal partial class Users
 			FullName = detail.FullName,
 			LoginName = detail.LoginName,
 			LastUpdated = detail.DateLastUpdated.HasValue
-				? new DetailsResp.Types.UserDetails.Types.DateTime
-				{ TicksSinceEpoch = detail.DateLastUpdated.Value.UtcDateTime.ToTicksSinceEpoch() }
+				? new DetailsResp.Types.UserDetails.Types.DateTime { TicksSinceEpoch = detail.DateLastUpdated.Value.UtcDateTime.ToTicksSinceEpoch() }
 				: null
 		};
 }

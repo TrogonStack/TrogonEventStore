@@ -43,7 +43,9 @@ public class ProjectionSerializationBenchmarks
 	{
 		var s = _builtIn.Serialize(_stateInstance, JsValue.Undefined, JsValue.Undefined).AsString();
 		if (string.IsNullOrEmpty(s))
+		{
 			throw new Exception("something went wrong");
+		}
 	}
 
 	[Benchmark]
@@ -51,7 +53,9 @@ public class ProjectionSerializationBenchmarks
 	{
 		var s = _handler.Serialize(_stateInstance);
 		if (string.IsNullOrEmpty(s))
+		{
 			throw new Exception("something went wrong");
+		}
 	}
 
 }

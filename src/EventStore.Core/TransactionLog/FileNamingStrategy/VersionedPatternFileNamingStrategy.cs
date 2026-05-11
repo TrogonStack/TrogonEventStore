@@ -1,9 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using EventStore.Common.Utils;
-using System.Linq;
 
 namespace EventStore.Core.TransactionLog.FileNamingStrategy;
 
@@ -37,12 +37,16 @@ public class VersionedPatternFileNamingStrategy : IVersionedFileNamingStrategy
 	{
 		var allVersions = GetAllVersionsFor(index);
 		if (allVersions.Length == 0)
+		{
 			return GetFilenameFor(index, defaultVersion);
+		}
 
 		var lastFile = allVersions[0];
 		var lastVersionSpan = lastFile.AsSpan(lastFile.LastIndexOf('.') + 1);
 		if (!int.TryParse(lastVersionSpan, out var lastVersion))
+		{
 			throw new Exception($"Could not determine version from filename '{lastFile}'.");
+		}
 
 		return GetFilenameFor(index, lastVersion + 1);
 	}
@@ -59,14 +63,18 @@ public class VersionedPatternFileNamingStrategy : IVersionedFileNamingStrategy
 	public int GetIndexFor(string fileName)
 	{
 		if (!_pattern.IsMatch(fileName))
+		{
 			throw new ArgumentException($"Invalid file name: {fileName}");
+		}
 
 		var start = _prefix.Length;
 		var end = fileName.IndexOf('.', _prefix.Length);
 		Debug.Assert(end != -1);
 
 		if (!int.TryParse(fileName[start..end], out var fileIndex))
+		{
 			throw new ArgumentException($"Invalid file name: {fileName}");
+		}
 
 		return fileIndex;
 	}
@@ -74,13 +82,17 @@ public class VersionedPatternFileNamingStrategy : IVersionedFileNamingStrategy
 	public int GetVersionFor(string fileName)
 	{
 		if (!_pattern.IsMatch(fileName))
+		{
 			throw new ArgumentException($"Invalid file name: {fileName}");
+		}
 
 		var dot = fileName.IndexOf('.', _prefix.Length);
 		Debug.Assert(dot != -1);
 
 		if (!int.TryParse(fileName[(dot + 1)..], out var version))
+		{
 			throw new ArgumentException($"Invalid file name: {fileName}");
+		}
 
 		return version;
 	}

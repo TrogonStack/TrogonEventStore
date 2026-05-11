@@ -1,12 +1,15 @@
 using System;
 using EventStore.Core.TransactionLog.LogRecords;
 
-namespace EventStore.Core.LogAbstraction {
-	public interface IRecordFactory {
+namespace EventStore.Core.LogAbstraction
+{
+	public interface IRecordFactory
+	{
 		ISystemLogRecord CreateEpoch(EpochRecord epoch);
 	}
 
-	public interface IRecordFactory<TStreamId> : IRecordFactory {
+	public interface IRecordFactory<TStreamId> : IRecordFactory
+	{
 		bool ExplicitStreamCreation { get; }
 		bool ExplicitEventTypeCreation { get; }
 

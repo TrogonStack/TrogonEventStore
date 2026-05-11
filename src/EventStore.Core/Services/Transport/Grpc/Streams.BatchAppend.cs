@@ -280,16 +280,14 @@ partial class Streams<TStreamId>
 											StreamRevision.FromInt64(completed.CurrentVersion),
 											clientWriteRequest.ExpectedVersion)
 									},
-									OperationResult.AccessDenied => new BatchAppendResp
-									{ Error = Status.AccessDenied },
+									OperationResult.AccessDenied => new BatchAppendResp { Error = Status.AccessDenied },
 									OperationResult.StreamDeleted => new BatchAppendResp
 									{
 										Error = Status.StreamDeleted(clientWriteRequest.StreamId)
 									},
 									OperationResult.CommitTimeout or
 										OperationResult.ForwardTimeout or
-										OperationResult.PrepareTimeout => new BatchAppendResp
-										{ Error = Status.Timeout },
+										OperationResult.PrepareTimeout => new BatchAppendResp { Error = Status.Timeout },
 									_ => new BatchAppendResp { Error = Status.Unknown }
 								},
 								_ => new BatchAppendResp

@@ -1,7 +1,9 @@
 using System.Threading;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public interface ICleaner {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public interface ICleaner
+	{
 		void Clean(
 			ScavengePoint scavengePoint,
 			IScavengeStateForCleaner state,

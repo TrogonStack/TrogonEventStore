@@ -194,7 +194,10 @@ public class persistent_stream_bloom_filter : SpecificationWithDirectoryPerTestF
 				var length = 1 + random.Next() % 10;
 				var s = GenerateRandomString(length, charset, random);
 				if (selected.Contains(s))
+				{
 					continue;
+				}
+
 				list.Add(s);
 				selected.Add(s);
 				break;
@@ -229,8 +232,10 @@ public class persistent_stream_bloom_filter : SpecificationWithDirectoryPerTestF
 		var threeStandardDeviations = 3 * standardDeviation; //99.7%
 
 		if (falsePositives > 0)
+		{
 			Console.Out.WriteLine("n: {0:N0}, p:{1:N3}. Found {2:N0} false positives. Expected false positives: {3:N0}. Standard deviation: {4:N2}",
 				n, p, falsePositives, expectedFalsePositives, standardDeviation);
+		}
 
 		Assert.LessOrEqual(falsePositives, expectedFalsePositives + threeStandardDeviations);
 		Assert.GreaterOrEqual(falsePositives, Math.Max(0, expectedFalsePositives - threeStandardDeviations));

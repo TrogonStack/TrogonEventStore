@@ -26,7 +26,10 @@ public class an_expired_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			var readerAssignedMessage =
 				_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
 					.LastOrDefault();
@@ -41,7 +44,9 @@ public class an_expired_projection
 			_timeProvider.AddToUtcTime(TimeSpan.FromMinutes(6));
 			yield return Yield;
 			foreach (var m in _consumer.HandledMessages.OfType<TimerMessage.Schedule>().ToArray())
+			{
 				m.Envelope.ReplyWith(m.ReplyMessage);
+			}
 		}
 	}
 
@@ -51,7 +56,10 @@ public class an_expired_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var s in base.When())
+			{
 				yield return s;
+			}
+
 			_consumer.HandledMessages.Clear();
 			yield return (
 				new ProjectionManagementMessage.Command.GetStatistics(
@@ -72,7 +80,10 @@ public class an_expired_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var s in base.When())
+			{
 				yield return s;
+			}
+
 			_consumer.HandledMessages.Clear();
 		}
 

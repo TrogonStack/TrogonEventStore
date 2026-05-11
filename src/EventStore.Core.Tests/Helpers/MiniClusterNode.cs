@@ -297,7 +297,9 @@ public class MiniClusterNode<TLogFormat, TStreamId>
 		await Task.Delay(500);
 
 		if (!keepDb)
+		{
 			TryDeleteDirectory(_dbPath);
+		}
 
 		StoppingTime.Stop();
 		RunningTime.Stop();

@@ -1,20 +1,25 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// The checkpoint stores which scavengepoint we are processing and where we are up to with it.
 
-	public abstract class ScavengeCheckpoint {
-		protected ScavengeCheckpoint(ScavengePoint scavengePoint) {
+	public abstract class ScavengeCheckpoint
+	{
+		protected ScavengeCheckpoint(ScavengePoint scavengePoint)
+		{
 			ScavengePoint = scavengePoint;
 		}
 
 		public ScavengePoint ScavengePoint { get; }
 
-		public class Accumulating : ScavengeCheckpoint {
+		public class Accumulating : ScavengeCheckpoint
+		{
 			// Accumulating with null doneLogicalChunkNumber means we are accumulating now but havent
 			// accumulated anything.
 			public Accumulating(ScavengePoint scavengePoint, int? doneLogicalChunkNumber)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 				DoneLogicalChunkNumber = doneLogicalChunkNumber;
 			}
 
@@ -27,9 +32,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 						: "None");
 		}
 
-		public class Calculating<TStreamId> : ScavengeCheckpoint {
+		public class Calculating<TStreamId> : ScavengeCheckpoint
+		{
 			public Calculating(ScavengePoint scavengePoint, StreamHandle<TStreamId> doneStreamHandle)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 				DoneStreamHandle = doneStreamHandle;
 			}
 
@@ -39,11 +46,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				$"Calculating {ScavengePoint.GetName()} done {DoneStreamHandle}";
 		}
 
-		public class ExecutingChunks : ScavengeCheckpoint {
+		public class ExecutingChunks : ScavengeCheckpoint
+		{
 			public int? DoneLogicalChunkNumber { get; }
 
 			public ExecutingChunks(ScavengePoint scavengePoint, int? doneLogicalChunkNumber)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 				DoneLogicalChunkNumber = doneLogicalChunkNumber;
 			}
 
@@ -54,36 +63,44 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 						: "None");
 		}
 
-		public class ExecutingIndex : ScavengeCheckpoint {
+		public class ExecutingIndex : ScavengeCheckpoint
+		{
 			public ExecutingIndex(ScavengePoint scavengePoint)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 			}
 
 			public override string ToString() =>
 				$"Executing index for {ScavengePoint.GetName()}";
 		}
 
-		public class MergingChunks : ScavengeCheckpoint {
+		public class MergingChunks : ScavengeCheckpoint
+		{
 			public MergingChunks(ScavengePoint scavengePoint)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 			}
 
 			public override string ToString() =>
 				$"Merging chunks for {ScavengePoint.GetName()}";
 		}
 
-		public class Cleaning : ScavengeCheckpoint {
+		public class Cleaning : ScavengeCheckpoint
+		{
 			public Cleaning(ScavengePoint scavengePoint)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 			}
 
 			public override string ToString() =>
 				$"Cleaning for {ScavengePoint.GetName()}";
 		}
 
-		public class Done : ScavengeCheckpoint {
+		public class Done : ScavengeCheckpoint
+		{
 			public Done(ScavengePoint scavengePoint)
-				: base(scavengePoint) {
+				: base(scavengePoint)
+			{
 			}
 
 			public override string ToString() =>

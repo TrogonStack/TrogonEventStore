@@ -9,10 +9,12 @@ using EventStore.Common.Utils;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public static class ParallelLoop {
+public static class ParallelLoop
+{
 	private static readonly Task<int> _neverComplete;
 
-	static ParallelLoop() {
+	static ParallelLoop()
+	{
 		var tcs = new TaskCompletionSource<int>();
 		_neverComplete = tcs.Task;
 	}
@@ -33,7 +35,8 @@ public static class ParallelLoop {
 		Func<int, T, CancellationToken, Task> process,
 		Action<int> emitCheckpoint,
 		Action onConsiderEmit = null,
-		CancellationToken token = default) {
+		CancellationToken token = default)
+	{
 
 		Ensure.Positive(degreeOfParallelism, nameof(degreeOfParallelism));
 
@@ -44,7 +47,8 @@ public static class ParallelLoop {
 		var checkpoints = new int?[degreeOfParallelism];
 		var tasksInProgress = new Task<int>[degreeOfParallelism];
 
-		for (var i = 0; i < degreeOfParallelism; i++) {
+		for (var i = 0; i < degreeOfParallelism; i++)
+		{
 			tasksInProgress[i] = _neverComplete;
 			checkpoints[i] = int.MaxValue;
 		}
@@ -53,31 +57,40 @@ public static class ParallelLoop {
 		var endCheckpoint = default(int?);
 		var lastEmittedCheckpoint = default(int?);
 
-		void PrepareProcessingItem(int slot, T item) {
+		void PrepareProcessingItem(int slot, T item)
+		{
 			checkpoints[slot] = getCheckpointExclusive(item);
 		}
 
 		[AsyncMethodBuilder(typeof(SpawningAsyncTaskMethodBuilder<>))]
 		static async Task<int> SpawnProcess(Func<int, T, CancellationToken, Task> process, int slot, T item,
-			CancellationToken token) {
+			CancellationToken token)
+		{
 			await process.Invoke(slot, item, token);
 			return slot;
 		}
 
-		void EmitCheckpoint() {
+		void EmitCheckpoint()
+		{
 			onConsiderEmit?.Invoke();
 
 			// find the the minimum checkpoint, we can emit it.
 			if (checkpoints.Any(static x => x is null))
+			{
 				return;
+			}
 
 			var checkpointToEmit = checkpoints.Min().Value;
 
 			if (lastEmittedCheckpoint != null && checkpointToEmit <= lastEmittedCheckpoint)
+			{
 				return;
+			}
 
 			if (checkpointToEmit is int.MaxValue)
+			{
 				checkpointToEmit = endCheckpoint.Value;
+			}
 
 			emitCheckpoint(checkpointToEmit);
 			lastEmittedCheckpoint = checkpointToEmit;
@@ -85,13 +98,17 @@ public static class ParallelLoop {
 
 		// process the source
 		var slotsInUse = 0;
-		foreach (var item in source) {
+		foreach (var item in source)
+		{
 			endCheckpoint = getCheckpointInclusive(item);
-			if (slotsInUse < tasksInProgress.Length) {
+			if (slotsInUse < tasksInProgress.Length)
+			{
 				PrepareProcessingItem(slotsInUse, item);
 				tasksInProgress[slotsInUse] = SpawnProcess(process, slotsInUse, item, token);
 				slotsInUse++;
-			} else {
+			}
+			else
+			{
 				var task = await Task.WhenAny(tasksInProgress);
 				var slot = await task;
 				PrepareProcessingItem(slot, item);
@@ -101,7 +118,8 @@ public static class ParallelLoop {
 		}
 
 		// drain the tasks
-		while (slotsInUse > 0) {
+		while (slotsInUse > 0)
+		{
 			var task = await Task.WhenAny(tasksInProgress);
 			var slot = await task;
 			checkpoints[slot] = int.MaxValue;

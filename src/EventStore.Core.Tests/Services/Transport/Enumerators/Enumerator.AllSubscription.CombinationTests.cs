@@ -152,7 +152,9 @@ public partial class EnumeratorTests
 		{
 			var numEvents = StreamProps.NumEvents;
 			for (int i = 0; i < numEvents; i++)
+			{
 				await WriteEvent();
+			}
 		}
 
 		private async Task PopulateExistingEvents()
@@ -165,7 +167,9 @@ public partial class EnumeratorTests
 				resolveLinkTos: false);
 
 			foreach (var @event in result.Events)
+			{
 				_events.Add(@event);
+			}
 		}
 
 		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
@@ -189,7 +193,9 @@ public partial class EnumeratorTests
 			{
 				numEventsAdded = LiveProps.NumEventsToAdd;
 				for (var i = 0; i < numEventsAdded; i++)
+				{
 					await WriteEvent();
+				}
 			}
 			else if (LiveProps.RevokeAccessWithStreamAcl)
 			{
@@ -207,7 +213,9 @@ public partial class EnumeratorTests
 			{
 				numEventsAdded = NumEventsToFallBehind;
 				for (var i = 0; i < NumEventsToFallBehind; i++)
+				{
 					await WriteEvent();
+				}
 
 				shouldFallBehindThenCatchup = true;
 			}
@@ -257,7 +265,9 @@ public partial class EnumeratorTests
 
 			var numResponsesExpected = lastEventIndex - nextEventIndex + 1;
 			if (shouldFallBehindThenCatchUp)
+			{
 				numResponsesExpected += 2;
+			}
 
 			while (--numResponsesExpected >= 0)
 			{
@@ -271,16 +281,22 @@ public partial class EnumeratorTests
 						break;
 					case FellBehind:
 						if (!shouldFallBehindThenCatchUp)
+						{
 							Assert.Fail("Subscription fell behind.");
+						}
 
 						fellBehind = true;
 						break;
 					case CaughtUp:
 						if (!fellBehind)
+						{
 							Assert.Fail("Subscription caught up before falling behind");
+						}
 
 						if (!shouldFallBehindThenCatchUp)
+						{
 							Assert.Fail("Subscription fell behind then caught up.");
+						}
 
 						caughtUp = true;
 						break;
@@ -293,10 +309,14 @@ public partial class EnumeratorTests
 			if (shouldFallBehindThenCatchUp)
 			{
 				if (!fellBehind)
+				{
 					Assert.Fail("Subscription did not fall behind.");
+				}
 
 				if (!caughtUp)
+				{
 					Assert.Fail("Subscription fell behind but did not catch up.");
+				}
 			}
 
 			return nextEventIndex;

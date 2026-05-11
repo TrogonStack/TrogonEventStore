@@ -1,5 +1,7 @@
-namespace EventStore.Core.Services.Monitoring.Stats {
-	public class GcStats {
+namespace EventStore.Core.Services.Monitoring.Stats
+{
+	public class GcStats
+	{
 		/// <summary>
 		/// Number of Gen 0 Collections.
 		/// </summary>
@@ -54,7 +56,8 @@ namespace EventStore.Core.Services.Monitoring.Stats {
 			float gcAllocationSpeed,
 			float gcFragmentation,
 			float gcTimeInGc,
-			long gcTotalBytesInHeaps) {
+			long gcTotalBytesInHeaps)
+		{
 			Gen0ItemsCount = gcGen0Items;
 			Gen1ItemsCount = gcGen1Items;
 			Gen2ItemsCount = gcGen2Items;

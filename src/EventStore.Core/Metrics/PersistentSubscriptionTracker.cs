@@ -7,10 +7,12 @@ using EventStore.Core.Messages;
 
 namespace EventStore.Core.Metrics;
 
-public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker {
+public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
+{
 	private IReadOnlyList<MonitoringMessage.PersistentSubscriptionInfo> _currentStats = [];
 
-	public void OnNewStats(IReadOnlyList<MonitoringMessage.PersistentSubscriptionInfo> newStats) {
+	public void OnNewStats(IReadOnlyList<MonitoringMessage.PersistentSubscriptionInfo> newStats)
+	{
 		_currentStats = newStats ?? [];
 	}
 
@@ -51,7 +53,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker {
 	public IEnumerable<Measurement<long>> ObserveLastKnownEvent() =>
 		_currentStats
 			.Where(x => x.EventSource != "$all")
-			.Select(x => {
+			.Select(x =>
+			{
 				var measurement = long.TryParse(x.LastKnownEventPosition, out var lastEventPos)
 					? lastEventPos
 					: 0;
@@ -64,7 +67,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker {
 	public IEnumerable<Measurement<long>> ObserveLastKnownEventCommitPosition() =>
 		_currentStats
 			.Where(x => x.EventSource == "$all")
-			.Select(x => {
+			.Select(x =>
+			{
 				var (eventCommitPosition, _) = EventPositionParser.ParseCommitPreparePosition(x.LastKnownEventPosition);
 				return new Measurement<long>(eventCommitPosition, [
 					new("event_stream_id", x.EventSource),
@@ -75,7 +79,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker {
 	public IEnumerable<Measurement<long>> ObserveLastCheckpointedEvent() =>
 		_currentStats
 			.Where(x => x.EventSource != "$all")
-			.Select(x => {
+			.Select(x =>
+			{
 				var measurement = long.TryParse(x.LastCheckpointedEventPosition, out var lastEventPos)
 					? lastEventPos
 					: 0;
@@ -88,7 +93,8 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker {
 	public IEnumerable<Measurement<long>> ObserveLastCheckpointedEventCommitPosition() =>
 		_currentStats
 			.Where(x => x.EventSource == "$all")
-			.Select(statistics => {
+			.Select(statistics =>
+			{
 				var (checkpointedCommitPosition, _) = EventPositionParser.ParseCommitPreparePosition(statistics.LastCheckpointedEventPosition);
 				return new Measurement<long>(checkpointedCommitPosition, [
 					new("event_stream_id", statistics.EventSource),

@@ -50,7 +50,9 @@ public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
 
 		Assert.AreEqual(10, read.Records.Count);
 		for (int j = 0; j < 10; j++)
+		{
 			Assert.AreEqual($"includedStream{j}", read.Records[j].Event.EventStreamId);
+		}
 	}
 
 	[Test]
@@ -92,6 +94,8 @@ public class WhenReadingAllWithFilteringAndTransactions<TLogFormat, TStreamId>
 
 		Assert.AreEqual(10, read.Records.Count);
 		for (int j = 9; j <= 0; j--)
+		{
 			Assert.AreEqual($"includedStream{j}", read.Records[j].Event.EventStreamId);
+		}
 	}
 }

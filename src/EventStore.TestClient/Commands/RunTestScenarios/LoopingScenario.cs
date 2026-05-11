@@ -88,7 +88,9 @@ internal class LoopingScenario : ScenarioBase
 		var wr3 = Write(WriteMode.Transactional, transSlice, EventsPerStream);
 
 		if (runIndex % 4 == 0)
+		{
 			Scavenge();
+		}
 
 		Task.WaitAll(wr1, wr2, wr3);
 
@@ -97,7 +99,9 @@ internal class LoopingScenario : ScenarioBase
 
 		_stopParalleWrites = true;
 		if (!parallelWriteTask.Wait(parallelWritesTimeout))
+		{
 			throw new ApplicationException("Parallel writes stop timed out, 1.");
+		}
 
 		KillNode(nodeProcessId);
 		nodeProcessId = StartNode();
@@ -148,7 +152,9 @@ internal class LoopingScenario : ScenarioBase
 
 		_stopParalleWrites = true;
 		if (!parallelWriteTask.Wait(parallelWritesTimeout))
+		{
 			throw new ApplicationException("Parallel writes stop timed out, 2.");
+		}
 
 		KillNode(nodeProcessId);
 	}

@@ -52,7 +52,9 @@ public class when_a_ptable_is_loaded_from_disk : SpecificationWithDirectory
 				eventNumber = 1;
 			}
 			else
+			{
 				eventNumber++;
+			}
 
 			mtable.Add(streamId, eventNumber, logPosition);
 		}

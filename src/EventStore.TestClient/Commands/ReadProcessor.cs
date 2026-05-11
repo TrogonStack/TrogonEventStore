@@ -28,12 +28,20 @@ internal class ReadProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 3)
+			{
 				return false;
+			}
+
 			eventStreamId = args[0];
 			if (args.Length >= 2)
+			{
 				fromNumber = MetricPrefixValue.ParseInt(args[1]);
+			}
+
 			if (args.Length >= 3)
+			{
 				requireLeader = bool.Parse(args[2]);
+			}
 		}
 
 		context.IsAsync();
@@ -87,7 +95,9 @@ internal class ReadProcessor : ICmdProcessor
 					context.Success();
 				}
 				else
+				{
 					context.Fail();
+				}
 
 				conn.Close();
 			},

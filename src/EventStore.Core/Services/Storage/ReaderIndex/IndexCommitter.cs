@@ -78,8 +78,10 @@ public class IndexCommitter<TStreamId>(
 		indexChk.Flush();
 
 		if (indexChk.Read() >= buildToPosition)
+		{
 			throw new Exception(string.Format("_lastCommitPosition {0} >= buildToPosition {1}", indexChk.Read(),
 				buildToPosition));
+		}
 
 		var startTime = DateTime.UtcNow;
 		var lastTime = DateTime.UtcNow;
@@ -137,7 +139,10 @@ public class IndexCommitter<TStreamId>(
 								else
 								{
 									if (prepare.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
+									{
 										commitedPrepares.Add(prepare);
+									}
+
 									if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
 									{
 										await Commit(commitedPrepares, result.Eof, false, token);
@@ -237,12 +242,17 @@ public class IndexCommitter<TStreamId>(
 
 		var lastIndexedPosition = indexChk.Read();
 		if (commit.LogPosition < lastIndexedPosition || (commit.LogPosition == lastIndexedPosition && !_indexRebuild))
+		{
 			return eventNumber;
+		}
 
 		await foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition, token))
 		{
 			if (prepare.Flags.HasNoneOf(PrepareFlags.StreamDelete | PrepareFlags.Data))
+			{
 				continue;
+			}
+
 			eventNumber = prepare.Flags.HasAllOf(PrepareFlags.StreamDelete)
 				? EventNumber.DeletedStream
 				: commit.FirstEventNumber + prepare.TransactionOffset;
@@ -258,7 +268,9 @@ public class IndexCommitter<TStreamId>(
 
 		var lastIndexedPosition = indexChk.Read();
 		if (commit.LogPosition < lastIndexedPosition || (commit.LogPosition == lastIndexedPosition && !_indexRebuild))
+		{
 			return eventNumber; // already committed
+		}
 
 		TStreamId streamId = default;
 		var indexEntries = new List<IndexKey<TStreamId>>();
@@ -267,7 +279,9 @@ public class IndexCommitter<TStreamId>(
 		await foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition, token))
 		{
 			if (prepare.Flags.HasNoneOf(PrepareFlags.StreamDelete | PrepareFlags.Data))
+			{
 				continue;
+			}
 
 			if (StreamIdComparer.Equals(streamId, default))
 			{
@@ -276,8 +290,10 @@ public class IndexCommitter<TStreamId>(
 			else
 			{
 				if (!StreamIdComparer.Equals(prepare.EventStreamId, streamId))
+				{
 					throw new Exception(string.Format("Expected stream: {0}, actual: {1}. LogPosition: {2}",
 						streamId, prepare.EventStreamId, commit.LogPosition));
+				}
 			}
 
 			eventNumber = prepare.Flags.HasAllOf(PrepareFlags.StreamDelete)
@@ -306,7 +322,9 @@ public class IndexCommitter<TStreamId>(
 		if (eventNumber != EventNumber.Invalid)
 		{
 			if (eventNumber < 0)
+			{
 				throw new Exception(string.Format("EventNumber {0} is incorrect.", eventNumber));
+			}
 
 			if (cacheLastEventNumber)
 			{
@@ -314,11 +332,15 @@ public class IndexCommitter<TStreamId>(
 			}
 
 			if (systemStreams.IsMetaStream(streamId))
+			{
 				backend.SetStreamMetadata(systemStreams.OriginalStreamOf(streamId),
 					null); // invalidate cached metadata
+			}
 
 			if (StreamIdComparer.Equals(streamId, systemStreams.SettingsStream))
+			{
 				backend.SetSystemSettings(DeserializeSystemSettings(prepares[prepares.Count - 1].Data));
+			}
 		}
 
 		// todo: refactor into one call
@@ -358,7 +380,9 @@ public class IndexCommitter<TStreamId>(
 		long eventNumber = EventNumber.Invalid;
 
 		if (commitedPrepares.Count is 0)
+		{
 			return eventNumber;
+		}
 
 		var lastIndexedPosition = indexChk.Read();
 		var lastPrepare = commitedPrepares[commitedPrepares.Count - 1];
@@ -370,7 +394,9 @@ public class IndexCommitter<TStreamId>(
 		foreach (var prepare in commitedPrepares)
 		{
 			if (prepare.Flags.HasNoneOf(PrepareFlags.StreamDelete | PrepareFlags.Data))
+			{
 				continue;
+			}
 
 			if (!StreamIdComparer.Equals(prepare.EventStreamId, streamId))
 			{
@@ -403,7 +429,9 @@ public class IndexCommitter<TStreamId>(
 
 			if (prepare.LogPosition < lastIndexedPosition ||
 				(prepare.LogPosition == lastIndexedPosition && !_indexRebuild))
+			{
 				continue; // already committed
+			}
 
 			eventNumber =
 				prepare.ExpectedVersion + 1; /* for committed prepare expected version is always explicit */
@@ -432,7 +460,9 @@ public class IndexCommitter<TStreamId>(
 		if (eventNumber != EventNumber.Invalid)
 		{
 			if (eventNumber < 0)
+			{
 				throw new Exception(string.Format("EventNumber {0} is incorrect.", eventNumber));
+			}
 
 			if (cacheLastEventNumber)
 			{
@@ -440,11 +470,15 @@ public class IndexCommitter<TStreamId>(
 			}
 
 			if (systemStreams.IsMetaStream(streamId))
+			{
 				backend.SetStreamMetadata(systemStreams.OriginalStreamOf(streamId),
 					null); // invalidate cached metadata
+			}
 
 			if (StreamIdComparer.Equals(streamId, systemStreams.SettingsStream))
+			{
 				backend.SetSystemSettings(DeserializeSystemSettings(prepares[prepares.Count - 1].Data));
+			}
 		}
 
 		streamNameIndex.Confirm(prepares, _indexRebuild, backend);
@@ -490,14 +524,18 @@ public class IndexCommitter<TStreamId>(
 		while ((result = await reader.TryReadNext(token)).Success && result.RecordPrePosition <= commitPos)
 		{
 			if (result.LogRecord.RecordType != LogRecordType.Prepare)
+			{
 				continue;
+			}
 
 			var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
 			if (prepare.TransactionPosition == transactionPos)
 			{
 				yield return prepare;
 				if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
+				{
 					yield break;
+				}
 			}
 		}
 	}
@@ -506,7 +544,9 @@ public class IndexCommitter<TStreamId>(
 		CancellationToken token)
 	{
 		if (newEventNumber == EventNumber.DeletedStream)
+		{
 			return;
+		}
 
 		long lastEventNumber = await indexReader.GetStreamLastEventNumber(streamId, token);
 		if (newEventNumber != lastEventNumber + 1)
@@ -569,10 +609,16 @@ public class IndexCommitter<TStreamId>(
 	{
 		RecordReadResult result = await reader.TryReadAt(logPosition, couldBeScavenged: true, token);
 		if (!result.Success)
+		{
 			return null;
+		}
+
 		if (result.LogRecord.RecordType != LogRecordType.Prepare)
+		{
 			throw new Exception(string.Format("Incorrect type of log record {0}, expected Prepare record.",
 				result.LogRecord.RecordType));
+		}
+
 		return (IPrepareLogRecord<TStreamId>)result.LogRecord;
 	}
 }

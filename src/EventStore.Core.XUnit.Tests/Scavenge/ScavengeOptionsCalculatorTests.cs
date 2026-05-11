@@ -1,14 +1,14 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using EventStore.Core.Messaging;
 using EventStore.Core.Messages;
+using EventStore.Core.Messaging;
+using EventStore.Core.Services.UserManagement;
 using EventStore.Core.TransactionLog.Scavenging;
 using Microsoft.Extensions.Configuration;
 using Xunit;
-using EventStore.Core.Services.UserManagement;
-using System;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 

@@ -19,7 +19,9 @@ public static class HelperExtensions
 		IDictionary<TKey, TValue> second)
 	{
 		if (first.Count != second.Count)
+		{
 			return false;
+		}
 
 		TValue value;
 		return first.All(kvp => second.TryGetValue(kvp.Key, out value) && value.Equals(kvp.Value));
@@ -32,7 +34,10 @@ public static class HelperExtensions
 			JToken vv;
 			var propertyName = v.Key;
 			if (propertyName.StartsWith("___"))
+			{
 				propertyName = "$" + propertyName.Substring(3);
+			}
+
 			if (propertyName.EndsWith("___"))
 			{
 				if (response.TryGetValue(propertyName.Substring(0, propertyName.Length - "___".Length), out _))
@@ -72,7 +77,9 @@ public static class HelperExtensions
 						"{0}/{1} value is '{2}' but '{3}' is expected", path, propertyName, vv, v.Value);
 				}
 				else
+				{
 					Assert.Fail();
+				}
 			}
 		}
 	}
@@ -101,7 +108,9 @@ public static class HelperExtensions
 					index, vv, v);
 			}
 			else
+			{
 				Assert.Fail();
+			}
 		}
 	}
 

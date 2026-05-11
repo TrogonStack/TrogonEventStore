@@ -42,7 +42,10 @@ public abstract class when_max_auto_merge_level_is_set : SpecificationWithDirect
 		memtable.Add(0, 1, 0);
 		var first = _map;
 		if (_result != null)
+		{
 			first = _result.MergedMap;
+		}
+
 		var pTable = PTable.FromMemtable(memtable, GetTempFilePath(), Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, skipIndexVerify: _skipIndexVerify);
 		_result = first.AddAndMergePTable(pTable,
 			10, 20, _fileNameProvider, _ptableVersion, 0, skipIndexVerify: _skipIndexVerify);

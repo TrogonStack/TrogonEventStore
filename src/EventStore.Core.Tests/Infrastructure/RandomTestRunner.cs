@@ -37,7 +37,9 @@ public class RandomTestRunner
 
 			finishCondition.Process(_iter, item);
 			if (finishCondition.Done)
+			{
 				break;
+			}
 
 			item.Bus.Publish(item.Message);
 		}
@@ -56,7 +58,10 @@ public class RandomTestRunner
 		public int Compare(RandTestQueueItem x, RandTestQueueItem y)
 		{
 			if (x.LogicalTime == y.LogicalTime)
+			{
 				return x.GlobalId - y.GlobalId;
+			}
+
 			return x.LogicalTime - y.LogicalTime;
 		}
 	}

@@ -44,7 +44,10 @@ public abstract class FormatterBase<T> : IMessageFormatter<T>
 	public virtual T From(BufferPool bufferPool)
 	{
 		if (bufferPool == null)
+		{
 			throw new ArgumentNullException("bufferPool");
+		}
+
 		var stream = new BufferPoolStream(bufferPool);
 		return From(stream);
 	}
@@ -70,7 +73,10 @@ public abstract class FormatterBase<T> : IMessageFormatter<T>
 	public virtual T From(byte[] array)
 	{
 		if (array == null)
+		{
 			throw new ArgumentNullException("array");
+		}
+
 		using (var stream = new MemoryStream(array, 0, array.Length, false))
 		{
 			return From(stream);

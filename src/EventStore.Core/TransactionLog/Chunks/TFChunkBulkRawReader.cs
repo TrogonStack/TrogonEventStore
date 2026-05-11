@@ -14,8 +14,11 @@ public sealed class TFChunkBulkRawReader(TFChunk.TFChunk chunk, Stream streamToU
 	public override void SetPosition(long rawPosition)
 	{
 		if (rawPosition >= Stream.Length)
+		{
 			throw new ArgumentOutOfRangeException("rawPosition",
 				string.Format("Raw position {0} is out of bounds.", rawPosition));
+		}
+
 		Stream.Position = rawPosition;
 
 	}

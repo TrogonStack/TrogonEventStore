@@ -626,7 +626,9 @@ public partial class EnumeratorTests
 			get
 			{
 				if (StreamProps.IsEphemeralStream)
+				{
 					return _ephemeralStreamLastEventNumber; // the $mem-node-state ephemeral stream keeps only the last event
+				}
 
 				return StreamProps.TruncationInfo.TruncationType switch
 				{
@@ -645,7 +647,9 @@ public partial class EnumeratorTests
 			get
 			{
 				if (StreamProps.IsEphemeralStream)
+				{
 					return _ephemeralStreamLastEventNumber;
+				}
 
 				return StreamProps.NumEvents - 1;
 			}
@@ -661,11 +665,15 @@ public partial class EnumeratorTests
 		private async Task WriteExistingEvents()
 		{
 			if (StreamProps is { IsEphemeralStream: true, NumEvents: > 0 })
+			{
 				throw new Exception("Ephemeral streams cannot be written to.");
+			}
 
 			var numEvents = StreamProps.NumEvents;
 			for (int i = 0; i < numEvents; i++)
+			{
 				await WriteEvent();
+			}
 		}
 
 		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
@@ -706,7 +714,9 @@ public partial class EnumeratorTests
 		private Task ApplyTruncation()
 		{
 			if (StreamProps.IsEphemeralStream && StreamProps.TruncationInfo.TruncationType != TruncationType.None)
+			{
 				throw new Exception("Ephemeral streams cannot be truncated.");
+			}
 
 			var truncationParam = StreamProps.TruncationInfo.TruncationParam;
 			switch (StreamProps.TruncationInfo.TruncationType)
@@ -731,7 +741,9 @@ public partial class EnumeratorTests
 		private Task ApplyTombstone()
 		{
 			if (StreamProps is { IsEphemeralStream: true, IsHardDeleted: true })
+			{
 				throw new Exception("Ephemeral streams cannot be hard deleted.");
+			}
 
 			return StreamProps.IsHardDeleted ? Tombstone() : Task.CompletedTask;
 		}
@@ -747,16 +759,22 @@ public partial class EnumeratorTests
 			if (LiveProps.NumEventsToAdd > 0)
 			{
 				if (StreamProps.IsEphemeralStream)
+				{
 					throw new Exception("Ephemeral streams cannot be written to.");
+				}
 
 				numEventsAdded = LiveProps.NumEventsToAdd;
 				for (var i = 0; i < numEventsAdded; i++)
+				{
 					await WriteEvent();
+				}
 			}
 			else if (LiveProps.SoftDeleteStream)
 			{
 				if (StreamProps.IsEphemeralStream)
+				{
 					throw new Exception("Ephemeral streams cannot be soft deleted.");
+				}
 
 				softDeleted = true;
 				await SoftDelete();
@@ -764,7 +782,9 @@ public partial class EnumeratorTests
 			else if (LiveProps.HardDeleteStream)
 			{
 				if (StreamProps.IsEphemeralStream)
+				{
 					throw new Exception("Ephemeral streams cannot be hard deleted.");
+				}
 
 				hardDeleted = true;
 				await Tombstone();
@@ -783,7 +803,9 @@ public partial class EnumeratorTests
 			{
 				numEventsAdded = NumEventsToFallBehind;
 				for (var i = 0; i < NumEventsToFallBehind; i++)
+				{
 					await WriteEvent();
+				}
 
 				shouldFallBehindThenCatchup = true;
 			}
@@ -794,7 +816,9 @@ public partial class EnumeratorTests
 		private async Task SetUpForEphemeralStream()
 		{
 			if (!StreamProps.IsEphemeralStream)
+			{
 				return;
+			}
 
 			var readResult = await NodeConnection.ReadStreamEventsBackwardAsync(_stream, -1, 1, resolveLinkTos: false);
 
@@ -839,7 +863,9 @@ public partial class EnumeratorTests
 
 			var numResponsesExpected = lastEventNumber - nextEventNumber + 1;
 			if (shouldFallBehindThenCatchUp)
+			{
 				numResponsesExpected += 2;
+			}
 
 			while (--numResponsesExpected >= 0)
 			{
@@ -851,16 +877,22 @@ public partial class EnumeratorTests
 						break;
 					case FellBehind:
 						if (!shouldFallBehindThenCatchUp)
+						{
 							Assert.Fail("Subscription fell behind.");
+						}
 
 						fellBehind = true;
 						break;
 					case CaughtUp:
 						if (!fellBehind)
+						{
 							Assert.Fail("Subscription caught up before falling behind");
+						}
 
 						if (!shouldFallBehindThenCatchUp)
+						{
 							Assert.Fail("Subscription fell behind then caught up.");
+						}
 
 						caughtUp = true;
 						break;
@@ -873,10 +905,14 @@ public partial class EnumeratorTests
 			if (shouldFallBehindThenCatchUp)
 			{
 				if (!fellBehind)
+				{
 					Assert.Fail("Subscription did not fall behind.");
+				}
 
 				if (!caughtUp)
+				{
 					Assert.Fail("Subscription fell behind but did not catch up.");
+				}
 			}
 
 			return nextEventNumber;

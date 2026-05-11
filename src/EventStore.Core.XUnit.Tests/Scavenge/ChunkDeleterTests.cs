@@ -125,7 +125,9 @@ public class ChunkDeleterTests
 			Assert.Empty(_chunkManager.InterceptedLocators);
 		}
 		else
+		{
 			throw new InvalidOperationException();
+		}
 	}
 
 	[Fact]

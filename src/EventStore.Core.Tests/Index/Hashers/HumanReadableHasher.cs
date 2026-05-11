@@ -26,7 +26,9 @@ public class HumanReadableHasher32 : IHasher<string>
 	public uint Hash(string x)
 	{
 		if (x == "")
+		{
 			return 0;
+		}
 
 		var c = SystemStreams.IsMetastream(x)
 			? x[2]

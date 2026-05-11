@@ -1,5 +1,7 @@
-namespace EventStore.Core.Services.Storage.ReaderIndex {
-	public class ReadIndexStats {
+namespace EventStore.Core.Services.Storage.ReaderIndex
+{
+	public class ReadIndexStats
+	{
 		public readonly long CachedRecordReads;
 		public readonly long NotCachedRecordReads;
 		public readonly long CachedStreamInfoReads;
@@ -11,7 +13,8 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 		public ReadIndexStats(long cachedRecordReads, long notCachedRecordReads,
 			long cachedStreamInfoReads, long notCachedStreamInfoReads,
 			long hashCollisions,
-			long cachedTransInfoReads, long notCachedTransInfoReads) {
+			long cachedTransInfoReads, long notCachedTransInfoReads)
+		{
 			CachedRecordReads = cachedRecordReads;
 			NotCachedRecordReads = notCachedRecordReads;
 			CachedStreamInfoReads = cachedStreamInfoReads;

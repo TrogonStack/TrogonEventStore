@@ -53,7 +53,9 @@ public class ConsoleTable
 	public void AppendRow(params string[] cells)
 	{
 		if (cells == null || cells.Length != _header.Length)
+		{
 			return;
+		}
 
 		var row = new StringBuilder();
 		for (int i = 0; i < cells.Length; i++)

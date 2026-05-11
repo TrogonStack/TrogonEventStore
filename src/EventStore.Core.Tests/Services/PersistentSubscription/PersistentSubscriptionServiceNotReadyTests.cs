@@ -20,11 +20,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture]
-public class PersistentSubscriptionServiceNotReadyTests {
+public class PersistentSubscriptionServiceNotReadyTests
+{
 	private PersistentSubscriptionService<string> _sut;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		var bus = new SynchronousScheduler();
 		var trackers = new Trackers();
 
@@ -40,7 +42,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void create_stream_replies_not_ready() {
+	public void create_stream_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -52,7 +55,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void create_all_replies_not_ready() {
+	public void create_all_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -65,7 +69,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void update_stream_replies_not_ready() {
+	public void update_stream_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -77,7 +82,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void update_all_replies_not_ready() {
+	public void update_all_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -89,7 +95,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void delete_stream_replies_not_ready() {
+	public void delete_stream_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -100,7 +107,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void delete_all_replies_not_ready() {
+	public void delete_all_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -111,7 +119,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public async Task connect_stream_replies_not_ready() {
+	public async Task connect_stream_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -125,7 +134,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public async Task connect_all_replies_not_ready() {
+	public async Task connect_all_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -139,7 +149,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void read_next_replies_not_ready() {
+	public void read_next_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -150,7 +161,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 	}
 
 	[Test]
-	public void replay_parked_replies_not_ready() {
+	public void replay_parked_replies_not_ready()
+	{
 		var envelope = new FakeEnvelope();
 		var correlationId = Guid.NewGuid();
 
@@ -160,7 +172,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 		AssertNotReady(envelope, correlationId);
 	}
 
-	private static void AssertNotReady(FakeEnvelope envelope, Guid correlationId) {
+	private static void AssertNotReady(FakeEnvelope envelope, Guid correlationId)
+	{
 		Assert.That(envelope.Replies, Has.Count.EqualTo(1));
 		var reply = envelope.Replies.Single();
 
@@ -170,7 +183,8 @@ public class PersistentSubscriptionServiceNotReadyTests {
 		Assert.That(notHandled.Reason, Is.EqualTo(ClientMessage.NotHandled.Types.NotHandledReason.NotReady));
 	}
 
-	private sealed class MetaStreamLookup : IMetastreamLookup<string> {
+	private sealed class MetaStreamLookup : IMetastreamLookup<string>
+	{
 		public bool IsMetaStream(string streamId) => throw new NotSupportedException();
 
 		public string MetaStreamOf(string streamId) => throw new NotSupportedException();

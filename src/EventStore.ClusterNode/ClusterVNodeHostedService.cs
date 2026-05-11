@@ -53,7 +53,9 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 	{
 
 		if (options == null)
+		{
 			throw new ArgumentNullException(nameof(options));
+		}
 
 		// two plugin mechanisms; pluginLoader is the new one
 		var pluginLoader = new PluginLoader(new DirectoryInfo(Locations.PluginsDirectory));
@@ -92,11 +94,15 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 
 		var absolutePath = Path.GetFullPath(_options.Database.Db);
 		if (RuntimeInformation.IsWindows)
+		{
 			absolutePath = absolutePath.ToLower();
+		}
 
 		_dbLock = new ExclusiveDbLock(absolutePath);
 		if (!_dbLock.Acquire())
+		{
 			throw new InvalidConfigurationException($"Couldn't acquire exclusive lock on DB at '{_options.Database.Db}'.");
+		}
 
 		var authorizationConfig = string.IsNullOrEmpty(_options.Auth.AuthorizationConfig)
 			? _options.Application.Config
@@ -108,7 +114,9 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 
 		(_options, var authProviderFactory) = GetAuthorizationProviderFactory();
 		if (_options.Database.DbLogFormat != DbLogFormat.V2)
+		{
 			throw new ArgumentOutOfRangeException(nameof(_options.Database.DbLogFormat), "Unexpected log format specified.");
+		}
 
 		var logFormatFactory = new LogV2FormatAbstractorFactory();
 		Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
@@ -130,9 +138,11 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			}
 
 			var modifiedOptions = _options;
-			if (_options.Auth.AuthorizationType.Equals("internal", StringComparison.InvariantCultureIgnoreCase)) {
+			if (_options.Auth.AuthorizationType.Equals("internal", StringComparison.InvariantCultureIgnoreCase))
+			{
 				var registryFactory = new AuthorizationPolicyRegistryFactory(_options, configuration, pluginLoader);
-				foreach (var authSubsystem in registryFactory.GetSubsystems()) {
+				foreach (var authSubsystem in registryFactory.GetSubsystems())
+				{
 					modifiedOptions = modifiedOptions.WithPlugableComponent(authSubsystem);
 				}
 

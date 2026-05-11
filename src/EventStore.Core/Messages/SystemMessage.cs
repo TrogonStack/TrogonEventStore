@@ -1,6 +1,6 @@
 using System;
-using EventStore.Core.Cluster;
 using EventStore.Common.Utils;
+using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 using EventStore.Core.Messaging;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -168,7 +168,10 @@ public static partial class SystemMessage
 		public ServiceShutdown(string serviceName)
 		{
 			if (string.IsNullOrEmpty(serviceName))
+			{
 				throw new ArgumentNullException("serviceName");
+			}
+
 			ServiceName = serviceName;
 		}
 	}

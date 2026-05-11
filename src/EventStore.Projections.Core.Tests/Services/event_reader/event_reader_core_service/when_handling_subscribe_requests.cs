@@ -12,6 +12,7 @@ using EventStore.Projections.Core.Tests.Services.event_reader.heading_event_read
 using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.event_reader.event_reader_core_service;
+
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_handling_subscribe_requests<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
 {
@@ -90,9 +91,15 @@ public class when_handling_subscribe_requests<TLogFormat, TStreamId> : TestFixtu
 			ReaderSubscriptionOptions readerSubscriptionOptions)
 		{
 			if (_throwOnCreateSubscription)
+			{
 				throw new ArgumentException(nameof(FakeReaderStrategyThatThrows));
+			}
+
 			if (_throwOnCreatePausedReader)
+			{
 				return new FakeReaderSubscriptionThatThrows();
+			}
+
 			return new FakeReaderSubscription();
 		}
 

@@ -16,7 +16,9 @@ public class StreamCategoryExtractorByLastSeparator : StreamCategoryExtractor
 		{
 			var lastSeparatorPosition = streamId.LastIndexOf(_separator);
 			if (lastSeparatorPosition > 0)
+			{
 				category = streamId.Substring(0, lastSeparatorPosition);
+			}
 		}
 
 		return category;

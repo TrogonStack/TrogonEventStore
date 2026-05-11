@@ -89,11 +89,15 @@ public class CommandProcessorContext
 	public void WaitForCompletion()
 	{
 		if (_timeout < 0)
+		{
 			_doneEvent.Wait(_cancellationToken);
+		}
 		else
 		{
 			if (!_doneEvent.Wait(_timeout * 1000, _cancellationToken))
+			{
 				throw new TimeoutException("Command didn't finished within timeout.");
+			}
 		}
 	}
 

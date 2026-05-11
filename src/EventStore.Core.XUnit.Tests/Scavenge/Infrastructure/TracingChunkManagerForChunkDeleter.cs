@@ -17,7 +17,9 @@ public class TracingChunkManagerForChunkDeleter(
 		foreach (var locator in locators)
 		{
 			if (!locatorCodec.Decode(locator, out var chunkNumber, out _))
+			{
 				return ValueTask.FromResult(false);
+			}
 
 			remoteChunks.Add(chunkNumber);
 		}

@@ -14,7 +14,10 @@ namespace EventStore.Core.Index
 		public static int GetSize(byte version)
 		{
 			if (version >= PTableVersions.IndexV4)
+			{
 				return Size;
+			}
+
 			return 0;
 		}
 
@@ -44,15 +47,23 @@ namespace EventStore.Core.Index
 		{
 			var type = stream.ReadByte();
 			if (type != (int)FileType.PTableFile)
+			{
 				throw new CorruptIndexException("Corrupted PTable.", new InvalidFileException("Wrong type of PTable."));
+			}
+
 			var version = stream.ReadByte();
 			if (version == -1)
+			{
 				throw new CorruptIndexException("Couldn't read version of PTable from footer.",
 					new InvalidFileException("Invalid PTable file."));
+			}
+
 			if (!(version >= PTableVersions.IndexV4))
+			{
 				throw new CorruptIndexException(
 					"PTable footer with version < 4 found. PTable footers are supported as from version 4.",
 					new InvalidFileException("Invalid PTable file."));
+			}
 
 			byte[] buffer = new byte[4];
 			stream.ReadExactly(buffer, 0, 4);

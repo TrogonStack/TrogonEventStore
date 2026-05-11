@@ -108,30 +108,30 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 			case VNodeState.ResigningLeader:
 			case VNodeState.ShuttingDown:
 			case VNodeState.Shutdown:
-			{
-				Disconnect();
-				break;
-			}
+				{
+					Disconnect();
+					break;
+				}
 			case VNodeState.PreReplica:
-			{
-				var m = (SystemMessage.BecomePreReplica)message;
-				ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
-				break;
-			}
+				{
+					var m = (SystemMessage.BecomePreReplica)message;
+					ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
+					break;
+				}
 			case VNodeState.PreReadOnlyReplica:
-			{
-				var m = (SystemMessage.BecomePreReadOnlyReplica)message;
-				ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
-				break;
-			}
+				{
+					var m = (SystemMessage.BecomePreReadOnlyReplica)message;
+					ConnectToLeader(m.LeaderConnectionCorrelationId, m.Leader);
+					break;
+				}
 			case VNodeState.CatchingUp:
 			case VNodeState.Clone:
 			case VNodeState.Follower:
 			case VNodeState.ReadOnlyReplica:
-			{
-				// nothing changed, essentially
-				break;
-			}
+				{
+					// nothing changed, essentially
+					break;
+				}
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
@@ -174,8 +174,10 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 		}
 
 		if (_connection != null)
+		{
 			_connection.Stop(string.Format("Reconnecting from old leader [{0}] to new leader: [{1}].",
 				_connection.RemoteEndPoint, leaderEndPoint));
+		}
 
 		try
 		{
@@ -214,13 +216,19 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 	{
 		Ensure.NotNull(leader, "leader");
 		if (useSsl && leader.InternalSecureTcpEndPoint == null)
+		{
 			Log.Error(
 				"Internal secure connections are required, but no internal secure TCP end point is specified for leader [{leader}]!",
 				leader);
+		}
+
 		if (!useSsl && leader.InternalTcpEndPoint == null)
+		{
 			Log.Error(
 				"Internal connections are required, but no internal TCP end point is specified for leader [{leader}]!",
 				leader);
+		}
+
 		return useSsl ? leader.InternalSecureTcpEndPoint : leader.InternalTcpEndPoint;
 	}
 
@@ -228,8 +236,11 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 		ReplicationMessage.SubscribeToLeader message, CancellationToken token)
 	{
 		if (_state is not VNodeState.PreReplica and not VNodeState.PreReadOnlyReplica)
+		{
 			throw new Exception(string.Format("_state is {0}, but is expected to be {1} or {2}", _state,
 				VNodeState.PreReplica, VNodeState.PreReadOnlyReplica));
+		}
+
 		if (_connection is null)
 		{
 			Log.Warning(
@@ -252,7 +263,9 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 
 		// the chunk may not exist if it's a new database or if we're at a chunk boundary
 		if (_db.Manager.TryGetChunkFor(logPosition, out var chunk))
+		{
 			chunkId = chunk.ChunkHeader.ChunkId;
+		}
 
 		SendTcpMessage(_connection,
 			new ReplicationMessage.SubscribeReplica(
@@ -263,8 +276,16 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 
 	public void Handle(ReplicationMessage.AckLogPosition message)
 	{
-		if (!_state.IsReplica()) throw new Exception("!_state.IsReplica()");
-		if (_connection == null) throw new Exception("_connection == null");
+		if (!_state.IsReplica())
+		{
+			throw new Exception("!_state.IsReplica()");
+		}
+
+		if (_connection == null)
+		{
+			throw new Exception("_connection == null");
+		}
+
 		SendTcpMessage(_connection, message);
 	}
 
@@ -273,26 +294,32 @@ public class ReplicaService : IHandle<SystemMessage.StateChangeMessage>,
 		switch (_state)
 		{
 			case VNodeState.PreReplica:
-			{
-				if (_connection != null)
-					SendTcpMessage(_connection, message.Message);
-				break;
-			}
+				{
+					if (_connection != null)
+					{
+						SendTcpMessage(_connection, message.Message);
+					}
+
+					break;
+				}
 			case VNodeState.PreReadOnlyReplica:
-			{
-				if (_connection != null)
-					SendTcpMessage(_connection, message.Message);
-				break;
-			}
+				{
+					if (_connection != null)
+					{
+						SendTcpMessage(_connection, message.Message);
+					}
+
+					break;
+				}
 			case VNodeState.CatchingUp:
 			case VNodeState.Clone:
 			case VNodeState.Follower:
 			case VNodeState.ReadOnlyReplica:
-			{
-				Debug.Assert(_connection != null, "Connection manager is null in follower/clone/catching up state");
-				SendTcpMessage(_connection, message.Message);
-				break;
-			}
+				{
+					Debug.Assert(_connection != null, "Connection manager is null in follower/clone/catching up state");
+					SendTcpMessage(_connection, message.Message);
+					break;
+				}
 
 			default:
 				throw new Exception(string.Format("Unexpected state: {0}", _state));

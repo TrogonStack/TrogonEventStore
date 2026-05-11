@@ -169,7 +169,10 @@ public class when_serializing_state
 			x => x.StartsWith(typeof(when_serializing_state).Namespace) && x.EndsWith(filename)
 			).SingleOrDefault();
 		if (streamName == null)
+		{
 			throw new InvalidOperationException($"Could not find {filename}");
+		}
+
 		using var stream = assembly.GetManifestResourceStream(streamName);
 
 		var doc = JsonDocument.Parse(stream);

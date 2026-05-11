@@ -38,9 +38,14 @@ public partial class HeadingEventReader
 	{
 		EnsureStarted();
 		if (message.CorrelationId != _eventReaderId)
+		{
 			return false;
+		}
+
 		if (message.Data == null)
+		{
 			return true;
+		}
 
 		ValidateEventOrder(message);
 
@@ -53,7 +58,9 @@ public partial class HeadingEventReader
 	{
 		EnsureStarted();
 		if (message.CorrelationId != _eventReaderId)
+		{
 			return false;
+		}
 
 		ValidateEventOrder(message);
 
@@ -67,7 +74,10 @@ public partial class HeadingEventReader
 	{
 		EnsureStarted();
 		if (message.CorrelationId != _eventReaderId)
+		{
 			return false;
+		}
+
 		DistributeMessage(message);
 		return true;
 	}
@@ -75,10 +85,13 @@ public partial class HeadingEventReader
 	private void ValidateEventOrder(ReaderSubscriptionMessage.CommittedEventDistributed message)
 	{
 		if (_lastEventPosition >= message.Data.Position || _lastDeletePosition > message.Data.Position)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Invalid committed event order.  Last: '{0}' Received: '{1}'  LastDelete: '{2}'",
 					_lastEventPosition, message.Data.Position, _lastEventPosition));
+		}
+
 		_lastEventPosition = message.Data.Position;
 	}
 
@@ -86,17 +99,23 @@ public partial class HeadingEventReader
 	{
 		if (_lastEventPosition > message.DeleteLinkOrEventPosition.Value
 			|| _lastDeletePosition >= message.DeleteLinkOrEventPosition.Value)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Invalid partition deleted event order.  Last: '{0}' Received: '{1}'  LastDelete: '{2}'",
 					_lastEventPosition, message.DeleteLinkOrEventPosition.Value, _lastEventPosition));
+		}
+
 		_lastDeletePosition = message.DeleteLinkOrEventPosition.Value;
 	}
 
 	public void Start(Guid eventReaderId, IEventReader eventReader)
 	{
 		if (_started)
+		{
 			throw new InvalidOperationException("Already started");
+		}
+
 		_eventReaderId = eventReaderId;
 		_headEventReader = eventReader;
 		//Guid.Empty means head distribution point
@@ -118,8 +137,11 @@ public partial class HeadingEventReader
 	{
 		EnsureStarted();
 		if (_headSubscribers.ContainsKey(projectionId))
+		{
 			throw new InvalidOperationException(
 				string.Format("Projection '{0}' has been already subscribed", projectionId));
+		}
+
 		if (_subscribeFromPosition.CommitPosition <= fromTransactionFilePosition)
 		{
 			if (!DispatchRecentMessagesTo(readerSubscription, fromTransactionFilePosition))
@@ -138,8 +160,11 @@ public partial class HeadingEventReader
 	{
 		EnsureStarted();
 		if (!_headSubscribers.ContainsKey(projectionId))
+		{
 			throw new InvalidOperationException(
 				string.Format("Projection '{0}' has not been subscribed", projectionId));
+		}
+
 		_headSubscribers.Remove(projectionId);
 	}
 
@@ -202,13 +227,17 @@ public partial class HeadingEventReader
 	private void DistributeMessage(ReaderSubscriptionMessage.EventReaderPartitionDeleted message)
 	{
 		foreach (var subscriber in _headSubscribers.Values)
+		{
 			subscriber.Handle(message);
+		}
 	}
 
 	private void DistributeMessage(ReaderSubscriptionMessage.EventReaderIdle message)
 	{
 		foreach (var subscriber in _headSubscribers.Values)
+		{
 			subscriber.Handle(message);
+		}
 	}
 
 	private void CacheRecentMessage(ReaderSubscriptionMessage.CommittedEventDistributed message)
@@ -231,7 +260,9 @@ public partial class HeadingEventReader
 			// as we may have multiple items at the same position it is important to
 			// remove them together as we may subscribe in the middle otherwise
 			while (_lastMessages.Count > 0 && _lastMessages.Peek().Position == removed.Position)
+			{
 				_lastMessages.Dequeue();
+			}
 		}
 
 		var lastAvailableCommittedEvent = _lastMessages.Peek();
@@ -252,6 +283,8 @@ public partial class HeadingEventReader
 	private void EnsureStarted()
 	{
 		if (!_started)
+		{
 			throw new InvalidOperationException("Not started");
+		}
 	}
 }

@@ -497,7 +497,10 @@ public class FakeIndexBackend<TStreamId> : IIndexBackend<TStreamId>
 	public IndexBackend<TStreamId>.MetadataCached TryGetStreamMetadata(TStreamId streamId)
 	{
 		if (_streamMetadata.TryGetValue(streamId, out var metadata))
+		{
 			return metadata;
+		}
+
 		return new IndexBackend<TStreamId>.MetadataCached();
 	}
 

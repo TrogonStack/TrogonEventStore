@@ -24,7 +24,9 @@ internal class StreamWriter
 			var expVer = _version == ExpectedVersion.Any ? ExpectedVersion.Any : _version + i;
 			var nextExpVer = (await _store.AppendToStreamAsync(_stream, expVer, new[] { events[i] })).NextExpectedVersion;
 			if (_version != ExpectedVersion.Any)
+			{
 				Assert.AreEqual(expVer + 1, nextExpVer);
+			}
 		}
 
 		return new TailWriter(_store, _stream);

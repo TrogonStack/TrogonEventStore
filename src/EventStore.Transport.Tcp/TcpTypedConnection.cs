@@ -41,9 +41,14 @@ public class TcpTypedConnection<T>
 		IMessageFramer<ArraySegment<byte>> framer)
 	{
 		if (formatter == null)
+		{
 			throw new ArgumentNullException("formatter");
+		}
+
 		if (framer == null)
+		{
 			throw new ArgumentNullException("framer");
+		}
 
 		_connection = connection;
 		_formatter = formatter;
@@ -61,7 +66,9 @@ public class TcpTypedConnection<T>
 
 		var handler = ConnectionClosed;
 		if (handler != null)
+		{
 			handler(this, socketError);
+		}
 	}
 
 	public void EnqueueSend(T message)
@@ -73,10 +80,14 @@ public class TcpTypedConnection<T>
 	public void ReceiveAsync(Action<TcpTypedConnection<T>, T> callback)
 	{
 		if (_receiveCallback != null)
+		{
 			throw new InvalidOperationException("ReceiveAsync should be called just once.");
+		}
 
 		if (callback == null)
+		{
 			throw new ArgumentNullException("callback");
+		}
 
 		_receiveCallback = callback;
 

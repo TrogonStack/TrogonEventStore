@@ -1,8 +1,10 @@
 using System.Net;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.Data {
-	public class GossipAdvertiseInfo {
+namespace EventStore.Core.Data
+{
+	public class GossipAdvertiseInfo
+	{
 		public DnsEndPoint InternalTcp { get; }
 		public DnsEndPoint InternalSecureTcp { get; }
 		public DnsEndPoint ExternalTcp { get; }
@@ -19,7 +21,8 @@ namespace EventStore.Core.Data {
 			DnsEndPoint externalTcp, DnsEndPoint externalSecureTcp,
 			DnsEndPoint httpEndPoint,
 			string advertiseInternalHostAs, string advertiseExternalHostAs, int advertiseHttpPortAs,
-			string advertiseHostToClientAs, int advertiseHttpPortToClientAs, int advertiseTcpPortToClientAs) {
+			string advertiseHostToClientAs, int advertiseHttpPortToClientAs, int advertiseTcpPortToClientAs)
+		{
 			Ensure.Equal(false, internalTcp == null && internalSecureTcp == null, "Both internal TCP endpoints are null");
 
 			InternalTcp = internalTcp;
@@ -35,7 +38,8 @@ namespace EventStore.Core.Data {
 			AdvertiseTcpPortToClientAs = advertiseTcpPortToClientAs;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format(
 				$"IntTcp: {InternalTcp}, IntSecureTcp: {InternalSecureTcp}\n" +
 				$"ExtTcp: {ExternalTcp}, ExtSecureTcp: {ExternalSecureTcp}\n" +

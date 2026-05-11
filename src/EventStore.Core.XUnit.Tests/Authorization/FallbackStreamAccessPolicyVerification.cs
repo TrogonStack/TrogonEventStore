@@ -57,7 +57,8 @@ public class FallbackStreamAccessPolicyVerification
 		Operations.Users.ChangePassword
 	];
 
-	public static TheoryData<OperationDefinition> SubscriptionOperations() {
+	public static TheoryData<OperationDefinition> SubscriptionOperations()
+	{
 		var data = new TheoryData<OperationDefinition>();
 		SampleOperations.Where(x => x.Resource == SubscriptionsResource)
 			.ForEach(x => data.Add(x));
@@ -99,17 +100,21 @@ public class FallbackStreamAccessPolicyVerification
 
 	[Theory]
 	[MemberData(nameof(SubscriptionOperations))]
-	public async Task restricts_processing_subscription_messages(OperationDefinition operationDefinition) {
+	public async Task restricts_processing_subscription_messages(OperationDefinition operationDefinition)
+	{
 		var sut = CreateSut();
 
 		var operation = new Operation(operationDefinition)
 			.WithParameter(Operations.Subscriptions.Parameters.StreamId(StreamId));
 		var res = await sut.EvaluateAsync(_claimsPrincipal, operation, CancellationToken.None);
 
-		if (operation.Action == Operations.Subscriptions.ProcessMessages.Action) {
+		if (operation.Action == Operations.Subscriptions.ProcessMessages.Action)
+		{
 			Assert.Equal(Grant.Deny, res.Grant);
 			Assert.Contains("restricted to system or admin users only", res.ToString());
-		} else {
+		}
+		else
+		{
 			Assert.Equal(Grant.Allow, res.Grant);
 		}
 	}

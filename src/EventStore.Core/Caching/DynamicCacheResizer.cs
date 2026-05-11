@@ -4,13 +4,16 @@ using System.Diagnostics;
 using EventStore.Common.Utils;
 using Serilog;
 
-namespace EventStore.Core.Caching {
-	public class DynamicCacheResizer : CacheResizer, ICacheResizer {
+namespace EventStore.Core.Caching
+{
+	public class DynamicCacheResizer : CacheResizer, ICacheResizer
+	{
 		private readonly long _minCapacity;
 		private readonly long _maxCapacity;
 
 		public DynamicCacheResizer(ResizerUnit unit, long minCapacity, long maxCapacity, int weight, IDynamicCache cache)
-			: base(unit, cache) {
+			: base(unit, cache)
+		{
 			Ensure.Positive(weight, nameof(weight));
 			Ensure.Nonnegative(minCapacity, nameof(minCapacity));
 			Ensure.Nonnegative(maxCapacity, nameof(maxCapacity));
@@ -24,7 +27,8 @@ namespace EventStore.Core.Caching {
 
 		public long ReservedCapacity => 0;
 
-		public void CalcCapacity(long unreservedCapacity, int totalWeight) {
+		public void CalcCapacity(long unreservedCapacity, int totalWeight)
+		{
 			var sw = Stopwatch.StartNew();
 
 			var oldCapacity = Cache.Capacity;
@@ -42,11 +46,13 @@ namespace EventStore.Core.Caching {
 				Name, Cache.Capacity, diff, sw.ElapsedMilliseconds);
 		}
 
-		public void ResetFreedSize() {
+		public void ResetFreedSize()
+		{
 			Cache.ResetFreedSize();
 		}
 
-		public IEnumerable<CacheStats> GetStats(string parentKey) {
+		public IEnumerable<CacheStats> GetStats(string parentKey)
+		{
 			yield return new CacheStats(BuildStatsKey(parentKey), Name, Cache.Capacity, Size, Count, numChildren: 0);
 		}
 	}

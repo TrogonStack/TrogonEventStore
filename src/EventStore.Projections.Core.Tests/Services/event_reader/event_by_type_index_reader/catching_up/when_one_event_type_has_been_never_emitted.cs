@@ -111,7 +111,9 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_
 				ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos3), "2@test-stream");
 
 				for (var i = 0; i < TailLength; i++)
+				{
 					ExistingEvent("$et-type1", "$>", TFPosToMetadata(_tfPos[i]), (i + 3) + "@test-stream");
+				}
 
 				NoStream("$et-type2");
 				ExistingEvent("$et", ProjectionEventTypes.PartitionCheckpoint, TFPosToMetadata(_tfPos3),

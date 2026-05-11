@@ -31,7 +31,10 @@ public class ConcurrentQueueWrapper<T> : ConcurrentQueue<T>
 	{
 		var dequeued = base.TryDequeue(out result);
 		if (dequeued)
+		{
 			Interlocked.Decrement(ref _queueCount);
+		}
+
 		return dequeued;
 	}
 

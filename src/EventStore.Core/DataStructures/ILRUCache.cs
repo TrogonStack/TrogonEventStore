@@ -1,12 +1,15 @@
 using System;
 using EventStore.Core.Caching;
 
-namespace EventStore.Core.DataStructures {
-	public interface ILRUCache : IDynamicCache {
+namespace EventStore.Core.DataStructures
+{
+	public interface ILRUCache : IDynamicCache
+	{
 		void Clear();
 	}
 
-	public interface ILRUCache<TKey, TValue>: ILRUCache {
+	public interface ILRUCache<TKey, TValue> : ILRUCache
+	{
 		bool TryGet(TKey key, out TValue value);
 		TValue Put(TKey key, TValue value);
 
@@ -14,7 +17,8 @@ namespace EventStore.Core.DataStructures {
 			Func<TKey, TValue, T, TValue> updateFactory);
 	}
 
-	public interface IStickyLRUCache<TKey, TValue> {
+	public interface IStickyLRUCache<TKey, TValue>
+	{
 		void Clear();
 		bool TryGet(TKey key, out TValue value);
 		TValue Put(TKey key, TValue value, int stickiness);

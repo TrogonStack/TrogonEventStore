@@ -102,7 +102,9 @@ public class SpecRunner
 						}
 					}
 					if (stateCount > 2)
+					{
 						throw new InvalidOperationException("Cannot specify more than 2 states");
+					}
 
 					sequence.Events.Add(new InputEvent(et!, e.GetProperty("data").GetRawText(), e.TryGetProperty("metadata", out var metadata) ? metadata.GetRawText() : null, initializedPartitions, expectedStates, skip, e.TryGetProperty("eventId", out var idElement) && idElement.TryGetGuid(out var id) ? id : Guid.NewGuid()));
 				}
@@ -117,18 +119,27 @@ public class SpecRunner
 				{
 					case "definesStateTransform":
 						if (item.Value.GetBoolean())
+						{
 							sdb.SetDefinesStateTransform();
+						}
+
 						break;
 					case "handlesDeletedNotifications":
 						sdb.SetHandlesStreamDeletedNotifications(item.Value.GetBoolean());
 						break;
 					case "producesResults":
 						if (item.Value.GetBoolean())
+						{
 							sdb.SetOutputState();
+						}
+
 						break;
 					case "definesFold":
 						if (item.Value.GetBoolean())
+						{
 							sdb.SetDefinesFold();
+						}
+
 						break;
 					case "resultStreamName":
 						sdb.SetResultStreamNameOption(item.Value.GetString());
@@ -156,7 +167,10 @@ public class SpecRunner
 						break;
 					case "partitioned":
 						if (item.Value.GetBoolean())
+						{
 							sdb.SetByCustomPartitions();
+						}
+
 						break;
 					case "events":
 						foreach (var e in item.Value.EnumerateArray())
@@ -254,9 +268,14 @@ public class SpecRunner
 					var logPosition = i * 100 + j;
 					var flags = PrepareFlags.IsJson | PrepareFlags.Data;
 					if (j == 0)
+					{
 						flags |= PrepareFlags.TransactionBegin;
+					}
+
 					if (j == sequence.Events.Count - 1)
+					{
 						flags |= PrepareFlags.TransactionEnd;
+					}
 
 					/*Sequence:
 					Get partition if bycustom partition or by stream 
@@ -365,7 +384,10 @@ public class SpecRunner
 									Assert.True(runner.ProcessEvent(expectedPartition, CheckpointTag.Empty, "", e,
 										out var newState, out var newSharedState, out var emittedEvents), "Process event should always return true");
 									if (newSharedState != null)
+									{
 										partitionedState[""] = newSharedState;
+									}
+
 									partitionedState[expectedPartition] = newState;
 									if (emittedEvents != null && emittedEvents.Length > 0)
 									{
@@ -449,7 +471,10 @@ public class SpecRunner
 			string Name(string name)
 			{
 				if (name.StartsWith(projection!))
+				{
 					return name;
+				}
+
 				return $"{projection} {name}";
 			}
 		}

@@ -43,11 +43,15 @@ public static class StatsCsvEncoder
 	private static string TryGetInvariantString(object obj)
 	{
 		if (obj == null)
+		{
 			return string.Empty;
+		}
 
 		var convertible = obj as IConvertible;
 		if (convertible != null)
+		{
 			return convertible.ToString(CultureInfo.InvariantCulture);
+		}
 
 		return obj.ToString();
 	}

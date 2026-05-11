@@ -88,10 +88,14 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 
 		var numChunks = checkpoint / ChunkSize;
 		if (checkpoint % ChunkSize != 0)
+		{
 			numChunks++;
+		}
 
 		for (var i = 0; i < numChunks; i++)
+		{
 			chunks.Add(namingStrategy.GetFilenameFor(i, i));
+		}
 
 		return chunks.ToArray();
 	}
@@ -137,11 +141,15 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
 
 		var chunksToGet = new List<string>();
 		for (var i = (int)(dbCheckpoint / ChunkSize); i < (int)(archiveCheckpoint / ChunkSize); i++)
+		{
 			chunksToGet.Add($"chunk-{i}.{i}");
+		}
 
 		var chunksToBackup = new List<string>();
 		if (dbCheckpoint % ChunkSize != 0)
+		{
 			chunksToBackup.Add($"{sut.DbChunks[dbCheckpoint / ChunkSize]}.archive.bkup");
+		}
 
 		await VerifyCatchUp(sut, dbCheckpoint, archiveCheckpoint, chunksToGet.ToArray(), chunksToBackup.ToArray());
 	}

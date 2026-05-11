@@ -4,9 +4,11 @@ using System.Linq;
 using EventStore.Core.Index.Hashes;
 using Serilog;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// add things to the collision detector and it keeps a list of things that collided.
-	public class CollisionDetector<T> {
+	public class CollisionDetector<T>
+	{
 		private static EqualityComparer<T> TComparer { get; } = EqualityComparer<T>.Default;
 
 		private readonly ILogger _logger;
@@ -31,19 +33,23 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ILogger logger,
 			IScavengeMap<ulong, T> hashUsers,
 			IScavengeMap<T, Unit> collisionStorage,
-			ILongHasher<T> hasher) {
+			ILongHasher<T> hasher)
+		{
 			_logger = logger;
 			_hashUsers = hashUsers;
 			_collisions = collisionStorage;
 			_hasher = hasher;
 		}
 
-		public void LogStats() {
+		public void LogStats()
+		{
 			long hits = 0;
 			long misses = 0;
 
 			if (_hashUsers is LruCachingScavengeMap<ulong, T> lru)
+			{
 				lru.GetStats(out hits, out misses);
+			}
 
 			_logger.Debug(
 				"SCAVENGING: CollisionDetector stats: " +
@@ -57,36 +63,45 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			_oldCollisions = 0;
 		}
 
-		public void ClearCaches() {
+		public void ClearCaches()
+		{
 			_collisionsCache = null;
 			_collisionsHashCache = null;
 		}
 
-		public bool IsCollision(T item) {
+		public bool IsCollision(T item)
+		{
 			EnsureCollisionsCache();
 			return _collisionsCache.TryGetValue(item, out _);
 		}
 
-		public bool IsCollisionHash(ulong hash) {
-			if (_collisionsHashCache == null) {
+		public bool IsCollisionHash(ulong hash)
+		{
+			if (_collisionsHashCache == null)
+			{
 				_collisionsHashCache = new Dictionary<ulong, Unit>();
-				foreach (var kvp in _collisions.AllRecords()) {
+				foreach (var kvp in _collisions.AllRecords())
+				{
 					_collisionsHashCache[_hasher.Hash(kvp.Key)] = kvp.Value;
 				}
 			}
 			return _collisionsHashCache.TryGetValue(hash, out _);
 		}
 
-		public IEnumerable<T> AllCollisions() {
+		public IEnumerable<T> AllCollisions()
+		{
 			EnsureCollisionsCache();
 			return _collisionsCache.Keys;
 		}
 
-		private void EnsureCollisionsCache() {
+		private void EnsureCollisionsCache()
+		{
 			if (_collisionsCache == null)
+			{
 				_collisionsCache = _collisions.AllRecords().ToDictionary(
 					x => x.Key,
 					x => x.Value);
+			}
 		}
 
 		// Proof by induction that DetectCollisions works
@@ -132,18 +147,21 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		// Adds an item and detects if it collides with other items that were already added.
 		// `collision` is only defined when returning NewCollision.
 		// in this way we can tell when anything that was not colliding becomes colliding.
-		public CollisionResult DetectCollisions(T item, out T collision) {
-			if (IsCollision(item)) {
+		public CollisionResult DetectCollisions(T item, out T collision)
+		{
+			if (IsCollision(item))
+			{
 				collision = default;
 				_oldCollisions++;
 				return CollisionResult.OldCollision; // previously known collision. 1a or 1b.
-				// _hashes must already have this hash, otherwise it wouldn't be a collision.
-				// so no need to add it it.
+													 // _hashes must already have this hash, otherwise it wouldn't be a collision.
+													 // so no need to add it it.
 			}
 
 			// collision not previously known, but might be a new one now.
 			var itemHash = _hasher.Hash(item);
-			if (!_hashUsers.TryGetValue(itemHash, out collision)) {
+			if (!_hashUsers.TryGetValue(itemHash, out collision))
+			{
 				// hash wasn't even in use. it is now.
 				_hashUsers[itemHash] = item;
 				_newStreams++;
@@ -151,7 +169,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			}
 
 			// hash in use, but maybe by the item itself.
-			if (TComparer.Equals(collision, item)) {
+			if (TComparer.Equals(collision, item))
+			{
 				return CollisionResult.NoCollision; // no collision with oneself. 1c
 			}
 
@@ -164,11 +183,15 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			return CollisionResult.NewCollision;
 		}
 
-		public T LookupUniqueHashUser(ulong streamHash) {
+		public T LookupUniqueHashUser(ulong streamHash)
+		{
 			if (!_hashUsers.TryGetValue(streamHash, out var stream))
+			{
 				throw new Exception($"Tried to get unique user for stream hash: {streamHash} but it is unused");
+			}
 
-			if (IsCollisionHash(streamHash)) {
+			if (IsCollisionHash(streamHash))
+			{
 				var collisions = AllCollisions().Where(x => _hasher.Hash(x) == streamHash);
 				throw new Exception($"Tried to get unique user for stream hash: {streamHash} but there are multiple: {string.Join(",", collisions)}");
 			}

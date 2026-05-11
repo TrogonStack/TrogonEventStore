@@ -25,7 +25,9 @@ public abstract class INameExistenceFilterTests : IDisposable
 	{
 		Sut?.Dispose();
 		foreach (var disposable in _disposables)
+		{
 			disposable.Dispose();
+		}
 	}
 
 	[Fact]
@@ -36,7 +38,10 @@ public abstract class INameExistenceFilterTests : IDisposable
 		await Sut.Initialize(initializer, 0, CancellationToken.None);
 
 		foreach (var name in names)
+		{
 			Assert.True(Sut.MightContain(name));
+		}
+
 		Sut.Verify(corruptionThreshold: 0);
 	}
 
@@ -62,9 +67,15 @@ public abstract class INameExistenceFilterTests : IDisposable
 	public void can_add_many()
 	{
 		for (int i = 0; i < 1000; i++)
+		{
 			Sut.Add($"{i}");
+		}
+
 		for (int i = 0; i < 1000; i++)
+		{
 			Assert.True(Sut.MightContain($"{i}"));
+		}
+
 		Sut.Verify(corruptionThreshold: 0);
 	}
 

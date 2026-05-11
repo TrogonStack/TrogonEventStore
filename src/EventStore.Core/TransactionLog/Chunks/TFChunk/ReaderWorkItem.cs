@@ -74,7 +74,9 @@ internal sealed class ReaderWorkItem : Disposable
 		if (disposing)
 		{
 			if (!_leaveOpen)
+			{
 				BaseStream.Dispose();
+			}
 		}
 
 		base.Dispose(disposing);

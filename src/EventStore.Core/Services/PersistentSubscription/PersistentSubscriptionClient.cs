@@ -92,10 +92,16 @@ public class PersistentSubscriptionClient
 		foreach (var processedEventId in processedEventIds)
 		{
 			if (_extraStatistics != null)
+			{
 				_extraStatistics.EndOperation(processedEventId);
+			}
+
 			OutstandingMessage ev;
 			if (!_unconfirmedEvents.TryGetValue(processedEventId, out ev))
+			{
 				continue;
+			}
+
 			_unconfirmedEvents.Remove(processedEventId);
 			removedAny = true;
 			_allowedMessages++;
@@ -116,7 +122,9 @@ public class PersistentSubscriptionClient
 		_allowedMessages--;
 		Interlocked.Increment(ref _totalItems);
 		if (_extraStatistics != null)
+		{
 			_extraStatistics.StartOperation(evnt.OriginalEvent.EventId);
+		}
 
 		_envelope.ReplyWith(
 			new ClientMessage.PersistentSubscriptionStreamEventAppeared(CorrelationId, evnt, message.RetryCount));
@@ -153,6 +161,8 @@ public class PersistentSubscriptionClient
 	{
 		var handler = EventConfirmed;
 		if (handler != null)
+		{
 			handler(this, ev.ResolvedEvent);
+		}
 	}
 }

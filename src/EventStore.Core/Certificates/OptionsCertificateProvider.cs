@@ -128,7 +128,9 @@ namespace EventStore.Core.Certificates
 			}
 
 			if (error)
+			{
 				return false;
+			}
 
 			var chainStatus = CertificateUtils.BuildChain(nodeCertificate, intermediates, trustedRoots, out var chainStatusInformation);
 

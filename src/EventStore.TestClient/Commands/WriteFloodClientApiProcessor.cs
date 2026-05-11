@@ -30,16 +30,23 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length < 2 || args.Length > 4)
+			{
 				return false;
+			}
 
 			try
 			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
 				if (args.Length >= 3)
+				{
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
+				}
+
 				if (args.Length >= 4)
+				{
 					size = MetricPrefixValue.ParseInt(args[3]);
+				}
 			}
 			catch
 			{
@@ -106,7 +113,10 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 
 						var localAll = Interlocked.Increment(ref succ);
 						if (localAll % 1000 == 0)
+						{
 							Console.Write('.');
+						}
+
 						if (localAll % 100000 == 0)
 						{
 							var elapsed = sw2.Elapsed;
@@ -161,8 +171,12 @@ internal class WriteFloodClientApiProcessor : ICmdProcessor
 				streamsCnt, size), failuresRate);
 
 		if (Interlocked.Read(ref succ) != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
+		}
 		else
+		{
 			context.Success();
+		}
 	}
 }

@@ -1,8 +1,10 @@
 using System;
 using EventStore.Core.TransactionLog.LogRecords;
 
-namespace EventStore.Core.LogAbstraction {
-	public static class INameIndexExtensions {
+namespace EventStore.Core.LogAbstraction
+{
+	public static class INameIndexExtensions
+	{
 		// todo: rename to GetOrReserveStream when we generalise to EventTypes too.
 		/// Generates a StreamRecord if necessary
 		public static bool GetOrReserve<TStreamId>(
@@ -11,12 +13,14 @@ namespace EventStore.Core.LogAbstraction {
 			string streamName,
 			long logPosition,
 			out TStreamId streamId,
-			out IPrepareLogRecord<TStreamId> streamRecord) {
+			out IPrepareLogRecord<TStreamId> streamRecord)
+		{
 
 			var preExisting = streamNameIndex.GetOrReserve(streamName, out streamId, out var addedId, out var addedName);
 
 			var appendNewStream = recordFactory.ExplicitStreamCreation && !preExisting;
-			if (!appendNewStream) {
+			if (!appendNewStream)
+			{
 				streamRecord = null;
 				return preExisting;
 			}
@@ -30,19 +34,21 @@ namespace EventStore.Core.LogAbstraction {
 
 			return preExisting;
 		}
-		
+
 		public static bool GetOrReserveEventType<TStreamId>(
 			this INameIndex<TStreamId> eventTypeIndex,
 			IRecordFactory<TStreamId> recordFactory,
 			string eventType,
 			long logPosition,
 			out TStreamId eventTypeId,
-			out IPrepareLogRecord<TStreamId> eventTypeRecord) {
+			out IPrepareLogRecord<TStreamId> eventTypeRecord)
+		{
 
 			var preExisting = eventTypeIndex.GetOrReserve(eventType, out eventTypeId, out var addedNumber, out var addedName);
 
 			var appendNewEventType = recordFactory.ExplicitEventTypeCreation && !preExisting;
-			if (!appendNewEventType) {
+			if (!appendNewEventType)
+			{
 				eventTypeRecord = null;
 				return preExisting;
 			}
@@ -61,10 +67,13 @@ namespace EventStore.Core.LogAbstraction {
 
 		public static TStreamId GetExisting<TStreamId>(
 			this INameIndex<TStreamId> nameIndex,
-			string name) {
+			string name)
+		{
 
 			if (!nameIndex.GetOrReserve(name, out var value, out _, out _))
+			{
 				throw new Exception($"{name} was expected to already exist but it didn not");
+			}
 
 			return value;
 		}

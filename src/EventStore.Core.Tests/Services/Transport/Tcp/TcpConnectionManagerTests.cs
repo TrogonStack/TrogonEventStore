@@ -324,7 +324,9 @@ internal class DummyTcpConnection : ITcpConnection
 	{
 		var handler = ConnectionClosed;
 		if (handler != null)
+		{
 			handler(this, SocketError.Shutdown);
+		}
 	}
 
 	public IEnumerable<ArraySegment<byte>> ReceivedData;

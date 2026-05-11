@@ -251,7 +251,9 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 					{
 						var commit = (CommitLogRecord)result.LogRecord;
 						if (commit.TransactionPosition >= chunkStartPos)
+						{
 							threadLocalCache.Commits.Add(commit.TransactionPosition, new CommitInfo(commit));
+						}
 					}
 				}).ToAsync());
 
@@ -280,7 +282,9 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 
 			newSize += filteredCount * PosMap.FullSize + ChunkHeader.Size + ChunkFooter.Size;
 			if (newChunk.ChunkHeader.Version >= (byte)TFChunk.TFChunk.ChunkVersions.Aligned)
+			{
 				newSize = TFChunk.TFChunk.GetAlignedSize((int)newSize);
+			}
 
 			bool oldVersion = oldChunk.ChunkHeader.Version < (byte)TFChunk.TFChunk.ChunkVersions.Aligned;
 			long oldSize = oldChunk.FileSize;
@@ -311,7 +315,9 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 
 					// Check log record, if not present then assume we can skip.
 					if (recordReadResult.LogRecord is not null)
+					{
 						positionMapping.Add(await WriteRecord(newChunk, recordReadResult.LogRecord, ct));
+					}
 
 					var currentPage = newChunk.RawWriterPosition / 4096;
 					if (currentPage - lastFlushedPage > FlushPageInterval)
@@ -338,10 +344,10 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				if (chunk is not null)
 				{
 					_logger.Debug("Scavenging of chunks:"
-					              + "\n{oldChunkName}"
-					              + "\ncompleted in {elapsed}."
-					              + "\nNew chunk: {tmpChunkPath} --> #{chunkStartNumber}-{chunkEndNumber} ({newChunk})."
-					              + "\nOld chunk total size: {oldSize}, scavenged chunk size: {newSize}.",
+								  + "\n{oldChunkName}"
+								  + "\ncompleted in {elapsed}."
+								  + "\nNew chunk: {tmpChunkPath} --> #{chunkStartNumber}-{chunkEndNumber} ({newChunk})."
+								  + "\nOld chunk total size: {oldSize}, scavenged chunk size: {newSize}.",
 						oldChunkName, sw.Elapsed, Path.GetFileName(tmpChunkPath), chunkStartNumber, chunkEndNumber,
 						Path.GetFileName(chunk.LocalFileName), oldSize, newSize);
 					var spaceSaved = oldSize - newSize;
@@ -350,10 +356,10 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				else
 				{
 					_logger.Debug("Scavenging of chunks:"
-					              + "\n{oldChunkName}"
-					              + "\ncompleted in {elapsed}."
-					              + "\nBut switching was prevented for new chunk: #{chunkStartNumber}-{chunkEndNumber} ({tmpChunkPath})."
-					              + "\nOld chunks total size: {oldSize}, scavenged chunk size: {newSize}.",
+								  + "\n{oldChunkName}"
+								  + "\ncompleted in {elapsed}."
+								  + "\nBut switching was prevented for new chunk: #{chunkStartNumber}-{chunkEndNumber} ({tmpChunkPath})."
+								  + "\nOld chunks total size: {oldSize}, scavenged chunk size: {newSize}.",
 						oldChunkName, sw.Elapsed, chunkStartNumber, chunkEndNumber, Path.GetFileName(tmpChunkPath),
 						oldSize, newSize);
 					_scavengerLog.ChunksNotScavenged(chunkStartNumber, chunkEndNumber, sw.Elapsed,
@@ -416,15 +422,17 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				if (totalDataSize + chunk.PhysicalDataSize > maxChunkDataSize)
 				{
 					if (chunksToMerge.Count == 0)
+					{
 						throw new Exception("SCAVENGING: No chunks to merge, unexpectedly...");
+					}
 
 					if (chunksToMerge.Count > 1 &&
-					    await MergeChunks(
-						    logger: logger,
-						    db: db,
-						    scavengerLog: scavengerLog,
-						    oldChunks: chunksToMerge,
-						    ct: ct))
+						await MergeChunks(
+							logger: logger,
+							db: db,
+							scavengerLog: scavengerLog,
+							oldChunks: chunksToMerge,
+							ct: ct))
 					{
 
 						mergedSomething = true;
@@ -442,11 +450,11 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 			if (chunksToMerge.Count > 1)
 			{
 				if (await MergeChunks(
-					    logger: logger,
-					    db: db,
-					    scavengerLog: scavengerLog,
-					    oldChunks: chunksToMerge,
-					    ct: ct))
+						logger: logger,
+						db: db,
+						scavengerLog: scavengerLog,
+						oldChunks: chunksToMerge,
+						ct: ct))
 				{
 
 					mergedSomething = true;
@@ -466,7 +474,10 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 		CancellationToken ct)
 	{
 
-		if (oldChunks.IsEmpty()) throw new ArgumentException("Provided list of chunks to merge is empty.");
+		if (oldChunks.IsEmpty())
+		{
+			throw new ArgumentException("Provided list of chunks to merge is empty.");
+		}
 
 		var oldChunksList = string.Join("\n", oldChunks);
 
@@ -483,7 +494,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 
 		var tmpChunkPath = Path.Combine(db.Config.Path, Guid.NewGuid() + ".merge.scavenge.tmp");
 		logger.Debug("SCAVENGING: Started to merge chunks: {oldChunksList}"
-		             + "\nResulting temp chunk file: {tmpChunkPath}.",
+					 + "\nResulting temp chunk file: {tmpChunkPath}.",
 			oldChunksList, Path.GetFileName(tmpChunkPath));
 
 		TFChunk.TFChunk newChunk;
@@ -584,7 +595,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 		catch (OperationCanceledException)
 		{
 			logger.Information("Scavenging cancelled at:"
-			                   + "\n{oldChunksList}",
+							   + "\n{oldChunksList}",
 				oldChunksList);
 			newChunk.MarkForDeletion();
 			scavengerLog.ChunksNotMerged(chunkStartNumber, chunkEndNumber, sw.Elapsed, "Scavenge cancelled");
@@ -593,8 +604,8 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 		catch (Exception ex)
 		{
 			logger.Information("Got exception while merging chunk:"
-			                   + "\n{oldChunks}"
-			                   + "\nException: {e}",
+							   + "\n{oldChunks}"
+							   + "\nException: {e}",
 				oldChunks, ex.ToString()
 			);
 			newChunk.Dispose();
@@ -625,7 +636,10 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 				logger.Error("Failed to delete the temp chunk. Retry limit of {maxRetryCount} reached. Reason: {e}",
 					MaxRetryCount, ex);
 				if (ex is System.IO.IOException)
+				{
 					WindowsProcessUtil.PrintWhoIsLocking(tmpChunkPath, logger);
+				}
+
 				throw;
 			}
 		}
@@ -640,12 +654,18 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 			case LogRecordType.Prepare:
 				var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
 				if (await ShouldKeepPrepare(prepare, commits, chunkStartPos, chunkEndPos, token))
+				{
 					return true;
+				}
+
 				break;
 			case LogRecordType.Commit:
 				var commit = (CommitLogRecord)result.LogRecord;
 				if (ShouldKeepCommit(commit, commits))
+				{
 					return true;
+				}
+
 				break;
 			case LogRecordType.ContentType:
 			case LogRecordType.EventType:
@@ -762,7 +782,7 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 
 		var eventNumber = prepare.Flags.HasAnyOf(PrepareFlags.IsCommitted)
 			? prepare.ExpectedVersion + 1 // IsCommitted prepares always have explicit expected version
-			// we always have commitInfo.EventNumber here because we early returned if isCommitted is false
+										  // we always have commitInfo.EventNumber here because we early returned if isCommitted is false
 			: commitInfo.EventNumber + prepare.TransactionOffset;
 
 		if (await DiscardBecauseDuplicate(prepare, eventNumber, token))
@@ -784,8 +804,8 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 
 		var meta = await _readIndex.GetStreamMetadata(prepare.EventStreamId, token);
 		bool canRemove = (meta.MaxCount.HasValue && eventNumber < lastEventNumber - meta.MaxCount.Value + 1)
-		                 || (meta.TruncateBefore.HasValue && eventNumber < meta.TruncateBefore.Value)
-		                 || (meta.MaxAge.HasValue && prepare.TimeStamp < DateTime.UtcNow - meta.MaxAge.Value);
+						 || (meta.TruncateBefore.HasValue && eventNumber < meta.TruncateBefore.Value)
+						 || (meta.MaxAge.HasValue && prepare.TimeStamp < DateTime.UtcNow - meta.MaxAge.Value);
 
 		if (canRemove)
 		{
@@ -820,7 +840,10 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 			var originalStreamId = _metastreams.OriginalStreamOf(eventStreamId);
 			var meta = await _readIndex.GetStreamMetadata(originalStreamId, token);
 			if (meta.TruncateBefore != EventNumber.DeletedStream || meta.TempStream != true)
+			{
 				return false;
+			}
+
 			sh = originalStreamId;
 			msh = eventStreamId;
 		}
@@ -828,20 +851,23 @@ public class TFChunkScavenger<TStreamId> : TFChunkScavenger
 		{
 			var meta = await _readIndex.GetStreamMetadata(eventStreamId, token);
 			if (meta.TruncateBefore != EventNumber.DeletedStream || meta.TempStream != true)
+			{
 				return false;
+			}
+
 			sh = eventStreamId;
 			msh = _metastreams.MetaStreamOf(eventStreamId);
 		}
 
 		IndexEntry e;
 		var allInChunk = _tableIndex.TryGetOldestEntry(sh, out e) && e.Position >= chunkStart &&
-		                 e.Position < chunkEnd
-		                 && _tableIndex.TryGetLatestEntry(sh, out e) && e.Position >= chunkStart &&
-		                 e.Position < chunkEnd
-		                 && _tableIndex.TryGetOldestEntry(msh, out e) && e.Position >= chunkStart &&
-		                 e.Position < chunkEnd
-		                 && _tableIndex.TryGetLatestEntry(msh, out e) && e.Position >= chunkStart &&
-		                 e.Position < chunkEnd;
+						 e.Position < chunkEnd
+						 && _tableIndex.TryGetLatestEntry(sh, out e) && e.Position >= chunkStart &&
+						 e.Position < chunkEnd
+						 && _tableIndex.TryGetOldestEntry(msh, out e) && e.Position >= chunkStart &&
+						 e.Position < chunkEnd
+						 && _tableIndex.TryGetLatestEntry(msh, out e) && e.Position >= chunkStart &&
+						 e.Position < chunkEnd;
 		return allInChunk;
 	}
 
@@ -957,7 +983,9 @@ internal static class CommitInfoExtensions
 	public static void ForciblyKeep<TStreamId>(this TFChunkScavenger<TStreamId>.CommitInfo commitInfo)
 	{
 		if (commitInfo != null)
+		{
 			commitInfo.KeepCommit = true;
+		}
 	}
 
 	public static void TryNotToKeep<TStreamId>(this TFChunkScavenger<TStreamId>.CommitInfo commitInfo)
@@ -965,6 +993,8 @@ internal static class CommitInfoExtensions
 		// If someone decided definitely to keep corresponding commit then we shouldn't interfere.
 		// Otherwise we should point that yes, you can remove commit for this prepare.
 		if (commitInfo != null)
+		{
 			commitInfo.KeepCommit = commitInfo.KeepCommit ?? false;
+		}
 	}
 }

@@ -3,10 +3,10 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Core.Transforms.Identity;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.Transforms.Identity;
 using EventStore.Plugins.Transforms;
 using NUnit.Framework;
 
@@ -46,12 +46,12 @@ public class when_completing_a_tfchunk_writer_with_a_cancelable_token : Specific
 	public async Task complete_chunk_flushes_the_writer_checkpoint_even_if_cancellation_arrives_after_completion()
 	{
 		using var cancellationTokenSource = new CancellationTokenSource();
-			_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("chunk-000000.000000")),
-				GetFilePathFor("chunk-000000.000000"), 4096, 0, 0,
-				isScavenged: false, unbuffered: false,
-				writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
-			transformFactory: new CancelDuringCompletionTransformFactory(cancellationTokenSource),
-			token: CancellationToken.None);
+		_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(GetFilePathFor("chunk-000000.000000")),
+			GetFilePathFor("chunk-000000.000000"), 4096, 0, 0,
+			isScavenged: false, unbuffered: false,
+			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
+		transformFactory: new CancelDuringCompletionTransformFactory(cancellationTokenSource),
+		token: CancellationToken.None);
 		SetCurrentChunk(_writer, _chunk);
 
 		Assert.DoesNotThrowAsync(async () => await _writer.CompleteChunk(cancellationTokenSource.Token));

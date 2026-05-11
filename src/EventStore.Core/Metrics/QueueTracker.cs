@@ -1,12 +1,14 @@
 using EventStore.Core.Time;
 
-namespace EventStore.Core.Metrics {
+namespace EventStore.Core.Metrics
+{
 	// Composite tracker for tracking the various things that queues want to track.
 	// i.e.
 	//   - queue being busy/idle
 	//   - Duration items spent in the queue
 	//   - Processing time of items at the end of the queue
-	public class QueueTracker {
+	public class QueueTracker
+	{
 		private readonly string _name;
 		private readonly IQueueBusyTracker _busyTracker;
 		private readonly IDurationMaxTracker _queueingDurationTracker;
@@ -18,7 +20,8 @@ namespace EventStore.Core.Metrics {
 			IQueueBusyTracker busyTracker,
 			IDurationMaxTracker queueingDurationTracker,
 			IQueueProcessingTracker processingDurationTracker,
-			IClock clock = null) {
+			IClock clock = null)
+		{
 
 			_name = name;
 			_queueingDurationTracker = queueingDurationTracker;
@@ -35,11 +38,13 @@ namespace EventStore.Core.Metrics {
 
 		public void EnterIdle() => _busyTracker.EnterIdle();
 
-		public Instant RecordMessageDequeued(Instant enqueuedAt) {
+		public Instant RecordMessageDequeued(Instant enqueuedAt)
+		{
 			return _queueingDurationTracker.RecordNow(enqueuedAt);
 		}
 
-		public Instant RecordMessageProcessed(Instant processingStartedAt, string messageType) {
+		public Instant RecordMessageProcessed(Instant processingStartedAt, string messageType)
+		{
 			return _queueProcessingTracker.RecordNow(processingStartedAt, messageType);
 		}
 	}

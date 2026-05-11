@@ -79,8 +79,11 @@ public class CoreProjectionQueue
 	public void EnqueueOutOfOrderTask(WorkItem workItem)
 	{
 		if (_lastEnqueuedEventTag == null)
+		{
 			throw new InvalidOperationException(
 				"Cannot enqueue an out-of-order task.  The projection position is currently unknown.");
+		}
+
 		workItem.SetProjectionQueue(this);
 		workItem.SetCheckpointTag(_lastEnqueuedEventTag);
 		_queuePendingEvents.Enqueue(workItem);
@@ -107,10 +110,13 @@ public class CoreProjectionQueue
 	{
 		if (eventTag < _lastEnqueuedEventTag ||
 			(!(allowCurrentPosition || _justInitialized) && eventTag <= _lastEnqueuedEventTag))
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Invalid order.  Last known tag is: '{0}'.  Current tag is: '{1}'", _lastEnqueuedEventTag,
 					eventTag));
+		}
+
 		_justInitialized = _justInitialized && (eventTag == _lastEnqueuedEventTag);
 		_lastEnqueuedEventTag = eventTag;
 	}
@@ -118,7 +124,10 @@ public class CoreProjectionQueue
 	private void PauseSubscription()
 	{
 		if (_subscriptionId == Guid.Empty)
+		{
 			throw new InvalidOperationException("Not subscribed");
+		}
+
 		if (!_subscriptionPaused && !_unsubscribed)
 		{
 			_subscriptionPaused = true;
@@ -130,7 +139,10 @@ public class CoreProjectionQueue
 	private void ResumeSubscription()
 	{
 		if (_subscriptionId == Guid.Empty)
+		{
 			throw new InvalidOperationException("Not subscribed");
+		}
+
 		if (_subscriptionPaused && !_unsubscribed)
 		{
 			_subscriptionPaused = false;
@@ -146,10 +158,15 @@ public class CoreProjectionQueue
 	private bool ProcessOneEventBatch()
 	{
 		if (_queuePendingEvents.Count > _pendingEventsThreshold)
+		{
 			PauseSubscription();
+		}
+
 		var processed = _queuePendingEvents.Process(max: 30);
 		if (_subscriptionPaused && _queuePendingEvents.Count < _pendingEventsThreshold / 2)
+		{
 			ResumeSubscription();
+		}
 
 		return processed;
 	}
@@ -162,9 +179,15 @@ public class CoreProjectionQueue
 	public void Subscribed(Guid currentSubscriptionId)
 	{
 		if (_unsubscribed)
+		{
 			throw new InvalidOperationException("Unsubscribed");
+		}
+
 		if (_subscriptionId != Guid.Empty)
+		{
 			throw new InvalidOperationException("Already subscribed");
+		}
+
 		_subscriptionId = currentSubscriptionId;
 	}
 

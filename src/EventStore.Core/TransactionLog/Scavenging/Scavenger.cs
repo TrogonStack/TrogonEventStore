@@ -262,7 +262,7 @@ public class Scavenger<TStreamId>(
 		{
 			// got the latest scavenge point
 			if (prevScavengePoint == null ||
-			    prevScavengePoint.EventNumber < latestScavengePoint.EventNumber)
+				prevScavengePoint.EventNumber < latestScavengePoint.EventNumber)
 			{
 				// the latest scavengepoint is suitable
 				logger.Debug(

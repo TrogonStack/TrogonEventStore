@@ -22,7 +22,10 @@ public class TransactionFileEventFilter : EventFilter
 	public override bool PassesSource(bool resolvedFromLinkTo, string positionStreamId, string eventType)
 	{
 		if (!_includeLinks && eventType == SystemEventTypes.LinkTo)
+		{
 			return false;
+		}
+
 		return (_includeLinks || !resolvedFromLinkTo)
 			   && (!SystemStreams.IsSystemStream(positionStreamId)
 				   || SystemStreams.IsMetastream(positionStreamId)

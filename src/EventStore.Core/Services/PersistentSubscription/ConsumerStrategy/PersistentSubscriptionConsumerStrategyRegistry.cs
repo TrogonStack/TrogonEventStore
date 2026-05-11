@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using EventStore.Core.Bus;
 using EventStore.Core.Index.Hashes;
 
-namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy {
-	public class PersistentSubscriptionConsumerStrategyRegistry {
+namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy
+{
+	public class PersistentSubscriptionConsumerStrategyRegistry
+	{
 		private readonly IPublisher _mainQueue;
 		private readonly ISubscriber _mainBus;
 
@@ -12,7 +14,8 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy {
 			new Dictionary<string, IPersistentSubscriptionConsumerStrategyFactory>();
 
 		public PersistentSubscriptionConsumerStrategyRegistry(IPublisher mainQueue, ISubscriber mainBus,
-			IReadOnlyList<IPersistentSubscriptionConsumerStrategyFactory> additionalConsumerStrategies) {
+			IReadOnlyList<IPersistentSubscriptionConsumerStrategyFactory> additionalConsumerStrategies)
+		{
 			_mainQueue = mainQueue;
 			_mainBus = mainBus;
 			Register(new DelegatePersistentSubscriptionConsumerStrategyFactory(SystemConsumerStrategies.RoundRobin,
@@ -25,19 +28,23 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy {
 			Register(new DelegatePersistentSubscriptionConsumerStrategyFactory(SystemConsumerStrategies.PinnedByCorrelation,
 				(subId, queue, bus) => new PinnedByCorrelationPersistentSubscriptionConsumerStrategy(new XXHashUnsafe())));
 
-			foreach (var consumerStrategyFactory in additionalConsumerStrategies) {
+			foreach (var consumerStrategyFactory in additionalConsumerStrategies)
+			{
 				Register(consumerStrategyFactory);
 			}
 		}
 
-		private void Register(IPersistentSubscriptionConsumerStrategyFactory factory) {
+		private void Register(IPersistentSubscriptionConsumerStrategyFactory factory)
+		{
 			// Note this is designed to replace strategies of the same name to allow overriding.
 			_factoryLookup[factory.StrategyName] = factory;
 		}
 
 		public IPersistentSubscriptionConsumerStrategy
-			GetInstance(string namedConsumerStrategy, string subscriptionId) {
-			if (!ValidateStrategy(namedConsumerStrategy)) {
+			GetInstance(string namedConsumerStrategy, string subscriptionId)
+		{
+			if (!ValidateStrategy(namedConsumerStrategy))
+			{
 				throw new ArgumentException(
 					string.Format("The named consumer strategy '{0}' is unknown.", namedConsumerStrategy),
 					"namedConsumerStrategy");
@@ -46,7 +53,8 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy {
 			return _factoryLookup[namedConsumerStrategy].Create(subscriptionId, _mainQueue, _mainBus);
 		}
 
-		public bool ValidateStrategy(string name) {
+		public bool ValidateStrategy(string name)
+		{
 			return _factoryLookup.ContainsKey(name);
 		}
 	}

@@ -9,21 +9,23 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Archive.Archiver;
-using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.Services.Archive.Archiver.Unmerger;
 using EventStore.Core.Services.Archive.Naming;
+using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.TransactionLog.Chunks;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Archiver;
 
-public class ArchiverServiceTests {
+public class ArchiverServiceTests
+{
 	private const int ChunkSize = TFConsts.ChunkSize;
 
 	private static (ArchiverService, FakeArchiveStorage) CreateSut(
 		TimeSpan? chunkStorageDelay = null,
 		string[] existingChunks = null,
-		long? existingCheckpoint = null) {
+		long? existingCheckpoint = null)
+	{
 		var archive = new FakeArchiveStorage(
 			chunkStorageDelay ?? TimeSpan.Zero,
 			existingChunks ?? Array.Empty<string>(),
@@ -32,30 +34,38 @@ public class ArchiverServiceTests {
 		return (service, archive);
 	}
 
-	private static ChunkInfo GetChunkInfo(int chunkStartNumber, int chunkEndNumber, bool complete = true, bool remote = false) {
-		return new ChunkInfo {
+	private static ChunkInfo GetChunkInfo(int chunkStartNumber, int chunkEndNumber, bool complete = true, bool remote = false)
+	{
+		return new ChunkInfo
+		{
 			ChunkStartNumber = chunkStartNumber,
 			ChunkEndNumber = chunkEndNumber,
-			ChunkStartPosition = (long) chunkStartNumber * ChunkSize,
-			ChunkEndPosition = (long) (chunkEndNumber + 1) * ChunkSize,
+			ChunkStartPosition = (long)chunkStartNumber * ChunkSize,
+			ChunkEndPosition = (long)(chunkEndNumber + 1) * ChunkSize,
 			IsCompleted = complete,
 			ChunkLocator = $"{chunkStartNumber}-{chunkEndNumber}",
 			IsRemote = remote
 		};
 	}
 
-	private static async Task WaitFor(FakeArchiveStorage archive, int numStores = -1, int numCheckpoints = -1) {
+	private static async Task WaitFor(FakeArchiveStorage archive, int numStores = -1, int numCheckpoints = -1)
+	{
 		var minDelay = TimeSpan.FromMilliseconds(200);
 		await Task.Delay(minDelay);
 		if (numStores >= 0)
+		{
 			AssertEx.IsOrBecomesTrue(() => archive.NumStores >= numStores, timeout: TimeSpan.FromSeconds(10));
+		}
 
 		if (numCheckpoints >= 0)
+		{
 			AssertEx.IsOrBecomesTrue(() => archive.NumCheckpoints >= numCheckpoints, timeout: TimeSpan.FromSeconds(10));
+		}
 	}
 
 	[Fact]
-	public async Task archives_a_completed_chunk_if_its_committed() {
+	public async Task archives_a_completed_chunk_if_its_committed()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0);
@@ -69,7 +79,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_a_completed_chunk_if_its_not_yet_committed() {
+	public async Task doesnt_archive_a_completed_chunk_if_its_not_yet_committed()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0);
@@ -84,7 +95,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task archives_an_existing_chunk_if_its_complete() {
+	public async Task archives_an_existing_chunk_if_its_complete()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: true);
@@ -97,7 +109,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_an_existing_chunk_if_its_not_complete() {
+	public async Task doesnt_archive_an_existing_chunk_if_its_not_complete()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: false);
@@ -110,7 +123,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_an_existing_chunk_if_the_node_hasnt_joined_the_cluster_yet() {
+	public async Task doesnt_archive_an_existing_chunk_if_the_node_hasnt_joined_the_cluster_yet()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: true);
@@ -122,7 +136,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task archives_a_switched_chunk() {
+	public async Task archives_a_switched_chunk()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: true);
@@ -135,7 +150,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_a_remote_switched_chunk() {
+	public async Task doesnt_archive_a_remote_switched_chunk()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: true, remote: true);
@@ -148,7 +164,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_a_remote_existing_chunk() {
+	public async Task doesnt_archive_a_remote_existing_chunk()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: true, remote: true);
@@ -161,7 +178,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_a_remote_completed_chunk() {
+	public async Task doesnt_archive_a_remote_completed_chunk()
+	{
 		var (sut, archive) = CreateSut();
 
 		var chunkInfo = GetChunkInfo(0, 0, complete: true, remote: true);
@@ -174,7 +192,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task archives_chunks_in_order() {
+	public async Task archives_chunks_in_order()
+	{
 		var (sut, archive) = CreateSut(chunkStorageDelay: TimeSpan.FromMilliseconds(100));
 
 		sut.Handle(new SystemMessage.ChunkCompleted(GetChunkInfo(3, 3, complete: true)));
@@ -193,7 +212,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task prioritizes_archiving_of_scavenged_chunks_over_new_chunks() {
+	public async Task prioritizes_archiving_of_scavenged_chunks_over_new_chunks()
+	{
 		var (sut, archive) = CreateSut(chunkStorageDelay: TimeSpan.FromMilliseconds(100));
 
 		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(0));
@@ -215,8 +235,9 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_archive_existing_chunks_that_were_already_archived() {
-		var (sut, archive) = CreateSut(existingChunks:	[ "chunk-0-0", "chunk-1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
+	public async Task doesnt_archive_existing_chunks_that_were_already_archived()
+	{
+		var (sut, archive) = CreateSut(existingChunks: ["chunk-0-0", "chunk-1-1"], existingCheckpoint: 2 * TFConsts.ChunkSize);
 
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(0, 0, complete: true)));
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(1, 1, complete: true)));
@@ -226,12 +247,13 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 2);
 
-		Assert.Equal([ "chunk-0-0", "chunk-1-1", "chunk-2-2.renamed", "chunk-3-3.renamed" ], archive.Chunks);
+		Assert.Equal(["chunk-0-0", "chunk-1-1", "chunk-2-2.renamed", "chunk-3-3.renamed"], archive.Chunks);
 	}
 
 	[Fact]
-	public async Task archives_an_existing_chunk_if_it_starts_before_but_ends_after_the_checkpoint() {
-		var (sut, archive) = CreateSut(existingChunks:	[ "chunk-0-0", "chunk-1-1" ], existingCheckpoint: 2 * TFConsts.ChunkSize);
+	public async Task archives_an_existing_chunk_if_it_starts_before_but_ends_after_the_checkpoint()
+	{
+		var (sut, archive) = CreateSut(existingChunks: ["chunk-0-0", "chunk-1-1"], existingCheckpoint: 2 * TFConsts.ChunkSize);
 
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(0, 0, complete: true)));
 		sut.Handle(new SystemMessage.ChunkLoaded(GetChunkInfo(1, 2, complete: true))); // <-- the chunk being tested
@@ -240,11 +262,12 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 3);
 
-		Assert.Equal([ "chunk-0-0", "chunk-1-1", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed" ], archive.Chunks);
+		Assert.Equal(["chunk-0-0", "chunk-1-1", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed"], archive.Chunks);
 	}
 
 	[Fact]
-	public async Task cancels_archiving_when_system_shuts_down() {
+	public async Task cancels_archiving_when_system_shuts_down()
+	{
 		var (sut, archive) = CreateSut(TimeSpan.FromMilliseconds(100));
 
 		var chunkInfo = GetChunkInfo(0, 0);
@@ -254,11 +277,12 @@ public class ArchiverServiceTests {
 
 		await WaitFor(archive, numStores: 0);
 
-		Assert.Equal([ ], archive.Chunks);
+		Assert.Equal([], archive.Chunks);
 	}
 
 	[Fact]
-	public async Task moves_the_archive_checkpoint_forward() {
+	public async Task moves_the_archive_checkpoint_forward()
+	{
 		var (sut, archive) = CreateSut();
 
 		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(0));
@@ -281,7 +305,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task doesnt_move_the_archive_checkpoint_backward() {
+	public async Task doesnt_move_the_archive_checkpoint_backward()
+	{
 		var (sut, archive) = CreateSut();
 
 		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(0));
@@ -304,7 +329,8 @@ public class ArchiverServiceTests {
 	}
 
 	[Fact]
-	public async Task unmerges_merged_chunks_when_archiving() {
+	public async Task unmerges_merged_chunks_when_archiving()
+	{
 		var (sut, archive) = CreateSut();
 
 		sut.Handle(new SystemMessage.ChunkSwitched(GetChunkInfo(0, 4, complete: true)));
@@ -320,21 +346,26 @@ public class ArchiverServiceTests {
 	}
 }
 
-internal class FakeSubscriber : ISubscriber {
+internal class FakeSubscriber : ISubscriber
+{
 	public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message { }
 	public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message { }
 }
 
-internal class FakeUnmerger : IChunkUnmerger {
-	public async IAsyncEnumerable<string> Unmerge(string chunkPath, int chunkStartNumber, int chunkEndNumber) {
+internal class FakeUnmerger : IChunkUnmerger
+{
+	public async IAsyncEnumerable<string> Unmerge(string chunkPath, int chunkStartNumber, int chunkEndNumber)
+	{
 		await Task.Delay(TimeSpan.Zero);
-		for (var i = chunkStartNumber; i <= chunkEndNumber; i++) {
+		for (var i = chunkStartNumber; i <= chunkEndNumber; i++)
+		{
 			yield return $"{i}-{i}";
 		}
 	}
 }
 
-internal class FakeArchiveChunkNamer : IArchiveChunkNamer {
+internal class FakeArchiveChunkNamer : IArchiveChunkNamer
+{
 	public string Prefix => "chunk-";
 
 	public string GetFileNameFor(int logicalChunkNumber) => $"{Prefix}{logicalChunkNumber}-{logicalChunkNumber}.renamed";

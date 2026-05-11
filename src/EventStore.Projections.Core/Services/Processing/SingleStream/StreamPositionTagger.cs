@@ -12,9 +12,15 @@ public class StreamPositionTagger : PositionTagger
 	public StreamPositionTagger(int phase, string stream) : base(phase)
 	{
 		if (stream == null)
+		{
 			throw new ArgumentNullException("stream");
+		}
+
 		if (string.IsNullOrEmpty(stream))
+		{
 			throw new ArgumentException("stream");
+		}
+
 		_stream = stream;
 	}
 
@@ -22,9 +28,15 @@ public class StreamPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase < Phase)
+		{
 			return true;
+		}
+
 		if (previous.Mode_ != CheckpointTag.Mode.Stream)
+		{
 			throw new ArgumentException("Mode.Stream expected", "previous");
+		}
+
 		return committedEvent.Data.PositionStreamId == _stream
 			   && committedEvent.Data.PositionSequenceNumber > previous.Streams[_stream];
 	}
@@ -33,13 +45,18 @@ public class StreamPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		if (committedEvent.Data.PositionStreamId != _stream)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Invalid stream '{0}'.  Expected stream is '{1}'", committedEvent.Data.EventStreamId, _stream));
+		}
+
 		return CheckpointTag.FromStreamPosition(previous.Phase, committedEvent.Data.PositionStreamId,
 			committedEvent.Data.PositionSequenceNumber);
 	}
@@ -54,13 +71,17 @@ public class StreamPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		if (partitionDeleted.PositionStreamId != _stream)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Invalid stream '{0}'.  Expected stream is '{1}'", partitionDeleted.Partition, _stream));
+		}
 
 		// return ordinary checkpoint tag (suitable for fromCategory.foreachStream as well as for regular fromStream
 		return CheckpointTag.FromStreamPosition(
@@ -80,12 +101,16 @@ public class StreamPositionTagger : PositionTagger
 	public override CheckpointTag AdjustTag(CheckpointTag tag)
 	{
 		if (tag.Phase < Phase)
+		{
 			return tag;
+		}
+
 		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
-
+		}
 
 		if (tag.Mode_ == CheckpointTag.Mode.Stream)
 		{

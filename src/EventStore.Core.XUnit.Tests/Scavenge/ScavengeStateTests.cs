@@ -178,7 +178,9 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests>
 				checkpoint = handle;
 
 				if (processed == stopAfter)
+				{
 					break;
+				}
 			}
 		}
 

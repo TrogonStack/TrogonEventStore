@@ -75,13 +75,24 @@ public class TcpClientConnector
 		TimeSpan connectionTimeout)
 	{
 		if (serverEndPoint == null)
+		{
 			throw new ArgumentNullException("serverEndPoint");
+		}
+
 		if (onSocketAssigned == null)
+		{
 			throw new ArgumentNullException("onSocketAssigned");
+		}
+
 		if (onConnectionEstablished == null)
+		{
 			throw new ArgumentNullException("onConnectionEstablished");
+		}
+
 		if (onConnectionFailed == null)
+		{
 			throw new ArgumentNullException("onConnectionFailed");
+		}
 
 		var socketArgs = _connectSocketArgsPool.Get();
 		var connectingSocket = new Socket(serverEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -99,7 +110,9 @@ public class TcpClientConnector
 		{
 			var firedAsync = connectingSocket.ConnectAsync(socketArgs);
 			if (!firedAsync)
+			{
 				ProcessConnect(socketArgs);
+			}
 		}
 		catch (ObjectDisposedException)
 		{
@@ -115,9 +128,13 @@ public class TcpClientConnector
 	private void ProcessConnect(SocketAsyncEventArgs e)
 	{
 		if (e.SocketError != SocketError.Success)
+		{
 			HandleBadConnect(e);
+		}
 		else
+		{
 			OnSocketConnected(e);
+		}
 	}
 
 	private void HandleBadConnect(SocketAsyncEventArgs socketArgs)
@@ -134,7 +151,9 @@ public class TcpClientConnector
 		_connectSocketArgsPool.Return(socketArgs);
 
 		if (RemoveFromConnecting(pendingConnection))
+		{
 			onConnectionFailed((IPEndPoint)serverEndPoint, socketError);
+		}
 	}
 
 	private void OnSocketConnected(SocketAsyncEventArgs socketArgs)
@@ -150,7 +169,9 @@ public class TcpClientConnector
 		_connectSocketArgsPool.Return(socketArgs);
 
 		if (RemoveFromConnecting(pendingConnection))
+		{
 			onConnectionEstablished(remoteEndPoint, socket);
+		}
 	}
 
 	private void TimerCallback(object state)
@@ -158,7 +179,9 @@ public class TcpClientConnector
 		foreach (var pendingConnection in _pendingConections.Values)
 		{
 			if (DateTime.UtcNow >= pendingConnection.WhenToKill && RemoveFromConnecting(pendingConnection))
+			{
 				Helper.EatException(() => pendingConnection.Connection.Close("Connection establishment timeout."));
+			}
 		}
 
 		try

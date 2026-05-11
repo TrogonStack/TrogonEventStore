@@ -26,7 +26,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage;
 
-public abstract class StorageWriterService {
+public abstract class StorageWriterService
+{
 }
 
 public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>,
@@ -177,7 +178,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	private void EnqueueMessage(Message message)
 	{
 		if (message is StorageMessage.IFlushableMessage)
+		{
 			Interlocked.Increment(ref FlushMessagesInQueue);
+		}
 
 		_writerQueue.Publish(message);
 	}
@@ -192,7 +195,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 
 		if (_vnodeState is not VNodeState.Leader and not VNodeState.ResigningLeader &&
-		    message is StorageMessage.ILeaderWriteMessage)
+			message is StorageMessage.ILeaderWriteMessage)
 		{
 			Log.Fatal("{message} appeared in StorageWriter during state {vnodeStrate}.", message.GetType().Name,
 				_vnodeState);
@@ -227,19 +230,19 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		switch (message.State)
 		{
 			case VNodeState.Leader:
-			{
-				_indexWriter.Reset();
-				_streamNameIndex.CancelReservations();
-				_eventTypeIndex.CancelReservations();
-				break;
-			}
+				{
+					_indexWriter.Reset();
+					_streamNameIndex.CancelReservations();
+					_eventTypeIndex.CancelReservations();
+					break;
+				}
 			case VNodeState.ShuttingDown:
-			{
-				await Writer.Flush(token);
-				BlockWriter = true;
-				_ = StopWriterQueueAndPublishShutdown();
-				break;
-			}
+				{
+					await Writer.Flush(token);
+					BlockWriter = true;
+					_ = StopWriterQueueAndPublishShutdown();
+					break;
+				}
 		}
 	}
 
@@ -261,11 +264,15 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		CancellationToken token)
 	{
 		if (_vnodeState is not VNodeState.Leader and not VNodeState.PreLeader)
+		{
 			throw new Exception(string.Format("New Epoch request not in leader or preleader state. State: {0}.",
 				_vnodeState));
+		}
 
 		if (Writer.NeedsNewChunk)
+		{
 			await Writer.AddNewChunk(token: token);
+		}
 
 		await EpochManager.WriteNewEpoch(message.EpochNumber, token);
 		PurgeNotProcessedInfo();
@@ -276,12 +283,16 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	{
 		// if we are in states, that doesn't need to wait for chaser, ignore
 		if (_vnodeState is not VNodeState.PreLeader
-		    and not VNodeState.PreReplica
-		    and not VNodeState.PreReadOnlyReplica)
+			and not VNodeState.PreReplica
+			and not VNodeState.PreReadOnlyReplica)
+		{
 			throw new Exception(string.Format("{0} appeared in {1} state.", message.GetType().Name, _vnodeState));
+		}
 
 		if (Writer.HasOpenTransaction())
+		{
 			throw new InvalidOperationException("Writer has an open transaction.");
+		}
 
 		if (Writer.FlushedPosition != Writer.Position)
 		{
@@ -291,7 +302,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		var sw = Stopwatch.StartNew();
 		while (Db.Config.ChaserCheckpoint.Read() < Db.Config.WriterCheckpoint.Read() &&
-		       sw.Elapsed < WaitForChaserSingleIterationTimeout)
+			   sw.Elapsed < WaitForChaserSingleIterationTimeout)
 		{
 			Thread.Sleep(1);
 		}
@@ -304,7 +315,10 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		var totalTime = message.TotalTimeWasted + sw.Elapsed;
 		if (totalTime < TimeSpan.FromSeconds(5) || (int)totalTime.TotalSeconds % 30 == 0) // too verbose otherwise
+		{
 			Log.Debug("Still waiting for chaser to catch up already for {totalTime}...", totalTime);
+		}
+
 		Bus.Publish(new SystemMessage.WaitForChaserToCatchUp(message.CorrelationId, totalTime));
 	}
 
@@ -316,7 +330,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		try
 		{
 			if (msg.CancellationToken.IsCancellationRequested)
+			{
 				return;
+			}
 
 			var logPosition = Writer.Position;
 			var prepares = new List<IPrepareLogRecord<TStreamId>>();
@@ -362,11 +378,19 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 					var evnt = msg.Events[i];
 					var flags = PrepareFlags.Data | PrepareFlags.IsCommitted;
 					if (i == 0)
+					{
 						flags |= PrepareFlags.TransactionBegin;
+					}
+
 					if (i == msg.Events.Length - 1)
+					{
 						flags |= PrepareFlags.TransactionEnd;
+					}
+
 					if (evnt.IsJson)
+					{
 						flags |= PrepareFlags.IsJson;
+					}
 
 					// when IsCommitted ExpectedVersion is always explicit
 					var expectedVersion = commitCheck.CurrentVersion + i;
@@ -410,16 +434,21 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			token = CancellationToken.None;
 
 			bool softUndeleteMetastream = _systemStreams.IsMetaStream(streamId)
-			                              && await _indexWriter.IsSoftDeleted(_systemStreams.OriginalStreamOf(streamId),
-				                              token);
+										  && await _indexWriter.IsSoftDeleted(_systemStreams.OriginalStreamOf(streamId),
+											  token);
 
 			// note: the stream & event type records are indexed separately and must not be pre-committed to the main index
 			_indexWriter.PreCommit(CollectionsMarshal.AsSpan(prepares)[^msg.Events.Length..]);
 
 			if (commitCheck.IsSoftDeleted)
+			{
 				await SoftUndeleteStream(streamId, commitCheck.CurrentVersion + 1, token);
+			}
+
 			if (softUndeleteMetastream)
+			{
 				await SoftUndeleteMetastream(streamId, token);
+			}
 		}
 		catch (Exception exc)
 		{
@@ -478,7 +507,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	{
 		byte[] modifiedMeta;
 		if (!SoftUndeleteRawMeta(rawMeta, recreateFrom, out modifiedMeta))
+		{
 			return;
+		}
 
 		var logPosition = Writer.Position;
 		(var streamMetadataEventTypeId, logPosition) =
@@ -525,7 +556,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		try
 		{
 			if (message.CancellationToken.IsCancellationRequested)
+			{
 				return;
+			}
 
 			var eventId = Guid.NewGuid();
 
@@ -580,7 +613,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 
 				const PrepareFlags flags = PrepareFlags.SingleWrite | PrepareFlags.IsCommitted |
-				                           PrepareFlags.IsJson;
+										   PrepareFlags.IsJson;
 				var data = new StreamMetadata(truncateBefore: EventNumber.DeletedStream).ToJsonBytes();
 
 				(var streamMetadataEventTypeId, logPosition) =
@@ -611,7 +644,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		try
 		{
 			if (message.LiveUntil < DateTime.UtcNow)
+			{
 				return;
+			}
 
 			var streamId = _indexWriter.GetStreamId(message.EventStreamId);
 			var record = LogRecord.TransactionBegin(_recordFactory, Writer.Position,
@@ -645,7 +680,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			var transactionInfo =
 				await _indexWriter.GetTransactionInfo(Writer.FlushedPosition, message.TransactionId, token);
 			if (!CheckTransactionInfo(message.TransactionId, transactionInfo))
+			{
 				return;
+			}
 
 			if (message.Events.Length > 0)
 			{
@@ -698,12 +735,16 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		try
 		{
 			if (message.LiveUntil < DateTime.UtcNow)
+			{
 				return;
+			}
 
 			var transactionInfo =
 				await _indexWriter.GetTransactionInfo(Writer.FlushedPosition, message.TransactionId, token);
 			if (!CheckTransactionInfo(message.TransactionId, transactionInfo))
+			{
 				return;
+			}
 
 			var record = LogRecord.TransactionEnd(_recordFactory, Writer.Position,
 				message.CorrelationId,
@@ -762,16 +803,21 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				token);
 
 			bool softUndeleteMetastream = _systemStreams.IsMetaStream(commitCheck.EventStreamId)
-			                              &&
-			                              await _indexWriter.IsSoftDeleted(
-				                              _systemStreams.OriginalStreamOf(commitCheck.EventStreamId), token);
+										  &&
+										  await _indexWriter.IsSoftDeleted(
+											  _systemStreams.OriginalStreamOf(commitCheck.EventStreamId), token);
 
 			await _indexWriter.PreCommit(commit, token);
 
 			if (commitCheck.IsSoftDeleted)
+			{
 				await SoftUndeleteStream(commitCheck.EventStreamId, commitCheck.CurrentVersion + 1, token);
+			}
+
 			if (softUndeleteMetastream)
+			{
 				await SoftUndeleteMetastream(commitCheck.EventStreamId, token);
+			}
 		}
 		catch (Exception exc)
 		{
@@ -836,7 +882,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		var prepareSizes = 0;
 		foreach (var prepare in prepares)
+		{
 			prepareSizes += prepare.GetSizeWithLengthPrefixAndSuffix();
+		}
 
 		if (prepareSizes > Db.Config.ChunkSize)
 		{
@@ -863,7 +911,9 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				// the prepares may be from different streams due to the stream & event type records
 				// we thus adjust the transaction position to the correct value on each stream id change
 				if (i is 0 || !StreamIdComparer.Equals(prepares[i].EventStreamId, prepares[i - 1].EventStreamId))
+				{
 					transactionPos = logPos;
+				}
 
 				prepares[i] = prepares[i].CopyForRetry(logPos, transactionPos);
 				logPos += prepares[i].GetSizeWithLengthPrefixAndSuffix();
@@ -877,10 +927,12 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		foreach (var prepare in prepares)
 		{
 			long newWriterPos = await Writer.WriteToTransaction(prepare, CancellationToken.None)
-			                    ?? throw new InvalidOperationException(
-				                    "The transaction does not fit in the current chunk.");
+								?? throw new InvalidOperationException(
+									"The transaction does not fit in the current chunk.");
 			if (newWriterPos - writerPos != prepare.GetSizeWithLengthPrefixAndSuffix())
+			{
 				throw new Exception($"Expected writer position to be at: {writerPos + prepare.GetSizeWithLengthPrefixAndSuffix()} but it was at {newWriterPos}");
+			}
 
 			writerPos = newWriterPos;
 		}
@@ -919,7 +971,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		}
 
 		if (StreamIdComparer.Equals(prepare.EventType, _scavengePointEventTypeId) &&
-		    StreamIdComparer.Equals(prepare.EventStreamId, _scavengePointsStreamId))
+			StreamIdComparer.Equals(prepare.EventStreamId, _scavengePointsStreamId))
 		{
 			await Writer.CompleteChunk(token);
 			await Writer.AddNewChunk(token: token);
@@ -959,7 +1011,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 	{
 		var start = _clock.Now;
 		if (force || FlushMessagesInQueue == 0 ||
-		    start.ElapsedTicksSince(_lastFlushTimestamp) >= _lastFlushDelay + _minFlushDelay)
+			start.ElapsedTicksSince(_lastFlushTimestamp) >= _lastFlushDelay + _minFlushDelay)
 		{
 			var flushSize = Writer.Position - Writer.FlushedPosition;
 

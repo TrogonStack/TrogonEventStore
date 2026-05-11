@@ -52,7 +52,9 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		CancellationToken ct)
 	{
 		if (physicalChunk.IsRemote)
+		{
 			return false;
+		}
 
 		if (!ShouldDeleteForBytes(scavengePoint, physicalChunk))
 		{
@@ -71,7 +73,9 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		}
 
 		if (!await IsConfirmedPresentInArchive(physicalChunk, ct))
+		{
 			return false;
+		}
 
 		return await SwitchOutPhysicalChunk(physicalChunk, ct);
 	}
@@ -85,13 +89,17 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		for (var attempt = 0; attempt < _maxAttempts; attempt++)
 		{
 			if (attempt != 0)
+			{
 				await Task.Delay(_retryDelay, ct);
+			}
 
 			try
 			{
 				var isPresent = await _archiveCheckpoint.IsGreaterThanOrEqualTo(physicalChunk.ChunkEndPosition, ct);
 				if (isPresent)
+				{
 					return true;
+				}
 
 				if (attempt == _maxAttempts - 1)
 				{
@@ -131,8 +139,8 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 	{
 
 		for (var logicalChunkNumber = physicalChunk.ChunkEndNumber;
-		     logicalChunkNumber >= physicalChunk.ChunkStartNumber;
-		     logicalChunkNumber--)
+			 logicalChunkNumber >= physicalChunk.ChunkStartNumber;
+			 logicalChunkNumber--)
 		{
 
 			if (concurrentState.TryGetChunkTimeStampRange(logicalChunkNumber, out var createdAtRange))
@@ -172,7 +180,9 @@ public class ChunkDeleter<TStreamId, TRecord> : IChunkDeleter<TStreamId, TRecord
 		}
 
 		if (await _chunkManager.SwitchInChunks(locators, ct))
+		{
 			return true;
+		}
 
 		_logger.Warning(
 			"SCAVENGING: Did not delete physical chunk: {oldChunkName} {chunkStartNumber} => {chunkEndNumber}. This will be retried next scavenge.",

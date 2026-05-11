@@ -242,7 +242,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	protected void AllWriteComplete()
 	{
 		while (_writesQueue.Count > 0)
+		{
 			OneWriteCompletes();
+		}
 	}
 
 	[SetUp]
@@ -306,7 +308,10 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 		}
 
 		if (_readsTimeOut)
+		{
 			return;
+		}
+
 		if (_readsToTimeOutOnce.Contains(message.EventStreamId))
 		{
 			Console.WriteLine("[TEST] Timing out read backwards for {0}", message.EventStreamId);
@@ -375,7 +380,10 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	public void Handle(ClientMessage.ReadStreamEventsForward message)
 	{
 		if (_readsTimeOut)
+		{
 			return;
+		}
+
 		if (_readsToTimeOutOnce.Contains(message.EventStreamId))
 		{
 			Console.WriteLine("[TEST] Timing out read forwards for {0}", message.EventStreamId);
@@ -454,14 +462,19 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 			var parts = Helper.UTF8NoBom.GetString(x.Data.Span).Split(_linkToSeparator, 2);
 			List<EventRecord> list;
 			if (_deletedStreams.Contains(parts[1]) || !_streams.TryGetValue(parts[1], out list))
+			{
 				return ResolvedEvent.ForFailedResolvedLink(x, ReadEventResult.StreamDeleted);
+			}
+
 			var eventNumber = int.Parse(parts[0]);
 			var target = list[eventNumber];
 
 			return ResolvedEvent.ForResolvedLink(target, x);
 		}
 		else
+		{
 			return ResolvedEvent.ForUnresolvedEvent(x);
+		}
 	}
 
 	private ResolvedEvent BuildEvent(EventRecord x, bool resolveLinks, long commitPosition)
@@ -476,7 +489,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 			return ResolvedEvent.ForResolvedLink(target, x, commitPosition);
 		}
 		else
+		{
 			return ResolvedEvent.ForUnresolvedEvent(x, commitPosition);
+		}
 	}
 
 	public void Handle(ClientMessage.WriteEvents message)
@@ -493,7 +508,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 					message.CorrelationId, OperationResult.WrongExpectedVersion, "wrong expected version"));
 		}
 		else if (_allWritesQueueUp)
+		{
 			_writesQueue.Enqueue(message);
+		}
 	}
 
 	private void ProcessWrite<T>(IEnvelope envelope, Guid correlationId, string streamId, long expectedVersion,
@@ -561,7 +578,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	{
 		var metadata = Json.ParseJson<ParkedMessageMetadata>(msg.Event.Metadata);
 		if (metadata != null)
+		{
 			EventTimeStamps.Add(metadata.Added.ToUniversalTime());
+		}
 	}
 
 	class ParkedMessageMetadata
@@ -613,9 +632,15 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	public void Handle(ClientMessage.ReadAllEventsForward message)
 	{
 		if (_readsTimeOut)
+		{
 			return;
+		}
+
 		if (!_readAllEnabled)
+		{
 			return;
+		}
+
 		var from = new TFPos(message.CommitPosition, message.PreparePosition);
 		var records = _all.SkipWhile(v => v.Key < from).Take(message.MaxCount).ToArray();
 		var list = new List<ResolvedEvent>();
@@ -639,13 +664,20 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	public void Handle(ClientMessage.ReadAllEventsBackward message)
 	{
 		if (_readsTimeOut)
+		{
 			return;
+		}
+
 		if (!_readAllEnabled)
+		{
 			return;
+		}
 
 		var from = new TFPos(message.CommitPosition, message.PreparePosition);
 		if (from == new TFPos(-1, -1)) // read from end
+		{
 			from = new TFPos(long.MaxValue, long.MaxValue);
+		}
 
 		var records = _all.Reverse().SkipWhile(v => v.Key > from).Take(message.MaxCount).ToArray();
 		var list = new List<ResolvedEvent>();
@@ -669,9 +701,15 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	public void Handle(ClientMessage.FilteredReadAllEventsForward message)
 	{
 		if (_readsTimeOut)
+		{
 			return;
+		}
+
 		if (!_readAllEnabled)
+		{
 			return;
+		}
+
 		var from = new TFPos(message.CommitPosition, message.PreparePosition);
 		var records = _all.SkipWhile(v => v.Key < from).Where(kvp => message.EventFilter.IsEventAllowed(kvp.Value)).Take(message.MaxCount).ToArray();
 		var list = new List<ResolvedEvent>();
@@ -701,13 +739,20 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	public void Handle(ClientMessage.FilteredReadAllEventsBackward message)
 	{
 		if (_readsTimeOut)
+		{
 			return;
+		}
+
 		if (!_readAllEnabled)
+		{
 			return;
+		}
 
 		var from = new TFPos(message.CommitPosition, message.PreparePosition);
 		if (from == new TFPos(-1, -1)) // read from end
+		{
 			from = new TFPos(long.MaxValue, long.MaxValue);
+		}
 
 		var records = _all.Reverse().SkipWhile(v => v.Key > from).Where(kvp => message.EventFilter.IsEventAllowed(kvp.Value)).Take(message.MaxCount).ToArray();
 		var list = new List<ResolvedEvent>();
@@ -844,7 +889,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 		var eventsText = events.Skip(events.Count - data.Length).Select(v => Encoding.UTF8.GetString(v.Data.Span))
 			.ToList();
 		if (data.Length > 0)
+		{
 			Assert.IsNotEmpty(events, message + "The stream is empty.");
+		}
 
 		Assert.That(
 			data.SequenceEqual(eventsText),
@@ -868,7 +915,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 							: v.EventType + ":" + v.Text)
 				.ToList();
 		if (data.Length > 0)
+		{
 			Assert.IsNotEmpty(events, message + "The stream is empty.");
+		}
 
 		Assert.That(
 			data.SequenceEqual(eventsText),
@@ -893,7 +942,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 		List<EventRecord> events;
 		Assert.That(_streams.TryGetValue(streamId, out events), message + "The stream does not exist.");
 		if (data.Length > 0)
+		{
 			Assert.IsNotEmpty(events, message + "The stream is empty.");
+		}
 
 		var eventsData = new HashSet<string>(events.Select(v => Encoding.UTF8.GetString(v.Data.Span)));
 		var missing = data.Where(v => !eventsData.Contains(v)).ToArray();
@@ -925,11 +976,16 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 	{
 #if DEBUG
 		if (_deletedStreams.Contains(streamId))
+		{
 			Console.WriteLine("Stream '{0}' has been deleted", streamId);
+		}
 
 		List<EventRecord> list;
 		if (!_streams.TryGetValue(streamId, out list) || list == null)
+		{
 			Console.WriteLine("Stream '{0}' does not exist", streamId);
+		}
+
 		if (list != null)
 		{
 			for (int index = 0; index < list.Count; index++)

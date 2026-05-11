@@ -31,7 +31,9 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 		var state = GetProjectionState(projectionName);
 		string value;
 		if (state != null && state.Count > 0 && state.TryGetValue(key, out value))
+		{
 			result = convert(value);
+		}
 
 		return result;
 	}
@@ -80,9 +82,13 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 		var isFaulted = dic != null && dic.TryGetValue("status", out status) && status.StartsWith("Faulted");
 
 		if (isFaulted)
+		{
 			dic.TryGetValue("stateReason", out reason);
+		}
 		else
+		{
 			reason = null;
+		}
 
 		return isFaulted;
 	}
@@ -103,16 +109,22 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 		Log.Information("Raw {projection} stats: {rawState}", projectionName, rawState);
 
 		if (string.IsNullOrEmpty(rawState))
+		{
 			return null;
+		}
 
 		if (rawState == "*** UNKNOWN ***")
+		{
 			return null;
+		}
 
 		var start = rawState.IndexOf('[');
 		var end = rawState.IndexOf(']');
 
 		if (start == -1 || end == -1)
+		{
 			return null;
+		}
 
 		var statDic = rawState.Substring(start + 1, end - start - 1);
 
@@ -127,10 +139,14 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 		Log.Information("Raw {projection} state: {rawState}", projectionName, rawState);
 
 		if (string.IsNullOrEmpty(rawState))
+		{
 			return null;
+		}
 
 		if (rawState == "*** UNKNOWN ***")
+		{
 			return null;
+		}
 
 		var state = TestClientJson.From<Dictionary<string, string>>(rawState);
 		return state;
@@ -189,6 +205,8 @@ internal abstract class ProjectionsScenarioBase : ScenarioBase
 		}
 
 		if (exception != null)
+		{
 			throw exception;
+		}
 	}
 }

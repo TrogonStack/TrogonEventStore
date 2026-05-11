@@ -56,7 +56,9 @@ public class
 		Assert.Throws<InvalidOperationException>(() =>
 		{
 			if (_lastException != null)
+			{
 				throw _lastException;
+			}
 		});
 	}
 }

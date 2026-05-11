@@ -5,7 +5,8 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.TimerService;
 using EventStore.Core.Services.VNode;
 
-namespace EventStore.Core.Services {
+namespace EventStore.Core.Services
+{
 	public class RequestForwardingService : IHandle<SystemMessage.SystemStart>,
 		IHandle<SystemMessage.RequestForwardingTimerTick>,
 		IHandle<ClientMessage.NotHandled>,
@@ -13,13 +14,15 @@ namespace EventStore.Core.Services {
 		IHandle<ClientMessage.TransactionStartCompleted>,
 		IHandle<ClientMessage.TransactionWriteCompleted>,
 		IHandle<ClientMessage.TransactionCommitCompleted>,
-		IHandle<ClientMessage.DeleteStreamCompleted> {
+		IHandle<ClientMessage.DeleteStreamCompleted>
+	{
 		private readonly IPublisher _bus;
 		private readonly MessageForwardingProxy _forwardingProxy;
 
 		private readonly TimerMessage.Schedule _tickScheduleMessage;
 
-		public RequestForwardingService(IPublisher bus, MessageForwardingProxy forwardingProxy, TimeSpan tickInterval) {
+		public RequestForwardingService(IPublisher bus, MessageForwardingProxy forwardingProxy, TimeSpan tickInterval)
+		{
 			Ensure.NotNull(bus, "bus");
 			Ensure.NotNull(forwardingProxy, "forwardingProxy");
 			Ensure.Nonnegative(tickInterval.Milliseconds, "tickInterval");
@@ -32,42 +35,50 @@ namespace EventStore.Core.Services {
 				new SystemMessage.RequestForwardingTimerTick());
 		}
 
-		public void Handle(SystemMessage.SystemStart message) {
+		public void Handle(SystemMessage.SystemStart message)
+		{
 			_bus.Publish(_tickScheduleMessage);
 		}
 
-		public void Handle(SystemMessage.RequestForwardingTimerTick message) {
+		public void Handle(SystemMessage.RequestForwardingTimerTick message)
+		{
 			_forwardingProxy.TimeoutForwardings();
 			_bus.Publish(_tickScheduleMessage);
 		}
 
-		public void Handle(ClientMessage.NotHandled message) {
+		public void Handle(ClientMessage.NotHandled message)
+		{
 			_forwardingProxy.TryForwardReply(
 				message.CorrelationId, message,
 				(clientCorrId, m) => new ClientMessage.NotHandled(clientCorrId, m.Reason, m.LeaderInfo));
 		}
 
-		public void Handle(ClientMessage.WriteEventsCompleted message) {
+		public void Handle(ClientMessage.WriteEventsCompleted message)
+		{
 			_forwardingProxy.TryForwardReply(message.CorrelationId, message,
 				(clientCorrId, m) => m.WithCorrelationId(clientCorrId));
 		}
 
-		public void Handle(ClientMessage.TransactionStartCompleted message) {
+		public void Handle(ClientMessage.TransactionStartCompleted message)
+		{
 			_forwardingProxy.TryForwardReply(message.CorrelationId, message,
 				(clientCorrId, m) => m.WithCorrelationId(clientCorrId));
 		}
 
-		public void Handle(ClientMessage.TransactionWriteCompleted message) {
+		public void Handle(ClientMessage.TransactionWriteCompleted message)
+		{
 			_forwardingProxy.TryForwardReply(message.CorrelationId, message,
 				(clientCorrId, m) => m.WithCorrelationId(clientCorrId));
 		}
 
-		public void Handle(ClientMessage.TransactionCommitCompleted message) {
+		public void Handle(ClientMessage.TransactionCommitCompleted message)
+		{
 			_forwardingProxy.TryForwardReply(message.CorrelationId, message,
 				(clientCorrId, m) => m.WithCorrelationId(clientCorrId));
 		}
 
-		public void Handle(ClientMessage.DeleteStreamCompleted message) {
+		public void Handle(ClientMessage.DeleteStreamCompleted message)
+		{
 			_forwardingProxy.TryForwardReply(message.CorrelationId, message,
 				(clientCorrId, m) => m.WithCorrelationId(clientCorrId));
 		}

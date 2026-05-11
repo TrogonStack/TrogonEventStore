@@ -54,7 +54,9 @@ internal sealed class WriterWorkItem : Disposable
 	{
 		_memStream = memStream;
 		if (_fileStream is null)
+		{
 			WorkingStream = memStream;
+		}
 	}
 
 	public ValueTask AppendData(ReadOnlyMemory<byte> buf, CancellationToken _)

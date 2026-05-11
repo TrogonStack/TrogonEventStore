@@ -173,7 +173,10 @@ public static partial class EventReaderSubscriptionMessage
 			: base(subscriptionId, checkpointTag, progress, subscriptionMessageSequenceNumber, source)
 		{
 			if (data == null)
+			{
 				throw new ArgumentNullException("data");
+			}
+
 			_data = data;
 			_eventCategory = eventCategory;
 		}

@@ -1684,8 +1684,7 @@ public class LoadCheckpointTests
 		bool skip = false;
 		var reader = new FakeCheckpointReader();
 		var streamReader = new FakeStreamReader(
-			(stream, startPosition, countToLoad, batchSize, maxWindowSize, resolveLinkTos, skipFirstEvent, onEventsFound) =>
-			{ skip = skipFirstEvent; }
+			(stream, startPosition, countToLoad, batchSize, maxWindowSize, resolveLinkTos, skipFirstEvent, onEventsFound) => { skip = skipFirstEvent; }
 		);
 		new Core.Services.PersistentSubscription.PersistentSubscription(
 			Helper.CreatePersistentSubscriptionBuilderFor(_eventSource)
@@ -2860,9 +2859,13 @@ public static class Helper
 			Encoding.UTF8.GetBytes(string.Format("{0}@{1}", ev.OriginalEventNumber, ev.OriginalStreamId)),
 			new byte[0]);
 		if (resolved)
+		{
 			return ResolvedEvent.ForResolvedLink(ev.Event, link, commitPosition);
+		}
 		else
+		{
 			return ResolvedEvent.ForUnresolvedEvent(link, commitPosition);
+		}
 	}
 }
 
@@ -2945,9 +2948,13 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 	{
 		BeginReadEndSequenceCount++;
 		if (_lastParkedEventNumber == -1)
+		{
 			completed(null); //NoStream
+		}
 		else
+		{
 			completed(_lastParkedEventNumber);
+		}
 	}
 
 	public void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? dateTime, bool updateOldestParkedMessage)

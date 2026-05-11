@@ -22,7 +22,10 @@ internal static class SystemProjections
 		bus.Subscribe(new AdHocHandler<CoreProjectionStatusMessage.Stopped>(m =>
 		{
 			if (!systemProjectionsReady.TryGetValue(m.Name, out var ready))
+			{
 				return;
+			}
+
 			ready.TrySetResult(true);
 		}));
 

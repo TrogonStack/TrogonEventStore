@@ -9,7 +9,8 @@ namespace EventStore.Core.Metrics;
 // Some of the trackers are shared between all the queues that have the same label
 // We cache those in _sharedTrackers.
 // Other trackers each queue has its own instance.
-public class QueueTrackers {
+public class QueueTrackers
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<QueueTrackers>();
 
 	private readonly Dictionary<string, SharedTrackers> _sharedTrackers = new();
@@ -27,7 +28,8 @@ public class QueueTrackers {
 	private readonly Func<string, IDurationMaxTracker> _durationTrackerFactory;
 	private readonly Func<string, IQueueProcessingTracker> _processingTrackerFactory;
 
-	public QueueTrackers() {
+	public QueueTrackers()
+	{
 		_cases = Array.Empty<Conf.LabelMappingCase>();
 		_busyTrackerFactory = _ => _noOpPrivate.QueueBusyTracker;
 		_durationTrackerFactory = _ => _noOpShared.QueueingDurationTracker;
@@ -38,7 +40,8 @@ public class QueueTrackers {
 		Conf.LabelMappingCase[] cases,
 		Func<string, IQueueBusyTracker> busyTrackerFactory,
 		Func<string, IDurationMaxTracker> durationTrackerFactory,
-		Func<string, IQueueProcessingTracker> processingTrackerFactory) {
+		Func<string, IQueueProcessingTracker> processingTrackerFactory)
+	{
 
 		_cases = cases;
 		_busyTrackerFactory = busyTrackerFactory;
@@ -46,7 +49,8 @@ public class QueueTrackers {
 		_processingTrackerFactory = processingTrackerFactory;
 	}
 
-	public QueueTracker GetTrackerForQueue(string queueName) {
+	public QueueTracker GetTrackerForQueue(string queueName)
+	{
 		var sharedTrackers = GetSharedTrackerForQueue(queueName);
 		var privateTrackers = GetPrivateTrackerForLabel(sharedTrackers.Label);
 
@@ -57,12 +61,16 @@ public class QueueTrackers {
 			sharedTrackers.QueueProcessingTracker);
 	}
 
-	private SharedTrackers GetSharedTrackerForQueue(string queueName) {
-		foreach (var @case in _cases) {
+	private SharedTrackers GetSharedTrackerForQueue(string queueName)
+	{
+		foreach (var @case in _cases)
+		{
 			var pattern = $"^{@case.Regex}$";
 			var match = Regex.Match(input: queueName, pattern: pattern);
-			if (match.Success) {
-				if (string.IsNullOrWhiteSpace(@case.Label)) {
+			if (match.Success)
+			{
+				if (string.IsNullOrWhiteSpace(@case.Label))
+				{
 					Log.Warning(
 						"Label for queue {queueName} matching pattern {pattern} was not specified. " +
 						"Metrics will not be collected for this queue",
@@ -76,7 +84,9 @@ public class QueueTrackers {
 					replacement: @case.Label);
 
 				if (string.IsNullOrWhiteSpace(label))
+				{
 					return _noOpShared;
+				}
 
 				Log.Information(
 					"Metrics matched queue {queueName} with pattern {pattern}. Label: {label}",
@@ -90,8 +100,10 @@ public class QueueTrackers {
 		return _noOpShared;
 	}
 
-	private SharedTrackers GetSharedTrackerForLabel(string label) {
-		if (!_sharedTrackers.TryGetValue(label, out var tracker)) {
+	private SharedTrackers GetSharedTrackerForLabel(string label)
+	{
+		if (!_sharedTrackers.TryGetValue(label, out var tracker))
+		{
 			tracker = new(
 				label,
 				_durationTrackerFactory(label),
@@ -102,7 +114,8 @@ public class QueueTrackers {
 		return tracker;
 	}
 
-	private PrivateTrackers GetPrivateTrackerForLabel(string label) {
+	private PrivateTrackers GetPrivateTrackerForLabel(string label)
+	{
 		return new(_busyTrackerFactory(label));
 	}
 

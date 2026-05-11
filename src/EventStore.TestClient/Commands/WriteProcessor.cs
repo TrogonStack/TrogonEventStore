@@ -32,14 +32,23 @@ internal class WriteProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length < 3 || args.Length > 7 || args.Length == 6)
+			{
 				return false;
+			}
+
 			eventStreamId = args[0];
 			expectedVersion = args[1].ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
 			data = args[2];
 			if (args.Length >= 4)
+			{
 				metadata = args[3];
+			}
+
 			if (args.Length >= 5)
+			{
 				isJson = bool.Parse(args[4]);
+			}
+
 			if (args.Length >= 7)
 			{
 				login = args[5];

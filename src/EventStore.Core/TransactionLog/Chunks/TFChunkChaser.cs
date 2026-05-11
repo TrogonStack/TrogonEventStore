@@ -37,9 +37,13 @@ public class TFChunkChaser : ITransactionFileChaser
 	{
 		var res = await _reader.TryReadNext(token);
 		if (res.Success)
+		{
 			_chaserCheckpoint.Write(res.RecordPostPosition);
+		}
 		else
+		{
 			_chaserCheckpoint.Write(_reader.CurrentPosition);
+		}
 
 		return res;
 	}

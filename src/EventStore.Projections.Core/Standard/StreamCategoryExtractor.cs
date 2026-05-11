@@ -12,10 +12,12 @@ public abstract class StreamCategoryExtractor
 	{
 		var trimmedSource = source == null ? null : source.Trim();
 		if (string.IsNullOrEmpty(source))
+		{
 			throw new InvalidOperationException(
 				"Cannot initialize categorization projection handler.  "
 				+ "One symbol separator or configuration must be supplied in the source.  "
 				+ ConfigurationFormatIs);
+		}
 
 		if (trimmedSource.Length == 1)
 		{
@@ -36,24 +38,30 @@ public abstract class StreamCategoryExtractor
 		var parts = trimmedSource.Split(new[] { '\n' });
 
 		if (parts.Length != 2)
+		{
 			throw new InvalidOperationException(
 				"Cannot initialize categorization projection handler.  "
 				+ "Invalid configuration  "
 				+ ConfigurationFormatIs);
+		}
 
 		var direction = parts[0].ToLowerInvariant().Trim();
 		if (direction != "first" && direction != "last")
+		{
 			throw new InvalidOperationException(
 				"Cannot initialize categorization projection handler.  "
 				+ "Invalid direction specifier.  Expected 'first' or 'last'. "
 				+ ConfigurationFormatIs);
+		}
 
 		var separatorLine = parts[1];
 		if (separatorLine.Length != 1)
+		{
 			throw new InvalidOperationException(
 				"Cannot initialize categorization projection handler.  "
 				+ "Single separator expected. "
 				+ ConfigurationFormatIs);
+		}
 
 		switch (direction)
 		{

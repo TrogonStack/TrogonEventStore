@@ -3,8 +3,10 @@ using System.Linq;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Services.Storage.ReaderIndex {
-	public struct IndexReadAllResult {
+namespace EventStore.Core.Services.Storage.ReaderIndex
+{
+	public struct IndexReadAllResult
+	{
 		public readonly List<CommitEventRecord> Records;
 		public readonly TFPos CurrentPos;
 		public readonly TFPos NextPos;
@@ -13,7 +15,8 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 		public readonly long ConsideredEventsCount;
 
 		public IndexReadAllResult(List<CommitEventRecord> records, TFPos currentPos, TFPos nextPos, TFPos prevPos,
-			bool isEndOfStream, long consideredEventsCount) {
+			bool isEndOfStream, long consideredEventsCount)
+		{
 			Ensure.NotNull(records, "records");
 
 			Records = records;
@@ -24,7 +27,8 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 			ConsideredEventsCount = consideredEventsCount;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format("CurrentPos: {0}, NextPos: {1}, PrevPos: {2}, IsEndOfStream: {3}, Records: {4}",
 				CurrentPos, NextPos, PrevPos, string.Join("\n", IsEndOfStream, Records.Select(x => x.ToString())));
 		}

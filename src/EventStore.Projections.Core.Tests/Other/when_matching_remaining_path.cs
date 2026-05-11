@@ -158,9 +158,13 @@ class when_matching_escaped_urls
 			foreach (var i in tuple)
 			{
 				if (char.IsWhiteSpace(i.Item1))
+				{
 					Console.Write(Uri.HexEscape(i.Item1));
+				}
 				else
+				{
 					Console.Write(i.Item1);
+				}
 			}
 
 			Console.WriteLine();

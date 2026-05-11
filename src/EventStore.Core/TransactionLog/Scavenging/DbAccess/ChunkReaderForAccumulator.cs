@@ -61,12 +61,16 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 		while (true)
 		{
 			if (nextPos >= chunkEndPos) // reached the end of this logical chunk
+			{
 				break;
+			}
 
 			if (nextPos >= replicationChk)
+			{
 				throw new InvalidOperationException(
 					$"Attempt to read at position: {nextPos} which is after the " +
 					$"replication checkpoint: {replicationChk}.");
+			}
 
 			var localPos = chunk.ChunkHeader.GetLocalLogPosition(nextPos);
 

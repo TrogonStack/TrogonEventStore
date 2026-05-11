@@ -2,10 +2,10 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Threading;
-using EventStore.Core.Services.Archive.Storage.Exceptions;
 using System.Threading.Tasks;
-using Serilog;
+using EventStore.Core.Services.Archive.Storage.Exceptions;
 using FluentStorage.Blobs;
+using Serilog;
 
 namespace EventStore.Core.Services.Archive.Storage;
 

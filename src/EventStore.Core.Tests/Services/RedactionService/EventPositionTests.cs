@@ -22,7 +22,9 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	{
 		var eventRecord = await WriteSingleEvent(streamId, eventNumber, data, token: token);
 		if (!_positions.ContainsKey(eventNumber))
+		{
 			_positions[eventNumber] = new();
+		}
 
 		var chunk = Db.Manager.GetChunkFor(eventRecord.LogPosition);
 		var eventOffset = await chunk.GetActualRawPosition(eventRecord.LogPosition, token);

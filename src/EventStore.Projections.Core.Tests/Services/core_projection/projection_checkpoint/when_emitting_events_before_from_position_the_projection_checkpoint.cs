@@ -45,7 +45,9 @@ public class when_emitting_events_before_from_position_the_projection_checkpoint
 		Assert.Throws<InvalidOperationException>(() =>
 		{
 			if (_lastException != null)
+			{
 				throw _lastException;
+			}
 		});
 	}
 }

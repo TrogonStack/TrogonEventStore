@@ -8,18 +8,22 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Bus;
 
-public sealed class AdHocHandler<T>(Func<T, CancellationToken, ValueTask> handle) : IAsyncHandle<T> where T : Message {
-	public AdHocHandler(Action<T> handle) : this(handle.ToAsync()) {
+public sealed class AdHocHandler<T>(Func<T, CancellationToken, ValueTask> handle) : IAsyncHandle<T> where T : Message
+{
+	public AdHocHandler(Action<T> handle) : this(handle.ToAsync())
+	{
 	}
 
 	ValueTask IAsyncHandle<T>.HandleAsync(T message, CancellationToken token) => handle.Invoke(message, token);
 }
 
-public struct AdHocHandlerStruct<T> : IHandle<T>, IHandleTimeout where T : Message {
+public struct AdHocHandlerStruct<T> : IHandle<T>, IHandleTimeout where T : Message
+{
 	private readonly Action<T> _handle;
 	private readonly Action _timeout;
 
-	public AdHocHandlerStruct(Action<T> handle, Action timeout) {
+	public AdHocHandlerStruct(Action<T> handle, Action timeout)
+	{
 		Ensure.NotNull(handle, "handle");
 
 		HandlesTimeout = timeout is not null;
@@ -29,11 +33,13 @@ public struct AdHocHandlerStruct<T> : IHandle<T>, IHandleTimeout where T : Messa
 
 	public bool HandlesTimeout { get; }
 
-	public void Handle(T response) {
+	public void Handle(T response)
+	{
 		_handle(response);
 	}
 
-	public void Timeout() {
+	public void Timeout()
+	{
 		_timeout();
 	}
 }

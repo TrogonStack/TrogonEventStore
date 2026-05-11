@@ -72,12 +72,18 @@ public class ReadEventInfoForward_KnownCollisions_Randomized : ReadIndexTestScen
 					CancellationToken.None);
 			CheckResult(curEvents.ToArray(), result);
 			if (curEvents.Count == 0)
+			{
 				Assert.True(result.IsEndOfStream);
+			}
 			else
+			{
 				Assert.AreEqual(int.MaxValue, result.NextEventNumber);
+			}
 
 			if (@event.EventStreamId == Stream)
+			{
 				curEvents.Add(@event);
+			}
 		}
 	}
 
@@ -89,7 +95,10 @@ public class ReadEventInfoForward_KnownCollisions_Randomized : ReadIndexTestScen
 		foreach (var @event in _events)
 		{
 			if (@event.EventStreamId != Stream)
+			{
 				continue;
+			}
+
 			curEvents.Add(@event);
 
 			int maxCount = Math.Min((int)@event.EventNumber + 1, _random.Next(10, 100));

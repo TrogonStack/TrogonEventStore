@@ -5,11 +5,13 @@ using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Storage.EpochManager;
-using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.Services.TimerService;
+using EventStore.Core.TransactionLog.Checkpoint;
 
-namespace EventStore.Core.Services.Gossip {
-	public class NodeGossipService : GossipServiceBase, IHandle<GossipMessage.UpdateNodePriority> {
+namespace EventStore.Core.Services.Gossip
+{
+	public class NodeGossipService : GossipServiceBase, IHandle<GossipMessage.UpdateNodePriority>
+	{
 		private readonly IReadOnlyCheckpoint _writerCheckpoint;
 		private readonly IReadOnlyCheckpoint _chaserCheckpoint;
 		private readonly IEpochManager _epochManager;
@@ -32,7 +34,8 @@ namespace EventStore.Core.Services.Gossip {
 			TimeSpan deadMemberRemovalPeriod,
 			ITimeProvider timeProvider,
 			Func<MemberInfo[], MemberInfo> getNodeToGossipTo = null)
-			: base(bus, clusterSize, gossipSeedSource, memberInfo, gossipInterval, allowedTimeDifference, gossipTimeout, deadMemberRemovalPeriod, timeProvider, getNodeToGossipTo) {
+			: base(bus, clusterSize, gossipSeedSource, memberInfo, gossipInterval, allowedTimeDifference, gossipTimeout, deadMemberRemovalPeriod, timeProvider, getNodeToGossipTo)
+		{
 			Ensure.NotNull(writerCheckpoint, nameof(writerCheckpoint));
 			Ensure.NotNull(chaserCheckpoint, nameof(chaserCheckpoint));
 			Ensure.NotNull(epochManager, nameof(epochManager));
@@ -46,7 +49,8 @@ namespace EventStore.Core.Services.Gossip {
 			_timeProvider = timeProvider;
 		}
 
-		protected override MemberInfo GetInitialMe() {
+		protected override MemberInfo GetInitialMe()
+		{
 			var lastEpoch = _epochManager.GetLastEpoch();
 			var initialState = _memberInfo.IsReadOnlyReplica ? VNodeState.ReadOnlyLeaderless : VNodeState.Unknown;
 			return MemberInfo.ForVNode(_memberInfo.InstanceId,
@@ -71,7 +75,8 @@ namespace EventStore.Core.Services.Gossip {
 				_memberInfo.IsReadOnlyReplica, _memberInfo.ESVersion);
 		}
 
-		protected override MemberInfo GetUpdatedMe(MemberInfo me) {
+		protected override MemberInfo GetUpdatedMe(MemberInfo me)
+		{
 			return me.Updated(isAlive: true,
 				state: CurrentRole,
 				lastCommitPosition: _getLastCommitPosition(),
@@ -82,7 +87,8 @@ namespace EventStore.Core.Services.Gossip {
 				utcNow: _timeProvider.UtcNow);
 		}
 
-		public void Handle(GossipMessage.UpdateNodePriority message) {
+		public void Handle(GossipMessage.UpdateNodePriority message)
+		{
 			_nodePriority = message.NodePriority;
 		}
 	}

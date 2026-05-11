@@ -1,38 +1,45 @@
 using System;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public enum AccumulatorRecordType {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public enum AccumulatorRecordType
+	{
 		OriginalStreamRecord,
 		MetadataStreamRecord,
 		TombstoneRecord,
 	}
 
-	public abstract class RecordForAccumulator<TStreamId> {
+	public abstract class RecordForAccumulator<TStreamId>
+	{
 		public TStreamId StreamId { get; private set; }
 		public long LogPosition { get; private set; }
 		public DateTime TimeStamp { get; private set; }
 
-		protected void Reset(TStreamId streamId, long logPosition, DateTime timeStamp) {
+		protected void Reset(TStreamId streamId, long logPosition, DateTime timeStamp)
+		{
 			StreamId = streamId;
 			LogPosition = logPosition;
 			TimeStamp = timeStamp;
 		}
 
 		// Record in original stream
-		public class OriginalStreamRecord : RecordForAccumulator<TStreamId> {
+		public class OriginalStreamRecord : RecordForAccumulator<TStreamId>
+		{
 			public new void Reset(TStreamId streamId, long logPosition, DateTime timeStamp) =>
 				base.Reset(streamId, logPosition, timeStamp);
 		}
 
 		// Record in metadata stream
-		public class MetadataStreamRecord : RecordForAccumulator<TStreamId> {
+		public class MetadataStreamRecord : RecordForAccumulator<TStreamId>
+		{
 			public void Reset(
 				TStreamId streamId,
 				long logPosition,
 				DateTime timeStamp,
 				long eventNumber,
-				StreamMetadata metadata) {
+				StreamMetadata metadata)
+			{
 
 				Reset(streamId, logPosition, timeStamp);
 				EventNumber = eventNumber;
@@ -43,12 +50,14 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			public long EventNumber { get; private set; }
 		}
 
-		public class TombStoneRecord : RecordForAccumulator<TStreamId> {
+		public class TombStoneRecord : RecordForAccumulator<TStreamId>
+		{
 			public void Reset(
 				TStreamId streamId,
 				long logPosition,
 				DateTime timeStamp,
-				long eventNumber) {
+				long eventNumber)
+			{
 
 				Reset(streamId, logPosition, timeStamp);
 				EventNumber = eventNumber;

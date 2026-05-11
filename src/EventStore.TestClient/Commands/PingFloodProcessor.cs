@@ -28,7 +28,10 @@ internal class PingFloodProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length != 2)
+			{
 				return false;
+			}
+
 			try
 			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
@@ -65,7 +68,10 @@ internal class PingFloodProcessor : ICmdProcessor
 					Interlocked.Increment(ref received);
 					var pongs = Interlocked.Increment(ref all);
 					if (pongs % 10000 == 0)
+					{
 						Console.Write('.');
+					}
+
 					if (pongs == requestsCnt)
 					{
 						context.Success();
@@ -110,8 +116,12 @@ internal class PingFloodProcessor : ICmdProcessor
 			(int)reqPerSec);
 
 		if (Interlocked.Read(ref all) == requestsCnt)
+		{
 			context.Success();
+		}
 		else
+		{
 			context.Fail();
+		}
 	}
 }

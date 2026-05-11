@@ -90,7 +90,9 @@ public class TcpConnectionMonitor
 	{
 		var connection = connectionData.Connection;
 		if (!connection.IsInitialized)
+		{
 			return;
+		}
 
 		if (connection.IsFaulted)
 		{

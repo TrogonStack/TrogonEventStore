@@ -114,7 +114,8 @@ public sealed class TelemetryService :
 	{
 		var channel = Channel.CreateBounded<Message>(new BoundedChannelOptions(500)
 		{
-			SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest,
+			SingleReader = true,
+			FullMode = BoundedChannelFullMode.DropOldest,
 		});
 
 		var envelope = new ChannelEnvelope(channel);
@@ -146,7 +147,7 @@ public sealed class TelemetryService :
 					}
 
 					if (data.TryGetPropertyValue(response.Root, out var existing) &&
-					    existing is JsonObject existingObject)
+						existing is JsonObject existingObject)
 					{
 
 						existingObject[response.Key] = response.Value;
@@ -191,7 +192,9 @@ public sealed class TelemetryService :
 	private async ValueTask Handle(TelemetryMessage.Request message, CancellationToken token)
 	{
 		if (_firstEpochId == Guid.Empty)
+		{
 			await ReadFirstEpoch(token);
+		}
 
 		message.Envelope.ReplyWith(new TelemetryMessage.Response(
 			"version", JsonValue.Create(VersionInfo.Version)));
@@ -266,7 +269,7 @@ public sealed class TelemetryService :
 			new GossipMessage.ReadGossip(new CallbackEnvelope(resp => OnGossipReceived(message.Envelope, resp))));
 		{
 			var extraTelemetry = _configuration.GetSection("EventStore:Telemetry").Get<Dictionary<string, string>>() ??
-			                     [];
+								 [];
 			var payload =
 				JsonSerializer.SerializeToNode(extraTelemetry.ToDictionary(kvp => LowerFirstLetter(kvp.Key),
 					kvp => kvp.Value));
@@ -278,7 +281,9 @@ public sealed class TelemetryService :
 	private static string LowerFirstLetter(string x)
 	{
 		if (string.IsNullOrEmpty(x) || char.IsLower(x[0]))
+		{
 			return x;
+		}
 
 		return $"{char.ToLower(x[0])}{x[1..]}";
 	}
@@ -286,7 +291,9 @@ public sealed class TelemetryService :
 	private static void OnGossipReceived(IEnvelope<TelemetryMessage.Response> envelope, Message message)
 	{
 		if (message is not GossipMessage.SendGossip gossip)
+		{
 			return;
+		}
 
 		var seeds = new JsonObject();
 
@@ -306,7 +313,9 @@ public sealed class TelemetryService :
 			var result = await chunk.TryReadAt(0, false, token);
 
 			if (!result.Success)
+			{
 				return;
+			}
 
 			var epoch = ((SystemLogRecord)result.LogRecord).GetEpochRecord();
 			_firstEpochId = epoch.EpochId;

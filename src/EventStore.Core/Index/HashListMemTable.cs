@@ -69,7 +69,10 @@ public class HashListMemTable : IMemTable
 			{
 				list = new(MemTableComparer);
 				if (!list.Lock.TryEnterWriteLock(DefaultLockTimeout))
+				{
 					throw new UnableToAcquireLockInReasonableTimeException();
+				}
+
 				_hash.AddOrUpdate(stream, list,
 					(x, y) =>
 					{
@@ -79,14 +82,19 @@ public class HashListMemTable : IMemTable
 			else
 			{
 				if (!list.Lock.TryEnterWriteLock(DefaultLockTimeout))
+				{
 					throw new UnableToAcquireLockInReasonableTimeException();
+				}
 			}
 
 			for (int i = 0, n = collection.Count; i < n; ++i)
 			{
 				var entry = collection[i];
 				if (entry.Stream != stream)
+				{
 					throw new Exception("Not all index entries in a bulk have the same stream hash.");
+				}
+
 				Ensure.Nonnegative(entry.Version, "entry.Version");
 				Ensure.Nonnegative(entry.Position, "entry.Position");
 				list.Add(new Entry(entry.Version, entry.Position), 0);
@@ -108,12 +116,17 @@ public class HashListMemTable : IMemTable
 		if (_hash.TryGetValue(hash, out var list))
 		{
 			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+			{
 				throw new UnableToAcquireLockInReasonableTimeException();
+			}
+
 			try
 			{
 				int endIdx = list.UpperBound(new Entry(number, long.MaxValue));
 				if (endIdx is -1)
+				{
 					return false;
+				}
 
 				var key = list.Keys[endIdx];
 				if (key.EvNum == number)
@@ -139,7 +152,10 @@ public class HashListMemTable : IMemTable
 		if (_hash.TryGetValue(hash, out var list))
 		{
 			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+			{
 				throw new UnableToAcquireLockInReasonableTimeException();
+			}
+
 			try
 			{
 				var latest = list.Keys[list.Count - 1];
@@ -163,10 +179,14 @@ public class HashListMemTable : IMemTable
 		ulong hash = GetHash(stream);
 
 		if (!_hash.TryGetValue(hash, out var list))
+		{
 			return null;
+		}
 
 		if (!await list.Lock.TryEnterReadLockAsync(DefaultLockTimeout, token))
+		{
 			throw new UnableToAcquireLockInReasonableTimeException();
+		}
 
 		try
 		{
@@ -179,7 +199,9 @@ public class HashListMemTable : IMemTable
 				token);
 
 			if (endIdx is -1)
+			{
 				return null;
+			}
 
 			var latestBeforePosition = list.Keys[endIdx];
 			return new(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
@@ -193,7 +215,9 @@ public class HashListMemTable : IMemTable
 				token);
 
 			if (maxIdx is -1)
+			{
 				return null;
+			}
 
 			var latestBeforePosition = list.Keys[maxIdx];
 			return new(hash, latestBeforePosition.EvNum, latestBeforePosition.LogPos);
@@ -212,7 +236,10 @@ public class HashListMemTable : IMemTable
 		if (_hash.TryGetValue(hash, out var list))
 		{
 			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+			{
 				throw new UnableToAcquireLockInReasonableTimeException();
+			}
+
 			try
 			{
 				var oldest = list.Keys[0];
@@ -236,17 +263,24 @@ public class HashListMemTable : IMemTable
 		entry = TableIndex.InvalidIndexEntry;
 
 		if (afterNumber >= long.MaxValue)
+		{
 			return false;
+		}
 
 		if (_hash.TryGetValue(hash, out var list))
 		{
 			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+			{
 				throw new UnableToAcquireLockInReasonableTimeException();
+			}
+
 			try
 			{
 				int endIdx = list.LowerBound(new Entry(afterNumber + 1, 0));
 				if (endIdx is -1)
+				{
 					return false;
+				}
 
 				var e = list.Keys[endIdx];
 				entry = new IndexEntry(hash, e.EvNum, e.LogPos);
@@ -269,17 +303,24 @@ public class HashListMemTable : IMemTable
 		entry = TableIndex.InvalidIndexEntry;
 
 		if (beforeNumber <= 0)
+		{
 			return false;
+		}
 
 		if (_hash.TryGetValue(hash, out var list))
 		{
 			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+			{
 				throw new UnableToAcquireLockInReasonableTimeException();
+			}
+
 			try
 			{
 				int endIdx = list.UpperBound(new Entry(beforeNumber - 1, long.MaxValue));
 				if (endIdx is -1)
+				{
 					return false;
+				}
 
 				var e = list.Keys[endIdx];
 				entry = new IndexEntry(hash, e.EvNum, e.LogPos);
@@ -327,7 +368,10 @@ public class HashListMemTable : IMemTable
 		if (_hash.TryGetValue(hash, out var list))
 		{
 			if (!list.Lock.TryEnterReadLock(DefaultLockTimeout))
+			{
 				throw new UnableToAcquireLockInReasonableTimeException();
+			}
+
 			try
 			{
 				var endIdx = list.UpperBound(new Entry(endNumber, long.MaxValue));
@@ -335,7 +379,10 @@ public class HashListMemTable : IMemTable
 				{
 					var key = list.Keys[i];
 					if (key.EvNum < startNumber || ret.Count == limit)
+					{
 						break;
+					}
+
 					ret.Add(new IndexEntry(hash, version: key.EvNum, position: key.LogPos));
 				}
 			}
@@ -364,10 +411,26 @@ public class HashListMemTable : IMemTable
 	{
 		public int Compare(Entry x, Entry y)
 		{
-			if (x.EvNum < y.EvNum) return -1;
-			if (x.EvNum > y.EvNum) return 1;
-			if (x.LogPos < y.LogPos) return -1;
-			if (x.LogPos > y.LogPos) return 1;
+			if (x.EvNum < y.EvNum)
+			{
+				return -1;
+			}
+
+			if (x.EvNum > y.EvNum)
+			{
+				return 1;
+			}
+
+			if (x.LogPos < y.LogPos)
+			{
+				return -1;
+			}
+
+			if (x.LogPos > y.LogPos)
+			{
+				return 1;
+			}
+
 			return 0;
 		}
 	}
@@ -376,8 +439,16 @@ public class HashListMemTable : IMemTable
 	{
 		public int Compare(Entry x, Entry y)
 		{
-			if (x.LogPos < y.LogPos) return -1;
-			if (x.LogPos > y.LogPos) return 1;
+			if (x.LogPos < y.LogPos)
+			{
+				return -1;
+			}
+
+			if (x.LogPos > y.LogPos)
+			{
+				return 1;
+			}
+
 			return 0;
 		}
 	}

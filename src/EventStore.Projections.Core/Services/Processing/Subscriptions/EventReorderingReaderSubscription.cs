@@ -48,7 +48,10 @@ public class EventReorderingReaderSubscription : ReaderSubscriptionBase, IReader
 	public void Handle(ReaderSubscriptionMessage.CommittedEventDistributed message)
 	{
 		if (message.Data == null)
+		{
 			throw new NotSupportedException();
+		}
+
 		ReaderSubscriptionMessage.CommittedEventDistributed existing;
 		// ignore duplicate messages (when replaying from heading event distribution point)
 		if (!_buffer.TryGetValue(message.Data.Position.PreparePosition, out existing))
@@ -73,7 +76,10 @@ public class EventReorderingReaderSubscription : ReaderSubscriptionBase, IReader
 	private bool ProcessFor(DateTime maxTimestamp)
 	{
 		if (_buffer.Count == 0)
+		{
 			return false;
+		}
+
 		var first = _buffer.ElementAt(0);
 		if ((maxTimestamp - first.Value.Data.Timestamp).TotalMilliseconds > _processingLagMs)
 		{

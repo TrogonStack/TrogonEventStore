@@ -3,8 +3,10 @@ using System.IO;
 using System.Threading;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.TransactionLog.Checkpoint {
-	public class FileCheckpoint : ICheckpoint {
+namespace EventStore.Core.TransactionLog.Checkpoint
+{
+	public class FileCheckpoint : ICheckpoint
+	{
 		private readonly string _name;
 		private readonly string _filename;
 		private readonly FileStream _fileStream;
@@ -16,10 +18,12 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 		private readonly BinaryReader _reader;
 
 		public FileCheckpoint(string filename)
-			: this(filename, Guid.NewGuid().ToString()) {
+			: this(filename, Guid.NewGuid().ToString())
+		{
 		}
 
-		public FileCheckpoint(string filename, string name, bool mustExist = false, long initValue = 0) {
+		public FileCheckpoint(string filename, string name, bool mustExist = false, long initValue = 0)
+		{
 			_filename = filename;
 			_name = name;
 			var old = File.Exists(filename);
@@ -28,43 +32,58 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 				FileAccess.ReadWrite,
 				FileShare.ReadWrite);
 			if (_fileStream.Length != 8)
+			{
 				_fileStream.SetLength(8);
+			}
+
 			_reader = new BinaryReader(_fileStream);
 			_writer = new BinaryWriter(_fileStream);
 			if (old)
+			{
 				_last = _lastFlushed = ReadCurrent();
-			else {
+			}
+			else
+			{
 				_last = initValue;
 				Flush();
 			}
 		}
 
-		private long ReadCurrent() {
+		private long ReadCurrent()
+		{
 			_fileStream.Seek(0, SeekOrigin.Begin);
 			return _reader.ReadInt64();
 		}
 
-		public void Close(bool flush) {
+		public void Close(bool flush)
+		{
 			if (flush)
+			{
 				Flush();
+			}
 
 			_reader.Close();
 			_writer.Close();
 			_fileStream.Close();
 		}
 
-		public string Name {
+		public string Name
+		{
 			get { return _name; }
 		}
 
-		public void Write(long checkpoint) {
+		public void Write(long checkpoint)
+		{
 			Interlocked.Exchange(ref _last, checkpoint);
 		}
 
-		public void Flush() {
+		public void Flush()
+		{
 			var last = Interlocked.Read(ref _last);
 			if (last == _lastFlushed)
+			{
 				return;
+			}
 
 			_fileStream.Seek(0, SeekOrigin.Begin);
 			_writer.Write(last);
@@ -75,20 +94,25 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 			OnFlushed(last);
 		}
 
-		public long Read() {
+		public long Read()
+		{
 			return Interlocked.Read(ref _lastFlushed);
 		}
 
-		public long ReadNonFlushed() {
+		public long ReadNonFlushed()
+		{
 			return Interlocked.Read(ref _last);
 		}
 
 		public event Action<long> Flushed;
 
-		private void OnFlushed(long obj) {
+		private void OnFlushed(long obj)
+		{
 			var onFlushed = Flushed;
 			if (onFlushed != null)
+			{
 				onFlushed.Invoke(obj);
+			}
 		}
 	}
 }

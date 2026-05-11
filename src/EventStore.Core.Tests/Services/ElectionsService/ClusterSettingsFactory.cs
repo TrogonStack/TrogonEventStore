@@ -30,7 +30,9 @@ public class ClusterSettingsFactory
 	public static ClusterSettings GetClusterSettings(int selfIndex, int nodesCount, bool isSelfReadOnlyReplica)
 	{
 		if (selfIndex < 0 || selfIndex >= nodesCount)
+		{
 			throw new ArgumentOutOfRangeException("selfIndex", "Index of self should be in range of created nodes");
+		}
 
 		var clusterManager = GetLoopbackForPort(ManagerPort);
 		var nodes = Enumerable.Range(0, nodesCount).Select(x =>

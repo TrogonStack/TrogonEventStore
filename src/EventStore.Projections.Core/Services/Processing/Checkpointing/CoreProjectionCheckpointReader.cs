@@ -41,7 +41,10 @@ public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader
 	public void BeginLoadState()
 	{
 		if (_stateRequested)
+		{
 			throw new InvalidOperationException("State has been already requested");
+		}
+
 		BeforeBeginLoadState();
 		_stateRequested = true;
 		if (_useCheckpoints)

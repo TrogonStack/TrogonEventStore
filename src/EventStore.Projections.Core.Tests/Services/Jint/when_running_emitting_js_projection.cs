@@ -79,7 +79,9 @@ public class when_running_emitting_js_projection : TestFixtureWithInterpretedPro
 			Assert.AreEqual(@"{""a"":""" + i + @"""}", emittedEvents[0].Event.Data);
 
 			if (sw.Elapsed > TimeSpan.FromSeconds(120))
+			{
 				break;
+			}
 		}
 
 		Console.WriteLine($"processed: {i}");

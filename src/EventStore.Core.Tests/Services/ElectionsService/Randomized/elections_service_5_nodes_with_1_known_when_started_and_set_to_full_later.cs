@@ -49,7 +49,9 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full
 		Dictionary<EndPoint, MemberInfo[]> previousGossip)
 	{
 		if (iteration == 1 || (iteration % 100 != (item.EndPoint.GetPort() % 1000) && _randomCase.Next(100) < 30))
+		{
 			return null;
+		}
 
 		if (previousGossip[item.EndPoint].Length < 5)
 		{
@@ -69,7 +71,9 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_to_full
 	{
 		var success = _randomCase.Run();
 		if (!success)
+		{
 			_randomCase.Logger.LogMessages();
+		}
 
 		Console.WriteLine("There were a total of {0} messages in this run.",
 			_randomCase.Logger.ProcessedItems.Count());

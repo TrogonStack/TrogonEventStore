@@ -66,7 +66,9 @@ public class SystemMetricsTests : IDisposable
 	public void can_collect_sys_load_avg()
 	{
 		if (RuntimeInformation.IsWindows)
+		{
 			return;
+		}
 
 		Assert.Collection(
 			_doubleListener.RetrieveMeasurements("eventstore-sys-load-avg"),

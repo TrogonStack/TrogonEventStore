@@ -31,9 +31,13 @@ public class when_running_with_content_type_validation
 				logger: (s, _) =>
 				{
 					if (s.StartsWith("P:"))
+					{
 						Console.WriteLine(s);
+					}
 					else
+					{
 						_logged.Add(s);
+					}
 				}); // skip prelude debug output
 		}
 
@@ -88,9 +92,13 @@ public class when_running_with_content_type_validation
 				logger: (s, _) =>
 				{
 					if (s.StartsWith("P:"))
+					{
 						Console.WriteLine(s);
+					}
 					else
+					{
 						_logged.Add(s);
+					}
 				}); // skip prelude debug output
 		}
 

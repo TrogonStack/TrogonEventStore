@@ -24,7 +24,10 @@ public static class DbUtil
 		if (contents != null)
 		{
 			if (contents.Length != dataSize)
+			{
 				throw new Exception("Wrong contents size.");
+			}
+
 			Buffer.BlockCopy(contents, 0, buf, ChunkHeader.Size, contents.Length);
 		}
 
@@ -35,7 +38,9 @@ public static class DbUtil
 		int? physicalSize = null, long? logicalSize = null)
 	{
 		if (chunkStartNum > chunkEndNum)
+		{
 			throw new ArgumentException("chunkStartNum");
+		}
 
 		var chunkHeader = new ChunkHeader(TFChunk.CurrentChunkVersion, TFChunk.CurrentChunkVersion,
 			config.ChunkSize, chunkStartNum, chunkEndNum, true, Guid.NewGuid(), TransformType.Identity);
@@ -64,7 +69,10 @@ public static class DbUtil
 		if (contents != null)
 		{
 			if (contents.Length != dataSize)
+			{
 				throw new Exception("Wrong contents size.");
+			}
+
 			Buffer.BlockCopy(contents, 0, buf, ChunkHeader.Size, contents.Length);
 		}
 

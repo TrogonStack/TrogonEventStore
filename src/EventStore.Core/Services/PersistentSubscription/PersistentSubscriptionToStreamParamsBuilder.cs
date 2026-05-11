@@ -2,18 +2,21 @@ using System;
 using EventStore.Common.Utils;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 
-namespace EventStore.Core.Services.PersistentSubscription {
+namespace EventStore.Core.Services.PersistentSubscription
+{
 	/// <summary>
 	/// Builds a <see cref="PersistentSubscriptionParams"/> object.
 	/// </summary>
-	public class PersistentSubscriptionToStreamParamsBuilder : PersistentSubscriptionParamsBuilder {
+	public class PersistentSubscriptionToStreamParamsBuilder : PersistentSubscriptionParamsBuilder
+	{
 		/// <summary>
 		/// Creates a new <see cref="PersistentSubscriptionParamsBuilder"></see> object
 		/// </summary>
 		/// <param name="streamName">The name of the stream for the subscription</param>
 		/// <param name="groupName">The name of the group of the subscription</param>
 		/// <returns>a new <see cref="PersistentSubscriptionParamsBuilder"></see> object</returns>
-		public static PersistentSubscriptionParamsBuilder CreateFor(string streamName, string groupName) {
+		public static PersistentSubscriptionParamsBuilder CreateFor(string streamName, string groupName)
+		{
 			return new PersistentSubscriptionToStreamParamsBuilder()
 				.FromStream(streamName)
 				.StartFrom(0)
@@ -32,22 +35,26 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				.WithNamedConsumerStrategy(new RoundRobinPersistentSubscriptionConsumerStrategy());
 		}
 
-		public PersistentSubscriptionToStreamParamsBuilder FromStream(string stream) {
+		public PersistentSubscriptionToStreamParamsBuilder FromStream(string stream)
+		{
 			WithEventSource(new PersistentSubscriptionSingleStreamEventSource(stream));
 			return this;
 		}
 
-		public PersistentSubscriptionToStreamParamsBuilder StartFrom(long startFrom) {
+		public PersistentSubscriptionToStreamParamsBuilder StartFrom(long startFrom)
+		{
 			StartFrom(new PersistentSubscriptionSingleStreamPosition(startFrom));
 			return this;
 		}
 
-		public override PersistentSubscriptionParamsBuilder StartFromBeginning() {
+		public override PersistentSubscriptionParamsBuilder StartFromBeginning()
+		{
 			StartFrom(new PersistentSubscriptionSingleStreamPosition(0));
 			return this;
 		}
 
-		public override PersistentSubscriptionParamsBuilder StartFromCurrent() {
+		public override PersistentSubscriptionParamsBuilder StartFromCurrent()
+		{
 			StartFrom(new PersistentSubscriptionSingleStreamPosition(-1));
 			return this;
 		}

@@ -18,8 +18,7 @@ public class PersistentSubscriptionConfigTests
 		config.UpdatedBy = "Greg";
 		config.Version = "1";
 		config.Entries = new List<PersistentSubscriptionEntry>();
-		config.Entries.Add(new PersistentSubscriptionEntry()
-		{ Group = "foo", ResolveLinkTos = true, Stream = "Stream" });
+		config.Entries.Add(new PersistentSubscriptionEntry() { Group = "foo", ResolveLinkTos = true, Stream = "Stream" });
 		var data = config.GetSerializedForm();
 		var config2 = PersistentSubscriptionConfig.FromSerializedForm(data);
 		Assert.AreEqual(1, config2.Entries.Count);

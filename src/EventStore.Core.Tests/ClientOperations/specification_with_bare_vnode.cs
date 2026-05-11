@@ -108,7 +108,9 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 				{
 					Task.Delay(500).Wait();
 					if (System.IO.Directory.Exists(_dbPath))
+					{
 						System.IO.Directory.Delete(_dbPath, recursive: true);
+					}
 				}
 			}
 			_disposed = true;

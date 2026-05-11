@@ -27,8 +27,12 @@ public class ProjectionManagerMessageDispatcher
 	{
 		IPublisher worker;
 		if (_queueMap.TryGetValue(workerId, out worker))
+		{
 			worker.Publish(message);
+		}
 		else
+		{
 			_logger.Information("Cannot find a worker with ID: {workerId}", workerId);
+		}
 	}
 }

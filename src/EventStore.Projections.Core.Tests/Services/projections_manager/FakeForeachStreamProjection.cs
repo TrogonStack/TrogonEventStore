@@ -73,7 +73,10 @@ public class FakeForeachStreamProjection : IProjectionStateHandler
 	{
 		newSharedState = null;
 		if (data.EventType == "fail" || _query == "fail")
+		{
 			throw new Exception("failed");
+		}
+
 		Log("ProcessEvent(" + "..." + ")");
 		newState = "{\"data\": " + _state + data + "}";
 		emittedEvents = null;

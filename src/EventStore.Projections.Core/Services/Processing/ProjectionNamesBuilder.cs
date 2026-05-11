@@ -36,7 +36,10 @@ public class ProjectionNamesBuilder
 	public ProjectionNamesBuilder(string name, IQuerySources sources)
 	{
 		if (sources == null)
+		{
 			throw new ArgumentNullException("sources");
+		}
+
 		_name = name;
 		_sources = sources;
 		_resultStreamName = _sources.ResultStreamNameOption
@@ -96,7 +99,9 @@ public class ProjectionNamesBuilder
 	public string MakePartitionCheckpointStreamName(string statePartition)
 	{
 		if (String.IsNullOrEmpty(statePartition))
+		{
 			throw new InvalidOperationException("Root partition cannot have a partition checkpoint stream");
+		}
 
 		return ProjectionsStreamPrefix + EffectiveProjectionName + "-" + statePartition
 			   + ProjectionCheckpointStreamSuffix;

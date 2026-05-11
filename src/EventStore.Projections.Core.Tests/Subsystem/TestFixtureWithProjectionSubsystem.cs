@@ -110,7 +110,9 @@ public class TestFixtureWithProjectionSubsystem
 		finally
 		{
 			if (_dbPath is not null)
+			{
 				await DirectoryDeleter.TryForceDeleteDirectoryAsync(_dbPath, retries: 10);
+			}
 		}
 	}
 
@@ -123,9 +125,15 @@ public class TestFixtureWithProjectionSubsystem
 	{
 		timeoutMsg ??= "Timed out waiting for Start Components";
 		if (_startReceived.WaitOne(WaitTimeoutMs))
+		{
 			return _lastStartMessage;
+		}
+
 		if (failOnTimeout)
+		{
 			Assert.Fail(timeoutMsg);
+		}
+
 		return null;
 	}
 

@@ -21,48 +21,72 @@ public class ClientApiLoggerBridge : EventStore.ClientAPI.ILogger
 	public void Error(string format, params object[] args)
 	{
 		if (args.Length == 0)
+		{
 			_log.Error(format);
+		}
 		else
+		{
 			_log.Error(format, args);
+		}
 	}
 
 	public void Error(Exception ex, string format, params object[] args)
 	{
 		if (args.Length == 0)
+		{
 			_log.Error(ex, format);
+		}
 		else
+		{
 			_log.Error(ex, format, args);
+		}
 	}
 
 	public void Info(string format, params object[] args)
 	{
 		if (args.Length == 0)
+		{
 			_log.Information(format);
+		}
 		else
+		{
 			_log.Information(format, args);
+		}
 	}
 
 	public void Info(Exception ex, string format, params object[] args)
 	{
 		if (args.Length == 0)
+		{
 			_log.Information(ex, format);
+		}
 		else
+		{
 			_log.Information(ex, format, args);
+		}
 	}
 
 	public void Debug(string format, params object[] args)
 	{
 		if (args.Length == 0)
+		{
 			_log.Debug(format);
+		}
 		else
+		{
 			_log.Debug(format, args);
+		}
 	}
 
 	public void Debug(Exception ex, string format, params object[] args)
 	{
 		if (args.Length == 0)
+		{
 			_log.Debug(ex, format);
+		}
 		else
+		{
 			_log.Debug(ex, format, args);
+		}
 	}
 }

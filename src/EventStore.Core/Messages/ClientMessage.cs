@@ -16,7 +16,8 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Messages;
 
-public enum OperationResult {
+public enum OperationResult
+{
 	Success = 0,
 	PrepareTimeout = 1,
 	CommitTimeout = 2,
@@ -203,10 +204,16 @@ public static partial class ClientMessage
 			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, cancellationToken)
 		{
 			if (SystemStreams.IsInvalidStream(eventStreamId))
+			{
 				throw new ArgumentOutOfRangeException(nameof(eventStreamId));
+			}
+
 			if (expectedVersion < Data.ExpectedVersion.StreamExists ||
-			    expectedVersion == Data.ExpectedVersion.Invalid)
+				expectedVersion == Data.ExpectedVersion.Invalid)
+			{
 				throw new ArgumentOutOfRangeException(nameof(expectedVersion));
+			}
+
 			Ensure.NotNull(events, "events");
 
 			EventStreamId = eventStreamId;
@@ -246,11 +253,16 @@ public static partial class ClientMessage
 			long preparePosition, long commitPosition)
 		{
 			if (firstEventNumber < -1)
+			{
 				throw new ArgumentOutOfRangeException(nameof(firstEventNumber),
 					$"FirstEventNumber: {firstEventNumber}");
+			}
+
 			if (lastEventNumber - firstEventNumber + 1 < 0)
+			{
 				throw new ArgumentOutOfRangeException(nameof(lastEventNumber),
 					$"LastEventNumber {lastEventNumber}, FirstEventNumber {firstEventNumber}.");
+			}
 
 			CorrelationId = correlationId;
 			Result = OperationResult.Success;
@@ -265,7 +277,9 @@ public static partial class ClientMessage
 			long currentVersion = -1)
 		{
 			if (result == OperationResult.Success)
+			{
 				throw new ArgumentException("Invalid constructor used for successful write.", nameof(result));
+			}
 
 			CorrelationId = correlationId;
 			Result = result;
@@ -316,7 +330,9 @@ public static partial class ClientMessage
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
 			if (expectedVersion < Data.ExpectedVersion.Any)
+			{
 				throw new ArgumentOutOfRangeException(nameof(expectedVersion));
+			}
 
 			EventStreamId = eventStreamId;
 			ExpectedVersion = expectedVersion;
@@ -417,11 +433,17 @@ public static partial class ClientMessage
 			long lastEventNumber, long preparePosition, long commitPosition)
 		{
 			if (firstEventNumber < -1)
+			{
 				throw new ArgumentOutOfRangeException("firstEventNumber",
 					String.Format("FirstEventNumber: {0}", firstEventNumber));
+			}
+
 			if (lastEventNumber - firstEventNumber + 1 < 0)
+			{
 				throw new ArgumentOutOfRangeException("lastEventNumber",
 					String.Format("LastEventNumber {0}, FirstEventNumber {1}.", lastEventNumber, firstEventNumber));
+			}
+
 			CorrelationId = correlationId;
 			TransactionId = transactionId;
 			Result = OperationResult.Success;
@@ -436,7 +458,9 @@ public static partial class ClientMessage
 			string message)
 		{
 			if (result == OperationResult.Success)
+			{
 				throw new ArgumentException("Invalid constructor used for successful write.", "result");
+			}
 
 			CorrelationId = correlationId;
 			TransactionId = transactionId;
@@ -537,7 +561,10 @@ public static partial class ClientMessage
 			: base(internalCorrId, correlationId, envelope, user, expires, cancellationToken)
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
-			if (eventNumber < -1) throw new ArgumentOutOfRangeException(nameof(eventNumber));
+			if (eventNumber < -1)
+			{
+				throw new ArgumentOutOfRangeException(nameof(eventNumber));
+			}
 
 			EventStreamId = eventStreamId;
 			EventNumber = eventNumber;
@@ -604,7 +631,10 @@ public static partial class ClientMessage
 			: base(internalCorrId, correlationId, envelope, user, expires, cancellationToken)
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
-			if (fromEventNumber < -1) throw new ArgumentOutOfRangeException(nameof(fromEventNumber));
+			if (fromEventNumber < -1)
+			{
+				throw new ArgumentOutOfRangeException(nameof(fromEventNumber));
+			}
 
 			EventStreamId = eventStreamId;
 			FromEventNumber = fromEventNumber;
@@ -696,7 +726,10 @@ public static partial class ClientMessage
 			: base(internalCorrId, correlationId, envelope, user, expires, cancellationToken)
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
-			if (fromEventNumber < -1) throw new ArgumentOutOfRangeException(nameof(fromEventNumber));
+			if (fromEventNumber < -1)
+			{
+				throw new ArgumentOutOfRangeException(nameof(fromEventNumber));
+			}
 
 			EventStreamId = eventStreamId;
 			FromEventNumber = fromEventNumber;

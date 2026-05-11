@@ -67,7 +67,9 @@ public class SwitchChunkSuccess<TLogFormat, TStreamId> : SwitchChunkTests<TLogFo
 				byte[] newHash;
 				fs.Seek(0, SeekOrigin.Begin);
 				using (var md5 = MD5.Create())
+				{
 					newHash = await md5.ComputeHashAsync(fs);
+				}
 
 				// write the new hash
 				fs.Seek(0, SeekOrigin.End);

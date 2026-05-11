@@ -18,9 +18,13 @@ public class corrupt_index_should : SpecificationWithDirectoryPerTestFixture
 		for (int i = 1; i <= numIndexEntries; ++i)
 		{
 			if (version > PTableVersions.IndexV1)
+			{
 				memTable.Add((ulong)i, 1, i * 1337);
+			}
 			else
+			{
 				memTable.Add(((ulong)i) << 32, 1, i * 1337);
+			}
 		}
 
 		string pTableFilename = GetTempFilePath();
@@ -42,23 +46,39 @@ public class corrupt_index_should : SpecificationWithDirectoryPerTestFixture
 	{
 		int indexEntrySize = 0;
 		if (version == PTableVersions.IndexV1)
+		{
 			indexEntrySize = PTable.IndexEntryV1Size;
+		}
 		else if (version == PTableVersions.IndexV2)
+		{
 			indexEntrySize = PTable.IndexEntryV2Size;
+		}
 		else if (version == PTableVersions.IndexV3)
+		{
 			indexEntrySize = PTable.IndexEntryV3Size;
+		}
 		else if (version == PTableVersions.IndexV4)
+		{
 			indexEntrySize = PTable.IndexEntryV4Size;
+		}
 
 		int indexEntryKeySize = 0;
 		if (version == PTableVersions.IndexV1)
+		{
 			indexEntryKeySize = PTable.IndexKeyV1Size;
+		}
 		else if (version == PTableVersions.IndexV2)
+		{
 			indexEntryKeySize = PTable.IndexKeyV2Size;
+		}
 		else if (version == PTableVersions.IndexV3)
+		{
 			indexEntryKeySize = PTable.IndexKeyV3Size;
+		}
 		else if (version == PTableVersions.IndexV4)
+		{
 			indexEntryKeySize = PTable.IndexKeyV4Size;
+		}
 
 		int numMidpoints = PTable.GetRequiredMidpointCountCached(numIndexEntries, version);
 
@@ -163,7 +183,9 @@ public class corrupt_index_should : SpecificationWithDirectoryPerTestFixture
 				indexEntriesToCorrupt.Add(numIndexEntries / 2);
 
 				for (int i = 0; i < indexEntryKeySize; i++)
+				{
 					data[i] = 0xFF;
+				}
 
 				foreach (int entry in indexEntriesToCorrupt)
 				{
@@ -197,9 +219,13 @@ public class corrupt_index_should : SpecificationWithDirectoryPerTestFixture
 	private ulong GetOriginalHash(ulong stream, byte version)
 	{
 		if (version == PTableVersions.IndexV1)
+		{
 			return stream << 32;
+		}
 		else
+		{
 			return stream;
+		}
 	}
 
 	[TestCase(PTableVersions.IndexV2, false)]
@@ -420,7 +446,9 @@ public class corrupt_index_should : SpecificationWithDirectoryPerTestFixture
 		string ptableFileName = ConstructPTable(version);
 
 		if (corrupt)
+		{
 			CorruptBloomFilter(PTable.GenBloomFilterFilename(ptableFileName));
+		}
 
 		var table = PTable.FromFile(ptableFileName, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, depth, skipIndexVerify: true);
 		Assert.AreEqual(!corrupt, table.HasBloomFilter);

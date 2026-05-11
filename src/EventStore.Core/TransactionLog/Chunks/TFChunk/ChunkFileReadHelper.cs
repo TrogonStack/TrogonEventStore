@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Core.Exceptions;
 using DotNext.Buffers;
+using EventStore.Core.Exceptions;
 using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -91,7 +91,9 @@ internal static class ChunkFileReadHelper
 	private static void ValidateMetadataLength(long length, string fileName)
 	{
 		if (length >= ChunkFooter.Size + ChunkHeader.Size)
+		{
 			return;
+		}
 
 		throw new CorruptDatabaseException(new BadChunkInDatabaseException(
 			$"Chunk file '{fileName}' is bad. It does not have enough size for header and footer. File size is {length} bytes."));

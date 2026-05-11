@@ -60,7 +60,10 @@ public static class a_new_posted_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return (
 				new ProjectionManagementMessage.Command.GetState(_bus, _projectionName, ""));
 		}
@@ -86,7 +89,9 @@ public static class a_new_posted_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
 
 			var readerAssignedMessage =
 				_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()

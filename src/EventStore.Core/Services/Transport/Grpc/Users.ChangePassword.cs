@@ -42,7 +42,9 @@ internal partial class Users
 		void OnMessage(Message message)
 		{
 			if (HandleErrors(options.LoginName, message, changePasswordSource))
+			{
 				return;
+			}
 
 			changePasswordSource.TrySetResult(true);
 		}

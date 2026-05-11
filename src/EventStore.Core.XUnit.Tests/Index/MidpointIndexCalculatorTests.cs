@@ -14,7 +14,9 @@ public class MidpointIndexCalculatorTests
 
 		var expectedMidpoints = new List<long>();
 		for (var i = 0; i < numMidpoints; i++)
+		{
 			expectedMidpoints.Add(PTable.GetMidpointIndex(i, numIndexEntries, numMidpoints));
+		}
 
 		var sut = new PTable.MidpointIndexCalculator(numIndexEntries, numMidpoints);
 		Assert.Equal(expectedMidpoints, ConsumeAll(sut));

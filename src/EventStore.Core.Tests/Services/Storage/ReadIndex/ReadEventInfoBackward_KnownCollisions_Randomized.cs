@@ -98,7 +98,9 @@ public class ReadEventInfoBackward_KnownCollisions_Randomized : ReadIndexTestSce
 			Assert.True(result.IsEndOfStream);
 
 			if (@event.EventStreamId == Stream)
+			{
 				curEvents.Add(@event);
+			}
 		}
 	}
 
@@ -110,7 +112,10 @@ public class ReadEventInfoBackward_KnownCollisions_Randomized : ReadIndexTestSce
 		foreach (var @event in _events)
 		{
 			if (@event.EventStreamId != Stream)
+			{
 				continue;
+			}
+
 			curEvents.Add(@event);
 
 			int maxCount = Math.Min((int)@event.EventNumber + 1, _random.Next(10, 100));
@@ -124,9 +129,13 @@ public class ReadEventInfoBackward_KnownCollisions_Randomized : ReadIndexTestSce
 			CheckResult(curEvents.Skip(curEvents.Count - maxCount).ToArray(), result);
 
 			if (fromEventNumber - maxCount < 0)
+			{
 				Assert.True(result.IsEndOfStream);
+			}
 			else
+			{
 				Assert.AreEqual(fromEventNumber - maxCount, result.NextEventNumber);
+			}
 		}
 	}
 }

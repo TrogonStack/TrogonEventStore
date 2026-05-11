@@ -42,7 +42,9 @@ public class ManualQueue : IPublisher, IHandle<TimerMessage.Schedule>
 			_bus.Publish(message);
 			count++;
 			if (count > 1000)
+			{
 				throw new Exception("Possible infinite message loop");
+			}
 		}
 
 		return count;
@@ -57,9 +59,13 @@ public class ManualQueue : IPublisher, IHandle<TimerMessage.Schedule>
 			foreach (var timerMessage in orderedTimerMessages)
 			{
 				if (timerMessage.Scheduled.Add(timerMessage.Message.TriggerAfter) <= _time.UtcNow)
+				{
 					timerMessage.Message.Reply();
+				}
 				else
+				{
 					_timerQueue.Add(timerMessage);
+				}
 			}
 		}
 	}
@@ -84,7 +90,9 @@ public class ManualQueue : IPublisher, IHandle<TimerMessage.Schedule>
 	{
 		_timerDisabled = false;
 		if (process)
+		{
 			Process();
+		}
 	}
 
 	private class InternalSchedule

@@ -15,9 +15,11 @@ public record SectionMetadata(
 	string Description,
 	Type SectionType,
 	Dictionary<string, OptionMetadata> Options,
-	int Sequence) {
+	int Sequence)
+{
 
-	public static SectionMetadata FromPropertyInfo(PropertyInfo property, int sequence) {
+	public static SectionMetadata FromPropertyInfo(PropertyInfo property, int sequence)
+	{
 		var description = property.PropertyType.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "";
 
 		var metadata = new SectionMetadata(
@@ -29,11 +31,12 @@ public record SectionMetadata(
 		);
 
 		var optionProps = property.PropertyType.GetProperties();
-		for (var i = 0; i < optionProps.Length; i++) {
+		for (var i = 0; i < optionProps.Length; i++)
+		{
 			var optionMetadata = OptionMetadata.FromPropertyInfo(metadata, optionProps[i], i);
 			metadata.Options[optionMetadata.Key] = optionMetadata;
 		}
-	
+
 		var options = property.PropertyType.GetProperties()
 			.Select((p, i) => OptionMetadata.FromPropertyInfo(metadata, p, i))
 			.ToDictionary(option => option.Key, x => x);

@@ -206,7 +206,10 @@ public class
 	private Task HandleEvent(EventStorePersistentSubscriptionBase sub, ResolvedEvent resolvedEvent)
 	{
 		if (_set)
+		{
 			return Task.CompletedTask;
+		}
+
 		_set = true;
 		_firstEvent = resolvedEvent;
 		_resetEvent.Set();
@@ -266,7 +269,10 @@ public class
 	private Task HandleEvent(EventStorePersistentSubscriptionBase sub, ResolvedEvent resolvedEvent)
 	{
 		if (_set)
+		{
 			return Task.CompletedTask;
+		}
+
 		_set = true;
 		_firstEvent = resolvedEvent;
 		_resetEvent.Set();

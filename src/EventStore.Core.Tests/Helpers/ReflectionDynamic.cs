@@ -71,7 +71,9 @@ class PrivateReflectionDynamicObject : DynamicObject
 	{
 		// Don't wrap primitive types, which don't have many interesting internal APIs
 		if (o == null || o.GetType().IsPrimitive || o is string)
+		{
 			return o;
+		}
 
 		return new PrivateReflectionDynamicObject() { RealObject = o };
 	}

@@ -174,9 +174,13 @@ public abstract class ReadEventInfoBackward_NoCollisions() : ReadIndexTestScenar
 
 				CheckResult(_events.Take(fromEventNumber + 1).Skip(fromEventNumber + 1 - 2).ToArray(), result);
 				if (fromEventNumber - 2 < 0)
+				{
 					Assert.True(result.IsEndOfStream);
+				}
 				else
+				{
 					Assert.AreEqual(fromEventNumber - 2, result.NextEventNumber);
+				}
 			}
 		}
 

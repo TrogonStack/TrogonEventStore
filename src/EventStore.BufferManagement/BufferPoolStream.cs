@@ -44,7 +44,10 @@ public class BufferPoolStream : Stream
 		set
 		{
 			if (value < 0 || value > _bufferPool.Length)
+			{
 				throw new ArgumentOutOfRangeException("value");
+			}
+
 			_position = value;
 		}
 	}
@@ -56,7 +59,10 @@ public class BufferPoolStream : Stream
 	public BufferPoolStream(BufferPool bufferPool)
 	{
 		if (bufferPool == null)
+		{
 			throw new ArgumentNullException("bufferPool");
+		}
+
 		_bufferPool = bufferPool;
 	}
 
@@ -89,13 +95,18 @@ public class BufferPoolStream : Stream
 	{
 		_bufferPool.SetLength((int)value);
 		if (_position > value)
+		{
 			_position = value;
+		}
 	}
 
 	public override int Read(byte[] buffer, int offset, int count)
 	{
 		if (_position >= _bufferPool.Length)
+		{
 			return 0;
+		}
+
 		int ret = _bufferPool.ReadFrom((int)_position, buffer, offset, count);
 		_position += ret;
 		return ret;
@@ -110,7 +121,10 @@ public class BufferPoolStream : Stream
 	protected override void Dispose(bool disposing)
 	{
 		if (disposing)
+		{
 			_bufferPool.Dispose();
+		}
+
 		base.Dispose(disposing);
 	}
 

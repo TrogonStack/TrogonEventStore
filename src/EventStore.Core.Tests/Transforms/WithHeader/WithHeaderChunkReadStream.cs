@@ -11,7 +11,10 @@ public class WithHeaderChunkReadStream(ChunkDataReadStream stream, int transform
 	public override long Seek(long offset, SeekOrigin origin)
 	{
 		if (origin != SeekOrigin.Begin)
+		{
 			throw new NotSupportedException();
+		}
+
 		Position = offset;
 		return offset;
 	}

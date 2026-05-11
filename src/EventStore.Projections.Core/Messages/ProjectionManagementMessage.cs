@@ -515,11 +515,20 @@ public static partial class ProjectionManagementMessage
 			public GetState(IEnvelope envelope, string name, string partition)
 			{
 				if (envelope == null)
+				{
 					throw new ArgumentNullException("envelope");
+				}
+
 				if (name == null)
+				{
 					throw new ArgumentNullException("name");
+				}
+
 				if (partition == null)
+				{
 					throw new ArgumentNullException("partition");
+				}
+
 				_envelope = envelope;
 				_name = name;
 				_partition = partition;
@@ -551,11 +560,20 @@ public static partial class ProjectionManagementMessage
 			public GetResult(IEnvelope envelope, string name, string partition)
 			{
 				if (envelope == null)
+				{
 					throw new ArgumentNullException("envelope");
+				}
+
 				if (name == null)
+				{
 					throw new ArgumentNullException("name");
+				}
+
 				if (partition == null)
+				{
 					throw new ArgumentNullException("partition");
+				}
+
 				_envelope = envelope;
 				_name = name;
 				_partition = partition;
@@ -669,7 +687,9 @@ public static partial class ProjectionManagementMessage
 			}
 
 			if (replace && message.RunAs.Principal != null)
+			{
 				return true; // enable this operation while no projection permissions are defined
+			}
 
 			return true;
 

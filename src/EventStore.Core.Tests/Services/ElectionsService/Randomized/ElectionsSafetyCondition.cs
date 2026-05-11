@@ -15,7 +15,10 @@ internal class ElectionsSafetyCondition : IRandTestFinishCondition
 		get
 		{
 			if (_electionsResults.Count == 0)
+			{
 				return false;
+			}
+
 			var leader = _electionsResults.First().Value;
 			return _electionsResults.Values.All(x => x.Equals(leader)); // same leader for all
 		}

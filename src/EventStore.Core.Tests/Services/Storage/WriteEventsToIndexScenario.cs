@@ -59,11 +59,19 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 	public IReadOnlyList<IPrepareLogRecord<TStreamId>> CreatePrepareLogRecords(TStreamId streamId, int expectedVersion, IList<TStreamId> eventTypes, IList<Guid> eventIds, long transactionPosition)
 	{
 		if (eventIds.Count != eventTypes.Count)
+		{
 			throw new Exception("eventType and eventIds length mismatch!");
+		}
+
 		if (eventIds.Count == 0)
+		{
 			throw new Exception("eventIds is empty");
+		}
+
 		if (eventIds.Count == 1)
+		{
 			return CreatePrepareLogRecord(streamId, expectedVersion, eventTypes[0], eventIds[0], transactionPosition);
+		}
 
 		var numEvents = eventTypes.Count;
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
@@ -73,9 +81,14 @@ public abstract class WriteEventsToIndexScenario<TLogFormat, TStreamId> : Specif
 		{
 			PrepareFlags flags = PrepareFlags.Data | PrepareFlags.IsCommitted;
 			if (i == 0)
+			{
 				flags |= PrepareFlags.TransactionBegin;
+			}
+
 			if (i == numEvents - 1)
+			{
 				flags |= PrepareFlags.TransactionEnd;
+			}
 
 			prepares.Add(
 				PrepareLogRecord.Prepare(

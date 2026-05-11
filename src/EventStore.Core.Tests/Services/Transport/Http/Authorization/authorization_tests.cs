@@ -4,8 +4,8 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using EventStore.Client.Users;
+using EventStore.ClientAPI;
 using EventStore.Common.Utils;
 using EventStore.Core.Services;
 using EventStore.Core.Tests.ClientAPI.Helpers;
@@ -58,7 +58,10 @@ public class Authorization<TLogFormat, TStreamId> : SpecificationWithDirectoryPe
 			var content = new StreamContent(stream);
 			content.Headers.ContentLength = bodyBytes.Length;
 			if (contentType != null)
+			{
 				content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+			}
+
 			request.Content = content;
 		}
 
@@ -166,7 +169,9 @@ public class Authorization<TLogFormat, TStreamId> : SpecificationWithDirectoryPe
 		}
 
 		if (_node != null)
+		{
 			await _node.Shutdown();
+		}
 
 		await base.TestFixtureTearDown();
 	}

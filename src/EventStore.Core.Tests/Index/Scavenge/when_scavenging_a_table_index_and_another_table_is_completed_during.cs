@@ -43,7 +43,10 @@ class
 		{
 			scavengeStarted.Set();
 			if (!scavengeBlocker.Wait(5000))
+			{
 				throw new Exception("Failed to continue.");
+			}
+
 			return false;
 		}));
 

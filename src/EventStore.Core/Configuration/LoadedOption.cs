@@ -4,13 +4,15 @@
 
 namespace EventStore.Core;
 
-public record LoadedOption {
+public record LoadedOption
+{
 	public LoadedOption(
 		OptionMetadata metadata,
 		string title,
 		string? value,
 		string sourceDisplayName,
-		bool isDefault) {
+		bool isDefault)
+	{
 		RawValue = value;
 		Metadata = metadata;
 		Title = title;

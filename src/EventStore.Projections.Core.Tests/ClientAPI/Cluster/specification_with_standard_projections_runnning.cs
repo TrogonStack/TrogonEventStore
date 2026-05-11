@@ -138,7 +138,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 	{
 		var all = await ProjectionClient.StatisticsAll();
 		if (all.Any(p => p.Status == "Faulted"))
+		{
 			Assert.Fail("Projections faulted while running the test" + "\r\n" + string.Join("\r\n", all));
+		}
 	}
 
 	protected async Task EnableStandardProjections()
@@ -173,7 +175,10 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			catch (Exception)
 			{
 				if (i == 10)
+				{
 					throw;
+				}
+
 				await Task.Delay(5000);
 			}
 		}
@@ -253,7 +258,9 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 			case SliceReadStatus.Success:
 				var resultEventsReversed = result.Events.Reverse().ToArray();
 				if (resultEventsReversed.Length < events.Length)
+				{
 					DumpFailed("Stream does not contain enough events", streamId, events, result.Events);
+				}
 				else
 				{
 					for (var index = 0; index < events.Length; index++)
@@ -263,9 +270,13 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 						var eventData = parts[1];
 
 						if (resultEventsReversed[index].Event.EventType != eventType)
+						{
 							DumpFailed("Invalid event type", streamId, events, resultEventsReversed);
+						}
 						else if (resultEventsReversed[index].Event.DebugDataView() != eventData)
+						{
 							DumpFailed("Invalid event body", streamId, events, resultEventsReversed);
+						}
 					}
 				}
 

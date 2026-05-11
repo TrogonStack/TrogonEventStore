@@ -34,7 +34,9 @@ public class
 		List<long> logicalPositions, List<PosMap> posMap, CancellationToken token = default)
 	{
 		if (scavenged && !completed)
+		{
 			throw new ArgumentException("scavenged chunk must be completed");
+		}
 
 		var chunk = await TFChunkHelper.CreateNewChunk(Path.Combine(PathName, $"{Guid.NewGuid()}.chunk"), 4096, scavenged, token);
 
@@ -65,9 +67,13 @@ public class
 		await chunk.Flush(token);
 
 		if (scavenged)
+		{
 			await chunk.CompleteScavenge(posMap, token);
+		}
 		else if (completed)
+		{
 			await chunk.Complete(token);
+		}
 
 		return chunk;
 	}
@@ -89,7 +95,10 @@ public class
 
 		Assert.AreEqual(numEvents, logPositions.Count);
 		foreach (var logPos in logPositions)
+		{
 			Assert.AreEqual(ChunkHeader.Size + logPos, await chunk.GetActualRawPosition(logPos, CancellationToken.None));
+		}
+
 		Assert.IsEmpty(posMap);
 	}
 
@@ -110,7 +119,10 @@ public class
 
 		Assert.AreEqual(numEvents, logPositions.Count);
 		foreach (var logPos in logPositions)
+		{
 			Assert.AreEqual(ChunkHeader.Size + logPos, await chunk.GetActualRawPosition(logPos, CancellationToken.None));
+		}
+
 		Assert.IsEmpty(posMap);
 	}
 

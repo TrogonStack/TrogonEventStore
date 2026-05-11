@@ -94,11 +94,19 @@ public class CoreProjection : IDisposable,
 		ITimeProvider timeProvider)
 	{
 		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
+		}
+
 		if (ioDispatcher == null)
+		{
 			throw new ArgumentNullException("ioDispatcher");
+		}
+
 		if (subscriptionDispatcher == null)
+		{
 			throw new ArgumentNullException("subscriptionDispatcher");
+		}
 
 		_projectionProcessingStrategy = projectionProcessingStrategy;
 		_projectionCorrelationId = projectionCorrelationId;
@@ -156,7 +164,10 @@ public class CoreProjection : IDisposable,
 	private void UpdateStatistics()
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		int sequentialNumber = _statisticsSequentialNumber++;
 		var info = new ProjectionStatistics();
 		GetStatistics(info);
@@ -186,9 +197,13 @@ public class CoreProjection : IDisposable,
 		try
 		{
 			if (_state == State.LoadStateRequested || _state == State.PhaseCompleted)
+			{
 				GoToState(State.Stopped);
+			}
 			else
+			{
 				GoToState(State.Stopping);
+			}
 		}
 		catch (Exception ex)
 		{
@@ -199,13 +214,17 @@ public class CoreProjection : IDisposable,
 	public void Kill()
 	{
 		if (_state != State.Stopped)
+		{
 			GoToState(State.Stopped);
+		}
 	}
 
 	public bool Suspend()
 	{
 		if (_state == State.Stopped || _state == State.Suspended)
+		{
 			return false;
+		}
 
 		GoToState(State.Suspended);
 		return true;
@@ -237,15 +256,23 @@ public class CoreProjection : IDisposable,
 		info.PartitionsCached = _partitionStateCache.CachedItemCount;
 		_enrichStatistics(info);
 		if (_projectionProcessingPhase != null)
+		{
 			_projectionProcessingPhase.GetStatistics(info);
+		}
 	}
 
 	public void CompletePhase()
 	{
 		if (_state != State.Running)
+		{
 			return;
+		}
+
 		if (!_stopOnEof)
+		{
 			throw new InvalidOperationException("!_projectionConfig.StopOnEof");
+		}
+
 		_completed = true;
 		_checkpointManager.Progress(100.0f);
 		GoToState(State.CompletingPhase);
@@ -303,7 +330,10 @@ public class CoreProjection : IDisposable,
 			var phase = checkpointTag == null ? 0 : checkpointTag.Phase;
 			var projectionProcessingPhase = _projectionProcessingPhases[phase];
 			if (checkpointTag == null)
+			{
 				checkpointTag = projectionProcessingPhase.MakeZeroCheckpointTag();
+			}
+
 			checkpointTag = projectionProcessingPhase.AdjustTag(checkpointTag);
 			//TODO: initialize projection state here (test it)
 			//TODO: write test to ensure projection state is correctly loaded from a checkpoint and posted back when enough empty records processed
@@ -324,7 +354,9 @@ public class CoreProjection : IDisposable,
 				_projectionProcessingPhase.Subscribe(checkpointTag, fromCheckpoint: true);
 			}
 			else
+			{
 				GoToState(State.Stopped);
+			}
 		}
 		catch (Exception ex)
 		{
@@ -374,7 +406,9 @@ public class CoreProjection : IDisposable,
 	public void EnsureUnsubscribed()
 	{
 		if (_projectionProcessingPhase != null)
+		{
 			_projectionProcessingPhase.EnsureUnsubscribed();
+		}
 	}
 
 	private void GoToState(State state)
@@ -401,46 +435,67 @@ public class CoreProjection : IDisposable,
 			case State.Faulted:
 			case State.PhaseCompleted:
 				if (wasStarted && !wasStopped)
+				{
 					_checkpointManager.Stopped();
+				}
+
 				break;
 			case State.Stopping:
 			case State.FaultedStopping:
 			case State.CompletingPhase:
 				if (wasStarted && !wasStopping)
+				{
 					_checkpointManager.Stopping();
+				}
+
 				break;
 		}
 
 
 		if (_projectionProcessingPhase != null) // null while loading state
+		{
 			switch (state)
 			{
 				case State.LoadStateRequested:
 				case State.StateLoaded:
 				case State.Subscribed:
 					if (!wasStarting)
+					{
 						_projectionProcessingPhase.SetProjectionState(PhaseState.Starting);
+					}
+
 					break;
 				case State.Running:
 					if (!wasRunning)
+					{
 						_projectionProcessingPhase.SetProjectionState(PhaseState.Running);
+					}
+
 					break;
 				case State.Faulted:
 				case State.FaultedStopping:
 					if (wasRunning)
+					{
 						_projectionProcessingPhase.SetProjectionState(PhaseState.Stopped);
+					}
+
 					break;
 				case State.Stopped:
 				case State.Stopping:
 				case State.CompletingPhase:
 				case State.PhaseCompleted:
 					if (wasRunning)
+					{
 						_projectionProcessingPhase.SetProjectionState(PhaseState.Stopped);
+					}
+
 					break;
 				default:
 					_projectionProcessingPhase.SetProjectionState(PhaseState.Unknown);
 					break;
 			}
+		}
+
 		switch (state)
 		{
 			case State.Initial:
@@ -484,7 +539,9 @@ public class CoreProjection : IDisposable,
 		}
 
 		if (stateChanged)
+		{
 			UpdateStatistics();
+		}
 	}
 
 	private void EnterInitial()
@@ -499,8 +556,10 @@ public class CoreProjection : IDisposable,
 		_checkpointReader.Initialize();
 		_tickPending = false;
 		if (_requiresRootPartition)
+		{
 			_partitionStateCache.CacheAndLockPartitionState("", new PartitionState("", null, CheckpointTag.Empty),
 				null);
+		}
 		// NOTE: this is to workaround exception in GetState requests submitted by client
 	}
 
@@ -520,7 +579,9 @@ public class CoreProjection : IDisposable,
 			GoToState(State.Running);
 		}
 		else
+		{
 			GoToState(State.Stopped);
+		}
 	}
 
 	private void EnterRunning()
@@ -593,7 +654,9 @@ public class CoreProjection : IDisposable,
 	{
 		// ignore any ticks received when not pending. this may happen when restart requested
 		if (!_tickPending)
+		{
 			return;
+		}
 		// process messages in almost all states as we now ignore work items when processing
 		if (_state == State.LoadStateRequested)
 		{
@@ -622,7 +685,9 @@ public class CoreProjection : IDisposable,
 		_disposed = true;
 		EnsureUnsubscribed();
 		if (_projectionProcessingPhase != null)
+		{
 			_projectionProcessingPhase.Dispose();
+		}
 	}
 
 	public void EnsureTickPending()
@@ -631,7 +696,10 @@ public class CoreProjection : IDisposable,
 		// thus, the tick message is removed from the queue when it does not process any work item (and
 		// it is renewed therefore)
 		if (_tickPending)
+		{
 			return;
+		}
+
 		_tickPending = true;
 		_publisher.Publish(new ProjectionCoreServiceMessage.CoreTick(Tick));
 	}
@@ -644,9 +712,14 @@ public class CoreProjection : IDisposable,
 	public void SetFaulted(string reason)
 	{
 		if (_state != State.FaultedStopping && _state != State.Faulted)
+		{
 			_faultedReason = reason;
+		}
+
 		if (_state != State.Faulted)
+		{
 			GoToState(State.Faulted);
+		}
 	}
 
 	public void SetFaulting(string reason)
@@ -682,9 +755,15 @@ public class CoreProjection : IDisposable,
 	public void SetCurrentCheckpointSuggestedWorkItem(CheckpointSuggestedWorkItem checkpointSuggestedWorkItem)
 	{
 		if (_checkpointSuggestedWorkItem != null && checkpointSuggestedWorkItem != null)
+		{
 			throw new InvalidOperationException("Checkpoint in progress");
+		}
+
 		if (_checkpointSuggestedWorkItem == null && checkpointSuggestedWorkItem == null)
+		{
 			throw new InvalidOperationException("No checkpoint in progress");
+		}
+
 		_checkpointSuggestedWorkItem = checkpointSuggestedWorkItem;
 	}
 

@@ -1,11 +1,13 @@
 using System;
 
-namespace EventStore.Core.Services.Transport.Common {
+namespace EventStore.Core.Services.Transport.Common
+{
 	/// <summary>
 	/// A structure referring to a potential logical record position
 	/// in the Event Store transaction file.
 	/// </summary>
-	public struct Position : IEquatable<Position>, IComparable<Position> {
+	public struct Position : IEquatable<Position>, IComparable<Position>
+	{
 		/// <summary>
 		/// Position representing the start of the transaction file
 		/// </summary>
@@ -40,18 +42,23 @@ namespace EventStore.Core.Services.Transport.Common {
 		/// </summary>
 		/// <param name="commitPosition">The commit position of the record.</param>
 		/// <param name="preparePosition">The prepare position of the record.</param>
-		public Position(ulong commitPosition, ulong preparePosition) {
+		public Position(ulong commitPosition, ulong preparePosition)
+		{
 			if (commitPosition < preparePosition)
+			{
 				throw new ArgumentOutOfRangeException(
 					nameof(commitPosition),
 					"The commit position cannot be less than the prepare position");
+			}
 
-			if (commitPosition > long.MaxValue && commitPosition != ulong.MaxValue) {
+			if (commitPosition > long.MaxValue && commitPosition != ulong.MaxValue)
+			{
 				throw new ArgumentOutOfRangeException(nameof(commitPosition));
 			}
 
 
-			if (preparePosition > long.MaxValue && preparePosition != ulong.MaxValue) {
+			if (preparePosition > long.MaxValue && preparePosition != ulong.MaxValue)
+			{
 				throw new ArgumentOutOfRangeException(nameof(preparePosition));
 			}
 

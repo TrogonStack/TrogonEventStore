@@ -24,9 +24,15 @@ public class EventProcessedResult
 		Guid causedBy, string correlationId, bool isPartitionTombstone = false)
 	{
 		if (partition == null)
+		{
 			throw new ArgumentNullException("partition");
+		}
+
 		if (checkpointTag == null)
+		{
 			throw new ArgumentNullException("checkpointTag");
+		}
+
 		_emittedEvents = emittedEvents;
 		_causedBy = causedBy;
 		_correlationId = correlationId;

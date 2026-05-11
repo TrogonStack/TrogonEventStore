@@ -58,14 +58,18 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		var archiveChk = await GetArchiveCheckpoint(ct);
 
 		if (writerChk >= archiveChk)
+		{
 			return;
+		}
 
 		Log.Information(
 			"Catching up with the archive. Writer checkpoint: 0x{writerCheckpoint:X}, Archive checkpoint: 0x{archiveCheckpoint:X}.",
 			writerChk, archiveChk);
 
 		while (!await CatchUpWithArchive(writerChk, ct))
+		{
 			writerChk = _writerCheckpoint.Read();
+		}
 	}
 
 	// returns true if the catchup is done
@@ -118,13 +122,21 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 
 		// fetch the first one or two chunks
 		foreach (var chunk in firstChunksToFetch)
+		{
 			if (!await FetchAndCommitChunk(chunk, ct))
+			{
 				return false;
+			}
+		}
 
 		// all the remaining chunks are definitely after the writer checkpoint
 		while (await enumerator.MoveNextAsync())
+		{
 			if (!await FetchAndCommitChunk(enumerator.Current, ct))
+			{
 				return false;
+			}
+		}
 
 		Log.Information("Catch-up with the archive completed");
 		return true;
@@ -161,7 +173,9 @@ public class ArchiveCatchup : IClusterVNodeStartupTask
 		var chunkPath = Path.Combine(_dbPath, chunkFile);
 
 		if (!await FetchChunk(chunkFile, chunkPath, ct))
+		{
 			return false;
+		}
 
 		await CommitChunk(chunkPath, ct);
 		return true;

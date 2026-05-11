@@ -61,14 +61,20 @@ public class CoreProjectionCheckpointWriter
 		string eventStreamId, OperationResult operationResult, long firstWrittenEventNumber)
 	{
 		if (_inCheckpointWriteAttempt == 0)
+		{
 			throw new InvalidOperationException();
+		}
+
 		if (operationResult == OperationResult.Success)
 		{
 			if (_logger != null)
+			{
 				_logger.Verbose(
 					"Checkpoint has been written for projection {projection} at sequence number {firstWrittenEventNumber} (current)",
 					_name,
 					firstWrittenEventNumber);
+			}
+
 			_lastWrittenCheckpointEventNumber = firstWrittenEventNumber;
 
 			_inCheckpointWriteAttempt = 0;
@@ -120,7 +126,9 @@ public class CoreProjectionCheckpointWriter
 		var attempt = _inCheckpointWriteAttempt;
 		var delayInSeconds = CalculateBackoffTimeSecs(attempt);
 		if (delayInSeconds == 0)
+		{
 			PublishWriteStreamMetadataAndCheckpointEvent();
+		}
 		else
 		{
 			if (attempt >= MinAttemptWarnThreshold && _logger != null)
@@ -141,13 +149,20 @@ public class CoreProjectionCheckpointWriter
 	private void PublishWriteStreamMetadataAndCheckpointEvent()
 	{
 		if (_logger != null)
+		{
 			_logger.Verbose(
 				"Writing checkpoint for {projection} at {requestedCheckpointPosition} with expected version number {lastWrittenCheckpointEventNumber}",
 				_name, _requestedCheckpointPosition, _lastWrittenCheckpointEventNumber);
+		}
+
 		if (!_metaStreamWritten)
+		{
 			PublishWriteStreamMetadata();
+		}
 		else
+		{
 			PublishWriteCheckpointEvent();
+		}
 	}
 
 	private void PublishWriteStreamMetadata()
@@ -229,7 +244,10 @@ public class CoreProjectionCheckpointWriter
 	{
 		attempt--;
 		if (attempt == 0)
+		{
 			return 0;
+		}
+
 		var expBackoff = attempt < 9 ? (1 << attempt) : 256;
 		return _random.Next(1, expBackoff + 1);
 	}

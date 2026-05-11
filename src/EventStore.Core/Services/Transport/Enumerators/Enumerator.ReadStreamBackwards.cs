@@ -10,9 +10,12 @@ using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Common;
 
-namespace EventStore.Core.Services.Transport.Enumerators {
-	partial class Enumerator {
-		public class ReadStreamBackwards : IAsyncEnumerator<ReadResponse> {
+namespace EventStore.Core.Services.Transport.Enumerators
+{
+	partial class Enumerator
+	{
+		public class ReadStreamBackwards : IAsyncEnumerator<ReadResponse>
+		{
 			private readonly IPublisher _bus;
 			private readonly string _streamName;
 			private readonly ulong _maxCount;
@@ -38,7 +41,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				bool requiresLeader,
 				DateTime deadline,
 				uint compatibility,
-				CancellationToken cancellationToken) {
+				CancellationToken cancellationToken)
+			{
 				_bus = bus ?? throw new ArgumentNullException(nameof(bus));
 				_streamName = streamName ?? throw new ArgumentNullException(nameof(streamName));
 				_maxCount = maxCount;
@@ -54,13 +58,16 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				ReadPage(startRevision);
 			}
 
-			public ValueTask DisposeAsync() {
+			public ValueTask DisposeAsync()
+			{
 				_channel.Writer.TryComplete();
 				return new ValueTask(Task.CompletedTask);
 			}
 
-			public async ValueTask<bool> MoveNextAsync() {
-				if (!await _channel.Reader.WaitToReadAsync(_cancellationToken)) {
+			public async ValueTask<bool> MoveNextAsync()
+			{
+				if (!await _channel.Reader.WaitToReadAsync(_cancellationToken))
+				{
 					return false;
 				}
 
@@ -69,7 +76,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				return true;
 			}
 
-			private void ReadPage(StreamRevision startRevision, ulong readCount = 0) {
+			private void ReadPage(StreamRevision startRevision, ulong readCount = 0)
+			{
 				Guid correlationId = Guid.NewGuid();
 
 				_bus.Publish(new ClientMessage.ReadStreamEventsBackward(
@@ -78,35 +86,43 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					_requiresLeader, null, _user, _deadline,
 					cancellationToken: _cancellationToken));
 
-				async Task OnMessage(Message message, CancellationToken ct) {
+				async Task OnMessage(Message message, CancellationToken ct)
+				{
 					if (message is ClientMessage.NotHandled notHandled &&
-					    TryHandleNotHandled(notHandled, out var ex)) {
+						TryHandleNotHandled(notHandled, out var ex))
+					{
 						_channel.Writer.TryComplete(ex);
 						return;
 					}
 
-					if (message is not ClientMessage.ReadStreamEventsBackwardCompleted completed) {
+					if (message is not ClientMessage.ReadStreamEventsBackwardCompleted completed)
+					{
 						_channel.Writer.TryComplete(
 							ReadResponseException.UnknownMessage.Create<ClientMessage.ReadStreamEventsBackwardCompleted>(message));
 						return;
 					}
 
-					switch (completed.Result) {
+					switch (completed.Result)
+					{
 						case ReadStreamResult.Success:
-							foreach (var @event in completed.Events) {
-								if (readCount >= _maxCount) {
+							foreach (var @event in completed.Events)
+							{
+								if (readCount >= _maxCount)
+								{
 									break;
 								}
 								await _channel.Writer.WriteAsync(new ReadResponse.EventReceived(@event), ct);
 								readCount++;
 							}
 
-							if (!completed.IsEndOfStream && readCount < _maxCount) {
+							if (!completed.IsEndOfStream && readCount < _maxCount)
+							{
 								ReadPage(StreamRevision.FromInt64(completed.NextEventNumber), readCount);
 								return;
 							}
 
-							if (_compatibility >= 1) {
+							if (_compatibility >= 1)
+							{
 								await _channel.Writer
 									.WriteAsync(
 										new ReadResponse.LastStreamPositionReceived(

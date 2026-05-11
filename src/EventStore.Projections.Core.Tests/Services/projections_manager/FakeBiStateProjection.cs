@@ -69,7 +69,10 @@ public class FakeBiStateProjection : IProjectionStateHandler
 	{
 		newSharedState = null;
 		if (data.EventType == "fail" || _query == "fail")
+		{
 			throw new Exception("failed");
+		}
+
 		Log("ProcessEvent(" + "..." + ")");
 		newState = "{\"data\": 1}";
 		newSharedState = "{\"data\": 2}";

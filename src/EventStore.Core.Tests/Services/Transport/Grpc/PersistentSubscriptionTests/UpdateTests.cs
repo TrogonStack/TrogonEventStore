@@ -103,9 +103,9 @@ public class UpdateTests
 		protected override async Task When()
 		{
 			var request = UpdateRequest(_streamName, _groupName);
-			#pragma warning disable 612
+#pragma warning disable 612
 			request.Options.Settings.NamedConsumerStrategy = UpdateReq.Types.ConsumerStrategy.Pinned;
-			#pragma warning restore 612
+#pragma warning restore 612
 
 			await _client.UpdateAsync(request, GetCallOptions(AdminCredentials));
 

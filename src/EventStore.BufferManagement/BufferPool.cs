@@ -82,7 +82,10 @@ public class BufferPool : IDisposable
 		{
 			CheckDisposed();
 			if (index < 0 || index > _length)
+			{
 				throw new ArgumentOutOfRangeException("index");
+			}
+
 			Position l = GetPositionFor(index);
 			ArraySegment<byte> buffer = _buffers[l.Index];
 			return buffer.Array[buffer.Offset + l.Offset];
@@ -91,13 +94,18 @@ public class BufferPool : IDisposable
 		{
 			CheckDisposed();
 			if (index < 0)
+			{
 				throw new ArgumentException("_Index");
+			}
+
 			Position l = GetPositionFor(index);
 			EnsureCapacity(l);
 			ArraySegment<byte> buffer = _buffers[l.Index];
 			buffer.Array[buffer.Offset + l.Offset] = value;
 			if (_length <= index)
+			{
 				_length = index + 1;
+			}
 		}
 	}
 
@@ -124,9 +132,15 @@ public class BufferPool : IDisposable
 	public BufferPool(int initialBufferCount, BufferManager bufferManager)
 	{
 		if (initialBufferCount <= 0)
+		{
 			throw new ArgumentException("initialBufferCount");
+		}
+
 		if (bufferManager == null)
+		{
 			throw new ArgumentNullException("bufferManager");
+		}
+
 		_length = 0;
 		_buffers = new List<ArraySegment<byte>>(bufferManager.CheckOut(initialBufferCount));
 		// must have 1 buffer
@@ -142,7 +156,10 @@ public class BufferPool : IDisposable
 	public void Append(byte[] data)
 	{
 		if (data == null)
+		{
 			throw new ArgumentNullException("data");
+		}
+
 		Write(_length, data, 0, data.Length);
 	}
 
@@ -167,11 +184,20 @@ public class BufferPool : IDisposable
 	public void Write(int position, byte[] data, int offset, int count)
 	{
 		if (data == null)
+		{
 			throw new ArgumentNullException("data");
+		}
+
 		if (offset < 0 || offset > data.Length)
+		{
 			throw new ArgumentOutOfRangeException("offset");
+		}
+
 		if (count < 0 || count + offset > data.Length)
+		{
 			throw new ArgumentOutOfRangeException("count");
+		}
+
 		Write(position, new ArraySegment<byte>(data, offset, count));
 	}
 
@@ -194,8 +220,11 @@ public class BufferPool : IDisposable
 			int available = current.Count - loc.Offset;
 			canWrite = canWrite > available ? available : canWrite;
 			if (canWrite > 0)
+			{
 				Buffer.BlockCopy(data.Array, written + data.Offset, current.Array, current.Offset + loc.Offset,
 					canWrite);
+			}
+
 			written += canWrite;
 			tmpLength += canWrite;
 		} while (written < data.Count);
@@ -214,11 +243,20 @@ public class BufferPool : IDisposable
 	public int ReadFrom(int position, byte[] data, int offset, int count)
 	{
 		if (data == null)
+		{
 			throw new ArgumentNullException("data");
+		}
+
 		if (offset < 0 || offset > data.Length)
+		{
 			throw new ArgumentOutOfRangeException("offset");
+		}
+
 		if (count < 0 || count + offset > data.Length)
+		{
 			throw new ArgumentOutOfRangeException("count");
+		}
+
 		return ReadFrom(position, new ArraySegment<byte>(data, offset, count));
 	}
 
@@ -232,7 +270,10 @@ public class BufferPool : IDisposable
 	{
 		CheckDisposed();
 		if (position >= _length)
+		{
 			return 0;
+		}
+
 		int copied = 0;
 		int left = Math.Min(data.Count, _length - position);
 		int currentLocation = position;
@@ -272,14 +313,21 @@ public class BufferPool : IDisposable
 	{
 		CheckDisposed();
 		if (newLength < 0)
+		{
 			throw new ArgumentException("newLength must be greater than 0");
+		}
+
 		int oldCapacity = Capacity;
 		_length = newLength;
 
 		if (_length < oldCapacity && releaseMemory)
+		{
 			RemoveCapacity(GetPositionFor(_length));
+		}
 		else if (_length > oldCapacity)
+		{
 			EnsureCapacity(GetPositionFor(_length));
+		}
 	}
 
 	private void RemoveCapacity(Position position)
@@ -298,7 +346,10 @@ public class BufferPool : IDisposable
 			foreach (ArraySegment<byte> buffer in _bufferManager.CheckOut(position.Index + 1 - _buffers.Count))
 			{
 				if (buffer.Count != _chunkSize)
+				{
 					throw new Exception("Received a buffer of the wrong size: this should never happen.");
+				}
+
 				_buffers.Add(buffer);
 			}
 		}
@@ -354,7 +405,10 @@ public class BufferPool : IDisposable
 	protected virtual void DisposeInternal()
 	{
 		if (_buffers != null)
+		{
 			_bufferManager.CheckIn(_buffers);
+		}
+
 		_disposed = true;
 		_buffers = null;
 	}
@@ -362,6 +416,8 @@ public class BufferPool : IDisposable
 	private void CheckDisposed()
 	{
 		if (_disposed)
+		{
 			throw new ObjectDisposedException("Object has been disposed.");
+		}
 	}
 }

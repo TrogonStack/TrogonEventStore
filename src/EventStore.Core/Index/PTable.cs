@@ -114,7 +114,9 @@ public partial class PTable : ISearchTable, IDisposable
 	public ReadOnlySpan<Midpoint> GetMidPoints()
 	{
 		if (_midpoints == null)
+		{
 			return ReadOnlySpan<Midpoint>.Empty;
+		}
 
 		return _midpoints.AsSpan();
 	}
@@ -135,7 +137,9 @@ public partial class PTable : ISearchTable, IDisposable
 		Ensure.Nonnegative(depth, "depth");
 
 		if (!File.Exists(filename))
+		{
 			throw new CorruptIndexException(new PTableNotFoundException(filename));
+		}
 
 		_id = id;
 		_filename = filename;
@@ -178,8 +182,11 @@ public partial class PTable : ISearchTable, IDisposable
 			if ((header.Version != PTableVersions.IndexV2) &&
 				(header.Version != PTableVersions.IndexV3) &&
 				(header.Version != PTableVersions.IndexV4))
+			{
 				throw new CorruptIndexException(
 					new UnsupportedFileVersionException(_filename, header.Version, Version));
+			}
+
 			_version = header.Version;
 
 			if (_version == PTableVersions.IndexV1)
@@ -208,9 +215,11 @@ public partial class PTable : ISearchTable, IDisposable
 					SeekOrigin.Begin);
 				var footer = PTableFooter.FromStream(readerWorkItem.Stream);
 				if (footer.Version != header.Version)
+				{
 					throw new CorruptIndexException(
 						$"PTable header/footer version mismatch: {header.Version}/{footer.Version}",
 						new InvalidFileException("Invalid PTable file."));
+				}
 
 				if (_version == PTableVersions.IndexV4)
 				{
@@ -218,7 +227,9 @@ public partial class PTable : ISearchTable, IDisposable
 					_indexKeySize = IndexKeyV4Size;
 				}
 				else
+				{
 					throw new InvalidOperationException("Unknown PTable version: " + _version);
+				}
 
 				_midpointsCached = footer.NumMidpointsCached;
 				_midpointsCacheSize = _midpointsCached * _indexEntrySize;
@@ -293,7 +304,9 @@ public partial class PTable : ISearchTable, IDisposable
 			}
 
 			if (useBloomFilter)
+			{
 				_bloomFilter = TryOpenBloomFilter();
+			}
 
 			if (lruCacheSize > 0)
 			{
@@ -327,10 +340,15 @@ public partial class PTable : ISearchTable, IDisposable
 	{
 		var buffer = new byte[4096];
 		if (depth is < 0 or > 30)
+		{
 			throw new ArgumentOutOfRangeException("depth");
+		}
+
 		var count = Count;
 		if (count == 0 || depth == 0)
+		{
 			return null;
+		}
 
 		if (skipIndexVerify)
 		{
@@ -391,7 +409,9 @@ public partial class PTable : ISearchTable, IDisposable
 								index = BitConverter.ToInt64(buffer, 8 + 8);
 							}
 							else
+							{
 								throw new InvalidOperationException("Unknown PTable version: " + _version);
+							}
 
 							midpoints.Add(new Midpoint(key, index));
 
@@ -416,9 +436,11 @@ public partial class PTable : ISearchTable, IDisposable
 						return midpoints;
 					}
 					else
+					{
 						Log.Debug(
 							"Skipping loading of cached midpoints from PTable due to count mismatch, cached midpoints: {midpointsCached} / required midpoints: {midpointsCount}",
 							_midpointsCached, midpointsCount);
+					}
 				}
 
 				if (!skipIndexVerify)
@@ -520,7 +542,9 @@ public partial class PTable : ISearchTable, IDisposable
 			if (RuntimeInformation.IsUnix)
 			{
 				if (workItem != null)
+				{
 					ReturnWorkItem(workItem);
+				}
 			}
 			else
 			{
@@ -578,7 +602,10 @@ public partial class PTable : ISearchTable, IDisposable
 	{
 		long toRead = nextPos - fileStream.Position;
 		if (toRead < 0)
+		{
 			throw new Exception("should not do negative reads.");
+		}
+
 		while (toRead > 0)
 		{
 			var localReadCount = Math.Min(toRead, TmpReadBuf.Length);
@@ -591,14 +618,21 @@ public partial class PTable : ISearchTable, IDisposable
 	void ValidateHash(byte[] fromFile, byte[] computed)
 	{
 		if (computed == null)
+		{
 			throw new CorruptIndexException(new HashValidationException("Calculated MD5 hash is null!"));
+		}
+
 		if (fromFile == null)
+		{
 			throw new CorruptIndexException(new HashValidationException("Read from file MD5 hash is null!"));
+		}
 
 		if (computed.Length != fromFile.Length)
+		{
 			throw new CorruptIndexException(
 				new HashValidationException(
 					$"Hash sizes differ! FileHash({computed.Length}): {BitConverter.ToString(computed)}, hash({fromFile.Length}): {BitConverter.ToString(fromFile)}."));
+		}
 
 		if (fromFile.Where((t, i) => t != computed[i]).Any())
 		{
@@ -669,10 +703,14 @@ public partial class PTable : ISearchTable, IDisposable
 		var endKey = BuildKey(streamHash, long.MaxValue);
 
 		if (startKey.GreaterThan(_maxEntry) || endKey.SmallerThan(_minEntry))
+		{
 			return null;
+		}
 
 		if (!MightContainStream(streamHash))
+		{
 			return null;
+		}
 
 		var workItem = GetWorkItem();
 		try
@@ -810,17 +848,21 @@ public partial class PTable : ISearchTable, IDisposable
 					highBoundsCheck = midpointKey;
 				}
 				else
+				{
 					throw new MaybeCorruptIndexException(
 						$"Midpoint key (stream: {midpointKey.Stream}, version: {midpointKey.Version}) >= "
 						+ $"start key (stream: {startKey.Stream}, version: {startKey.Version}) and <= "
 						+ $"end key (stream: {endKey.Stream}, version: {endKey.Version}) "
 						+ "but the stream hashes do not match.");
+				}
 
 				continue;
 			}
 
 			if (!await isForThisStream(midpoint, token))
+			{
 				throw new HashCollisionException();
+			}
 
 			if (midpoint.Position >= beforePosition)
 			{
@@ -838,11 +880,15 @@ public partial class PTable : ISearchTable, IDisposable
 
 		// index entry is for a different hash
 		if (candidateEntry.Stream != stream.Hash)
+		{
 			return null;
+		}
 
 		// index entry is for the correct hash but for a colliding stream
 		if (!await isForThisStream(candidateEntry, token))
+		{
 			throw new HashCollisionException();
+		}
 
 		// index entry is for the correct stream but does not respect the position limit
 		if (candidateEntry.Position >= beforePosition)
@@ -891,9 +937,12 @@ public partial class PTable : ISearchTable, IDisposable
 			var candKey = new IndexEntryKey(candEntry.Stream, candEntry.Version);
 
 			if (candKey.GreaterThan(endKey))
+			{
 				throw new MaybeCorruptIndexException(string.Format(
 					"candEntry ({0}@{1}) > startKey {2}, stream {3}, startNum {4}, endNum {5}, PTable: {6}.",
 					candEntry.Stream, candEntry.Version, startKey, stream, startNumber, endNumber, Filename));
+			}
+
 			if (candKey.SmallerThan(startKey))
 			{
 				offset = default;
@@ -987,9 +1036,12 @@ public partial class PTable : ISearchTable, IDisposable
 			var candEntry = ReadEntry(_indexEntrySize, high, workItem, _version);
 			var candidateKey = new IndexEntryKey(candEntry.Stream, candEntry.Version);
 			if (candidateKey.SmallerThan(startKey))
+			{
 				throw new MaybeCorruptIndexException(string.Format(
 					"candEntry ({0}@{1}) < startKey {2}, stream {3}, startNum {4}, endNum {5}, PTable: {6}.",
 					candEntry.Stream, candEntry.Version, startKey, stream, startNumber, endNumber, Filename));
+			}
+
 			if (candidateKey.GreaterThan(endKey))
 			{
 				offset = default;
@@ -1038,7 +1090,9 @@ public partial class PTable : ISearchTable, IDisposable
 		highKeyOut = new IndexEntryKey(ulong.MinValue, long.MinValue);
 
 		if (_midpoints == null)
+		{
 			return new Range(0, Count - 1);
+		}
 
 		var midpoints = _midpoints.AsSpan();
 		long lowerMidpoint = LowerMidpointBound(midpoints, lowKey);
@@ -1058,9 +1112,13 @@ public partial class PTable : ISearchTable, IDisposable
 		{
 			long m = l + (r - l + 1) / 2;
 			if (midpoints[(int)m].Key.GreaterThan(key))
+			{
 				l = m;
+			}
 			else
+			{
 				r = m - 1;
+			}
 		}
 
 		return l;
@@ -1074,9 +1132,13 @@ public partial class PTable : ISearchTable, IDisposable
 		{
 			long m = l + (r - l) / 2;
 			if (midpoints[(int)m].Key.SmallerThan(key))
+			{
 				r = m;
+			}
 			else
+			{
 				l = m + 1;
+			}
 		}
 
 		return r;
@@ -1187,19 +1249,25 @@ public partial class PTable : ISearchTable, IDisposable
 	public void WaitForDisposal(int timeout)
 	{
 		if (!_destroyEvent.Wait(timeout))
+		{
 			throw new TimeoutException();
+		}
 	}
 
 	public void WaitForDisposal(TimeSpan timeout)
 	{
 		if (!_destroyEvent.Wait(timeout))
+		{
 			throw new TimeoutException();
+		}
 	}
 
 	public List<IndexEntry> GetRangeWithCache(StreamHash stream, long startNumber, long endNumber, int? limit = null)
 	{
 		if (!OverlapsRange(stream, startNumber, endNumber, out var tableLatestNumber, out var tableLatestOffset))
+		{
 			return new List<IndexEntry>();
+		}
 
 		// it does overlap.
 		// if the requested end version is greater than or equal to what we have in this ptable
@@ -1219,7 +1287,9 @@ public partial class PTable : ISearchTable, IDisposable
 	public List<IndexEntry> GetRangeNoCache(StreamHash stream, long startNumber, long endNumber, int? limit = null)
 	{
 		if (!MightContainStream(stream))
+		{
 			return new List<IndexEntry>();
+		}
 
 		return ChopAndReadForward(stream, startNumber, endNumber, limit);
 	}
@@ -1238,7 +1308,9 @@ public partial class PTable : ISearchTable, IDisposable
 		var endKey = BuildKey(stream, endNumber);
 
 		if (startKey.GreaterThan(_maxEntry) || endKey.SmallerThan(_minEntry))
+		{
 			return result;
+		}
 
 		var workItem = GetWorkItem();
 		try
@@ -1273,15 +1345,21 @@ public partial class PTable : ISearchTable, IDisposable
 			var candidateKey = new IndexEntryKey(entry.Stream, entry.Version);
 
 			if (candidateKey.GreaterThan(endKey))
+			{
 				throw new MaybeCorruptIndexException($"candidateKey ({candidateKey}) > endKey ({endKey})");
+			}
 
 			if (candidateKey.SmallerThan(startKey))
+			{
 				return result;
+			}
 
 			result.Add(entry);
 
 			if (result.Count == limit)
+			{
 				break;
+			}
 		}
 
 		return result;
@@ -1440,7 +1518,9 @@ public partial class PTable : ISearchTable, IDisposable
 	private bool MightContainStream(StreamHash stream)
 	{
 		if (_bloomFilter == null)
+		{
 			return true;
+		}
 
 		// with a workitem checked out the ptable (and bloom filter specifically)
 		// wont get disposed

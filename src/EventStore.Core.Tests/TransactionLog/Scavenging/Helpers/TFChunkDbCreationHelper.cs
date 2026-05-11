@@ -47,7 +47,9 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		await result._db.Open(token: token);
 
 		if (result._db.Config.WriterCheckpoint.ReadNonFlushed() > 0)
+		{
 			throw new Exception("The DB already contains some data.");
+		}
 
 		return result;
 	}
@@ -96,7 +98,9 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				if (!transCreate)
 				{
 					if (rec.Type == Rec.RecType.Commit)
+					{
 						throw new Exception("Commit for non-existing transaction.");
+					}
 
 					transactions[rec.Transaction] = transInfo = new TransactionInfo(rec.StreamId, rec.Id, rec.Id);
 
@@ -106,7 +110,9 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				else
 				{
 					if (rec.Type == Rec.RecType.TransStart)
+					{
 						throw new Exception(string.Format("Unexpected record type: {0}.", rec.Type));
+					}
 				}
 
 				if (transInfo.StreamId != rec.StreamId)
@@ -118,10 +124,14 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				}
 
 				if (rec.Type != Rec.RecType.Commit && transInfo.IsDelete)
+				{
 					throw new Exception("Transaction with records after delete record.");
+				}
 
 				if (rec.Type == Rec.RecType.Delete)
+				{
 					transInfo.IsDelete = true;
+				}
 
 				transInfo.LastPrepareId = rec.Id;
 			}
@@ -141,7 +151,10 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 			for (int j = 0; j < _chunkRecs[i].Length; ++j)
 			{
 				if (completedChunk)
+				{
 					throw new InvalidOperationException("Don't try to write more data to completed chunk");
+				}
+
 				var rec = _chunkRecs[i][j];
 				var transInfo = transactions[rec.Transaction];
 
@@ -179,8 +192,10 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 				}
 
 				if (streamVersion == EventNumber.DeletedStream && rec.Type != Rec.RecType.Commit)
+				{
 					throw new Exception(string.Format(
 						"Stream {0} was deleted, but we need to write some more prepares.", rec.StreamId));
+				}
 
 				if (transInfo.FirstPrepareId == rec.Id)
 				{
@@ -207,7 +222,9 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 								expectedVersion);
 
 							if (SystemStreams.IsMetastream(rec.StreamId))
+							{
 								transInfo.StreamMetadata = rec.Metadata;
+							}
 
 							streamUncommitedVersion[rec.StreamId] += 1;
 							break;
@@ -257,15 +274,23 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 							{
 								var streamId = SystemStreams.OriginalStreamOf(rec.StreamId);
 								if (!streams.ContainsKey(streamId))
+								{
 									streams.Add(streamId, new StreamInfo(-1));
+								}
+
 								streams[streamId].StreamMetadata = transInfo.StreamMetadata;
 							}
 
 							if (transInfo.IsDelete)
+							{
 								streams[rec.StreamId].StreamVersion = EventNumber.DeletedStream;
+							}
 							else
+							{
 								streams[rec.StreamId].StreamVersion =
 									transInfo.TransactionEventNumber + transInfo.TransactionOffset - 1;
+							}
+
 							break;
 						}
 					default:
@@ -296,7 +321,9 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 		}
 
 		if (commit)
+		{
 			_db.Config.WriterCheckpoint.Write(logPos);
+		}
 
 		_db.Config.WriterCheckpoint.Flush();
 		return new DbResult(_db, records.Select(rs => rs.ToArray()).ToArray(), _remoteChunks, streams);
@@ -307,12 +334,16 @@ public class TFChunkDbCreationHelper<TLogFormat, TStreamId>
 	{
 		var writerRes = await chunk.TryAppend(record, token);
 		if (!writerRes.Success)
+		{
 			throw new Exception(string.Format("Could not write log record: {0}", record));
+		}
 
 		var newPos = chunkNum * (long)_db.Config.ChunkSize + writerRes.NewPosition;
 
 		if (commitWrite)
+		{
 			_db.Config.WriterCheckpoint.Write(newPos);
+		}
 
 		return newPos;
 	}
@@ -541,7 +572,9 @@ public class Rec
 		Ensure.Nonnegative(transaction, "transaction");
 
 		if (data != null && metadata != null)
+		{
 			throw new Exception("two kinds of data were specified");
+		}
 
 		Type = type;
 		Id = Guid.NewGuid();

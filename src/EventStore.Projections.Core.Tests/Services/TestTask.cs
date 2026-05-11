@@ -32,7 +32,9 @@ public class TestTask : StagedTask
 		_readyForStage = readyForStage;
 		_startedOnStage = onStage;
 		if (_startedOnStage <= _completeImmediatelyUpToStage)
+		{
 			Complete();
+		}
 	}
 
 	public void Complete()

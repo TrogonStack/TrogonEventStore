@@ -114,7 +114,9 @@ public class PublicTcpApiTestService : IHostedService
 	private void StartTcpService()
 	{
 		if (Interlocked.Exchange(ref _systemInitialized, 1) == 1)
+		{
 			return;
+		}
 
 		_tcpService.Handle(new SystemMessage.SystemInit());
 	}

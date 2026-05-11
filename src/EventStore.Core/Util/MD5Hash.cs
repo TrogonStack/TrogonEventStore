@@ -15,7 +15,9 @@ public class MD5Hash
 	{
 		//when using this, it will calculate from this point to the END of the stream!
 		using (var md5 = MD5.Create())
+		{
 			return md5.ComputeHash(s);
+		}
 	}
 
 	public static byte[] GetHashFor(Stream s, int startPosition, long count)
@@ -36,7 +38,9 @@ public class MD5Hash
 		Ensure.Nonnegative(count, "count");
 
 		if (s.Position != startPosition)
+		{
 			s.Position = startPosition;
+		}
 
 		var buffer = new byte[4096];
 		long toRead = count;
@@ -44,7 +48,9 @@ public class MD5Hash
 		{
 			int read = s.Read(buffer, 0, (int)Math.Min(toRead, buffer.Length));
 			if (read == 0)
+			{
 				break;
+			}
 
 			md5.TransformBlock(buffer, 0, read, null, 0);
 			toRead -= read;
@@ -57,15 +63,20 @@ public class MD5Hash
 		Ensure.Nonnegative(count, "count");
 
 		if (s.Position != startPosition)
+		{
 			s.Position = startPosition;
+		}
 
 		var buffer = ArrayPool<byte>.Shared.Rent(4096);
 		try
 		{
-			for (int bytesRead; count > 0L; count -= bytesRead) {
+			for (int bytesRead; count > 0L; count -= bytesRead)
+			{
 				bytesRead = await s.ReadAsync(buffer.AsMemory(0, (int)Math.Min(count, buffer.Length)), token);
 				if (bytesRead is 0)
+				{
 					break;
+				}
 
 				md5.AppendData(buffer, 0, bytesRead);
 			}

@@ -16,7 +16,8 @@ namespace EventStore.ClusterNode.Components.Services;
 public sealed class UserBrowserService(
 	IPublisher publisher,
 	IAuthorizationProvider authorizationProvider,
-	IHttpContextAccessor httpContextAccessor) {
+	IHttpContextAccessor httpContextAccessor)
+{
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation ListOperation = new(Operations.Users.List);
 	private static readonly Operation ReadOperation = new(Operations.Users.Read);
@@ -34,22 +35,32 @@ public sealed class UserBrowserService(
 
 	public CurrentUserView ReadCurrentRequest() => CurrentUserView.From(CurrentUser);
 
-	public async Task<UserListPage> ReadAll(CancellationToken cancellationToken = default) {
+	public async Task<UserListPage> ReadAll(CancellationToken cancellationToken = default)
+	{
 		var currentUser = CurrentUserView.From(CurrentUser);
 		if (!await HasAccess(ListOperation, cancellationToken))
+		{
 			return UserListPage.Unavailable(currentUser, "User list access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<UserManagementMessage.AllUserDetailsResult>();
 		publisher.Publish(new UserManagementMessage.GetAll(envelope, CurrentUser));
 
 		UserManagementMessage.AllUserDetailsResult completed;
-		try {
+		try
+		{
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException)
+		{
 			return UserListPage.Unavailable(currentUser, "Timed out reading users.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException)
+		{
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			return UserListPage.Unavailable(currentUser, $"Unable to read users: {UserInterfaceMessages.Friendly(ex)}");
 		}
 
@@ -61,44 +72,63 @@ public sealed class UserBrowserService(
 			: UserListPage.Unavailable(currentUser, FriendlyError(completed.Error));
 	}
 
-	public async Task<UserDetailPage> Read(string loginName, CancellationToken cancellationToken = default) {
+	public async Task<UserDetailPage> Read(string loginName, CancellationToken cancellationToken = default)
+	{
 		var currentUser = CurrentUserView.From(CurrentUser);
 		if (string.IsNullOrWhiteSpace(loginName))
+		{
 			return UserDetailPage.Unavailable("", currentUser, "Enter a user name to inspect it.");
+		}
 
 		var readOperation = ReadOperation.WithParameter(Operations.Users.Parameters.User(loginName));
 		if (!await HasAccess(readOperation, cancellationToken))
+		{
 			return UserDetailPage.Unavailable(loginName, currentUser, $"User '{loginName}' access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<UserManagementMessage.UserDetailsResult>();
 		publisher.Publish(new UserManagementMessage.Get(envelope, CurrentUser, loginName));
 
 		UserManagementMessage.UserDetailsResult completed;
-		try {
+		try
+		{
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException)
+		{
 			return UserDetailPage.Unavailable(loginName, currentUser, $"Timed out reading user '{loginName}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException)
+		{
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			return UserDetailPage.Unavailable(loginName, currentUser, $"Unable to read user '{loginName}': {UserInterfaceMessages.Friendly(ex)}");
 		}
 
 		if (!completed.Success)
+		{
 			return UserDetailPage.Unavailable(loginName, currentUser, FriendlyError(completed.Error));
+		}
 
 		return completed.Data is null
 			? UserDetailPage.Unavailable(loginName, currentUser, $"User '{loginName}' details were not returned.")
 			: UserDetailPage.Success(currentUser, UserView.From(completed.Data));
 	}
 
-	public async Task<UserCommandResult> Create(UserCreateRequest request, CancellationToken cancellationToken = default) {
+	public async Task<UserCommandResult> Create(UserCreateRequest request, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateCreate(request);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		if (!TryReadGroups(request.Role, out var groups))
+		{
 			return UserCommandResult.Failure(request.LoginName, "Choose a valid user role.");
+		}
 
 		var loginName = request.LoginName.Trim();
 		var fullName = request.FullName.Trim();
@@ -118,21 +148,30 @@ public sealed class UserBrowserService(
 			cancellationToken);
 	}
 
-	public async Task<UserCommandResult> Update(UserUpdateRequest request, CancellationToken cancellationToken = default) {
+	public async Task<UserCommandResult> Update(UserUpdateRequest request, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateUserName(request.LoginName);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		if (string.IsNullOrWhiteSpace(request.FullName))
+		{
 			return UserCommandResult.Failure(request.LoginName, "Enter a full name.");
+		}
 
 		if (!TryReadGroups(request.Role, out var selectedGroups))
+		{
 			return UserCommandResult.Failure(request.LoginName, "Choose a valid user role.");
+		}
 
 		var loginName = request.LoginName.Trim();
 		var existing = await Read(loginName, cancellationToken);
 		if (existing.User is null)
+		{
 			return UserCommandResult.Failure(loginName, existing.Message);
+		}
 
 		var groups = MergeRoleWithCustomGroups(existing.User.Groups, selectedGroups);
 		return await ExecuteCommand(
@@ -145,10 +184,13 @@ public sealed class UserBrowserService(
 			cancellationToken);
 	}
 
-	public async Task<UserCommandResult> Enable(string loginName, CancellationToken cancellationToken = default) {
+	public async Task<UserCommandResult> Enable(string loginName, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateUserName(loginName);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		loginName = loginName.Trim();
 		return await ExecuteCommand(
@@ -161,10 +203,13 @@ public sealed class UserBrowserService(
 			cancellationToken);
 	}
 
-	public async Task<UserCommandResult> Disable(string loginName, CancellationToken cancellationToken = default) {
+	public async Task<UserCommandResult> Disable(string loginName, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateUserName(loginName);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		loginName = loginName.Trim();
 		return await ExecuteCommand(
@@ -177,10 +222,13 @@ public sealed class UserBrowserService(
 			cancellationToken);
 	}
 
-	public async Task<UserCommandResult> Delete(string loginName, CancellationToken cancellationToken = default) {
+	public async Task<UserCommandResult> Delete(string loginName, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateUserName(loginName);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		loginName = loginName.Trim();
 		return await ExecuteCommand(
@@ -193,16 +241,23 @@ public sealed class UserBrowserService(
 			cancellationToken);
 	}
 
-	public async Task<UserCommandResult> ResetPassword(UserPasswordResetRequest request, CancellationToken cancellationToken = default) {
+	public async Task<UserCommandResult> ResetPassword(UserPasswordResetRequest request, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateUserName(request.LoginName);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		if (string.IsNullOrWhiteSpace(request.Password))
+		{
 			return UserCommandResult.Failure(request.LoginName, "Enter a new password.");
+		}
 
 		if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+		{
 			return UserCommandResult.Failure(request.LoginName, "The password confirmation does not match.");
+		}
 
 		var loginName = request.LoginName.Trim();
 		return await ExecuteCommand(
@@ -228,20 +283,30 @@ public sealed class UserBrowserService(
 		string actionDescription,
 		string successMessage,
 		string deniedMessage,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 		if (!await HasAccess(operation, cancellationToken))
+		{
 			return UserCommandResult.Failure(loginName, deniedMessage);
+		}
 
 		var envelope = new TaskCompletionEnvelope<UserManagementMessage.UpdateResult>();
 		UserManagementMessage.UpdateResult completed;
-		try {
+		try
+		{
 			publisher.Publish(createMessage(envelope));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException)
+		{
 			return UserCommandResult.Failure(loginName, $"Timed out trying to {actionDescription} user '{loginName}'.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException)
+		{
 			throw;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			return UserCommandResult.Failure(loginName, $"Unable to {actionDescription} user '{loginName}': {UserInterfaceMessages.Friendly(ex)}");
 		}
 
@@ -250,19 +315,28 @@ public sealed class UserBrowserService(
 			: UserCommandResult.Failure(completed.LoginName ?? loginName, FriendlyError(completed.Error));
 	}
 
-	private static UserCommandResult ValidateCreate(UserCreateRequest request) {
+	private static UserCommandResult ValidateCreate(UserCreateRequest request)
+	{
 		var validation = ValidateUserName(request.LoginName);
 		if (!validation.Success)
+		{
 			return validation;
+		}
 
 		if (string.IsNullOrWhiteSpace(request.FullName))
+		{
 			return UserCommandResult.Failure(request.LoginName, "Enter a full name.");
+		}
 
 		if (string.IsNullOrWhiteSpace(request.Password))
+		{
 			return UserCommandResult.Failure(request.LoginName, "Enter a password.");
+		}
 
 		if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+		{
 			return UserCommandResult.Failure(request.LoginName, "The password confirmation does not match.");
+		}
 
 		return UserCommandResult.Succeeded(request.LoginName.Trim(), "");
 	}
@@ -272,9 +346,11 @@ public sealed class UserBrowserService(
 			? UserCommandResult.Failure("", "Enter a login name.")
 			: UserCommandResult.Succeeded(loginName.Trim(), "");
 
-	private static bool TryReadGroups(string role, out string[] groups) {
+	private static bool TryReadGroups(string role, out string[] groups)
+	{
 		role = role?.Trim() ?? "";
-		groups = role switch {
+		groups = role switch
+		{
 			"" => Array.Empty<string>(),
 			SystemRoles.Operations => [SystemRoles.Operations],
 			SystemRoles.Admins => [SystemRoles.Admins],
@@ -297,7 +373,8 @@ public sealed class UserBrowserService(
 		string.Equals(group, SystemRoles.Admins, StringComparison.OrdinalIgnoreCase);
 
 	private static string FriendlyError(UserManagementMessage.Error error) =>
-		error switch {
+		error switch
+		{
 			UserManagementMessage.Error.NotFound => "User was not found.",
 			UserManagementMessage.Error.Conflict => "User update conflicted with the current state.",
 			UserManagementMessage.Error.TryAgain => "The user store is busy. Try again shortly.",
@@ -308,7 +385,8 @@ public sealed class UserBrowserService(
 
 }
 
-public static class UserInterfaceMessages {
+public static class UserInterfaceMessages
+{
 	public static string Friendly(Exception ex) =>
 		string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message;
 }
@@ -316,7 +394,8 @@ public static class UserInterfaceMessages {
 public sealed record UserListPage(
 	CurrentUserView CurrentUser,
 	IReadOnlyList<UserView> Users,
-	string Message) {
+	string Message)
+{
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasUsers => Users.Count > 0;
 	public int EnabledCount => Users.Count(x => !x.Disabled);
@@ -336,7 +415,8 @@ public sealed record UserDetailPage(
 	CurrentUserView CurrentUser,
 	UserView? User,
 	string LoginName,
-	string Message) {
+	string Message)
+{
 	public bool HasUser => User is not null;
 
 	public static UserDetailPage Success(CurrentUserView currentUser, UserView user) => new(currentUser, user, user.LoginName, "");
@@ -347,7 +427,8 @@ public sealed record UserDetailPage(
 public sealed record UserCommandResult(
 	bool Success,
 	string LoginName,
-	string Message) {
+	string Message)
+{
 	public static UserCommandResult Succeeded(string loginName, string message) => new(true, loginName, message);
 	public static UserCommandResult Failure(string loginName, string message) => new(false, loginName, message);
 }
@@ -377,13 +458,15 @@ public sealed record CurrentUserView(
 	string Name,
 	string AuthenticationType,
 	bool IsAuthenticated,
-	IReadOnlyList<string> Roles) {
+	IReadOnlyList<string> Roles)
+{
 	public string NameLabel => string.IsNullOrWhiteSpace(Name) ? "Anonymous" : Name;
 	public string AuthenticationLabel => IsAuthenticated ? "Authenticated" : "Anonymous";
 	public string AuthenticationTone => IsAuthenticated ? "good" : "muted";
 	public string RolesLabel => Roles.Count == 0 ? "No roles" : string.Join(", ", Roles);
 
-	public static CurrentUserView From(ClaimsPrincipal principal) {
+	public static CurrentUserView From(ClaimsPrincipal principal)
+	{
 		var identity = principal.Identity;
 		var roles = principal.Claims
 			.Where(x => x.Type == ClaimTypes.Role || string.Equals(x.Type, "role", StringComparison.OrdinalIgnoreCase))
@@ -406,7 +489,8 @@ public sealed record UserView(
 	string FullName,
 	IReadOnlyList<string> Groups,
 	bool Disabled,
-	DateTimeOffset? DateLastUpdated) {
+	DateTimeOffset? DateLastUpdated)
+{
 	public string DisplayName => string.IsNullOrWhiteSpace(FullName) ? LoginName : FullName;
 	public string StatusLabel => Disabled ? "Disabled" : "Enabled";
 	public string StatusTone => Disabled ? "muted" : "good";

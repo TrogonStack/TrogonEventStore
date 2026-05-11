@@ -7,29 +7,42 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal static class MonitoringStats {
-	public static Func<Dictionary<string, object>, Dictionary<string, object>> GetStatSelector(string statPath) {
+internal static class MonitoringStats
+{
+	public static Func<Dictionary<string, object>, Dictionary<string, object>> GetStatSelector(string statPath)
+	{
 		if (string.IsNullOrEmpty(statPath))
+		{
 			return dict => dict;
+		}
 
-		if (statPath.StartsWith("stats/")) {
+		if (statPath.StartsWith("stats/"))
+		{
 			statPath = statPath.Substring(6);
 			if (string.IsNullOrEmpty(statPath))
+			{
 				return dict => dict;
+			}
 		}
 
 		var groups = statPath.Split('/');
 
-		return dict => {
+		return dict =>
+		{
 			Ensure.NotNull(dict, "dictionary");
 
-			foreach (var groupName in groups) {
+			foreach (var groupName in groups)
+			{
 				if (!dict.TryGetValue(groupName, out var item))
+				{
 					return null;
+				}
 
 				dict = item as Dictionary<string, object>;
 				if (dict is null)
+				{
 					return null;
+				}
 			}
 
 			return dict;
@@ -37,7 +50,8 @@ internal static class MonitoringStats {
 	}
 
 	public static Value ToValue(object value) =>
-		value switch {
+		value switch
+		{
 			null => new Value { NullValue = NullValue.NullValue },
 			Value grpcValue => grpcValue,
 			string stringValue => new Value { StringValue = stringValue },
@@ -55,7 +69,8 @@ internal static class MonitoringStats {
 			decimal numberValue => ToNumberValue(numberValue),
 			Dictionary<string, object> dictionary => ToStructValue(dictionary),
 			IReadOnlyDictionary<string, object> dictionary => ToStructValue(dictionary),
-			StatMetadata metadata => ToStructValue(new Dictionary<string, object> {
+			StatMetadata metadata => ToStructValue(new Dictionary<string, object>
+			{
 				["value"] = metadata.Value,
 				["category"] = metadata.Category,
 				["title"] = metadata.Title,
@@ -67,10 +82,13 @@ internal static class MonitoringStats {
 	private static Value ToNumberValue<T>(T value) where T : struct, IConvertible =>
 		new() { NumberValue = value.ToDouble(CultureInfo.InvariantCulture) };
 
-	private static Value ToStructValue(IEnumerable<KeyValuePair<string, object>> values) {
+	private static Value ToStructValue(IEnumerable<KeyValuePair<string, object>> values)
+	{
 		var structValue = new Struct();
 		foreach (var (key, value) in values)
+		{
 			structValue.Fields.Add(key, ToValue(value));
+		}
 
 		return new Value { StructValue = structValue };
 	}

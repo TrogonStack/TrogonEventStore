@@ -14,7 +14,9 @@ public class ByteDupChunkWriteStream(ChunkDataWriteStream stream) :
 	{
 		var buf = new byte[buffer.Length * 2];
 		for (int i = 0; i < buffer.Length; i++)
+		{
 			buf[i * 2] = buf[i * 2 + 1] = buffer[i];
+		}
 
 		base.Write(buf);
 	}
@@ -23,7 +25,9 @@ public class ByteDupChunkWriteStream(ChunkDataWriteStream stream) :
 	{
 		var buf = new byte[buffer.Length * 2];
 		for (int i = 0; i < buffer.Length; i++)
+		{
 			buf[i * 2] = buf[i * 2 + 1] = buffer.Span[i];
+		}
 
 		return base.WriteAsync(buf, token);
 	}

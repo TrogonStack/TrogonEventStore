@@ -1,24 +1,25 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
+using DotNext.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
+using EventStore.Core.Index;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Monitoring.Stats;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
-using System.Threading.Tasks;
-using DotNext.Threading;
-using EventStore.Core.Index;
 using ILogger = Serilog.ILogger;
 
 
 namespace EventStore.Core.Services.Storage;
 
-public interface IIndexCommitterService<TStreamId> {
+public interface IIndexCommitterService<TStreamId>
+{
 	ValueTask Init(long checkpointPosition, CancellationToken token);
 	void Stop();
 	ValueTask<long> GetCommitLastEventNumber(CommitLogRecord record, CancellationToken token);
@@ -26,7 +27,8 @@ public interface IIndexCommitterService<TStreamId> {
 	void AddPendingCommit(CommitLogRecord commit, long postPosition);
 }
 
-public abstract class IndexCommitterService {
+public abstract class IndexCommitterService
+{
 	protected readonly ILogger Log = Serilog.Log.ForContext<IndexCommitterService>();
 }
 
@@ -277,7 +279,8 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 				do
 				{
 					var ack = _commitAcks.Values[0];
-					if (ack.LogPosition >= _replicationCheckpoint.Read()) { break; }
+					if (ack.LogPosition >= _replicationCheckpoint.Read())
+					{ break; }
 
 					replicated.Add(ack);
 					_commitAcks.RemoveAt(0);

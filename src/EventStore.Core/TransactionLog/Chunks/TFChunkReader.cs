@@ -51,7 +51,9 @@ public class TFChunkReader : ITransactionFileReader
 			var pos = _curPos;
 			var writerChk = _writerCheckpoint.Read();
 			if (pos >= writerChk)
+			{
 				return SeqReadResult.Failure;
+			}
 
 			var chunk = _db.Manager.GetChunkFor(pos);
 			RecordReadResult result;
@@ -63,10 +65,13 @@ public class TFChunkReader : ITransactionFileReader
 			catch (FileBeingDeletedException)
 			{
 				if (retries > MaxRetries)
+				{
 					throw new Exception(
 						string.Format(
 							"Got a file that was being deleted {0} times from TFChunkDb, likely a bug there.",
 							MaxRetries));
+				}
+
 				return await TryReadNextInternal(retries + 1, token);
 			}
 
@@ -92,21 +97,26 @@ public class TFChunkReader : ITransactionFileReader
 
 	private async ValueTask<SeqReadResult> TryReadPrevInternal(int retries, CancellationToken token)
 	{
-		for (;; token.ThrowIfCancellationRequested())
+		for (; ; token.ThrowIfCancellationRequested())
 		{
 			var pos = _curPos;
 			var writerChk = _writerCheckpoint.Read();
 			// we allow == writerChk, that means read the very last record
 			if (pos > writerChk)
+			{
 				throw new Exception(string.Format(
 					"Requested position {0} is greater than writer checkpoint {1} when requesting to read previous record from TF.",
 					pos, writerChk));
+			}
+
 			if (pos <= 0)
+			{
 				return SeqReadResult.Failure;
+			}
 
 			bool readLast = false;
 			if (!_db.Manager.TryGetChunkFor(pos, out var chunk) ||
-			    pos == chunk.ChunkHeader.ChunkStartPosition)
+				pos == chunk.ChunkHeader.ChunkStartPosition)
 			{
 				// we are exactly at the boundary of physical chunks
 				// so we switch to previous chunk and request TryReadLast
@@ -125,9 +135,12 @@ public class TFChunkReader : ITransactionFileReader
 			catch (FileBeingDeletedException)
 			{
 				if (retries > MaxRetries)
+				{
 					throw new Exception(string.Format(
 						"Got a file that was being deleted {0} times from TFChunkDb, likely a bug there.",
 						MaxRetries));
+				}
+
 				return await TryReadPrevInternal(retries + 1, token);
 			}
 
@@ -172,8 +185,11 @@ public class TFChunkReader : ITransactionFileReader
 		catch (FileBeingDeletedException)
 		{
 			if (retries > MaxRetries)
+			{
 				throw new FileBeingDeletedException(
 					"Been told the file was deleted > MaxRetries times. Probably a problem in db.");
+			}
+
 			return await TryReadAtInternal(position, couldBeScavenged, retries + 1, token);
 		}
 	}
@@ -185,7 +201,9 @@ public class TFChunkReader : ITransactionFileReader
 	{
 		var writerChk = _writerCheckpoint.Read();
 		if (position >= writerChk)
+		{
 			return false;
+		}
 
 		var chunk = _db.Manager.GetChunkFor(position);
 		try
@@ -196,8 +214,11 @@ public class TFChunkReader : ITransactionFileReader
 		catch (FileBeingDeletedException)
 		{
 			if (retries > MaxRetries)
+			{
 				throw new FileBeingDeletedException(
 					"Been told the file was deleted > MaxRetries times. Probably a problem in db.");
+			}
+
 			return await ExistsAtInternal(position, retries + 1, token);
 		}
 	}
@@ -205,8 +226,12 @@ public class TFChunkReader : ITransactionFileReader
 	private static void CountRead(bool isCached)
 	{
 		if (isCached)
+		{
 			Interlocked.Increment(ref CachedReads);
+		}
 		else
+		{
 			Interlocked.Increment(ref NotCachedReads);
+		}
 	}
 }

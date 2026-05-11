@@ -8,7 +8,8 @@ namespace EventStore.Core.Services.Storage.InMemory;
 
 // threading: we expect to handle one Write at a time, but Reads can happen concurrently
 // with the write and with other reads.
-public class SingleEventInMemoryStream : IInMemoryStreamReader {
+public class SingleEventInMemoryStream : IInMemoryStreamReader
+{
 	private readonly IPublisher _publisher;
 	private readonly InMemoryLog _memLog;
 	private readonly string _streamName;
@@ -16,7 +17,8 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 	private long _eventNumber;
 	private EventRecord _lastEvent;
 
-	public SingleEventInMemoryStream(IPublisher publisher, InMemoryLog memLog, string streamName) {
+	public SingleEventInMemoryStream(IPublisher publisher, InMemoryLog memLog, string streamName)
+	{
 		_publisher = publisher;
 		_eventNumber = 0;
 		_memLog = memLog;
@@ -24,28 +26,35 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 	}
 
 	public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(
-		ClientMessage.ReadStreamEventsForward msg) {
+		ClientMessage.ReadStreamEventsForward msg)
+	{
 
 		ReadStreamResult result;
 		ResolvedEvent[] events;
 		long nextEventNumber, lastEventNumber;
 
 		var lastEvent = _lastEvent;
-		if (lastEvent == null) {
+		if (lastEvent == null)
+		{
 			// no stream
 			result = ReadStreamResult.NoStream;
 			events = [];
 			nextEventNumber = -1;
 			lastEventNumber = ExpectedVersion.NoStream;
-		} else {
+		}
+		else
+		{
 			result = ReadStreamResult.Success;
 			nextEventNumber = lastEvent.EventNumber + 1;
 			lastEventNumber = lastEvent.EventNumber;
 
-			if (msg.FromEventNumber > lastEvent.EventNumber) {
+			if (msg.FromEventNumber > lastEvent.EventNumber)
+			{
 				// from too high. empty read
 				events = [];
-			} else {
+			}
+			else
+			{
 				// read containing the event
 				events = [ResolvedEvent.ForUnresolvedEvent(lastEvent)];
 			}
@@ -68,30 +77,37 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 	}
 
 	public ClientMessage.ReadStreamEventsBackwardCompleted ReadBackwards(
-		ClientMessage.ReadStreamEventsBackward msg) {
+		ClientMessage.ReadStreamEventsBackward msg)
+	{
 
 		ReadStreamResult result;
 		ResolvedEvent[] events;
 		long adjustedFromEventNumber, lastEventNumber;
 
 		var lastEvent = _lastEvent;
-		if (lastEvent == null) {
+		if (lastEvent == null)
+		{
 			// no stream
 			adjustedFromEventNumber = msg.FromEventNumber;
 			result = ReadStreamResult.NoStream;
 			events = [];
 			lastEventNumber = ExpectedVersion.NoStream;
-		} else {
+		}
+		else
+		{
 			result = ReadStreamResult.Success;
 			lastEventNumber = lastEvent.EventNumber;
 
 			var readFromEnd = msg.FromEventNumber < 0;
 			adjustedFromEventNumber = readFromEnd ? lastEvent.EventNumber : msg.FromEventNumber;
 
-			if (adjustedFromEventNumber < lastEvent.EventNumber) {
+			if (adjustedFromEventNumber < lastEvent.EventNumber)
+			{
 				// from too low. empty read
 				events = [];
-			} else {
+			}
+			else
+			{
 				// read containing the event
 				events = [ResolvedEvent.ForUnresolvedEvent(lastEvent)];
 			}
@@ -113,7 +129,8 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader {
 			tfLastCommitPosition: _memLog.GetLastCommitPosition());
 	}
 
-	public void Write(string eventType, ReadOnlyMemory<byte> data) {
+	public void Write(string eventType, ReadOnlyMemory<byte> data)
+	{
 		var commitPosition = _memLog.GetNextCommitPosition();
 		var prepare = new PrepareLogRecord(
 			logPosition: commitPosition,

@@ -120,7 +120,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 	private static Message UnwrapIdentifyClient(TcpPackage package, IEnvelope envelope)
 	{
 		var dto = package.Data.Deserialize<IdentifyClient>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		return new ClientMessage.IdentifyClient(package.CorrelationId, dto.Version, dto.ConnectionName);
 	}
@@ -134,7 +137,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		UnwrapReadEvent(TcpPackage package, IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<ReadEvent>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.ReadEvent(Guid.NewGuid(), package.CorrelationId, envelope, dto.EventStreamId,
 			dto.EventNumber, dto.ResolveLinkTos, dto.RequireLeader, user);
 	}
@@ -151,7 +158,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<ReadStreamEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.ReadStreamEventsForward(Guid.NewGuid(), package.CorrelationId, envelope,
 			dto.EventStreamId, dto.FromEventNumber, dto.MaxCount,
 			dto.ResolveLinkTos, dto.RequireLeader, null, user,
@@ -172,7 +183,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<ReadStreamEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.ReadStreamEventsBackward(Guid.NewGuid(), package.CorrelationId, envelope,
 			dto.EventStreamId, dto.FromEventNumber, dto.MaxCount,
 			dto.ResolveLinkTos, dto.RequireLeader, null, user);
@@ -204,7 +219,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<ReadAllEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		return new ClientMessage.ReadAllEventsForward(Guid.NewGuid(), package.CorrelationId, envelope,
 			dto.CommitPosition, dto.PreparePosition, dto.MaxCount,
@@ -227,7 +245,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<ReadAllEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.ReadAllEventsBackward(Guid.NewGuid(), package.CorrelationId, envelope,
 			dto.CommitPosition, dto.PreparePosition, dto.MaxCount,
 			dto.ResolveLinkTos, dto.RequireLeader, null, user);
@@ -246,7 +268,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<FilteredReadAllEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		IEventFilter eventFilter = EventFilter.Get(true, dto.Filter);
 
@@ -289,7 +314,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		IEnvelope envelope, ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<FilteredReadAllEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		IEventFilter eventFilter = EventFilter.Get(true, dto.Filter);
 
@@ -321,7 +349,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<SubscribeToStream>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.SubscribeToStream(Guid.NewGuid(), package.CorrelationId, envelope,
 			connection.ConnectionId, dto.EventStreamId, dto.ResolveLinkTos, user);
 	}
@@ -332,7 +364,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<FilteredSubscribeToStream>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		IEventFilter eventFilter = EventFilter.Get(dto.EventStreamId.IsEmptyString(), dto.Filter);
 
@@ -345,7 +380,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		ClaimsPrincipal user)
 	{
 		var dto = package.Data.Deserialize<UnsubscribeFromStream>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.UnsubscribeFromStream(Guid.NewGuid(), package.CorrelationId, envelope, user);
 	}
 
@@ -359,7 +398,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpPackage package, IEnvelope envelope, ClaimsPrincipal user, TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<CreatePersistentSubscription>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		var namedConsumerStrategy = dto.NamedConsumerStrategy;
 		if (string.IsNullOrEmpty(namedConsumerStrategy))
@@ -382,7 +424,10 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpPackage package, IEnvelope envelope, ClaimsPrincipal user, TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<UpdatePersistentSubscription>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
 
 		var namedConsumerStrategy = dto.NamedConsumerStrategy;
 		if (string.IsNullOrEmpty(namedConsumerStrategy))
@@ -405,7 +450,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpPackage package, IEnvelope envelope, ClaimsPrincipal user, TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<CreatePersistentSubscription>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.DeletePersistentSubscriptionToStream(Guid.NewGuid(), package.CorrelationId, envelope,
 			dto.EventStreamId, dto.SubscriptionGroupName, user);
 	}
@@ -442,7 +491,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpPackage package, IEnvelope envelope, ClaimsPrincipal user, TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<ConnectToPersistentSubscription>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.ConnectToPersistentSubscriptionToStream(Guid.NewGuid(), package.CorrelationId,
 			envelope,
 			connection.ConnectionId, connection.ClientConnectionName, dto.SubscriptionId, dto.EventStreamId,
@@ -454,7 +507,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpPackage package, IEnvelope envelope, ClaimsPrincipal user, TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<PersistentSubscriptionAckEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.PersistentSubscriptionAckEvents(
 			Guid.NewGuid(), package.CorrelationId, envelope, dto.SubscriptionId,
 			dto.ProcessedEventIds.Select(x => new Guid(x.ToByteArray())).ToArray(), user);
@@ -464,7 +521,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 		TcpPackage package, IEnvelope envelope, ClaimsPrincipal user, TcpConnectionManager connection)
 	{
 		var dto = package.Data.Deserialize<PersistentSubscriptionNakEvents>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		return new ClientMessage.PersistentSubscriptionNackEvents(
 			Guid.NewGuid(), package.CorrelationId, envelope, dto.SubscriptionId,
 			dto.Message, (ClientMessage.PersistentSubscriptionNackEvents.NakAction)dto.Action,
@@ -541,7 +602,11 @@ public class ClientTcpDispatcher : ClientWriteTcpDispatcher
 	private ClientMessage.NotHandled UnwrapNotHandled(TcpPackage package, IEnvelope envelope)
 	{
 		var dto = package.Data.Deserialize<NotHandled>();
-		if (dto == null) return null;
+		if (dto == null)
+		{
+			return null;
+		}
+
 		var reason = dto.Reason switch
 		{
 			NotHandled.Types.NotHandledReason.NotReady => ClientMessage.NotHandled.Types.NotHandledReason.NotReady,

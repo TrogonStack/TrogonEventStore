@@ -20,10 +20,16 @@ public static class EnumerableExtensions
 	public static bool IsEmpty<T>(this IEnumerable<T> collection)
 	{
 		if (collection == null)
+		{
 			return true;
+		}
+
 		var coll = collection as ICollection;
 		if (coll != null)
+		{
 			return coll.Count == 0;
+		}
+
 		return !collection.Any();
 	}
 

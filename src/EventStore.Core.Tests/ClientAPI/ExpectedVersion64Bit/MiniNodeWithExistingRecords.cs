@@ -65,7 +65,9 @@ public abstract class MiniNodeWithExistingRecords<TLogFormat, TStreamId> : Speci
 		IODispatcher = new IODispatcher(Bus, Bus);
 
 		if (!Directory.Exists(dbPath))
+		{
 			Directory.CreateDirectory(dbPath);
+		}
 
 		var writerCheckFilename = Path.Combine(dbPath, Checkpoint.Writer + ".chk");
 		var chaserCheckFilename = Path.Combine(dbPath, Checkpoint.Chaser + ".chk");

@@ -1,8 +1,10 @@
 using System;
 using EventStore.Core.Metrics;
 
-namespace EventStore.Core.Index {
-	public interface IIndexStatusTracker {
+namespace EventStore.Core.Index
+{
+	public interface IIndexStatusTracker
+	{
 		IDisposable StartOpening();
 		IDisposable StartRebuilding();
 		IDisposable StartInitializing();
@@ -10,10 +12,12 @@ namespace EventStore.Core.Index {
 		IDisposable StartScavenging();
 	}
 
-	public class IndexStatusTracker : IIndexStatusTracker {
+	public class IndexStatusTracker : IIndexStatusTracker
+	{
 		private readonly ActivityStatusSubMetric _metric;
 
-		public IndexStatusTracker(StatusMetric metric) {
+		public IndexStatusTracker(StatusMetric metric)
+		{
 			_metric = new("Index", metric);
 		}
 
@@ -23,7 +27,8 @@ namespace EventStore.Core.Index {
 		public IDisposable StartMerging() => _metric.StartActivity("Merging");
 		public IDisposable StartScavenging() => _metric.StartActivity("Scavenging");
 
-		public class NoOp : IIndexStatusTracker {
+		public class NoOp : IIndexStatusTracker
+		{
 			public IDisposable StartOpening() => null;
 			public IDisposable StartRebuilding() => null;
 			public IDisposable StartInitializing() => null;

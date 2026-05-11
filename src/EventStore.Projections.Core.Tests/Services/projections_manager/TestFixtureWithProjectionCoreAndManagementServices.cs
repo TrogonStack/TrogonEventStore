@@ -157,7 +157,9 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 		}
 
 		foreach (var q in _processingQueues)
+		{
 			SetUpCoreServices(q.Item4, q.Item1, q.Item2, q.Item3);
+		}
 
 		//Given();
 		WhenLoop();

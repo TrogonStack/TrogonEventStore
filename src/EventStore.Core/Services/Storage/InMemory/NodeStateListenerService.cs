@@ -9,23 +9,27 @@ namespace EventStore.Core.Services.Storage.InMemory;
 // with those handlings and with other reads.
 public class NodeStateListenerService :
 	IInMemoryStreamReader,
-	IHandle<SystemMessage.StateChangeMessage> {
+	IHandle<SystemMessage.StateChangeMessage>
+{
 
 	private readonly SingleEventInMemoryStream _stream;
 
 	public const string EventType = "$NodeStateChanged";
 
-	private readonly JsonSerializerOptions _options = new() {
+	private readonly JsonSerializerOptions _options = new()
+	{
 		Converters = {
 			new JsonStringEnumConverter(),
 		},
 	};
 
-	public NodeStateListenerService(IPublisher publisher, InMemoryLog memLog) {
+	public NodeStateListenerService(IPublisher publisher, InMemoryLog memLog)
+	{
 		_stream = new(publisher, memLog, SystemStreams.NodeStateStream);
 	}
 
-	public void Handle(SystemMessage.StateChangeMessage message) {
+	public void Handle(SystemMessage.StateChangeMessage message)
+	{
 		var payload = new { message.State };
 		var data = JsonSerializer.SerializeToUtf8Bytes(payload, _options);
 		_stream.Write(EventType, data);

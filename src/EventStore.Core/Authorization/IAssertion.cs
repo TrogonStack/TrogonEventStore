@@ -2,8 +2,10 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using EventStore.Plugins.Authorization;
 
-namespace EventStore.Core.Authorization {
-	public interface IAssertion {
+namespace EventStore.Core.Authorization
+{
+	public interface IAssertion
+	{
 		Grant Grant { get; }
 		AssertionInformation Information { get; }
 

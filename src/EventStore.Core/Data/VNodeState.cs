@@ -1,8 +1,10 @@
 using System.ComponentModel;
 
-namespace EventStore.Core.Data {
+namespace EventStore.Core.Data
+{
 	//WARNING: new states must be added at the bottom of the enum otherwise it may break cluster and client compatibility
-	public enum VNodeState {
+	public enum VNodeState
+	{
 		Initializing = 0,
 		DiscoverLeader = 1,
 		Unknown = 2,
@@ -24,8 +26,10 @@ namespace EventStore.Core.Data {
 		MaxValue = ResigningLeader,
 	}
 
-	public static class VNodeStateExtensions {
-		public static bool IsReplica(this VNodeState state) {
+	public static class VNodeStateExtensions
+	{
+		public static bool IsReplica(this VNodeState state)
+		{
 			return state is VNodeState.CatchingUp or VNodeState.Clone or VNodeState.Follower
 				or VNodeState.ReadOnlyReplica;
 		}

@@ -19,7 +19,9 @@ public static partial class OsxNative
 			try
 			{
 				if (proc_pidinfo(processId, PROC_PID_RUSAGE, 0, buffer, PROC_PID_RUSAGE_SIZE) != PROC_PID_RUSAGE_SIZE)
+				{
 					throw GetLastExternalException($"Failed to get {RuntimeOSPlatform.OSX} usage info to extract disk I/O");
+				}
 
 				var info = Marshal.PtrToStructure<rusage_info_v4>(buffer);
 				return new(info.ri_diskio_bytesread, info.ri_diskio_byteswritten, 0, 0);
@@ -84,11 +86,15 @@ public static partial class OsxNative
 			var host = mach_host_self();
 
 			if (host_page_size(host, out var page_size) != KERN_SUCCESS)
+			{
 				throw GetLastExternalException($"Failed to get {RuntimeOSPlatform.OSX} host page size to calculate free memory");
+			}
 
 			var count = (uint)Marshal.SizeOf<vm_statistics64>() / sizeof(uint);
 			if (host_statistics64(host, HOST_VM_INFO64, out var vmStats, ref count) != KERN_SUCCESS)
+			{
 				throw GetLastExternalException($"Failed to get {RuntimeOSPlatform.OSX} host statistics to calculate free memory");
+			}
 
 			return (long)vmStats.free_count * page_size;
 		}

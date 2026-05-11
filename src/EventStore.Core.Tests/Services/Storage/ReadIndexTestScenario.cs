@@ -156,7 +156,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		if (_scavenge)
 		{
 			if (_completeLastChunkOnScavenge)
+			{
 				await Db.Manager.GetChunk(Db.Manager.ChunksCount - 1).Complete(CancellationToken.None);
+			}
+
 			_scavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, Db, new FakeTFScavengerLog(), TableIndex,
 				ReadIndex, _logFormat.Metastreams);
 			await _scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: _mergeChunks,
@@ -253,8 +256,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 					prepare.TimeStamp);
 
 				if (await Writer.Write(prepare, token) is (false, _))
+				{
 					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
 						prepare.LogPosition);
+				}
 			}
 		}
 
@@ -274,8 +279,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 				commit = LogRecord.Commit(pos, prepare.CorrelationId, prepare.LogPosition,
 					eventNumber);
 				if (await Writer.Write(commit, token) is (false, _))
+				{
 					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
 						prepare.LogPosition);
+				}
 			}
 		}
 
@@ -390,8 +397,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 					logPosition: newPos,
 					transactionPosition: tPos);
 				if (await Writer.Write(prepare, token) is (false, _))
+				{
 					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
 						prepare.LogPosition);
+				}
 			}
 
 			Assert.AreEqual(eventStreamId, prepare.EventStreamId);
@@ -548,7 +557,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	protected void Scavenge(bool completeLast, bool mergeChunks, bool scavengeIndex = true)
 	{
 		if (_scavenge)
+		{
 			throw new InvalidOperationException("Scavenge can be executed only once in ReadIndexTestScenario");
+		}
+
 		_scavenge = true;
 		_completeLastChunkOnScavenge = completeLast;
 		_mergeChunks = mergeChunks;

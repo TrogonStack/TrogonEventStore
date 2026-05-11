@@ -59,7 +59,9 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase
 		while (stopWatch.Elapsed < waitDuration)
 		{
 			if (writeTask.IsFaulted)
+			{
 				throw new ApplicationException("Failed to write data");
+			}
 
 			if (writeTask.IsCompleted && !stopWatch.IsRunning)
 			{
@@ -72,10 +74,14 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase
 						  x => x == lastExpectedEventVersion);
 
 			if (success)
+			{
 				break;
+			}
 
 			if (isWatchStarted)
+			{
 				stopWatch.Stop();
+			}
 
 			Thread.Sleep((int)(waitDuration.TotalMilliseconds / 10));
 
@@ -83,7 +89,9 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase
 			nodeProcessId = StartNode();
 
 			if (isWatchStarted)
+			{
 				stopWatch.Start();
+			}
 		}
 
 		writeTask.Wait();
@@ -91,8 +99,10 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase
 		KillNode(nodeProcessId);
 
 		if (!success)
+		{
 			throw new ApplicationException(
 				string.Format("Projections did not complete with expected result in time"));
+		}
 	}
 
 	protected Task WriteData()

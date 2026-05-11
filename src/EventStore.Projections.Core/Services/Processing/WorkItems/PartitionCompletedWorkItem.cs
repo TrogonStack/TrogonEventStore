@@ -27,7 +27,10 @@ class PartitionCompletedWorkItem : CheckpointWorkItemBase
 	protected override void Load(CheckpointTag checkpointTag)
 	{
 		if (_partition == null)
+		{
 			throw new NotSupportedException();
+		}
+
 		_projection.BeginGetPartitionStateAt(_partition, _checkpointTag, LoadCompleted, lockLoaded: false);
 	}
 

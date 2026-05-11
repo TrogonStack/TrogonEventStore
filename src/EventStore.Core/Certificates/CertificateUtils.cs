@@ -118,7 +118,10 @@ namespace EventStore.Core
 				// if the above attempt failed, try to load the certificate via the standard constructor
 				var certificate = X509CertificateLoader.LoadPkcs12FromFile(certificatePath, certificatePassword);
 				if (!certificate.HasPrivateKey)
+				{
 					throw new NoCertificatePrivateKeyException();
+				}
+
 				return (certificate, null);
 			}
 
@@ -217,11 +220,15 @@ namespace EventStore.Core
 			{
 				var certificates = store.Certificates.Find(X509FindType.FindByThumbprint, certificateThumbprint, true);
 				if (certificates.Count == 0)
+				{
 					throw new Exception($"Could not find valid certificate with thumbprint '{certificateThumbprint}'.");
+				}
 
 				if (certificates.Count > 1)
+				{
 					throw new Exception(
 						$"Could not determine a unique certificate from thumbprint '{certificateThumbprint}'.");
+				}
 
 				return certificates[0];
 			}
@@ -231,8 +238,10 @@ namespace EventStore.Core
 				var certificates =
 					store.Certificates.Find(X509FindType.FindBySubjectName, certificateSubjectName, true);
 				if (certificates.Count == 0)
+				{
 					throw new Exception(
 						$"Could not find valid certificate with subject name '{certificateSubjectName}'.");
+				}
 
 				if (certificates.Count == 1)
 				{
@@ -293,14 +302,20 @@ namespace EventStore.Core
 		public static StoreLocation GetCertificateStoreLocation(string certificateStoreLocation)
 		{
 			if (!Enum.TryParse(certificateStoreLocation, out StoreLocation location))
+			{
 				throw new Exception($"Could not find certificate store location '{certificateStoreLocation}'");
+			}
+
 			return location;
 		}
 
 		public static StoreName GetCertificateStoreName(string certificateStoreName)
 		{
 			if (!Enum.TryParse(certificateStoreName, out StoreName name))
+			{
 				throw new Exception($"Could not find certificate store name '{certificateStoreName}'");
+			}
+
 			return name;
 		}
 

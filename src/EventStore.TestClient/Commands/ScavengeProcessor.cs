@@ -28,9 +28,13 @@ internal class ScavengeProcessor : ICmdProcessor
 			(typedConnection, error) =>
 			{
 				if (error == SocketError.Success)
+				{
 					context.Success();
+				}
 				else
+				{
 					context.Fail();
+				}
 			});
 		connection.EnqueueSend(package.AsByteArray());
 		connection.Close("OK");

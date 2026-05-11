@@ -35,7 +35,10 @@ public class a_running_foreach_stream_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			var readerAssignedMessage =
 				_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
 					.LastOrDefault();
@@ -73,7 +76,9 @@ public class a_running_foreach_stream_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
 
 			yield return (new ReaderSubscriptionMessage.EventReaderEof(_reader));
 		}

@@ -44,8 +44,11 @@ public class TFChunkDbTruncator
 
 		var excessiveChunks = _config.FileNamingStrategy.GetAllVersionsFor(oldLastChunkNum + 1);
 		if (excessiveChunks.Length > 0)
+		{
 			throw new Exception(
 				$"During truncation of DB excessive TFChunks were found:\n{string.Join("\n", excessiveChunks)}.");
+		}
+
 		var chunkEnumerator = _config.ChunkFileSystem.CreateChunkEnumerator();
 
 		ChunkHeader newLastChunkHeader = null;
@@ -53,12 +56,16 @@ public class TFChunkDbTruncator
 
 		// find the chunk to truncate to
 		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(oldLastChunkNum, token)
-			               .WithCancellation(token))
+						   .WithCancellation(token))
 		{
 			switch (chunkInfo)
 			{
 				case LatestVersion(var fileName, var _, var end):
-					if (newLastChunkFilename != null || end < newLastChunkNum) break;
+					if (newLastChunkFilename != null || end < newLastChunkNum)
+					{
+						break;
+					}
+
 					newLastChunkHeader = await _config.ChunkFileSystem.ReadHeaderAsync(fileName, token);
 					newLastChunkFilename = fileName;
 					break;
@@ -88,17 +95,23 @@ public class TFChunkDbTruncator
 			}
 
 			await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(oldLastChunkNum, token)
-				               .WithCancellation(token))
+							   .WithCancellation(token))
 			{
 				switch (chunkInfo)
 				{
 					case LatestVersion(var fileName, var start, _):
 						if (start >= chunkNumToDeleteFrom)
+						{
 							chunksToDelete.Add(fileName);
+						}
+
 						break;
 					case OldVersion(var fileName, var start):
 						if (start >= chunkNumToDeleteFrom)
+						{
 							chunksToDelete.Add(fileName);
+						}
+
 						break;
 				}
 			}
@@ -169,9 +182,9 @@ public class TFChunkDbTruncator
 	private void TruncateChunkAndFillWithZeros(ChunkHeader chunkHeader, string chunkFilename, long truncateChk)
 	{
 		if (chunkHeader.IsScavenged
-		    || chunkHeader.ChunkStartNumber != chunkHeader.ChunkEndNumber
-		    || truncateChk < chunkHeader.ChunkStartPosition
-		    || truncateChk >= chunkHeader.ChunkEndPosition)
+			|| chunkHeader.ChunkStartNumber != chunkHeader.ChunkEndNumber
+			|| truncateChk < chunkHeader.ChunkStartPosition
+			|| truncateChk >= chunkHeader.ChunkEndPosition)
 		{
 			throw new Exception(
 				string.Format(

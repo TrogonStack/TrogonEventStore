@@ -82,14 +82,22 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 	{
 		var got = _wrapped.TryGetLatestEntry(streamId, out entry);
 		if (!got)
+		{
 			return false;
+		}
+
 		if (_condition(entry))
+		{
 			return true;
+		}
 
 		// we got the latest entry from the wrapped but it doesn't pass our condition
 		var range = GetRange(streamId, 0, long.MaxValue);
 		if (range.Count == 0)
+		{
 			return false;
+		}
+
 		entry = range[0];
 		return true;
 	}
@@ -106,14 +114,22 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 	{
 		var got = _wrapped.TryGetNextEntry(streamId, afterVersion, out entry);
 		if (!got)
+		{
 			return false;
+		}
+
 		if (_condition(entry))
+		{
 			return true;
+		}
 
 		// we got the next entry from wrapped but it doesn't pass our condition
 		var range = GetRange(streamId, afterVersion, long.MaxValue);
 		if (range.Count == 0)
+		{
 			return false;
+		}
+
 		entry = range[^1];
 		return true;
 	}
@@ -122,14 +138,22 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 	{
 		var got = _wrapped.TryGetNextEntry(stream, afterVersion, out entry);
 		if (!got)
+		{
 			return false;
+		}
+
 		if (_condition(entry))
+		{
 			return true;
+		}
 
 		// we got the next entry from wrapped but it doesn't pass our condition
 		var range = GetRange(stream, afterVersion, long.MaxValue);
 		if (range.Count == 0)
+		{
 			return false;
+		}
+
 		entry = range[^1];
 		return true;
 	}
@@ -138,14 +162,22 @@ public class FilteredTableIndex<TStreamId> : ITableIndex<TStreamId>
 	{
 		var got = _wrapped.TryGetOldestEntry(streamId, out entry);
 		if (!got)
+		{
 			return false;
+		}
+
 		if (_condition(entry))
+		{
 			return true;
+		}
 
 		// we got the oldest entry from the wrapped but it doesn't pass our condition
 		var range = GetRange(streamId, 0, long.MaxValue);
 		if (range.Count == 0)
+		{
 			return false;
+		}
+
 		entry = range[^1];
 		return true;
 	}

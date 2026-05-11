@@ -39,7 +39,9 @@ public sealed class FileSystemWithArchive : IChunkFileSystem
 	public async ValueTask<ChunkHeader> ReadHeaderAsync(string fileName, CancellationToken token)
 	{
 		if (!_locatorCodec.Decode(fileName, out var logicalChunkNumber, out var localFileName))
+		{
 			return await _localFileSystem.ReadHeaderAsync(localFileName, token);
+		}
 
 		using var handle = await ArchivedChunkHandle.OpenForReadAsync(_archive, logicalChunkNumber, token);
 		return await ChunkFileReadHelper.ReadHeaderAsync(handle, fileName, token);
@@ -48,7 +50,9 @@ public sealed class FileSystemWithArchive : IChunkFileSystem
 	public async ValueTask<ChunkFooter> ReadFooterAsync(string fileName, CancellationToken token)
 	{
 		if (!_locatorCodec.Decode(fileName, out var logicalChunkNumber, out var localFileName))
+		{
 			return await _localFileSystem.ReadFooterAsync(localFileName, token);
+		}
 
 		using var handle = await ArchivedChunkHandle.OpenForReadAsync(_archive, logicalChunkNumber, token);
 		return await ChunkFileReadHelper.ReadFooterAsync(handle, fileName, token);
@@ -96,7 +100,7 @@ public sealed class FileSystemWithArchive : IChunkFileSystem
 			var firstChunkNotInArchive = (int)(await _archive.GetCheckpoint(token) / _chunkSize);
 
 			await foreach (var chunkInfo in _localChunkEnumerator.EnumerateChunks(lastChunkNumber, token)
-				               .WithCancellation(token))
+							   .WithCancellation(token))
 			{
 				if (chunkInfo is MissingVersion(_, var start) && start < firstChunkNotInArchive)
 				{

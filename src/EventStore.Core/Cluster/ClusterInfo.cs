@@ -8,45 +8,65 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Transport.Grpc;
 
-namespace EventStore.Core.Cluster {
-	public class ClusterInfo {
+namespace EventStore.Core.Cluster
+{
+	public class ClusterInfo
+	{
 		private static readonly EndPointComparer Comparer = new EndPointComparer();
 
 		public readonly MemberInfo[] Members;
 
-		public ClusterInfo(params MemberInfo[] members) : this((IEnumerable<MemberInfo>)members) {
+		public ClusterInfo(params MemberInfo[] members) : this((IEnumerable<MemberInfo>)members)
+		{
 		}
 
-		public ClusterInfo(IEnumerable<MemberInfo> members) {
+		public ClusterInfo(IEnumerable<MemberInfo> members)
+		{
 			Members = members.Safe().OrderByDescending<MemberInfo, EndPoint>(x => x.HttpEndPoint, Comparer)
 				.ToArray();
 		}
 
-		public ClusterInfo(ClusterInfoDto dto) {
+		public ClusterInfo(ClusterInfoDto dto)
+		{
 			Members = dto.Members.Safe().Select(x => new MemberInfo(x))
 				.OrderByDescending<MemberInfo, EndPoint>(x => x.HttpEndPoint, Comparer).ToArray();
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Join("\n", Members.Select(s => s.ToString()));
 		}
 
-		public bool HasChangedSince(ClusterInfo other) {
-			if (ReferenceEquals(null, other)) return true;
-			if (ReferenceEquals(this, other)) return false;
+		public bool HasChangedSince(ClusterInfo other)
+		{
+			if (ReferenceEquals(null, other))
+			{
+				return true;
+			}
+
+			if (ReferenceEquals(this, other))
+			{
+				return false;
+			}
 
 			if (other.Members.Length != Members.Length)
+			{
 				return true;
+			}
 
-			for (int i = 0; i < Members.Length; i++) {
+			for (int i = 0; i < Members.Length; i++)
+			{
 				if (!Members[i].Equals(other.Members[i]))
+				{
 					return true;
+				}
 			}
 
 			return false;
 		}
-		
-		internal static ClusterInfo FromGrpcClusterInfo(EventStore.Cluster.ClusterInfo grpcCluster, string clusterDns) {
+
+		internal static ClusterInfo FromGrpcClusterInfo(EventStore.Cluster.ClusterInfo grpcCluster, string clusterDns)
+		{
 			var receivedMembers = Array.ConvertAll(grpcCluster.Members.ToArray(), x =>
 				new MemberInfo(
 					Uuid.FromDto(x.InstanceId).ToGuid(), x.TimeStamp.FromTicksSinceEpoch(), (VNodeState)x.State,
@@ -68,8 +88,10 @@ namespace EventStore.Core.Cluster {
 			return new ClusterInfo(receivedMembers);
 		}
 
-		internal static EventStore.Cluster.ClusterInfo ToGrpcClusterInfo(ClusterInfo cluster) {
-			var members = Array.ConvertAll(cluster.Members, x => new EventStore.Cluster.MemberInfo {
+		internal static EventStore.Cluster.ClusterInfo ToGrpcClusterInfo(ClusterInfo cluster)
+		{
+			var members = Array.ConvertAll(cluster.Members, x => new EventStore.Cluster.MemberInfo
+			{
 				InstanceId = Uuid.FromGuid(x.InstanceId).ToDto(),
 				TimeStamp = x.TimeStamp.ToTicksSinceEpoch(),
 				State = (EventStore.Cluster.MemberInfo.Types.VNodeState)x.State,

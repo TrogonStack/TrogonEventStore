@@ -5,8 +5,10 @@ using EventStore.Core.Services.TimerService;
 using EventStore.Core.Services.Transport.Http;
 using EventStore.Core.TransactionLog.Chunks;
 
-namespace EventStore.Core {
-	public class StandardComponents {
+namespace EventStore.Core
+{
+	public class StandardComponents
+	{
 		private readonly TFChunkDbConfig _dbConfig;
 		private readonly IPublisher _mainQueue;
 		private readonly ISubscriber _mainBus;
@@ -28,7 +30,8 @@ namespace EventStore.Core {
 			IPublisher monitoringQueue,
 			QueueStatsManager queueStatsManager,
 			QueueTrackers trackers,
-			bool projectionStats) {
+			bool projectionStats)
+		{
 			_dbConfig = dbConfig;
 			_mainQueue = mainQueue;
 			_mainBus = mainBus;
@@ -42,39 +45,48 @@ namespace EventStore.Core {
 			ProjectionStats = projectionStats;
 		}
 
-		public TFChunkDbConfig DbConfig {
+		public TFChunkDbConfig DbConfig
+		{
 			get { return _dbConfig; }
 		}
 
-		public IPublisher MainQueue {
+		public IPublisher MainQueue
+		{
 			get { return _mainQueue; }
 		}
 
-		public ISubscriber MainBus {
+		public ISubscriber MainBus
+		{
 			get { return _mainBus; }
 		}
 
-		public TimerService TimerService {
+		public TimerService TimerService
+		{
 			get { return _timerService; }
 		}
 
-		public ITimeProvider TimeProvider {
+		public ITimeProvider TimeProvider
+		{
 			get { return _timeProvider; }
 		}
 
-		public IHttpService[] HttpServices {
+		public IHttpService[] HttpServices
+		{
 			get { return _httpServices; }
 		}
 
-		public IPublisher NetworkSendService {
+		public IPublisher NetworkSendService
+		{
 			get { return _networkSendService; }
 		}
 
-		public IPublisher MonitoringQueue {
+		public IPublisher MonitoringQueue
+		{
 			get { return _monitoringQueue; }
 		}
 
-		public QueueStatsManager QueueStatsManager {
+		public QueueStatsManager QueueStatsManager
+		{
 			get { return _queueStatsManager; }
 		}
 

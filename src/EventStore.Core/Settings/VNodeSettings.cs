@@ -4,8 +4,10 @@ using System.Security.Cryptography.X509Certificates;
 using EventStore.Common.Utils;
 using EventStore.Core.Services.Monitoring;
 
-namespace EventStore.Core.Settings {
-	public class SingleVNodeSettings {
+namespace EventStore.Core.Settings
+{
+	public class SingleVNodeSettings
+	{
 		public readonly IPEndPoint ExternalTcpEndPoint;
 		public readonly IPEndPoint ExternalSecureTcpEndPoint;
 		public readonly IPEndPoint HttpEndPoint;
@@ -41,11 +43,15 @@ namespace EventStore.Core.Settings {
 			TimeSpan tcpTimeout,
 			StatsStorage statsStorage = StatsStorage.StreamAndFile,
 			bool skipInitializeStandardUsersCheck = false,
-			bool disableScavengeMerging = false) {
+			bool disableScavengeMerging = false)
+		{
 			Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
 			Ensure.NotNull(httpPrefixes, "httpPrefixes");
 			if (externalSecureTcpEndPoint != null)
+			{
 				Ensure.NotNull(certificate, "certificate");
+			}
+
 			Ensure.Positive(workerThreads, "workerThreads");
 
 			ExternalTcpEndPoint = externalTcpEndPoint;
@@ -68,19 +74,20 @@ namespace EventStore.Core.Settings {
 			TcpTimeout = tcpTimeout;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format("ExternalTcpEndPoint: {0},\n"
-			                     + "ExternalSecureTcpEndPoint: {1},\n"
-			                     + "HttpEndPoint: {2},\n"
-			                     + "HttpPrefixes: {3},\n"
-			                     + "EnableTrustedAuth: {4},\n"
-			                     + "Certificate: {5},\n"
-			                     + "WorkerThreads: {6}\n"
-			                     + "MinFlushDelay: {7}\n"
-			                     + "PrepareTimeout: {8}\n"
-			                     + "CommitTimeout: {9}\n"
-			                     + "StatsPeriod: {10}\n"
-			                     + "StatsStorage: {11}",
+								 + "ExternalSecureTcpEndPoint: {1},\n"
+								 + "HttpEndPoint: {2},\n"
+								 + "HttpPrefixes: {3},\n"
+								 + "EnableTrustedAuth: {4},\n"
+								 + "Certificate: {5},\n"
+								 + "WorkerThreads: {6}\n"
+								 + "MinFlushDelay: {7}\n"
+								 + "PrepareTimeout: {8}\n"
+								 + "CommitTimeout: {9}\n"
+								 + "StatsPeriod: {10}\n"
+								 + "StatsStorage: {11}",
 				ExternalTcpEndPoint == null ? "n/a" : ExternalTcpEndPoint.ToString(),
 				ExternalSecureTcpEndPoint == null ? "n/a" : ExternalSecureTcpEndPoint.ToString(),
 				HttpEndPoint,

@@ -5,11 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.LogV2;
-using EventStore.Core.Transforms.Identity;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
-using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
+using EventStore.Core.TransactionLog.LogRecords;
+using EventStore.Core.Transforms.Identity;
 using EventStore.Plugins.Transforms;
 using NUnit.Framework;
 
@@ -255,7 +255,9 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		public void Dispose()
 		{
 			if (IsDisposed)
+			{
 				return;
+			}
 
 			IsDisposed = true;
 			inner.Dispose();

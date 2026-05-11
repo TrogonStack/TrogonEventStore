@@ -242,20 +242,30 @@ internal partial class PersistentSubscriptions
 		static void ValidateUpdateSettings(UpdateReq.Types.Settings settings)
 		{
 			if (settings is null)
+			{
 				throw RpcExceptions.InvalidArgument("Subscription settings are required.");
+			}
 
 			if (settings.HistoryBufferSize <= 0)
+			{
 				throw RpcExceptions.InvalidArgument($"Buffer Size ({settings.HistoryBufferSize}) must be positive");
+			}
 
 			if (settings.LiveBufferSize <= 0)
+			{
 				throw RpcExceptions.InvalidArgument($"Live Buffer Size ({settings.LiveBufferSize}) must be positive");
+			}
 
 			if (settings.ReadBatchSize <= 0)
+			{
 				throw RpcExceptions.InvalidArgument($"Read Batch Size ({settings.ReadBatchSize}) must be positive");
+			}
 
 			if (settings.HistoryBufferSize <= settings.ReadBatchSize)
+			{
 				throw RpcExceptions.InvalidArgument(
 					$"BufferSize ({settings.HistoryBufferSize}) must be larger than ReadBatchSize ({settings.ReadBatchSize})");
+			}
 		}
 	}
 }

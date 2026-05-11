@@ -23,8 +23,12 @@ class RunningState : ManagedProjectionStateBase
 	protected internal override void Stopped(CoreProjectionStatusMessage.Stopped message)
 	{
 		if (message.Completed)
+		{
 			_managedProjection.SetState(ManagedProjectionState.Completed);
+		}
 		else
+		{
 			base.Stopped(message);
+		}
 	}
 }

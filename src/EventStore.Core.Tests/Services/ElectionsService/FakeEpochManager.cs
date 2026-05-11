@@ -56,7 +56,9 @@ internal class FakeEpochManager : IEpochManager
 			}
 
 			if (throwIfNotFound && epoch is null)
+			{
 				throw new ArgumentOutOfRangeException(nameof(epochNumber), "Epoch not Found");
+			}
 
 			task = new ValueTask<EpochRecord>(epoch);
 		}

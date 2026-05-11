@@ -26,7 +26,10 @@ internal class PingFloodWaitingProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length != 2)
+			{
 				return false;
+			}
+
 			try
 			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
@@ -102,8 +105,12 @@ internal class PingFloodWaitingProcessor : ICmdProcessor
 			(int)Math.Round(sw.Elapsed.TotalMilliseconds / all));
 
 		if (Interlocked.Read(ref all) == requestsCnt)
+		{
 			context.Success();
+		}
 		else
+		{
 			context.Fail();
+		}
 	}
 }

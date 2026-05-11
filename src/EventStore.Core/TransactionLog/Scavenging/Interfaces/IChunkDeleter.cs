@@ -3,7 +3,8 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public interface IChunkDeleter<TStreamId, TRecord> {
+public interface IChunkDeleter<TStreamId, TRecord>
+{
 	static IChunkDeleter<TStreamId, TRecord> NoOp => NoOpChunkDeleter<TStreamId, TRecord>.Instance;
 
 	// returns true if deleted

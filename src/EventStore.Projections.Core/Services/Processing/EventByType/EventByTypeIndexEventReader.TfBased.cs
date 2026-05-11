@@ -43,7 +43,10 @@ public partial class EventByTypeIndexEventReader
 		public void Handle(ClientMessage.ReadAllEventsForwardCompleted message)
 		{
 			if (_disposed)
+			{
 				return;
+			}
+
 			if (message.CorrelationId != _pendingRequestCorrelationId)
 			{
 				return;
@@ -56,9 +59,15 @@ public partial class EventByTypeIndexEventReader
 			}
 
 			if (!_tfEventsRequested)
+			{
 				throw new InvalidOperationException("TF events has not been requested");
+			}
+
 			if (_reader.Paused)
+			{
 				throw new InvalidOperationException("Paused");
+			}
+
 			_reader._lastPosition = message.TfLastCommitPosition;
 			_tfEventsRequested = false;
 			switch (message.Result)
@@ -91,7 +100,10 @@ public partial class EventByTypeIndexEventReader
 							var data = @event.Event;
 							var byStream = link != null && _streamToEventType.ContainsKey(link.EventStreamId);
 							if (data == null)
+							{
 								continue;
+							}
+
 							var originalTfPosition = @event.OriginalPosition.Value;
 							if (byStream)
 							{
@@ -115,7 +127,9 @@ public partial class EventByTypeIndexEventReader
 					}
 
 					if (_disposed)
+					{
 						return;
+					}
 
 					break;
 				default:
@@ -127,11 +141,19 @@ public partial class EventByTypeIndexEventReader
 		public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
 		{
 			if (_disposed)
+			{
 				return;
+			}
+
 			if (_reader.Paused)
+			{
 				return;
+			}
+
 			if (message.CorrelationId != _pendingRequestCorrelationId)
+			{
 				return;
+			}
 
 			_tfEventsRequested = false;
 			_reader.PauseOrContinueProcessing();
@@ -140,11 +162,19 @@ public partial class EventByTypeIndexEventReader
 		private void RequestTfEvents(bool delay)
 		{
 			if (_disposed)
+			{
 				throw new InvalidOperationException("Disposed");
+			}
+
 			if (_reader.PauseRequested || _reader.Paused)
+			{
 				throw new InvalidOperationException("Paused or pause requested");
+			}
+
 			if (_tfEventsRequested)
+			{
 				return;
+			}
 
 			_tfEventsRequested = true;
 			_pendingRequestCorrelationId = Guid.NewGuid();
@@ -167,7 +197,10 @@ public partial class EventByTypeIndexEventReader
 		private void DeliverLastCommitPosition(TFPos lastPosition)
 		{
 			if (_reader._stopOnEof)
+			{
 				return;
+			}
+
 			_publisher.Publish(
 				new ReaderSubscriptionMessage.CommittedEventDistributed(
 					_reader.EventReaderCorrelationId, null, lastPosition.PreparePosition, 100.0f,

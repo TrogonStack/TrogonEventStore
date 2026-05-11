@@ -45,7 +45,10 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 		base.Initialize();
 		_lastOrderCheckpointTag = null;
 		if (_orderStream != null)
+		{
 			_orderStream.Dispose();
+		}
+
 		_orderStream = null;
 	}
 
@@ -61,7 +64,10 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 	{
 		EnsureStarted();
 		if (_stopping)
+		{
 			throw new InvalidOperationException("Stopping");
+		}
+
 		var orderStreamName = _namingBuilder.GetOrderStreamName();
 		//TODO: -order stream requires correctly configured event expiration.
 		// the best is to truncate using $startFrom, but $maxAge should be also acceptable
@@ -135,7 +141,9 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 							//NOTE: even if this tag <= checkpointTag we set last tag
 							// this is to know the exact last tag to request when writing
 							if (_lastOrderCheckpointTag == null)
+							{
 								_lastOrderCheckpointTag = tag;
+							}
 
 							if (tag <= checkpointTag)
 							{
@@ -147,9 +155,14 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 						}
 
 						if (epochEnded || completed.IsEndOfStream)
+						{
 							SetOrderStreamReadCompleted();
+						}
 						else
+						{
 							BeginLoadPrerecordedEventsChunk(checkpointTag, completed.NextEventNumber);
+						}
+
 						break;
 					default:
 						throw new Exception("Cannot read order stream");
@@ -165,11 +178,19 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 	private void EnqueuePrerecordedEvent(EventRecord @event, CheckpointTag tag)
 	{
 		if (@event == null)
+		{
 			throw new ArgumentNullException("event");
+		}
+
 		if (tag == null)
+		{
 			throw new ArgumentNullException("tag");
+		}
+
 		if (@event.EventType != "$>")
+		{
 			throw new ArgumentException("linkto ($>) event expected", "event");
+		}
 
 		_loadingItemsCount++;
 
@@ -191,7 +212,10 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 				case ReadStreamResult.NoStream:
 				case ReadStreamResult.StreamDeleted:
 					if (completed.Events.Count == 1)
+					{
 						item.SetLoadedEvent(completed.Events[0]);
+					}
+
 					_loadingItemsCount--;
 					CheckAllEventsLoaded();
 					break;
@@ -244,13 +268,18 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 	public void Handle(CoreProjectionProcessingMessage.EmittedStreamAwaiting message)
 	{
 		if (_stopped)
+		{
 			return;
+		}
+
 		throw new NotImplementedException();
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.EmittedStreamWriteCompleted message)
 	{
 		if (_stopped)
+		{
 			return;
+		}
 	}
 }

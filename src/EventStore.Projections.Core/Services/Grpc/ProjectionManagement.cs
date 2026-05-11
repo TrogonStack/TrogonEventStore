@@ -29,9 +29,15 @@ namespace EventStore.Projections.Core.Services.Grpc
 		public ProjectionManagement(IPublisher publisher, IAuthorizationProvider authorizationProvider)
 		{
 			if (publisher == null)
+			{
 				throw new ArgumentNullException(nameof(publisher));
+			}
+
 			if (authorizationProvider == null)
+			{
 				throw new ArgumentNullException(nameof(authorizationProvider));
+			}
+
 			_publisher = publisher;
 			_authorizationProvider = authorizationProvider;
 		}
@@ -88,14 +94,16 @@ namespace EventStore.Projections.Core.Services.Grpc
 		{
 			if (string.IsNullOrEmpty(value))
 			{
-				return new Value {
+				return new Value
+				{
 					StructValue = new Struct()
 				};
 			}
 
 			if (!isJson)
 			{
-				return new Value {
+				return new Value
+				{
 					StringValue = value
 				};
 			}
@@ -107,7 +115,8 @@ namespace EventStore.Projections.Core.Services.Grpc
 			}
 			catch (JsonException)
 			{
-				return new Value {
+				return new Value
+				{
 					StringValue = value
 				};
 			}

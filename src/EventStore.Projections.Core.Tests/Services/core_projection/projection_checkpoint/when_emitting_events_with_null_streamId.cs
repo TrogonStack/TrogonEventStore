@@ -45,7 +45,9 @@ public class when_emitting_events_with_null_streamId<TLogFormat, TStreamId> : Te
 		Assert.Throws<ArgumentNullException>(() =>
 		{
 			if (_lastException != null)
+			{
 				throw _lastException;
+			}
 		});
 	}
 }

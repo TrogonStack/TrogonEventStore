@@ -38,7 +38,9 @@ internal partial class Users
 		void OnMessage(Message message)
 		{
 			if (HandleErrors(loginName, message, detailsSource))
+			{
 				return;
+			}
 
 			switch (message)
 			{

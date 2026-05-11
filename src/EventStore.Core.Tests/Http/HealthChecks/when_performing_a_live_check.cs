@@ -63,7 +63,8 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 		await StartNodeAndWaitForReadiness();
 
 		using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions {
+			new GrpcChannelOptions
+			{
 				HttpClient = _node.HttpClient,
 				DisposeHttpClient = false,
 			});

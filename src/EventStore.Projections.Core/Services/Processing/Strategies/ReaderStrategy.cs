@@ -46,25 +46,44 @@ public class ReaderStrategy : IReaderStrategy
 		ClaimsPrincipal runAs)
 	{
 		if (!sources.AllStreams && !sources.HasCategories() && !sources.HasStreams())
+		{
 			throw new InvalidOperationException("None of streams and categories are included");
+		}
+
 		if (!sources.AllEvents && !sources.HasEvents())
+		{
 			throw new InvalidOperationException("None of events are included");
+		}
+
 		if (sources.HasStreams() && sources.HasCategories())
+		{
 			throw new InvalidOperationException(
 				"Streams and categories cannot be included in a filter at the same time");
+		}
+
 		if (sources.AllStreams && (sources.HasCategories() || sources.HasStreams()))
+		{
 			throw new InvalidOperationException("Both FromAll and specific categories/streams cannot be set");
+		}
+
 		if (sources.AllEvents && sources.HasEvents())
+		{
 			throw new InvalidOperationException("Both AllEvents and specific event filters cannot be set");
+		}
 
 		if (sources.ByStreams && sources.HasStreams())
+		{
 			throw new InvalidOperationException(
 				"foreachStream projections are not supported on stream based sources");
+		}
 
 		if (sources.ReorderEventsOption)
 		{
 			if (sources.AllStreams)
+			{
 				throw new InvalidOperationException("Event reordering cannot be used with fromAll()");
+			}
+
 			if (!(sources.HasStreams() && sources.Streams.Length > 1))
 			{
 				throw new InvalidOperationException(
@@ -72,12 +91,16 @@ public class ReaderStrategy : IReaderStrategy
 			}
 
 			if (sources.ProcessingLagOption < 50)
+			{
 				throw new InvalidOperationException("Event reordering requires processing lag at least of 50ms");
+			}
 		}
 
 		if (sources.HandlesDeletedNotifications && !sources.ByStreams)
+		{
 			throw new InvalidOperationException(
 				"Deleted stream notifications are only supported with foreachStream()");
+		}
 
 		var readerStrategy = new ReaderStrategy(
 			tag,
@@ -154,6 +177,7 @@ public class ReaderStrategy : IReaderStrategy
 		ReaderSubscriptionOptions readerSubscriptionOptions)
 	{
 		if (_reorderEvents)
+		{
 			return new EventReorderingReaderSubscription(
 				publisher,
 				subscriptionId,
@@ -167,7 +191,9 @@ public class ReaderStrategy : IReaderStrategy
 				readerSubscriptionOptions.StopOnEof,
 				readerSubscriptionOptions.StopAfterNEvents,
 				readerSubscriptionOptions.EnableContentTypeValidation);
+		}
 		else
+		{
 			return new ReaderSubscription(
 				_tag,
 				publisher,
@@ -181,6 +207,7 @@ public class ReaderStrategy : IReaderStrategy
 				readerSubscriptionOptions.StopOnEof,
 				readerSubscriptionOptions.StopAfterNEvents,
 				readerSubscriptionOptions.EnableContentTypeValidation);
+		}
 	}
 
 	public IEventReader CreatePausedEventReader(
@@ -234,41 +261,79 @@ public class ReaderStrategy : IReaderStrategy
 	private EventFilter CreateEventFilter()
 	{
 		if (_allStreams && _events != null && _events.Count >= 1)
+		{
 			return new EventByTypeIndexEventFilter(_events);
+		}
+
 		if (_allStreams)
+		{
 			//NOTE: a projection cannot handle both stream deleted notifications
 			// and real stream tombstone/stream deleted events as they have the same position
 			// and thus processing cannot be correctly checkpointed
 			return new TransactionFileEventFilter(
 				_allEvents, !_includeStreamDeletedNotification, _events, includeLinks: _includeLinks);
+		}
+
 		if (_categories != null && _categories.Count == 1)
+		{
 			return new CategoryEventFilter(_categories.First(), _allEvents, _events);
+		}
+
 		if (_categories != null)
+		{
 			throw new NotSupportedException();
+		}
+
 		if (_streams != null && _streams.Count == 1)
+		{
 			return new StreamEventFilter(_streams.First(), _allEvents, _events);
+		}
+
 		if (_streams != null && _streams.Count > 1)
+		{
 			return new MultiStreamEventFilter(_streams, _allEvents, _events);
+		}
+
 		throw new NotSupportedException();
 	}
 
 	private PositionTagger CreatePositionTagger()
 	{
 		if (_allStreams && _events != null && _events.Count >= 1)
+		{
 			return new EventByTypeIndexPositionTagger(_phase, _events.ToArray(), _includeStreamDeletedNotification);
+		}
+
 		if (_allStreams && _reorderEvents)
+		{
 			return new PreparePositionTagger(_phase);
+		}
+
 		if (_allStreams)
+		{
 			return new TransactionFilePositionTagger(_phase);
+		}
+
 		if (_categories != null && _categories.Count == 1)
+		{
 			//TODO: '-' is a hardcoded separator
 			return new StreamPositionTagger(_phase, "$ce-" + _categories.First());
+		}
+
 		if (_categories != null)
+		{
 			throw new NotSupportedException();
+		}
+
 		if (_streams != null && _streams.Count == 1)
+		{
 			return new StreamPositionTagger(_phase, _streams.First());
+		}
+
 		if (_streams != null && _streams.Count > 1)
+		{
 			return new MultiStreamPositionTagger(_phase, _streams.ToArray());
+		}
 		//TODO: consider passing projection phase from outside (above)
 		throw new NotSupportedException();
 	}
@@ -297,7 +362,9 @@ public class ReaderStrategy : IReaderStrategy
 			v => "$et-" + v, v => checkpointTag.Streams.TryGetValue(v, out p) ? p + 1 : 0);
 
 		if (includeStreamDeletedNotification)
+		{
 			nextPositions.Add("$et-$deleted", checkpointTag.Streams.TryGetValue("$deleted", out p) ? p + 1 : 0);
+		}
 
 		return new EventByTypeIndexEventReader(publisher, eventReaderId, _runAs, eventTypes.ToArray(),
 			includeStreamDeletedNotification,

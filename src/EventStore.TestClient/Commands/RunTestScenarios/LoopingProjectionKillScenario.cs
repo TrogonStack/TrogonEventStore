@@ -67,10 +67,14 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario
 			nodeProcessId = StartNode();
 
 			if (!iterationTask.Wait(_iterationLoopDuration))
+			{
 				throw new TimeoutException("Iteration execution timeout.");
+			}
 
 			if (iterationTask.Result != true)
+			{
 				throw new ApplicationException("Iteration faulted.", iterationTask.Exception);
+			}
 
 			SetNextIterationCode();
 		}
@@ -93,7 +97,9 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario
 			while (stopWatch.Elapsed < _iterationLoopDuration)
 			{
 				if (writeTask.IsFaulted)
+				{
 					throw new ApplicationException("Failed to write data");
+				}
 
 				if (writeTask.IsCompleted && !stopWatch.IsRunning)
 				{
@@ -105,20 +111,26 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario
 							  x => x == lastExpectedEventVersion);
 
 				if (success)
+				{
 					break;
+				}
 
 				Thread.Sleep(4000);
 			}
 
 			if (!CheckProjectionState(countItem, "count", x => x == expectedAllEventsCount))
+			{
 				Log.Error(
 					"Projection '{projection}' has not completed with expected result {expectedCount} in time. ",
 					countItem, expectedAllEventsCount);
+			}
 
 			if (!CheckProjectionState(sumCheckForBankAccount0, "success", x => x == lastExpectedEventVersion))
+			{
 				Log.Error(
 					"Projection '{projection}' has not completed with expected result {lastExpectedEventVersion} in time.",
 					sumCheckForBankAccount0, lastExpectedEventVersion);
+			}
 
 			return success;
 		});

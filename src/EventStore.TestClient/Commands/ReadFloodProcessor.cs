@@ -33,18 +33,28 @@ internal class ReadFloodProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length != 2 && args.Length != 3 && args.Length != 4 && args.Length != 5)
+			{
 				return false;
+			}
 
 			try
 			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
 				if (args.Length >= 3)
+				{
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
+				}
+
 				if (args.Length >= 4)
+				{
 					streamPrefix = args[3];
+				}
+
 				if (args.Length >= 5)
+				{
 					requireLeader = bool.Parse(args[4]);
+				}
 			}
 			catch
 			{
@@ -97,12 +107,16 @@ internal class ReadFloodProcessor : ICmdProcessor
 					if (dto.Result == ReadEventCompleted.Types.ReadEventResult.Success)
 					{
 						if (Interlocked.Increment(ref succ) % 1000 == 0)
+						{
 							Console.Write(".");
+						}
 					}
 					else
 					{
 						if (Interlocked.Increment(ref fail) % 1000 == 0)
+						{
 							Console.Write("#");
+						}
 					}
 
 					Interlocked.Increment(ref received);
@@ -135,7 +149,10 @@ internal class ReadFloodProcessor : ICmdProcessor
 
 					var eventStreamId = streams[streamIndex++];
 					if (streamIndex >= streamsCnt)
+					{
 						streamIndex = 0;
+					}
+
 					var read = new ReadEvent(eventStreamId, 0, resolveLinkTos, requireLeader);
 					var package = new TcpPackage(TcpCommand.ReadEvent, corrId, read.Serialize());
 					monitor.StartOperation(corrId);
@@ -176,8 +193,12 @@ internal class ReadFloodProcessor : ICmdProcessor
 			(int)reqPerSec);
 
 		if (succ != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
+		}
 		else
+		{
 			context.Success();
+		}
 	}
 }

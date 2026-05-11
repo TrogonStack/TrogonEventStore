@@ -26,7 +26,10 @@ internal class SubscriptionStressTestProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 1)
+			{
 				return false;
+			}
+
 			subscriptionCount = MetricPrefixValue.ParseInt(args[0]);
 		}
 
@@ -50,7 +53,10 @@ internal class SubscriptionStressTestProcessor : ICmdProcessor
 				{
 					var c = Interlocked.Increment(ref appearedCnt);
 					if (c % 1000 == 0)
+					{
 						Console.Write('\'');
+					}
+
 					if (c % 100000 == 0)
 					{
 						context.Log.Debug("Received total {events} events ({rate} per sec)...", c,

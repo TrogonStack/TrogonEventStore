@@ -139,7 +139,9 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		}
 
 		foreach (var component in _plugableComponents)
+		{
 			component.ConfigureApplication(app, _configuration);
+		}
 
 		app.UseEndpoints(ep =>
 		{
@@ -169,7 +171,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			ep.MapGrpcService<Redaction>().AddEndpointFilter(async (c, next) =>
 			{
 				if (!c.HttpContext.IsUnixSocketConnection())
+				{
 					return Results.BadRequest("Redaction is only available via Unix Sockets");
+				}
+
 				return await next(c).ConfigureAwait(false);
 			});
 		});
@@ -254,7 +259,9 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		services = _configureNodeServices(services);
 
 		foreach (var component in _plugableComponents)
+		{
 			component.ConfigureServices(services, _configuration);
+		}
 	}
 
 	private static void ConfigureMetrics(
@@ -268,6 +275,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddView(i =>
 			{
 				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
+				{
 					// 20 buckets, 0, 1, 2, 4, 8, ...
 					return new ExplicitBucketHistogramConfiguration
 					{
@@ -277,8 +285,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 							.. Enumerable.Range(0, count: 19).Select(x => 1 << x)
 						]
 					};
+				}
 				else if (i.Name.StartsWith("eventstore-") &&
 						 i.Name.EndsWith("-latency-seconds"))
+				{
 					return new ExplicitBucketHistogramConfiguration
 					{
 						Boundaries =
@@ -293,8 +303,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 							5, // 5000 ms
 						]
 					};
+				}
 				else if (i.Name.StartsWith("eventstore-") &&
 						 i.Name.EndsWith("-seconds"))
+				{
 					return new ExplicitBucketHistogramConfiguration
 					{
 						Boundaries =
@@ -309,6 +321,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 							10,
 						]
 					};
+				}
+
 				return default;
 			})
 			.AddPrometheusExporter(options => options.ScrapeResponseCacheDurationMilliseconds = 1000);
@@ -322,7 +336,9 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		IConfiguration configuration)
 	{
 		if (!configuration.OtlpMetricsEnabled(metricsConfiguration))
+		{
 			return;
+		}
 
 		meterOptions.AddOtlpExporter((exporterOptions, metricReaderOptions) =>
 		{
@@ -348,7 +364,9 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		tracerOptions.SetResourceBuilder(CreateResourceBuilder());
 
 		if (!configuration.OtlpTracesEnabled())
+		{
 			return;
+		}
 
 		tracerOptions
 			.AddAspNetCoreInstrumentation()

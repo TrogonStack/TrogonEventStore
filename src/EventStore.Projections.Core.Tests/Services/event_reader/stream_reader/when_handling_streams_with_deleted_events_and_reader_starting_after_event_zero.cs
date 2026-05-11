@@ -84,7 +84,10 @@ public class
 	{
 		List<long> eventNumbers = new List<long>();
 		for (long i = start; i <= end; i++)
+		{
 			eventNumbers.Add(i);
+		}
+
 		HandleEvents(eventNumbers.ToArray());
 	}
 

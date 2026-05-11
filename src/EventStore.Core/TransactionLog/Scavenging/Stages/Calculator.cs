@@ -83,7 +83,9 @@ public class Calculator<TStreamId>(
 			{
 				buffer[count++] = stream;
 				if (count == buffer.Length)
+				{
 					break;
+				}
 			}
 
 			return count > 0;
@@ -102,8 +104,10 @@ public class Calculator<TStreamId>(
 				{
 					var (originalStreamHandle, originalStreamData) = buffer1[i];
 					if (originalStreamData.Status != CalculationStatus.Active)
+					{
 						throw new InvalidOperationException(
 							$"Attempted to calculate a {originalStreamData.Status} record: {originalStreamData}");
+					}
 
 					streamCalc.SetStream(originalStreamHandle, originalStreamData);
 					var newStatus = await streamCalc.CalculateStatus(cancellationToken);
@@ -280,7 +284,10 @@ public class Calculator<TStreamId>(
 						// ii) we do our best to delete stale entries from the index
 
 						if (allDiscardedSoFar)
+						{
 							discardPoint = DiscardPoint.DiscardIncluding(eventInfo.EventNumber);
+						}
+
 						break;
 
 					case DiscardDecision.Keep:

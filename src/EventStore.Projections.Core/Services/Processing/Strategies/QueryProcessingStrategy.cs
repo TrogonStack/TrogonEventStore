@@ -55,6 +55,7 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 
 		IProjectionProcessingPhase writeResultsPhase;
 		if (GetProducesRunningResults())
+		{
 			writeResultsPhase = new WriteQueryEofProjectionProcessingPhase(
 				publisher,
 				1,
@@ -64,7 +65,9 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 				checkpointManager2,
 				checkpointManager2,
 				firstPhase.EmittedStreamsTracker);
+		}
 		else
+		{
 			writeResultsPhase = new WriteQueryResultProjectionProcessingPhase(
 				publisher,
 				1,
@@ -74,6 +77,7 @@ public class QueryProcessingStrategy : DefaultProjectionProcessingStrategy
 				checkpointManager2,
 				checkpointManager2,
 				firstPhase.EmittedStreamsTracker);
+		}
 
 		return new[] { firstPhase, writeResultsPhase };
 	}

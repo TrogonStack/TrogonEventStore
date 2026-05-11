@@ -52,7 +52,10 @@ public abstract class TFChunkBulkReader : IDisposable
 	public void Dispose()
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		Release();
 		GC.SuppressFinalize(this);
 	}

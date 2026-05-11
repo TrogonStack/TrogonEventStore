@@ -110,7 +110,10 @@ public abstract class SubsystemScenario : IHandle<Message>, IAsyncLifetime
 			_registration = token.Register(static o =>
 			{
 				if (o is not TellMeWhenItsDone state)
+				{
 					return;
+				}
+
 				state._registration.Dispose();
 				state._completion.TrySetCanceled(state._registration.Token);
 			}, this);
@@ -209,7 +212,9 @@ public abstract class SubsystemScenario : IHandle<Message>, IAsyncLifetime
 					}
 
 					if (cancellationToken.IsCancellationRequested)
+					{
 						break;
+					}
 				}
 			}
 			catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException) { }
@@ -336,11 +341,19 @@ public abstract class SubsystemScenario : IHandle<Message>, IAsyncLifetime
 
 				var flags = PrepareFlags.IsCommitted | PrepareFlags.Data;
 				if (current.IsJson)
+				{
 					flags |= PrepareFlags.IsJson;
+				}
+
 				if (i == 0)
+				{
 					flags |= PrepareFlags.TransactionBegin;
+				}
+
 				if (i == message.Events.Length - 1)
+				{
 					flags |= PrepareFlags.TransactionEnd;
+				}
 
 				var record = new EventRecord(revision, position, message.CorrelationId,
 					current.EventId, _all.Count, i, message.EventStreamId, -1, DateTime.UtcNow,
@@ -395,7 +408,10 @@ public abstract class SubsystemScenario : IHandle<Message>, IAsyncLifetime
 		{
 			var local = (int)position;
 			if (local < 0 || local >= _all.Count)
+			{
 				return default;
+			}
+
 			return _all[local];
 		}
 	}

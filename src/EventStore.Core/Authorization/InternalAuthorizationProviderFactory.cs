@@ -1,5 +1,5 @@
-using EventStore.Plugins.Authorization;
 using EventStore.Core.Authorization.AuthorizationPolicies;
+using EventStore.Plugins.Authorization;
 
 namespace EventStore.Core.Authorization;
 

@@ -84,7 +84,10 @@ internal class RequestMonitor
 		var percent = percentile / 100m;
 		var ret = (int)(percent * size);
 		if (ret == size)
+		{
 			ret -= 1;
+		}
+
 		return ret;
 	}
 

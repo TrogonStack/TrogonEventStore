@@ -262,7 +262,9 @@ internal static class Program
 								useHttps: !hostedService.Node.DisableHttps));
 
 						if (hostedService.Node.EnableUnixSocket)
+						{
 							TryListenOnUnixSocket(hostedService, server);
+						}
 					});
 
 					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
@@ -345,10 +347,14 @@ internal static class Program
 		bool useHttps)
 	{
 		if (useHttps)
+		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
+		}
 		else
+		{
 			listenOptions.Use(next =>
 				new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);
+		}
 	}
 
 	private static void TryListenOnUnixSocket(ClusterVNodeHostedService hostedService, KestrelServerOptions server)
@@ -409,7 +415,9 @@ internal static class Program
 				RemoteCertificateValidationCallback = (_, certificate, chain, sslPolicyErrors) =>
 				{
 					if (certificate == null) // not necessary to have a client certificate
+					{
 						return true;
+					}
 
 					var (isValid, error) =
 						hostedService.Node.InternalClientCertificateValidator(

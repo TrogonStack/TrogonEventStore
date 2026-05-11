@@ -65,9 +65,14 @@ public abstract class with_multi_stream_checkpoint_manager<TLogFormat, TStreamId
 	public virtual void Handle(ClientMessage.ReadStreamEventsBackward message)
 	{
 		if (message.EventStreamId == _namingBuilder.GetOrderStreamName())
+		{
 			message.Envelope.ReplyWith(ReadOrderStream(message));
+		}
+
 		if (message.EventStreamId == "a")
+		{
 			message.Envelope.ReplyWith(ReadTestStream(message));
+		}
 	}
 
 	public ClientMessage.ReadStreamEventsBackwardCompleted ReadOrderStream(

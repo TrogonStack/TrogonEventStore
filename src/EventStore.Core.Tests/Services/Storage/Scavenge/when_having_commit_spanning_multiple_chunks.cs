@@ -72,8 +72,7 @@ public class
 		foreach (var rec in _scavenged)
 		{
 			var chunk = Db.Manager.GetChunkFor(rec.LogPosition);
-			Assert.IsTrue(await chunk.TryReadAt(rec.LogPosition, couldBeScavenged: true, CancellationToken.None) is
-			{ Success: false });
+			Assert.IsTrue(await chunk.TryReadAt(rec.LogPosition, couldBeScavenged: true, CancellationToken.None) is { Success: false });
 		}
 
 		foreach (var rec in _survivors)

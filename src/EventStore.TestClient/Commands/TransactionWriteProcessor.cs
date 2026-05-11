@@ -30,12 +30,20 @@ internal class TransactionWriteProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 3)
+			{
 				return false;
+			}
+
 			eventStreamId = args[0];
 			if (args.Length > 1)
+			{
 				expectedVersion = args[1].ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
+			}
+
 			if (args.Length > 2)
+			{
 				eventsCnt = MetricPrefixValue.ParseInt(args[1]);
+			}
 		}
 
 		context.IsAsync();

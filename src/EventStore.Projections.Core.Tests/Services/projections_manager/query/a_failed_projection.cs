@@ -24,7 +24,10 @@ public class a_failed_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			var readerAssignedMessage =
 				_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
 					.LastOrDefault();
@@ -43,7 +46,10 @@ public class a_failed_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(new ProjectionManagementMessage.Command.UpdateQuery(
 					_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous,
@@ -84,7 +90,10 @@ public class a_failed_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(new ProjectionManagementMessage.Command.Disable(
 					_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
@@ -130,7 +139,10 @@ public class a_failed_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(new ProjectionManagementMessage.Command.Enable(
 					_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));

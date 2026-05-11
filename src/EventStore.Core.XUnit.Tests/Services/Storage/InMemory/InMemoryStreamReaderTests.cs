@@ -160,7 +160,10 @@ public class InMemoryStreamReaderTests
 			//   and not reach the end of the stream (nextEventNumber <= 49 so that we can read it in subsequent pages)
 			// current implementation finds the event.
 			for (var i = 0; i < 50; i++)
+			{
 				_listener.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
+			}
+
 			var correlation = Guid.NewGuid();
 
 			var result = _sut.ReadForwards(GenReadForwards(correlation, fromEventNumber: 0, maxCount: 10));

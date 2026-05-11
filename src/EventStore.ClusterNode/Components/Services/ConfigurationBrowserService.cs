@@ -14,8 +14,10 @@ namespace EventStore.ClusterNode.Components.Services;
 
 public sealed class ConfigurationBrowserService(
 	ClusterVNodeHostedService hostedService,
-	IHttpContextAccessor httpContextAccessor) {
-	public ConfigurationPage Read() {
+	IHttpContextAccessor httpContextAccessor)
+{
+	public ConfigurationPage Read()
+	{
 		var options = hostedService.Options;
 		var features = new[] {
 			new ConfigurationFeature("Projections", options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev),
@@ -68,14 +70,16 @@ public sealed record ConfigurationPage(
 	IReadOnlyList<ConfigurationFeature> Features,
 	IReadOnlyList<ConfigurationSubsystem> Subsystems,
 	IReadOnlyList<ConfigurationOption> LoadedOptions,
-	string OptionsMessage) {
+	string OptionsMessage)
+{
 	public string SecurityMode => IsInsecure ? "Insecure" : "Secure";
 	public string SecurityTone => IsInsecure ? "warn" : "good";
 	public bool HasSubsystems => Subsystems.Count > 0;
 	public bool HasLoadedOptions => LoadedOptions.Count > 0;
 }
 
-public sealed record ConfigurationFeature(string Name, bool Enabled) {
+public sealed record ConfigurationFeature(string Name, bool Enabled)
+{
 	public string Status => Enabled ? "Enabled" : "Disabled";
 	public string Tone => Enabled ? "good" : "muted";
 }
@@ -89,7 +93,8 @@ public sealed record ConfigurationOption(
 	string Source,
 	string Description,
 	string DeprecationMessage,
-	bool IsDefault) {
+	bool IsDefault)
+{
 	public string SourceTone => IsDefault ? "muted" : "good";
 
 	public static ConfigurationOption From(LoadedOption option) =>
@@ -102,7 +107,8 @@ public sealed record ConfigurationOption(
 			option.Metadata.DeprecationMessage ?? "",
 			option.IsDefault);
 
-	private static string GroupLabel(SectionMetadata section) {
+	private static string GroupLabel(SectionMetadata section)
+	{
 		var name = section.SectionName;
 		return name.EndsWith("Options", StringComparison.Ordinal)
 			? name[..^"Options".Length]

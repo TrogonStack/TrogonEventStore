@@ -61,11 +61,13 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 			lock (startedServices)
 			{
 				if (!startedServices.Add(message.ServiceName))
+				{
 					return;
+				}
 
 				if (startedServices.Contains("StorageChaser")
-				    && startedServices.Contains("StorageReader")
-				    && startedServices.Contains("StorageWriter"))
+					&& startedServices.Contains("StorageReader")
+					&& startedServices.Contains("StorageWriter"))
 				{
 					coreServicesStarted.TrySetResult(true);
 				}
@@ -119,7 +121,9 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 		finally
 		{
 			if (!shutdownComplete.Task.IsCompleted)
+			{
 				await shutdownComplete.Task.WithTimeout(TimeSpan.FromSeconds(10));
+			}
 		}
 	}
 }

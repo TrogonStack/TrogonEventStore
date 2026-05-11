@@ -10,7 +10,8 @@ namespace EventStore.Core.Certificates;
 
 public class CertificateExpiryMonitor :
 	IHandle<SystemMessage.SystemStart>,
-	IHandle<MonitoringMessage.CheckCertificateExpiry> {
+	IHandle<MonitoringMessage.CheckCertificateExpiry>
+{
 
 	private static readonly TimeSpan _warningThreshold = TimeSpan.FromDays(30);
 	private static readonly TimeSpan _interval = TimeSpan.FromDays(1);
@@ -23,7 +24,8 @@ public class CertificateExpiryMonitor :
 	public CertificateExpiryMonitor(
 		IPublisher publisher,
 		Func<X509Certificate2> getCertificate,
-		ILogger logger) {
+		ILogger logger)
+	{
 
 		Ensure.NotNull(publisher, nameof(publisher));
 		Ensure.NotNull(getCertificate, nameof(getCertificate));
@@ -38,18 +40,22 @@ public class CertificateExpiryMonitor :
 			new MonitoringMessage.CheckCertificateExpiry());
 	}
 
-	public void Handle(SystemMessage.SystemStart message) {
+	public void Handle(SystemMessage.SystemStart message)
+	{
 		_publisher.Publish(new MonitoringMessage.CheckCertificateExpiry());
 	}
 
-	public void Handle(MonitoringMessage.CheckCertificateExpiry message) {
+	public void Handle(MonitoringMessage.CheckCertificateExpiry message)
+	{
 		var certificate = _getCertificate();
 
-		if (certificate != null) {
+		if (certificate != null)
+		{
 			var certExpiryDate = certificate.NotAfter;
 			var timeUntilExpiry = certExpiryDate - DateTime.Now;
 
-			if (timeUntilExpiry <= _warningThreshold) {
+			if (timeUntilExpiry <= _warningThreshold)
+			{
 				_logger.Warning(
 					"Certificates are going to expire in {daysUntilExpiry:N1} days",
 					timeUntilExpiry.TotalDays);

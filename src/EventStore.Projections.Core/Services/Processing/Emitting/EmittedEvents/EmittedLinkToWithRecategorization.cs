@@ -39,8 +39,13 @@ public class EmittedLinkToWithRecategorization : EmittedEvent
 	public override IEnumerable<KeyValuePair<string, string>> ExtraMetaData()
 	{
 		if (!string.IsNullOrEmpty(_originalStreamId))
+		{
 			yield return new KeyValuePair<string, string>("$o", JsonConvert.ToString(_originalStreamId));
+		}
+
 		if (_streamDeletedAt != null)
+		{
 			yield return new KeyValuePair<string, string>("$deleted", JsonConvert.ToString(_streamDeletedAt.Value));
+		}
 	}
 }

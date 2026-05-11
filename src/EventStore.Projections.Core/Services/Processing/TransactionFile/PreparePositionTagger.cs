@@ -15,7 +15,10 @@ public class PreparePositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase < Phase)
+		{
 			return true;
+		}
+
 		return committedEvent.Data.Position.PreparePosition > previous.PreparePosition;
 	}
 
@@ -23,8 +26,10 @@ public class PreparePositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		return CheckpointTag.FromPreparePosition(previous.Phase, committedEvent.Data.Position.PreparePosition);
 	}
@@ -54,15 +59,22 @@ public class PreparePositionTagger : PositionTagger
 	public override CheckpointTag AdjustTag(CheckpointTag tag)
 	{
 		if (tag.Phase < Phase)
+		{
 			return tag;
+		}
+
 		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format(
 					"Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase, tag.Phase),
 				"tag");
+		}
 
 		if (tag.Mode_ == CheckpointTag.Mode.PreparePosition)
+		{
 			return tag;
+		}
 
 		switch (tag.Mode_)
 		{

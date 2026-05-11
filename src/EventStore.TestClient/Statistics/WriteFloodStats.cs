@@ -147,7 +147,9 @@ public class WriteFloodStats
 	{
 		var separatorIdx = line.IndexOf(',');
 		if (separatorIdx == -1)
+		{
 			return null;
+		}
 
 		try
 		{

@@ -3,10 +3,10 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Core.Transforms.Identity;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.LogRecords;
+using EventStore.Core.Transforms.Identity;
 using EventStore.Plugins.Transforms;
 using NUnit.Framework;
 
@@ -26,11 +26,11 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		Filename = Path.Combine(Path.GetTempPath(), $"{nameof(when_completing_a_tfchunk_with_a_cancelable_token)}-{Guid.NewGuid()}");
 
 		_writeState = new ObservingWriteState();
-			_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(Filename), Filename, 4096, 0, 0,
-				isScavenged: false, unbuffered: false,
-				writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
-			transformFactory: new ObservingChunkTransformFactory(_writeState),
-			token: CancellationToken.None);
+		_chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(Filename), Filename, 4096, 0, 0,
+			isScavenged: false, unbuffered: false,
+			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
+		transformFactory: new ObservingChunkTransformFactory(_writeState),
+		token: CancellationToken.None);
 		var record = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
 		var writeResult = await _chunk.TryAppend(record, CancellationToken.None);
 		Assert.That(writeResult.Success, Is.True);
@@ -50,7 +50,9 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		_chunk?.Dispose();
 		_chunk = null;
 		if (File.Exists(Filename))
+		{
 			File.Delete(Filename);
+		}
 	}
 
 	[Test]
@@ -192,7 +194,10 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		private static int GetAlignedSize(int size, int alignmentSize)
 		{
 			if (size % alignmentSize == 0)
+			{
 				return size;
+			}
+
 			return (size / alignmentSize + 1) * alignmentSize;
 		}
 	}

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Threading;
 
-namespace EventStore.Core.Metrics {
+namespace EventStore.Core.Metrics
+{
 	// Use this class if the status can transition from one to another, as in a state machine
 	// Use ActivityStatusMetric if the status represents an activity that starts and stops
 	//
@@ -14,11 +15,13 @@ namespace EventStore.Core.Metrics {
 	// The value contains time in seconds since epoch so we can tell which status is active
 	//
 	// Multiple threads can SetStatus and Observe concurrently
-	public class StatusSubMetric {
+	public class StatusSubMetric
+	{
 		private readonly KeyValuePair<string, object>[] _tags;
 		private string _status;
 
-		public StatusSubMetric(string componentName, object initialStatus, StatusMetric metric) {
+		public StatusSubMetric(string componentName, object initialStatus, StatusMetric metric)
+		{
 			_status = initialStatus?.ToString();
 			_tags = new[] {
 				new KeyValuePair<string, object>("name", componentName),
@@ -28,11 +31,13 @@ namespace EventStore.Core.Metrics {
 			metric.Add(this);
 		}
 
-		public void SetStatus(string status) {
+		public void SetStatus(string status)
+		{
 			Interlocked.Exchange(ref _status, status);
 		}
 
-		public Measurement<long> Observe(long secondsSinceEpoch) {
+		public Measurement<long> Observe(long secondsSinceEpoch)
+		{
 			_tags[1] = new KeyValuePair<string, object>("status", _status);
 			return new Measurement<long>(secondsSinceEpoch, _tags.AsSpan());
 		}

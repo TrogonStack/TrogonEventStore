@@ -93,7 +93,10 @@ public class StreamBasedAuthorizationPolicyRegistry(
 			await factory.Disable();
 		}
 
-		if (_cts is not null) await _cts.CancelAsync();
+		if (_cts is not null)
+		{
+			await _cts.CancelAsync();
+		}
 	}
 
 	private async Task StartSubscription(ulong? checkpoint, CancellationToken ct)
@@ -171,7 +174,11 @@ public class StreamBasedAuthorizationPolicyRegistry(
 		{
 			var settings =
 				JsonSerializer.Deserialize<AuthorizationPolicySettings>(evnt.Event.Data.Span, SerializeOptions);
-			if (settings is not null) return (true, settings);
+			if (settings is not null)
+			{
+				return (true, settings);
+			}
+
 			_logger.Error("Could not parse authorization policy settings");
 		}
 		catch (Exception ex)
@@ -188,7 +195,7 @@ public class StreamBasedAuthorizationPolicyRegistry(
 		if (!await pluginFactory.Enable())
 		{
 			_logger.Error("Failed to enable policy selector plugin {pluginName}. " +
-			              "Authorization settings will not be applied", pluginFactory.CommandLineName);
+						  "Authorization settings will not be applied", pluginFactory.CommandLineName);
 			return false;
 		}
 
@@ -229,7 +236,9 @@ public class StreamBasedAuthorizationPolicyRegistry(
 					pluginSelectorFactories.FirstOrDefault(x =>
 						x.CommandLineName == settings.StreamAccessPolicyType);
 				if (factory is not null)
+				{
 					return await TryApplyPluginPolicySelector(factory);
+				}
 
 				_logger.Error("Could not find policy {commandLineName} in registered authorization policy plugins.",
 					settings.StreamAccessPolicyType);

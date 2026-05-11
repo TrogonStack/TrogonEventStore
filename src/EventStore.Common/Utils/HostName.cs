@@ -25,7 +25,10 @@ public class HostName
 		//TODO: encode???
 		var path = string.Format(relativeUri, arg);
 		if (path.Length > 0 && path[0] == '/')
+		{
 			path = path.Substring(1);
+		}
+
 		return new UriBuilder(responseUrl.Scheme, responseUrl.Host, responseUrl.Port, responseUrl.LocalPath + path)
 			.Uri.AbsoluteUri;
 	}

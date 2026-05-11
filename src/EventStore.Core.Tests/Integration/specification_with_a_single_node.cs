@@ -52,7 +52,9 @@ public abstract class specification_with_a_single_node<TLogFormat, TStreamId> : 
 	protected Task StartNode()
 	{
 		if (_node == null)
+		{
 			_node = new MiniNode<TLogFormat, TStreamId>(PathName, dbPath: Path.Combine(PathName, "db"));
+		}
 
 		BeforeNodeStarts();
 

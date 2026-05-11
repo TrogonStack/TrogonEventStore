@@ -176,10 +176,16 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 	{
 		RecordReadResult result = await reader.TryReadAt(logPosition, couldBeScavenged: true, token);
 		if (!result.Success)
+		{
 			return null;
+		}
+
 		if (result.LogRecord.RecordType != LogRecordType.Prepare)
+		{
 			throw new Exception(string.Format("Incorrect type of log record {0}, expected Prepare record.",
 				result.LogRecord.RecordType));
+		}
+
 		return (IPrepareLogRecord<TStreamId>)result.LogRecord;
 	}
 
@@ -216,21 +222,27 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, false);
 		}
 		if (curVersion is EventNumber.Invalid)
+		{
 			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1, -1,
 				false);
+		}
 
 		if (expectedVersion is ExpectedVersion.StreamExists)
 		{
 			if (await IsSoftDeleted(streamId, token))
+			{
 				return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, true);
+			}
 
 			if (curVersion < 0)
 			{
 				var metadataVersion = await GetStreamLastEventNumber(_systemStreams.MetaStreamOf(streamId), token);
 				if (metadataVersion < 0)
+				{
 					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion,
 						-1, -1,
 						false);
+				}
 			}
 		}
 
@@ -244,18 +256,26 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			{
 				if (!_committedEvents.TryGetRecord(eventId, out var prepInfo) ||
 					!StreamIdComparer.Equals(prepInfo.StreamId, streamId))
+				{
 					return new CommitCheckResult<TStreamId>(
 						first ? CommitDecision.Ok : CommitDecision.CorruptedIdempotency,
 						streamId, curVersion, -1, -1, first && await IsSoftDeleted(streamId, token));
+				}
+
 				if (first)
+				{
 					startEventNumber = prepInfo.EventNumber;
+				}
+
 				endEventNumber = prepInfo.EventNumber;
 				first = false;
 			}
 
 			if (first) /*no data in transaction*/
+			{
 				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
 					await IsSoftDeleted(streamId, token));
+			}
 			else
 			{
 				var isReplicated = await _indexReader.GetStreamLastEventNumber(streamId, token) >= endEventNumber;
@@ -268,11 +288,15 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 					? idempotentEvent.Record.LogPosition
 					: -1;
 				if (isReplicated)
+				{
 					return new CommitCheckResult<TStreamId>(CommitDecision.Idempotent, streamId, curVersion,
 						startEventNumber, endEventNumber, false, logPos);
+				}
 				else
+				{
 					return new CommitCheckResult<TStreamId>(CommitDecision.IdempotentNotReady, streamId, curVersion,
 						startEventNumber, endEventNumber, false, logPos);
+				}
 			}
 		}
 
@@ -286,19 +310,27 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				if (_committedEvents.TryGetRecord(eventId, out var prepInfo)
 					&& StreamIdComparer.Equals(prepInfo.StreamId, streamId)
 					&& prepInfo.EventNumber == eventNumber)
+				{
 					continue;
+				}
 
 				if (await _indexReader.ReadPrepare(streamId, eventNumber, token) is { } res && res.EventId == eventId)
+				{
 					continue;
+				}
 
 				var first = eventNumber == expectedVersion + 1;
 				if (!first)
+				{
 					return new(CommitDecision.CorruptedIdempotency, streamId, curVersion,
 						-1, -1,
 						false);
+				}
 
 				if (expectedVersion is ExpectedVersion.NoStream && await IsSoftDeleted(streamId, token))
+				{
 					return new(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
+				}
 
 				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
 					-1,
@@ -308,7 +340,9 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			if (eventNumber == expectedVersion)
 			{
 				if (expectedVersion is ExpectedVersion.NoStream && await IsSoftDeleted(streamId, token))
+				{
 					return new(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
+				}
 
 				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
 					-1, false);
@@ -331,8 +365,10 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		}
 
 		if (expectedVersion > curVersion)
+		{
 			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1, -1,
 				false);
+		}
 
 		// expectedVersion == currentVersion
 		return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
@@ -348,14 +384,20 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		await foreach (var prepare in GetTransactionPrepares(commit.TransactionPosition, commit.LogPosition, token))
 		{
 			if (prepare.Flags.HasNoneOf(PrepareFlags.StreamDelete | PrepareFlags.Data))
+			{
 				continue;
+			}
 
 			if (StreamIdComparer.Equals(streamId, default))
+			{
 				streamId = prepare.EventStreamId;
+			}
 
 			if (!StreamIdComparer.Equals(prepare.EventStreamId, streamId))
+			{
 				throw new Exception(string.Format("Expected stream: {0}, actual: {1}.", streamId,
 					prepare.EventStreamId));
+			}
 
 			eventNumber = prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete)
 				? EventNumber.DeletedStream
@@ -366,7 +408,9 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		}
 
 		if (eventNumber != EventNumber.Invalid)
+		{
 			_streamVersions.Put(streamId, eventNumber, +1);
+		}
 
 		if (lastPrepare != null && _systemStreams.IsMetaStream(streamId))
 		{
@@ -378,7 +422,9 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 	public void PreCommit(ReadOnlySpan<IPrepareLogRecord<TStreamId>> commitedPrepares)
 	{
 		if (commitedPrepares.Length == 0)
+		{
 			return;
+		}
 
 		var lastPrepare = commitedPrepares[^1];
 		var streamId = lastPrepare.EventStreamId;
@@ -386,11 +432,15 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		foreach (var prepare in commitedPrepares)
 		{
 			if (prepare.Flags.HasNoneOf(PrepareFlags.StreamDelete | PrepareFlags.Data))
+			{
 				continue;
+			}
 
 			if (!StreamIdComparer.Equals(prepare.EventStreamId, streamId))
+			{
 				throw new Exception(string.Format("Expected stream: {0}, actual: {1}.", streamId,
 					prepare.EventStreamId));
+			}
 
 			eventNumber =
 				prepare.ExpectedVersion + 1; /* for committed prepare expected version is always explicit */
@@ -421,9 +471,13 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		{
 			(var result, transactionInfo) = await GetTransactionInfoUncached(writerCheckpoint, transactionId, token);
 			if (result)
+			{
 				_transactionInfoCache.Put(transactionId, transactionInfo, 0);
+			}
 			else
+			{
 				transactionInfo = new TransactionInfo<TStreamId>(int.MinValue, default);
+			}
 
 			Interlocked.Increment(ref _notCachedTransInfo);
 		}
@@ -446,9 +500,15 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			while ((result = await reader.TryReadPrev(token)).Success)
 			{
 				if (result.LogRecord.LogPosition < transactionId)
+				{
 					break;
+				}
+
 				if (result.LogRecord.RecordType != LogRecordType.Prepare)
+				{
 					continue;
+				}
+
 				var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
 				if (prepare.TransactionPosition == transactionId)
 				{
@@ -515,14 +575,18 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		while ((result = await reader.TryReadNext(token)).Success && result.RecordPrePosition <= commitPos)
 		{
 			if (result.LogRecord.RecordType is not LogRecordType.Prepare)
+			{
 				continue;
+			}
 
 			var prepare = (IPrepareLogRecord<TStreamId>)result.LogRecord;
 			if (prepare.TransactionPosition == transactionPos)
 			{
 				yield return prepare;
 				if (prepare.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
+				{
 					yield break;
+				}
 			}
 		}
 	}
@@ -554,7 +618,9 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		if (_streamRawMetas.TryGet(streamId, out var meta))
 		{
 			if (meta.Meta is not null)
+			{
 				return new(meta.Meta);
+			}
 
 			var m = Helper.EatException(() => StreamMetadata.FromJsonBytes(meta.RawMeta), StreamMetadata.Empty);
 			_streamRawMetas.Put(streamId, new StreamMeta(meta.RawMeta, m), 0);
@@ -571,8 +637,10 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 		StreamMeta meta;
 		if (!_streamRawMetas.TryGet(streamId, out meta))
+		{
 			meta = new StreamMeta((await _indexReader.ReadPrepare(metastreamId, metaLastEventNumber, token)).Data,
 				null);
+		}
 
 		return new(metaLastEventNumber, meta.RawMeta);
 	}

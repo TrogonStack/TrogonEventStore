@@ -107,7 +107,9 @@ static class ClassDeclarationGenerationExtensions
 		for (var i = 0; i < parsed.Length; i++)
 		{
 			if (parsed[i] is null)
+			{
 				throw new Exception($"Could not parse member: {members[i]}");
+			}
 		}
 
 		return node.AddMembers(parsed);

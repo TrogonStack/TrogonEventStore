@@ -3,15 +3,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// This calculates information about the event so that the main calculator can decide what to do
-	public class EventCalculator<TStreamId> {
+	public class EventCalculator<TStreamId>
+	{
 		public EventCalculator(
 			int chunkSize,
 			IIndexReaderForCalculator<TStreamId> index,
 			IScavengeStateForCalculatorReadOnly<TStreamId> state,
 			ScavengePoint scavengePoint,
-			StreamCalculator<TStreamId> streamCalc) {
+			StreamCalculator<TStreamId> streamCalc)
+		{
 
 			ChunkSize = chunkSize;
 			Index = index;
@@ -20,7 +23,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			Stream = streamCalc;
 		}
 
-		public void SetEvent(EventInfo eventInfo) {
+		public void SetEvent(EventInfo eventInfo)
+		{
 			EventInfo = eventInfo;
 		}
 
@@ -38,7 +42,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		public int LogicalChunkNumber => (int)(EventInfo.LogPosition / ChunkSize);
 
-		public async ValueTask<DiscardDecision> DecideEvent(CancellationToken token) {
+		public async ValueTask<DiscardDecision> DecideEvent(CancellationToken token)
+		{
 			// Events in original streams can be discarded because of:
 			//   Tombstones, TruncateBefore, MaxCount, MaxAge.
 			//
@@ -47,18 +52,21 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			// or anything beyond the scavenge point, so we limit by that.
 
 			// respect the scavenge point
-			if (IsOnOrAfterScavengePoint) {
+			if (IsOnOrAfterScavengePoint)
+			{
 				return DiscardDecision.Keep;
 			}
 
 			// keep last event in stream
 			// to be extra safe, we keep if it is after the 'last event' too, which should never happen.
-			if (EventInfo.EventNumber >= await Stream.GetLastEventNumber(token)) {
+			if (EventInfo.EventNumber >= await Stream.GetLastEventNumber(token))
+			{
 				return DiscardDecision.Keep;
 			}
 
 			// for tombstoned streams, discard everything before the tombstone
-			if (Stream.IsTombstoned) {
+			if (Stream.IsTombstoned)
+			{
 				// the tombstone is nearly always the last event and therefore already kept above ^
 				// BUT if the tombstone was created when event numbers were 32bit, and the index has
 				// not been _rebuilt_ since event numbers have been 64bit (merges and scavenges are not
@@ -71,7 +79,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				// and keep the tombstone and any the events after it. without this check we would
 				// discard the tombstone and subsequent events except the last one, leaving the stream
 				// in a state where it is unclear why events were removed.
-				if (EventInfo.EventNumber == int.MaxValue && await Index.IsTombstone(EventInfo.LogPosition, token)) {
+				if (EventInfo.EventNumber == int.MaxValue && await Index.IsTombstone(EventInfo.LogPosition, token))
+				{
 					return DiscardDecision.Keep;
 				}
 
@@ -80,13 +89,15 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			}
 
 			// truncatebefore, maxcount
-			if ((await Stream.GetTruncateBeforeOrMaxCountDiscardPoint(token)).ShouldDiscard(EventInfo.EventNumber)) {
+			if ((await Stream.GetTruncateBeforeOrMaxCountDiscardPoint(token)).ShouldDiscard(EventInfo.EventNumber))
+			{
 				return DiscardDecision.Discard;
 			}
 
 			// up to maxage. keep if there is no maxage restriction
 			var cutoffTime = Stream.CutoffTime;
-			if (!cutoffTime.HasValue) {
+			if (!cutoffTime.HasValue)
+			{
 				return DiscardDecision.Keep;
 			}
 
@@ -94,9 +105,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			return ShouldDiscardForMaxAge(cutoffTime.Value);
 		}
 
-		private DiscardDecision ShouldDiscardForMaxAge(DateTime cutoffTime) {
+		private DiscardDecision ShouldDiscardForMaxAge(DateTime cutoffTime)
+		{
 			// establish a range that the event was definitely created between.
-			if (!State.TryGetChunkTimeStampRange(LogicalChunkNumber, out var createdAtRange)) {
+			if (!State.TryGetChunkTimeStampRange(LogicalChunkNumber, out var createdAtRange))
+			{
 				// we don't have a time stamp range for this chunk which implies that it was empty during accumulation.
 				// however while reading event infos from the index, we encountered an event from that chunk.
 				// this indicates that the event was deleted from the chunk but not from the index by the old scavenger.
@@ -104,13 +117,15 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			}
 
 			// range is guaranteed to be non-empty
-			if (cutoffTime <= createdAtRange.Min) {
+			if (cutoffTime <= createdAtRange.Min)
+			{
 				// if the cutoff time is equal to the minimum then the record timestamp is definitely
 				// greater than or equal to the cutoff, so we keep it
 				return DiscardDecision.Keep;
 			}
 
-			if (createdAtRange.Max < cutoffTime) {
+			if (createdAtRange.Max < cutoffTime)
+			{
 				return DiscardDecision.Discard;
 			}
 

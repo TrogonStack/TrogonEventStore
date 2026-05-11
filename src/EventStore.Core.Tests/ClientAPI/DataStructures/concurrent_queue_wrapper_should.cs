@@ -73,9 +73,14 @@ public class concurrent_queue_wrapper_with_parallel_dequeues_should
 		{
 			var dequeued = _concurrentQueue.TryDequeue(out _);
 			if (_concurrentQueue.Count < 0)
+			{
 				_seenNegativeCount = true;
+			}
+
 			if (dequeued)
+			{
 				Interlocked.Increment(ref _totalDequeued);
+			}
 		}
 	}
 
@@ -95,11 +100,15 @@ public class concurrent_queue_wrapper_with_parallel_dequeues_should
 			_concurrentQueue.Enqueue(1);
 			var dequeued = _concurrentQueue.TryDequeue(out x);
 			if (dequeued)
+			{
 				Interlocked.Increment(ref _totalDequeued);
+			}
 		}
 
 		for (int i = 0; i < NUM_THREADS; i++)
+		{
 			threads[i].Join(TimeSpan.FromSeconds(5));
+		}
 
 		Assert.AreEqual(false, _seenNegativeCount);
 	}

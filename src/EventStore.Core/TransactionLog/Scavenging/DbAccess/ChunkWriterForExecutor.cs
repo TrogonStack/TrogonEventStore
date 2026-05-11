@@ -97,11 +97,15 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		// write posmap
 		var posMapCount = 0;
 		foreach (var list in _posMapss)
+		{
 			posMapCount += list.Count;
+		}
 
 		var unifiedPosMap = new List<PosMap>(capacity: posMapCount);
 		foreach (var list in _posMapss)
+		{
 			unifiedPosMap.AddRange(list);
+		}
 
 		await _outputChunk.CompleteScavenge(unifiedPosMap, token);
 		var newFileName = await _manager.SwitchChunk(chunk: _outputChunk, token);

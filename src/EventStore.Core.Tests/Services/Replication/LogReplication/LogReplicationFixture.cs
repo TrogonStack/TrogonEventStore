@@ -338,7 +338,9 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 	{
 		var events = new Event[eventDatas.Length];
 		for (var i = 0; i < events.Length; i++)
+		{
 			events[i] = new Event(Guid.NewGuid(), "type", false, eventDatas[i], null);
+		}
 
 		return events;
 	}
@@ -404,14 +406,18 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 				if (newWriterChks.Length == writerChks.Length + 1)
 				{
 					if (newWriterChks[^1] % chunkSize == 0)
+					{
 						return false; // chunk has been completed
+					}
 
 					// write completed (not at end of chunk)
 					return true;
 				}
 
 				if (newWriterChks.Length == writerChks.Length + 2) // write completed after completing chunk
+				{
 					return true;
+				}
 
 				return false; // no write completed yet
 			}, TimeSpan.FromSeconds(5));
@@ -517,7 +523,9 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		Assert.AreEqual(expectedLogicalChunks, numChunksOnLeader);
 
 		if (atChunkBoundary)
+		{
 			expectedLogicalChunks--;
+		}
 
 		Assert.AreEqual(expectedLogicalChunks, numChunksOnReplica);
 
@@ -558,7 +566,9 @@ public abstract class LogReplicationFixture<TLogFormat, TStreamId> : Specificati
 		int pos = 0;
 		int read;
 		while ((read = fs.Read(data[pos..])) > 0)
+		{
 			pos += read;
+		}
 
 		return excludeChecksum
 			? data[TFConsts.ChunkHeaderSize..^ChunkFooter.ChecksumSize]

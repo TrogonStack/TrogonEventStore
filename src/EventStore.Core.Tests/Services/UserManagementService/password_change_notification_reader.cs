@@ -24,7 +24,10 @@ namespace EventStore.Core.Tests.Services.UserManagementService
 			protected override IEnumerable<WhenStep> PreWhen()
 			{
 				foreach (var m in base.PreWhen())
+				{
 					yield return m;
+				}
+
 				yield return new SystemMessage.SystemStart();
 				yield return
 					new UserManagementMessage.Create(

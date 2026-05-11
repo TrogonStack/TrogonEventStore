@@ -74,19 +74,40 @@ public partial class EmittedStream : IDisposable,
 		IEmittedStreamContainer readyHandler, bool noCheckpoints = false)
 	{
 		if (string.IsNullOrEmpty(streamId))
+		{
 			throw new ArgumentNullException("streamId");
+		}
+
 		if (writerConfiguration == null)
+		{
 			throw new ArgumentNullException("writerConfiguration");
+		}
+
 		if (positionTagger == null)
+		{
 			throw new ArgumentNullException("positionTagger");
+		}
+
 		if (fromCheckpointPosition == null)
+		{
 			throw new ArgumentNullException("fromCheckpointPosition");
+		}
+
 		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
+		}
+
 		if (ioDispatcher == null)
+		{
 			throw new ArgumentNullException("ioDispatcher");
+		}
+
 		if (readyHandler == null)
+		{
 			throw new ArgumentNullException("readyHandler");
+		}
+
 		_streamId = streamId;
 		_metadataStreamId = SystemStreams.MetastreamOf(streamId);
 		_writerConfiguration = writerConfiguration;
@@ -107,7 +128,10 @@ public partial class EmittedStream : IDisposable,
 	public void EmitEvents(EmittedEvent[] events)
 	{
 		if (events == null)
+		{
 			throw new ArgumentNullException("events");
+		}
+
 		CheckpointTag groupCausedBy = null;
 		foreach (var @event in events)
 		{
@@ -116,21 +140,31 @@ public partial class EmittedStream : IDisposable,
 				groupCausedBy = @event.CausedByTag;
 				if (!(_lastQueuedEventPosition != null && groupCausedBy > _lastQueuedEventPosition) &&
 					!(_lastQueuedEventPosition == null && groupCausedBy >= _fromCheckpointPosition))
+				{
 					throw new InvalidOperationException(
 						string.Format("Invalid event order.  '{0}' goes after '{1}'", @event.CausedByTag,
 							_lastQueuedEventPosition));
+				}
+
 				_lastQueuedEventPosition = groupCausedBy;
 			}
 			else if (@event.CausedByTag != groupCausedBy)
+			{
 				throw new ArgumentException("events must share the same CausedByTag");
+			}
 
 			if (@event.StreamId != _streamId)
+			{
 				throw new ArgumentException("Invalid streamId", "events");
+			}
 		}
 
 		EnsureCheckpointNotRequested();
 		foreach (var @event in events)
+		{
 			_pendingWrites.Enqueue(@event);
+		}
+
 		ProcessWrites();
 	}
 
@@ -147,7 +181,10 @@ public partial class EmittedStream : IDisposable,
 	{
 		EnsureCheckpointNotRequested();
 		if (_started)
+		{
 			throw new InvalidOperationException("Stream is already started");
+		}
+
 		_started = true;
 		ProcessWrites();
 	}
@@ -170,9 +207,15 @@ public partial class EmittedStream : IDisposable,
 	private void HandleWriteEventsCompleted(ClientMessage.WriteEventsCompleted message, int retryCount)
 	{
 		if (!_awaitingWriteCompleted)
+		{
 			throw new InvalidOperationException("WriteEvents has not been submitted");
+		}
+
 		if (_disposed)
+		{
 			return;
+		}
+
 		_awaitingWriteCompleted = false;
 		if (message.Result == OperationResult.Success)
 		{
@@ -230,11 +273,20 @@ public partial class EmittedStream : IDisposable,
 		CheckpointTag lastCheckpointPosition)
 	{
 		if (!_awaitingListEventsCompleted)
+		{
 			throw new InvalidOperationException("ReadStreamEventsBackward has not been requested");
+		}
+
 		if (_disposed)
+		{
 			return;
+		}
+
 		if (message.CorrelationId != _pendingRequestCorrelationId)
+		{
 			return;
+		}
+
 		if (message.Result == ReadStreamResult.StreamDeleted)
 		{
 			Failed($"Stream : {_streamId} is deleted. Cannot emit events to it");
@@ -302,6 +354,7 @@ public partial class EmittedStream : IDisposable,
 		var stop = CollectAlreadyCommittedEvents(message, lastCheckpointPosition);
 
 		if (stop)
+		{
 			try
 			{
 				SubmitWriteEventsInRecovery();
@@ -310,8 +363,11 @@ public partial class EmittedStream : IDisposable,
 			{
 				Failed(ex.Message);
 			}
+		}
 		else
+		{
 			SubmitListEvents(lastCheckpointPosition, message.NextEventNumber);
+		}
 	}
 
 	private bool CollectAlreadyCommittedEvents(
@@ -325,7 +381,9 @@ public partial class EmittedStream : IDisposable,
 						   && checkpointTagVersion.Version.Version >= _projectionVersion.Epoch;
 
 			if (IsV1StreamCreatedEvent(e))
+			{
 				continue;
+			}
 
 			if (checkpointTagVersion.Tag == null)
 			{
@@ -372,16 +430,23 @@ public partial class EmittedStream : IDisposable,
 			&& !_awaitingMetadataWriteCompleted && _pendingWrites.Count > 0)
 		{
 			if (_lastCommittedOrSubmittedEventPosition == null)
+			{
 				SubmitListEvents(_fromCheckpointPosition);
+			}
 			else
+			{
 				SubmitWriteEventsInRecovery();
+			}
 		}
 	}
 
 	private void SubmitListEvents(CheckpointTag upTo, long fromEventNumber = -1)
 	{
 		if (_awaitingWriteCompleted || _awaitingMetadataWriteCompleted || _awaitingListEventsCompleted)
+		{
 			throw new Exception();
+		}
+
 		_awaitingListEventsCompleted = true;
 		_pendingRequestCorrelationId = Guid.NewGuid();
 		_ioDispatcher.ReadBackward(
@@ -396,7 +461,10 @@ public partial class EmittedStream : IDisposable,
 		return () =>
 		{
 			if (correlationId != _pendingRequestCorrelationId)
+			{
 				return;
+			}
+
 			_pendingRequestCorrelationId = Guid.Empty;
 			_awaitingListEventsCompleted = false;
 			SubmitListEvents(upTo, fromEventNumber);
@@ -406,7 +474,10 @@ public partial class EmittedStream : IDisposable,
 	private void SubmitWriteMetadata()
 	{
 		if (_awaitingWriteCompleted || _awaitingMetadataWriteCompleted || _awaitingListEventsCompleted)
+		{
 			throw new Exception();
+		}
+
 		var streamAcl = _streamId.StartsWith("$")
 			? new StreamAcl(SystemRoles.All, null, null, SystemRoles.All, null)
 			: new StreamAcl((string)null, null, null, null, null);
@@ -453,9 +524,15 @@ public partial class EmittedStream : IDisposable,
 	private void HandleMetadataWriteCompleted(ClientMessage.WriteEventsCompleted message, int retryCount)
 	{
 		if (!_awaitingMetadataWriteCompleted)
+		{
 			throw new InvalidOperationException("WriteEvents to metadata stream has not been submitted");
+		}
+
 		if (_disposed)
+		{
 			return;
+		}
+
 		if (message.Result == OperationResult.Success)
 		{
 			_metadataStreamCreated = true;
@@ -500,10 +577,18 @@ public partial class EmittedStream : IDisposable,
 	private void SubmitWriteEvents()
 	{
 		if (_awaitingWriteCompleted || _awaitingMetadataWriteCompleted || _awaitingListEventsCompleted)
+		{
 			throw new Exception();
+		}
+
 		if (!_metadataStreamCreated)
+		{
 			if (_lastCommittedOrSubmittedEventPosition != _zeroPosition)
+			{
 				throw new Exception("Internal error");
+			}
+		}
+
 		var events = new List<Event>();
 		var emittedEvents = new List<EmittedEvent>();
 		while (_pendingWrites.Count > 0 && events.Count < _maxWriteBatchLength)
@@ -523,6 +608,7 @@ public partial class EmittedStream : IDisposable,
 			var expectedTag = e.ExpectedTag;
 			var causedByTag = e.CausedByTag;
 			if (expectedTag != null)
+			{
 				if (DetectConcurrencyViolations(expectedTag))
 				{
 					RequestRestart(
@@ -531,6 +617,7 @@ public partial class EmittedStream : IDisposable,
 							_streamId, _lastCommittedOrSubmittedEventPosition, expectedTag));
 					return;
 				}
+			}
 
 			_lastCommittedOrSubmittedEventPosition = causedByTag;
 			try
@@ -554,7 +641,9 @@ public partial class EmittedStream : IDisposable,
 		_submittedToWriteEmittedEvents = emittedEvents.ToArray();
 
 		if (_submittedToWriteEvents.Length > 0)
+		{
 			PublishWriteEvents(MaxRetryCount);
+		}
 	}
 
 	private IEnumerable<KeyValuePair<string, JToken>> MetadataWithCausedByAndCorrelationId(
@@ -563,22 +652,32 @@ public partial class EmittedStream : IDisposable,
 		var extraMetaData = emittedEvent.ExtraMetaData();
 		var correlationIdFound = false;
 		if (extraMetaData != null)
+		{
 			foreach (var valuePair in from pair in extraMetaData
 									  where pair.Key != "$causedBy"
 									  select pair)
 			{
 				if (valuePair.Key == "$correlationId")
+				{
 					correlationIdFound = true;
+				}
+
 				yield return new KeyValuePair<string, JToken>(valuePair.Key, new JRaw(valuePair.Value));
 			}
+		}
 
 		if (emittedEvent.CausedBy != Guid.Empty)
+		{
 			yield return
 				new KeyValuePair<string, JToken>(
 					"$causedBy", JValue.CreateString(emittedEvent.CausedBy.ToString("D")));
+		}
+
 		if (!correlationIdFound && !string.IsNullOrEmpty(emittedEvent.CorrelationId))
+		{
 			yield return
 				new KeyValuePair<string, JToken>("$correlationId", JValue.CreateString(emittedEvent.CorrelationId));
+		}
 	}
 
 	private bool DetectConcurrencyViolations(CheckpointTag expectedTag)
@@ -634,7 +733,10 @@ public partial class EmittedStream : IDisposable,
 	{
 		attempt--;
 		if (attempt == 0)
+		{
 			return 0;
+		}
+
 		var expBackoff = attempt < 9 ? (1 << attempt) : 256;
 		return _random.Next(1, expBackoff + 1);
 	}
@@ -642,13 +744,17 @@ public partial class EmittedStream : IDisposable,
 	private void EnsureCheckpointNotRequested()
 	{
 		if (_checkpointRequested)
+		{
 			throw new InvalidOperationException("Checkpoint requested");
+		}
 	}
 
 	private void EnsureStreamStarted()
 	{
 		if (!_started)
+		{
 			throw new InvalidOperationException("Not started");
+		}
 	}
 
 	private void OnWriteCompleted()
@@ -676,7 +782,9 @@ public partial class EmittedStream : IDisposable,
 	private void EnsureCheckpointsEnabled()
 	{
 		if (_noCheckpoints)
+		{
 			throw new InvalidOperationException("Checkpoints disabled");
+		}
 	}
 
 	private void SubmitWriteEventsInRecovery()
@@ -687,18 +795,26 @@ public partial class EmittedStream : IDisposable,
 	private void SubmitWriteEventsInRecoveryLoop(bool anyFound)
 	{
 		if (_awaitingLinkToResolution)
+		{
 			return;
+		}
 
 		while (_pendingWrites.Count > 0)
 		{
 			var eventToWrite = _pendingWrites.Peek();
 			if (eventToWrite.CausedByTag > _lastCommittedOrSubmittedEventPosition ||
 				_alreadyCommittedEvents.Count == 0)
+			{
 				RecoveryCompleted();
+			}
+
 			if (_recoveryCompleted)
 			{
 				if (anyFound)
+				{
 					NotifyWriteCompleted(); // unlock pending write-resolves if any
+				}
+
 				SubmitWriteEvents();
 				return;
 			}
@@ -712,7 +828,9 @@ public partial class EmittedStream : IDisposable,
 			}
 
 			if (report is ErroredEmittedEvent error)
+			{
 				throw error.Exception;
+			}
 
 			if (report is ValidEmittedEvent valid)
 			{
@@ -738,7 +856,9 @@ public partial class EmittedStream : IDisposable,
 		}
 
 		if (_pendingWrites.Count == 0)
+		{
 			OnWriteCompleted();
+		}
 	}
 
 	private IValidatedEmittedEvent ValidateEmittedEventInRecoveryMode(EmittedEvent eventToWrite)
@@ -746,7 +866,9 @@ public partial class EmittedStream : IDisposable,
 		var topAlreadyCommitted = _alreadyCommittedEvents.Pop();
 
 		if (topAlreadyCommitted.Item1 < eventToWrite.CausedByTag)
+		{
 			return new IgnoredEmittedEvent();
+		}
 
 		var failed = topAlreadyCommitted.Item1 != eventToWrite.CausedByTag ||
 					 topAlreadyCommitted.Item2 != eventToWrite.EventType;
@@ -757,7 +879,9 @@ public partial class EmittedStream : IDisposable,
 			var parts = eventToWrite.Data.Split(LinkToSeparator, 2);
 			var streamId = parts[1];
 			if (!long.TryParse(parts[0], out long eventNumber))
+			{
 				throw new Exception($"Unexpected exception: Emitted event is an invalid link event: Body ({eventToWrite.Data}) CausedByTag ({eventToWrite.CausedByTag}) StreamId ({eventToWrite.StreamId})");
+			}
 
 			return new EmittedEventResolutionNeeded(streamId, eventNumber, topAlreadyCommitted);
 		}
@@ -811,13 +935,17 @@ public partial class EmittedStream : IDisposable,
 	{
 		var sequenceNumber = firstEventNumber;
 		foreach (var e in events)
+		{
 			NotifyEventCommitted(e, sequenceNumber++);
+		}
 	}
 
 	private static void NotifyEventCommitted(EmittedEvent @event, long eventNumber)
 	{
 		if (@event.OnCommitted != null)
+		{
 			@event.OnCommitted(eventNumber);
+		}
 	}
 
 	public void Dispose()
@@ -828,7 +956,10 @@ public partial class EmittedStream : IDisposable,
 	public void Handle(CoreProjectionProcessingMessage.EmittedStreamWriteCompleted message)
 	{
 		if (!_awaitingReady)
+		{
 			throw new InvalidOperationException("AwaitingReady state required");
+		}
+
 		ProcessWrites();
 	}
 }

@@ -19,14 +19,21 @@ public class TransactionFilePositionTagger : PositionTagger
 	public override CheckpointTag AdjustTag(CheckpointTag tag)
 	{
 		if (tag.Phase < Phase)
+		{
 			return tag;
+		}
+
 		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
+		}
 
 		if (tag.Mode_ == CheckpointTag.Mode.Position)
+		{
 			return tag;
+		}
 
 		switch (tag.Mode_)
 		{
@@ -52,9 +59,15 @@ public class TransactionFilePositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase < Phase)
+		{
 			return true;
+		}
+
 		if (previous.Mode_ != CheckpointTag.Mode.Position)
+		{
 			throw new ArgumentException("Mode.Position expected", "previous");
+		}
+
 		return committedEvent.Data.Position > previous.Position;
 	}
 
@@ -62,8 +75,10 @@ public class TransactionFilePositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		return CheckpointTag.FromPosition(previous.Phase, committedEvent.Data.Position);
 	}
@@ -78,12 +93,16 @@ public class TransactionFilePositionTagger : PositionTagger
 		ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		if (partitionDeleted.DeleteLinkOrEventPosition == null)
+		{
 			throw new ArgumentException(
 				"Invalid partiton deleted message. deleteEventOrLinkTargetPosition required");
+		}
 
 		return CheckpointTag.FromPosition(previous.Phase, partitionDeleted.DeleteLinkOrEventPosition.Value);
 	}

@@ -11,7 +11,9 @@ public class ChunkPrioritizer : IComparer<Commands.ArchiveChunk>
 		int cmp = x!.ChunkStartNumber.CompareTo(y!.ChunkStartNumber);
 
 		if (cmp != 0)
+		{
 			return cmp;
+		}
 
 		cmp = x!.ChunkEndNumber.CompareTo(y!.ChunkEndNumber);
 		return cmp;

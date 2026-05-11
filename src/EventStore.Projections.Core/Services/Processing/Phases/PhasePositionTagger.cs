@@ -47,11 +47,16 @@ public class PhasePositionTagger : PositionTagger
 	public override CheckpointTag AdjustTag(CheckpointTag tag)
 	{
 		if (tag.Phase < Phase)
+		{
 			return tag;
+		}
+
 		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
+		}
 
 		if (tag.Mode_ == CheckpointTag.Mode.Phase)
 		{

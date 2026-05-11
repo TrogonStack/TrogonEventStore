@@ -1,13 +1,14 @@
-using System.Collections.Generic;
 using System;
-using EventStore.Core.Index.Hashes;
-using EventStore.Core.LogAbstraction;
+using System.Collections.Generic;
+using System.Linq;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
-using System.Linq;
+using EventStore.Core.Index.Hashes;
+using EventStore.Core.LogAbstraction;
 using Serilog;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// This datastructure is read and written to by the Accumulator/Calculator/Executors.
 	// They contain the scavenge logic, this is just the holder of the data.
 	//
@@ -15,7 +16,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	// different data for each so we have two maps. we have one collision detector since
 	// we need to detect collisions between all of the streams.
 	// we don't need to store data for every original stream, only ones that need scavenging.
-	public class ScavengeState<TStreamId> : IScavengeState<TStreamId> {
+	public class ScavengeState<TStreamId> : IScavengeState<TStreamId>
+	{
 		private bool _initialized;
 		private IScavengeStateBackend<TStreamId> _backend;
 		private readonly ObjectPool<IScavengeStateBackend<TStreamId>> _backendPool;
@@ -42,7 +44,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ILongHasher<TStreamId> hasher,
 			IMetastreamLookup<TStreamId> metastreamLookup,
 			ObjectPool<IScavengeStateBackend<TStreamId>> backendPool,
-			int hashUsersCacheCapacity) {
+			int hashUsersCacheCapacity)
+		{
 
 			_logger = logger;
 			_hasher = hasher;
@@ -51,9 +54,12 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			_hashUsersCacheCapacity = hashUsersCacheCapacity;
 		}
 
-		public void Init() {
+		public void Init()
+		{
 			if (_initialized)
+			{
 				return;
+			}
 
 			_initialized = true;
 			_backend = _backendPool.Get();
@@ -90,14 +96,19 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			_transactionManager.RegisterOnRollback(OnRollback);
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_transactionManager?.UnregisterOnRollback();
 			if (_backend != null)
+			{
 				_backendPool.Return(_backend);
+			}
+
 			_backendPool.Dispose();
 		}
 
-		private void OnRollback() {
+		private void OnRollback()
+		{
 			// a transaction has been rolled back
 			// need to clear whatever we think we know about collisions to stop us mistaking a new
 			// collision for an old one.
@@ -106,14 +117,16 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			// there is no need to clear the HashUsers LRU cache
 		}
 
-		public void LogStats() {
+		public void LogStats()
+		{
 			_backend.LogStats();
 		}
 
 		// reuses the same transaction object for multiple transactions.
 		// caller is reponsible for committing, rolling back, or disposing
 		// the transaction before calling BeginTransaction again
-		public ITransactionCompleter BeginTransaction() {
+		public ITransactionCompleter BeginTransaction()
+		{
 			_transactionManager.Begin();
 			return _transactionManager;
 		}
@@ -121,7 +134,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public bool TryGetCheckpoint(out ScavengeCheckpoint checkpoint) =>
 			_checkpointStorage.TryGetValue(Unit.Instance, out checkpoint);
 
-		public IEnumerable<TStreamId> AllCollisions() {
+		public IEnumerable<TStreamId> AllCollisions()
+		{
 			return _collisionDetector.AllCollisions();
 		}
 
@@ -135,12 +149,14 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		// FOR ACCUMULATOR
 		//
 
-		public void DetectCollisions(TStreamId streamId) {
+		public void DetectCollisions(TStreamId streamId)
+		{
 			var collisionResult = _collisionDetector.DetectCollisions(
 				streamId,
 				out var collision);
 
-			if (collisionResult == CollisionResult.NewCollision) {
+			if (collisionResult == CollisionResult.NewCollision)
+			{
 				_logger.Information(
 					"SCAVENGING: Detected collision between streams \"{streamId}\" and \"{previous}\"",
 					streamId, collision);
@@ -150,23 +166,28 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			}
 		}
 
-		public void SetMetastreamDiscardPoint(TStreamId metastreamId, DiscardPoint discardPoint) {
+		public void SetMetastreamDiscardPoint(TStreamId metastreamId, DiscardPoint discardPoint)
+		{
 			_metastreamDatas.SetDiscardPoint(metastreamId, discardPoint);
 		}
 
-		public void SetMetastreamTombstone(TStreamId metastreamId) {
+		public void SetMetastreamTombstone(TStreamId metastreamId)
+		{
 			_metastreamDatas.SetTombstone(metastreamId);
 		}
 
-		public void SetOriginalStreamMetadata(TStreamId originalStreamId, StreamMetadata metadata) {
+		public void SetOriginalStreamMetadata(TStreamId originalStreamId, StreamMetadata metadata)
+		{
 			_originalStreamDatas.SetMetadata(originalStreamId, metadata);
 		}
 
-		public void SetOriginalStreamTombstone(TStreamId originalStreamId) {
+		public void SetOriginalStreamTombstone(TStreamId originalStreamId)
+		{
 			_originalStreamDatas.SetTombstone(originalStreamId);
 		}
 
-		public void SetChunkTimeStampRange(int logicalChunkNumber, ChunkTimeStampRange range) {
+		public void SetChunkTimeStampRange(int logicalChunkNumber, ChunkTimeStampRange range)
+		{
 			_chunkTimeStampRanges[logicalChunkNumber] = range;
 		}
 
@@ -175,7 +196,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				StreamHandle.ForStreamId(streamId) :
 				StreamHandle.ForHash<TStreamId>(_hasher.Hash(streamId));
 
-		public void LogAccumulationStats() {
+		public void LogAccumulationStats()
+		{
 			LogStats();
 			_collisionDetector.LogStats();
 		}
@@ -185,7 +207,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		//
 
 		public IEnumerable<(StreamHandle<TStreamId>, OriginalStreamData)> OriginalStreamsToCalculate(
-			StreamHandle<TStreamId> checkpoint) {
+			StreamHandle<TStreamId> checkpoint)
+		{
 
 			return _originalStreamDatas.EnumerateActive(checkpoint);
 		}
@@ -194,12 +217,14 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			StreamHandle<TStreamId> handle,
 			CalculationStatus status,
 			DiscardPoint discardPoint,
-			DiscardPoint maybeDiscardPoint) {
+			DiscardPoint maybeDiscardPoint)
+		{
 
 			_originalStreamDatas.SetDiscardPoints(handle, status, discardPoint, maybeDiscardPoint);
 		}
 
-		public void IncreaseChunkWeight(int logicalChunkNumber, float extraWeight) {
+		public void IncreaseChunkWeight(int logicalChunkNumber, float extraWeight)
+		{
 			_chunkWeights.IncreaseWeight(logicalChunkNumber, extraWeight);
 		}
 
@@ -214,7 +239,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		//
 
 		// not guaranteed to be thread safe. allocations and queries, dont call this too often.
-		public IScavengeStateForChunkExecutorWorker<TStreamId> BorrowStateForWorker() {
+		public IScavengeStateForChunkExecutorWorker<TStreamId> BorrowStateForWorker()
+		{
 			var backend = _backendPool.Get();
 
 			var state = new ScavengeStateForChunkWorker<TStreamId>(
@@ -228,7 +254,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) =>
 			_chunkWeights.SumChunkWeights(startLogicalChunkNumber, endLogicalChunkNumber);
 
-		public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
+		public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber)
+		{
 			_chunkWeights.ResetChunkWeights(startLogicalChunkNumber, endLogicalChunkNumber);
 		}
 
@@ -247,11 +274,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		public bool TryGetIndexExecutionInfo(
 			StreamHandle<TStreamId> handle,
-			out IndexExecutionInfo info) {
+			out IndexExecutionInfo info)
+		{
 
 			// here we know that the handle is of the correct kind
 			// but we do not know whether it is for a metastream or an originalstream.
-			switch (handle.Kind) {
+			switch (handle.Kind)
+			{
 				case StreamHandle.Kind.Hash:
 					// not a collision, but we do not know whether it is a metastream or not.
 					// check both maps (better if we didnt have to though..)
@@ -270,9 +299,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		private bool TryGetDiscardPointForMetadataStream(
 			StreamHandle<TStreamId> handle,
-			out IndexExecutionInfo info) {
+			out IndexExecutionInfo info)
+		{
 
-			if (!_metastreamDatas.TryGetValue(handle, out var data)) {
+			if (!_metastreamDatas.TryGetValue(handle, out var data))
+			{
 				info = default;
 				return false;
 			}
@@ -286,9 +317,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		private bool TryGetDiscardPointForOriginalStream(
 			StreamHandle<TStreamId> handle,
-			out IndexExecutionInfo info) {
+			out IndexExecutionInfo info)
+		{
 
-			if (!_originalStreamDatas.TryGetValue(handle, out var data)) {
+			if (!_originalStreamDatas.TryGetValue(handle, out var data))
+			{
 				info = default;
 				return false;
 			}
@@ -300,7 +333,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			return true;
 		}
 
-		public bool IsCollision(ulong streamHash) {
+		public bool IsCollision(ulong streamHash)
+		{
 			return _collisionDetector.IsCollisionHash(streamHash);
 		}
 
@@ -311,11 +345,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public bool AllChunksExecuted() =>
 			_chunkWeights.AllWeightsAreZero();
 
-		public void DeleteOriginalStreamData(bool deleteArchived) {
+		public void DeleteOriginalStreamData(bool deleteArchived)
+		{
 			_originalStreamDatas.DeleteMany(deleteArchived: deleteArchived);
 		}
 
-		public void DeleteMetastreamData() {
+		public void DeleteMetastreamData()
+		{
 			_metastreamDatas.DeleteAll();
 		}
 	}
@@ -324,7 +360,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	// in the chunk executor each worker gets its own state so that it has its own dbconnection and
 	// prepared commands.
 	public readonly struct ScavengeStateForChunkWorker<TStreamId> :
-		IScavengeStateForChunkExecutorWorker<TStreamId>{
+		IScavengeStateForChunkExecutorWorker<TStreamId>
+	{
 
 		private readonly MetastreamCollisionMap<TStreamId> _metastreamDatas;
 		private readonly OriginalStreamCollisionMap<TStreamId> _originalStreamDatas;
@@ -336,7 +373,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ILongHasher<TStreamId> hasher,
 			IScavengeStateBackend<TStreamId> backend,
 			Dictionary<TStreamId, Unit> collisions,
-			Action onDispose) {
+			Action onDispose)
+		{
 
 			_metastreamDatas = new MetastreamCollisionMap<TStreamId>(
 				hasher,
@@ -359,7 +397,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) =>
 			_chunkWeights.SumChunkWeights(startLogicalChunkNumber, endLogicalChunkNumber);
 
-		public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
+		public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber)
+		{
 			_chunkWeights.ResetChunkWeights(startLogicalChunkNumber, endLogicalChunkNumber);
 		}
 
@@ -372,7 +411,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public bool TryGetChunkTimeStampRange(int logicalChunkNumber, out ChunkTimeStampRange range) =>
 			_chunkTimeStampRanges.TryGetValue(logicalChunkNumber, out range);
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_onDispose();
 		}
 	}

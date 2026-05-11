@@ -1,14 +1,17 @@
 using System;
 using HashCode = EventStore.Core.Services.Transport.Common.HashCode;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	public struct AnyStreamRevision : IEquatable<AnyStreamRevision> {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	public struct AnyStreamRevision : IEquatable<AnyStreamRevision>
+	{
 		public static readonly AnyStreamRevision NoStream = new AnyStreamRevision(Constants.NoStream);
 		public static readonly AnyStreamRevision Any = new AnyStreamRevision(Constants.Any);
 		public static readonly AnyStreamRevision StreamExists = new AnyStreamRevision(Constants.StreamExists);
 		private readonly int _value;
 
-		private static class Constants {
+		private static class Constants
+		{
 			public const int NoStream = 1;
 			public const int Any = 2;
 			public const int StreamExists = 4;
@@ -16,8 +19,10 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 		public static AnyStreamRevision FromInt64(long value) => new AnyStreamRevision(-Convert.ToInt32(value));
 
-		public AnyStreamRevision(int value) {
-			switch (value) {
+		public AnyStreamRevision(int value)
+		{
+			switch (value)
+			{
 				case Constants.NoStream:
 				case Constants.Any:
 				case Constants.StreamExists:
@@ -36,7 +41,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		public readonly long ToInt64() => -Convert.ToInt64(_value);
 		public static implicit operator int(AnyStreamRevision streamRevision) => streamRevision._value;
 
-		public override string ToString() => _value switch {
+		public override string ToString() => _value switch
+		{
 			Constants.NoStream => nameof(NoStream),
 			Constants.Any => nameof(Any),
 			Constants.StreamExists => nameof(StreamExists),

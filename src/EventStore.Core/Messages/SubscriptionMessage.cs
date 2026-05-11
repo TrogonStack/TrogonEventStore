@@ -2,10 +2,13 @@ using System;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 
-namespace EventStore.Core.Messages {
-	public static partial class SubscriptionMessage {
+namespace EventStore.Core.Messages
+{
+	public static partial class SubscriptionMessage
+	{
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PollStream : Message {
+		public partial class PollStream : Message
+		{
 			public readonly string StreamId;
 			public readonly long LastIndexedPosition;
 			public readonly long? LastEventNumber;
@@ -14,7 +17,8 @@ namespace EventStore.Core.Messages {
 			public readonly Message OriginalRequest;
 
 			public PollStream(string streamId, long lastIndexedPosition, long? lastEventNumber, DateTime expireAt,
-				Message originalRequest) {
+				Message originalRequest)
+			{
 				StreamId = streamId;
 				LastIndexedPosition = lastIndexedPosition;
 				LastEventNumber = lastEventNumber;
@@ -24,66 +28,80 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class CheckPollTimeout : Message {
+		public partial class CheckPollTimeout : Message
+		{
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class DropSubscription : Message {
+		public partial class DropSubscription : Message
+		{
 			public readonly Guid SubscriptionId;
 			public readonly SubscriptionDropReason DropReason;
 
-			public DropSubscription(Guid subscriptionId, SubscriptionDropReason dropReason) {
+			public DropSubscription(Guid subscriptionId, SubscriptionDropReason dropReason)
+			{
 				SubscriptionId = subscriptionId;
 				DropReason = dropReason;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PersistentSubscriptionTimerTick : Message {
+		public partial class PersistentSubscriptionTimerTick : Message
+		{
 			public Guid CorrelationId { get; }
 
-			public PersistentSubscriptionTimerTick(Guid correlationId) {
+			public PersistentSubscriptionTimerTick(Guid correlationId)
+			{
 				CorrelationId = correlationId;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PersistentSubscriptionPushToClients : Message {
+		public partial class PersistentSubscriptionPushToClients : Message
+		{
 			public string SubscriptionId { get; }
 
-			public PersistentSubscriptionPushToClients(string subscriptionId) {
+			public PersistentSubscriptionPushToClients(string subscriptionId)
+			{
 				SubscriptionId = subscriptionId;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PersistentSubscriptionsRestart : Message {
+		public partial class PersistentSubscriptionsRestart : Message
+		{
 			public IEnvelope ReplyEnvelope { get; }
-			
-			public PersistentSubscriptionsRestart(IEnvelope replyEnvelope) {
+
+			public PersistentSubscriptionsRestart(IEnvelope replyEnvelope)
+			{
 				ReplyEnvelope = replyEnvelope;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PersistentSubscriptionsRestarting : Message {
+		public partial class PersistentSubscriptionsRestarting : Message
+		{
 		}
 
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class InvalidPersistentSubscriptionsRestart : Message {
+		public partial class InvalidPersistentSubscriptionsRestart : Message
+		{
 			public readonly string Reason;
 
-			public InvalidPersistentSubscriptionsRestart(string reason) {
+			public InvalidPersistentSubscriptionsRestart(string reason)
+			{
 				Reason = reason;
 			}
 		}
-	
+
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PersistentSubscriptionsStarted : Message {
+		public partial class PersistentSubscriptionsStarted : Message
+		{
 		}
-		
+
 		[DerivedMessage(CoreMessage.Subscription)]
-		public partial class PersistentSubscriptionsStopped : Message {
+		public partial class PersistentSubscriptionsStopped : Message
+		{
 		}
 	}
 }

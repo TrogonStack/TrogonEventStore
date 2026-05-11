@@ -2,15 +2,18 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace EventStore.Core.DataStructures {
+namespace EventStore.Core.DataStructures
+{
 
-	public interface IAppendOnlyList<in T> {
+	public interface IAppendOnlyList<in T>
+	{
 		void Add(T item);
 		void Clear();
 		int Count { get; }
 	}
 
-	public sealed class UnmanagedMemoryAppendOnlyList<T> : IAppendOnlyList<T>, IDisposable {
+	public sealed class UnmanagedMemoryAppendOnlyList<T> : IAppendOnlyList<T>, IDisposable
+	{
 		private readonly int _maxCapacity;
 		private readonly IntPtr _dataPtr = IntPtr.Zero;
 		private readonly long _dataBytesAllocated;
@@ -18,8 +21,10 @@ namespace EventStore.Core.DataStructures {
 		private int _count;
 		private bool _disposed;
 
-		public UnmanagedMemoryAppendOnlyList(int maxCapacity) {
-			if (maxCapacity <= 0) {
+		public UnmanagedMemoryAppendOnlyList(int maxCapacity)
+		{
+			if (maxCapacity <= 0)
+			{
 				throw new ArgumentException($"{nameof(maxCapacity)} must be positive");
 			}
 
@@ -30,43 +35,56 @@ namespace EventStore.Core.DataStructures {
 			Thread.MemoryBarrier();
 			_dataBytesAllocated = bytesToAllocate;
 
-			if (_dataBytesAllocated > 0) {
+			if (_dataBytesAllocated > 0)
+			{
 				GC.AddMemoryPressure(_dataBytesAllocated);
 			}
 		}
 
 		~UnmanagedMemoryAppendOnlyList() => Dispose(false);
 
-		public void Add(T item) {
+		public void Add(T item)
+		{
 			if (_count >= _maxCapacity)
+			{
 				throw new MaxCapacityReachedException();
+			}
 
 			unsafe
 			{
-				new Span<T>(_dataPtr.ToPointer(), _maxCapacity) {
+				new Span<T>(_dataPtr.ToPointer(), _maxCapacity)
+				{
 					[_count] = item
 				};
 			}
 			_count++;
 		}
 
-		public void Clear() {
+		public void Clear()
+		{
 			_count = 0;
 		}
 
 		public int Count => _count;
-		public ReadOnlySpan<T> AsSpan() {
+		public ReadOnlySpan<T> AsSpan()
+		{
 			if (_dataPtr == IntPtr.Zero)
+			{
 				return ReadOnlySpan<T>.Empty;
+			}
 
-			unsafe {
+			unsafe
+			{
 				return new ReadOnlySpan<T>(_dataPtr.ToPointer(), _maxCapacity).Slice(0, _count);
 			}
 		}
 
-		public T this[int index] {
-			get {
-				if (index < 0 || index >= _count) {
+		public T this[int index]
+		{
+			get
+			{
+				if (index < 0 || index >= _count)
+				{
 					throw new IndexOutOfRangeException();
 				}
 
@@ -77,24 +95,30 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
 
-		private void Dispose(bool disposing) {
-			if (_disposed) {
+		private void Dispose(bool disposing)
+		{
+			if (_disposed)
+			{
 				return;
 			}
 
-			if (disposing) {
+			if (disposing)
+			{
 				//dispose any managed objects here
 			}
 
-			if (_dataPtr != IntPtr.Zero) {
+			if (_dataPtr != IntPtr.Zero)
+			{
 				Marshal.FreeHGlobal(_dataPtr);
 				Thread.MemoryBarrier();
-				if (_dataBytesAllocated > 0) {
+				if (_dataBytesAllocated > 0)
+				{
 					GC.RemoveMemoryPressure(_dataBytesAllocated);
 				}
 			}
@@ -103,8 +127,10 @@ namespace EventStore.Core.DataStructures {
 		}
 	}
 
-	public class MaxCapacityReachedException : Exception {
-		public MaxCapacityReachedException() : base("Max capacity reached") {
+	public class MaxCapacityReachedException : Exception
+	{
+		public MaxCapacityReachedException() : base("Max capacity reached")
+		{
 		}
 	}
 }

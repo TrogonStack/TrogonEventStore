@@ -589,7 +589,10 @@ public class LegacyPolicyVerification
 		{
 			MessageReceived = false;
 			if (stream == null)
+			{
 				return;
+			}
+
 			_expectedStream = SystemStreams.IsMetastream(stream) ? SystemStreams.OriginalStreamOf(stream) : stream;
 			_acl = acl;
 		}

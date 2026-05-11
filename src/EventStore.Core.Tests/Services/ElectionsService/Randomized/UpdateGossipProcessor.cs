@@ -73,8 +73,10 @@ internal class UpdateGossipProcessor : IRandTestItemProcessor
 		if (updatedGossip != null)
 		{
 			if (updatedGossip.Length > _instances.Length)
+			{
 				throw new InvalidDataException(
 					"Gossip should not contain more items than there are servers in the cluster.");
+			}
 
 			_processedItems.Add(item);
 
@@ -90,7 +92,9 @@ internal class UpdateGossipProcessor : IRandTestItemProcessor
 
 			var leader = updateGossipMessage.ClusterInfo.Members.FirstOrDefault(x => x.IsAlive && x.State == VNodeState.Leader);
 			if (leader == null)
+			{
 				_enqueue(item, new ElectionMessage.StartElections());
+			}
 		}
 	}
 

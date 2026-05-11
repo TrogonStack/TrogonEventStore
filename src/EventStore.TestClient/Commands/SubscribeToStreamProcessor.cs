@@ -70,9 +70,13 @@ internal class SubscribeToStreamProcessor : ICmdProcessor
 			connectionClosed: (c, error) =>
 			{
 				if (error == SocketError.Success)
+				{
 					context.Success();
+				}
 				else
+				{
 					context.Fail();
+				}
 			});
 
 		if (args.Length == 0)

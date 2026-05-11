@@ -30,9 +30,13 @@ public class ServerFeaturesTest
 			foreach (var ep in streamEndPoints)
 			{
 				if (ep.MethodName.Contains("read"))
+				{
 					ep.Features.AddRange(new[] { "position", "events" });
+				}
 				else if (ep.MethodName.Contains("batchappend"))
+				{
 					ep.Features.Add("deadline_duration");
+				}
 			}
 
 			var psubEndPoints = GetEndPoints(Client.PersistentSubscriptions.PersistentSubscriptions.Descriptor);

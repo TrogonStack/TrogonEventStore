@@ -132,7 +132,10 @@ public class PersistentSubscriptionService<TStreamId> :
 		_state = message.State;
 
 		if (message.State == VNodeState.Leader)
+		{
 			return;
+		}
+
 		Log.Debug("Persistent subscriptions received state change to {state}. Stopping listening", _state);
 		ShutdownSubscriptions();
 		Stop();
@@ -182,7 +185,10 @@ public class PersistentSubscriptionService<TStreamId> :
 	private void ShutdownSubscriptions()
 	{
 		if (_subscriptionsById == null)
+		{
 			return;
+		}
+
 		foreach (var subscription in _subscriptionsById.Values)
 		{
 			subscription.Shutdown();
@@ -207,7 +213,10 @@ public class PersistentSubscriptionService<TStreamId> :
 	public void Handle(ClientMessage.UnsubscribeFromStream message)
 	{
 		if (!_started)
+		{
 			return;
+		}
+
 		UnsubscribeFromStream(message.CorrelationId, true);
 	}
 
@@ -800,7 +809,9 @@ public class PersistentSubscriptionService<TStreamId> :
 		var key = BuildSubscriptionGroupKey(stream, groupName);
 
 		if (_subscriptionsById.ContainsKey(key))
+		{
 			return false;
+		}
 
 		var subscription = new PersistentSubscription(
 			new PersistentSubscriptionParams(
@@ -998,9 +1009,13 @@ public class PersistentSubscriptionService<TStreamId> :
 		else
 		{
 			if (replaceBy != null) // update
+			{
 				_config.Entries[index] = replaceBy;
+			}
 			else // delete
+			{
 				_config.Entries.RemoveAt(index);
+			}
 		}
 	}
 
@@ -1020,7 +1035,9 @@ public class PersistentSubscriptionService<TStreamId> :
 		for (int i = 0; i < subscribers.Count; i++)
 		{
 			if (subscribers[i].SubscriptionId != key)
+			{
 				continue;
+			}
 
 			subscriptionIndex = i;
 			var sub = subscribers[i];
@@ -1040,8 +1057,10 @@ public class PersistentSubscriptionService<TStreamId> :
 		if (_subscriptionsById.ContainsKey(key))
 		{
 			if (subscriptionIndex == -1)
+			{
 				throw new ArgumentException(
 					$"Subscription: '{key}' exists but it's not present in the list of subscribers");
+			}
 
 			if (replaceBy != null)
 			{
@@ -1064,8 +1083,10 @@ public class PersistentSubscriptionService<TStreamId> :
 		else
 		{
 			if (subscriptionIndex != -1)
+			{
 				throw new ArgumentException(
 					$"Subscription: '{key}' does not exist but it's present in the list of subscribers");
+			}
 
 			// create
 			_subscriptionsById.Add(key, replaceBy);
@@ -1084,14 +1105,18 @@ public class PersistentSubscriptionService<TStreamId> :
 	public void Handle(TcpMessage.ConnectionClosed message)
 	{
 		if (_subscriptionsById == null)
+		{
 			return; //haven't built yet.
+		}
 
 		foreach (var subscription in _subscriptionsById.Values)
 		{
 			if (subscription.RemoveClientByConnectionId(message.Connection.ConnectionId))
+			{
 				Log.Debug("Persistent subscription {subscription} lost connection from {remoteEndPoint}",
 					subscription.SubscriptionId,
 					message.Connection.RemoteEndPoint);
+			}
 		}
 	}
 
@@ -1215,7 +1240,10 @@ public class PersistentSubscriptionService<TStreamId> :
 			var subscr = subscriptions[i];
 			var pair = ResolvedEvent.ForUnresolvedEvent(evnt, commitPosition);
 			if (subscr.ResolveLinkTos)
+			{
 				pair = await ResolveLinkToEvent(evnt, commitPosition, token);  //TODO this can be cached
+			}
+
 			subscr.NotifyLiveSubscriptionMessage(pair);
 		}
 	}
@@ -1232,7 +1260,9 @@ public class PersistentSubscriptionService<TStreamId> :
 				var streamId = _readIndex.GetStreamId(streamName);
 				var res = await _readIndex.ReadEvent(streamName, streamId, eventNumber, token);
 				if (res.Result is ReadEventResult.Success)
+				{
 					return ResolvedEvent.ForResolvedLink(res.Record, eventRecord, commitPosition);
+				}
 
 				return ResolvedEvent.ForFailedResolvedLink(eventRecord, res.Result, commitPosition);
 			}
@@ -1251,7 +1281,10 @@ public class PersistentSubscriptionService<TStreamId> :
 	public void Handle(ClientMessage.PersistentSubscriptionAckEvents message)
 	{
 		if (!_started)
+		{
 			return;
+		}
+
 		PersistentSubscription subscription;
 		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription))
 		{
@@ -1262,7 +1295,10 @@ public class PersistentSubscriptionService<TStreamId> :
 	public void Handle(ClientMessage.PersistentSubscriptionNackEvents message)
 	{
 		if (!_started)
+		{
 			return;
+		}
+
 		PersistentSubscription subscription;
 		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out subscription))
 		{
@@ -1614,7 +1650,10 @@ public class PersistentSubscriptionService<TStreamId> :
 	public void Handle(SubscriptionMessage.PersistentSubscriptionTimerTick message)
 	{
 		if (!_handleTick || _timerTickCorrelationId != message.CorrelationId)
+		{
 			return;
+		}
+
 		try
 		{
 			WakeSubscriptions();
@@ -1631,10 +1670,14 @@ public class PersistentSubscriptionService<TStreamId> :
 	public void Handle(SubscriptionMessage.PersistentSubscriptionPushToClients message)
 	{
 		if (!_started)
+		{
 			return;
+		}
 
 		if (_subscriptionsById.TryGetValue(message.SubscriptionId, out var subscription))
+		{
 			subscription.PushToClientsFromSchedule();
+		}
 	}
 
 	private void WakeSubscriptions()

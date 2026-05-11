@@ -5,16 +5,21 @@ using EventStore.Core.Messages;
 
 namespace EventStore.Core.Services.Storage.InMemory;
 
-public class InMemoryStreamReader : IInMemoryStreamReader {
+public class InMemoryStreamReader : IInMemoryStreamReader
+{
 	private readonly Dictionary<string, IInMemoryStreamReader> _readers;
 
-	public InMemoryStreamReader(Dictionary<string, IInMemoryStreamReader> readers) {
+	public InMemoryStreamReader(Dictionary<string, IInMemoryStreamReader> readers)
+	{
 		_readers = readers;
 	}
 
-	public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(ClientMessage.ReadStreamEventsForward msg) {
+	public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(ClientMessage.ReadStreamEventsForward msg)
+	{
 		if (_readers.TryGetValue(msg.EventStreamId, out var reader))
+		{
 			return reader.ReadForwards(msg);
+		}
 
 		return new ClientMessage.ReadStreamEventsForwardCompleted(
 			msg.CorrelationId,
@@ -32,9 +37,12 @@ public class InMemoryStreamReader : IInMemoryStreamReader {
 			tfLastCommitPosition: -1);
 	}
 
-	public ClientMessage.ReadStreamEventsBackwardCompleted ReadBackwards(ClientMessage.ReadStreamEventsBackward msg) {
+	public ClientMessage.ReadStreamEventsBackwardCompleted ReadBackwards(ClientMessage.ReadStreamEventsBackward msg)
+	{
 		if (_readers.TryGetValue(msg.EventStreamId, out var reader))
+		{
 			return reader.ReadBackwards(msg);
+		}
 
 		return new ClientMessage.ReadStreamEventsBackwardCompleted(
 			msg.CorrelationId,

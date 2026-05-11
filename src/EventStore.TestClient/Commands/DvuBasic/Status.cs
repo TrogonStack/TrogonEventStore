@@ -41,9 +41,13 @@ public class Status
 			wrongExpctdVersions.ToString(), streamsDeleted.ToString());
 
 		if (failsP > 50d)
+		{
 			_log.Fatal(table.CreateIndentedTable());
+		}
 		else
+		{
 			_log.Information(table.CreateIndentedTable());
+		}
 	}
 
 	public void ReportReadsProgress(int threadId, int successes, int fails)
@@ -54,9 +58,13 @@ public class Status
 		table.AppendRow(threadId.ToString(), fails.ToString(), all.ToString());
 
 		if (fails != 0)
+		{
 			_log.Fatal(table.CreateIndentedTable());
+		}
 		else
+		{
 			_log.Information(table.CreateIndentedTable());
+		}
 	}
 
 	public void ReportReadError(int threadId, string stream, int indx)

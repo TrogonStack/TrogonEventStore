@@ -1,7 +1,7 @@
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reflection;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using NUnit.Framework;
 

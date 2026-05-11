@@ -81,13 +81,19 @@ public class TcpTestClient
 			ThreadPool.QueueUserWorkItem(_ =>
 			{
 				if (!_interactiveMode)
+				{
 					_log.Information(
 						"TcpTypedConnection: connected to [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}].",
 						conn.RemoteEndPoint, conn.LocalEndPoint, conn.ConnectionId);
+				}
+
 				if (connectionEstablished != null)
 				{
 					if (!connectionCreatedEvent.Wait(10000))
+					{
 						throw new Exception("TcpTypedConnection: creation took too long!");
+					}
+
 					connectionEstablished(typedConnection);
 				}
 			});
@@ -99,10 +105,14 @@ public class TcpTestClient
 				conn.RemoteEndPoint, conn.LocalEndPoint, conn.ConnectionId, error);
 
 			if (connectionClosed != null)
+			{
 				connectionClosed(null, error);
+			}
 
 			if (failContextOnError)
+			{
 				context.Fail(reason: string.Format("Socket connection failed with error {0}.", error));
+			}
 		};
 
 		var endpoint = tcpEndPoint ?? TcpEndpoint;
@@ -146,9 +156,13 @@ public class TcpTestClient
 				}
 
 				if (connectionClosed != null)
+				{
 					connectionClosed(conn, error);
+				}
 				else
+				{
 					_log.Information("connectionClosed callback was null");
+				}
 			};
 		connectionCreatedEvent.Set();
 
@@ -180,7 +194,9 @@ public class TcpTestClient
 					conn.Close(ex.Message);
 
 					if (failContextOnError)
+					{
 						context.Fail(ex);
+					}
 				}
 			});
 

@@ -11,7 +11,9 @@ public class AdvancingCheckpoint(Func<CancellationToken, ValueTask<long>> readCh
 	public async ValueTask<bool> IsGreaterThanOrEqualTo(long position, CancellationToken ct)
 	{
 		if (_cachedValue >= position)
+		{
 			return true;
+		}
 
 		_cachedValue = await readCheckpoint(ct);
 

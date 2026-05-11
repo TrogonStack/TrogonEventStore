@@ -52,22 +52,42 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		int maxProjectionStateSize)
 	{
 		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
+		}
+
 		if (projectionConfig == null)
+		{
 			throw new ArgumentNullException("projectionConfig");
+		}
+
 		if (name == null)
+		{
 			throw new ArgumentNullException("name");
+		}
+
 		if (positionTagger == null)
+		{
 			throw new ArgumentNullException("positionTagger");
+		}
+
 		if (namingBuilder == null)
+		{
 			throw new ArgumentNullException("namingBuilder");
+		}
+
 		if (name == "")
+		{
 			throw new ArgumentException("name");
+		}
+
 		if (maxProjectionStateSize <= 0)
+		{
 			throw new ArgumentOutOfRangeException(
 				nameof(maxProjectionStateSize),
 				maxProjectionStateSize,
 				"Max projection state size must be positive.");
+		}
 
 		_lastProcessedEventPosition = new PositionTracker(positionTagger);
 		_zeroTag = positionTagger.MakeZeroCheckpointTag();
@@ -104,9 +124,15 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	public virtual void Initialize()
 	{
 		if (_currentCheckpoint != null)
+		{
 			_currentCheckpoint.Dispose();
+		}
+
 		if (_closingCheckpoint != null)
+		{
 			_closingCheckpoint.Dispose();
+		}
+
 		_currentCheckpoint = null;
 		_closingCheckpoint = null;
 		_requestedCheckpointPosition = null;
@@ -127,11 +153,16 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	{
 		Contract.Requires(_currentCheckpoint == null);
 		if (_started)
+		{
 			throw new InvalidOperationException("Already started");
+		}
+
 		_started = true;
 
 		if (rootPartitionState != null)
+		{
 			_currentProjectionState = rootPartitionState;
+		}
 
 		_lastProcessedEventPosition.UpdateByCheckpointTagInitial(checkpointTag);
 		_lastProcessedEventProgress = -1;
@@ -145,7 +176,10 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	{
 		EnsureStarted();
 		if (_stopping)
+		{
 			throw new InvalidOperationException("Already stopping");
+		}
+
 		_stopping = true;
 		RequestCheckpointToStop();
 	}
@@ -157,11 +191,17 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		_stopped = true;
 
 		if (_currentCheckpoint != null)
+		{
 			_currentCheckpoint.Dispose();
+		}
+
 		_currentCheckpoint = null;
 
 		if (_closingCheckpoint != null)
+		{
 			_closingCheckpoint.Dispose();
+		}
+
 		_closingCheckpoint = null;
 	}
 
@@ -191,22 +231,35 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		string partition, PartitionState oldState, PartitionState newState)
 	{
 		if (_stopped)
+		{
 			return;
+		}
+
 		EnsureStarted();
 		if (_stopping)
+		{
 			throw new InvalidOperationException("Stopping");
+		}
 
 		if (partition == "" && newState.State == null) // ignore non-root partitions and non-changed states
+		{
 			throw new NotSupportedException("Internal check");
+		}
 
 		if (!CheckStateSize(newState, partition))
+		{
 			return;
+		}
 
 		if (_usePersistentCheckpoints && partition != "")
+		{
 			CapturePartitionStateUpdated(partition, oldState, newState);
+		}
 
 		if (partition == "")
+		{
 			_currentProjectionState = newState;
+		}
 	}
 
 	private bool CheckStateSize(PartitionState result, string partition)
@@ -226,10 +279,16 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	public void EventProcessed(CheckpointTag checkpointTag, float progress)
 	{
 		if (_stopped)
+		{
 			return;
+		}
+
 		EnsureStarted();
 		if (_stopping)
+		{
 			throw new InvalidOperationException("Stopping");
+		}
+
 		_eventsProcessedAfterRestart++;
 		_lastProcessedEventPosition.UpdateByCheckpointTagForward(checkpointTag);
 		_lastProcessedEventProgress = progress;
@@ -239,10 +298,16 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	public void EventsEmitted(EmittedEventEnvelope[] scheduledWrites, Guid causedBy, string correlationId)
 	{
 		if (_stopped)
+		{
 			return;
+		}
+
 		EnsureStarted();
 		if (_stopping)
+		{
 			throw new InvalidOperationException("Stopping");
+		}
+
 		if (scheduledWrites != null)
 		{
 			foreach (var @event in scheduledWrites)
@@ -265,12 +330,21 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	public bool CheckpointSuggested(CheckpointTag checkpointTag, float progress)
 	{
 		if (!_usePersistentCheckpoints)
+		{
 			throw new InvalidOperationException("Checkpoints are not used");
+		}
+
 		if (_stopped || _stopping)
+		{
 			return true;
+		}
+
 		EnsureStarted();
 		if (checkpointTag != _lastProcessedEventPosition.LastTag) // allow checkpoint at the current position
+		{
 			_lastProcessedEventPosition.UpdateByCheckpointTagForward(checkpointTag);
+		}
+
 		_lastProcessedEventProgress = progress;
 		return RequestCheckpoint(_lastProcessedEventPosition);
 	}
@@ -278,7 +352,10 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	public void Progress(float progress)
 	{
 		if (_stopping || _stopped)
+		{
 			return;
+		}
+
 		_lastProcessedEventProgress = progress < -1 ? -1 : progress;
 	}
 
@@ -292,29 +369,47 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	{
 		// ignore any messages - typically when faulted
 		if (_stopped)
+		{
 			return;
+		}
 		// ignore any messages from previous checkpoints probably before RestartRequested
 		if (message.Sender != _closingCheckpoint)
+		{
 			return;
+		}
+
 		if (!_inCheckpoint)
+		{
 			throw new InvalidOperationException();
+		}
+
 		if (_usePersistentCheckpoints)
+		{
 			BeginWriteCheckpoint(_requestedCheckpointPosition, _requestedCheckpointState.Serialize());
+		}
 		else
+		{
 			CheckpointWritten(_requestedCheckpointPosition);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.RestartRequested message)
 	{
 		if (_stopped)
+		{
 			return;
+		}
+
 		RequestRestart(message.Reason);
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.Failed message)
 	{
 		if (_stopped)
+		{
 			return;
+		}
+
 		Failed(message.Reason);
 	}
 
@@ -328,9 +423,14 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	{
 		EnsureStarted();
 		if (!_stopping)
+		{
 			throw new InvalidOperationException("Not stopping");
+		}
+
 		if (_inCheckpoint) // checkpoint in progress.  no other writes will happen, so we can stop here.
+		{
 			return;
+		}
 		// do not request checkpoint if no events were processed since last checkpoint
 		//NOTE: we ignore _usePersistentCheckpoints flag as we need to flush final writes before query object
 		// has been disposed
@@ -349,7 +449,9 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	protected void EnsureStarted()
 	{
 		if (!_started)
+		{
 			throw new InvalidOperationException("Not started");
+		}
 	}
 
 	/// <returns>true - if checkpoint has beem completed in-sync</returns>
@@ -357,9 +459,15 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		bool forcePrepareCheckpoint = false)
 	{
 		if (!forcePrepareCheckpoint && !_usePersistentCheckpoints)
+		{
 			throw new InvalidOperationException("Checkpoints are not allowed");
+		}
+
 		if (_inCheckpoint)
+		{
 			throw new InvalidOperationException("Checkpoint in progress");
+		}
+
 		return StartCheckpoint(lastProcessedEventPosition, _currentProjectionState);
 	}
 
@@ -368,14 +476,20 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	{
 		Contract.Requires(_closingCheckpoint == null);
 		if (projectionState == null)
+		{
 			throw new ArgumentNullException("projectionState");
+		}
 
 		CheckpointTag requestedCheckpointPosition = lastProcessedEventPosition.LastTag;
 		if (requestedCheckpointPosition == _lastCompletedCheckpointPosition)
+		{
 			return true; // either suggested or requested to stop
+		}
 
 		if (_usePersistentCheckpoints) // do not emit any events if we do not use persistent checkpoints
+		{
 			EmitPartitionCheckpoints();
+		}
 
 		_inCheckpoint = true;
 		_requestedCheckpointPosition = requestedCheckpointPosition;
@@ -419,8 +533,11 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		_closingCheckpoint.Dispose();
 		_closingCheckpoint = null;
 		if (!_stopping)
+		{
 			// ignore any writes pending in the current checkpoint (this is not the best, but they will never hit the storage, so it is safe)
 			_currentCheckpoint.Start();
+		}
+
 		_inCheckpoint = false;
 
 		//NOTE: the next checkpoint will start by completing checkpoint work item

@@ -163,9 +163,14 @@ public class ResolvedEvent
 	{
 		DateTime timestamp = default(DateTime);
 		if (Guid.Empty == eventId)
+		{
 			throw new ArgumentException("Empty eventId provided.");
+		}
+
 		if (string.IsNullOrEmpty(eventType))
+		{
 			throw new ArgumentException("Empty eventType provided.");
+		}
 
 		_positionStreamId = positionStreamId;
 		_positionSequenceNumber = positionSequenceNumber;

@@ -17,7 +17,10 @@ public class WeightAccumulatorTests
 		public void IncreaseChunkWeight(int logicalChunkNumber, float extraWeight)
 		{
 			if (!_weights.TryGetValue(logicalChunkNumber, out var w))
+			{
 				w = 0;
+			}
+
 			_weights[logicalChunkNumber] = w + extraWeight;
 		}
 

@@ -30,7 +30,10 @@ public static class VersionInfo
 		// but not the suffix (beta, rc1, rtm, etc) so that the same assembly can be promoted.
 		var versionPrefix = Assembly.GetEntryAssembly().GetName().Version.ToString();
 		if (versionPrefix.EndsWith(".0"))
+		{
 			versionPrefix = versionPrefix[..^2];
+		}
+
 		VersionPrefix = versionPrefix;
 
 		var versionFilePath = Path.Join(
@@ -39,21 +42,31 @@ public static class VersionInfo
 		var properties = LoadProperties(versionFilePath);
 
 		if (properties.TryGetValue("version_suffix", out var versionSuffix))
+		{
 			VersionSuffix = versionSuffix;
+		}
 
 		BuildId = $"v{Version}";
 
 		if (properties.TryGetValue("commit_sha", out var commitSha))
+		{
 			CommitSha = commitSha;
+		}
 
 		if (properties.TryGetValue("timestamp", out var timestamp))
+		{
 			Timestamp = timestamp;
+		}
 
 		if (properties.TryGetValue("build_id", out var buildId) && !string.IsNullOrWhiteSpace(buildId))
+		{
 			BuildId = buildId;
+		}
 
 		if (properties.TryGetValue("edition", out var edition))
+		{
 			Edition = edition;
+		}
 	}
 
 	private static Dictionary<string, string> LoadProperties(string file)
@@ -66,7 +79,9 @@ public static class VersionInfo
 		{
 			var parts = line.Split('=', 2);
 			if (parts.Length == 2)
+			{
 				properties[parts[0]] = parts[1];
+			}
 		}
 
 		return properties;

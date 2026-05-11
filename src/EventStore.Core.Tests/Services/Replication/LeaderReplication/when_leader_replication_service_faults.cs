@@ -23,7 +23,8 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 		var publisher = new SynchronousScheduler("publisher");
 		var shutdowns = new ConcurrentQueue<SystemMessage.ServiceShutdown>();
 		var initializations = new ConcurrentQueue<SystemMessage.ServiceInitialized>();
-		var writerCheckpoint = new FaultingCheckpoint(Checkpoint.Writer) {
+		var writerCheckpoint = new FaultingCheckpoint(Checkpoint.Writer)
+		{
 			ThrowOnFlushedSubscription = true
 		};
 		var dbConfig = CreateDbConfig(writerCheckpoint);
@@ -32,12 +33,16 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 		publisher.Subscribe(new AdHocHandler<SystemMessage.ServiceInitialized>(message =>
 		{
 			if (message.ServiceName == "Leader Replication Service")
+			{
 				initializations.Enqueue(message);
+			}
 		}));
 		publisher.Subscribe(new AdHocHandler<SystemMessage.ServiceShutdown>(message =>
 		{
 			if (message.ServiceName == "Leader Replication Service")
+			{
 				shutdowns.Enqueue(message);
+			}
 		}));
 
 		var db = new TFChunkDb(dbConfig);
@@ -118,7 +123,9 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 		public void Flush()
 		{
 			if (_last == _lastFlushed)
+			{
 				return;
+			}
 
 			_lastFlushed = _last;
 			_flushed?.Invoke(_lastFlushed);
@@ -129,7 +136,9 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			add
 			{
 				if (ThrowOnFlushedSubscription)
+				{
 					throw new InvalidOperationException("writer checkpoint subscription failed");
+				}
 
 				_flushed += value;
 			}
@@ -142,7 +151,9 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 		public void Close(bool flush)
 		{
 			if (flush)
+			{
 				Flush();
+			}
 		}
 	}
 }

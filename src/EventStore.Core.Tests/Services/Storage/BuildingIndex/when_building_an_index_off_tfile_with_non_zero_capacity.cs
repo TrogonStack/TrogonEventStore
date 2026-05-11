@@ -4,6 +4,7 @@ using EventStore.Core.Services;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
+
 public class WhenBuildingAnIndexOffTfileWithNonZeroCapacity<TLogFormat, TStreamId>()
 	: ReadIndexTestScenario<TLogFormat, TStreamId>(streamInfoCacheCapacity: 20)
 {

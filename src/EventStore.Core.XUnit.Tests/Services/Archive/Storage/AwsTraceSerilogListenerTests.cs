@@ -65,7 +65,8 @@ public class AwsTraceSerilogListenerTests
 			.WriteTo.Sink(sink)
 			.CreateLogger();
 		var sut = new AwsTraceSerilogListener(logger);
-		var exception = new AmazonS3Exception("expected") {
+		var exception = new AmazonS3Exception("expected")
+		{
 			ErrorCode = errorCode,
 		};
 

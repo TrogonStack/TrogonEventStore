@@ -57,7 +57,9 @@ public class TFChunkWriter : ITransactionFileWriter
 		{
 			// we may have been at a chunk boundary and the new chunk wasn't yet created
 			if (!_db.Manager.TryGetChunkFor(_nextRecordPosition - 1, out _currentChunk))
+			{
 				throw new Exception($"Failed to get chunk for log position: {_nextRecordPosition}");
+			}
 		}
 	}
 
@@ -88,8 +90,10 @@ public class TFChunkWriter : ITransactionFileWriter
 	public void OpenTransaction()
 	{
 		if (_inTransaction)
+		{
 			throw new InvalidOperationException(
 				"Attempted to open a new transaction while there was an ongoing transaction.");
+		}
 
 		_inTransaction = true;
 	}
@@ -102,8 +106,10 @@ public class TFChunkWriter : ITransactionFileWriter
 	public void CommitTransaction()
 	{
 		if (!_inTransaction)
+		{
 			throw new InvalidOperationException(
 				"Attempted to commit a transaction while there was no ongoing transaction.");
+		}
 
 		_inTransaction = false;
 		_writerCheckpoint.Write(_nextRecordPosition);
@@ -167,13 +173,13 @@ public class TFChunkWriter : ITransactionFileWriter
 			case < MaxChunkNumberWarning:
 				break;
 			default:
-			{
-				var level = chunkNumber >= MaxChunkNumberError ? LogEventLevel.Error : LogEventLevel.Warning;
-				Log.Write(level,
-					"You are approaching the max chunk number limit: {chunkNumber:N0} / {maxChunkNumber:N0}. " +
-					"The server will shut down when the limit is reached!", chunkNumber, MaxChunkNumber);
-				break;
-			}
+				{
+					var level = chunkNumber >= MaxChunkNumberError ? LogEventLevel.Error : LogEventLevel.Warning;
+					Log.Write(level,
+						"You are approaching the max chunk number limit: {chunkNumber:N0} / {maxChunkNumber:N0}. " +
+						"The server will shut down when the limit is reached!", chunkNumber, MaxChunkNumber);
+					break;
+				}
 		}
 	}
 
@@ -184,7 +190,9 @@ public class TFChunkWriter : ITransactionFileWriter
 		Debug.Assert(HasOpenTransaction() is false);
 
 		if (_currentChunk is null) // the last chunk allocation failed
+		{
 			return;
+		}
 
 		await _currentChunk.Flush(token);
 		_writerCheckpoint.Flush();

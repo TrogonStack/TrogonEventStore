@@ -110,7 +110,9 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 			var subscription = await store.FilteredSubscribeToAllAsync(false, filter, (s, e) =>
 			{
 				if (e.OriginalStreamId == SystemStreams.EventTypesStream)
+				{
 					return Task.CompletedTask;
+				}
 
 				foundEvents.Add(e);
 				if (foundEvents.Count == 5)
@@ -286,7 +288,9 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		void TryComplete(TaskCompletionSource<bool> appeared, List<ResolvedEvent> eventsSeen, int checkpointsSeen)
 		{
 			if (checkpointsSeen >= expectedCheckpoints && eventsSeen.Count >= expectedEvents)
+			{
 				appeared.TrySetResult(true);
+			}
 		}
 
 		try

@@ -37,7 +37,9 @@ public partial class PTable
 	{
 
 		if (!useBloomFilter)
+		{
 			return null;
+		}
 
 		try
 		{
@@ -147,9 +149,14 @@ public partial class PTable
 					if (midpoints.Count > 0)
 					{
 						if (midpoints[0].ItemIndex != 0)
+						{
 							throw new Exception("First midpoint was not the first index entry");
+						}
+
 						if (midpoints[^1].ItemIndex != numIndexEntries - 1)
+						{
 							throw new Exception("Last midpoint was not the last index entry");
+						}
 					}
 
 					WriteMidpointsTo(bs, fs, table.Version, indexEntrySize, buffer, dumpedEntryCount,
@@ -193,13 +200,17 @@ public partial class PTable
 
 		long numIndexEntries = 0;
 		for (var i = 0; i < tables.Count; i++)
+		{
 			numIndexEntries += tables[i].Count;
+		}
 
 		var fileSizeUpToIndexEntries = GetFileSizeUpToIndexEntries(numIndexEntries, version);
 		if (tables.Count == 2)
+		{
 			return MergeTo2(tables, numIndexEntries, indexEntrySize, outputFile,
 				version, initialReaders, maxReaders, cacheDepth, skipIndexVerify, useBloomFilter,
 				lruCacheSize); // special case
+		}
 
 		Log.Debug("PTables merge started.");
 		var watch = Stopwatch.StartNew();
@@ -291,9 +302,14 @@ public partial class PTable
 						if (midpoints.Count > 0)
 						{
 							if (midpoints[0].ItemIndex != 0)
+							{
 								throw new Exception("First midpoint was not the first index entry");
+							}
+
 							if (midpoints[^1].ItemIndex != numIndexEntries - 1)
+							{
 								throw new Exception("Last midpoint was not the last index entry");
+							}
 						}
 
 						WriteMidpointsTo(bs, f, version, indexEntrySize, buffer, dumpedEntryCount, numIndexEntries,
@@ -452,9 +468,14 @@ public partial class PTable
 						if (midpoints.Count > 0)
 						{
 							if (midpoints[0].ItemIndex != 0)
+							{
 								throw new Exception("First midpoint was not the first index entry");
+							}
+
 							if (midpoints[^1].ItemIndex != numIndexEntries - 1)
+							{
 								throw new Exception("Last midpoint was not the last index entry");
+							}
 						}
 
 						WriteMidpointsTo(bs, f, version, indexEntrySize, buffer, dumpedEntryCount, numIndexEntries,
@@ -702,9 +723,13 @@ public partial class PTable
 	{
 		int indexKeySize;
 		if (version == PTableVersions.IndexV4)
+		{
 			indexKeySize = IndexKeyV4Size;
+		}
 		else
+		{
 			throw new InvalidOperationException("Unknown PTable version: " + version);
+		}
 
 		midpoints.Clear();
 		bs.Flush();
@@ -767,9 +792,11 @@ public partial class PTable
 			Log.Debug("Cached {midpointsWritten} index midpoints to PTable", midpointsWritten);
 		}
 		else
+		{
 			Log.Debug(
 				"Not caching index midpoints to PTable due to count mismatch. Table entries: {numIndexEntries} / Dumped entries: {dumpedEntryCount}, Required midpoint count: {requiredMidpointCount} /  Actual midpoint count: {midpoints}",
 				numIndexEntries, dumpedEntryCount, requiredMidpointCount, midpoints.Count);
+		}
 
 		bs.Flush();
 		fs.SetLength(fs.Position + PTableFooter.GetSize(version));
@@ -812,7 +839,9 @@ public partial class PTable
 	static IEnumerator<IndexEntry> Get64bitEnumerator(ISearchTable table)
 	{
 		if (table.Version == PTableVersions.IndexV1)
+		{
 			throw new InvalidOperationException("Attempted to merge or scavenge a V1 PTable");
+		}
 
 		return table.IterateAllInOrder().GetEnumerator();
 	}
@@ -833,7 +862,10 @@ public partial class PTable
 	{
 		minDepth = Math.Max(0, Math.Min(minDepth, 28));
 		if ((2L << 28) * 4096L < indexEntriesFileSize)
+		{
 			return 28;
+		}
+
 		for (int i = 27; i >= minDepth; i--)
 		{
 			if ((2L << i) * 4096L < indexEntriesFileSize)
@@ -848,9 +880,14 @@ public partial class PTable
 	private static int GetRequiredMidpointCount(long numIndexEntries, byte version, int minDepth)
 	{
 		if (numIndexEntries == 0)
+		{
 			return 0;
+		}
+
 		if (numIndexEntries == 1)
+		{
 			return 2;
+		}
 
 		int indexEntrySize = GetIndexEntrySize(version);
 		var depth = GetDepth(numIndexEntries * indexEntrySize, minDepth);
@@ -861,7 +898,10 @@ public partial class PTable
 	public static int GetRequiredMidpointCountCached(long numIndexEntries, byte version, int minDepth = 16)
 	{
 		if (version >= PTableVersions.IndexV4)
+		{
 			return GetRequiredMidpointCount(numIndexEntries, version, minDepth);
+		}
+
 		return 0;
 	}
 
@@ -872,10 +912,14 @@ public partial class PTable
 		ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(k, numMidpoints);
 
 		if (k == 0)
+		{
 			return 0;
+		}
 
 		if (k == numMidpoints - 1)
+		{
 			return numIndexEntries - 1;
+		}
 
 		// k * (numIndexEntries - 1) / (numMidpoints - 1), avoiding 64-bit integer overflows
 		var (q, r) = long.DivRem(numIndexEntries - 1, numMidpoints - 1);

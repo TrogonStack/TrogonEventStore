@@ -120,14 +120,19 @@ public class SubscriptionsService<TStreamId> :
 			for (int i = 0, n = subscriptions.Count; i < n; ++i)
 			{
 				if (subscriptions[i].ConnectionId == message.Connection.ConnectionId)
+				{
 					_subscriptionsById.Remove(subscriptions[i].CorrelationId);
+				}
 			}
 
 			subscriptions.RemoveAll(x => x.ConnectionId == message.Connection.ConnectionId);
 			if (subscriptions.Count == 0) // schedule removal of list instance
 			{
 				if (subscriptionGroupsToRemove == null)
+				{
 					subscriptionGroupsToRemove = new List<string>();
+				}
+
 				subscriptionGroupsToRemove.Add(subscriptionGroup.Key);
 			}
 		}
@@ -258,22 +263,28 @@ public class SubscriptionsService<TStreamId> :
 	{
 		Subscription subscription;
 		if (_subscriptionsById.TryGetValue(subscriptionId, out subscription))
+		{
 			DropSubscription(subscription, dropReason, sendDropNotification: true);
+		}
 	}
 
 	private void DropSubscription(Subscription subscription, SubscriptionDropReason dropReason,
 		bool sendDropNotification)
 	{
 		if (sendDropNotification)
+		{
 			subscription.Envelope.ReplyWith(
 				new ClientMessage.SubscriptionDropped(subscription.CorrelationId, dropReason));
+		}
 
 		List<Subscription> subscriptions;
 		if (_subscriptionTopics.TryGetValue(subscription.EventStreamId, out subscriptions))
 		{
 			subscriptions.Remove(subscription);
 			if (subscriptions.Count == 0)
+			{
 				_subscriptionTopics.Remove(subscription.EventStreamId);
+			}
 		}
 
 		_subscriptionsById.Remove(subscription.CorrelationId);
@@ -330,7 +341,10 @@ public class SubscriptionsService<TStreamId> :
 					if (pollTopic.Count == 0) // schedule removal of list instance
 					{
 						if (pollTopicsToRemove == null)
+						{
 							pollTopicsToRemove = new List<string>();
+						}
+
 						pollTopicsToRemove.Add(pollTopicKeyVal.Key);
 					}
 				}
@@ -351,18 +365,22 @@ public class SubscriptionsService<TStreamId> :
 	private Message CloneReadRequestWithNoPollFlag(Message originalRequest)
 	{
 		if (originalRequest is ClientMessage.ReadStreamEventsForward streamReq)
+		{
 			return new ClientMessage.ReadStreamEventsForward(
 				streamReq.InternalCorrId, streamReq.CorrelationId, streamReq.Envelope,
 				streamReq.EventStreamId, streamReq.FromEventNumber, streamReq.MaxCount, streamReq.ResolveLinkTos,
 				streamReq.RequireLeader, streamReq.ValidationStreamVersion, streamReq.User,
 				replyOnExpired: streamReq.ReplyOnExpired);
+		}
 
 		if (originalRequest is ClientMessage.ReadAllEventsForward allReq)
+		{
 			return new ClientMessage.ReadAllEventsForward(
 				allReq.InternalCorrId, allReq.CorrelationId, allReq.Envelope,
 				allReq.CommitPosition, allReq.PreparePosition, allReq.MaxCount, allReq.ResolveLinkTos,
 				allReq.RequireLeader, allReq.ValidationTfLastCommitPosition, allReq.User,
 				replyOnExpired: allReq.ReplyOnExpired);
+		}
 
 		throw new Exception(string.Format("Unexpected read request of type {0} for long polling: {1}.",
 			originalRequest.GetType(), originalRequest));
@@ -401,17 +419,24 @@ public class SubscriptionsService<TStreamId> :
 	{
 		List<Subscription> subscriptions;
 		if (!_subscriptionTopics.TryGetValue(eventStreamId, out subscriptions))
+		{
 			return resolvedEvent;
+		}
+
 		for (int i = 0, n = subscriptions.Count; i < n; i++)
 		{
 			var subscr = subscriptions[i];
 			if (commitPosition <= subscr.LastIndexedPosition || evnt.EventNumber <= subscr.LastEventNumber)
+			{
 				continue;
+			}
 
 			var pair = ResolvedEvent.ForUnresolvedEvent(evnt, commitPosition);
 			if (subscr.ResolveLinkTos)
+			{
 				// resolve event if has not been previously resolved
 				resolvedEvent = pair = resolvedEvent ?? await ResolveLinkToEvent(evnt, commitPosition, token);
+			}
 
 			if (subscr.EventFilter.IsEventAllowed(evnt))
 			{
@@ -419,12 +444,14 @@ public class SubscriptionsService<TStreamId> :
 			}
 
 			if (subscr.CheckpointInterval == DontReportCheckpointReached)
+			{
 				continue;
+			}
 
 			subscr.CheckpointIntervalCurrent++;
 
 			if (subscr.CheckpointInterval != null &&
-			    subscr.CheckpointIntervalCurrent >= subscr.CheckpointInterval)
+				subscr.CheckpointIntervalCurrent >= subscr.CheckpointInterval)
 			{
 				subscr.Envelope.ReplyWith(new ClientMessage.CheckpointReached(subscr.CorrelationId,
 					pair.OriginalPosition));
@@ -438,29 +465,41 @@ public class SubscriptionsService<TStreamId> :
 	private void ProcessStreamMetadataChanges(string eventStreamId)
 	{
 		if (!SystemStreams.IsMetastream(eventStreamId))
+		{
 			return;
+		}
 
 		eventStreamId = SystemStreams.OriginalStreamOf(eventStreamId);
 
 		if (eventStreamId == SystemStreams.AllStream)
+		{
 			eventStreamId = string.Empty;
+		}
 
 		if (!_subscriptionTopics.TryGetValue(eventStreamId, out var subscriptions))
+		{
 			return;
+		}
 
 		foreach (var subscription in subscriptions.ToArray())
+		{
 			Authorize(subscription);
+		}
 	}
 
 	private void ProcessSettingsStreamChanges(string eventStreamId)
 	{
 		if (eventStreamId != SystemStreams.SettingsStream)
+		{
 			return;
+		}
 
 		foreach (var subscriptions in _subscriptionTopics.Values)
 		{
 			foreach (var subscription in subscriptions.ToArray())
+			{
 				Authorize(subscription);
+			}
 		}
 	}
 
@@ -474,14 +513,20 @@ public class SubscriptionsService<TStreamId> :
 			var accessChk = _authorizationProvider.CheckAccessAsync(subscription.User, op, CancellationToken.None);
 
 			if (accessChk.IsCompleted)
+			{
 				AuthorizeSync();
+			}
 			else
+			{
 				_ = AuthorizeAsync();
+			}
 
 			void AuthorizeSync()
 			{
 				if (accessChk.Result)
+				{
 					return;
+				}
 
 				LogSubscriptionDrop();
 				DropSubscription(subscription, SubscriptionDropReason.AccessDenied, sendDropNotification: true);
@@ -491,7 +536,9 @@ public class SubscriptionsService<TStreamId> :
 			{
 				// note: when authorizing asynchronously, a few live events may go through before the "Access Denied" message is sent to the subscription
 				if (await accessChk)
+				{
 					return;
+				}
 
 				LogSubscriptionDrop();
 				// we go through the queue to avoid the need for any lock
@@ -533,7 +580,9 @@ public class SubscriptionsService<TStreamId> :
 				var res = await _readIndex.ReadEvent(streamName, streamId, eventNumber, token);
 
 				if (res.Result is ReadEventResult.Success)
+				{
 					return ResolvedEvent.ForResolvedLink(res.Record, eventRecord, commitPosition);
+				}
 
 				return ResolvedEvent.ForFailedResolvedLink(eventRecord, res.Result, commitPosition);
 			}
@@ -561,7 +610,10 @@ public class SubscriptionsService<TStreamId> :
 				if (commitPosition <= poller.LastIndexedPosition || eventNumber <= poller.LastEventNumber)
 				{
 					if (survivors == null)
+					{
 						survivors = new List<PollSubscription>();
+					}
+
 					survivors.Add(poller);
 				}
 				else
@@ -572,7 +624,9 @@ public class SubscriptionsService<TStreamId> :
 
 			_pollTopics.Remove(streamId);
 			if (survivors != null)
+			{
 				_pollTopics.Add(streamId, survivors);
+			}
 		}
 	}
 

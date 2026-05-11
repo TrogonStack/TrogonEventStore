@@ -45,10 +45,14 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 	public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token)
 	{
 		if (_asynchronous)
+		{
 			return RandomAccess.WriteAsync(_handle, data, offset, token);
+		}
 
 		if (token.IsCancellationRequested)
+		{
 			return ValueTask.FromCanceled(token);
+		}
 
 		try
 		{
@@ -69,10 +73,14 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 	public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
 	{
 		if (_asynchronous)
+		{
 			return RandomAccess.ReadAsync(_handle, buffer, offset, token);
+		}
 
 		if (token.IsCancellationRequested)
+		{
 			return ValueTask.FromCanceled<int>(token);
+		}
 
 		try
 		{
@@ -167,7 +175,9 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		protected override void Write(ReadOnlySpan<byte> buffer, long offset)
 		{
 			if (buffer.IsEmpty)
+			{
 				return;
+			}
 
 			handle.Write(buffer, offset);
 		}
@@ -184,7 +194,9 @@ internal sealed class ChunkFileHandle : Disposable, IChunkHandle
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing && !leaveOpen)
+			{
 				handle.Dispose();
+			}
 
 			base.Dispose(disposing);
 		}

@@ -76,7 +76,9 @@ public static class SMHasher
 		for (int irep = 0; irep < reps; irep++)
 		{
 			if (irep % (reps / 10) == 0)
+			{
 				Console.Write(".");
+			}
 
 			for (int len = 4; len <= keymax; len++)
 			{
@@ -102,7 +104,9 @@ public static class SMHasher
 						var hash2 = hasher.Hash(buffer2, pad + offset, (uint)len, 0);
 
 						if (hash1 == hash2)
+						{
 							result = false;
+						}
 
 						// Flip it back, hash again -> we should get the original result.
 						//flipbit(key2,len,bit);
@@ -111,7 +115,9 @@ public static class SMHasher
 						hash2 = hasher.Hash(buffer2, pad + offset, (uint)len, 0);
 
 						if (hash1 != hash2)
+						{
 							result = false;
+						}
 					}
 				}
 			}
@@ -126,6 +132,8 @@ public static class SMHasher
 		bit = bit & 0x7;
 
 		if (byteNum < len)
+		{
 			array[offset + byteNum] ^= (byte)(1 << bit);
+		}
 	}
 }

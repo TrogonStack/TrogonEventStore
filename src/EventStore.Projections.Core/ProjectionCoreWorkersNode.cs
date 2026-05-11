@@ -134,14 +134,24 @@ public class CoreWorker
 		{
 			var exceptions = new List<Exception>();
 			if (inputStop.IsFaulted)
+			{
 				exceptions.AddRange(inputStop.Exception!.Flatten().InnerExceptions);
+			}
+
 			if (outputStop.IsFaulted)
+			{
 				exceptions.AddRange(outputStop.Exception!.Flatten().InnerExceptions);
+			}
 
 			if (exceptions.Count == 0)
+			{
 				throw;
+			}
+
 			if (exceptions.Count == 1)
+			{
 				ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
+			}
 
 			throw new AggregateException(exceptions);
 		}

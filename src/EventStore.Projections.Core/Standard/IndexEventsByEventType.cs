@@ -19,7 +19,10 @@ public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckp
 	public IndexEventsByEventType(string source, Action<string, object[]> logger)
 	{
 		if (!string.IsNullOrWhiteSpace(source))
+		{
 			throw new InvalidOperationException("Empty source expected");
+		}
+
 		if (logger != null)
 		{
 			//                logger("Index events by event type projection handler has been initialized");
@@ -66,16 +69,23 @@ public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckp
 		emittedEvents = null;
 		newState = null;
 		if (data.EventStreamId != data.PositionStreamId)
+		{
 			return false;
+		}
+
 		var indexedEventType = data.EventType;
 		if (indexedEventType == "$>")
+		{
 			return false;
+		}
 
 		string positionStreamId;
 		var isStreamDeletedEvent = StreamDeletedHelper.IsStreamDeletedEvent(
 			data.PositionStreamId, data.EventType, data.Data, out positionStreamId);
 		if (isStreamDeletedEvent)
+		{
 			indexedEventType = "$deleted";
+		}
 
 		emittedEvents = new[] {
 			new EmittedEventEnvelope(

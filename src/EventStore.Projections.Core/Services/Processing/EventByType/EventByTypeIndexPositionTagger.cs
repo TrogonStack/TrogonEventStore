@@ -18,12 +18,21 @@ public class EventByTypeIndexPositionTagger : PositionTagger
 		: base(phase)
 	{
 		if (eventTypes == null)
+		{
 			throw new ArgumentNullException("eventTypes");
+		}
+
 		if (eventTypes.Length == 0)
+		{
 			throw new ArgumentException("eventTypes");
+		}
+
 		_eventTypes = new HashSet<string>(eventTypes);
 		if (includeStreamDeletedNotification)
+		{
 			_eventTypes.Add("$deleted");
+		}
+
 		_streams = new HashSet<string>(from eventType in eventTypes
 									   select "$et-" + eventType);
 		_streamToEventType = eventTypes.ToDictionary(v => "$et-" + v, v => v);
@@ -33,11 +42,19 @@ public class EventByTypeIndexPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase < Phase)
+		{
 			return true;
+		}
+
 		if (previous.Mode_ != CheckpointTag.Mode.EventTypeIndex)
+		{
 			throw new ArgumentException("Mode.EventTypeIndex expected", "previous");
+		}
+
 		if (committedEvent.Data.EventOrLinkTargetPosition.CommitPosition <= 0)
+		{
 			throw new ArgumentException("complete TF position required", "committedEvent");
+		}
 
 		return committedEvent.Data.EventOrLinkTargetPosition > previous.Position;
 	}
@@ -46,14 +63,19 @@ public class EventByTypeIndexPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		if (committedEvent.Data.EventOrLinkTargetPosition < previous.Position)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Cannot make a checkpoint tag at earlier position. '{0}' < '{1}'",
 					committedEvent.Data.EventOrLinkTargetPosition, previous.Position));
+		}
+
 		var byIndex = _streams.Contains(committedEvent.Data.PositionStreamId);
 		return byIndex
 			? previous.UpdateEventTypeIndexPosition(
@@ -73,14 +95,19 @@ public class EventByTypeIndexPositionTagger : PositionTagger
 		CheckpointTag previous, ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted)
 	{
 		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
+		}
 
 		if (partitionDeleted.DeleteEventOrLinkTargetPosition < previous.Position)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Cannot make a checkpoint tag at earlier position. '{0}' < '{1}'",
 					partitionDeleted.DeleteEventOrLinkTargetPosition, previous.Position));
+		}
+
 		var byIndex = _streams.Contains(partitionDeleted.PositionStreamId);
 		//TODO: handle invalid partition deleted messages without required values
 		return byIndex
@@ -107,11 +134,16 @@ public class EventByTypeIndexPositionTagger : PositionTagger
 	public override CheckpointTag AdjustTag(CheckpointTag tag)
 	{
 		if (tag.Phase < Phase)
+		{
 			return tag;
+		}
+
 		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
+		}
 
 		if (tag.Mode_ == CheckpointTag.Mode.EventTypeIndex)
 		{

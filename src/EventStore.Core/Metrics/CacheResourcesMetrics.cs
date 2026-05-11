@@ -5,16 +5,19 @@ using EventStore.Core.Caching;
 
 namespace EventStore.Core.Metrics;
 
-public class CacheResourcesMetrics {
+public class CacheResourcesMetrics
+{
 	private readonly ObservableUpDownMetric<long> _bytesMetric;
 	private readonly ObservableUpDownMetric<long> _entriesMetric;
 
-	public CacheResourcesMetrics(Meter meter, string name) {
+	public CacheResourcesMetrics(Meter meter, string name)
+	{
 		_bytesMetric = new ObservableUpDownMetric<long>(meter, name + "-bytes");
 		_entriesMetric = new ObservableUpDownMetric<long>(meter, name + "-entries");
 	}
 
-	public void Register(string cache, ResizerUnit unit, Func<CacheStats> getStats) {
+	public void Register(string cache, ResizerUnit unit, Func<CacheStats> getStats)
+	{
 		var sizeAndCapacityMetric = unit == ResizerUnit.Entries
 			? _entriesMetric
 			: _bytesMetric;
@@ -28,7 +31,8 @@ public class CacheResourcesMetrics {
 		ObservableUpDownMetric<long> metric,
 		string cache,
 		string metricName,
-		Func<long> measurementProvider) {
+		Func<long> measurementProvider)
+	{
 
 		var tags = new KeyValuePair<string, object>[] {
 			new("cache", cache),

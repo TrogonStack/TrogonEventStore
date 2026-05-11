@@ -6,7 +6,8 @@ namespace EventStore.Core.Services.Storage.InMemory;
 // the long poll mechanism works in the SubscriptionsService.
 // note that the SubscriptionsService currently only supports one physical log
 // and one inmemory log so we can't have separate inmemory logs per inmemory stream.
-public class InMemoryLog {
+public class InMemoryLog
+{
 	long _lastCommitPosition = 0L;
 
 	public long GetLastCommitPosition() => Interlocked.Read(ref _lastCommitPosition);

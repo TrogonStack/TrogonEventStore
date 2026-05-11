@@ -60,7 +60,9 @@ public class ArchiverService :
 		_archiveChunkCommands = Channel.CreateUnboundedPrioritized(
 			new UnboundedPrioritizedChannelOptions<Commands.ArchiveChunk>
 			{
-				SingleWriter = false, SingleReader = true, Comparer = new ChunkPrioritizer()
+				SingleWriter = false,
+				SingleReader = true,
+				Comparer = new ChunkPrioritizer()
 			});
 
 		Subscribe();
@@ -78,7 +80,9 @@ public class ArchiverService :
 	public void Handle(SystemMessage.ChunkLoaded message)
 	{
 		if (!message.ChunkInfo.IsCompleted || message.ChunkInfo.IsRemote)
+		{
 			return;
+		}
 
 		_existingChunks[Path.GetFileName(message.ChunkInfo.ChunkLocator)!] = message.ChunkInfo;
 	}
@@ -87,7 +91,9 @@ public class ArchiverService :
 	{
 		var chunkInfo = message.ChunkInfo;
 		if (chunkInfo.IsRemote)
+		{
 			return;
+		}
 
 		if (chunkInfo.ChunkEndPosition > _replicationPosition)
 		{
@@ -101,7 +107,9 @@ public class ArchiverService :
 	public void Handle(SystemMessage.ChunkSwitched message)
 	{
 		if (message.ChunkInfo.IsRemote)
+		{
 			return;
+		}
 
 		ScheduleChunkForArchiving(message.ChunkInfo, "changed");
 	}
@@ -112,7 +120,9 @@ public class ArchiverService :
 		ProcessUncommittedChunks();
 
 		if (_archivingStarted)
+		{
 			return;
+		}
 
 		_archivingStarted = true;
 		Task.Run(() => StartArchiving(_cts.Token), _cts.Token);
@@ -157,7 +167,9 @@ public class ArchiverService :
 		while (_uncommittedChunks.TryPeek(out var chunkInfo))
 		{
 			if (chunkInfo.ChunkEndPosition > _replicationPosition)
+			{
 				break;
+			}
 
 			_uncommittedChunks.Dequeue();
 			ScheduleChunkForArchiving(chunkInfo, "new");
@@ -183,7 +195,9 @@ public class ArchiverService :
 	private async Task ArchiveChunks(CancellationToken ct)
 	{
 		await foreach (var cmd in _archiveChunkCommands.Reader.ReadAllAsync(ct))
+		{
 			await ArchiveChunk(cmd.ChunkPath, cmd.ChunkStartNumber, cmd.ChunkEndNumber, cmd.ChunkEndPosition, ct);
+		}
 	}
 
 	private async Task ArchiveChunk(string chunkPath, int chunkStartNumber, int chunkEndNumber, long chunkEndPosition,
@@ -225,7 +239,9 @@ public class ArchiverService :
 				}
 
 				if (chunksUnmerged)
+				{
 					File.Delete(chunkToStore);
+				}
 
 				logicalChunkNumber++;
 			}
@@ -290,7 +306,9 @@ public class ArchiverService :
 		foreach (var chunkInfo in _existingChunks.Values)
 		{
 			if (chunkInfo.ChunkEndPosition <= _checkpoint)
+			{
 				continue;
+			}
 
 			ScheduleChunkForArchiving(chunkInfo, "old");
 			scheduledChunks++;

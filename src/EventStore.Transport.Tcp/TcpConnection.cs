@@ -43,12 +43,16 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 			{
 				connection.InitSendReceive();
 				if (onConnectionEstablished != null)
+				{
 					onConnectionEstablished(connection);
+				}
 			},
 			(_, socketError) =>
 			{
 				if (onConnectionFailed != null)
+				{
 					onConnectionFailed(connection, socketError);
+				}
 			}, connection, connectionTimeout);
 		// ReSharper restore ImplicitlyCapturedClosure
 		return connection;
@@ -179,9 +183,15 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 				lock (_sendLock)
 				{
 					if (_isSending || (_sendQueue.IsEmpty && _memoryStreamOffset >= _memoryStream.Length) || _sendSocketArgs == null)
+					{
 						return;
+					}
+
 					if (TcpConnectionMonitor.Default.IsSendBlocked())
+					{
 						return;
+					}
+
 					_isSending = true;
 				}
 
@@ -195,7 +205,9 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 					{
 						_memoryStream.Write(sendPiece.Array, sendPiece.Offset, sendPiece.Count);
 						if (_memoryStream.Length >= MaxSendPacketSize)
+						{
 							break;
+						}
 					}
 				}
 
@@ -263,7 +275,9 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 	public void ReceiveAsync(Action<ITcpConnection, IEnumerable<ArraySegment<byte>>> callback)
 	{
 		if (callback == null)
+		{
 			throw new ArgumentNullException("callback");
+		}
 
 		lock (_receivingLock)
 		{
@@ -290,13 +304,17 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 			{
 				var buffer = BufferManager.CheckOut();
 				if (buffer.Array == null || buffer.Count == 0 || buffer.Array.Length < buffer.Offset + buffer.Count)
+				{
 					throw new Exception("Invalid buffer allocated");
+				}
 				// TODO AN: do we need to lock on _receiveSocketArgs?..
 				lock (_receiveSocketArgs)
 				{
 					_receiveSocketArgs.SetBuffer(buffer.Array, buffer.Offset, buffer.Count);
 					if (_receiveSocketArgs.Buffer == null)
+					{
 						throw new Exception("Buffer was not set");
+					}
 				}
 
 				NotifyReceiveStarting();
@@ -304,7 +322,10 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 				lock (_receiveSocketArgs)
 				{
 					if (_receiveSocketArgs.Buffer == null)
+					{
 						throw new Exception("Buffer was lost");
+					}
+
 					firedAsync = _receiveSocketArgs.AcceptSocket.ReceiveAsync(_receiveSocketArgs);
 				}
 
@@ -362,7 +383,10 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 		lock (_receiveSocketArgs)
 		{
 			if (socketArgs.Buffer == null)
+			{
 				throw new Exception("Cleaning already null buffer");
+			}
+
 			socketArgs.SetBuffer(null, 0, 0);
 		}
 
@@ -377,7 +401,9 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 		{
 			// no awaiting callback or no data to dequeue
 			if (_receiveCallback == null || _receiveQueue.Count == 0)
+			{
 				return;
+			}
 
 			res = new List<ReceivedData>(_receiveQueue.Count);
 			while (_receiveQueue.Count > 0)
@@ -401,7 +427,9 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 		lock (_closeLock)
 		{
 			if (!_isClosed)
+			{
 				callback(this, data);
+			}
 		}
 
 		for (int i = 0, n = res.Count; i < n; ++i)
@@ -422,7 +450,10 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 		lock (_closeLock)
 		{
 			if (_isClosing)
+			{
 				return;
+			}
+
 			_isClosing = true;
 		}
 
@@ -462,12 +493,16 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 		lock (_sendLock)
 		{
 			if (!_isSending)
+			{
 				ReturnSendingSocketArgs();
+			}
 		}
 
 		var handler = ConnectionClosed;
 		if (handler != null)
+		{
 			handler(this, socketError);
+		}
 	}
 
 	private void ReturnSendingSocketArgs()
@@ -478,7 +513,10 @@ public class TcpConnection : TcpConnectionBase, ITcpConnection
 			socketArgs.Completed -= OnSendAsyncCompleted;
 			socketArgs.AcceptSocket = null;
 			if (socketArgs.Buffer != null)
+			{
 				socketArgs.SetBuffer(null, 0, 0);
+			}
+
 			SocketArgsPool.Return(socketArgs);
 		}
 	}

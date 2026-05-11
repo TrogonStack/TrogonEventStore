@@ -12,7 +12,8 @@ namespace EventStore.Core.Metrics;
 // (although, its probably not important at the rate calls are created)
 // works in a similar way to the PollingCounters here
 // https://github.com/grpc/grpc-dotnet/blob/master/src/Grpc.AspNetCore.Server/Internal/GrpcEventSource.cs
-public class IncomingGrpcCallsMetric : EventListener {
+public class IncomingGrpcCallsMetric : EventListener
+{
 	private long _callsCurrent;
 	private long _callsTotal;
 	private long _callsFailed;
@@ -23,9 +24,11 @@ public class IncomingGrpcCallsMetric : EventListener {
 		Meter meter,
 		string currentCallsMetricName,
 		string totalCallsMetricName,
-		IncomingGrpcCall[] filter) {
+		IncomingGrpcCall[] filter)
+	{
 
-		if (filter.Contains(IncomingGrpcCall.Current)) {
+		if (filter.Contains(IncomingGrpcCall.Current))
+		{
 			meter.CreateObservableUpDownCounter(
 				currentCallsMetricName,
 				() => Volatile.Read(ref _callsCurrent));
@@ -33,22 +36,26 @@ public class IncomingGrpcCallsMetric : EventListener {
 
 		var funcs = new List<Func<Measurement<long>>>();
 
-		if (filter.Contains(IncomingGrpcCall.Total)) {
+		if (filter.Contains(IncomingGrpcCall.Total))
+		{
 			var tags = GenTags("total");
 			funcs.Add(() => new(Volatile.Read(ref _callsTotal), tags.AsSpan()));
 		}
 
-		if (filter.Contains(IncomingGrpcCall.Failed)) {
+		if (filter.Contains(IncomingGrpcCall.Failed))
+		{
 			var tags = GenTags("failed");
 			funcs.Add(() => new(Volatile.Read(ref _callsFailed), tags.AsSpan()));
 		}
 
-		if (filter.Contains(IncomingGrpcCall.Unimplemented)) {
+		if (filter.Contains(IncomingGrpcCall.Unimplemented))
+		{
 			var tags = GenTags("unimplemented");
 			funcs.Add(() => new(Volatile.Read(ref _callsUnimplemented), tags.AsSpan()));
 		}
 
-		if (filter.Contains(IncomingGrpcCall.DeadlineExceeded)) {
+		if (filter.Contains(IncomingGrpcCall.DeadlineExceeded))
+		{
 			var tags = GenTags("deadline-exceeded");
 			funcs.Add(() => new(Volatile.Read(ref _callsDeadlineExceeded), tags.AsSpan()));
 		}
@@ -60,27 +67,35 @@ public class IncomingGrpcCallsMetric : EventListener {
 		new KeyValuePair<string, object>[] { new("kind", kind) };
 
 	private static Func<IEnumerable<Measurement<long>>> GenObserveCalls(
-		Func<Measurement<long>>[] funcs) {
+		Func<Measurement<long>>[] funcs)
+	{
 
 		var measurements = new Measurement<long>[funcs.Length];
 
-		return () => {
-			for (var i = 0; i < measurements.Length; i++) {
+		return () =>
+		{
+			for (var i = 0; i < measurements.Length; i++)
+			{
 				measurements[i] = funcs[i]();
 			}
 			return measurements;
 		};
 	}
 
-	protected override void OnEventSourceCreated(EventSource eventSource) {
+	protected override void OnEventSourceCreated(EventSource eventSource)
+	{
 		if (eventSource.Name != "Grpc.AspNetCore.Server")
+		{
 			return;
+		}
 
 		EnableEvents(eventSource, EventLevel.Verbose);
 	}
 
-	protected override void OnEventWritten(EventWrittenEventArgs eventData) {
-		switch (eventData.EventName) {
+	protected override void OnEventWritten(EventWrittenEventArgs eventData)
+	{
+		switch (eventData.EventName)
+		{
 			case "CallStart":
 				Interlocked.Increment(ref _callsTotal);
 				Interlocked.Increment(ref _callsCurrent);

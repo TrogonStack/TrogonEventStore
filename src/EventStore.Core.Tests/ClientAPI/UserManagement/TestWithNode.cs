@@ -51,16 +51,19 @@ public abstract class TestWithNode<TLogFormat, TStreamId> : SpecificationWithDir
 		UserCredentials credentials)
 	{
 		using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions {
+			new GrpcChannelOptions
+			{
 				HttpClient = _node.HttpClient,
 				DisposeHttpClient = false
 			});
 		var users = new UsersClient(channel);
-		await users.CreateAsync(new CreateReq {
-			Options = new CreateReq.Types.Options {
+		await users.CreateAsync(new CreateReq
+		{
+			Options = new CreateReq.Types.Options
+			{
 				LoginName = loginName,
 				FullName = fullName,
-				Groups = {groups},
+				Groups = { groups },
 				Password = password
 			}
 		}, new CallOptions(new Metadata {

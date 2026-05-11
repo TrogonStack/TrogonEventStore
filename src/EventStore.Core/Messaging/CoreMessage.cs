@@ -1,6 +1,8 @@
-namespace EventStore.Core.Messaging {
+namespace EventStore.Core.Messaging
+{
 	// The name of this enum and its members are used for metrics
-	public enum CoreMessage {
+	public enum CoreMessage
+	{
 		None,
 		Authentication,
 		Awake,

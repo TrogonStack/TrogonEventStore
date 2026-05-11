@@ -126,13 +126,24 @@ public class ProjectionManager
 		bool initializeSystemProjections = true)
 	{
 		if (inputQueue == null)
+		{
 			throw new ArgumentNullException("inputQueue");
+		}
+
 		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
+		}
+
 		if (queueMap == null)
+		{
 			throw new ArgumentNullException("queueMap");
+		}
+
 		if (queueMap.Count == 0)
+		{
 			throw new ArgumentException("At least one queue is required", "queueMap");
+		}
 
 		_inputQueue = inputQueue;
 		_publisher = publisher;
@@ -218,12 +229,15 @@ public class ProjectionManager
 
 		_started = true;
 		if (_runProjections >= ProjectionType.System)
+		{
 			StartExistingProjections(() =>
 			{
 				_projectionsStarted = true;
 				_publisher.Publish(_getStats);
 				ScheduleExpire();
 			});
+		}
+
 		_publisher.Publish(new ProjectionSubsystemMessage.ComponentStarted(ServiceName, _instanceCorrelationId));
 	}
 
@@ -251,7 +265,10 @@ public class ProjectionManager
 	private void ScheduleExpire()
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_publisher.Publish(
 			TimerMessage.Schedule.Create(
 				TimeSpan.FromSeconds(60),
@@ -275,13 +292,17 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.Post message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
 
 		if (message.Mode == ProjectionMode.Transient)
 		{
 			var transientProjection = new PendingProjection(ProjectionQueryId, message);
 			if (!ValidateProjections(new[] { transientProjection }, message))
+			{
 				return;
+			}
 
 			PostNewTransientProjection(transientProjection, message.Envelope);
 		}
@@ -299,7 +320,9 @@ public class ProjectionManager
 					{ message.Name, new PendingProjection(expectedVersion + 1, message) }
 				};
 				if (!ValidateProjections(pendingProjections.Values.ToArray(), message))
+				{
 					return;
+				}
 
 				PostNewProjections(pendingProjections, expectedVersion, message.Envelope);
 			}
@@ -309,7 +332,9 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.PostBatch message)
 	{
 		if (!_projectionsStarted || !message.Projections.Any())
+		{
 			return;
+		}
 
 		if (message.Projections.Any(p => p.Mode == ProjectionMode.Transient))
 		{
@@ -336,7 +361,9 @@ public class ProjectionManager
 			}
 
 			if (!ValidateProjections(pendingProjections.Values.ToArray(), message))
+			{
 				return;
+			}
 
 			PostNewProjections(pendingProjections, expectedVersion, message.Envelope);
 		}
@@ -392,7 +419,10 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.Delete message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		var projection = GetProjection(message.Name);
 		if (projection == null)
 		{
@@ -410,7 +440,10 @@ public class ProjectionManager
 
 		if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
 				message))
+		{
 			return;
+		}
+
 		try
 		{
 			projection.Handle(message);
@@ -433,15 +466,23 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.GetQuery message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message);
 		}
 	}
@@ -449,7 +490,10 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.UpdateQuery message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_logger.Information(
 			"Updating '{projection}' projection source to '{source}`",
 			message.Name,
@@ -457,12 +501,17 @@ public class ProjectionManager
 		var projection = GetProjection(message.Name);
 
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message); // update query text
 		}
 	}
@@ -470,17 +519,25 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.Disable message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_logger.Information("Disabling '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message);
 		}
 	}
@@ -488,7 +545,10 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.Enable message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_logger.Information("Enabling '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
@@ -501,7 +561,10 @@ public class ProjectionManager
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message);
 		}
 	}
@@ -509,17 +572,25 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.Abort message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_logger.Information("Aborting '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message);
 		}
 	}
@@ -527,7 +598,10 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.SetRunAs message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_logger.Information("Setting RunAs1 account for '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
@@ -542,7 +616,9 @@ public class ProjectionManager
 				!ProjectionManagementMessage.RunAs.ValidateRunAs(
 					projection.Mode, ReadWrite.Write, projection.RunAs, message,
 					message.Action == ProjectionManagementMessage.Command.SetRunAs.SetRemove.Set))
+			{
 				return;
+			}
 
 			projection.Handle(message);
 		}
@@ -551,7 +627,10 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.Reset message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		_logger.Information("Resetting '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
@@ -564,7 +643,10 @@ public class ProjectionManager
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message);
 		}
 	}
@@ -572,16 +654,22 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.GetStatistics message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		if (!string.IsNullOrEmpty(message.Name))
 		{
 			var projection = GetProjection(message.Name);
 			if (projection == null)
+			{
 				message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+			}
 			else
+			{
 				message.Envelope.ReplyWith(
 					new ProjectionManagementMessage.Statistics(new[] { projection.GetStatistics() }));
-
+			}
 		}
 		else
 		{
@@ -601,37 +689,59 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.GetState message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(ProjectionManagementMessage.Command.GetResult message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(ProjectionManagementMessage.Command.GetConfig message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			projection.Handle(message);
 		}
 	}
@@ -639,15 +749,23 @@ public class ProjectionManager
 	public void Handle(ProjectionManagementMessage.Command.UpdateConfig message)
 	{
 		if (!_projectionsStarted)
+		{
 			return;
+		}
+
 		var projection = GetProjection(message.Name);
 		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
+		}
 		else
 		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
 					message))
+			{
 				return;
+			}
+
 			try
 			{
 				projection.Handle(message);
@@ -759,7 +877,9 @@ public class ProjectionManager
 		var projection = GetProjection(message.Name);
 
 		if (projection == null)
+		{
 			return;
+		}
 
 		if (projection.Mode == ProjectionMode.Transient)
 		{
@@ -816,7 +936,10 @@ public class ProjectionManager
 	public void Dispose()
 	{
 		foreach (var projection in _projections.Values)
+		{
 			projection.Dispose();
+		}
+
 		_projections.Clear();
 	}
 
@@ -873,7 +996,10 @@ public class ProjectionManager
 				{
 					var projectionId = evnt.Event.EventNumber;
 					if (projectionId == 0)
+					{
 						projectionId = Int32.MaxValue - 1;
+					}
+
 					if (evnt.Event.EventType == ProjectionEventTypes.ProjectionsInitialized)
 					{
 						registeredProjections.Add(ProjectionEventTypes.ProjectionsInitialized, projectionId);
@@ -957,7 +1083,9 @@ public class ProjectionManager
 			projections);
 
 		foreach (var projection in projections)
+		{
 			_projectionsRegistrationState.Add(projection);
+		}
 
 		//create any missing system projections
 		CreateSystemProjections(registeredProjections.Select(x => x.Key).ToList());
@@ -1035,38 +1163,48 @@ public class ProjectionManager
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
 				.StreamsStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection,
 				typeof(IndexStreams),
 				""));
+		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
 				.StreamByCategoryStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection,
 				typeof(CategorizeStreamByPath),
 				"first\r\n-"));
+		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
 				.EventByCategoryStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection,
 				typeof(CategorizeEventsByStreamPath),
 				"first\r\n-"));
+		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
 				.EventByTypeStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection,
 				typeof(IndexEventsByEventType),
 				""));
+		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
 				.EventByCorrIdStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByCorrIdStandardProjection,
 				typeof(ByCorrelationId),
 				"{\"correlationIdProperty\":\"$correlationId\"}"));
+		}
 
 		IEnvelope envelope = new NoopEnvelope();
 		var postBatchMessage = new ProjectionManagementMessage.Command.PostBatch(
@@ -1123,7 +1261,9 @@ public class ProjectionManager
 		}
 
 		if (!events.Any())
+		{
 			return;
+		}
 
 		var writeEvents = new ClientMessage.WriteEvents(
 			corrId,
@@ -1153,7 +1293,9 @@ public class ProjectionManager
 		if (completed.Result == OperationResult.Success)
 		{
 			foreach (var name in newProjections.Keys)
+			{
 				_projectionsRegistrationState.Add(name);
+			}
 
 			_projectionsRegistrationExpectedVersion = completed.LastEventNumber;
 			StartNewlyRegisteredProjections(newProjections, OnProjectionsRegistrationCaughtUp, envelope);
@@ -1358,10 +1500,14 @@ public class ProjectionManager
 			IEnvelope replyEnvelope)
 		{
 			if (projectionMode >= ProjectionMode.Continuous && !checkpointsEnabled)
+			{
 				throw new InvalidOperationException("Continuous mode requires checkpoints");
+			}
 
 			if (emitEnabled && !checkpointsEnabled)
+			{
 				throw new InvalidOperationException("Emit requires checkpoints");
+			}
 
 			_projectionId = projectionId;
 			_enabled = enabled;
@@ -1446,7 +1592,10 @@ public class ProjectionManager
 	private int GetNextWorkerIndex()
 	{
 		if (_lastUsedQueue >= _workers.Length)
+		{
 			_lastUsedQueue = 0;
+		}
+
 		var queueIndex = _lastUsedQueue;
 		_lastUsedQueue++;
 		return queueIndex;
@@ -1528,7 +1677,9 @@ public class ProjectionManager
 		foreach (var proj in _projections.Values)
 		{
 			if (proj.Mode != ProjectionMode.Continuous)
+			{
 				continue;
+			}
 
 			var stats = proj.GetStatistics();
 
@@ -1537,14 +1688,18 @@ public class ProjectionManager
 				standardProjectionCount += 1;
 
 				if (stats.Status.Contains("Running"))
+				{
 					standardProjectionRunningCount += 1;
+				}
 			}
 			else
 			{
 				customProjectionCount += 1;
 
 				if (stats.Status.Contains("Running"))
+				{
 					customProjectionRunningCount += 1;
+				}
 			}
 		}
 

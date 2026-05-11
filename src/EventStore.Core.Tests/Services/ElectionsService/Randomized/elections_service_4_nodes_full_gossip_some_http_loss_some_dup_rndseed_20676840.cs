@@ -30,7 +30,10 @@ public class elections_service_4_nodes_full_gossip_some_http_loss_some_dup_rndse
 	{
 		var success = _randomCase.Run();
 		if (!success)
+		{
 			_randomCase.Logger.LogMessages();
+		}
+
 		Console.WriteLine("There were a total of {0} messages in this run.",
 			_randomCase.Logger.ProcessedItems.Count());
 		Assert.True(success);

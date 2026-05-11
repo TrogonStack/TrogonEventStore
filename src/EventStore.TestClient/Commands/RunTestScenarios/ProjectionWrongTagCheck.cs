@@ -89,7 +89,9 @@ internal class ProjectionWrongTagCheck : ProjectionsKillScenario
 				}
 
 				if (writeTask.IsFaulted)
+				{
 					throw new ApplicationException("Failed to write data");
+				}
 
 				if (writeTask.IsCompleted && !stopWatch.IsRunning)
 				{
@@ -117,18 +119,24 @@ internal class ProjectionWrongTagCheck : ProjectionsKillScenario
 				}
 
 				if (!success)
+				{
 					break;
+				}
 
 				if (CheckProjectionState(sumCheckForBankAccount0, "success", x => x == lastExpectedEventVersion))
+				{
 					break;
+				}
 			}
 
 			KillNode(nodeProcessId);
 
 			if (!success)
+			{
 				throw new ApplicationException(string.Format(
 					"Projection {0} has not completed with expected result {1} in time.", sumCheckForBankAccount0,
 					lastExpectedEventVersion));
+			}
 
 			return success;
 		});

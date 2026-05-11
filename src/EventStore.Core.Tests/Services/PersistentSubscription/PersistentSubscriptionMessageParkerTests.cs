@@ -400,7 +400,9 @@ public class PersistentSubscriptionMessageParkerTests
 				{
 					_timerMessages.Add(msg.ReplyMessage as IODispatcherDelayedMessage);
 					if (_timerMessages.Count == 2)
+					{
 						_timerMessagesReceived.TrySetResult(true);
+					}
 				}));
 		}
 

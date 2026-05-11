@@ -1,5 +1,7 @@
-namespace EventStore.Core.Caching {
-	public struct CacheStats {
+namespace EventStore.Core.Caching
+{
+	public struct CacheStats
+	{
 		public string Key { get; }
 		public string Name { get; }
 		public long Capacity { get; }
@@ -8,7 +10,8 @@ namespace EventStore.Core.Caching {
 		public int NumChildren { get; }
 		public double UtilizationPercent => Capacity != 0 ? 100.0 * Size / Capacity : 0;
 
-		public CacheStats(string key, string name, long capacity, long size, long count, int numChildren) {
+		public CacheStats(string key, string name, long capacity, long size, long count, int numChildren)
+		{
 			Key = key;
 			Name = name;
 			Capacity = capacity;

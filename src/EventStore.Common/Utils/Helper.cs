@@ -56,7 +56,9 @@ public static class Helper
 	public static string FormatBinaryDump(ArraySegment<byte> logBulk)
 	{
 		if (logBulk.Count == 0)
+		{
 			return "--- NO DATA ---";
+		}
 
 		var sb = new StringBuilder();
 		int cur = 0;
@@ -67,9 +69,13 @@ public static class Helper
 			for (int i = 0; i < 16; ++i, ++cur)
 			{
 				if (cur >= len)
+				{
 					sb.Append("   ");
+				}
 				else
+				{
 					sb.AppendFormat(" {0:X2}", logBulk.Array[logBulk.Offset + cur]);
+				}
 			}
 
 			sb.Append("  | ");

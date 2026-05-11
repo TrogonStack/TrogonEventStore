@@ -16,7 +16,8 @@ using Microsoft.Net.Http.Headers;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-public sealed class NodeProbeService : IDisposable {
+public sealed class NodeProbeService : IDisposable
+{
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 
 	public static readonly IReadOnlyList<NodeProbeDefinition> Probes = [
@@ -48,7 +49,8 @@ public sealed class NodeProbeService : IDisposable {
 			NodeProbeKind.ClusterMembership)
 	];
 
-	private static readonly JsonSerializerOptions IndentedJson = new() {
+	private static readonly JsonSerializerOptions IndentedJson = new()
+	{
 		WriteIndented = true
 	};
 
@@ -65,7 +67,8 @@ public sealed class NodeProbeService : IDisposable {
 		ClusterStatusService clusterStatus,
 		NodeInformationProvider nodeInformationProvider,
 		INodeHttpClientFactory nodeHttpClientFactory,
-		StandardComponents standardComponents) {
+		StandardComponents standardComponents)
+	{
 		_authorizationProvider = authorizationProvider;
 		_httpContextAccessor = httpContextAccessor;
 		_clusterStatus = clusterStatus;
@@ -74,24 +77,36 @@ public sealed class NodeProbeService : IDisposable {
 		_client = nodeHttpClientFactory.CreateHttpClient([_nodeEndPoint.Host]);
 	}
 
-	public async Task<NodeProbeRead> Read(string key, CancellationToken cancellationToken = default) {
+	public async Task<NodeProbeRead> Read(string key, CancellationToken cancellationToken = default)
+	{
 		var probe = Find(key);
 		if (probe is null)
+		{
 			return NodeProbeRead.Unselected();
+		}
 
 		if (!await HasAccess(probe.Operation, cancellationToken))
+		{
 			return NodeProbeRead.Unavailable(probe, $"{probe.Title} access was denied.");
+		}
 
 		if (probe.Kind == NodeProbeKind.NodeInformation)
+		{
 			return NodeProbeRead.Available(probe, FormatPayload(_nodeInformationProvider.ReadJson()));
+		}
 
 		if (probe.Kind == NodeProbeKind.ClusterMembership)
+		{
 			return await ReadClusterMembership(probe, cancellationToken);
+		}
 
-		try {
+		try
+		{
 			var context = _httpContextAccessor.HttpContext;
 			if (context is null)
+			{
 				return NodeProbeRead.Unavailable(probe, $"{probe.Title} is unavailable outside an HTTP request.");
+			}
 
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
@@ -103,23 +118,35 @@ public sealed class NodeProbeService : IDisposable {
 
 			using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
 			if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+			{
 				return NodeProbeRead.Unavailable(probe, $"{probe.Title} access was denied.");
+			}
 
 			if (!response.IsSuccessStatusCode)
+			{
 				return NodeProbeRead.Unavailable(
 					probe,
 					$"{probe.Title} endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}.");
+			}
 
 			var content = await response.Content.ReadAsStringAsync(timeout.Token);
 			return NodeProbeRead.Available(probe, FormatPayload(content));
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException)
+		{
 			return NodeProbeRead.Unavailable(probe, $"Timed out reading {probe.Title.ToLowerInvariant()}.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException)
+		{
 			if (cancellationToken.IsCancellationRequested)
+			{
 				throw;
+			}
 
 			return NodeProbeRead.Unavailable(probe, $"Timed out reading {probe.Title.ToLowerInvariant()}.");
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			return NodeProbeRead.Unavailable(probe, $"Unable to read {probe.Title.ToLowerInvariant()}: {UiMessages.Friendly(ex)}");
 		}
 	}
@@ -138,32 +165,48 @@ public sealed class NodeProbeService : IDisposable {
 
 	private async Task<NodeProbeRead> ReadClusterMembership(
 		NodeProbeDefinition probe,
-		CancellationToken cancellationToken) {
-		try {
+		CancellationToken cancellationToken)
+	{
+		try
+		{
 			var status = await _clusterStatus.Read(CurrentUser, cancellationToken);
 			return NodeProbeRead.Available(
 				probe,
 				FormatPayload(JsonSerializer.Serialize(status, ClusterStatusJson.Options)));
-		} catch (TimeoutException) {
+		}
+		catch (TimeoutException)
+		{
 			return NodeProbeRead.Unavailable(probe, "Timed out reading cluster membership.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException)
+		{
 			if (cancellationToken.IsCancellationRequested)
+			{
 				throw;
+			}
 
 			return NodeProbeRead.Unavailable(probe, "Timed out reading cluster membership.");
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			return NodeProbeRead.Unavailable(probe, $"Unable to read cluster membership: {UiMessages.Friendly(ex)}");
 		}
 	}
 
-	private static string FormatPayload(string content) {
+	private static string FormatPayload(string content)
+	{
 		if (string.IsNullOrWhiteSpace(content))
+		{
 			return "";
+		}
 
-		try {
+		try
+		{
 			using var document = JsonDocument.Parse(content);
 			return JsonSerializer.Serialize(document.RootElement, IndentedJson);
-		} catch (JsonException) {
+		}
+		catch (JsonException)
+		{
 			return content;
 		}
 	}
@@ -177,7 +220,8 @@ public sealed record NodeProbeDefinition(
 	Operation Operation,
 	NodeProbeKind Kind = NodeProbeKind.Http);
 
-public enum NodeProbeKind {
+public enum NodeProbeKind
+{
 	Http,
 	NodeInformation,
 	ClusterMembership
@@ -186,7 +230,8 @@ public enum NodeProbeKind {
 public sealed record NodeProbeRead(
 	NodeProbeDefinition Probe,
 	string Content,
-	string Message) {
+	string Message)
+{
 	public bool HasProbe => Probe is not null;
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 

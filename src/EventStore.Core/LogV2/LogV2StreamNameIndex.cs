@@ -44,7 +44,9 @@ public class LogV2StreamNameIndex :
 		}
 
 		if (prepares.Count == 0)
+		{
 			return;
+		}
 
 		var lastPrepare = prepares[prepares.Count - 1];
 

@@ -54,10 +54,14 @@ public class ShutdownServiceWithMiniNodeTests<TLogFormat, TStreamId> : Specifica
 				var envelope = new CallbackEnvelope(msg =>
 				{
 					if (msg is not ClientMessage.ReadStreamEventsForwardCompleted resp)
+					{
 						return;
+					}
 
 					if (resp.Result != ReadStreamResult.NoStream)
+					{
 						return;
+					}
 
 					source.TrySetResult();
 					_publisher.Publish(new SystemMessage.ComponentTerminated("foobar"));

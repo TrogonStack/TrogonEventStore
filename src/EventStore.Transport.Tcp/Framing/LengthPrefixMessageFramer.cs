@@ -46,7 +46,9 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>>
 	public void UnFrameData(IEnumerable<ArraySegment<byte>> data)
 	{
 		if (data == null)
+		{
 			throw new ArgumentNullException("data");
+		}
 
 		foreach (ArraySegment<byte> buffer in data)
 		{
@@ -97,7 +99,10 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>>
 				if (_bufferIndex == _packageLength)
 				{
 					if (_receivedHandler != null)
+					{
 						_receivedHandler(new ArraySegment<byte>(_messageBuffer, 0, _bufferIndex));
+					}
+
 					_messageBuffer = null;
 					_headerBytes = 0;
 					_packageLength = 0;

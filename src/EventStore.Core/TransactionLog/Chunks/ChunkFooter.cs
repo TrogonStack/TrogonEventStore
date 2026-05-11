@@ -1,16 +1,16 @@
 using System;
-using System.IO;
-using EventStore.Common.Utils;
-using EventStore.Core.TransactionLog.Chunks.TFChunk;
-using DotNext.Buffers;
-using DotNext.Buffers.Binary;
-using DotNext.IO;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using DotNext.Buffers;
+using DotNext.Buffers.Binary;
+using DotNext.IO;
+using EventStore.Common.Utils;
+using EventStore.Core.TransactionLog.Chunks.TFChunk;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
@@ -45,8 +45,11 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 		Ensure.Nonnegative(physicalDataSize, nameof(physicalDataSize));
 		Ensure.Nonnegative(logicalDataSize, nameof(logicalDataSize));
 		if (logicalDataSize < physicalDataSize)
+		{
 			throw new ArgumentOutOfRangeException(nameof(logicalDataSize),
 				$"LogicalDataSize {logicalDataSize} is less than PhysicalDataSize {physicalDataSize}");
+		}
+
 		Ensure.Nonnegative(mapSize, "mapSize");
 
 		IsCompleted = isCompleted;
@@ -60,7 +63,10 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 		hash?.TryGetHashAndReset(_checksum, out _);
 
 		if (MapSize % PosMap.FullSize is not 0)
+		{
 			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {PosMap.FullSize}.");
+		}
+
 		MapCount = mapSize / PosMap.FullSize;
 	}
 
@@ -73,7 +79,9 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
 
 		IsCompleted = (flags & 1) is not 0;
 		if (IsCompleted && (flags & 2) is 0)
+		{
 			throw new Exception("Deprecated 8-byte TFChunk position maps are not supported.");
+		}
 
 		PhysicalDataSize = reader.ReadLittleEndian<int>();
 		LogicalDataSize = reader.ReadLittleEndian<long>();

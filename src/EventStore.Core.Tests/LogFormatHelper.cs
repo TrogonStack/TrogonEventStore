@@ -18,7 +18,10 @@ public static class LogFormatHelper<TLogFormat, TStreamId>
 		if (typeof(TLogFormat) == typeof(LogFormat.V2))
 		{
 			if (typeof(TStreamId) != typeof(string))
+			{
 				throw new InvalidOperationException();
+			}
+
 			return (T)value;
 		}
 		throw new InvalidOperationException();

@@ -17,7 +17,9 @@ public class when_scavenge_throws_exception_processing_chunk<TLogFormat, TStream
 		Log.ChunkScavenged += (sender, args) =>
 		{
 			if (args.Scavenged)
+			{
 				throw new Exception("Expected exception.");
+			}
 		};
 
 		return TfChunkScavenger.Scavenge(true, true, 0, ct: cancellationTokenSource.Token);

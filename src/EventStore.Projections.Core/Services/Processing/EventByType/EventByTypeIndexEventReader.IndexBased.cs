@@ -65,7 +65,10 @@ public partial class EventByTypeIndexEventReader
 		public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message)
 		{
 			if (_disposed)
+			{
 				return;
+			}
+
 			if (message.Result == ReadStreamResult.AccessDenied)
 			{
 				SendNotAuthorized();
@@ -74,7 +77,10 @@ public partial class EventByTypeIndexEventReader
 
 			//we may receive read replies in any order (we read multiple streams)
 			if (message.TfLastCommitPosition > _reader._lastPosition)
+			{
 				_reader._lastPosition = message.TfLastCommitPosition;
+			}
+
 			if (message.EventStreamId is "$et")
 			{
 				ReadIndexCheckpointStreamCompleted(message.Result, message.Events);
@@ -82,21 +88,34 @@ public partial class EventByTypeIndexEventReader
 			}
 
 			if (!_validRequests.Contains(message.CorrelationId))
+			{
 				return;
+			}
 
 			lock (_lock)
 			{
 				if (!_pendingRequests.Values.Any(x => x == message.CorrelationId))
+				{
 					return;
+				}
 			}
 
 			if (!_streamToEventType.ContainsKey(message.EventStreamId))
+			{
 				throw new InvalidOperationException(
 					String.Format("Invalid stream name: {0}", message.EventStreamId));
+			}
+
 			if (!_eventsRequested.Contains(message.EventStreamId))
+			{
 				throw new InvalidOperationException("Read events has not been requested");
+			}
+
 			if (_reader.Paused)
+			{
 				throw new InvalidOperationException("Paused");
+			}
+
 			switch (message.Result)
 			{
 				case ReadStreamResult.NoStream:
@@ -118,13 +137,21 @@ public partial class EventByTypeIndexEventReader
 		public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
 		{
 			if (_disposed)
+			{
 				return;
+			}
+
 			if (_reader.Paused)
+			{
 				return;
+			}
+
 			lock (_lock)
 			{
 				if (!_pendingRequests.Values.Any(x => x == message.CorrelationId))
+				{
 					return;
+				}
 			}
 
 			if (message.StreamId == "$et")
@@ -140,7 +167,10 @@ public partial class EventByTypeIndexEventReader
 		{
 			ProcessBuffers();
 			if (eventStreamId != null)
+			{
 				_eventsRequested.Remove(eventStreamId);
+			}
+
 			_reader.PauseOrContinueProcessing();
 			CheckSwitch();
 		}
@@ -157,10 +187,15 @@ public partial class EventByTypeIndexEventReader
 		public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message)
 		{
 			if (_disposed)
+			{
 				return;
+			}
 			//we may receive read replies in any order (we read multiple streams)
 			if (message.TfLastCommitPosition > _reader._lastPosition)
+			{
 				_reader._lastPosition = message.TfLastCommitPosition;
+			}
+
 			if (message.Result == ReadStreamResult.AccessDenied)
 			{
 				SendNotAuthorized();
@@ -208,12 +243,20 @@ public partial class EventByTypeIndexEventReader
 			ReadStreamResult result, IReadOnlyList<EventStore.Core.Data.ResolvedEvent> events)
 		{
 			if (_disposed)
+			{
 				return;
+			}
 
 			if (!_indexCheckpointStreamRequested)
+			{
 				throw new InvalidOperationException("Read index checkpoint has not been requested");
+			}
+
 			if (_reader.Paused)
+			{
 				throw new InvalidOperationException("Paused");
+			}
+
 			_indexCheckpointStreamRequested = false;
 			switch (result)
 			{
@@ -227,7 +270,9 @@ public partial class EventByTypeIndexEventReader
 					{
 						_indexStreamEof = true;
 						if (_lastKnownIndexCheckpointPosition == null)
+						{
 							_lastKnownIndexCheckpointPosition = default(TFPos);
+						}
 					}
 					else
 					{
@@ -255,7 +300,9 @@ public partial class EventByTypeIndexEventReader
 							//TODO: make sure async completions of awake do not work
 
 							foreach (var key in _eofs.Keys.ToArray())
+							{
 								_eofs[key] = false;
+							}
 						}
 					}
 
@@ -270,7 +317,10 @@ public partial class EventByTypeIndexEventReader
 		private void ProcessBuffers()
 		{
 			if (_disposed) // max N reached
+			{
 				return;
+			}
+
 			while (true)
 			{
 				var minStreamId = "";
@@ -283,13 +333,17 @@ public partial class EventByTypeIndexEventReader
 					_buffers.TryGetValue(streamId, out buffer);
 
 					if ((buffer == null || buffer.Count == 0))
+					{
 						if (_eofs[streamId])
 						{
 							anyEof = true;
 							continue; // eof - will check if it was safe later
 						}
 						else
+						{
 							return; // still reading
+						}
+					}
 
 					var head = buffer.Peek();
 					var targetEventPosition = GetTargetEventPosition(head);
@@ -303,7 +357,9 @@ public partial class EventByTypeIndexEventReader
 				}
 
 				if (!any)
+				{
 					break;
+				}
 
 				if (!anyEof || BeforeTheLastKnownIndexCheckpoint(minPosition))
 				{
@@ -311,21 +367,33 @@ public partial class EventByTypeIndexEventReader
 					DeliverEventRetrievedByIndex(minHead.ResolvedEvent, minHead.Progress, minPosition);
 				}
 				else
+				{
 					return; // no safe events to deliver
+				}
 
 				if (_buffers[minStreamId].Count == 0)
+				{
 					_reader.PauseOrContinueProcessing();
+				}
 			}
 		}
 
 		private void RequestCheckpointStream(bool delay)
 		{
 			if (_disposed)
+			{
 				throw new InvalidOperationException("Disposed");
+			}
+
 			if (_reader.PauseRequested || _reader.Paused)
+			{
 				throw new InvalidOperationException("Paused or pause requested");
+			}
+
 			if (_indexCheckpointStreamRequested)
+			{
 				return;
+			}
 
 			_indexCheckpointStreamRequested = true;
 
@@ -361,15 +429,26 @@ public partial class EventByTypeIndexEventReader
 		private void RequestEvents(string stream, bool delay)
 		{
 			if (_disposed)
+			{
 				throw new InvalidOperationException("Disposed");
+			}
+
 			if (_reader.PauseRequested || _reader.Paused)
+			{
 				throw new InvalidOperationException("Paused or pause requested");
+			}
 
 			if (_eventsRequested.Contains(stream))
+			{
 				return;
+			}
+
 			Queue<PendingEvent> queue;
 			if (_buffers.TryGetValue(stream, out queue) && queue.Count > 0)
+			{
 				return;
+			}
+
 			_eventsRequested.Add(stream);
 
 			var corrId = Guid.NewGuid();
@@ -416,16 +495,25 @@ public partial class EventByTypeIndexEventReader
 		public override void RequestEvents()
 		{
 			foreach (var stream in _streamToEventType.Keys)
+			{
 				RequestEvents(stream, delay: _eofs[stream]);
+			}
+
 			RequestCheckpointStream(delay: _indexStreamEof);
 		}
 
 		private bool ShouldSwitch()
 		{
 			if (_disposed)
+			{
 				return false;
+			}
+
 			if (_reader.Paused || _reader.PauseRequested)
+			{
 				return false;
+			}
+
 			Queue<PendingEvent> q;
 			var shouldSwitch = _lastKnownIndexCheckpointPosition != null
 							   && _streamToEventType.Keys.All(v =>

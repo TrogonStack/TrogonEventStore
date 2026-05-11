@@ -114,9 +114,15 @@ public class ProjectionSourceDefinition : IQuerySources
 		bool aEmpty = (a == null || a.Length == 0);
 		bool bEmpty = (b == null || b.Length == 0);
 		if (aEmpty && bEmpty)
+		{
 			return true;
+		}
+
 		if (aEmpty || bEmpty)
+		{
 			return false;
+		}
+
 		return a.SequenceEqual(b);
 	}
 
@@ -135,11 +141,20 @@ public class ProjectionSourceDefinition : IQuerySources
 	public override bool Equals(object obj)
 	{
 		if (ReferenceEquals(null, obj))
+		{
 			return false;
+		}
+
 		if (ReferenceEquals(this, obj))
+		{
 			return true;
+		}
+
 		if (obj.GetType() != this.GetType())
+		{
 			return false;
+		}
+
 		return Equals((ProjectionSourceDefinition)obj);
 	}
 

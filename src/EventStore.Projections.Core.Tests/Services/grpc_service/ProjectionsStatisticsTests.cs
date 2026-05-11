@@ -72,7 +72,9 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 					&& _runningProjection?.Status == "Running"
 					&& _runningProjection.Position == ExpectedRunningProjectionPosition
 					&& _runningProjection.LastCheckpoint == ExpectedRunningProjectionPosition)
+				{
 					return;
+				}
 			}
 			catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
 			{
@@ -147,9 +149,14 @@ public class ProjectionsStatisticsTests<TLogFormat, TStreamId> : SpecificationWi
 		{
 			var details = statistics.ResponseStream.Current.Details;
 			if (details.Name == "faulted-projection")
+			{
 				faultedProjection = details;
+			}
+
 			if (details.Name == "running-projection")
+			{
 				runningProjection = details;
+			}
 		}
 
 		return (faultedProjection, runningProjection);

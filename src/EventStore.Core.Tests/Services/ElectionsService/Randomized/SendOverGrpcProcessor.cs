@@ -20,15 +20,29 @@ internal class SendOverGrpcProcessor : IHandle<GrpcMessage.SendOverGrpc>
 		int maxDelay)
 	{
 		if (rnd == null)
+		{
 			throw new ArgumentNullException("rnd");
+		}
+
 		if (runner == null)
+		{
 			throw new ArgumentNullException("runner");
+		}
+
 		if (lossProb < 0.0 || lossProb > 1.0)
+		{
 			throw new ArgumentOutOfRangeException("lossProb");
+		}
+
 		if (dupProb < 0.0 || dupProb > 1.0)
+		{
 			throw new ArgumentOutOfRangeException("dupProb");
+		}
+
 		if (maxDelay <= 0)
+		{
 			throw new ArgumentOutOfRangeException("maxDelay");
+		}
 
 		_rnd = rnd;
 		_runner = runner;
@@ -45,20 +59,28 @@ internal class SendOverGrpcProcessor : IHandle<GrpcMessage.SendOverGrpc>
 	public void Handle(GrpcMessage.SendOverGrpc message)
 	{
 		if (_rnd.NextDouble() < _lossProb)
+		{
 			return;
+		}
 
 		if (ShouldSkipMessage(message))
+		{
 			return;
+		}
 
 		IPublisher publisher;
 		if (!_httpBuses.TryGetValue(message.DestinationEndpoint, out publisher))
+		{
 			throw new InvalidOperationException(string.Format("No HTTP bus subscribed for EndPoint: {0}.",
 				message.DestinationEndpoint));
+		}
 
 		_runner.Enqueue(message.DestinationEndpoint, message.Message, publisher, 1 + _rnd.Next(_maxDelay));
 
 		if (_rnd.NextDouble() < _dupProb)
+		{
 			_runner.Enqueue(message.DestinationEndpoint, message.Message, publisher, 1 + _rnd.Next(_maxDelay));
+		}
 	}
 
 	protected virtual bool ShouldSkipMessage(GrpcMessage.SendOverGrpc message)

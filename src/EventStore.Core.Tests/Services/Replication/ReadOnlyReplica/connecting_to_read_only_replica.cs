@@ -22,7 +22,10 @@ public class connecting_to_read_only_replica<TLogFormat, TStreamId> : specificat
 			endpoints.ExternalTcp, endpoints.HttpEndPoint, gossipSeeds,
 			readOnlyReplica: isReadOnly);
 		if (wait && !isReadOnly)
+		{
 			WaitIdle();
+		}
+
 		return node;
 	}
 

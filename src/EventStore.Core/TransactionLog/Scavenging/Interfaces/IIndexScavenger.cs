@@ -5,7 +5,8 @@ using EventStore.Core.Index;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public interface IIndexScavenger {
+public interface IIndexScavenger
+{
 	ValueTask ScavengeIndex(
 		long scavengePoint,
 		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,

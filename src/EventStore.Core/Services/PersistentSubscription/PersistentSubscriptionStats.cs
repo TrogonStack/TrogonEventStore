@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.Threading;
 using EventStore.Core.Messages;
 
-namespace EventStore.Core.Services.PersistentSubscription {
-	public class PersistentSubscriptionStats {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public class PersistentSubscriptionStats
+	{
 		private long _totalItems;
 		private TimeSpan _lastTotalTime;
 		private long _lastTotalItems;
@@ -16,28 +18,38 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		private readonly PersistentSubscriptionParams _settings;
 
 		public PersistentSubscriptionStats(PersistentSubscription parent, PersistentSubscriptionParams settings,
-			Stopwatch totalTimeWatch) {
+			Stopwatch totalTimeWatch)
+		{
 			_settings = settings;
 			_parent = parent;
 			_totalTimeWatch = totalTimeWatch;
 		}
 
-		public void IncrementProcessed() {
+		public void IncrementProcessed()
+		{
 			Interlocked.Increment(ref _totalItems);
 		}
 
-		public void SetLastCheckPoint(IPersistentSubscriptionStreamPosition lastCheckpointedEventPosition) {
+		public void SetLastCheckPoint(IPersistentSubscriptionStreamPosition lastCheckpointedEventPosition)
+		{
 			_lastCheckpointedEventPosition = lastCheckpointedEventPosition;
 		}
 
-		public void SetLastKnownEventPosition(IPersistentSubscriptionStreamPosition knownEventPosition) {
+		public void SetLastKnownEventPosition(IPersistentSubscriptionStreamPosition knownEventPosition)
+		{
 			if (knownEventPosition == null)
+			{
 				return;
+			}
+
 			if (_lastKnownEventPosition == null || _lastKnownEventPosition.CompareTo(knownEventPosition) < 0)
+			{
 				_lastKnownEventPosition = knownEventPosition;
+			}
 		}
 
-		public MonitoringMessage.PersistentSubscriptionInfo GetStatistics() {
+		public MonitoringMessage.PersistentSubscriptionInfo GetStatistics()
+		{
 			long oldestParkedMessage = 0;
 			var totalTime = _totalTimeWatch.Elapsed;
 			var totalItems = Interlocked.Read(ref _totalItems);
@@ -51,7 +63,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			_lastTotalItems = totalItems;
 			var connections = new List<MonitoringMessage.ConnectionInfo>();
 			var totalInflight = 0;
-			foreach (var conn in _parent._pushClients.GetAll()) {
+			foreach (var conn in _parent._pushClients.GetAll())
+			{
 				var connItems = conn.TotalItems;
 				var connLastItems = connItems - conn.LastTotalItems;
 				conn.LastTotalItems = connItems;
@@ -61,7 +74,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				var extraStats = conn.GetExtraStats();
 				var stats = extraStats == null ? new List<Measurement>() : extraStats.Measurements;
 				totalInflight += conn.InflightMessages;
-				connections.Add(new MonitoringMessage.ConnectionInfo {
+				connections.Add(new MonitoringMessage.ConnectionInfo
+				{
 					From = conn.From,
 					Username = conn.Username,
 					AverageItemsPerSecond = connAvgItemsPerSecond,
@@ -78,13 +92,15 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 			var timeStamp = _settings.MessageParker.GetOldestParkedMessage;
 
-			if (timeStamp.HasValue) {
+			if (timeStamp.HasValue)
+			{
 				oldestParkedMessage = (long)(DateTime.UtcNow - timeStamp.Value).TotalSeconds;
 			}
 
 			var gotBuffer = _parent.TryGetStreamBuffer(out var streamBuffer);
 
-			return new MonitoringMessage.PersistentSubscriptionInfo() {
+			return new MonitoringMessage.PersistentSubscriptionInfo()
+			{
 				EventSource = _parent.EventSource.ToString(),
 				GroupName = _parent.GroupName,
 				Status = _parent.State.ToString(),

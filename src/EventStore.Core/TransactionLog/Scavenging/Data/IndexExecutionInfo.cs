@@ -1,11 +1,14 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public struct IndexExecutionInfo : IEquatable<IndexExecutionInfo> {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public struct IndexExecutionInfo : IEquatable<IndexExecutionInfo>
+	{
 		public IndexExecutionInfo(
 			bool isMetastream,
 			bool isTombstoned,
-			DiscardPoint discardPoint) {
+			DiscardPoint discardPoint)
+		{
 
 			IsMetastream = isMetastream;
 			IsTombstoned = isTombstoned;

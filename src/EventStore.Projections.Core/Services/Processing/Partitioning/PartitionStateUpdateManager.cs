@@ -24,7 +24,10 @@ public class PartitionStateUpdateManager
 	public PartitionStateUpdateManager(ProjectionNamesBuilder namingBuilder)
 	{
 		if (namingBuilder == null)
+		{
 			throw new ArgumentNullException("namingBuilder");
+		}
+
 		_namingBuilder = namingBuilder;
 	}
 

@@ -127,7 +127,9 @@ public class IdentityDbTransformTests
 	private static int GetAlignedSize(int size, int alignment)
 	{
 		if (size % alignment == 0)
+		{
 			return size;
+		}
 
 		return ((size / alignment) + 1) * alignment;
 	}

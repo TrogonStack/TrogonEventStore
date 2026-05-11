@@ -59,17 +59,23 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 			var dropped = new AutoResetEvent(false);
 
 			if (step < commandsToCheck.Length)
+			{
 				Console.WriteLine("{0} Starting step {1} ({2}) {0}", new string('#', 20), step,
 					(TcpCommand)commandsToCheck[step]);
+			}
 			else
+			{
 				Console.WriteLine("{0} Starting step {1} (RANDOM BYTES) {0}", new string('#', 20), step);
+			}
 
 			var connection = context._tcpTestClient.CreateTcpConnection(
 				context,
 				(conn, package) =>
 				{
 					if (package.Command != TcpCommand.BadRequest)
+					{
 						context.Fail(null, string.Format("Bad request expected, got {0}!", package.Command));
+					}
 				},
 				conn => established.Set(),
 				(conn, err) => dropped.Set());
@@ -79,10 +85,14 @@ internal class TcpSanitazationCheckProcessor : ICmdProcessor
 			dropped.WaitOne();
 
 			if (step < commandsToCheck.Length)
+			{
 				Console.WriteLine("{0} Step {1} ({2}) Completed {0}", new string('#', 20), step,
 					(TcpCommand)commandsToCheck[step]);
+			}
 			else
+			{
 				Console.WriteLine("{0} Step {1} (RANDOM BYTES) Completed {0}", new string('#', 20), step);
+			}
 
 			step++;
 		}

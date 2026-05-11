@@ -96,8 +96,12 @@ public class StagedProcessingQueue
 
 		// re-initialize already completed queues
 		for (var stage = 0; stage <= _maxStage; stage++)
+		{
 			if (_orderedStage[stage] && _byOrderedStageLast[stage] == null)
+			{
 				_byOrderedStageLast[stage] = entry;
+			}
+		}
 
 		SetEntryCorrelation(entry, stagedTask.InitialCorrelationId);
 		EnqueueForStage(entry, 0);
@@ -112,7 +116,10 @@ public class StagedProcessingQueue
 			RemoveCompleted();
 			var entry = GetEntryToProcess(fromStage);
 			if (entry == null)
+			{
 				break;
+			}
+
 			ProcessEntry(entry);
 			fromStage = entry.ReadForStage;
 			processed++;
@@ -151,7 +158,9 @@ public class StagedProcessingQueue
 				var taskEntry = _byOrderedStageLast[stageIndex];
 				if (taskEntry != null && taskEntry.ReadForStage == stageIndex && !taskEntry.Busy
 					&& !taskEntry.Completed && taskEntry.PreviousByCorrelation == null)
+				{
 					task = taskEntry;
+				}
 			}
 
 			if (task == null)
@@ -161,7 +170,10 @@ public class StagedProcessingQueue
 			}
 
 			if (task.ReadForStage != stageIndex)
+			{
 				throw new Exception();
+			}
+
 			return task;
 		}
 
@@ -175,7 +187,10 @@ public class StagedProcessingQueue
 			var task = _first;
 			_first = task.Next;
 			if (_first == null)
+			{
 				_last = null;
+			}
+
 			_count--;
 			if (task.BusyCorrelationId != null)
 			{
@@ -183,11 +198,16 @@ public class StagedProcessingQueue
 				if (nextByCorrelation != null)
 				{
 					if (nextByCorrelation.PreviousByCorrelation != task)
+					{
 						throw new Exception("Invalid linked list by correlation");
+					}
+
 					task.NextByCorrelation = null;
 					nextByCorrelation.PreviousByCorrelation = null;
 					if (!_orderedStage[nextByCorrelation.ReadForStage])
+					{
 						EnqueueForStage(nextByCorrelation, nextByCorrelation.ReadForStage);
+					}
 				}
 				else
 				{
@@ -201,20 +221,29 @@ public class StagedProcessingQueue
 	private void CompleteTaskProcessing(TaskEntry entry, int readyForStage, object newCorrelationId)
 	{
 		if (!entry.Busy)
+		{
 			throw new InvalidOperationException("Task was not in progress");
+		}
+
 		entry.Busy = false;
 		SetEntryCorrelation(entry, newCorrelationId);
 		if (readyForStage < 0)
 		{
 			MarkCompletedTask(entry);
 			if (entry == _first)
+			{
 				RemoveCompleted();
+			}
 		}
 		else
+		{
 			EnqueueForStage(entry, readyForStage);
+		}
 
 		if (EnsureTickPending != null)
+		{
 			EnsureTickPending();
+		}
 	}
 
 	private void EnqueueForStage(TaskEntry entry, int readyForStage)
@@ -241,17 +270,25 @@ public class StagedProcessingQueue
 		if (!_orderedStage[stage])
 		{
 			if (_byUnorderedStageFirst[stage].Entry != entry)
+			{
 				throw new ArgumentException(
 					string.Format("entry is not a head of the queue at the stage {0}", stage), "entry");
+			}
+
 			_byUnorderedStageFirst[stage] = _byUnorderedStageFirst[stage].Next;
 			if (_byUnorderedStageFirst[stage] == null)
+			{
 				_byUnorderedStageLast[stage] = null;
+			}
 		}
 		else
 		{
 			if (_byOrderedStageLast[stage] != entry)
+			{
 				throw new ArgumentException(
 					string.Format("entry is not a head of the queue at the stage {0}", stage), "entry");
+			}
+
 			_byOrderedStageLast[stage] = entry.Next;
 		}
 	}
@@ -261,9 +298,14 @@ public class StagedProcessingQueue
 		if (!Equals(entry.BusyCorrelationId, newCorrelationId))
 		{
 			if (entry.ReadForStage != -1 && !_orderedStage[entry.ReadForStage])
+			{
 				throw new InvalidOperationException("Cannot set busy correlation id at non-ordered stage");
+			}
+
 			if (entry.BusyCorrelationId != null)
+			{
 				throw new InvalidOperationException("Busy correlation id has been already set");
+			}
 
 			entry.BusyCorrelationId = newCorrelationId;
 			if (newCorrelationId != null)
@@ -272,15 +314,20 @@ public class StagedProcessingQueue
 				if (_correlationLastEntries.TryGetValue(newCorrelationId, out lastEntry))
 				{
 					if (entry.Sequence < lastEntry.Sequence)
+					{
 						//NOTE: should never happen as we require ordered stage or initialization
 						throw new InvalidOperationException(
 							"Cannot inject task correlation id before another task with the same correlation id");
+					}
+
 					lastEntry.NextByCorrelation = entry;
 					entry.PreviousByCorrelation = lastEntry;
 					_correlationLastEntries[newCorrelationId] = entry;
 				}
 				else
+				{
 					_correlationLastEntries.Add(newCorrelationId, entry);
+				}
 			}
 		}
 	}

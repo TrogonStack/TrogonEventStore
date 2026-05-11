@@ -3,12 +3,15 @@ using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using Serilog;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class OldScavengeChunkMergerBackend : IChunkMergerBackend {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class OldScavengeChunkMergerBackend : IChunkMergerBackend
+	{
 		private readonly ILogger _logger;
 		private readonly TFChunkDb _db;
 
-		public OldScavengeChunkMergerBackend(ILogger logger, TFChunkDb db) {
+		public OldScavengeChunkMergerBackend(ILogger logger, TFChunkDb db)
+		{
 			_logger = logger;
 			_db = db;
 		}
@@ -16,7 +19,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public ValueTask MergeChunks(
 			ITFChunkScavengerLog scavengerLogger,
 			Throttle throttle,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 
 			// todo: if time permits we could look in more detail at this implementation and see if it
 			// could be improved or replaced.

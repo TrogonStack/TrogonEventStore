@@ -3,11 +3,13 @@ using System.Text;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.LogCommon;
 
-namespace EventStore.Core.TransactionLog.LogRecords {
+namespace EventStore.Core.TransactionLog.LogRecords
+{
 	// Use when parsing of a full prepare log record isn't required and only some bits need to be inspected.
 	// Note that the data structure is not aligned, so performance may degrade if heavily accessing properties.
 	// Designed to be reusable to avoid GC pressure when making a pass through the database.
-	public struct PrepareLogRecordView {
+	public struct PrepareLogRecordView
+	{
 		public byte Version { get; }
 		public long LogPosition => BitConverter.ToInt64(_record, 2);
 		public PrepareFlags Flags => (PrepareFlags)BitConverter.ToUInt16(_record, 10);
@@ -37,25 +39,33 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 		private readonly int _metadataSize;
 		private readonly int _metadataOffset;
 
-		public PrepareLogRecordView(byte[] record, int length) {
+		public PrepareLogRecordView(byte[] record, int length)
+		{
 			if (!BitConverter.IsLittleEndian)
+			{
 				throw new NotSupportedException();
+			}
 
 			_record = record;
 			_length = length;
 
 			Version = _record[1];
 			if (Version != LogRecordVersion.LogRecordV0 && Version != LogRecordVersion.LogRecordV1)
+			{
 				throw new ArgumentException(
 					$"PrepareRecord version {Version} is incorrect. Supported version: {PrepareLogRecord.PrepareRecordVersion}.");
+			}
 
 			var currentOffset = 24;
 
-			if (Version == LogRecordVersion.LogRecordV0) {
+			if (Version == LogRecordVersion.LogRecordV0)
+			{
 				int expectedVersion = BitConverter.ToInt32(_record, currentOffset);
 				_expectedVersion = expectedVersion == int.MaxValue - 1 ? long.MaxValue - 1 : expectedVersion;
 				currentOffset += 4;
-			} else {
+			}
+			else
+			{
 				_expectedVersion = BitConverter.ToInt64(_record, 24);
 				currentOffset += 8;
 			}
@@ -87,44 +97,52 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 			_metadataOffset = currentOffset;
 			currentOffset += _metadataSize;
 
-			if (currentOffset != _length) {
+			if (currentOffset != _length)
+			{
 				throw new ArgumentException($"Unexpected record length: {currentOffset}, expected: {_length}");
 			}
 
 			// this is smaller than the actual record size but should be good enough to detect potential corruption
 			// or reading at a wrong position
 			if (_streamIdSize + _dataSize + _metadataSize > TFConsts.MaxLogRecordSize)
+			{
 				throw new Exception("Record too large.");
+			}
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return $"Version: {Version}, " +
-			       $"LogPosition: {LogPosition}, " +
-			       $"Flags: {Flags}, " +
-			       $"TransactionPosition: {TransactionPosition}, " +
-			       $"TransactionOffset: {TransactionOffset}, " +
-			       $"ExpectedVersion: {ExpectedVersion}, " +
-			       $"EventStreamId: {Encoding.UTF8.GetString(EventStreamId.ToArray())}, " +
-			       $"EventId: {EventId}, " +
-			       $"CorrelationId: {CorrelationId}, " +
-			       $"TimeStamp: {TimeStamp}, " +
-			       $"EventType: {Encoding.UTF8.GetString(EventType.ToArray())}, " +
-			       $"Data size: {Data.Length}, " +
-			       $"Metadata size: {Metadata.Length}";
+				   $"LogPosition: {LogPosition}, " +
+				   $"Flags: {Flags}, " +
+				   $"TransactionPosition: {TransactionPosition}, " +
+				   $"TransactionOffset: {TransactionOffset}, " +
+				   $"ExpectedVersion: {ExpectedVersion}, " +
+				   $"EventStreamId: {Encoding.UTF8.GetString(EventStreamId.ToArray())}, " +
+				   $"EventId: {EventId}, " +
+				   $"CorrelationId: {CorrelationId}, " +
+				   $"TimeStamp: {TimeStamp}, " +
+				   $"EventType: {Encoding.UTF8.GetString(EventType.ToArray())}, " +
+				   $"Data size: {Data.Length}, " +
+				   $"Metadata size: {Metadata.Length}";
 		}
 
 		// copied and adapted from https://github.com/microsoft/referencesource/blob/master/mscorlib/system/io/binaryreader.cs
-		private static int Read7BitEncodedInt(ReadOnlySpan<byte> bytes, ref int offset) {
+		private static int Read7BitEncodedInt(ReadOnlySpan<byte> bytes, ref int offset)
+		{
 			// Read out an Int32 7 bits at a time.  The high bit
 			// of the byte when on means to continue reading more bytes.
 			int count = 0;
 			int shift = 0;
 			byte b;
-			do {
+			do
+			{
 				// Check for a corrupted stream.  Read a max of 5 bytes.
 				// In a future version, add a DataFormatException.
 				if (shift == 5 * 7)  // 5 bytes max per Int32, shift += 7
+				{
 					throw new FormatException();
+				}
 
 				b = bytes[offset++];
 				count |= (b & 0x7F) << shift;

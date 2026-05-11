@@ -48,7 +48,10 @@ class PartitionDeletedWorkItem : WorkItem
 
 		var eventProcessedResult = _projection.ProcessPartitionDeleted(_partition, _message.CheckpointTag);
 		if (eventProcessedResult != null)
+		{
 			SetEventProcessedResult(eventProcessedResult);
+		}
+
 		NextStage();
 	}
 

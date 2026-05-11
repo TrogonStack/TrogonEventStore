@@ -202,7 +202,9 @@ public class time_service_should : IHandle<TestResponseMessage>
 	public void fire_all_timeouts_after_long_pause()
 	{
 		for (int i = 0; i < 20; i++)
+		{
 			_startTimeout(10 + i, 100 + i);
+		}
 
 		Assert.That(_timerMessages.ContainsNo<TestResponseMessage>());
 

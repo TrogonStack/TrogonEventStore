@@ -58,11 +58,15 @@ public class CategorizeStreamByPath : IProjectionStateHandler
 		newState = null;
 
 		if (data.PositionSequenceNumber != 0)
+		{
 			return false; // not our event
+		}
 
 		var category = _streamCategoryExtractor.GetCategoryByStreamId(data.PositionStreamId);
 		if (category == null)
+		{
 			return true; // handled but not interesting
+		}
 
 		emittedEvents = new[] {
 			new EmittedEventEnvelope(

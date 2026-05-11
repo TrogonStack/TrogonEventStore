@@ -28,8 +28,11 @@ public class CategoryEventFilter : EventFilter
 	public override string GetCategory(string positionStreamId)
 	{
 		if (!positionStreamId.StartsWith("$ce-"))
+		{
 			throw new ArgumentException(string.Format("'{0}' is not a category stream", positionStreamId),
 				"positionStreamId");
+		}
+
 		return positionStreamId.Substring("$ce-".Length);
 	}
 

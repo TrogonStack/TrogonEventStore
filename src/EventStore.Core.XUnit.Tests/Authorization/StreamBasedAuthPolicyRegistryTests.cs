@@ -123,9 +123,11 @@ public class StreamBasedAuthPolicyRegistryTests
 					m.Envelope.ReplyWith(new ClientMessage.NotHandled(m.CorrelationId, notHandledReason, ""));
 				}
 				else
+				{
 					m.Envelope.ReplyWith(CreateReadCompleted(m, [
 						CreateResolvedEvent(new AuthorizationPolicySettings("plugin"), 0)
 					]));
+				}
 			});
 
 		await sut.Start();

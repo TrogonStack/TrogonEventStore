@@ -78,7 +78,10 @@ internal sealed class UrlUtility
 	public static string UrlEncodeUnicode(string str)
 	{
 		if (str == null)
+		{
 			return null;
+		}
+
 		return UrlEncodeUnicodeStringToStringInternal(str, false);
 
 	}
@@ -506,7 +509,9 @@ internal sealed class UrlUtility
 					if (ch == '=')
 					{
 						if (ti < 0)
+						{
 							ti = i;
+						}
 					}
 					else if (ch == '&')
 					{
@@ -564,7 +569,9 @@ internal sealed class UrlUtility
 		{
 			int n = Count;
 			if (n == 0)
+			{
 				return string.Empty;
+			}
 
 			StringBuilder s = new StringBuilder();
 			string key, keyPrefix, item;
@@ -596,7 +603,10 @@ internal sealed class UrlUtility
 					s.Append(keyPrefix);
 					item = (string)values[0];
 					if (urlencoded)
+					{
 						item = UrlUtility.UrlEncodeUnicode(item);
+					}
+
 					s.Append(item);
 				}
 				else if (numValues == 0)

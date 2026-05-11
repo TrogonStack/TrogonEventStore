@@ -6,8 +6,10 @@ using System.Threading;
 using EventStore.Common.Utils;
 using Serilog;
 
-namespace EventStore.Core.DataStructures.ProbabilisticFilter {
-	public unsafe class FileStreamPersistence : IPersistenceStrategy {
+namespace EventStore.Core.DataStructures.ProbabilisticFilter
+{
+	public unsafe class FileStreamPersistence : IPersistenceStrategy
+	{
 		protected static readonly ILogger Log = Serilog.Log.ForContext<FileStreamPersistence>();
 
 		// We synchronize access to _dirtyPageBitmap because
@@ -23,7 +25,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		private AlignedMemory _dirtyPageBitmap;
 		private bool _disposed;
 
-		public FileStreamPersistence(long size, string path, bool create) {
+		public FileStreamPersistence(long size, string path, bool create)
+		{
 			Ensure.NotNull(path, nameof(path));
 			_logicalFilterSize = size;
 			_path = path;
@@ -31,7 +34,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		}
 
 		// when we want to open an existing filter and we don't mind what size it is
-		public static FileStreamPersistence FromFile(string path) {
+		public static FileStreamPersistence FromFile(string path)
+		{
 			Ensure.NotNull(path, nameof(path));
 
 			var header = ReadHeader(path);
@@ -50,7 +54,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		// max number of pages to flush to disk in each batch
 		public long FlushBatchSize { get; private set; }
 
-		public void Init() {
+		public void Init()
+		{
 			DataAccessor = new BloomFilterAccessor(
 				logicalFilterSize: _logicalFilterSize,
 				cacheLineSize: BloomFilterIntegrity.CacheLineSize,
@@ -92,15 +97,19 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			DataAccessor.Pointer = _bloomFilterMemory.Pointer;
 
 			// initialize the aligned memory
-			if (Create) {
+			if (Create)
+			{
 				DataAccessor.FillWithZeros();
-			} else {
+			}
+			else
+			{
 				// load the whole filter into memory for rapid access
 				BulkLoadExisting();
 			}
 		}
 
-		private void BulkLoadExisting() {
+		private void BulkLoadExisting()
+		{
 			Log.Information(
 				"Reading persisted bloom filter {path} of size {size:N0} bytes into memory...",
 				_path,
@@ -118,23 +127,29 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				options: FileOptions.SequentialScan);
 
 			if (bulkFileStream.Length != DataAccessor.FileSize)
+			{
 				throw new SizeMismatchException(
 					$"The expected file size ({DataAccessor.FileSize:N0}) does not match " +
 					$"the actual file size ({bulkFileStream.Length:N0}) of file {_path}");
+			}
 
 			// linux only reads 2147479552 at a time (4095 bytes less than intmax)
 			var blockSize = int.MaxValue / 2;
 			var bytesToRead = DataAccessor.FileSize;
 			var bytesRead = 0L;
-			while (bytesToRead > 0) {
+			while (bytesToRead > 0)
+			{
 				var bytesToReadInBlock = bytesToRead > blockSize
 					? blockSize
 					: (int)bytesToRead;
-				
+
 				// consider reading in buffer size blocks. or using random access in net6
 				var read = bulkFileStream.Read(new Span<byte>(DataAccessor.Pointer + bytesRead, bytesToReadInBlock));
 				if (read != bytesToReadInBlock)
+				{
 					throw new Exception($"Read fewer bytes ({read}) from bloom filter ({_path}) than expected ({bytesToReadInBlock})");
+				}
+
 				bytesRead += bytesToReadInBlock;
 				bytesToRead -= bytesToReadInBlock;
 			}
@@ -149,8 +164,10 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				megaBytesPerSecond);
 		}
 
-		private void OnPageDirty(long pageNumber) {
-			lock (_bitmapLock) {
+		private void OnPageDirty(long pageNumber)
+		{
+			lock (_bitmapLock)
+			{
 				ThrowIfDisposed();
 				var byteIndex = (int)(pageNumber / 8);
 				var bitIndex = pageNumber % 8;
@@ -159,7 +176,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			}
 		}
 
-		public void Flush() {
+		public void Flush()
+		{
 			using var fileStream = new FileStream(
 				_path,
 				FileMode.OpenOrCreate,
@@ -181,24 +199,30 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				var remaining = _dirtyPageBitmap.AsSpan();
 				!remaining.IsEmpty;
 				remaining = remaining[BloomFilterIntegrity.CacheLineSize..]
-				) {
+				)
+			{
 
-				lock (_bitmapLock) {
+				lock (_bitmapLock)
+				{
 					ThrowIfDisposed();
 					var cacheLine = remaining[..BloomFilterIntegrity.CacheLineSize];
 					cacheLine.CopyTo(localCacheLine);
 					cacheLine.Clear();
 				}
 
-				foreach (var @byte in localCacheLine) {
+				foreach (var @byte in localCacheLine)
+				{
 					//we could skip based on 0L without checking each bit/byte
-					for (var bitOffset = 0; bitOffset < 8; bitOffset++) {
-						if (@byte.IsBitSet(bitOffset)) {
+					for (var bitOffset = 0; bitOffset < 8; bitOffset++)
+					{
+						if (@byte.IsBitSet(bitOffset))
+						{
 							WritePage(pageNumber, fileStream);
 							flushedPages++;
 
 							// could be an unnecessary delay at the end
-							if (flushedPages % FlushBatchSize == 0) {
+							if (flushedPages % FlushBatchSize == 0)
+							{
 								fileStream.FlushToDisk();
 								activelyFlushing.Stop();
 								pauses++;
@@ -209,12 +233,14 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 						pageNumber++;
 						if (pageNumber == DataAccessor.NumPages)
+						{
 							goto Done;
+						}
 					}
 				}
 			}
 
-			Done:
+Done:
 			fileStream.FlushToDisk();
 
 			activelyFlushing.Stop();
@@ -232,7 +258,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				activelyFlushing.Elapsed, activeFlushRateMBperS);
 		}
 
-		private void WritePage(long pageNumber, FileStream fileStream) {
+		private void WritePage(long pageNumber, FileStream fileStream)
+		{
 			var (fileOffset, pageSize) = DataAccessor.GetPagePositionInFile(pageNumber);
 			fileStream.Seek(offset: fileOffset, SeekOrigin.Begin);
 			fileStream.Write(DataAccessor.ReadBytes(fileOffset, pageSize));
@@ -242,15 +269,18 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		// from the DataAccessor
 		public Header ReadHeader() => ReadHeader(_path);
 
-		private static Header ReadHeader(string path) {
+		private static Header ReadHeader(string path)
+		{
 			using var fileStream = new FileStream(
 				path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 
-			try {
+			try
+			{
 				//read the version first
 				fileStream.Seek(offset: 0, SeekOrigin.Begin);
 				byte version = (byte)fileStream.ReadByte();
-				if (version != Header.CurrentVersion) {
+				if (version != Header.CurrentVersion)
+				{
 					throw new CorruptedFileException($"Unsupported version: {version}");
 				}
 
@@ -259,18 +289,22 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 				fileStream.Seek(offset: 0, SeekOrigin.Begin);
 				var read = fileStream.Read(headerBytes);
-				if (read != Header.Size) {
+				if (read != Header.Size)
+				{
 					throw new CorruptedFileException(
 						$"File header size ({read} bytes) does not match expected header size ({Header.Size} bytes)");
 				}
 
 				return MemoryMarshal.AsRef<Header>(headerBytes);
-			} catch (Exception exc) when (exc is not CorruptedFileException) {
+			}
+			catch (Exception exc) when (exc is not CorruptedFileException)
+			{
 				throw new CorruptedFileException("Failed to read the header", exc);
 			}
 		}
 
-		public void WriteHeader(Header header) {
+		public void WriteHeader(Header header)
+		{
 			Log.Information("Writing header and expanding file...");
 			using var fileStream = new FileStream(
 				_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
@@ -290,21 +324,29 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			Log.Information("Wrote header and expanded file");
 		}
 
-		private void ThrowIfDisposed() {
-			if (_disposed) {
+		private void ThrowIfDisposed()
+		{
+			if (_disposed)
+			{
 				throw new ObjectDisposedException(nameof(FileStreamPersistence));
 			}
 		}
 
-		public void Dispose() {
-			lock (_bitmapLock) {
+		public void Dispose()
+		{
+			lock (_bitmapLock)
+			{
 				if (_disposed)
+				{
 					return;
+				}
 
 				_disposed = true;
 
 				if (DataAccessor is not null)
+				{
 					DataAccessor.Pointer = default;
+				}
 
 				_bloomFilterMemory?.Dispose();
 				_dirtyPageBitmap?.Dispose();

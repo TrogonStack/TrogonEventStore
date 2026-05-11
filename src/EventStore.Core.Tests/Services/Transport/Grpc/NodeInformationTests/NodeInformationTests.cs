@@ -10,13 +10,16 @@ using NodeInformationClient = EventStore.Client.Node.NodeInformation.NodeInforma
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.NodeInformationTests;
 
-public class NodeInformationTests {
+public class NodeInformationTests
+{
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_reading_node_information<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+	public class when_reading_node_information<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private NodeInformationClient _client;
 		private NodeInfo _response;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_client = new NodeInformationClient(Channel);
 			return Task.CompletedTask;
 		}
@@ -38,11 +41,13 @@ public class NodeInformationTests {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_reading_node_options_as_admin<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+	public class when_reading_node_options_as_admin<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private NodeInformationClient _client;
 		private NodeOptions _response;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_client = new NodeInformationClient(Channel);
 			return Task.CompletedTask;
 		}
@@ -51,7 +56,8 @@ public class NodeInformationTests {
 			_response = await _client.OptionsAsync(new ClientEmpty(), GetCallOptions(AdminCredentials));
 
 		[Test]
-		public void hides_sensitive_option_values() {
+		public void hides_sensitive_option_values()
+		{
 			var sensitiveOption = _response.Options.First(x => x.Name == "DefaultAdminPassword");
 			Assert.AreEqual("********", sensitiveOption.Value);
 		}

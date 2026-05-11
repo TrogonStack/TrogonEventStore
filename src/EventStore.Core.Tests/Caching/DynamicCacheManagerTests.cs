@@ -53,7 +53,9 @@ public class DynamicCacheManagerTests
 	private async Task TickPublished()
 	{
 		while (!_fakePublisher.Messages.ToArray().Any(x => x is TimerMessage.Schedule))
+		{
 			await Task.Delay(10);
+		}
 
 		_fakePublisher.Messages.Clear();
 	}

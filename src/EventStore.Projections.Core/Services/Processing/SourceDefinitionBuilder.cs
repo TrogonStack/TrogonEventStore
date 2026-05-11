@@ -29,14 +29,20 @@ public sealed class SourceDefinitionBuilder : IQuerySources
 	public void FromCategory(string categoryName)
 	{
 		if (_categories == null)
+		{
 			_categories = new List<string>();
+		}
+
 		_categories.Add(categoryName);
 	}
 
 	public void FromStream(string streamName)
 	{
 		if (_streams == null)
+		{
 			_streams = new List<string>();
+		}
+
 		_streams.Add(streamName);
 	}
 
@@ -58,7 +64,10 @@ public sealed class SourceDefinitionBuilder : IQuerySources
 	public void IncludeEvent(string eventName)
 	{
 		if (_events == null)
+		{
 			_events = new List<string>();
+		}
+
 		_events.Add(eventName);
 	}
 

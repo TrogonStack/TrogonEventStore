@@ -69,7 +69,10 @@ public class EmittedStreamsTracker : IEmittedStreamsTracker
 	public void TrackEmittedStream(EmittedEvent[] emittedEvents)
 	{
 		if (!_projectionConfig.TrackEmittedStreams)
+		{
 			return;
+		}
+
 		foreach (var emittedEvent in emittedEvents)
 		{
 			if (!_streamIdCache.TryGetRecord(emittedEvent.StreamId, out _))

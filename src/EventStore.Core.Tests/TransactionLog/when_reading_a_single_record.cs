@@ -78,7 +78,9 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 		for (int i = 0; i < RecordsCount; ++i)
 		{
 			if (i % 3 == 0)
+			{
 				pos = 0;
+			}
 
 			Assert.IsTrue(_results[i].Success);
 			Assert.AreEqual(pos, _results[i].OldPosition);

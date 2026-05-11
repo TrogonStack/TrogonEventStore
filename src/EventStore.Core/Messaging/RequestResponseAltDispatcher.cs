@@ -3,14 +3,16 @@ using EventStore.Core.Bus;
 using EventStore.Core.Helpers;
 using EventStore.Core.Messages;
 
-namespace EventStore.Core.Messaging {
+namespace EventStore.Core.Messaging
+{
 	// Just a typedef
 	public class ReadDispatcher :
 		RequestResponseAltDispatcher<
 			ClientMessage.ReadStreamEventsBackward,
 			ClientMessage.ReadStreamEventsBackwardCompleted,
 			ClientMessage.NotHandled,
-			IReadStreamEventsBackwardHandler> {
+			IReadStreamEventsBackwardHandler>
+	{
 		public ReadDispatcher(
 			IPublisher publisher,
 			Func<ClientMessage.ReadStreamEventsBackward, Guid> getRequestCorrelationId,
@@ -19,7 +21,8 @@ namespace EventStore.Core.Messaging {
 			IEnvelope defaultReplyEnvelope,
 			Func<Guid, Message> cancelMessageFactory = null) :
 				base(publisher, getRequestCorrelationId, getResponseCorrelationId,
-					getResponseAltCorrelationId, defaultReplyEnvelope, cancelMessageFactory) {
+					getResponseAltCorrelationId, defaultReplyEnvelope, cancelMessageFactory)
+		{
 		}
 	}
 
@@ -31,7 +34,8 @@ namespace EventStore.Core.Messaging {
 		where TRequest : Message
 		where TResponse : Message
 		where TResponseAlt : Message
-		where THandler : IHandle<TResponse>, IHandleAlt<TResponseAlt>, IHandleTimeout {
+		where THandler : IHandle<TResponse>, IHandleAlt<TResponseAlt>, IHandleTimeout
+	{
 
 		private readonly Func<TResponseAlt, Guid> _getResponseAltCorrelationId;
 
@@ -46,18 +50,21 @@ namespace EventStore.Core.Messaging {
 				getRequestCorrelationId,
 				getResponseCorrelationId,
 				defaultReplyEnvelope,
-				cancelMessageFactory) {
+				cancelMessageFactory)
+		{
 			_getResponseAltCorrelationId = getResponseAltCorrelationId;
 		}
 
-		void IHandle<TResponseAlt>.Handle(TResponseAlt message) {
+		void IHandle<TResponseAlt>.Handle(TResponseAlt message)
+		{
 			var correlationId = _getResponseAltCorrelationId(message);
 
 			// if we don't handle the alternative message, then don't remove the handler
 			// so that it can be called on timeout
 			var handlerExists = TryRemoveHandler(correlationId, static h => h.HandlesAlt, out var handler);
 
-			if (handlerExists) {
+			if (handlerExists)
+			{
 				handler.Handle(message);
 			}
 		}

@@ -24,7 +24,11 @@ public class MultiPolicyEvaluator(IAuthorizationPolicyRegistry registry) : IPoli
 			{
 				while (!assertions.IsEmpty && evaluationContext.Grant != Grant.Deny)
 				{
-					if (ct.IsCancellationRequested) break;
+					if (ct.IsCancellationRequested)
+					{
+						break;
+					}
+
 					var assertion = assertions.Span[0];
 					assertions = assertions.Slice(1);
 					await assertion.Evaluate(cp, operation, policyInfo, evaluationContext);

@@ -1,5 +1,7 @@
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public enum DiscardDecision {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public enum DiscardDecision
+	{
 		None,
 		Discard,
 		// calculator cannot tell conclusively, depends on record timestamp that it only has

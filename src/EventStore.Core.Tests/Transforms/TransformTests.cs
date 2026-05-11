@@ -66,7 +66,9 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 			{
 				var chunk = node.Db.Manager.GetChunk(i);
 				if (chunk.IsReadOnly)
+				{
 					completedChunks.Add(chunk);
+				}
 			}
 			catch (ArgumentOutOfRangeException)
 			{
@@ -75,7 +77,9 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		}
 
 		foreach (var chunk in completedChunks)
+		{
 			await chunk.VerifyFileHash(token);
+		}
 	}
 
 	private async Task<(MiniNode<TLogFormat, TStreamId>, IEventStoreConnection)> CreateNode(string dbPath, string transform)
@@ -110,7 +114,9 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 		bool keepDb = false)
 	{
 		if (node is not null)
+		{
 			await node.Shutdown(keepDb);
+		}
 
 		connection?.Dispose();
 	}

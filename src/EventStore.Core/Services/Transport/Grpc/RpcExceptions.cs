@@ -6,34 +6,36 @@ using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	public static class RpcExceptions {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	public static class RpcExceptions
+	{
 		public static Exception Timeout(string message) => new RpcException(new Status(StatusCode.Aborted, $"Operation timed out: {message}"));
 
 		public static RpcException ServerNotReady() =>
 			new(new Status(StatusCode.Unavailable, "Server Is Not Ready"));
 
 		public static RpcException ServerBusy() =>
-			new (new Status(StatusCode.Unavailable, "Server Is Too Busy"));
+			new(new Status(StatusCode.Unavailable, "Server Is Too Busy"));
 
 		public static Exception NoLeaderInfo() =>
 			new RpcException(new Status(StatusCode.Unknown, "No leader info available in response"));
 
 		public static RpcException LeaderInfo(string host, int port) =>
-			new (new Status(StatusCode.NotFound, $"Leader info available"), new Metadata {
+			new(new Status(StatusCode.NotFound, $"Leader info available"), new Metadata {
 				{Constants.Exceptions.ExceptionKey, Constants.Exceptions.NotLeader},
 				{Constants.Exceptions.LeaderEndpointHost, host},
 				{Constants.Exceptions.LeaderEndpointPort, port.ToString()},
 			});
 
 		public static RpcException StreamNotFound(string streamName) =>
-			new (new Status(StatusCode.NotFound, $"Event stream '{streamName}' is not found."), new Metadata {
+			new(new Status(StatusCode.NotFound, $"Event stream '{streamName}' is not found."), new Metadata {
 				{Constants.Exceptions.ExceptionKey, Constants.Exceptions.StreamNotFound},
 				{Constants.Exceptions.StreamName, streamName}
 			});
 
 		public static RpcException NoStream(string streamName) =>
-			new (new Status(StatusCode.NotFound, $"Event stream '{streamName}' was not created."));
+			new(new Status(StatusCode.NotFound, $"Event stream '{streamName}' was not created."));
 
 		public static RpcException UnknownMessage<T>(Message message) where T : Message =>
 			UnknownMessage(message.GetType(), typeof(T));
@@ -139,9 +141,11 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					{Constants.Exceptions.RequiredMetadataProperties, string.Join(",", Constants.Metadata.RequiredMetadata)}
 				});
 
-		public static bool TryHandleNotHandled(ClientMessage.NotHandled notHandled, out Exception exception) {
+		public static bool TryHandleNotHandled(ClientMessage.NotHandled notHandled, out Exception exception)
+		{
 			exception = null;
-			switch (notHandled.Reason) {
+			switch (notHandled.Reason)
+			{
 				case ClientMessage.NotHandled.Types.NotHandledReason.NotReady:
 					exception = ServerNotReady();
 					return true;
@@ -150,7 +154,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					return true;
 				case ClientMessage.NotHandled.Types.NotHandledReason.NotLeader:
 				case ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly:
-					switch (notHandled.LeaderInfo) {
+					switch (notHandled.LeaderInfo)
+					{
 						case { } leaderInfo:
 							exception = LeaderInfo(leaderInfo.Http.GetHost(), leaderInfo.Http.GetPort());
 							return true;

@@ -8,8 +8,10 @@ using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
 
-namespace EventStore.Core.LogAbstraction {
-	public record LogFormatAbstractorOptions {
+namespace EventStore.Core.LogAbstraction
+{
+	public record LogFormatAbstractorOptions
+	{
 		public string IndexDirectory { get; init; }
 		public int InitialReaderCount { get; init; } = ESConsts.PTableInitialReaderCount;
 		public int MaxReaderCount { get; init; } = 100;
@@ -22,15 +24,19 @@ namespace EventStore.Core.LogAbstraction {
 		public IHasher<string> HighHasher { get; init; } = new Murmur3AUnsafe();
 	}
 
-	public interface ILogFormatAbstractorFactory<TStreamId> {
+	public interface ILogFormatAbstractorFactory<TStreamId>
+	{
 		LogFormatAbstractor<TStreamId> Create(LogFormatAbstractorOptions options);
 	}
 
-	public class LogV2FormatAbstractorFactory : ILogFormatAbstractorFactory<string> {
-		public LogV2FormatAbstractorFactory() {
+	public class LogV2FormatAbstractorFactory : ILogFormatAbstractorFactory<string>
+	{
+		public LogV2FormatAbstractorFactory()
+		{
 		}
 
-		public LogFormatAbstractor<string> Create(LogFormatAbstractorOptions options) {
+		public LogFormatAbstractor<string> Create(LogFormatAbstractorOptions options)
+		{
 			var streamExistenceFilter = GenStreamExistenceFilter(options);
 			var streamNameIndex = new LogV2StreamNameIndex(streamExistenceFilter);
 			var eventTypeIndex = new LogV2EventTypeIndex();
@@ -58,9 +64,11 @@ namespace EventStore.Core.LogAbstraction {
 		}
 
 		private static INameExistenceFilter GenStreamExistenceFilter(
-			LogFormatAbstractorOptions options) {
+			LogFormatAbstractorOptions options)
+		{
 
-			if (options.StreamExistenceFilterSize == 0) {
+			if (options.StreamExistenceFilterSize == 0)
+			{
 				return new NoNameExistenceFilter();
 			}
 
@@ -83,7 +91,8 @@ namespace EventStore.Core.LogAbstraction {
 			LogV2StreamNameIndex streamNameIndex,
 			LogV2EventTypeIndex eventTypeIndex) =>
 
-			new AdHocStreamNamesProvider<string>(setTableIndex: (self, tableIndex) => {
+			new AdHocStreamNamesProvider<string>(setTableIndex: (self, tableIndex) =>
+			{
 				self.SystemStreams = new LogV2SystemStreams();
 				self.StreamNames = streamNameIndex;
 				self.EventTypes = eventTypeIndex;
@@ -93,8 +102,9 @@ namespace EventStore.Core.LogAbstraction {
 			});
 	}
 
-	public class LogFormatAbstractor<TStreamId> : IDisposable {
-		private readonly Func<ITransactionFileReader,ITransactionFileWriter,IPartitionManager> _partitionManagerFactory;
+	public class LogFormatAbstractor<TStreamId> : IDisposable
+	{
+		private readonly Func<ITransactionFileReader, ITransactionFileWriter, IPartitionManager> _partitionManagerFactory;
 
 		public LogFormatAbstractor(
 			IHasher<TStreamId> lowHasher,
@@ -115,8 +125,9 @@ namespace EventStore.Core.LogAbstraction {
 			IExistenceFilterReader<TStreamId> streamExistenceFilterReader,
 			IRecordFactory<TStreamId> recordFactory,
 			bool supportsExplicitTransactions,
-			Func<ITransactionFileReader,ITransactionFileWriter,IPartitionManager> partitionManagerFactory) {
-			
+			Func<ITransactionFileReader, ITransactionFileWriter, IPartitionManager> partitionManagerFactory)
+		{
+
 			_partitionManagerFactory = partitionManagerFactory;
 
 			LowHasher = lowHasher;
@@ -139,7 +150,8 @@ namespace EventStore.Core.LogAbstraction {
 			SupportsExplicitTransactions = supportsExplicitTransactions;
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			StreamNameIndexConfirmer?.Dispose();
 			EventTypeIndexConfirmer?.Dispose();
 			StreamExistenceFilter?.Dispose();
@@ -168,8 +180,9 @@ namespace EventStore.Core.LogAbstraction {
 		public ISystemStreamLookup<TStreamId> SystemStreams => StreamNamesProvider.SystemStreams;
 		public INameExistenceFilterInitializer StreamExistenceFilterInitializer => StreamNamesProvider.StreamExistenceFilterInitializer;
 		public bool SupportsExplicitTransactions { get; }
-		
-		public IPartitionManager CreatePartitionManager(ITransactionFileReader reader, ITransactionFileWriter writer) {
+
+		public IPartitionManager CreatePartitionManager(ITransactionFileReader reader, ITransactionFileWriter writer)
+		{
 			return _partitionManagerFactory(reader, writer);
 		}
 	}

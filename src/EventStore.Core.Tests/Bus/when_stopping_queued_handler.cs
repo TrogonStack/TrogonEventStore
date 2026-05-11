@@ -177,8 +177,8 @@ public abstract class when_stopping_queued_handler : QueuedHandlerTestWithNoopCo
 			{
 				var stats = queue.GetStatistics();
 				return stats.CurrentIdleTime is not null
-				       && stats.InProgressMessageType is null
-				       && stats.TotalItemsProcessed == 0;
+					   && stats.InProgressMessageType is null
+					   && stats.TotalItemsProcessed == 0;
 			}, 5000), "Queue stats never cleared the cancelled message state.");
 
 			queue.Publish(new TestMessage());

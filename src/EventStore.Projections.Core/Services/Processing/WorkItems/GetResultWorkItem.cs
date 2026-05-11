@@ -22,6 +22,7 @@ class GetResultWorkItem : GetDataWorkItemBase
 	protected override void Reply(PartitionState state, CheckpointTag checkpointTag)
 	{
 		if (state == null)
+		{
 			_publisher.Publish(
 				new CoreProjectionStatusMessage.ResultReport(
 					_correlationId,
@@ -29,7 +30,9 @@ class GetResultWorkItem : GetDataWorkItemBase
 					_partition,
 					null,
 					checkpointTag));
+		}
 		else
+		{
 			_publisher.Publish(
 				new CoreProjectionStatusMessage.ResultReport(
 					_correlationId,
@@ -37,5 +40,6 @@ class GetResultWorkItem : GetDataWorkItemBase
 					_partition,
 					state.Result,
 					checkpointTag));
+		}
 	}
 }

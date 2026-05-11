@@ -3,8 +3,10 @@ using EventStore.Common.Utils;
 using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Messages {
-	public class MemberInfoDto {
+namespace EventStore.Core.Messages
+{
+	public class MemberInfoDto
+	{
 		public Guid InstanceId { get; set; }
 
 		public DateTime TimeStamp { get; set; }
@@ -36,10 +38,12 @@ namespace EventStore.Core.Messages {
 		public int NodePriority { get; set; }
 		public bool IsReadOnlyReplica { get; set; }
 
-		public MemberInfoDto() {
+		public MemberInfoDto()
+		{
 		}
 
-		public MemberInfoDto(MemberInfo member) {
+		public MemberInfoDto(MemberInfo member)
+		{
 			InstanceId = member.InstanceId;
 
 			TimeStamp = member.TimeStamp;
@@ -74,7 +78,8 @@ namespace EventStore.Core.Messages {
 			IsReadOnlyReplica = member.IsReadOnlyReplica;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return
 				$"InstanceId: {InstanceId:B}, TimeStamp: {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}, State: {State}, IsAlive: {IsAlive}, " +
 				$"InternalTcpIp: {InternalTcpIp}, InternalTcpPort: {InternalTcpPort}, InternalSecureTcpPort: {InternalSecureTcpPort}, " +

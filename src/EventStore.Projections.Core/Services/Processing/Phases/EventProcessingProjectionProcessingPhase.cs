@@ -88,7 +88,10 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 	{
 		//TODO:  make sure this is no longer required : if (_state != State.StateLoaded)
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -96,7 +99,9 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 			var committedEventWorkItem = new CommittedEventWorkItem(this, message, _statePartitionSelector);
 			_processingQueue.EnqueueTask(committedEventWorkItem, eventTag);
 			if (_state == PhaseState.Running) // prevent processing mostly one projection
+			{
 				EnsureTickPending();
+			}
 		}
 		catch (Exception ex)
 		{
@@ -108,7 +113,10 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 	{
 		//TODO:  make sure this is no longer required : if (_state != State.StateLoaded)
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -117,7 +125,9 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 				var partitionDeletedWorkItem = new PartitionDeletedWorkItem(this, message);
 				_processingQueue.EnqueueOutOfOrderTask(partitionDeletedWorkItem);
 				if (_state == PhaseState.Running) // prevent processing mostly one projection
+				{
 					EnsureTickPending();
+				}
 			}
 		}
 		catch (Exception ex)
@@ -129,7 +139,10 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 	public void Handle(EventReaderSubscriptionMessage.PartitionEofReached message)
 	{
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -320,9 +333,13 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 		if (eventsEmittedOnInitialization != null)
 		{
 			if (emittedEvents == null || emittedEvents.Length == 0)
+			{
 				emittedEvents = eventsEmittedOnInitialization;
+			}
 			else
+			{
 				emittedEvents = eventsEmittedOnInitialization.Concat(emittedEvents).ToArray();
+			}
 		}
 
 		return result;
@@ -370,13 +387,17 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 	private bool InitOrLoadHandlerState(string partition)
 	{
 		if (_handlerPartition == partition)
+		{
 			return false;
+		}
 
 		var newState = _partitionStateCache.GetLockedPartitionState(partition);
 		_handlerPartition = partition;
 		var initialized = false;
 		if (newState != null && !String.IsNullOrEmpty(newState.State))
+		{
 			_projectionStateHandler.Load(newState.State);
+		}
 		else
 		{
 			initialized = true;
@@ -388,9 +409,13 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 		{
 			var newSharedState = _partitionStateCache.GetLockedPartitionState("");
 			if (newSharedState != null && !String.IsNullOrEmpty(newSharedState.State))
+			{
 				_projectionStateHandler.LoadShared(newSharedState.State);
+			}
 			else
+			{
 				_projectionStateHandler.InitializeShared();
+			}
 		}
 
 		return initialized;
@@ -425,11 +450,15 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 			if (emittedEvents != null && emittedEvents.Length > 0)
 			{
 				if (!ValidateEmittedEvents(emittedEvents))
+				{
 					return;
+				}
 
 				if (_state == PhaseState.Running || _state == PhaseState.Starting)
+				{
 					_resultWriter.EventsEmitted(
 						emittedEvents, Guid.Empty, correlationId: null);
+				}
 			}
 		}
 	}
@@ -443,6 +472,8 @@ public class EventProcessingProjectionProcessingPhase : EventSubscriptionBasedPr
 	public override void Dispose()
 	{
 		if (_projectionStateHandler != null)
+		{
 			_projectionStateHandler.Dispose();
+		}
 	}
 }

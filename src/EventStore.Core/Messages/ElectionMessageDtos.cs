@@ -2,19 +2,24 @@ using System;
 using EventStore.Common.Utils;
 using EventStore.Core.Cluster;
 
-namespace EventStore.Core.Messages {
-	public static class ElectionMessageDto {
-		public class ViewChangeDto {
+namespace EventStore.Core.Messages
+{
+	public static class ElectionMessageDto
+	{
+		public class ViewChangeDto
+		{
 			public Guid ServerId { get; set; }
 			public string ServerHttpAddress { get; set; }
 			public int ServerHttpPort { get; set; }
 
 			public int AttemptedView { get; set; }
 
-			public ViewChangeDto() {
+			public ViewChangeDto()
+			{
 			}
 
-			public ViewChangeDto(ElectionMessage.ViewChange message) {
+			public ViewChangeDto(ElectionMessage.ViewChange message)
+			{
 				ServerId = message.ServerId;
 				ServerHttpAddress = message.ServerHttpEndPoint.GetHost();
 				ServerHttpPort = message.ServerHttpEndPoint.GetPort();
@@ -23,17 +28,20 @@ namespace EventStore.Core.Messages {
 			}
 		}
 
-		public class ViewChangeProofDto {
+		public class ViewChangeProofDto
+		{
 			public Guid ServerId { get; set; }
 			public string ServerHttpAddress { get; set; }
 			public int ServerHttpPort { get; set; }
 
 			public int InstalledView { get; set; }
 
-			public ViewChangeProofDto() {
+			public ViewChangeProofDto()
+			{
 			}
 
-			public ViewChangeProofDto(ElectionMessage.ViewChangeProof message) {
+			public ViewChangeProofDto(ElectionMessage.ViewChangeProof message)
+			{
 				ServerId = message.ServerId;
 				ServerHttpAddress = message.ServerHttpEndPoint.GetHost();
 				ServerHttpPort = message.ServerHttpEndPoint.GetPort();
@@ -42,17 +50,20 @@ namespace EventStore.Core.Messages {
 			}
 		}
 
-		public class PrepareDto {
+		public class PrepareDto
+		{
 			public Guid ServerId { get; set; }
 			public string ServerHttpAddress { get; set; }
 			public int ServerHttpPort { get; set; }
 
 			public int View { get; set; }
 
-			public PrepareDto() {
+			public PrepareDto()
+			{
 			}
 
-			public PrepareDto(ElectionMessage.Prepare message) {
+			public PrepareDto(ElectionMessage.Prepare message)
+			{
 				ServerId = message.ServerId;
 				ServerHttpAddress = message.ServerHttpEndPoint.GetHost();
 				ServerHttpPort = message.ServerHttpEndPoint.GetPort();
@@ -61,7 +72,8 @@ namespace EventStore.Core.Messages {
 			}
 		}
 
-		public class PrepareOkDto {
+		public class PrepareOkDto
+		{
 			public Guid ServerId { get; set; }
 			public string ServerHttpAddress { get; set; }
 			public int ServerHttpPort { get; set; }
@@ -79,10 +91,12 @@ namespace EventStore.Core.Messages {
 			public int NodePriority { get; set; }
 			public ClusterInfo ClusterInfo { get; set; }
 
-			public PrepareOkDto() {
+			public PrepareOkDto()
+			{
 			}
 
-			public PrepareOkDto(ElectionMessage.PrepareOk message) {
+			public PrepareOkDto(ElectionMessage.PrepareOk message)
+			{
 				ServerId = message.ServerId;
 				ServerHttpAddress = message.ServerHttpEndPoint.GetHost();
 				ServerHttpPort = message.ServerHttpEndPoint.GetPort();
@@ -103,7 +117,8 @@ namespace EventStore.Core.Messages {
 		}
 
 
-		public class ProposalDto {
+		public class ProposalDto
+		{
 			public Guid ServerId { get; set; }
 			public Guid LeaderId { get; set; }
 
@@ -123,10 +138,12 @@ namespace EventStore.Core.Messages {
 			public Guid EpochLeaderInstanceId { get; set; }
 			public int NodePriority { get; set; }
 
-			public ProposalDto() {
+			public ProposalDto()
+			{
 			}
 
-			public ProposalDto(ElectionMessage.Proposal message) {
+			public ProposalDto(ElectionMessage.Proposal message)
+			{
 				ServerId = message.ServerId;
 				LeaderId = message.LeaderId;
 
@@ -148,7 +165,8 @@ namespace EventStore.Core.Messages {
 		}
 
 
-		public class AcceptDto {
+		public class AcceptDto
+		{
 			public Guid ServerId { get; set; }
 			public Guid LeaderId { get; set; }
 
@@ -159,10 +177,12 @@ namespace EventStore.Core.Messages {
 
 			public int View { get; set; }
 
-			public AcceptDto() {
+			public AcceptDto()
+			{
 			}
 
-			public AcceptDto(ElectionMessage.Accept message) {
+			public AcceptDto(ElectionMessage.Accept message)
+			{
 				ServerId = message.ServerId;
 				LeaderId = message.LeaderId;
 
@@ -174,32 +194,38 @@ namespace EventStore.Core.Messages {
 				View = message.View;
 			}
 		}
-		
-		public class LeaderIsResigningDto {
+
+		public class LeaderIsResigningDto
+		{
 			public Guid LeaderId { get; set; }
 			public string LeaderHttpAddress { get; set; }
 			public int LeaderHttpPort { get; set; }
-			public LeaderIsResigningDto() {
+			public LeaderIsResigningDto()
+			{
 			}
 
-			public LeaderIsResigningDto(ElectionMessage.LeaderIsResigning message) {
+			public LeaderIsResigningDto(ElectionMessage.LeaderIsResigning message)
+			{
 				LeaderId = message.LeaderId;
 				LeaderHttpAddress = message.LeaderHttpEndPoint.GetHost();
 				LeaderHttpPort = message.LeaderHttpEndPoint.GetPort();
 			}
 		}
-		
-		public class LeaderIsResigningOkDto {
+
+		public class LeaderIsResigningOkDto
+		{
 			public Guid LeaderId { get; set; }
 			public string LeaderHttpAddress { get; set; }
 			public int LeaderHttpPort { get; set; }
 			public Guid ServerId { get; set; }
 			public string ServerHttpAddress { get; set; }
 			public int ServerHttpPort { get; set; }
-			public LeaderIsResigningOkDto() {
+			public LeaderIsResigningOkDto()
+			{
 			}
 
-			public LeaderIsResigningOkDto(ElectionMessage.LeaderIsResigningOk message) {
+			public LeaderIsResigningOkDto(ElectionMessage.LeaderIsResigningOk message)
+			{
 				ServerId = message.ServerId;
 				ServerHttpAddress = message.ServerHttpEndPoint.GetHost();
 				ServerHttpPort = message.ServerHttpEndPoint.GetPort();

@@ -22,7 +22,8 @@ public static class Json
 		Converters = new JsonConverter[] { new StringEnumConverter() }
 	};
 
-	private static readonly JsonReaderOptions Utf8JsonReaderOptions = new() {
+	private static readonly JsonReaderOptions Utf8JsonReaderOptions = new()
+	{
 		AllowTrailingCommas = true,
 		CommentHandling = JsonCommentHandling.Skip,
 		MaxDepth = 64,
@@ -111,16 +112,22 @@ public static class Json
 	public static bool IsValidUtf8Json(this ReadOnlyMemory<byte> value)
 	{
 		if (value.IsEmpty)
+		{
 			return false;
+		}
 
 		try
 		{
 			var reader = new Utf8JsonReader(value.Span, Utf8JsonReaderOptions);
 			if (!reader.Read())
+			{
 				return false;
+			}
 
 			do
+			{
 				reader.Skip();
+			}
 			while (reader.Read());
 
 			return true;

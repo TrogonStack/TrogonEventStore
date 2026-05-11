@@ -52,15 +52,29 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 		ILogger logger = null)
 	{
 		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
+		}
+
 		if (ioDispatcher == null)
+		{
 			throw new ArgumentNullException("ioDispatcher");
+		}
+
 		if (readyHandler == null)
+		{
 			throw new ArgumentNullException("readyHandler");
+		}
+
 		if (positionTagger == null)
+		{
 			throw new ArgumentNullException("positionTagger");
+		}
+
 		if (from.CommitPosition < from.PreparePosition)
+		{
 			throw new ArgumentException("from");
+		}
 		//NOTE: fromCommit can be equal fromPrepare on 0 position.  Is it possible anytime later? Ignoring for now.
 		_maximumAllowedWritesInFlight = maximumAllowedWritesInFlight;
 		_publisher = publisher;
@@ -78,7 +92,10 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 	public void Start()
 	{
 		if (_started)
+		{
 			throw new InvalidOperationException("Projection has been already started");
+		}
+
 		_started = true;
 		foreach (var stream in _emittedStreams.Values)
 		{
@@ -103,28 +120,38 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 		foreach (var emittedEvent in events)
 		{
 			if (emittedEvent.Event.CausedByTag > _last)
+			{
 				_last = emittedEvent.Event.CausedByTag;
+			}
 		}
 	}
 
 	private void ValidateCheckpointPosition(CheckpointTag position)
 	{
 		if (position <= _from)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Checkpoint position before or equal to the checkpoint start position. Requested: '{0}' Started: '{1}'",
 					position, _from));
+		}
+
 		if (position < _last)
+		{
 			throw new InvalidOperationException(
 				string.Format(
 					"Checkpoint position before last handled position. Requested: '{0}' Last: '{1}'", position,
 					_last));
+		}
 	}
 
 	public void Prepare(CheckpointTag position)
 	{
 		if (!_started)
+		{
 			throw new InvalidOperationException("Projection has not been started");
+		}
+
 		ValidateCheckpointPosition(position);
 		_checkpointRequested = true;
 		_requestedCheckpoints = 1; // avoid multiple checkpoint ready messages if already ready
@@ -141,13 +168,18 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 	private void EnsureCheckpointNotRequested()
 	{
 		if (_checkpointRequested)
+		{
 			throw new InvalidOperationException("Checkpoint requested");
+		}
 	}
 
 	private void EmitEventsToStream(string streamId, EmittedEventEnvelope[] emittedEvents)
 	{
 		if (string.IsNullOrEmpty(streamId))
+		{
 			throw new ArgumentNullException("streamId");
+		}
+
 		EmittedStream stream;
 		if (!_emittedStreams.TryGetValue(streamId, out stream))
 		{
@@ -159,9 +191,13 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 
 			IEmittedStreamsWriter writer;
 			if (writeQueueId == null)
+			{
 				writer = new EmittedStreamsWriter(_ioDispatcher);
+			}
 			else
+			{
 				writer = new QueuedEmittedStreamsWriter(_ioDispatcher, writeQueueId.Value);
+			}
 
 			var writerConfiguration = new EmittedStream.WriterConfiguration(
 				writer, streamMetadata, _runAs, maxWriteBatchLength: _maxWriteBatchLength, logger: _logger);
@@ -170,7 +206,10 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 				_publisher, _ioDispatcher, this);
 
 			if (_started)
+			{
 				stream.Start();
+			}
+
 			_emittedStreams.Add(streamId, stream);
 		}
 
@@ -219,14 +258,21 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 	public void Dispose()
 	{
 		if (_emittedStreams != null)
+		{
 			foreach (var stream in _emittedStreams.Values)
+			{
 				stream.Dispose();
+			}
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.EmittedStreamAwaiting message)
 	{
 		if (_awaitingStreams == null)
+		{
 			_awaitingStreams = new List<IEnvelope>();
+		}
+
 		_awaitingStreams.Add(message.Envelope);
 	}
 
@@ -235,7 +281,11 @@ public class ProjectionCheckpoint : IDisposable, IEmittedStreamContainer, IEvent
 		var awaitingStreams = _awaitingStreams;
 		_awaitingStreams = null; // still awaiting will re-register
 		if (awaitingStreams != null)
+		{
 			foreach (var stream in awaitingStreams)
+			{
 				stream.ReplyWith(message);
+			}
+		}
 	}
 }

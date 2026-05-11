@@ -18,9 +18,11 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void enabled_archive_requires_storage_type()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -34,13 +36,16 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void s3_archive_requires_bucket()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
-			S3 = new() {
+			S3 = new()
+			{
 				Region = "us-east-1",
 			},
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -54,13 +59,16 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void s3_archive_requires_region()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
-			S3 = new() {
+			S3 = new()
+			{
 				Bucket = "bucket",
 			},
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -74,15 +82,18 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void s3_compatible_archive_requires_credentials()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
-			S3 = new() {
+			S3 = new()
+			{
 				Bucket = "bucket",
 				Region = "us-east-1",
 				ServiceUrl = "https://s3-compatible.example",
 			},
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -97,15 +108,18 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void s3_credentials_must_be_configured_together()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
-			S3 = new() {
+			S3 = new()
+			{
 				Bucket = "bucket",
 				Region = "us-east-1",
 				AccessKeyId = "access",
 			},
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -120,15 +134,18 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void s3_session_token_requires_credentials()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
-			S3 = new() {
+			S3 = new()
+			{
 				Bucket = "bucket",
 				Region = "us-east-1",
 				SessionToken = "session",
 			},
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -143,16 +160,19 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void s3_archive_allows_explicit_credentials_without_service_url()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
-			S3 = new() {
+			S3 = new()
+			{
 				Bucket = "bucket",
 				Region = "us-east-1",
 				AccessKeyId = "access",
 				SecretAccessKey = "secret",
 			},
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -164,11 +184,13 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void retention_requires_days()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
 			S3 = ValidS3,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				LogicalBytes = 1024,
 			},
 		};
@@ -181,11 +203,13 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void retention_requires_logical_bytes()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
 			S3 = ValidS3,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 			},
 		};
@@ -198,11 +222,13 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void retention_rejects_negative_days()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
 			S3 = ValidS3,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = -1,
 				LogicalBytes = 1024,
 			},
@@ -216,11 +242,13 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void retention_rejects_days_above_timespan_limit()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
 			S3 = ValidS3,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = TimeSpan.MaxValue.Days + 1L,
 				LogicalBytes = 1024,
 			},
@@ -234,11 +262,13 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void retention_rejects_negative_logical_bytes()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = StorageType.S3,
 			S3 = ValidS3,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = -1,
 			},
@@ -252,10 +282,12 @@ public class ArchiveOptionsTests
 	[Fact]
 	public void unknown_storage_type_is_rejected()
 	{
-		var sut = new ArchiveOptions {
+		var sut = new ArchiveOptions
+		{
 			Enabled = true,
 			StorageType = (StorageType)999,
-			RetainAtLeast = new() {
+			RetainAtLeast = new()
+			{
 				Days = 7,
 				LogicalBytes = 1024,
 			},
@@ -266,7 +298,8 @@ public class ArchiveOptionsTests
 		Assert.Contains("Unknown StorageType", ex.Message);
 	}
 
-	private static S3Options ValidS3 => new() {
+	private static S3Options ValidS3 => new()
+	{
 		Bucket = "archive",
 		Region = "us-east-1",
 	};

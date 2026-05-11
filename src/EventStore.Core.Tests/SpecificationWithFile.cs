@@ -21,6 +21,8 @@ public class SpecificationWithFile
 	public virtual void TearDown()
 	{
 		if (File.Exists(Filename))
+		{
 			File.Delete(Filename);
+		}
 	}
 }

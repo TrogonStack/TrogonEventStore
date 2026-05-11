@@ -158,9 +158,13 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 
 				CheckResult(_events.Skip(fromEventNumber).ToArray(), result);
 				if (fromEventNumber > 3)
+				{
 					Assert.True(result.IsEndOfStream);
+				}
 				else
+				{
 					Assert.AreEqual((long)fromEventNumber + int.MaxValue, result.NextEventNumber);
+				}
 			}
 		}
 
@@ -178,9 +182,13 @@ public abstract class ReadEventInfoForward_KnownCollisions : ReadIndexTestScenar
 
 				CheckResult(_events.Skip(fromEventNumber).Take(2).ToArray(), result);
 				if (fromEventNumber > 3)
+				{
 					Assert.True(result.IsEndOfStream);
+				}
 				else
+				{
 					Assert.AreEqual((long)fromEventNumber + 2, result.NextEventNumber);
+				}
 			}
 		}
 

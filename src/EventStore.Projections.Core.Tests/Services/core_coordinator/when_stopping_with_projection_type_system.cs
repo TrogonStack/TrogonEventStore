@@ -47,9 +47,11 @@ public class when_stopping_with_projection_type_system
 		// Publish SubComponent stopped messages for the projection core service
 		stopCoreMessages = queues[0].Messages.OfType<ProjectionCoreServiceMessage.StopCore>().ToList();
 		foreach (var msg in stopCoreMessages)
+		{
 			_coordinator.Handle(
 				new ProjectionCoreServiceMessage.SubComponentStopped(ProjectionCoreService.SubComponentName,
 					msg.QueueId));
+		}
 	}
 
 	[Test]

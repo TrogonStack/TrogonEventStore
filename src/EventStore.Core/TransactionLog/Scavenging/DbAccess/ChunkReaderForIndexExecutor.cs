@@ -19,7 +19,9 @@ public class ChunkReaderForIndexExecutor<TStreamId>(Func<TFReaderLease> tfReader
 		}
 
 		if (result.LogRecord is not IPrepareLogRecord<TStreamId> prepare)
+		{
 			throw new Exception($"Record in index at position {position} is not a prepare");
+		}
 
 		return prepare.EventStreamId;
 	}

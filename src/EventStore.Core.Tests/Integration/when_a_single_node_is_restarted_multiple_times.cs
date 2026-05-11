@@ -10,8 +10,8 @@ using EventStore.Core.Messages;
 using EventStore.Core.Services.Storage.EpochManager;
 using EventStore.Core.Tests;
 using EventStore.Core.TransactionLog.Chunks;
-using NUnit.Framework.Internal;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 
 namespace EventStore.Core.Tests.Integration;
 
@@ -48,7 +48,8 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 
 	private async Task<Guid> GetLastEpochId(Guid? previousEpochId)
 	{
-		_logFormat ??= LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+		_logFormat ??= LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		{
 			IndexDirectory = GetFilePathFor("epoch-index"),
 		});
 
@@ -58,7 +59,9 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 		{
 			var epochId = await TryGetLastEpochId();
 			if (epochId is { } currentEpochId && currentEpochId != previousEpochId)
+			{
 				return currentEpochId;
+			}
 
 			await Task.Delay(TimeSpan.FromMilliseconds(100));
 		}

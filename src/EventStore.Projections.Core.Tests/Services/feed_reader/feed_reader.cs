@@ -320,8 +320,7 @@ namespace EventStore.Projections.Core.Tests.Services.feed_reader
 				ExistingEvent("test-stream", "type1", "{}", "{Data: 2}");
 				ExistingEvent("test-stream", "type2", "{}", "{Data: 3}");
 
-				_querySourcesDefinition = new QuerySourcesDefinition
-				{ Streams = new[] { "test-stream" }, AllEvents = true };
+				_querySourcesDefinition = new QuerySourcesDefinition { Streams = new[] { "test-stream" }, AllEvents = true };
 				_fromPosition = CheckpointTag.FromStreamPosition(0, "test-stream", -1);
 				_maxEvents = 2;
 			}
@@ -363,8 +362,7 @@ namespace EventStore.Projections.Core.Tests.Services.feed_reader
 				ExistingEvent("test-stream", "type1", "{}", "{Data: 2}");
 				ExistingEvent("test-stream", "type2", "{}", "{Data: 3}");
 
-				_querySourcesDefinition = new QuerySourcesDefinition
-				{ Streams = new[] { "test-stream" }, AllEvents = true };
+				_querySourcesDefinition = new QuerySourcesDefinition { Streams = new[] { "test-stream" }, AllEvents = true };
 				_fromPosition = CheckpointTag.FromStreamPosition(0, "test-stream", -1);
 				_maxEvents = 2;
 			}

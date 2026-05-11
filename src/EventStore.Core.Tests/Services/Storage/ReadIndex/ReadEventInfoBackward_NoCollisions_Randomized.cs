@@ -99,7 +99,9 @@ public class ReadEventInfoBackward_NoCollisions_Randomized : ReadIndexTestScenar
 			Assert.True(result.IsEndOfStream);
 
 			if (@event.EventStreamId == Stream)
+			{
 				curEvents.Add(@event);
+			}
 		}
 	}
 
@@ -111,7 +113,10 @@ public class ReadEventInfoBackward_NoCollisions_Randomized : ReadIndexTestScenar
 		foreach (var @event in _events)
 		{
 			if (@event.EventStreamId != Stream)
+			{
 				continue;
+			}
+
 			curEvents.Add(@event);
 
 			int maxCount = Math.Min((int)@event.EventNumber + 1, _random.Next(10, 100));
@@ -126,9 +131,13 @@ public class ReadEventInfoBackward_NoCollisions_Randomized : ReadIndexTestScenar
 			CheckResult(curEvents.Skip(curEvents.Count - maxCount).ToArray(), result);
 
 			if (fromEventNumber - maxCount < 0)
+			{
 				Assert.True(result.IsEndOfStream);
+			}
 			else
+			{
 				Assert.AreEqual(fromEventNumber - maxCount, result.NextEventNumber);
+			}
 		}
 	}
 }

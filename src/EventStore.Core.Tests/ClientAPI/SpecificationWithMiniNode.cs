@@ -90,7 +90,10 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 	public override async Task TestFixtureTearDown()
 	{
 		if (_conn != null)
+		{
 			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, Timeout);
+		}
+
 		await _node.Shutdown();
 		await Task.Delay(1000);
 		await base.TestFixtureTearDown();

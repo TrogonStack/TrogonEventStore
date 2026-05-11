@@ -15,8 +15,11 @@ public class IndexStreams : IProjectionStateHandler
 	{
 		var trimmedSource = source == null ? null : source.Trim();
 		if (!string.IsNullOrEmpty(trimmedSource))
+		{
 			throw new InvalidOperationException(
 				"Cannot initialize categorize stream projection handler.  No source is allowed.");
+		}
+
 		if (logger != null)
 		{
 			//                logger(string.Format("Index streams projection handler has been initialized"));
@@ -60,7 +63,9 @@ public class IndexStreams : IProjectionStateHandler
 		emittedEvents = null;
 		newState = null;
 		if (data.PositionSequenceNumber != 0)
+		{
 			return false; // not our event
+		}
 
 		emittedEvents = new[] {
 			new EmittedEventEnvelope(

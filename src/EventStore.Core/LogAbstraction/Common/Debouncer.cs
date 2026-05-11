@@ -2,10 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EventStore.Core.LogAbstraction.Common {
+namespace EventStore.Core.LogAbstraction.Common
+{
 	/// Executes the func after each interval, but only if it has been triggered during the interval.
 	/// The func should handle its own exceptions.
-	public class Debouncer {
+	public class Debouncer
+	{
 		private readonly TimeSpan _interval;
 		private readonly Func<CancellationToken, Task> _func;
 		private readonly CancellationToken _token;
@@ -15,7 +17,8 @@ namespace EventStore.Core.LogAbstraction.Common {
 		public Debouncer(
 			TimeSpan interval,
 			Func<CancellationToken, Task> func,
-			CancellationToken token) {
+			CancellationToken token)
+		{
 
 			_interval = interval;
 			_func = func;
@@ -23,14 +26,18 @@ namespace EventStore.Core.LogAbstraction.Common {
 			_task = RunAsync();
 		}
 
-		public void Trigger() {
+		public void Trigger()
+		{
 			_mres.Set();
 		}
 
-		async Task RunAsync() {
-			while (true) {
+		async Task RunAsync()
+		{
+			while (true)
+			{
 				await Task.Delay(_interval, _token);
-				if (_mres.IsSet) {
+				if (_mres.IsSet)
+				{
 					_mres.Reset();
 					await _func(_token);
 				}

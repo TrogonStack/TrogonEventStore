@@ -42,7 +42,9 @@ public class LengthPrefixMessageFramerWithBufferPool
 	public void UnFrameData(IEnumerable<ArraySegment<byte>> data)
 	{
 		if (data == null)
+		{
 			throw new ArgumentNullException("data");
+		}
 
 		foreach (ArraySegment<byte> buffer in data)
 		{
@@ -91,7 +93,10 @@ public class LengthPrefixMessageFramerWithBufferPool
 				if (_messageBuffer.Length == _packageLength)
 				{
 					if (_receivedHandler != null)
+					{
 						_receivedHandler(_messageBuffer);
+					}
+
 					_messageBuffer = null;
 					_headerBytes = 0;
 					_packageLength = 0;
@@ -112,7 +117,9 @@ public class LengthPrefixMessageFramerWithBufferPool
 	public void RegisterMessageArrivedCallback(Action<BufferPool> handler)
 	{
 		if (handler == null)
+		{
 			throw new ArgumentNullException("handler");
+		}
 
 		_receivedHandler = handler;
 	}

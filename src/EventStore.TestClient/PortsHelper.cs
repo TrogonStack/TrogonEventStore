@@ -72,12 +72,19 @@ internal static class PortsHelper
 				var buffer = new byte[256];
 				var read = request.Content.ReadAsStream().Read(buffer, 0, buffer.Length);
 				if (read != 3 || buffer[0] != 1 || buffer[1] != 2 || buffer[2] != 3)
+				{
 					throw new Exception(string.Format("Unexpected response received from HTTP on port {0}.", port));
+				}
 
 				if (!listenTask.Wait(5000))
+				{
 					throw new Exception("PortsHelper: time out waiting for HttpListener to return.");
+				}
+
 				if (httpListenerError != null)
+				{
 					throw httpListenerError;
+				}
 
 				httpListener.Stop();
 			}
@@ -94,7 +101,9 @@ internal static class PortsHelper
 
 		Log.Verbose("PortsHelper: {ports} ports are available at [{ip}].", succ, ip);
 		if (succ <= PortCount / 2)
+		{
 			throw new Exception("More than half requested ports are unavailable.");
+		}
 
 		Log.Verbose("PortsHelper: test took {elapsed}.", sw.Elapsed);
 	}
@@ -105,7 +114,9 @@ internal static class PortsHelper
 		{
 			int port;
 			if (!AvailablePorts.TryDequeue(out port))
+			{
 				throw new Exception("Couldn't get free TCP port for MiniNode.");
+			}
 
 			/*
 							try

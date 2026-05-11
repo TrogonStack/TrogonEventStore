@@ -2,11 +2,13 @@ using System;
 using EventStore.Common.Utils;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 
-namespace EventStore.Core.Services.PersistentSubscription {
+namespace EventStore.Core.Services.PersistentSubscription
+{
 	/// <summary>
 	/// Builds a <see cref="PersistentSubscriptionParams"/> object.
 	/// </summary>
-	public abstract class PersistentSubscriptionParamsBuilder {
+	public abstract class PersistentSubscriptionParamsBuilder
+	{
 		private bool _resolveLinkTos;
 		private IPersistentSubscriptionStreamPosition _startFrom;
 		private bool _recordStatistics;
@@ -35,7 +37,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// <param name="reader"></param>
 		/// <returns></returns>
 		public PersistentSubscriptionParamsBuilder
-			WithCheckpointReader(IPersistentSubscriptionCheckpointReader reader) {
+			WithCheckpointReader(IPersistentSubscriptionCheckpointReader reader)
+		{
 			_checkpointReader = reader;
 			return this;
 		}
@@ -45,7 +48,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <param name="groupName"></param>
 		/// <returns></returns>
-		public PersistentSubscriptionParamsBuilder SetGroup(string groupName) {
+		public PersistentSubscriptionParamsBuilder SetGroup(string groupName)
+		{
 			_groupName = groupName;
 			return this;
 		}
@@ -55,7 +59,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <param name="subscriptionId"></param>
 		/// <returns></returns>
-		public PersistentSubscriptionParamsBuilder SetSubscriptionId(string subscriptionId) {
+		public PersistentSubscriptionParamsBuilder SetSubscriptionId(string subscriptionId)
+		{
 			_subscriptionId = subscriptionId;
 			return this;
 		}
@@ -65,7 +70,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <param name="eventSource"></param>
 		/// <returns></returns>
-		public PersistentSubscriptionParamsBuilder WithEventSource(IPersistentSubscriptionEventSource eventSource) {
+		public PersistentSubscriptionParamsBuilder WithEventSource(IPersistentSubscriptionEventSource eventSource)
+		{
 			_eventSource = eventSource;
 			return this;
 		}
@@ -75,12 +81,14 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <param name="parker"></param>
 		/// <returns></returns>
-		public PersistentSubscriptionParamsBuilder WithMessageParker(IPersistentSubscriptionMessageParker parker) {
+		public PersistentSubscriptionParamsBuilder WithMessageParker(IPersistentSubscriptionMessageParker parker)
+		{
 			_messageParker = parker;
 			return this;
 		}
 
-		public PersistentSubscriptionParamsBuilder WithPushScheduler(IPersistentSubscriptionPushScheduler scheduler) {
+		public PersistentSubscriptionParamsBuilder WithPushScheduler(IPersistentSubscriptionPushScheduler scheduler)
+		{
 			_pushScheduler = scheduler;
 			return this;
 		}
@@ -91,7 +99,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// <param name="writer"></param>
 		/// <returns></returns>
 		public PersistentSubscriptionParamsBuilder
-			WithCheckpointWriter(IPersistentSubscriptionCheckpointWriter writer) {
+			WithCheckpointWriter(IPersistentSubscriptionCheckpointWriter writer)
+		{
 			_checkpointWriter = writer;
 			return this;
 		}
@@ -101,7 +110,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <param name="loader"></param>
 		/// <returns></returns>
-		public PersistentSubscriptionParamsBuilder WithEventLoader(IPersistentSubscriptionStreamReader loader) {
+		public PersistentSubscriptionParamsBuilder WithEventLoader(IPersistentSubscriptionStreamReader loader)
+		{
 			_streamReader = loader;
 			return this;
 		}
@@ -111,7 +121,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// in high performance situations.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder WithExtraStatistics() {
+		public PersistentSubscriptionParamsBuilder WithExtraStatistics()
+		{
 			_recordStatistics = true;
 			return this;
 		}
@@ -120,7 +131,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the option to resolve linktos on events that are found for this subscription.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder ResolveLinkTos() {
+		public PersistentSubscriptionParamsBuilder ResolveLinkTos()
+		{
 			_resolveLinkTos = true;
 			return this;
 		}
@@ -129,7 +141,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the option to not resolve linktos on events that are found for this subscription.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder DoNotResolveLinkTos() {
+		public PersistentSubscriptionParamsBuilder DoNotResolveLinkTos()
+		{
 			_resolveLinkTos = false;
 			return this;
 		}
@@ -139,7 +152,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// are connected.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder PreferRoundRobin() {
+		public PersistentSubscriptionParamsBuilder PreferRoundRobin()
+		{
 			_consumerStrategy = new RoundRobinPersistentSubscriptionConsumerStrategy();
 			return this;
 		}
@@ -150,7 +164,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// clients.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder PreferDispatchToSingle() {
+		public PersistentSubscriptionParamsBuilder PreferDispatchToSingle()
+		{
 			_consumerStrategy = new DispatchToSinglePersistentSubscriptionConsumerStrategy();
 			return this;
 		}
@@ -161,7 +176,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// <param name="consumerStrategy"></param>
 		/// <returns></returns>
 		public PersistentSubscriptionParamsBuilder CustomConsumerStrategy(
-			IPersistentSubscriptionConsumerStrategy consumerStrategy) {
+			IPersistentSubscriptionConsumerStrategy consumerStrategy)
+		{
 			_consumerStrategy = consumerStrategy;
 			return this;
 		}
@@ -170,7 +186,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets that the subscription should start from a specified location.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder StartFrom(IPersistentSubscriptionStreamPosition startFrom) {
+		public PersistentSubscriptionParamsBuilder StartFrom(IPersistentSubscriptionStreamPosition startFrom)
+		{
 			_startFrom = startFrom;
 			return this;
 		}
@@ -183,7 +200,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the timeout timespan to about 30k years.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder DontTimeoutMessages() {
+		public PersistentSubscriptionParamsBuilder DontTimeoutMessages()
+		{
 			_timeout = TimeSpan.MaxValue;
 			return this;
 		}
@@ -192,7 +210,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the time after which the subscription should be checkpointed
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder CheckPointAfter(TimeSpan time) {
+		public PersistentSubscriptionParamsBuilder CheckPointAfter(TimeSpan time)
+		{
 			_checkPointAfter = time;
 			return this;
 		}
@@ -201,7 +220,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the minimum number of items to checkpoint
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder MinimumToCheckPoint(int count) {
+		public PersistentSubscriptionParamsBuilder MinimumToCheckPoint(int count)
+		{
 			_minCheckPointCount = count;
 			return this;
 		}
@@ -210,7 +230,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the maximum number of items to checkpoint
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder MaximumToCheckPoint(int count) {
+		public PersistentSubscriptionParamsBuilder MaximumToCheckPoint(int count)
+		{
 			_maxCheckPointCount = count;
 			return this;
 		}
@@ -219,7 +240,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the maximum number of subscribers
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder MaximumSubscribers(int count) {
+		public PersistentSubscriptionParamsBuilder MaximumSubscribers(int count)
+		{
 			_maxSubscriberCount = count;
 			return this;
 		}
@@ -228,7 +250,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the timeout for a message (will be retried if an ack is not received within this timespan)
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder WithMessageTimeoutOf(TimeSpan timeout) {
+		public PersistentSubscriptionParamsBuilder WithMessageTimeoutOf(TimeSpan timeout)
+		{
 			_timeout = timeout;
 			return this;
 		}
@@ -237,7 +260,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// Sets the number of times a message should be retried before being considered a bad message
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder WithMaxRetriesOf(int count) {
+		public PersistentSubscriptionParamsBuilder WithMaxRetriesOf(int count)
+		{
 			Ensure.Nonnegative(count, "count");
 			_maxRetryCount = count;
 			return this;
@@ -249,7 +273,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// in terms of the number of messages to cache.
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder WithLiveBufferSizeOf(int count) {
+		public PersistentSubscriptionParamsBuilder WithLiveBufferSizeOf(int count)
+		{
 			Ensure.Nonnegative(count, "count");
 			_liveBufferSize = count;
 			return this;
@@ -261,7 +286,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// sizes should not be too big ...
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder WithReadBatchOf(int count) {
+		public PersistentSubscriptionParamsBuilder WithReadBatchOf(int count)
+		{
 			Ensure.Nonnegative(count, "count");
 			_readBatchSize = count;
 			return this;
@@ -273,7 +299,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// sizes should not be too big ...
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
-		public PersistentSubscriptionParamsBuilder WithHistoryBufferSizeOf(int count) {
+		public PersistentSubscriptionParamsBuilder WithHistoryBufferSizeOf(int count)
+		{
 			Ensure.Nonnegative(count, "count");
 			_historyBufferSize = count;
 			return this;
@@ -285,7 +312,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <returns>A new <see cref="PersistentSubscriptionParamsBuilder"></see></returns>
 		public PersistentSubscriptionParamsBuilder WithNamedConsumerStrategy(
-			IPersistentSubscriptionConsumerStrategy consumerStrategy) {
+			IPersistentSubscriptionConsumerStrategy consumerStrategy)
+		{
 			Ensure.NotNull(consumerStrategy, "consumerStrategy");
 			_consumerStrategy = consumerStrategy;
 			return this;
@@ -296,7 +324,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		/// </summary>
 		/// <param name="builder"><see cref="PersistentSubscriptionParamsBuilder"/> from which to build a <see cref="PersistentSubscriptionParamsBuilder"/></param>
 		/// <returns></returns>
-		public static implicit operator PersistentSubscriptionParams(PersistentSubscriptionParamsBuilder builder) {
+		public static implicit operator PersistentSubscriptionParams(PersistentSubscriptionParamsBuilder builder)
+		{
 			return new PersistentSubscriptionParams(builder._resolveLinkTos,
 				builder._subscriptionId,
 				builder._eventSource,

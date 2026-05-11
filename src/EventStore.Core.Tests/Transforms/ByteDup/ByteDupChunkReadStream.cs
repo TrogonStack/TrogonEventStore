@@ -18,7 +18,9 @@ public class ByteDupChunkReadStream(ChunkDataReadStream stream)
 		int numRead = base.Read(buf);
 
 		for (int i = 0; i < buffer.Length; i++)
+		{
 			buffer[i] = buf[i * 2];
+		}
 
 		return numRead / 2;
 	}
@@ -29,7 +31,9 @@ public class ByteDupChunkReadStream(ChunkDataReadStream stream)
 		int numRead = await base.ReadAsync(buf, token);
 
 		for (int i = 0; i < buffer.Length; i++)
+		{
 			buffer.Span[i] = buf[i * 2];
+		}
 
 		return numRead / 2;
 	}
@@ -37,7 +41,9 @@ public class ByteDupChunkReadStream(ChunkDataReadStream stream)
 	public override long Seek(long offset, SeekOrigin origin)
 	{
 		if (origin is not SeekOrigin.Begin)
+		{
 			throw new NotSupportedException();
+		}
 
 		Position = offset;
 		return offset;

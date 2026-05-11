@@ -2,14 +2,17 @@ using System;
 using System.Threading;
 using Serilog;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class Cleaner : ICleaner {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class Cleaner : ICleaner
+	{
 		private readonly ILogger _logger;
 		private readonly bool _unsafeIgnoreHardDeletes;
 
 		public Cleaner(
 			ILogger logger,
-			bool unsafeIgnoreHardDeletes) {
+			bool unsafeIgnoreHardDeletes)
+		{
 			_logger = logger;
 			_unsafeIgnoreHardDeletes = unsafeIgnoreHardDeletes;
 		}
@@ -17,7 +20,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public void Clean(
 			ScavengePoint scavengePoint,
 			IScavengeStateForCleaner state,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 
 			_logger.Debug("SCAVENGING: Started new scavenge clean up phase for {scavengePoint}",
 				scavengePoint.GetName());
@@ -30,7 +34,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public void Clean(
 			ScavengeCheckpoint.Cleaning checkpoint,
 			IScavengeStateForCleaner state,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 
 			_logger.Debug("SCAVENGING: Cleaning checkpoint: {checkpoint}", checkpoint);
 
@@ -39,10 +44,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			// we clean up in a transaction, not so that we can checkpoint, but just to save lots of
 			// implicit transactions from being created
 			var transaction = state.BeginTransaction();
-			try {
+			try
+			{
 				CleanImpl(state, cancellationToken);
 				transaction.Commit(checkpoint);
-			} catch {
+			}
+			catch
+			{
 				transaction.Rollback();
 				throw;
 			}
@@ -50,10 +58,12 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		private void CleanImpl(
 			IScavengeStateForCleaner state,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 
 			// constant time operation
-			if (state.AllChunksExecuted()) {
+			if (state.AllChunksExecuted())
+			{
 				// Now we know we have successfully executed every chunk with weight.
 
 				_logger.Debug("SCAVENGING: Deleting metastream data");
@@ -65,16 +75,21 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 					_unsafeIgnoreHardDeletes);
 				state.DeleteOriginalStreamData(deleteArchived: _unsafeIgnoreHardDeletes);
 
-			} else {
+			}
+			else
+			{
 				// one or more chunks was not executed, due to error or not meeting the threshold
 				// either way, we cannot clean up the stream datas
-				if (_unsafeIgnoreHardDeletes) {
+				if (_unsafeIgnoreHardDeletes)
+				{
 					// the chunk executor should have stopped the scavenge if it couldn't execute any
 					// chunk when this flag is set.
 					// we could have removed the tombstone without removing all the other records.
 					throw new Exception(
 						"UnsafeIgnoreHardDeletes is true but not all chunks have been executed");
-				} else {
+				}
+				else
+				{
 					_logger.Debug("SCAVENGING: Skipping cleanup because some chunks have not been executed");
 				}
 			}

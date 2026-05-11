@@ -10,7 +10,8 @@ namespace EventStore.Core.Services.Transport.Http;
 // ClaimsPrinciple that it has left in the context.
 // todo: figure out why AuthenticationMiddleware is as complicated as it is and whether it
 // should be replaced with an AuthenticationHandler (or several)
-public class EventStoreAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions> {
+public class EventStoreAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+{
 	public EventStoreAuthenticationHandler(
 		IOptionsMonitor<AuthenticationSchemeOptions> options,
 		// we could pass the logger through instead of NullLoggerFactory but we have debug logging
@@ -19,12 +20,16 @@ public class EventStoreAuthenticationHandler : AuthenticationHandler<Authenticat
 		// instead we should rationalize the log levels, turn off debug logging, and then pass this through.
 		// ILoggerFactory logger,
 		UrlEncoder encoder)
-		: base(options, NullLoggerFactory.Instance, encoder) {
+		: base(options, NullLoggerFactory.Instance, encoder)
+	{
 	}
 
-	protected override Task<AuthenticateResult> HandleAuthenticateAsync() {
+	protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+	{
 		if (!Context.User.Identity.IsAuthenticated)
+		{
 			return Task.FromResult(AuthenticateResult.Fail("Not authenticated"));
+		}
 
 		var ticket = new AuthenticationTicket(
 			principal: Context.User,

@@ -164,7 +164,10 @@ public class ProjectionCoreCoordinator
 		if (message.SubComponent == ProjectionCoreService.SubComponentName)
 		{
 			if (!_queues.TryGetValue(message.QueueId, out var queue))
+			{
 				return;
+			}
+
 			queue.Publish(new ReaderCoreServiceMessage.StopReader(message.QueueId));
 		}
 

@@ -60,7 +60,10 @@ public static class TFChunkHelper
 		ICheckpoint replicationCheckpoint = null)
 	{
 		if (replicationCheckpoint == null)
+		{
 			replicationCheckpoint = new InMemoryCheckpoint(-1);
+		}
+
 		return new TFChunkDbConfig(
 			pathName,
 			new VersionedPatternFileNamingStrategy(pathName, "chunk-"),
@@ -76,13 +79,13 @@ public static class TFChunkHelper
 			new InMemoryCheckpoint(-1));
 	}
 
-		public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
-		{
-			return TFChunk.CreateNew(CreateLocalFileSystem(fileName), fileName, chunkSize, 0, 0,
-				isScavenged: isScavenged, unbuffered: false,
-				writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
-			transformFactory: new IdentityChunkTransformFactory(),
-			token);
+	public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
+	{
+		return TFChunk.CreateNew(CreateLocalFileSystem(fileName), fileName, chunkSize, 0, 0,
+			isScavenged: isScavenged, unbuffered: false,
+			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),
+		transformFactory: new IdentityChunkTransformFactory(),
+		token);
 	}
 
 	public static IChunkFileSystem CreateLocalFileSystem(string fileName) =>

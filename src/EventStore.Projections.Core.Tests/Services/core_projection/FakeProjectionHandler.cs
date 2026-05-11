@@ -59,7 +59,9 @@ public class FakeProjectionStateHandler : IProjectionStateHandler
 	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder)
 	{
 		if (_configureBuilder != null)
+		{
 			_configureBuilder(builder);
+		}
 		else
 		{
 			builder.FromAll();
@@ -72,7 +74,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler
 	public void Load(string state)
 	{
 		if (_failOnLoad)
+		{
 			throw new Exception("LOAD_FAILED");
+		}
+
 		_loadCalled++;
 		_loadedState = state;
 	}
@@ -85,7 +90,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler
 	public void Initialize()
 	{
 		if (_failOnInitialize)
+		{
 			throw new Exception("INITIALIZE_FAILED");
+		}
+
 		_initializeCalled++;
 		_loadedState = "";
 	}
@@ -93,7 +101,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler
 	public void InitializeShared()
 	{
 		if (_failOnInitialize)
+		{
 			throw new Exception("INITIALIZE_SHARED_FAILED");
+		}
+
 		_initializeSharedCalled++;
 		_loadedState = "";
 	}
@@ -102,7 +113,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler
 	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data)
 	{
 		if (_failOnGetPartition)
+		{
 			throw new Exception("GetStatePartition FAILED");
+		}
+
 		return "region-a";
 	}
 
@@ -112,7 +126,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler
 	{
 		newSharedState = null;
 		if (_failOnProcessEvent)
+		{
 			throw new Exception("PROCESS_EVENT_FAILED");
+		}
+
 		_lastProcessedStreamId = data.EventStreamId;
 		_lastProcessedEventType = data.EventType;
 		_lastProcessedEventId = data.EventId;

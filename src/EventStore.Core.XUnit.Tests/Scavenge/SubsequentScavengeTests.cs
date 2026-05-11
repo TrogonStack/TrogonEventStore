@@ -139,7 +139,9 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 					chunk: 1,
 					eventNumber: 0)));
 				for (int i = 0; i < 6; i++)
+				{
 					x.SetChunkTimeStampRange(i, new ChunkTimeStampRange(DateTime.UtcNow, DateTime.UtcNow));
+				}
 			})
 			.AssertTrace(
 				Tracer.Line("Accumulating from SP-0 to SP-2"),
@@ -537,7 +539,9 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 					eventNumber: 0)));
 
 				for (int i = 0; i < 4; i++)
+				{
 					x.SetChunkTimeStampRange(i, new ChunkTimeStampRange(DateTime.UtcNow, DateTime.UtcNow));
+				}
 			})
 			.AssertState(state =>
 			{

@@ -1,9 +1,9 @@
-using EventStore.Core.Services.Archive.Storage;
-using EventStore.Core.Services.Archive;
-using EventStore.Core.Services.Archive.Naming;
-using EventStore.Core.TransactionLog.FileNamingStrategy;
 using System.IO;
 using System.Security.Cryptography;
+using EventStore.Core.Services.Archive;
+using EventStore.Core.Services.Archive.Naming;
+using EventStore.Core.Services.Archive.Storage;
+using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
 

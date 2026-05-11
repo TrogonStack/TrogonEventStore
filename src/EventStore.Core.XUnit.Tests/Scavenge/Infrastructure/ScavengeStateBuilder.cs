@@ -77,7 +77,9 @@ public class ScavengeStateBuilder<TStreamId>
 	private ScavengeState<TStreamId> BuildInternal()
 	{
 		if (_connectionPool == null)
+		{
 			throw new Exception("call WithConnectionPool(...)");
+		}
 
 		var map = new ConcurrentDictionary<IScavengeStateBackend<TStreamId>, SqliteConnection>();
 		var backendPool = new ObjectPool<IScavengeStateBackend<TStreamId>>(
@@ -95,7 +97,9 @@ public class ScavengeStateBuilder<TStreamId>
 				var transactionFactory = sqlite.TransactionFactory;
 
 				if (_tracer != null)
+				{
 					transactionFactory = new TracingTransactionFactory<SqliteTransaction>(transactionFactory, _tracer);
+				}
 
 				ITransactionManager transactionManager = new TransactionManager<SqliteTransaction>(
 					transactionFactory,

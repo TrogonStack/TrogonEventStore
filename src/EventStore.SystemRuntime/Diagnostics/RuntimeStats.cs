@@ -64,7 +64,9 @@ public static class RuntimeStats
 		static async ValueTask<long> GetFreeMemoryOSX(bool native = false)
 		{
 			if (native)
+			{
 				return OsxNative.Memory.GetFreeMemory();
+			}
 
 			var output = await ExecuteShellCommandAsync("vm_stat | head -n 2");
 
@@ -186,7 +188,9 @@ public static class RuntimeStats
 		using var process = Process.Start(psi);
 
 		if (process is null)
+		{
 			throw new InvalidOperationException($"Could not start sh process to execute: {psi.FileName} {psi.Arguments}");
+		}
 
 		var result = await process.StandardOutput.ReadToEndAsync();
 

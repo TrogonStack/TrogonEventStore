@@ -45,9 +45,11 @@ public abstract class with_projections_subsystem<TLogFormat, TStreamId> : TestFi
 			foreach (var projection in statistics.Projections)
 			{
 				if (projection.Status != "Running")
+				{
 					yield return
 						new ProjectionManagementMessage.Command.Enable(
 							Envelope, projection.Name, ProjectionManagementMessage.RunAs.Anonymous);
+				}
 			}
 		}
 	}

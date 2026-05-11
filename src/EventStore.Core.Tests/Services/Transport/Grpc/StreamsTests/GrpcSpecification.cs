@@ -99,7 +99,9 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId>
 			try
 			{
 				if (Directory.Exists(_dbPath))
+				{
 					Directory.Delete(_dbPath, recursive: true);
+				}
 			}
 			catch (Exception) when (shutdownException is not null)
 			{

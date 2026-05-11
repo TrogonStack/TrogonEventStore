@@ -2,8 +2,10 @@ using System;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Services.Storage.ReaderIndex {
-	public struct IndexReadStreamResult {
+namespace EventStore.Core.Services.Storage.ReaderIndex
+{
+	public struct IndexReadStreamResult
+	{
 		internal static readonly EventRecord[] EmptyRecords = new EventRecord[0];
 
 		public readonly long FromEventNumber;
@@ -21,10 +23,13 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 		/// Failure Constructor
 		/// </summary>
 		public IndexReadStreamResult(long fromEventNumber, int maxCount, ReadStreamResult result,
-			StreamMetadata metadata, long lastEventNumber) {
+			StreamMetadata metadata, long lastEventNumber)
+		{
 			if (result == ReadStreamResult.Success)
+			{
 				throw new ArgumentException(
 					String.Format("Wrong ReadStreamResult provided for failure constructor: {0}.", result), "result");
+			}
 
 			FromEventNumber = fromEventNumber;
 			MaxCount = maxCount;
@@ -58,7 +63,8 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 			StreamMetadata metadata,
 			long nextEventNumber,
 			long lastEventNumber,
-			bool isEndOfStream) {
+			bool isEndOfStream)
+		{
 
 			Ensure.NotNull(records, "records");
 
@@ -73,9 +79,10 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 			IsEndOfStream = isEndOfStream;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return String.Format("FromEventNumber: {0}, Maxcount: {1}, Result: {2}, Record count: {3}, Metadata: {4}, "
-			                     + "NextEventNumber: {5}, LastEventNumber: {6}, IsEndOfStream: {7}",
+								 + "NextEventNumber: {5}, LastEventNumber: {6}, IsEndOfStream: {7}",
 				FromEventNumber,
 				MaxCount,
 				Result,

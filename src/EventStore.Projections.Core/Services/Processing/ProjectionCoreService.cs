@@ -128,7 +128,10 @@ public class ProjectionCoreService
 	public void Handle(ProjectionCoreServiceMessage.StopCoreTimeout message)
 	{
 		if (message.QueueId != _stopQueueId)
+		{
 			return;
+		}
+
 		_logger.Debug("PROJECTIONS: Suspending projections in Projection Core Service timed out. Force stopping.");
 		FinishStopping();
 	}
@@ -136,7 +139,9 @@ public class ProjectionCoreService
 	public void Handle(CoreProjectionStatusMessage.Suspended message)
 	{
 		if (!_stopping)
+		{
 			return;
+		}
 
 		_suspendingProjections.Remove(message.ProjectionId);
 		if (_suspendingProjections.Count == 0)
@@ -148,7 +153,9 @@ public class ProjectionCoreService
 	private void FinishStopping()
 	{
 		if (!_stopping)
+		{
 			return;
+		}
 
 		_projections.Clear();
 		_stopping = false;
@@ -290,49 +297,63 @@ public class ProjectionCoreService
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(CoreProjectionManagementMessage.GetResult message)
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.CheckpointCompleted message)
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message)
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message)
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.RestartRequested message)
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.Failed message)
 	{
 		CoreProjection projection;
 		if (_projections.TryGetValue(message.ProjectionId, out projection))
+		{
 			projection.Handle(message);
+		}
 	}
 
 	public static IProjectionStateHandler CreateStateHandler(ProjectionStateHandlerFactory factory,

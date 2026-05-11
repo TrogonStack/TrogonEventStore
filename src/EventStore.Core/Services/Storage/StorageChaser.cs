@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -11,14 +12,14 @@ using EventStore.Core.Services.Storage.EpochManager;
 using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.LogRecords;
-using System.Threading.Tasks;
-using ILogger = Serilog.ILogger;
 using EventStore.LogCommon;
 using static System.Threading.Timeout;
+using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Services.Storage;
 
-public abstract class StorageChaser {
+public abstract class StorageChaser
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<StorageChaser>();
 }
 
@@ -116,10 +117,14 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			while (!_stopToken.IsCancellationRequested)
 			{
 				if (_systemStarted)
+				{
 					await ChaserIteration(_stopToken);
+				}
 				else
+				{
 					await Task.Delay(1, _stopToken).ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext |
-					                                               ConfigureAwaitOptions.SuppressThrowing);
+																   ConfigureAwaitOptions.SuppressThrowing);
+				}
 			}
 		}
 		catch (Exception exc)
@@ -132,7 +137,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			Application.Exit(ExitCode.Error, "Error in StorageChaser. Terminating...\nError: " + exc.Message);
 			await Task.Delay(InfiniteTimeSpan, _stopToken)
 				.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing |
-				                ConfigureAwaitOptions.ContinueOnCapturedContext);
+								ConfigureAwaitOptions.ContinueOnCapturedContext);
 
 			_queueStats.ProcessingEnded(0);
 		}
@@ -193,24 +198,24 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			case LogRecordType.Stream:
 			case LogRecordType.EventType:
 			case LogRecordType.Prepare:
-			{
-				var record = (IPrepareLogRecord<TStreamId>)result.LogRecord;
-				ProcessPrepareRecord(record, result.RecordPostPosition);
-				break;
-			}
+				{
+					var record = (IPrepareLogRecord<TStreamId>)result.LogRecord;
+					ProcessPrepareRecord(record, result.RecordPostPosition);
+					break;
+				}
 			case LogRecordType.Commit:
-			{
-				_commitsAfterEof = !result.Eof;
-				var record = (CommitLogRecord)result.LogRecord;
-				await ProcessCommitRecord(record, result.RecordPostPosition, token);
-				break;
-			}
+				{
+					_commitsAfterEof = !result.Eof;
+					var record = (CommitLogRecord)result.LogRecord;
+					await ProcessCommitRecord(record, result.RecordPostPosition, token);
+					break;
+				}
 			case LogRecordType.System:
-			{
-				var record = (ISystemLogRecord)result.LogRecord;
-				await ProcessSystemRecord(record, token);
-				break;
-			}
+				{
+					var record = (ISystemLogRecord)result.LogRecord;
+					await ProcessSystemRecord(record, token);
+					break;
+				}
 			case LogRecordType.Partition:
 			case LogRecordType.PartitionType:
 				break;
@@ -228,14 +233,21 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 	private void ProcessPrepareRecord(IPrepareLogRecord<TStreamId> record, long postPosition)
 	{
 		if (_transaction.Count > 0 && _transaction[0].TransactionPosition != record.TransactionPosition)
+		{
 			CommitPendingTransaction(_transaction, postPosition);
+		}
 
 		if (record.Flags.HasAnyOf(PrepareFlags.IsCommitted))
 		{
 			if (record.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
+			{
 				_transaction.Add(record);
+			}
 
-			if (!record.Flags.HasAnyOf(PrepareFlags.TransactionEnd)) return;
+			if (!record.Flags.HasAnyOf(PrepareFlags.TransactionEnd))
+			{
+				return;
+			}
 
 			CommitPendingTransaction(_transaction, postPosition);
 
@@ -273,7 +285,10 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 		var lastEventNumber = await _indexCommitterService.GetCommitLastEventNumber(record, token);
 		_indexCommitterService.AddPendingCommit(record, postPosition);
 		if (lastEventNumber is EventNumber.Invalid)
+		{
 			lastEventNumber = record.FirstEventNumber - 1;
+		}
+
 		_leaderBus.Publish(new StorageMessage.CommitAck(record.CorrelationId, record.LogPosition,
 			record.TransactionPosition, firstEventNumber, lastEventNumber));
 	}
@@ -282,7 +297,10 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 	{
 		CommitPendingTransaction(_transaction, record.LogPosition);
 
-		if (record.SystemRecordType is not SystemRecordType.Epoch) return ValueTask.CompletedTask;
+		if (record.SystemRecordType is not SystemRecordType.Epoch)
+		{
+			return ValueTask.CompletedTask;
+		}
 
 		// Epoch record is written to TF, but possibly is not added to EpochManager
 		// as we could be in Follower/Clone mode. We try to add epoch to EpochManager
@@ -294,7 +312,10 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 
 	private void CommitPendingTransaction(List<IPrepareLogRecord<TStreamId>> transaction, long postPosition)
 	{
-		if (transaction.Count <= 0) return;
+		if (transaction.Count <= 0)
+		{
+			return;
+		}
 
 		_indexCommitterService.AddPendingPrepare(transaction.ToArray(), postPosition);
 		_transaction.Clear();
@@ -302,7 +323,10 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 
 	public void Handle(SystemMessage.BecomeShuttingDown message)
 	{
-		if (_stop.IsCancellationRequested) return;
+		if (_stop.IsCancellationRequested)
+		{
+			return;
+		}
 
 		_stop.Cancel();
 		_stop.Dispose();

@@ -24,7 +24,10 @@ public class a_running_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			var readerAssignedMessage =
 				_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
 					.LastOrDefault();
@@ -39,7 +42,9 @@ public class a_running_projection
 						Guid.NewGuid(), "type", false, new byte[0], new byte[0], 100, 33.3f));
 			}
 			else
+			{
 				_reader = Guid.Empty;
+			}
 		}
 	}
 
@@ -49,7 +54,9 @@ public class a_running_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
 
 			yield return
 				(new ProjectionManagementMessage.Command.Disable(
@@ -117,7 +124,10 @@ public class a_running_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_reader, new TFPos(200, 150), new TFPos(200, 150), "stream", 2, "stream", 2, false,
@@ -170,7 +180,9 @@ public class a_running_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
 
 			yield return
 				(new ProjectionManagementMessage.Command.Reset(
@@ -244,7 +256,10 @@ public class a_running_projection
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(new ProjectionManagementMessage.Command.Reset(
 					_bus, _projectionName, ProjectionManagementMessage.RunAs.System));

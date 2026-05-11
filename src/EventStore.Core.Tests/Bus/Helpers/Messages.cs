@@ -10,7 +10,10 @@ public class DeferredExecutionTestMessage : Message
 	public DeferredExecutionTestMessage(Action action)
 	{
 		if (action == null)
+		{
 			throw new ArgumentNullException("action");
+		}
+
 		_action = action;
 	}
 
@@ -27,7 +30,10 @@ public class ExecutableTestMessage : Message
 	public ExecutableTestMessage(Action action)
 	{
 		if (action == null)
+		{
 			throw new ArgumentNullException("action");
+		}
+
 		_action = action;
 	}
 

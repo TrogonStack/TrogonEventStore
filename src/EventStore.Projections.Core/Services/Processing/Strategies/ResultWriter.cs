@@ -29,7 +29,9 @@ public class ResultWriter : IResultWriter
 		string correlationId)
 	{
 		if (resultBody != null)
+		{
 			WriteResult(partition, resultBody, causedBy, causedByGuid, correlationId);
+		}
 	}
 
 	private void WriteResult(
@@ -37,13 +39,18 @@ public class ResultWriter : IResultWriter
 	{
 		var resultEvents = ResultUpdated(partition, resultBody, causedBy);
 		if (resultEvents != null)
+		{
 			_coreProjectionCheckpointManager.EventsEmitted(resultEvents, causedByGuid, correlationId);
+		}
 	}
 
 	public void WriteRunningResult(EventProcessedResult result)
 	{
 		if (!_producesRunningResults)
+		{
 			return;
+		}
+
 		var oldState = result.OldState;
 		var newState = result.NewState;
 		var resultBody = newState.Result;
@@ -74,13 +81,17 @@ public class ResultWriter : IResultWriter
 	public void AccountPartition(EventProcessedResult result)
 	{
 		if (_producesRunningResults)
+		{
 			if (result.Partition != "" && result.OldState.CausedBy == _zeroCheckpointTag)
 			{
 				var resultEvents = RegisterNewPartition(result.Partition, result.CheckpointTag);
 				if (resultEvents != null)
+				{
 					_coreProjectionCheckpointManager.EventsEmitted(
 						resultEvents, Guid.Empty, correlationId: null);
+				}
 			}
+		}
 	}
 
 	public void EventsEmitted(

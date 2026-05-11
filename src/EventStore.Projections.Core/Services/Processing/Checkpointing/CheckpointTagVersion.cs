@@ -14,7 +14,9 @@ public struct CheckpointTagVersion
 	{
 		if (SystemVersion == ProjectionsSubsystem.VERSION && Version.Version == version.Version
 														  && Version.ProjectionId == version.ProjectionId)
+		{
 			return Tag;
+		}
 
 		return tagger.AdjustTag(Tag);
 	}

@@ -94,9 +94,13 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	public ProjectionsSubsystem(ProjectionSubsystemOptions projectionSubsystemOptions)
 	{
 		if (projectionSubsystemOptions.RunProjections <= ProjectionType.System)
+		{
 			_projectionWorkerThreadCount = 1;
+		}
 		else
+		{
 			_projectionWorkerThreadCount = projectionSubsystemOptions.ProjectionWorkerThreadCount;
+		}
 
 		_runProjections = projectionSubsystemOptions.RunProjections;
 		// Projection manager & Projection Core Coordinator
@@ -184,7 +188,9 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	private void ConfigureProjectionMetrics(bool isEnabled)
 	{
 		if (!isEnabled)
+		{
 			return;
+		}
 
 		var projectionMeter = new Meter("EventStore.Projections.Core", version: "1.0.0");
 
@@ -212,7 +218,10 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	public void Handle(SystemMessage.SystemCoreReady message)
 	{
 		if (_subsystemState != SubsystemState.NotReady)
+		{
 			return;
+		}
+
 		_subsystemState = SubsystemState.Ready;
 		if (_nodeState == VNodeState.Leader)
 		{
@@ -229,7 +238,9 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	{
 		_nodeState = message.State;
 		if (_subsystemState == SubsystemState.NotReady)
+		{
 			return;
+		}
 
 		if (_nodeState == VNodeState.Leader)
 		{
@@ -322,7 +333,9 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		}
 
 		if (_pendingComponentStarts <= 0 || _subsystemState != SubsystemState.Starting)
+		{
 			return;
+		}
 
 		Logger.Debug("PROJECTIONS SUBSYSTEM: Component '{componentName}' started for Instance: {instanceCorrelationId}",
 			message.ComponentName, message.InstanceCorrelationId);
@@ -373,7 +386,9 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		}
 
 		if (_subsystemState != SubsystemState.Stopping)
+		{
 			return;
+		}
 
 		Logger.Debug("PROJECTIONS SUBSYSTEM: Component '{componentName}' stopped for Instance: {instanceCorrelationId}",
 			message.ComponentName, message.InstanceCorrelationId);
@@ -390,9 +405,14 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	private void FinishStopping()
 	{
 		if (_runningDispatchers > 0)
+		{
 			return;
+		}
+
 		if (_runningComponentCount > 0)
+		{
 			return;
+		}
 
 		Logger.Information(
 			"PROJECTIONS SUBSYSTEM: All components stopped and dispatchers drained for Instance: {correlationId}",
@@ -425,7 +445,9 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 			_leaderOutputQueue?.Start();
 
 			foreach (var queue in _coreWorkers)
+			{
 				queue.Value.Start();
+			}
 		}
 
 		_subsystemStarted = true;
@@ -439,9 +461,15 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		{
 			var stopTasks = new List<Task>();
 			if (_leaderInputQueue is not null)
+			{
 				stopTasks.Add(_leaderInputQueue.Stop());
+			}
+
 			if (_leaderOutputQueue is not null)
+			{
 				stopTasks.Add(_leaderOutputQueue.Stop());
+			}
+
 			stopTasks.AddRange(_coreWorkers.Values.Select(worker => worker.Stop()));
 
 			await Task.WhenAll(stopTasks);

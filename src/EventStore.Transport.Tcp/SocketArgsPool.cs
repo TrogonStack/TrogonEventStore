@@ -16,9 +16,14 @@ internal class SocketArgsPool
 	public SocketArgsPool(string name, int initialCount, Func<SocketAsyncEventArgs> socketArgsCreator)
 	{
 		if (socketArgsCreator == null)
+		{
 			throw new ArgumentNullException("socketArgsCreator");
+		}
+
 		if (initialCount < 0)
+		{
 			throw new ArgumentOutOfRangeException("initialCount");
+		}
 
 		Name = name;
 		_socketArgsCreator = socketArgsCreator;
@@ -33,7 +38,10 @@ internal class SocketArgsPool
 	{
 		SocketAsyncEventArgs result;
 		if (_socketArgsPool.TryPop(out result))
+		{
 			return result;
+		}
+
 		return _socketArgsCreator();
 	}
 

@@ -38,10 +38,18 @@ public sealed class PluginLoader : IDisposable
 	public IEnumerable<T> Load<T>() where T : class
 	{
 		foreach (var loadContext in _contexts)
+		{
 			foreach (var assembly in loadContext.Assemblies)
+			{
 				foreach (var pluginType in assembly.GetExportedTypes())
+				{
 					if (typeof(T).IsAssignableFrom(pluginType) && !pluginType.IsAbstract && !pluginType.IsInterface)
+					{
 						yield return (T)Activator.CreateInstance(pluginType);
+					}
+				}
+			}
+		}
 	}
 
 	public void Dispose()

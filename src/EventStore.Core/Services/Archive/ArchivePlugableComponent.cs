@@ -31,7 +31,9 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{
 		if (!Enabled)
+		{
 			return;
+		}
 
 		_ = builder.ApplicationServices.GetService<ArchiverService>();
 	}
@@ -42,7 +44,9 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 		Enabled = options.Enabled;
 
 		if (!Enabled)
+		{
 			return;
+		}
 
 		services.AddSingleton(options);
 		services.AddScoped<IArchiveStorageFactory, ArchiveStorageFactory>();
@@ -63,7 +67,9 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 
 		var newStartupTasks = new List<IClusterVNodeStartupTask>();
 		if (startupTasks != null)
+		{
 			newStartupTasks.AddRange(startupTasks);
+		}
 
 		var standardComponents = serviceProvider.GetRequiredService<StandardComponents>();
 		newStartupTasks.Add(new ArchiveCatchup.ArchiveCatchup(

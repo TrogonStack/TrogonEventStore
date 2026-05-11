@@ -289,7 +289,7 @@ public class when_reading_physical_bytes_bulk_from_a_chunk : SpecificationWithDi
 
 		public void SetAttributes(string fileName, FileAttributes fileAttributes) =>
 			inner.SetAttributes(fileName, fileAttributes);
-		}
+	}
 
 	private sealed class BlockingBulkReaderOpenChunkFileSystem(
 		IChunkFileSystem inner,

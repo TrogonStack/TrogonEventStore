@@ -53,17 +53,25 @@ public static class EndpointExtensions
 	{
 		var entries = Dns.GetHostAddresses(endpoint.GetHost());
 		if (entries.Length == 0)
+		{
 			throw new Exception($"Unable get host addresses for DNS host ({endpoint.GetHost()})");
+		}
+
 		var ipaddress = entries.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
 		if (ipaddress == null)
+		{
 			throw new Exception($"Could not get an IPv4 address for host '{endpoint.GetHost()}'");
+		}
+
 		return new IPEndPoint(ipaddress, endpoint.GetPort());
 	}
 
 	public static EndPoint WithClusterDns(this DnsEndPoint dnsEndPoint, string clusterDns)
 	{
 		if (clusterDns != null && IPAddress.TryParse(dnsEndPoint.Host, out var ip))
+		{
 			return new IPWithClusterDnsEndPoint(ip, clusterDns, dnsEndPoint.Port);
+		}
 
 		return dnsEndPoint;
 	}
@@ -71,7 +79,9 @@ public static class EndpointExtensions
 	public static EndPoint WithClusterDns(this IPEndPoint ipEndPoint, string clusterDns)
 	{
 		if (clusterDns != null)
+		{
 			return new IPWithClusterDnsEndPoint(ipEndPoint.Address, clusterDns, ipEndPoint.Port);
+		}
 
 		return ipEndPoint;
 	}

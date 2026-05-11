@@ -50,11 +50,20 @@ public class MultiStreamEventReader : EventReader,
 		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof)
 	{
 		if (streams == null)
+		{
 			throw new ArgumentNullException("streams");
+		}
+
 		if (timeProvider == null)
+		{
 			throw new ArgumentNullException("timeProvider");
+		}
+
 		if (streams.Length == 0)
+		{
 			throw new ArgumentException("streams");
+		}
+
 		_streams = new HashSet<string>(streams);
 		_eofs = new ConcurrentDictionary<string, bool>(_streams.ToDictionary(v => v, v => false));
 		var positions = CheckpointTag.FromStreamPositions(phase, fromPositions);
@@ -73,27 +82,39 @@ public class MultiStreamEventReader : EventReader,
 	private void ValidateTag(CheckpointTag fromPositions)
 	{
 		if (_streams.Count != fromPositions.Streams.Count)
+		{
 			throw new ArgumentException("Number of streams does not match", "fromPositions");
+		}
 
 		foreach (var stream in _streams)
 		{
 			if (!fromPositions.Streams.ContainsKey(stream))
+			{
 				throw new ArgumentException(
 					string.Format("The '{0}' stream position has not been set", stream), "fromPositions");
+			}
 		}
 	}
 
 	protected override void RequestEvents()
 	{
 		if (PauseRequested || Paused)
+		{
 			return;
+		}
+
 		if (_eofs.Any(v => v.Value))
+		{
 			_publisher.Publish(
 				TimerMessage.Schedule.Create(
 					TimeSpan.FromMilliseconds(250), _publisher,
 					new UnwrapEnvelopeMessage(ProcessBuffers2)));
+		}
+
 		foreach (var stream in _streams)
+		{
 			RequestEvents(stream, delay: _eofs[stream]);
+		}
 	}
 
 	private void ProcessBuffers2()
@@ -110,15 +131,29 @@ public class MultiStreamEventReader : EventReader,
 	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message)
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		if (!_streams.Contains(message.EventStreamId))
+		{
 			throw new InvalidOperationException(string.Format("Invalid stream name: {0}", message.EventStreamId));
+		}
+
 		if (!_eventsRequested.Contains(message.EventStreamId))
+		{
 			throw new InvalidOperationException("Read events has not been requested");
+		}
+
 		if (Paused)
+		{
 			throw new InvalidOperationException("Paused");
+		}
+
 		if (!_pendingRequests.Values.Any(x => x == message.CorrelationId))
+		{
 			return;
+		}
 
 		_lastPosition = message.TfLastCommitPosition;
 		switch (message.Result)
@@ -129,7 +164,10 @@ public class MultiStreamEventReader : EventReader,
 				UpdateSafePositionToJoin(message.EventStreamId, MessageToLastCommitPosition(message));
 				if (message.Result == ReadStreamResult.StreamDeleted
 					|| (message.Result == ReadStreamResult.NoStream && message.LastEventNumber >= 0))
+				{
 					EnqueueItem(null, message.EventStreamId);
+				}
+
 				ProcessBuffers();
 				_eventsRequested.Remove(message.EventStreamId);
 				PauseOrContinueProcessing();
@@ -182,11 +220,19 @@ public class MultiStreamEventReader : EventReader,
 	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		if (Paused)
+		{
 			return;
+		}
+
 		if (!_pendingRequests.Values.Any(x => x == message.CorrelationId))
+		{
 			return;
+		}
 
 		_eventsRequested.Remove(message.StreamId);
 		PauseOrContinueProcessing();
@@ -208,22 +254,32 @@ public class MultiStreamEventReader : EventReader,
 	private void CheckEof()
 	{
 		if (_eofs.All(v => v.Value))
+		{
 			SendEof();
+		}
 	}
 
 	private void CheckIdle()
 	{
 		if (_eofs.All(v => v.Value))
+		{
 			_publisher.Publish(
 				new ReaderSubscriptionMessage.EventReaderIdle(EventReaderCorrelationId, _timeProvider.UtcNow));
+		}
 	}
 
 	private void ProcessBuffers()
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		if (_safePositionToJoin == null)
+		{
 			return;
+		}
+
 		while (true)
 		{
 			var anyNonEmpty = false;
@@ -238,7 +294,10 @@ public class MultiStreamEventReader : EventReader,
 			foreach (var buffer in _buffers)
 			{
 				if (buffer.Value.Count == 0)
+				{
 					continue;
+				}
+
 				anyNonEmpty = true;
 				var head = buffer.Value.Peek();
 
@@ -266,7 +325,10 @@ public class MultiStreamEventReader : EventReader,
 			if (!anyEvent && !anyDeletedStream)
 			{
 				if (!anyNonEmpty)
+				{
 					DeliverSafePositionToJoin();
+				}
+
 				break;
 			}
 
@@ -276,7 +338,9 @@ public class MultiStreamEventReader : EventReader,
 				DeliverEvent(minHead.Item1, minHead.Item2);
 
 				if (_buffers[minStreamId].Count == 0)
+				{
 					PauseOrContinueProcessing();
+				}
 			}
 
 			if (anyDeletedStream)
@@ -290,15 +354,26 @@ public class MultiStreamEventReader : EventReader,
 	private void RequestEvents(string stream, bool delay)
 	{
 		if (_disposed)
+		{
 			throw new InvalidOperationException("Disposed");
+		}
+
 		if (PauseRequested || Paused)
+		{
 			throw new InvalidOperationException("Paused or pause requested");
+		}
 
 		if (_eventsRequested.Contains(stream))
+		{
 			return;
+		}
+
 		Queue<Tuple<EventStore.Core.Data.ResolvedEvent, float>> queue;
 		if (_buffers.TryGetValue(stream, out queue) && queue.Count > 0)
+		{
 			return;
+		}
+
 		_eventsRequested.Add(stream);
 
 		var pendingRequestCorrelationId = Guid.NewGuid();
@@ -343,7 +418,9 @@ public class MultiStreamEventReader : EventReader,
 	private void DeliverSafePositionToJoin()
 	{
 		if (_stopOnEof || _safePositionToJoin == null)
+		{
 			return;
+		}
 		// deliver if already available
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.CommittedEventDistributed(
@@ -355,7 +432,9 @@ public class MultiStreamEventReader : EventReader,
 	{
 		_preparePositions[streamId] = preparePosition;
 		if (_preparePositions.All(v => v.Value != null))
+		{
 			_safePositionToJoin = _preparePositions.Min(v => v.Value.GetValueOrDefault());
+		}
 	}
 
 	private void DeliverEvent(EventStore.Core.Data.ResolvedEvent pair, float progress)

@@ -49,12 +49,16 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		try
 		{
 			if (_conn != null)
+			{
 				await TestConnectionLifecycle.CloseConnectionAndWait(_conn, ConnectionCloseTimeout);
+			}
 		}
 		catch
 		{
 			if (_conn != null)
+			{
 				TestConnectionLifecycle.TryCloseConnection(_conn);
+			}
 		}
 		finally
 		{
@@ -123,7 +127,10 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 				(_, x) =>
 				{
 					if (!SystemStreams.IsSystemStream(x.OriginalEvent.EventStreamId))
+					{
 						appeared.Set();
+					}
+
 					return Task.CompletedTask;
 				},
 				_ => Log.Information("Live processing started."),

@@ -70,7 +70,9 @@ public class TcpServerListener
 		{
 			var firedAsync = _listeningSocket.AcceptAsync(socketArgs);
 			if (!firedAsync)
+			{
 				ProcessAccept(socketArgs);
+			}
 		}
 		catch (ObjectDisposedException)
 		{
@@ -107,7 +109,9 @@ public class TcpServerListener
 			() =>
 			{
 				if (socketArgs.AcceptSocket != null) // avoid annoying exceptions
+				{
 					socketArgs.AcceptSocket.Close(TcpConfiguration.SocketCloseTimeoutSecs);
+				}
 			});
 		socketArgs.AcceptSocket = null;
 		_acceptSocketArgsPool.Return(socketArgs);

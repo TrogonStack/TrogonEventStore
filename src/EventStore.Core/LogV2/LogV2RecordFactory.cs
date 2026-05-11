@@ -2,9 +2,12 @@ using System;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.TransactionLog.LogRecords;
 
-namespace EventStore.Core.LogV2 {
-	public class LogV2RecordFactory : IRecordFactory<string> {
-		public LogV2RecordFactory() {
+namespace EventStore.Core.LogV2
+{
+	public class LogV2RecordFactory : IRecordFactory<string>
+	{
+		public LogV2RecordFactory()
+		{
 		}
 
 		public bool ExplicitStreamCreation => false;
@@ -28,7 +31,8 @@ namespace EventStore.Core.LogV2 {
 			DateTime timeStamp) =>
 			throw new NotSupportedException();
 
-		public ISystemLogRecord CreateEpoch(EpochRecord epoch) {
+		public ISystemLogRecord CreateEpoch(EpochRecord epoch)
+		{
 			var result = new SystemLogRecord(
 				logPosition: epoch.EpochPosition,
 				timeStamp: epoch.TimeStamp,
@@ -50,7 +54,8 @@ namespace EventStore.Core.LogV2 {
 			PrepareFlags flags,
 			string eventType,
 			ReadOnlyMemory<byte> data,
-			ReadOnlyMemory<byte> metadata) {
+			ReadOnlyMemory<byte> metadata)
+		{
 
 			var result = new PrepareLogRecord(
 				logPosition: logPosition,

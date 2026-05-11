@@ -61,7 +61,9 @@ public static class AssertEx
 	{
 
 		if (SpinWait.SpinUntil(func, timeout ?? TimeSpan.FromMilliseconds(1000)))
+		{
 			return;
+		}
 
 		onFail?.Invoke();
 

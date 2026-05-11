@@ -36,11 +36,19 @@ public class IndexMap
 	{
 		Ensure.Nonnegative(version, "version");
 		if (prepareCheckpoint < -1)
+		{
 			throw new ArgumentOutOfRangeException("prepareCheckpoint");
+		}
+
 		if (commitCheckpoint < -1)
+		{
 			throw new ArgumentOutOfRangeException("commitCheckpoint");
+		}
+
 		if (maxTablesPerLevel <= 1)
+		{
 			throw new ArgumentOutOfRangeException("maxTablesPerLevel");
+		}
 
 		Version = version;
 
@@ -68,7 +76,9 @@ public class IndexMap
 	private void VerifyStructure()
 	{
 		if (_map.SelectMany(level => level).Any(item => item == null))
+		{
 			throw new CorruptIndexException("Internal indexmap structure corruption.");
+		}
 	}
 
 	private static void AddTableToTables(List<List<PTable>> tables, int level, PTable table)
@@ -86,12 +96,16 @@ public class IndexMap
 	private static void InsertTableToTables(List<List<PTable>> tables, int level, int position, PTable table)
 	{
 		while (level >= tables.Count)
+		{
 			tables.Add(new List<PTable>());
+		}
 
 		var innerTables = tables[level] ?? (tables[level] = new List<PTable>());
 
 		while (position >= innerTables.Count)
+		{
 			innerTables.Add(null);
+		}
 
 		innerTables[position] = table;
 	}
@@ -151,7 +165,9 @@ public class IndexMap
 		int pTableMaxReaderCount)
 	{
 		if (!File.Exists(filename))
+		{
 			return CreateEmpty(maxTablesPerLevel, maxAutoMergeLevel, pTableMaxReaderCount);
+		}
 
 		using (var f = File.OpenRead(filename))
 		{
@@ -174,8 +190,10 @@ public class IndexMap
 				{
 					var tmpMaxAutoMergeLevel = ReadMaxAutoMergeLevel(reader);
 					if (tmpMaxAutoMergeLevel < maxAutoMergeLevel)
+					{
 						throw new CorruptIndexException(
 							$"Index map has lower maximum auto merge level ({tmpMaxAutoMergeLevel}) than is currently configured ({maxAutoMergeLevel}) and the index will need to be rebuilt");
+					}
 
 					maxAutoMergeLevel = Math.Min(maxAutoMergeLevel, tmpMaxAutoMergeLevel);
 				}
@@ -188,9 +206,11 @@ public class IndexMap
 					: new List<List<PTable>>();
 
 				if (!loadPTables && reader.ReadLine() != null)
+				{
 					throw new CorruptIndexException(
 						string.Format("Negative prepare/commit checkpoint in non-empty IndexMap: {0}.",
 							checkpoints));
+				}
 
 				return new IndexMap(version, tables, prepareCheckpoint, commitCheckpoint, maxTablesPerLevel,
 					maxAutoMergeLevel, pTableMaxReaderCount);
@@ -203,10 +223,15 @@ public class IndexMap
 		// read stored MD5 hash and convert it from string to byte array
 		string text;
 		if ((text = reader.ReadLine()) == null)
+		{
 			throw new CorruptIndexException("IndexMap file is empty.");
+		}
+
 		if (text.Length != 32 || !text.All(x => char.IsDigit(x) || (x >= 'A' && x <= 'F')))
+		{
 			throw new CorruptIndexException(string.Format("Corrupted IndexMap MD5 hash. Hash ({0}): {1}.",
 				text.Length, text));
+		}
 
 		// check expected and real hashes are the same
 		var expectedHash = new byte[16];
@@ -241,7 +266,10 @@ public class IndexMap
 	{
 		string text;
 		if ((text = reader.ReadLine()) == null)
+		{
 			throw new CorruptIndexException("Corrupted version.");
+		}
+
 		return int.Parse(text);
 	}
 
@@ -250,16 +278,25 @@ public class IndexMap
 		// read and check prepare/commit checkpoint
 		string text;
 		if ((text = reader.ReadLine()) == null)
+		{
 			throw new CorruptIndexException("Corrupted commit checkpoint.");
+		}
+
 		try
 		{
 			long prepareCheckpoint;
 			long commitCheckpoint;
 			var checkpoints = text.Split('/');
 			if (!long.TryParse(checkpoints[0], out prepareCheckpoint) || prepareCheckpoint < -1)
+			{
 				throw new CorruptIndexException(string.Format("Invalid prepare checkpoint: {0}.", checkpoints[0]));
+			}
+
 			if (!long.TryParse(checkpoints[1], out commitCheckpoint) || commitCheckpoint < -1)
+			{
 				throw new CorruptIndexException(string.Format("Invalid commit checkpoint: {0}.", checkpoints[1]));
+			}
+
 			return new TFPos(commitCheckpoint, prepareCheckpoint);
 		}
 		catch (Exception exc)
@@ -271,7 +308,10 @@ public class IndexMap
 	private static int ReadMaxAutoMergeLevel(TextReader reader)
 	{
 		if (!(reader.ReadLine() is string text && int.TryParse(text, out var maxAutoMergeLevel)))
+		{
 			throw new CorruptIndexException("Corrupted auto merge level.");
+		}
+
 		return maxAutoMergeLevel;
 	}
 
@@ -303,9 +343,11 @@ public class IndexMap
 					indexMapEntry =>
 					{
 						if (checkpoints.PreparePosition < 0 || checkpoints.CommitPosition < 0)
+						{
 							throw new CorruptIndexException(
 								string.Format("Negative prepare/commit checkpoint in non-empty IndexMap: {0}.",
 									checkpoints));
+						}
 
 						PTable ptable = null;
 						var pieces = indexMapEntry.Split(',');
@@ -329,7 +371,9 @@ public class IndexMap
 						{
 							// if PTable file path was correct, but data is corrupted, we still need to dispose opened streams
 							if (ptable != null)
+							{
 								ptable.Dispose();
+							}
 
 							throw;
 						}
@@ -363,7 +407,9 @@ public class IndexMap
 				for (int j = 0; j < tables[i].Count; ++j)
 				{
 					if (tables[i][j] != null)
+					{
 						tables[i][j].Dispose();
+					}
 				}
 			}
 
@@ -546,7 +592,9 @@ public class IndexMap
 		var toDelete = new List<PTable>();
 		var tablesToMerge = tables.Skip(_maxTableLevelsForAutomaticMerge).SelectMany(a => a).ToList();
 		if (tablesToMerge.Count == 1)
+		{
 			return new MergeResult(this, new List<PTable>(), false, false);
+		}
 
 		var filename = filenameProvider.GetFilenameNewTable();
 		PTable mergedTable = PTable.MergeTo(

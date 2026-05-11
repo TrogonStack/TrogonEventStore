@@ -52,7 +52,9 @@ public class ssl_connections
 				verbose: true);
 			ssl.ConnectionClosed += (x, y) => done.Set();
 			if (ssl.IsClosed)
+			{
 				done.Set();
+			}
 
 			Action<ITcpConnection, IEnumerable<ArraySegment<byte>>> callback = null;
 			callback = (x, y) =>
@@ -143,7 +145,9 @@ public class ssl_connections
 		var certificate = X509Certificate2.CreateFromPem(Encoding.UTF8.GetString(certBytes));
 
 		if (!loadKey)
+		{
 			return certificate;
+		}
 
 		var keyBytes = LoadResource($"{resourcePath}.{name}.{name}.key");
 		using var rsa = RSA.Create();
@@ -159,7 +163,9 @@ public class ssl_connections
 	{
 		using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource);
 		if (resourceStream == null)
+		{
 			return null;
+		}
 
 		using var memStream = new MemoryStream();
 		resourceStream.CopyTo(memStream);

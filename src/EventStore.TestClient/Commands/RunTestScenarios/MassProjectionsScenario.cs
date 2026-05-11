@@ -69,16 +69,22 @@ internal class MassProjectionsScenario : ProjectionsKillScenario
 			StartOrStopProjection(bankProjections, true);
 
 			if (writeTask.IsCompleted)
+			{
 				count -= 1;
+			}
 
 			if (writeTask.IsFaulted)
+			{
 				throw new ApplicationException("Failed to write data", writeTask.Exception);
+			}
 
 			success = CheckProjectionState(bankProjections[bankProjections.Count - 1],
 				"success",
 				x => x == (EventsPerStream - 1).ToString());
 			if (success)
+			{
 				break;
+			}
 
 			var sleepTimeSeconds = 10 + Streams * EventsPerStream / 1000.0;
 			Log.Information("Sleep 1 for {sleepTime} seconds, remaining count {count}", sleepTimeSeconds, count);
@@ -100,7 +106,9 @@ internal class MassProjectionsScenario : ProjectionsKillScenario
 				x => x == (EventsPerStream - 1).ToString());
 
 			if (success)
+			{
 				break;
+			}
 
 			var sleepTimeSeconds = 10 + (Streams * EventsPerStream) / 500;
 			Log.Information("Sleep 2 for {sleepTime} seconds, remaining count {count}", sleepTimeSeconds, count);
@@ -110,7 +118,9 @@ internal class MassProjectionsScenario : ProjectionsKillScenario
 		}
 
 		if (!success)
+		{
 			throw new ApplicationException("Last bank projection failed");
+		}
 	}
 
 	private void StartOrStopProjection(IEnumerable<string> projections, bool enable)
@@ -135,19 +145,27 @@ internal class MassProjectionsScenario : ProjectionsKillScenario
 					if (enable)
 					{
 						if (!isRunning)
+						{
 							manager.EnableAsync(projection, AdminCredentials).Wait();
+						}
 						else
+						{
 							Log.Information("Projection '{projection}' is already running and will not be enabled.",
 								projection);
+						}
 					}
 					else
 					{
 						if (isRunning)
+						{
 							manager.DisableAsync(projection, AdminCredentials).Wait();
+						}
 						else
+						{
 							Log.Information(
 								"Projection '{projection}' is already not running and will not be disabled again.",
 								projection);
+						}
 					}
 
 					break;
@@ -165,9 +183,12 @@ internal class MassProjectionsScenario : ProjectionsKillScenario
 						waitForMs);
 
 					if (retry != 0)
+					{
 						Thread.Sleep(waitForMs);
+					}
 
 					if (retry == retriesNumber)
+					{
 						throw new ApplicationException(string.Format(
 								"Failed to StartOrStopProjection (enable:{0}) projection {1}," +
 								" max number ({2}) of retries reached.",
@@ -175,6 +196,7 @@ internal class MassProjectionsScenario : ProjectionsKillScenario
 								projection,
 								retry),
 							ex);
+					}
 				}
 
 

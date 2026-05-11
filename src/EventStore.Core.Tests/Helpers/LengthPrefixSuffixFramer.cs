@@ -98,11 +98,17 @@ public class length_prefix_suffix_framer_should
 		framer.RegisterMessageArrivedCallback(async (r, token) =>
 		{
 			if (unframedCnt == 0)
+			{
 				Assert.AreEqual(new byte[] { 0x07, 0x17, 0x27 }, await ReadAll(r, token));
+			}
 			else if (unframedCnt == 1)
+			{
 				Assert.AreEqual(new byte[] { 0x05, 0x15 }, await ReadAll(r, token));
+			}
 			else
+			{
 				Assert.Fail();
+			}
 
 			unframedCnt += 1;
 		});
@@ -135,11 +141,17 @@ public class length_prefix_suffix_framer_should
 		framer.RegisterMessageArrivedCallback(async (r, token) =>
 		{
 			if (unframedCnt == 0)
+			{
 				Assert.AreEqual(new byte[] { 0x07, 0x17, 0x27 }, await ReadAll(r, token));
+			}
 			else if (unframedCnt == 1)
+			{
 				Assert.AreEqual(new byte[] { 0x05, 0x15 }, await ReadAll(r, token));
+			}
 			else
+			{
 				Assert.Fail();
+			}
 
 			unframedCnt += 1;
 		});

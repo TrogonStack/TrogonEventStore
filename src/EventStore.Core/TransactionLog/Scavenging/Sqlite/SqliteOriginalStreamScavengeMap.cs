@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using EventStore.Core.Data;
 using Microsoft.Data.Sqlite;
 
-namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
-	public class SqliteOriginalStreamScavengeMap<TKey> : IInitializeSqliteBackend, IOriginalStreamScavengeMap<TKey> {
+namespace EventStore.Core.TransactionLog.Scavenging.Sqlite
+{
+	public class SqliteOriginalStreamScavengeMap<TKey> : IInitializeSqliteBackend, IOriginalStreamScavengeMap<TKey>
+	{
 		private readonly string _keyTypeOverride;
 		private AddCommand _add;
 		private SetTombstoneCommand _setTombstone;
@@ -20,12 +22,14 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 		private static Func<SqliteDataReader, OriginalStreamData> _readOriginalStreamData;
 
 		private string TableName { get; }
-		
-		public SqliteOriginalStreamScavengeMap(string name, string keyTypeOverride = null) {
+
+		public SqliteOriginalStreamScavengeMap(string name, string keyTypeOverride = null)
+		{
 			TableName = name;
 			_keyTypeOverride = keyTypeOverride;
 
-			_readOriginalStreamData = reader => {
+			_readOriginalStreamData = reader =>
+			{
 				var d = new OriginalStreamData();
 				d.IsTombstoned = reader.GetBoolean(0);
 				d.MaxAge = SqliteBackend.GetTimeSpanFromSeconds(1, reader);
@@ -33,22 +37,25 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				d.TruncateBefore = SqliteBackend.GetNullableFieldValue<long?>(3, reader);
 
 				var discardPoint = SqliteBackend.GetNullableFieldValue<long?>(4, reader);
-				if (discardPoint.HasValue) {
+				if (discardPoint.HasValue)
+				{
 					d.DiscardPoint = DiscardPoint.DiscardBefore(discardPoint.Value);
 				}
 
 				var maybeDiscardPoint = SqliteBackend.GetNullableFieldValue<long?>(5, reader);
-				if (maybeDiscardPoint.HasValue) {
+				if (maybeDiscardPoint.HasValue)
+				{
 					d.MaybeDiscardPoint = DiscardPoint.DiscardBefore(maybeDiscardPoint.Value);
 				}
-				
+
 				d.Status = reader.GetFieldValue<CalculationStatus>(6);
 
 				return d;
 			};
 		}
 
-		public void Initialize(SqliteBackend sqlite) {
+		public void Initialize(SqliteBackend sqlite)
+		{
 			var keyType = _keyTypeOverride ?? SqliteTypeMapping.GetTypeName<TKey>();
 			var sql = $@"
 				CREATE TABLE IF NOT EXISTS {TableName} (
@@ -61,7 +68,7 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 					maybeDiscardPoint INTEGER DEFAULT 0,
 					status            INTEGER DEFAULT 0);
 				CREATE INDEX IF NOT EXISTS {TableName}KeyStatus ON {TableName} (status, key)";
-			
+
 			sqlite.InitializeDb(sql);
 
 			_add = new AddCommand(TableName, sqlite);
@@ -77,51 +84,63 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 			_active = new ActiveRecordsCommand(TableName, sqlite);
 		}
 
-		public OriginalStreamData this[TKey key] {
+		public OriginalStreamData this[TKey key]
+		{
 			set => _add.Execute(key, value);
 		}
 
-		public bool TryGetValue(TKey key, out OriginalStreamData value) {
+		public bool TryGetValue(TKey key, out OriginalStreamData value)
+		{
 			return _get.TryExecute(key, out value);
 		}
 
-		public bool TryRemove(TKey key, out OriginalStreamData value) {
+		public bool TryRemove(TKey key, out OriginalStreamData value)
+		{
 			return _delete.TryExecute(key, out value);
 		}
-		
-		public void SetTombstone(TKey key) {
+
+		public void SetTombstone(TKey key)
+		{
 			_setTombstone.Execute(key);
 		}
 
-		public void SetMetadata(TKey key, StreamMetadata metadata) {
+		public void SetMetadata(TKey key, StreamMetadata metadata)
+		{
 			_setMetadata.Execute(key, metadata);
 		}
-		
-		public void SetDiscardPoints(TKey key, CalculationStatus status, DiscardPoint discardPoint, DiscardPoint maybeDiscardPoint) {
+
+		public void SetDiscardPoints(TKey key, CalculationStatus status, DiscardPoint discardPoint, DiscardPoint maybeDiscardPoint)
+		{
 			_setDiscardPoints.Execute(key, status, discardPoint, maybeDiscardPoint);
 		}
 
-		public bool TryGetChunkExecutionInfo(TKey key, out ChunkExecutionInfo details) {
+		public bool TryGetChunkExecutionInfo(TKey key, out ChunkExecutionInfo details)
+		{
 			return _getChunkExecutionInfo.TryExecute(key, out details);
 		}
 
-		public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> AllRecords() {
+		public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> AllRecords()
+		{
 			return _all.Execute();
 		}
 
-		public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> ActiveRecords() {
+		public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> ActiveRecords()
+		{
 			return _active.Execute();
 		}
 
-		public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> ActiveRecordsFromCheckpoint(TKey checkpoint) {
+		public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> ActiveRecordsFromCheckpoint(TKey checkpoint)
+		{
 			return _fromCheckpoint.Execute(checkpoint);
 		}
 
-		public void DeleteMany(bool deleteArchived) {
+		public void DeleteMany(bool deleteArchived)
+		{
 			_deleteMany.Execute(deleteArchived);
 		}
 
-		private class AddCommand {
+		private class AddCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
@@ -133,7 +152,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 			private readonly SqliteParameter _maybeDiscardPointParam;
 			private readonly SqliteParameter _statusParam;
 
-			public AddCommand(string tableName, SqliteBackend sqlite) {
+			public AddCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					INSERT INTO {tableName} VALUES(
 						$key,
@@ -168,7 +188,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_sqlite = sqlite;
 			}
 
-			public void Execute(TKey key, OriginalStreamData value) {
+			public void Execute(TKey key, OriginalStreamData value)
+			{
 				_keyParam.Value = key;
 				_isTombstonedParam.Value = value.IsTombstoned;
 				_maxAgeParam.Value = value.MaxAge.HasValue ? (object)(long)value.MaxAge.Value.TotalSeconds : DBNull.Value;
@@ -182,20 +203,22 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_sqlite.ExecuteNonQuery(_cmd);
 			}
 		}
-		
-		private class SetTombstoneCommand {
+
+		private class SetTombstoneCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
 
-			public SetTombstoneCommand(string tableName, SqliteBackend sqlite) {
+			public SetTombstoneCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					INSERT INTO {tableName} (key, isTombstoned, status)
 					VALUES ($key, 1, {(int)CalculationStatus.Active})
 					ON CONFLICT(key) DO UPDATE SET
 						isTombstoned = 1,
 						status = {(int)CalculationStatus.Active}";
-				
+
 				_cmd = sqlite.CreateCommand();
 				_cmd.CommandText = sql;
 				_keyParam = _cmd.Parameters.Add("$key", SqliteTypeMapping.Map<TKey>());
@@ -204,13 +227,15 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_sqlite = sqlite;
 			}
 
-			public void Execute(TKey key) {
+			public void Execute(TKey key)
+			{
 				_keyParam.Value = key;
 				_sqlite.ExecuteNonQuery(_cmd);
 			}
 		}
-		
-		private class SetMetadataCommand {
+
+		private class SetMetadataCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
@@ -218,7 +243,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 			private readonly SqliteParameter _maxCountParam;
 			private readonly SqliteParameter _truncateBeforeParam;
 
-			public SetMetadataCommand(string tableName, SqliteBackend sqlite) {
+			public SetMetadataCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					INSERT INTO {tableName} (key, maxAge, maxCount, truncateBefore, status)
 					VALUES($key, $maxAge, $maxCount, $truncateBefore, {(int)CalculationStatus.Active})
@@ -239,7 +265,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_sqlite = sqlite;
 			}
 
-			public void Execute(TKey key, StreamMetadata value) {
+			public void Execute(TKey key, StreamMetadata value)
+			{
 				_keyParam.Value = key;
 				_maxAgeParam.Value = value.MaxAge.HasValue ? (object)(long)value.MaxAge.Value.TotalSeconds : DBNull.Value;
 				_maxCountParam.Value = value.MaxCount.HasValue ? (object)value.MaxCount : DBNull.Value;
@@ -248,7 +275,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 			}
 		}
 
-		private class SetDiscardPointsCommand {
+		private class SetDiscardPointsCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
@@ -256,7 +284,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 			private readonly SqliteParameter _maybeDiscardPointParam;
 			private readonly SqliteParameter _statusParam;
 
-			public SetDiscardPointsCommand(string tableName, SqliteBackend sqlite) {
+			public SetDiscardPointsCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					INSERT INTO {tableName} (key, discardPoint, maybeDiscardPoint, status)
 					VALUES ($key, $discardPoint, $maybeDiscardPoint, $status)
@@ -276,7 +305,8 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_sqlite = sqlite;
 			}
 
-			public void Execute(TKey key, CalculationStatus status, DiscardPoint discardPoint, DiscardPoint maybeDiscardPoint) {
+			public void Execute(TKey key, CalculationStatus status, DiscardPoint discardPoint, DiscardPoint maybeDiscardPoint)
+			{
 				_keyParam.Value = key;
 				_discardPointParam.Value = discardPoint.FirstEventNumberToKeep;
 				_maybeDiscardPointParam.Value = maybeDiscardPoint.FirstEventNumberToKeep;
@@ -285,12 +315,14 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 			}
 		}
 
-		private class GetCommand {
+		private class GetCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
 
-			public GetCommand(string tableName, SqliteBackend sqlite) {
+			public GetCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					SELECT isTombstoned, maxAge, maxCount, truncateBefore, discardPoint, maybeDiscardPoint, status
 					FROM {tableName}
@@ -300,23 +332,26 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_cmd.CommandText = sql;
 				_keyParam = _cmd.Parameters.Add("$key", SqliteTypeMapping.Map<TKey>());
 				_cmd.Prepare();
-				
+
 				_sqlite = sqlite;
 			}
 
-			public bool TryExecute(TKey key, out OriginalStreamData value) {
+			public bool TryExecute(TKey key, out OriginalStreamData value)
+			{
 				_keyParam.Value = key;
 				return _sqlite.ExecuteSingleRead(_cmd, _readOriginalStreamData, out value);
 			}
 		}
 
-		private class GetChunkExecutionInfoCommand {
+		private class GetChunkExecutionInfoCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
 			private readonly Func<SqliteDataReader, ChunkExecutionInfo> _reader;
 
-			public GetChunkExecutionInfoCommand(string tableName, SqliteBackend sqlite) {
+			public GetChunkExecutionInfoCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					SELECT isTombstoned, maxAge, discardPoint, maybeDiscardPoint
 					FROM {tableName}
@@ -326,9 +361,10 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_cmd.CommandText = sql;
 				_keyParam = _cmd.Parameters.Add("$key", SqliteTypeMapping.Map<TKey>());
 				_cmd.Prepare();
-				
+
 				_sqlite = sqlite;
-				_reader = reader => {
+				_reader = reader =>
+				{
 					var isTombstoned = reader.GetBoolean(0);
 					var maxAge = SqliteBackend.GetTimeSpanFromSeconds(1, reader);
 					var discardPoint = DiscardPoint.DiscardBefore(reader.GetFieldValue<long>(2));
@@ -337,20 +373,23 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				};
 			}
 
-			public bool TryExecute(TKey key, out ChunkExecutionInfo value) {
+			public bool TryExecute(TKey key, out ChunkExecutionInfo value)
+			{
 				_keyParam.Value = key;
 				return _sqlite.ExecuteSingleRead(_cmd, _reader, out value);
 			}
 		}
 
-		private class DeleteCommand {
+		private class DeleteCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _selectCmd;
 			private readonly SqliteCommand _deleteCmd;
 			private readonly SqliteParameter _selectKeyParam;
 			private readonly SqliteParameter _deleteKeyParam;
 
-			public DeleteCommand(string tableName, SqliteBackend sqlite) {
+			public DeleteCommand(string tableName, SqliteBackend sqlite)
+			{
 				var selectSql = $@"
 					SELECT isTombstoned, maxAge, maxCount, truncateBefore, discardPoint, maybeDiscardPoint, status
 					FROM {tableName}
@@ -366,23 +405,26 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_deleteCmd.CommandText = deleteSql;
 				_deleteKeyParam = _deleteCmd.Parameters.Add("$key", SqliteTypeMapping.Map<TKey>());
 				_deleteCmd.Prepare();
-				
+
 				_sqlite = sqlite;
 			}
 
-			public bool TryExecute(TKey key, out OriginalStreamData value) {
+			public bool TryExecute(TKey key, out OriginalStreamData value)
+			{
 				_selectKeyParam.Value = key;
 				_deleteKeyParam.Value = key;
 				return _sqlite.ExecuteReadAndDelete(_selectCmd, _deleteCmd, _readOriginalStreamData, out value);
 			}
 		}
-		
-		private class DeleteManyCommand {
+
+		private class DeleteManyCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _deleteCmd;
 			private readonly SqliteParameter _archiveStatusParam;
 
-			public DeleteManyCommand(string tableName, SqliteBackend sqlite) {
+			public DeleteManyCommand(string tableName, SqliteBackend sqlite)
+			{
 				var deleteSql = $@"
 					DELETE FROM {tableName}
 					WHERE status = {(int)CalculationStatus.Spent} OR status = $archive";
@@ -391,11 +433,12 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_deleteCmd.CommandText = deleteSql;
 				_archiveStatusParam = _deleteCmd.Parameters.Add("$archive", SqliteType.Integer);
 				_deleteCmd.Prepare();
-				
+
 				_sqlite = sqlite;
 			}
 
-			public void Execute(bool deleteArchived) {
+			public void Execute(bool deleteArchived)
+			{
 				// only delete archived when requested, otherwise only delete Spent.
 				_archiveStatusParam.Value = deleteArchived ? CalculationStatus.Archived : CalculationStatus.Spent;
 				_sqlite.ExecuteNonQuery(_deleteCmd);
@@ -413,13 +456,15 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 		// our case it seems doubtful that it will reappear because it would violate the orderby clause,
 		// but in the worse case we will just duplicate the effort but otherwise no harm is done.
 		// NB we no longer have a read open while writing
-		private class FromCheckpointCommand {
+		private class FromCheckpointCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly SqliteParameter _keyParam;
 			private readonly Func<SqliteDataReader, KeyValuePair<TKey, OriginalStreamData>> _reader;
 
-			public FromCheckpointCommand(string tableName, SqliteBackend sqlite) {
+			public FromCheckpointCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					SELECT isTombstoned, maxAge, maxCount, truncateBefore, discardPoint, maybeDiscardPoint, status, key
 					FROM {tableName}
@@ -430,27 +475,31 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_cmd.CommandText = sql;
 				_keyParam = _cmd.Parameters.Add("$key", SqliteTypeMapping.Map<TKey>());
 				_cmd.Prepare();
-				
+
 				_sqlite = sqlite;
-				_reader = reader => {
+				_reader = reader =>
+				{
 					var value = _readOriginalStreamData(reader);
 					var key = reader.GetFieldValue<TKey>(7);
 					return new KeyValuePair<TKey, OriginalStreamData>(key, value);
 				};
 			}
 
-			public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> Execute(TKey key) {
+			public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> Execute(TKey key)
+			{
 				_keyParam.Value = key;
 				return _sqlite.ExecuteReader(_cmd, _reader);
 			}
 		}
 
-		private class AllRecordsCommand {
+		private class AllRecordsCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly Func<SqliteDataReader, KeyValuePair<TKey, OriginalStreamData>> _reader;
 
-			public AllRecordsCommand(string tableName, SqliteBackend sqlite) {
+			public AllRecordsCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					SELECT
 						isTombstoned,
@@ -467,26 +516,30 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_cmd = sqlite.CreateCommand();
 				_cmd.CommandText = sql;
 				_cmd.Prepare();
-				
+
 				_sqlite = sqlite;
-				_reader = reader => {
+				_reader = reader =>
+				{
 					var data = _readOriginalStreamData(reader);
-					var key = reader.GetFieldValue<TKey>(7); 
+					var key = reader.GetFieldValue<TKey>(7);
 					return new KeyValuePair<TKey, OriginalStreamData>(key, data);
 				};
 			}
 
-			public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> Execute() {
+			public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> Execute()
+			{
 				return _sqlite.ExecuteReader(_cmd, _reader);
 			}
 		}
-		
-		private class ActiveRecordsCommand {
+
+		private class ActiveRecordsCommand
+		{
 			private readonly SqliteBackend _sqlite;
 			private readonly SqliteCommand _cmd;
 			private readonly Func<SqliteDataReader, KeyValuePair<TKey, OriginalStreamData>> _reader;
 
-			public ActiveRecordsCommand(string tableName, SqliteBackend sqlite) {
+			public ActiveRecordsCommand(string tableName, SqliteBackend sqlite)
+			{
 				var sql = $@"
 					SELECT
 						isTombstoned,
@@ -504,16 +557,18 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 				_cmd = sqlite.CreateCommand();
 				_cmd.CommandText = sql;
 				_cmd.Prepare();
-				
+
 				_sqlite = sqlite;
-				_reader = reader => {
+				_reader = reader =>
+				{
 					var data = _readOriginalStreamData(reader);
-					var key = reader.GetFieldValue<TKey>(7); 
+					var key = reader.GetFieldValue<TKey>(7);
 					return new KeyValuePair<TKey, OriginalStreamData>(key, data);
 				};
 			}
 
-			public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> Execute() {
+			public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> Execute()
+			{
 				return _sqlite.ExecuteReader(_cmd, _reader);
 			}
 		}

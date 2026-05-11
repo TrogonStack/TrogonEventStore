@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Collections.Generic;
 using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Tests.Helpers;
@@ -24,7 +24,9 @@ public static class PortsHelper
 				listener.Stop();
 
 				if (!ReservedPorts.Add(port))
+				{
 					continue;
+				}
 
 				Log.Information($"Available port found: {port}");
 				return port;

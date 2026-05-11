@@ -53,7 +53,9 @@ internal sealed class ArchivedChunkHandle : IChunkHandle
 		{
 			var bytesRead = await stream.ReadAsync(buffer[totalRead..], token);
 			if (bytesRead == 0)
+			{
 				break;
+			}
 
 			totalRead += bytesRead;
 		}

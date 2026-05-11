@@ -56,7 +56,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Eve
 	public void Handle(ProjectionCoreServiceMessage.CoreTick message)
 	{
 		if (_ticksAreHandledImmediately)
+		{
 			message.Action();
+		}
 	}
 
 	protected void TicksAreHandledImmediately()

@@ -35,7 +35,9 @@ public static class RuntimeInformation
 			IsFreeBSD = true;
 		}
 		else
+		{
 			OsPlatform = RuntimeOSPlatform.Unknown;
+		}
 
 		IsUnix = IsLinux || IsFreeBSD || IsOSX;
 

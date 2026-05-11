@@ -1,9 +1,11 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// This makes sure we dont accidentally start trying to nest transactions or begin them concurrently
 	// and facilitates committing the open transaction with a checkpoint
-	public class TransactionManager<TTransaction> : ITransactionManager {
+	public class TransactionManager<TTransaction> : ITransactionManager
+	{
 		private readonly ITransactionFactory<TTransaction> _factory;
 		private readonly IScavengeMap<Unit, ScavengeCheckpoint> _storage;
 		private Action _onRollback;
@@ -12,43 +14,57 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 
 		public TransactionManager(
 			ITransactionFactory<TTransaction> factory,
-			IScavengeMap<Unit, ScavengeCheckpoint> storage) {
+			IScavengeMap<Unit, ScavengeCheckpoint> storage)
+		{
 
 			_factory = factory;
 			_storage = storage;
 		}
 
-		public void RegisterOnRollback(Action onRollback) {
+		public void RegisterOnRollback(Action onRollback)
+		{
 			if (_onRollback != null)
+			{
 				throw new InvalidOperationException();
+			}
 
 			_onRollback = onRollback;
 		}
 
-		public void UnregisterOnRollback() {
+		public void UnregisterOnRollback()
+		{
 			_onRollback = null;
 		}
 
-		public void Begin() {
+		public void Begin()
+		{
 			if (_began)
+			{
 				throw new InvalidOperationException("Cannot begin a transaction that has already begun.");
+			}
 
 			_transaction = _factory.Begin();
 			_began = true;
 		}
 
-		public void Rollback() {
+		public void Rollback()
+		{
 			if (!_began)
+			{
 				throw new InvalidOperationException("Cannot rollback a transaction that has not begun.");
+			}
 
 			_factory.Rollback(_transaction);
 			_onRollback?.Invoke();
 			_began = false;
 		}
 
-		public void Commit(ScavengeCheckpoint checkpoint) {
+		public void Commit(ScavengeCheckpoint checkpoint)
+		{
 			if (!_began)
+			{
 				throw new InvalidOperationException("Cannot commit a transaction that has not begun.");
+			}
 
 			_storage[Unit.Instance] = checkpoint;
 

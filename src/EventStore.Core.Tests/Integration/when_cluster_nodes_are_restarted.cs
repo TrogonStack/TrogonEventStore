@@ -80,11 +80,15 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			.FirstOrDefault(x => !restartedNodes[x.index] && x.node.NodeState == targetState);
 
 		if (candidate.node is not null)
+		{
 			return candidate.index;
+		}
 
 		var fallbackIndex = Array.FindIndex(restartedNodes, restarted => !restarted);
 		if (fallbackIndex >= 0)
+		{
 			return fallbackIndex;
+		}
 
 		throw new InvalidOperationException("All cluster nodes have already been restarted.");
 	}
@@ -109,11 +113,17 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 
 			var state = _nodes[i].NodeState;
 			if (state == VNodeState.Leader)
+			{
 				leaders++;
+			}
 			else if (state == VNodeState.Follower)
+			{
 				followers++;
+			}
 			else
+			{
 				throw new Exception($"node {i} in unexpected state {state}");
+			}
 		}
 
 		Assert.AreEqual(1, leaders);

@@ -1,15 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
+using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.Services.AwakeReaderService;
-using EventStore.Core.Services.TimerService;
-using System.Collections.Generic;
-using EventStore.Common.Utils;
 using EventStore.Core.Services.Storage.ReaderIndex;
+using EventStore.Core.Services.TimerService;
 using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Helpers;
@@ -46,7 +46,9 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			lock (_lockObject)
 			{
 				if (!trackPendingRequests)
+				{
 					return;
+				}
 
 				_allPendingRequests.Add(correlationId);
 			}
@@ -57,7 +59,9 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			lock (_lockObject)
 			{
 				if (!trackPendingRequests)
+				{
 					return;
+				}
 
 				_allPendingRequests.Remove(correlationId);
 				if (_draining && _allPendingRequests.IsEmpty())
@@ -84,7 +88,10 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			{
 				RemovePendingRequest(corrId);
 				if (!_pendingReads.IsRegistered(corrId))
+				{
 					return false;
+				}
+
 				_pendingReads.Remove(corrId);
 				return true;
 			}
@@ -96,9 +103,15 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		{
 
 			if (_writerQueueSet.IsBusy(key))
+			{
 				return;
+			}
+
 			if (!_writerQueueSet.HasPendingWrites(key))
+			{
 				return;
+			}
+
 			var write = _writerQueueSet.Dequeue(key);
 			if (write != null)
 			{
@@ -388,7 +401,10 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		Guid? corrId = null)
 	{
 		if (!corrId.HasValue)
+		{
 			corrId = Guid.NewGuid();
+		}
+
 		return
 			ForwardReader.Publish(
 				new ClientMessage.ReadStreamEventsForward(
@@ -691,8 +707,11 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		Action<ClientMessage.WriteEventsCompleted> action)
 	{
 		if (expectedVersion != ExpectedVersion.Any && expectedVersion != ExpectedVersion.NoStream)
+		{
 			WriteEvents(streamId, expectedVersion, events, principal, action);
+		}
 		else
+		{
 			ReadBackward(
 				streamId,
 				-1,
@@ -706,8 +725,11 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 						case ReadStreamResult.Success:
 						case ReadStreamResult.NoStream:
 							if (completed.Events is not null && completed.Events.Count > 0)
+							{
 								WriteEvents(streamId, expectedVersion, events, principal, action);
+							}
 							else
+							{
 								UpdateStreamAcl(
 									streamId,
 									ExpectedVersion.Any,
@@ -715,6 +737,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 									streamMetadata.Value,
 									metaCompleted =>
 										WriteEvents(streamId, expectedVersion, events, principal, action));
+							}
+
 							break;
 						case ReadStreamResult.AccessDenied:
 							action(
@@ -734,6 +758,7 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 							throw new NotSupportedException();
 					}
 				});
+		}
 	}
 
 	public Guid WriteEvents(
@@ -833,7 +858,11 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		public void Finish(Guid key)
 		{
 			var queue = GetQueue(key);
-			if (queue == null) return;
+			if (queue == null)
+			{
+				return;
+			}
+
 			queue.IsBusy = false;
 
 			CleanupQueue(key, queue);
@@ -857,8 +886,16 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 
 		private void CleanupQueue(Guid key, WriterQueue queue)
 		{
-			if (queue.IsBusy) return;
-			if (queue.Count > 0) return;
+			if (queue.IsBusy)
+			{
+				return;
+			}
+
+			if (queue.Count > 0)
+			{
+				return;
+			}
+
 			_queues.Remove(key);
 		}
 	}
@@ -882,7 +919,10 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 
 		public ClientMessage.WriteEvents Dequeue()
 		{
-			if (_queue.Count == 0) return null;
+			if (_queue.Count == 0)
+			{
+				return null;
+			}
 
 			IsBusy = true;
 
@@ -1030,7 +1070,10 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 	public void Handle(IODispatcherDelayedMessage message)
 	{
 		if (_selfId != message.CorrelationId)
+		{
 			return;
+		}
+
 		message.Timeout();
 	}
 

@@ -32,9 +32,13 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 			action: m =>
 			{
 				if (m.Result == ReadStreamResult.Success)
+				{
 					readTcs.TrySetResult(m.Events);
+				}
 				else if (m.Result == ReadStreamResult.NoStream)
+				{
 					readTcs.TrySetResult(Array.Empty<ResolvedEvent>());
+				}
 				else
 				{
 					readTcs.TrySetException(new Exception(
@@ -68,7 +72,9 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 		var scavengePointEvent = events[0].Event;
 
 		if (scavengePointEvent.EventType != SystemEventTypes.ScavengePoint)
+		{
 			throw new Exception($"Last event in {SystemStreams.ScavengePointsStream} is not a scavenge point.");
+		}
 
 		var scavengePointPayload = ScavengePointPayload.FromBytes(scavengePointEvent.Data);
 
@@ -141,14 +147,18 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 
 			// success
 			if (scavengePoint.EventNumber == expectedVersion + 1)
+			{
 				return scavengePoint;
+			}
 
 			// give up
 			if (++attempt > maxAttempts)
+			{
 				throw new Exception(
 					$"Unable to read back new scavenge point {expectedVersion + 1}. " +
 					$"This node is most likely significantly behind the leader. " +
 					$"Allow it to catch up and then try again. ");
+			}
 
 			// retry
 			logger.Information(

@@ -23,7 +23,9 @@ public abstract class FluentReader(IArchiveChunkNamer chunkNamer, string archive
 		await using var stream = await BlobStorage.OpenReadAsync(archiveCheckpointFile, ct);
 
 		if (stream is null)
+		{
 			return 0L;
+		}
 
 		using var buffer = Memory.AllocateExactly<byte>(sizeof(long));
 		await stream.ReadExactlyAsync(buffer.Memory, ct);

@@ -106,7 +106,10 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 				getCheckpointExclusive: physicalChunk =>
 				{
 					if (physicalChunk.ChunkStartNumber == 0)
+					{
 						return null;
+					}
+
 					return physicalChunk.ChunkStartNumber - 1;
 				},
 				process: async (slot, physicalChunk, cancellationToken) =>
@@ -133,10 +136,10 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 
 					}
 					else if (await _chunkDeleter.DeleteIfNotRetained(
-						         scavengePoint,
-						         concurrentState,
-						         physicalChunk,
-						         cancellationToken))
+								 scavengePoint,
+								 concurrentState,
+								 physicalChunk,
+								 cancellationToken))
 					{
 
 						// delete occurs regardless of weight
@@ -228,9 +231,11 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 			var physicalChunk = _chunkManager.GetChunkReaderFor(scavengePos);
 
 			if (!physicalChunk.IsReadOnly)
+			{
 				throw new Exception(
 					$"Reached open chunk before scavenge point. " +
 					$"Chunk {physicalChunk.ChunkStartNumber}. ScavengePoint: {upTo}.");
+			}
 
 			yield return physicalChunk;
 
@@ -384,7 +389,9 @@ public class ChunkExecutor<TStreamId, TRecord> : IChunkExecutor<TStreamId>
 		// the discard points ought to be sufficient, but sometimes this will be quicker
 		// and it is a nice safety net
 		if (record.LogPosition >= scavengePoint.Position)
+		{
 			return false;
+		}
 
 		var details = GetStreamExecutionDetails(
 			state,

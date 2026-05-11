@@ -33,7 +33,10 @@ public static class CertificateExtensions
 		foreach (var extension in extensions)
 		{
 			if (extension.Oid?.Value != "2.5.29.17")
+			{
 				continue; // Oid for Subject Alternative Names extension
+			}
+
 			var asnReader = new AsnReader(extension.RawData, AsnEncodingRules.DER).ReadSequence();
 			while (asnReader.HasData)
 			{
@@ -73,7 +76,9 @@ public static class CertificateExtensions
 
 		var sans = GetSubjectAlternativeNames(certificate).ToArray();
 		if (sans.Length > 0)
+		{
 			return sans.Any(san => MatchesName(san.name, san.type, name));
+		}
 
 		var cn = GetCommonName(certificate);
 		return cn != null && MatchesName(cn, CertificateNameType.DnsName, name);
@@ -97,7 +102,9 @@ public static class CertificateExtensions
 		// if the CN is a wildcard name, do an exact (case-insensitive) match
 		// as a standard RFC 6125 compliant match of two wildcard names will fail
 		if (cn.IsWildcardCertificateName())
+		{
 			return cn.EqualsOrdinalIgnoreCase(name);
+		}
 
 		// otherwise, do a standard RFC 6125 compliant name match
 		return MatchesName(name, CertificateNameType.DnsName, cn);
@@ -143,7 +150,9 @@ public static class CertificateExtensions
 	private static bool IsWildcardCertificateName(this string certName)
 	{
 		if (!certName.StartsWith("*.", StringComparison.Ordinal))
+		{
 			return false;
+		}
 
 		// the certificate name starts with a wildcard DNS label. to verify if it's a valid wildcard name,
 		// we replace the wildcard by the letter 'a', then match it against the original certificate name
@@ -157,13 +166,17 @@ public static class CertificateExtensions
 
 		if (string.IsNullOrEmpty(certName) ||
 			string.IsNullOrEmpty(name))
+		{
 			return false;
+		}
 
 		// if at least one of the names is an IP address, do an exact match
 		if (certNameType == CertificateNameType.IpAddress ||
 			IPAddress.TryParse(certName, out _) ||
 			IPAddress.TryParse(name, out _))
+		{
 			return name.EqualsOrdinalIgnoreCase(certName);
+		}
 
 		Debug.Assert(certNameType == CertificateNameType.DnsName);
 
@@ -171,11 +184,15 @@ public static class CertificateExtensions
 		var dnsNameLabels = name.Split(Delimiter);
 
 		if (certNameLabels.Length != dnsNameLabels.Length)
+		{
 			return false;
+		}
 
 		if (certNameLabels.Any(string.IsNullOrEmpty) ||
 			dnsNameLabels.Any(string.IsNullOrEmpty))
+		{
 			return false;
+		}
 
 		if (certNameLabels.Any(IsInternationalizedDomainNameLabel) ||
 			dnsNameLabels.Any(IsInternationalizedDomainNameLabel))
@@ -188,15 +205,21 @@ public static class CertificateExtensions
 		if (!IsValidCertificateNameFirstLabel(certNameLabels.First()) ||
 			!certNameLabels.Skip(1).All(IsValidDnsNameLabel) ||
 			!dnsNameLabels.All(IsValidDnsNameLabel))
+		{
 			return false;
+		}
 
 		// if first label is not a wildcard, check for an exact match
 		if (certNameLabels.First() != Wildcard)
+		{
 			return certNameLabels.EqualsOrdinalIgnoreCase(dnsNameLabels);
+		}
 
 		// first label is wildcard, a wildcard FQDN should have at least 3 labels
 		if (certNameLabels.Length <= 2)
+		{
 			return false;
+		}
 
 		// compare the other labels of the wildcard FQDN
 		return certNameLabels.Skip(1).EqualsOrdinalIgnoreCase(dnsNameLabels.Skip(1));
@@ -251,7 +274,10 @@ public static class CertificateExtensions
 					var enhancedKeyUsageExt = (X509EnhancedKeyUsageExtension)extension;
 					extKeyUsages = new Oid[enhancedKeyUsageExt.EnhancedKeyUsages.Count];
 					if (extKeyUsages.Length > 0)
+					{
 						enhancedKeyUsageExt.EnhancedKeyUsages.CopyTo(extKeyUsages, 0);
+					}
+
 					break;
 			}
 		}
@@ -305,10 +331,14 @@ public static class CertificateExtensions
 	public static bool IsServerCertificate(this X509Certificate2 certificate, out string failReason)
 	{
 		if (!certificate.TryGetKeyUsages(out var keyUsages, out var hasExtKeyUsagesExtension, out var extKeyUsages, out failReason))
+		{
 			return false;
+		}
 
 		if (!HasCorrectKeyUsages(keyUsages, out failReason))
+		{
 			return false;
+		}
 
 		// rfc5280 section-4.2.1.12: extended key usages (EKUs) only have to be enforced
 		// if the extension is present at all. here, we don't enforce them for server
@@ -318,11 +348,15 @@ public static class CertificateExtensions
 		if (hasExtKeyUsagesExtension)
 		{
 			if (!HasServerAuthExtendedKeyUsage(extKeyUsages, out failReason))
+			{
 				return false;
+			}
 
 			// historically, server certificates also have the clientAuth EKU
 			if (!HasClientAuthExtendedKeyUsage(extKeyUsages, out failReason))
+			{
 				return false;
+			}
 		}
 
 		failReason = string.Empty;
@@ -332,13 +366,19 @@ public static class CertificateExtensions
 	public static bool IsClientCertificate(this X509Certificate2 certificate, out string failReason)
 	{
 		if (!certificate.TryGetKeyUsages(out var keyUsages, out _, out var extKeyUsages, out failReason))
+		{
 			return false;
+		}
 
 		if (!HasCorrectKeyUsages(keyUsages, out failReason))
+		{
 			return false;
+		}
 
 		if (!HasClientAuthExtendedKeyUsage(extKeyUsages, out failReason))
+		{
 			return false;
+		}
 
 		failReason = string.Empty;
 		return true;

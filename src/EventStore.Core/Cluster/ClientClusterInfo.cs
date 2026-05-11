@@ -3,28 +3,34 @@ using System.Linq;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Cluster {
-	public class ClientClusterInfo {
+namespace EventStore.Core.Cluster
+{
+	public class ClientClusterInfo
+	{
 		public ClientMemberInfo[] Members { get; set; }
 		public string ServerIp { get; set; }
 		public int ServerPort { get; set; }
 
-		public ClientClusterInfo() {
+		public ClientClusterInfo()
+		{
 		}
 
-		public ClientClusterInfo(ClusterInfo clusterInfo, string serverIp, int serverPort) {
+		public ClientClusterInfo(ClusterInfo clusterInfo, string serverIp, int serverPort)
+		{
 			Members = clusterInfo.Members.Select(x => new ClientMemberInfo(x)).ToArray();
 			ServerIp = serverIp;
 			ServerPort = serverPort;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format("Server: {0}:{1}, Members: [{2}]",
 				ServerIp, ServerPort,
 				Members != null ? string.Join(",", Members.Select(m => m.ToString())) : "null");
 		}
 
-		public class ClientMemberInfo {
+		public class ClientMemberInfo
+		{
 			public Guid InstanceId { get; set; }
 
 			public DateTime TimeStamp { get; set; }
@@ -55,13 +61,15 @@ namespace EventStore.Core.Cluster {
 
 			public int NodePriority { get; set; }
 			public bool IsReadOnlyReplica { get; set; }
-			
+
 			public string ESVersion { get; set; }
 
-			public ClientMemberInfo() {
+			public ClientMemberInfo()
+			{
 			}
 
-			public ClientMemberInfo(MemberInfo member) {
+			public ClientMemberInfo(MemberInfo member)
+			{
 				InstanceId = member.InstanceId;
 
 				TimeStamp = member.TimeStamp;
@@ -110,7 +118,8 @@ namespace EventStore.Core.Cluster {
 				ESVersion = member.ESVersion;
 			}
 
-			public override string ToString() {
+			public override string ToString()
+			{
 				return
 					$"InstanceId: {InstanceId:B}, TimeStamp: {TimeStamp:yyyy-MM-dd HH:mm:ss.fff}, State: {State}, IsAlive: {IsAlive}, " +
 					$"InternalTcpIp: {InternalTcpIp}, InternalTcpPort: {InternalTcpPort}, InternalSecureTcpPort: {InternalSecureTcpPort}, " +

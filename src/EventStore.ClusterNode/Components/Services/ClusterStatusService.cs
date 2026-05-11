@@ -25,7 +25,8 @@ public sealed class ClusterStatusService(
 	IAuthorizationProvider authorizationProvider,
 	IHttpContextAccessor httpContextAccessor,
 	INodeHttpClientFactory nodeHttpClientFactory,
-	StandardComponents standardComponents) : IDisposable {
+	StandardComponents standardComponents) : IDisposable
+{
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(8);
 	private static readonly Operation ReadOperation = new(Operations.Node.Gossip.ClientRead);
 	private static readonly Operation ReplicationOperation = new(Operations.Node.Statistics.Replication);
@@ -37,9 +38,12 @@ public sealed class ClusterStatusService(
 	public Task<ClientClusterInfo> Read(CancellationToken cancellationToken = default) =>
 		Read(CurrentUser, cancellationToken);
 
-	public async Task<ClientClusterInfo> Read(ClaimsPrincipal user, CancellationToken cancellationToken = default) {
+	public async Task<ClientClusterInfo> Read(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+	{
 		if (!await authorizationProvider.CheckAccessAsync(user, ReadOperation, cancellationToken))
+		{
 			throw new UnauthorizedAccessException("Cluster membership access was denied.");
+		}
 
 		var envelope = new TaskCompletionEnvelope<GossipMessage.SendClientGossip>();
 		standardComponents.MainQueue.Publish(new GossipMessage.ClientGossip(envelope));
@@ -49,49 +53,72 @@ public sealed class ClusterStatusService(
 
 	public async Task<ClusterReplicaPage> ReadReplicas(
 		ClientClusterInfo clusterInfo,
-		CancellationToken cancellationToken = default) {
+		CancellationToken cancellationToken = default)
+	{
 		if (!await authorizationProvider.CheckAccessAsync(CurrentUser, ReplicationOperation, cancellationToken))
+		{
 			return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
+		}
 
 		var leader = clusterInfo?.Members?.FirstOrDefault(x => x.State == VNodeState.Leader);
 		if (leader is null)
+		{
 			return ClusterReplicaPage.Unavailable("Replica stats are unavailable until a leader is known.");
+		}
 
 		var leaderEndpoint = HttpEndpoint(leader);
 		var context = httpContextAccessor.HttpContext;
 		if (context is null)
+		{
 			return ClusterReplicaPage.Unavailable("Replica stats are unavailable outside an HTTP request.");
+		}
 
 		if (string.IsNullOrWhiteSpace(leader.HttpEndPointIp) || leader.HttpEndPointPort <= 0)
+		{
 			return ClusterReplicaPage.Unavailable("Leader HTTP endpoint is unavailable.");
+		}
 
-		try {
+		try
+		{
 			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 			timeout.CancelAfter(ReadTimeout);
 			var response = await ClientFor(context.Request, leader).Client.ReplicationStatsAsync(
 				new ReplicationStatsReq(),
 				cancellationToken: timeout.Token);
 			return ParseReplicaStats(response, clusterInfo.Members, leader, leaderEndpoint, DateTime.UtcNow);
-		} catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.PermissionDenied) {
+		}
+		catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.PermissionDenied)
+		{
 			return ClusterReplicaPage.Unavailable("Replica statistics access was denied.");
-		} catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) {
+		}
+		catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+		{
 			if (cancellationToken.IsCancellationRequested)
+			{
 				throw new OperationCanceledException(null, ex, cancellationToken);
+			}
 
 			return ClusterReplicaPage.Unavailable("Timed out reading replica statistics.");
-		} catch (OperationCanceledException) {
+		}
+		catch (OperationCanceledException)
+		{
 			if (cancellationToken.IsCancellationRequested)
+			{
 				throw;
+			}
 
 			return ClusterReplicaPage.Unavailable("Timed out reading replica statistics.");
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			return ClusterReplicaPage.Unavailable($"Unable to read replica statistics: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	private LeaderMonitoringClient ClientFor(
 		HttpRequest request,
-		ClientClusterInfo.ClientMemberInfo leader) {
+		ClientClusterInfo.ClientMemberInfo leader)
+	{
 		var key = $"{request.Scheme}://{HttpEndpoint(leader)}";
 		return _clients.GetOrAdd(
 			key,
@@ -101,9 +128,12 @@ public sealed class ClusterStatusService(
 			(Request: request, Leader: leader, Factory: nodeHttpClientFactory));
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		foreach (var client in _clients.Values)
+		{
 			client.Dispose();
+		}
 	}
 
 	private ClusterReplicaPage ParseReplicaStats(
@@ -111,9 +141,12 @@ public sealed class ClusterStatusService(
 		IReadOnlyList<ClientClusterInfo.ClientMemberInfo> members,
 		ClientClusterInfo.ClientMemberInfo leader,
 		string leaderEndpoint,
-		DateTime now) {
-		lock (_replicaGate) {
-			if (!string.Equals(_previousLeaderEndpoint, leaderEndpoint, StringComparison.OrdinalIgnoreCase)) {
+		DateTime now)
+	{
+		lock (_replicaGate)
+		{
+			if (!string.Equals(_previousLeaderEndpoint, leaderEndpoint, StringComparison.OrdinalIgnoreCase))
+			{
 				_previousLeaderEndpoint = leaderEndpoint;
 				_previousReplicas = new Dictionary<Guid, ClusterReplicaRow>();
 			}
@@ -131,7 +164,8 @@ public sealed class ClusterStatusService(
 		ReplicationStats row,
 		IReadOnlyList<ClientClusterInfo.ClientMemberInfo> members,
 		ClientClusterInfo.ClientMemberInfo leader,
-		DateTime now) {
+		DateTime now)
+	{
 		var connectionId = Guid.TryParse(row.ConnectionId, out var parsedConnectionId)
 			? parsedConnectionId
 			: Guid.Empty;
@@ -142,7 +176,8 @@ public sealed class ClusterStatusService(
 		var catchupStartTime = now;
 		var catchupStartBytesSent = totalBytesSent;
 
-		if (previousRow?.IsCatchingUp == true) {
+		if (previousRow?.IsCatchingUp == true)
+		{
 			catchupStartTime = previousRow.CatchupStartTime;
 			catchupStartBytesSent = previousRow.CatchupStartBytesSent;
 		}
@@ -173,7 +208,8 @@ public sealed class ClusterStatusService(
 
 	private static ClientClusterInfo.ClientMemberInfo FindMemberByInternalEndpoint(
 		IReadOnlyList<ClientClusterInfo.ClientMemberInfo> members,
-		string endpoint) {
+		string endpoint)
+	{
 		var cleaned = endpoint.Replace("Unspecified/", "", StringComparison.OrdinalIgnoreCase);
 		return members.FirstOrDefault(x => string.Equals(InternalTcpEndpoint(x), cleaned, StringComparison.OrdinalIgnoreCase));
 	}
@@ -194,13 +230,16 @@ public sealed class ClusterStatusService(
 	private static string Endpoint(string host, int port) =>
 		$"{(string.IsNullOrWhiteSpace(host) ? "<none>" : host)}:{port}";
 
-	private sealed class LeaderMonitoringClient : IDisposable {
+	private sealed class LeaderMonitoringClient : IDisposable
+	{
 		private readonly GrpcChannel _channel;
 		private readonly HttpClient _httpClient;
 
-		private LeaderMonitoringClient(Uri address, HttpClient httpClient) {
+		private LeaderMonitoringClient(Uri address, HttpClient httpClient)
+		{
 			_httpClient = httpClient;
-			_channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions {
+			_channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
+			{
 				HttpClient = _httpClient,
 				DisposeHttpClient = false
 			});
@@ -212,7 +251,8 @@ public sealed class ClusterStatusService(
 		public static LeaderMonitoringClient Create(Uri address, HttpClient httpClient) =>
 			new(address, httpClient);
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_channel.Dispose();
 			_httpClient.Dispose();
 		}
@@ -222,7 +262,8 @@ public sealed class ClusterStatusService(
 public sealed record ClusterReplicaPage(
 	IReadOnlyList<ClusterReplicaRow> Replicas,
 	string Message,
-	DateTime? ReadAt) {
+	DateTime? ReadAt)
+{
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public string StatusLabel => Replicas.Count == 0
 		? string.IsNullOrWhiteSpace(Message) ? "No replica stats reported." : Message
@@ -247,7 +288,8 @@ public sealed record ClusterReplicaRow(
 	long BytesToCatchUp,
 	long ApproximateSpeed,
 	DateTime CatchupStartTime,
-	long CatchupStartBytesSent) {
+	long CatchupStartBytesSent)
+{
 	public string TotalBytesSentLabel => FormatInteger(TotalBytesSent);
 	public string TotalBytesReceivedLabel => FormatInteger(TotalBytesReceived);
 	public string PendingSendBytesLabel => FormatInteger(PendingSendBytes);
@@ -262,7 +304,8 @@ public sealed record ClusterReplicaRow(
 	private static string FormatInteger(long value) =>
 		value.ToString("N0", CultureInfo.InvariantCulture);
 
-	private static string FormatDuration(long totalSeconds) {
+	private static string FormatDuration(long totalSeconds)
+	{
 		var time = TimeSpan.FromSeconds(totalSeconds);
 		return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
 	}

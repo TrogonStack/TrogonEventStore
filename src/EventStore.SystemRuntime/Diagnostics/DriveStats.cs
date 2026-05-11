@@ -19,7 +19,7 @@ public class DriveStats
 			foreach (var candidate in DriveInfo.GetDrives())
 			{
 				if (target.StartsWith(candidate.Name, StringComparison.InvariantCultureIgnoreCase) &&
-				    candidate.Name.StartsWith(diskName, StringComparison.InvariantCultureIgnoreCase))
+					candidate.Name.StartsWith(diskName, StringComparison.InvariantCultureIgnoreCase))
 				{
 					diskName = candidate.Name;
 				}

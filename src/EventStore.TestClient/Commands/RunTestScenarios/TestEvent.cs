@@ -24,18 +24,24 @@ internal class TestEvent
 			var data = Common.Utils.Helper.UTF8NoBom.GetString(evnt.Data);
 			var atoms = data.Split('-');
 			if (atoms.Length != 3)
+			{
 				throw new ApplicationException(string.Format("Invalid TestEvent object: currupted data format: {0}",
 					RecordDetailsString(evnt)));
+			}
 
 			var expectedLength = int.Parse(atoms[1]);
 			if (expectedLength != atoms[2].Length)
+			{
 				throw new ApplicationException(string.Format(
 					"Invalid TestEvent object: not expected data length: {0}",
 					RecordDetailsString(evnt)));
+			}
 
 			if (new string('#', expectedLength) != atoms[2])
+			{
 				throw new ApplicationException(string.Format("Invalid TestEvent object: currupted data: {0}",
 					RecordDetailsString(evnt)));
+			}
 		}
 	}
 

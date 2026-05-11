@@ -60,12 +60,16 @@ public class IndexReaderForCalculator<TStreamId>(
 		var result = await reader.TryReadAt(logPosition, couldBeScavenged: true, token);
 
 		if (!result.Success)
+		{
 			return false;
+		}
 
 		if (result.LogRecord is not IPrepareLogRecord prepare)
+		{
 			throw new Exception(
 				$"Incorrect type of log record {result.LogRecord.RecordType}, " +
 				$"expected Prepare record.");
+		}
 
 		return prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete);
 	}

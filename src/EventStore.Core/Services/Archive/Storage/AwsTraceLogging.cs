@@ -40,7 +40,9 @@ public sealed class AwsTraceSerilogListener : TraceListener
 		string format, params object[] args)
 	{
 		if (format is null)
+		{
 			return;
+		}
 
 		WritePlainMessage(GetLogLevel(eventType), string.Format(format, args ?? Array.Empty<object>()));
 	}
@@ -49,7 +51,9 @@ public sealed class AwsTraceSerilogListener : TraceListener
 		string message)
 	{
 		if (message is null)
+		{
 			return;
+		}
 
 		WritePlainMessage(GetLogLevel(eventType), message);
 	}
@@ -58,7 +62,9 @@ public sealed class AwsTraceSerilogListener : TraceListener
 		Guid relatedActivityId)
 	{
 		if (message is null)
+		{
 			return;
+		}
 
 		WritePlainMessage(LogEventLevel.Verbose, $"{message} ({relatedActivityId})");
 	}
@@ -66,7 +72,9 @@ public sealed class AwsTraceSerilogListener : TraceListener
 	public override void Write(string message)
 	{
 		if (message is null)
+		{
 			return;
+		}
 
 		WritePlainMessage(LogEventLevel.Information, message);
 	}
@@ -74,7 +82,9 @@ public sealed class AwsTraceSerilogListener : TraceListener
 	public override void WriteLine(string message)
 	{
 		if (message is null)
+		{
 			return;
+		}
 
 		WritePlainMessage(LogEventLevel.Information, message);
 	}
@@ -82,7 +92,9 @@ public sealed class AwsTraceSerilogListener : TraceListener
 	private void Log(TraceEventType eventType, params object[] data)
 	{
 		if (data is null || data.Length is 0)
+		{
 			return;
+		}
 
 		var exception = data.Length > 1 ? data[1] as Exception : null;
 		var logLevel = AdjustDefaultLevel(GetLogLevel(eventType), exception);
@@ -96,12 +108,15 @@ public sealed class AwsTraceSerilogListener : TraceListener
 				_logger.Write(logLevel, exception, "{AwsTraceMessage:l}", message);
 				break;
 			default:
-			{
-				var rendered = data[0]?.ToString();
-				if (!string.IsNullOrEmpty(rendered))
-					_logger.Write(logLevel, exception, "{AwsTraceMessage:l}", rendered);
-				break;
-			}
+				{
+					var rendered = data[0]?.ToString();
+					if (!string.IsNullOrEmpty(rendered))
+					{
+						_logger.Write(logLevel, exception, "{AwsTraceMessage:l}", rendered);
+					}
+
+					break;
+				}
 		}
 	}
 
@@ -111,7 +126,8 @@ public sealed class AwsTraceSerilogListener : TraceListener
 	internal static LogEventLevel AdjustDefaultLevel(LogEventLevel logLevel, Exception exception) =>
 		exception is AmazonS3Exception { ErrorCode: "NoSuchKey" or "InvalidRange" }
 			? LogEventLevel.Verbose
-			: exception is HttpErrorResponseException {
+			: exception is HttpErrorResponseException
+			{
 				Response.StatusCode: HttpStatusCode.NotFound or HttpStatusCode.RequestedRangeNotSatisfiable
 			}
 				? LogEventLevel.Verbose
@@ -138,11 +154,14 @@ internal static class AwsTraceLogging
 	public static void Configure()
 	{
 		if (Interlocked.CompareExchange(ref _configured, 1, 0) != 0)
+		{
 			return;
+		}
 
 		try
 		{
-			AWSConfigs.AddTraceListener("Amazon", new AwsTraceSerilogListener {
+			AWSConfigs.AddTraceListener("Amazon", new AwsTraceSerilogListener
+			{
 				Name = nameof(AwsTraceSerilogListener),
 			});
 			AWSConfigs.LoggingConfig.LogTo = LoggingOptions.SystemDiagnostics;

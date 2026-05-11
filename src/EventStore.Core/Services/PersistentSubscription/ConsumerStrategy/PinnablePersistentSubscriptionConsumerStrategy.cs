@@ -24,7 +24,9 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 		get
 		{
 			if (_state == null)
+			{
 				return 0;
+			}
 
 			return _state.AvailableCapacity;
 		}

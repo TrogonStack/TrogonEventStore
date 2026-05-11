@@ -28,7 +28,9 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
 			protected override IEnumerable<WhenStep> When()
 			{
 				foreach (var m in base.When())
+				{
 					yield return m;
+				}
 
 				var readerAssignedMessage =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
@@ -51,7 +53,9 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
 			protected override IEnumerable<WhenStep> When()
 			{
 				foreach (var m in base.When())
+				{
 					yield return m;
+				}
 
 				yield return
 					(new ProjectionManagementMessage.Command.Disable(
@@ -98,7 +102,10 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
 			protected override IEnumerable<WhenStep> When()
 			{
 				foreach (var m in base.When())
+				{
 					yield return m;
+				}
+
 				yield return
 					(new ProjectionManagementMessage.Command.Enable(
 						_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));

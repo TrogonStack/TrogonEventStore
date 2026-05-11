@@ -4,9 +4,11 @@ using System.Linq;
 using EventStore.Core.Data;
 using EventStore.Core.Index.Hashes;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	public class OriginalStreamCollisionMap<TStreamId> :
-		CollisionMap<TStreamId, OriginalStreamData> {
+		CollisionMap<TStreamId, OriginalStreamData>
+	{
 
 		private readonly ILongHasher<TStreamId> _hasher;
 		private readonly Func<TStreamId, bool> _isCollision;
@@ -19,7 +21,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			IOriginalStreamScavengeMap<ulong> nonCollisions,
 			IOriginalStreamScavengeMap<TStreamId> collisions) :
 			base(
-				hasher, isCollision, nonCollisions, collisions) {
+				hasher, isCollision, nonCollisions, collisions)
+		{
 
 			_hasher = hasher;
 			_isCollision = isCollision;
@@ -27,27 +30,39 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			_collisions = collisions;
 		}
 
-		public void SetTombstone(TStreamId streamId) {
+		public void SetTombstone(TStreamId streamId)
+		{
 			if (_isCollision(streamId))
+			{
 				_collisions.SetTombstone(streamId);
+			}
 			else
+			{
 				_nonCollisions.SetTombstone(_hasher.Hash(streamId));
+			}
 		}
 
-		public void SetMetadata(TStreamId streamId, StreamMetadata metadata) {
+		public void SetMetadata(TStreamId streamId, StreamMetadata metadata)
+		{
 			if (_isCollision(streamId))
+			{
 				_collisions.SetMetadata(streamId, metadata);
+			}
 			else
+			{
 				_nonCollisions.SetMetadata(_hasher.Hash(streamId), metadata);
+			}
 		}
 
 		public void SetDiscardPoints(
 			StreamHandle<TStreamId> handle,
 			CalculationStatus status,
 			DiscardPoint discardPoint,
-			DiscardPoint maybeDiscardPoint) {
+			DiscardPoint maybeDiscardPoint)
+		{
 
-			switch (handle.Kind) {
+			switch (handle.Kind)
+			{
 				case StreamHandle.Kind.Hash:
 					_nonCollisions.SetDiscardPoints(
 						key: handle.StreamHash,
@@ -72,19 +87,22 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				? _collisions.TryGetChunkExecutionInfo(streamId, out info)
 				: _nonCollisions.TryGetChunkExecutionInfo(_hasher.Hash(streamId), out info);
 
-		public void DeleteMany(bool deleteArchived) {
+		public void DeleteMany(bool deleteArchived)
+		{
 			_collisions.DeleteMany(deleteArchived: deleteArchived);
 			_nonCollisions.DeleteMany(deleteArchived: deleteArchived);
 		}
 
 		// overall sequence is collisions ++ noncollisions
 		public IEnumerable<(StreamHandle<TStreamId>, OriginalStreamData)> EnumerateActive(
-			StreamHandle<TStreamId> checkpoint) {
+			StreamHandle<TStreamId> checkpoint)
+		{
 
 			IEnumerable<KeyValuePair<TStreamId, OriginalStreamData>> collisionsEnumerable;
 			IEnumerable<KeyValuePair<ulong, OriginalStreamData>> nonCollisionsEnumerable;
 
-			switch (checkpoint.Kind) {
+			switch (checkpoint.Kind)
+			{
 				case StreamHandle.Kind.None:
 					// no checkpoint, emit everything
 					collisionsEnumerable = _collisions.ActiveRecords();
@@ -107,11 +125,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 					throw new ArgumentOutOfRangeException(nameof(checkpoint), checkpoint.Kind, null);
 			}
 
-			foreach (var kvp in collisionsEnumerable) {
+			foreach (var kvp in collisionsEnumerable)
+			{
 				yield return (StreamHandle.ForStreamId(kvp.Key), kvp.Value);
 			}
 
-			foreach (var kvp in nonCollisionsEnumerable) {
+			foreach (var kvp in nonCollisionsEnumerable)
+			{
 				yield return (StreamHandle.ForHash<TStreamId>(kvp.Key), kvp.Value);
 			}
 		}

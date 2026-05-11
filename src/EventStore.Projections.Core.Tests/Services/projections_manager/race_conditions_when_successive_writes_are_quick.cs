@@ -34,7 +34,10 @@ public abstract class race_conditions_when_successive_writes_are_quick
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 		}
 
@@ -97,7 +100,10 @@ public abstract class race_conditions_when_successive_writes_are_quick
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return GetCreate(_projection1, shouldBatchCreate1);
 			yield return GetCreate(_projection2, shouldBatchCreate2);
 		}
@@ -148,7 +154,10 @@ public abstract class race_conditions_when_successive_writes_are_quick
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(new ProjectionManagementMessage.Command.Post(_bus, ProjectionMode.Continuous,
 					_projection1,
@@ -250,7 +259,10 @@ public abstract class race_conditions_when_successive_writes_are_quick
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return (new ProjectionManagementMessage.Command.Post(_bus,
 				ProjectionMode.Continuous,
 				_projection1,
@@ -344,7 +356,10 @@ public abstract class race_conditions_when_successive_writes_are_quick
 		protected override IEnumerable<WhenStep> When()
 		{
 			foreach (var m in base.When())
+			{
 				yield return m;
+			}
+
 			yield return
 				(new ProjectionManagementMessage.Command.Post(_bus, ProjectionMode.Continuous,
 					_projection1,

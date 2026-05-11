@@ -74,7 +74,9 @@ public class TestMetastreamScavengeMap<TKey> :
 	public void SetTombstone(TKey key)
 	{
 		if (!TryGetValue(key, out var existing))
+		{
 			existing = new MetastreamData();
+		}
 
 		this[key] = new MetastreamData(
 			isTombstoned: true,
@@ -84,7 +86,9 @@ public class TestMetastreamScavengeMap<TKey> :
 	public void SetDiscardPoint(TKey key, DiscardPoint discardPoint)
 	{
 		if (!TryGetValue(key, out var existing))
+		{
 			existing = new MetastreamData();
+		}
 
 		this[key] = new MetastreamData(
 			isTombstoned: existing.IsTombstoned,
@@ -94,7 +98,9 @@ public class TestMetastreamScavengeMap<TKey> :
 	public void DeleteAll()
 	{
 		foreach (var record in AllRecords())
+		{
 			TryRemove(record.Key, out _);
+		}
 	}
 }
 
@@ -105,7 +111,9 @@ public class TestOriginalStreamScavengeMap<TKey> :
 	public void SetTombstone(TKey key)
 	{
 		if (!TryGetValue(key, out var existing))
+		{
 			existing = new OriginalStreamData();
+		}
 
 		this[key] = new OriginalStreamData
 		{
@@ -122,7 +130,9 @@ public class TestOriginalStreamScavengeMap<TKey> :
 	public void SetMetadata(TKey key, StreamMetadata metadata)
 	{
 		if (!TryGetValue(key, out var existing))
+		{
 			existing = new OriginalStreamData();
+		}
 
 		this[key] = new OriginalStreamData
 		{
@@ -143,7 +153,9 @@ public class TestOriginalStreamScavengeMap<TKey> :
 		DiscardPoint maybeDiscardPoint)
 	{
 		if (!TryGetValue(key, out var existing))
+		{
 			throw new Exception("Missing original stream scavenge data for test key.");
+		}
 
 		this[key] = new OriginalStreamData
 		{
@@ -185,7 +197,7 @@ public class TestOriginalStreamScavengeMap<TKey> :
 		foreach (var record in AllRecords())
 		{
 			if (record.Value.Status == CalculationStatus.Spent ||
-			    record.Value.Status == CalculationStatus.Archived && deleteArchived)
+				record.Value.Status == CalculationStatus.Archived && deleteArchived)
 			{
 				TryRemove(record.Key, out _);
 			}
@@ -202,7 +214,9 @@ public class TestChunkWeightScavengeMap :
 		foreach (var record in AllRecords())
 		{
 			if (record.Value != 0)
+			{
 				return false;
+			}
 		}
 
 		return true;
@@ -211,7 +225,9 @@ public class TestChunkWeightScavengeMap :
 	public void IncreaseWeight(int logicalChunkNumber, float extraWeight)
 	{
 		if (!TryGetValue(logicalChunkNumber, out var weight))
+		{
 			weight = 0;
+		}
 
 		this[logicalChunkNumber] = weight + extraWeight;
 	}
@@ -219,7 +235,9 @@ public class TestChunkWeightScavengeMap :
 	public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber)
 	{
 		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++)
+		{
 			TryRemove(i, out _);
+		}
 	}
 
 	public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber)
@@ -229,7 +247,9 @@ public class TestChunkWeightScavengeMap :
 		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++)
 		{
 			if (TryGetValue(i, out var weight))
+			{
 				totalWeight += weight;
+			}
 		}
 
 		return totalWeight;

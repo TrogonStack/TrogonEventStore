@@ -87,7 +87,9 @@ public class
 		/*Second, idempotent write but one of the event ids is different*/
 		var ids = new List<Guid>();
 		foreach (var id in _eventIds)
+		{
 			ids.Add(id);
+		}
 
 		ids[ids.Count - 2] = Guid.NewGuid();
 
@@ -103,7 +105,9 @@ public class
 		/*Second, idempotent write but one of the event ids is different*/
 		var ids = new List<Guid>();
 		foreach (var id in _eventIds)
+		{
 			ids.Add(id);
+		}
 
 		ids[0] = Guid.NewGuid();
 

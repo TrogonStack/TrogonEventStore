@@ -145,7 +145,10 @@ internal partial class PersistentSubscriptions
 			long? preparePosition)
 		{
 			if (e == null)
+			{
 				return null;
+			}
+
 			var position = Position.FromInt64(commitPosition ?? -1, preparePosition ?? -1);
 			return new ReadResp.Types.ReadEvent.Types.RecordedEvent
 			{

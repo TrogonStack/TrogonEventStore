@@ -14,7 +14,10 @@ public class ResultEventEmitter : IResultEventEmitter
 	public ResultEventEmitter(ProjectionNamesBuilder namesBuilder)
 	{
 		if (namesBuilder == null)
+		{
 			throw new ArgumentNullException("namesBuilder");
+		}
+
 		_namesBuilder = namesBuilder;
 	}
 

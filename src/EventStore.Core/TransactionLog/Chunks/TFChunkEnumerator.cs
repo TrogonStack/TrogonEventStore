@@ -46,7 +46,9 @@ public class TFChunkEnumerator : IChunkEnumerator
 			var chunkNumber = _chunkFileNamingStrategy.GetIndexFor(Path.GetFileName(_allFiles[i]));
 			var nextChunkNumber = -1;
 			if (i + 1 < _allFiles.Length)
+			{
 				nextChunkNumber = _chunkFileNamingStrategy.GetIndexFor(Path.GetFileName(_allFiles[i + 1]));
+			}
 
 			if (chunkNumber < expectedChunkNumber)
 			{
@@ -91,14 +93,20 @@ public class TFChunkEnumerator : IChunkEnumerator
 		CancellationToken token)
 	{
 		if (chunkVersion is 0)
+		{
 			return chunkNumber + 1;
+		}
 
 		// we only cache next chunk numbers for chunks having a non-zero version
 		if (_nextChunkNumber.TryGetValue(chunkFileName, out var nextChunkNumber))
+		{
 			return nextChunkNumber;
+		}
 
 		if (_readHeaderAsync is null)
+		{
 			throw new InvalidOperationException("No chunk header reader was provided for versioned chunk enumeration.");
+		}
 
 		var header = await _readHeaderAsync(chunkFileName, token);
 		_nextChunkNumber[chunkFileName] = header.ChunkEndNumber + 1;

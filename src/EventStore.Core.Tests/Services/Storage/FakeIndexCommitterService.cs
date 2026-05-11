@@ -18,7 +18,10 @@ public class FakeIndexCommitterService<TStreamId> : IIndexCommitterService<TStre
 	public void AddPendingCommit(CommitLogRecord commit, long postPosition)
 	{
 		if (commit == null)
+		{
 			throw new InvalidOperationException("Cannot commit a null transaction");
+		}
+
 		if (Transactions.TryGetValue(commit.CorrelationId, out var transaction))
 		{
 			transaction.CommitTransaction(commit);
@@ -33,9 +36,15 @@ public class FakeIndexCommitterService<TStreamId> : IIndexCommitterService<TStre
 	public void AddPendingPrepare(IPrepareLogRecord<TStreamId>[] prepares, long postPosition)
 	{
 		if (prepares == null)
+		{
 			throw new InvalidOperationException("Cannot commit a null transaction");
+		}
+
 		if (prepares.Length <= 0)
+		{
 			return;
+		}
+
 		if (!Transactions.TryGetValue(prepares[0].CorrelationId, out var transaction))
 		{
 			transaction = new Transaction(prepares[0].CorrelationId);

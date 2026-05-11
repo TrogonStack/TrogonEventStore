@@ -6,48 +6,62 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy
 	using Index.Hashes;
 	using Newtonsoft.Json;
 
-	public class PinnedByCorrelationPersistentSubscriptionConsumerStrategy : PinnedPersistentSubscriptionConsumerStrategy {
-		
-		public PinnedByCorrelationPersistentSubscriptionConsumerStrategy(IHasher<string> streamHasher) : base(streamHasher) {
+	public class PinnedByCorrelationPersistentSubscriptionConsumerStrategy : PinnedPersistentSubscriptionConsumerStrategy
+	{
+
+		public PinnedByCorrelationPersistentSubscriptionConsumerStrategy(IHasher<string> streamHasher) : base(streamHasher)
+		{
 		}
 
-		public override string Name {
+		public override string Name
+		{
 			get { return SystemConsumerStrategies.PinnedByCorrelation; }
 		}
 
 
-		protected override string GetAssignmentSourceId(ResolvedEvent ev) {
+		protected override string GetAssignmentSourceId(ResolvedEvent ev)
+		{
 			var eventRecord = ev.Event ?? ev.Link;
 
 			string correlation = CorrelationFromJsonBytes(eventRecord.Metadata);
 
-			if (correlation == null) {
+			if (correlation == null)
+			{
 				return GetSourceStreamId(ev);
 			}
 
 			return correlation;
 		}
 
-		private string CorrelationFromJsonBytes(ReadOnlyMemory<byte> toConvert) {
-			using (var reader = new JsonTextReader(new StreamReader(new MemoryStream(toConvert.ToArray())))) {
-				if (!reader.Read()) {
+		private string CorrelationFromJsonBytes(ReadOnlyMemory<byte> toConvert)
+		{
+			using (var reader = new JsonTextReader(new StreamReader(new MemoryStream(toConvert.ToArray()))))
+			{
+				if (!reader.Read())
+				{
 					return null;
 				}
 
-				while (true) {
-					if (!reader.Read()) {
+				while (true)
+				{
+					if (!reader.Read())
+					{
 						return null;
 					}
 
-					if (reader.TokenType == JsonToken.EndObject) {
+					if (reader.TokenType == JsonToken.EndObject)
+					{
 						break;
 					}
 
-					if (reader.TokenType == JsonToken.PropertyName) {
-						if ((string) reader.Value == CorrelationIdPropertyContext.CorrelationIdProperty) {
+					if (reader.TokenType == JsonToken.PropertyName)
+					{
+						if ((string)reader.Value == CorrelationIdPropertyContext.CorrelationIdProperty)
+						{
 							reader.Read();
 
-							if (reader.TokenType == JsonToken.String) {
+							if (reader.TokenType == JsonToken.String)
+							{
 								return (string)reader.Value;
 							}
 						}

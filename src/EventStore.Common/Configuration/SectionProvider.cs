@@ -29,7 +29,11 @@ public sealed class SectionProvider : ConfigurationProvider, IDisposable
 			key = key[prefix.Length..];
 			foreach (var candidate in Providers)
 			{
-				if (!candidate.TryGet(key, out _)) continue;
+				if (!candidate.TryGet(key, out _))
+				{
+					continue;
+				}
+
 				provider = candidate;
 				return true;
 			}

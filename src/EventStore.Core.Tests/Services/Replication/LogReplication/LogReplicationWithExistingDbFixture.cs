@@ -31,11 +31,15 @@ public abstract class
 		var filename = db.Config.FileNamingStrategy.GetFilenameFor(chunkStartNumber, raw ? 1 : 0);
 
 		if (raw && !complete)
+		{
 			throw new InvalidOperationException("A raw chunk must be complete");
+		}
 
 		if (!raw && chunkStartNumber != chunkEndNumber)
+		{
 			throw new InvalidOperationException(
 				$"{nameof(chunkStartNumber)} should be equal to {nameof(chunkEndNumber)} for non-raw chunks");
+		}
 
 		var header = new ChunkHeader(
 			version: TFChunk.CurrentChunkVersion,
@@ -71,7 +75,9 @@ public abstract class
 			var writeResult = await chunk.TryAppend(logRecord, token);
 
 			if (!writeResult.Success)
+			{
 				throw new Exception("Failed to append log record");
+			}
 
 			var writerPos = chunk.ChunkHeader.ChunkStartPosition + writeResult.NewPosition;
 
@@ -81,20 +87,30 @@ public abstract class
 				(logRecord.IsTransactionBoundary() /* complete transaction */
 				 || i == logRecords.Length -
 				 1)) /* incomplete transaction at the end of a chunk - commit for backwards compatibility */
+			{
 				db.Config.WriterCheckpoint.Write(writerPos);
+			}
 
 			posMaps.Add(new PosMap(logicalPos, actualPos));
 		}
 
 		if (raw)
+		{
 			await chunk.CompleteScavenge(posMaps, token);
+		}
 		else if (complete)
+		{
 			await chunk.Complete(token);
+		}
 		else
+		{
 			await chunk.Flush(token);
+		}
 
 		if (complete)
+		{
 			db.Config.WriterCheckpoint.Write(chunk.ChunkHeader.ChunkEndPosition);
+		}
 
 		chunk.Dispose();
 		chunk.WaitForDestroy(0);
@@ -139,9 +155,15 @@ public abstract class
 			{
 				var flags = PrepareFlags.Data | PrepareFlags.IsCommitted;
 				if (i == 0)
+				{
 					flags |= PrepareFlags.TransactionBegin;
+				}
+
 				if (!incomplete && i == txSize - 1)
+				{
 					flags |= PrepareFlags.TransactionEnd;
+				}
+
 				var logRecord = CreatePrepare(logPosition, flags);
 				logPosition += logRecord.GetSizeWithLengthPrefixAndSuffix();
 				logRecords.Add(logRecord);

@@ -86,7 +86,9 @@ public static class WindowsProcessUtil
 
 		var res = RmStartSession(out handle, 0, key);
 		if (res != 0)
+		{
 			throw new Exception("Could not begin restart session.  Unable to determine file locker.");
+		}
 
 		try
 		{
@@ -101,7 +103,9 @@ public static class WindowsProcessUtil
 			res = RmRegisterResources(handle, (uint)resources.Length, resources, 0, null!, 0, null!);
 
 			if (res != 0)
+			{
 				throw new Exception("Could not register resource.");
+			}
 
 			//Note: there's a race condition here -- the first call to RmGetList() returns
 			//      the total number of process. However, when we call RmGetList() again to get
@@ -135,10 +139,14 @@ public static class WindowsProcessUtil
 					}
 				}
 				else
+				{
 					throw new Exception("Could not list processes locking resource.");
+				}
 			}
 			else if (res != 0)
+			{
 				throw new Exception("Could not list processes locking resource. Failed to get size of result.");
+			}
 		}
 		finally
 		{
@@ -175,11 +183,15 @@ public static class WindowsProcessUtil
 	{
 		logger.Information("Trying to retrieve list of processes having a file handle open on {Path} (requires admin privileges)", path);
 		if (TryGetWhoIsLocking(path, out var processes, out var error))
+		{
 			logger.Information(
 				$"Processes locking {{Path}}:{Environment.NewLine}{{ProcessList}}",
 				path, string.Join(Environment.NewLine, processes.Select(x => $"[{x.Id}] {x.MainModule?.FileName}"))
 			);
+		}
 		else
+		{
 			logger.Error(error, "Could not retrieve list of processes using file handle {Path}", path);
+		}
 	}
 }

@@ -32,7 +32,10 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length != 1 && args.Length != 3)
+			{
 				return false;
+			}
+
 			try
 			{
 				writeCount = MetricPrefixValue.ParseInt(args[0]);
@@ -84,12 +87,16 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 					if (dto.Result == OperationResult.Success)
 					{
 						if (Interlocked.Increment(ref succ) % 1000 == 0)
+						{
 							Console.Write(".");
+						}
 					}
 					else
 					{
 						if (Interlocked.Increment(ref fail) % 1000 == 0)
+						{
 							Console.Write("#");
+						}
 					}
 
 					if (Interlocked.Increment(ref all) == requestsCnt)
@@ -150,8 +157,12 @@ internal class MultiWriteFloodWaitingProcessor : ICmdProcessor
 			(int)Math.Round(sw.Elapsed.TotalMilliseconds / requestsCnt));
 
 		if (succ != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
+		}
 		else
+		{
 			context.Success();
+		}
 	}
 }

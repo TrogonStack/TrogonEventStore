@@ -219,7 +219,9 @@ internal abstract class ScenarioBase : IScenario
 
 		Func<string, int, Func<int, EventData>, Task> handler;
 		if (!_writeHandlers.TryGetValue(mode, out handler))
+		{
 			throw new ArgumentOutOfRangeException("mode");
+		}
 
 		var tasks = new List<Task>();
 		for (var i = 0; i < streams.Length; i++)
@@ -273,7 +275,9 @@ internal abstract class ScenarioBase : IScenario
 			var task = store.ReadStreamEventsForwardAsync(stream, 0, 1, resolveLinkTos: false).ContinueWith(t =>
 			{
 				if (t.Result.Status != SliceReadStatus.StreamDeleted)
+				{
 					throw new Exception(string.Format("Stream '{0}' is not deleted, but should be!", s));
+				}
 			});
 
 			tasks.Add(task);
@@ -321,7 +325,9 @@ internal abstract class ScenarioBase : IScenario
 	{
 		int processId = -1;
 		if (_customNodeConnection == null)
+		{
 			processId = StartNewNode();
+		}
 
 		return processId;
 	}
@@ -363,15 +369,19 @@ internal abstract class ScenarioBase : IScenario
 
 		var nodeProcess = Process.Start(startInfo);
 		if (nodeProcess == null || nodeProcess.HasExited)
+		{
 			throw new ApplicationException(string.Format("Process was not started [{0} {1}].", fileName,
 				arguments));
+		}
 
 		Thread.Sleep(3000);
 		Process tmp;
 		var running = TryGetProcessById(nodeProcess.Id, out tmp);
 		if (!running || tmp.HasExited)
+		{
 			throw new ApplicationException(string.Format("Process was not started [{0} {1}].", fileName,
 				arguments));
+		}
 
 		_startedNodesProcIds.Add(nodeProcess.Id);
 
@@ -406,9 +416,13 @@ internal abstract class ScenarioBase : IScenario
 	protected void KillNode(int processId)
 	{
 		if (processId != -1)
+		{
 			KillStartedNode(processId);
+		}
 		else
+		{
 			Log.Information("Skip killing, procId -1");
+		}
 	}
 
 	private void KillStartedNode(int processId)
@@ -440,16 +454,22 @@ internal abstract class ScenarioBase : IScenario
 			else
 			{
 				if (TryGetProcessById(processId, out _))
+				{
 					Log.Error(
 						"Process {processId} did not report about exit in time and is still present in processes list.",
 						processId);
+				}
 				else
+				{
 					Log.Information("Process {processId} did not report about exit in time but is not found again.",
 						processId);
+				}
 			}
 		}
 		else
+		{
 			Log.Error("Process {processId} was not found to be killed.", processId);
+		}
 	}
 
 	public void Dispose()

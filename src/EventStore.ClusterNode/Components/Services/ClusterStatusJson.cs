@@ -3,8 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-internal static class ClusterStatusJson {
-	public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web) {
+internal static class ClusterStatusJson
+{
+	public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
+	{
 		Converters = {
 			new JsonStringEnumConverter()
 		}

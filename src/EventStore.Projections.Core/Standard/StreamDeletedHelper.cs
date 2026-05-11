@@ -64,13 +64,17 @@ public static class StreamDeletedHelper
 				//NOTE: we do not ignore JSON deserialization exceptions here assuming that metadata stream events must be deserializable
 
 				if (metadata.TruncateBefore == EventNumber.DeletedStream)
+				{
 					isStreamDeletedEvent = true;
+				}
 			}
 		}
 		else
 		{
 			if (eventType == SystemEventTypes.StreamDeleted)
+			{
 				isStreamDeletedEvent = true;
+			}
 		}
 
 		return isStreamDeletedEvent;
@@ -100,13 +104,17 @@ public static class StreamDeletedHelper
 				//NOTE: we do not ignore JSON deserialization exceptions here assuming that metadata stream events must be deserializable
 
 				if (metadata.TruncateBefore == EventNumber.DeletedStream)
+				{
 					isStreamDeletedEvent = true;
+				}
 			}
 		}
 		else
 		{
 			if (eventType == SystemEventTypes.StreamDeleted)
+			{
 				isStreamDeletedEvent = true;
+			}
 		}
 
 		return isStreamDeletedEvent;

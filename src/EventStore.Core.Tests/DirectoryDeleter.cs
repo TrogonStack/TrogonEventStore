@@ -12,7 +12,10 @@ public static class DirectoryDeleter
 		for (var i = 0; i < retries; i++)
 		{
 			if (TryForceDeleteDirectory(path))
+			{
 				return;
+			}
+
 			await Task.Delay(1000);
 		}
 	}

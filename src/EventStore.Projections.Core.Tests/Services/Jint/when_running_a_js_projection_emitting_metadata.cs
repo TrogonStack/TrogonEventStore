@@ -72,7 +72,9 @@ public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInt
 			Assert.AreEqual("output-stream" + i, emittedEvents[0].Event.StreamId);
 			Assert.AreEqual(@"{""a"":""" + i + @"""}", emittedEvents[0].Event.Data);
 			if (sw.Elapsed > TimeSpan.FromSeconds(120))
+			{
 				break;
+			}
 		}
 
 		Console.WriteLine(i);

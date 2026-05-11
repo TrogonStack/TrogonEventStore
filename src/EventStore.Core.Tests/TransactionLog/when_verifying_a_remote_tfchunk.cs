@@ -26,7 +26,8 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 		await _chunk.Complete(CancellationToken.None);
 
-		_remoteHandle = new ThrowingRemoteChunkHandle {
+		_remoteHandle = new ThrowingRemoteChunkHandle
+		{
 			Length = _chunk.FileSize
 		};
 
@@ -80,25 +81,29 @@ public class when_verifying_a_remote_tfchunk : SpecificationWithFilePerTestFixtu
 
 		public string Name => "throwing-remote-handle";
 
-		public void Flush() {
+		public void Flush()
+		{
 		}
 
 		public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token) =>
 			ValueTask.FromException(new AssertionException("Remote hash verification should not write."));
 
-		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) {
+		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
+		{
 			ReadRequests++;
 			return ValueTask.FromException<int>(new AssertionException("Remote hash verification should not read."));
 		}
 
 		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) => ValueTask.CompletedTask;
 
-		public Stream CreateStream(bool leaveOpen = true) {
+		public Stream CreateStream(bool leaveOpen = true)
+		{
 			StreamRequests++;
 			throw new AssertionException("Remote hash verification should not acquire a stream.");
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 		}
 	}
 }

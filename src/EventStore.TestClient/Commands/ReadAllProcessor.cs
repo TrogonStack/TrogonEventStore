@@ -31,24 +31,36 @@ internal class ReadAllProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length != 1 && args.Length != 3 && args.Length != 4)
+			{
 				return false;
+			}
 
 			if (args[0].ToUpper() == "F")
+			{
 				forward = true;
+			}
 			else if (args[0].ToUpper() == "B")
+			{
 				forward = false;
+			}
 			else
+			{
 				return false;
+			}
 
 			if (args.Length >= 3)
 			{
 				posOverriden = true;
 				if (!long.TryParse(args[1], out commitPos) || !long.TryParse(args[2], out preparePos))
+				{
 					return false;
+				}
 			}
 
 			if (args.Length >= 4)
+			{
 				requireLeader = bool.Parse(args[3]);
+			}
 		}
 
 		if (!posOverriden)

@@ -130,9 +130,15 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	protected bool IsOutOfOrderSubscriptionMessage(EventReaderSubscriptionMessageBase message)
 	{
 		if (_currentSubscriptionId != message.SubscriptionId)
+		{
 			return true;
+		}
+
 		if (_expectedSubscriptionMessageSequenceNumber != message.SubscriptionMessageSequenceNumber)
+		{
 			throw new InvalidOperationException("Out of order message detected");
+		}
+
 		return false;
 	}
 
@@ -155,7 +161,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	private void EnsureUpdateStatisticksTickPending()
 	{
 		if (_updateStatisticsTicketPending)
+		{
 			return;
+		}
+
 		_updateStatisticsTicketPending = true;
 		_publisher.Publish(
 			TimerMessage.Schedule.Create(
@@ -173,13 +182,18 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	private void UpdateStatistics()
 	{
 		if (_updateStatistics != null)
+		{
 			_updateStatistics();
+		}
 	}
 
 	public void Handle(EventReaderSubscriptionMessage.ProgressChanged message)
 	{
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -197,7 +211,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	public void Handle(EventReaderSubscriptionMessage.SubscriptionStarted message)
 	{
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -212,7 +229,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	public void Handle(EventReaderSubscriptionMessage.NotAuthorized message)
 	{
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -236,7 +256,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	public void Handle(EventReaderSubscriptionMessage.EofReached message)
 	{
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -254,7 +277,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	public void Handle(EventReaderSubscriptionMessage.CheckpointSuggested message)
 	{
 		if (IsOutOfOrderSubscriptionMessage(message))
+		{
 			return;
+		}
+
 		RegisterSubscriptionMessage(message);
 		try
 		{
@@ -317,7 +343,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	{
 		if (_subscriptionState is not PhaseSubscriptionState.Subscribing
 			|| message.SubscriptionId != _currentSubscriptionId)
+		{
 			return;
+		}
+
 		SubscriptionFailed("Reader subscription timed out");
 	}
 
@@ -326,7 +355,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	private void SubscriptionFailed(string reason)
 	{
 		if (_subscriptionState is PhaseSubscriptionState.Subscribed or PhaseSubscriptionState.Subscribing)
+		{
 			_subscriptionDispatcher.Cancel(_currentSubscriptionId);
+		}
+
 		_subscriptionState = PhaseSubscriptionState.Failed;
 		_coreProjection.SetFaulted(reason);
 	}
@@ -393,7 +425,9 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 			_checkpointManager.BeginLoadPrerecordedEvents(@from);
 		}
 		else
+		{
 			SubscribeReaders(@from);
+		}
 	}
 
 	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message)
@@ -412,9 +446,13 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 		if (_logger != null)
 		{
 			if (ex != null)
+			{
 				_logger.Error(ex, faultedReason);
+			}
 			else
+			{
 				_logger.Error(faultedReason);
+			}
 		}
 
 		_coreProjection.SetFaulting(faultedReason);
@@ -460,11 +498,15 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 		PartitionState newSharedPartitionState)
 	{
 		if (_subscriptionState != PhaseSubscriptionState.Subscribed)
+		{
 			_logger?.Verbose("Got CommittedEventReceived in {state} SubscriptionState, but expected to be in {expectedState}",
 				_subscriptionState, PhaseSubscriptionState.Subscribed);
+		}
 
 		if (!ValidateEmittedEvents(emittedEvents))
+		{
 			return null;
+		}
 
 		bool eventsWereEmitted = emittedEvents != null;
 		var oldState = _partitionStateCache.GetLockedPartitionState(partition);
@@ -494,7 +536,9 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 				emittedEvents, message.Data.EventId, correlationId);
 		}
 		else
+		{
 			return null;
+		}
 	}
 
 	protected EventProcessedResult InternalPartitionDeletedProcessed(
@@ -536,15 +580,22 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 				? _partitionStateCache.TryGetAndLockPartitionState(statePartition, at)
 				: _partitionStateCache.TryGetPartitionState(statePartition);
 			if (s != null)
+			{
 				loadCompleted(s);
+			}
 			else
 			{
 				Action<PartitionState> completed = state =>
 				{
 					if (lockLoaded)
+					{
 						_partitionStateCache.CacheAndLockPartitionState(statePartition, state, at);
+					}
 					else
+					{
 						_partitionStateCache.CachePartitionState(statePartition, state);
+					}
+
 					loadCompleted(state);
 				};
 				if (_projectionConfig.CheckpointsEnabled)
@@ -645,8 +696,10 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 			Unsubscribed();
 			// this way we distinguish pre-recorded events subscription
 			if (_currentSubscriptionId != _projectionCorrelationId)
+			{
 				_publisher.Publish(
 					new ReaderSubscriptionManagement.Unsubscribe(_currentSubscriptionId));
+			}
 		}
 	}
 
@@ -658,10 +711,16 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 	public void Handle(EventReaderSubscriptionMessage.ReaderAssignedReader message)
 	{
 		if (_state != PhaseState.Starting)
+		{
 			return;
+		}
+
 		if (_subscriptionState is not PhaseSubscriptionState.Subscribing
 			|| message.SubscriptionId != _currentSubscriptionId)
+		{
 			return;
+		}
+
 		_subscriptionState = PhaseSubscriptionState.Subscribed;
 		_coreProjection.Subscribed();
 	}
@@ -675,6 +734,8 @@ public abstract partial class EventSubscriptionBasedProjectionProcessingPhase : 
 		_state = state;
 		_processingQueue.SetIsRunning(state == PhaseState.Running);
 		if (starting)
+		{
 			NewCheckpointStarted(LastProcessedEventPosition);
+		}
 	}
 }

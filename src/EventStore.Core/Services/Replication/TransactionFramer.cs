@@ -56,7 +56,9 @@ internal sealed class TransactionFramer : IAsyncMessageFramer<IEnumerable<ILogRe
 	public async ValueTask<int?> UnFramePendingLogRecords(CancellationToken token)
 	{
 		if (_records is [])
+		{
 			return null;
+		}
 
 		var numLogRecordsUnframed = _records.Count;
 		await _handler(_records, token);

@@ -23,9 +23,15 @@ public abstract class EventReader : IEventReader
 	protected EventReader(IPublisher publisher, Guid eventReaderCorrelationId, ClaimsPrincipal readAs, bool stopOnEof)
 	{
 		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
+		}
+
 		if (eventReaderCorrelationId == Guid.Empty)
+		{
 			throw new ArgumentException("eventReaderCorrelationId");
+		}
+
 		_publisher = publisher;
 		EventReaderCorrelationId = eventReaderCorrelationId;
 		_readAs = readAs;
@@ -50,9 +56,15 @@ public abstract class EventReader : IEventReader
 	public void Resume()
 	{
 		if (_disposed)
+		{
 			throw new InvalidOperationException("Disposed");
+		}
+
 		if (!_pauseRequested)
+		{
 			throw new InvalidOperationException("Is not paused");
+		}
+
 		if (!_paused)
 		{
 			_pauseRequested = false;
@@ -68,13 +80,20 @@ public abstract class EventReader : IEventReader
 	public void Pause()
 	{
 		if (_disposed)
+		{
 			return; // due to possible self disposed
+		}
 
 		if (_pauseRequested)
+		{
 			throw new InvalidOperationException("Pause has been already requested");
+		}
+
 		_pauseRequested = true;
 		if (!AreEventsRequested())
+		{
 			_paused = true;
+		}
 		//            _logger.Trace("Pausing event distribution {eventReaderCorrelationId} at '{at}'", EventReaderCorrelationId, FromAsText());
 	}
 
@@ -98,7 +117,10 @@ public abstract class EventReader : IEventReader
 	protected void SendPartitionEof(string partition, CheckpointTag preTagged)
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.EventReaderPartitionEof(EventReaderCorrelationId, partition, preTagged));
 	}
@@ -109,7 +131,10 @@ public abstract class EventReader : IEventReader
 		int? positionEventNumber, CheckpointTag preTagged = null)
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.EventReaderPartitionDeleted(
 				EventReaderCorrelationId, partition, lastEventNumber, deletedLinkOrEventPosition,
@@ -119,7 +144,10 @@ public abstract class EventReader : IEventReader
 	public void SendNotAuthorized()
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		_publisher.Publish(new ReaderSubscriptionMessage.EventReaderNotAuthorized(EventReaderCorrelationId));
 		Dispose();
 	}
@@ -136,11 +164,18 @@ public abstract class EventReader : IEventReader
 	protected void PauseOrContinueProcessing()
 	{
 		if (_disposed)
+		{
 			return;
+		}
+
 		if (_pauseRequested)
+		{
 			_paused = !AreEventsRequested();
+		}
 		else
+		{
 			RequestEvents();
+		}
 	}
 
 	private void SendStarting(long startingLastCommitPosition)

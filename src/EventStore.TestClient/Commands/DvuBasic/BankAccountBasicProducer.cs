@@ -127,10 +127,14 @@ public class AccountCreated
 	public override bool Equals(object obj)
 	{
 		if (obj == null)
+		{
 			return false;
+		}
 
 		if (obj.GetType() != GetType())
+		{
 			return false;
+		}
 
 		var casted = (AccountCreated)obj;
 		return Equals(casted);
@@ -166,10 +170,14 @@ public class AccountCredited
 	public override bool Equals(object obj)
 	{
 		if (obj == null)
+		{
 			return false;
+		}
 
 		if (obj.GetType() != GetType())
+		{
 			return false;
+		}
 
 		var casted = (AccountCredited)obj;
 		return Equals(casted);
@@ -205,10 +213,14 @@ public class AccountDebited
 	public override bool Equals(object obj)
 	{
 		if (obj == null)
+		{
 			return false;
+		}
 
 		if (obj.GetType() != GetType())
+		{
 			return false;
+		}
 
 		var casted = (AccountDebited)obj;
 		return Equals(casted);
@@ -244,10 +256,14 @@ public class AccountCheckPoint
 	public override bool Equals(object obj)
 	{
 		if (obj == null)
+		{
 			return false;
+		}
 
 		if (obj.GetType() != GetType())
+		{
 			return false;
+		}
 
 		var casted = (AccountCheckPoint)obj;
 		return Equals(casted);

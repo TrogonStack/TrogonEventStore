@@ -15,7 +15,9 @@ internal class EventsStream
 			var slice = await store.ReadStreamEventsForwardAsync(stream, result, SliceSize, false);
 			result += slice.Events.Length;
 			if (slice.IsEndOfStream)
+			{
 				break;
+			}
 		}
 
 		return result;

@@ -39,7 +39,10 @@ public class DefaultCheckpointManager : CoreProjectionCheckpointManager,
 			usePersistentCheckpoints, maxProjectionStateSize)
 	{
 		if (ioDispatcher == null)
+		{
 			throw new ArgumentNullException("ioDispatcher");
+		}
+
 		_projectionVersion = projectionVersion;
 		_runAs = runAs;
 		_ioDispatcher = ioDispatcher;
@@ -72,7 +75,10 @@ public class DefaultCheckpointManager : CoreProjectionCheckpointManager,
 		base.Initialize();
 		_partitionStateUpdateManager = null;
 		foreach (var requestId in _loadStateRequests)
+		{
 			_ioDispatcher.BackwardReader.Cancel(requestId);
+		}
+
 		_loadStateRequests.Clear();
 		_coreProjectionCheckpointWriter.Initialize();
 		_requestedCheckpointPosition = null;
@@ -116,7 +122,9 @@ public class DefaultCheckpointManager : CoreProjectionCheckpointManager,
 					stateEventType);
 			}, requestId);
 		if (requestId != Guid.Empty)
+		{
 			_loadStateRequests.Add(requestId);
+		}
 	}
 
 	private void OnLoadPartitionStateReadStreamEventsBackwardCompleted(
@@ -182,7 +190,10 @@ public class DefaultCheckpointManager : CoreProjectionCheckpointManager,
 		PartitionState newState)
 	{
 		if (_partitionStateUpdateManager == null)
+		{
 			_partitionStateUpdateManager = new PartitionStateUpdateManager(_namingBuilder);
+		}
+
 		_partitionStateUpdateManager.StateUpdated(partition, newState, oldState.CausedBy);
 	}
 

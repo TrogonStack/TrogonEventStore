@@ -32,12 +32,19 @@ public abstract class TestFixtureWithInterpretedProjection
 		_source = _stateHandler.GetSourceDefinition();
 
 		if (_state != null)
+		{
 			_stateHandler.Load(_state);
+		}
 		else
+		{
 			_stateHandler.Initialize();
+		}
 
 		if (_sharedState != null)
+		{
 			_stateHandler.LoadShared(_sharedState);
+		}
+
 		When();
 	}
 
@@ -49,9 +56,13 @@ public abstract class TestFixtureWithInterpretedProjection
 			_projectionType, _projection, true, null, logger: (s, _) =>
 			{
 				if (s.StartsWith("P:"))
+				{
 					Console.WriteLine(s);
+				}
 				else
+				{
 					_logged.Add(s);
+				}
 			}); // skip prelude debug output
 	}
 

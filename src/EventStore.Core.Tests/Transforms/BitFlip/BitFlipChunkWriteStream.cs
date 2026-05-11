@@ -30,6 +30,8 @@ public class BitFlipChunkWriteStream(ChunkDataWriteStream stream) :
 	private static void FlipBits(ReadOnlySpan<byte> source, Span<byte> destination)
 	{
 		for (int i = 0; i < source.Length; i++)
+		{
 			destination[i] = (byte)(source[i] ^ 0xFF);
+		}
 	}
 }

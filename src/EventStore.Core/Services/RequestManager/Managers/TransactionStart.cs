@@ -3,8 +3,10 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 
-namespace EventStore.Core.Services.RequestManager.Managers {
-	public class TransactionStart : RequestManagerBase {
+namespace EventStore.Core.Services.RequestManager.Managers
+{
+	public class TransactionStart : RequestManagerBase
+	{
 		private readonly string _streamId;
 
 		public TransactionStart(
@@ -24,10 +26,11 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					 clientCorrId,
 					 expectedVersion,
 					 commitSource,
-					 prepareCount: 1) {
+					 prepareCount: 1)
+		{
 			_streamId = streamId;
 		}
-		
+
 		protected override Message WriteRequestMsg =>
 			new StorageMessage.WriteTransactionStart(
 					InternalCorrId,
@@ -36,10 +39,14 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					ExpectedVersion,
 					LiveUntil);
 
-		protected override void AllEventsWritten() {
-			if (CommitSource.ReplicationPosition >= LastEventPosition) {
+		protected override void AllEventsWritten()
+		{
+			if (CommitSource.ReplicationPosition >= LastEventPosition)
+			{
 				Committed();
-			} else if (!Registered) {
+			}
+			else if (!Registered)
+			{
 				CommitSource.NotifyFor(LastEventPosition, Committed, CommitLevel.Replicated);
 				Registered = true;
 			}

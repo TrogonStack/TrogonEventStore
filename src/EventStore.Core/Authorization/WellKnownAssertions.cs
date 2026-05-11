@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using EventStore.Core.Services;
 
-namespace EventStore.Core.Authorization {
-	public static class WellKnownAssertions {
+namespace EventStore.Core.Authorization
+{
+	public static class WellKnownAssertions
+	{
 		public static readonly IAssertion System = new MultipleClaimMatchAssertion(Grant.Allow, MultipleMatchMode.All,
 			new Claim(ClaimTypes.Name, "system"), new Claim(ClaimTypes.Authentication, "ES-Legacy"));
 

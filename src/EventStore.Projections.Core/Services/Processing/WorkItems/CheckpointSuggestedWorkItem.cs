@@ -40,16 +40,24 @@ public class CheckpointSuggestedWorkItem : CheckpointWorkItemBase
 	protected override void CompleteItem()
 	{
 		if (_completed)
+		{
 			NextStage();
+		}
 		else
+		{
 			_completeRequested = true;
+		}
 	}
 
 	internal void CheckpointCompleted()
 	{
 		if (_completeRequested)
+		{
 			NextStage();
+		}
 		else
+		{
 			_completed = true;
+		}
 	}
 }

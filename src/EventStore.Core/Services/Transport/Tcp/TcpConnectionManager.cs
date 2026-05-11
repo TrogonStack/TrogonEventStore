@@ -12,39 +12,45 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.TimerService;
-using EventStore.Transport.Tcp;
-using EventStore.Transport.Tcp.Framing;
 using EventStore.Core.Settings;
 using EventStore.Plugins.Authentication;
+using EventStore.Transport.Tcp;
+using EventStore.Transport.Tcp.Framing;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.Transport.Tcp {
+namespace EventStore.Core.Services.Transport.Tcp
+{
 	/// <summary>
 	/// Manager for individual TCP connection. It handles connection lifecycle,
 	/// heartbeats, message framing and dispatch to the memory bus.
 	/// </summary>
-	public class TcpConnectionManager : IHandle<TcpMessage.Heartbeat>, IHandle<TcpMessage.HeartbeatTimeout> {
+	public class TcpConnectionManager : IHandle<TcpMessage.Heartbeat>, IHandle<TcpMessage.HeartbeatTimeout>
+	{
 		public static readonly TimeSpan ConnectionTimeout = TimeSpan.FromMilliseconds(1000);
 
 		private static readonly ILogger Log = Serilog.Log.ForContext<TcpConnectionManager>();
-		private static readonly ClaimsPrincipal Anonymous = new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Anonymous, ""), }));
+		private static readonly ClaimsPrincipal Anonymous = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Anonymous, ""), }));
 		public readonly Guid ConnectionId;
 		public readonly string ConnectionName;
 		public readonly EndPoint RemoteEndPoint;
 
-		public EndPoint LocalEndPoint {
+		public EndPoint LocalEndPoint
+		{
 			get { return _connection.LocalEndPoint; }
 		}
 
-		public bool IsClosed {
+		public bool IsClosed
+		{
 			get { return _isClosed != 0; }
 		}
 
-		public int SendQueueSize {
+		public int SendQueueSize
+		{
 			get { return _connection.SendQueueSize; }
 		}
 
-		public string ClientConnectionName {
+		public string ClientConnectionName
+		{
 			get { return _clientConnectionName; }
 		}
 
@@ -87,7 +93,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			TimeSpan heartbeatTimeout,
 			Action<TcpConnectionManager, SocketError> onConnectionClosed,
 			int connectionPendingSendBytesThreshold,
-			int connectionQueueSizeThreshold) {
+			int connectionQueueSizeThreshold)
+		{
 			Ensure.NotNull(dispatcher, "dispatcher");
 			Ensure.NotNull(publisher, "publisher");
 			Ensure.NotNull(openedConnection, "openedConnnection");
@@ -118,7 +125,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			RemoteEndPoint = openedConnection.RemoteEndPoint;
 			_connection = openedConnection;
 			_connection.ConnectionClosed += OnConnectionClosed;
-			if (_connection.IsClosed) {
+			if (_connection.IsClosed)
+			{
 				OnConnectionClosed(_connection, SocketError.Success);
 				return;
 			}
@@ -143,7 +151,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			TimeSpan heartbeatInterval,
 			TimeSpan heartbeatTimeout,
 			Action<TcpConnectionManager> onConnectionEstablished,
-			Action<TcpConnectionManager, SocketError> onConnectionClosed) {
+			Action<TcpConnectionManager, SocketError> onConnectionClosed)
+		{
 			Ensure.NotEmptyGuid(connectionId, "connectionId");
 			Ensure.NotNull(dispatcher, "dispatcher");
 			Ensure.NotNull(publisher, "publisher");
@@ -181,10 +190,13 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					OnConnectionFailed);
 			_connection.ConnectionClosed += OnConnectionClosed;
 			if (_connection.IsClosed)
+			{
 				OnConnectionClosed(_connection, SocketError.Success);
+			}
 		}
 
-		private void OnConnectionEstablished(ITcpConnection connection) {
+		private void OnConnectionEstablished(ITcpConnection connection)
+		{
 			Log.Information("Connection '{connectionName}' ({connectionId:B}) to [{remoteEndPoint}] established.",
 				ConnectionName, ConnectionId, connection.RemoteEndPoint);
 
@@ -192,42 +204,64 @@ namespace EventStore.Core.Services.Transport.Tcp {
 
 			var handler = _connectionEstablished;
 			if (handler != null)
+			{
 				handler(this);
+			}
 		}
 
-		private void OnConnectionFailed(ITcpConnection connection, SocketError socketError) {
-			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0) return;
+		private void OnConnectionFailed(ITcpConnection connection, SocketError socketError)
+		{
+			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0)
+			{
+				return;
+			}
+
 			Log.Information("Connection '{connectionName}' ({connectionId:B}) to [{remoteEndPoint}] failed: {e}.",
 				ConnectionName, ConnectionId, connection.RemoteEndPoint, socketError);
 			if (_connectionClosed != null)
+			{
 				_connectionClosed(this, socketError);
+			}
 		}
 
-		private void OnConnectionClosed(ITcpConnection connection, SocketError socketError) {
-			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0) return;
+		private void OnConnectionClosed(ITcpConnection connection, SocketError socketError)
+		{
+			if (Interlocked.CompareExchange(ref _isClosed, 1, 0) != 0)
+			{
+				return;
+			}
+
 			Log.Information(
 				"Connection '{connectionName}{clientConnectionName}' [{remoteEndPoint}, {connectionId:B}] closed: {e}.",
 				ConnectionName, ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
 				connection.RemoteEndPoint, ConnectionId, socketError);
 
-			if (_serviceType == TcpServiceType.Internal && _connection.TotalBytesSent == 0) {
+			if (_serviceType == TcpServiceType.Internal && _connection.TotalBytesSent == 0)
+			{
 				Log.Warning(
 					"Unable to connect to Remote EndPoint : {remoteEndPoint}. Connection is potentially blocked. Total bytes sent: {TotalBytesSent}, Total bytes received: {TotalBytesReceived}",
 					RemoteEndPoint, _connection.TotalBytesSent, _connection.TotalBytesReceived);
 			}
 
 			if (_connectionClosed != null)
+			{
 				_connectionClosed(this, socketError);
+			}
 		}
 
-		public void StartReceiving() {
+		public void StartReceiving()
+		{
 			_connection.ReceiveAsync(OnRawDataReceived);
 		}
 
-		private void OnRawDataReceived(ITcpConnection connection, IEnumerable<ArraySegment<byte>> data) {
-			try {
+		private void OnRawDataReceived(ITcpConnection connection, IEnumerable<ArraySegment<byte>> data)
+		{
+			try
+			{
 				_framer.UnFrameData(data);
-			} catch (PackageFramingException exc) {
+			}
+			catch (PackageFramingException exc)
+			{
 				SendBadRequestAndClose(Guid.Empty,
 					string.Format("Invalid TCP frame received. Error: {0}.", exc.Message));
 				return;
@@ -236,11 +270,15 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_connection.ReceiveAsync(OnRawDataReceived);
 		}
 
-		private void OnMessageArrived(ArraySegment<byte> data) {
+		private void OnMessageArrived(ArraySegment<byte> data)
+		{
 			TcpPackage package;
-			try {
+			try
+			{
 				package = TcpPackage.FromArraySegment(data);
-			} catch (Exception e) {
+			}
+			catch (Exception e)
+			{
 				SendBadRequestAndClose(Guid.Empty, string.Format("Received bad network package. Error: {0}", e));
 				return;
 			}
@@ -248,125 +286,164 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			OnPackageReceived(package);
 		}
 
-		private void OnPackageReceived(TcpPackage package) {
-			try {
+		private void OnPackageReceived(TcpPackage package)
+		{
+			try
+			{
 				ProcessPackage(package);
-			} catch (Exception e) {
+			}
+			catch (Exception e)
+			{
 				SendBadRequestAndClose(package.CorrelationId,
 					string.Format("Error while processing package. Error: {0}", e));
 			}
 		}
 
-		public void ProcessPackage(TcpPackage package) {
-			if (_serviceType == TcpServiceType.External && (package.Flags & TcpFlags.TrustedWrite) != 0) {
+		public void ProcessPackage(TcpPackage package)
+		{
+			if (_serviceType == TcpServiceType.External && (package.Flags & TcpFlags.TrustedWrite) != 0)
+			{
 				SendBadRequestAndClose(package.CorrelationId,
 					"Trusted writes aren't accepted over the external TCP interface");
 				return;
 			}
 
-			switch (package.Command) {
+			switch (package.Command)
+			{
 				case TcpCommand.HeartbeatResponseCommand:
 					break;
 				case TcpCommand.HeartbeatRequestCommand:
 					SendPackage(new TcpPackage(TcpCommand.HeartbeatResponseCommand, package.CorrelationId, null));
 					break;
-				case TcpCommand.IdentifyClient: {
-					try {
-						var message =
-							(ClientMessage.IdentifyClient)_dispatcher.UnwrapPackage(package, _tcpEnvelope, null, null,
-								this, _version);
-						Log.Information(
-							"Connection '{connectionName}' ({connectionId:B}) identified by client. Client connection name: '{clientConnectionName}', Client version: {clientVersion}.",
-							ConnectionName, ConnectionId, message.ConnectionName, (ClientVersion)message.Version);
-						_version = (byte)message.Version;
-						_clientConnectionName = message.ConnectionName;
-						_connection.SetClientConnectionName(_clientConnectionName);
-						SendPackage(new TcpPackage(TcpCommand.ClientIdentified, package.CorrelationId, null));
-					} catch (Exception ex) {
-						Log.Error("Error identifying client: {e}", ex);
-					}
-
-					break;
-				}
-				case TcpCommand.BadRequest: {
-					var reason = string.Empty;
-					Helper.EatException(() =>
-						reason = Helper.UTF8NoBom.GetString(package.Data.Array, package.Data.Offset,
-							package.Data.Count));
-					Log.Error(
-						"Bad request received from '{connectionName}{clientConnectionName}' [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}]. CorrelationId: {correlationId:B}, Error: {e}.",
-						ConnectionName,
-						ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
-						RemoteEndPoint,
-						LocalEndPoint, ConnectionId, package.CorrelationId,
-						reason.IsEmptyString() ? "<reason missing>" : reason);
-					break;
-				}
-				case TcpCommand.Authenticate: {
-					if ((package.Flags & TcpFlags.Authenticated) == 0)
-						ReplyNotAuthenticated(package.CorrelationId, "No user credentials provided.");
-					else {
-						var defaultUser = new UserCredentials(package.Tokens, null);
-						Interlocked.Exchange(ref _defaultUser, defaultUser);
-						_authProvider.Authenticate(new TcpDefaultAuthRequest(this, package.CorrelationId, defaultUser));
-					}
-
-					break;
-				}
-				default: {
-					var defaultUser = _defaultUser;
-					if ((package.Flags & TcpFlags.TrustedWrite) != 0) {
-						UnwrapAndPublishPackage(package, UserManagement.SystemAccounts.System, null);
-					} else if ((package.Flags & TcpFlags.Authenticated) != 0) {
-						_authProvider.Authenticate(new TcpAuthRequest(this, package));
-					} else if (defaultUser != null) {
-						if (defaultUser.User != null) {
-							UnwrapAndPublishPackage(package, defaultUser.User, defaultUser.Tokens);
-						} else {
-							// The default credentials aren't authenticated
-							ReplyNotAuthenticated(package.CorrelationId, "Not Authenticated");
+				case TcpCommand.IdentifyClient:
+					{
+						try
+						{
+							var message =
+								(ClientMessage.IdentifyClient)_dispatcher.UnwrapPackage(package, _tcpEnvelope, null, null,
+									this, _version);
+							Log.Information(
+								"Connection '{connectionName}' ({connectionId:B}) identified by client. Client connection name: '{clientConnectionName}', Client version: {clientVersion}.",
+								ConnectionName, ConnectionId, message.ConnectionName, (ClientVersion)message.Version);
+							_version = (byte)message.Version;
+							_clientConnectionName = message.ConnectionName;
+							_connection.SetClientConnectionName(_clientConnectionName);
+							SendPackage(new TcpPackage(TcpCommand.ClientIdentified, package.CorrelationId, null));
 						}
-					} else {
-						UnwrapAndPublishPackage(package, Anonymous, null);
-					}
+						catch (Exception ex)
+						{
+							Log.Error("Error identifying client: {e}", ex);
+						}
 
-					break;
-				}
+						break;
+					}
+				case TcpCommand.BadRequest:
+					{
+						var reason = string.Empty;
+						Helper.EatException(() =>
+							reason = Helper.UTF8NoBom.GetString(package.Data.Array, package.Data.Offset,
+								package.Data.Count));
+						Log.Error(
+							"Bad request received from '{connectionName}{clientConnectionName}' [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}]. CorrelationId: {correlationId:B}, Error: {e}.",
+							ConnectionName,
+							ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
+							RemoteEndPoint,
+							LocalEndPoint, ConnectionId, package.CorrelationId,
+							reason.IsEmptyString() ? "<reason missing>" : reason);
+						break;
+					}
+				case TcpCommand.Authenticate:
+					{
+						if ((package.Flags & TcpFlags.Authenticated) == 0)
+						{
+							ReplyNotAuthenticated(package.CorrelationId, "No user credentials provided.");
+						}
+						else
+						{
+							var defaultUser = new UserCredentials(package.Tokens, null);
+							Interlocked.Exchange(ref _defaultUser, defaultUser);
+							_authProvider.Authenticate(new TcpDefaultAuthRequest(this, package.CorrelationId, defaultUser));
+						}
+
+						break;
+					}
+				default:
+					{
+						var defaultUser = _defaultUser;
+						if ((package.Flags & TcpFlags.TrustedWrite) != 0)
+						{
+							UnwrapAndPublishPackage(package, UserManagement.SystemAccounts.System, null);
+						}
+						else if ((package.Flags & TcpFlags.Authenticated) != 0)
+						{
+							_authProvider.Authenticate(new TcpAuthRequest(this, package));
+						}
+						else if (defaultUser != null)
+						{
+							if (defaultUser.User != null)
+							{
+								UnwrapAndPublishPackage(package, defaultUser.User, defaultUser.Tokens);
+							}
+							else
+							{
+								// The default credentials aren't authenticated
+								ReplyNotAuthenticated(package.CorrelationId, "Not Authenticated");
+							}
+						}
+						else
+						{
+							UnwrapAndPublishPackage(package, Anonymous, null);
+						}
+
+						break;
+					}
 			}
 		}
 
-		private void UnwrapAndPublishPackage(TcpPackage package, ClaimsPrincipal user, IReadOnlyDictionary<string, string> tokens) {
+		private void UnwrapAndPublishPackage(TcpPackage package, ClaimsPrincipal user, IReadOnlyDictionary<string, string> tokens)
+		{
 			Message message = null;
 			string error = "";
-			try {
+			try
+			{
 				message = _dispatcher.UnwrapPackage(package, _tcpEnvelope, user, tokens, this, _version);
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				error = ex.Message;
 			}
 
 			if (message != null)
+			{
 				_authorization.Authorize(message, _publisher);
+			}
 			else
+			{
 				SendBadRequest(package.CorrelationId,
 					string.Format("Could not unwrap network package for command {0}.\n{1}", package.Command, error));
+			}
 		}
 
-		private void ReplyNotAuthenticated(Guid correlationId, string description) {
+		private void ReplyNotAuthenticated(Guid correlationId, string description)
+		{
 			_tcpEnvelope.ReplyWith(new TcpMessage.NotAuthenticated(correlationId, description));
 		}
 
-		private void ReplyNotReady(Guid correlationId, string description) {
+		private void ReplyNotReady(Guid correlationId, string description)
+		{
 			_tcpEnvelope.ReplyWith(new ClientMessage.NotHandled(correlationId,
 				ClientMessage.NotHandled.Types.NotHandledReason.NotReady, description));
 		}
 
-		private void ReplyAuthenticated(Guid correlationId, UserCredentials userCredentials, ClaimsPrincipal user) {
+		private void ReplyAuthenticated(Guid correlationId, UserCredentials userCredentials, ClaimsPrincipal user)
+		{
 			var authCredentials = new UserCredentials(userCredentials.Tokens, user);
 			Interlocked.CompareExchange(ref _defaultUser, authCredentials, userCredentials);
 			_tcpEnvelope.ReplyWith(new TcpMessage.Authenticated(correlationId));
 		}
 
-		public void SendBadRequestAndClose(Guid correlationId, string message) {
+		public void SendBadRequestAndClose(Guid correlationId, string message)
+		{
 			Ensure.NotNull(message, "message");
 
 			SendPackage(new TcpPackage(TcpCommand.BadRequest, correlationId, Helper.UTF8NoBom.GetBytes(message)),
@@ -378,14 +455,16 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_connection.Close(message);
 		}
 
-		public void SendBadRequest(Guid correlationId, string message) {
+		public void SendBadRequest(Guid correlationId, string message)
+		{
 			Ensure.NotNull(message, "message");
 
 			SendPackage(new TcpPackage(TcpCommand.BadRequest, correlationId, Helper.UTF8NoBom.GetBytes(message)),
 				checkQueueSize: false);
 		}
 
-		public void Stop(string reason = null) {
+		public void Stop(string reason = null)
+		{
 			Log.Debug(
 				"Closing connection '{connectionName}{clientConnectionName}' [{remoteEndPoint}, L{localEndPoint}, {connectionId:B}] cleanly.{reason}",
 				ConnectionName, ClientConnectionName.IsEmptyString() ? string.Empty : ":" + ClientConnectionName,
@@ -394,27 +473,36 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_connection.Close(reason);
 		}
 
-		public void SendMessage(Message message) {
+		public void SendMessage(Message message)
+		{
 			var package = _dispatcher.WrapMessage(message, _version);
 			if (package != null)
+			{
 				SendPackage(package.Value);
+			}
 		}
 
-		private void SendPackage(TcpPackage package, bool checkQueueSize = true) {
+		private void SendPackage(TcpPackage package, bool checkQueueSize = true)
+		{
 			if (IsClosed)
+			{
 				return;
+			}
 
 			int queueSize;
 			int queueSendBytes;
-			if (checkQueueSize) {
-				if ((queueSize = _connection.SendQueueSize) > _connectionQueueSizeThreshold) {
+			if (checkQueueSize)
+			{
+				if ((queueSize = _connection.SendQueueSize) > _connectionQueueSizeThreshold)
+				{
 					SendBadRequestAndClose(Guid.Empty,
 						string.Format("Connection queue size is too large: {0}.", queueSize));
 					return;
 				}
 
 				if (_connectionPendingSendBytesThreshold > ESConsts.UnrestrictedPendingSendBytes &&
-				    (queueSendBytes = _connection.PendingSendBytes) > _connectionPendingSendBytesThreshold) {
+					(queueSendBytes = _connection.PendingSendBytes) > _connectionPendingSendBytesThreshold)
+				{
 					SendBadRequestAndClose(Guid.Empty,
 						string.Format("Connection pending send bytes is too large: {0}.", queueSendBytes));
 					return;
@@ -426,8 +514,12 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_connection.EnqueueSend(framed);
 		}
 
-		public void Handle(TcpMessage.Heartbeat message) {
-			if (IsClosed) return;
+		public void Handle(TcpMessage.Heartbeat message)
+		{
+			if (IsClosed)
+			{
+				return;
+			}
 
 			var receiveProgressIndicator = _receiveProgressIndicator;
 			var sendProgressIndicator = _sendProgressIndicator;
@@ -435,7 +527,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			/*
 			 * If we have not received any data within the heartbeat interval and we are not waiting for a heartbeat timeout check, then we send a heartbeat request.
 			 */
-			if (message.ReceiveProgressIndicator == receiveProgressIndicator && !_awaitingHeartbeatTimeoutCheck) {
+			if (message.ReceiveProgressIndicator == receiveProgressIndicator && !_awaitingHeartbeatTimeoutCheck)
+			{
 				SendPackage(new TcpPackage(TcpCommand.HeartbeatRequestCommand, Guid.NewGuid(), null));
 				_awaitingHeartbeatTimeoutCheck = true;
 				_publisher.Publish(TimerMessage.Schedule.Create(_heartbeatTimeout, _weakThisEnvelope,
@@ -446,7 +539,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			 * we also send a heartbeat request just to generate some data for the remote party so that it can clear its heartbeat timeouts.
 			 * This is particularly useful when the remote party's heartbeat request is stuck behind a large (multi-megabyte) TCP message.
 			 */
-			else if (message.SendProgressIndicator == sendProgressIndicator) {
+			else if (message.SendProgressIndicator == sendProgressIndicator)
+			{
 				SendPackage(new TcpPackage(TcpCommand.HeartbeatRequestCommand, Guid.NewGuid(), null));
 				Log.Verbose(
 					"Connection '{connectionName}{clientConnectionName}' [{remoteEndPoint}, {connectionId:B}] Proactive heartbeat request sent to the remote party since no data was sent during the last heartbeat interval.",
@@ -458,101 +552,128 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			ScheduleHeartbeat(receiveProgressIndicator, sendProgressIndicator);
 		}
 
-		public void Handle(TcpMessage.HeartbeatTimeout message) {
+		public void Handle(TcpMessage.HeartbeatTimeout message)
+		{
 			_awaitingHeartbeatTimeoutCheck = false;
-			if (IsClosed) return;
+			if (IsClosed)
+			{
+				return;
+			}
 
 			var receiveProgressIndicator = _receiveProgressIndicator;
 			var sendProgressIndicator = _sendProgressIndicator;
 			if (message.ReceiveProgressIndicator == receiveProgressIndicator)
+			{
 				Stop(string.Format($"HEARTBEAT TIMEOUT at receiveProgressIndicator={receiveProgressIndicator}, sendProgressIndicator={sendProgressIndicator}"));
+			}
 		}
 
-		private void ScheduleHeartbeat(long receiveProgressIndicator, long sendProgressIndicator) {
+		private void ScheduleHeartbeat(long receiveProgressIndicator, long sendProgressIndicator)
+		{
 			_publisher.Publish(TimerMessage.Schedule.Create(_heartbeatInterval, _weakThisEnvelope,
 				new TcpMessage.Heartbeat(receiveProgressIndicator, sendProgressIndicator)));
 		}
 
 		// Same health warnings as SendToThisEnvelope
-		private class SendToWeakThisEnvelope : IEnvelope {
+		private class SendToWeakThisEnvelope : IEnvelope
+		{
 			private readonly WeakReference _receiver;
 
-			public SendToWeakThisEnvelope(object receiver) {
+			public SendToWeakThisEnvelope(object receiver)
+			{
 				_receiver = new WeakReference(receiver);
 			}
 
-			public void ReplyWith<T>(T message) where T : Message {
-				if (_receiver.Target is IHandle<T> handle) {
+			public void ReplyWith<T>(T message) where T : Message
+			{
+				if (_receiver.Target is IHandle<T> handle)
+				{
 					handle.Handle(message);
-				} else if (_receiver is IAsyncHandle<T>) {
+				}
+				else if (_receiver is IAsyncHandle<T>)
+				{
 					throw new Exception($"SendToWeakThisEnvelope does not support asynchronous receivers. Receiver: {_receiver}");
 				}
 			}
 		}
 
-		private class TcpAuthRequest : AuthenticationRequest {
+		private class TcpAuthRequest : AuthenticationRequest
+		{
 			private readonly TcpConnectionManager _manager;
 			private readonly TcpPackage _package;
 
 			public TcpAuthRequest(TcpConnectionManager manager, TcpPackage package)
-				: base($"(TCP) {manager.RemoteEndPoint}", package.Tokens) {
+				: base($"(TCP) {manager.RemoteEndPoint}", package.Tokens)
+			{
 				_manager = manager;
 				_package = package;
 			}
 
-			public override void Unauthorized() {
+			public override void Unauthorized()
+			{
 				_manager.ReplyNotAuthenticated(_package.CorrelationId, "Not Authenticated");
 			}
 
-			public override void Authenticated(ClaimsPrincipal principal) {
+			public override void Authenticated(ClaimsPrincipal principal)
+			{
 				_manager.UnwrapAndPublishPackage(_package, principal, _package.Tokens);
 			}
 
-			public override void Error() {
+			public override void Error()
+			{
 				_manager.ReplyNotAuthenticated(_package.CorrelationId, "Internal Server Error");
 			}
 
-			public override void NotReady() {
+			public override void NotReady()
+			{
 				_manager.ReplyNotReady(_package.CorrelationId, "Server not ready");
 			}
 		}
 
 
-		private class TcpDefaultAuthRequest : AuthenticationRequest {
+		private class TcpDefaultAuthRequest : AuthenticationRequest
+		{
 			private readonly TcpConnectionManager _manager;
 			private readonly Guid _correlationId;
 			private readonly UserCredentials _userCredentials;
 
 			public TcpDefaultAuthRequest(TcpConnectionManager manager, Guid correlationId,
 				UserCredentials userCredentials)
-				: base($"(TCP) {manager.RemoteEndPoint}", userCredentials.Tokens) {
+				: base($"(TCP) {manager.RemoteEndPoint}", userCredentials.Tokens)
+			{
 				_manager = manager;
 				_correlationId = correlationId;
 				_userCredentials = userCredentials;
 			}
 
-			public override void Unauthorized() {
+			public override void Unauthorized()
+			{
 				_manager.ReplyNotAuthenticated(_correlationId, "Unauthorized");
 			}
 
-			public override void Authenticated(ClaimsPrincipal principal) {
+			public override void Authenticated(ClaimsPrincipal principal)
+			{
 				_manager.ReplyAuthenticated(_correlationId, _userCredentials, principal);
 			}
 
-			public override void Error() {
+			public override void Error()
+			{
 				_manager.ReplyNotAuthenticated(_correlationId, "Internal Server Error");
 			}
 
-			public override void NotReady() {
+			public override void NotReady()
+			{
 				_manager.ReplyNotReady(_correlationId, "Server not yet ready");
 			}
 		}
 
-		private class UserCredentials {
+		private class UserCredentials
+		{
 			public readonly ClaimsPrincipal User;
 			public readonly IReadOnlyDictionary<string, string> Tokens;
 
-			public UserCredentials(IReadOnlyDictionary<string, string> tokens, ClaimsPrincipal user) {
+			public UserCredentials(IReadOnlyDictionary<string, string> tokens, ClaimsPrincipal user)
+			{
 				Tokens = tokens;
 				User = user;
 			}

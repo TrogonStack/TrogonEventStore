@@ -33,12 +33,17 @@ internal class WriteJsonProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length < 3 || args.Length > 4)
+			{
 				return false;
+			}
+
 			eventStreamId = args[0];
 			expectedVersion = args[1].ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
 			data = args[2];
 			if (args.Length == 4)
+			{
 				metadata = args[3];
+			}
 		}
 
 		context.IsAsync();
@@ -97,9 +102,13 @@ internal class WriteJsonProcessor : ICmdProcessor
 			connectionClosed: (connection, error) =>
 			{
 				if (dataReceived && error == SocketError.Success)
+				{
 					context.Success();
+				}
 				else
+				{
 					context.Fail();
+				}
 			});
 
 		context.WaitForCompletion();

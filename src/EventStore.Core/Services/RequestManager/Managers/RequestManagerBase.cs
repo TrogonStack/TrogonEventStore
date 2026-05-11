@@ -9,7 +9,8 @@ using EventStore.Core.Messaging;
 using EventStore.Core.TransactionLog.LogRecords;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.RequestManager.Managers {
+namespace EventStore.Core.Services.RequestManager.Managers
+{
 	public abstract class RequestManagerBase :
 		IHandle<StorageMessage.PrepareAck>,
 		IHandle<StorageMessage.CommitIndexed>,
@@ -18,7 +19,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		IHandle<StorageMessage.WrongExpectedVersion>,
 		IHandle<StorageMessage.AlreadyCommitted>,
 		IHandle<StorageMessage.RequestManagerTimerTick>,
-		IDisposable {
+		IDisposable
+	{
 
 		private static readonly ILogger Log = Serilog.Log.ForContext<RequestManagerBase>();
 
@@ -42,7 +44,7 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		protected long LastEventPosition;
 		protected bool Registered;
 		protected long CommitPosition = -1;
-		
+
 		private readonly HashSet<long> _prepareLogPositions = new HashSet<long>();
 
 		private bool _allEventsWritten;
@@ -66,7 +68,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 				CommitSource commitSource,
 				int prepareCount = 0,
 				long transactionId = -1,
-				bool waitForCommit = false) {
+				bool waitForCommit = false)
+		{
 			Ensure.NotEmptyGuid(internalCorrId, nameof(internalCorrId));
 			Ensure.NotEmptyGuid(clientCorrId, nameof(clientCorrId));
 			Ensure.NotNull(publisher, nameof(publisher));
@@ -85,95 +88,126 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 			TransactionId = transactionId;
 			_commitReceived = !waitForCommit; //if not waiting for commit flag as true
 			_allPreparesWritten = _prepareCount == 0; //if not waiting for prepares flag as true
-			if (prepareCount == 0 && waitForCommit == false) {
+			if (prepareCount == 0 && waitForCommit == false)
+			{
 				//empty operation just return success
 				var position = Math.Max(transactionId, 0);
 				ReturnCommitAt(position, 0, 0);
 			}
 		}
 		protected DateTime LiveUntil => NextTimeoutTime - _timeoutOffset;
-		
+
 		protected abstract Message WriteRequestMsg { get; }
 		protected abstract Message ClientSuccessMsg { get; }
 		protected abstract Message ClientFailMsg { get; }
-		public void Start() {
+		public void Start()
+		{
 			NextTimeoutTime = DateTime.UtcNow + Timeout;
 			Publisher.Publish(WriteRequestMsg);
 		}
 
-		public void Handle(StorageMessage.PrepareAck message) {
-			if (Interlocked.Read(ref _complete) == 1 || _allPreparesWritten) { return; }
+		public void Handle(StorageMessage.PrepareAck message)
+		{
+			if (Interlocked.Read(ref _complete) == 1 || _allPreparesWritten)
+			{ return; }
 			NextTimeoutTime = DateTime.UtcNow + Timeout;
-			if (message.Flags.HasAnyOf(PrepareFlags.TransactionBegin)) {
+			if (message.Flags.HasAnyOf(PrepareFlags.TransactionBegin))
+			{
 				TransactionId = message.LogPosition;
 			}
-			if (message.LogPosition > LastEventPosition) {
+			if (message.LogPosition > LastEventPosition)
+			{
 				LastEventPosition = message.LogPosition;
 			}
 
-			lock (_prepareLogPositions) {
+			lock (_prepareLogPositions)
+			{
 				_prepareLogPositions.Add(message.LogPosition);
 				_allPreparesWritten = _prepareLogPositions.Count == _prepareCount;
 			}
-			if (_allPreparesWritten) { AllPreparesWritten(); }
+			if (_allPreparesWritten)
+			{ AllPreparesWritten(); }
 			_allEventsWritten = _commitReceived && _allPreparesWritten;
-			if (_allEventsWritten) { AllEventsWritten(); }
+			if (_allEventsWritten)
+			{ AllEventsWritten(); }
 		}
-		public virtual void Handle(StorageMessage.CommitIndexed message) {
-			if (Interlocked.Read(ref _complete) == 1 || _commitReceived) { return; }
+		public virtual void Handle(StorageMessage.CommitIndexed message)
+		{
+			if (Interlocked.Read(ref _complete) == 1 || _commitReceived)
+			{ return; }
 			NextTimeoutTime = DateTime.UtcNow + Timeout;
 			_commitReceived = true;
 			_allEventsWritten = _commitReceived && _allPreparesWritten;
-			if (message.LogPosition > LastEventPosition) {
+			if (message.LogPosition > LastEventPosition)
+			{
 				LastEventPosition = message.LogPosition;
 			}
 			FirstEventNumber = message.FirstEventNumber;
 			LastEventNumber = message.LastEventNumber;
 			CommitPosition = message.LogPosition;
-			if (_allEventsWritten) { AllEventsWritten(); }
+			if (_allEventsWritten)
+			{ AllEventsWritten(); }
 		}
 		protected virtual void AllPreparesWritten() { }
-		
-		protected virtual void AllEventsWritten() {
-			if (CommitSource.IndexedPosition >= LastEventPosition) {
+
+		protected virtual void AllEventsWritten()
+		{
+			if (CommitSource.IndexedPosition >= LastEventPosition)
+			{
 				Committed();
-			} else if (!Registered) {
+			}
+			else if (!Registered)
+			{
 				CommitSource.NotifyFor(LastEventPosition, Committed);
 				Registered = true;
 			}
 		}
-		protected virtual void Committed() {
-			if (Interlocked.CompareExchange(ref _complete, 1, 0) == 1) { return; }
+		protected virtual void Committed()
+		{
+			if (Interlocked.CompareExchange(ref _complete, 1, 0) == 1)
+			{ return; }
 			Result = OperationResult.Success;
 			_clientResponseEnvelope.ReplyWith(ClientSuccessMsg);
 			Publisher.Publish(new StorageMessage.RequestCompleted(InternalCorrId, true));
 		}
-		public void Handle(StorageMessage.RequestManagerTimerTick message) {
-			if (_allEventsWritten) { AllEventsWritten(); }
+		public void Handle(StorageMessage.RequestManagerTimerTick message)
+		{
+			if (_allEventsWritten)
+			{ AllEventsWritten(); }
 			if (Interlocked.Read(ref _complete) == 1 || message.UtcNow < NextTimeoutTime)
+			{
 				return;
+			}
+
 			var result = !_allPreparesWritten ? OperationResult.PrepareTimeout : OperationResult.CommitTimeout;
 			var msg = !_allPreparesWritten ? "Prepare phase timeout." : "Commit phase timeout.";
 			CompleteFailedRequest(result, msg);
 		}
-		public void Handle(StorageMessage.InvalidTransaction message) {
+		public void Handle(StorageMessage.InvalidTransaction message)
+		{
 			CompleteFailedRequest(OperationResult.InvalidTransaction, "Invalid transaction.");
 		}
-		public void Handle(StorageMessage.WrongExpectedVersion message) {
+		public void Handle(StorageMessage.WrongExpectedVersion message)
+		{
 			FailureCurrentVersion = message.CurrentVersion;
 			CompleteFailedRequest(OperationResult.WrongExpectedVersion, "Wrong expected version.", message.CurrentVersion);
 		}
-		public void Handle(StorageMessage.StreamDeleted message) {
+		public void Handle(StorageMessage.StreamDeleted message)
+		{
 			CompleteFailedRequest(OperationResult.StreamDeleted, "Stream is deleted.");
 		}
-		public void Handle(StorageMessage.AlreadyCommitted message) {
-			if (Interlocked.Read(ref _complete) == 1 || _allEventsWritten) { return; }
+		public void Handle(StorageMessage.AlreadyCommitted message)
+		{
+			if (Interlocked.Read(ref _complete) == 1 || _allEventsWritten)
+			{ return; }
 			Log.Debug("IDEMPOTENT WRITE TO STREAM ClientCorrelationID {clientCorrelationId}, {message}.", ClientCorrId,
 				message);
 			ReturnCommitAt(message.LogPosition, message.FirstEventNumber, message.LastEventNumber);
 		}
-		protected virtual void ReturnCommitAt(long logPosition, long firstEvent, long lastEvent) {
-			lock (_prepareLogPositions) {
+		protected virtual void ReturnCommitAt(long logPosition, long firstEvent, long lastEvent)
+		{
+			lock (_prepareLogPositions)
+			{
 				_prepareLogPositions.Clear();
 				_prepareLogPositions.Add(logPosition);
 
@@ -184,9 +218,11 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 			}
 		}
 
-		private void CompleteFailedRequest(OperationResult result, string error, long currentVersion = -1) {
+		private void CompleteFailedRequest(OperationResult result, string error, long currentVersion = -1)
+		{
 			Debug.Assert(result != OperationResult.Success);
-			if (Interlocked.CompareExchange(ref _complete, 1, 0) == 1) { return; }
+			if (Interlocked.CompareExchange(ref _complete, 1, 0) == 1)
+			{ return; }
 			Result = result;
 			FailureMessage = error;
 			Publisher.Publish(new StorageMessage.RequestCompleted(InternalCorrId, false, currentVersion));
@@ -196,23 +232,30 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 		#region IDisposable Support
 		private bool _disposed; // To detect redundant calls
 
-		protected virtual void Dispose(bool disposing) {
-			if (!_disposed) {
-				if (disposing) {
-					try {
-						if (Interlocked.Read(ref _complete) != 1) {
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!_disposed)
+			{
+				if (disposing)
+				{
+					try
+					{
+						if (Interlocked.Read(ref _complete) != 1)
+						{
 							//todo (clc) need a better Result here, but need to see if this will impact the client API
 							var result = !_allPreparesWritten ? OperationResult.PrepareTimeout : OperationResult.CommitTimeout;
 							var msg = "Request canceled by server";
 							CompleteFailedRequest(result, msg);
 						}
-					} catch { /*don't throw in disposed*/}
+					}
+					catch { /*don't throw in disposed*/}
 
 					_disposed = true;
 				}
 			}
 		}
-		public void Dispose() {
+		public void Dispose()
+		{
 			Dispose(true);
 		}
 		#endregion

@@ -17,11 +17,19 @@ internal class InnerBusMessagesProcessor : IHandle<Message>
 	public InnerBusMessagesProcessor(RandomTestRunner runner, IPEndPoint endPoint, IPublisher bus)
 	{
 		if (runner == null)
+		{
 			throw new ArgumentNullException("runner");
+		}
+
 		if (endPoint == null)
+		{
 			throw new ArgumentNullException("endPoint");
+		}
+
 		if (bus == null)
+		{
 			throw new ArgumentNullException("bus");
+		}
 
 		_runner = runner;
 		_endPoint = endPoint;
@@ -32,7 +40,9 @@ internal class InnerBusMessagesProcessor : IHandle<Message>
 	{
 		// timer message and SendOverGrpc is handled differently
 		if (message is TimerMessage.Schedule)
+		{
 			return;
+		}
 
 		_runner.Enqueue(_endPoint, message, _bus); // process with no delay and no reorderings
 	}

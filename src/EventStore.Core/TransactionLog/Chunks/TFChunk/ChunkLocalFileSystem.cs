@@ -29,7 +29,9 @@ public sealed class ChunkLocalFileSystem(IVersionedFileNamingStrategy namingStra
 				_ => throw new ArgumentOutOfRangeException(nameof(readOptimizationHint), readOptimizationHint, null)
 			};
 			if (asyncIO)
+			{
 				options |= FileOptions.Asynchronous;
+			}
 
 			return ValueTask.FromResult<IChunkHandle>(new ChunkFileHandle(fileName, new FileStreamOptions
 			{

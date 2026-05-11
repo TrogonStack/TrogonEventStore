@@ -66,7 +66,9 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_full_im
 	{
 		var success = _randomCase.Run();
 		if (!success)
+		{
 			_randomCase.Logger.LogMessages();
+		}
 
 		Console.WriteLine("There were a total of {0} messages in this run.",
 			_randomCase.Logger.ProcessedItems.Count());

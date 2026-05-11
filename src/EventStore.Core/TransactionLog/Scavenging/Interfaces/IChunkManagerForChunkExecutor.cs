@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public interface IChunkManagerForChunkExecutor<TStreamId, TRecord> {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public interface IChunkManagerForChunkExecutor<TStreamId, TRecord>
+	{
 		ValueTask<IChunkWriterForExecutor<TStreamId, TRecord>> CreateChunkWriter(
 			IChunkReaderForExecutor<TStreamId, TRecord> sourceChunk,
 		CancellationToken token);
@@ -11,11 +13,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		IChunkReaderForExecutor<TStreamId, TRecord> GetChunkReaderFor(long position);
 	}
 
-	public interface IChunkManagerForChunkDeleter {
+	public interface IChunkManagerForChunkDeleter
+	{
 		ValueTask<bool> SwitchInChunks(IReadOnlyList<string> locators, CancellationToken token);
 	}
 
-	public interface IChunkWriterForExecutor<TStreamId, TRecord> {
+	public interface IChunkWriterForExecutor<TStreamId, TRecord>
+	{
 		string LocalFileName { get; }
 
 		ValueTask WriteRecord(RecordForExecutor<TStreamId, TRecord> record, CancellationToken token);
@@ -25,7 +29,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		void Abort(bool deleteImmediately);
 	}
 
-	public interface IChunkReaderForExecutor<TStreamId, TRecord> {
+	public interface IChunkReaderForExecutor<TStreamId, TRecord>
+	{
 		string Name { get; }
 		int FileSize { get; }
 		int ChunkStartNumber { get; }

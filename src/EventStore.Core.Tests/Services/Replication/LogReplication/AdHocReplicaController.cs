@@ -107,7 +107,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.ReplicaSubscribed message)
 	{
 		if (SubscriptionId != message.SubscriptionId)
+		{
 			return;
+		}
 
 		_state = VNodeState.CatchingUp;
 		_outputBus.Publish(new SystemMessage.BecomeCatchingUp(
@@ -119,7 +121,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.CloneAssignment message)
 	{
 		if (SubscriptionId != message.SubscriptionId)
+		{
 			return;
+		}
 
 		_state = VNodeState.Clone;
 		_outputBus.Publish(new SystemMessage.BecomeClone(
@@ -131,7 +135,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.FollowerAssignment message)
 	{
 		if (SubscriptionId != message.SubscriptionId)
+		{
 			return;
+		}
 
 		_state = VNodeState.Follower;
 		_outputBus.Publish(new SystemMessage.BecomeFollower(
@@ -143,7 +149,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.CreateChunk message)
 	{
 		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+		{
 			return;
+		}
 
 		_outputBus.Publish(message);
 	}
@@ -151,7 +159,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.DataChunkBulk message)
 	{
 		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+		{
 			return;
+		}
 
 		_outputBus.Publish(message);
 	}
@@ -159,7 +169,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.RawChunkBulk message)
 	{
 		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+		{
 			return;
+		}
 
 		_outputBus.Publish(message);
 	}
@@ -167,7 +179,9 @@ internal class AdHocReplicaController<TStreamId> : IAsyncHandle<Message>
 	private void Handle(ReplicationMessage.AckLogPosition message)
 	{
 		if (SubscriptionId != message.SubscriptionId || !_state.IsReplica())
+		{
 			return;
+		}
 
 		LastAck = new ReplicationAck
 		{

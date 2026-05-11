@@ -2,28 +2,34 @@ using System.Threading.Channels;
 using EventStore.Common.Utils;
 using EventStore.Core.Messages;
 
-namespace EventStore.Core.Services.Transport.Enumerators {
-	public static partial class Enumerator {
+namespace EventStore.Core.Services.Transport.Enumerators
+{
+	public static partial class Enumerator
+	{
 		private const int MaxLiveEventBufferCount = 32;
 		public const int ReadBatchSize = 32; // TODO  JPB make this configurable
 
 		private static readonly BoundedChannelOptions BoundedChannelOptions =
-			new(MaxLiveEventBufferCount) {
+			new(MaxLiveEventBufferCount)
+			{
 				FullMode = BoundedChannelFullMode.Wait,
 				SingleReader = true,
 				SingleWriter = true
 			};
 
 		private static readonly BoundedChannelOptions LiveChannelOptions =
-			new(MaxLiveEventBufferCount) {
+			new(MaxLiveEventBufferCount)
+			{
 				FullMode = BoundedChannelFullMode.DropOldest,
 				SingleReader = true,
 				SingleWriter = true
 			};
 
-		private static bool TryHandleNotHandled(ClientMessage.NotHandled notHandled, out ReadResponseException exception) {
+		private static bool TryHandleNotHandled(ClientMessage.NotHandled notHandled, out ReadResponseException exception)
+		{
 			exception = null;
-			switch (notHandled.Reason) {
+			switch (notHandled.Reason)
+			{
 				case ClientMessage.NotHandled.Types.NotHandledReason.NotReady:
 					exception = new ReadResponseException.NotHandled.ServerNotReady();
 					return true;
@@ -32,7 +38,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					return true;
 				case ClientMessage.NotHandled.Types.NotHandledReason.NotLeader:
 				case ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly:
-					switch (notHandled.LeaderInfo) {
+					switch (notHandled.LeaderInfo)
+					{
 						case { } leaderInfo:
 							exception = new ReadResponseException.NotHandled.LeaderInfo(leaderInfo.Http.GetHost(), leaderInfo.Http.GetPort());
 							return true;

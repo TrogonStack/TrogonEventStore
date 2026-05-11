@@ -51,7 +51,10 @@ public class BufferManager
 		{
 			//default to 1024 1kb buffers if people don't want to manage it on their own;
 			if (_defaultBufferManager == null)
+			{
 				_defaultBufferManager = new BufferManager(1024, 1024, 1);
+			}
+
 			return _defaultBufferManager;
 		}
 	}
@@ -63,7 +66,10 @@ public class BufferManager
 	public static void SetDefaultBufferManager(BufferManager manager)
 	{
 		if (manager == null)
+		{
 			throw new ArgumentNullException("manager");
+		}
+
 		_defaultBufferManager = manager;
 	}
 
@@ -129,11 +135,19 @@ public class BufferManager
 	public BufferManager(int segmentChunks, int chunkSize, int initialSegments, bool allowedToCreateMemory)
 	{
 		if (segmentChunks <= 0)
+		{
 			throw new ArgumentException("segmentChunks");
+		}
+
 		if (chunkSize <= 0)
+		{
 			throw new ArgumentException("chunkSize");
+		}
+
 		if (initialSegments < 0)
+		{
 			throw new ArgumentException("initialSegments");
+		}
 
 		_segmentChunks = segmentChunks;
 		_chunkSize = chunkSize;
@@ -156,11 +170,16 @@ public class BufferManager
 	private void CreateNewSegment(bool forceCreation)
 	{
 		if (!_allowedToCreateMemory)
+		{
 			throw new UnableToCreateMemoryException();
+		}
+
 		lock (_creatingNewSegmentLock)
 		{
 			if (!forceCreation && _buffers.Count > _segmentChunks / 2)
+			{
 				return;
+			}
 
 			var bytes = new byte[_segmentSize];
 			_segments.Add(bytes);
@@ -192,7 +211,10 @@ public class BufferManager
 		{
 			ArraySegment<byte> result;
 			if (_buffers.TryPop(out result))
+			{
 				return result;
+			}
+
 			CreateNewSegment(false);
 			trial++;
 		}
@@ -222,13 +244,19 @@ public class BufferManager
 				while (totalReceived < toGet)
 				{
 					if (!_buffers.TryPop(out piece))
+					{
 						break;
+					}
+
 					result[totalReceived] = piece;
 					++totalReceived;
 				}
 
 				if (totalReceived == toGet)
+				{
 					return result;
+				}
+
 				CreateNewSegment(false);
 				count++;
 			}
@@ -238,7 +266,10 @@ public class BufferManager
 		catch
 		{
 			if (totalReceived > 0)
+			{
 				CheckIn(result.Take(totalReceived));
+			}
+
 			throw;
 		}
 	}
@@ -268,7 +299,9 @@ public class BufferManager
 	public void CheckIn(IEnumerable<ArraySegment<byte>> buffersToReturn)
 	{
 		if (buffersToReturn == null)
+		{
 			throw new ArgumentNullException("buffersToReturn");
+		}
 
 		foreach (var buf in buffersToReturn)
 		{
@@ -281,8 +314,13 @@ public class BufferManager
 	private void CheckBuffer(ArraySegment<byte> buffer)
 	{
 		if (buffer.Array == null || buffer.Count == 0 || buffer.Array.Length < buffer.Offset + buffer.Count)
+		{
 			throw new Exception("Attempt to check in invalid buffer");
+		}
+
 		if (buffer.Count != _chunkSize)
+		{
 			throw new ArgumentException("Buffer was not of the same chunk size as the buffer manager", "buffer");
+		}
 	}
 }

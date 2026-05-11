@@ -14,11 +14,15 @@ public static class SortedListExtensions
 	public static int LowerBound<TKey, TValue>(this SortedList<TKey, TValue> list, TKey key)
 	{
 		if (list.Count == 0)
+		{
 			return -1;
+		}
 
 		var comparer = list.Comparer;
 		if (comparer.Compare(list.Keys[list.Keys.Count - 1], key) < 0)
+		{
 			return -1; // if all elements are smaller, then no lower bound
+		}
 
 		int l = 0;
 		int r = list.Count - 1;
@@ -26,9 +30,13 @@ public static class SortedListExtensions
 		{
 			int m = l + (r - l) / 2;
 			if (comparer.Compare(list.Keys[m], key) >= 0)
+			{
 				r = m;
+			}
 			else
+			{
 				l = m + 1;
+			}
 		}
 
 		return r;
@@ -46,19 +54,29 @@ public static class SortedListExtensions
 	{
 
 		if (continueSearch == null)
+		{
 			continueSearch = _ => true;
+		}
 
 		if (comparer == null)
+		{
 			comparer = list.Comparer;
+		}
 
 		if (list.Count == 0)
+		{
 			return -1;
+		}
 
 		if (!continueSearch(list.Keys[0]))
+		{
 			throw new SearchStoppedException();
+		}
 
 		if (comparer.Compare(key, list.Keys[0]) < 0)
+		{
 			return -1; // if all elements are greater, then no upper bound
+		}
 
 		int l = 0;
 		int r = list.Count - 1;
@@ -66,16 +84,24 @@ public static class SortedListExtensions
 		{
 			int m = l + (r - l + 1) / 2;
 			if (!continueSearch(list.Keys[m]))
+			{
 				throw new SearchStoppedException();
+			}
 
 			if (comparer.Compare(list.Keys[m], key) <= 0)
+			{
 				l = m;
+			}
 			else
+			{
 				r = m - 1;
+			}
 		}
 
 		if (!continueSearch(list.Keys[l]))
+		{
 			throw new SearchStoppedException();
+		}
 
 		return l;
 	}
@@ -89,13 +115,19 @@ public static class SortedListExtensions
 	{
 
 		if (list.Count is 0)
+		{
 			return -1;
+		}
 
 		if (!await continueSearch(list.Keys[0], token))
+		{
 			throw new SearchStoppedException();
+		}
 
 		if (comparer.Compare(key, list.Keys[0]) < 0)
+		{
 			return -1; // if all elements are greater, then no upper bound
+		}
 
 		int l = 0;
 		int r = list.Count - 1;
@@ -103,16 +135,24 @@ public static class SortedListExtensions
 		{
 			int m = l + (r - l + 1) / 2;
 			if (!await continueSearch(list.Keys[m], token))
+			{
 				throw new SearchStoppedException();
+			}
 
 			if (comparer.Compare(list.Keys[m], key) <= 0)
+			{
 				l = m;
+			}
 			else
+			{
 				r = m - 1;
+			}
 		}
 
 		if (!await continueSearch(list.Keys[l], token))
+		{
 			throw new SearchStoppedException();
+		}
 
 		return l;
 	}
@@ -128,17 +168,23 @@ public static class SortedListExtensions
 	{
 
 		if (list.Count is 0)
+		{
 			return -1;
+		}
 
 		int maxIdx = -1;
 
 		for (int i = 0; i < list.Keys.Count; i++)
 		{
 			if (!await predicate(list.Keys[i], token))
+			{
 				continue;
+			}
 
 			if (maxIdx is -1 || list.Comparer.Compare(list.Keys[i], list.Keys[maxIdx]) > 0)
+			{
 				maxIdx = i;
+			}
 		}
 
 		return maxIdx;

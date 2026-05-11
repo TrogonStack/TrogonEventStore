@@ -35,7 +35,10 @@ namespace EventStore.Core.Services.PersistentSubscription
 		public void EndOperation(Guid id)
 		{
 			if (!_operations.TryRemove(id, out var record))
+			{
 				return;
+			}
+
 			var current = _getElapsedTicks();
 			var time = current - record.Start;
 			var ms = time / TimeSpan.TicksPerMillisecond;
@@ -51,7 +54,10 @@ namespace EventStore.Core.Services.PersistentSubscription
 		{
 			var ret = new ObservedTimingMeasurement();
 			if (_measurements == null || _measurements.Count == 0)
+			{
 				return ret;
+			}
+
 			var items = _measurements.ToArray();
 			Array.Sort(items);
 			ret.Measurements.Add(Measurement.From("Mean", items.Sum() / items.Length));
@@ -82,7 +88,10 @@ namespace EventStore.Core.Services.PersistentSubscription
 			var percent = percentile / 100m;
 			var ret = (int)(percent * size);
 			if (ret == size)
+			{
 				ret -= 1;
+			}
+
 			return ret;
 		}
 

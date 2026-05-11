@@ -3,10 +3,12 @@ using System.Diagnostics;
 using System.Threading;
 using Serilog;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// Call Rest from time to time and this will rest a suitable amount of time
 	// to achieve an overall % time spent working approximately equal to activePercent.
-	public class Throttle {
+	public class Throttle
+	{
 		private readonly Stopwatch _stopwatch;
 		private readonly double _minimumRestMs;
 		private readonly double _logThresholdMs;
@@ -19,10 +21,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ILogger logger,
 			TimeSpan minimumRest,
 			TimeSpan restLoggingThreshold,
-			double activePercent) {
+			double activePercent)
+		{
 
 			if (activePercent <= 0 || 100 < activePercent)
+			{
 				throw new ArgumentOutOfRangeException(nameof(activePercent), activePercent, null);
+			}
 
 			_logger = logger;
 			_stopwatch = new Stopwatch();
@@ -34,14 +39,18 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			Reset();
 		}
 
-		public void Reset() {
+		public void Reset()
+		{
 			_totalRestingTimeMs = 0;
 			_stopwatch.Restart();
 		}
 
-		public void Rest(CancellationToken cancellationToken) {
+		public void Rest(CancellationToken cancellationToken)
+		{
 			if (_restFactor == 0)
+			{
 				return;
+			}
 
 			var totalTimeMs = _stopwatch.Elapsed.TotalMilliseconds;
 
@@ -49,11 +58,15 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			var timeToRestMs = (_restFactor * totalTimeMs - _totalRestingTimeMs) / (1 - _restFactor);
 
 			if (timeToRestMs < _minimumRestMs)
+			{
 				return;
+			}
 
 			var isLongRest = timeToRestMs >= _logThresholdMs;
 			if (isLongRest)
+			{
 				_logger.Debug("SCAVENGING: Resting {timeToRestMs:N0}ms", timeToRestMs);
+			}
 
 			_totalRestingTimeMs += timeToRestMs;
 
@@ -61,10 +74,13 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			_mres.Wait((int)timeToRestMs, cancellationToken);
 
 			if (isLongRest)
+			{
 				_logger.Debug(PrettyPrint());
+			}
 		}
 
-		public string PrettyPrint() {
+		public string PrettyPrint()
+		{
 			var totalMs = _stopwatch.Elapsed.TotalMilliseconds;
 			var totalActiveTimeMs = totalMs - _totalRestingTimeMs;
 			var activePercent = 100 * totalActiveTimeMs / totalMs;

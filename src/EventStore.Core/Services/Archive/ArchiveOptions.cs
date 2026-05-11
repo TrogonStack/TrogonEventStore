@@ -10,12 +10,17 @@ public class ArchiveOptions
 	public S3Options S3 { get; init; } = new();
 	public RetentionOptions RetainAtLeast { get; init; } = new();
 
-	public void Validate() {
-		try {
+	public void Validate()
+	{
+		try
+		{
 			if (!Enabled)
+			{
 				return;
+			}
 
-			switch (StorageType) {
+			switch (StorageType)
+			{
 				case StorageType.Unspecified:
 					throw new InvalidConfigurationException("Please specify an Archive StorageType");
 				case StorageType.S3:
@@ -26,7 +31,9 @@ public class ArchiveOptions
 			}
 
 			RetainAtLeast.Validate();
-		} catch (InvalidConfigurationException ex) {
+		}
+		catch (InvalidConfigurationException ex)
+		{
 			throw new InvalidConfigurationException($"Archive configuration: {ex.Message}", ex);
 		}
 	}
@@ -43,16 +50,27 @@ public class RetentionOptions
 	public long Days { get; init; } = TimeSpan.MaxValue.Days;
 	public long LogicalBytes { get; init; } = long.MaxValue;
 
-	public void Validate() {
+	public void Validate()
+	{
 		if (Days == TimeSpan.MaxValue.Days)
+		{
 			throw new InvalidConfigurationException("Please specify a value for Days to retain");
+		}
+
 		if (Days < 0 || Days > TimeSpan.MaxValue.Days)
+		{
 			throw new InvalidConfigurationException($"Days must be between 0 and {TimeSpan.MaxValue.Days}");
+		}
 
 		if (LogicalBytes == long.MaxValue)
+		{
 			throw new InvalidConfigurationException("Please specify a value for LogicalBytes to retain");
+		}
+
 		if (LogicalBytes < 0)
+		{
 			throw new InvalidConfigurationException("LogicalBytes must be greater than or equal to 0");
+		}
 	}
 }
 
@@ -65,26 +83,33 @@ public class S3Options
 	public string SessionToken { get; init; } = "";
 	public string ServiceUrl { get; init; } = "";
 
-	public void Validate() {
+	public void Validate()
+	{
 		if (string.IsNullOrWhiteSpace(Bucket))
+		{
 			throw new InvalidConfigurationException("Please provide a Bucket for the S3 archive");
+		}
 
 		if (string.IsNullOrWhiteSpace(Region))
+		{
 			throw new InvalidConfigurationException("Please provide a Region for the S3 archive");
+		}
 
 		if (string.IsNullOrWhiteSpace(AccessKeyId) != string.IsNullOrWhiteSpace(SecretAccessKey))
+		{
 			throw new InvalidConfigurationException(
 				"Please provide both AccessKeyId and SecretAccessKey for S3 archive credentials");
+		}
 
 		if (!string.IsNullOrWhiteSpace(SessionToken) &&
-		    (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
+			(string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
 		{
 			throw new InvalidConfigurationException(
 				"Please provide AccessKeyId and SecretAccessKey when SessionToken is configured for S3 archive credentials");
 		}
 
 		if (!string.IsNullOrWhiteSpace(ServiceUrl) &&
-		    (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
+			(string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
 		{
 			throw new InvalidConfigurationException(
 				"Please provide AccessKeyId and SecretAccessKey for S3-compatible archive storage");

@@ -34,16 +34,22 @@ public class Application
 	private static void Exit(int exitCode, string reason, bool silent)
 	{
 		if (Interlocked.CompareExchange(ref _exited, 1, 0) != 0)
+		{
 			return;
+		}
 
 		Ensure.NotNullOrEmpty(reason, "reason");
 
 		if (!silent)
 		{
 			if (exitCode != 0)
+			{
 				Log.Error("Exiting with exit code: {exitCode}.\nExit reason: {e}", exitCode, reason);
+			}
 			else
+			{
 				Log.Information("Exiting with exit code: {exitCode}.\nExit reason: {e}", exitCode, reason);
+			}
 		}
 
 		_exit?.Invoke(exitCode);

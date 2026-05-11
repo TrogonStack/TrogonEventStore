@@ -10,8 +10,10 @@ using Grpc.Core;
 using ClusterInfo = EventStore.Core.Cluster.ClusterInfo;
 using Empty = EventStore.Client.Empty;
 
-namespace EventStore.Core.Services.Transport.Grpc.Cluster {
-	partial class Elections {
+namespace EventStore.Core.Services.Transport.Grpc.Cluster
+{
+	partial class Elections
+	{
 		private static readonly Empty EmptyResult = new Empty();
 		private readonly IPublisher _bus;
 		private readonly IAuthorizationProvider _authorizationProvider;
@@ -26,15 +28,18 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 		private static readonly Operation MasterIsResigningOkOperation = new Operation(Plugins.Authorization.Operations.Node.Elections.LeaderIsResigningOk);
 
 
-		public Elections(IPublisher bus, IAuthorizationProvider authorizationProvider, string clusterDns) {
+		public Elections(IPublisher bus, IAuthorizationProvider authorizationProvider, string clusterDns)
+		{
 			_bus = bus;
 			_authorizationProvider = authorizationProvider ?? throw new ArgumentNullException(nameof(authorizationProvider));
 			_clusterDns = clusterDns;
 		}
-		
-		public override async Task<Empty> ViewChange(ViewChangeRequest request, ServerCallContext context) {
+
+		public override async Task<Empty> ViewChange(ViewChangeRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, ViewChangeOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, ViewChangeOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.ViewChange(
@@ -43,10 +48,12 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 				request.AttemptedView));
 			return EmptyResult;
 		}
-		
-		public override async Task<Empty> ViewChangeProof(ViewChangeProofRequest request, ServerCallContext context) {
+
+		public override async Task<Empty> ViewChangeProof(ViewChangeProofRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, ViewChangeProofOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, ViewChangeProofOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.ViewChangeProof(
@@ -55,10 +62,12 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 				request.InstalledView));
 			return EmptyResult;
 		}
-		
-		public override async Task<Empty> Prepare(PrepareRequest request, ServerCallContext context) {
+
+		public override async Task<Empty> Prepare(PrepareRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, PrepareOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, PrepareOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.Prepare(
@@ -67,10 +76,12 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 				request.View));
 			return EmptyResult;
 		}
-	
-		public override async Task<Empty> PrepareOk(PrepareOkRequest request, ServerCallContext context) {
+
+		public override async Task<Empty> PrepareOk(PrepareOkRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, PrepareOkOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, PrepareOkOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.PrepareOk(
@@ -88,10 +99,12 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 				ClusterInfo.FromGrpcClusterInfo(request.ClusterInfo, _clusterDns)));
 			return EmptyResult;
 		}
-				
-		public override async Task<Empty> Proposal(ProposalRequest request, ServerCallContext context) {
+
+		public override async Task<Empty> Proposal(ProposalRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, ProposalOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, ProposalOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.Proposal(
@@ -111,9 +124,11 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 			return EmptyResult;
 		}
 
-		public override async Task<Empty> Accept(AcceptRequest request, ServerCallContext context) {
+		public override async Task<Empty> Accept(AcceptRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, AcceptOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, AcceptOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.Accept(
@@ -127,9 +142,11 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 			return EmptyResult;
 		}
 
-		public override async Task<Empty> LeaderIsResigning(LeaderIsResigningRequest request, ServerCallContext context) {
+		public override async Task<Empty> LeaderIsResigning(LeaderIsResigningRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, MasterIsResigningOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, MasterIsResigningOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.LeaderIsResigning(
@@ -138,10 +155,12 @@ namespace EventStore.Core.Services.Transport.Grpc.Cluster {
 					(int)request.LeaderHttp.Port).WithClusterDns(_clusterDns)));
 			return EmptyResult;
 		}
-		
-		public override async Task<Empty> LeaderIsResigningOk(LeaderIsResigningOkRequest request, ServerCallContext context) {
+
+		public override async Task<Empty> LeaderIsResigningOk(LeaderIsResigningOkRequest request, ServerCallContext context)
+		{
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, MasterIsResigningOkOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, MasterIsResigningOkOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 			_bus.Publish(new ElectionMessage.LeaderIsResigningOk(

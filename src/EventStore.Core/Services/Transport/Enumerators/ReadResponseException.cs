@@ -4,12 +4,15 @@ using EventStore.Core.Services.Transport.Common;
 
 namespace EventStore.Core.Services.Transport.Enumerators;
 
-public abstract class ReadResponseException : Exception {
-	public class StreamNotFound(string streamName) : ReadResponseException {
+public abstract class ReadResponseException : Exception
+{
+	public class StreamNotFound(string streamName) : ReadResponseException
+	{
 		public string StreamName { get; } = streamName;
 	}
 
-	public class WrongExpectedRevision(string stream, long expectedRevision, long actualRevision) : ReadResponseException {
+	public class WrongExpectedRevision(string stream, long expectedRevision, long actualRevision) : ReadResponseException
+	{
 		public string Stream { get; } = stream;
 
 		public StreamRevision ExpectedStreamRevision { get; } = StreamRevision.FromInt64(expectedRevision);
@@ -17,10 +20,12 @@ public abstract class ReadResponseException : Exception {
 		public StreamRevision ActualStreamRevision { get; } = StreamRevision.FromInt64(actualRevision);
 	}
 
-	public class StreamDeleted : ReadResponseException {
+	public class StreamDeleted : ReadResponseException
+	{
 		public readonly string StreamName;
 
-		public StreamDeleted(string streamName) {
+		public StreamDeleted(string streamName)
+		{
 			StreamName = streamName;
 		}
 	}
@@ -29,19 +34,23 @@ public abstract class ReadResponseException : Exception {
 
 	public class InvalidPosition : ReadResponseException { }
 
-	public class Timeout : ReadResponseException {
+	public class Timeout : ReadResponseException
+	{
 		public readonly string ErrorMessage;
 
-		public Timeout(string errorMessage) {
+		public Timeout(string errorMessage)
+		{
 			ErrorMessage = errorMessage;
 		}
 	}
 
-	public class UnknownMessage : ReadResponseException {
+	public class UnknownMessage : ReadResponseException
+	{
 		public readonly Type UnknownMessageType;
 		public readonly Type ExpectedMessageType;
 
-		public UnknownMessage(Type unknownMessageType, Type expectedMessageType) {
+		public UnknownMessage(Type unknownMessageType, Type expectedMessageType)
+		{
 			UnknownMessageType = unknownMessageType;
 			ExpectedMessageType = expectedMessageType;
 		}
@@ -49,11 +58,13 @@ public abstract class ReadResponseException : Exception {
 		public static UnknownMessage Create<T>(Message message) where T : Message => new(message.GetType(), typeof(T));
 	}
 
-	public class UnknownError : ReadResponseException {
+	public class UnknownError : ReadResponseException
+	{
 		public readonly Type ResultType;
 		public readonly object Result;
 
-		public UnknownError(Type resultType, object result) {
+		public UnknownError(Type resultType, object result)
+		{
 			ResultType = resultType;
 			Result = result;
 		}
@@ -61,16 +72,19 @@ public abstract class ReadResponseException : Exception {
 		public static UnknownError Create<T>(T result) => new(typeof(T), result);
 	}
 
-	public abstract class NotHandled {
+	public abstract class NotHandled
+	{
 		public class ServerNotReady : ReadResponseException { }
 
 		public class ServerBusy : ReadResponseException { }
 
-		public class LeaderInfo : ReadResponseException {
+		public class LeaderInfo : ReadResponseException
+		{
 			public string Host { get; }
 			public int Port { get; }
 
-			public LeaderInfo(string host, int port) {
+			public LeaderInfo(string host, int port)
+			{
 				Host = host;
 				Port = port;
 			}

@@ -97,8 +97,8 @@ public class StreamCalculator<TStreamId>(
 
 		var tb = OriginalStreamData.TruncateBefore;
 		if (tb.HasValue &&
-		    tb.GetValueOrDefault() is not EventNumber.DeletedStream &&
-		    await GetLastEventNumber(token) < tb.GetValueOrDefault())
+			tb.GetValueOrDefault() is not EventNumber.DeletedStream &&
+			await GetLastEventNumber(token) < tb.GetValueOrDefault())
 		{
 
 			// unspent TB. new events would cause the discard point to move.

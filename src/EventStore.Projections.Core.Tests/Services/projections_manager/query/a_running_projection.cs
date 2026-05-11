@@ -28,7 +28,10 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
 			protected override IEnumerable<WhenStep> When()
 			{
 				foreach (var m in base.When())
+				{
 					yield return m;
+				}
+
 				var readerAssignedMessage =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>()
 						.LastOrDefault();
@@ -49,7 +52,9 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
 			protected override IEnumerable<WhenStep> When()
 			{
 				foreach (var m in base.When())
+				{
 					yield return m;
+				}
 
 				yield return (new ReaderSubscriptionMessage.EventReaderEof(_reader));
 			}
@@ -120,7 +125,10 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
 			protected override IEnumerable<WhenStep> When()
 			{
 				foreach (var m in base.When())
+				{
 					yield return m;
+				}
+
 				yield return
 					(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 						_reader, new TFPos(200, 150), new TFPos(200, 150), "stream", 2, "stream", 1, false,

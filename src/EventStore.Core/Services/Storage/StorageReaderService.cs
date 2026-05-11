@@ -12,15 +12,18 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.Checkpoint;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.Storage {
-	public abstract class StorageReaderService {
+namespace EventStore.Core.Services.Storage
+{
+	public abstract class StorageReaderService
+	{
 		protected static readonly ILogger Log = Serilog.Log.ForContext<StorageReaderService>();
 	}
 
 	public class StorageReaderService<TStreamId> : StorageReaderService, IHandle<SystemMessage.SystemInit>,
 		IAsyncHandle<SystemMessage.BecomeShuttingDown>,
 		IHandle<SystemMessage.BecomeShutdown>,
-		IHandle<MonitoringMessage.InternalStatsRequest> {
+		IHandle<MonitoringMessage.InternalStatsRequest>
+	{
 
 		private readonly IPublisher _bus;
 		private readonly IReadIndex _readIndex;
@@ -36,7 +39,8 @@ namespace EventStore.Core.Services.Storage {
 			IReadOnlyCheckpoint writerCheckpoint,
 			IInMemoryStreamReader inMemReader,
 			QueueStatsManager queueStatsManager,
-			QueueTrackers trackers) {
+			QueueTrackers trackers)
+		{
 
 			Ensure.NotNull(bus, "bus");
 			Ensure.NotNull(subscriber, "subscriber");
@@ -50,7 +54,8 @@ namespace EventStore.Core.Services.Storage {
 			_threadCount = threadCount;
 			StorageReaderWorker<TStreamId>[] readerWorkers = new StorageReaderWorker<TStreamId>[threadCount];
 			InMemoryBus[] storageReaderBuses = new InMemoryBus[threadCount];
-			for (var i = 0; i < threadCount; i++) {
+			for (var i = 0; i < threadCount; i++)
+			{
 				readerWorkers[i] = new StorageReaderWorker<TStreamId>(bus, readIndex, systemStreams, writerCheckpoint, inMemReader, i);
 				storageReaderBuses[i] = new InMemoryBus("StorageReaderBus", watchSlowMsg: false);
 				storageReaderBuses[i].Subscribe<ClientMessage.ReadEvent>(readerWorkers[i]);
@@ -88,26 +93,33 @@ namespace EventStore.Core.Services.Storage {
 			subscriber.Subscribe<StorageMessage.StreamIdFromTransactionIdRequest>(_workersMultiHandler);
 		}
 
-		void IHandle<SystemMessage.SystemInit>.Handle(SystemMessage.SystemInit message) {
+		void IHandle<SystemMessage.SystemInit>.Handle(SystemMessage.SystemInit message)
+		{
 			_bus.Publish(new SystemMessage.ServiceInitialized("StorageReader"));
 		}
 
-		async ValueTask IAsyncHandle<SystemMessage.BecomeShuttingDown>.HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token) {
-			try {
+		async ValueTask IAsyncHandle<SystemMessage.BecomeShuttingDown>.HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token)
+		{
+			try
+			{
 				await _workersMultiHandler.Stop();
-			} catch (Exception exc) {
+			}
+			catch (Exception exc)
+			{
 				Log.Error(exc, "Error while stopping readers multi handler.");
 			}
 
 			_bus.Publish(new SystemMessage.ServiceShutdown("StorageReader"));
 		}
 
-		void IHandle<SystemMessage.BecomeShutdown>.Handle(SystemMessage.BecomeShutdown message) {
+		void IHandle<SystemMessage.BecomeShutdown>.Handle(SystemMessage.BecomeShutdown message)
+		{
 			// by now (in case of successful shutdown process), all readers and writers should not be using ReadIndex
 			_readIndex.Close();
 		}
 
-		void IHandle<MonitoringMessage.InternalStatsRequest>.Handle(MonitoringMessage.InternalStatsRequest message) {
+		void IHandle<MonitoringMessage.InternalStatsRequest>.Handle(MonitoringMessage.InternalStatsRequest message)
+		{
 			var s = _readIndex.GetStatistics();
 			var stats = new Dictionary<string, object> {
 				{"es-readIndex-cachedRecord", s.CachedRecordReads},

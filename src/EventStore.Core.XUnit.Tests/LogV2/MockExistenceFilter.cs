@@ -15,14 +15,20 @@ public class MockExistenceFilter(ILongHasher<string> hasher, int addDelayMs = 0)
 	public void Add(string name)
 	{
 		if (addDelayMs > 0)
+		{
 			Thread.Sleep(addDelayMs);
+		}
+
 		Hashes.Add(hasher.Hash(name));
 	}
 
 	public void Add(ulong hash)
 	{
 		if (addDelayMs > 0)
+		{
 			Thread.Sleep(addDelayMs);
+		}
+
 		Hashes.Add(hash);
 	}
 

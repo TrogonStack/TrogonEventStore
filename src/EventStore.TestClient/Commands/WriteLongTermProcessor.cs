@@ -40,7 +40,9 @@ internal class WriteLongTermProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length != 4 && args.Length != 5)
+			{
 				return false;
+			}
 
 			try
 			{
@@ -49,7 +51,9 @@ internal class WriteLongTermProcessor : ICmdProcessor
 				maxPerSecond = MetricPrefixValue.ParseInt(args[2]);
 				runTimeMinutes = MetricPrefixValue.ParseInt(args[3]);
 				if (args.Length == 5)
+				{
 					eventStreamId = args[4];
+				}
 			}
 			catch
 			{
@@ -104,21 +108,29 @@ internal class WriteLongTermProcessor : ICmdProcessor
 					{
 						var succDone = Interlocked.Increment(ref succ);
 						if (succDone % maxPerSecond == 0)
+						{
 							Console.Write(".");
+						}
 
 						Interlocked.Increment(ref requestsCnt);
 					}
 					else
+					{
 						Interlocked.Increment(ref fail);
+					}
 
 					Interlocked.Increment(ref received);
 				},
 				connectionClosed: (conn, err) =>
 				{
 					if (!done)
+					{
 						context.Fail(reason: "Socket was closed, but not all requests were completed.");
+					}
 					else
+					{
 						context.Success();
+					}
 				});
 			clients.Add(client);
 
@@ -134,7 +146,9 @@ internal class WriteLongTermProcessor : ICmdProcessor
 				{
 					TimeSpan elapsed;
 					lock (watchLockRoot)
+					{
 						elapsed = sw.Elapsed;
+					}
 
 					if (elapsed.TotalMinutes > runTimeMinutes)
 					{

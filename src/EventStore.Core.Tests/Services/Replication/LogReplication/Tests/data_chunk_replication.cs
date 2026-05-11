@@ -20,10 +20,14 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 		var writerPos = -1L;
 		var numTransactions = numEventsPerChunk * numChunksToFill / numEventsPerTransaction;
 		for (var i = 0; i < numTransactions; i++)
+		{
 			writerPos = await writeEvents(eventsPerTransaction);
+		}
 
 		if (writerPos < 0)
+		{
 			throw new Exception("No events were written");
+		}
 
 		return writerPos;
 	}

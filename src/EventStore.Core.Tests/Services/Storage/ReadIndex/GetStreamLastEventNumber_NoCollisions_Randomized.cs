@@ -64,7 +64,9 @@ public class GetStreamLastEventNumber_NoCollisions_Randomized : ReadIndexTestSce
 					CancellationToken.None));
 
 			if (@event.EventStreamId == Stream)
+			{
 				expectedLastEventNumber = @event.EventNumber;
+			}
 		}
 	}
 }

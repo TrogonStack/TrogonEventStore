@@ -32,7 +32,9 @@ internal partial class Users
 		void OnMessage(Message message)
 		{
 			if (HandleErrors(options.LoginName, message, disableSource))
+			{
 				return;
+			}
 
 			disableSource.TrySetResult(true);
 		}

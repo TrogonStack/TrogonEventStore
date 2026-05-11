@@ -35,7 +35,9 @@ internal partial class Users
 		void OnMessage(Message message)
 		{
 			if (HandleErrors(options.LoginName, message, createSource))
+			{
 				return;
+			}
 
 			createSource.TrySetResult(true);
 		}

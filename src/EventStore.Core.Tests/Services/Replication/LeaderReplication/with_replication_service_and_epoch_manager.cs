@@ -151,7 +151,9 @@ public abstract class
 		while (TcpSends.TryDequeue(out var msg))
 		{
 			if (msg.ConnectionManager == connection)
+			{
 				sentMessages.Add(msg);
+			}
 		}
 
 		return sentMessages.ToArray();

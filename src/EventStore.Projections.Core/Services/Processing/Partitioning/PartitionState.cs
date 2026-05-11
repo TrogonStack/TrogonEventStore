@@ -21,7 +21,9 @@ public class PartitionState
 	public static PartitionState Deserialize(string serializedState, CheckpointTag causedBy)
 	{
 		if (serializedState == null)
+		{
 			return new PartitionState("", null, causedBy);
+		}
 
 		JToken state = null;
 		JToken result = null;
@@ -63,9 +65,14 @@ public class PartitionState
 	public PartitionState(string state, string result, CheckpointTag causedBy)
 	{
 		if (state == null)
+		{
 			throw new ArgumentNullException("state");
+		}
+
 		if (causedBy == null)
+		{
 			throw new ArgumentNullException("causedBy");
+		}
 
 		_state = state;
 		_result = result;
@@ -98,7 +105,10 @@ public class PartitionState
 	{
 		var state = _state;
 		if (state == "" && Result != null)
+		{
 			throw new Exception("state == \"\" && Result != null");
+		}
+
 		return Result != null
 			? "[" + state + "," + _result + "]"
 			: "[" + state + "]";

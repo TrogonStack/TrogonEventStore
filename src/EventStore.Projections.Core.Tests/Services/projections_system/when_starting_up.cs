@@ -79,9 +79,11 @@ namespace EventStore.Projections.Core.Tests.Services.projections_system
 					foreach (var projection in statistics.Projections)
 					{
 						if (projection.Status != "Running")
+						{
 							yield return
 								new ProjectionManagementMessage.Command.Enable(
 									Envelope, projection.Name, ProjectionManagementMessage.RunAs.Anonymous);
+						}
 					}
 				}
 			}

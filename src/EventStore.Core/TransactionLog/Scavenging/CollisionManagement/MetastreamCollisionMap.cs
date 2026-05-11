@@ -1,8 +1,10 @@
 using System;
 using EventStore.Core.Index.Hashes;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class MetastreamCollisionMap<TStreamId> : CollisionMap<TStreamId, MetastreamData> {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class MetastreamCollisionMap<TStreamId> : CollisionMap<TStreamId, MetastreamData>
+	{
 
 		private readonly ILongHasher<TStreamId> _hasher;
 		private readonly Func<TStreamId, bool> _isCollision;
@@ -15,7 +17,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			IMetastreamScavengeMap<ulong> nonCollisions,
 			IMetastreamScavengeMap<TStreamId> collisions) :
 			base(
-				hasher, isCollision, nonCollisions, collisions) {
+				hasher, isCollision, nonCollisions, collisions)
+		{
 
 			_hasher = hasher;
 			_isCollision = isCollision;
@@ -23,21 +26,32 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			_collisions = collisions;
 		}
 
-		public void SetTombstone(TStreamId streamId) {
+		public void SetTombstone(TStreamId streamId)
+		{
 			if (_isCollision(streamId))
+			{
 				_collisions.SetTombstone(streamId);
+			}
 			else
+			{
 				_nonCollisions.SetTombstone(_hasher.Hash(streamId));
+			}
 		}
 
-		public void SetDiscardPoint(TStreamId streamId, DiscardPoint discardPoint) {
+		public void SetDiscardPoint(TStreamId streamId, DiscardPoint discardPoint)
+		{
 			if (_isCollision(streamId))
+			{
 				_collisions.SetDiscardPoint(streamId, discardPoint);
+			}
 			else
+			{
 				_nonCollisions.SetDiscardPoint(_hasher.Hash(streamId), discardPoint);
+			}
 		}
 
-		public void DeleteAll() {
+		public void DeleteAll()
+		{
 			_collisions.DeleteAll();
 			_nonCollisions.DeleteAll();
 		}

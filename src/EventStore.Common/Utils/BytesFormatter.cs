@@ -49,7 +49,9 @@ public static class BytesFormatter
 			max *= scale;
 			finalOrder = order;
 			if (bytes < max)
+			{
 				break;
+			}
 		}
 
 		max /= scale;
@@ -77,7 +79,9 @@ public static class BytesFormatter
 			max *= scale;
 			finalOrder = speedOrder;
 			if (bytesPerSec < max)
+			{
 				break;
+			}
 		}
 
 		max /= scale;

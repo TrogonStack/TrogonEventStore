@@ -30,13 +30,19 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 		public override bool Verify(string password, string hash, string salt)
 		{
 			if (string.IsNullOrEmpty(hash) || string.IsNullOrEmpty(salt))
+			{
 				return false;
+			}
 
 			if (!TryParseHash(hash, out var hashAlgorithm, out var iterations, out var expectedHash))
+			{
 				return false;
+			}
 
 			if (!TryReadSalt(salt, out var saltData))
+			{
 				return false;
+			}
 
 			var actualHash = Rfc2898DeriveBytes.Pbkdf2(
 				password,
@@ -59,7 +65,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 			expectedHash = null;
 
 			if (string.IsNullOrEmpty(hash))
+			{
 				return false;
+			}
 
 			var parts = hash.Split('$');
 			if (parts.Length != 4 ||
@@ -67,7 +75,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 				parts[1] != HashAlgorithm ||
 				!int.TryParse(parts[2], out iterations) ||
 				iterations < MinimumIterations)
+			{
 				return false;
+			}
 
 			return TryReadHash(parts[3], HashSize, out expectedHash);
 		}

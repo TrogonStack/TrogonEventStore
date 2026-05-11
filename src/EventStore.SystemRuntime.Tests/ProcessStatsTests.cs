@@ -52,7 +52,9 @@ public class ProcessStatsTests
 	private static IEnumerable<string> ThrowAfter(params string[] lines)
 	{
 		foreach (var line in lines)
+		{
 			yield return line;
+		}
 
 		throw new InvalidOperationException("Parser read past the point where all counters were already present.");
 	}

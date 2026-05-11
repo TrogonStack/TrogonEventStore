@@ -27,7 +27,10 @@ public class FakeInMemoryTableIndex<TStreamId> : ITableIndex<TStreamId>
 		foreach (var entry in entries)
 		{
 			if (!_indexEntries.ContainsKey(entry.StreamId))
+			{
 				_indexEntries[entry.StreamId] = new List<IndexKey<TStreamId>>();
+			}
+
 			_indexEntries[entry.StreamId].Add(entry);
 		}
 	}
@@ -46,7 +49,9 @@ public class FakeInMemoryTableIndex<TStreamId> : ITableIndex<TStreamId>
 			foreach (var entry in _indexEntries[streamId])
 			{
 				if (startVersion <= entry.Version && entry.Version <= endVersion)
+				{
 					entries.Add(new IndexEntry(entry.Hash, entry.Version, entry.Position));
+				}
 			}
 		}
 

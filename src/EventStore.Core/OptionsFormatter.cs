@@ -59,7 +59,10 @@ public static class OptionsFormatter
 				break;
 			case JArray array:
 				foreach (var item in array)
+				{
 					RedactSensitiveValues(item);
+				}
+
 				break;
 		}
 	}
@@ -67,8 +70,12 @@ public static class OptionsFormatter
 	private static bool IsSensitive(string propertyName)
 	{
 		foreach (var sensitivePropertyName in SensitivePropertyNames)
+		{
 			if (propertyName.Contains(sensitivePropertyName, StringComparison.OrdinalIgnoreCase))
+			{
 				return true;
+			}
+		}
 
 		return false;
 	}

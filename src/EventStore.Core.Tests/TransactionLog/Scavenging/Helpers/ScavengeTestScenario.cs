@@ -116,7 +116,9 @@ public abstract class ScavengeTestScenario<TLogFormat, TStreamId> : Specificatio
 		await base.TestFixtureTearDown();
 
 		if (!_checked)
+		{
 			throw new Exception("Records were not checked. Probably you forgot to call CheckRecords() method.");
+		}
 	}
 
 	protected abstract ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,

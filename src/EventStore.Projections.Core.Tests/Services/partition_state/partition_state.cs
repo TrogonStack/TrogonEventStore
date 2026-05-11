@@ -79,7 +79,9 @@ public static class partition_state
 		public void dates()
 		{
 			foreach (var info in TimeZoneInfo.GetSystemTimeZones())
+			{
 				AssertCorrect($@"[""{DateTimeOffset.UtcNow.ToOffset(info.BaseUtcOffset):yyyy-MM-ddThh:mm:sszzz}""]");
+			}
 		}
 
 		[Test]

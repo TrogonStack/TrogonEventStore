@@ -28,13 +28,17 @@ internal class CommandsProcessor
 		var cmd = processor.Keyword.ToUpper();
 
 		if (_processors.ContainsKey(cmd))
+		{
 			throw new InvalidOperationException(
 				string.Format("The processor for command '{0}' is already registered.", cmd));
+		}
 
 		_processors[cmd] = processor;
 
 		if (usageProcessor)
+		{
 			_regCommandsProcessor = processor;
+		}
 	}
 
 	public bool TryProcess(CommandProcessorContext context, string[] args, out int exitCode)
@@ -47,7 +51,10 @@ internal class CommandsProcessor
 		{
 			_log.Information("Unknown command: {command}.", commandName);
 			if (_regCommandsProcessor != null)
+			{
 				_regCommandsProcessor.Execute(context, new string[0]);
+			}
+
 			exitCode = 1;
 			return false;
 		}
@@ -89,7 +96,10 @@ internal class CommandsProcessor
 		context.WaitForCompletion();
 
 		if (!string.IsNullOrWhiteSpace(context.Reason))
+		{
 			_log.Error("Error during execution of command: {e}.", context.Reason);
+		}
+
 		if (context.Error != null)
 		{
 			_log.Error(context.Error, "Error during execution of command");
@@ -108,10 +118,14 @@ internal class CommandsProcessor
 		const int maxLevel = 3;
 
 		if (details == null)
+		{
 			throw new ArgumentNullException("details");
+		}
 
 		if (level > maxLevel)
+		{
 			return;
+		}
 
 		while (ex != null)
 		{
@@ -121,13 +135,19 @@ internal class CommandsProcessor
 			if (aggregated?.InnerExceptions != null)
 			{
 				if (level > maxLevel)
+				{
 					break;
+				}
 
 				foreach (var innerException in aggregated.InnerExceptions.Take(2))
+				{
 					BuildFullException(innerException, details, level + 1);
+				}
 			}
 			else
+			{
 				ex = ex.InnerException;
+			}
 
 			level += 1;
 		}

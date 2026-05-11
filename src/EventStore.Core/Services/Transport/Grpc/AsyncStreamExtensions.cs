@@ -21,19 +21,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
+namespace EventStore.Core.Services.Transport.Grpc
+{
 	/// <summary>
 	/// Extension methods that simplify work with gRPC streaming calls.
 	/// </summary>
-	public static class AsyncStreamExtensions {
+	public static class AsyncStreamExtensions
+	{
 		/// <summary>
 		/// Reads the entire stream and executes an async action for each element.
 		/// </summary>
 		public static async ValueTask ForEachAsync<T>(this IAsyncStreamReader<T> streamReader,
 			Func<T, ValueTask> asyncAction,
 			CancellationToken token)
-			where T : class {
-			while (await streamReader.MoveNext(token)) {
+			where T : class
+		{
+			while (await streamReader.MoveNext(token))
+			{
 				await asyncAction(streamReader.Current);
 			}
 		}

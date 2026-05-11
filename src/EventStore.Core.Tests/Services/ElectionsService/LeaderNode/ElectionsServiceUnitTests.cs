@@ -419,9 +419,14 @@ public class ChoosingLeaderTests
 			if (writerCheckpoints != null)
 			{
 				if (nameBuilder.Length == 0)
+				{
 					nameBuilder.Append("Nodes with ");
+				}
 				else
+				{
 					nameBuilder.Append(" and ");
+				}
+
 				nameBuilder.AppendFormat("writer checkpoints << {0} >>", string.Join(",",
 					writerCheckpoints.Where(x => x != 1).Select((x, i) => $"{i} : wcp {x}")));
 			}
@@ -429,9 +434,14 @@ public class ChoosingLeaderTests
 			if (chaserCheckpoints != null)
 			{
 				if (nameBuilder.Length == 0)
+				{
 					nameBuilder.Append("Nodes with ");
+				}
 				else
+				{
 					nameBuilder.Append(" and ");
+				}
+
 				nameBuilder.AppendFormat("chaser checkpoints << {0} >>", string.Join(",",
 					chaserCheckpoints.Where(x => x != 1).Select((x, i) => $"{i} : ccp {x}")));
 			}
@@ -439,9 +449,14 @@ public class ChoosingLeaderTests
 			if (nodePriorities != null)
 			{
 				if (nameBuilder.Length == 0)
+				{
 					nameBuilder.Append("Nodes with ");
+				}
 				else
+				{
 					nameBuilder.Append(" and ");
+				}
+
 				nameBuilder.AppendFormat("node priorities << {0} >>", string.Join(",",
 					nodePriorities.Where(x => x != 0).Select((x, i) => $"{i} : np {x}")));
 			}
@@ -453,8 +468,11 @@ public class ChoosingLeaderTests
 			}
 
 			if (nameBuilder.Length == 0)
+			{
 				nameBuilder.AppendFormat("All nodes caught up with the same priority expect {0} to be leader",
 					expectedLeaderCandidateNode);
+			}
+
 			var name = nameBuilder.ToString();
 			return name;
 		}

@@ -88,7 +88,10 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 	{
 		List<long> eventNumbers = new List<long>();
 		for (long i = start; i <= end; i++)
+		{
 			eventNumbers.Add(i);
+		}
+
 		HandleEvents(stream, eventNumbers.ToArray());
 	}
 

@@ -192,7 +192,10 @@ public class TcpConnectionBase : IMonitoredTcpConnection
 	protected void NotifySendStarting(int bytes)
 	{
 		if (Interlocked.CompareExchange(ref _lastSendStarted, DateTime.UtcNow.Ticks, -1) != -1)
+		{
 			throw new Exception("Concurrent send detected.");
+		}
+
 		Interlocked.Add(ref _pendingSendBytes, -bytes);
 		Interlocked.Add(ref _inSendBytes, bytes);
 		Interlocked.Increment(ref _sentAsyncs);
@@ -209,7 +212,9 @@ public class TcpConnectionBase : IMonitoredTcpConnection
 	protected void NotifyReceiveStarting()
 	{
 		if (Interlocked.CompareExchange(ref _lastReceiveStarted, DateTime.UtcNow.Ticks, -1) != -1)
+		{
 			throw new Exception("Concurrent receive detected.");
+		}
 
 		Interlocked.Increment(ref _recvAsyncs);
 	}

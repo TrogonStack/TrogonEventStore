@@ -8,11 +8,17 @@ public static class Utils
 	{
 		//special cases
 		if (numIndexEntries < 1)
+		{
 			return false;
+		}
+
 		if (numIndexEntries == 1)
 		{
 			if (numMidpoints == 2 && index == 0)
+			{
 				return true;
+			}
+
 			return false;
 		}
 
@@ -22,10 +28,16 @@ public static class Utils
 		//index*(numMidpoints-1)/(numIndexEntries-1) <= x < (index+1)*(numMidpoints-1)/(numIndexEntries-1)
 		var lower = (BigInteger)index * (numMidpoints - 1) / (numIndexEntries - 1);
 		if (((BigInteger)index * (numMidpoints - 1)) % (numIndexEntries - 1) != 0)
+		{
 			lower++;
+		}
+
 		var upper = (BigInteger)(index + 1) * (numMidpoints - 1) / (numIndexEntries - 1);
 		if (((BigInteger)(index + 1) * (numMidpoints - 1)) % (numIndexEntries - 1) == 0)
+		{
 			upper--;
+		}
+
 		return lower <= upper;
 	}
 }

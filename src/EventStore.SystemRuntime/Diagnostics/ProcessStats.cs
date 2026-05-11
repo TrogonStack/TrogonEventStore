@@ -84,7 +84,9 @@ public static class ProcessStats
 			}
 
 			if (seenFields == LinuxIoField.All)
+			{
 				break;
+			}
 		}
 
 		return result;

@@ -1,32 +1,41 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using EventStore.Client.Streams;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
-using EventStore.Client.Streams;
 using EventStore.Core.Services.Transport.Common;
 using Grpc.Core;
 using Empty = EventStore.Client.Empty;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	internal partial class Streams<TStreamId> {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	internal partial class Streams<TStreamId>
+	{
 		public override async Task<AppendResp> Append(
 			IAsyncStreamReader<AppendReq> requestStream,
-			ServerCallContext context) {
+			ServerCallContext context)
+		{
 
 			using var duration = _appendTracker.Start();
-			try {
+			try
+			{
 				if (!await requestStream.MoveNext())
+				{
 					throw new InvalidOperationException();
+				}
 
 				if (requestStream.Current.ContentCase != AppendReq.ContentOneofCase.Options)
+				{
 					throw new InvalidOperationException();
+				}
 
 				var options = requestStream.Current.Options;
 				var streamName = options.StreamIdentifier;
 
-				var expectedVersion = options.ExpectedStreamRevisionCase switch {
+				var expectedVersion = options.ExpectedStreamRevisionCase switch
+				{
 					AppendReq.Types.Options.ExpectedStreamRevisionOneofCase.Revision => new StreamRevision(
 						options.Revision).ToInt64(),
 					AppendReq.Types.Options.ExpectedStreamRevisionOneofCase.Any => AnyStreamRevision.Any.ToInt64(),
@@ -42,7 +51,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				var user = context.GetHttpContext().User;
 				var op = WriteOperation.WithParameter(
 					Plugins.Authorization.Operations.Streams.Parameters.StreamId(streamName));
-				if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken)) {
+				if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken))
+				{
 					throw RpcExceptions.AccessDenied();
 				}
 
@@ -51,25 +61,31 @@ namespace EventStore.Core.Services.Transport.Grpc {
 				var events = new List<Event>();
 
 				var size = 0;
-				while (await requestStream.MoveNext()) {
+				while (await requestStream.MoveNext())
+				{
 					if (requestStream.Current.ContentCase != AppendReq.ContentOneofCase.ProposedMessage)
+					{
 						throw new InvalidOperationException();
+					}
 
 					var proposedMessage = requestStream.Current.ProposedMessage;
 					var data = proposedMessage.Data.ToByteArray();
 					var metadata = proposedMessage.CustomMetadata.ToByteArray();
 
-					if (!proposedMessage.Metadata.TryGetValue(Constants.Metadata.Type, out var eventType)) {
+					if (!proposedMessage.Metadata.TryGetValue(Constants.Metadata.Type, out var eventType))
+					{
 						throw RpcExceptions.RequiredMetadataPropertyMissing(Constants.Metadata.Type);
 					}
 
-					if (!proposedMessage.Metadata.TryGetValue(Constants.Metadata.ContentType, out var contentType)) {
+					if (!proposedMessage.Metadata.TryGetValue(Constants.Metadata.ContentType, out var contentType))
+					{
 						throw RpcExceptions.RequiredMetadataPropertyMissing(Constants.Metadata.ContentType);
 					}
 
 					size += Event.SizeOnDisk(eventType, data, metadata);
 
-					if (size > _maxAppendSize) {
+					if (size > _maxAppendSize)
+					{
 						throw RpcExceptions.MaxAppendSizeExceeded(_maxAppendSize);
 					}
 
@@ -98,34 +114,45 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 				return await appendResponseSource.Task;
 
-				void HandleWriteEventsCompleted(Message message) {
+				void HandleWriteEventsCompleted(Message message)
+				{
 					if (message is ClientMessage.NotHandled notHandled &&
-						RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
+						RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
+					{
 						appendResponseSource.TrySetException(ex);
 						return;
 					}
 
-					if (!(message is ClientMessage.WriteEventsCompleted completed)) {
+					if (!(message is ClientMessage.WriteEventsCompleted completed))
+					{
 						appendResponseSource.TrySetException(
 							RpcExceptions.UnknownMessage<ClientMessage.WriteEventsCompleted>(message));
 						return;
 					}
 
 					var response = new AppendResp();
-					switch (completed.Result) {
+					switch (completed.Result)
+					{
 						case OperationResult.Success:
 							response.Success = new AppendResp.Types.Success();
-							if (completed.LastEventNumber == -1) {
+							if (completed.LastEventNumber == -1)
+							{
 								response.Success.NoStream = new Empty();
-							} else {
+							}
+							else
+							{
 								response.Success.CurrentRevision = StreamRevision.FromInt64(completed.LastEventNumber);
 							}
 
-							if (completed.CommitPosition == -1) {
+							if (completed.CommitPosition == -1)
+							{
 								response.Success.NoPosition = new Empty();
-							} else {
+							}
+							else
+							{
 								var position = Position.FromInt64(completed.CommitPosition, completed.PreparePosition);
-								response.Success.Position = new AppendResp.Types.Position {
+								response.Success.Position = new AppendResp.Types.Position
+								{
 									CommitPosition = position.CommitPosition,
 									PreparePosition = position.PreparePosition
 								};
@@ -141,7 +168,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 						case OperationResult.WrongExpectedVersion:
 							response.WrongExpectedVersion = new AppendResp.Types.WrongExpectedVersion();
 
-							switch (options.ExpectedStreamRevisionCase) {
+							switch (options.ExpectedStreamRevisionCase)
+							{
 								case AppendReq.Types.Options.ExpectedStreamRevisionOneofCase.Any:
 									response.WrongExpectedVersion.ExpectedAny = new Empty();
 									response.WrongExpectedVersion.Any2060 = new Empty();
@@ -162,10 +190,13 @@ namespace EventStore.Core.Services.Transport.Grpc {
 									break;
 							}
 
-							if (completed.CurrentVersion == -1) {
+							if (completed.CurrentVersion == -1)
+							{
 								response.WrongExpectedVersion.CurrentNoStream = new Empty();
 								response.WrongExpectedVersion.NoStream2060 = new Empty();
-							} else {
+							}
+							else
+							{
 								response.WrongExpectedVersion.CurrentRevision =
 									StreamRevision.FromInt64(completed.CurrentVersion);
 								response.WrongExpectedVersion.CurrentRevision2060 =
@@ -188,7 +219,9 @@ namespace EventStore.Core.Services.Transport.Grpc {
 							return;
 					}
 				}
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				duration.SetException(ex);
 				throw;
 			}

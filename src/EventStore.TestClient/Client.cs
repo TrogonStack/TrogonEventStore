@@ -115,7 +115,9 @@ public class Client
 				try
 				{
 					if (string.IsNullOrWhiteSpace(line))
+					{
 						continue;
+					}
 
 					try
 					{

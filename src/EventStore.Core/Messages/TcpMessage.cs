@@ -3,80 +3,97 @@ using System.Net.Sockets;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Tcp;
 
-namespace EventStore.Core.Messages {
-	public static partial class TcpMessage {
+namespace EventStore.Core.Messages
+{
+	public static partial class TcpMessage
+	{
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class TcpSend : Message, IQueueAffineMessage {
-			public int QueueId {
+		public partial class TcpSend : Message, IQueueAffineMessage
+		{
+			public int QueueId
+			{
 				get { return ConnectionManager.GetHashCode(); }
 			}
 
 			public readonly TcpConnectionManager ConnectionManager;
 			public readonly Message Message;
 
-			public TcpSend(TcpConnectionManager connectionManager, Message message) {
+			public TcpSend(TcpConnectionManager connectionManager, Message message)
+			{
 				ConnectionManager = connectionManager;
 				Message = message;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class Heartbeat : Message {
+		public partial class Heartbeat : Message
+		{
 			public readonly long ReceiveProgressIndicator;
 			public readonly long SendProgressIndicator;
 
-			public Heartbeat(long receiveProgressIndicator, long sendProgressIndicator) {
+			public Heartbeat(long receiveProgressIndicator, long sendProgressIndicator)
+			{
 				ReceiveProgressIndicator = receiveProgressIndicator;
 				SendProgressIndicator = sendProgressIndicator;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class HeartbeatTimeout : Message {
+		public partial class HeartbeatTimeout : Message
+		{
 			public readonly long ReceiveProgressIndicator;
 
-			public HeartbeatTimeout(long receiveProgressIndicator) {
+			public HeartbeatTimeout(long receiveProgressIndicator)
+			{
 				ReceiveProgressIndicator = receiveProgressIndicator;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class PongMessage : Message {
+		public partial class PongMessage : Message
+		{
 			public readonly Guid CorrelationId;
 			public readonly byte[] Payload;
 
-			public PongMessage(Guid correlationId, byte[] payload) {
+			public PongMessage(Guid correlationId, byte[] payload)
+			{
 				CorrelationId = correlationId;
 				Payload = payload;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class ConnectionEstablished : Message {
+		public partial class ConnectionEstablished : Message
+		{
 			public readonly TcpConnectionManager Connection;
 
-			public ConnectionEstablished(TcpConnectionManager connection) {
+			public ConnectionEstablished(TcpConnectionManager connection)
+			{
 				Connection = connection;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class ConnectionClosed : Message {
+		public partial class ConnectionClosed : Message
+		{
 			public readonly TcpConnectionManager Connection;
 			public readonly SocketError SocketError;
 
-			public ConnectionClosed(TcpConnectionManager connection, SocketError socketError) {
+			public ConnectionClosed(TcpConnectionManager connection, SocketError socketError)
+			{
 				Connection = connection;
 				SocketError = socketError;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class NotReady : Message {
+		public partial class NotReady : Message
+		{
 			public readonly Guid CorrelationId;
 			public readonly string Reason;
 
-			public NotReady(Guid correlationId, string reason) {
+			public NotReady(Guid correlationId, string reason)
+			{
 				CorrelationId = correlationId;
 				Reason = reason;
 			}
@@ -84,21 +101,25 @@ namespace EventStore.Core.Messages {
 
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class NotAuthenticated : Message {
+		public partial class NotAuthenticated : Message
+		{
 			public readonly Guid CorrelationId;
 			public readonly string Reason;
 
-			public NotAuthenticated(Guid correlationId, string reason) {
+			public NotAuthenticated(Guid correlationId, string reason)
+			{
 				CorrelationId = correlationId;
 				Reason = reason;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class Authenticated : Message {
+		public partial class Authenticated : Message
+		{
 			public readonly Guid CorrelationId;
 
-			public Authenticated(Guid correlationId) {
+			public Authenticated(Guid correlationId)
+			{
 				CorrelationId = correlationId;
 			}
 		}

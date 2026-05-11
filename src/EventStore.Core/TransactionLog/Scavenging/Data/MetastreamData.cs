@@ -1,14 +1,17 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public struct MetastreamData : IEquatable<MetastreamData> {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public struct MetastreamData : IEquatable<MetastreamData>
+	{
 		public static MetastreamData Empty { get; } = new MetastreamData(
 			isTombstoned: false,
 			discardPoint: DiscardPoint.KeepAll);
 
 		public MetastreamData(
 			bool isTombstoned,
-			DiscardPoint discardPoint) {
+			DiscardPoint discardPoint)
+		{
 
 			IsTombstoned = isTombstoned;
 			DiscardPoint = discardPoint;

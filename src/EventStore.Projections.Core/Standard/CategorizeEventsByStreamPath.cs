@@ -66,14 +66,19 @@ public class CategorizeEventsByStreamPath : IProjectionStateHandler
 
 		var category = _streamCategoryExtractor.GetCategoryByStreamId(isStreamDeletedEvent ? deletedStreamId : data.PositionStreamId);
 		if (category == null)
+		{
 			return true; // handled but not interesting
-
+		}
 
 		string linkTarget;
 		if (data.EventType == SystemEventTypes.LinkTo)
+		{
 			linkTarget = data.Data;
+		}
 		else
+		{
 			linkTarget = data.EventSequenceNumber + "@" + data.EventStreamId;
+		}
 
 		emittedEvents = new[] {
 			new EmittedEventEnvelope(

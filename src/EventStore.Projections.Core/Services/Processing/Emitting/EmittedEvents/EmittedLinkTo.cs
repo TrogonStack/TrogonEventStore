@@ -33,7 +33,10 @@ public class EmittedLinkTo : EmittedEvent
 		get
 		{
 			if (!IsReady())
+			{
 				throw new InvalidOperationException("Link target has not been yet committed");
+			}
+
 			return
 				_eventNumber.Value.ToString(CultureInfo.InvariantCulture) + "@" + _targetStreamId;
 		}
@@ -52,7 +55,10 @@ public class EmittedLinkTo : EmittedEvent
 	public void SetTargetEventNumber(long eventNumber)
 	{
 		if (_eventNumber != null)
+		{
 			throw new InvalidOperationException("Target event number has been already set");
+		}
+
 		_eventNumber = eventNumber;
 	}
 }

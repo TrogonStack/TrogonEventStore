@@ -1,11 +1,11 @@
+using System.IO;
+using System.Threading;
 using EventStore.Core.Exceptions;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Core.Transforms.Identity;
 using NUnit.Framework;
-using System.IO;
-using System.Threading;
 
 namespace EventStore.Core.Tests.TransactionLog;
 

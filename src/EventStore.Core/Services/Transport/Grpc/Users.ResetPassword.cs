@@ -34,7 +34,9 @@ internal partial class Users
 		void OnMessage(Message message)
 		{
 			if (HandleErrors(options.LoginName, message, resetPasswordSource))
+			{
 				return;
+			}
 
 			resetPasswordSource.TrySetResult(true);
 		}

@@ -28,10 +28,14 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 		_options = options;
 
 		if (string.IsNullOrEmpty(options.Bucket))
+		{
 			throw new InvalidConfigurationException("Please specify an Archive S3 Bucket");
+		}
 
 		if (string.IsNullOrEmpty(options.Region))
+		{
 			throw new InvalidConfigurationException("Please specify an Archive S3 Region");
+		}
 
 		_awsBlobStorage = S3Storage.Create(options);
 	}
@@ -68,11 +72,15 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 		}
 
 		if (length == 0)
+		{
 			return Stream.Null;
+		}
 
 		var request = new GetObjectRequest
 		{
-			BucketName = _options.Bucket, Key = chunkFile, ByteRange = new ByteRange(start, end - 1),
+			BucketName = _options.Bucket,
+			Key = chunkFile,
+			ByteRange = new ByteRange(start, end - 1),
 		};
 
 		try
@@ -97,6 +105,8 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 			new ListObjectsV2Request { BucketName = _options.Bucket, Prefix = ChunkNamer.Prefix });
 
 		await foreach (var s3Object in listResponse.S3Objects.WithCancellation(ct))
+		{
 			yield return s3Object.Key;
+		}
 	}
 }

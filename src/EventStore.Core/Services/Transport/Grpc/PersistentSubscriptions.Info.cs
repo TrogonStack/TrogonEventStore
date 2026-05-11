@@ -103,15 +103,26 @@ internal partial class PersistentSubscriptions
 
 		var hasPaging = options.HasOffset || options.HasCount;
 		if (options.HasOffset && options.Offset < 0)
+		{
 			throw new RpcException(new Status(StatusCode.InvalidArgument, "offset must be a non-negative integer"));
+		}
+
 		if (options.HasCount && options.Count < 1)
+		{
 			throw new RpcException(new Status(StatusCode.InvalidArgument, "count must be a positive integer"));
+		}
+
 		if (hasPaging && !(options.HasOffset && options.HasCount))
+		{
 			throw new RpcException(new Status(StatusCode.InvalidArgument, "offset and count must be provided together"));
+		}
+
 		if (hasPaging &&
 			listOptionCase != ListReq.Types.Options.ListOptionOneofCase.ListAllSubscriptions)
+		{
 			throw new RpcException(new Status(StatusCode.InvalidArgument,
 				"offset and count are only supported when listing all subscriptions"));
+		}
 
 		var streamId = string.Empty;
 		switch (listOptionCase)
@@ -128,7 +139,10 @@ internal partial class PersistentSubscriptions
 			case ListReq.Types.Options.ListOptionOneofCase.ListForStream:
 				var listForStream = options.ListForStream;
 				if (listForStream is null)
+				{
 					throw new RpcException(new Status(StatusCode.InvalidArgument, "list_for_stream must be provided"));
+				}
+
 				streamId = listForStream.StreamOptionCase switch
 				{
 					ListReq.Types.StreamOption.StreamOptionOneofCase.All => "$all",
@@ -211,8 +225,7 @@ internal partial class PersistentSubscriptions
 				ConnectionName = conn.ConnectionName
 			};
 			connInfo.ObservedMeasurements.AddRange(
-				conn.ObservedMeasurements.Select(x => new SubscriptionInfo.Types.Measurement
-				{ Key = x.Key, Value = x.Value }));
+				conn.ObservedMeasurements.Select(x => new SubscriptionInfo.Types.Measurement { Key = x.Key, Value = x.Value }));
 			connectionInfo.Add(connInfo);
 		}
 

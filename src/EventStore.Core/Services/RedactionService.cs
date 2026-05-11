@@ -18,7 +18,8 @@ using Serilog;
 
 namespace EventStore.Core.Services;
 
-public abstract class RedactionService {
+public abstract class RedactionService
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<RedactionService>();
 }
 
@@ -92,11 +93,15 @@ public class RedactionService<TStreamId> :
 			// all the events returned by ReadEventInfo_KeepDuplicates() must exist in the log
 			// since the log record was read from the chunk to check for hash collisions.
 			if (chunkEventOffset < 0)
+			{
 				throw new Exception($"Failed to fetch actual raw position for event at log position: {logPos}");
+			}
 
 			if (chunkEventOffset > uint.MaxValue)
+			{
 				throw new Exception(
 					$"Actual raw position for event at log position: {logPos} is larger than uint.MaxValue: {chunkEventOffset}");
+			}
 
 			eventPositions[i] = new EventPosition(
 				logPosition: logPos,
@@ -149,8 +154,8 @@ public class RedactionService<TStreamId> :
 		if (currentAcquisitionId != message.AcquisitionId)
 		{
 			Log.Error("REDACTION: Skipping switching of chunk: {targetChunk} with chunk: {newChunk} " +
-			          "as the lock is not currently held by the requester. " +
-			          "(Requester\'s lock ID: {requestLockId:B}. Current lock ID: {currentLockId:B})",
+					  "as the lock is not currently held by the requester. " +
+					  "(Requester\'s lock ID: {requestLockId:B}. Current lock ID: {currentLockId:B})",
 				message.TargetChunkFile, message.NewChunkFile, message.AcquisitionId, currentAcquisitionId);
 			message.Envelope.ReplyWith(
 				new RedactionMessage.SwitchChunkCompleted(SwitchChunkResult.UnexpectedError));
@@ -292,7 +297,7 @@ public class RedactionService<TStreamId> :
 		}
 
 		if (newChunkHeader.ChunkStartNumber != targetChunk.ChunkHeader.ChunkStartNumber ||
-		    newChunkHeader.ChunkEndNumber != targetChunk.ChunkHeader.ChunkEndNumber)
+			newChunkHeader.ChunkEndNumber != targetChunk.ChunkHeader.ChunkEndNumber)
 		{
 			return new(SwitchChunkResult.ChunkRangeDoesNotMatch);
 		}

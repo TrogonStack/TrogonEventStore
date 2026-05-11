@@ -33,11 +33,14 @@ public class ClusterVNodeDbPathTests
 				defaultDataDirectory,
 				defaultDataDirectory,
 				fallbackDefaultDataDirectory,
-				dbPath => {
+				dbPath =>
+				{
 					probedPaths.Add(dbPath);
 
 					if (dbPath == defaultDataDirectory)
+					{
 						throw CreateWriteFailure(exceptionType);
+					}
 				});
 
 			actual.Should().Be(fallbackDefaultDataDirectory);
@@ -67,7 +70,8 @@ public class ClusterVNodeDbPathTests
 				customDataDirectory,
 				defaultDataDirectory,
 				fallbackDefaultDataDirectory,
-				dbPath => {
+				dbPath =>
+				{
 					probedPaths.Add(dbPath);
 					throw CreateWriteFailure(exceptionType);
 				});
@@ -108,7 +112,9 @@ public class ClusterVNodeDbPathTests
 			null);
 
 		if (method is null)
+		{
 			throw new InvalidOperationException("Could not find ClusterVNode<TStreamId>.EnsureWritableDbPath.");
+		}
 
 		try
 		{
@@ -138,6 +144,8 @@ public class ClusterVNodeDbPathTests
 	private static void DeleteTemporaryDirectory(string path)
 	{
 		if (Directory.Exists(path))
+		{
 			Directory.Delete(path, recursive: true);
+		}
 	}
 }

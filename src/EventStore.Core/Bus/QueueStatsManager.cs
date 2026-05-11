@@ -42,7 +42,10 @@ namespace EventStore.Core.Bus
 					Console.WriteLine($"Waiting for STOP state for queue {queueStatsCollector.Name}...");
 					counter++;
 					if (counter > 150 * multiplier)
+					{
 						throw new ApplicationException($"Infinite WaitStop() loop for queue {queueStatsCollector.Name}?");
+					}
+
 					Thread.Sleep(100);
 				}
 			}
@@ -66,7 +69,10 @@ namespace EventStore.Core.Bus
 						counter++;
 						singlePass = false;
 						if (counter > 150 * multiplier)
+						{
 							throw new ApplicationException($"Infinite WaitIdle() loop for queue: {queueStatsCollector.Name}?");
+						}
+
 						Thread.Sleep(100);
 					}
 				}
@@ -81,7 +87,10 @@ namespace EventStore.Core.Bus
 					Console.WriteLine("Waiting for IDLE state on checkpoints...");
 					counter++;
 					if (counter > 150 * multiplier)
+					{
 						throw new ApplicationException("Infinite WaitIdle() loop on checkpoints?");
+					}
+
 					Thread.Sleep(100);
 					successes = 0;
 				}

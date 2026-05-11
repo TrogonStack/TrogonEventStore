@@ -9,19 +9,20 @@ using System.Threading.Tasks;
 using DotNext.Diagnostics;
 using EventStore.Common.Utils;
 using EventStore.Core.Exceptions;
-using EventStore.Core.TransactionLog;
-using EventStore.Core.Util;
 using EventStore.Core.Index.Hashes;
 using EventStore.Core.Settings;
+using EventStore.Core.TransactionLog;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
-using ILogger = Serilog.ILogger;
 using EventStore.Core.TransactionLog.LogRecords;
+using EventStore.Core.Util;
 using EventStore.LogCommon;
+using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Index;
 
-public abstract class TableIndex {
+public abstract class TableIndex
+{
 	internal static readonly IndexEntry InvalidIndexEntry = new IndexEntry(0, -1, -1);
 	public const string IndexMapFilename = "indexmap";
 	public const string ForceIndexVerifyFilename = ".forceverify";
@@ -107,9 +108,14 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		Ensure.Positive(pTableMaxReaderCount, "pTableMaxReaderCount");
 
 		if (maxTablesPerLevel <= 1)
+		{
 			throw new ArgumentOutOfRangeException("maxTablesPerLevel");
+		}
 
-		if (indexCacheDepth > 28 || indexCacheDepth < 8) throw new ArgumentOutOfRangeException("indexCacheDepth");
+		if (indexCacheDepth > 28 || indexCacheDepth < 8)
+		{
+			throw new ArgumentOutOfRangeException("indexCacheDepth");
+		}
 
 		_directory = directory;
 		_memTableFactory = memTableFactory;
@@ -141,7 +147,10 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 
 		//NOT THREAD SAFE (assumes one thread)
 		if (_initialized)
+		{
 			throw new IOException("TableIndex is already initialized.");
+		}
+
 		_initialized = true;
 
 		if (ShouldForceIndexVerify())
@@ -241,7 +250,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 	private static void CreateIfDoesNotExist(string directory)
 	{
 		if (!Directory.Exists(directory))
+		{
 			Directory.CreateDirectory(directory);
+		}
 	}
 
 	public void Add(long commitPos, TStreamId streamId, long version, long position)
@@ -299,7 +310,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 			TryProcessAwaitingTables();
 
 			if (_additionalReclaim)
+			{
 				ThreadPool.QueueUserWorkItem(x => ReclaimMemoryIfNeeded(_awaitingMemTables));
+			}
 		}
 	}
 
@@ -382,7 +395,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 						lruCacheSize: _lruCacheSize);
 				}
 				else
+				{
 					ptable = (PTable)tableItem.Table;
+				}
 
 				var addResult = _indexMap.AddPTable(ptable, tableItem.PrepareCheckpoint, tableItem.CommitCheckpoint);
 				_indexMap = addResult.NewMap;
@@ -421,7 +436,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 					// so if we have another PTable instance with same ID,
 					// we need to kill that instance as we added ours already
 					if (!ReferenceEquals(corrTable.Table, ptable) && corrTable.Table is PTable)
+					{
 						((PTable)corrTable.Table).MarkForDestruction();
+					}
 
 					Log.Debug("There are now {awaitingMemTables} awaiting tables.", memTables.Count);
 					_awaitingMemTables = memTables;
@@ -578,7 +595,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		{
 			var memtable = awaitingMemTables[i].Table as IMemTable;
 			if (memtable == null || !memtable.MarkForConversion())
+			{
 				continue;
+			}
 
 			Log.Debug("Putting awaiting file as PTable instead of MemTable [{id}].", memtable.Id);
 
@@ -595,7 +614,11 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 				for (var j = _awaitingMemTables.Count - 1; j >= 1; j--)
 				{
 					var tableItem = _awaitingMemTables[j];
-					if (!(tableItem.Table is IMemTable) || tableItem.Table.Id != ptable.Id) continue;
+					if (!(tableItem.Table is IMemTable) || tableItem.Table.Id != ptable.Id)
+					{
+						continue;
+					}
+
 					swapped = true;
 					_awaitingMemTables[j] = new TableItem(ptable,
 						tableItem.PrepareCheckpoint,
@@ -606,7 +629,10 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 			}
 
 			if (!swapped)
+			{
 				ptable.MarkForDestruction();
+			}
+
 			toPutOnDisk--;
 		}
 	}
@@ -673,20 +699,26 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 	private bool TryGetOneValueInternal(ulong stream, long version, out long position)
 	{
 		if (version < 0)
+		{
 			throw new ArgumentOutOfRangeException("version");
+		}
 
 		var awaiting = _awaitingMemTables;
 		foreach (var tableItem in awaiting)
 		{
 			if (tableItem.Table.TryGetOneValue(stream, version, out position))
+			{
 				return true;
+			}
 		}
 
 		var map = _indexMap;
 		foreach (var table in map.InOrder())
 		{
 			if (table.TryGetOneValue(stream, version, out position))
+			{
 				return true;
+			}
 		}
 
 		position = 0;
@@ -724,14 +756,18 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		foreach (var t in awaiting)
 		{
 			if (t.Table.TryGetLatestEntry(stream, out entry))
+			{
 				return true;
+			}
 		}
 
 		var map = _indexMap;
 		foreach (var table in map.InOrder())
 		{
 			if (table.TryGetLatestEntry(stream, out entry))
+			{
 				return true;
+			}
 		}
 
 		entry = InvalidIndexEntry;
@@ -778,14 +814,18 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		foreach (var t in awaiting)
 		{
 			if (await t.Table.TryGetLatestEntry(stream, beforePosition, isForThisStream, token) is { } entry)
+			{
 				return entry;
+			}
 		}
 
 		var map = _indexMap;
 		foreach (var table in map.InOrder())
 		{
 			if (await table.TryGetLatestEntry(stream, beforePosition, isForThisStream, token) is { } entry)
+			{
 				return entry;
+			}
 		}
 
 		return null;
@@ -822,14 +862,18 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		foreach (var table in map.InReverseOrder())
 		{
 			if (table.TryGetOldestEntry(stream, out entry))
+			{
 				return true;
+			}
 		}
 
 		var awaiting = _awaitingMemTables;
 		for (var index = awaiting.Count - 1; index >= 0; index--)
 		{
 			if (awaiting[index].Table.TryGetOldestEntry(stream, out entry))
+			{
 				return true;
+			}
 		}
 
 		entry = InvalidIndexEntry;
@@ -872,14 +916,18 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		foreach (var table in map.InReverseOrder())
 		{
 			if (table.TryGetNextEntry(stream, afterVersion, out entry))
+			{
 				return true;
+			}
 		}
 
 		var awaiting = _awaitingMemTables;
 		for (var index = awaiting.Count - 1; index >= 0; index--)
 		{
 			if (awaiting[index].Table.TryGetNextEntry(stream, afterVersion, out entry))
+			{
 				return true;
+			}
 		}
 
 		entry = InvalidIndexEntry;
@@ -923,14 +971,18 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		foreach (var t in awaiting)
 		{
 			if (t.Table.TryGetPreviousEntry(stream, beforeVersion, out entry))
+			{
 				return true;
+			}
 		}
 
 		var map = _indexMap;
 		foreach (var table in map.InOrder())
 		{
 			if (table.TryGetPreviousEntry(stream, beforeVersion, out entry))
+			{
 				return true;
+			}
 		}
 
 		entry = InvalidIndexEntry;
@@ -968,9 +1020,14 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		int? limit = null)
 	{
 		if (startVersion < 0)
+		{
 			throw new ArgumentOutOfRangeException("startVersion");
+		}
+
 		if (endVersion < 0)
+		{
 			throw new ArgumentOutOfRangeException("endVersion");
+		}
 
 		// 1. assemble results per table for memtables and ptables
 		// discard any results with 0 entries.
@@ -981,7 +1038,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		{
 			var range = awaiting[index].Table.GetRange(hash, startVersion, endVersion, limit);
 			if (range.Count > 0)
+			{
 				resultsPerTable.Add(range);
+			}
 		}
 
 		var map = _indexMap;
@@ -989,7 +1048,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		{
 			var range = table.GetRange(hash, startVersion, endVersion, limit);
 			if (range.Count > 0)
+			{
 				resultsPerTable.Add(range);
+			}
 		}
 
 		// 2. iterate through the per table results producing candidate enumerators
@@ -1041,8 +1102,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 
 			var best = winner.Current;
 			if (first ||
-			    ((last.Stream != best.Stream) && (last.Version != best.Version)) ||
-			    last.Position != best.Position)
+				((last.Stream != best.Stream) && (last.Version != best.Version)) ||
+				last.Position != best.Position)
 			{
 				last = best;
 				sortedCandidates.Add(best);
@@ -1050,7 +1111,9 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 			}
 
 			if (!winner.MoveNext())
+			{
 				candidates.RemoveAt(maxIdx);
+			}
 		}
 
 		return sortedCandidates;
@@ -1080,8 +1143,15 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 	public void Close(bool removeFiles = true)
 	{
 		if (!_backgroundRunningEvent.Wait(7000))
+		{
 			throw new TimeoutException("Could not finish background thread in reasonable time.");
-		if (_indexMap == null) return;
+		}
+
+		if (_indexMap == null)
+		{
+			return;
+		}
+
 		if (removeFiles)
 		{
 			_indexMap.InOrder().ToList().ForEach(x => x.MarkForDestruction());
@@ -1118,10 +1188,14 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
 		var map = _indexMap;
 
 		foreach (var tableItem in awaiting)
+		{
 			yield return tableItem.Table;
+		}
 
 		foreach (var table in map.InOrder())
+		{
 			yield return table;
+		}
 	}
 
 	private IndexKey<TStreamId> CreateIndexKey(TStreamId streamId, long version, long position)

@@ -25,7 +25,9 @@ public class key_usages
 			certReq.CertificateExtensions.Add(keyUsageExtension);
 
 			if (extendedKeyUsages.Count != 0)
+			{
 				certReq.CertificateExtensions.Add(extendedKeyUsageExtension);
+			}
 
 			return certReq.CreateSelfSigned(DateTimeOffset.UtcNow.AddMonths(-1),
 				DateTimeOffset.UtcNow.AddMonths(1));

@@ -2,18 +2,21 @@ using System;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Storage.ReaderIndex;
 
-namespace EventStore.Core.Services.PersistentSubscription {
+namespace EventStore.Core.Services.PersistentSubscription
+{
 	/// <summary>
 	/// Builds a <see cref="PersistentSubscriptionParams"/> object.
 	/// </summary>
-	public class PersistentSubscriptionToAllParamsBuilder : PersistentSubscriptionParamsBuilder {
+	public class PersistentSubscriptionToAllParamsBuilder : PersistentSubscriptionParamsBuilder
+	{
 		/// <summary>
 		/// Creates a new <see cref="PersistentSubscriptionParamsBuilder"></see> object
 		/// </summary>
 		/// <param name="groupName">The name of the group of the subscription</param>
 		/// <param name="filter">The optional filter for the subscription</param>
 		/// <returns>a new <see cref="PersistentSubscriptionParamsBuilder"></see> object</returns>
-		public static PersistentSubscriptionParamsBuilder CreateFor(string groupName, IEventFilter filter = null) {
+		public static PersistentSubscriptionParamsBuilder CreateFor(string groupName, IEventFilter filter = null)
+		{
 			return new PersistentSubscriptionToAllParamsBuilder()
 				.FromAll(filter)
 				.StartFrom(0L, 0L)
@@ -32,22 +35,26 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				.WithNamedConsumerStrategy(new RoundRobinPersistentSubscriptionConsumerStrategy());
 		}
 
-		public PersistentSubscriptionToAllParamsBuilder FromAll(IEventFilter filter = null) {
+		public PersistentSubscriptionToAllParamsBuilder FromAll(IEventFilter filter = null)
+		{
 			WithEventSource(new PersistentSubscriptionAllStreamEventSource(filter));
 			return this;
 		}
 
-		public PersistentSubscriptionToAllParamsBuilder StartFrom(long commitPosition, long preparePosition) {
+		public PersistentSubscriptionToAllParamsBuilder StartFrom(long commitPosition, long preparePosition)
+		{
 			StartFrom(new PersistentSubscriptionAllStreamPosition(commitPosition, preparePosition));
 			return this;
 		}
 
-		public override PersistentSubscriptionParamsBuilder StartFromBeginning() {
+		public override PersistentSubscriptionParamsBuilder StartFromBeginning()
+		{
 			StartFrom(new PersistentSubscriptionAllStreamPosition(0, 0));
 			return this;
 		}
 
-		public override PersistentSubscriptionParamsBuilder StartFromCurrent() {
+		public override PersistentSubscriptionParamsBuilder StartFromCurrent()
+		{
 			StartFrom(new PersistentSubscriptionAllStreamPosition(-1, -1));
 			return this;
 		}

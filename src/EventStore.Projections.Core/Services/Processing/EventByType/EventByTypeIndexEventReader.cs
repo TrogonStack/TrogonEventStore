@@ -38,17 +38,28 @@ public partial class EventByTypeIndexEventReader : EventReader
 		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof)
 	{
 		if (eventTypes == null)
+		{
 			throw new ArgumentNullException("eventTypes");
+		}
+
 		if (timeProvider == null)
+		{
 			throw new ArgumentNullException("timeProvider");
+		}
+
 		if (eventTypes.Length == 0)
+		{
 			throw new ArgumentException("empty", "eventTypes");
+		}
 
 		_includeDeletedStreamNotification = includeDeletedStreamNotification;
 		_timeProvider = timeProvider;
 		_eventTypes = new HashSet<string>(eventTypes);
 		if (includeDeletedStreamNotification)
+		{
 			_eventTypes.Add("$deleted");
+		}
+
 		_streamToEventType = eventTypes.ToDictionary(v => "$et-" + v, v => v);
 		_lastEventPosition = fromTfPosition;
 		_resolveLinkTos = resolveLinkTos;
@@ -62,7 +73,9 @@ public partial class EventByTypeIndexEventReader : EventReader
 	private void ValidateTag(Dictionary<string, long> fromPositions)
 	{
 		if (_eventTypes.Count != fromPositions.Count)
+		{
 			throw new ArgumentException("Number of streams does not match", "fromPositions");
+		}
 
 		foreach (var stream in _streamToEventType.Keys.Where(stream => !fromPositions.ContainsKey(stream)))
 		{
@@ -81,7 +94,10 @@ public partial class EventByTypeIndexEventReader : EventReader
 	protected override void RequestEvents()
 	{
 		if (_disposed || PauseRequested || Paused)
+		{
 			return;
+		}
+
 		_state.RequestEvents();
 	}
 
@@ -111,20 +127,29 @@ public partial class EventByTypeIndexEventReader : EventReader
 	{
 		long streamPosition;
 		if (!_fromPositions.TryGetValue(eventStreamId, out streamPosition))
+		{
 			streamPosition = -1;
+		}
+
 		if (nextPosition > streamPosition)
+		{
 			_fromPositions[eventStreamId] = nextPosition;
+		}
 	}
 
 	private void DoSwitch(TFPos lastKnownIndexCheckpointPosition)
 	{
 		if (Paused || PauseRequested || _disposed)
+		{
 			throw new InvalidOperationException("_paused || _pauseRequested || _disposed");
+		}
 
 		// skip reading TF up to last know index checkpoint position
 		// as we could only gethere if there is no more indexed events before this point
 		if (lastKnownIndexCheckpointPosition > _lastEventPosition)
+		{
 			_lastEventPosition = lastKnownIndexCheckpointPosition;
+		}
 
 		_state = new TfBased(_timeProvider, this, _lastEventPosition, this._publisher, ReadAs);
 		_state.RequestEvents();

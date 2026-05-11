@@ -701,41 +701,53 @@ internal class FakeEventStoreConnection : IEventStoreConnection
 	{
 		var handler = ErrorOccurred;
 		if (handler != null)
+		{
 			handler(this, e);
+		}
 	}
 
 	protected virtual void OnAuthenticationFailed(ClientAuthenticationFailedEventArgs e)
 	{
 		var handler = AuthenticationFailed;
 		if (handler != null)
+		{
 			handler(this, e);
+		}
 	}
 
 	protected virtual void OnClosed(ClientClosedEventArgs e)
 	{
 		var handler = Closed;
 		if (handler != null)
+		{
 			handler(this, e);
+		}
 	}
 
 	protected virtual void OnReconnecting(ClientReconnectingEventArgs e)
 	{
 		var handler = Reconnecting;
 		if (handler != null)
+		{
 			handler(this, e);
+		}
 	}
 
 	protected virtual void OnDisconnected(ClientConnectionEventArgs e)
 	{
 		var handler = Disconnected;
 		if (handler != null)
+		{
 			handler(this, e);
+		}
 	}
 
 	public void OnConnected(ClientConnectionEventArgs e)
 	{
 		var handler = Connected;
 		if (handler != null)
+		{
 			handler(this, e);
+		}
 	}
 }

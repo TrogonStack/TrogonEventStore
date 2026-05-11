@@ -23,9 +23,11 @@ public record OptionMetadata(
 	SectionMetadata SectionMetadata,
 	int Sequence,
 	JObject OptionSchema,
-	string? DeprecationMessage) {
+	string? DeprecationMessage)
+{
 	public static OptionMetadata
-		FromPropertyInfo(SectionMetadata sectionMetadata, PropertyInfo property, int sequence) {
+		FromPropertyInfo(SectionMetadata sectionMetadata, PropertyInfo property, int sequence)
+	{
 		var sectionName = property.DeclaringType?.Name.Replace("Options", "") ?? "";
 		var key = EventStoreConfigurationKeys.Normalize(property.Name);
 		var fullKey =
@@ -59,50 +61,65 @@ public record OptionMetadata(
 
 	}
 
-	private static JObject GetOptionSchema(PropertyInfo property, string? unitAttributeMessage) {
-		if (property.PropertyType.IsEnum) {
+	private static JObject GetOptionSchema(PropertyInfo property, string? unitAttributeMessage)
+	{
+		if (property.PropertyType.IsEnum)
+		{
 			JArray enumValues = new JArray();
-			foreach (var item in property.PropertyType.GetEnumNames()) {
+			foreach (var item in property.PropertyType.GetEnumNames())
+			{
 				enumValues.Add(item);
 			}
 
-			return new JObject {
+			return new JObject
+			{
 				["type"] = "string",
 				["name"] = property.Name,
 				["enum"] = enumValues
 			};
 		}
 
-		if (property.PropertyType == typeof(bool)) {
-			return new JObject {
+		if (property.PropertyType == typeof(bool))
+		{
+			return new JObject
+			{
 				["type"] = "boolean"
 			};
 		}
 
 		if (property.PropertyType == typeof(int) || property.PropertyType == typeof(long) ||
-		           property.PropertyType == typeof(double)) {
-			if (unitAttributeMessage != null) {
-				return new JObject {
+				   property.PropertyType == typeof(double))
+		{
+			if (unitAttributeMessage != null)
+			{
+				return new JObject
+				{
 					["type"] = "integer",
 					["x-unit"] = unitAttributeMessage
 				};
 			}
 
-			return new JObject {
+			return new JObject
+			{
 				["type"] = "integer"
 			};
 		}
 
-		if (property.PropertyType == typeof(string) || property.PropertyType == typeof(IPAddress)) {
-			return new JObject {
+		if (property.PropertyType == typeof(string) || property.PropertyType == typeof(IPAddress))
+		{
+			return new JObject
+			{
 				["type"] = "string"
 			};
 		}
 
-		if (property.PropertyType == typeof(EndPoint[])) {
-			return new JObject {
+		if (property.PropertyType == typeof(EndPoint[]))
+		{
+			return new JObject
+			{
 				["type"] = "array",
-				["items"] = new JObject {
+				["items"] = new JObject
+				{
 					["type"] = "string"
 				}
 			};

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.Core.Transforms.Identity;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
+using EventStore.Core.Transforms.Identity;
 using NUnit.Framework;
 using Serilog;
 using Serilog.Core;
@@ -133,7 +133,9 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
 		{
 			if (!buffer.IsEmpty)
+			{
 				buffer.Span[0] = 0x42;
+			}
 
 			return new(1);
 		}

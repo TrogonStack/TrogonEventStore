@@ -36,7 +36,10 @@ public class Locations
 				DefaultTrustedRootCertificateDirectory = "/etc/ssl/certs";
 				DefaultTestClientLogDirectory = Path.Combine(ApplicationDirectory, "testclientlog");
 				if (!Directory.Exists(PluginsDirectory))
+				{
 					PluginsDirectory = Path.Combine(DefaultContentDirectory, "plugins");
+				}
+
 				break;
 			case RuntimeOSPlatform.OSX:
 				DefaultContentDirectory = "/usr/local/share/eventstore";
@@ -45,7 +48,10 @@ public class Locations
 				DefaultLogDirectory = "/var/log/eventstore";
 				DefaultTestClientLogDirectory = Path.Combine(ApplicationDirectory, "testclientlog");
 				if (!Directory.Exists(PluginsDirectory))
+				{
 					PluginsDirectory = Path.Combine(DefaultContentDirectory, "plugins");
+				}
+
 				break;
 			default:
 				DefaultContentDirectory = ApplicationDirectory;

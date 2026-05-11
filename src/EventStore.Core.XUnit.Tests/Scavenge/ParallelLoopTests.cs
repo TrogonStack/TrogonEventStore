@@ -19,7 +19,9 @@ public class ParallelLoopTests
 	{
 
 		if (source.Any(x => x % 10 != 0))
+		{
 			throw new Exception("use multiples of 10");
+		}
 
 		// maps from the item to the mres it should wait for
 		var selfTriggers = new Dictionary<int, AsyncManualResetEvent>();
@@ -31,7 +33,9 @@ public class ParallelLoopTests
 		{
 			selfTriggers[item] = new AsyncManualResetEvent(initialState: false);
 			if (prev is not null)
+			{
 				nextTriggers[prev.Value] = selfTriggers[item];
+			}
 
 			prev = item;
 		}
@@ -57,7 +61,10 @@ public class ParallelLoopTests
 					? x - 10
 					: x - 9;
 				if (chunkStartNumber == 00)
+				{
 					return null;
+				}
+
 				return chunkStartNumber - 1;
 			},
 			process: async (slot, x, token) =>

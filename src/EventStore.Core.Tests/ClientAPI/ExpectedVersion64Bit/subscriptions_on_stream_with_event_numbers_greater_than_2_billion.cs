@@ -74,7 +74,9 @@ public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat
 		await _store.SubscribeToAllAsync(true, (s, e) =>
 		{
 			if (SystemStreams.IsSystemStream(e.OriginalStreamId))
+			{
 				return Task.CompletedTask;
+			}
 
 			receivedEvent = e;
 			mre.Set();

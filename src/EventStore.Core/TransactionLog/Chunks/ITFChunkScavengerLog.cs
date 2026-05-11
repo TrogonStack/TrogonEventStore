@@ -1,8 +1,10 @@
 using System;
 using EventStore.Core.Index;
 
-namespace EventStore.Core.TransactionLog.Chunks {
-	public interface ITFChunkScavengerLog : IIndexScavengerLog {
+namespace EventStore.Core.TransactionLog.Chunks
+{
+	public interface ITFChunkScavengerLog : IIndexScavengerLog
+	{
 		string ScavengeId { get; }
 
 		long SpaceSaved { get; }
@@ -22,14 +24,16 @@ namespace EventStore.Core.TransactionLog.Chunks {
 		void ScavengeCompleted(ScavengeResult result, string error, TimeSpan elapsed);
 	}
 
-	public enum ScavengeResult {
+	public enum ScavengeResult
+	{
 		Success,
 		Stopped,
 		Errored,
 		Interrupted,
 	}
 
-	public enum LastScavengeResult {
+	public enum LastScavengeResult
+	{
 		Unknown,
 		InProgress,
 		Success,

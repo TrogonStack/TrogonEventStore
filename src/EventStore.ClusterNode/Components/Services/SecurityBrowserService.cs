@@ -18,7 +18,9 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 		var schemes = authenticationProvider.GetSupportedAuthenticationSchemes() ?? [];
 		var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? [])
+		{
 			properties[key] = value;
+		}
 
 		return new SecurityAuthenticationInfo(
 			authenticationProvider.Name,
@@ -30,9 +32,14 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 	public async Task<SecurityCommandResult> Validate(string username, string password)
 	{
 		if (string.IsNullOrWhiteSpace(username))
+		{
 			return SecurityCommandResult.Failure("Enter a username.");
+		}
+
 		if (string.IsNullOrWhiteSpace(password))
+		{
 			return SecurityCommandResult.Failure("Enter a password.");
+		}
 
 		var context = new DefaultHttpContext();
 		var request = new HttpAuthenticationRequest(context, username.Trim(), password);
@@ -51,13 +58,17 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 	public static string NormalizeReturnUrl(string returnUrl)
 	{
 		if (string.IsNullOrWhiteSpace(returnUrl))
+		{
 			return "/ui";
+		}
 
 		if (!returnUrl.StartsWith("/", StringComparison.Ordinal) ||
 			returnUrl.StartsWith("//", StringComparison.Ordinal) ||
 			returnUrl.IndexOf('\\') >= 0 ||
 			!Uri.TryCreate(returnUrl, UriKind.Relative, out var relative))
+		{
 			return "/ui";
+		}
 
 		var normalized = new Uri(LocalBaseUri, relative);
 		return IsUiPath(normalized.AbsolutePath)

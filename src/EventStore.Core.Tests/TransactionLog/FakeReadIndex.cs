@@ -115,7 +115,9 @@ internal class FakeReadIndex<TLogFormat, TStreamId> : IReadIndex<TStreamId>
 	public ValueTask<long> GetStreamLastEventNumber(TStreamId streamId, CancellationToken token)
 	{
 		if (_metastreams.IsMetaStream(streamId))
+		{
 			return GetStreamLastEventNumber(_metastreams.OriginalStreamOf(streamId), token);
+		}
 
 		return new(_isStreamDeleted(streamId) ? EventNumber.DeletedStream : 1000000);
 	}

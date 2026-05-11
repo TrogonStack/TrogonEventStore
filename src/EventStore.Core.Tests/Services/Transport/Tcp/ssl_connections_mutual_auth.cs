@@ -80,7 +80,9 @@ public class ssl_connections_mutual_auth
 				verbose: true);
 			ssl.ConnectionClosed += (x, y) => done.Set();
 			if (ssl.IsClosed)
+			{
 				done.Set();
+			}
 
 			Action<ITcpConnection, IEnumerable<ArraySegment<byte>>> callback = null;
 			callback = (x, y) =>
@@ -136,8 +138,12 @@ public class ssl_connections_mutual_auth
 		Log.Information("Checking received data...");
 
 		if (shouldConnectSuccessfully)
+		{
 			Assert.AreEqual(sent, received.ToArray());
+		}
 		else
+		{
 			Assert.AreEqual(new byte[0], received.ToArray());
+		}
 	}
 }

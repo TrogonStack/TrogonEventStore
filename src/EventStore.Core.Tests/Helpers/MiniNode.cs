@@ -179,7 +179,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 			}).Build();
 
 		if (advertisedExtHostAddress != null)
+		{
 			options = options.AdvertiseNodeAs(new DnsEndPoint(advertisedExtHostAddress, advertisedHttpPort));
+		}
 
 		options = options.RunOnDisk(DbPath);
 
@@ -281,7 +283,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		IReadOnlyList<IDbTransform> newTransforms)
 	{
 		if (newTransforms == null)
+		{
 			return;
+		}
 
 		services.Decorate<IReadOnlyList<IDbTransform>>(existingTransforms =>
 			DecorateTransforms(existingTransforms, newTransforms));
@@ -321,7 +325,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		}
 
 		if (Node.IsShutdown)
+		{
 			_started.TrySetResult(true);
+		}
 
 		await Node.StartAsync(true).WithTimeout(startupTimeout ?? TimeSpan.FromSeconds(60));
 
@@ -359,7 +365,9 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		await Node.StopAsync(TimeSpan.FromSeconds(20));
 
 		if (!keepDb)
+		{
 			TryDeleteDirectory(DbPath);
+		}
 
 		StoppingTime.Stop();
 		RunningTime.Stop();

@@ -33,10 +33,14 @@ class CommittedEventWorkItem : WorkItem
 	{
 		_partition = _statePartitionSelector.GetStatePartition(_message);
 		if (_partition == null)
+		{
 			// skip processing of events not mapped to any partition
 			NextStage();
+		}
 		else
+		{
 			NextStage(_partition);
+		}
 	}
 
 	protected override void Load(CheckpointTag checkpointTag)
@@ -67,7 +71,10 @@ class CommittedEventWorkItem : WorkItem
 
 		var eventProcessedResult = _projection.ProcessCommittedEvent(_message, _partition);
 		if (eventProcessedResult != null)
+		{
 			SetEventProcessedResult(eventProcessedResult);
+		}
+
 		NextStage();
 	}
 

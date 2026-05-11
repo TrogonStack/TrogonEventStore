@@ -1,7 +1,9 @@
 using EventStore.Core.Services.Monitoring.Stats;
 
-namespace EventStore.Core.Bus {
-	public interface IMonitoredQueue {
+namespace EventStore.Core.Bus
+{
+	public interface IMonitoredQueue
+	{
 		//NOTE: This interface provides direct access to a queue internals breaking encapsulation of these objects.  
 		//      This is implemented this way to minimize impact on performance and to allow monitor detect problems
 

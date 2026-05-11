@@ -37,7 +37,9 @@ public sealed class ReaderSubscriptionDispatcher
 		_map.TryAdd(request.SubscriptionId, subscriber);
 		_publisher.Publish(request);
 		if (scheduleTimeout)
+		{
 			ScheduleSubscriptionTimeout(request.SubscriptionId);
+		}
 	}
 
 	private void ScheduleSubscriptionTimeout(Guid subscriptionId)

@@ -88,7 +88,9 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario
 					try
 					{
 						if (Directory.Exists(dbPath))
+						{
 							Directory.Delete(dbPath, recursive: true);
+						}
 					}
 					catch (Exception) when (primaryException is not null)
 					{

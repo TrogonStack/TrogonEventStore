@@ -95,21 +95,21 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 		string streamName = null,
 		string groupName = null,
 		CreateReq.Types.Settings settings = null) => new()
-	{
-		Options = new CreateReq.Types.Options
 		{
-			GroupName = groupName ?? NewName("group"),
-			Stream = new CreateReq.Types.StreamOptions
+			Options = new CreateReq.Types.Options
 			{
-				Start = new Empty(),
-				StreamIdentifier = new StreamIdentifier
+				GroupName = groupName ?? NewName("group"),
+				Stream = new CreateReq.Types.StreamOptions
 				{
-					StreamName = ByteString.CopyFromUtf8(streamName ?? NewName("stream"))
-				}
-			},
-			Settings = settings ?? Settings()
-		}
-	};
+					Start = new Empty(),
+					StreamIdentifier = new StreamIdentifier
+					{
+						StreamName = ByteString.CopyFromUtf8(streamName ?? NewName("stream"))
+					}
+				},
+				Settings = settings ?? Settings()
+			}
+		};
 
 	private CreateReq.Types.Settings Settings(int messageTimeoutMs = 20000, bool includeMessageTimeout = true)
 	{
@@ -127,7 +127,9 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 		};
 
 		if (includeMessageTimeout)
+		{
 			settings.MessageTimeoutMs = messageTimeoutMs;
+		}
 
 		if (_legacy)
 		{

@@ -211,9 +211,15 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 				var chaser = _nodes[i].Db.Config.ChaserCheckpoint.ReadNonFlushed();
 
 				if (prevWriter == long.MinValue)
+				{
 					prevWriter = writer;
+				}
+
 				if (prevChaser == long.MinValue)
+				{
 					prevChaser = chaser;
+				}
+
 				if (chaser != writer || writer != prevWriter)
 				{
 					caughtUp = false;
@@ -221,7 +227,10 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 			}
 
 			if (caughtUp)
+			{
 				break;
+			}
+
 			await Task.Delay(100);
 		}
 	}

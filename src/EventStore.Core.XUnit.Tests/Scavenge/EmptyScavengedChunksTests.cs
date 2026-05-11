@@ -133,7 +133,9 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 			.AssertState(x =>
 			{
 				if (!x.TryGetOriginalStreamData("ab-1", out var data))
+				{
 					Assert.Fail("Failed to get original stream data");
+				}
 
 				Assert.Equal(DiscardPoint.DiscardIncluding(5), data.DiscardPoint);
 				Assert.Equal(DiscardPoint.DiscardIncluding(8), data.MaybeDiscardPoint);
@@ -183,7 +185,9 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 			.AssertState(x =>
 			{
 				if (!x.TryGetOriginalStreamData("ab-1", out var data))
+				{
 					Assert.Fail("Failed to get original stream data");
+				}
 
 				Assert.Equal(DiscardPoint.DiscardIncluding(1), data.DiscardPoint);
 			})
@@ -278,7 +282,9 @@ public class EmptyScavengedChunksTests : SqliteDbPerTest<MaxAgeTests>
 			.AssertState(x =>
 			{
 				if (!x.TryGetOriginalStreamData("ab-1", out var data))
+				{
 					Assert.Fail("Failed to get original stream data");
+				}
 
 				Assert.Equal(DiscardPoint.DiscardIncluding(3), data.DiscardPoint);
 			})

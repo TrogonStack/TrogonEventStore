@@ -188,7 +188,9 @@ public class StatsRpcTests
 		public void Publish(Message message)
 		{
 			if (message is not MonitoringMessage.GetFreshStats request)
+			{
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
+			}
 
 			RequestedStats = true;
 			UseMetadata = request.UseMetadata;

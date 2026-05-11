@@ -149,7 +149,9 @@ using System.Threading;
 	ClassDeclarationSyntax Transform(ClassDeclarationSyntax node, MemberTree members)
 	{
 		if (!node.Modifiers.Any(SyntaxKind.PartialKeyword))
+		{
 			_context.ReportImpartialMessage(node);
+		}
 
 		return SyntaxFactory
 			.ClassDeclaration(

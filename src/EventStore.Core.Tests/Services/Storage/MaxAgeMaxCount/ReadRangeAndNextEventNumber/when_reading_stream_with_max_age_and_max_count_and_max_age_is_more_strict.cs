@@ -265,7 +265,9 @@ public class
 
 			from = backwards.NextEventNumber;
 			if (backwards.IsEndOfStream)
+			{
 				break;
+			}
 		}
 
 		from = 0;
@@ -279,7 +281,9 @@ public class
 
 			from = forwards.NextEventNumber;
 			if (forwards.IsEndOfStream)
+			{
 				break;
+			}
 		}
 
 		Assert.AreEqual(forwardsCollected.Count, backwardsCollected.Count);

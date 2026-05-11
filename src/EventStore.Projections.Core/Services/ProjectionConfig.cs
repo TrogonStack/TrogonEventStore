@@ -28,17 +28,27 @@ public class ProjectionConfig
 		if (checkpointsEnabled)
 		{
 			if (checkpointHandledThreshold <= 0)
+			{
 				throw new ArgumentOutOfRangeException("checkpointHandledThreshold");
+			}
+
 			if (checkpointUnhandledBytesThreshold < checkpointHandledThreshold)
+			{
 				throw new ArgumentException(
 					"Checkpoint threshold cannot be less than checkpoint handled threshold");
+			}
 		}
 		else
 		{
 			if (checkpointHandledThreshold != 0)
+			{
 				throw new ArgumentOutOfRangeException("checkpointHandledThreshold must be 0");
+			}
+
 			if (checkpointUnhandledBytesThreshold != 0)
+			{
 				throw new ArgumentException("checkpointUnhandledBytesThreshold must be 0");
+			}
 		}
 
 		if (maximumAllowedWritesInFlight < AllowedWritesInFlight.Unbounded)

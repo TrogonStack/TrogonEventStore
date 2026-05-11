@@ -19,7 +19,9 @@ public abstract class TruncateScenario<TLogFormat, TStreamId>(
 		await base.TestFixtureSetUp();
 
 		if (TruncateCheckpoint == long.MinValue)
+		{
 			throw new InvalidOperationException("AckCheckpoint must be set in WriteTestScenario.");
+		}
 
 		OnBeforeTruncating();
 

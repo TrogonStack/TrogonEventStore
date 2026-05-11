@@ -5,13 +5,15 @@ using EventStore.Core.Time;
 
 namespace EventStore.Core.Metrics;
 
-public interface IMaxTracker<T> {
+public interface IMaxTracker<T>
+{
 	void Record(T value);
 }
 
 // Similar to DurationMaxTracker (see notes there)
 // One thread can Record while another Observes concurrently.
-public class MaxTracker<T> : IMaxTracker<T> where T : struct {
+public class MaxTracker<T> : IMaxTracker<T> where T : struct
+{
 	private readonly IClock _clock;
 	private readonly KeyValuePair<string, object>[] _maxTags;
 	private readonly RecentMax<T> _recentMax;
@@ -20,7 +22,8 @@ public class MaxTracker<T> : IMaxTracker<T> where T : struct {
 		MaxMetric<T> metric,
 		string name,
 		int expectedScrapeIntervalSeconds,
-		IClock clock = null) {
+		IClock clock = null)
+	{
 
 		_clock = clock ?? Clock.Instance;
 
@@ -28,23 +31,29 @@ public class MaxTracker<T> : IMaxTracker<T> where T : struct {
 
 		var maxTags = new List<KeyValuePair<string, object>>();
 		if (!string.IsNullOrWhiteSpace(name))
+		{
 			maxTags.Add(new("name", name));
+		}
+
 		maxTags.Add(new("range", $"{_recentMax.MinPeriodSeconds}-{_recentMax.MaxPeriodSeconds} seconds"));
 		_maxTags = maxTags.ToArray();
 
 		metric.Add(this);
 	}
 
-	public void Record(T value) {
+	public void Record(T value)
+	{
 		_recentMax.Record(_clock.Now, value);
 	}
 
-	public Measurement<T> Observe() {
+	public Measurement<T> Observe()
+	{
 		var value = _recentMax.Observe(_clock.Now);
 		return new(value, _maxTags.AsSpan());
 	}
 
-	public class NoOp : IMaxTracker<T> {
+	public class NoOp : IMaxTracker<T>
+	{
 		public void Record(T value) { }
 	}
 }

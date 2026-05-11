@@ -31,14 +31,22 @@ internal class ReadAllProcessor : ICmdProcessor
 		if (args.Length > 0)
 		{
 			if (args.Length > 4)
+			{
 				return false;
+			}
 
 			if (args[0].ToUpper() == "F")
+			{
 				forward = true;
+			}
 			else if (args[0].ToUpper() == "B")
+			{
 				forward = false;
+			}
 			else
+			{
 				return false;
+			}
 
 			if (args.Length > 1)
 			{
@@ -49,7 +57,9 @@ internal class ReadAllProcessor : ICmdProcessor
 			{
 				posOverriden = true;
 				if (!ulong.TryParse(args[2], out var commitPos) || !ulong.TryParse(args[3], out var preparePos))
+				{
 					return false;
+				}
 
 				position = new Position(commitPos, preparePos);
 			}

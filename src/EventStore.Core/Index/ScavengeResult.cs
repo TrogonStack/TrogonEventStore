@@ -1,5 +1,7 @@
-namespace EventStore.Core.Index {
-	public class ScavengeResult {
+namespace EventStore.Core.Index
+{
+	public class ScavengeResult
+	{
 		public readonly IndexMap ScavengedMap;
 		public readonly bool IsSuccess;
 		public readonly PTable OldTable;
@@ -9,7 +11,8 @@ namespace EventStore.Core.Index {
 		public readonly int Index;
 
 		private ScavengeResult(IndexMap scavengedMap, bool isSuccess, PTable oldTable, PTable newTable, long spaceSaved,
-			int level, int index) {
+			int level, int index)
+		{
 			ScavengedMap = scavengedMap;
 			IsSuccess = isSuccess;
 			OldTable = oldTable;
@@ -20,11 +23,13 @@ namespace EventStore.Core.Index {
 		}
 
 		public static ScavengeResult Success(IndexMap scavengedMap, PTable oldTable, PTable newTable, long spaceSaved,
-			int level, int index) {
+			int level, int index)
+		{
 			return new ScavengeResult(scavengedMap, true, oldTable, newTable, spaceSaved, level, index);
 		}
 
-		public static ScavengeResult Failed(PTable oldTable, int level, int index) {
+		public static ScavengeResult Failed(PTable oldTable, int level, int index)
+		{
 			return new ScavengeResult(null, false, oldTable, null, 0, level, index);
 		}
 	}

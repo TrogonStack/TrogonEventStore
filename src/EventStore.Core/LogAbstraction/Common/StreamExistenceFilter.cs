@@ -7,11 +7,13 @@ using EventStore.Core.Index.Hashes;
 using EventStore.Core.TransactionLog.Checkpoint;
 using Serilog;
 
-namespace EventStore.Core.LogAbstraction.Common {
+namespace EventStore.Core.LogAbstraction.Common
+{
 	// This connects a bloom filter datastructure to the rest of the system by
 	// adding catchup and checkpointing.
 	public class StreamExistenceFilter :
-		INameExistenceFilter {
+		INameExistenceFilter
+	{
 		private readonly string _filterName;
 		private readonly TimeSpan _checkpointDelay;
 		private readonly PersistentStreamBloomFilter _persistentBloomFilter;
@@ -25,9 +27,11 @@ namespace EventStore.Core.LogAbstraction.Common {
 
 		protected static readonly ILogger Log = Serilog.Log.ForContext<StreamExistenceFilter>();
 
-		public long CurrentCheckpoint {
+		public long CurrentCheckpoint
+		{
 			get => Interlocked.Read(ref _lastNonFlushedCheckpoint);
-			set {
+			set
+			{
 				Interlocked.Exchange(ref _lastNonFlushedCheckpoint, value);
 				_checkpointer.Trigger();
 			}
@@ -44,13 +48,15 @@ namespace EventStore.Core.LogAbstraction.Common {
 			long size,
 			TimeSpan checkpointInterval,
 			TimeSpan checkpointDelay,
-			ILongHasher<string> hasher) {
+			ILongHasher<string> hasher)
+		{
 			_filterName = filterName;
 			_checkpointDelay = checkpointDelay;
 			_checkpoint = checkpoint;
 			_lastNonFlushedCheckpoint = _checkpoint.Read();
 
-			if (!Directory.Exists(directory)) {
+			if (!Directory.Exists(directory))
+			{
 				Directory.CreateDirectory(directory);
 			}
 
@@ -60,7 +66,8 @@ namespace EventStore.Core.LogAbstraction.Common {
 			Log.Information("{filterName}: {creatingOrOpening} {dataFilePath}",
 				_filterName, create ? "Creating" : "Opening", DataFilePath);
 
-			try {
+			try
+			{
 				_persistentBloomFilter = new PersistentStreamBloomFilter(
 					persistenceStrategy: new FileStreamPersistence(
 						size: size,
@@ -68,22 +75,31 @@ namespace EventStore.Core.LogAbstraction.Common {
 						create: create),
 					hasher: hasher,
 					corruptionRebuildCount: 0);
-			} catch (Exception exc) when (
+			}
+			catch (Exception exc) when (
 					exc is CorruptedFileException ||
 					exc is CorruptedHashException ||
 					exc is SizeMismatchException ||
-					exc is FileNotFoundException) {
+					exc is FileNotFoundException)
+			{
 
 				var corruptionRebuildCount = 0;
 
-				if (exc is CorruptedFileException) {
+				if (exc is CorruptedFileException)
+				{
 					Log.Error(exc, "{filterName} is corrupted. Rebuilding...", _filterName);
-				} else if (exc is CorruptedHashException corruptedHashException) {
+				}
+				else if (exc is CorruptedHashException corruptedHashException)
+				{
 					corruptionRebuildCount = corruptedHashException.RebuildCount + 1;
 					Log.Error(exc, "{filterName} has too many corrupted hashes. Rebuilding...", _filterName);
-				} else if (exc is SizeMismatchException) {
+				}
+				else if (exc is SizeMismatchException)
+				{
 					Log.Error(exc, "{filterName} does not have the expected size. Rebuilding...", _filterName);
-				} else if (exc is FileNotFoundException) {
+				}
+				else if (exc is FileNotFoundException)
+				{
 					Log.Error(exc, "{filterName} does not exist even though the checkpoint does. Rebuilding...", _filterName);
 				}
 
@@ -101,14 +117,18 @@ namespace EventStore.Core.LogAbstraction.Common {
 			}
 
 			if (_persistentBloomFilter.CorruptionRebuildCount == 0)
+			{
 				Log.Information("{filterName} has successfully loaded.", _filterName);
+			}
 			else
+			{
 				Log.Information("{filterName} has successfully loaded. Filter has been rebuilt due to hash corruption {count} times.",
 					_filterName, _persistentBloomFilter.CorruptionRebuildCount);
+			}
 
 			const double p = PersistentBloomFilter.RecommendedFalsePositiveProbability;
 			Log.Debug("Optimal number of items for a {filterName} with a configured size of " +
-			                "{size:N0} MB is approximately equal to: {n:N0} with false positive probability: {p:N2}",
+							"{size:N0} MB is approximately equal to: {n:N0} with false positive probability: {p:N2}",
 				_filterName,
 				size / 1000 / 1000,
 				_persistentBloomFilter.CalculateOptimalNumItems(p),
@@ -117,7 +137,8 @@ namespace EventStore.Core.LogAbstraction.Common {
 			_cancellationTokenSource = new();
 			_checkpointer = new Debouncer(
 				checkpointInterval,
-				async _ => {
+				async _ =>
+				{
 					await TakeCheckpointAsync();
 				},
 				_cancellationTokenSource.Token);
@@ -125,9 +146,11 @@ namespace EventStore.Core.LogAbstraction.Common {
 
 		public void Verify(double corruptionThreshold) => _persistentBloomFilter.Verify(corruptionThreshold);
 
-		private async Task TakeCheckpointAsync() {
+		private async Task TakeCheckpointAsync()
+		{
 			var checkpoint = Interlocked.Read(ref _lastNonFlushedCheckpoint);
-			try {
+			try
+			{
 				var prevCheckpoint = _checkpoint.Read();
 				var diff = checkpoint - prevCheckpoint;
 
@@ -136,7 +159,7 @@ namespace EventStore.Core.LogAbstraction.Common {
 				_persistentBloomFilter.Flush();
 				var endTime = DateTime.UtcNow;
 				Log.Verbose("{filterName} has flushed at {checkpoint:N0}. Diff {diff:N0}. Took {flushLength}",
-					       _filterName, checkpoint, diff, endTime - startTime);
+						   _filterName, checkpoint, diff, endTime - startTime);
 
 				// safety precaution against anything in the stack lying about the data
 				// truly being on disk.
@@ -147,12 +170,15 @@ namespace EventStore.Core.LogAbstraction.Common {
 				Log.Verbose("{filterName} took checkpoint at position: {position:N0}.",
 					_filterName,
 					_checkpoint.Read());
-			} catch (Exception ex) {
+			}
+			catch (Exception ex)
+			{
 				Log.Error(ex, "{filterName} could not take checkpoint at position: {position:N0}", _filterName, checkpoint);
 			}
 		}
 
-		public async ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition, CancellationToken token) {
+		public async ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition, CancellationToken token)
+		{
 			Log.Debug("{filterName} rebuilding started from checkpoint: {checkpoint:N0} (0x{checkpoint:X}).",
 				_filterName, CurrentCheckpoint, CurrentCheckpoint);
 			var startTime = DateTime.UtcNow;
@@ -163,8 +189,10 @@ namespace EventStore.Core.LogAbstraction.Common {
 		}
 
 		// any truncation must be done prior to calling Add or setting CurrentCheckpoint
-		public void TruncateTo(long checkpoint) {
-			if (CurrentCheckpoint <= checkpoint) {
+		public void TruncateTo(long checkpoint)
+		{
+			if (CurrentCheckpoint <= checkpoint)
+			{
 				// this was already guarded elsewhere but we want to guard it in this class so that we
 				// can guarantee that a checkpoint is only set at all if the filter was successfully
 				// flushed. otherwise here we might set the checkpoint even though we hadn't flushed
@@ -194,23 +222,30 @@ namespace EventStore.Core.LogAbstraction.Common {
 			_checkpoint.Flush();
 		}
 
-		public void Add(string name) {
+		public void Add(string name)
+		{
 			_persistentBloomFilter.Add(name);
 			_addedSinceLoad++;
 		}
 
-		public void Add(ulong hash) {
+		public void Add(ulong hash)
+		{
 			_persistentBloomFilter.Add(hash);
 			_addedSinceLoad++;
 		}
 
-		public bool MightContain(string name) {
+		public bool MightContain(string name)
+		{
 			if (Interlocked.CompareExchange(ref _initialized, 0, 0) == 0)
+			{
 				throw new InvalidOperationException("Initialize the filter before querying");
+			}
+
 			return _persistentBloomFilter.MightContain(name);
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_cancellationTokenSource?.Cancel();
 			_persistentBloomFilter?.Dispose();
 			GC.SuppressFinalize(this);

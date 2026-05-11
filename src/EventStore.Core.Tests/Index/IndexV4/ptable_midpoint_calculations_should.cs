@@ -107,10 +107,14 @@ public class ptable_midpoint_calculations_should : SpecificationWithDirectory
 	private static long GetMidpointIndexBigInt(int k, long numIndexEntries, int numMidpoints)
 	{
 		if (k == 0)
+		{
 			return 0;
+		}
 
 		if (k == numMidpoints - 1)
+		{
 			return numIndexEntries - 1;
+		}
 
 		var res = (BigInteger)k * (numIndexEntries - 1) / (numMidpoints - 1);
 		return (long)res;
