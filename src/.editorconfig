@@ -30,9 +30,9 @@ dotnet_diagnostic.IDE0011.severity = error
 # disable hint to use primary constructor
 dotnet_diagnostic.IDE0290.severity = none
 
-# use file-scoped namespaces
-csharp_style_namespace_declarations = file_scoped
-dotnet_diagnostic.IDE0161.severity = error
+# keep namespace style aligned with the existing codebase
+csharp_style_namespace_declarations = block_scoped
+dotnet_diagnostic.IDE0161.severity = none
 
 # use ValueTasks correctly
 dotnet_diagnostic.CA2012.severity = error
