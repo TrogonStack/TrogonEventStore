@@ -30,6 +30,20 @@
     "dev": "vuepress dev",
     "build": "vuepress build"
   },
+  "pnpm": {
+    "overrides": {
+      "@vitejs/plugin-vue": "5.2.4",
+      "braces": "3.0.3",
+      "esbuild": "0.25.12",
+      "immutable": "4.3.8",
+      "lodash": "4.18.1",
+      "micromatch": "4.0.8",
+      "postcss": "8.5.14",
+      "prismjs": "1.30.0",
+      "rollup": "4.60.3",
+      "vite": "6.4.2"
+    }
+  },
   "engines": {
     "node": ">=18.19.0"
   }
