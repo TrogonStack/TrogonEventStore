@@ -50,10 +50,10 @@ See the online documentation:
 This guide shows you how to get started with TrogonDB by setting up an instance
 or cluster and configuring it.
 
-TrogonDB supported gRPC clients
+TrogonDB supported gRPC clients:
 
 - Python: [pyeventsourcing/esdbclient](https://pypi.org/project/esdbclient/)
-- Node.js (javascript/typescript): [EventStore/EventStore-Client-NodeJS](https://github.com/EventStore/EventStore-Client-NodeJS)
+- Node.js (JavaScript/TypeScript): [EventStore/EventStore-Client-NodeJS](https://github.com/EventStore/EventStore-Client-NodeJS)
 - Java: [EventStore/TrogonDB-Client-Java](https://github.com/EventStore/TrogonDB-Client-Java)
 - .NET: [EventStore/EventStore-Client-Dotnet](https://github.com/EventStore/EventStore-Client-Dotnet)
 - Go: [EventStore/EventStore-Client-Go](https://github.com/EventStore/EventStore-Client-Go)
