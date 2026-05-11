@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Amazon.Runtime;
+using Amazon.Runtime.EventStreams;
 using Amazon.Runtime.Internal;
 using Amazon.Runtime.Internal.Transform;
 using Amazon.S3;
@@ -142,7 +143,9 @@ public class AwsTraceSerilogListenerTests
 		public HttpStatusCode StatusCode => statusCode;
 
 		public string[] GetHeaderNames() => Array.Empty<string>();
+		public IEventStreamHeader GetEventStreamHeader(string headerName) => null;
 		public string GetHeaderValue(string headerName) => null;
+		public bool IsEventHeaderPresent(string headerName) => false;
 		public bool IsHeaderPresent(string headerName) => false;
 	}
 

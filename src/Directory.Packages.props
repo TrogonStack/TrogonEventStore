@@ -14,7 +14,8 @@
     <PackageVersion Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
     <!--Version 8 and beyond are free for open-source projects and non-commercial use, but commercial use requires a paid license-->
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
-    <PackageVersion Include="FluentStorage.AWS" Version="5.5.0" />
+    <PackageVersion Include="AWSSDK.Core" Version="4.0.6.1" />
+    <PackageVersion Include="FluentStorage.AWS" Version="6.0.3" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

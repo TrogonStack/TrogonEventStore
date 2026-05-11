@@ -54,6 +54,6 @@ public class S3StorageCredentialTests
 	private static AWSCredentials GetCredentials(AmazonS3Client client) =>
 		Assert.IsAssignableFrom<AWSCredentials>(
 			typeof(AmazonServiceClient)
-				.GetProperty("Credentials", BindingFlags.Instance | BindingFlags.NonPublic)!
+				.GetProperty("ExplicitAWSCredentials", BindingFlags.Instance | BindingFlags.NonPublic)!
 				.GetValue(client));
 }
