@@ -5,12 +5,10 @@
 namespace System;
 
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Runtime;
 using System.Text;
 
 // This represents a Path segment, which can either be a Literal, a Variable or a Compound
-[DebuggerDisplay("Segment={originalSegment} Nature={nature}")]
 abstract class UriTemplatePathSegment
 {
 	readonly bool endsWithSlash;
