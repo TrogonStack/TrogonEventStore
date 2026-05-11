@@ -49,7 +49,7 @@ When developing software that uses EventStoreDB, we recommend using one of the o
 
 - Python: [pyeventsourcing/esdbclient](https://pypi.org/project/esdbclient/)
 - Node.js (JavaScript/TypeScript): [EventStore/EventStore-Client-NodeJS](https://github.com/EventStore/EventStore-Client-NodeJS)
-- Java: [(EventStore/EventStoreDB-Client-Java](https://github.com/EventStore/EventStoreDB-Client-Java)
+- Java: [EventStore/EventStoreDB-Client-Java](https://github.com/EventStore/EventStoreDB-Client-Java)
 - .NET: [EventStore/EventStore-Client-Dotnet](https://github.com/EventStore/EventStore-Client-Dotnet)
 - Go: [EventStore/EventStore-Client-Go](https://github.com/EventStore/EventStore-Client-Go)
 - Rust: [EventStore/EventStoreDB-Client-Rust](https://github.com/EventStore/EventStoreDB-Client-Rust)
