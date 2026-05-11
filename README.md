@@ -79,7 +79,7 @@ Linux and macOS using Docker and the .NET runtime.
 - [.NET SDK 10.0](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 Once you've installed the prerequisites for your system, you can launch a
-`Release` build of EventStore as follows:
+`Release` build of TrogonDB as follows:
 
 ```bash
 dotnet build -c Release src
