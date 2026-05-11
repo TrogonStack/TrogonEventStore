@@ -35,7 +35,7 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 				},
 				i == 0 ? InitialStabilizationTimeout : RestartTimeout,
 				$"Cluster did not stabilize before restart iteration {i + 1}",
-				MiniNodeLogging.WriteLogs);
+				WriteClusterLogs);
 
 			var restartedNodeIndex = SelectRestartNode(restartedNodes, restartLeader: i == RestartCount - 1);
 			restartedNodes[restartedNodeIndex] = true;
@@ -53,7 +53,7 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 				},
 				RestartTimeout,
 				$"Remaining cluster did not stabilize after shutting down node {restartedNodeIndex}",
-				MiniNodeLogging.WriteLogs);
+				WriteClusterLogs);
 
 			var node = CreateNode(restartedNodeIndex, _nodeEndpoints[restartedNodeIndex], GossipSeedsFor(restartedNodeIndex));
 			node.Start();
@@ -68,8 +68,14 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 				},
 				RestartTimeout,
 				$"Cluster did not stabilize after restarting node {restartedNodeIndex}",
-				MiniNodeLogging.WriteLogs);
+				WriteClusterLogs);
 		}
+	}
+
+	private void WriteClusterLogs()
+	{
+		TestContext.Error.WriteLine($"Cluster states: {string.Join(", ", _nodes.Select(x => x.NodeState))}");
+		MiniNodeLogging.WriteLogs();
 	}
 
 	private int SelectRestartNode(bool[] restartedNodes, bool restartLeader)

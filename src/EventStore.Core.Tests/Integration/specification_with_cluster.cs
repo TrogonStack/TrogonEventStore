@@ -9,6 +9,7 @@ using EventStore.Core.Data;
 using EventStore.Core.Tests.Helpers;
 using EventStore.Plugins.Subsystems;
 using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 
 namespace EventStore.Core.Tests.Integration;
 
@@ -121,7 +122,7 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		}
 		catch (TimeoutException ex)
 		{
-			if (_nodes.Select(x => x.Started).Count() < 2)
+			if (_nodes.Count(x => x.Started.IsCompletedSuccessfully) < 2)
 			{
 				MiniNodeLogging.WriteLogs();
 				throw new TimeoutException($"Cluster nodes did not start. Statuses: {_nodes[0].NodeState}/{_nodes[1].NodeState}/{_nodes[2].NodeState}", ex);
@@ -134,6 +135,8 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 			onFail: MiniNodeLogging.WriteLogs,
 			msg: "Waiting for leader timed out!");
 
+		await GetLeader().AdminUserCreated.WithTimeout(TimeSpan.FromMinutes(2), onFail: MiniNodeLogging.WriteLogs);
+
 		//flaky: most tests only need 1 follower, waiting for 2 causes timeouts
 		AssertEx.IsOrBecomesTrue(() =>
 				_nodes.Any(x => x.NodeState is VNodeState.Follower or VNodeState.ReadOnlyReplica),
@@ -144,7 +147,15 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		_conn = CreateConnection();
 		await _conn.ConnectAsync();
 
-		await Given().WithTimeout(GivenTimeout, onFail: MiniNodeLogging.WriteLogs);
+		try
+		{
+			await Given().WithTimeout(GivenTimeout);
+		}
+		catch
+		{
+			MiniNodeLogging.WriteLogs();
+			throw;
+		}
 	}
 
 	protected virtual IEventStoreConnection CreateConnection() =>
@@ -163,6 +174,15 @@ public abstract class specification_with_cluster<TLogFormat, TStreamId> : Specif
 		PathName, index, endpoints.InternalTcp,
 		endpoints.ExternalTcp, endpoints.HttpEndPoint,
 		subsystems: Array.Empty<ISubsystem>(), gossipSeeds: gossipSeeds);
+
+	[TearDown]
+	public void AfterEachTest()
+	{
+		if (TestContext.CurrentContext.Result.Outcome.Status is TestStatus.Failed)
+		{
+			MiniNodeLogging.WriteLogs();
+		}
+	}
 
 	[OneTimeTearDown]
 	public override async Task TestFixtureTearDown()
