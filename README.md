@@ -109,7 +109,7 @@ You can also build a Docker image by running the command:
 
 ```bash
 docker build --tag myeventstore . \
---build-arg CONTAINER_RUNTIME={container-runtime}
+--build-arg CONTAINER_RUNTIME={container-runtime} \
 --build-arg RUNTIME={runtime}
 ```
 
