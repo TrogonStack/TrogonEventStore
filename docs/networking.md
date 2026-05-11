@@ -374,7 +374,7 @@ To enable the TCP API plugin, save the following configuration in a JSON file, f
 
 Once the plugin is enabled, the server will log a message similar to the one below:
 
-```
+```text
 [11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
 ```
 
@@ -416,7 +416,7 @@ The plugin has to be located in a subdirectory of the server's plugins directory
 
 You can verify which plugins have been found and loaded by searching for log entries similar to the following:
 
-```
+```text
 [11212, 1,18:44:30.420,INF] Plugins path: "C:\\EventStore\\plugins"
 [11212, 1,18:44:30.420,INF] Adding: "C:\\EventStore\\plugins" to the plugin catalog.
 [11212, 1,18:44:30.422,INF] Adding: "C:\\EventStore\\plugins\\EventStore.Licensing" to the plugin catalog.
@@ -434,12 +434,12 @@ You can verify which plugins have been found and loaded by searching for log ent
 The plugin has to be configured to be enabled.
 If you see the following log it means the plugin was found but not started:
 
-```
+```text
 [ 5104, 1,19:03:13.807,INF] "TcpApi" "24.6.0.0" plugin disabled. "Set 'EventStore:TcpPlugin:EnableExternalTcp' to 'true' to enable"
 ```
 
 When the plugin starts, you should see a log similar to the following:
 
-```
+```text
 [11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
 ```
