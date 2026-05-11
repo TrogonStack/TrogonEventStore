@@ -16,7 +16,7 @@ architectures.
 - [Documentation](#docs)
 - [Getting started with TrogonDB](#getting-started-with-trogondb)
 - [Client libraries](#client-libraries)
-- [Communities](#communities)
+- [Community](#community)
 - [Building TrogonDB](#building-trogondb)
 
 ## What is TrogonDB
@@ -65,7 +65,7 @@ Community supported gRPC clients
 - Elixir: [NFIBrokerage/spear](https://github.com/NFIBrokerage/spear)
 - Ruby: [yousty/event_store_client](https://github.com/yousty/event_store_client)
 
-## Communities
+## Community
 
 - [Discord](https://discord.gg/aPXg6p7TH5)
 
