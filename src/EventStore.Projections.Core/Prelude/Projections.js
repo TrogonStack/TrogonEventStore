@@ -2,7 +2,6 @@
 
 var $projections = {
 	createEventProcessor: function(_log, _notify) {
-		var debugging = false;
 		var runDefaultHandler = true;
 		var eventHandlers = {};
 		var anyEventHandlers = [];
@@ -51,10 +50,6 @@ var $projections = {
 		var projectionSharedState = null;
 
 		var commandHandlers = {
-			set_debugging: function() {
-				debugging = true;
-			},
-
 			initialize: function() {
 				var initialState = initStateHandler();
 				projectionState = initialState;
@@ -237,8 +232,6 @@ var $projections = {
 		}
 
 		function callHandler(handler, state, eventEnvelope) {
-			if (debugging)
-				debugger;
 			var newState = handler(state, eventEnvelope);
 			if (newState === undefined)
 				newState = state;
