@@ -47,9 +47,4 @@
 	<ItemGroup>
 		<EmbeddedResource Include="Services\Jint\Serialization\big_state.json" />
 	</ItemGroup>
-	<!-- TODO(jen20): Decide what is correct here -->
-	<PropertyGroup>
-		<IsMac>false</IsMac>
-		<IsMac Condition="'$(OS)' == 'Unix' And Exists ('/Library/Frameworks')">true</IsMac>
-	</PropertyGroup>
 </Project>
