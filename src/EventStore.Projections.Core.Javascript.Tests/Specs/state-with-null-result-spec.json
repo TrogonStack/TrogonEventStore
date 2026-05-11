@@ -1,0 +1,53 @@
+{
+	"projection": "state-with-null-result",
+	"input": [
+		{
+			"streamId": "state-with-null-result",
+			"events": [
+				{
+					"eventType": "tested",
+					"data": {},
+					"metadata": {},
+					"initializedPartitions": [""],
+					"states": [
+						{
+							"partition": "",
+							"state": { "items": [0] },
+							"result": null
+						}
+					]
+				},
+				{
+					"eventType": "tested",
+					"data": {},
+					"metadata": {},
+					"states": [
+						{
+							"partition": "",
+							"state": { "items": [0, 1] },
+							"result": null
+						}
+					]
+				}
+			]
+		}
+	],
+	"output": {
+		"config": {
+			"categories": [],
+			"allStreams": true,
+			"events": ["tested"],
+			"partitioned": false,
+			"definesStateTransform": true,
+			"handlesDeletedNotifications": false,
+			"producesResults": true,
+			"definesFold": true,
+			"resultStreamName": "",
+			"partitionResultStreamNamePattern": null,
+			"$includeLinks": false,
+			"reorderEvents": false,
+			"processingLag": 0,
+			"biState": false
+		}
+	}
+}
