@@ -102,6 +102,7 @@ _dotCover.*
 */es-logs
 
 node_modules
+docs/.vuepress/dist/
 test_results
 
 # Mac
