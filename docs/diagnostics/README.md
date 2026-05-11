@@ -15,7 +15,7 @@ Use the `Monitoring.Stats` RPC when you need the structured runtime view that us
 legacy `/stats` HTTP endpoint. That RPC only exposes information about the node you query and does not include
 cluster-wide state.
 
-What you see in the `stats` endpoint response is the last collected state of the server. The server collects
+What you see in the `Monitoring.Stats` response is the last collected state of the server. The server collects
 this information using events that are appended to the statistics stream. Each node has one. We use a reserved
 name for the stats stream, `$stats-<host:port>`. For example, for a single node running locally the stream
 name would be `$stats-127.0.0.1:2113`.
