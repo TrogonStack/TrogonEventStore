@@ -7,7 +7,7 @@
     "watch:css": "tailwindcss -i ./styles/app.css -o ./ui-assets/css/tailwind.generated.css --watch"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "4.2.4",
-    "tailwindcss": "4.2.4"
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.0"
   }
 }
