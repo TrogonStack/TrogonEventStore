@@ -4,18 +4,21 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture]
-public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV0 : WithReplicationService {
+public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV0 : WithReplicationService
+{
 	private long _replicationLogPosition;
 	private long _writerLogPosition;
 
-	public override void When() {
+	public override void When()
+	{
 		_replicationLogPosition = 4000;
 		_writerLogPosition = 3000;
 		Service.Handle(new ReplicationMessage.ReplicaLogPositionAck(ReplicaIdV0, _replicationLogPosition, _writerLogPosition));
 	}
 
 	[Test]
-	public void replica_Log_written_to_should_be_published() {
+	public void replica_Log_written_to_should_be_published()
+	{
 		AssertEx.IsOrBecomesTrue(() => ReplicaWriteAcks.Count == 1, msg: "ReplicaLogWrittenTo msg not received");
 		Assert.True(ReplicaWriteAcks.TryDequeue(out var commit));
 
@@ -25,11 +28,13 @@ public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV0 :
 }
 
 [TestFixture]
-public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV1 : WithReplicationService {
+public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV1 : WithReplicationService
+{
 	private long _replicationLogPosition;
 	private long _writerLogPosition;
 
-	public override void When() {
+	public override void When()
+	{
 		_replicationLogPosition = 4000;
 		_writerLogPosition = 3000;
 		Service.Handle(
@@ -37,7 +42,8 @@ public class WhenReplicationServiceReceivesReplicaLogPositionAckSubscriptionV1 :
 	}
 
 	[Test]
-	public void replica_Log_written_to_should_be_published() {
+	public void replica_Log_written_to_should_be_published()
+	{
 		AssertEx.IsOrBecomesTrue(() => ReplicaWriteAcks.Count == 1, msg: "ReplicaLogWrittenTo msg not received");
 		Assert.True(ReplicaWriteAcks.TryDequeue(out var commit));
 

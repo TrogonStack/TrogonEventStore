@@ -31,7 +31,8 @@ public sealed class TelemetryService :
 	IHandle<ElectionMessage.ElectionsDone>,
 	IHandle<SystemMessage.ReplicaStateMessage>,
 	IHandle<LeaderDiscoveryMessage.LeaderFound>,
-	IAsyncDisposable {
+	IAsyncDisposable
+{
 	private static readonly ILogger Logger = Log.ForContext<TelemetryService>();
 
 	private static readonly TimeSpan InitialInterval = TimeSpan.FromHours(1);
@@ -62,7 +63,8 @@ public sealed class TelemetryService :
 		ITelemetrySink sink,
 		IReadOnlyCheckpoint writerCheckpoint,
 		Guid nodeId
-	) {
+	)
+	{
 		_manager = manager;
 		_nodeOptions = nodeOptions;
 		_configuration = configuration;
@@ -79,18 +81,24 @@ public sealed class TelemetryService :
 	}
 
 	[AsyncMethodBuilder(typeof(SpawningAsyncTaskMethodBuilder))]
-	private async Task ProcessAsync(ITelemetrySink sink, CancellationToken token) {
-		try {
+	private async Task ProcessAsync(ITelemetrySink sink, CancellationToken token)
+	{
+		try
+		{
 			await ProcessAsync(_publisher, sink, token);
 		}
-		catch (Exception ex) when (ex is not OperationCanceledException) {
+		catch (Exception ex) when (ex is not OperationCanceledException)
+		{
 			Logger.Error(ex, "Telemetry loop stopped");
 		}
 	}
 
-	public async ValueTask DisposeAsync() {
-		if (Interlocked.Exchange(ref _cts, null) is { } cts) {
-			using (cts) {
+	public async ValueTask DisposeAsync()
+	{
+		if (Interlocked.Exchange(ref _cts, null) is { } cts)
+		{
+			using (cts)
+			{
 				cts.Cancel();
 			}
 		}
@@ -102,8 +110,10 @@ public sealed class TelemetryService :
 
 	// we send messages on the publisher, and receive responses directly to the channel
 	// using the channel reduces chatter on the main queue.
-	private async Task ProcessAsync(IPublisher publisher, ITelemetrySink sink, CancellationToken token) {
-		var channel = Channel.CreateBounded<Message>(new BoundedChannelOptions(500) {
+	private async Task ProcessAsync(IPublisher publisher, ITelemetrySink sink, CancellationToken token)
+	{
+		var channel = Channel.CreateBounded<Message>(new BoundedChannelOptions(500)
+		{
 			SingleReader = true,
 			FullMode = BoundedChannelFullMode.DropOldest,
 		});
@@ -119,8 +129,10 @@ public sealed class TelemetryService :
 		publisher.Publish(scheduleInitialCollect);
 
 		var data = new JsonObject();
-		await foreach (var message in channel.Reader.ReadAllAsync(token)) {
-			switch (message) {
+		await foreach (var message in channel.Reader.ReadAllAsync(token))
+		{
+			switch (message)
+			{
 				case TelemetryMessage.Collect:
 					await Handle(usageRequest, token);
 					publisher.Publish(usageRequest);
@@ -128,13 +140,15 @@ public sealed class TelemetryService :
 					break;
 
 				case TelemetryMessage.Response response:
-					if (string.IsNullOrWhiteSpace(response.Root)) {
+					if (string.IsNullOrWhiteSpace(response.Root))
+					{
 						data[response.Key] = response.Value;
 						break;
 					}
 
 					if (data.TryGetPropertyValue(response.Root, out var existing) &&
-						existing is JsonObject existingObject) {
+						existing is JsonObject existingObject)
+					{
 
 						existingObject[response.Key] = response.Value;
 						break;
@@ -152,27 +166,33 @@ public sealed class TelemetryService :
 		}
 	}
 
-	public void Handle(SystemMessage.StateChangeMessage message) {
+	public void Handle(SystemMessage.StateChangeMessage message)
+	{
 		_nodeState = message.State;
 	}
 
-	public void Handle(ElectionMessage.ElectionsDone message) {
+	public void Handle(ElectionMessage.ElectionsDone message)
+	{
 		_epochNumber = message.ProposalNumber;
 		_leaderId = message.Leader.InstanceId;
 	}
 
-	public void Handle(SystemMessage.ReplicaStateMessage message) {
+	public void Handle(SystemMessage.ReplicaStateMessage message)
+	{
 		_epochNumber = message.Leader.EpochNumber;
 		_leaderId = message.Leader.InstanceId;
 	}
 
-	public void Handle(LeaderDiscoveryMessage.LeaderFound message) {
+	public void Handle(LeaderDiscoveryMessage.LeaderFound message)
+	{
 		_epochNumber = message.Leader.EpochNumber;
 		_leaderId = message.Leader.InstanceId;
 	}
 
-	private async ValueTask Handle(TelemetryMessage.Request message, CancellationToken token) {
-		if (_firstEpochId == Guid.Empty) {
+	private async ValueTask Handle(TelemetryMessage.Request message, CancellationToken token)
+	{
+		if (_firstEpochId == Guid.Empty)
+		{
 			await ReadFirstEpoch(token);
 		}
 
@@ -187,7 +207,8 @@ public sealed class TelemetryService :
 
 		message.Envelope.ReplyWith(new TelemetryMessage.Response(
 			"cluster",
-			new JsonObject {
+			new JsonObject
+			{
 				["leaderId"] = JsonValue.Create(_leaderId),
 				["nodeId"] = JsonValue.Create(_nodeId),
 				["nodeState"] = _nodeState.ToString(),
@@ -195,7 +216,8 @@ public sealed class TelemetryService :
 
 		message.Envelope.ReplyWith(new TelemetryMessage.Response(
 			"configuration",
-			new JsonObject {
+			new JsonObject
+			{
 				["clusterSize"] = _nodeOptions.Cluster.ClusterSize,
 				["insecure"] = _nodeOptions.Application.Insecure,
 				["runProjections"] = _nodeOptions.Projection.RunProjections.ToString(),
@@ -205,7 +227,8 @@ public sealed class TelemetryService :
 
 		message.Envelope.ReplyWith(new TelemetryMessage.Response(
 			"database",
-			new JsonObject {
+			new JsonObject
+			{
 				["epochNumber"] = _epochNumber,
 				["firstEpochId"] = _firstEpochId,
 				["activeChunkNumber"] = _writerCheckpoint.Read() / _nodeOptions.Database.ChunkSize,
@@ -213,7 +236,8 @@ public sealed class TelemetryService :
 
 		var env = EnvironmentTelemetry.Collect(_nodeOptions);
 		message.Envelope.ReplyWith(new TelemetryMessage.Response(
-			"environment", new JsonObject {
+			"environment", new JsonObject
+			{
 				["os"] = env.Machine.OS,
 				["coreCount"] = env.Machine.ProcessorCount,
 				["isContainer"] = env.Container.IsContainer,
@@ -227,13 +251,16 @@ public sealed class TelemetryService :
 			.SelectMany(plugin => _pluginDiagnosticsDataCollector
 				.CollectedEvents(plugin.DiagnosticsName)
 				.Where(evt => evt.CollectionMode == Snapshot))
-			.ForEach(evt => {
-				try {
+			.ForEach(evt =>
+			{
+				try
+				{
 					var payload = JsonSerializer.SerializeToNode(
 						evt.Data.ToDictionary(kvp => LowerFirstLetter(kvp.Key), kvp => kvp.Value));
 					message.Envelope.ReplyWith(new TelemetryMessage.Response(LowerFirstLetter(evt.Source), payload));
 				}
-				catch (Exception ex) {
+				catch (Exception ex)
+				{
 					Logger.Warning(ex, "Failed to collect telemetry from pluggable component {Source}", evt.Source);
 				}
 			});
@@ -251,41 +278,50 @@ public sealed class TelemetryService :
 		}
 	}
 
-	private static string LowerFirstLetter(string x) {
-		if (string.IsNullOrEmpty(x) || char.IsLower(x[0])) {
+	private static string LowerFirstLetter(string x)
+	{
+		if (string.IsNullOrEmpty(x) || char.IsLower(x[0]))
+		{
 			return x;
 		}
 
 		return $"{char.ToLower(x[0])}{x[1..]}";
 	}
 
-	private static void OnGossipReceived(IEnvelope<TelemetryMessage.Response> envelope, Message message) {
-		if (message is not GossipMessage.SendGossip gossip) {
+	private static void OnGossipReceived(IEnvelope<TelemetryMessage.Response> envelope, Message message)
+	{
+		if (message is not GossipMessage.SendGossip gossip)
+		{
 			return;
 		}
 
 		var seeds = new JsonObject();
 
-		foreach (var member in gossip.ClusterInfo.Members) {
+		foreach (var member in gossip.ClusterInfo.Members)
+		{
 			seeds[member.InstanceId.ToString()] = member.State.ToString();
 		}
 
 		envelope.ReplyWith(new TelemetryMessage.Response("gossip", seeds));
 	}
 
-	private async ValueTask ReadFirstEpoch(CancellationToken token) {
-		try {
+	private async ValueTask ReadFirstEpoch(CancellationToken token)
+	{
+		try
+		{
 			var chunk = _manager.GetChunkFor(0);
 			var result = await chunk.TryReadAt(0, false, token);
 
-			if (!result.Success) {
+			if (!result.Success)
+			{
 				return;
 			}
 
 			var epoch = ((SystemLogRecord)result.LogRecord).GetEpochRecord();
 			_firstEpochId = epoch.EpochId;
 		}
-		catch {
+		catch
+		{
 			// noop
 		}
 	}

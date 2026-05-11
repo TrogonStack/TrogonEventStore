@@ -17,18 +17,21 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.event_by_type_index_event_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_index_based_read_completes_before_timeout<TLogFormat, TStreamId> : EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId> {
+public class when_index_based_read_completes_before_timeout<TLogFormat, TStreamId> : EventByTypeIndexEventReaderTestFixture<TLogFormat, TStreamId>
+{
 	private EventByTypeIndexEventReader _eventReader;
 	private Guid _distributionCorrelationId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_distributionCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
 		var fromPositions = new Dictionary<string, long>();
@@ -85,7 +88,8 @@ public class when_index_based_read_completes_before_timeout<TLogFormat, TStreamI
 	}
 
 	[Test]
-	public void should_deliver_events() {
+	public void should_deliver_events()
+	{
 		Assert.AreEqual(3,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}

@@ -4,13 +4,16 @@ using EventStore.Core.Data;
 using EndPoint = System.Net.EndPoint;
 
 
-namespace EventStore.Core.Services.VNode {
+namespace EventStore.Core.Services.VNode
+{
 
-	public class LeaderInfoProvider {
+	public class LeaderInfoProvider
+	{
 		private readonly GossipAdvertiseInfo _gossipInfo;
 		private readonly Cluster.MemberInfo _leaderInfo;
 
-		public LeaderInfoProvider(GossipAdvertiseInfo gossipInfo, Cluster.MemberInfo leaderInfo) {
+		public LeaderInfoProvider(GossipAdvertiseInfo gossipInfo, Cluster.MemberInfo leaderInfo)
+		{
 			Ensure.NotNull(gossipInfo, "gossipInfo");
 
 			_gossipInfo = gossipInfo;
@@ -18,7 +21,8 @@ namespace EventStore.Core.Services.VNode {
 		}
 
 		public (EndPoint AdvertisedTcpEndPoint, bool IsTcpEndPointSecure, EndPoint AdvertisedHttpEndPoint)
-			GetLeaderInfoEndPoints() {
+			GetLeaderInfoEndPoints()
+		{
 
 			var endpoints = _leaderInfo != null
 				? (TcpEndPoint: _leaderInfo.ExternalTcpEndPoint ?? _leaderInfo.ExternalSecureTcpEndPoint,

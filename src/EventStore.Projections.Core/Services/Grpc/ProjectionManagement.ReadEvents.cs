@@ -14,17 +14,20 @@ using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement {
+internal partial class ProjectionManagement
+{
 	private static readonly Operation DebugProjectionOperation = new Operation(Operations.Projections.DebugProjection);
 
-	public override async Task<ReadEventsResp> ReadEvents(ReadEventsReq request, ServerCallContext context) {
+	public override async Task<ReadEventsResp> ReadEvents(ReadEventsReq request, ServerCallContext context)
+	{
 		var readSource = new TaskCompletionSource<FeedReaderMessage.FeedPage>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var cancellationRegistration =
 			context.CancellationToken.Register(() => readSource.TrySetCanceled(context.CancellationToken));
 		var options = request.Options;
 		var user = context.GetHttpContext().User;
 
-		if (!await _authorizationProvider.CheckAccessAsync(user, DebugProjectionOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, DebugProjectionOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -42,18 +45,22 @@ internal partial class ProjectionManagement {
 			maxEvents));
 
 		var page = await readSource.Task;
-		if (page.Error == FeedReaderMessage.FeedPage.ErrorStatus.NotAuthorized) {
+		if (page.Error == FeedReaderMessage.FeedPage.ErrorStatus.NotAuthorized)
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
-		var details = new ReadEventsResp.Types.Details {
+		var details = new ReadEventsResp.Types.Details
+		{
 			CorrelationId = page.CorrelationId.ToString("D"),
 			ReaderPositionJson = page.LastReaderPosition.ToJsonRaw().ToString()
 		};
 
-		foreach (var taggedEvent in page.Events) {
+		foreach (var taggedEvent in page.Events)
+		{
 			var resolvedEvent = taggedEvent.ResolvedEvent;
-			details.Events.Add(new ReadEventsResp.Types.Details.Types.Event {
+			details.Events.Add(new ReadEventsResp.Types.Details.Types.Event
+			{
 				EventStreamId = resolvedEvent.EventStreamId ?? string.Empty,
 				EventNumber = resolvedEvent.EventSequenceNumber,
 				EventType = resolvedEvent.EventType ?? string.Empty,
@@ -65,12 +72,15 @@ internal partial class ProjectionManagement {
 			});
 		}
 
-		return new ReadEventsResp {
+		return new ReadEventsResp
+		{
 			Details = details
 		};
 
-		void OnMessage(Message message) {
-			if (message is not FeedReaderMessage.FeedPage page) {
+		void OnMessage(Message message)
+		{
+			if (message is not FeedReaderMessage.FeedPage page)
+			{
 				readSource.TrySetException(UnknownMessage<FeedReaderMessage.FeedPage>(message));
 				return;
 			}
@@ -79,30 +89,38 @@ internal partial class ProjectionManagement {
 		}
 	}
 
-	private static QuerySourcesDefinition ParseQuerySources(string querySourcesJson) {
-		if (string.IsNullOrWhiteSpace(querySourcesJson)) {
+	private static QuerySourcesDefinition ParseQuerySources(string querySourcesJson)
+	{
+		if (string.IsNullOrWhiteSpace(querySourcesJson))
+		{
 			throw RpcExceptions.InvalidArgument("A projection query source definition is required.");
 		}
 
-		try {
+		try
+		{
 			var parsed = querySourcesJson.ParseJson<QuerySourcesDefinition>();
 			return parsed ?? throw RpcExceptions.InvalidArgument("A projection query source definition is required.");
 		}
-		catch (Exception ex) when (ex is not RpcException) {
+		catch (Exception ex) when (ex is not RpcException)
+		{
 			throw RpcExceptions.InvalidArgument($"Failed to parse query source definition: {ex.Message}");
 		}
 	}
 
-	private static CheckpointTag ParseCheckpointTag(string positionJson) {
-		if (string.IsNullOrWhiteSpace(positionJson)) {
+	private static CheckpointTag ParseCheckpointTag(string positionJson)
+	{
+		if (string.IsNullOrWhiteSpace(positionJson))
+		{
 			throw RpcExceptions.InvalidArgument("A projection checkpoint position is required.");
 		}
 
-		try {
+		try
+		{
 			using var tokenReader = new JTokenReader(JToken.Parse(positionJson));
 			return CheckpointTag.FromJson(tokenReader, new ProjectionVersion(0, 0, 0)).Tag;
 		}
-		catch (Exception ex) when (ex is not RpcException) {
+		catch (Exception ex) when (ex is not RpcException)
+		{
 			throw RpcExceptions.InvalidArgument($"Failed to parse checkpoint position: {ex.Message}");
 		}
 	}

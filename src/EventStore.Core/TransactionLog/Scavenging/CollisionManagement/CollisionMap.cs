@@ -1,7 +1,8 @@
 using System;
 using EventStore.Core.Index.Hashes;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// this class efficiently stores/retrieves data against keys that very rarely but sometimes have a
 	// hash collision.
 	// when there is a hash collision the key is stored explicitly with the value
@@ -15,7 +16,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	// for retrieval, if you have the key (and it has been checked for collision) then this
 	// will look in the right submap. if you have a handle then this will look into the submap
 	// according to the kind of handle.
-	public class CollisionMap<TKey, TValue> {
+	public class CollisionMap<TKey, TValue>
+	{
 		private readonly IScavengeMap<ulong, TValue> _nonCollisions;
 		private readonly IScavengeMap<TKey, TValue> _collisions;
 		private readonly ILongHasher<TKey> _hasher;
@@ -25,7 +27,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ILongHasher<TKey> hasher,
 			Func<TKey, bool> isCollision,
 			IScavengeMap<ulong, TValue> nonCollisions,
-			IScavengeMap<TKey, TValue> collisions) {
+			IScavengeMap<TKey, TValue> collisions)
+		{
 
 			_hasher = hasher;
 			_isCollision = isCollision;
@@ -40,8 +43,10 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				? _collisions.TryGetValue(key, out value)
 				: _nonCollisions.TryGetValue(_hasher.Hash(key), out value);
 
-		public bool TryGetValue(StreamHandle<TKey> handle, out TValue value) {
-			switch (handle.Kind) {
+		public bool TryGetValue(StreamHandle<TKey> handle, out TValue value)
+		{
+			switch (handle.Kind)
+			{
 				case StreamHandle.Kind.Hash:
 					return _nonCollisions.TryGetValue(handle.StreamHash, out value);
 				case StreamHandle.Kind.Id:
@@ -51,12 +56,16 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			}
 		}
 
-		public TValue this[TKey key] {
-			set {
-				if (_isCollision(key)) {
+		public TValue this[TKey key]
+		{
+			set
+			{
+				if (_isCollision(key))
+				{
 					_collisions[key] = value;
 				}
-				else {
+				else
+				{
 					_nonCollisions[_hasher.Hash(key)] = value;
 				}
 			}
@@ -65,12 +74,15 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		// when a key that didn't used to be a collision, becomes a collision.
 		// the remove and the add must be performed atomically.
 		// but the overall operation is idempotent
-		public void NotifyCollision(TKey key) {
+		public void NotifyCollision(TKey key)
+		{
 			var hash = _hasher.Hash(key);
-			if (_nonCollisions.TryRemove(hash, out var value)) {
+			if (_nonCollisions.TryRemove(hash, out var value))
+			{
 				_collisions[key] = value;
 			}
-			else {
+			else
+			{
 				// we are notified that the key is a collision, but we dont have any entry for it
 				// so nothing to do
 			}

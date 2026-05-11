@@ -1,7 +1,9 @@
 using EventStore.Core.Bus;
 
-namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy {
-	public interface IPersistentSubscriptionConsumerStrategyFactory {
+namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy
+{
+	public interface IPersistentSubscriptionConsumerStrategyFactory
+	{
 		string StrategyName { get; }
 
 		IPersistentSubscriptionConsumerStrategy

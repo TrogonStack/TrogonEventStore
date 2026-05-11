@@ -21,7 +21,8 @@ namespace EventStore.Core.Metrics;
 //
 // Multiple threads can Record and Observe concurrently, but only one thread should record at a time
 // or recordings may be dropped.
-public class RecentMax<T> {
+public class RecentMax<T>
+{
 	private readonly Comparer<T> _comparer = Comparer<T>.Default;
 	private readonly long _ticksPerBucket;
 	private readonly int _numBuckets;
@@ -32,7 +33,8 @@ public class RecentMax<T> {
 	// we use this to determine what data (buckets) have become stale in the mean time
 	private long _lastSubPeriod;
 
-	public RecentMax(int expectedScrapeIntervalSeconds) {
+	public RecentMax(int expectedScrapeIntervalSeconds)
+	{
 		var calc = new BucketCalculator(expectedScrapeIntervalSeconds);
 		_numBuckets = calc.NumBuckets;
 		MinPeriodSeconds = calc.MinPeriodSeconds;
@@ -46,32 +48,38 @@ public class RecentMax<T> {
 	public long MinPeriodSeconds { get; init; }
 	public long MaxPeriodSeconds { get; init; }
 
-	public Instant Record(Instant now, T value) {
+	public Instant Record(Instant now, T value)
+	{
 		var currentSubPeriod = now.Ticks / _ticksPerBucket;
 
 		ResetStaleBuckets(currentSubPeriod);
 
 		var currentIndex = (int)(currentSubPeriod % _numBuckets);
-		if (_comparer.Compare(value, _maxBuckets[currentIndex]) > 0) {
+		if (_comparer.Compare(value, _maxBuckets[currentIndex]) > 0)
+		{
 			_maxBuckets[currentIndex] = value;
 		}
 
 		return now;
 	}
 
-	public T Observe(Instant now) {
+	public T Observe(Instant now)
+	{
 		ResetStaleBuckets(now.Ticks / _ticksPerBucket);
 		return _maxBuckets.Max();
 	}
 
-	private void ResetStaleBuckets(long currentSubPeriod) {
-		lock (_lock) {
+	private void ResetStaleBuckets(long currentSubPeriod)
+	{
+		lock (_lock)
+		{
 			// reset from the _lastSubPeriod (exclusive) to the currentSubPeriod (inclusive)
 			// which means we need to reset n buckets starting from the bucket after the
 			// _lastSubPeriod where n is currentSubPeriod - _lastSubPeriod, but at most _numBuckets.
 			var numBucketsToReset = Math.Min(currentSubPeriod - _lastSubPeriod, _numBuckets);
 			var targetBucket = (_lastSubPeriod + 1) % _numBuckets;
-			for (var n = 0; n < numBucketsToReset; n++) {
+			for (var n = 0; n < numBucketsToReset; n++)
+			{
 				_maxBuckets[targetBucket] = default;
 				targetBucket = (targetBucket + 1) % _numBuckets;
 			}
@@ -88,33 +96,41 @@ public class RecentMax<T> {
 	// the datapoints immediately before the GC, not the spike from the GC itself.
 	// we can't improve on this by comparing the time of the scrape with the time of the previous
 	// scrape because there might be multiple scrapers.
-	public class BucketCalculator {
-		public BucketCalculator(int expectedScrapeIntervalSeconds) {
-			if (expectedScrapeIntervalSeconds == 0) {
+	public class BucketCalculator
+	{
+		public BucketCalculator(int expectedScrapeIntervalSeconds)
+		{
+			if (expectedScrapeIntervalSeconds == 0)
+			{
 				// observed durations in the range 0-1s
 				NumBuckets = 1;
 				SecondsPerBucket = 1;
 			}
-			else if (expectedScrapeIntervalSeconds == 1) {
+			else if (expectedScrapeIntervalSeconds == 1)
+			{
 				// observed durations in the range 2-3s
 				NumBuckets = 3;
 				SecondsPerBucket = 1;
 			}
-			else if (expectedScrapeIntervalSeconds == 5) {
+			else if (expectedScrapeIntervalSeconds == 5)
+			{
 				// observed durations in the range 6-8s
 				NumBuckets = 4;
 				SecondsPerBucket = 2;
 			}
-			else if (expectedScrapeIntervalSeconds == 10) {
+			else if (expectedScrapeIntervalSeconds == 10)
+			{
 				// observed durations in the range 12-15s
 				NumBuckets = 5;
 				SecondsPerBucket = 3;
 			}
-			else if (expectedScrapeIntervalSeconds % 15 == 0) {
+			else if (expectedScrapeIntervalSeconds % 15 == 0)
+			{
 				NumBuckets = 5;
 				SecondsPerBucket = expectedScrapeIntervalSeconds / 15 * 4;
 			}
-			else {
+			else
+			{
 				throw new ArgumentException(
 					$"ExpectedScrapeIntervalSeconds must be 0, 1, 5, 10 or a multiple of 15, " +
 					$"but was {expectedScrapeIntervalSeconds}");

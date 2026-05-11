@@ -14,17 +14,21 @@ namespace EventStore.ClusterNode.Components.Services;
 public sealed class QueryBrowserService(
 	IPublisher publisher,
 	IAuthorizationProvider authorizationProvider,
-	IHttpContextAccessor httpContextAccessor) {
+	IHttpContextAccessor httpContextAccessor)
+{
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation CreateQueryOperation = new Operation(Operations.Projections.Create)
 		.WithParameter(Operations.Projections.Parameters.Query);
 
-	public async Task<QueryRunPage> RunTransient(string query, CancellationToken cancellationToken = default) {
-		if (string.IsNullOrWhiteSpace(query)) {
+	public async Task<QueryRunPage> RunTransient(string query, CancellationToken cancellationToken = default)
+	{
+		if (string.IsNullOrWhiteSpace(query))
+		{
 			return QueryRunPage.Unavailable(query ?? "", "Enter a query before running it.");
 		}
 
-		if (!await HasAccess(CreateQueryOperation, cancellationToken)) {
+		if (!await HasAccess(CreateQueryOperation, cancellationToken))
+		{
 			return QueryRunPage.Unavailable(query, "Transient query access was denied.");
 		}
 
@@ -33,7 +37,8 @@ public sealed class QueryBrowserService(
 			mapFailure: message => message is ProjectionManagementMessage.OperationFailed failed ? failed.Reason ?? "" : null);
 
 		ProjectionManagementMessage.Updated completed;
-		try {
+		try
+		{
 			publisher.Publish(new ProjectionManagementMessage.Command.Post(
 				envelope,
 				ProjectionMode.Transient,
@@ -49,14 +54,17 @@ public sealed class QueryBrowserService(
 
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return QueryRunPage.Unavailable(query,
 				$"Timed out creating transient query '{projectionName}'. It may still be visible temporarily before automatic expiry.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return QueryRunPage.Unavailable(query, $"Unable to create transient query: {UiMessages.Friendly(ex)}");
 		}
 
@@ -74,7 +82,8 @@ public sealed class QueryBrowserService(
 public sealed record QueryRunPage(
 	string Query,
 	string ProjectionName,
-	string Message) {
+	string Message)
+{
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasProjection => !string.IsNullOrWhiteSpace(ProjectionName);
 	public string ProjectionHref => HasProjection ? $"/ui/projections/{Uri.EscapeDataString(ProjectionName)}" : "";

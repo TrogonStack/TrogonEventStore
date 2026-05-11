@@ -12,13 +12,15 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.position_tagging.stream_position_tagger;
 
 [TestFixture]
-public class stream_position_tagger {
+public class stream_position_tagger
+{
 	private ReaderSubscriptionMessage.CommittedEventDistributed _zeroEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _firstEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _secondEvent;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_zeroEvent = ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 			Guid.NewGuid(), new TFPos(10, 0), "stream1", 0, false, Guid.NewGuid(), "StreamCreated", false,
 			new byte[0], new byte[0]);
@@ -31,34 +33,39 @@ public class stream_position_tagger {
 	}
 
 	[Test]
-	public void can_be_created() {
+	public void can_be_created()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		new PositionTracker(t);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_after_case() {
+	public void is_message_after_checkpoint_tag_after_case()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromStreamPosition(0, "stream1", 0), _firstEvent);
 		Assert.IsTrue(result);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_before_case() {
+	public void is_message_after_checkpoint_tag_before_case()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromStreamPosition(0, "stream1", 2), _firstEvent);
 		Assert.IsFalse(result);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_equal_case() {
+	public void is_message_after_checkpoint_tag_equal_case()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromStreamPosition(0, "stream1", 1), _firstEvent);
 		Assert.IsFalse(result);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_incompatible_case() {
+	public void is_message_after_checkpoint_tag_incompatible_case()
+	{
 		// events from other streams are not after any tag
 		var t = new StreamPositionTagger(0, "stream-other");
 		var result = t.IsMessageAfterCheckpointTag(CheckpointTag.FromStreamPosition(0, "stream1", 1), _firstEvent);
@@ -67,42 +74,49 @@ public class stream_position_tagger {
 
 
 	[Test]
-	public void null_stream_throws_argument_null_exception() {
+	public void null_stream_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => { new StreamPositionTagger(0, null); });
 	}
 
 	[Test]
-	public void empty_stream_throws_argument_exception() {
+	public void empty_stream_throws_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() => { new StreamPositionTagger(0, ""); });
 	}
 
 	[Test]
-	public void position_checkpoint_tag_is_incompatible() {
+	public void position_checkpoint_tag_is_incompatible()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		Assert.IsFalse(t.IsCompatible(CheckpointTag.FromPosition(0, 1000, 500)));
 	}
 
 	[Test]
-	public void anothe_stream_checkpoint_tag_is_incompatible() {
+	public void anothe_stream_checkpoint_tag_is_incompatible()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		Assert.IsFalse(t.IsCompatible(CheckpointTag.FromStreamPosition(0, "stream2", 100)));
 	}
 
 	[Test]
-	public void the_same_stream_checkpoint_tag_is_compatible() {
+	public void the_same_stream_checkpoint_tag_is_compatible()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		Assert.IsTrue(t.IsCompatible(CheckpointTag.FromStreamPosition(0, "stream1", 100)));
 	}
 
 	[Test]
-	public void adjust_compatible_tag_returns_the_same_tag() {
+	public void adjust_compatible_tag_returns_the_same_tag()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var tag = CheckpointTag.FromStreamPosition(0, "stream1", 1);
 		Assert.AreEqual(tag, t.AdjustTag(tag));
 	}
 
 	[Test]
-	public void can_adjust_multi_stream_position_tag() {
+	public void can_adjust_multi_stream_position_tag()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var tag = CheckpointTag.FromStreamPosition(0, "stream1", 1);
 		var original =
@@ -111,7 +125,8 @@ public class stream_position_tagger {
 	}
 
 	[Test]
-	public void zero_position_tag_is_before_first_event_possible() {
+	public void zero_position_tag_is_before_first_event_possible()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var zero = t.MakeZeroCheckpointTag();
 
@@ -121,7 +136,8 @@ public class stream_position_tagger {
 	}
 
 	[Test]
-	public void produced_checkpoint_tags_are_correctly_ordered() {
+	public void produced_checkpoint_tags_are_correctly_ordered()
+	{
 		var t = new StreamPositionTagger(0, "stream1");
 		var zero = t.MakeZeroCheckpointTag();
 

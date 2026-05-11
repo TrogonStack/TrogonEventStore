@@ -7,22 +7,28 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.VNode;
 
-internal abstract class P : Message {
+internal abstract class P : Message
+{
 }
 
-internal class A : P {
+internal class A : P
+{
 }
 
-internal class B : P {
+internal class B : P
+{
 }
 
-internal class C : Message {
+internal class C : Message
+{
 }
 
 [TestFixture]
-public class vnode_fsm_should {
+public class vnode_fsm_should
+{
 	[Test]
-	public async Task allow_ignoring_messages_by_common_ancestor() {
+	public async Task allow_ignoring_messages_by_common_ancestor()
+	{
 		var fsm = new VNodeFSMBuilder(new ValueReference<VNodeState>(VNodeState.Leader))
 			.InAnyState()
 			.When<P>().Ignore()
@@ -34,7 +40,8 @@ public class vnode_fsm_should {
 	}
 
 	[Test]
-	public async Task handle_specific_message_even_if_base_message_is_ignored() {
+	public async Task handle_specific_message_even_if_base_message_is_ignored()
+	{
 		bool aHandled = false;
 		var fsm = new VNodeFSMBuilder(new ValueReference<VNodeState>(VNodeState.Leader))
 			.InAnyState()
@@ -50,7 +57,8 @@ public class vnode_fsm_should {
 	}
 
 	[Test]
-	public async Task ignore_base_handler_if_derived_message_published() {
+	public async Task ignore_base_handler_if_derived_message_published()
+	{
 		var fsm = new VNodeFSMBuilder(new ValueReference<VNodeState>(VNodeState.Leader))
 			.InAnyState()
 			.When<P>()
@@ -65,7 +73,8 @@ public class vnode_fsm_should {
 	}
 
 	[Test]
-	public async Task ignore_base_handler_if_derived_message_published_diff_reg_order() {
+	public async Task ignore_base_handler_if_derived_message_published_diff_reg_order()
+	{
 		var fsm = new VNodeFSMBuilder(new ValueReference<VNodeState>(VNodeState.Leader))
 			.InState(VNodeState.Leader)
 			.When<A>()

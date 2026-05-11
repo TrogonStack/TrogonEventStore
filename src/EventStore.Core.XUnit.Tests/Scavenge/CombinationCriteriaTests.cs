@@ -10,11 +10,13 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests> {
+public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests>
+{
 	// in combination, we discard the event if any of the criteria says we can discard it.
 	// 'then' means the latter taking priority
 	[Fact]
-	public async Task max_count_then_tombstone() {
+	public async Task max_count_then_tombstone()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -33,7 +35,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task max_count_discards_more_than_max_age() {
+	public async Task max_count_discards_more_than_max_age()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -56,7 +59,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task max_count_discards_more_than_truncate_before() {
+	public async Task max_count_discards_more_than_truncate_before()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -79,7 +83,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task max_count_discards_more_than_max_age_and_truncate_before() {
+	public async Task max_count_discards_more_than_max_age_and_truncate_before()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -105,7 +110,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task truncate_before_discards_more_than_max_count() {
+	public async Task truncate_before_discards_more_than_max_count()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -128,7 +134,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task truncate_before_discards_more_than_max_age() {
+	public async Task truncate_before_discards_more_than_max_age()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -151,7 +158,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task truncate_before_discards_more_than_max_age_and_max_count() {
+	public async Task truncate_before_discards_more_than_max_age_and_max_count()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -177,7 +185,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task max_age_discards_more_than_max_count() {
+	public async Task max_age_discards_more_than_max_count()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -207,7 +216,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task max_age_discards_more_than_truncate_before() {
+	public async Task max_age_discards_more_than_truncate_before()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -237,7 +247,8 @@ public class CombinationCriteriaTests : SqliteDbPerTest<CombinationCriteriaTests
 	}
 
 	[Fact]
-	public async Task max_age_discards_more_than_truncate_before_and_max_count() {
+	public async Task max_age_discards_more_than_truncate_before_and_max_count()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

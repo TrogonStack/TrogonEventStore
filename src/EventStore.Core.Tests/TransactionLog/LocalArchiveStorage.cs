@@ -16,64 +16,79 @@ public sealed class LocalArchiveStorage(
 	string archivePath,
 	IArchiveChunkNamer chunkNamer,
 	string archiveCheckpointFile)
-	: IArchiveStorageReader, IArchiveStorageWriter {
+	: IArchiveStorageReader, IArchiveStorageWriter
+{
 	public IArchiveChunkNamer ChunkNamer { get; } = chunkNamer;
 
-	public ValueTask<long> GetCheckpoint(CancellationToken ct) {
+	public ValueTask<long> GetCheckpoint(CancellationToken ct)
+	{
 		var checkpointPath = Path.Combine(archivePath, archiveCheckpointFile);
-		if (!File.Exists(checkpointPath)) {
+		if (!File.Exists(checkpointPath))
+		{
 			return ValueTask.FromResult(0L);
 		}
 
 		Span<byte> buffer = stackalloc byte[sizeof(long)];
 		using var handle = File.OpenHandle(checkpointPath);
-		if (RandomAccess.Read(handle, buffer, fileOffset: 0L) != buffer.Length) {
+		if (RandomAccess.Read(handle, buffer, fileOffset: 0L) != buffer.Length)
+		{
 			throw new EndOfStreamException();
 		}
 
 		return ValueTask.FromResult(BinaryPrimitives.ReadInt64LittleEndian(buffer));
 	}
 
-	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct) {
+	public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
+	{
 		ct.ThrowIfCancellationRequested();
 
-		try {
+		try
+		{
 			return ValueTask.FromResult(new FileInfo(Path.Combine(archivePath, chunkFile)).Length);
 		}
-		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) {
+		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+		{
 			return ValueTask.FromException<long>(new ChunkDeletedException());
 		}
 	}
 
-	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct) {
-		try {
+	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
+	{
+		try
+		{
 			return ValueTask.FromResult<Stream>(File.OpenRead(Path.Combine(archivePath, chunkFile)));
 		}
-		catch (FileNotFoundException) {
+		catch (FileNotFoundException)
+		{
 			return ValueTask.FromException<Stream>(new ChunkDeletedException());
 		}
 	}
 
-	public async ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct) {
+	public async ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
+	{
 		ArgumentOutOfRangeException.ThrowIfNegative(start);
 
 		var length = end - start;
-		if (length == 0) {
+		if (length == 0)
+		{
 			return Stream.Null;
 		}
 
-		if (length < 0) {
+		if (length < 0)
+		{
 			throw new InvalidOperationException(
 				$"Attempted to read negative amount from chunk {chunkFile}. Start: {start}. End {end}");
 		}
 
 		var path = Path.Combine(archivePath, chunkFile);
-		if (!File.Exists(path)) {
+		if (!File.Exists(path))
+		{
 			throw new ChunkDeletedException();
 		}
 
 		var bytes = await File.ReadAllBytesAsync(path, ct);
-		if (start >= bytes.Length) {
+		if (start >= bytes.Length)
+		{
 			return Stream.Null;
 		}
 
@@ -85,17 +100,20 @@ public sealed class LocalArchiveStorage(
 			writable: false);
 	}
 
-	public async IAsyncEnumerable<string> ListChunks([EnumeratorCancellation] CancellationToken ct) {
+	public async IAsyncEnumerable<string> ListChunks([EnumeratorCancellation] CancellationToken ct)
+	{
 		foreach (var fileName in Directory.EnumerateFiles(archivePath, $"{ChunkNamer.Prefix}*")
 					 .Select(Path.GetFileName)
-					 .Order()) {
+					 .Order())
+		{
 			ct.ThrowIfCancellationRequested();
 			yield return fileName!;
 			await Task.Yield();
 		}
 	}
 
-	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct) {
+	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
+	{
 		var checkpointPath = Path.Combine(archivePath, archiveCheckpointFile);
 		Span<byte> buffer = stackalloc byte[sizeof(long)];
 		BinaryPrimitives.WriteInt64LittleEndian(buffer, checkpoint);
@@ -103,8 +121,10 @@ public sealed class LocalArchiveStorage(
 		return ValueTask.FromResult(true);
 	}
 
-	public async ValueTask<bool> StoreChunk(string chunkPath, string destinationFile, CancellationToken ct) {
-		if (!File.Exists(chunkPath)) {
+	public async ValueTask<bool> StoreChunk(string chunkPath, string destinationFile, CancellationToken ct)
+	{
+		if (!File.Exists(chunkPath))
+		{
 			throw new ChunkDeletedException();
 		}
 

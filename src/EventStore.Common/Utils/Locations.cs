@@ -5,7 +5,8 @@ using System.Runtime;
 
 namespace EventStore.Common.Utils;
 
-public class Locations {
+public class Locations
+{
 	public static readonly string ApplicationDirectory;
 	public static readonly string UiAssetsDirectory;
 	public static readonly string PluginsDirectory;
@@ -17,14 +18,16 @@ public class Locations {
 	public static readonly string FallbackDefaultDataDirectory;
 	public static readonly string DefaultTrustedRootCertificateDirectory;
 
-	static Locations() {
+	static Locations()
+	{
 		ApplicationDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
 							   Path.GetFullPath(".");
 
 		PluginsDirectory = Path.Combine(ApplicationDirectory, "plugins");
 		FallbackDefaultDataDirectory = Path.Combine(ApplicationDirectory, "data");
 
-		switch (RuntimeInformation.OsPlatform) {
+		switch (RuntimeInformation.OsPlatform)
+		{
 			case RuntimeOSPlatform.Linux:
 				DefaultContentDirectory = "/usr/share/eventstore";
 				DefaultConfigurationDirectory = "/etc/eventstore";
@@ -32,7 +35,8 @@ public class Locations {
 				DefaultLogDirectory = "/var/log/eventstore";
 				DefaultTrustedRootCertificateDirectory = "/etc/ssl/certs";
 				DefaultTestClientLogDirectory = Path.Combine(ApplicationDirectory, "testclientlog");
-				if (!Directory.Exists(PluginsDirectory)) {
+				if (!Directory.Exists(PluginsDirectory))
+				{
 					PluginsDirectory = Path.Combine(DefaultContentDirectory, "plugins");
 				}
 
@@ -43,7 +47,8 @@ public class Locations {
 				DefaultDataDirectory = "/var/lib/eventstore";
 				DefaultLogDirectory = "/var/log/eventstore";
 				DefaultTestClientLogDirectory = Path.Combine(ApplicationDirectory, "testclientlog");
-				if (!Directory.Exists(PluginsDirectory)) {
+				if (!Directory.Exists(PluginsDirectory))
+				{
 					PluginsDirectory = Path.Combine(DefaultContentDirectory, "plugins");
 				}
 
@@ -70,7 +75,8 @@ public class Locations {
 	/// </summary>
 	/// <param name="locations">the locations ordered by prioity starting with the preceded location</param>
 	/// <returns>the preceded location</returns>
-	public static string GetPrecededLocation(params string[] locations) {
+	public static string GetPrecededLocation(params string[] locations)
+	{
 		var precedenceList = locations.Distinct().ToList();
 		return precedenceList.FirstOrDefault(Directory.Exists) ??
 			   precedenceList.Last();
@@ -88,7 +94,8 @@ public class Locations {
 	/// Tries to identify the name and path of the given config file.
 	/// Given a full path to a file it just splits the path into directory and file.
 	/// Given a only config file name, looks for that file in the potential directories.
-	public static bool TryLocateConfigFile(string configFilePath, out string directory, out string fileName) {
+	public static bool TryLocateConfigFile(string configFilePath, out string directory, out string fileName)
+	{
 		directory = Path.IsPathRooted(configFilePath)
 			? Path.GetDirectoryName(configFilePath)
 			: GetPotentialConfigurationDirectories().FirstOrDefault(d =>

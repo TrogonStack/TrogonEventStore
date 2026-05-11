@@ -1,5 +1,7 @@
-namespace EventStore.Core.Data.Redaction {
-	public enum SwitchChunkResult {
+namespace EventStore.Core.Data.Redaction
+{
+	public enum SwitchChunkResult
+	{
 		None = 0,
 		Success = 1,
 		TargetChunkFileNameInvalid = 2,
@@ -18,9 +20,12 @@ namespace EventStore.Core.Data.Redaction {
 		TargetChunkFormatNotSupported = 15,
 	}
 
-	public static class SwitchChunkResultExtensions {
-		public static string GetErrorMessage(this SwitchChunkResult result) {
-			return result switch {
+	public static class SwitchChunkResultExtensions
+	{
+		public static string GetErrorMessage(this SwitchChunkResult result)
+		{
+			return result switch
+			{
 				SwitchChunkResult.TargetChunkFileNameInvalid => "The target chunk's file name is not valid.",
 				SwitchChunkResult.TargetChunkFileNotFound => "The target chunk file was not found in the database directory.",
 				SwitchChunkResult.TargetChunkExcessive => "The target chunk file is not part of the database.",

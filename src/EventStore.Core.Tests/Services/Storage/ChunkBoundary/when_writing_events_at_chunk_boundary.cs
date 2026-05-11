@@ -8,10 +8,12 @@ namespace EventStore.Core.Tests.Services.Storage.ChunkBoundary;
 // It only verifies if TFChunkWriter works properly.
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenWritingEventsAtChunkBoundary<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+public class WhenWritingEventsAtChunkBoundary<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private long _writerChk;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		await WriteSingleEvent("ES", 0, new string('.', 4000), token: token);
 		await WriteSingleEvent("ES", 1, new string('.', 4000), token: token);
 		await WriteSingleEvent("ES", 2, new string('.', 4000), retryOnFail: true, token: token); // chunk 1
@@ -24,7 +26,8 @@ public class WhenWritingEventsAtChunkBoundary<TLogFormat, TStreamId> : ReadIndex
 	}
 
 	[Test]
-	public void writer_checkpoint_is_flushed() {
+	public void writer_checkpoint_is_flushed()
+	{
 		Assert.AreEqual(Db.Config.ChunkSize, _writerChk);
 	}
 }

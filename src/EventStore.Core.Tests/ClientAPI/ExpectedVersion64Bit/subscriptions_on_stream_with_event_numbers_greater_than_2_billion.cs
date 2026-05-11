@@ -12,7 +12,8 @@ namespace EventStore.Core.Tests.ClientAPI.ExpectedVersion64Bit;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [Category("ClientAPI"), Category("LongRunning")]
 public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat, TStreamId>
-	: MiniNodeWithExistingRecords<TLogFormat, TStreamId> {
+	: MiniNodeWithExistingRecords<TLogFormat, TStreamId>
+{
 	private const long intMaxValue = (long)int.MaxValue;
 
 	private string _volatileStreamOne = "subscriptions-volatile-1";
@@ -21,7 +22,8 @@ public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat
 
 	private EventRecord _c1, _c2;
 
-	public override async ValueTask WriteTestScenario(CancellationToken token) {
+	public override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		await WriteSingleEvent(_volatileStreamOne, intMaxValue + 1, new string('.', 3000), token: token);
 		await WriteSingleEvent(_volatileStreamOne, intMaxValue + 2, new string('.', 3000), token: token);
 
@@ -32,7 +34,8 @@ public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat
 		_c2 = await WriteSingleEvent(_catchupStreamOne, intMaxValue + 2, new string('.', 3000), token: token);
 	}
 
-	public override async Task Given() {
+	public override async Task Given()
+	{
 		_store = BuildConnection(Node);
 		await _store.ConnectAsync();
 		await _store.SetStreamMetadataAsync(_volatileStreamOne, EventStore.ClientAPI.ExpectedVersion.Any,
@@ -44,11 +47,13 @@ public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat
 	}
 
 	[Test]
-	public async Task should_be_able_to_subscribe_to_stream_with_volatile_subscription() {
+	public async Task should_be_able_to_subscribe_to_stream_with_volatile_subscription()
+	{
 		var evnt = new EventData(Guid.NewGuid(), "EventType", false, new byte[10], new byte[15]);
 		EventStore.ClientAPI.ResolvedEvent receivedEvent = new EventStore.ClientAPI.ResolvedEvent();
 		var mre = new ManualResetEvent(false);
-		await _store.SubscribeToStreamAsync(_volatileStreamOne, true, (s, e) => {
+		await _store.SubscribeToStreamAsync(_volatileStreamOne, true, (s, e) =>
+		{
 			receivedEvent = e;
 			mre.Set();
 			return Task.CompletedTask;
@@ -61,12 +66,15 @@ public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat
 	}
 
 	[Test]
-	public async Task should_be_able_to_subscribe_to_all_with_volatile_subscription() {
+	public async Task should_be_able_to_subscribe_to_all_with_volatile_subscription()
+	{
 		var evnt = new EventData(Guid.NewGuid(), "EventType", false, new byte[10], new byte[15]);
 		EventStore.ClientAPI.ResolvedEvent receivedEvent = new EventStore.ClientAPI.ResolvedEvent();
 		var mre = new ManualResetEvent(false);
-		await _store.SubscribeToAllAsync(true, (s, e) => {
-			if (SystemStreams.IsSystemStream(e.OriginalStreamId)) {
+		await _store.SubscribeToAllAsync(true, (s, e) =>
+		{
+			if (SystemStreams.IsSystemStream(e.OriginalStreamId))
+			{
 				return Task.CompletedTask;
 			}
 
@@ -82,12 +90,14 @@ public class SubscriptionsOnStreamWithEventNumbersGreaterThan2Billion<TLogFormat
 	}
 
 	[Test]
-	public async Task should_be_able_to_subscribe_to_stream_with_catchup_subscription() {
+	public async Task should_be_able_to_subscribe_to_stream_with_catchup_subscription()
+	{
 		var evnt = new EventData(Guid.NewGuid(), "EventType", false, new byte[10], new byte[15]);
 		List<EventStore.ClientAPI.ResolvedEvent> receivedEvents = new List<EventStore.ClientAPI.ResolvedEvent>();
 
 		var countdown = new CountdownEvent(3);
-		_store.SubscribeToStreamFrom(_catchupStreamOne, 0, CatchUpSubscriptionSettings.Default, (s, e) => {
+		_store.SubscribeToStreamFrom(_catchupStreamOne, 0, CatchUpSubscriptionSettings.Default, (s, e) =>
+		{
 			receivedEvents.Add(e);
 			countdown.Signal();
 			return Task.CompletedTask;

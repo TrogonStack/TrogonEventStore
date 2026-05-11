@@ -14,18 +14,21 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.transaction_file_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private TransactionFileEventReader _eventReader;
 	private Guid _distributionCorrelationId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_distributionCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
 		_eventReader = new TransactionFileEventReader(_bus, _distributionCorrelationId, null, new TFPos(100, 50),
@@ -56,7 +59,8 @@ public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFix
 	}
 
 	[Test]
-	public void should_deliver_events() {
+	public void should_deliver_events()
+	{
 		Assert.AreEqual(2,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}

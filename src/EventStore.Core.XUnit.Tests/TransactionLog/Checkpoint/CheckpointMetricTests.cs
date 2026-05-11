@@ -6,9 +6,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Checkpoint;
 
-public class CheckpointMetricTests {
+public class CheckpointMetricTests
+{
 	[Fact]
-	public void can_collect() {
+	public void can_collect()
+	{
 		using var meter = new Meter($"{typeof(CheckpointMetricTests)}");
 		using var listener = new TestMeterListener<long>(meter);
 		var metric = new CheckpointMetric(
@@ -19,15 +21,18 @@ public class CheckpointMetricTests {
 		listener.Observe();
 		Assert.Collection(
 			listener.RetrieveMeasurements("eventstore-checkpoints"),
-			measurement => {
+			measurement =>
+			{
 				Assert.Equal(5, measurement.Value);
 				Assert.Collection(
 					measurement.Tags.ToArray(),
-					tag => {
+					tag =>
+					{
 						Assert.Equal("name", tag.Key);
 						Assert.Equal("checkpoint", tag.Value);
 					},
-					tag => {
+					tag =>
+					{
 						Assert.Equal("read", tag.Key);
 						Assert.Equal("non-flushed", tag.Value);
 					});

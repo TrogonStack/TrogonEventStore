@@ -6,40 +6,48 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Tests.Bus.Helpers;
 
-public class WaitingConsumer : IHandle<Message>, IDisposable {
+public class WaitingConsumer : IHandle<Message>, IDisposable
+{
 	public readonly List<Message> HandledMessages = new List<Message>();
 
 	private readonly CountdownEvent _countdownEvent;
 
-	public WaitingConsumer(int initialCount) {
+	public WaitingConsumer(int initialCount)
+	{
 		_countdownEvent = new CountdownEvent(initialCount);
 	}
 
-	public void SetWaitingCount(int count) {
+	public void SetWaitingCount(int count)
+	{
 		_countdownEvent.Reset(count);
 	}
 
-	public bool Wait(int ms = 5000) {
+	public bool Wait(int ms = 5000)
+	{
 		return _countdownEvent.Wait(ms);
 	}
 
-	public void Handle(Message message) {
+	public void Handle(Message message)
+	{
 		HandledMessages.Add(message);
 
 		var typedMsg = message as DeferredExecutionTestMessage;
-		if (typedMsg != null) {
+		if (typedMsg != null)
+		{
 			((Action<DeferredExecutionTestMessage>)(deffered => deffered.Execute()))(typedMsg);
 		}
 
 		var executableTestMessage = message as ExecutableTestMessage;
-		if (executableTestMessage != null) {
+		if (executableTestMessage != null)
+		{
 			((Action<ExecutableTestMessage>)(deffered => deffered.Execute()))(executableTestMessage);
 		}
 
 		_countdownEvent.Signal();
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_countdownEvent.Dispose();
 	}
 }

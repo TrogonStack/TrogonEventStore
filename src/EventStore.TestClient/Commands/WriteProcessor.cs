@@ -7,16 +7,20 @@ using EventStore.Core.Services.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class WriteProcessor : ICmdProcessor {
-	public string Usage {
+internal class WriteProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		get { return "WR [<stream-id> <expected-version> <data> [<metadata> [<is-json> [<login> <pass>]]]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "WR"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		var eventStreamId = "test-stream";
 		var expectedVersion = ExpectedVersion.Any;
 		var data = "test-data";
@@ -25,23 +29,28 @@ internal class WriteProcessor : ICmdProcessor {
 		string login = null;
 		string pass = null;
 
-		if (args.Length > 0) {
-			if (args.Length < 3 || args.Length > 7 || args.Length == 6) {
+		if (args.Length > 0)
+		{
+			if (args.Length < 3 || args.Length > 7 || args.Length == 6)
+			{
 				return false;
 			}
 
 			eventStreamId = args[0];
 			expectedVersion = args[1].ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
 			data = args[2];
-			if (args.Length >= 4) {
+			if (args.Length >= 4)
+			{
 				metadata = args[3];
 			}
 
-			if (args.Length >= 5) {
+			if (args.Length >= 5)
+			{
 				isJson = bool.Parse(args[4]);
 			}
 
-			if (args.Length >= 7) {
+			if (args.Length >= 7)
+			{
 				login = args[5];
 				pass = args[6];
 			}
@@ -51,7 +60,8 @@ internal class WriteProcessor : ICmdProcessor {
 		var sw = new Stopwatch();
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn => {
+			connectionEstablished: conn =>
+			{
 				context.Log.Information("[{remoteEndPoint}, L{localEndPoint}]: Writing...", conn.RemoteEndPoint,
 					conn.LocalEndPoint);
 				var writeDto = new WriteEvents(
@@ -74,23 +84,27 @@ internal class WriteProcessor : ICmdProcessor {
 				sw.Start();
 				conn.EnqueueSend(package);
 			},
-			handlePackage: (conn, pkg) => {
+			handlePackage: (conn, pkg) =>
+			{
 				sw.Stop();
 				context.Log.Information("Write request took: {elapsed}.", sw.Elapsed);
 
-				if (pkg.Command != TcpCommand.WriteEventsCompleted) {
+				if (pkg.Command != TcpCommand.WriteEventsCompleted)
+				{
 					context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 					return;
 				}
 
 				var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-				if (dto.Result == EventStore.Client.Messages.OperationResult.Success) {
+				if (dto.Result == EventStore.Client.Messages.OperationResult.Success)
+				{
 					context.Log.Information("Successfully written.");
 					PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 						(int)Math.Round(sw.Elapsed.TotalMilliseconds));
 					context.Success();
 				}
-				else {
+				else
+				{
 					context.Log.Information("Error while writing: {message} ({e}).", dto.Message, dto.Result);
 					context.Fail();
 				}

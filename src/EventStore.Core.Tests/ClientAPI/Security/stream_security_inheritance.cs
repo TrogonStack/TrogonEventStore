@@ -9,9 +9,11 @@ namespace EventStore.Core.Tests.ClientAPI.Security;
 
 [Category("ClientAPI"), Category("LongRunning"), Category("Network")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class stream_security_inheritance<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId> {
+public class stream_security_inheritance<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId>
+{
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var settings = new SystemSettings(userStreamAcl: new StreamAcl(null, "user1", null, null, null),
@@ -49,7 +51,8 @@ public class stream_security_inheritance<TLogFormat, TStreamId> : Authentication
 	}
 
 	[Test]
-	public async Task acl_inheritance_is_working_properly_on_user_streams() {
+	public async Task acl_inheritance_is_working_properly_on_user_streams()
+	{
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => WriteStream("user-no-acl", null, null));
 		await WriteStream("user-no-acl", "user1", "pa$$1");
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => WriteStream("user-no-acl", "user2", "pa$$2"));
@@ -88,7 +91,8 @@ public class stream_security_inheritance<TLogFormat, TStreamId> : Authentication
 	}
 
 	[Test]
-	public async Task acl_inheritance_is_working_properly_on_system_streams() {
+	public async Task acl_inheritance_is_working_properly_on_system_streams()
+	{
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => WriteStream("$sys-no-acl", null, null));
 		await WriteStream("$sys-no-acl", "user1", "pa$$1");
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => WriteStream("$sys-no-acl", "user2", "pa$$2"));

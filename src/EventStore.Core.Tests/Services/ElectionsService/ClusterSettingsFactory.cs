@@ -7,11 +7,13 @@ using EventStore.Core.Tests.Services.Transport.Tcp;
 
 namespace EventStore.Core.Tests.Services.ElectionsService;
 
-public class ClusterSettingsFactory {
+public class ClusterSettingsFactory
+{
 	private const int ManagerPort = 1001;
 	private const int StartingPort = 1002;
 
-	private static ClusterVNodeSettings CreateVNode(int nodeNumber, bool isReadOnlyReplica) {
+	private static ClusterVNodeSettings CreateVNode(int nodeNumber, bool isReadOnlyReplica)
+	{
 		int tcpIntPort = StartingPort + nodeNumber * 2,
 			tcpExtPort = tcpIntPort + 1,
 			httpPort = tcpIntPort + 11;
@@ -25,8 +27,10 @@ public class ClusterSettingsFactory {
 
 	private static IPEndPoint GetLoopbackForPort(int port) => new(IPAddress.Loopback, port);
 
-	public static ClusterSettings GetClusterSettings(int selfIndex, int nodesCount, bool isSelfReadOnlyReplica) {
-		if (selfIndex < 0 || selfIndex >= nodesCount) {
+	public static ClusterSettings GetClusterSettings(int selfIndex, int nodesCount, bool isSelfReadOnlyReplica)
+	{
+		if (selfIndex < 0 || selfIndex >= nodesCount)
+		{
 			throw new ArgumentOutOfRangeException("selfIndex", "Index of self should be in range of created nodes");
 		}
 

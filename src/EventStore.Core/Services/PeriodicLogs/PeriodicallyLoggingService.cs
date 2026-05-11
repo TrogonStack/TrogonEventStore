@@ -9,7 +9,8 @@ namespace EventStore.Core.Services.PeriodicLogs;
 
 public class PeriodicallyLoggingService :
 	IHandle<SystemMessage.SystemStart>,
-	IHandle<MonitoringMessage.CheckEsVersion> {
+	IHandle<MonitoringMessage.CheckEsVersion>
+{
 
 	private static readonly TimeSpan _interval = TimeSpan.FromHours(12);
 
@@ -18,7 +19,8 @@ public class PeriodicallyLoggingService :
 	private readonly ILogger _logger;
 	private readonly TimerMessage.Schedule _esVersionScheduleLog;
 
-	public PeriodicallyLoggingService(IPublisher publisher, string esVersion, ILogger logger) {
+	public PeriodicallyLoggingService(IPublisher publisher, string esVersion, ILogger logger)
+	{
 		Ensure.NotNull(publisher, nameof(publisher));
 		Ensure.NotNull(logger, nameof(logger));
 
@@ -29,11 +31,13 @@ public class PeriodicallyLoggingService :
 			new MonitoringMessage.CheckEsVersion());
 	}
 
-	public void Handle(SystemMessage.SystemStart message) {
+	public void Handle(SystemMessage.SystemStart message)
+	{
 		_publisher.Publish(new MonitoringMessage.CheckEsVersion());
 	}
 
-	public void Handle(MonitoringMessage.CheckEsVersion message) {
+	public void Handle(MonitoringMessage.CheckEsVersion message)
+	{
 		_logger.Information("Current version of Event Store is : {esVersion} ", _esVersion);
 		_publisher.Publish(_esVersionScheduleLog);
 	}

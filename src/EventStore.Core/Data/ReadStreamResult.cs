@@ -1,5 +1,7 @@
-namespace EventStore.Core.Data {
-	public enum ReadStreamResult {
+namespace EventStore.Core.Data
+{
+	public enum ReadStreamResult
+	{
 		Success = 0,
 		NoStream = 1,
 		StreamDeleted = 2,

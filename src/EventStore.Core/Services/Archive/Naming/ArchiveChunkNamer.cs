@@ -4,10 +4,12 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.Services.Archive.Naming;
 
-public class ArchiveChunkNamer(IVersionedFileNamingStrategy namingStrategy) : IArchiveChunkNamer {
+public class ArchiveChunkNamer(IVersionedFileNamingStrategy namingStrategy) : IArchiveChunkNamer
+{
 	public string Prefix => namingStrategy.Prefix;
 
-	public string GetFileNameFor(int logicalChunkNumber) {
+	public string GetFileNameFor(int logicalChunkNumber)
+	{
 		ArgumentOutOfRangeException.ThrowIfNegative(logicalChunkNumber);
 
 		var filePath = namingStrategy.GetFilenameFor(logicalChunkNumber, version: 1);

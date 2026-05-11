@@ -8,13 +8,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
 [TestFixture]
-public class when_handling_multiple_committed_event_passing_the_filter : TestFixtureWithProjectionSubscription {
-	protected override void Given() {
+public class when_handling_multiple_committed_event_passing_the_filter : TestFixtureWithProjectionSubscription
+{
+	protected override void Given()
+	{
 		base.Given();
 		_checkpointProcessedEventsThreshold = 2;
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(200, 150), "test-stream", 1, false, Guid.NewGuid(),
@@ -26,7 +29,8 @@ public class when_handling_multiple_committed_event_passing_the_filter : TestFix
 	}
 
 	[Test]
-	public void events_passed_to_downstream_handler_have_correct_subscription_sequence_numbers() {
+	public void events_passed_to_downstream_handler_have_correct_subscription_sequence_numbers()
+	{
 		Assert.AreEqual(2, _eventHandler.HandledMessages.Count);
 
 		Assert.AreEqual(0, _eventHandler.HandledMessages[0].SubscriptionMessageSequenceNumber);
@@ -34,7 +38,8 @@ public class when_handling_multiple_committed_event_passing_the_filter : TestFix
 	}
 
 	[Test]
-	public void suggests_a_checkpoint() {
+	public void suggests_a_checkpoint()
+	{
 		Assert.AreEqual(1, _checkpointHandler.HandledMessages.Count);
 		Assert.AreEqual(CheckpointTag.FromPosition(0, 300, 250),
 			_checkpointHandler.HandledMessages[0].CheckpointTag);

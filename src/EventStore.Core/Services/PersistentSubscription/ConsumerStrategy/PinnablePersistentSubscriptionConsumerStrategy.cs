@@ -5,21 +5,26 @@ using Data;
 using Index.Hashes;
 using PinnedState;
 
-public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersistentSubscriptionConsumerStrategy {
+public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersistentSubscriptionConsumerStrategy
+{
 	private IHasher<string> _hash;
 	protected static readonly char LinkToSeparator = '@';
 	private readonly PinnedConsumerState _state = new PinnedConsumerState();
 	private readonly object _stateLock = new object();
 
-	public PinnablePersistentSubscriptionConsumerStrategy(IHasher<string> streamHasher) {
+	public PinnablePersistentSubscriptionConsumerStrategy(IHasher<string> streamHasher)
+	{
 		_hash = streamHasher;
 	}
 
 	public abstract string Name { get; }
 
-	public int AvailableCapacity {
-		get {
-			if (_state == null) {
+	public int AvailableCapacity
+	{
+		get
+		{
+			if (_state == null)
+			{
 				return 0;
 			}
 
@@ -27,8 +32,10 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 		}
 	}
 
-	public void ClientAdded(PersistentSubscriptionClient client) {
-		lock (_stateLock) {
+	public void ClientAdded(PersistentSubscriptionClient client)
+	{
+		lock (_stateLock)
+		{
 			var newNode = new Node(client);
 
 			_state.AddNode(newNode);
@@ -37,7 +44,8 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 		}
 	}
 
-	public void ClientRemoved(PersistentSubscriptionClient client) {
+	public void ClientRemoved(PersistentSubscriptionClient client)
+	{
 		var nodeId = client.InstanceId;
 
 		client.EventConfirmed -= OnEventRemoved;
@@ -45,23 +53,28 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 		_state.DisconnectNode(nodeId);
 	}
 
-	public ConsumerPushResult PushMessageToClient(OutstandingMessage message) {
-		if (_state == null) {
+	public ConsumerPushResult PushMessageToClient(OutstandingMessage message)
+	{
+		if (_state == null)
+		{
 			return ConsumerPushResult.NoMoreCapacity;
 		}
 
-		if (_state.AvailableCapacity == 0) {
+		if (_state.AvailableCapacity == 0)
+		{
 			return ConsumerPushResult.NoMoreCapacity;
 		}
 
 
 		uint bucket = GetAssignmentId(message.ResolvedEvent);
 
-		if (_state.Assignments[bucket].State != BucketAssignment.BucketState.Assigned) {
+		if (_state.Assignments[bucket].State != BucketAssignment.BucketState.Assigned)
+		{
 			_state.AssignBucket(bucket);
 		}
 
-		if (!_state.Assignments[bucket].Node.Client.Push(message)) {
+		if (!_state.Assignments[bucket].Node.Client.Push(message))
+		{
 			return ConsumerPushResult.Skipped;
 		}
 
@@ -69,12 +82,14 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 		return ConsumerPushResult.Sent;
 	}
 
-	private void OnEventRemoved(PersistentSubscriptionClient client, ResolvedEvent ev) {
+	private void OnEventRemoved(PersistentSubscriptionClient client, ResolvedEvent ev)
+	{
 		var assignmentId = GetAssignmentId(ev);
 		_state.EventRemoved(client.InstanceId, assignmentId);
 	}
 
-	private uint GetAssignmentId(ResolvedEvent ev) {
+	private uint GetAssignmentId(ResolvedEvent ev)
+	{
 		string sourceStreamId = GetAssignmentSourceId(ev);
 
 		return _hash.Hash(sourceStreamId) % (uint)_state.Assignments.Length;
@@ -82,7 +97,8 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 
 	protected abstract string GetAssignmentSourceId(ResolvedEvent ev);
 
-	protected string GetSourceStreamId(ResolvedEvent ev) {
+	protected string GetSourceStreamId(ResolvedEvent ev)
+	{
 		var eventRecord = ev.Event ?? ev.Link; // Unresolved link just use the link
 
 		string sourceStreamId = eventRecord.EventStreamId;
@@ -91,7 +107,8 @@ public abstract class PinnablePersistentSubscriptionConsumerStrategy : IPersiste
 		{
 			sourceStreamId = Helper.UTF8NoBom.GetString(eventRecord.Data.Span);
 			int separatorIndex = sourceStreamId.IndexOf(LinkToSeparator);
-			if (separatorIndex != -1) {
+			if (separatorIndex != -1)
+			{
 				sourceStreamId = sourceStreamId.Substring(separatorIndex + 1);
 			}
 		}

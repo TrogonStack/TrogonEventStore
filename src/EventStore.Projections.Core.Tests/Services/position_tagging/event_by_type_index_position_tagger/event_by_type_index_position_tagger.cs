@@ -12,14 +12,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.position_tagging.event_by_type_index_position_tagger;
 
 [TestFixture]
-public class event_by_type_index_position_tagger {
+public class event_by_type_index_position_tagger
+{
 	private ReaderSubscriptionMessage.CommittedEventDistributed _zeroEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _firstEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _secondEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _thirdEvent;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_zeroEvent = ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 			Guid.NewGuid(), new TFPos(-1, 120), new TFPos(20, 10), "$et-type1", 0, "stream1", 0, true,
 			Guid.NewGuid(), "type1", true, Helper.UTF8NoBom.GetBytes("{}"), new byte[0], null, 10f);
@@ -38,13 +40,15 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void can_be_created() {
+	public void can_be_created()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		new PositionTracker(t);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_after_case() {
+	public void is_message_after_checkpoint_tag_after_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -54,7 +58,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_tf_only_after_case() {
+	public void is_message_after_checkpoint_tag_tf_only_after_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -64,7 +69,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_before_case() {
+	public void is_message_after_checkpoint_tag_before_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -75,7 +81,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_tf_only_before_case() {
+	public void is_message_after_checkpoint_tag_tf_only_before_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -86,7 +93,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_equal_case() {
+	public void is_message_after_checkpoint_tag_equal_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -97,7 +105,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_tf_only_equal_case() {
+	public void is_message_after_checkpoint_tag_tf_only_equal_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -108,7 +117,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_incompatible_streams_case() {
+	public void is_message_after_checkpoint_tag_incompatible_streams_case()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -120,23 +130,27 @@ public class event_by_type_index_position_tagger {
 
 
 	[Test]
-	public void null_streams_throws_argument_null_exception() {
+	public void null_streams_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => { new EventByTypeIndexPositionTagger(0, null); });
 	}
 
 	[Test]
-	public void empty_streams_throws_argument_exception() {
+	public void empty_streams_throws_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() => { new EventByTypeIndexPositionTagger(0, new string[] { }); });
 	}
 
 	[Test]
-	public void position_checkpoint_tag_is_incompatible() {
+	public void position_checkpoint_tag_is_incompatible()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		Assert.IsFalse(t.IsCompatible(CheckpointTag.FromPosition(0, 1000, 500)));
 	}
 
 	[Test]
-	public void streams_checkpoint_tag_is_incompatible() {
+	public void streams_checkpoint_tag_is_incompatible()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		Assert.IsFalse(
 			t.IsCompatible(
@@ -145,7 +159,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void another_events_checkpoint_tag_is_compatible() {
+	public void another_events_checkpoint_tag_is_compatible()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		Assert.IsFalse(
 			t.IsCompatible(
@@ -154,7 +169,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void the_same_events_checkpoint_tag_is_compatible() {
+	public void the_same_events_checkpoint_tag_is_compatible()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		Assert.IsTrue(
 			t.IsCompatible(
@@ -163,7 +179,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void adjust_compatible_tag_returns_the_same_tag() {
+	public void adjust_compatible_tag_returns_the_same_tag()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var tag = CheckpointTag.FromEventTypeIndexPositions(0, new TFPos(100, 50),
 			new Dictionary<string, long> { { "type1", 1 }, { "type2", 2 } });
@@ -171,7 +188,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void can_adjust_tf_position_tag() {
+	public void can_adjust_tf_position_tag()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var tag = CheckpointTag.FromEventTypeIndexPositions(0, new TFPos(100, 50),
 			new Dictionary<string, long> { { "type1", 1 }, { "type2", 2 } });
@@ -180,7 +198,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void zero_position_tag_is_before_first_event_possible() {
+	public void zero_position_tag_is_before_first_event_possible()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var zero = t.MakeZeroCheckpointTag();
 
@@ -190,7 +209,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void can_update_by_tf_event_if_with_prior_index_position() {
+	public void can_update_by_tf_event_if_with_prior_index_position()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var linkEvent = ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 			Guid.NewGuid(), new TFPos(180, 170), "$et-type2", 1, false, Guid.NewGuid(), "$>", false,
@@ -204,7 +224,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void cannot_update_by_prior_tf_position() {
+	public void cannot_update_by_prior_tf_position()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var linkEvent = ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 			Guid.NewGuid(), new TFPos(180, 170), "$et-type2", 1, false, Guid.NewGuid(), "$>", false,
@@ -215,7 +236,8 @@ public class event_by_type_index_position_tagger {
 	}
 
 	[Test]
-	public void produced_checkpoint_tags_are_correctly_ordered() {
+	public void produced_checkpoint_tags_are_correctly_ordered()
+	{
 		var t = new EventByTypeIndexPositionTagger(0, new[] { "type1", "type2" });
 		var zero = t.MakeZeroCheckpointTag();
 

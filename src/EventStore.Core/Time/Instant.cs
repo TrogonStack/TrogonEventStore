@@ -5,7 +5,8 @@ namespace EventStore.Core.Time;
 
 // this provides stronger typing than just passing a long representing the number of ticks
 // and provides us a place to change the resolution and size if long ticks is overkill.
-public struct Instant : IEquatable<Instant> {
+public struct Instant : IEquatable<Instant>
+{
 	public static readonly long TicksPerSecond;
 	private static readonly double SecondsPerTick;
 	// Conversion factor from Stopwatch ticks to TimeSpan ticks.
@@ -14,7 +15,8 @@ public struct Instant : IEquatable<Instant> {
 	// This prevents startup exceptions on systems where the frequencies don't align exactly.
 	private static readonly double TicksPerTimeSpanTick;
 
-	static Instant() {
+	static Instant()
+	{
 		TicksPerSecond = Stopwatch.Frequency;
 		SecondsPerTick = 1 / (double)TicksPerSecond;
 		// Use floating-point division to handle non-divisible frequencies gracefully.
@@ -38,7 +40,8 @@ public struct Instant : IEquatable<Instant> {
 	private readonly long _ticks;
 
 	// Stopwatch Ticks, not DateTime Ticks - these can be different.
-	public Instant(long stopwatchTicks) {
+	public Instant(long stopwatchTicks)
+	{
 		_ticks = stopwatchTicks;
 	}
 
@@ -46,7 +49,8 @@ public struct Instant : IEquatable<Instant> {
 
 	public double ElapsedSecondsSince(Instant start) => TicksToSeconds(ElapsedTicksSince(start));
 
-	public Instant Add(TimeSpan timeSpan) {
+	public Instant Add(TimeSpan timeSpan)
+	{
 		return new(_ticks + (long)(timeSpan.TotalSeconds * TicksPerSecond));
 	}
 
@@ -63,7 +67,8 @@ public struct Instant : IEquatable<Instant> {
 	/// Stopwatch Ticks, not DateTime Ticks.
 	public long ElapsedTicksSince(Instant since) => _ticks - since._ticks;
 
-	public TimeSpan ElapsedTimeSince(Instant since) {
+	public TimeSpan ElapsedTimeSince(Instant since)
+	{
 		var elapsedTicks = ElapsedTicksSince(since);
 		// Since we're decreasing the resolution when converting to TimeSpan, we round up to make sure that something
 		// using the TimeSpan doesn't wait for less time than it should.

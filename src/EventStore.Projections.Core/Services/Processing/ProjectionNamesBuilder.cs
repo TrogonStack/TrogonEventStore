@@ -3,8 +3,10 @@ using EventStore.Projections.Core.Messages;
 
 namespace EventStore.Projections.Core.Services.Processing;
 
-public class ProjectionNamesBuilder {
-	public static class StandardProjections {
+public class ProjectionNamesBuilder
+{
+	public static class StandardProjections
+	{
 		public const string StreamsStandardProjection = "$streams";
 		public const string StreamByCategoryStandardProjection = "$stream_by_category";
 		public const string EventByCategoryStandardProjection = "$by_category";
@@ -12,7 +14,8 @@ public class ProjectionNamesBuilder {
 		public const string EventByCorrIdStandardProjection = "$by_correlation_id";
 	}
 
-	public static ProjectionNamesBuilder CreateForTest(string name) {
+	public static ProjectionNamesBuilder CreateForTest(string name)
+	{
 		return new ProjectionNamesBuilder(name);
 	}
 
@@ -26,11 +29,14 @@ public class ProjectionNamesBuilder {
 	private readonly string _emittedStreamsCheckpointName;
 
 	private ProjectionNamesBuilder(string name)
-		: this(name, new QuerySourcesDefinition()) {
+		: this(name, new QuerySourcesDefinition())
+	{
 	}
 
-	public ProjectionNamesBuilder(string name, IQuerySources sources) {
-		if (sources == null) {
+	public ProjectionNamesBuilder(string name, IQuerySources sources)
+	{
+		if (sources == null)
+		{
 			throw new ArgumentNullException("sources");
 		}
 
@@ -48,20 +54,24 @@ public class ProjectionNamesBuilder {
 										ProjectionEmittedStreamSuffix + ProjectionCheckpointStreamSuffix;
 	}
 
-	public string EffectiveProjectionName {
+	public string EffectiveProjectionName
+	{
 		get { return _name; }
 	}
 
 
-	private string GetPartitionResultStreamName(string partitionName) {
+	private string GetPartitionResultStreamName(string partitionName)
+	{
 		return String.Format(GetPartitionResultStreamNamePattern(), partitionName);
 	}
 
-	public string GetResultStreamName() {
+	public string GetResultStreamName()
+	{
 		return _resultStreamName;
 	}
 
-	public string GetPartitionResultStreamNamePattern() {
+	public string GetPartitionResultStreamNamePattern()
+	{
 		return _sources.PartitionResultStreamNamePatternOption
 			   ?? ProjectionsStreamPrefix + EffectiveProjectionName + "-{0}" + ProjectionsStateStreamSuffix;
 	}
@@ -74,18 +84,22 @@ public class ProjectionNamesBuilder {
 	private const string ProjectionPartitionCatalogStreamSuffix = "-partitions";
 	public const string ProjectionsRegistrationStream = "$projections-$all";
 
-	public string GetPartitionCatalogStreamName() {
+	public string GetPartitionCatalogStreamName()
+	{
 		return _partitionCatalogStreamName;
 	}
 
-	public string MakePartitionResultStreamName(string statePartition) {
+	public string MakePartitionResultStreamName(string statePartition)
+	{
 		return String.IsNullOrEmpty(statePartition)
 			? GetResultStreamName()
 			: GetPartitionResultStreamName(statePartition);
 	}
 
-	public string MakePartitionCheckpointStreamName(string statePartition) {
-		if (String.IsNullOrEmpty(statePartition)) {
+	public string MakePartitionCheckpointStreamName(string statePartition)
+	{
+		if (String.IsNullOrEmpty(statePartition))
+		{
 			throw new InvalidOperationException("Root partition cannot have a partition checkpoint stream");
 		}
 
@@ -94,19 +108,23 @@ public class ProjectionNamesBuilder {
 	}
 
 
-	public string MakeCheckpointStreamName() {
+	public string MakeCheckpointStreamName()
+	{
 		return _checkpointStreamName;
 	}
 
-	public string GetEmittedStreamsName() {
+	public string GetEmittedStreamsName()
+	{
 		return _emittedStreamsName;
 	}
 
-	public string GetEmittedStreamsCheckpointName() {
+	public string GetEmittedStreamsCheckpointName()
+	{
 		return _emittedStreamsCheckpointName;
 	}
 
-	public string GetOrderStreamName() {
+	public string GetOrderStreamName()
+	{
 		return _orderStreamName;
 	}
 }

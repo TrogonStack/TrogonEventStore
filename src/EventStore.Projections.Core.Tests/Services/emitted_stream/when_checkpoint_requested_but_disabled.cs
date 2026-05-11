@@ -9,13 +9,15 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture]
-public class when_checkpoint_requested_but_disabled : TestFixtureWithReadWriteDispatchers {
+public class when_checkpoint_requested_but_disabled : TestFixtureWithReadWriteDispatchers
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private Exception _exception;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_exception = null;
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
@@ -26,16 +28,19 @@ public class when_checkpoint_requested_but_disabled : TestFixtureWithReadWriteDi
 			_readyHandler,
 			noCheckpoints: true);
 		_stream.Start();
-		try {
+		try
+		{
 			_stream.Checkpoint();
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void invalid_operation_exceptioon_is_thrown() {
+	public void invalid_operation_exceptioon_is_thrown()
+	{
 		Assert.IsNotNull(_exception);
 		Assert.IsInstanceOf<InvalidOperationException>(_exception);
 	}

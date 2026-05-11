@@ -15,7 +15,8 @@ using EventStore.Core.TransactionLog.Chunks.TFChunk;
 namespace EventStore.Core.TransactionLog.Chunks;
 
 // TODO: Consider struct instead of class
-public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter> {
+public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter>
+{
 	public const int Size = TFConsts.ChunkFooterSize;
 	public const int ChecksumSize = 16;
 
@@ -31,17 +32,20 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter> {
 
 	public readonly int MapSize;
 
-	public ReadOnlySpan<byte> MD5Hash {
+	public ReadOnlySpan<byte> MD5Hash
+	{
 		get => _checksum;
 		init => value.CopyTo(_checksum);
 	}
 
 	public readonly int MapCount; // calculated, not stored
 
-	public ChunkFooter(bool isCompleted, int physicalDataSize, long logicalDataSize, int mapSize, IncrementalHash hash = null) {
+	public ChunkFooter(bool isCompleted, int physicalDataSize, long logicalDataSize, int mapSize, IncrementalHash hash = null)
+	{
 		Ensure.Nonnegative(physicalDataSize, nameof(physicalDataSize));
 		Ensure.Nonnegative(logicalDataSize, nameof(logicalDataSize));
-		if (logicalDataSize < physicalDataSize) {
+		if (logicalDataSize < physicalDataSize)
+		{
 			throw new ArgumentOutOfRangeException(nameof(logicalDataSize),
 				$"LogicalDataSize {logicalDataSize} is less than PhysicalDataSize {physicalDataSize}");
 		}
@@ -58,21 +62,24 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter> {
 		Unsafe.SkipInit(out _checksum); // fix for Qodana false positive about init of readonly field
 		hash?.TryGetHashAndReset(_checksum, out _);
 
-		if (MapSize % PosMap.FullSize is not 0) {
+		if (MapSize % PosMap.FullSize is not 0)
+		{
 			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {PosMap.FullSize}.");
 		}
 
 		MapCount = mapSize / PosMap.FullSize;
 	}
 
-	public ChunkFooter(ReadOnlySpan<byte> source) {
+	public ChunkFooter(ReadOnlySpan<byte> source)
+	{
 		Debug.Assert(source.Length >= Size);
 
 		SpanReader<byte> reader = new(source);
 		byte flags = reader.Read();
 
 		IsCompleted = (flags & 1) is not 0;
-		if (IsCompleted && (flags & 2) is 0) {
+		if (IsCompleted && (flags & 2) is 0)
+		{
 			throw new Exception("Deprecated 8-byte TFChunk position maps are not supported.");
 		}
 
@@ -83,7 +90,8 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter> {
 		reader.ConsumedCount = Size - ChecksumSize;
 		reader.Read(_checksum);
 
-		if (MapSize % PosMap.FullSize is not 0) {
+		if (MapSize % PosMap.FullSize is not 0)
+		{
 			throw new Exception($"Wrong MapSize {MapSize} -- not divisible by PosMap.Size {PosMap.FullSize}.");
 		}
 
@@ -92,7 +100,8 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter> {
 
 	static int IBinaryFormattable<ChunkFooter>.Size => Size;
 
-	public void Format(Span<byte> destination) {
+	public void Format(Span<byte> destination)
+	{
 		Debug.Assert(destination.Length >= Size);
 
 		SpanWriter<byte> writer = new(destination.Slice(0, Size));
@@ -113,19 +122,22 @@ public sealed class ChunkFooter : IBinaryFormattable<ChunkFooter> {
 	static ChunkFooter IBinaryFormattable<ChunkFooter>.Parse(ReadOnlySpan<byte> source)
 		=> new(source);
 
-	public byte[] AsByteArray() {
+	public byte[] AsByteArray()
+	{
 		var array = new byte[Size];
 		Format(array);
 		return array;
 	}
 
-	public static async ValueTask<ChunkFooter> FromStream(Stream stream, CancellationToken token) {
+	public static async ValueTask<ChunkFooter> FromStream(Stream stream, CancellationToken token)
+	{
 		using var buffer = Memory.AllocateExactly<byte>(Size);
 		return await stream.ReadAsync<ChunkFooter>(buffer.Memory, token);
 	}
 
 	[InlineArray(ChecksumSize)]
-	private struct MD5HashBuffer {
+	private struct MD5HashBuffer
+	{
 		private byte _element0;
 	}
 }

@@ -2,8 +2,10 @@ using System;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
 using EventStore.Core.Services.Storage.ReaderIndex;
 
-namespace EventStore.Core.Services.PersistentSubscription {
-	public class PersistentSubscriptionParams {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public class PersistentSubscriptionParams
+	{
 		private readonly bool _resolveLinkTos;
 		private readonly string _subscriptionId;
 		private readonly IPersistentSubscriptionEventSource _eventSource;
@@ -40,7 +42,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			IPersistentSubscriptionCheckpointReader checkpointReader,
 			IPersistentSubscriptionCheckpointWriter checkpointWriter,
 			IPersistentSubscriptionMessageParker messageParker,
-			IPersistentSubscriptionPushScheduler pushScheduler = null) {
+			IPersistentSubscriptionPushScheduler pushScheduler = null)
+		{
 			_resolveLinkTos = resolveLinkTos;
 			_subscriptionId = subscriptionId;
 			_eventSource = eventSource;
@@ -64,91 +67,113 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			_pushScheduler = pushScheduler;
 		}
 
-		public bool ResolveLinkTos {
+		public bool ResolveLinkTos
+		{
 			get { return _resolveLinkTos; }
 		}
 
-		public string SubscriptionId {
+		public string SubscriptionId
+		{
 			get { return _subscriptionId; }
 		}
 
-		public IPersistentSubscriptionEventSource EventSource {
+		public IPersistentSubscriptionEventSource EventSource
+		{
 			get { return _eventSource; }
 		}
 
-		public string GroupName {
+		public string GroupName
+		{
 			get { return _groupName; }
 		}
 
-		public IPersistentSubscriptionStreamPosition StartFrom {
+		public IPersistentSubscriptionStreamPosition StartFrom
+		{
 			get { return _startFrom; }
 		}
 
-		public bool ExtraStatistics {
+		public bool ExtraStatistics
+		{
 			get { return _extraStatistics; }
 		}
 
-		public TimeSpan MessageTimeout {
+		public TimeSpan MessageTimeout
+		{
 			get { return _messageTimeout; }
 		}
 
-		public IPersistentSubscriptionStreamReader StreamReader {
+		public IPersistentSubscriptionStreamReader StreamReader
+		{
 			get { return _streamReader; }
 		}
 
-		public IPersistentSubscriptionCheckpointReader CheckpointReader {
+		public IPersistentSubscriptionCheckpointReader CheckpointReader
+		{
 			get { return _checkpointReader; }
 		}
 
-		public IPersistentSubscriptionCheckpointWriter CheckpointWriter {
+		public IPersistentSubscriptionCheckpointWriter CheckpointWriter
+		{
 			get { return _checkpointWriter; }
 		}
 
-		public IPersistentSubscriptionMessageParker MessageParker {
+		public IPersistentSubscriptionMessageParker MessageParker
+		{
 			get { return _messageParker; }
 		}
 
-		public IPersistentSubscriptionPushScheduler PushScheduler {
+		public IPersistentSubscriptionPushScheduler PushScheduler
+		{
 			get { return _pushScheduler; }
 		}
 
-		public int MaxRetryCount {
+		public int MaxRetryCount
+		{
 			get { return _maxRetryCount; }
 		}
 
-		public int LiveBufferSize {
+		public int LiveBufferSize
+		{
 			get { return _liveBufferSize; }
 		}
 
-		public int BufferSize {
+		public int BufferSize
+		{
 			get { return _bufferSize; }
 		}
 
-		public int ReadBatchSize {
+		public int ReadBatchSize
+		{
 			get { return _readBatchSize; }
 		}
 
-		public TimeSpan CheckPointAfter {
+		public TimeSpan CheckPointAfter
+		{
 			get { return _checkPointAfter; }
 		}
 
-		public int MinCheckPointCount {
+		public int MinCheckPointCount
+		{
 			get { return _minCheckPointCount; }
 		}
 
-		public int MaxCheckPointCount {
+		public int MaxCheckPointCount
+		{
 			get { return _maxCheckPointCount; }
 		}
 
-		public int MaxSubscriberCount {
+		public int MaxSubscriberCount
+		{
 			get { return _maxSubscriberCount; }
 		}
 
-		public IPersistentSubscriptionConsumerStrategy ConsumerStrategy {
+		public IPersistentSubscriptionConsumerStrategy ConsumerStrategy
+		{
 			get { return _consumerStrategy; }
 		}
 
-		public string ParkedMessageStream {
+		public string ParkedMessageStream
+		{
 			get { return "$persistentsubscription-" + _eventSource + "::" + _groupName + "-parked"; }
 		}
 	}

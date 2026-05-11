@@ -6,21 +6,26 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Standard;
 
-public static class StreamDeletedHelper {
+public static class StreamDeletedHelper
+{
 	public static bool IsStreamDeletedEventOrLinkToStreamDeletedEvent(ResolvedEvent resolvedEvent,
-		ReadEventResult resolveResult, out string deletedPartitionStreamId) {
+		ReadEventResult resolveResult, out string deletedPartitionStreamId)
+	{
 		bool isDeletedStreamEvent;
 		// If the event didn't resolve, we can't rely on it as a deleted event
-		if (resolveResult != ReadEventResult.Success) {
+		if (resolveResult != ReadEventResult.Success)
+		{
 			deletedPartitionStreamId = null;
 			return false;
 		}
 
-		if (resolvedEvent.IsLinkToDeletedStreamTombstone) {
+		if (resolvedEvent.IsLinkToDeletedStreamTombstone)
+		{
 			isDeletedStreamEvent = true;
 			deletedPartitionStreamId = resolvedEvent.EventStreamId;
 		}
-		else {
+		else
+		{
 			isDeletedStreamEvent = StreamDeletedHelper.IsStreamDeletedEvent(
 				resolvedEvent.EventStreamId, resolvedEvent.EventType, resolvedEvent.Data,
 				out deletedPartitionStreamId);
@@ -30,35 +35,44 @@ public static class StreamDeletedHelper {
 	}
 
 	public static bool IsStreamDeletedEvent(
-		string streamOrMetaStreamId, string eventType, string eventData, out string deletedPartitionStreamId) {
-		if (string.IsNullOrEmpty(streamOrMetaStreamId)) {
+		string streamOrMetaStreamId, string eventType, string eventData, out string deletedPartitionStreamId)
+	{
+		if (string.IsNullOrEmpty(streamOrMetaStreamId))
+		{
 			deletedPartitionStreamId = null;
 			return false;
 		}
 
 		bool isMetaStream;
-		if (SystemStreams.IsMetastream(streamOrMetaStreamId)) {
+		if (SystemStreams.IsMetastream(streamOrMetaStreamId))
+		{
 			isMetaStream = true;
 			deletedPartitionStreamId = streamOrMetaStreamId.Substring("$$".Length);
 		}
-		else {
+		else
+		{
 			isMetaStream = false;
 			deletedPartitionStreamId = streamOrMetaStreamId;
 		}
 
 		var isStreamDeletedEvent = false;
-		if (isMetaStream) {
-			if (eventType == SystemEventTypes.StreamMetadata) {
+		if (isMetaStream)
+		{
+			if (eventType == SystemEventTypes.StreamMetadata)
+			{
 				var metadata = StreamMetadata.FromJson(eventData);
 				//NOTE: we do not ignore JSON deserialization exceptions here assuming that metadata stream events must be deserializable
 
-				if (metadata.TruncateBefore == EventNumber.DeletedStream) {
+				if (metadata.TruncateBefore == EventNumber.DeletedStream)
+				{
 					isStreamDeletedEvent = true;
 				}
 			}
 		}
-		else {
-			if (eventType == SystemEventTypes.StreamDeleted) {
+		else
+		{
+			if (eventType == SystemEventTypes.StreamDeleted)
+			{
 				isStreamDeletedEvent = true;
 			}
 		}
@@ -67,30 +81,38 @@ public static class StreamDeletedHelper {
 	}
 
 	public static bool IsStreamDeletedEvent(
-		string streamOrMetaStreamId, string eventType, ReadOnlyMemory<byte> eventData, out string deletedPartitionStreamId) {
+		string streamOrMetaStreamId, string eventType, ReadOnlyMemory<byte> eventData, out string deletedPartitionStreamId)
+	{
 		bool isMetaStream;
-		if (SystemStreams.IsMetastream(streamOrMetaStreamId)) {
+		if (SystemStreams.IsMetastream(streamOrMetaStreamId))
+		{
 			isMetaStream = true;
 			deletedPartitionStreamId = streamOrMetaStreamId.Substring("$$".Length);
 		}
-		else {
+		else
+		{
 			isMetaStream = false;
 			deletedPartitionStreamId = streamOrMetaStreamId;
 		}
 
 		var isStreamDeletedEvent = false;
-		if (isMetaStream) {
-			if (eventType == SystemEventTypes.StreamMetadata) {
+		if (isMetaStream)
+		{
+			if (eventType == SystemEventTypes.StreamMetadata)
+			{
 				var metadata = StreamMetadata.FromJson(eventData.FromUtf8());
 				//NOTE: we do not ignore JSON deserialization exceptions here assuming that metadata stream events must be deserializable
 
-				if (metadata.TruncateBefore == EventNumber.DeletedStream) {
+				if (metadata.TruncateBefore == EventNumber.DeletedStream)
+				{
 					isStreamDeletedEvent = true;
 				}
 			}
 		}
-		else {
-			if (eventType == SystemEventTypes.StreamDeleted) {
+		else
+		{
+			if (eventType == SystemEventTypes.StreamDeleted)
+			{
 				isStreamDeletedEvent = true;
 			}
 		}

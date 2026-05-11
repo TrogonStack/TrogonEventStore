@@ -10,9 +10,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
+public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests>
+{
 	[Fact]
-	public async Task simple() {
+	public async Task simple()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -25,7 +27,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 				.Chunk(
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(4, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 			})
@@ -33,7 +36,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 	}
 
 	[Fact]
-	public async Task max_age_maybe_discard() {
+	public async Task max_age_maybe_discard()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -47,7 +51,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 				.Chunk(
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(3, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.True(state.TryGetOriginalStreamData("ab-1", out var data));
@@ -58,7 +63,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 	}
 
 	[Fact]
-	public async Task non_contiguous_events() {
+	public async Task non_contiguous_events()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -73,7 +79,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 				.Chunk(
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(8, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.True(state.TryGetOriginalStreamData("ab-1", out var data));
@@ -84,8 +91,10 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 	}
 
 	[Fact]
-	public async Task long_stream() {
-		if (Scenario.CollideEverything) {
+	public async Task long_stream()
+	{
+		if (Scenario.CollideEverything)
+		{
 			// TODO: something weird happens here, possibly the system doesn't properly handle
 			// $$$settings (or any metadatastream?) colliding with a long stream, which this scenario
 			// causes.
@@ -97,7 +106,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 		var numRecords = 260;
 
 		var records = new Rec[numRecords];
-		for (var i = 0; i < numRecords; i++) {
+		for (var i = 0; i < numRecords; i++)
+		{
 			records[i] = Rec.Write(t++, "ab-1");
 		}
 
@@ -111,7 +121,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 					Rec.Write(t++, "$$ab-1", "$metadata", metadata: MaxCount1),
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(numRecords * 2, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 				Assert.True(state.TryGetOriginalStreamData("ab-1", out var data));
@@ -122,7 +133,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 	}
 
 	[Fact]
-	public async Task metadata_replaced_by_metadata() {
+	public async Task metadata_replaced_by_metadata()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -133,7 +145,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 					Rec.Write(t++, "$$ab-1", "$metadata", metadata: MaxCount1),
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(2, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 			})
@@ -141,7 +154,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 	}
 
 	[Fact]
-	public async Task metadata_replaced_by_tombstone() {
+	public async Task metadata_replaced_by_tombstone()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -152,7 +166,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 					Rec.CommittedDelete(t++, "ab-1"),
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(2, state.SumChunkWeights(0, 0));
 				Assert.Equal(0, state.SumChunkWeights(1, 1));
 			})
@@ -160,7 +175,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 	}
 
 	[Fact]
-	public async Task metadata_replaced_multiple_times() {
+	public async Task metadata_replaced_multiple_times()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -175,7 +191,8 @@ public class ChunkWeightTests : SqliteDbPerTest<ChunkWeightTests> {
 					Rec.CommittedDelete(t++, "ab-1"),
 					ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(2, state.SumChunkWeights(0, 0));
 				Assert.Equal(4, state.SumChunkWeights(1, 1));
 				Assert.Equal(2, state.SumChunkWeights(2, 2));

@@ -10,9 +10,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class WhenOpeningTfchunkFromNonExistingFile : SpecificationWithFile {
+public class WhenOpeningTfchunkFromNonExistingFile : SpecificationWithFile
+{
 	[Test]
-	public void it_should_throw_a_file_not_found_exception() {
+	public void it_should_throw_a_file_not_found_exception()
+	{
 		Assert.ThrowsAsync<CorruptDatabaseException>(async () => await TFChunk.FromCompletedFile(
 			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(Path.GetDirectoryName(Filename), "chunk-")),
 			Filename, verifyHash: true,
@@ -21,7 +23,8 @@ public class WhenOpeningTfchunkFromNonExistingFile : SpecificationWithFile {
 	}
 
 	[Test]
-	public void it_should_map_missing_parent_directory_to_chunk_not_found_when_opening_a_completed_chunk() {
+	public void it_should_map_missing_parent_directory_to_chunk_not_found_when_opening_a_completed_chunk()
+	{
 		var missingDirectory = Path.Combine(Path.GetDirectoryName(Filename)!, "missing");
 		var fileName = Path.Combine(missingDirectory, Path.GetFileName(Filename));
 
@@ -35,7 +38,8 @@ public class WhenOpeningTfchunkFromNonExistingFile : SpecificationWithFile {
 	}
 
 	[Test]
-	public void it_should_map_missing_parent_directory_to_chunk_not_found_when_reading_metadata() {
+	public void it_should_map_missing_parent_directory_to_chunk_not_found_when_reading_metadata()
+	{
 		var missingDirectory = Path.Combine(Path.GetDirectoryName(Filename)!, "missing");
 		var fileName = Path.Combine(missingDirectory, Path.GetFileName(Filename));
 		var fileSystem = new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(missingDirectory, "chunk-"));
@@ -47,7 +51,8 @@ public class WhenOpeningTfchunkFromNonExistingFile : SpecificationWithFile {
 	}
 
 	[Test]
-	public void it_should_throw_when_metadata_file_is_too_small() {
+	public void it_should_throw_when_metadata_file_is_too_small()
+	{
 		File.WriteAllBytes(Filename, new byte[ChunkHeader.Size]);
 		var fileSystem = new ChunkLocalFileSystem(
 			new VersionedPatternFileNamingStrategy(Path.GetDirectoryName(Filename)!, "chunk-"));

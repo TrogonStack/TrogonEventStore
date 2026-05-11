@@ -16,8 +16,10 @@ using Position = EventStore.Core.Services.Transport.Common.Position;
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
 [TestFixture]
-public class SubscribeToAllFilteredTests {
-	public static IEnumerable<object[]> TestCases() {
+public class SubscribeToAllFilteredTests
+{
+	public static IEnumerable<object[]> TestCases()
+	{
 		var checkpointIntervalMultipliers = new uint[] { 2, 4, 8 };
 
 		var maxSearchWindows = new uint[] { 1, 32, 64 };
@@ -42,7 +44,8 @@ public class SubscribeToAllFilteredTests {
 
 	[TestFixtureSource(typeof(SubscribeToAllFilteredTests), nameof(TestCases))]
 	public class when_subscribing_to_all_with_a_filter<TLogFormat, TStreamId>
-		: GrpcSpecification<TLogFormat, TStreamId> {
+		: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private const string StreamName = "test";
 
 		private int CheckpointCount => _positions.Count;
@@ -58,7 +61,8 @@ public class SubscribeToAllFilteredTests {
 
 		public when_subscribing_to_all_with_a_filter(uint checkpointIntervalMultiplier, uint maxSearchWindow,
 			int filteredEventCount)
-			: base(new LotsOfExpiriesStrategy()) {
+			: base(new LotsOfExpiriesStrategy())
+		{
 			_maxSearchWindow = maxSearchWindow;
 			_checkpointIntervalMultiplier = checkpointIntervalMultiplier;
 			_checkpointInterval = checkpointIntervalMultiplier * maxSearchWindow;
@@ -67,9 +71,12 @@ public class SubscribeToAllFilteredTests {
 			_position = Position.End;
 		}
 
-		protected override async Task Given() {
-			await AppendToStreamBatch(new BatchAppendReq {
-				Options = new() {
+		protected override async Task Given()
+		{
+			await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("abcd") }
 				},
@@ -79,9 +86,12 @@ public class SubscribeToAllFilteredTests {
 			});
 		}
 
-		protected override async Task When() {
-			var success = (await AppendToStreamBatch(new BatchAppendReq {
-				Options = new() {
+		protected override async Task When()
+		{
+			var success = (await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamName) }
 				},
@@ -92,8 +102,10 @@ public class SubscribeToAllFilteredTests {
 
 			_position = new Position(success.Position.CommitPosition, success.Position.PreparePosition);
 
-			using var skippedEventCall = StreamsClient.Read(new ReadReq {
-				Options = new ReadReq.Types.Options {
+			using var skippedEventCall = StreamsClient.Read(new ReadReq
+			{
+				Options = new ReadReq.Types.Options
+				{
 					Count = 4096,
 					All = new() { Start = new() },
 					UuidOption = new() { Structured = new() },
@@ -111,11 +123,14 @@ public class SubscribeToAllFilteredTests {
 			skippedEventCount += 1;
 			_expected = skippedEventCount / _checkpointInterval;
 
-			using var call = StreamsClient.Read(new ReadReq {
-				Options = new ReadReq.Types.Options {
+			using var call = StreamsClient.Read(new ReadReq
+			{
+				Options = new ReadReq.Types.Options
+				{
 					Subscription = new(),
 					All = new() { Start = new() },
-					Filter = new() {
+					Filter = new()
+					{
 						Max = _maxSearchWindow,
 						CheckpointIntervalMultiplier = _checkpointIntervalMultiplier,
 						StreamIdentifier = new() { Prefix = { StreamName } }
@@ -126,14 +141,18 @@ public class SubscribeToAllFilteredTests {
 			}, GetCallOptions(AdminCredentials));
 
 			var receivedTheEvent = false;
-			await foreach (var response in call.ResponseStream.ReadAllAsync()) {
-				if (response.ContentCase == ReadResp.ContentOneofCase.CaughtUp) {
+			await foreach (var response in call.ResponseStream.ReadAllAsync())
+			{
+				if (response.ContentCase == ReadResp.ContentOneofCase.CaughtUp)
+				{
 					// we have successfully transitioned to live (and will receive no more events)
 					break;
 				}
 
-				if (response.ContentCase == ReadResp.ContentOneofCase.Checkpoint) {
-					if (receivedTheEvent) {
+				if (response.ContentCase == ReadResp.ContentOneofCase.Checkpoint)
+				{
+					if (receivedTheEvent)
+					{
 						break;
 					}
 					_positions.Add(new Position(response.Checkpoint.CommitPosition,
@@ -141,7 +160,8 @@ public class SubscribeToAllFilteredTests {
 					continue;
 				}
 
-				if (response.ContentCase == ReadResp.ContentOneofCase.Event) {
+				if (response.ContentCase == ReadResp.ContentOneofCase.Event)
+				{
 					Assert.AreEqual(StreamName, response.Event.Event.StreamIdentifier.StreamName.ToStringUtf8());
 					receivedTheEvent = true;
 				}
@@ -149,19 +169,22 @@ public class SubscribeToAllFilteredTests {
 		}
 
 		[Test]
-		public void receives_the_correct_number_of_checkpoints() {
+		public void receives_the_correct_number_of_checkpoints()
+		{
 			Assert.AreEqual(_expected, CheckpointCount);
 		}
 
 		[Test]
-		public void no_duplicate_checkpoints_received() {
+		public void no_duplicate_checkpoints_received()
+		{
 			Assert.AreEqual(_positions.Distinct().Count(), _positions.Count);
 		}
 	}
 
 	[TestFixtureSource(typeof(SubscribeToAllFilteredTests), nameof(TestCases))]
 	public class when_subscribing_to_all_with_a_filter_live<TLogFormat, TStreamId>
-		: GrpcSpecification<TLogFormat, TStreamId> {
+		: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private const string StreamName = "test";
 
 		private int CheckpointCount => _positions.Count;
@@ -175,7 +198,8 @@ public class SubscribeToAllFilteredTests {
 		private Position _position;
 
 		public when_subscribing_to_all_with_a_filter_live(uint checkpointIntervalMultiplier, uint maxSearchWindow,
-			int filteredEventCount) {
+			int filteredEventCount)
+		{
 			_maxSearchWindow = maxSearchWindow;
 			_checkpointIntervalMultiplier = checkpointIntervalMultiplier;
 			_checkpointInterval = checkpointIntervalMultiplier * maxSearchWindow;
@@ -184,9 +208,12 @@ public class SubscribeToAllFilteredTests {
 			_position = Position.End;
 		}
 
-		protected override async Task Given() {
-			await AppendToStreamBatch(new BatchAppendReq {
-				Options = new() {
+		protected override async Task Given()
+		{
+			await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8("abcd") }
 				},
@@ -196,26 +223,34 @@ public class SubscribeToAllFilteredTests {
 			});
 		}
 
-		protected override async Task When() {
-			for (int i = 1; i <= 5; i++) {
-				try {
+		protected override async Task When()
+		{
+			for (int i = 1; i <= 5; i++)
+			{
+				try
+				{
 					await WhenWhichMightConsumeTooSlow(i);
 					return;
 				}
-				catch (RpcException ex) when (ex.Message.Contains("too slow")) {
+				catch (RpcException ex) when (ex.Message.Contains("too slow"))
+				{
 					_positions.Clear();
 					await Task.Delay(500);
 				}
 			}
 		}
 
-		private async Task WhenWhichMightConsumeTooSlow(int attempt) {
+		private async Task WhenWhichMightConsumeTooSlow(int attempt)
+		{
 			var streamName = attempt + StreamName;
-			using var call = StreamsClient.Read(new ReadReq {
-				Options = new ReadReq.Types.Options {
+			using var call = StreamsClient.Read(new ReadReq
+			{
+				Options = new ReadReq.Types.Options
+				{
 					Subscription = new(),
 					All = new() { End = new() },
-					Filter = new() {
+					Filter = new()
+					{
 						Max = _maxSearchWindow,
 						CheckpointIntervalMultiplier = _checkpointIntervalMultiplier,
 						StreamIdentifier = new() { Prefix = { streamName } }
@@ -230,9 +265,12 @@ public class SubscribeToAllFilteredTests {
 			Assert.AreEqual(ReadResp.ContentOneofCase.Confirmation, call.ResponseStream.Current.ContentCase);
 
 			var success = new BatchAppendResp.Types.Success();
-			for (int i = 0; i <= _checkpointInterval; i++) {
-				success = (await AppendToStreamBatch(new BatchAppendReq {
-					Options = new() {
+			for (int i = 0; i <= _checkpointInterval; i++)
+			{
+				success = (await AppendToStreamBatch(new BatchAppendReq
+				{
+					Options = new()
+					{
 						Any = new(),
 						StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(streamName) }
 					},
@@ -244,18 +282,22 @@ public class SubscribeToAllFilteredTests {
 
 			_position = new Position(success.Position.CommitPosition, success.Position.PreparePosition);
 
-			while (await call.ResponseStream.MoveNext()) {
+			while (await call.ResponseStream.MoveNext())
+			{
 				var response = call.ResponseStream.Current;
-				if (response.ContentCase == ReadResp.ContentOneofCase.Checkpoint) {
+				if (response.ContentCase == ReadResp.ContentOneofCase.Checkpoint)
+				{
 					_positions.Add(new Position(response.Checkpoint.CommitPosition,
 						response.Checkpoint.PreparePosition));
 					continue;
 				}
 
-				if (response.ContentCase == ReadResp.ContentOneofCase.Event) {
+				if (response.ContentCase == ReadResp.ContentOneofCase.Event)
+				{
 					Assert.AreEqual(streamName,
 						response.Event.Event.StreamIdentifier.StreamName.ToStringUtf8());
-					if (!(response.Event.CommitPosition < _position.CommitPosition)) {
+					if (!(response.Event.CommitPosition < _position.CommitPosition))
+					{
 						return;
 					}
 				}
@@ -263,17 +305,20 @@ public class SubscribeToAllFilteredTests {
 		}
 
 		[Test]
-		public void receives_the_correct_number_of_checkpoints() {
+		public void receives_the_correct_number_of_checkpoints()
+		{
 			Assert.AreEqual(1, CheckpointCount);
 		}
 
 		[Test]
-		public void no_duplicate_checkpoints_received() {
+		public void no_duplicate_checkpoints_received()
+		{
 			Assert.AreEqual(_positions.Distinct().Count(), _positions.Count);
 		}
 
 		[Test]
-		public void checkpoint_is_before_last_written_event() {
+		public void checkpoint_is_before_last_written_event()
+		{
 			Assert.True(_positions[0] < _position);
 		}
 	}
@@ -282,7 +327,8 @@ public class SubscribeToAllFilteredTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string), 32, 6)]
 	[TestFixture(typeof(LogFormat.V2), typeof(string), 36, 6)]
 	public class when_subscribing_to_all_with_a_filter_and_transitioning_to_live<TLogFormat, TStreamId>
-		: GrpcSpecification<TLogFormat, TStreamId> {
+		: GrpcSpecification<TLogFormat, TStreamId>
+	{
 
 		private const string StreamA = nameof(StreamA);
 		private const string MarkerStream = nameof(MarkerStream);
@@ -298,20 +344,25 @@ public class SubscribeToAllFilteredTests {
 		private readonly Dictionary<ReadResp.ContentOneofCase, int> _contentCaseCounts = new();
 
 		public when_subscribing_to_all_with_a_filter_and_transitioning_to_live(int catchupCount, int expectedCheckpoints)
-			: base(new LotsOfExpiriesStrategy()) {
+			: base(new LotsOfExpiriesStrategy())
+		{
 
 			_expectedCheckpoints = expectedCheckpoints;
 			_numberOfEventsToCatchUp = catchupCount;
 
-			foreach (var c in Enum.GetValues<ReadResp.ContentOneofCase>()) {
+			foreach (var c in Enum.GetValues<ReadResp.ContentOneofCase>())
+			{
 				_contentCaseCounts.Add(c, 0);
 			}
 		}
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			// marker stream, start subscription after this
-			var result = await AppendToStreamBatch(new BatchAppendReq {
-				Options = new() {
+			var result = await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(MarkerStream) }
 				},
@@ -323,8 +374,10 @@ public class SubscribeToAllFilteredTests {
 			_markerPosition = result.Success.Position;
 
 			// initial events used for catching-up the subscription
-			await AppendToStreamBatch(new BatchAppendReq {
-				Options = new() {
+			await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamA) }
 				},
@@ -334,24 +387,32 @@ public class SubscribeToAllFilteredTests {
 			});
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			var caughtUp = new TaskCompletionSource();
 			var cancelSubscription = new TaskCompletionSource();
-			var _ = Task.Run(async () => {
+			var _ = Task.Run(async () =>
+			{
 				// subscribe
-				using var call = StreamsClient.Read(new ReadReq {
-					Options = new ReadReq.Types.Options {
+				using var call = StreamsClient.Read(new ReadReq
+				{
+					Options = new ReadReq.Types.Options
+					{
 						Subscription = new(),
-						All = new() {
-							Position = new ReadReq.Types.Options.Types.Position() {
+						All = new()
+						{
+							Position = new ReadReq.Types.Options.Types.Position()
+							{
 								CommitPosition = _markerPosition.CommitPosition,
 								PreparePosition = _markerPosition.PreparePosition
 							}
 						},
-						Filter = new() {
+						Filter = new()
+						{
 							Count = new Empty(),
 							CheckpointIntervalMultiplier = CheckpointIntervalMultiplier,
-							EventType = new ReadReq.Types.Options.Types.FilterOptions.Types.Expression() {
+							EventType = new ReadReq.Types.Options.Types.FilterOptions.Types.Expression()
+							{
 								Regex = "^[^$].*" // exclude system events
 							},
 						},
@@ -364,21 +425,26 @@ public class SubscribeToAllFilteredTests {
 				var cts = new CancellationTokenSource();
 				var sw = Stopwatch.StartNew();
 				var maxResponseTimeMs = TimeSpan.Zero.TotalMilliseconds;
-				try {
-					await foreach (var response in call.ResponseStream.ReadAllAsync(cts.Token)) {
+				try
+				{
+					await foreach (var response in call.ResponseStream.ReadAllAsync(cts.Token))
+					{
 						maxResponseTimeMs = Math.Max(maxResponseTimeMs, sw.Elapsed.TotalMilliseconds);
 
 						_contentCaseCounts[response.ContentCase]++;
 
-						switch (response.ContentCase) {
+						switch (response.ContentCase)
+						{
 							case ReadResp.ContentOneofCase.Checkpoint:
 								_checkpointPositions.Add(_contentCaseCounts[ReadResp.ContentOneofCase.Event]);
 								break;
 							case ReadResp.ContentOneofCase.CaughtUp:
 								caughtUp.TrySetResult();
 								break;
-							case ReadResp.ContentOneofCase.Event: {
-									if (response.Event.Event.Metadata[GrpcMetadata.Type] == FinishEventType) {
+							case ReadResp.ContentOneofCase.Event:
+								{
+									if (response.Event.Event.Metadata[GrpcMetadata.Type] == FinishEventType)
+									{
 										// allow some time for final events, like checkpoints, to arrive
 										cts.CancelAfter(TimeSpan.FromMilliseconds(maxResponseTimeMs * 10));
 									}
@@ -389,7 +455,8 @@ public class SubscribeToAllFilteredTests {
 						sw.Restart();
 					}
 				}
-				catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled) {
+				catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+				{
 					// expected
 				}
 
@@ -399,9 +466,12 @@ public class SubscribeToAllFilteredTests {
 			// wait for initial events to be caught-up and subscription transitions to live
 			await caughtUp.Task;
 
-			for (int i = 0; i < 18; i++) {
-				await AppendToStreamBatch(new BatchAppendReq {
-					Options = new() {
+			for (int i = 0; i < 18; i++)
+			{
+				await AppendToStreamBatch(new BatchAppendReq
+				{
+					Options = new()
+					{
 						Any = new(),
 						StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamA) }
 					},
@@ -413,8 +483,10 @@ public class SubscribeToAllFilteredTests {
 				await Task.Delay(10);
 			}
 
-			await AppendToStreamBatch(new BatchAppendReq {
-				Options = new() {
+			await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
 					Any = new(),
 					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(StreamA) }
 				},
@@ -432,28 +504,33 @@ public class SubscribeToAllFilteredTests {
 		private IEnumerable<BatchAppendReq.Types.ProposedMessage> ExpectEvents(
 			IEnumerable<BatchAppendReq.Types.ProposedMessage> events) => ExpectEvents(events.ToArray());
 
-		private IEnumerable<BatchAppendReq.Types.ProposedMessage> ExpectEvents(params BatchAppendReq.Types.ProposedMessage[] events) {
+		private IEnumerable<BatchAppendReq.Types.ProposedMessage> ExpectEvents(params BatchAppendReq.Types.ProposedMessage[] events)
+		{
 			_expectedEventCount += events.Length;
 			return events;
 		}
 
 		[Test]
-		public void receives_the_correct_number_of_confirmations() {
+		public void receives_the_correct_number_of_confirmations()
+		{
 			Assert.AreEqual(1, _contentCaseCounts[ReadResp.ContentOneofCase.Confirmation]);
 		}
 
 		[Test]
-		public void receives_the_correct_number_of_events() {
+		public void receives_the_correct_number_of_events()
+		{
 			Assert.AreEqual(_expectedEventCount, _contentCaseCounts[ReadResp.ContentOneofCase.Event]);
 		}
 
 		[Test]
-		public void receives_the_correct_number_of_checkpoints() {
+		public void receives_the_correct_number_of_checkpoints()
+		{
 			Assert.AreEqual(_expectedCheckpoints, _contentCaseCounts[ReadResp.ContentOneofCase.Checkpoint]);
 		}
 
 		[Test]
-		public void receives_the_checkpoints_on_correct_interval() {
+		public void receives_the_checkpoints_on_correct_interval()
+		{
 			// ideally the checkpoints should be issued after exactly every `CheckpointInterval` events.
 			// this is how things worked previously but the way the enumerator works has changed for more efficiency:
 			// the enumerator now starts a _permanent_ live subscription to the subscriptions service before catch up starts.
@@ -466,12 +543,14 @@ public class SubscribeToAllFilteredTests {
 		}
 
 		[Test]
-		public void receives_the_subscription_was_caught_up() {
+		public void receives_the_subscription_was_caught_up()
+		{
 			Assert.AreEqual(1, _contentCaseCounts[ReadResp.ContentOneofCase.CaughtUp]);
 		}
 
 		[Test]
-		public void does_not_receive_the_subscription_fell_behind() {
+		public void does_not_receive_the_subscription_fell_behind()
+		{
 			Assert.Zero(_contentCaseCounts[ReadResp.ContentOneofCase.FellBehind]);
 		}
 	}

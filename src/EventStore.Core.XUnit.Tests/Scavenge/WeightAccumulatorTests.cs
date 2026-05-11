@@ -5,15 +5,19 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class WeightAccumulatorTests {
+public class WeightAccumulatorTests
+{
 	private readonly WeightAccumulator _sut;
 	private readonly MockIncreaseChunkWeights _state;
 
-	class MockIncreaseChunkWeights : IIncreaseChunkWeights {
+	class MockIncreaseChunkWeights : IIncreaseChunkWeights
+	{
 		private readonly Dictionary<int, float> _weights = new Dictionary<int, float>();
 
-		public void IncreaseChunkWeight(int logicalChunkNumber, float extraWeight) {
-			if (!_weights.TryGetValue(logicalChunkNumber, out var w)) {
+		public void IncreaseChunkWeight(int logicalChunkNumber, float extraWeight)
+		{
+			if (!_weights.TryGetValue(logicalChunkNumber, out var w))
+			{
 				w = 0;
 			}
 
@@ -27,13 +31,15 @@ public class WeightAccumulatorTests {
 				.Sum();
 	}
 
-	public WeightAccumulatorTests() {
+	public WeightAccumulatorTests()
+	{
 		_state = new MockIncreaseChunkWeights();
 		_sut = new WeightAccumulator(_state);
 	}
 
 	[Fact]
-	public void sanity() {
+	public void sanity()
+	{
 		_sut.OnDiscard(0);
 		_sut.OnDiscard(1);
 		_sut.OnMaybeDiscard(0);

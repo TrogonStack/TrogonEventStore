@@ -15,15 +15,18 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_the_state_handler_does_emit_an_event_the_projection_should<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	when_the_state_handler_does_emit_an_event_the_projection_should<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private Guid _causingEventId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//projection subscribes here
 		_causingEventId = Guid.NewGuid();
 		var committedEventReceived =
@@ -36,14 +39,16 @@ public class
 	}
 
 	[Test]
-	public void write_the_emitted_event() {
+	public void write_the_emitted_event()
+	{
 		Assert.IsTrue(
 			_writeEventHandler.HandledMessages.Any(
 				v => Helper.UTF8NoBom.GetString(v.Events[0].Data) == FakeProjectionStateHandler._emit1Data));
 	}
 
 	[Test]
-	public void set_a_caused_by_position_attributes() {
+	public void set_a_caused_by_position_attributes()
+	{
 		var metadata = _writeEventHandler.HandledMessages[0].Events[0].Metadata
 			.ParseCheckpointTagVersionExtraJson(default(ProjectionVersion));
 		Assert.AreEqual(120, metadata.Tag.CommitPosition);

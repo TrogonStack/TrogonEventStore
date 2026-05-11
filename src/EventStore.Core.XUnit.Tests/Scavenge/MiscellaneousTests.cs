@@ -9,9 +9,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 // for testing functionality that isn't specific to particular discard criteria
-public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
+public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests>
+{
 	[Fact]
-	public async Task Trivial() {
+	public async Task Trivial()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -32,7 +34,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task seen_stream_before() {
+	public async Task seen_stream_before()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -49,7 +52,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task collision() {
+	public async Task collision()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -66,7 +70,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_non_colliding() {
+	public async Task metadata_non_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -83,7 +88,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_colliding() {
+	public async Task metadata_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -100,7 +106,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_applies_to_correct_stream_in_hidden_collision() {
+	public async Task metadata_applies_to_correct_stream_in_hidden_collision()
+	{
 		// metastream sets metadata for stream ab-1 (which hashes to b)
 		// but that stream doesn't exist.
 		// make sure that cb-2 (which also hashes to b) does not pick up that metadata.
@@ -121,7 +128,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_different_streams_non_colliding() {
+	public async Task metadatas_for_different_streams_non_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -140,7 +148,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_different_streams_all_colliding() {
+	public async Task metadatas_for_different_streams_all_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -159,7 +168,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_different_streams_original_streams_colliding() {
+	public async Task metadatas_for_different_streams_original_streams_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -178,7 +188,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_different_streams_meta_streams_colliding() {
+	public async Task metadatas_for_different_streams_meta_streams_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -197,7 +208,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_different_streams_original_and_meta_colliding() {
+	public async Task metadatas_for_different_streams_original_and_meta_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -216,7 +228,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_different_streams_cross_colliding() {
+	public async Task metadatas_for_different_streams_cross_colliding()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -235,7 +248,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadatas_for_same_stream() {
+	public async Task metadatas_for_same_stream()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -252,7 +266,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_first() {
+	public async Task metadata_first()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -272,7 +287,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task nonexistent_stream() {
+	public async Task nonexistent_stream()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -288,7 +304,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task multiple_streams() {
+	public async Task multiple_streams()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -309,7 +326,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_gets_scavenged() {
+	public async Task metadata_gets_scavenged()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -326,7 +344,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_for_metadata_stream_gets_scavenged() {
+	public async Task metadata_for_metadata_stream_gets_scavenged()
+	{
 		// currently requires a threshold = -1 scavenge to force this.
 		// see comments in accumulator.cs
 		var t = 0;
@@ -345,7 +364,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_for_metadata_stream_does_not_apply() {
+	public async Task metadata_for_metadata_stream_does_not_apply()
+	{
 		// e.g. can't increase the maxcount to three
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -366,7 +386,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task unusual_metadata_still_takes_effect() {
+	public async Task unusual_metadata_still_takes_effect()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -391,7 +412,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_in_normal_stream_is_ignored() {
+	public async Task metadata_in_normal_stream_is_ignored()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -409,7 +431,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task metadata_in_transaction_not_supported() {
+	public async Task metadata_in_transaction_not_supported()
+	{
 		var logger = new FakeTFScavengerLog();
 
 		await new Scenario<LogFormat.V2, string>()
@@ -429,7 +452,8 @@ public class MiscellaneousTests : SqliteDbPerTest<MiscellaneousTests> {
 	}
 
 	[Fact]
-	public async Task transactions_not_scavenged() {
+	public async Task transactions_not_scavenged()
+	{
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
 			.WithDb(x => x

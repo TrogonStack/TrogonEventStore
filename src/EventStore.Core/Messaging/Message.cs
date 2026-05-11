@@ -5,23 +5,30 @@ using Newtonsoft.Json;
 namespace EventStore.Core.Messaging;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class BaseMessageAttribute : Attribute {
-	public BaseMessageAttribute() {
+public class BaseMessageAttribute : Attribute
+{
+	public BaseMessageAttribute()
+	{
 	}
 }
 
 [AttributeUsage(AttributeTargets.Class)]
-public class DerivedMessageAttribute : Attribute {
-	public DerivedMessageAttribute() {
+public class DerivedMessageAttribute : Attribute
+{
+	public DerivedMessageAttribute()
+	{
 	}
 
-	public DerivedMessageAttribute(object messageGroup) {
+	public DerivedMessageAttribute(object messageGroup)
+	{
 	}
 }
 
 [BaseMessage]
-public abstract partial class Message {
-	protected Message(CancellationToken cancellationToken = default) {
+public abstract partial class Message
+{
+	protected Message(CancellationToken cancellationToken = default)
+	{
 		CancellationToken = cancellationToken;
 	}
 

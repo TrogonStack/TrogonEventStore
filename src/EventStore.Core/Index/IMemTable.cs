@@ -2,7 +2,8 @@ using System.Collections.Generic;
 
 namespace EventStore.Core.Index;
 
-public interface IMemTable : ISearchTable {
+public interface IMemTable : ISearchTable
+{
 	bool MarkForConversion();
 	void Add(ulong stream, long version, long position);
 	void AddEntries(IReadOnlyList<IndexEntry> entries);

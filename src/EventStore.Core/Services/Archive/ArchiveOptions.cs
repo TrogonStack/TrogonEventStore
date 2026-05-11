@@ -3,19 +3,24 @@ using EventStore.Common.Exceptions;
 
 namespace EventStore.Core.Services.Archive;
 
-public class ArchiveOptions {
+public class ArchiveOptions
+{
 	public bool Enabled { get; init; } = false;
 	public StorageType StorageType { get; init; } = StorageType.Unspecified;
 	public S3Options S3 { get; init; } = new();
 	public RetentionOptions RetainAtLeast { get; init; } = new();
 
-	public void Validate() {
-		try {
-			if (!Enabled) {
+	public void Validate()
+	{
+		try
+		{
+			if (!Enabled)
+			{
 				return;
 			}
 
-			switch (StorageType) {
+			switch (StorageType)
+			{
 				case StorageType.Unspecified:
 					throw new InvalidConfigurationException("Please specify an Archive StorageType");
 				case StorageType.S3:
@@ -27,41 +32,50 @@ public class ArchiveOptions {
 
 			RetainAtLeast.Validate();
 		}
-		catch (InvalidConfigurationException ex) {
+		catch (InvalidConfigurationException ex)
+		{
 			throw new InvalidConfigurationException($"Archive configuration: {ex.Message}", ex);
 		}
 	}
 }
 
-public enum StorageType {
+public enum StorageType
+{
 	Unspecified,
 	S3,
 }
 
-public class RetentionOptions {
+public class RetentionOptions
+{
 	public long Days { get; init; } = TimeSpan.MaxValue.Days;
 	public long LogicalBytes { get; init; } = long.MaxValue;
 
-	public void Validate() {
-		if (Days == TimeSpan.MaxValue.Days) {
+	public void Validate()
+	{
+		if (Days == TimeSpan.MaxValue.Days)
+		{
 			throw new InvalidConfigurationException("Please specify a value for Days to retain");
 		}
 
-		if (Days < 0 || Days > TimeSpan.MaxValue.Days) {
+		if (Days < 0 || Days > TimeSpan.MaxValue.Days)
+		{
 			throw new InvalidConfigurationException($"Days must be between 0 and {TimeSpan.MaxValue.Days}");
 		}
 
-		if (LogicalBytes == long.MaxValue) {
+		if (LogicalBytes == long.MaxValue)
+		{
 			throw new InvalidConfigurationException("Please specify a value for LogicalBytes to retain");
 		}
 
-		if (LogicalBytes < 0) {
+		if (LogicalBytes < 0)
+		{
 			throw new InvalidConfigurationException("LogicalBytes must be greater than or equal to 0");
 		}
 	}
 }
 
-public class S3Options {
+public class S3Options
+{
 	public string Bucket { get; init; } = "";
 	public string Region { get; init; } = "";
 	public string AccessKeyId { get; init; } = "";
@@ -69,28 +83,34 @@ public class S3Options {
 	public string SessionToken { get; init; } = "";
 	public string ServiceUrl { get; init; } = "";
 
-	public void Validate() {
-		if (string.IsNullOrWhiteSpace(Bucket)) {
+	public void Validate()
+	{
+		if (string.IsNullOrWhiteSpace(Bucket))
+		{
 			throw new InvalidConfigurationException("Please provide a Bucket for the S3 archive");
 		}
 
-		if (string.IsNullOrWhiteSpace(Region)) {
+		if (string.IsNullOrWhiteSpace(Region))
+		{
 			throw new InvalidConfigurationException("Please provide a Region for the S3 archive");
 		}
 
-		if (string.IsNullOrWhiteSpace(AccessKeyId) != string.IsNullOrWhiteSpace(SecretAccessKey)) {
+		if (string.IsNullOrWhiteSpace(AccessKeyId) != string.IsNullOrWhiteSpace(SecretAccessKey))
+		{
 			throw new InvalidConfigurationException(
 				"Please provide both AccessKeyId and SecretAccessKey for S3 archive credentials");
 		}
 
 		if (!string.IsNullOrWhiteSpace(SessionToken) &&
-			(string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))) {
+			(string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
+		{
 			throw new InvalidConfigurationException(
 				"Please provide AccessKeyId and SecretAccessKey when SessionToken is configured for S3 archive credentials");
 		}
 
 		if (!string.IsNullOrWhiteSpace(ServiceUrl) &&
-			(string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))) {
+			(string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey)))
+		{
 			throw new InvalidConfigurationException(
 				"Please provide AccessKeyId and SecretAccessKey for S3-compatible archive storage");
 		}

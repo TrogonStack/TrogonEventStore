@@ -15,7 +15,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning"), NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<subscribe_to_all_catching_up_should<TLogFormat, TStreamId>>();
 	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 	private const int LongRunningTimeout = 300000;
@@ -26,7 +27,8 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	private IEventStoreConnection _conn;
 
 	[SetUp]
-	public override async Task SetUp() {
+	public override async Task SetUp()
+	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start(StartupTimeout);
@@ -42,18 +44,24 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	}
 
 	[TearDown]
-	public override async Task TearDown() {
-		try {
-			if (_conn != null) {
+	public override async Task TearDown()
+	{
+		try
+		{
+			if (_conn != null)
+			{
 				await TestConnectionLifecycle.CloseConnectionAndWait(_conn, ConnectionCloseTimeout);
 			}
 		}
-		catch {
-			if (_conn != null) {
+		catch
+		{
+			if (_conn != null)
+			{
 				TestConnectionLifecycle.TryCloseConnection(_conn);
 			}
 		}
-		finally {
+		finally
+		{
 			TestConnectionLifecycle.DisposeIfNeeded(_conn);
 		}
 
@@ -61,13 +69,16 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		await base.TearDown();
 	}
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task call_dropped_callback_after_stop_method_call() {
-		using (var store = BuildConnection(_node)) {
+	public async Task call_dropped_callback_after_stop_method_call()
+	{
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var dropped = new CountdownEvent(1);
@@ -84,9 +95,11 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task call_dropped_callback_when_an_error_occurs_while_processing_an_event() {
+	public async Task call_dropped_callback_when_an_error_occurs_while_processing_an_event()
+	{
 		const string stream = "call_dropped_callback_when_an_error_occurs_while_processing_an_event";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			await store.AppendToStreamAsync(stream, ExpectedVersion.Any,
 				new EventData(Guid.NewGuid(), "event", false, new byte[3], null));
@@ -101,16 +114,20 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task be_able_to_subscribe_to_empty_db() {
-		using (var store = BuildConnection(_node)) {
+	public async Task be_able_to_subscribe_to_empty_db()
+	{
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var appeared = new ManualResetEventSlim(false);
 			var dropped = new CountdownEvent(1);
 
 			var subscription = store.SubscribeToAllFrom(null,
 				CatchUpSubscriptionSettings.Default,
-				(_, x) => {
-					if (!SystemStreams.IsSystemStream(x.OriginalEvent.EventStreamId)) {
+				(_, x) =>
+				{
+					if (!SystemStreams.IsSystemStream(x.OriginalEvent.EventStreamId))
+					{
 						appeared.Set();
 					}
 
@@ -131,23 +148,28 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task read_all_existing_events_and_keep_listening_to_new_ones() {
-		using (var store = BuildConnection(_node)) {
+	public async Task read_all_existing_events_and_keep_listening_to_new_ones()
+	{
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = new List<ResolvedEvent>();
 			var appeared = new CountdownEvent(20);
 			var dropped = new CountdownEvent(1);
 
-			for (int i = 0; i < 10; ++i) {
+			for (int i = 0; i < 10; ++i)
+			{
 				await store.AppendToStreamAsync("stream-" + i.ToString(), -1,
 					new EventData(Guid.NewGuid(), "et-" + i.ToString(), false, new byte[3], null));
 			}
 
 			var subscription = store.SubscribeToAllFrom(null,
 				CatchUpSubscriptionSettings.Default,
-				(x, y) => {
-					if (!SystemStreams.IsSystemStream(y.OriginalEvent.EventStreamId)) {
+				(x, y) =>
+				{
+					if (!SystemStreams.IsSystemStream(y.OriginalEvent.EventStreamId))
+					{
 						events.Add(y);
 						appeared.Signal();
 					}
@@ -156,18 +178,21 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 				},
 				_ => Log.Information("Live processing started."),
 				(x, y, z) => dropped.Signal());
-			for (int i = 10; i < 20; ++i) {
+			for (int i = 10; i < 20; ++i)
+			{
 				await store.AppendToStreamAsync("stream-" + i.ToString(), -1,
 					new EventData(Guid.NewGuid(), "et-" + i.ToString(), false, new byte[3], null));
 			}
 
-			if (!appeared.Wait(Timeout)) {
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.IsFalse(dropped.Wait(0), "Subscription was dropped prematurely.");
 				Assert.Fail("Could not wait for all events.");
 			}
 
 			Assert.AreEqual(20, events.Count);
-			for (int i = 0; i < 20; ++i) {
+			for (int i = 0; i < 20; ++i)
+			{
 				Assert.AreEqual("et-" + i.ToString(), events[i].OriginalEvent.EventType);
 			}
 
@@ -178,15 +203,18 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task filter_events_and_keep_listening_to_new_ones() {
-		using (var store = BuildConnection(_node)) {
+	public async Task filter_events_and_keep_listening_to_new_ones()
+	{
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = new List<ResolvedEvent>();
 			var appeared = new CountdownEvent(10);
 			var dropped = new CountdownEvent(1);
 
-			for (int i = 0; i < 10; ++i) {
+			for (int i = 0; i < 10; ++i)
+			{
 				await store.AppendToStreamAsync("stream-" + i.ToString(), -1,
 					new EventData(Guid.NewGuid(), "et-" + i.ToString(), false, new byte[3], null));
 			}
@@ -196,8 +224,10 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 
 			var subscription = store.SubscribeToAllFrom(lastEvent.OriginalPosition,
 				CatchUpSubscriptionSettings.Default,
-				(x, y) => {
-					if (SystemStreams.IsSystemStream(y.Event.EventStreamId)) {
+				(x, y) =>
+				{
+					if (SystemStreams.IsSystemStream(y.Event.EventStreamId))
+					{
 						return Task.CompletedTask;
 					}
 					events.Add(y);
@@ -205,25 +235,29 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 					return Task.CompletedTask;
 				},
 				_ => Log.Information("Live processing started."),
-				(x, y, z) => {
+				(x, y, z) =>
+				{
 					Log.Information("Subscription dropped: {0}, {1}.", y, z);
 					dropped.Signal();
 				});
 
-			for (int i = 10; i < 20; ++i) {
+			for (int i = 10; i < 20; ++i)
+			{
 				await store.AppendToStreamAsync("stream-" + i.ToString(), -1,
 					new EventData(Guid.NewGuid(), "et-" + i.ToString(), false, new byte[3], null));
 			}
 
 			Log.Information("Waiting for events...");
-			if (!appeared.Wait(Timeout)) {
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.IsFalse(dropped.Wait(0), "Subscription was dropped prematurely.");
 				Assert.Fail("Could not wait for all events.");
 			}
 
 			Log.Information("Events appeared...");
 			Assert.AreEqual(10, events.Count);
-			for (int i = 0; i < 10; ++i) {
+			for (int i = 0; i < 10; ++i)
+			{
 				Assert.AreEqual("et-" + (10 + i).ToString(), events[i].OriginalEvent.EventType);
 			}
 
@@ -236,15 +270,18 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public async Task filter_events_and_work_if_nothing_was_written_after_subscription() {
-		using (var store = BuildConnection(_node)) {
+	public async Task filter_events_and_work_if_nothing_was_written_after_subscription()
+	{
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = new List<ResolvedEvent>();
 			var appeared = new CountdownEvent(1);
 			var dropped = new CountdownEvent(1);
 
-			for (int i = 0; i < 10; ++i) {
+			for (int i = 0; i < 10; ++i)
+			{
 				await store.AppendToStreamAsync("stream-" + i.ToString(), -1,
 					new EventData(Guid.NewGuid(), "et-" + i.ToString(), false, new byte[3], null));
 			}
@@ -254,19 +291,22 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 
 			var subscription = store.SubscribeToAllFrom(lastEvent.OriginalPosition,
 				CatchUpSubscriptionSettings.Default,
-				(x, y) => {
+				(x, y) =>
+				{
 					events.Add(y);
 					appeared.Signal();
 					return Task.CompletedTask;
 				},
 				_ => Log.Information("Live processing started."),
-				(x, y, z) => {
+				(x, y, z) =>
+				{
 					Log.Information("Subscription dropped: {0}, {1}.", y, z);
 					dropped.Signal();
 				});
 
 			Log.Information("Waiting for events...");
-			if (!appeared.Wait(Timeout)) {
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.IsFalse(dropped.Wait(0), "Subscription was dropped prematurely.");
 				Assert.Fail("Could not wait for all events.");
 			}

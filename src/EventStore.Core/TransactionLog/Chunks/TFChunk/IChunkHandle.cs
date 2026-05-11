@@ -12,7 +12,8 @@ namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 /// <summary>
 /// Represents a handle to access the underlying chunk physical storage.
 /// </summary>
-public interface IChunkHandle : IFlushable, IDisposable {
+public interface IChunkHandle : IFlushable, IDisposable
+{
 
 	ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token);
 
@@ -21,7 +22,8 @@ public interface IChunkHandle : IFlushable, IDisposable {
 	/// <summary>
 	/// Gets or sets the length of the data represented by this handle, in bytes.
 	/// </summary>
-	long Length {
+	long Length
+	{
 		get;
 		set;
 	}
@@ -46,7 +48,8 @@ public interface IChunkHandle : IFlushable, IDisposable {
 			? chunkFileHandle.CreateSynchronousStream(leaveOpen)
 			: new UnbufferedStream(handle, leaveOpen) { ReadTimeout = synchronousTimeout, WriteTimeout = synchronousTimeout };
 
-	private sealed class UnbufferedStream(IChunkHandle handle, bool leaveOpen) : RandomAccessStream {
+	private sealed class UnbufferedStream(IChunkHandle handle, bool leaveOpen) : RandomAccessStream
+	{
 		private int _readTimeout, _writeTimeout;
 		private int _readWarningLogged;
 		private int _writeWarningLogged;
@@ -64,13 +67,15 @@ public interface IChunkHandle : IFlushable, IDisposable {
 
 		public override bool CanTimeout => true;
 
-		public override int WriteTimeout {
+		public override int WriteTimeout
+		{
 			get => _writeTimeout;
 			set => _writeTimeout =
 				value >= Timeout.Infinite ? value : throw new ArgumentOutOfRangeException(nameof(value));
 		}
 
-		public override int ReadTimeout {
+		public override int ReadTimeout
+		{
 			get => _readTimeout;
 			set => _readTimeout =
 				value >= Timeout.Infinite ? value : throw new ArgumentOutOfRangeException(nameof(value));
@@ -78,9 +83,11 @@ public interface IChunkHandle : IFlushable, IDisposable {
 
 		public override long Length => handle.Length;
 
-		protected override void Write(ReadOnlySpan<byte> buffer, long offset) {
+		protected override void Write(ReadOnlySpan<byte> buffer, long offset)
+		{
 			// leave fast without sync over async
-			if (buffer.IsEmpty) {
+			if (buffer.IsEmpty)
+			{
 				return;
 			}
 
@@ -91,14 +98,17 @@ public interface IChunkHandle : IFlushable, IDisposable {
 			var bufferCopy = buffer.Copy();
 			var timeoutToken = GetTimeoutToken(WriteTimeout);
 			var task = WriteAsync(bufferCopy.Memory, offset, timeoutToken).AsTask();
-			try {
+			try
+			{
 				task.Wait();
 			}
 			catch (AggregateException e) when (e.InnerExceptions is [OperationCanceledException canceledEx] &&
-											   canceledEx.CancellationToken == timeoutToken) {
+											   canceledEx.CancellationToken == timeoutToken)
+			{
 				throw new TimeoutException(e.Message, canceledEx);
 			}
-			finally {
+			finally
+			{
 				task.Dispose();
 				ResetTimeout();
 				bufferCopy.Dispose();
@@ -109,13 +119,16 @@ public interface IChunkHandle : IFlushable, IDisposable {
 		protected override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, long offset, CancellationToken token)
 			=> handle.WriteAsync(buffer, offset, token);
 
-		protected override int Read(Span<byte> buffer, long offset) {
+		protected override int Read(Span<byte> buffer, long offset)
+		{
 			// leave fast without sync over async
 			int bytesRead;
-			if (buffer.IsEmpty) {
+			if (buffer.IsEmpty)
+			{
 				bytesRead = 0;
 			}
-			else {
+			else
+			{
 				LogSynchronousReadOnce();
 
 				// Do sync over async without any optimizations to make it just works.
@@ -123,16 +136,19 @@ public interface IChunkHandle : IFlushable, IDisposable {
 				var bufferCopy = Memory.AllocateExactly<byte>(buffer.Length);
 				var timeoutToken = GetTimeoutToken(ReadTimeout);
 				var task = ReadAsync(bufferCopy.Memory, offset, timeoutToken).AsTask();
-				try {
+				try
+				{
 					task.Wait();
 					bytesRead = task.Result;
 					bufferCopy.Span.Slice(0, bytesRead).CopyTo(buffer);
 				}
 				catch (AggregateException e) when (e.InnerExceptions is [OperationCanceledException canceledEx] &&
-												   canceledEx.CancellationToken == timeoutToken) {
+												   canceledEx.CancellationToken == timeoutToken)
+				{
 					throw new TimeoutException(e.Message, canceledEx);
 				}
-				finally {
+				finally
+				{
 					task.Dispose();
 					ResetTimeout();
 					bufferCopy.Dispose();
@@ -146,40 +162,50 @@ public interface IChunkHandle : IFlushable, IDisposable {
 		protected override ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
 			=> handle.ReadAsync(buffer, offset, token);
 
-		private void LogSynchronousReadOnce() {
-			if (Interlocked.Exchange(ref _readWarningLogged, 1) != 0) {
+		private void LogSynchronousReadOnce()
+		{
+			if (Interlocked.Exchange(ref _readWarningLogged, 1) != 0)
+			{
 				return;
 			}
 
 			Log.Warning("Synchronous reads should be uncommon. Handle: {Handle}", handle.Name);
 		}
 
-		private void LogSynchronousWriteOnce() {
-			if (Interlocked.Exchange(ref _writeWarningLogged, 1) != 0) {
+		private void LogSynchronousWriteOnce()
+		{
+			if (Interlocked.Exchange(ref _writeWarningLogged, 1) != 0)
+			{
 				return;
 			}
 
 			Log.Warning("Synchronous writes should be uncommon. Handle: {Handle}", handle.Name);
 		}
 
-		private CancellationToken GetTimeoutToken(int timeout) {
+		private CancellationToken GetTimeoutToken(int timeout)
+		{
 			_timeoutSource ??= new();
 			_timeoutSource.CancelAfter(timeout);
 			return _timeoutSource.Token;
 		}
 
-		private void ResetTimeout() {
+		private void ResetTimeout()
+		{
 			// attempt to reuse the token source to avoid extra memory allocation
-			if (!_timeoutSource.TryReset()) {
+			if (!_timeoutSource.TryReset())
+			{
 				_timeoutSource.Dispose();
 				_timeoutSource = null;
 			}
 		}
 
-		protected override void Dispose(bool disposing) {
-			if (disposing) {
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
 				_timeoutSource?.Dispose();
-				if (!leaveOpen) {
+				if (!leaveOpen)
+				{
 					handle.Dispose();
 				}
 			}

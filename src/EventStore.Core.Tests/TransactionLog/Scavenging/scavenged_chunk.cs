@@ -11,9 +11,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging;
 
 [TestFixture]
-public class ScavengedChunk : SpecificationWithFile {
+public class ScavengedChunk : SpecificationWithFile
+{
 	[Test]
-	public async Task is_fully_resident_in_memory_when_cached() {
+	public async Task is_fully_resident_in_memory_when_cached()
+	{
 		var map = new List<PosMap>();
 		var chunk = await TFChunk.CreateNew(TFChunkHelper.CreateLocalFileSystem(Filename), Filename, 1024 * 1024, 0, 0, true, false, false, false,
 			false,
@@ -21,7 +23,8 @@ public class ScavengedChunk : SpecificationWithFile {
 			new IdentityChunkTransformFactory(),
 			CancellationToken.None);
 		long logPos = 0;
-		for (int i = 0, n = ChunkFooter.Size / PosMap.FullSize + 1; i < n; ++i) {
+		for (int i = 0, n = ChunkFooter.Size / PosMap.FullSize + 1; i < n; ++i)
+		{
 			map.Add(new PosMap(logPos, (int)logPos));
 			var res = await chunk.TryAppend(LogRecord.Commit(logPos, Guid.NewGuid(), logPos, 0), CancellationToken.None);
 			Assert.IsTrue(res.Success);

@@ -5,61 +5,75 @@ using Serilog.Events;
 
 namespace EventStore.Common.Log;
 
-public class ThrottledLog<T> {
+public class ThrottledLog<T>
+{
 
 	private readonly ILogger _log;
 	private readonly long _duration;
 	private long _lastLogged;
-	public ThrottledLog(TimeSpan duration) {
+	public ThrottledLog(TimeSpan duration)
+	{
 		_log = Serilog.Log.ForContext<T>();
 		_duration = duration.Ticks;
 		_lastLogged = DateTime.UnixEpoch.Ticks;
 	}
 
-	public bool Warning(string message) {
+	public bool Warning(string message)
+	{
 		bool canLog = CanLog();
-		if (canLog) {
+		if (canLog)
+		{
 			_log.Warning(message);
 		}
 
 		return canLog;
 	}
 
-	public bool Fatal(string message) {
+	public bool Fatal(string message)
+	{
 		bool canLog = CanLog();
-		if (canLog) {
+		if (canLog)
+		{
 			_log.Fatal(message);
 		}
 
 		return canLog;
 	}
 
-	public bool Information(string message) {
+	public bool Information(string message)
+	{
 		bool canLog = CanLog();
-		if (canLog) {
+		if (canLog)
+		{
 			_log.Information(message);
 		}
 
 		return canLog;
 	}
 
-	public bool Error(string message) {
+	public bool Error(string message)
+	{
 		bool canLog = CanLog();
-		if (canLog) {
+		if (canLog)
+		{
 			_log.Error(message);
 		}
 
 		return canLog;
 	}
 
-	private bool CanLog() {
+	private bool CanLog()
+	{
 		var currentTime = DateTime.Now.Ticks;
 		bool canLog = false;
 
 		// double-checked locking
-		if (currentTime - _lastLogged >= _duration) {
-			lock (_log) {
-				if (currentTime - _lastLogged >= _duration) {
+		if (currentTime - _lastLogged >= _duration)
+		{
+			lock (_log)
+			{
+				if (currentTime - _lastLogged >= _duration)
+				{
 					_lastLogged = currentTime;
 					canLog = true;
 				}

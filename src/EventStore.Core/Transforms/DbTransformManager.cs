@@ -7,24 +7,29 @@ using Serilog;
 
 namespace EventStore.Core.Transforms;
 
-public class DbTransformManager {
+public class DbTransformManager
+{
 	private IReadOnlyList<IDbTransform> _transforms;
 	private IDbTransform _activeTransform;
 
-	private IDbTransform FindTransform(TransformType type) {
-		if (TryFindTransform(type, out var transform)) {
+	private IDbTransform FindTransform(TransformType type)
+	{
+		if (TryFindTransform(type, out var transform))
+		{
 			return transform;
 		}
 
 		throw new Exception($"Failed to load transform: {type}");
 	}
 
-	private bool TryFindTransform(TransformType type, out IDbTransform dbTransform) {
+	private bool TryFindTransform(TransformType type, out IDbTransform dbTransform)
+	{
 		dbTransform = _transforms?.FirstOrDefault(t => t.Type == type);
 		return dbTransform != null;
 	}
 
-	private bool TryFindTransform(string name, out IDbTransform dbTransform) {
+	private bool TryFindTransform(string name, out IDbTransform dbTransform)
+	{
 		dbTransform = _transforms?.FirstOrDefault(t => t.Name == name);
 		return dbTransform != null;
 	}
@@ -34,7 +39,8 @@ public class DbTransformManager {
 
 	public IChunkTransformFactory GetFactoryForExistingChunk(TransformType type) => FindTransform(type).ChunkFactory;
 
-	public void LoadTransforms(IReadOnlyList<IDbTransform> transforms) {
+	public void LoadTransforms(IReadOnlyList<IDbTransform> transforms)
+	{
 		_transforms = transforms;
 		Log.Information($"Loaded the following transforms: {string.Join(", ", transforms.Select(t => t.Type))}");
 
@@ -42,13 +48,16 @@ public class DbTransformManager {
 		_ = FindTransform(TransformType.Identity);
 	}
 
-	public void SetActiveTransform(TransformType type) {
+	public void SetActiveTransform(TransformType type)
+	{
 		Log.Information($"Setting the active transform to: {type}");
 		_activeTransform = FindTransform(type);
 	}
 
-	public bool TrySetActiveTransform(string name) {
-		if (!TryFindTransform(name, out var transform)) {
+	public bool TrySetActiveTransform(string name)
+	{
+		if (!TryFindTransform(name, out var transform))
+		{
 			return false;
 		}
 
@@ -59,8 +68,10 @@ public class DbTransformManager {
 
 	public bool SupportsTransform(TransformType type) => TryFindTransform(type, out _);
 
-	public static DbTransformManager Default {
-		get {
+	public static DbTransformManager Default
+	{
+		get
+		{
 			var dbTransformManager = new DbTransformManager();
 			var identityDbTransform = new IdentityDbTransform();
 			dbTransformManager.LoadTransforms(new[] { identityDbTransform });

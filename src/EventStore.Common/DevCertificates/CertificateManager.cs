@@ -14,7 +14,8 @@ using EventStore.Common.Utils;
 namespace EventStore.Common.DevCertificates;
 
 
-public abstract class CertificateManager {
+public abstract class CertificateManager
+{
 	internal const int CurrentCertificateVersion = 2;
 	internal const string EventStoreDbHttpsOid = "1.3.6.1.4.1.43941.1.1.1";
 	internal const string EventStoreHttpsOidFriendlyName = "Event Store HTTPS development certificate";
@@ -43,11 +44,13 @@ public abstract class CertificateManager {
 
 	public string Subject { get; }
 
-	protected CertificateManager() : this(LocalhostHttpsDistinguishedName, CurrentCertificateVersion) {
+	protected CertificateManager() : this(LocalhostHttpsDistinguishedName, CurrentCertificateVersion)
+	{
 	}
 
 	// For testing purposes only
-	internal CertificateManager(string subject, int version) {
+	internal CertificateManager(string subject, int version)
+	{
 		Subject = subject;
 		EventStoreHttpsCertificateVersion = version;
 	}
@@ -60,10 +63,12 @@ public abstract class CertificateManager {
 		StoreName storeName,
 		StoreLocation location,
 		bool isValid,
-		bool requireExportable = true) {
+		bool requireExportable = true)
+	{
 		Log.ListCertificatesStart(location, storeName);
 		var certificates = new List<X509Certificate2>();
-		try {
+		try
+		{
 			using var store = new X509Store(storeName, location);
 			store.Open(OpenFlags.ReadOnly);
 			certificates.AddRange(store.Certificates.OfType<X509Certificate2>());
@@ -71,11 +76,13 @@ public abstract class CertificateManager {
 			matchingCertificates = matchingCertificates
 				.Where(c => HasOid(c, EventStoreDbHttpsOid));
 
-			if (Log.IsEnabled()) {
+			if (Log.IsEnabled())
+			{
 				Log.DescribeFoundCertificates(ToCertificateDescription(matchingCertificates));
 			}
 
-			if (isValid) {
+			if (isValid)
+			{
 				// Ensure the certificate hasn't expired, has a private key and its exportable
 				// (for container/unix scenarios).
 				Log.CheckCertificatesValidity();
@@ -85,7 +92,8 @@ public abstract class CertificateManager {
 					.OrderByDescending(c => GetCertificateVersion(c))
 					.ToArray();
 
-				if (Log.IsEnabled()) {
+				if (Log.IsEnabled())
+				{
 					var invalidCertificates = matchingCertificates.Except(validCertificates);
 					Log.DescribeValidCertificates(ToCertificateDescription(validCertificates));
 					Log.DescribeInvalidCertificates(ToCertificateDescription(invalidCertificates));
@@ -105,8 +113,10 @@ public abstract class CertificateManager {
 			Log.ListCertificatesEnd();
 			return (IList<X509Certificate2>)matchingCertificates;
 		}
-		catch (Exception e) {
-			if (Log.IsEnabled()) {
+		catch (Exception e)
+		{
+			if (Log.IsEnabled())
+			{
 				Log.ListCertificatesError(e.ToString());
 			}
 
@@ -119,18 +129,21 @@ public abstract class CertificateManager {
 			certificate.Extensions.OfType<X509Extension>()
 				.Any(e => string.Equals(oid, e.Oid?.Value, StringComparison.Ordinal));
 
-		static byte GetCertificateVersion(X509Certificate2 c) {
+		static byte GetCertificateVersion(X509Certificate2 c)
+		{
 			var byteArray = c.Extensions
 				.OfType<X509Extension>()
 				.Single(e => string.Equals(EventStoreDbHttpsOid, e.Oid?.Value, StringComparison.Ordinal))
 				.RawData;
 
 			if ((byteArray.Length == EventStoreHttpsOidFriendlyName.Length && byteArray[0] == (byte)'A') ||
-				byteArray.Length == 0) {
+				byteArray.Length == 0)
+			{
 				// No Version set, default to 0
 				return 0b0;
 			}
-			else {
+			else
+			{
 				// Version is in the only byte of the byte array.
 				return byteArray[0];
 			}
@@ -154,7 +167,8 @@ public abstract class CertificateManager {
 		bool includePrivateKey = false,
 		string password = null,
 		CertificateKeyExportFormat keyExportFormat = CertificateKeyExportFormat.Pfx,
-		bool isInteractive = true) {
+		bool isInteractive = true)
+	{
 		var result = EnsureCertificateResult.Succeeded;
 
 		var currentUserCertificates = ListCertificates(StoreName.My, StoreLocation.CurrentUser, isValid: true,
@@ -165,7 +179,8 @@ public abstract class CertificateManager {
 
 		var filteredCertificates = certificates.Where(c => c.Subject == Subject);
 
-		if (Log.IsEnabled()) {
+		if (Log.IsEnabled())
+		{
 			var excludedCertificates = certificates.Except(filteredCertificates);
 			Log.FilteredCertificates(ToCertificateDescription(filteredCertificates));
 			Log.ExcludedCertificates(ToCertificateDescription(excludedCertificates));
@@ -175,25 +190,33 @@ public abstract class CertificateManager {
 
 		X509Certificate2 certificate = null;
 		var isNewCertificate = false;
-		if (certificates.Any()) {
+		if (certificates.Any())
+		{
 			certificate = certificates.First();
 			var failedToFixCertificateState = false;
-			if (isInteractive) {
+			if (isInteractive)
+			{
 				// Skip this step if the command is not interactive,
 				// as we don't want to prompt on first run experience.
-				foreach (var candidate in currentUserCertificates) {
+				foreach (var candidate in currentUserCertificates)
+				{
 					var status = CheckCertificateState(candidate, true);
-					if (!status.Success) {
-						try {
-							if (Log.IsEnabled()) {
+					if (!status.Success)
+					{
+						try
+						{
+							if (Log.IsEnabled())
+							{
 								Log.CorrectCertificateStateStart(GetDescription(candidate));
 							}
 
 							CorrectCertificateState(candidate);
 							Log.CorrectCertificateStateEnd();
 						}
-						catch (Exception e) {
-							if (Log.IsEnabled()) {
+						catch (Exception e)
+						{
+							if (Log.IsEnabled())
+							{
 								Log.CorrectCertificateStateError(e.ToString());
 							}
 
@@ -207,28 +230,35 @@ public abstract class CertificateManager {
 				}
 			}
 
-			if (!failedToFixCertificateState) {
-				if (Log.IsEnabled()) {
+			if (!failedToFixCertificateState)
+			{
+				if (Log.IsEnabled())
+				{
 					Log.ValidCertificatesFound(ToCertificateDescription(certificates));
 				}
 
 				certificate = certificates.First();
-				if (Log.IsEnabled()) {
+				if (Log.IsEnabled())
+				{
 					Log.SelectedCertificate(GetDescription(certificate));
 				}
 
 				result = EnsureCertificateResult.ValidCertificatePresent;
 			}
 		}
-		else {
+		else
+		{
 			Log.NoValidCertificatesFound();
-			try {
+			try
+			{
 				Log.CreateDevelopmentCertificateStart();
 				isNewCertificate = true;
 				certificate = CreateDevelopmentCertificate(notBefore, notAfter);
 			}
-			catch (Exception e) {
-				if (Log.IsEnabled()) {
+			catch (Exception e)
+			{
+				if (Log.IsEnabled())
+				{
 					Log.CreateDevelopmentCertificateError(e.ToString());
 				}
 
@@ -238,26 +268,33 @@ public abstract class CertificateManager {
 
 			Log.CreateDevelopmentCertificateEnd();
 
-			try {
+			try
+			{
 				certificate = SaveCertificate(certificate);
 			}
-			catch (Exception e) {
+			catch (Exception e)
+			{
 				Log.SaveCertificateInStoreError(e.ToString());
 				result = EnsureCertificateResult.ErrorSavingTheCertificateIntoTheCurrentUserPersonalStore;
 				return result;
 			}
 
-			if (isInteractive) {
-				try {
-					if (Log.IsEnabled()) {
+			if (isInteractive)
+			{
+				try
+				{
+					if (Log.IsEnabled())
+					{
 						Log.CorrectCertificateStateStart(GetDescription(certificate));
 					}
 
 					CorrectCertificateState(certificate);
 					Log.CorrectCertificateStateEnd();
 				}
-				catch (Exception e) {
-					if (Log.IsEnabled()) {
+				catch (Exception e)
+				{
+					if (Log.IsEnabled())
+					{
 						Log.CorrectCertificateStateError(e.ToString());
 					}
 
@@ -269,12 +306,16 @@ public abstract class CertificateManager {
 			}
 		}
 
-		if (path != null) {
-			try {
+		if (path != null)
+		{
+			try
+			{
 				ExportCertificate(certificate, path, includePrivateKey, password, keyExportFormat);
 			}
-			catch (Exception e) {
-				if (Log.IsEnabled()) {
+			catch (Exception e)
+			{
+				if (Log.IsEnabled())
+				{
 					Log.ExportCertificateError(e.ToString());
 				}
 
@@ -288,15 +329,19 @@ public abstract class CertificateManager {
 			}
 		}
 
-		if (trust) {
-			try {
+		if (trust)
+		{
+			try
+			{
 				TrustCertificate(certificate);
 			}
-			catch (UserCancelledTrustException) {
+			catch (UserCancelledTrustException)
+			{
 				result = EnsureCertificateResult.UserCancelledTrustStep;
 				return result;
 			}
-			catch {
+			catch
+			{
 				result = EnsureCertificateResult.FailedToTrustTheCertificate;
 				return result;
 			}
@@ -307,16 +352,20 @@ public abstract class CertificateManager {
 		return result;
 	}
 
-	internal ImportCertificateResult ImportCertificate(string certificatePath, string password) {
-		if (!File.Exists(certificatePath)) {
+	internal ImportCertificateResult ImportCertificate(string certificatePath, string password)
+	{
+		if (!File.Exists(certificatePath))
+		{
 			Log.ImportCertificateMissingFile(certificatePath);
 			return ImportCertificateResult.CertificateFileMissing;
 		}
 
 		var certificates = ListCertificates(StoreName.My, StoreLocation.CurrentUser, isValid: false,
 			requireExportable: false);
-		if (certificates.Any()) {
-			if (Log.IsEnabled()) {
+		if (certificates.Any())
+		{
+			if (Log.IsEnabled())
+			{
 				Log.ImportCertificateExistingCertificates(ToCertificateDescription(certificates));
 			}
 
@@ -324,35 +373,44 @@ public abstract class CertificateManager {
 		}
 
 		X509Certificate2 certificate;
-		try {
+		try
+		{
 			Log.LoadCertificateStart(certificatePath);
 			certificate = X509CertificateLoader.LoadPkcs12FromFile(certificatePath, password,
 				X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-			if (Log.IsEnabled()) {
+			if (Log.IsEnabled())
+			{
 				Log.LoadCertificateEnd(GetDescription(certificate));
 			}
 		}
-		catch (Exception e) {
-			if (Log.IsEnabled()) {
+		catch (Exception e)
+		{
+			if (Log.IsEnabled())
+			{
 				Log.LoadCertificateError(e.ToString());
 			}
 
 			return ImportCertificateResult.InvalidCertificate;
 		}
 
-		if (!IsHttpsDevelopmentCertificate(certificate)) {
-			if (Log.IsEnabled()) {
+		if (!IsHttpsDevelopmentCertificate(certificate))
+		{
+			if (Log.IsEnabled())
+			{
 				Log.NoHttpsDevelopmentCertificate(GetDescription(certificate));
 			}
 
 			return ImportCertificateResult.NoDevelopmentHttpsCertificate;
 		}
 
-		try {
+		try
+		{
 			SaveCertificate(certificate);
 		}
-		catch (Exception e) {
-			if (Log.IsEnabled()) {
+		catch (Exception e)
+		{
+			if (Log.IsEnabled())
+			{
 				Log.SaveCertificateInStoreError(e.ToString());
 			}
 
@@ -362,7 +420,8 @@ public abstract class CertificateManager {
 		return ImportCertificateResult.Succeeded;
 	}
 
-	public void CleanupHttpsCertificates() {
+	public void CleanupHttpsCertificates()
+	{
 		// On OS X we don't have a good way to manage trusted certificates in the system keychain
 		// so we do everything by invoking the native toolchain.
 		// This has some limitations, like for example not being able to identify our custom OID extension. For that
@@ -373,13 +432,15 @@ public abstract class CertificateManager {
 		var certificates = ListCertificates(StoreName.My, StoreLocation.CurrentUser, isValid: false);
 		var filteredCertificates = certificates.Where(c => c.Subject == Subject);
 
-		if (Log.IsEnabled()) {
+		if (Log.IsEnabled())
+		{
 			var excludedCertificates = certificates.Except(filteredCertificates);
 			Log.FilteredCertificates(ToCertificateDescription(filteredCertificates));
 			Log.ExcludedCertificates(ToCertificateDescription(excludedCertificates));
 		}
 
-		foreach (var certificate in filteredCertificates) {
+		foreach (var certificate in filteredCertificates)
+		{
 			RemoveCertificate(certificate, RemoveLocations.All);
 		}
 	}
@@ -399,17 +460,21 @@ public abstract class CertificateManager {
 		StoreLocation storeLocation);
 
 	internal static void ExportCertificate(X509Certificate2 certificate, string path, bool includePrivateKey,
-		string password, CertificateKeyExportFormat format) {
-		if (Log.IsEnabled()) {
+		string password, CertificateKeyExportFormat format)
+	{
+		if (Log.IsEnabled())
+		{
 			Log.ExportCertificateStart(GetDescription(certificate), path, includePrivateKey);
 		}
 
-		if (includePrivateKey && password == null) {
+		if (includePrivateKey && password == null)
+		{
 			Log.NoPasswordForCertificate();
 		}
 
 		var targetDirectoryPath = Path.GetDirectoryName(path);
-		if (!string.IsNullOrEmpty(targetDirectoryPath)) {
+		if (!string.IsNullOrEmpty(targetDirectoryPath))
+		{
 			Log.CreateExportCertificateDirectory(targetDirectoryPath);
 			Directory.CreateDirectory(targetDirectoryPath);
 		}
@@ -419,9 +484,12 @@ public abstract class CertificateManager {
 		byte[] pemEnvelope = null;
 		RSA key = null;
 
-		try {
-			if (includePrivateKey) {
-				switch (format) {
+		try
+		{
+			if (includePrivateKey)
+			{
+				switch (format)
+				{
 					case CertificateKeyExportFormat.Pfx:
 						bytes = certificate.ExportToPkcs12(password);
 						break;
@@ -429,7 +497,8 @@ public abstract class CertificateManager {
 						key = certificate.GetRSAPrivateKey()!;
 
 						char[] pem;
-						if (password != null) {
+						if (password != null)
+						{
 							// TODO: cleanup cast: https://github.com/dotnet/aspnetcore/issues/41455
 							keyBytes = key.ExportEncryptedPkcs8PrivateKey((ReadOnlySpan<char>)password,
 								new PbeParameters(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA256,
@@ -437,7 +506,8 @@ public abstract class CertificateManager {
 							pem = PemEncoding.Write("ENCRYPTED PRIVATE KEY", keyBytes);
 							pemEnvelope = Encoding.ASCII.GetBytes(pem);
 						}
-						else {
+						else
+						{
 							// Export the key first to an encrypted PEM to avoid issues with System.Security.Cryptography.Cng indicating that the operation is not supported.
 							// This is likely by design to avoid exporting the key by mistake.
 							// To bypass it, we export the certificate to pem temporarily and then we import it and export it as unprotected PEM.
@@ -466,55 +536,68 @@ public abstract class CertificateManager {
 						throw new InvalidOperationException("Unknown format.");
 				}
 			}
-			else {
-				if (format == CertificateKeyExportFormat.Pem) {
+			else
+			{
+				if (format == CertificateKeyExportFormat.Pem)
+				{
 					bytes = Encoding.ASCII.GetBytes(PemEncoding.Write("CERTIFICATE",
 						certificate.Export(X509ContentType.Cert)));
 				}
-				else {
+				else
+				{
 					bytes = certificate.Export(X509ContentType.Cert);
 				}
 			}
 		}
-		catch (Exception e) when (Log.IsEnabled()) {
+		catch (Exception e) when (Log.IsEnabled())
+		{
 			Log.ExportCertificateError(e.ToString());
 			throw;
 		}
-		finally {
+		finally
+		{
 			key?.Dispose();
 		}
 
-		try {
+		try
+		{
 			Log.WriteCertificateToDisk(path);
 			File.WriteAllBytes(path, bytes);
 		}
-		catch (Exception ex) when (Log.IsEnabled()) {
+		catch (Exception ex) when (Log.IsEnabled())
+		{
 			Log.WriteCertificateToDiskError(ex.ToString());
 			throw;
 		}
-		finally {
+		finally
+		{
 			Array.Clear(bytes, 0, bytes.Length);
 		}
 
-		if (includePrivateKey && format == CertificateKeyExportFormat.Pem) {
+		if (includePrivateKey && format == CertificateKeyExportFormat.Pem)
+		{
 			Debug.Assert(pemEnvelope != null);
 
-			try {
+			try
+			{
 				var keyPath = Path.ChangeExtension(path, ".key");
 				Log.WritePemKeyToDisk(keyPath);
 				File.WriteAllBytes(keyPath, pemEnvelope);
 			}
-			catch (Exception ex) when (Log.IsEnabled()) {
+			catch (Exception ex) when (Log.IsEnabled())
+			{
 				Log.WritePemKeyToDiskError(ex.ToString());
 				throw;
 			}
-			finally {
+			finally
+			{
 				Array.Clear(pemEnvelope, 0, pemEnvelope.Length);
 			}
 		}
 	}
 
-	internal X509Certificate2 CreateDevelopmentCertificate(DateTimeOffset notBefore, DateTimeOffset notAfter) {
+	internal X509Certificate2 CreateDevelopmentCertificate(DateTimeOffset notBefore, DateTimeOffset notAfter)
+	{
 		var subject = new X500DistinguishedName(Subject);
 		var extensions = new List<X509Extension>();
 		var sanBuilder = new SubjectAlternativeNameBuilder();
@@ -539,11 +622,13 @@ public abstract class CertificateManager {
 
 		byte[] bytePayload;
 
-		if (EventStoreHttpsCertificateVersion != 0) {
+		if (EventStoreHttpsCertificateVersion != 0)
+		{
 			bytePayload = new byte[1];
 			bytePayload[0] = (byte)EventStoreHttpsCertificateVersion;
 		}
-		else {
+		else
+		{
 			bytePayload = Encoding.ASCII.GetBytes(EventStoreHttpsOidFriendlyName);
 		}
 
@@ -563,11 +648,13 @@ public abstract class CertificateManager {
 		return certificate;
 	}
 
-	internal X509Certificate2 SaveCertificate(X509Certificate2 certificate) {
+	internal X509Certificate2 SaveCertificate(X509Certificate2 certificate)
+	{
 		var name = StoreName.My;
 		var location = StoreLocation.CurrentUser;
 
-		if (Log.IsEnabled()) {
+		if (Log.IsEnabled())
+		{
 			Log.SaveCertificateInStoreStart(GetDescription(certificate), name, location);
 		}
 
@@ -577,37 +664,45 @@ public abstract class CertificateManager {
 		return certificate;
 	}
 
-	public void TrustCertificate(X509Certificate2 certificate) {
-		try {
-			if (Log.IsEnabled()) {
+	public void TrustCertificate(X509Certificate2 certificate)
+	{
+		try
+		{
+			if (Log.IsEnabled())
+			{
 				Log.TrustCertificateStart(GetDescription(certificate));
 			}
 
 			TrustCertificateCore(certificate);
 			Log.TrustCertificateEnd();
 		}
-		catch (Exception ex) when (Log.IsEnabled()) {
+		catch (Exception ex) when (Log.IsEnabled())
+		{
 			Log.TrustCertificateError(ex.ToString());
 			throw;
 		}
 	}
 
 	// Internal, for testing purposes only.
-	internal void RemoveAllCertificates(StoreName storeName, StoreLocation storeLocation) {
+	internal void RemoveAllCertificates(StoreName storeName, StoreLocation storeLocation)
+	{
 		var certificates = GetCertificatesToRemove(storeName, storeLocation);
 		var certificatesWithName = certificates.Where(c => c.Subject == Subject);
 
 		var removeLocation = storeName == StoreName.My ? RemoveLocations.Local : RemoveLocations.Trusted;
 
-		foreach (var certificate in certificates) {
+		foreach (var certificate in certificates)
+		{
 			RemoveCertificate(certificate, removeLocation);
 		}
 
 		DisposeCertificates(certificates);
 	}
 
-	internal void RemoveCertificate(X509Certificate2 certificate, RemoveLocations locations) {
-		switch (locations) {
+	internal void RemoveCertificate(X509Certificate2 certificate, RemoveLocations locations)
+	{
+		switch (locations)
+		{
 			case RemoveLocations.Undefined:
 				throw new InvalidOperationException(
 					$"'{nameof(RemoveLocations.Undefined)}' is not a valid location.");
@@ -635,20 +730,24 @@ public abstract class CertificateManager {
 		X500DistinguishedName subject,
 		IEnumerable<X509Extension> extensions,
 		DateTimeOffset notBefore,
-		DateTimeOffset notAfter) {
+		DateTimeOffset notAfter)
+	{
 		using var key = CreateKeyMaterial(RSAMinimumKeySizeInBits);
 
 		var request = new CertificateRequest(subject, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-		foreach (var extension in extensions) {
+		foreach (var extension in extensions)
+		{
 			request.CertificateExtensions.Add(extension);
 		}
 
 		var result = request.CreateSelfSigned(notBefore, notAfter);
 		return result;
 
-		static RSA CreateKeyMaterial(int minimumKeySize) {
+		static RSA CreateKeyMaterial(int minimumKeySize)
+		{
 			var rsa = RSA.Create(minimumKeySize);
-			if (rsa.KeySize < minimumKeySize) {
+			if (rsa.KeySize < minimumKeySize)
+			{
 				throw new InvalidOperationException($"Failed to create a key with a size of {minimumKeySize} bits");
 			}
 
@@ -656,19 +755,26 @@ public abstract class CertificateManager {
 		}
 	}
 
-	internal static void DisposeCertificates(IEnumerable<X509Certificate2> disposables) {
-		foreach (var disposable in disposables) {
-			try {
+	internal static void DisposeCertificates(IEnumerable<X509Certificate2> disposables)
+	{
+		foreach (var disposable in disposables)
+		{
+			try
+			{
 				disposable.Dispose();
 			}
-			catch {
+			catch
+			{
 			}
 		}
 	}
 
-	private static void RemoveCertificateFromUserStore(X509Certificate2 certificate) {
-		try {
-			if (Log.IsEnabled()) {
+	private static void RemoveCertificateFromUserStore(X509Certificate2 certificate)
+	{
+		try
+		{
+			if (Log.IsEnabled())
+			{
 				Log.RemoveCertificateFromUserStoreStart(GetDescription(certificate));
 			}
 
@@ -682,15 +788,18 @@ public abstract class CertificateManager {
 			store.Close();
 			Log.RemoveCertificateFromUserStoreEnd();
 		}
-		catch (Exception ex) when (Log.IsEnabled()) {
+		catch (Exception ex) when (Log.IsEnabled())
+		{
 			Log.RemoveCertificateFromUserStoreError(ex.ToString());
 			throw;
 		}
 	}
 
-	internal static string ToCertificateDescription(IEnumerable<X509Certificate2> certificates) {
+	internal static string ToCertificateDescription(IEnumerable<X509Certificate2> certificates)
+	{
 		var list = certificates.ToList();
-		var certificatesDescription = list.Count switch {
+		var certificatesDescription = list.Count switch
+		{
 			0 => "no certificates",
 			1 => "1 certificate",
 			_ => $"{list.Count} certificates",
@@ -704,7 +813,8 @@ public abstract class CertificateManager {
 		$"{c.Thumbprint} - {c.Subject} - Valid from {c.NotBefore:u} to {c.NotAfter:u} - IsEventStoreDevelopmentCertificate: {IsHttpsDevelopmentCertificate(c).ToString().ToLowerInvariant()} - IsExportable: {Instance.IsExportable(c).ToString().ToLowerInvariant()}";
 
 	[EventSource(Name = "eventstore-dev-certs")]
-	public sealed class CertificateManagerEventSource : EventSource {
+	public sealed class CertificateManagerEventSource : EventSource
+	{
 		[Event(1, Level = EventLevel.Verbose, Message = "Listing certificates from {0}\\{1}")]
 		[UnconditionalSuppressMessage("Trimming", "IL2026",
 			Justification = "Parameters passed to WriteEvent are all primitive values.")]
@@ -911,20 +1021,24 @@ public abstract class CertificateManager {
 		internal void NoHttpsDevelopmentCertificate(string description) => WriteEvent(64, description);
 	}
 
-	internal sealed class UserCancelledTrustException : Exception {
+	internal sealed class UserCancelledTrustException : Exception
+	{
 	}
 
-	internal readonly struct CheckCertificateStateResult {
+	internal readonly struct CheckCertificateStateResult
+	{
 		public bool Success { get; }
 		public string FailureMessage { get; }
 
-		public CheckCertificateStateResult(bool success, string failureMessage) {
+		public CheckCertificateStateResult(bool success, string failureMessage)
+		{
 			Success = success;
 			FailureMessage = failureMessage;
 		}
 	}
 
-	internal enum RemoveLocations {
+	internal enum RemoveLocations
+	{
 		Undefined,
 		Local,
 		Trusted,

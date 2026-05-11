@@ -1,6 +1,7 @@
 namespace EventStore.Core.Data;
 
-public record ChunkInfo {
+public record ChunkInfo
+{
 	public string ChunkLocator;
 	public int ChunkStartNumber;
 	public int ChunkEndNumber;

@@ -10,45 +10,56 @@ using Newtonsoft.Json;
 
 namespace EventStore.Core.Services.Transport.Http;
 
-public class AuthenticationMiddleware : IMiddleware {
+public class AuthenticationMiddleware : IMiddleware
+{
 	private readonly IAuthenticationProvider _authenticationProvider;
 	private readonly IReadOnlyList<IHttpAuthenticationProvider> _httpAuthenticationProviders;
 
-	public AuthenticationMiddleware(IReadOnlyList<IHttpAuthenticationProvider> httpAuthenticationProviders, IAuthenticationProvider authenticationProvider) {
+	public AuthenticationMiddleware(IReadOnlyList<IHttpAuthenticationProvider> httpAuthenticationProviders, IAuthenticationProvider authenticationProvider)
+	{
 		_httpAuthenticationProviders = httpAuthenticationProviders;
 		_authenticationProvider = authenticationProvider;
 	}
 
-	public async Task InvokeAsync(HttpContext context, RequestDelegate next) {
-		try {
-			if (context.IsGrpc()) {
+	public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+	{
+		try
+		{
+			if (context.IsGrpc())
+			{
 				await HandleAsGrpcAsync(context, next);
 			}
-			else {
+			else
+			{
 				await HandleAsHttpAsync(context, next);
 			}
 		}
-		catch (Exception ex) when (ex is OperationCanceledException or TaskCanceledException) {
+		catch (Exception ex) when (ex is OperationCanceledException or TaskCanceledException)
+		{
 			// ignore request aborted
 		}
 	}
 
-	private async Task HandleAsHttpAsync(HttpContext context, RequestDelegate next) {
-		if (!TrySelectProvider(context, out var authenticationRequest)) {
+	private async Task HandleAsHttpAsync(HttpContext context, RequestDelegate next)
+	{
+		if (!TrySelectProvider(context, out var authenticationRequest))
+		{
 			await AddHttp1ChallengeHeaders(context);
 			return;
 		}
 
 		var (status, principal) = await authenticationRequest.AuthenticateAsync();
 
-		switch (status) {
+		switch (status)
+		{
 			case HttpAuthenticationRequestStatus.Authenticated:
 				context.User = principal;
 				await next(context);
 				if (context.Response.StatusCode == StatusCodes.Status302Found &&
 					principal.Identity?.IsAuthenticated == false &&
 					!IsBrowserRequest(context) &&
-					!context.Response.HasStarted) {
+					!context.Response.HasStarted)
+				{
 					context.Response.Clear();
 					await AddHttp1ChallengeHeaders(context);
 				}
@@ -67,7 +78,8 @@ public class AuthenticationMiddleware : IMiddleware {
 		}
 	}
 
-	private async Task HandleAsGrpcAsync(HttpContext context, RequestDelegate next) {
+	private async Task HandleAsGrpcAsync(HttpContext context, RequestDelegate next)
+	{
 		var (status, principal) = TrySelectProvider(context, out var authenticationRequest)
 			? await authenticationRequest.AuthenticateAsync()
 			: (HttpAuthenticationRequestStatus.Unauthenticated, default);
@@ -76,7 +88,8 @@ public class AuthenticationMiddleware : IMiddleware {
 		var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(context.Response);
 
 		Status grpcStatus;
-		switch (status) {
+		switch (status)
+		{
 			case HttpAuthenticationRequestStatus.Authenticated:
 				context.User = principal;
 				await next(context);
@@ -101,14 +114,18 @@ public class AuthenticationMiddleware : IMiddleware {
 		// Immediately send remaining response content and trailers
 		// If feature is null then reset/abort will still end request, but response won't have trailers
 		var completionFeature = context.Features.Get<IHttpResponseBodyFeature>();
-		if (completionFeature != null) {
+		if (completionFeature != null)
+		{
 			await completionFeature.CompleteAsync();
 		}
 	}
 
-	private bool TrySelectProvider(HttpContext context, out HttpAuthenticationRequest authenticationRequest) {
-		for (int i = 0; i < _httpAuthenticationProviders.Count; i++) {
-			if (_httpAuthenticationProviders[i].Authenticate(context, out authenticationRequest)) {
+	private bool TrySelectProvider(HttpContext context, out HttpAuthenticationRequest authenticationRequest)
+	{
+		for (int i = 0; i < _httpAuthenticationProviders.Count; i++)
+		{
+			if (_httpAuthenticationProviders[i].Authenticate(context, out authenticationRequest))
+			{
 				return true;
 			}
 		}
@@ -117,20 +134,24 @@ public class AuthenticationMiddleware : IMiddleware {
 		return false;
 	}
 
-	private static bool IsBrowserRequest(HttpContext context) {
+	private static bool IsBrowserRequest(HttpContext context)
+	{
 		var userAgent = context.Request.Headers.UserAgent.FirstOrDefault();
 		return !string.IsNullOrEmpty(userAgent) &&
 			   userAgent.StartsWith("Mozilla", StringComparison.OrdinalIgnoreCase);
 	}
 
-	private async Task AddHttp1ChallengeHeaders(HttpContext context) {
+	private async Task AddHttp1ChallengeHeaders(HttpContext context)
+	{
 		context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 		var authSchemes = _authenticationProvider.GetSupportedAuthenticationSchemes();
-		if (authSchemes != null && authSchemes.Any()) {
+		if (authSchemes != null && authSchemes.Any())
+		{
 			//add "X-" in front to prevent any default browser behaviour e.g Basic Auth popups
 			context.Response.Headers.Append("WWW-Authenticate", $"X-{authSchemes.First()} realm=\"ESDB\"");
 			var properties = _authenticationProvider.GetPublicProperties();
-			if (properties != null && properties.Any()) {
+			if (properties != null && properties.Any())
+			{
 				await context.Response.WriteAsync(JsonConvert.SerializeObject(properties));
 			}
 		}

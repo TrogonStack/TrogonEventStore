@@ -10,7 +10,8 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 [TestFixture]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	with_invalid_max_count_and_normal_max_age<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+	with_invalid_max_count_and_normal_max_age<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -18,7 +19,8 @@ public class
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var now = DateTime.UtcNow;
 
 		const string metadata = @"{""$maxAge"":21,""$maxCount"":2.1}";
@@ -32,7 +34,8 @@ public class
 	}
 
 	[Test]
-	public async Task on_single_event_read_metadata_is_ignored() {
+	public async Task on_single_event_read_metadata_is_ignored()
+	{
 		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r2, result.Record);
@@ -55,7 +58,8 @@ public class
 	}
 
 	[Test]
-	public async Task on_forward_range_read_metadata_is_ignored() {
+	public async Task on_forward_range_read_metadata_is_ignored()
+	{
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
@@ -67,7 +71,8 @@ public class
 	}
 
 	[Test]
-	public async Task on_backward_range_read_metadata_is_ignored() {
+	public async Task on_backward_range_read_metadata_is_ignored()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
@@ -79,11 +84,13 @@ public class
 	}
 
 	[Test]
-	public async Task on_read_all_forward_metadata_is_ignored() {
+	public async Task on_read_all_forward_metadata_is_ignored()
+	{
 		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
 			.Records;
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
+		{
 			Assert.AreEqual(6, records.Count);
 			Assert.AreEqual(_r1, records[0].Event);
 			Assert.AreEqual(_r2, records[1].Event);
@@ -92,7 +99,8 @@ public class
 			Assert.AreEqual(_r5, records[4].Event);
 			Assert.AreEqual(_r6, records[5].Event);
 		}
-		else {
+		else
+		{
 			Assert.AreEqual(8, records.Count);
 			Assert.AreEqual("$stream", records[0].Event.EventType);
 			Assert.AreEqual(_r1, records[1].Event); // metadata
@@ -106,11 +114,13 @@ public class
 	}
 
 	[Test]
-	public async Task on_read_all_backward_metadata_is_ignored() {
+	public async Task on_read_all_backward_metadata_is_ignored()
+	{
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.Records;
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
+		{
 			Assert.AreEqual(6, records.Count);
 			Assert.AreEqual(_r6, records[0].Event);
 			Assert.AreEqual(_r5, records[1].Event);
@@ -119,7 +129,8 @@ public class
 			Assert.AreEqual(_r2, records[4].Event);
 			Assert.AreEqual(_r1, records[5].Event);
 		}
-		else {
+		else
+		{
 			Assert.AreEqual(8, records.Count);
 			Assert.AreEqual(_r6, records[0].Event);
 			Assert.AreEqual(_r5, records[1].Event);

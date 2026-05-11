@@ -36,7 +36,8 @@ using ServerFeatures = EventStore.Core.Services.Transport.Grpc.ServerFeatures;
 namespace EventStore.Core;
 
 public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMessage.SystemReady>,
-	IHandle<SystemMessage.BecomeShuttingDown> {
+	IHandle<SystemMessage.BecomeShuttingDown>
+{
 
 	private readonly IReadOnlyList<IPlugableComponent> _plugableComponents;
 	private readonly IPublisher _mainQueue;
@@ -73,17 +74,20 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		NodeInformationProvider nodeInformationProvider,
 		string clusterDns,
 		Func<IServiceCollection, IServiceCollection> configureNodeServices,
-		Action<IApplicationBuilder> configureNode) {
+		Action<IApplicationBuilder> configureNode)
+	{
 
 		Ensure.Positive(maxAppendSize, nameof(maxAppendSize));
 
 		ArgumentNullException.ThrowIfNull(configuration);
 
-		if (mainBus == null) {
+		if (mainBus == null)
+		{
 			throw new ArgumentNullException(nameof(mainBus));
 		}
 
-		if (monitoringQueue == null) {
+		if (monitoringQueue == null)
+		{
 			throw new ArgumentNullException(nameof(monitoringQueue));
 		}
 
@@ -109,7 +113,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_nodeHealthState = new NodeHealthState();
 	}
 
-	public void Configure(IApplicationBuilder app) {
+	public void Configure(IApplicationBuilder app)
+	{
 		_configureNode(app);
 
 		app = app
@@ -127,20 +132,25 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.UseAuthorization()
 			.UseAntiforgery();
 
-		if (!_disableHttpMetrics) {
+		if (!_disableHttpMetrics)
+		{
 			app.Map("/-/metrics", metrics => metrics
 				.UseOpenTelemetryPrometheusScrapingEndpoint(static _ => true));
 		}
 
-		foreach (var component in _plugableComponents) {
+		foreach (var component in _plugableComponents)
+		{
 			component.ConfigureApplication(app, _configuration);
 		}
 
-		app.UseEndpoints(ep => {
-			ep.MapHealthChecks("/-/liveness", new HealthCheckOptions {
+		app.UseEndpoints(ep =>
+		{
+			ep.MapHealthChecks("/-/liveness", new HealthCheckOptions
+			{
 				Predicate = registration => registration.Tags.Contains("liveness")
 			});
-			ep.MapHealthChecks("/-/readiness", new HealthCheckOptions {
+			ep.MapHealthChecks("/-/readiness", new HealthCheckOptions
+			{
 				Predicate = registration => registration.Tags.Contains("readiness")
 			});
 
@@ -158,8 +168,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			ep.MapGrpcService<ServerFeatures>();
 
 			// enable redaction service on unix sockets only
-			ep.MapGrpcService<Redaction>().AddEndpointFilter(async (c, next) => {
-				if (!c.HttpContext.IsUnixSocketConnection()) {
+			ep.MapGrpcService<Redaction>().AddEndpointFilter(async (c, next) =>
+			{
+				if (!c.HttpContext.IsUnixSocketConnection())
+				{
 					return Results.BadRequest("Redaction is only available via Unix Sockets");
 				}
 
@@ -173,7 +185,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			$"{nameof(ClusterVNodeStartup<TStreamId>)} is driven via {nameof(IInternalStartup)}.{nameof(ConfigureServicesOnly)} " +
 			$"and the host's service provider. Use {nameof(ConfigureServicesOnly)} instead.");
 
-	public void ConfigureServicesOnly(IServiceCollection services) {
+	public void ConfigureServicesOnly(IServiceCollection services)
+	{
 		var metricsConfiguration = MetricsConfiguration.Get(_configuration);
 
 		services = services
@@ -212,7 +225,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration, _configuration))
 			.WithTracing(tracerOptions => ConfigureTracing(tracerOptions, _configuration))
 			.Services
-			.AddGrpcHealthChecks(options => {
+			.AddGrpcHealthChecks(options =>
+			{
 				options.Services.Map("", registration => registration.Tags.Contains("readiness"));
 				options.Services.Map("readiness", registration => registration.Tags.Contains("readiness"));
 				options.Services.Map("liveness", registration => registration.Tags.Contains("liveness"));
@@ -221,7 +235,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 			// gRPC
 			.AddSingleton<RetryInterceptor>()
-			.AddGrpc(options => {
+			.AddGrpc(options =>
+			{
 				options.Interceptors.Add<RetryInterceptor>();
 			})
 			.AddServiceOptions<Streams<TStreamId>>(options =>
@@ -243,7 +258,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 		services = _configureNodeServices(services);
 
-		foreach (var component in _plugableComponents) {
+		foreach (var component in _plugableComponents)
+		{
 			component.ConfigureServices(services, _configuration);
 		}
 	}
@@ -251,14 +267,18 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private static void ConfigureMetrics(
 		MeterProviderBuilder meterOptions,
 		MetricsConfiguration metricsConfiguration,
-		IConfiguration configuration) {
+		IConfiguration configuration)
+	{
 		meterOptions
 			.SetResourceBuilder(CreateResourceBuilder())
 			.AddMeter(metricsConfiguration.Meters)
-			.AddView(i => {
-				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName) {
+			.AddView(i =>
+			{
+				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
+				{
 					// 20 buckets, 0, 1, 2, 4, 8, ...
-					return new ExplicitBucketHistogramConfiguration {
+					return new ExplicitBucketHistogramConfiguration
+					{
 						Boundaries =
 						[
 							0,
@@ -267,8 +287,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					};
 				}
 				else if (i.Name.StartsWith("eventstore-") &&
-						 i.Name.EndsWith("-latency-seconds")) {
-					return new ExplicitBucketHistogramConfiguration {
+						 i.Name.EndsWith("-latency-seconds"))
+				{
+					return new ExplicitBucketHistogramConfiguration
+					{
 						Boundaries =
 						[
 							0.001, //    1 ms
@@ -283,8 +305,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 					};
 				}
 				else if (i.Name.StartsWith("eventstore-") &&
-						 i.Name.EndsWith("-seconds")) {
-					return new ExplicitBucketHistogramConfiguration {
+						 i.Name.EndsWith("-seconds"))
+				{
+					return new ExplicitBucketHistogramConfiguration
+					{
 						Boundaries =
 						[
 							0.000_001, // 1 microsecond
@@ -309,12 +333,15 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private static void ConfigureOtlpMetrics(
 		MeterProviderBuilder meterOptions,
 		MetricsConfiguration metricsConfiguration,
-		IConfiguration configuration) {
-		if (!configuration.OtlpMetricsEnabled(metricsConfiguration)) {
+		IConfiguration configuration)
+	{
+		if (!configuration.OtlpMetricsEnabled(metricsConfiguration))
+		{
 			return;
 		}
 
-		meterOptions.AddOtlpExporter((exporterOptions, metricReaderOptions) => {
+		meterOptions.AddOtlpExporter((exporterOptions, metricReaderOptions) =>
+		{
 			configuration.BindOtlpExporterOptions(
 				OpenTelemetryConfiguration.OtlpMetricsOtlpPrefix,
 				exporterOptions);
@@ -322,7 +349,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 			var periodicOptions = metricReaderOptions.PeriodicExportingMetricReaderOptions;
 			if (periodicOptions.ExportIntervalMilliseconds is null &&
-				metricsConfiguration.ExpectedScrapeIntervalSeconds > 0) {
+				metricsConfiguration.ExpectedScrapeIntervalSeconds > 0)
+			{
 				periodicOptions.ExportIntervalMilliseconds =
 					metricsConfiguration.ExpectedScrapeIntervalSeconds * 1000;
 			}
@@ -331,10 +359,12 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 	private static void ConfigureTracing(
 		TracerProviderBuilder tracerOptions,
-		IConfiguration configuration) {
+		IConfiguration configuration)
+	{
 		tracerOptions.SetResourceBuilder(CreateResourceBuilder());
 
-		if (!configuration.OtlpTracesEnabled()) {
+		if (!configuration.OtlpTracesEnabled())
+		{
 			return;
 		}
 
@@ -355,14 +385,17 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 	public void Handle(SystemMessage.BecomeShuttingDown _) => _nodeHealthState.MarkShuttingDown();
 
-	private sealed class NodeHealthState {
+	private sealed class NodeHealthState
+	{
 		public bool IsReady { get; private set; }
 
-		public void MarkReady() {
+		public void MarkReady()
+		{
 			IsReady = true;
 		}
 
-		public void MarkShuttingDown() {
+		public void MarkShuttingDown()
+		{
 			IsReady = false;
 		}
 	}

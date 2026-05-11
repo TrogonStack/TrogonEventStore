@@ -11,18 +11,22 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Http.HealthChecks;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_performing_health_probes<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class when_performing_health_probes<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private static readonly TimeSpan ReadinessTimeout = TimeSpan.FromSeconds(60);
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private bool _nodeStarted;
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 	}
 
 	[TearDown]
-	public async Task Teardown() {
-		if (_nodeStarted) {
+	public async Task Teardown()
+	{
+		if (_nodeStarted)
+		{
 			await _node.Shutdown();
 		}
 	}
@@ -33,16 +37,19 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	};
 
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
-	public async Task readiness_before_start_returns_error(HttpMethod method) {
+	public async Task readiness_before_start_returns_error(HttpMethod method)
+	{
 		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/readiness"));
 		_nodeStarted = false; //just for clarity
 		Assert.GreaterOrEqual((int)response.StatusCode, 500);
 	}
 
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
-	public async Task readiness_after_start_returns_success(HttpMethod method) {
+	public async Task readiness_after_start_returns_success(HttpMethod method)
+	{
 		await StartNodeAndWaitForReadiness();
-		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/readiness") {
+		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/readiness")
+		{
 			Version = new Version(2, 0)
 		});
 
@@ -51,11 +58,13 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	}
 
 	[Test]
-	public async Task grpc_health_reports_serving_after_start() {
+	public async Task grpc_health_reports_serving_after_start()
+	{
 		await StartNodeAndWaitForReadiness();
 
 		using var channel = GrpcChannel.ForAddress(new Uri($"https://{_node.HttpEndPoint}"),
-			new GrpcChannelOptions {
+			new GrpcChannelOptions
+			{
 				HttpClient = _node.HttpClient,
 				DisposeHttpClient = false,
 			});
@@ -69,7 +78,8 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	}
 
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
-	public async Task liveness_before_start_returns_success(HttpMethod method) {
+	public async Task liveness_before_start_returns_success(HttpMethod method)
+	{
 		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/liveness"));
 		_nodeStarted = false;
 		Assert.GreaterOrEqual((int)response.StatusCode, 200);
@@ -77,9 +87,11 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	}
 
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
-	public async Task liveness_after_start_returns_success(HttpMethod method) {
+	public async Task liveness_after_start_returns_success(HttpMethod method)
+	{
 		await StartNodeAndWaitForReadiness();
-		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/liveness") {
+		using var response = await _node.HttpClient.SendAsync(new HttpRequestMessage(method, "/-/liveness")
+		{
 			Version = new Version(2, 0)
 		});
 
@@ -88,7 +100,8 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	}
 
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
-	public async Task readiness_after_shutdown_returns_error(HttpMethod method) {
+	public async Task readiness_after_shutdown_returns_error(HttpMethod method)
+	{
 		await StartNodeAndWaitForReadiness();
 		await _node.Node.StopAsync()
 			.WithTimeout();
@@ -99,7 +112,8 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 	}
 
 	[TestCaseSource(nameof(MethodAllowedTestCases))]
-	public async Task liveness_after_shutdown_returns_success(HttpMethod method) {
+	public async Task liveness_after_shutdown_returns_success(HttpMethod method)
+	{
 		await StartNodeAndWaitForReadiness();
 		await _node.Node.StopAsync()
 			.WithTimeout();
@@ -110,7 +124,8 @@ public class when_performing_health_probes<TLogFormat, TStreamId> : Specificatio
 		Assert.Less((int)response.StatusCode, 400);
 	}
 
-	private async Task StartNodeAndWaitForReadiness() {
+	private async Task StartNodeAndWaitForReadiness()
+	{
 		await _node.Start();
 		_nodeStarted = true;
 		await _node.WaitForTcpEndPoint().WithTimeout(ReadinessTimeout);

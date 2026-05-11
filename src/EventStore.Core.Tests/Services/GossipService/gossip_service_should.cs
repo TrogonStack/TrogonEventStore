@@ -1,6 +1,7 @@
 namespace EventStore.Core.Tests.Services.GossipService;
 
-class gossip_service_should {
+class gossip_service_should
+{
 	//[Test]
 	//public void UpdateListOfKnownBoxesAndSendMergedInformationBackWhenRequestForKnownBoxesReceived()
 	//{

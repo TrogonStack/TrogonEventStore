@@ -5,7 +5,8 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Messages.ClientMessageTests;
 
-public class WriteEventsTests {
+public class WriteEventsTests
+{
 	private static ClientMessage.WriteEvents CreateSut(
 		string eventStreamId = "normal",
 		long expectedVersion = default) =>
@@ -23,7 +24,8 @@ public class WriteEventsTests {
 	[InlineData("normal")]
 	[InlineData("  not normal  ")]
 	[InlineData("$$normal")]
-	public void accepts_valid_stream_ids(string streamId) {
+	public void accepts_valid_stream_ids(string streamId)
+	{
 		CreateSut(eventStreamId: streamId);
 	}
 
@@ -31,8 +33,10 @@ public class WriteEventsTests {
 	[InlineData(null)]
 	[InlineData("")]
 	[InlineData("$$")]
-	public void rejects_invalid_stream_ids(string streamId) {
-		var ex = Assert.Throws<ArgumentOutOfRangeException>(() => {
+	public void rejects_invalid_stream_ids(string streamId)
+	{
+		var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			CreateSut(eventStreamId: streamId);
 		});
 

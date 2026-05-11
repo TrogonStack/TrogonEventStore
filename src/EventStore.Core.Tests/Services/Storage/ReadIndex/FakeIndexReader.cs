@@ -8,7 +8,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
 
-class FakeIndexReader<TStreamId> : IIndexReader<TStreamId> {
+class FakeIndexReader<TStreamId> : IIndexReader<TStreamId>
+{
 	public long CachedStreamInfo { get; }
 	public long NotCachedStreamInfo { get; }
 	public long HashCollisions { get; }

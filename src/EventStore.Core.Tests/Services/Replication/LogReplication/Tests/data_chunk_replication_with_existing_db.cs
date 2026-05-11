@@ -7,15 +7,18 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LogReplication.Tests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId> {
+public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : LogReplicationWithExistingDbFixture<TLogFormat, TStreamId>
+{
 	private const int NumCheckpoints = 5 + /* chunk 0-0 (non-raw): 3 complete transactions, 1 incomplete transaction
 	                                          at end (checkpointed for backwards compatibility), 1 chunk completion */
 									   0   /* chunk 1-1 (non-raw): 0 complete transactions */;
 
 	private const int NumLogicalChunks = 2;
 
-	protected override async Task CreateChunks(TFChunkDb db) {
-		LogFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+	protected override async Task CreateChunks(TFChunkDb db)
+	{
+		LogFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		{
 			IndexDirectory = Path.Combine(db.Config.Path, "index")
 		});
 
@@ -30,7 +33,8 @@ public class data_chunk_replication_with_existing_db<TLogFormat, TStreamId> : Lo
 
 
 	[Test]
-	public async Task can_replicate() {
+	public async Task can_replicate()
+	{
 		await ConnectReplica();
 		await Replicated();
 

@@ -4,8 +4,10 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 
-namespace EventStore.Core.Services.RequestManager.Managers {
-	public class DeleteStream : RequestManagerBase {
+namespace EventStore.Core.Services.RequestManager.Managers
+{
+	public class DeleteStream : RequestManagerBase
+	{
 		private readonly bool _hardDelete;
 		private readonly CancellationToken _cancellationToken;
 		private readonly string _streamId;
@@ -30,7 +32,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					 expectedVersion,
 					 commitSource,
 					 prepareCount: 0,
-					 waitForCommit: true) {
+					 waitForCommit: true)
+		{
 			_hardDelete = hardDelete;
 			_cancellationToken = cancellationToken;
 			_streamId = streamId;

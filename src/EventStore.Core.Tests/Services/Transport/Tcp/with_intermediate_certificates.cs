@@ -13,7 +13,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Tcp;
 
 [TestFixture]
-public class with_intermediate_certificates : with_certificate_chain_of_length_3 {
+public class with_intermediate_certificates : with_certificate_chain_of_length_3
+{
 	private TcpServerListener _listener;
 	private IPEndPoint _serverEndPoint;
 	private ITcpConnection _client;
@@ -21,14 +22,16 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 	private X509Certificate2 _cert;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		// certificate exported to PKCS #12 due to this issue on Windows: https://github.com/dotnet/runtime/issues/45680
 		_cert = X509CertificateLoader.LoadPkcs12(_leaf.ExportToPkcs12(), null);
 
 		_clientCertValidator = (_, _, _) => (true, null);
 		_serverEndPoint = new IPEndPoint(IPAddress.Loopback, PortsHelper.GetAvailablePort(IPAddress.Loopback));
 		_listener = new TcpServerListener(_serverEndPoint);
-		_listener.StartListening((endPoint, socket) => {
+		_listener.StartListening((endPoint, socket) =>
+		{
 			TcpConnectionSsl.CreateServerFromSocket(
 				Guid.NewGuid(),
 				endPoint,
@@ -41,7 +44,8 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 	}
 
 	[Test]
-	public void server_should_send_intermediate_certificate_during_handshake() {
+	public void server_should_send_intermediate_certificate_during_handshake()
+	{
 		var done = new ManualResetEventSlim(false);
 
 		bool gotLeaf = false;
@@ -52,10 +56,13 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 			_serverEndPoint.GetHost(),
 			null,
 			_serverEndPoint,
-			(certificate, chain, _, _) => {
+			(certificate, chain, _, _) =>
+			{
 				gotLeaf = _leaf.Equals(certificate);
-				foreach (var chainElement in chain.ChainElements) {
-					if (chainElement.Certificate.Equals(_intermediate)) {
+				foreach (var chainElement in chain.ChainElements)
+				{
+					if (chainElement.Certificate.Equals(_intermediate))
+					{
 						gotIntermediate = true;
 					}
 				}
@@ -76,8 +83,10 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 	}
 
 	[Test, Ignore("Skipped since it adds an intermediate certificate to the current user's store")]
-	public void client_should_send_intermediate_certificate_during_handshake() {
-		try {
+	public void client_should_send_intermediate_certificate_during_handshake()
+	{
+		try
+		{
 			// see: https://github.com/dotnet/runtime/issues/47680#issuecomment-771093045
 			AddIntermediateCertificateToStore();
 
@@ -86,10 +95,13 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 			bool gotLeaf = false;
 			bool gotIntermediate = false;
 
-			_clientCertValidator = (certificate, chain, _) => {
+			_clientCertValidator = (certificate, chain, _) =>
+			{
 				gotLeaf = _leaf.Equals(certificate);
-				foreach (var chainElement in chain.ChainElements) {
-					if (chainElement.Certificate.Equals(_intermediate)) {
+				foreach (var chainElement in chain.ChainElements)
+				{
+					if (chainElement.Certificate.Equals(_intermediate))
+					{
 						gotIntermediate = true;
 					}
 				}
@@ -115,25 +127,29 @@ public class with_intermediate_certificates : with_certificate_chain_of_length_3
 			Assert.True(gotLeaf);
 			Assert.True(gotIntermediate);
 		}
-		finally {
+		finally
+		{
 			RemoveIntermediateCertificateFromStore();
 		}
 	}
 
-	private void AddIntermediateCertificateToStore() {
+	private void AddIntermediateCertificateToStore()
+	{
 		using var intermediateStore = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
 		intermediateStore.Open(OpenFlags.ReadWrite);
 		intermediateStore.Add(_intermediate);
 	}
 
-	private void RemoveIntermediateCertificateFromStore() {
+	private void RemoveIntermediateCertificateFromStore()
+	{
 		using var intermediateStore = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
 		intermediateStore.Open(OpenFlags.ReadWrite);
 		intermediateStore.Remove(_intermediate);
 	}
 
 	[TearDown]
-	public void TearDown() {
+	public void TearDown()
+	{
 		_listener.Stop();
 		_client.Close("Normal close.");
 	}

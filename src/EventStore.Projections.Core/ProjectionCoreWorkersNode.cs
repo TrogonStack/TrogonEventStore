@@ -18,12 +18,15 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core;
 
-public static class ProjectionCoreWorkersNode {
+public static class ProjectionCoreWorkersNode
+{
 	public static Dictionary<Guid, CoreWorker> CreateCoreWorkers(
 		StandardComponents standardComponents,
-		ProjectionsStandardComponents projectionsStandardComponents) {
+		ProjectionsStandardComponents projectionsStandardComponents)
+	{
 		var coreWorkers = new Dictionary<Guid, CoreWorker>();
-		while (coreWorkers.Count < projectionsStandardComponents.ProjectionWorkerThreadCount) {
+		while (coreWorkers.Count < projectionsStandardComponents.ProjectionWorkerThreadCount)
+		{
 			var coreInputBus = new InMemoryBus("bus");
 			var coreInputQueue = new QueuedHandlerThreadPool(coreInputBus,
 				"Projection Core #" + coreWorkers.Count,
@@ -64,7 +67,8 @@ public static class ProjectionCoreWorkersNode {
 			coreOutput.Subscribe<ProjectionCoreServiceMessage.SubComponentStarted>(forwarder);
 			coreOutput.Subscribe<ProjectionCoreServiceMessage.SubComponentStopped>(forwarder);
 
-			if (projectionsStandardComponents.RunProjections >= ProjectionType.System) {
+			if (projectionsStandardComponents.RunProjections >= ProjectionType.System)
+			{
 				coreOutput.Subscribe(
 					Forwarder.Create<AwakeServiceMessage.SubscribeAwake>(standardComponents.MainQueue));
 				coreOutput.Subscribe(
@@ -98,44 +102,54 @@ public static class ProjectionCoreWorkersNode {
 	}
 }
 
-public class CoreWorker {
+public class CoreWorker
+{
 	public Guid WorkerId { get; }
 	public IQueuedHandler CoreInputQueue { get; }
 	public IQueuedHandler CoreOutputQueue { get; }
 
-	public CoreWorker(Guid workerId, IQueuedHandler inputQueue, IQueuedHandler outputQueue) {
+	public CoreWorker(Guid workerId, IQueuedHandler inputQueue, IQueuedHandler outputQueue)
+	{
 		WorkerId = workerId;
 		CoreInputQueue = inputQueue;
 		CoreOutputQueue = outputQueue;
 	}
 
-	public void Start() {
+	public void Start()
+	{
 		CoreInputQueue.Start();
 		CoreOutputQueue.Start();
 	}
 
-	public async Task Stop() {
+	public async Task Stop()
+	{
 		var inputStop = TryStop(CoreInputQueue);
 		var outputStop = TryStop(CoreOutputQueue);
 
-		try {
+		try
+		{
 			await Task.WhenAll(inputStop, outputStop);
 		}
-		catch {
+		catch
+		{
 			var exceptions = new List<Exception>();
-			if (inputStop.IsFaulted) {
+			if (inputStop.IsFaulted)
+			{
 				exceptions.AddRange(inputStop.Exception!.Flatten().InnerExceptions);
 			}
 
-			if (outputStop.IsFaulted) {
+			if (outputStop.IsFaulted)
+			{
 				exceptions.AddRange(outputStop.Exception!.Flatten().InnerExceptions);
 			}
 
-			if (exceptions.Count == 0) {
+			if (exceptions.Count == 0)
+			{
 				throw;
 			}
 
-			if (exceptions.Count == 1) {
+			if (exceptions.Count == 1)
+			{
 				ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
 			}
 
@@ -143,11 +157,14 @@ public class CoreWorker {
 		}
 	}
 
-	private static Task TryStop(IQueuedHandler queue) {
-		try {
+	private static Task TryStop(IQueuedHandler queue)
+	{
+		try
+		{
 			return queue.Stop();
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return Task.FromException(ex);
 		}
 	}

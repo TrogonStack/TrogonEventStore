@@ -14,18 +14,21 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_an_emit_with_write_as_configured<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_an_emit_with_write_as_configured<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private ClaimsPrincipal _writeAs;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesQueueUp();
 		ExistingEvent("test_stream", "type", @"{""c"": 100, ""p"": 50}", "data");
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_writeAs = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "test-user") }, "ES-Test"));
 		_stream = new EmittedStream(
@@ -46,12 +49,14 @@ public class when_handling_an_emit_with_write_as_configured<TLogFormat, TStreamI
 	}
 
 	[Test]
-	public void publishes_not_yet_published_events() {
+	public void publishes_not_yet_published_events()
+	{
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Count());
 	}
 
 	[Test]
-	public void publishes_write_event_with_correct_user_account() {
+	public void publishes_write_event_with_correct_user_account()
+	{
 		var writeEvent = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Single();
 
 		Assert.AreSame(_writeAs, writeEvent.User);

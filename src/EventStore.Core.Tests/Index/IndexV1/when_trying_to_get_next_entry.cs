@@ -10,7 +10,8 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : SpecificationWithFile {
+public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : SpecificationWithFile
+{
 	private HashListMemTable _memTable;
 	private PTable _pTable;
 	private readonly long _deletedStreamEventNumber = version < PTableVersions.IndexV3 ? int.MaxValue : long.MaxValue;
@@ -19,12 +20,14 @@ public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : Spec
 	private const ulong H2 = 0x02UL << 32;
 	private const ulong H3 = 0x03UL << 32;
 
-	private ulong GetHash(ulong value) {
+	private ulong GetHash(ulong value)
+	{
 		return version == PTableVersions.IndexV1 ? value >> 32 : value;
 	}
 
 	[SetUp]
-	public override async Task SetUp() {
+	public override async Task SetUp()
+	{
 		await base.SetUp();
 		_memTable = new HashListMemTable(version, maxSize: 10);
 		_memTable.Add(H1, 0, 0);
@@ -46,7 +49,8 @@ public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : Spec
 	}
 
 	[TearDown]
-	public override void TearDown() {
+	public override void TearDown()
+	{
 		_pTable?.Dispose();
 		base.TearDown();
 	}
@@ -55,7 +59,8 @@ public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : Spec
 
 	[TestCase(true)]
 	[TestCase(false)]
-	public void when_next_entry_doesnt_exist_returns_false(bool memTableOrPTable) {
+	public void when_next_entry_doesnt_exist_returns_false(bool memTableOrPTable)
+	{
 		var table = GetTable(memTableOrPTable);
 		Assert.False(table.TryGetNextEntry(H1, 5, out _));
 		Assert.False(table.TryGetNextEntry(H2, _deletedStreamEventNumber, out _));
@@ -63,7 +68,8 @@ public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : Spec
 
 	[TestCase(true)]
 	[TestCase(false)]
-	public void when_next_entry_exists_returns_correct_entry(bool memTableOrPTable) {
+	public void when_next_entry_exists_returns_correct_entry(bool memTableOrPTable)
+	{
 		var table = GetTable(memTableOrPTable);
 
 		Assert.True(table.TryGetNextEntry(H1, 0, out var entry));
@@ -85,7 +91,8 @@ public class WhenTryingToGetNextEntry(byte version, bool skipIndexVerify) : Spec
 
 	[TestCase(true)]
 	[TestCase(false)]
-	public void when_duplicate_or_collision_returns_correct_next_entry(bool memTableOrPTable) {
+	public void when_duplicate_or_collision_returns_correct_next_entry(bool memTableOrPTable)
+	{
 		var table = GetTable(memTableOrPTable);
 
 		Assert.True(table.TryGetNextEntry(H3, 0, out var entry));

@@ -11,16 +11,19 @@ using EventStore.Core.Util;
 
 namespace EventStore.Core.Tests.TransactionLog;
 
-public static class TFChunkHelper {
+public static class TFChunkHelper
+{
 	public static TFChunkDbConfig CreateDbConfig(
 		string pathName,
-		long writerCheckpointPosition) {
+		long writerCheckpointPosition)
+	{
 		return CreateDbConfigEx(pathName, writerCheckpointPosition, 0, -1, -1, -1, 10000, -1);
 	}
 	public static TFChunkDbConfig CreateSizedDbConfig(
 		string pathName,
 		long writerCheckpointPosition,
-		int chunkSize) {
+		int chunkSize)
+	{
 		return CreateDbConfigEx(pathName, writerCheckpointPosition, 0, -1, -1, -1, chunkSize, -1);
 	}
 	public static TFChunkDbConfig CreateDbConfigEx(
@@ -32,7 +35,8 @@ public static class TFChunkHelper {
 		long truncateCheckpoint,// Default -1
 		int chunkSize,// Default 10000
 		long maxTruncation // Default -1
-		) {
+		)
+	{
 		return new TFChunkDbConfig(pathName,
 			new VersionedPatternFileNamingStrategy(pathName, "chunk-"),
 			chunkSize,
@@ -53,8 +57,10 @@ public static class TFChunkHelper {
 		ICheckpoint writerCheckpoint,
 		ICheckpoint chaserCheckpoint,
 		int chunkSize = 10000,
-		ICheckpoint replicationCheckpoint = null) {
-		if (replicationCheckpoint == null) {
+		ICheckpoint replicationCheckpoint = null)
+	{
+		if (replicationCheckpoint == null)
+		{
 			replicationCheckpoint = new InMemoryCheckpoint(-1);
 		}
 
@@ -73,7 +79,8 @@ public static class TFChunkHelper {
 			new InMemoryCheckpoint(-1));
 	}
 
-	public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default) {
+	public static ValueTask<TFChunk> CreateNewChunk(string fileName, int chunkSize = 4096, bool isScavenged = false, CancellationToken token = default)
+	{
 		return TFChunk.CreateNew(CreateLocalFileSystem(fileName), fileName, chunkSize, 0, 0,
 			isScavenged: isScavenged, unbuffered: false,
 			writethrough: false, reduceFileCachePressure: false, asyncIO: false, tracker: new TFChunkTracker.NoOp(),

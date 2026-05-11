@@ -5,9 +5,11 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Other;
 
 [TestFixture]
-class Stopwatch {
+class Stopwatch
+{
 	[Test]
-	public void MeasureStopwatch() {
+	public void MeasureStopwatch()
+	{
 		var sw = new System.Diagnostics.Stopwatch();
 		var measured = new System.Diagnostics.Stopwatch();
 		sw.Reset();
@@ -26,7 +28,8 @@ class Stopwatch {
 		sw.Reset();
 
 		sw.Start();
-		for (var i = 0; i < 1000000; i++) {
+		for (var i = 0; i < 1000000; i++)
+		{
 			measured.Start();
 			measured.Stop();
 			TestHelper.Consume(measured.ElapsedMilliseconds);

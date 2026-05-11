@@ -9,7 +9,8 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndContinuationTests> {
+public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndContinuationTests>
+{
 	// in these tests we we want to
 	// - run a scavenge
 	// - have a log record trigger the cancellation of that scavenge at a particular point
@@ -19,7 +20,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	// - check it produced the right results
 
 	[Fact]
-	public async Task accumulator_checkpoints_immediately() {
+	public async Task accumulator_checkpoints_immediately()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		await new Scenario<LogFormat.V2, string>()
@@ -40,7 +42,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("        Reading Chunk 0"),
 				Tracer.Line("    Rollback"),
 				Tracer.Line("Exception accumulating"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var accumulating = Assert.IsType<ScavengeCheckpoint.Accumulating>(checkpoint);
@@ -50,7 +53,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task calculator_checkpoints_immediately() {
+	public async Task calculator_checkpoints_immediately()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		await new Scenario<LogFormat.V2, string>()
@@ -85,7 +89,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("    Begin"),
 				Tracer.Line("    Rollback"),
 				Tracer.Line("Exception calculating"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var calculating = Assert.IsType<ScavengeCheckpoint.Calculating<string>>(checkpoint);
@@ -95,7 +100,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task chunk_executor_checkpoints_immediately() {
+	public async Task chunk_executor_checkpoints_immediately()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		await new Scenario<LogFormat.V2, string>()
@@ -142,7 +148,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("    Retained Chunk 0-0"),
 				Tracer.Line("    Opening Chunk 0-0"),
 				Tracer.Line("Exception executing chunks"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.ExecutingChunks>(checkpoint);
@@ -152,7 +159,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task index_executor_checkpoints_immediately() {
+	public async Task index_executor_checkpoints_immediately()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		await new Scenario<LogFormat.V2, string>()
@@ -207,7 +215,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("        Checkpoint: Executing index for SP-0"),
 				Tracer.Line("    Commit"),
 				Tracer.Line("Exception executing index"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.ExecutingIndex>(checkpoint);
@@ -216,7 +225,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task cleaner_checkpoints_immediately() {
+	public async Task cleaner_checkpoints_immediately()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		await new Scenario<LogFormat.V2, string>()
@@ -275,7 +285,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("        Checkpoint: Cleaning for SP-0"),
 				Tracer.Line("    Commit"),
 				Tracer.Line("Exception cleaning"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.Cleaning>(checkpoint);
@@ -284,7 +295,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task can_cancel_during_accumulation_and_resume() {
+	public async Task can_cancel_during_accumulation_and_resume()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		var scenario = new Scenario<LogFormat.V2, string>();
@@ -316,7 +328,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("        Reading Chunk 1"),
 				Tracer.Line("    Rollback"),
 				Tracer.Line("Exception accumulating"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var accumulating = Assert.IsType<ScavengeCheckpoint.Accumulating>(checkpoint);
@@ -403,7 +416,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-0"),
 				Tracer.Line("Commit"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				// scavenge completed
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var done = Assert.IsType<ScavengeCheckpoint.Done>(checkpoint);
@@ -416,7 +430,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task can_cancel_during_calculation_and_resume() {
+	public async Task can_cancel_during_calculation_and_resume()
+	{
 		var t = 0;
 		var scenario = new Scenario<LogFormat.V2, string>();
 		var logger = new FakeTFScavengerLog();
@@ -463,7 +478,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				// throw while calculating 100
 				Tracer.Line("    Rollback"),
 				Tracer.Line("Exception calculating"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var calculating = Assert.IsType<ScavengeCheckpoint.Calculating<string>>(checkpoint);
@@ -528,7 +544,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-0"),
 				Tracer.Line("Commit"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				// scavenge completed
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var done = Assert.IsType<ScavengeCheckpoint.Done>(checkpoint);
@@ -537,7 +554,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task can_cancel_during_chunk_execution_and_resume() {
+	public async Task can_cancel_during_chunk_execution_and_resume()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		var scenario = new Scenario<LogFormat.V2, string>();
@@ -597,7 +615,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("    Retained Chunk 1-1"),
 				Tracer.Line("    Opening Chunk 1-1"),
 				Tracer.Line("Exception executing chunks"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.ExecutingChunks>(checkpoint);
@@ -649,7 +668,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-0"),
 				Tracer.Line("Commit"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				// scavenge completed
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var done = Assert.IsType<ScavengeCheckpoint.Done>(checkpoint);
@@ -658,7 +678,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task can_cancel_during_index_execution_and_resume() {
+	public async Task can_cancel_during_index_execution_and_resume()
+	{
 		var t = 0;
 		var logger = new FakeTFScavengerLog();
 		var scenario = new Scenario<LogFormat.V2, string>();
@@ -735,7 +756,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("        Checkpoint: Executing index for SP-0"),
 				Tracer.Line("    Commit"),
 				Tracer.Line("Exception executing index"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.ExecutingIndex>(checkpoint);
@@ -770,7 +792,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-0"),
 				Tracer.Line("Commit"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				// scavenge completed
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var done = Assert.IsType<ScavengeCheckpoint.Done>(checkpoint);
@@ -779,7 +802,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task can_cancel_during_cleaning_and_resume() {
+	public async Task can_cancel_during_cleaning_and_resume()
+	{
 		var t = 0;
 		var scenario = new Scenario<LogFormat.V2, string>();
 		var logger = new FakeTFScavengerLog();
@@ -794,7 +818,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
 			.WithLogger(logger)
 			.CancelWhenCheckpointing<ScavengeCheckpoint.Cleaning>()
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.Equal(ScavengeResult.Stopped, logger.Result);
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.Cleaning>(checkpoint);
@@ -817,7 +842,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-0"),
 				Tracer.Line("Commit"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				// scavenge completed
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var done = Assert.IsType<ScavengeCheckpoint.Done>(checkpoint);
@@ -829,7 +855,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 	}
 
 	[Fact]
-	public async Task can_complete() {
+	public async Task can_complete()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -901,7 +928,8 @@ public class CancellationAndContinuationTests : SqliteDbPerTest<CancellationAndC
 				Tracer.Line("Begin"),
 				Tracer.Line("    Checkpoint: Done SP-0"),
 				Tracer.Line("Commit"))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.True(state.TryGetCheckpoint(out var checkpoint));
 				var executing = Assert.IsType<ScavengeCheckpoint.Done>(checkpoint);
 			})

@@ -10,10 +10,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.TransactionMgr;
 
 [TestFixture]
-public class when_transaction_commit_gets_prepare_timeout_before_prepares : RequestManagerSpecification<TransactionCommit> {
+public class when_transaction_commit_gets_prepare_timeout_before_prepares : RequestManagerSpecification<TransactionCommit>
+{
 
 	private int transactionId = 2341;
-	protected override TransactionCommit OnManager(FakePublisher publisher) {
+	protected override TransactionCommit OnManager(FakePublisher publisher)
+	{
 		return new TransactionCommit(
 			publisher,
 			PrepareTimeout,
@@ -25,23 +27,27 @@ public class when_transaction_commit_gets_prepare_timeout_before_prepares : Requ
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages() {
+	protected override IEnumerable<Message> WithInitialMessages()
+	{
 		yield break;
 	}
 
-	protected override Message When() {
+	protected override Message When()
+	{
 		return new StorageMessage.RequestManagerTimerTick(
 			DateTime.UtcNow + PrepareTimeout + TimeSpan.FromMinutes(5));
 	}
 
 	[Test]
-	public void failed_request_message_is_published() {
+	public void failed_request_message_is_published()
+	{
 		Assert.That(Produced.ContainsSingle<StorageMessage.RequestCompleted>(
 			x => x.CorrelationId == InternalCorrId && x.Success == false));
 	}
 
 	[Test]
-	public void the_envelope_is_replied_to_with_failure() {
+	public void the_envelope_is_replied_to_with_failure()
+	{
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.TransactionCommitCompleted>(
 			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.PrepareTimeout));
 	}

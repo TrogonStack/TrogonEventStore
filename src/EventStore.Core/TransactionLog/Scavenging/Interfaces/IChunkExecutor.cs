@@ -2,9 +2,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// The chunk executor performs the actual removal of the log records
-	public interface IChunkExecutor<TStreamId> {
+	public interface IChunkExecutor<TStreamId>
+	{
 		ValueTask Execute(
 			ScavengePoint scavengePoint,
 			IScavengeStateForChunkExecutor<TStreamId> state,

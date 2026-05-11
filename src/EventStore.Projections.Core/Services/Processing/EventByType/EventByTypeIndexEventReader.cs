@@ -10,7 +10,8 @@ using EventStore.Core.Services.TimerService;
 
 namespace EventStore.Projections.Core.Services.Processing.EventByType;
 
-public partial class EventByTypeIndexEventReader : EventReader {
+public partial class EventByTypeIndexEventReader : EventReader
+{
 	public const int MaxReadCount = 50;
 	private readonly HashSet<string> _eventTypes;
 	private readonly bool _resolveLinkTos;
@@ -34,23 +35,28 @@ public partial class EventByTypeIndexEventReader : EventReader {
 		bool resolveLinkTos,
 		ITimeProvider timeProvider,
 		bool stopOnEof = false)
-		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof) {
-		if (eventTypes == null) {
+		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof)
+	{
+		if (eventTypes == null)
+		{
 			throw new ArgumentNullException("eventTypes");
 		}
 
-		if (timeProvider == null) {
+		if (timeProvider == null)
+		{
 			throw new ArgumentNullException("timeProvider");
 		}
 
-		if (eventTypes.Length == 0) {
+		if (eventTypes.Length == 0)
+		{
 			throw new ArgumentException("empty", "eventTypes");
 		}
 
 		_includeDeletedStreamNotification = includeDeletedStreamNotification;
 		_timeProvider = timeProvider;
 		_eventTypes = new HashSet<string>(eventTypes);
-		if (includeDeletedStreamNotification) {
+		if (includeDeletedStreamNotification)
+		{
 			_eventTypes.Add("$deleted");
 		}
 
@@ -64,68 +70,84 @@ public partial class EventByTypeIndexEventReader : EventReader {
 		_state = new IndexBased(_eventTypes, this, readAs);
 	}
 
-	private void ValidateTag(Dictionary<string, long> fromPositions) {
-		if (_eventTypes.Count != fromPositions.Count) {
+	private void ValidateTag(Dictionary<string, long> fromPositions)
+	{
+		if (_eventTypes.Count != fromPositions.Count)
+		{
 			throw new ArgumentException("Number of streams does not match", "fromPositions");
 		}
 
-		foreach (var stream in _streamToEventType.Keys.Where(stream => !fromPositions.ContainsKey(stream))) {
+		foreach (var stream in _streamToEventType.Keys.Where(stream => !fromPositions.ContainsKey(stream)))
+		{
 			throw new ArgumentException(
 				String.Format("The '{0}' stream position has not been set", stream), "fromPositions");
 		}
 	}
 
 
-	public override void Dispose() {
+	public override void Dispose()
+	{
 		_state.Dispose();
 		base.Dispose();
 	}
 
-	protected override void RequestEvents() {
-		if (_disposed || PauseRequested || Paused) {
+	protected override void RequestEvents()
+	{
+		if (_disposed || PauseRequested || Paused)
+		{
 			return;
 		}
 
 		_state.RequestEvents();
 	}
 
-	protected override bool AreEventsRequested() {
+	protected override bool AreEventsRequested()
+	{
 		return _state.AreEventsRequested();
 	}
 
 	private void PublishIORequest(bool delay, Message readEventsForward, Message timeoutMessage,
-		Guid correlationId) {
-		if (delay) {
+		Guid correlationId)
+	{
+		if (delay)
+		{
 			_publisher.Publish(
 				new AwakeServiceMessage.SubscribeAwake(
 					_publisher, correlationId, null,
 					new TFPos(_lastPosition, _lastPosition), readEventsForward));
 		}
-		else {
+		else
+		{
 			_publisher.Publish(readEventsForward);
 			_publisher.Publish(timeoutMessage);
 		}
 	}
 
-	private void UpdateNextStreamPosition(string eventStreamId, long nextPosition) {
+	private void UpdateNextStreamPosition(string eventStreamId, long nextPosition)
+	{
 		long streamPosition;
-		if (!_fromPositions.TryGetValue(eventStreamId, out streamPosition)) {
+		if (!_fromPositions.TryGetValue(eventStreamId, out streamPosition))
+		{
 			streamPosition = -1;
 		}
 
-		if (nextPosition > streamPosition) {
+		if (nextPosition > streamPosition)
+		{
 			_fromPositions[eventStreamId] = nextPosition;
 		}
 	}
 
-	private void DoSwitch(TFPos lastKnownIndexCheckpointPosition) {
-		if (Paused || PauseRequested || _disposed) {
+	private void DoSwitch(TFPos lastKnownIndexCheckpointPosition)
+	{
+		if (Paused || PauseRequested || _disposed)
+		{
 			throw new InvalidOperationException("_paused || _pauseRequested || _disposed");
 		}
 
 		// skip reading TF up to last know index checkpoint position
 		// as we could only gethere if there is no more indexed events before this point
-		if (lastKnownIndexCheckpointPosition > _lastEventPosition) {
+		if (lastKnownIndexCheckpointPosition > _lastEventPosition)
+		{
 			_lastEventPosition = lastKnownIndexCheckpointPosition;
 		}
 

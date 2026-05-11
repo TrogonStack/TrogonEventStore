@@ -1,6 +1,7 @@
 namespace EventStore.Common.DevCertificates;
 
-public enum EnsureCertificateResult {
+public enum EnsureCertificateResult
+{
 	Succeeded = 1,
 	ValidCertificatePresent,
 	ErrorCreatingTheCertificate,

@@ -7,24 +7,28 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class QueueProcessingTrackerTests : IDisposable {
+public class QueueProcessingTrackerTests : IDisposable
+{
 	private readonly TestMeterListener<double> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly QueueProcessingTracker _sut;
 
-	public QueueProcessingTrackerTests() {
+	public QueueProcessingTrackerTests()
+	{
 		var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
 		var metric = new DurationMetric(meter, "the-metric", _clock);
 		_listener = new TestMeterListener<double>(meter);
 		_sut = new(metric, "the-queue");
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_listener.Dispose();
 	}
 
 	[Fact]
-	public void records() {
+	public void records()
+	{
 		_clock.SecondsSinceEpoch = 500;
 		var start = _clock.Now;
 		_clock.SecondsSinceEpoch = 501;
@@ -34,29 +38,35 @@ public class QueueProcessingTrackerTests : IDisposable {
 		AssertMeasurements(1);
 	}
 
-	void AssertMeasurements(int expectedValue) {
+	void AssertMeasurements(int expectedValue)
+	{
 
 		Assert.Collection(
 			_listener.RetrieveMeasurements("the-metric-seconds"),
-			m => {
+			m =>
+			{
 				Assert.Equal(expectedValue, m.Value);
 				Assert.Collection(
 					m.Tags,
-					t => {
+					t =>
+					{
 						Assert.Equal("queue", t.Key);
 						Assert.Equal("the-queue", t.Value);
 					},
-					t => {
+					t =>
+					{
 						Assert.Equal("message-type", t.Key);
 						Assert.Equal("the-message-type", t.Value);
 					});
 			});
 	}
 
-	public class QueueProcessingTrackerNoOpTests {
+	public class QueueProcessingTrackerNoOpTests
+	{
 		// the noop tracker doesn't track anything but it still needs to return the current time
 		[Fact]
-		public async Task noop_returns_current_time() {
+		public async Task noop_returns_current_time()
+		{
 			var sut = new QueueProcessingTracker.NoOp();
 			var start = Instant.Now;
 			await Task.Delay(1);

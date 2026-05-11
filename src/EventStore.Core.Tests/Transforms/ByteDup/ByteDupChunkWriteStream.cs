@@ -6,21 +6,26 @@ using EventStore.Plugins.Transforms;
 namespace EventStore.Core.Tests.Transforms.ByteDup;
 
 public class ByteDupChunkWriteStream(ChunkDataWriteStream stream) :
-	ChunkDataWriteStream(stream.ChunkFileStream, stream.ChecksumAlgorithm) {
+	ChunkDataWriteStream(stream.ChunkFileStream, stream.ChecksumAlgorithm)
+{
 	private const int HeaderSize = 128;
 
-	public override void Write(ReadOnlySpan<byte> buffer) {
+	public override void Write(ReadOnlySpan<byte> buffer)
+	{
 		var buf = new byte[buffer.Length * 2];
-		for (int i = 0; i < buffer.Length; i++) {
+		for (int i = 0; i < buffer.Length; i++)
+		{
 			buf[i * 2] = buf[i * 2 + 1] = buffer[i];
 		}
 
 		base.Write(buf);
 	}
 
-	public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken token = default) {
+	public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken token = default)
+	{
 		var buf = new byte[buffer.Length * 2];
-		for (int i = 0; i < buffer.Length; i++) {
+		for (int i = 0; i < buffer.Length; i++)
+		{
 			buf[i * 2] = buf[i * 2 + 1] = buffer.Span[i];
 		}
 
@@ -30,7 +35,8 @@ public class ByteDupChunkWriteStream(ChunkDataWriteStream stream) :
 	private static long TransformPosition(long position) => HeaderSize + (position - HeaderSize) * 2L;
 	private static long UntransformPosition(long position) => HeaderSize + (position - HeaderSize) / 2L;
 
-	public override long Position {
+	public override long Position
+	{
 		get => UntransformPosition(base.Position);
 		set => base.Position = TransformPosition(value);
 	}

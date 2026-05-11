@@ -4,7 +4,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Monitoring;
 
 [TestFixture]
-public class FormatterTests {
+public class FormatterTests
+{
 	[Test]
 	[TestCase(0L, ExpectedResult = "0B")]
 	[TestCase(500L, ExpectedResult = "500B")]
@@ -22,7 +23,8 @@ public class FormatterTests {
 	[TestCase(-1023L, ExpectedResult = "-1023B")]
 	[TestCase(-1024, ExpectedResult = "-1KiB")]
 	[TestCase(-1048576L, ExpectedResult = "-1MiB")]
-	public string test_size_multiple_cases_long(long bytes) {
+	public string test_size_multiple_cases_long(long bytes)
+	{
 		return bytes.ToFriendlySizeString();
 	}
 
@@ -39,7 +41,8 @@ public class FormatterTests {
 	[TestCase(1099511627776UL, ExpectedResult = "1TiB")]
 	[TestCase(1125899906842624UL, ExpectedResult = "1024TiB")]
 	[TestCase(ulong.MaxValue, ExpectedResult = "more than long.MaxValue")] //16777215TiB
-	public string test_size_multiple_cases_ulong(ulong bytes) {
+	public string test_size_multiple_cases_ulong(ulong bytes)
+	{
 		return bytes.ToFriendlySizeString();
 	}
 
@@ -58,7 +61,8 @@ public class FormatterTests {
 	[TestCase(-1023L, ExpectedResult = "-1023B/s")]
 	[TestCase(-1024, ExpectedResult = "-1KiB/s")]
 	[TestCase(-1048576L, ExpectedResult = "-1MiB/s")]
-	public string test_speed_multiple_cases(double speed) {
+	public string test_speed_multiple_cases(double speed)
+	{
 		return speed.ToFriendlySpeedString();
 	}
 
@@ -80,7 +84,8 @@ public class FormatterTests {
 	[TestCase(-1023L, ExpectedResult = "-1023")]
 	[TestCase(-1024, ExpectedResult = "-1K")]
 	[TestCase(-1048576L, ExpectedResult = "-1M")]
-	public string test_number_multiple_cases_long(long number) {
+	public string test_number_multiple_cases_long(long number)
+	{
 		return number.ToFriendlyNumberString();
 	}
 
@@ -97,7 +102,8 @@ public class FormatterTests {
 	[TestCase(1099511627776UL, ExpectedResult = "1T")]
 	[TestCase(1125899906842624UL, ExpectedResult = "1024T")]
 	[TestCase(ulong.MaxValue, ExpectedResult = "more than long.MaxValue")] //16777215TiB
-	public string test_number_multiple_cases_ulong(ulong number) {
+	public string test_number_multiple_cases_ulong(ulong number)
+	{
 		return number.ToFriendlyNumberString();
 	}
 }

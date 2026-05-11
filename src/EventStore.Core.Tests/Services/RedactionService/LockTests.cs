@@ -9,27 +9,32 @@ namespace EventStore.Core.Tests.Services.RedactionService;
 
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class LockTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId> {
-	private async Task<RedactionMessage.AcquireChunksLockCompleted> TryLock() {
+public class LockTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId>
+{
+	private async Task<RedactionMessage.AcquireChunksLockCompleted> TryLock()
+	{
 		var e = new TcsEnvelope<RedactionMessage.AcquireChunksLockCompleted>();
 		RedactionService.Handle(new RedactionMessage.AcquireChunksLock(e));
 		return await e.Task;
 	}
 
-	private async Task<RedactionMessage.ReleaseChunksLockCompleted> TryUnlock(Guid lockId) {
+	private async Task<RedactionMessage.ReleaseChunksLockCompleted> TryUnlock(Guid lockId)
+	{
 		var e = new TcsEnvelope<RedactionMessage.ReleaseChunksLockCompleted>();
 		RedactionService.Handle(new RedactionMessage.ReleaseChunksLock(e, lockId));
 		return await e.Task;
 	}
 
 	[Test]
-	public async Task can_lock() {
+	public async Task can_lock()
+	{
 		var msg = await TryLock();
 		Assert.AreEqual(AcquireChunksLockResult.Success, msg.Result);
 	}
 
 	[Test]
-	public async Task can_unlock() {
+	public async Task can_unlock()
+	{
 		var lockMsg = await TryLock();
 		Assert.AreEqual(AcquireChunksLockResult.Success, lockMsg.Result);
 
@@ -38,7 +43,8 @@ public class LockTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLog
 	}
 
 	[Test]
-	public async Task cannot_unlock_with_wrong_id() {
+	public async Task cannot_unlock_with_wrong_id()
+	{
 		var lockMsg = await TryLock();
 		Assert.AreEqual(AcquireChunksLockResult.Success, lockMsg.Result);
 
@@ -47,7 +53,8 @@ public class LockTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLog
 	}
 
 	[Test]
-	public async Task cannot_unlock_twice_with_same_id() {
+	public async Task cannot_unlock_twice_with_same_id()
+	{
 		var lockMsg = await TryLock();
 		Assert.AreEqual(AcquireChunksLockResult.Success, lockMsg.Result);
 
@@ -59,13 +66,15 @@ public class LockTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLog
 	}
 
 	[Test]
-	public async Task cannot_unlock_when_unlocked() {
+	public async Task cannot_unlock_when_unlocked()
+	{
 		var msg = await TryUnlock(Guid.NewGuid());
 		Assert.AreEqual(ReleaseChunksLockResult.Failed, msg.Result);
 	}
 
 	[Test]
-	public async Task cannot_lock_when_locked() {
+	public async Task cannot_lock_when_locked()
+	{
 		var msg = await TryLock();
 		Assert.AreEqual(AcquireChunksLockResult.Success, msg.Result);
 

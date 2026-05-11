@@ -7,8 +7,10 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	WhenDeletingStreamSpanningThroughMultipleChunksInDbWithOtherStreamsReadIndexShould<TLogFormat, TStreamId> :
-		ReadIndexTestScenario<TLogFormat, TStreamId> {
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		ReadIndexTestScenario<TLogFormat, TStreamId>
+{
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		await WriteSingleEvent("ES1", 0, new string('.', 3000), token: token);
 		await WriteSingleEvent("ES1", 1, new string('.', 3000), token: token);
 		await WriteSingleEvent("ES2", 0, new string('.', 3000), token: token);
@@ -29,27 +31,32 @@ public class
 	}
 
 	[Test]
-	public async Task indicate_that_stream_is_deleted() {
+	public async Task indicate_that_stream_is_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ES1", CancellationToken.None));
 	}
 
 	[Test]
-	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted() {
+	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("XXX", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted() {
+	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("XXXX", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task indicate_that_existing_stream_with_same_hash_is_not_deleted() {
+	public async Task indicate_that_existing_stream_with_same_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ES2", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task indicate_that_existing_stream_with_different_hash_is_not_deleted() {
+	public async Task indicate_that_existing_stream_with_different_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None), Is.False);
 	}
 }

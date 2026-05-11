@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EventStore.Core.Services.Transport.Common {
-	public struct HashCode {
+namespace EventStore.Core.Services.Transport.Common
+{
+	public struct HashCode
+	{
 		private readonly int _value;
 
-		private HashCode(int value) {
+		private HashCode(int value)
+		{
 			_value = value;
 		}
 
@@ -13,14 +16,18 @@ namespace EventStore.Core.Services.Transport.Common {
 
 		public readonly HashCode Combine<T>(T? value) where T : struct => Combine(value ?? default);
 
-		public readonly HashCode Combine<T>(T value) where T : struct {
-			unchecked {
+		public readonly HashCode Combine<T>(T value) where T : struct
+		{
+			unchecked
+			{
 				return new HashCode((_value * 397) ^ value.GetHashCode());
 			}
 		}
 
-		public readonly HashCode Combine(string value) {
-			unchecked {
+		public readonly HashCode Combine(string value)
+		{
+			unchecked
+			{
 				return new HashCode((_value * 397) ^ (value?.GetHashCode() ?? 0));
 			}
 		}

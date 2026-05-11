@@ -9,8 +9,10 @@ using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Parsers;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.Monitoring.Utils {
-	internal class EventCountersHelper : IDisposable {
+namespace EventStore.Core.Services.Monitoring.Utils
+{
+	internal class EventCountersHelper : IDisposable
+	{
 		private static readonly ILogger Log = Serilog.Log.ForContext<EventCountersHelper>();
 		private const int InvalidCounterResult = -1;
 
@@ -25,7 +27,8 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 
 		private readonly int _pid;
 
-		public EventCountersHelper(long collectIntervalInMs) {
+		public EventCountersHelper(long collectIntervalInMs)
+		{
 			var currentProcess = Process.GetCurrentProcess();
 			_pid = currentProcess.Id;
 
@@ -41,24 +44,31 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 			};
 		}
 
-		public void Start() {
-			Task.Run(() => {
-				try {
+		public void Start()
+		{
+			Task.Run(() =>
+			{
+				try
+				{
 					var client = new DiagnosticsClient(_pid);
 					_session = client.StartEventPipeSession(_providers, false);
 					using var source = new EventPipeEventSource(_session.EventStream);
 
 
-					source.Dynamic.All += obj => {
-						if (obj.EventName.Equals("EventCounters")) {
+					source.Dynamic.All += obj =>
+					{
+						if (obj.EventName.Equals("EventCounters"))
+						{
 							var payload = (IDictionary<string, object>)obj.PayloadValue(0);
 							var pairs = (IDictionary<string, object>)(payload["Payload"]);
 
 							var name = string.Intern(pairs["Name"].ToString());
 
-							if (_gcCollectionNames.Contains(name)) {
+							if (_gcCollectionNames.Contains(name))
+							{
 								var gcCounterType = pairs["CounterType"];
-								if (gcCounterType.Equals("Sum")) {
+								if (gcCounterType.Equals("Sum"))
+								{
 									var gcCollectionsInTimeInterval = double.Parse(pairs["Increment"].ToString());
 									_collectedStats.TryGetValue(name, out var previousGcCollectionCount);
 									_collectedStats[name] = previousGcCollectionCount + gcCollectionsInTimeInterval;
@@ -67,11 +77,13 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 							}
 
 							var counterType = pairs["CounterType"];
-							if (counterType.Equals("Sum")) {
+							if (counterType.Equals("Sum"))
+							{
 								_collectedStats[name] = double.Parse(pairs["Increment"].ToString());
 							}
 
-							if (counterType.Equals("Mean")) {
+							if (counterType.Equals("Mean"))
+							{
 								_collectedStats[name] = double.Parse(pairs["Mean"].ToString());
 							}
 						}
@@ -79,10 +91,12 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 
 					source.Process();
 				}
-				catch (ObjectDisposedException) {
+				catch (ObjectDisposedException)
+				{
 					// ignore exception on shutdown
 				}
-				catch (Exception exception) {
+				catch (Exception exception)
+				{
 					Log.Warning(exception, "Error encountered while processing events");
 				}
 			});
@@ -91,40 +105,47 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 		///<summary>
 		///Total process CPU usage
 		///</summary>
-		public float GetProcCpuUsage() {
+		public float GetProcCpuUsage()
+		{
 			return (float)GetCounterValue("cpu-usage");
 		}
 
 		///<summary>
 		///Current thread count
 		///</summary>
-		public int GetProcThreadsCount() {
+		public int GetProcThreadsCount()
+		{
 			return (int)GetCounterValue("threadpool-thread-count");
 		}
 
 		///<summary>
 		///Number of exceptions thrown per second
 		///</summary>
-		public float GetThrownExceptionsRate() {
+		public float GetThrownExceptionsRate()
+		{
 			return (float)GetCounterValue("exception-count");
 		}
 
 		///<summary>
 		///The rate at which threads in the runtime attempt to acquire a managed lock unsuccessfully
 		///</summary>
-		public float GetContentionsRateCount() {
+		public float GetContentionsRateCount()
+		{
 			return (float)GetCounterValue("monitor-lock-contention-count");
 		}
 
-		private double GetCounterValue(string name) {
-			if (!_collectedStats.TryGetValue(name, out var value)) {
+		private double GetCounterValue(string name)
+		{
+			if (!_collectedStats.TryGetValue(name, out var value))
+			{
 				return InvalidCounterResult;
 			}
 
 			return value;
 		}
 
-		public GcStats GetGcStats() {
+		public GcStats GetGcStats()
+		{
 			return new GcStats(
 				gcAllocationSpeed: (float)GetCounterValue("alloc-rate"),
 				gcFragmentation: (float)GetCounterValue("gc-fragmentation"),
@@ -139,11 +160,14 @@ namespace EventStore.Core.Services.Monitoring.Utils {
 				gcTotalBytesInHeaps: (long)GetCounterValue("gc-heap-size") * 1_000_000);
 		}
 
-		public void Dispose() {
-			try {
+		public void Dispose()
+		{
+			try
+			{
 				_session?.Stop();
 			}
-			catch (ServerNotAvailableException) {
+			catch (ServerNotAvailableException)
+			{
 			}
 
 			_session?.Dispose();

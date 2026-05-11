@@ -12,12 +12,15 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_receiving_committed_event_the_projection_with_existing_partitioned_state_should<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private Guid _eventId;
 	private string _testProjectionState = @"{""test"":1}";
 
-	protected override void Given() {
-		_configureBuilderByQuerySource = source => {
+	protected override void Given()
+	{
+		_configureBuilderByQuerySource = source =>
+		{
 			source.FromAll();
 			source.AllEvents();
 			source.SetByStream();
@@ -38,7 +41,8 @@ public class when_receiving_committed_event_the_projection_with_existing_partiti
 		AllWritesSucceed();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_consumer.HandledMessages.Clear();
@@ -56,7 +60,8 @@ public class when_receiving_committed_event_the_projection_with_existing_partiti
 	}
 
 	[Test]
-	public void register_new_partition_state_stream_only_once() {
+	public void register_new_partition_state_stream_only_once()
+	{
 		var writes =
 			_writeEventHandler.HandledMessages.Where(v => v.EventStreamId == "$projections-projection-partitions")
 				.ToArray();

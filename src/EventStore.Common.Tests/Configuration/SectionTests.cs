@@ -5,9 +5,11 @@ using Microsoft.Extensions.Configuration.Memory;
 
 namespace EventStore.Common.Tests.Configuration;
 
-public class SectionTests {
+public class SectionTests
+{
 	[Fact]
-	public void SanityCheck() {
+	public void SanityCheck()
+	{
 		var config = new ConfigurationBuilder()
 			.AddInMemoryCollection(new Dictionary<string, string?> {
 				{"a", "v a"},

@@ -3,7 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// There are two kinds of streams that we might want to remove events from
 	//    - original streams (i.e. streams with metadata)
 	//        - according to tombstone
@@ -22,7 +23,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 	// - Merger merges the chunks
 	// - Cleaner removes parts of the scavenge state that are no longer needed
 	//   (as determined by the calculator)
-	public interface IScavenger : IDisposable {
+	public interface IScavenger : IDisposable
+	{
 		string ScavengeId { get; }
 		Task<ScavengeResult> ScavengeAsync(CancellationToken cancellationToken);
 	}

@@ -27,7 +27,8 @@ using Serilog;
 namespace EventStore.Core;
 
 [PublicAPI]
-public partial record ClusterVNodeOptions {
+public partial record ClusterVNodeOptions
+{
 	public ClusterVNodeOptions() => FileStreamExtensions.ConfigureFlush(Database.UnsafeDisableFlushToDisk);
 
 	public IConfigurationRoot? ConfigurationRoot { get; init; }
@@ -57,7 +58,8 @@ public partial record ClusterVNodeOptions {
 
 	public bool UnknownOptionsDetected => Unknown.Options.Any();
 
-	public static ClusterVNodeOptions FromConfiguration(IConfigurationRoot configurationRoot) {
+	public static ClusterVNodeOptions FromConfiguration(IConfigurationRoot configurationRoot)
+	{
 		var configuration = configurationRoot.GetRequiredSection("EventStore");
 
 		// required because of a bug in the configuration system that
@@ -69,7 +71,8 @@ public partial record ClusterVNodeOptions {
 		// with full keys we would not even need to do all these binds, just a single one
 		// configurationRoot.BindOptions<ClusterVNodeOptions>();
 
-		var options = new ClusterVNodeOptions {
+		var options = new ClusterVNodeOptions
+		{
 			Application = configuration.BindOptions<ApplicationOptions>(),
 			DevMode = configuration.BindOptions<DevModeOptions>(),
 			DefaultUser = configuration.BindOptions<DefaultUserOptions>(),
@@ -93,7 +96,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Default User Options")]
-	public record DefaultUserOptions {
+	public record DefaultUserOptions
+	{
 		[Description("Admin Default password"), Sensitive,
 		 EnvironmentOnly("The Admin user password can only be set using Environment Variables")]
 		public string DefaultAdminPassword { get; init; } = "changeit";
@@ -104,7 +108,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Dev Mode Options")]
-	public record DevModeOptions {
+	public record DevModeOptions
+	{
 		[Description(
 			"Runs EventStoreDB in dev mode. This will create and add dev certificates to your certificate store and run standard projections.")]
 		public bool Dev { get; init; } = false;
@@ -114,7 +119,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Application Options")]
-	public record ApplicationOptions {
+	public record ApplicationOptions
+	{
 		[Description("Show help.")] public bool Help { get; init; } = false;
 
 		[Description("Show version.")] public bool Version { get; init; } = false;
@@ -179,7 +185,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Logging Options")]
-	public record LoggingOptions {
+	public record LoggingOptions
+	{
 		[Description("Path where to keep log files.")]
 		public string Log { get; init; } = Locations.DefaultLogDirectory;
 
@@ -205,13 +212,15 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Experimental Options")]
-	public record ExperimentalOptions {
+	public record ExperimentalOptions
+	{
 		[Description("Use asynchronous local chunk reads and writes. Disabled by default while local async I/O remains experimental.")]
 		public bool AsyncIO { get; init; } = false;
 	}
 
 	[Description("Authentication/Authorization Options")]
-	public record AuthOptions {
+	public record AuthOptions
+	{
 		[Description("The type of authorization to use.")]
 		public string AuthorizationType { get; init; } = "internal";
 
@@ -227,7 +236,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Certificate Options (from file)")]
-	public record CertificateFileOptions {
+	public record CertificateFileOptions
+	{
 		[Description("The path to a PKCS #12 (.p12/.pfx) or an X.509 (.pem, .crt, .cer, .der) certificate file. " +
 					 "If you have intermediate certificates, they should be bundled together in a PEM or PKCS #12 file containing the node's certificate followed by the intermediate certificates.")]
 		public string? CertificateFile { get; init; }
@@ -247,7 +257,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Certificate Options")]
-	public record CertificateOptions {
+	public record CertificateOptions
+	{
 		[Description("The path to a directory which contains trusted X.509 (.pem, .crt, .cer, .der) " +
 					 "root certificate files.")]
 		public string? TrustedRootCertificatesPath { get; init; } =
@@ -259,7 +270,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Certificate Options (from store)")]
-	public record CertificateStoreOptions {
+	public record CertificateStoreOptions
+	{
 		[Description("The certificate store location name.")]
 		public string CertificateStoreLocation { get; init; } = string.Empty;
 
@@ -286,7 +298,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Cluster Options")]
-	public record ClusterOptions {
+	public record ClusterOptions
+	{
 		[Description(
 			"The maximum number of entries to keep in the stream info cache. Set to '0' to scale automatically (Default)")]
 		public int StreamInfoCacheCapacity { get; init; } = 0;
@@ -344,7 +357,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Database Options")]
-	public record DatabaseOptions {
+	public record DatabaseOptions
+	{
 		[Description("The minimum flush delay in milliseconds."),
 		 Unit("ms")]
 		public double MinFlushDelayMs { get; init; } = TFConsts.MinFlushDelayMs.TotalMilliseconds;
@@ -444,7 +458,8 @@ public partial record ClusterVNodeOptions {
 		public int MaxAutoMergeIndexLevel { get; init; } = int.MaxValue;
 
 		[Description("Set this option to write statistics to the database.")]
-		public bool WriteStatsToDb {
+		public bool WriteStatsToDb
+		{
 			get => (StatsStorage.Stream & StatsStorage) != 0;
 			init => StatsStorage =
 				value
@@ -483,7 +498,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("gRPC Options")]
-	public record GrpcOptions {
+	public record GrpcOptions
+	{
 		[Description("Controls the period (in milliseconds) after which a keepalive ping " +
 					 "is sent on the transport."),
 		 Unit("ms")]
@@ -495,14 +511,16 @@ public partial record ClusterVNodeOptions {
 		 Unit("ms")]
 		public int KeepAliveTimeout { get; init; } = 10_000;
 
-		internal static GrpcOptions FromConfiguration(IConfiguration configurationRoot) => new() {
+		internal static GrpcOptions FromConfiguration(IConfiguration configurationRoot) => new()
+		{
 			KeepAliveInterval = configurationRoot.GetValue<int>(nameof(KeepAliveInterval)),
 			KeepAliveTimeout = configurationRoot.GetValue<int>(nameof(KeepAliveTimeout))
 		};
 	}
 
 	[Description("Interface Options")]
-	public record InterfaceOptions {
+	public record InterfaceOptions
+	{
 		[Description("The IP Address used by internal replication between nodes in the cluster.")]
 		public IPAddress ReplicationIp { get; init; } = IPAddress.Loopback;
 
@@ -561,7 +579,8 @@ public partial record ClusterVNodeOptions {
 	}
 
 	[Description("Projection Options")]
-	public record ProjectionOptions {
+	public record ProjectionOptions
+	{
 		public const int DefaultProjectionExecutionTimeout = 250;
 
 		[Description("Enables the running of projections. System runs built-in projections, " +
@@ -595,11 +614,13 @@ public partial record ClusterVNodeOptions {
 		public int MaxProjectionStateSize { get; set; } = Opts.MaxProjectionStateSizeDefault;
 	}
 
-	public record UnknownOptions(IReadOnlyList<(string, string)> Options) {
+	public record UnknownOptions(IReadOnlyList<(string, string)> Options)
+	{
 		/// <summary>
 		/// Identifies unknown options in the configuration and provides suggestions for known options.
 		/// </summary>
-		public static UnknownOptions FromConfiguration(IConfiguration configuration) {
+		public static UnknownOptions FromConfiguration(IConfiguration configuration)
+		{
 			var knownKeys = Metadata
 				.SelectMany(x => x.Options)
 				.Select(x => x.Key)
@@ -614,7 +635,8 @@ public partial record ClusterVNodeOptions {
 			return new(result);
 
 			static IEnumerable<string> FindUnknownKeys(IConfiguration configuration,
-				IReadOnlySet<string> knownKeys) {
+				IReadOnlySet<string> knownKeys)
+			{
 				var unknownKeys = configuration
 					.AsEnumerable()
 					.Select(kvp => kvp.Key)
@@ -630,11 +652,13 @@ public partial record ClusterVNodeOptions {
 					.Where(key => !unknownSections.Any(key.StartsWith));
 			}
 
-			static HashSet<string> FindUnknownSections(IEnumerable<string> keys) {
+			static HashSet<string> FindUnknownSections(IEnumerable<string> keys)
+			{
 				// if it has more than 2 sections, we found a value with an unknown section
 				var hashSet = new HashSet<string>();
 
-				foreach (var key in keys.Where(key => key.Split(":").Length > 2)) {
+				foreach (var key in keys.Where(key => key.Split(":").Length > 2))
+				{
 					hashSet.Add(key[..key.LastIndexOf(':')]);
 				}
 
@@ -642,7 +666,8 @@ public partial record ClusterVNodeOptions {
 			}
 
 			static (string UnknownKey, string SuggestedKey) CreateUnknownOptionResult(IEnumerable<string> knownKeys,
-				string unknownKey, int distanceThreshold = 5) {
+				string unknownKey, int distanceThreshold = 5)
+			{
 				var suggestion = knownKeys
 					.Select(key => (AllowedKey: key, Distance: Levenshtein.GetDistance(unknownKey, key)))
 					.MinBy(x => x.Distance);

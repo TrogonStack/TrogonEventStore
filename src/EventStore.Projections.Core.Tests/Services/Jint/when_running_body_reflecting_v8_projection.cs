@@ -9,8 +9,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_running_body_reflecting_v8_projection : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_running_body_reflecting_v8_projection : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
                 fromAll().when({$any: 
                     function(state, event) {
@@ -23,7 +25,8 @@ public class when_running_body_reflecting_v8_projection : TestFixtureWithInterpr
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_should_reflect_event() {
+	public void process_event_should_reflect_event()
+	{
 		string state;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
@@ -33,7 +36,8 @@ public class when_running_body_reflecting_v8_projection : TestFixtureWithInterpr
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_should_not_reflect_non_json_events_even_if_valid_json() {
+	public void process_event_should_not_reflect_non_json_events_even_if_valid_json()
+	{
 		string state;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,

@@ -20,15 +20,18 @@ using StreamOptionOneofCase = EventStore.Client.Streams.ReadReq.Types.Options.St
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Streams<TStreamId> {
+internal partial class Streams<TStreamId>
+{
 	public override async Task Read(
 		ReadReq request,
 		IServerStreamWriter<ReadResp> responseStream,
-		ServerCallContext context) {
+		ServerCallContext context)
+	{
 
 		var trackDuration = request.Options.CountOptionCase != CountOptionOneofCase.Subscription;
 		using var duration = trackDuration ? _readTracker.Start() : Duration.Nil;
-		try {
+		try
+		{
 			var options = request.Options;
 			var countOptionsCase = options.CountOptionCase;
 			var streamOptionsCase = options.StreamOptionCase;
@@ -40,11 +43,13 @@ internal partial class Streams<TStreamId> {
 			var requiresLeader = GetRequiresLeader(context.RequestHeaders);
 
 			var uuidOption = options.UuidOption;
-			if (uuidOption == null) {
+			if (uuidOption == null)
+			{
 				throw RpcExceptions.RequiredArgument(nameof(uuidOption), uuidOption);
 			}
 
-			var op = streamOptionsCase switch {
+			var op = streamOptionsCase switch
+			{
 				StreamOptionOneofCase.Stream => ReadOperation.WithParameter(
 					Plugins.Authorization.Operations.Streams.Parameters.StreamId(
 						request.Options.Stream.StreamIdentifier)),
@@ -53,11 +58,13 @@ internal partial class Streams<TStreamId> {
 				_ => throw RpcExceptions.InvalidArgument(streamOptionsCase)
 			};
 
-			if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken)) {
+			if (!await _provider.CheckAccessAsync(user, op, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 
-			try {
+			try
+			{
 				var enumerator = CreateEnumerator(
 					request,
 					user,
@@ -72,21 +79,27 @@ internal partial class Streams<TStreamId> {
 
 				async void DisposeEnumerator() => await enumerator.DisposeAsync();
 
-				await using (enumerator) {
-					await using (context.CancellationToken.Register(DisposeEnumerator)) {
-						while (await enumerator.MoveNextAsync()) {
-							if (TryConvertReadResponse(enumerator.Current, uuidOption, out var readResponse)) {
+				await using (enumerator)
+				{
+					await using (context.CancellationToken.Register(DisposeEnumerator))
+					{
+						while (await enumerator.MoveNextAsync())
+						{
+							if (TryConvertReadResponse(enumerator.Current, uuidOption, out var readResponse))
+							{
 								await responseStream.WriteAsync(readResponse);
 							}
 						}
 					}
 				}
 			}
-			catch (ReadResponseException ex) {
+			catch (ReadResponseException ex)
+			{
 				ConvertReadResponseException(ex);
 			}
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			duration.SetException(ex);
 			throw;
 		}
@@ -102,8 +115,10 @@ internal partial class Streams<TStreamId> {
 		ReadDirection readDirection,
 		FilterOptionOneofCase filterOptionsCase,
 		DateTime deadline,
-		CancellationToken cancellationToken) {
-		return (streamOptionsCase, countOptionsCase, readDirection, filterOptionsCase) switch {
+		CancellationToken cancellationToken)
+	{
+		return (streamOptionsCase, countOptionsCase, readDirection, filterOptionsCase) switch
+		{
 			(StreamOptionOneofCase.Stream,
 				CountOptionOneofCase.Count,
 				ReadDirection.Forwards,
@@ -155,7 +170,8 @@ internal partial class Streams<TStreamId> {
 					ConvertToEventFilter(true, request.Options.Filter),
 					user,
 					requiresLeader,
-					request.Options.Filter.WindowCase switch {
+					request.Options.Filter.WindowCase switch
+					{
 						ReadReq.Types.Options.Types.FilterOptions.WindowOneofCase.Count => null,
 						ReadReq.Types.Options.Types.FilterOptions.WindowOneofCase.Max => request.Options.Filter
 							.Max,
@@ -186,7 +202,8 @@ internal partial class Streams<TStreamId> {
 					ConvertToEventFilter(true, request.Options.Filter),
 					user,
 					requiresLeader,
-					request.Options.Filter.WindowCase switch {
+					request.Options.Filter.WindowCase switch
+					{
 						ReadReq.Types.Options.Types.FilterOptions.WindowOneofCase.Count => null,
 						ReadReq.Types.Options.Types.FilterOptions.WindowOneofCase.Max => request.Options.Filter
 							.Max,
@@ -228,7 +245,8 @@ internal partial class Streams<TStreamId> {
 					ConvertToEventFilter(true, request.Options.Filter),
 					user,
 					requiresLeader,
-					request.Options.Filter.WindowCase switch {
+					request.Options.Filter.WindowCase switch
+					{
 						ReadReq.Types.Options.Types.FilterOptions.WindowOneofCase.Count => null,
 						ReadReq.Types.Options.Types.FilterOptions.WindowOneofCase.Max => request.Options.Filter
 							.Max,
@@ -242,7 +260,8 @@ internal partial class Streams<TStreamId> {
 	}
 
 	private static IEventFilter ConvertToEventFilter(bool isAllStream, ReadReq.Types.Options.Types.FilterOptions filter) =>
-		filter.FilterCase switch {
+		filter.FilterCase switch
+		{
 			ReadReq.Types.Options.Types.FilterOptions.FilterOneofCase.EventType => (
 				string.IsNullOrEmpty(filter.EventType.Regex)
 					? EventFilter.EventType.Prefixes(isAllStream, filter.EventType.Prefix.ToArray())
@@ -254,35 +273,47 @@ internal partial class Streams<TStreamId> {
 			_ => throw RpcExceptions.InvalidArgument(filter)
 		};
 
-	private static bool TryConvertReadResponse(ReadResponse readResponse, ReadReq.Types.Options.Types.UUIDOption uuidOption, out ReadResp readResp) {
-		readResp = readResponse switch {
-			ReadResponse.EventReceived eventReceived => new ReadResp {
+	private static bool TryConvertReadResponse(ReadResponse readResponse, ReadReq.Types.Options.Types.UUIDOption uuidOption, out ReadResp readResp)
+	{
+		readResp = readResponse switch
+		{
+			ReadResponse.EventReceived eventReceived => new ReadResp
+			{
 				Event = ConvertToReadEvent(uuidOption, eventReceived.Event)
 			},
-			ReadResponse.SubscriptionConfirmed subscriptionConfirmed => new ReadResp {
-				Confirmation = new ReadResp.Types.SubscriptionConfirmation {
+			ReadResponse.SubscriptionConfirmed subscriptionConfirmed => new ReadResp
+			{
+				Confirmation = new ReadResp.Types.SubscriptionConfirmation
+				{
 					SubscriptionId = subscriptionConfirmed.SubscriptionId
 				}
 			},
-			ReadResponse.CheckpointReceived checkpointReceived => new ReadResp {
-				Checkpoint = new ReadResp.Types.Checkpoint {
+			ReadResponse.CheckpointReceived checkpointReceived => new ReadResp
+			{
+				Checkpoint = new ReadResp.Types.Checkpoint
+				{
 					CommitPosition = checkpointReceived.CommitPosition,
 					PreparePosition = checkpointReceived.PreparePosition
 				}
 			},
-			ReadResponse.StreamNotFound streamNotFound => new ReadResp {
-				StreamNotFound = new ReadResp.Types.StreamNotFound {
+			ReadResponse.StreamNotFound streamNotFound => new ReadResp
+			{
+				StreamNotFound = new ReadResp.Types.StreamNotFound
+				{
 					StreamIdentifier = streamNotFound.StreamName
 				}
 			},
-			ReadResponse.SubscriptionCaughtUp => new ReadResp {
+			ReadResponse.SubscriptionCaughtUp => new ReadResp
+			{
 				CaughtUp = new ReadResp.Types.CaughtUp()
 			},
 			ReadResponse.SubscriptionFellBehind => null, // currently not sent to clients
-			ReadResponse.LastStreamPositionReceived lastStreamPositionReceived => new ReadResp {
+			ReadResponse.LastStreamPositionReceived lastStreamPositionReceived => new ReadResp
+			{
 				LastStreamPosition = lastStreamPositionReceived.LastStreamPosition
 			},
-			ReadResponse.FirstStreamPositionReceived firstStreamPositionReceived => new ReadResp {
+			ReadResponse.FirstStreamPositionReceived firstStreamPositionReceived => new ReadResp
+			{
 				FirstStreamPosition = firstStreamPositionReceived.FirstStreamPosition
 			},
 			_ => throw new ArgumentException($"Unknown read response type: {readResponse.GetType().Name}", nameof(readResponse))
@@ -291,8 +322,10 @@ internal partial class Streams<TStreamId> {
 		return readResp != null;
 	}
 
-	private static void ConvertReadResponseException(ReadResponseException readResponseEx) {
-		switch (readResponseEx) {
+	private static void ConvertReadResponseException(ReadResponseException readResponseEx)
+	{
+		switch (readResponseEx)
+		{
 			case ReadResponseException.NotHandled.ServerNotReady:
 				throw RpcExceptions.ServerNotReady();
 			case ReadResponseException.NotHandled.ServerBusy:
@@ -320,15 +353,20 @@ internal partial class Streams<TStreamId> {
 
 	private static ReadResp.Types.ReadEvent.Types.RecordedEvent ConvertToRecordedEvent(
 		ReadReq.Types.Options.Types.UUIDOption uuidOption, EventRecord e, long? commitPosition,
-		long? preparePosition) {
-		if (e == null) {
+		long? preparePosition)
+	{
+		if (e == null)
+		{
 			return null;
 		}
 
 		var position = Position.FromInt64(commitPosition ?? -1, preparePosition ?? -1);
-		return new ReadResp.Types.ReadEvent.Types.RecordedEvent {
-			Id = uuidOption.ContentCase switch {
-				ReadReq.Types.Options.Types.UUIDOption.ContentOneofCase.String => new UUID {
+		return new ReadResp.Types.ReadEvent.Types.RecordedEvent
+		{
+			Id = uuidOption.ContentCase switch
+			{
+				ReadReq.Types.Options.Types.UUIDOption.ContentOneofCase.String => new UUID
+				{
 					String = e.EventId.ToString()
 				},
 				_ => Uuid.FromGuid(e.EventId).ToDto()
@@ -350,20 +388,24 @@ internal partial class Streams<TStreamId> {
 	}
 
 	private static ReadResp.Types.ReadEvent ConvertToReadEvent(ReadReq.Types.Options.Types.UUIDOption uuidOption,
-		ResolvedEvent e) {
-		var readEvent = new ReadResp.Types.ReadEvent {
+		ResolvedEvent e)
+	{
+		var readEvent = new ReadResp.Types.ReadEvent
+		{
 			Link = ConvertToRecordedEvent(uuidOption, e.Link, e.LinkPosition?.CommitPosition,
 				e.LinkPosition?.PreparePosition),
 			Event = ConvertToRecordedEvent(uuidOption, e.Event, e.EventPosition?.CommitPosition,
 				e.EventPosition?.PreparePosition),
 		};
-		if (e.OriginalPosition.HasValue) {
+		if (e.OriginalPosition.HasValue)
+		{
 			var position = Position.FromInt64(
 				e.OriginalPosition.Value.CommitPosition,
 				e.OriginalPosition.Value.PreparePosition);
 			readEvent.CommitPosition = position.CommitPosition;
 		}
-		else {
+		else
+		{
 			readEvent.NoPosition = new Empty();
 		}
 

@@ -6,13 +6,15 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-public enum ReadOptimizationHint {
+public enum ReadOptimizationHint
+{
 	None,
 	RandomAccess,
 	SequentialScan
 }
 
-public interface IChunkFileSystem {
+public interface IChunkFileSystem
+{
 	IVersionedFileNamingStrategy NamingStrategy { get; }
 
 	ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint, bool asyncIO,

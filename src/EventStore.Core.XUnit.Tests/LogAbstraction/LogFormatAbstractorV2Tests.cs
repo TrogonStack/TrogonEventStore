@@ -11,31 +11,37 @@ namespace EventStore.Core.XUnit.Tests.LogAbstraction;
 // checks the abstractor wires things up properly
 public class LogFormatAbstractorV2Tests :
 	DirectoryPerTest<LogFormatAbstractorV2Tests>,
-	IDisposable {
+	IDisposable
+{
 
 	private readonly DirectoryFixture<LogFormatAbstractorV2Tests> _fixture = new();
 	private readonly LogFormatAbstractor<string> _sut;
 
-	public LogFormatAbstractorV2Tests() {
-		_sut = new LogV2FormatAbstractorFactory().Create(new() {
+	public LogFormatAbstractorV2Tests()
+	{
+		_sut = new LogV2FormatAbstractorFactory().Create(new()
+		{
 			IndexDirectory = _fixture.Directory,
 			StreamExistenceFilterSize = 1_000_000,
 			StreamExistenceFilterCheckpoint = new InMemoryCheckpoint(),
 		});
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_sut.Dispose();
 	}
 
 	[Fact]
-	public async Task can_init() {
+	public async Task can_init()
+	{
 		await _sut.StreamExistenceFilter.Initialize(new MockExistenceFilterInitializer("1"), 0, CancellationToken.None);
 		Assert.True(_sut.StreamExistenceFilterReader.MightContain("1"));
 	}
 
 	[Fact]
-	public async Task can_confirm() {
+	public async Task can_confirm()
+	{
 		await _sut.StreamExistenceFilter.Initialize(new MockExistenceFilterInitializer(), 0, CancellationToken.None);
 
 		var prepare = LogRecord.SingleWrite(

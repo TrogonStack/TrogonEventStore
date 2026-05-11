@@ -12,11 +12,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
 [TestFixture]
-public class elections_service_5_nodes_with_1_known_when_started_and_set_full_imediately {
+public class elections_service_5_nodes_with_1_known_when_started_and_set_full_imediately
+{
 	private RandomizedElectionsAndGossipTestCase _randomCase;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_randomCase = new RandomizedElectionsAndGossipTestCase(ElectionParams.MaxIterationCount,
 			instancesCnt: 5,
 			httpLossProbability: 0.3,
@@ -31,7 +33,8 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_full_im
 		_randomCase.Init();
 	}
 
-	private MemberInfo[] CreateInitialGossip(ElectionsInstance instance, ElectionsInstance[] allInstances) {
+	private MemberInfo[] CreateInitialGossip(ElectionsInstance instance, ElectionsInstance[] allInstances)
+	{
 		return new[] {
 			MemberInfo.ForVNode(instance.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
 				instance.EndPoint, null, instance.EndPoint, null, instance.EndPoint, null, 0, 0,
@@ -43,8 +46,10 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_full_im
 		RandTestQueueItem item,
 		ElectionsInstance[] instances,
 		MemberInfo[] initialGossip,
-		Dictionary<EndPoint, MemberInfo[]> previousGossip) {
-		if (previousGossip[item.EndPoint].Length < 5) {
+		Dictionary<EndPoint, MemberInfo[]> previousGossip)
+	{
+		if (previousGossip[item.EndPoint].Length < 5)
+		{
 			Console.WriteLine("Update item: {0} : {1}", iteration, item.EndPoint.GetPort());
 			return instances.Select((x, i) =>
 				MemberInfo.ForVNode(x.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
@@ -57,9 +62,11 @@ public class elections_service_5_nodes_with_1_known_when_started_and_set_full_im
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public void should_complete_successfully([Range(0, ElectionParams.TestRunCount - 1)]
-		int run) {
+		int run)
+	{
 		var success = _randomCase.Run();
-		if (!success) {
+		if (!success)
+		{
 			_randomCase.Logger.LogMessages();
 		}
 

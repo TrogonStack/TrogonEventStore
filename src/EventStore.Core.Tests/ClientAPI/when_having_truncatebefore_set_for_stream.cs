@@ -9,16 +9,19 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private EventData[] _testEvents;
 
-	protected override Task When() {
+	protected override Task When()
+	{
 		_testEvents = Enumerable.Range(0, 5).Select(x => TestEvent.NewTestEvent(data: x.ToString())).ToArray();
 		return Task.CompletedTask;
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task read_event_respects_truncatebefore() {
+	public async Task read_event_respects_truncatebefore()
+	{
 		const string stream = "read_event_respects_truncatebefore";
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
 
@@ -34,7 +37,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task read_stream_forward_respects_truncatebefore() {
+	public async Task read_stream_forward_respects_truncatebefore()
+	{
 		const string stream = "read_stream_forward_respects_truncatebefore";
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
 
@@ -49,7 +53,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task read_stream_backward_respects_truncatebefore() {
+	public async Task read_stream_backward_respects_truncatebefore()
+	{
 		const string stream = "read_stream_backward_respects_truncatebefore";
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
 
@@ -64,7 +69,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task after_setting_less_strict_truncatebefore_read_event_reads_more_events() {
+	public async Task after_setting_less_strict_truncatebefore_read_event_reads_more_events()
+	{
 		const string stream = "after_setting_less_strict_truncatebefore_read_event_reads_more_events";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -90,7 +96,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task after_setting_more_strict_truncatebefore_read_event_reads_less_events() {
+	public async Task after_setting_more_strict_truncatebefore_read_event_reads_less_events()
+	{
 		const string stream = "after_setting_more_strict_truncatebefore_read_event_reads_less_events";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -116,7 +123,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task less_strict_max_count_doesnt_change_anything_for_event_read() {
+	public async Task less_strict_max_count_doesnt_change_anything_for_event_read()
+	{
 		const string stream = "less_strict_max_count_doesnt_change_anything_for_event_read";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -142,7 +150,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task more_strict_max_count_gives_less_events_for_event_read() {
+	public async Task more_strict_max_count_gives_less_events_for_event_read()
+	{
 		const string stream = "more_strict_max_count_gives_less_events_for_event_read";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -169,7 +178,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task after_setting_less_strict_truncatebefore_read_stream_forward_reads_more_events() {
+	public async Task after_setting_less_strict_truncatebefore_read_stream_forward_reads_more_events()
+	{
 		const string stream = "after_setting_less_strict_truncatebefore_read_stream_forward_reads_more_events";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -193,7 +203,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task after_setting_more_strict_truncatebefore_read_stream_forward_reads_less_events() {
+	public async Task after_setting_more_strict_truncatebefore_read_stream_forward_reads_less_events()
+	{
 		const string stream = "after_setting_more_strict_truncatebefore_read_stream_forward_reads_less_events";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -217,7 +228,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task less_strict_max_count_doesnt_change_anything_for_stream_forward_read() {
+	public async Task less_strict_max_count_doesnt_change_anything_for_stream_forward_read()
+	{
 		const string stream = "less_strict_max_count_doesnt_change_anything_for_stream_forward_read";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -241,7 +253,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task more_strict_max_count_gives_less_events_for_stream_forward_read() {
+	public async Task more_strict_max_count_gives_less_events_for_stream_forward_read()
+	{
 		const string stream = "more_strict_max_count_gives_less_events_for_stream_forward_read";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -265,7 +278,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task after_setting_less_strict_truncatebefore_read_stream_backward_reads_more_events() {
+	public async Task after_setting_less_strict_truncatebefore_read_stream_backward_reads_more_events()
+	{
 		const string stream = "after_setting_less_strict_truncatebefore_read_stream_backward_reads_more_events";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -289,7 +303,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task after_setting_more_strict_truncatebefore_read_stream_backward_reads_less_events() {
+	public async Task after_setting_more_strict_truncatebefore_read_stream_backward_reads_less_events()
+	{
 		const string stream = "after_setting_more_strict_truncatebefore_read_stream_backward_reads_less_events";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -313,7 +328,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task less_strict_max_count_doesnt_change_anything_for_stream_backward_read() {
+	public async Task less_strict_max_count_doesnt_change_anything_for_stream_backward_read()
+	{
 		const string stream = "less_strict_max_count_doesnt_change_anything_for_stream_backward_read";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);
@@ -337,7 +353,8 @@ public class when_having_truncatebefore_set_for_stream<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task more_strict_max_count_gives_less_events_for_stream_backward_read() {
+	public async Task more_strict_max_count_gives_less_events_for_stream_backward_read()
+	{
 		const string stream = "more_strict_max_count_gives_less_events_for_stream_backward_read";
 
 		await _conn.AppendToStreamAsync(stream, ExpectedVersion.NoStream, _testEvents);

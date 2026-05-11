@@ -1,22 +1,27 @@
 using System.Collections.Generic;
 using EventStore.Core.DataStructures;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// All access to the wrapped map must be via the cache.
 	// Currently this is only used to cache the hash users. See comments below.
-	public class LruCachingScavengeMap<TKey, TValue> : IScavengeMap<TKey, TValue> {
+	public class LruCachingScavengeMap<TKey, TValue> : IScavengeMap<TKey, TValue>
+	{
 		private readonly LRUCache<TKey, TValue> _cache;
 		private readonly IScavengeMap<TKey, TValue> _wrapped;
 		private long _hits;
 		private long _misses;
 
-		public LruCachingScavengeMap(string name, IScavengeMap<TKey, TValue> wrapped, int cacheMaxCount) {
+		public LruCachingScavengeMap(string name, IScavengeMap<TKey, TValue> wrapped, int cacheMaxCount)
+		{
 			_wrapped = wrapped;
 			_cache = new LRUCache<TKey, TValue>(name, cacheMaxCount);
 		}
 
-		public TValue this[TKey key] {
-			set {
+		public TValue this[TKey key]
+		{
+			set
+			{
 				_wrapped[key] = value;
 				_cache.Put(key, value);
 			}
@@ -25,15 +30,18 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public IEnumerable<KeyValuePair<TKey, TValue>> AllRecords() =>
 			_wrapped.AllRecords();
 
-		public bool TryGetValue(TKey key, out TValue value) {
-			if (_cache.TryGet(key, out value)) {
+		public bool TryGetValue(TKey key, out TValue value)
+		{
+			if (_cache.TryGet(key, out value))
+			{
 				_hits++;
 				return true;
 			}
 
 			_misses++;
 
-			if (_wrapped.TryGetValue(key, out value)) {
+			if (_wrapped.TryGetValue(key, out value))
+			{
 				_cache.Put(key, value);
 				return true;
 			}
@@ -44,12 +52,14 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			return false;
 		}
 
-		public bool TryRemove(TKey key, out TValue value) {
+		public bool TryRemove(TKey key, out TValue value)
+		{
 			_cache.Remove(key);
 			return _wrapped.TryRemove(key, out value);
 		}
 
-		public void GetStats(out long hits, out long misses) {
+		public void GetStats(out long hits, out long misses)
+		{
 			hits = _hits;
 			misses = _misses;
 			_hits = 0;

@@ -3,14 +3,16 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public class ProcessingStrategySelector {
+public class ProcessingStrategySelector
+{
 	private readonly ILogger _logger = Serilog.Log.ForContext<ProcessingStrategySelector>();
 	private readonly ReaderSubscriptionDispatcher _subscriptionDispatcher;
 	private readonly int _maxProjectionStateSize;
 
 	public ProcessingStrategySelector(
 		ReaderSubscriptionDispatcher subscriptionDispatcher,
-		int maxProjectionStateSize) {
+		int maxProjectionStateSize)
+	{
 		_subscriptionDispatcher = subscriptionDispatcher;
 		_maxProjectionStateSize = maxProjectionStateSize;
 	}
@@ -21,7 +23,8 @@ public class ProcessingStrategySelector {
 		ProjectionNamesBuilder namesBuilder,
 		IQuerySources sourceDefinition,
 		ProjectionConfig projectionConfig,
-		IProjectionStateHandler stateHandler, string handlerType, string query, bool enableContentTypeValidation) {
+		IProjectionStateHandler stateHandler, string handlerType, string query, bool enableContentTypeValidation)
+	{
 
 		return projectionConfig.StopOnEof
 			? (ProjectionProcessingStrategy)

@@ -4,13 +4,15 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.TestClient.Commands.DvuBasic;
 
-public class Status {
+public class Status
+{
 	private readonly Serilog.ILogger _log;
 
 	public int ThreadId { get; private set; }
 	public bool Success { get; private set; }
 
-	public Status(ILogger log) {
+	public Status(ILogger log)
+	{
 		Ensure.NotNull(log, "log");
 		_log = log;
 	}
@@ -23,7 +25,8 @@ public class Status {
 		int wrongExpctdVersions,
 		int streamsDeleted,
 		int fails,
-		int requests) {
+		int requests)
+	{
 		var sentP = ToPercent(sent, requests);
 		var failsP = ToPercent(fails, sent);
 
@@ -37,46 +40,55 @@ public class Status {
 			commitTimeouts.ToString(), forwardTimeouts.ToString(),
 			wrongExpctdVersions.ToString(), streamsDeleted.ToString());
 
-		if (failsP > 50d) {
+		if (failsP > 50d)
+		{
 			_log.Fatal(table.CreateIndentedTable());
 		}
-		else {
+		else
+		{
 			_log.Information(table.CreateIndentedTable());
 		}
 	}
 
-	public void ReportReadsProgress(int threadId, int successes, int fails) {
+	public void ReportReadsProgress(int threadId, int successes, int fails)
+	{
 		var all = successes + fails;
 
 		var table = new ConsoleTable("READER ID", "Fails", "Total Random Reads");
 		table.AppendRow(threadId.ToString(), fails.ToString(), all.ToString());
 
-		if (fails != 0) {
+		if (fails != 0)
+		{
 			_log.Fatal(table.CreateIndentedTable());
 		}
-		else {
+		else
+		{
 			_log.Information(table.CreateIndentedTable());
 		}
 	}
 
-	public void ReportReadError(int threadId, string stream, int indx) {
+	public void ReportReadError(int threadId, string stream, int indx)
+	{
 		_log.Fatal("FATAL : READER [{threadId}] encountered an error in {stream} ({index})", threadId, stream,
 			indx);
 	}
 
-	public void ReportNotFoundOnRead(int threadId, string stream, int indx) {
+	public void ReportNotFoundOnRead(int threadId, string stream, int indx)
+	{
 		_log.Fatal(
 			"FATAL : READER [{threadId}] asked for event {index} in '{stream}' but server returned 'Not Found'",
 			threadId,
 			indx, stream);
 	}
 
-	public void FinilizeStatus(int threadId, bool success) {
+	public void FinilizeStatus(int threadId, bool success)
+	{
 		ThreadId = threadId;
 		Success = success;
 	}
 
-	private double ToPercent(int value, int max) {
+	private double ToPercent(int value, int max)
+	{
 		var approx = (value / (double)max) * 100d;
 		return approx <= 100d ? approx : 100;
 	}

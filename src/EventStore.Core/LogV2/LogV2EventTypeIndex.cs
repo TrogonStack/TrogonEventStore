@@ -13,28 +13,34 @@ public class LogV2EventTypeIndex :
 	INameIndex<string>,
 	INameIndexConfirmer<string>,
 	IValueLookup<string>,
-	INameLookup<string> {
+	INameLookup<string>
+{
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 
 	public ValueTask InitializeWithConfirmed(INameLookup<string> source, CancellationToken token)
 		=> token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;
 
-	public void CancelReservations() {
+	public void CancelReservations()
+	{
 	}
 
-	public void Confirm(IList<IPrepareLogRecord<string>> prepares, bool catchingUp, IIndexBackend<string> backend) {
+	public void Confirm(IList<IPrepareLogRecord<string>> prepares, bool catchingUp, IIndexBackend<string> backend)
+	{
 	}
 
 	public void Confirm(
 		IList<IPrepareLogRecord<string>> prepares,
 		CommitLogRecord commit,
 		bool catchingUp,
-		IIndexBackend<string> backend) {
+		IIndexBackend<string> backend)
+	{
 	}
 
-	public bool GetOrReserve(string eventType, out string eventTypeId, out string createdId, out string createdName) {
+	public bool GetOrReserve(string eventType, out string eventTypeId, out string createdId, out string createdName)
+	{
 		Ensure.NotNull(eventType, "eventType");
 		eventTypeId = eventType;
 		createdId = default;

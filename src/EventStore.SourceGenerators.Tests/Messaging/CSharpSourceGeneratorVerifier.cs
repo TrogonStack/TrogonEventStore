@@ -9,13 +9,17 @@ namespace EventStore.SourceGenerators.Tests.Messaging;
 
 // https://github.com/dotnet/roslyn/blob/main/docs/features/source-generators.cookbook.md#unit-testing-of-generators
 public static class CSharpSourceGeneratorVerifier<TSourceGenerator>
-	where TSourceGenerator : ISourceGenerator, new() {
+	where TSourceGenerator : ISourceGenerator, new()
+{
 
-	public class Test : CSharpSourceGeneratorTest<TSourceGenerator, XUnitVerifier> {
-		public Test() {
+	public class Test : CSharpSourceGeneratorTest<TSourceGenerator, XUnitVerifier>
+	{
+		public Test()
+		{
 		}
 
-		protected override CompilationOptions CreateCompilationOptions() {
+		protected override CompilationOptions CreateCompilationOptions()
+		{
 			var compilationOptions = base.CreateCompilationOptions();
 			return compilationOptions.WithSpecificDiagnosticOptions(
 				compilationOptions.SpecificDiagnosticOptions.SetItems(GetNullableWarningsFromCompiler()));
@@ -23,7 +27,8 @@ public static class CSharpSourceGeneratorVerifier<TSourceGenerator>
 
 		public LanguageVersion LanguageVersion { get; set; } = LanguageVersion.Default;
 
-		private static ImmutableDictionary<string, ReportDiagnostic> GetNullableWarningsFromCompiler() {
+		private static ImmutableDictionary<string, ReportDiagnostic> GetNullableWarningsFromCompiler()
+		{
 			string[] args = { "/warnaserror:nullable" };
 			var commandLineArguments = CSharpCommandLineParser.Default.Parse(
 				args: args,
@@ -34,7 +39,8 @@ public static class CSharpSourceGeneratorVerifier<TSourceGenerator>
 			return nullableWarnings;
 		}
 
-		protected override ParseOptions CreateParseOptions() {
+		protected override ParseOptions CreateParseOptions()
+		{
 			return ((CSharpParseOptions)base.CreateParseOptions()).WithLanguageVersion(LanguageVersion);
 		}
 	}

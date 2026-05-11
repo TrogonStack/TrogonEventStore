@@ -8,15 +8,18 @@ using Grpc.Core;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement {
+internal partial class ProjectionManagement
+{
 	private static readonly Operation DisableOperation = new Operation(Operations.Projections.Disable);
-	public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context) {
+	public override async Task<DisableResp> Disable(DisableReq request, ServerCallContext context)
+	{
 		var disableSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, DisableOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, DisableOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 		var name = options.Name;
@@ -32,8 +35,10 @@ internal partial class ProjectionManagement {
 
 		return new DisableResp();
 
-		void OnMessage(Message message) {
-			switch (message) {
+		void OnMessage(Message message)
+		{
+			switch (message)
+			{
 				case ProjectionManagementMessage.Updated:
 					disableSource.TrySetResult(true);
 					break;

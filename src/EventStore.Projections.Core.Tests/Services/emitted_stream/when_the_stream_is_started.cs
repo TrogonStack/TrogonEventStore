@@ -9,12 +9,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture]
-public class when_the_stream_is_started : TestFixtureWithReadWriteDispatchers {
+public class when_the_stream_is_started : TestFixtureWithReadWriteDispatchers
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test",
@@ -27,7 +29,8 @@ public class when_the_stream_is_started : TestFixtureWithReadWriteDispatchers {
 	}
 
 	[Test]
-	public void start_throws_invalid_operation_exception() {
+	public void start_throws_invalid_operation_exception()
+	{
 		Assert.Throws<InvalidOperationException>(() => { _stream.Start(); });
 	}
 }

@@ -14,11 +14,13 @@ using Microsoft.AspNetCore.Builder;
 
 namespace EventStore.Core.Tests.ClientOperations;
 
-public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPublisher, ISubscriber, IDisposable {
+public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPublisher, ISubscriber, IDisposable
+{
 	private ClusterVNode _node;
 	private string _dbPath;
 	private readonly List<IDisposable> _disposables = new List<IDisposable>();
-	public void CreateTestNode() {
+	public void CreateTestNode()
+	{
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 		_dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid()}-{GetType().Name}");
 		var options = new ClusterVNodeOptions()
@@ -43,39 +45,49 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 
 		_node.StartAsync(true).Wait();
 	}
-	public void Publish(Message message) {
+	public void Publish(Message message)
+	{
 		_node.MainQueue.Handle(message);
 	}
 
-	public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message {
+	public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message
+	{
 		_node.MainBus.Subscribe(handler);
 	}
 
-	public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message {
+	public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message
+	{
 		_node.MainBus.Unsubscribe(handler);
 	}
-	public Task<T> WaitForNext<T>() where T : Message {
+	public Task<T> WaitForNext<T>() where T : Message
+	{
 		var handler = new TaskHandler<T>(_node.MainBus);
 		_disposables.Add(handler);
 		return handler.Message;
 	}
-	private sealed class TaskHandler<T> : IHandle<T>, IDisposable where T : Message {
+	private sealed class TaskHandler<T> : IHandle<T>, IDisposable where T : Message
+	{
 		private readonly ISubscriber _source;
 		private readonly TaskCompletionSource<T> _tcs = new TaskCompletionSource<T>();
 		public Task<T> Message => _tcs.Task;
-		public void Handle(T message) {
+		public void Handle(T message)
+		{
 			_tcs.SetResult(message);
 			Dispose();
 		}
-		public TaskHandler(ISubscriber source) {
+		public TaskHandler(ISubscriber source)
+		{
 			_source = source;
 			_source.Subscribe(this);
 		}
 		private bool _disposed;
-		public void Dispose() {
-			if (_disposed) { return; }
+		public void Dispose()
+		{
+			if (_disposed)
+			{ return; }
 			_disposed = true;
-			try {
+			try
+			{
 				_source.Unsubscribe(this);
 			}
 			catch (Exception) { /* ignore*/}
@@ -83,15 +95,20 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 	}
 	#region IDisposable Support
 	private bool _disposed;
-	protected virtual void Dispose(bool disposing) {
-		if (!_disposed) {
-			if (disposing) {
+	protected virtual void Dispose(bool disposing)
+	{
+		if (!_disposed)
+		{
+			if (disposing)
+			{
 				_disposables?.ForEach(d => d?.Dispose());
 				_disposables?.Clear();
 				_node?.StopAsync().Wait();
-				if (_dbPath is not null) {
+				if (_dbPath is not null)
+				{
 					Task.Delay(500).Wait();
-					if (System.IO.Directory.Exists(_dbPath)) {
+					if (System.IO.Directory.Exists(_dbPath))
+					{
 						System.IO.Directory.Delete(_dbPath, recursive: true);
 					}
 				}
@@ -100,7 +117,8 @@ public abstract class specification_with_bare_vnode<TLogFormat, TStreamId> : IPu
 		}
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		Dispose(true);
 	}
 	#endregion

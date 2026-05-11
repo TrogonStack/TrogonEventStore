@@ -9,7 +9,8 @@ namespace EventStore.TestClient.Statistics;
 /// <summary>
 /// Csv logger configuration for the TestClient
 /// </summary>
-public class TestClientCsvLoggerConfiguration {
+public class TestClientCsvLoggerConfiguration
+{
 	private static int Initialized;
 	private static readonly string outputTemplate = "{Message}{NewLine}";
 
@@ -18,12 +19,15 @@ public class TestClientCsvLoggerConfiguration {
 	/// </summary>
 	/// <param name="logsDirectory"></param>
 	/// <param name="componentName"></param>
-	public static ILogger Initialize(string logsDirectory, string componentName) {
-		if (Interlocked.Exchange(ref Initialized, 1) == 1) {
+	public static ILogger Initialize(string logsDirectory, string componentName)
+	{
+		if (Interlocked.Exchange(ref Initialized, 1) == 1)
+		{
 			throw new InvalidOperationException($"{nameof(Initialize)} may not be called more than once.");
 		}
 
-		if (logsDirectory.StartsWith("~")) {
+		if (logsDirectory.StartsWith("~"))
+		{
 			throw new ApplicationInitializationException(
 				"The given log path starts with a '~'. Event Store does not expand '~'.");
 		}

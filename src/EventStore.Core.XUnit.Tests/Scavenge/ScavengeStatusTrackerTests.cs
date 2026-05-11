@@ -8,13 +8,15 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ScavengeStatusTrackerTests : IDisposable {
+public class ScavengeStatusTrackerTests : IDisposable
+{
 	private readonly TestMeterListener<long> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly StatusMetric _metric;
 	private readonly ScavengeStatusTracker _sut;
 
-	public ScavengeStatusTrackerTests() {
+	public ScavengeStatusTrackerTests()
+	{
 		var meter = new Meter($"{typeof(ScavengeStatusTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		_metric = new StatusMetric(
@@ -24,16 +26,19 @@ public class ScavengeStatusTrackerTests : IDisposable {
 		_sut = new ScavengeStatusTracker(_metric);
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_listener?.Dispose();
 	}
 
 	[Fact]
-	public void can_observe_activity() {
+	public void can_observe_activity()
+	{
 		_clock.SecondsSinceEpoch = 500;
 		AssertMeasurements("Idle", 500);
 
-		using (_sut.StartActivity("Accumulation")) {
+		using (_sut.StartActivity("Accumulation"))
+		{
 			_clock.SecondsSinceEpoch = 501;
 			AssertMeasurements("Accumulation Phase", 501);
 		}
@@ -42,20 +47,24 @@ public class ScavengeStatusTrackerTests : IDisposable {
 		AssertMeasurements("Idle", 502);
 	}
 
-	void AssertMeasurements(string expectedStatus, int expectedValue) {
+	void AssertMeasurements(string expectedStatus, int expectedValue)
+	{
 		_listener.Observe();
 
 		Assert.Collection(
 			_listener.RetrieveMeasurements("eventstore-statuses"),
-			m => {
+			m =>
+			{
 				Assert.Equal(expectedValue, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t => {
+					t =>
+					{
 						Assert.Equal("name", t.Key);
 						Assert.Equal("Scavenge", t.Value);
 					},
-					t => {
+					t =>
+					{
 						Assert.Equal("status", t.Key);
 						Assert.Equal(expectedStatus, t.Value);
 					});

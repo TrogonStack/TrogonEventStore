@@ -7,22 +7,27 @@ using EventStore.Projections.Core.Services.Processing.Subscriptions;
 
 namespace EventStore.Projections.Core.Messages;
 
-public static partial class ReaderSubscriptionManagement {
+public static partial class ReaderSubscriptionManagement
+{
 	[DerivedMessage]
-	public abstract partial class ReaderSubscriptionManagementMessage : Message {
+	public abstract partial class ReaderSubscriptionManagementMessage : Message
+	{
 		private readonly Guid _subscriptionId;
 
-		protected ReaderSubscriptionManagementMessage(Guid subscriptionId) {
+		protected ReaderSubscriptionManagementMessage(Guid subscriptionId)
+		{
 			_subscriptionId = subscriptionId;
 		}
 
-		public Guid SubscriptionId {
+		public Guid SubscriptionId
+		{
 			get { return _subscriptionId; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.ReaderSubscriptionManagement)]
-	public partial class Subscribe : ReaderSubscriptionManagementMessage {
+	public partial class Subscribe : ReaderSubscriptionManagementMessage
+	{
 		private readonly CheckpointTag _fromPosition;
 		private readonly IReaderStrategy _readerStrategy;
 		private readonly ReaderSubscriptionOptions _options;
@@ -30,12 +35,15 @@ public static partial class ReaderSubscriptionManagement {
 		public Subscribe(
 			Guid subscriptionId, CheckpointTag from,
 			IReaderStrategy readerStrategy, ReaderSubscriptionOptions readerSubscriptionOptions) : base(
-			subscriptionId) {
-			if (@from == null) {
+			subscriptionId)
+		{
+			if (@from == null)
+			{
 				throw new ArgumentNullException("from");
 			}
 
-			if (readerStrategy == null) {
+			if (readerStrategy == null)
+			{
 				throw new ArgumentNullException("readerStrategy");
 			}
 
@@ -44,37 +52,46 @@ public static partial class ReaderSubscriptionManagement {
 			_options = readerSubscriptionOptions;
 		}
 
-		public CheckpointTag FromPosition {
+		public CheckpointTag FromPosition
+		{
 			get { return _fromPosition; }
 		}
 
-		public IReaderStrategy ReaderStrategy {
+		public IReaderStrategy ReaderStrategy
+		{
 			get { return _readerStrategy; }
 		}
 
-		public ReaderSubscriptionOptions Options {
+		public ReaderSubscriptionOptions Options
+		{
 			get { return _options; }
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.ReaderSubscriptionManagement)]
-	public partial class Pause : ReaderSubscriptionManagementMessage {
+	public partial class Pause : ReaderSubscriptionManagementMessage
+	{
 		public Pause(Guid subscriptionId)
-			: base(subscriptionId) {
+			: base(subscriptionId)
+		{
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.ReaderSubscriptionManagement)]
-	public partial class Resume : ReaderSubscriptionManagementMessage {
+	public partial class Resume : ReaderSubscriptionManagementMessage
+	{
 		public Resume(Guid subscriptionId)
-			: base(subscriptionId) {
+			: base(subscriptionId)
+		{
 		}
 	}
 
 	[DerivedMessage(ProjectionMessage.ReaderSubscriptionManagement)]
-	public partial class Unsubscribe : ReaderSubscriptionManagementMessage {
+	public partial class Unsubscribe : ReaderSubscriptionManagementMessage
+	{
 		public Unsubscribe(Guid subscriptionId)
-			: base(subscriptionId) {
+			: base(subscriptionId)
+		{
 		}
 	}
 }

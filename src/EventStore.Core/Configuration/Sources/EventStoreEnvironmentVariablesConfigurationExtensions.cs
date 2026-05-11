@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 
-namespace EventStore.Core.Configuration.Sources {
-	public static class EventStoreEnvironmentVariablesConfigurationExtensions {
+namespace EventStore.Core.Configuration.Sources
+{
+	public static class EventStoreEnvironmentVariablesConfigurationExtensions
+	{
 		public static IConfigurationBuilder AddEventStoreEnvironmentVariables(this IConfigurationBuilder builder, IDictionary? environment = null) =>
 			builder.Add(new EventStoreEnvironmentVariablesSource(environment));
 

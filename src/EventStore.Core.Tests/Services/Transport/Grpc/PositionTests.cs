@@ -7,36 +7,42 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc;
 
-public class PositionTests {
+public class PositionTests
+{
 	[Test]
-	public void Equality() {
+	public void Equality()
+	{
 		var sut = new Position(6, 5);
 
 		Assert.AreEqual(new Position(6, 5), sut);
 	}
 
 	[Test]
-	public void Inequality() {
+	public void Inequality()
+	{
 		var sut = new Position(6, 5);
 
 		Assert.AreNotEqual(new Position(7, 6), sut);
 	}
 
 	[Test]
-	public void EqualityOperator() {
+	public void EqualityOperator()
+	{
 		var sut = new Position(6, 5);
 
 		Assert.True(new Position(6, 5) == sut);
 	}
 
 	[Test]
-	public void InequalityOperator() {
+	public void InequalityOperator()
+	{
 		var sut = new Position(6, 5);
 
 		Assert.True(new Position(7, 6) != sut);
 	}
 
-	public static IEnumerable<object[]> ArgumentOutOfRangeTestCases() {
+	public static IEnumerable<object[]> ArgumentOutOfRangeTestCases()
+	{
 		const string commitPosition = nameof(commitPosition);
 		const string preparePosition = nameof(preparePosition);
 
@@ -47,12 +53,14 @@ public class PositionTests {
 	}
 
 	[TestCaseSource(nameof(ArgumentOutOfRangeTestCases))]
-	public void ArgumentOutOfRange(ulong commitPosition, ulong preparePosition, string name) {
+	public void ArgumentOutOfRange(ulong commitPosition, ulong preparePosition, string name)
+	{
 		var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new Position(commitPosition, preparePosition));
 		Assert.AreEqual(name, ex.ParamName);
 	}
 
-	public static IEnumerable<object[]> GreaterThanTestCases() {
+	public static IEnumerable<object[]> GreaterThanTestCases()
+	{
 		yield return new object[] { new Position(6, 6), new Position(6, 5) };
 		yield return new object[] { Position.End, new Position(ulong.MaxValue, 0), };
 	}
@@ -66,7 +74,8 @@ public class PositionTests {
 	[TestCaseSource(nameof(GreaterThanOrEqualToTestCases))]
 	public void GreaterThanOrEqualTo(Position left, Position right) => Assert.True(left >= right);
 
-	public static IEnumerable<object[]> LessThanTestCases() {
+	public static IEnumerable<object[]> LessThanTestCases()
+	{
 		yield return new object[] { new Position(6, 5), new Position(6, 6) };
 		yield return new object[] { new Position(ulong.MaxValue, 0), Position.End, };
 	}
@@ -80,7 +89,8 @@ public class PositionTests {
 	[TestCaseSource(nameof(LessThanOrEqualToTestCases))]
 	public void LessThanOrEqualTo(Position left, Position right) => Assert.True(left <= right);
 
-	public static IEnumerable<object[]> CompareToTestCases() {
+	public static IEnumerable<object[]> CompareToTestCases()
+	{
 		yield return new object[] { new Position(6, 5), new Position(6, 6), -1 };
 		yield return new object[] { new Position(6, 6), new Position(6, 5), 1 };
 		yield return new object[] { new Position(6, 6), new Position(6, 6), 0 };

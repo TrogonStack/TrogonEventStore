@@ -10,19 +10,25 @@ using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Management;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
-	namespace a_running_projection {
-		public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId> {
+namespace EventStore.Projections.Core.Tests.Services.projections_manager.query
+{
+	namespace a_running_projection
+	{
+		public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId>
+		{
 			protected Guid _reader;
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				base.Given();
 				AllWritesSucceed();
 				NoOtherStreams();
 			}
 
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) {
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+				{
 					yield return m;
 				}
 
@@ -41,9 +47,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class when_handling_eof<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) {
+		public class when_handling_eof<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+		{
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+				{
 					yield return m;
 				}
 
@@ -51,13 +60,15 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void pause_message_is_published() {
+			public void pause_message_is_published()
+			{
 				Assert.Inconclusive("actually in unsubscribes...");
 			}
 
 
 			[Test]
-			public void the_projection_status_becomes_completed_enabled() {
+			public void the_projection_status_becomes_completed_enabled()
+			{
 				_manager.Handle(
 					new ProjectionManagementMessage.Command.GetStatistics(
 						_bus, null, _projectionName, false));
@@ -89,7 +100,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void writes_result_stream() {
+			public void writes_result_stream()
+			{
 				List<EventRecord> resultsStream;
 				Assert.IsTrue((_streams.TryGetValue("$projections-test-projection-result", out resultsStream)));
 				Assert.AreEqual(1 + 1 /* $Eof*/, resultsStream.Count);
@@ -97,7 +109,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void does_not_write_to_any_other_streams() {
+			public void does_not_write_to_any_other_streams()
+			{
 				Assert.IsEmpty(
 					HandledMessages.OfType<ClientMessage.WriteEvents>()
 						.Where(v => v.EventStreamId != "$projections-test-projection-result")
@@ -107,9 +120,12 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		public class when_handling_event<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-			protected override IEnumerable<WhenStep> When() {
-				foreach (var m in base.When()) {
+		public class when_handling_event<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+		{
+			protected override IEnumerable<WhenStep> When()
+			{
+				foreach (var m in base.When())
+				{
 					yield return m;
 				}
 
@@ -120,7 +136,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.query {
 			}
 
 			[Test]
-			public void the_projection_status_remains_running_enabled() {
+			public void the_projection_status_remains_running_enabled()
+			{
 				_manager.Handle(
 					new ProjectionManagementMessage.Command.GetStatistics(
 						_bus, null, _projectionName, false));

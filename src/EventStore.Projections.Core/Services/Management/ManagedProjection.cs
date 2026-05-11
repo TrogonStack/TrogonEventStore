@@ -24,12 +24,15 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 namespace EventStore.Projections.Core.Services.Management;
 
 
-public static class PersistedStateExtensions {
-	public static Boolean CheckpointStreamNeedsDeleted(this ManagedProjection.PersistedState persistedState) {
+public static class PersistedStateExtensions
+{
+	public static Boolean CheckpointStreamNeedsDeleted(this ManagedProjection.PersistedState persistedState)
+	{
 		return persistedState.DeleteCheckpointStream && persistedState.CheckpointsDisabled.GetValueOrDefault() == false;
 	}
 
-	public static Boolean EmitStreamNeedsDeleted(this ManagedProjection.PersistedState persistedState) {
+	public static Boolean EmitStreamNeedsDeleted(this ManagedProjection.PersistedState persistedState)
+	{
 		return (persistedState.DeleteEmittedStreams && persistedState.EmitEnabled.GetValueOrDefault());
 	}
 }
@@ -37,8 +40,10 @@ public static class PersistedStateExtensions {
 /// <summary>
 /// managed projection controls start/stop/create/update/delete lifecycle of the projection.
 /// </summary>
-public class ManagedProjection : IDisposable {
-	public class PersistedState {
+public class ManagedProjection : IDisposable
+{
+	public class PersistedState
+	{
 		public string HandlerType { get; set; }
 		public string Query { get; set; }
 		public ProjectionMode Mode { get; set; }
@@ -69,7 +74,8 @@ public class ManagedProjection : IDisposable {
 
 		public int? ProjectionExecutionTimeout { get; set; }
 
-		public PersistedState() {
+		public PersistedState()
+		{
 			CheckpointHandledThreshold = ProjectionConsts.CheckpointHandledThreshold;
 			CheckpointAfterMs = (int)ProjectionConsts.CheckpointAfterMs.TotalMilliseconds;
 			CheckpointUnhandledBytesThreshold = ProjectionConsts.CheckpointUnhandledBytesThreshold;
@@ -149,28 +155,35 @@ public class ManagedProjection : IDisposable {
 			<CoreProjectionManagementMessage.GetResult, CoreProjectionStatusMessage.ResultReport>
 			getResultDispatcher,
 		IODispatcher ioDispatcher,
-		TimeSpan projectionQueryExpiry) {
-		if (id == Guid.Empty) {
+		TimeSpan projectionQueryExpiry)
+	{
+		if (id == Guid.Empty)
+		{
 			throw new ArgumentException("id");
 		}
 
-		if (name == null) {
+		if (name == null)
+		{
 			throw new ArgumentNullException("name");
 		}
 
-		if (output == null) {
+		if (output == null)
+		{
 			throw new ArgumentNullException("output");
 		}
 
-		if (getStateDispatcher == null) {
+		if (getStateDispatcher == null)
+		{
 			throw new ArgumentNullException("getStateDispatcher");
 		}
 
-		if (getResultDispatcher == null) {
+		if (getResultDispatcher == null)
+		{
 			throw new ArgumentNullException("getResultDispatcher");
 		}
 
-		if (name == "") {
+		if (name == "")
+		{
 			throw new ArgumentException("name");
 		}
 
@@ -192,59 +205,73 @@ public class ManagedProjection : IDisposable {
 		_projectionsQueryExpiry = projectionQueryExpiry;
 	}
 
-	private string HandlerType {
+	private string HandlerType
+	{
 		get { return PersistedProjectionState.HandlerType; }
 	}
 
-	private string Query {
+	private string Query
+	{
 		get { return PersistedProjectionState.Query; }
 	}
 
-	private bool Enabled {
+	private bool Enabled
+	{
 		get { return PersistedProjectionState.Enabled; }
 		set { PersistedProjectionState.Enabled = value; }
 	}
 
-	private bool IsMultiStream {
-		get {
+	private bool IsMultiStream
+	{
+		get
+		{
 			return PersistedProjectionState.SourceDefinition != null &&
 				   PersistedProjectionState.SourceDefinition.Streams != null &&
 				   PersistedProjectionState.SourceDefinition.Streams.Length > 1;
 		}
 	}
 
-	public bool Deleted {
+	public bool Deleted
+	{
 		get { return PersistedProjectionState.Deleted; }
 		private set { PersistedProjectionState.Deleted = value; }
 	}
 
-	public bool Deleting {
+	public bool Deleting
+	{
 		get { return PersistedProjectionState.Deleting; }
 		private set { PersistedProjectionState.Deleting = value; }
 	}
 
-	public Guid Id {
+	public Guid Id
+	{
 		get { return _id; }
 	}
 
-	public ProjectionMode Mode {
+	public ProjectionMode Mode
+	{
 		get { return PersistedProjectionState.Mode; }
 	}
 
-	public ClaimsPrincipal RunAs {
+	public ClaimsPrincipal RunAs
+	{
 		get { return _runAs; }
 	}
 
-	public bool EnableContentTypeValidation {
-		get {
+	public bool EnableContentTypeValidation
+	{
+		get
+		{
 			return PersistedProjectionState.ProjectionSubsystemVersion >=
 				   ProjectionsSubsystem.CONTENT_TYPE_VALIDATION_VERSION;
 		}
 	}
 
-	internal void SetState(ManagedProjectionState value) {
+	internal void SetState(ManagedProjectionState value)
+	{
 		_state = value;
-		switch (value) {
+		switch (value)
+		{
 			case ManagedProjectionState.Aborted:
 				_stateHandler = new AbortedState(this);
 				break;
@@ -291,14 +318,18 @@ public class ManagedProjection : IDisposable {
 		}
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		DisposeCoreProjection();
 	}
 
-	public ProjectionStatistics GetStatistics() {
+	public ProjectionStatistics GetStatistics()
+	{
 		ProjectionStatistics status;
-		if (_lastReceivedStatistics == null) {
-			status = new ProjectionStatistics {
+		if (_lastReceivedStatistics == null)
+		{
+			status = new ProjectionStatistics
+			{
 				EffectiveName = _name,
 				Name = _name,
 				ProjectionId = _projectionId,
@@ -309,7 +340,8 @@ public class ManagedProjection : IDisposable {
 				LeaderStatus = _state
 			};
 		}
-		else {
+		else
+		{
 			status = _lastReceivedStatistics.Clone();
 			status.Mode = Mode;
 			status.Name = _name;
@@ -326,7 +358,8 @@ public class ManagedProjection : IDisposable {
 			status.LeaderStatus = _state;
 		}
 
-		if (_state == ManagedProjectionState.Faulted) {
+		if (_state == ManagedProjectionState.Faulted)
+		{
 			status.StateReason = _faultedReason;
 		}
 
@@ -334,25 +367,30 @@ public class ManagedProjection : IDisposable {
 		return status;
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetState message) {
+	public void Handle(ProjectionManagementMessage.Command.GetState message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
-		if (_state >= ManagedProjectionState.Running) {
+		if (_state >= ManagedProjectionState.Running)
+		{
 			_getStateDispatcher.Publish(
 				new CoreProjectionManagementMessage.GetState(Guid.NewGuid(), Id, message.Partition, _workerId),
 				m =>
 					message.Envelope.ReplyWith(
 						new ProjectionManagementMessage.ProjectionState(_name, m.Partition, m.State, m.Position)));
 		}
-		else {
+		else
+		{
 			message.Envelope.ReplyWith(
 				new ProjectionManagementMessage.ProjectionState(
 					message.Name, message.Partition, "", position: null));
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetResult message) {
+	public void Handle(ProjectionManagementMessage.Command.GetResult message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
-		if (_state >= ManagedProjectionState.Running) {
+		if (_state >= ManagedProjectionState.Running)
+		{
 			_getResultDispatcher.Publish(
 				new CoreProjectionManagementMessage.GetResult(Guid.NewGuid(), Id, message.Partition, _workerId),
 				m =>
@@ -360,19 +398,22 @@ public class ManagedProjection : IDisposable {
 						new ProjectionManagementMessage.ProjectionResult(_name, m.Partition, m.Result,
 							m.Position)));
 		}
-		else {
+		else
+		{
 			message.Envelope.ReplyWith(
 				new ProjectionManagementMessage.ProjectionResult(
 					message.Name, message.Partition, "", position: null));
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetQuery message) {
+	public void Handle(ProjectionManagementMessage.Command.GetQuery message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 
 		var emitEnabled = PersistedProjectionState.EmitEnabled ?? false;
 
-		var projectionOutputConfig = new ProjectionOutputConfig {
+		var projectionOutputConfig = new ProjectionOutputConfig
+		{
 			ResultStreamName =
 				PersistedProjectionState.SourceDefinition == null
 					? ""
@@ -392,7 +433,8 @@ public class ManagedProjection : IDisposable {
 				projectionOutputConfig));
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.UpdateQuery message) {
+	public void Handle(ProjectionManagementMessage.Command.UpdateQuery message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 
 		Prepared = false;
@@ -402,7 +444,8 @@ public class ManagedProjection : IDisposable {
 		StopUnlessPreparedOrLoaded();
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Disable message) {
+	public void Handle(ProjectionManagementMessage.Command.Disable message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 		SetLastReplyEnvelope(message.Envelope);
 		Disable();
@@ -410,7 +453,8 @@ public class ManagedProjection : IDisposable {
 		StopUnlessPreparedOrLoaded();
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Abort message) {
+	public void Handle(ProjectionManagementMessage.Command.Abort message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 		UpdateProjectionVersion();
 		SetLastReplyEnvelope(message.Envelope);
@@ -418,14 +462,16 @@ public class ManagedProjection : IDisposable {
 		Abort();
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Enable message) {
+	public void Handle(ProjectionManagementMessage.Command.Enable message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 		if (Enabled
 			&& !(_state == ManagedProjectionState.Completed || _state == ManagedProjectionState.Faulted
 															|| _state == ManagedProjectionState.Aborted ||
 															_state == ManagedProjectionState.Loaded
 															|| _state == ManagedProjectionState.Prepared ||
-															_state == ManagedProjectionState.Stopped)) {
+															_state == ManagedProjectionState.Stopped))
+		{
 			//Projection is probably Running
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.Updated(message.Name));
 			return;
@@ -438,7 +484,8 @@ public class ManagedProjection : IDisposable {
 		StopUnlessPreparedOrLoaded();
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.SetRunAs message) {
+	public void Handle(ProjectionManagementMessage.Command.SetRunAs message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 		Prepared = false;
 		SetRunAs(message);
@@ -447,9 +494,11 @@ public class ManagedProjection : IDisposable {
 		StopUnlessPreparedOrLoaded();
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Delete message) {
+	public void Handle(ProjectionManagementMessage.Command.Delete message)
+	{
 		if ((_state != ManagedProjectionState.Stopped && _state != ManagedProjectionState.Faulted) &&
-			Mode != ProjectionMode.Transient) {
+			Mode != ProjectionMode.Transient)
+		{
 			throw new InvalidOperationException("Cannot delete a projection that hasn't been stopped or faulted.");
 		}
 
@@ -459,17 +508,20 @@ public class ManagedProjection : IDisposable {
 		PersistedProjectionState.DeleteStateStream = message.DeleteStateStream;
 		PersistedProjectionState.DeleteEmittedStreams = message.DeleteEmittedStreams;
 
-		if (PersistedProjectionState.CheckpointStreamNeedsDeleted()) {
+		if (PersistedProjectionState.CheckpointStreamNeedsDeleted())
+		{
 			PersistedProjectionState.NumberOfPrequisitesMetForDeletion++;
 		}
 
 		if ((PersistedProjectionState.EmitEnabled ?? false) &&
 			((PersistedProjectionState.TrackEmittedStreams ?? false) &&
-			 PersistedProjectionState.DeleteEmittedStreams)) {
+			 PersistedProjectionState.DeleteEmittedStreams))
+		{
 			PersistedProjectionState.NumberOfPrequisitesMetForDeletion++;
 		}
 
-		if ((PersistedProjectionState.EmitEnabled ?? false) && IsMultiStream) {
+		if ((PersistedProjectionState.EmitEnabled ?? false) && IsMultiStream)
+		{
 			PersistedProjectionState.NumberOfPrequisitesMetForDeletion++;
 		}
 
@@ -480,7 +532,8 @@ public class ManagedProjection : IDisposable {
 		StopUnlessPreparedOrLoaded();
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetConfig message) {
+	public void Handle(ProjectionManagementMessage.Command.GetConfig message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 
 		var emitEnabled = PersistedProjectionState.EmitEnabled ?? false;
@@ -497,9 +550,11 @@ public class ManagedProjection : IDisposable {
 				PersistedProjectionState.ProjectionExecutionTimeout));
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.UpdateConfig message) {
+	public void Handle(ProjectionManagementMessage.Command.UpdateConfig message)
+	{
 		if ((_state != ManagedProjectionState.Stopped && _state != ManagedProjectionState.Faulted) &&
-			Mode != ProjectionMode.Transient) {
+			Mode != ProjectionMode.Transient)
+		{
 			throw new InvalidOperationException(
 				"Cannot update the config of a projection that hasn't been stopped or faulted.");
 		}
@@ -524,20 +579,25 @@ public class ManagedProjection : IDisposable {
 		message.Envelope.ReplyWith(new ProjectionManagementMessage.Updated(message.Name));
 	}
 
-	public void DeleteProjectionStreams() {
+	public void DeleteProjectionStreams()
+	{
 		var sourceDefinition = PersistedProjectionState.SourceDefinition ?? new ProjectionSourceDefinition();
 		var projectionNamesBuilder = new ProjectionNamesBuilder(_name, sourceDefinition);
 
-		if (PersistedProjectionState.EmitStreamNeedsDeleted() && IsMultiStream) {
+		if (PersistedProjectionState.EmitStreamNeedsDeleted() && IsMultiStream)
+		{
 			DeleteStream(projectionNamesBuilder.GetOrderStreamName(), DeleteIfConditionsAreMet);
 		}
 
-		if (PersistedProjectionState.CheckpointStreamNeedsDeleted()) {
+		if (PersistedProjectionState.CheckpointStreamNeedsDeleted())
+		{
 			DeleteStream(projectionNamesBuilder.MakeCheckpointStreamName(), DeleteIfConditionsAreMet);
 		}
 
-		if (PersistedProjectionState.EmitStreamNeedsDeleted()) {
-			if (_emittedStreamsDeleter == null) {
+		if (PersistedProjectionState.EmitStreamNeedsDeleted())
+		{
+			if (_emittedStreamsDeleter == null)
+			{
 				_emittedStreamsDeleter = new EmittedStreamsDeleter(_ioDispatcher, projectionNamesBuilder.GetEmittedStreamsName(), projectionNamesBuilder.GetEmittedStreamsCheckpointName());
 			}
 
@@ -545,20 +605,24 @@ public class ManagedProjection : IDisposable {
 		}
 
 		if (!PersistedProjectionState.CheckpointStreamNeedsDeleted() &&
-			!PersistedProjectionState.EmitStreamNeedsDeleted()) {
+			!PersistedProjectionState.EmitStreamNeedsDeleted())
+		{
 			DeleteIfConditionsAreMet();
 		}
 	}
 
-	private void DeleteIfConditionsAreMet() {
-		if (Interlocked.Decrement(ref PersistedProjectionState.NumberOfPrequisitesMetForDeletion) <= 0) {
+	private void DeleteIfConditionsAreMet()
+	{
+		if (Interlocked.Decrement(ref PersistedProjectionState.NumberOfPrequisitesMetForDeletion) <= 0)
+		{
 			Deleted = true;
 			Deleting = false;
 			Reply();
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Reset message) {
+	public void Handle(ProjectionManagementMessage.Command.Reset message)
+	{
 		_lastAccessed = _timeProvider.UtcNow;
 		Prepared = false;
 		_pendingWritePersistedState = true;
@@ -568,9 +632,12 @@ public class ManagedProjection : IDisposable {
 		StopUnlessPreparedOrLoaded();
 	}
 
-	public void Handle(ProjectionManagementMessage.Internal.CleanupExpired message) {
-		if (IsExpiredProjection()) {
-			if (_state == ManagedProjectionState.Creating) {
+	public void Handle(ProjectionManagementMessage.Internal.CleanupExpired message)
+	{
+		if (IsExpiredProjection())
+		{
+			if (_state == ManagedProjectionState.Creating)
+			{
 				// NOTE: workaround for stop not working on creating state (just ignore them)
 				return;
 			}
@@ -589,30 +656,37 @@ public class ManagedProjection : IDisposable {
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Started message) {
+	public void Handle(CoreProjectionStatusMessage.Started message)
+	{
 		_stateHandler.Started();
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Stopped message) {
+	public void Handle(CoreProjectionStatusMessage.Stopped message)
+	{
 		_stateHandler.Stopped(message);
-		if (Deleting) {
+		if (Deleting)
+		{
 			SetState(ManagedProjectionState.Deleting);
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Faulted message) {
+	public void Handle(CoreProjectionStatusMessage.Faulted message)
+	{
 		_stateHandler.Faulted(message);
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Prepared message) {
+	public void Handle(CoreProjectionStatusMessage.Prepared message)
+	{
 		_stateHandler.Prepared(message);
 	}
 
-	public void Handle(CoreProjectionStatusMessage.StatisticsReport message) {
+	public void Handle(CoreProjectionStatusMessage.StatisticsReport message)
+	{
 		_lastReceivedStatistics = message.Statistics;
 	}
 
-	private void SetRunAs(ProjectionManagementMessage.Command.SetRunAs message) {
+	private void SetRunAs(ProjectionManagementMessage.Command.SetRunAs message)
+	{
 		PersistedProjectionState.RunAs =
 			message.Action == ProjectionManagementMessage.Command.SetRunAs.SetRemove.Set
 				? SerializedRunAs.SerializePrincipal(message.RunAs)
@@ -621,8 +695,10 @@ public class ManagedProjection : IDisposable {
 		_pendingWritePersistedState = true;
 	}
 
-	private void SetLastReplyEnvelope(IEnvelope envelope) {
-		if (_lastReplyEnvelope != null) {
+	private void SetLastReplyEnvelope(IEnvelope envelope)
+	{
+		if (_lastReplyEnvelope != null)
+		{
 			_lastReplyEnvelope.ReplyWith(
 				new ProjectionManagementMessage.OperationFailed("Aborted by subsequent operation"));
 		}
@@ -630,17 +706,20 @@ public class ManagedProjection : IDisposable {
 		_lastReplyEnvelope = envelope;
 	}
 
-	private void Reset() {
+	private void Reset()
+	{
 		UpdateProjectionVersion(force: true);
 		PersistedProjectionState.Epoch = PersistedProjectionState.Version;
 	}
 
-	private bool IsExpiredProjection() {
+	private bool IsExpiredProjection()
+	{
 		return Mode == ProjectionMode.Transient &&
 			   _lastAccessed.Add(_projectionsQueryExpiry) < _timeProvider.UtcNow && _persistedStateLoaded;
 	}
 
-	public void InitializeNew(PersistedState persistedState, IEnvelope replyEnvelope) {
+	public void InitializeNew(PersistedState persistedState, IEnvelope replyEnvelope)
+	{
 		LoadPersistedState(persistedState);
 		UpdateProjectionVersion();
 		_pendingWritePersistedState = true;
@@ -648,12 +727,14 @@ public class ManagedProjection : IDisposable {
 		PrepareOrWriteStartOrLoadStopped();
 	}
 
-	public void InitializeExisting(string name) {
+	public void InitializeExisting(string name)
+	{
 		SetState(ManagedProjectionState.Loading);
 		ReadPersistedState(name);
 	}
 
-	private void ReadPersistedState(string name) {
+	private void ReadPersistedState(string name)
+	{
 		var corrId = Guid.NewGuid();
 		_readDispatcher.Publish(
 			new ClientMessage.ReadStreamEventsBackward(
@@ -665,8 +746,10 @@ public class ManagedProjection : IDisposable {
 			new ReadStreamEventsBackwardHandlers.Optimistic(PersistedStateReadCompleted));
 	}
 
-	private void PersistedStateReadCompleted(ClientMessage.ReadStreamEventsBackwardCompleted completed) {
-		if (completed.Result == ReadStreamResult.Success && completed.Events.Count == 1) {
+	private void PersistedStateReadCompleted(ClientMessage.ReadStreamEventsBackwardCompleted completed)
+	{
+		if (completed.Result == ReadStreamResult.Success && completed.Events.Count == 1)
+		{
 			var persistedState = completed.Events[0].Event.Data.ParseJson<PersistedState>();
 
 			_lastWrittenVersion = completed.Events[0].Event.EventNumber;
@@ -690,27 +773,34 @@ public class ManagedProjection : IDisposable {
 			completed.EventStreamId);
 	}
 
-	private void FixUpOldProjectionRunAs(PersistedState persistedState) {
-		if (persistedState.RunAs == null || string.IsNullOrEmpty(persistedState.RunAs.Name)) {
+	private void FixUpOldProjectionRunAs(PersistedState persistedState)
+	{
+		if (persistedState.RunAs == null || string.IsNullOrEmpty(persistedState.RunAs.Name))
+		{
 			_runAs = SystemAccounts.System;
 			persistedState.RunAs = SerializedRunAs.SerializePrincipal(ProjectionManagementMessage.RunAs.System);
 		}
 	}
 
 	private void FixUpOldFormat(ClientMessage.ReadStreamEventsBackwardCompleted completed,
-		PersistedState persistedState) {
-		if (persistedState.Version == null) {
+		PersistedState persistedState)
+	{
+		if (persistedState.Version == null)
+		{
 			persistedState.Version = completed.Events[0].Event.EventNumber;
 			persistedState.Epoch = -1;
 		}
 
-		if (_lastWrittenVersion > persistedState.Version) {
+		if (_lastWrittenVersion > persistedState.Version)
+		{
 			persistedState.Version = _lastWrittenVersion;
 		}
 	}
 
-	private void FixupOldProjectionModes(PersistedState persistedState) {
-		switch ((int)persistedState.Mode) {
+	private void FixupOldProjectionModes(PersistedState persistedState)
+	{
+		switch ((int)persistedState.Mode)
+		{
 			case 2: // old continuous
 				persistedState.Mode = ProjectionMode.Continuous;
 				break;
@@ -721,23 +811,28 @@ public class ManagedProjection : IDisposable {
 		}
 	}
 
-	private void LoadPersistedState(PersistedState persistedState) {
+	private void LoadPersistedState(PersistedState persistedState)
+	{
 		var handlerType = persistedState.HandlerType;
 		var query = persistedState.Query;
 
-		if (handlerType == null) {
+		if (handlerType == null)
+		{
 			throw new ArgumentNullException("persistedState", "HandlerType");
 		}
 
-		if (query == null) {
+		if (query == null)
+		{
 			throw new ArgumentNullException("persistedState", "Query");
 		}
 
-		if (handlerType == "") {
+		if (handlerType == "")
+		{
 			throw new ArgumentException("HandlerType", "persistedState");
 		}
 
-		if (_state != ManagedProjectionState.Creating && _state != ManagedProjectionState.Loading) {
+		if (_state != ManagedProjectionState.Creating && _state != ManagedProjectionState.Loading)
+		{
 			throw new InvalidOperationException("LoadPersistedState is now allowed in this state");
 		}
 
@@ -746,22 +841,27 @@ public class ManagedProjection : IDisposable {
 		_persistedStateLoaded = true;
 	}
 
-	internal void WriteStartOrLoadStopped() {
-		if (_pendingWritePersistedState) {
+	internal void WriteStartOrLoadStopped()
+	{
+		if (_pendingWritePersistedState)
+		{
 			WritePersistedState(CreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
 				ProjectionNamesBuilder.ProjectionsStreamPrefix + _name));
 		}
-		else {
+		else
+		{
 			StartOrLoadStopped();
 		}
 	}
 
-	internal void StartCompleted() {
+	internal void StartCompleted()
+	{
 		Reply();
 	}
 
 	private ClientMessage.WriteEvents CreatePersistedStateEvent(Guid correlationId, PersistedState persistedState,
-		string eventStreamId) {
+		string eventStreamId)
+	{
 		return new ClientMessage.WriteEvents(
 			correlationId, correlationId, _writeDispatcher.Envelope, true, eventStreamId, ExpectedVersion.Any,
 			new Event(Guid.NewGuid(), ProjectionEventTypes.ProjectionUpdated, true, persistedState.ToJsonBytes(),
@@ -769,8 +869,10 @@ public class ManagedProjection : IDisposable {
 			SystemAccounts.System);
 	}
 
-	private void WritePersistedState(ClientMessage.WriteEvents persistedStateEvent) {
-		if (Mode == ProjectionMode.Transient) {
+	private void WritePersistedState(ClientMessage.WriteEvents persistedStateEvent)
+	{
+		if (Mode == ProjectionMode.Transient)
+		{
 			//TODO: move to common completion procedure
 			_lastWrittenVersion = PersistedProjectionState.Version ?? -1;
 			_pendingWritePersistedState = false;
@@ -785,16 +887,20 @@ public class ManagedProjection : IDisposable {
 	}
 
 	private void WritePersistedStateCompleted(ClientMessage.WriteEventsCompleted message,
-		ClientMessage.WriteEvents eventToRetry, string eventStreamId) {
-		if (!_writing) {
+		ClientMessage.WriteEvents eventToRetry, string eventStreamId)
+	{
+		if (!_writing)
+		{
 			_logger.Error("Projection definition write completed in non writing state. ({projection})", _name);
 		}
 
-		if (message.Result == OperationResult.Success) {
+		if (message.Result == OperationResult.Success)
+		{
 			_logger.Information("'{projection}' projection source has been written", _name);
 			_pendingWritePersistedState = false;
 			var writtenEventNumber = message.FirstEventNumber;
-			if (writtenEventNumber != (PersistedProjectionState.Version ?? writtenEventNumber)) {
+			if (writtenEventNumber != (PersistedProjectionState.Version ?? writtenEventNumber))
+			{
 				throw new Exception("Projection version and event number mismatch");
 			}
 
@@ -811,16 +917,19 @@ public class ManagedProjection : IDisposable {
 		if (message.Result == OperationResult.CommitTimeout || message.Result == OperationResult.ForwardTimeout
 															|| message.Result == OperationResult.PrepareTimeout
 															|| message.Result ==
-															OperationResult.WrongExpectedVersion) {
+															OperationResult.WrongExpectedVersion)
+		{
 			_logger.Information("Retrying write projection source for {projection}", _name);
 			WritePersistedState(eventToRetry);
 		}
-		else {
+		else
+		{
 			throw new NotSupportedException("Unsupported error code received");
 		}
 	}
 
-	private void DeleteStream(string streamId, Action completed) {
+	private void DeleteStream(string streamId, Action completed)
+	{
 		//delete checkpoint stream
 		var correlationId = Guid.NewGuid();
 		_streamDispatcher.Publish(new ClientMessage.DeleteStream(
@@ -835,17 +944,20 @@ public class ManagedProjection : IDisposable {
 	}
 
 	private void DeleteStreamCompleted(ClientMessage.DeleteStreamCompleted message, string streamId,
-		Action completed) {
+		Action completed)
+	{
 		// currently, WrongExpectedVersion is returned when deleting non-existing streams, even when specifying ExpectedVersion.Any.
 		// it is not too intuitive but changing the response would break the contract and compatibility with TCP/gRPC/web clients or require adding a new error code to all clients.
 		// note: we don't need to check if CurrentVersion == -1 here to make sure it's a non-existing stream since the deletion is done with ExpectedVersion.Any
-		if (message.Result == OperationResult.WrongExpectedVersion) {
+		if (message.Result == OperationResult.WrongExpectedVersion)
+		{
 			// stream was never created
 			_logger.Information("PROJECTIONS: Projection Stream '{stream}' was not deleted since it does not exist", streamId);
 			completed();
 			return;
 		}
-		if (message.Result == OperationResult.Success || message.Result == OperationResult.StreamDeleted) {
+		if (message.Result == OperationResult.Success || message.Result == OperationResult.StreamDeleted)
+		{
 			_logger.Information("PROJECTIONS: Projection Stream '{stream}' deleted", streamId);
 			completed();
 			return;
@@ -856,16 +968,20 @@ public class ManagedProjection : IDisposable {
 			streamId,
 			Enum.GetName(typeof(OperationResult), message.Result));
 		if (message.Result == OperationResult.CommitTimeout ||
-			message.Result == OperationResult.ForwardTimeout) {
+			message.Result == OperationResult.ForwardTimeout)
+		{
 			DeleteStream(streamId, completed);
 		}
-		else {
+		else
+		{
 			throw new NotSupportedException("Unsupported error code received");
 		}
 	}
 
-	private void Prepare(Message message) {
-		if (_state >= ManagedProjectionState.Preparing) {
+	private void Prepare(Message message)
+	{
+		if (_state >= ManagedProjectionState.Preparing)
+		{
 			DisposeCoreProjection();
 			SetState(ManagedProjectionState.Loaded);
 		}
@@ -875,8 +991,10 @@ public class ManagedProjection : IDisposable {
 		_output.Publish(message);
 	}
 
-	private void Start() {
-		if (!Enabled) {
+	private void Start()
+	{
+		if (!Enabled)
+		{
 			throw new InvalidOperationException("Projection is disabled");
 		}
 
@@ -884,21 +1002,25 @@ public class ManagedProjection : IDisposable {
 		_output.Publish(new CoreProjectionManagementMessage.Start(Id, _workerId));
 	}
 
-	private void LoadStopped() {
+	private void LoadStopped()
+	{
 		SetState(ManagedProjectionState.LoadingStopped);
 		_output.Publish(new CoreProjectionManagementMessage.LoadStopped(Id, _workerId));
 	}
 
-	private void DisposeCoreProjection() {
+	private void DisposeCoreProjection()
+	{
 		Created = false;
 		_output.Publish(new CoreProjectionManagementMessage.Dispose(Id, _workerId));
 	}
 
-	private void Enable() {
+	private void Enable()
+	{
 		Enabled = true;
 	}
 
-	private Message CreateCreateAndPrepareMessage(ProjectionConfig config) {
+	private Message CreateCreateAndPrepareMessage(ProjectionConfig config)
+	{
 		return new CoreProjectionManagementMessage.CreateAndPrepare(
 				Id,
 				_workerId,
@@ -911,8 +1033,10 @@ public class ManagedProjection : IDisposable {
 				EnableContentTypeValidation);
 	}
 
-	private CoreProjectionManagementMessage.CreatePrepared CreatePreparedMessage(ProjectionConfig config) {
-		if (PersistedProjectionState.SourceDefinition == null) {
+	private CoreProjectionManagementMessage.CreatePrepared CreatePreparedMessage(ProjectionConfig config)
+	{
+		if (PersistedProjectionState.SourceDefinition == null)
+		{
 			throw new Exception(
 				"The projection cannot be loaded as stopped as it was stored in the old format.  Update the projection query text to force prepare");
 		}
@@ -931,8 +1055,10 @@ public class ManagedProjection : IDisposable {
 		return createProjectionMessage;
 	}
 
-	private void StopUnlessPreparedOrLoaded() {
-		switch (_state) {
+	private void StopUnlessPreparedOrLoaded()
+	{
+		switch (_state)
+		{
 			case ManagedProjectionState.Prepared:
 			case ManagedProjectionState.Loaded:
 				PrepareOrWriteStartOrLoadStopped();
@@ -966,8 +1092,10 @@ public class ManagedProjection : IDisposable {
 		}
 	}
 
-	private void Abort() {
-		switch (_state) {
+	private void Abort()
+	{
+		switch (_state)
+		{
 			case ManagedProjectionState.Stopped:
 			case ManagedProjectionState.Completed:
 			case ManagedProjectionState.Aborted:
@@ -998,13 +1126,15 @@ public class ManagedProjection : IDisposable {
 	}
 
 
-	public void Fault(string reason) {
+	public void Fault(string reason)
+	{
 		_logger.Error("The '{projection}' projection faulted due to '{e}'", _name, reason);
 		SetState(ManagedProjectionState.Faulted);
 		_faultedReason = reason;
 	}
 
-	private ProjectionConfig CreateDefaultProjectionConfiguration() {
+	private ProjectionConfig CreateDefaultProjectionConfiguration()
+	{
 		var checkpointsEnabled = PersistedProjectionState.CheckpointsDisabled != true;
 		var trackEmittedStreams = PersistedProjectionState.TrackEmittedStreams == true;
 		var maximumCheckpointCount = checkpointsEnabled ? PersistedProjectionState.CheckpointHandledThreshold : 0;
@@ -1036,12 +1166,16 @@ public class ManagedProjection : IDisposable {
 		return projectionConfig;
 	}
 
-	private void StartOrLoadStopped() {
-		if (_state == ManagedProjectionState.Prepared) {
-			if (Enabled && _enabledToRun) {
+	private void StartOrLoadStopped()
+	{
+		if (_state == ManagedProjectionState.Prepared)
+		{
+			if (Enabled && _enabledToRun)
+			{
 				Start();
 			}
-			else {
+			else
+			{
 				LoadStopped();
 			}
 		}
@@ -1049,35 +1183,43 @@ public class ManagedProjection : IDisposable {
 				   _state == ManagedProjectionState.Completed ||
 				   _state == ManagedProjectionState.Faulted ||
 				   _state == ManagedProjectionState.Stopped ||
-				   _state == ManagedProjectionState.Deleting) {
+				   _state == ManagedProjectionState.Deleting)
+		{
 			Reply();
 		}
-		else {
+		else
+		{
 			throw InvalidProjectionState(_state);
 		}
 	}
 
-	private void UpdateQuery(ProjectionManagementMessage.Command.UpdateQuery message) {
+	private void UpdateQuery(ProjectionManagementMessage.Command.UpdateQuery message)
+	{
 		PersistedProjectionState.Query = message.Query;
 		PersistedProjectionState.EmitEnabled = message.EmitEnabled ?? PersistedProjectionState.EmitEnabled;
 		_pendingWritePersistedState = true;
-		if (_state == ManagedProjectionState.Completed) {
+		if (_state == ManagedProjectionState.Completed)
+		{
 			Reset();
 		}
 	}
 
-	private void Disable() {
+	private void Disable()
+	{
 		Enabled = false;
 		_pendingWritePersistedState = true;
 	}
 
-	public void PrepareOrWriteStartOrLoadStopped() {
-		if (_state == ManagedProjectionState.Prepared) {
+	public void PrepareOrWriteStartOrLoadStopped()
+	{
+		if (_state == ManagedProjectionState.Prepared)
+		{
 			WriteStartOrLoadStopped();
 			return;
 		}
 
-		if (Prepared && Created && !(Enabled && _enabledToRun)) {
+		if (Prepared && Created && !(Enabled && _enabledToRun))
+		{
 			WriteStartOrLoadStopped();
 			return;
 		}
@@ -1091,31 +1233,38 @@ public class ManagedProjection : IDisposable {
 		Prepare(prepareMessage);
 	}
 
-	private void Reply() {
-		if (_lastReplyEnvelope != null) {
+	private void Reply()
+	{
+		if (_lastReplyEnvelope != null)
+		{
 			_lastReplyEnvelope.ReplyWith(new ProjectionManagementMessage.Updated(_name));
 		}
 
 		_lastReplyEnvelope = null;
-		if (Deleted && !_pendingWritePersistedState) {
+		if (Deleted && !_pendingWritePersistedState)
+		{
 			DisposeCoreProjection();
 			_output.Publish(new ProjectionManagementMessage.Internal.Deleted(_name, Id));
 		}
 	}
 
-	private void Delete() {
+	private void Delete()
+	{
 		Enabled = false;
 		Deleted = false;
 		Deleting = true;
 		_pendingWritePersistedState = true;
 	}
 
-	private void UpdateProjectionVersion(bool force = false) {
-		if (_lastWrittenVersion == PersistedProjectionState.Version) {
+	private void UpdateProjectionVersion(bool force = false)
+	{
+		if (_lastWrittenVersion == PersistedProjectionState.Version)
+		{
 			PersistedProjectionState.Version++;
 			PersistedProjectionState.ProjectionSubsystemVersion = ProjectionsSubsystem.VERSION;
 		}
-		else if (force) {
+		else if (force)
+		{
 			throw new ApplicationException(
 				"Internal error: projection definition must be saved before forced updating version");
 		}
@@ -1125,24 +1274,30 @@ public class ManagedProjection : IDisposable {
 		new InvalidOperationException($"Did not expect {nameof(ManagedProjectionState)} in state {state}.");
 }
 
-public class SerializedRunAs {
+public class SerializedRunAs
+{
 	public string Name { get; set; }
 	public string[] Roles { get; set; }
 
-	public static implicit operator SerializedRunAs(ProjectionManagementMessage.RunAs runAs) {
+	public static implicit operator SerializedRunAs(ProjectionManagementMessage.RunAs runAs)
+	{
 		return runAs == null ? null : SerializePrincipal(runAs);
 	}
 
-	public static implicit operator ProjectionManagementMessage.RunAs(SerializedRunAs runAs) {
+	public static implicit operator ProjectionManagementMessage.RunAs(SerializedRunAs runAs)
+	{
 		return new ProjectionManagementMessage.RunAs(DeserializePrincipal(runAs));
 	}
 
-	public static SerializedRunAs SerializePrincipal(ProjectionManagementMessage.RunAs runAs) {
-		if (runAs?.Principal == null || runAs.Principal.HasClaim(x => x.Type == ClaimTypes.Anonymous)) {
+	public static SerializedRunAs SerializePrincipal(ProjectionManagementMessage.RunAs runAs)
+	{
+		if (runAs?.Principal == null || runAs.Principal.HasClaim(x => x.Type == ClaimTypes.Anonymous))
+		{
 			return null; // anonymous
 		}
 
-		if (runAs.Principal == SystemAccounts.System) {
+		if (runAs.Principal == SystemAccounts.System)
+		{
 			return new SerializedRunAs { Name = "$system" };
 		}
 
@@ -1153,25 +1308,30 @@ public class SerializedRunAs {
 		return new SerializedRunAs { Name = runAs.Principal.Identity.Name, Roles = roles };
 	}
 
-	public static ClaimsPrincipal DeserializePrincipal(SerializedRunAs runAs) {
-		if (runAs?.Name == null) {
+	public static ClaimsPrincipal DeserializePrincipal(SerializedRunAs runAs)
+	{
+		if (runAs?.Name == null)
+		{
 			return SystemAccounts.Anonymous;
 		}
 
 		if (runAs.Name == "$system") //TODO: make sure nobody else uses it
-{
+		{
 			return SystemAccounts.System;
 		}
 
-		var claims = runAs.Roles.Select(x => x.Split("$$$")).Select(x => {
-			return x.Length switch {
+		var claims = runAs.Roles.Select(x => x.Split("$$$")).Select(x =>
+		{
+			return x.Length switch
+			{
 				1 => new Claim(ClaimTypes.Role, x[0]),
 				2 => new Claim(x[0], x[1]),
 				_ => throw new SerializationException("Could not deserialize run as")
 			};
 
 		}).ToList();
-		if (!claims.Exists(x => x.Type == ClaimTypes.Name)) {
+		if (!claims.Exists(x => x.Type == ClaimTypes.Name))
+		{
 			claims.Add(new Claim(ClaimTypes.Name, runAs.Name));
 		}
 

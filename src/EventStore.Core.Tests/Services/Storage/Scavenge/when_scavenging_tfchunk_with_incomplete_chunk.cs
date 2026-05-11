@@ -9,14 +9,17 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string), LogRecordVersion.LogRecordV0)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), LogRecordVersion.LogRecordV1)]
-public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId> {
+public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId> : ScavengeTestScenario<TLogFormat, TStreamId>
+{
 	private readonly byte _version = LogRecordVersion.LogRecordV0;
 
-	public when_scavenging_tfchunk_with_incomplete_chunk(byte version) {
+	public when_scavenging_tfchunk_with_incomplete_chunk(byte version)
+	{
 		_version = version;
 	}
 
-	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token) {
+	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator, CancellationToken token)
+	{
 		return dbCreator
 			.Chunk(
 				Rec.Prepare(0, "ES1", version: _version),
@@ -32,8 +35,10 @@ public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
-		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2) {
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
+	{
+		if (LogFormatHelper<TLogFormat, TStreamId>.IsV2)
+		{
 			return new[] {
 				new[] {
 					dbResult.Recs[0][0],
@@ -69,7 +74,8 @@ public class when_scavenging_tfchunk_with_incomplete_chunk<TLogFormat, TStreamId
 	}
 
 	[Test]
-	public async Task should_not_have_changed_any_records() {
+	public async Task should_not_have_changed_any_records()
+	{
 		await CheckRecords();
 	}
 }

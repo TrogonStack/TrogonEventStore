@@ -6,14 +6,17 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.Scavenging;
 using Serilog;
 
-namespace EventStore.Core.Services.Storage {
+namespace EventStore.Core.Services.Storage
+{
 	// The resulting scavenger is used for one continuous run. If it is cancelled or
 	// completed then starting scavenge again will instantiate another scavenger
 	// with a different id.
-	public class ScavengerFactory {
+	public class ScavengerFactory
+	{
 		private readonly Func<ClientMessage.ScavengeDatabase, ITFChunkScavengerLog, ILogger, IScavenger> _create;
 
-		public ScavengerFactory(Func<ClientMessage.ScavengeDatabase, ITFChunkScavengerLog, ILogger, IScavenger> create) {
+		public ScavengerFactory(Func<ClientMessage.ScavengeDatabase, ITFChunkScavengerLog, ILogger, IScavenger> create)
+		{
 			_create = create;
 		}
 
@@ -21,7 +24,8 @@ namespace EventStore.Core.Services.Storage {
 			_create(message, scavengerLogger, logger);
 	}
 
-	public class OldScavenger<TStreamId> : IScavenger {
+	public class OldScavenger<TStreamId> : IScavenger
+	{
 		private readonly bool _alwaysKeepScavenged;
 		private readonly bool _mergeChunks;
 		private readonly int _startFromChunk;
@@ -33,7 +37,8 @@ namespace EventStore.Core.Services.Storage {
 			bool alwaysKeepScaveged,
 			bool mergeChunks,
 			int startFromChunk,
-			TFChunkScavenger<TStreamId> tfChunkScavenger) {
+			TFChunkScavenger<TStreamId> tfChunkScavenger)
+		{
 
 			_alwaysKeepScavenged = alwaysKeepScaveged;
 			_mergeChunks = mergeChunks;
@@ -41,10 +46,12 @@ namespace EventStore.Core.Services.Storage {
 			_tfChunkScavenger = tfChunkScavenger;
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 		}
 
-		public Task<ScavengeResult> ScavengeAsync(CancellationToken cancellationToken) {
+		public Task<ScavengeResult> ScavengeAsync(CancellationToken cancellationToken)
+		{
 			return _tfChunkScavenger.Scavenge(
 				alwaysKeepScavenged: _alwaysKeepScavenged,
 				mergeChunks: _mergeChunks,

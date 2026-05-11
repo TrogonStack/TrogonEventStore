@@ -15,10 +15,12 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class read_stream_events_with_unresolved_linkto<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class read_stream_events_with_unresolved_linkto<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private EventData[] _testEvents;
 
-	protected override async Task When() {
+	protected override async Task When()
+	{
 		await _conn.SetStreamMetadataAsync(
 				"$all", -1, StreamMetadata.Build().SetReadRole(SystemRoles.All),
 				new UserCredentials(SystemUsers.Admin, SystemUsers.DefaultAdminPassword));
@@ -34,14 +36,16 @@ public class read_stream_events_with_unresolved_linkto<TLogFormat, TStreamId> : 
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task ensure_deleted_stream() {
+	public async Task ensure_deleted_stream()
+	{
 		var res = await _conn.ReadStreamEventsForwardAsync("stream", 0, 100, false);
 		Assert.AreEqual(SliceReadStatus.StreamNotFound, res.Status);
 		Assert.AreEqual(0, res.Events.Length);
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task returns_unresolved_linkto() {
+	public async Task returns_unresolved_linkto()
+	{
 		var read = await _conn.ReadStreamEventsForwardAsync("links", 0, 1, true);
 		Assert.AreEqual(1, read.Events.Length);
 		Assert.IsNull(read.Events[0].Event);

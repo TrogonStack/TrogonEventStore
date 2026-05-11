@@ -20,18 +20,22 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
  * * in addition, if step 2 completes shortly after step 1, WrongExpectedVersion will be encountered
  */
 
-public static class when_writing_projection_persisted_state_races_with_stream_deletion {
+public static class when_writing_projection_persisted_state_races_with_stream_deletion
+{
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_projection_persisted_state_write_races_with_projections_substream_deletion<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+	public class when_projection_persisted_state_write_races_with_projections_substream_deletion<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+	{
 		private const string _projectionName = "my-projection";
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			base.Given();
 			NoOtherStreams();
 			AllWritesSucceed();
 		}
 
-		protected override IEnumerable<WhenStep> When() {
+		protected override IEnumerable<WhenStep> When()
+		{
 			yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 			yield return
 				(new ProjectionManagementMessage.Command.Post(
@@ -46,7 +50,8 @@ public static class when_writing_projection_persisted_state_races_with_stream_de
 		}
 
 		[Test]
-		public void should_publish_single_projection_deleted_event() {
+		public void should_publish_single_projection_deleted_event()
+		{
 			Assert.AreEqual(
 				1, _consumer.HandledMessages.OfType<ProjectionManagementMessage.Internal.Deleted>().Count());
 		}

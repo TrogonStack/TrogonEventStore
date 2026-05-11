@@ -13,13 +13,16 @@ namespace EventStore.Core.Tests.Services.RedactionService;
 
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId> {
+public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFixture<TLogFormat, TStreamId>
+{
 	private const string StreamId = nameof(EventPositionTests<TLogFormat, TStreamId>);
 	private readonly Dictionary<long, List<EventPosition>> _positions = new();
 
-	private async ValueTask WriteEvent(string streamId, long eventNumber, string data, CancellationToken token) {
+	private async ValueTask WriteEvent(string streamId, long eventNumber, string data, CancellationToken token)
+	{
 		var eventRecord = await WriteSingleEvent(streamId, eventNumber, data, token: token);
-		if (!_positions.ContainsKey(eventNumber)) {
+		if (!_positions.ContainsKey(eventNumber))
+		{
 			_positions[eventNumber] = new();
 		}
 
@@ -31,14 +34,16 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 		_positions[eventNumber].Add(eventPosition);
 	}
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		await WriteEvent(StreamId, 2, "data 2", token);
 		await WriteEvent(StreamId, 0, "data 0", token);
 		await WriteEvent(StreamId, 1, "data 1", token);
 		await WriteEvent(StreamId, 2, "data 2", token); // duplicate
 	}
 
-	private async Task<RedactionMessage.GetEventPositionCompleted> GetEventPosition(long eventNumber) {
+	private async Task<RedactionMessage.GetEventPositionCompleted> GetEventPosition(long eventNumber)
+	{
 		var e = new TcsEnvelope<RedactionMessage.GetEventPositionCompleted>();
 		await RedactionService.As<IAsyncHandle<RedactionMessage.GetEventPosition>>()
 			.HandleAsync(new RedactionMessage.GetEventPosition(e, StreamId, eventNumber), CancellationToken.None);
@@ -46,7 +51,8 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	}
 
 	[Test]
-	public async Task can_get_positions_of_event_0() {
+	public async Task can_get_positions_of_event_0()
+	{
 		var msg = await GetEventPosition(0);
 		Assert.AreEqual(GetEventPositionResult.Success, msg.Result);
 		Assert.AreEqual(1, msg.EventPositions.Length);
@@ -54,7 +60,8 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	}
 
 	[Test]
-	public async Task can_get_positions_of_event_1() {
+	public async Task can_get_positions_of_event_1()
+	{
 		var msg = await GetEventPosition(1);
 		Assert.AreEqual(GetEventPositionResult.Success, msg.Result);
 		Assert.AreEqual(1, msg.EventPositions.Length);
@@ -62,7 +69,8 @@ public class EventPositionTests<TLogFormat, TStreamId> : RedactionServiceTestFix
 	}
 
 	[Test]
-	public async Task can_get_positions_of_event_2() {
+	public async Task can_get_positions_of_event_2()
+	{
 		var msg = await GetEventPosition(2);
 		Assert.AreEqual(GetEventPositionResult.Success, msg.Result);
 		Assert.AreEqual(2, msg.EventPositions.Length);

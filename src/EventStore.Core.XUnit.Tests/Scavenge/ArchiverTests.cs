@@ -7,9 +7,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ArchiverTests : SqliteDbPerTest<ArchiverTests> {
+public class ArchiverTests : SqliteDbPerTest<ArchiverTests>
+{
 	[Fact]
-	public async Task archiver_does_not_execute_chunks() {
+	public async Task archiver_does_not_execute_chunks()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.IsArchiver()

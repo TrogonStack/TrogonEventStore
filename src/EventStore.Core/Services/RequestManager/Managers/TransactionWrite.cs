@@ -5,8 +5,10 @@ using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Plugins.Authorization;
 
-namespace EventStore.Core.Services.RequestManager.Managers {
-	public class TransactionWrite : RequestManagerBase {
+namespace EventStore.Core.Services.RequestManager.Managers
+{
+	public class TransactionWrite : RequestManagerBase
+	{
 		private static readonly Operation Operation = new Operation(Operations.Streams.Write);
 		private readonly Event[] _events;
 		private long _transactionId;
@@ -29,7 +31,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					 expectedVersion: -1,
 					 commitSource,
 					 prepareCount: events.Length,
-					 transactionId) {
+					 transactionId)
+		{
 			_events = events;
 			_transactionId = transactionId;
 		}
@@ -41,11 +44,14 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					TransactionId,
 					_events);
 
-		protected override void AllEventsWritten() {
-			if (CommitSource.ReplicationPosition >= LastEventPosition) {
+		protected override void AllEventsWritten()
+		{
+			if (CommitSource.ReplicationPosition >= LastEventPosition)
+			{
 				Committed();
 			}
-			else if (!Registered) {
+			else if (!Registered)
+			{
 				CommitSource.NotifyFor(LastEventPosition, Committed, CommitLevel.Replicated);
 				Registered = true;
 			}

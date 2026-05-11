@@ -5,7 +5,8 @@ using System.Net.Sockets;
 
 namespace EventStore.Transport.Tcp;
 
-public interface ITcpConnection {
+public interface ITcpConnection
+{
 	event Action<ITcpConnection, SocketError> ConnectionClosed;
 
 	Guid ConnectionId { get; }

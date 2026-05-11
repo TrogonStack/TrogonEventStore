@@ -15,29 +15,35 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.TransactionLog;
 
-public static class LogRecordExtensions {
-	public static void WriteWithLengthPrefixAndSuffixTo(this ILogRecord record, BinaryWriter writer) {
+public static class LogRecordExtensions
+{
+	public static void WriteWithLengthPrefixAndSuffixTo(this ILogRecord record, BinaryWriter writer)
+	{
 		var localWriter = new BufferWriterSlim<byte>();
-		try {
+		try
+		{
 			record.WriteTo(ref localWriter);
 
 			writer.Write(localWriter.WrittenCount);
 			writer.Write(localWriter.WrittenSpan);
 			writer.Write(localWriter.WrittenCount);
 		}
-		finally {
+		finally
+		{
 			localWriter.Dispose();
 		}
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	private readonly Guid _correlationId = Guid.NewGuid();
 	private readonly Guid _eventId = Guid.NewGuid();
 
 	[Test]
-	public async Task try_read_returns_false_when_writer_checkpoint_is_zero() {
+	public async Task try_read_returns_false_when_writer_checkpoint_is_zero()
+	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint();
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
@@ -52,7 +58,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 	}
 
 	[Test]
-	public async Task try_read_returns_false_when_writer_checksum_is_equal_to_reader_checksum() {
+	public async Task try_read_returns_false_when_writer_checksum_is_equal_to_reader_checksum()
+	{
 		var writerchk = new InMemoryCheckpoint();
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
@@ -72,7 +79,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 	}
 
 	[Test]
-	public async Task open_starts_from_the_latest_chaser_checkpoint() {
+	public async Task open_starts_from_the_latest_chaser_checkpoint()
+	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));
@@ -116,7 +124,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 	}
 
 	[Test]
-	public async Task try_read_returns_record_when_writerchecksum_ahead() {
+	public async Task try_read_returns_record_when_writerchecksum_ahead()
+	{
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
@@ -136,7 +145,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 			metadata: new byte[] { 7, 17 });
 
 		using (var fs = new FileStream(GetFilePathFor("chunk-000000.000000"), FileMode.CreateNew,
-			FileAccess.Write)) {
+			FileAccess.Write))
+		{
 			fs.SetLength(ChunkHeader.Size + ChunkFooter.Size + 10000);
 			var chunkHeader = new ChunkHeader(TFChunk.CurrentChunkVersion, TFChunk.CurrentChunkVersion, 10000, 0, 0, false, Guid.NewGuid(), TransformType.Identity)
 				.AsByteArray();
@@ -164,7 +174,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 
 
 	[Test]
-	public async Task try_read_returns_record_when_record_bigger_than_internal_buffer() {
+	public async Task try_read_returns_record_when_record_bigger_than_internal_buffer()
+	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
 
@@ -208,7 +219,8 @@ public class when_chasing_a_chunked_transaction_log<TLogFormat, TStreamId> : Spe
 	}
 
 	[Test]
-	public async Task try_read_returns_record_when_writerchecksum_equal() {
+	public async Task try_read_returns_record_when_writerchecksum_equal()
+	{
 		var writerchk = new InMemoryCheckpoint(0);
 		var chaserchk = new InMemoryCheckpoint(Checkpoint.Chaser, 0);
 		await using var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, writerchk, chaserchk));

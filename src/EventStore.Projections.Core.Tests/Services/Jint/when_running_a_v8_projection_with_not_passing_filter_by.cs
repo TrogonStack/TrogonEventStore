@@ -9,8 +9,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_running_a_v8_projection_with_not_passing_filter_by : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_running_a_v8_projection_with_not_passing_filter_by : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
                 fromAll().when({$any: 
                     function(state, event) {
@@ -25,7 +27,8 @@ public class when_running_a_v8_projection_with_not_passing_filter_by : TestFixtu
 	}
 
 	[Test, Category(_projectionType)]
-	public void filter_by_that_passes_returns_correct_result() {
+	public void filter_by_that_passes_returns_correct_result()
+	{
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 			"metadata",
@@ -37,7 +40,8 @@ public class when_running_a_v8_projection_with_not_passing_filter_by : TestFixtu
 	}
 
 	[Test, Category(_projectionType)]
-	public void filter_by_that_does_not_pass_returns_correct_result() {
+	public void filter_by_that_does_not_pass_returns_correct_result()
+	{
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 			"metadata",

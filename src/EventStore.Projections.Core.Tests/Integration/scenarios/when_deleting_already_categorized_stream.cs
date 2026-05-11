@@ -9,12 +9,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Integration.scenarios;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_deleting_already_categorized_stream<TLogFormat, TStreamId> : specification_with_a_v8_query_posted<TLogFormat, TStreamId> {
-	protected override void GivenEvents() {
+public class when_deleting_already_categorized_stream<TLogFormat, TStreamId> : specification_with_a_v8_query_posted<TLogFormat, TStreamId>
+{
+	protected override void GivenEvents()
+	{
 	}
 
-	protected override IEnumerable<WhenStep> When() {
-		foreach (var e in base.When()) {
+	protected override IEnumerable<WhenStep> When()
+	{
+		foreach (var e in base.When())
+		{
 			yield return e;
 		}
 
@@ -61,20 +65,24 @@ fromCategory('chat').when({
 ");
 	}
 
-	protected override bool GivenInitializeSystemProjections() {
+	protected override bool GivenInitializeSystemProjections()
+	{
 		return true;
 	}
 
-	protected override bool GivenStartSystemProjections() {
+	protected override bool GivenStartSystemProjections()
+	{
 		return true;
 	}
 
-	protected override string GivenQuery() {
+	protected override string GivenQuery()
+	{
 		return "";
 	}
 
 	[Test, Explicit]
-	public void just() {
+	public void just()
+	{
 		DumpStream("$$chat-2");
 		DumpStream("$ce-chat");
 		DumpStream("out1");

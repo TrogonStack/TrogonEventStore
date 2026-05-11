@@ -11,24 +11,28 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private MiniNode<TLogFormat, TStreamId> _node;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
@@ -41,10 +45,12 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent() {
+	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent()
+	{
 		const string stream =
 			"appending_to_implicitly_created_stream_sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 6).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -61,10 +67,12 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_1e0_2e1_3e2_4e3_4e4_0any_idempotent() {
+	public async Task sequence_0em1_1e0_2e1_3e2_4e3_4e4_0any_idempotent()
+	{
 		const string stream =
 			"appending_to_implicitly_created_stream_sequence_0em1_1e0_2e1_3e2_4e3_4e4_0any_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 6).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -80,10 +88,12 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e5_non_idempotent() {
+	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e5_non_idempotent()
+	{
 		const string stream =
 			"appending_to_implicitly_created_stream_sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e5_non_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 6).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -99,9 +109,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e6_wev() {
+	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e6_wev()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e6_wev";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 6).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -115,9 +127,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e4_wev() {
+	public async Task sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e4_wev()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e4_wev";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 6).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -131,9 +145,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_0e0_non_idempotent() {
+	public async Task sequence_0em1_0e0_non_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_0em1_0e0_non_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 1).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -149,9 +165,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_0any_idempotent() {
+	public async Task sequence_0em1_0any_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_0em1_0any_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 1).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -168,9 +186,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_0em1_idempotent() {
+	public async Task sequence_0em1_0em1_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_0em1_0em1_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 1).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -186,9 +206,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_0em1_1e0_2e1_1any_1any_idempotent() {
+	public async Task sequence_0em1_1e0_2e1_1any_1any_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_0em1_1e0_2e1_1any_1any_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 3).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -206,9 +228,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_S_0em1_1em1_E_S_0em1_E_idempotent() {
+	public async Task sequence_S_0em1_1em1_E_S_0em1_E_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_S_0em1_1em1_E_S_0em1_E_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 2).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -223,9 +247,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_S_0em1_1em1_E_S_0any_E_idempotent() {
+	public async Task sequence_S_0em1_1em1_E_S_0any_E_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_S_0em1_1em1_E_S_0any_E_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 2).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -240,9 +266,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_S_0em1_1em1_E_S_1e0_E_idempotent() {
+	public async Task sequence_S_0em1_1em1_E_S_1e0_E_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_S_0em1_1em1_E_S_1e0_E_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 2).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -257,9 +285,11 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_S_0em1_1em1_E_S_1any_E_idempotent() {
+	public async Task sequence_S_0em1_1em1_E_S_1any_E_idempotent()
+	{
 		const string stream = "appending_to_implicitly_created_stream_sequence_S_0em1_1em1_E_S_1any_E_idempotent";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 2).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();
@@ -274,10 +304,12 @@ public class appending_to_implicitly_created_stream<TLogFormat, TStreamId> : Spe
 
 	[Test]
 	[Category("Network")]
-	public async Task sequence_S_0em1_1em1_E_S_0em1_1em1_2em1_E_idempotancy_fail() {
+	public async Task sequence_S_0em1_1em1_E_S_0em1_1em1_2em1_E_idempotancy_fail()
+	{
 		const string stream =
 			"appending_to_implicitly_created_stream_sequence_S_0em1_1em1_E_S_0em1_1em1_2em1_E_idempotancy_fail";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 2).Select(x => TestEvent.NewTestEvent(Guid.NewGuid())).ToArray();

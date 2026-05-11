@@ -1,5 +1,7 @@
-namespace EventStore.Core.Services.PersistentSubscription {
-	public enum NakAction {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public enum NakAction
+	{
 		Unknown = 0,
 		Park = 1,
 		Retry = 2,

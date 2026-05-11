@@ -5,12 +5,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Integration.scenarios;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_recategorizing_chat_events_by_users<TLogFormat, TStreamId> : specification_with_a_v8_query_posted<TLogFormat, TStreamId> {
-	protected override void GivenEvents() {
+public class when_recategorizing_chat_events_by_users<TLogFormat, TStreamId> : specification_with_a_v8_query_posted<TLogFormat, TStreamId>
+{
+	protected override void GivenEvents()
+	{
 	}
 
-	protected override IEnumerable<WhenStep> When() {
-		foreach (var e in base.When()) {
+	protected override IEnumerable<WhenStep> When()
+	{
+		foreach (var e in base.When())
+		{
 			yield return e;
 		}
 
@@ -72,19 +76,23 @@ fromCategory(""user"")
 ");
 	}
 
-	protected override bool GivenInitializeSystemProjections() {
+	protected override bool GivenInitializeSystemProjections()
+	{
 		return true;
 	}
 
-	protected override bool GivenStartSystemProjections() {
+	protected override bool GivenStartSystemProjections()
+	{
 		return true;
 	}
 
-	protected override string GivenQuery() {
+	protected override string GivenQuery()
+	{
 		return "";
 	}
 
-	protected override IEnumerable<string> GivenOtherProjections() {
+	protected override IEnumerable<string> GivenOtherProjections()
+	{
 		yield return @"
 fromCategory(""chat"")
 .when({
@@ -110,20 +118,23 @@ fromCategory(""user"")
 	}
 
 	[Test]
-	public void query1_returns_correct_result() {
+	public void query1_returns_correct_result()
+	{
 		AssertStreamTailWithLinks(
 			"$projections-query1-result", @"Result:{""count"":3}", @"Result:{""count"":2}", "$Eof:");
 	}
 
 	[Test]
-	public void query2_returns_correct_result() {
+	public void query2_returns_correct_result()
+	{
 		AssertStreamTailWithLinks(
 			"$projections-query2-result", @"Result:{""count"":1}", @"Result:{""count"":2}", @"Result:{""count"":1}",
 			@"Result:{""count"":1}", "$Eof:");
 	}
 
 	[Test]
-	public void other_1_projection_produces_correct_results() {
+	public void other_1_projection_produces_correct_results()
+	{
 		AssertStreamTail(
 			"$projections-other_1-result", "0@$projections-other_1-user-Greg-result",
 			"0@$projections-other_1-user-Ronan-result", "0@$projections-other_1-user-James-result",

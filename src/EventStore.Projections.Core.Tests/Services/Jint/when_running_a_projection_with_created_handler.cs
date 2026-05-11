@@ -10,8 +10,10 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_running_a_projection_with_created_handler : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_running_a_projection_with_created_handler : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
                 fromAll().foreachStream().when({
                     $created: function(s, e) {
@@ -23,7 +25,8 @@ public class when_running_a_projection_with_created_handler : TestFixtureWithInt
 	}
 
 	[Test, Category(_projectionType)]
-	public void returns_emitted_events() {
+	public void returns_emitted_events()
+	{
 		var e = new ResolvedEvent(
 			"stream", 0, "stream", 0, false, new TFPos(1000, 900), Guid.NewGuid(), "event", true, "{}",
 			"{\"m\":1}");

@@ -9,20 +9,23 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_on_existing_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_on_existing_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
 
-	protected override Task When() {
+	protected override Task When()
+	{
 		return _conn.AppendToStreamAsync(_stream, ExpectedVersion.Any,
 			new EventData(Guid.NewGuid(), "whatever", true, Encoding.UTF8.GetBytes("{'foo' : 2}"), new Byte[0]));
 	}
 
 	[Test]
-	public async Task the_completion_succeeds() {
+	public async Task the_completion_succeeds()
+	{
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "existing", _settings,
 			DefaultData.AdminCredentials);
 	}
@@ -31,7 +34,8 @@ public class create_persistent_subscription_on_existing_stream<TLogFormat, TStre
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_on_non_existing_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_on_non_existing_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -41,7 +45,8 @@ public class create_persistent_subscription_on_non_existing_stream<TLogFormat, T
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_completion_succeeds() {
+	public async Task the_completion_succeeds()
+	{
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "nonexistinggroup", _settings,
 			DefaultData.AdminCredentials);
 	}
@@ -50,7 +55,8 @@ public class create_persistent_subscription_on_non_existing_stream<TLogFormat, T
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_on_all_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_on_all_stream<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
@@ -58,7 +64,8 @@ public class create_persistent_subscription_on_all_stream<TLogFormat, TStreamId>
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_completion_fails_with_invalid_stream() {
+	public async Task the_completion_fails_with_invalid_stream()
+	{
 		await AssertEx.ThrowsAsync<InvalidOperationException>(() =>
 			_conn.CreatePersistentSubscriptionAsync("$all", "shitbird", _settings, DefaultData.AdminCredentials));
 	}
@@ -67,11 +74,13 @@ public class create_persistent_subscription_on_all_stream<TLogFormat, TStreamId>
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_with_too_big_message_timeout<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_with_too_big_message_timeout<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public void the_build_fails_with_argument_exception() {
+	public void the_build_fails_with_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			PersistentSubscriptionSettings.Create().WithMessageTimeoutOf(TimeSpan.FromDays(25 * 365)).Build());
 	}
@@ -80,11 +89,13 @@ public class create_persistent_subscription_with_too_big_message_timeout<TLogFor
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_with_too_big_checkpoint_after<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_with_too_big_checkpoint_after<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public void the_build_fails_with_argument_exception() {
+	public void the_build_fails_with_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			PersistentSubscriptionSettings.Create().CheckPointAfter(TimeSpan.FromDays(25 * 365)).Build());
 	}
@@ -92,7 +103,8 @@ public class create_persistent_subscription_with_too_big_checkpoint_after<TLogFo
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_with_dont_timeout<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_with_dont_timeout<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -103,12 +115,14 @@ public class create_persistent_subscription_with_dont_timeout<TLogFormat, TStrea
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public void the_message_timeout_should_be_zero() {
+	public void the_message_timeout_should_be_zero()
+	{
 		Assert.That(_settings.MessageTimeout == TimeSpan.Zero);
 	}
 
 	[Test]
-	public async Task the_subscription_is_created_without_error() {
+	public async Task the_subscription_is_created_without_error()
+	{
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "dont-timeout", _settings,
 			DefaultData.AdminCredentials);
 	}
@@ -116,19 +130,22 @@ public class create_persistent_subscription_with_dont_timeout<TLogFormat, TStrea
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_duplicate_persistent_subscription_group<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_duplicate_persistent_subscription_group<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
 
-	protected override Task When() {
+	protected override Task When()
+	{
 		return _conn.CreatePersistentSubscriptionAsync(_stream, "group32", _settings, DefaultData.AdminCredentials);
 	}
 
 	[Test]
-	public async Task the_completion_fails_with_invalid_operation_exception() {
+	public async Task the_completion_fails_with_invalid_operation_exception()
+	{
 		await AssertEx.ThrowsAsync<InvalidOperationException>(
 			() => _conn.CreatePersistentSubscriptionAsync(_stream, "group32", _settings,
 				DefaultData.AdminCredentials));
@@ -139,19 +156,22 @@ public class create_duplicate_persistent_subscription_group<TLogFormat, TStreamI
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	can_create_duplicate_persistent_subscription_group_name_on_different_streams<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
 
-	protected override Task When() {
+	protected override Task When()
+	{
 		return _conn.CreatePersistentSubscriptionAsync(_stream, "group3211", _settings, DefaultData.AdminCredentials);
 	}
 
 	[Test]
-	public async Task the_completion_succeeds() {
+	public async Task the_completion_succeeds()
+	{
 		await
 			_conn.CreatePersistentSubscriptionAsync("someother" + _stream, "group3211", _settings,
 				DefaultData.AdminCredentials);
@@ -160,7 +180,8 @@ public class
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_group_without_permissions<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_group_without_permissions<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
@@ -170,7 +191,8 @@ public class create_persistent_subscription_group_without_permissions<TLogFormat
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task the_completion_succeeds() {
+	public async Task the_completion_succeeds()
+	{
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() =>
 			_conn.CreatePersistentSubscriptionAsync(_stream, "group57", _settings, null));
 	}
@@ -179,14 +201,16 @@ public class create_persistent_subscription_group_without_permissions<TLogFormat
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class create_persistent_subscription_after_deleting_the_same<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class create_persistent_subscription_after_deleting_the_same<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly string _stream = Guid.NewGuid().ToString();
 
 	private readonly PersistentSubscriptionSettings _settings = PersistentSubscriptionSettings.Create()
 		.DoNotResolveLinkTos()
 		.StartFromCurrent();
 
-	protected override async Task When() {
+	protected override async Task When()
+	{
 		await _conn.AppendToStreamAsync(_stream, ExpectedVersion.Any,
 			new EventData(Guid.NewGuid(), "whatever", true, Encoding.UTF8.GetBytes("{'foo' : 2}"), new Byte[0]));
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials);
@@ -194,7 +218,8 @@ public class create_persistent_subscription_after_deleting_the_same<TLogFormat, 
 	}
 
 	[Test]
-	public async Task the_completion_succeeds() {
+	public async Task the_completion_succeeds()
+	{
 		await _conn.CreatePersistentSubscriptionAsync(_stream, "existing", _settings, DefaultData.AdminCredentials);
 	}
 }

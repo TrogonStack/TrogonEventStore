@@ -4,7 +4,8 @@ using EventStore.BufferManagement;
 
 namespace EventStore.Transport.Tcp.Formatting;
 
-public abstract class FormatterBase<T> : IMessageFormatter<T> {
+public abstract class FormatterBase<T> : IMessageFormatter<T>
+{
 	/// <summary>
 	/// Gets a <see cref="BufferPool"></see> representing the IMessage provided.
 	/// </summary>
@@ -17,7 +18,8 @@ public abstract class FormatterBase<T> : IMessageFormatter<T> {
 	/// </summary>
 	/// <param name="message">The message.</param>
 	/// <returns></returns>
-	public virtual ArraySegment<byte> ToArraySegment(T message) {
+	public virtual ArraySegment<byte> ToArraySegment(T message)
+	{
 		return new ArraySegment<byte>(ToArray(message));
 	}
 
@@ -26,8 +28,10 @@ public abstract class FormatterBase<T> : IMessageFormatter<T> {
 	/// </summary>
 	/// <param name="message">The message.</param>
 	/// <returns></returns>
-	public virtual byte[] ToArray(T message) {
-		using (BufferPool pool = ToBufferPool(message)) {
+	public virtual byte[] ToArray(T message)
+	{
+		using (BufferPool pool = ToBufferPool(message))
+		{
 			return pool.ToByteArray();
 		}
 	}
@@ -37,8 +41,10 @@ public abstract class FormatterBase<T> : IMessageFormatter<T> {
 	/// </summary>
 	/// <param name="bufferPool">The BufferPool to get data from.</param>
 	/// <returns></returns>
-	public virtual T From(BufferPool bufferPool) {
-		if (bufferPool == null) {
+	public virtual T From(BufferPool bufferPool)
+	{
+		if (bufferPool == null)
+		{
 			throw new ArgumentNullException("bufferPool");
 		}
 
@@ -51,8 +57,10 @@ public abstract class FormatterBase<T> : IMessageFormatter<T> {
 	/// </summary>
 	/// <param name="segment">The segment containing the raw data.</param>
 	/// <returns></returns>
-	public virtual T From(ArraySegment<byte> segment) {
-		using (var stream = new MemoryStream(segment.Array, segment.Offset, segment.Count, false)) {
+	public virtual T From(ArraySegment<byte> segment)
+	{
+		using (var stream = new MemoryStream(segment.Array, segment.Offset, segment.Count, false))
+		{
 			return From(stream);
 		}
 	}
@@ -62,12 +70,15 @@ public abstract class FormatterBase<T> : IMessageFormatter<T> {
 	/// </summary>
 	/// <param name="array">The byte array.</param>
 	/// <returns></returns>
-	public virtual T From(byte[] array) {
-		if (array == null) {
+	public virtual T From(byte[] array)
+	{
+		if (array == null)
+		{
 			throw new ArgumentNullException("array");
 		}
 
-		using (var stream = new MemoryStream(array, 0, array.Length, false)) {
+		using (var stream = new MemoryStream(array, 0, array.Length, false))
+		{
 			return From(stream);
 		}
 	}

@@ -4,29 +4,35 @@ using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 
 namespace EventStore.Projections.Core.Services.Processing.Emitting;
 
-public class ResultEventEmitter : IResultEventEmitter {
+public class ResultEventEmitter : IResultEventEmitter
+{
 	private readonly ProjectionNamesBuilder _namesBuilder;
 
 	private readonly EmittedStream.WriterConfiguration.StreamMetadata _resultStreamMetadata =
 		new EmittedStream.WriterConfiguration.StreamMetadata( /* TBD */);
 
-	public ResultEventEmitter(ProjectionNamesBuilder namesBuilder) {
-		if (namesBuilder == null) {
+	public ResultEventEmitter(ProjectionNamesBuilder namesBuilder)
+	{
+		if (namesBuilder == null)
+		{
 			throw new ArgumentNullException("namesBuilder");
 		}
 
 		_namesBuilder = namesBuilder;
 	}
 
-	public EmittedEventEnvelope[] ResultUpdated(string partition, string result, CheckpointTag at) {
+	public EmittedEventEnvelope[] ResultUpdated(string partition, string result, CheckpointTag at)
+	{
 		return CreateResultUpdatedEvents(partition, result, at);
 	}
 
 	private EmittedEventEnvelope[] CreateResultUpdatedEvents(string partition, string projectionResult,
-		CheckpointTag at) {
+		CheckpointTag at)
+	{
 		var streamId = _namesBuilder.MakePartitionResultStreamName(partition);
 		var allResultsStreamId = _namesBuilder.GetResultStreamName();
-		if (string.IsNullOrEmpty(partition)) {
+		if (string.IsNullOrEmpty(partition))
+		{
 			var result =
 				new EmittedEventEnvelope(
 					projectionResult == null
@@ -38,7 +44,8 @@ public class ResultEventEmitter : IResultEventEmitter {
 
 			return new[] { result };
 		}
-		else {
+		else
+		{
 			var linkTo = new EmittedLinkTo(allResultsStreamId, Guid.NewGuid(), streamId, at, null);
 			var linkToEnvelope = new EmittedEventEnvelope(linkTo, _resultStreamMetadata);
 			var result =

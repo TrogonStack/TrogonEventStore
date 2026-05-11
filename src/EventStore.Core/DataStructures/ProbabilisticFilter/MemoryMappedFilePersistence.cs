@@ -5,8 +5,10 @@ using System.Runtime.InteropServices;
 using EventStore.Common.Utils;
 using Serilog;
 
-namespace EventStore.Core.DataStructures.ProbabilisticFilter {
-	public unsafe class MemoryMappedFilePersistence : IPersistenceStrategy {
+namespace EventStore.Core.DataStructures.ProbabilisticFilter
+{
+	public unsafe class MemoryMappedFilePersistence : IPersistenceStrategy
+	{
 		public static readonly ILogger Log = Serilog.Log.ForContext<MemoryMappedFilePersistence>();
 		private readonly long _size;
 		private readonly string _path;
@@ -15,7 +17,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		private FileStream _fileStream;
 		private bool _disposed;
 
-		public MemoryMappedFilePersistence(long size, string path, bool create) {
+		public MemoryMappedFilePersistence(long size, string path, bool create)
+		{
 			Ensure.NotNull(path, nameof(path));
 
 			_size = size;
@@ -26,7 +29,8 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		public BloomFilterAccessor DataAccessor { get; private set; }
 		public bool Create { get; }
 
-		public void Init() {
+		public void Init()
+		{
 			DataAccessor = new BloomFilterAccessor(
 				logicalFilterSize: _size,
 				cacheLineSize: BloomFilterIntegrity.CacheLineSize,
@@ -42,12 +46,15 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 				FileAccess.ReadWrite,
 				FileShare.ReadWrite);
 
-			if (Create) {
+			if (Create)
+			{
 				_fileStream.SetLength(DataAccessor.FileSize);
 			}
-			else {
+			else
+			{
 				// existing
-				if (_fileStream.Length != DataAccessor.FileSize) {
+				if (_fileStream.Length != DataAccessor.FileSize)
+				{
 					throw new SizeMismatchException(
 						$"The expected file size ({DataAccessor.FileSize:N0}) does not match " +
 						$"the actual file size ({_fileStream.Length:N0}) of file {_path}");
@@ -73,36 +80,45 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			_mmfWriteAccessor.SafeMemoryMappedViewHandle.AcquirePointer(ref pointer);
 			DataAccessor.Pointer = pointer;
 
-			if (Create) {
+			if (Create)
+			{
 				DataAccessor.FillWithZeros();
 			}
-			else {
+			else
+			{
 				// do not fill with zeros; would overwrite the data.
 			}
 		}
 
-		public void Flush() {
+		public void Flush()
+		{
 			_mmfWriteAccessor.Flush();
 			_fileStream.FlushToDisk();
 		}
 
 		// todo later: maybe could be a common implementation across the strategies that reads
 		// from the DataAccessor
-		public Header ReadHeader() {
-			try {
+		public Header ReadHeader()
+		{
+			try
+			{
 				//read the version first
-				using (var headerAccessor = _mmf.CreateViewAccessor(0, 1, MemoryMappedFileAccess.Read)) {
+				using (var headerAccessor = _mmf.CreateViewAccessor(0, 1, MemoryMappedFileAccess.Read))
+				{
 					byte version = headerAccessor.ReadByte(0);
-					if (version != Header.CurrentVersion) {
+					if (version != Header.CurrentVersion)
+					{
 						throw new CorruptedFileException($"Unsupported version: {version}");
 					}
 				}
 
 				//then the full header
 				var headerBytes = new byte[Header.Size].AsSpan();
-				using (var headerAccessor = _mmf.CreateViewStream(0, Header.Size, MemoryMappedFileAccess.Read)) {
+				using (var headerAccessor = _mmf.CreateViewStream(0, Header.Size, MemoryMappedFileAccess.Read))
+				{
 					int read = headerAccessor.Read(headerBytes);
-					if (read != Header.Size) {
+					if (read != Header.Size)
+					{
 						throw new CorruptedFileException(
 							$"File header size ({read} bytes) does not match expected header size ({Header.Size} bytes)");
 					}
@@ -110,12 +126,14 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 
 				return MemoryMarshal.AsRef<Header>(headerBytes);
 			}
-			catch (Exception exc) when (exc is not CorruptedFileException) {
+			catch (Exception exc) when (exc is not CorruptedFileException)
+			{
 				throw new CorruptedFileException("Failed to read the header", exc);
 			}
 		}
 
-		public void WriteHeader(Header header) {
+		public void WriteHeader(Header header)
+		{
 			var span = MemoryMarshal.CreateReadOnlySpan(ref header, 1);
 			var headerBytes = MemoryMarshal.Cast<Header, byte>(span);
 			using var headerAccessor = _mmf.CreateViewStream(0, Header.Size, MemoryMappedFileAccess.Write);
@@ -123,14 +141,17 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			headerAccessor.Flush();
 		}
 
-		public void Dispose() {
-			if (_disposed) {
+		public void Dispose()
+		{
+			if (_disposed)
+			{
 				return;
 			}
 
 			_disposed = true;
 
-			if (DataAccessor is not null) {
+			if (DataAccessor is not null)
+			{
 				DataAccessor.Pointer = default;
 			}
 

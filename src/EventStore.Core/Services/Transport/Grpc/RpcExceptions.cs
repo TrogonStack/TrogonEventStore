@@ -6,8 +6,10 @@ using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	public static class RpcExceptions {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	public static class RpcExceptions
+	{
 		public static Exception Timeout(string message) => new RpcException(new Status(StatusCode.Aborted, $"Operation timed out: {message}"));
 
 		public static RpcException ServerNotReady() =>
@@ -139,9 +141,11 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					{Constants.Exceptions.RequiredMetadataProperties, string.Join(",", Constants.Metadata.RequiredMetadata)}
 				});
 
-		public static bool TryHandleNotHandled(ClientMessage.NotHandled notHandled, out Exception exception) {
+		public static bool TryHandleNotHandled(ClientMessage.NotHandled notHandled, out Exception exception)
+		{
 			exception = null;
-			switch (notHandled.Reason) {
+			switch (notHandled.Reason)
+			{
 				case ClientMessage.NotHandled.Types.NotHandledReason.NotReady:
 					exception = ServerNotReady();
 					return true;
@@ -150,7 +154,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 					return true;
 				case ClientMessage.NotHandled.Types.NotHandledReason.NotLeader:
 				case ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly:
-					switch (notHandled.LeaderInfo) {
+					switch (notHandled.LeaderInfo)
+					{
 						case { } leaderInfo:
 							exception = LeaderInfo(leaderInfo.Http.GetHost(), leaderInfo.Http.GetPort());
 							return true;

@@ -14,12 +14,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_loading_a_managed_projection_state<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_loading_a_managed_projection_state<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private new ITimeProvider _timeProvider;
 
 	private ManagedProjection _mp;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_timeProvider = new FakeTimeProvider();
 		_mp = new ManagedProjection(
 			Guid.NewGuid(),
@@ -48,14 +50,17 @@ public class when_loading_a_managed_projection_state<TLogFormat, TStreamId> : Te
 	}
 
 	[Test]
-	public void null_handler_type_throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void null_handler_type_throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			ProjectionManagementMessage.Command.Post message = new ProjectionManagementMessage.Command.Post(
 				new NoopEnvelope(), ProjectionMode.OneTime, "name", ProjectionManagementMessage.RunAs.Anonymous,
 				(string)null, @"log(1);", enabled: true, checkpointsEnabled: false, emitEnabled: false,
 				trackEmittedStreams: false);
 			_mp.InitializeNew(
-				new ManagedProjection.PersistedState {
+				new ManagedProjection.PersistedState
+				{
 					Enabled = message.Enabled,
 					HandlerType = message.HandlerType,
 					Query = message.Query,
@@ -71,14 +76,17 @@ public class when_loading_a_managed_projection_state<TLogFormat, TStreamId> : Te
 	}
 
 	[Test]
-	public void empty_handler_type_throws_argument_null_exception() {
-		Assert.Throws<ArgumentException>(() => {
+	public void empty_handler_type_throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentException>(() =>
+		{
 			ProjectionManagementMessage.Command.Post message = new ProjectionManagementMessage.Command.Post(
 				new NoopEnvelope(), ProjectionMode.OneTime, "name", ProjectionManagementMessage.RunAs.Anonymous, "",
 				@"log(1);", enabled: true, checkpointsEnabled: false, emitEnabled: false,
 				trackEmittedStreams: false);
 			_mp.InitializeNew(
-				new ManagedProjection.PersistedState {
+				new ManagedProjection.PersistedState
+				{
 					Enabled = message.Enabled,
 					HandlerType = message.HandlerType,
 					Query = message.Query,
@@ -94,14 +102,17 @@ public class when_loading_a_managed_projection_state<TLogFormat, TStreamId> : Te
 	}
 
 	[Test]
-	public void null_query_throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void null_query_throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			ProjectionManagementMessage.Command.Post message = new ProjectionManagementMessage.Command.Post(
 				new NoopEnvelope(), ProjectionMode.OneTime, "name", ProjectionManagementMessage.RunAs.Anonymous,
 				"JS", query: null, enabled: true, checkpointsEnabled: false, emitEnabled: false,
 				trackEmittedStreams: false);
 			_mp.InitializeNew(
-				new ManagedProjection.PersistedState {
+				new ManagedProjection.PersistedState
+				{
 					Enabled = message.Enabled,
 					HandlerType = message.HandlerType,
 					Query = message.Query,

@@ -5,7 +5,8 @@ using EventStore.Core.Services.Monitoring.Stats;
 
 namespace EventStore.Core.Tests.Bus;
 
-public class FakeQueuedHandler : IQueuedHandler {
+public class FakeQueuedHandler : IQueuedHandler
+{
 	public string Name => string.Empty;
 	public void Handle(Message message) { }
 	public void Publish(Message message) { }

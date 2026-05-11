@@ -8,9 +8,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services;
 
 [TestFixture]
-public class PersistentSubscriptionConfigTests {
+public class PersistentSubscriptionConfigTests
+{
 	[Test]
-	public void output_can_be_read_as_input_and_keep_same_values() {
+	public void output_can_be_read_as_input_and_keep_same_values()
+	{
 		var config = new PersistentSubscriptionConfig();
 		config.Updated = new DateTime(2014, 08, 14);
 		config.UpdatedBy = "Greg";
@@ -25,26 +27,30 @@ public class PersistentSubscriptionConfigTests {
 	}
 
 	[Test]
-	public void bad_json_causes_bad_config_data_exception() {
+	public void bad_json_causes_bad_config_data_exception()
+	{
 		var bunkdata = Encoding.UTF8.GetBytes("{'some weird stuff' : 'something'}");
 		Assert.Throws<BadConfigDataException>(() => PersistentSubscriptionConfig.FromSerializedForm(bunkdata));
 	}
 
 	[Test]
-	public void random_bad_data_causes_bad_config_data_exception() {
+	public void random_bad_data_causes_bad_config_data_exception()
+	{
 		var bunkdata = Encoding.UTF8.GetBytes("This ain't even valid json");
 		Assert.Throws<BadConfigDataException>(() => PersistentSubscriptionConfig.FromSerializedForm(bunkdata));
 	}
 
 	[Test]
-	public void event_filter_is_parsed_correctly() {
+	public void event_filter_is_parsed_correctly()
+	{
 		var config = new PersistentSubscriptionConfig();
 		config.Updated = new DateTime(2014, 08, 14);
 		config.UpdatedBy = "admin";
 		config.Version = "1";
 
 		var filter = EventFilter.StreamName.Prefixes(true, "test", "blah");
-		var entry = new PersistentSubscriptionEntry {
+		var entry = new PersistentSubscriptionEntry
+		{
 			Group = "foo",
 			Stream = "$all",
 			Filter = EventFilter.ParseToDto(filter)
@@ -60,13 +66,15 @@ public class PersistentSubscriptionConfigTests {
 	}
 
 	[Test]
-	public void no_event_filter_is_parsed_correctly() {
+	public void no_event_filter_is_parsed_correctly()
+	{
 		var config = new PersistentSubscriptionConfig();
 		config.Updated = new DateTime(2014, 08, 14);
 		config.UpdatedBy = "admin";
 		config.Version = "1";
 
-		var entry = new PersistentSubscriptionEntry {
+		var entry = new PersistentSubscriptionEntry
+		{
 			Group = "foo",
 			Stream = "$all",
 			Filter = null

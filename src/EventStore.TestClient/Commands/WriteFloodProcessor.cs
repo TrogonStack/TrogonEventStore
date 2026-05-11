@@ -11,48 +11,60 @@ using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class WriteFloodProcessor : ICmdProcessor {
-	public string Usage {
+internal class WriteFloodProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		//                     0          1            2           3          4             5
 		get { return "WRFL [<clients> <requests> [<streams-cnt> [<size> [<batchsize> [<stream-prefix>]]]]]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "WRFL"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		int clientsCnt = 1;
 		long requestsCnt = 5000;
 		int streamsCnt = 1000;
 		int size = 256;
 		int batchSize = 1;
 		string streamNamePrefix = string.Empty;
-		if (args.Length > 0) {
-			if (args.Length < 2 || args.Length > 6) {
+		if (args.Length > 0)
+		{
+			if (args.Length < 2 || args.Length > 6)
+			{
 				return false;
 			}
 
-			try {
+			try
+			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
-				if (args.Length >= 3) {
+				if (args.Length >= 3)
+				{
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
 				}
 
-				if (args.Length >= 4) {
+				if (args.Length >= 4)
+				{
 					size = MetricPrefixValue.ParseInt(args[3]);
 				}
 
-				if (args.Length >= 5) {
+				if (args.Length >= 5)
+				{
 					batchSize = MetricPrefixValue.ParseInt(args[4]);
 				}
 
-				if (args.Length >= 6) {
+				if (args.Length >= 6)
+				{
 					streamNamePrefix = args[5];
 				}
 			}
-			catch {
+			catch
+			{
 				return false;
 			}
 		}
@@ -64,7 +76,8 @@ internal class WriteFloodProcessor : ICmdProcessor {
 	}
 
 	private void WriteFlood(CommandProcessorContext context, WriteFloodStats stats, int clientsCnt, long requestsCnt, int streamsCnt,
-		int size, int batchSize, string streamNamePrefix, RequestMonitor monitor) {
+		int size, int batchSize, string streamNamePrefix, RequestMonitor monitor)
+	{
 		context.IsAsync();
 
 		var doneEvent = new ManualResetEventSlim(false);
@@ -86,25 +99,30 @@ internal class WriteFloodProcessor : ICmdProcessor {
 		Console.WriteLine($"Last stream: {streams.LastOrDefault()}");
 		stats.StartTime = DateTime.UtcNow;
 		var sw2 = new Stopwatch();
-		for (int i = 0; i < clientsCnt; i++) {
+		for (int i = 0; i < clientsCnt; i++)
+		{
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			long sent = 0;
 			long received = 0;
 			var rnd = new Random();
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, pkg) => {
-					if (pkg.Command != TcpCommand.WriteEventsCompleted) {
+				(conn, pkg) =>
+				{
+					if (pkg.Command != TcpCommand.WriteEventsCompleted)
+					{
 						context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 						return;
 					}
 
 					var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
 					monitor.EndOperation(pkg.CorrelationId);
-					switch (dto.Result) {
+					switch (dto.Result)
+					{
 						case OperationResult.Success:
 							Interlocked.Add(ref stats.Succ, batchSize);
-							if (stats.Succ - last > 1000) {
+							if (stats.Succ - last > 1000)
+							{
 								last = stats.Succ;
 								Console.Write(".");
 							}
@@ -129,15 +147,18 @@ internal class WriteFloodProcessor : ICmdProcessor {
 							throw new ArgumentOutOfRangeException();
 					}
 
-					if (dto.Result != OperationResult.Success) {
-						if (Interlocked.Increment(ref stats.Fail) % 1000 == 0) {
+					if (dto.Result != OperationResult.Success)
+					{
+						if (Interlocked.Increment(ref stats.Fail) % 1000 == 0)
+						{
 							Console.Write('#');
 						}
 					}
 
 					Interlocked.Increment(ref received);
 					var localAll = Interlocked.Add(ref stats.All, batchSize);
-					if (localAll % 100000 == 0) {
+					if (localAll % 100000 == 0)
+					{
 						stats.Elapsed = sw2.Elapsed;
 						stats.Rate = 1000.0 * 100000 / stats.Elapsed.TotalMilliseconds;
 						sw2.Restart();
@@ -149,7 +170,8 @@ internal class WriteFloodProcessor : ICmdProcessor {
 						stats.WriteStatsToFile(context.StatsLogger);
 					}
 
-					if (localAll >= requestsCnt) {
+					if (localAll >= requestsCnt)
+					{
 						context.Success();
 						doneEvent.Set();
 					}
@@ -157,10 +179,13 @@ internal class WriteFloodProcessor : ICmdProcessor {
 				connectionClosed: (conn, err) => context.Fail(reason: "Connection was closed prematurely."));
 			clients.Add(client);
 
-			threads.Add(new Thread(() => {
-				for (int j = 0; j < count; ++j) {
+			threads.Add(new Thread(() =>
+			{
+				for (int j = 0; j < count; ++j)
+				{
 					var events = new NewEvent[batchSize];
-					for (int q = 0; q < batchSize; q++) {
+					for (int q = 0; q < batchSize; q++)
+					{
 						events[q] = new NewEvent(Guid.NewGuid().ToByteArray(),
 							"TakeSomeSpaceEvent",
 							1, 0,
@@ -182,11 +207,13 @@ internal class WriteFloodProcessor : ICmdProcessor {
 
 					var localSent = Interlocked.Increment(ref sent);
 					while (localSent - Interlocked.Read(ref received) >
-						   context._tcpTestClient.Options.WriteWindow / clientsCnt) {
+						   context._tcpTestClient.Options.WriteWindow / clientsCnt)
+					{
 						Thread.Sleep(1);
 					}
 				}
-			}) { IsBackground = true });
+			})
+			{ IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -225,10 +252,12 @@ internal class WriteFloodProcessor : ICmdProcessor {
 			string.Format("{0}-c{1}-r{2}-st{3}-s{4}-failureSuccessRate", Keyword, clientsCnt, requestsCnt,
 				streamsCnt, size), failuresRate);
 		monitor.GetMeasurementDetails();
-		if (Interlocked.Read(ref stats.Succ) != requestsCnt) {
+		if (Interlocked.Read(ref stats.Succ) != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
 		}
-		else {
+		else
+		{
 			context.Success();
 		}
 	}

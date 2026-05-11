@@ -4,9 +4,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge.Sqlite;
 
-public class SqliteTypeMappingTests {
+public class SqliteTypeMappingTests
+{
 	[Fact]
-	public void can_map() {
+	public void can_map()
+	{
 		Assert.Equal(SqliteType.Integer, SqliteTypeMapping.Map<int>());
 		Assert.Equal(SqliteType.Real, SqliteTypeMapping.Map<float>());
 		Assert.Equal(SqliteType.Integer, SqliteTypeMapping.Map<long>());
@@ -15,7 +17,8 @@ public class SqliteTypeMappingTests {
 	}
 
 	[Fact]
-	public void can_get_type_name() {
+	public void can_get_type_name()
+	{
 		Assert.Equal("INTEGER", SqliteTypeMapping.GetTypeName<int>());
 		Assert.Equal("REAL", SqliteTypeMapping.GetTypeName<float>());
 		Assert.Equal("INTEGER", SqliteTypeMapping.GetTypeName<long>());

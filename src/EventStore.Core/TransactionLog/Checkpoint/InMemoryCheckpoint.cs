@@ -1,9 +1,12 @@
 using System;
 using System.Threading;
 
-namespace EventStore.Core.TransactionLog.Checkpoint {
-	public class InMemoryCheckpoint : ICheckpoint {
-		public string Name {
+namespace EventStore.Core.TransactionLog.Checkpoint
+{
+	public class InMemoryCheckpoint : ICheckpoint
+	{
+		public string Name
+		{
 			get { return _name; }
 		}
 
@@ -11,33 +14,41 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 		private long _lastFlushed;
 		private readonly string _name;
 
-		public InMemoryCheckpoint(long initialValue) : this(Guid.NewGuid().ToString(), initialValue) {
+		public InMemoryCheckpoint(long initialValue) : this(Guid.NewGuid().ToString(), initialValue)
+		{
 		}
 
-		public InMemoryCheckpoint() : this(Guid.NewGuid().ToString(), 0) {
+		public InMemoryCheckpoint() : this(Guid.NewGuid().ToString(), 0)
+		{
 		}
 
-		public InMemoryCheckpoint(string name, long initValue = 0) {
+		public InMemoryCheckpoint(string name, long initValue = 0)
+		{
 			_last = initValue;
 			_lastFlushed = initValue;
 			_name = name;
 		}
 
-		public void Write(long checkpoint) {
+		public void Write(long checkpoint)
+		{
 			Interlocked.Exchange(ref _last, checkpoint);
 		}
 
-		public long Read() {
+		public long Read()
+		{
 			return Interlocked.Read(ref _lastFlushed);
 		}
 
-		public long ReadNonFlushed() {
+		public long ReadNonFlushed()
+		{
 			return Interlocked.Read(ref _last);
 		}
 
-		public void Flush() {
+		public void Flush()
+		{
 			var last = Interlocked.Read(ref _last);
-			if (last == _lastFlushed) {
+			if (last == _lastFlushed)
+			{
 				return;
 			}
 
@@ -48,15 +59,19 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 
 		public event Action<long> Flushed;
 
-		private void OnFlushed(long obj) {
+		private void OnFlushed(long obj)
+		{
 			var onFlushed = Flushed;
-			if (onFlushed != null) {
+			if (onFlushed != null)
+			{
 				onFlushed.Invoke(obj);
 			}
 		}
 
-		public void Close(bool flush) {
-			if (flush) {
+		public void Close(bool flush)
+		{
+			if (flush)
+			{
 				Flush();
 			}
 		}

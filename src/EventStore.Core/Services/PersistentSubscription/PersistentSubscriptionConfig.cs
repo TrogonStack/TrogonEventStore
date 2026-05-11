@@ -3,21 +3,27 @@ using System.Collections.Generic;
 using EventStore.Common.Utils;
 using EventStore.Core.Services.Storage.ReaderIndex;
 
-namespace EventStore.Core.Services.PersistentSubscription {
-	public class PersistentSubscriptionConfig {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public class PersistentSubscriptionConfig
+	{
 		public string Version;
 		public DateTime Updated;
 		public string UpdatedBy;
 		public List<PersistentSubscriptionEntry> Entries = new List<PersistentSubscriptionEntry>();
 
-		public byte[] GetSerializedForm() {
+		public byte[] GetSerializedForm()
+		{
 			return this.ToJsonBytes();
 		}
 
-		public static PersistentSubscriptionConfig FromSerializedForm(ReadOnlyMemory<byte> data) {
-			try {
+		public static PersistentSubscriptionConfig FromSerializedForm(ReadOnlyMemory<byte> data)
+		{
+			try
+			{
 				var ret = data.ParseJson<PersistentSubscriptionConfig>();
-				if (ret.Version == null) {
+				if (ret.Version == null)
+				{
 					throw new BadConfigDataException("Deserialized but no version present, invalid configuration data.",
 						null);
 				}
@@ -26,16 +32,22 @@ namespace EventStore.Core.Services.PersistentSubscription {
 
 				return ret;
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				throw new BadConfigDataException("The config data appears to be invalid", ex);
 			}
 		}
 
-		private static void UpdateIfRequired(PersistentSubscriptionConfig ret) {
-			if (ret.Version == "1") {
-				if (ret.Entries != null) {
-					foreach (var persistentSubscriptionEntry in ret.Entries) {
-						if (string.IsNullOrEmpty(persistentSubscriptionEntry.NamedConsumerStrategy)) {
+		private static void UpdateIfRequired(PersistentSubscriptionConfig ret)
+		{
+			if (ret.Version == "1")
+			{
+				if (ret.Entries != null)
+				{
+					foreach (var persistentSubscriptionEntry in ret.Entries)
+					{
+						if (string.IsNullOrEmpty(persistentSubscriptionEntry.NamedConsumerStrategy))
+						{
 							persistentSubscriptionEntry.NamedConsumerStrategy =
 								persistentSubscriptionEntry.PreferRoundRobin
 									? SystemConsumerStrategies.RoundRobin
@@ -49,12 +61,15 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		}
 	}
 
-	public class BadConfigDataException : Exception {
-		public BadConfigDataException(string message, Exception inner) : base(message, inner) {
+	public class BadConfigDataException : Exception
+	{
+		public BadConfigDataException(string message, Exception inner) : base(message, inner)
+		{
 		}
 	}
 
-	public class PersistentSubscriptionEntry {
+	public class PersistentSubscriptionEntry
+	{
 		public string Stream;
 		public string Group;
 		public EventFilter.EventFilterDto Filter;

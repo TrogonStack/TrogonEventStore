@@ -11,11 +11,13 @@ public class AdHocIndexReaderInterceptor<TStreamId>(
 	Func<
 		Func<StreamHandle<TStreamId>, long, int, ScavengePoint, CancellationToken, ValueTask<IndexReadEventInfoResult>>,
 		StreamHandle<TStreamId>, long, int, ScavengePoint, CancellationToken, ValueTask<IndexReadEventInfoResult>> f)
-	: IIndexReaderForCalculator<TStreamId> {
+	: IIndexReaderForCalculator<TStreamId>
+{
 	public ValueTask<long> GetLastEventNumber(
 		StreamHandle<TStreamId> streamHandle,
 		ScavengePoint scavengePoint,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
 		return wrapped.GetLastEventNumber(streamHandle, scavengePoint, token);
 	}
@@ -25,12 +27,14 @@ public class AdHocIndexReaderInterceptor<TStreamId>(
 		long fromEventNumber,
 		int maxCount,
 		ScavengePoint scavengePoint,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
 		return f(wrapped.ReadEventInfoForward, stream, fromEventNumber, maxCount, scavengePoint, token);
 	}
 
-	public ValueTask<bool> IsTombstone(long logPosition, CancellationToken token) {
+	public ValueTask<bool> IsTombstone(long logPosition, CancellationToken token)
+	{
 		return wrapped.IsTombstone(logPosition, token);
 	}
 }

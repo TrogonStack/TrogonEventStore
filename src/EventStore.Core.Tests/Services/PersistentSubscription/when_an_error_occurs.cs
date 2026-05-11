@@ -15,16 +15,19 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture]
-public class PersistentSubscriptionServiceErrorTests {
+public class PersistentSubscriptionServiceErrorTests
+{
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public abstract class when_an_error_occurs<TLogFormat, TStreamId, TMessage, TReply, TResult>
-		where TMessage : Message where TReply : Message {
+		where TMessage : Message where TReply : Message
+	{
 		private readonly TResult _expectedResult;
 		private readonly PersistentSubscriptionService<TStreamId> _sut;
 		private readonly TaskCompletionSource<Message> _replySource;
 		private readonly CallbackEnvelope _envelope;
 
-		protected when_an_error_occurs(TResult expectedResult) {
+		protected when_an_error_occurs(TResult expectedResult)
+		{
 			_expectedResult = expectedResult;
 			_replySource = new TaskCompletionSource<Message>();
 			var bus = new SynchronousScheduler();
@@ -49,7 +52,8 @@ public class PersistentSubscriptionServiceErrorTests {
 		protected abstract TResult GetResult(TReply reply);
 
 		[Test]
-		public async Task test() {
+		public async Task test()
+		{
 			Handle(CreateMessage(_envelope));
 			var result = await _replySource.Task.WithTimeout();
 			Assert.IsInstanceOf<TReply>(result);
@@ -58,7 +62,8 @@ public class PersistentSubscriptionServiceErrorTests {
 				_expectedResult, GetResult((TReply)result));
 		}
 
-		private class MetaStreamLookup : IMetastreamLookup<TStreamId> {
+		private class MetaStreamLookup : IMetastreamLookup<TStreamId>
+		{
 			public bool IsMetaStream(TStreamId streamId) => throw new NotSupportedException();
 
 			public TStreamId MetaStreamOf(TStreamId streamId) => throw new NotSupportedException();
@@ -71,9 +76,11 @@ public class PersistentSubscriptionServiceErrorTests {
 	public class create_stream<TLogFormat, TStreamId> : when_an_error_occurs<TLogFormat, TStreamId,
 		ClientMessage.CreatePersistentSubscriptionToStream,
 		ClientMessage.CreatePersistentSubscriptionToStreamCompleted,
-		ClientMessage.CreatePersistentSubscriptionToStreamCompleted.CreatePersistentSubscriptionToStreamResult> {
+		ClientMessage.CreatePersistentSubscriptionToStreamCompleted.CreatePersistentSubscriptionToStreamResult>
+	{
 		public create_stream() : base(ClientMessage.CreatePersistentSubscriptionToStreamCompleted
-			.CreatePersistentSubscriptionToStreamResult.Fail) {
+			.CreatePersistentSubscriptionToStreamResult.Fail)
+		{
 		}
 
 		protected override ClientMessage.CreatePersistentSubscriptionToStream CreateMessage(IEnvelope envelope) =>
@@ -91,9 +98,11 @@ public class PersistentSubscriptionServiceErrorTests {
 	public class create_all<TLogFormat, TStreamId> : when_an_error_occurs<TLogFormat, TStreamId,
 		ClientMessage.CreatePersistentSubscriptionToAll,
 		ClientMessage.CreatePersistentSubscriptionToAllCompleted,
-		ClientMessage.CreatePersistentSubscriptionToAllCompleted.CreatePersistentSubscriptionToAllResult> {
+		ClientMessage.CreatePersistentSubscriptionToAllCompleted.CreatePersistentSubscriptionToAllResult>
+	{
 		public create_all() : base(ClientMessage.CreatePersistentSubscriptionToAllCompleted
-			.CreatePersistentSubscriptionToAllResult.Fail) {
+			.CreatePersistentSubscriptionToAllResult.Fail)
+		{
 		}
 
 		protected override ClientMessage.CreatePersistentSubscriptionToAll CreateMessage(IEnvelope envelope) => new(
@@ -109,9 +118,11 @@ public class PersistentSubscriptionServiceErrorTests {
 	public class update_stream<TLogFormat, TStreamId> : when_an_error_occurs<TLogFormat, TStreamId,
 		ClientMessage.UpdatePersistentSubscriptionToStream,
 		ClientMessage.UpdatePersistentSubscriptionToStreamCompleted,
-		ClientMessage.UpdatePersistentSubscriptionToStreamCompleted.UpdatePersistentSubscriptionToStreamResult> {
+		ClientMessage.UpdatePersistentSubscriptionToStreamCompleted.UpdatePersistentSubscriptionToStreamResult>
+	{
 		public update_stream() : base(ClientMessage.UpdatePersistentSubscriptionToStreamCompleted
-			.UpdatePersistentSubscriptionToStreamResult.Fail) {
+			.UpdatePersistentSubscriptionToStreamResult.Fail)
+		{
 		}
 
 		protected override ClientMessage.UpdatePersistentSubscriptionToStream CreateMessage(IEnvelope envelope) =>
@@ -129,9 +140,11 @@ public class PersistentSubscriptionServiceErrorTests {
 	public class update_all<TLogFormat, TStreamId> : when_an_error_occurs<TLogFormat, TStreamId,
 		ClientMessage.UpdatePersistentSubscriptionToAll,
 		ClientMessage.UpdatePersistentSubscriptionToAllCompleted,
-		ClientMessage.UpdatePersistentSubscriptionToAllCompleted.UpdatePersistentSubscriptionToAllResult> {
+		ClientMessage.UpdatePersistentSubscriptionToAllCompleted.UpdatePersistentSubscriptionToAllResult>
+	{
 		public update_all() : base(ClientMessage.UpdatePersistentSubscriptionToAllCompleted
-			.UpdatePersistentSubscriptionToAllResult.Fail) {
+			.UpdatePersistentSubscriptionToAllResult.Fail)
+		{
 		}
 
 		protected override ClientMessage.UpdatePersistentSubscriptionToAll CreateMessage(IEnvelope envelope) => new(

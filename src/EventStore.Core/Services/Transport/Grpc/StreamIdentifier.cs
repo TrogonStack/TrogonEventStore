@@ -2,11 +2,15 @@ using System.Text;
 using Google.Protobuf;
 
 // ReSharper disable once CheckNamespace
-namespace EventStore.Client {
-	partial class StreamIdentifier {
+namespace EventStore.Client
+{
+	partial class StreamIdentifier
+	{
 		private string _cached;
-		public static implicit operator string(StreamIdentifier source) {
-			if (source._cached != null || source.StreamName.IsEmpty) {
+		public static implicit operator string(StreamIdentifier source)
+		{
+			if (source._cached != null || source.StreamName.IsEmpty)
+			{
 				return source._cached;
 			}
 

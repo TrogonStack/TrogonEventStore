@@ -2,8 +2,10 @@ using System;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Services.PersistentSubscription {
-	public struct OutstandingMessage {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public struct OutstandingMessage
+	{
 		public readonly ResolvedEvent ResolvedEvent;
 		public readonly int RetryCount;
 		public readonly Guid EventId;
@@ -12,7 +14,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		public readonly IPersistentSubscriptionStreamPosition EventPosition;
 		public readonly IPersistentSubscriptionStreamPosition PreviousEventPosition;
 
-		private OutstandingMessage(Guid eventId, ResolvedEvent resolvedEvent, int retryCount, bool isReplayedEvent, long? eventSequenceNumber, IPersistentSubscriptionStreamPosition eventPosition, IPersistentSubscriptionStreamPosition previousEventPosition) : this() {
+		private OutstandingMessage(Guid eventId, ResolvedEvent resolvedEvent, int retryCount, bool isReplayedEvent, long? eventSequenceNumber, IPersistentSubscriptionStreamPosition eventPosition, IPersistentSubscriptionStreamPosition previousEventPosition) : this()
+		{
 			EventId = eventId;
 			ResolvedEvent = resolvedEvent;
 			RetryCount = retryCount;
@@ -22,26 +25,32 @@ namespace EventStore.Core.Services.PersistentSubscription {
 			PreviousEventPosition = previousEventPosition;
 		}
 
-		public static OutstandingMessage ForNewEvent(ResolvedEvent resolvedEvent, IPersistentSubscriptionStreamPosition eventPosition) {
+		public static OutstandingMessage ForNewEvent(ResolvedEvent resolvedEvent, IPersistentSubscriptionStreamPosition eventPosition)
+		{
 			Ensure.NotNull(eventPosition, "eventPosition");
 			return new OutstandingMessage(resolvedEvent.OriginalEvent.EventId, resolvedEvent, 0, false, null, eventPosition, null);
 		}
 
-		public static OutstandingMessage ForParkedEvent(ResolvedEvent resolvedEvent) {
+		public static OutstandingMessage ForParkedEvent(ResolvedEvent resolvedEvent)
+		{
 			return new OutstandingMessage(resolvedEvent.OriginalEvent.EventId, resolvedEvent, 0, true, null, null, null);
 		}
 
-		public static (OutstandingMessage message, bool newSequenceNumberAssigned) ForPushedEvent(OutstandingMessage message, long nextSequenceNumber, IPersistentSubscriptionStreamPosition previousEventPosition) {
-			if (nextSequenceNumber > 0) {
+		public static (OutstandingMessage message, bool newSequenceNumberAssigned) ForPushedEvent(OutstandingMessage message, long nextSequenceNumber, IPersistentSubscriptionStreamPosition previousEventPosition)
+		{
+			if (nextSequenceNumber > 0)
+			{
 				//only the first event may have a null previous event position
 				Ensure.NotNull(previousEventPosition, nameof(previousEventPosition));
 			}
 
-			if (message.IsReplayedEvent) { //replayed parked message
+			if (message.IsReplayedEvent)
+			{ //replayed parked message
 				return (message, false);
 			}
 
-			if (message.EventSequenceNumber.HasValue) { //retried message
+			if (message.EventSequenceNumber.HasValue)
+			{ //retried message
 				return (message, false);
 			}
 
@@ -55,7 +64,8 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				previousEventPosition), true);
 		}
 
-		public static OutstandingMessage ForRetriedEvent(OutstandingMessage message) {
+		public static OutstandingMessage ForRetriedEvent(OutstandingMessage message)
+		{
 			return new OutstandingMessage(
 				message.EventId,
 				message.ResolvedEvent,

@@ -17,7 +17,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture]
-public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	protected readonly int MaxEntriesInMemTable;
 	protected LogFormatAbstractor<TStreamId> _logFormat;
 	protected TableIndex<TStreamId> TableIndex;
@@ -30,13 +31,15 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 
 	private readonly long _metastreamMaxCount;
 
-	protected SimpleDbTestScenario(int maxEntriesInMemTable = 20, long metastreamMaxCount = 1) {
+	protected SimpleDbTestScenario(int maxEntriesInMemTable = 20, long metastreamMaxCount = 1)
+	{
 		Ensure.Positive(maxEntriesInMemTable, "maxEntriesInMemTable");
 		MaxEntriesInMemTable = maxEntriesInMemTable;
 		_metastreamMaxCount = metastreamMaxCount;
 	}
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
@@ -96,7 +99,8 @@ public abstract class SimpleDbTestScenario<TLogFormat, TStreamId> : Specificatio
 		ReadIndex = readIndex;
 	}
 
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		_logFormat?.Dispose();
 		await DbRes.Db.DisposeAsync();
 

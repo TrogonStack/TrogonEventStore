@@ -13,7 +13,8 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
-public abstract class TestFixtureWithCoreProjection<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public abstract class TestFixtureWithCoreProjection<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	protected CoreProjection _coreProjection;
 	protected TestHandler<ReaderSubscriptionManagement.Subscribe> _subscribeProjectionHandler;
 	protected TestHandler<ClientMessage.WriteEvents> _writeEventHandler;
@@ -29,13 +30,15 @@ public abstract class TestFixtureWithCoreProjection<TLogFormat, TStreamId> : Tes
 	protected string _projectionName;
 	protected Guid _workerId;
 
-	protected override void Given1() {
+	protected override void Given1()
+	{
 		_version = new ProjectionVersion(1, 0, 0);
 		_projectionName = "projection";
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_subscribeProjectionHandler = new TestHandler<ReaderSubscriptionManagement.Subscribe>();
 		_writeEventHandler = new TestHandler<ClientMessage.WriteEvents>();
 		_bus.Subscribe(_subscribeProjectionHandler);
@@ -62,7 +65,8 @@ public abstract class TestFixtureWithCoreProjection<TLogFormat, TStreamId> : Tes
 	}
 
 	protected virtual CoreProjection
-		GivenCoreProjection(ProjectionProcessingStrategy projectionProcessingStrategy) {
+		GivenCoreProjection(ProjectionProcessingStrategy projectionProcessingStrategy)
+	{
 		return projectionProcessingStrategy.Create(
 			_projectionCorrelationId,
 			_bus,
@@ -74,23 +78,27 @@ public abstract class TestFixtureWithCoreProjection<TLogFormat, TStreamId> : Tes
 			_timeProvider);
 	}
 
-	protected virtual ProjectionProcessingStrategy GivenProjectionProcessingStrategy() {
+	protected virtual ProjectionProcessingStrategy GivenProjectionProcessingStrategy()
+	{
 		return CreateProjectionProcessingStrategy();
 	}
 
-	protected ProjectionProcessingStrategy CreateProjectionProcessingStrategy() {
+	protected ProjectionProcessingStrategy CreateProjectionProcessingStrategy()
+	{
 		return new ContinuousProjectionProcessingStrategy(
 			_projectionName, _version, _stateHandler, _projectionConfig, _stateHandler.GetSourceDefinition(), null,
 			_subscriptionDispatcher, true);
 	}
 
-	protected ProjectionProcessingStrategy CreateQueryProcessingStrategy() {
+	protected ProjectionProcessingStrategy CreateQueryProcessingStrategy()
+	{
 		return new QueryProcessingStrategy(
 			_projectionName, _version, _stateHandler, _projectionConfig, _stateHandler.GetSourceDefinition(), null,
 			_subscriptionDispatcher, true);
 	}
 
-	protected virtual ProjectionConfig GivenProjectionConfig() {
+	protected virtual ProjectionConfig GivenProjectionConfig()
+	{
 		return new ProjectionConfig(
 			null, _checkpointHandledThreshold, _checkpointUnhandledBytesThreshold, GivenPendingEventsThreshold(),
 			GivenMaxWriteBatchLength(), GivenEmitEventEnabled(), GivenCheckpointsEnabled(), _createTempStreams,
@@ -98,43 +106,53 @@ public abstract class TestFixtureWithCoreProjection<TLogFormat, TStreamId> : Tes
 			GivenMaximumAllowedWritesInFlight(), null);
 	}
 
-	protected virtual int GivenMaxWriteBatchLength() {
+	protected virtual int GivenMaxWriteBatchLength()
+	{
 		return 250;
 	}
 
-	protected virtual int GivenPendingEventsThreshold() {
+	protected virtual int GivenPendingEventsThreshold()
+	{
 		return 1000;
 	}
 
-	protected virtual bool GivenStopOnEof() {
+	protected virtual bool GivenStopOnEof()
+	{
 		return false;
 	}
 
-	protected virtual bool GivenCheckpointsEnabled() {
+	protected virtual bool GivenCheckpointsEnabled()
+	{
 		return true;
 	}
 
-	protected virtual bool GivenTrackEmittedStreams() {
+	protected virtual bool GivenTrackEmittedStreams()
+	{
 		return true;
 	}
 
-	protected virtual bool GivenEmitEventEnabled() {
+	protected virtual bool GivenEmitEventEnabled()
+	{
 		return true;
 	}
 
-	protected virtual int GivenCheckpointAfterMs() {
+	protected virtual int GivenCheckpointAfterMs()
+	{
 		return 10000;
 	}
 
-	protected virtual int GivenMaximumAllowedWritesInFlight() {
+	protected virtual int GivenMaximumAllowedWritesInFlight()
+	{
 		return 1;
 	}
 
-	protected virtual FakeProjectionStateHandler GivenProjectionStateHandler() {
+	protected virtual FakeProjectionStateHandler GivenProjectionStateHandler()
+	{
 		return new FakeProjectionStateHandler(configureBuilder: _configureBuilderByQuerySource);
 	}
 
-	protected new virtual void PreWhen() {
+	protected new virtual void PreWhen()
+	{
 	}
 
 	protected new abstract void When();

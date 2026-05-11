@@ -12,9 +12,11 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 // generally the properties we need of the ScavengeState are tested at a higher
 // level. but a couple of fiddly bits are checked in here
-public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
+public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests>
+{
 	[Fact]
-	public void pending_changes_are_still_read() {
+	public void pending_changes_are_still_read()
+	{
 		var hasher = new HumanReadableHasher();
 		var metastreamLookup = new LogV2SystemStreams();
 		var sut = new ScavengeStateBuilder<string>(hasher, metastreamLookup)
@@ -37,7 +39,8 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 	}
 
 	[Fact]
-	public void transaction_rollback_undoes_pending_changes() {
+	public void transaction_rollback_undoes_pending_changes()
+	{
 		var hasher = new HumanReadableHasher();
 		var metastreamLookup = new LogV2SystemStreams();
 		var sut = new ScavengeStateBuilder<string>(hasher, metastreamLookup)
@@ -70,7 +73,8 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 	}
 
 	[Fact]
-	public void active_iteration_no_checkpoint() {
+	public void active_iteration_no_checkpoint()
+	{
 		var hasher = new CompositeHasher<string>(
 			new XXHashUnsafe(),
 			new Murmur3AUnsafe());
@@ -83,7 +87,8 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 		var numStreams = 100;
 
 		// 'accumulate'
-		for (var i = 0; i < numStreams; i++) {
+		for (var i = 0; i < numStreams; i++)
+		{
 			var streamId = $"s-{i}";
 			var metastreamId = $"$$s-{i}";
 			sut.DetectCollisions(streamId);
@@ -98,10 +103,12 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 		long? lastHash = null;
 
 		var xs = sut.OriginalStreamsToCalculate(default);
-		foreach (var (handle, data) in xs) {
+		foreach (var (handle, data) in xs)
+		{
 			processed++;
 			Assert.Equal(StreamHandle.Kind.Hash, handle.Kind);
-			if (lastHash >= (long)handle.StreamHash) {
+			if (lastHash >= (long)handle.StreamHash)
+			{
 				throw new Exception("repeated");
 			}
 			lastHash = (long)handle.StreamHash;
@@ -119,7 +126,8 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 	}
 
 	[Fact]
-	public void active_iteration_with_checkpoint() {
+	public void active_iteration_with_checkpoint()
+	{
 		var hasher = new CompositeHasher<string>(
 			new XXHashUnsafe(),
 			new Murmur3AUnsafe());
@@ -133,7 +141,8 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 		var stopAfter = 50;
 
 		// 'accumulate'
-		for (var i = 0; i < numStreams; i++) {
+		for (var i = 0; i < numStreams; i++)
+		{
 			var streamId = $"s-{i}";
 			var metastreamId = $"$$s-{i}";
 			sut.DetectCollisions(streamId);
@@ -148,11 +157,14 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 		var checkpoint = new StreamHandle<string>();
 		long? lastHash = null;
 
-		void Calculate(IEnumerable<(StreamHandle<string>, OriginalStreamData)> xs) {
-			foreach (var (handle, data) in xs) {
+		void Calculate(IEnumerable<(StreamHandle<string>, OriginalStreamData)> xs)
+		{
+			foreach (var (handle, data) in xs)
+			{
 				processed++;
 				Assert.Equal(StreamHandle.Kind.Hash, handle.Kind);
-				if (lastHash >= (long)handle.StreamHash) {
+				if (lastHash >= (long)handle.StreamHash)
+				{
 					throw new Exception("repeated");
 				}
 				lastHash = (long)handle.StreamHash;
@@ -165,7 +177,8 @@ public class ScavengeStateTests : SqliteDbPerTest<ScavengeStateTests> {
 
 				checkpoint = handle;
 
-				if (processed == stopAfter) {
+				if (processed == stopAfter)
+				{
 					break;
 				}
 			}

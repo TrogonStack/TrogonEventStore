@@ -5,14 +5,17 @@ using EventStore.Common.Utils;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Monitoring.Stats;
 
-namespace EventStore.Core.Bus {
-	public class QueueStatsCollector {
+namespace EventStore.Core.Bus
+{
+	public class QueueStatsCollector
+	{
 		private static readonly TimeSpan MinRefreshPeriod = TimeSpan.FromMilliseconds(100);
 
 		public readonly string Name;
 		public readonly string GroupName;
 
-		public Type InProgressMessage {
+		public Type InProgressMessage
+		{
 			get { return _inProgressMsgType; }
 		}
 
@@ -43,14 +46,16 @@ namespace EventStore.Core.Bus {
 		private volatile bool _stopped;
 		private int _length;
 #endif
-		public QueueStatsCollector(string name, string groupName = null) {
+		public QueueStatsCollector(string name, string groupName = null)
+		{
 			Ensure.NotNull(name, "name");
 
 			Name = name;
 			GroupName = groupName;
 		}
 
-		public void Start() {
+		public void Start()
+		{
 			_totalTimeWatch.Start();
 #if DEBUG
 			Debug.Assert(!_started,
@@ -62,7 +67,8 @@ namespace EventStore.Core.Bus {
 			EnterIdle();
 		}
 
-		public void Stop() {
+		public void Stop()
+		{
 #if DEBUG
 			Debug.Assert(_started,
 				string.Format("QueueStatsCollector [{0}] was not started when Stop() entered", Name));
@@ -76,33 +82,39 @@ namespace EventStore.Core.Bus {
 #endif
 		}
 
-		public void ProcessingStarted<T>(int queueLength) {
+		public void ProcessingStarted<T>(int queueLength)
+		{
 			ProcessingStarted(typeof(T), queueLength);
 		}
 
-		public void ProcessingStarted(Type msgType, int queueLength) {
+		public void ProcessingStarted(Type msgType, int queueLength)
+		{
 			_lifetimeQueueLengthPeak = _lifetimeQueueLengthPeak > queueLength ? _lifetimeQueueLengthPeak : queueLength;
 			_currentQueueLengthPeak = _currentQueueLengthPeak > queueLength ? _currentQueueLengthPeak : queueLength;
 
 			_inProgressMsgType = msgType;
 		}
 
-		public void ProcessingEnded(int itemsProcessed) {
+		public void ProcessingEnded(int itemsProcessed)
+		{
 			Interlocked.Add(ref _totalItems, itemsProcessed);
 			_lastProcessedMsgType = _inProgressMsgType;
 			_inProgressMsgType = null;
 		}
 
-		public void ProcessingCancelled() {
+		public void ProcessingCancelled()
+		{
 			_inProgressMsgType = null;
 		}
 
-		public void EnterIdle() {
+		public void EnterIdle()
+		{
 #if DEBUG
 			Debug.Assert(_started,
 				string.Format("QueueStatsCollector [{0}] was not started when EnterIdle() entered", Name));
 #endif
-			if (_wasIdle) {
+			if (_wasIdle)
+			{
 				return;
 			}
 
@@ -110,7 +122,8 @@ namespace EventStore.Core.Bus {
 
 			//NOTE: the following locks are primarily acquired in main thread,
 			//      so not too high performance penalty
-			lock (_statisticsLock) {
+			lock (_statisticsLock)
+			{
 				_totalIdleWatch.Start();
 				_idleWatch.Restart();
 
@@ -119,18 +132,21 @@ namespace EventStore.Core.Bus {
 			}
 		}
 
-		public void EnterBusy() {
+		public void EnterBusy()
+		{
 #if DEBUG
 			Debug.Assert(_started,
 				string.Format("QueueStatsCollector [{0}] was not started when EnterBusy() entered", Name));
 #endif
-			if (!_wasIdle) {
+			if (!_wasIdle)
+			{
 				return;
 			}
 
 			_wasIdle = false;
 
-			lock (_statisticsLock) {
+			lock (_statisticsLock)
+			{
 				_totalIdleWatch.Stop();
 				_idleWatch.Reset();
 
@@ -139,8 +155,10 @@ namespace EventStore.Core.Bus {
 			}
 		}
 
-		public QueueStats GetStatistics(int currentQueueLength) {
-			lock (_statisticsLock) {
+		public QueueStats GetStatistics(int currentQueueLength)
+		{
+			lock (_statisticsLock)
+			{
 				var totalTime = _totalTimeWatch.Elapsed;
 				var totalIdleTime = _totalIdleWatch.Elapsed;
 				var totalBusyTime = _totalBusyWatch.Elapsed;
@@ -171,7 +189,8 @@ namespace EventStore.Core.Bus {
 					_lastProcessedMsgType,
 					_inProgressMsgType);
 
-				if (totalTime - _lastTotalTime >= MinRefreshPeriod) {
+				if (totalTime - _lastTotalTime >= MinRefreshPeriod)
+				{
 					_lastTotalTime = totalTime;
 					_lastTotalIdleTime = totalIdleTime;
 					_lastTotalBusyTime = totalBusyTime;
@@ -185,14 +204,16 @@ namespace EventStore.Core.Bus {
 		}
 
 		[Conditional("DEBUG")]
-		public void Enqueued() {
+		public void Enqueued()
+		{
 #if DEBUG
 			Interlocked.Increment(ref _length);
 #endif
 		}
 
 		[Conditional("DEBUG")]
-		public void Dequeued(Message msg) {
+		public void Dequeued(Message msg)
+		{
 #if DEBUG
 			Debug.Assert(_started,
 				string.Format("QueueStatsCollector [{0}] was not started when Dequeued() entered", Name));
@@ -203,12 +224,14 @@ namespace EventStore.Core.Bus {
 		}
 
 #if DEBUG
-		public bool IsIdle() {
+		public bool IsIdle()
+		{
 			var curLength = Interlocked.CompareExchange(ref _length, 0, 0);
 			return !_started || _stopped || curLength == 0;
 		}
 
-		public bool IsStopped() {
+		public bool IsStopped()
+		{
 			return _stopped;
 		}
 #endif

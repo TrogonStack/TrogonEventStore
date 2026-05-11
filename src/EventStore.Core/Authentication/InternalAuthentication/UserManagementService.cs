@@ -29,7 +29,8 @@ public class UserManagementService :
 	IHandle<UserManagementMessage.Delete>,
 	IHandle<SystemMessage.BecomeLeader>,
 	IHandle<SystemMessage.BecomeFollower>,
-	IHandle<SystemMessage.BecomeReadOnlyReplica> {
+	IHandle<SystemMessage.BecomeReadOnlyReplica>
+{
 	static readonly ILogger Logger = Serilog.Log.ForContext<UserManagementService>();
 
 	public const string UserUpdated = "$UserUpdated";
@@ -51,7 +52,8 @@ public class UserManagementService :
 		bool skipInitializeStandardUsersCheck,
 		TaskCompletionSource<bool> tcs,
 		ClusterVNodeOptions.DefaultUserOptions defaultUserOptions
-	) {
+	)
+	{
 		_ioDispatcher = ioDispatcher;
 		_passwordHashAlgorithm = passwordHashAlgorithm;
 		_skipInitializeStandardUsersCheck = skipInitializeStandardUsersCheck;
@@ -59,22 +61,28 @@ public class UserManagementService :
 		_defaultUserOptions = defaultUserOptions;
 	}
 
-	bool VerifyPassword(string password, UserData userDetailsToVerify) {
+	bool VerifyPassword(string password, UserData userDetailsToVerify)
+	{
 		_passwordHashAlgorithm.Hash(password, out _, out _);
 		return _passwordHashAlgorithm.Verify(password, userDetailsToVerify.Hash, userDetailsToVerify.Salt);
 	}
 
-	public void Handle(UserManagementMessage.Create message) {
-		if (!IsAdmin(message.Principal)) {
+	public void Handle(UserManagementMessage.Create message)
+	{
+		if (!IsAdmin(message.Principal))
+		{
 			ReplyUnauthorized(message);
 			return;
 		}
 
 		var userData = CreateUserData(message);
-		BeginReadUserDetails(message.LoginName, read => {
-			if (read.Events.Count > 0) {
+		BeginReadUserDetails(message.LoginName, read =>
+		{
+			if (read.Events.Count > 0)
+			{
 				var data = read.Events[^1].Event.Data.ParseJson<UserData>();
-				if (VerifyPassword(message.Password, data)) {
+				if (VerifyPassword(message.Password, data))
+				{
 					ReplyUpdated(message);
 					return;
 				}
@@ -93,8 +101,10 @@ public class UserManagementService :
 		});
 	}
 
-	public void Handle(UserManagementMessage.Update message) {
-		if (!IsAdmin(message.Principal)) {
+	public void Handle(UserManagementMessage.Update message)
+	{
+		if (!IsAdmin(message.Principal))
+		{
 			ReplyUnauthorized(message);
 			return;
 		}
@@ -105,8 +115,10 @@ public class UserManagementService :
 		);
 	}
 
-	public void Handle(UserManagementMessage.Enable message) {
-		if (!IsAdmin(message.Principal)) {
+	public void Handle(UserManagementMessage.Enable message)
+	{
+		if (!IsAdmin(message.Principal))
+		{
 			ReplyUnauthorized(message);
 			return;
 		}
@@ -114,8 +126,10 @@ public class UserManagementService :
 		ReadUpdateWriteReply(message, data => data.SetEnabled(), resetPasswordCache: false);
 	}
 
-	public void Handle(UserManagementMessage.Disable message) {
-		if (!IsAdmin(message.Principal)) {
+	public void Handle(UserManagementMessage.Disable message)
+	{
+		if (!IsAdmin(message.Principal))
+		{
 			ReplyUnauthorized(message);
 			return;
 		}
@@ -123,8 +137,10 @@ public class UserManagementService :
 		ReadUpdateWriteReply(message, data => data.SetDisabled(), resetPasswordCache: true);
 	}
 
-	public void Handle(UserManagementMessage.ResetPassword message) {
-		if (!IsAdmin(message.Principal)) {
+	public void Handle(UserManagementMessage.ResetPassword message)
+	{
+		if (!IsAdmin(message.Principal))
+		{
 			ReplyUnauthorized(message);
 			return;
 		}
@@ -133,12 +149,15 @@ public class UserManagementService :
 		ReadUpdateWriteReply(message, data => data.SetPassword(hash, salt), resetPasswordCache: true);
 	}
 
-	public void Handle(UserManagementMessage.ChangePassword message) {
+	public void Handle(UserManagementMessage.ChangePassword message)
+	{
 		_passwordHashAlgorithm.Hash(message.NewPassword, out var hash, out var salt);
 		ReadUpdateWriteReply(
 			message,
-			data => {
-				if (_passwordHashAlgorithm.Verify(message.CurrentPassword, data.Hash, data.Salt)) {
+			data =>
+			{
+				if (_passwordHashAlgorithm.Verify(message.CurrentPassword, data.Hash, data.Salt))
+				{
 					return data.SetPassword(hash, salt);
 				}
 
@@ -149,8 +168,10 @@ public class UserManagementService :
 		);
 	}
 
-	public void Handle(UserManagementMessage.Delete message) {
-		if (!IsAdmin(message.Principal)) {
+	public void Handle(UserManagementMessage.Delete message)
+	{
+		if (!IsAdmin(message.Principal))
+		{
 			ReplyUnauthorized(message);
 			return;
 		}
@@ -168,18 +189,23 @@ public class UserManagementService :
 		);
 	}
 
-	public void Handle(UserManagementMessage.Get message) {
+	public void Handle(UserManagementMessage.Get message)
+	{
 		ReadUserDetailsAnd(
-			message, (completed, data) => {
-				if (completed.Result == ReadStreamResult.Success && completed.Events.Count is 1) {
+			message, (completed, data) =>
+			{
+				if (completed.Result == ReadStreamResult.Success && completed.Events.Count is 1)
+				{
 					message.Envelope.ReplyWith(
 						new UserManagementMessage.UserDetailsResult(
 							new UserManagementMessage.UserData(
 								message.LoginName, data.FullName, data.Groups, data.Disabled,
 								new DateTimeOffset(completed.Events[0].Event.TimeStamp, TimeSpan.FromHours(0)))));
 				}
-				else {
-					switch (completed.Result) {
+				else
+				{
+					switch (completed.Result)
+					{
 						case ReadStreamResult.NoStream:
 						case ReadStreamResult.StreamDeleted:
 							message.Envelope.ReplyWith(
@@ -195,7 +221,8 @@ public class UserManagementService :
 			});
 	}
 
-	public void Handle(UserManagementMessage.GetAll message) {
+	public void Handle(UserManagementMessage.GetAll message)
+	{
 		new AllUsersReader(_ioDispatcher).Run(
 			(error, data) =>
 				message.Envelope.ReplyWith(
@@ -204,29 +231,38 @@ public class UserManagementService :
 						: new UserManagementMessage.AllUserDetailsResult(error)));
 	}
 
-	public void Handle(SystemMessage.BecomeLeader message) {
+	public void Handle(SystemMessage.BecomeLeader message)
+	{
 		Interlocked.Exchange(ref _numberOfStandardUsersToBeCreated, 2);
-		if (!_skipInitializeStandardUsersCheck) {
+		if (!_skipInitializeStandardUsersCheck)
+		{
 			BeginReadUserDetails(
-				"admin", completed => {
-					if (completed.Result == ReadStreamResult.NoStream) {
+				"admin", completed =>
+				{
+					if (completed.Result == ReadStreamResult.NoStream)
+					{
 						CreateAdminUser();
 					}
-					else {
+					else
+					{
 						NotifyInitialized();
 					}
 				});
 			BeginReadUserDetails(
-				"ops", completed => {
-					if (completed.Result == ReadStreamResult.NoStream) {
+				"ops", completed =>
+				{
+					if (completed.Result == ReadStreamResult.NoStream)
+					{
 						CreateOperationsUser();
 					}
-					else {
+					else
+					{
 						NotifyInitialized();
 					}
 				});
 		}
-		else {
+		else
+		{
 			_tcs.TrySetResult(true);
 		}
 	}
@@ -237,9 +273,11 @@ public class UserManagementService :
 	public void Handle(SystemMessage.BecomeReadOnlyReplica message) =>
 		_tcs.TrySetResult(true);
 
-	void NotifyInitialized() {
+	void NotifyInitialized()
+	{
 		var remainingUsers = Interlocked.Decrement(ref _numberOfStandardUsersToBeCreated);
-		if (remainingUsers == 0) {
+		if (remainingUsers == 0)
+		{
 			_tcs.TrySetResult(true);
 		}
 	}
@@ -247,7 +285,8 @@ public class UserManagementService :
 	UserData CreateUserData(UserManagementMessage.Create message) =>
 		CreateUserData(message.LoginName, message.FullName, message.Groups, message.Password);
 
-	UserData CreateUserData(string loginName, string fullName, string[] groups, string password) {
+	UserData CreateUserData(string loginName, string fullName, string[] groups, string password)
+	{
 		_passwordHashAlgorithm.Hash(password, out var hash, out var salt);
 		return new(loginName, fullName, groups, hash, salt, disabled: false);
 	}
@@ -255,10 +294,13 @@ public class UserManagementService :
 	void ReadUserDetailsAnd(
 		UserManagementMessage.UserManagementRequestMessage message,
 		Action<ClientMessage.ReadStreamEventsBackwardCompleted, UserData> action
-	) {
+	)
+	{
 		BeginReadUserDetails(
-			message.LoginName, completed => {
-				switch (completed.Result) {
+			message.LoginName, completed =>
+			{
+				switch (completed.Result)
+				{
 					case ReadStreamResult.NoStream:
 						ReplyNotFound(message);
 						break;
@@ -266,10 +308,12 @@ public class UserManagementService :
 						ReplyNotFound(message);
 						break;
 					case ReadStreamResult.Success:
-						if (completed.Events is []) {
+						if (completed.Events is [])
+						{
 							ReplyNotFound(message);
 						}
-						else {
+						else
+						{
 							var data1 = completed.Events[0].Event.Data.ParseJson<UserData>();
 							action(completed, data1);
 						}
@@ -285,11 +329,14 @@ public class UserManagementService :
 	void BeginReadUserDetails(string loginName, Action<ClientMessage.ReadStreamEventsBackwardCompleted> completed) =>
 		_ioDispatcher.ReadBackward($"$user-{loginName}", -1, 1, false, SystemAccounts.System, completed);
 
-	void ReadUpdateWriteReply(UserManagementMessage.UserManagementRequestMessage message, Func<UserData, UserData> update, bool resetPasswordCache) {
+	void ReadUpdateWriteReply(UserManagementMessage.UserManagementRequestMessage message, Func<UserData, UserData> update, bool resetPasswordCache)
+	{
 		ReadUpdateCheckAnd(
-			message, (completed, data) => {
+			message, (completed, data) =>
+			{
 				var updated = update(data);
-				if (updated is not null) {
+				if (updated is not null)
+				{
 					WriteUserEventAnd(message, updated, UserUpdated, completed.FromEventNumber, () =>
 						WritePasswordChangedEventConditionalAnd(message, resetPasswordCache, () => ReplyUpdated(message))
 					);
@@ -298,14 +345,17 @@ public class UserManagementService :
 	}
 
 	void WritePasswordChangedEventConditionalAnd(
-		UserManagementMessage.UserManagementRequestMessage message, bool resetPasswordCache, Action onCompleted) {
-		if (resetPasswordCache) {
+		UserManagementMessage.UserManagementRequestMessage message, bool resetPasswordCache, Action onCompleted)
+	{
+		if (resetPasswordCache)
+		{
 			BeginWritePasswordChangedEvent(
 				message.LoginName,
 				eventsCompleted => WritePasswordChangedEventCompleted(message, eventsCompleted, onCompleted)
 			);
 		}
-		else {
+		else
+		{
 			onCompleted();
 		}
 
@@ -315,8 +365,10 @@ public class UserManagementService :
 			UserManagementMessage.UserManagementRequestMessage message,
 			ClientMessage.WriteEventsCompleted eventsCompleted,
 			Action onCompleted
-		) {
-			switch (eventsCompleted.Result) {
+		)
+		{
+			switch (eventsCompleted.Result)
+			{
 				case OperationResult.Success:
 					onCompleted();
 					break;
@@ -338,7 +390,8 @@ public class UserManagementService :
 		}
 	}
 
-	void BeginWritePasswordChangedEvent(string loginName, Action<ClientMessage.WriteEventsCompleted> completed) {
+	void BeginWritePasswordChangedEvent(string loginName, Action<ClientMessage.WriteEventsCompleted> completed)
+	{
 		var streamMetadata = new Lazy<StreamMetadata>(() => new(null, TimeSpan.FromHours(1)));
 		_ioDispatcher.ConfigureStreamAndWriteEvents(
 			UserPasswordNotificationsStreamId, ExpectedVersion.Any, streamMetadata,
@@ -350,14 +403,18 @@ public class UserManagementService :
 		new(Guid.NewGuid(), PasswordChanged, true, new { LoginName = loginName }.ToJsonBytes(), null);
 
 	void ReadUpdateCheckAnd(UserManagementMessage.UserManagementRequestMessage message,
-		Action<ClientMessage.ReadStreamEventsBackwardCompleted, UserData> action) {
+		Action<ClientMessage.ReadStreamEventsBackwardCompleted, UserData> action)
+	{
 		ReadUserDetailsAnd(message, action);
 	}
 
-	void WriteStreamAcl(UserManagementMessage.UserManagementRequestMessage message, string loginName, Action onSucceeded) {
+	void WriteStreamAcl(UserManagementMessage.UserManagementRequestMessage message, string loginName, Action onSucceeded)
+	{
 		WriteStreamAcl(
-			loginName, completed => {
-				switch (completed.Result) {
+			loginName, completed =>
+			{
+				switch (completed.Result)
+				{
 					case OperationResult.Success:
 						onSucceeded();
 						break;
@@ -374,7 +431,8 @@ public class UserManagementService :
 			});
 	}
 
-	void WriteStreamAcl(string loginName, Action<ClientMessage.WriteEventsCompleted> onCompleted) {
+	void WriteStreamAcl(string loginName, Action<ClientMessage.WriteEventsCompleted> onCompleted)
+	{
 		_ioDispatcher.UpdateStreamAcl(
 			$"$user-{loginName}", ExpectedVersion.Any, SystemAccounts.System,
 			new(
@@ -384,24 +442,30 @@ public class UserManagementService :
 		);
 	}
 
-	void WriteUserEventAnd(UserManagementMessage.UserManagementRequestMessage message, UserData userData, string eventType, long expectedVersion, Action after) {
+	void WriteUserEventAnd(UserManagementMessage.UserManagementRequestMessage message, UserData userData, string eventType, long expectedVersion, Action after)
+	{
 		WriteUserEvent(
 			userData, eventType, expectedVersion,
 			completed => WriteUserCreatedCompleted(completed, message, after));
 	}
 
-	void WriteUserEvent(UserData userData, string eventType, long expectedVersion, Action<ClientMessage.WriteEventsCompleted> onCompleted) {
+	void WriteUserEvent(UserData userData, string eventType, long expectedVersion, Action<ClientMessage.WriteEventsCompleted> onCompleted)
+	{
 		var userCreatedEvent = new Event(Guid.NewGuid(), eventType, true, userData.ToJsonBytes(), null);
 		_ioDispatcher.WriteEvents($"$user-{userData.LoginName}", expectedVersion, [userCreatedEvent], SystemAccounts.System, onCompleted);
 	}
 
 	static void WriteUserCreatedCompleted(ClientMessage.WriteEventsCompleted completed,
-		UserManagementMessage.UserManagementRequestMessage message, Action after) {
-		if (completed.Result == OperationResult.Success) {
-			if (after is not null) {
+		UserManagementMessage.UserManagementRequestMessage message, Action after)
+	{
+		if (completed.Result == OperationResult.Success)
+		{
+			if (after is not null)
+			{
 				after();
 			}
-			else {
+			else
+			{
 				ReplyUpdated(message);
 			}
 
@@ -411,13 +475,16 @@ public class UserManagementService :
 		ReplyByWriteResult(message, completed.Result);
 	}
 
-	void WriteUsersStreamEvent(string loginName, Action<ClientMessage.WriteEventsCompleted> onCompleted) {
+	void WriteUsersStreamEvent(string loginName, Action<ClientMessage.WriteEventsCompleted> onCompleted)
+	{
 		var userCreatedEvent = new Event(Guid.NewGuid(), UsersStreamType, false, loginName, null);
 		_ioDispatcher.WriteEvents("$users", ExpectedVersion.Any, [userCreatedEvent], SystemAccounts.System, onCompleted);
 	}
 
-	static void WriteUsersStreamCompleted(ClientMessage.WriteEventsCompleted completed, UserManagementMessage.UserManagementRequestMessage message) {
-		if (completed.Result == OperationResult.Success) {
+	static void WriteUsersStreamCompleted(ClientMessage.WriteEventsCompleted completed, UserManagementMessage.UserManagementRequestMessage message)
+	{
+		if (completed.Result == OperationResult.Success)
+		{
 			ReplyUpdated(message);
 			return;
 		}
@@ -445,18 +512,23 @@ public class UserManagementService :
 	static void ReplyUpdated(UserManagementMessage.UserManagementRequestMessage message) =>
 		message.Envelope.ReplyWith(new UserManagementMessage.UpdateResult(message.LoginName));
 
-	static void ReplyError(UserManagementMessage.UserManagementRequestMessage message, UserManagementMessage.Error error) {
+	static void ReplyError(UserManagementMessage.UserManagementRequestMessage message, UserManagementMessage.Error error)
+	{
 		//TODO: avoid 'is'
-		if (message is UserManagementMessage.Get) {
+		if (message is UserManagementMessage.Get)
+		{
 			message.Envelope.ReplyWith(new UserManagementMessage.UserDetailsResult(error));
 		}
-		else {
+		else
+		{
 			message.Envelope.ReplyWith(new UserManagementMessage.UpdateResult(message.LoginName, error));
 		}
 	}
 
-	static void ReplyByWriteResult(UserManagementMessage.UserManagementRequestMessage message, OperationResult operationResult) {
-		switch (operationResult) {
+	static void ReplyByWriteResult(UserManagementMessage.UserManagementRequestMessage message, OperationResult operationResult)
+	{
+		switch (operationResult)
+		{
 			case OperationResult.Success:
 				ReplyUpdated(message);
 				break;
@@ -475,7 +547,8 @@ public class UserManagementService :
 		}
 	}
 
-	void CreateAdminUser() {
+	void CreateAdminUser()
+	{
 		var userData = CreateUserData(
 			SystemUsers.Admin,
 			"Event Store Administrator",
@@ -484,8 +557,10 @@ public class UserManagementService :
 		);
 
 		WriteStreamAcl(
-			SystemUsers.Admin, completed1 => {
-				switch (completed1.Result) {
+			SystemUsers.Admin, completed1 =>
+			{
+				switch (completed1.Result)
+				{
 					case OperationResult.CommitTimeout:
 					case OperationResult.PrepareTimeout:
 						CreateAdminUser();
@@ -496,15 +571,20 @@ public class UserManagementService :
 						break;
 					case OperationResult.Success:
 						WriteUserEvent(
-							userData, "$UserCreated", ExpectedVersion.NoStream, completed => {
-								switch (completed.Result) {
+							userData, "$UserCreated", ExpectedVersion.NoStream, completed =>
+							{
+								switch (completed.Result)
+								{
 									case OperationResult.Success:
 										Logger.Information("'admin' user account has been created.");
-										WriteUsersStreamEvent("admin", x => {
-											if (x.Result == OperationResult.Success) {
+										WriteUsersStreamEvent("admin", x =>
+										{
+											if (x.Result == OperationResult.Success)
+											{
 												Logger.Information("'admin' user added to $users.");
 											}
-											else {
+											else
+											{
 												Logger.Error("unable to add 'admin' to $users. {OperationResult}", x.Result);
 											}
 
@@ -527,7 +607,8 @@ public class UserManagementService :
 			});
 	}
 
-	void CreateOperationsUser() {
+	void CreateOperationsUser()
+	{
 		var userData = CreateUserData(
 			SystemUsers.Operations,
 			"Event Store Operations",
@@ -536,8 +617,10 @@ public class UserManagementService :
 		);
 
 		WriteStreamAcl(
-			SystemUsers.Operations, completed1 => {
-				switch (completed1.Result) {
+			SystemUsers.Operations, completed1 =>
+			{
+				switch (completed1.Result)
+				{
 					case OperationResult.CommitTimeout:
 					case OperationResult.PrepareTimeout:
 						CreateOperationsUser();
@@ -548,15 +631,20 @@ public class UserManagementService :
 						break;
 					case OperationResult.Success:
 						WriteUserEvent(
-							userData, "$UserCreated", ExpectedVersion.NoStream, completed => {
-								switch (completed.Result) {
+							userData, "$UserCreated", ExpectedVersion.NoStream, completed =>
+							{
+								switch (completed.Result)
+								{
 									case OperationResult.Success:
 										Logger.Information("'ops' user account has been created.");
-										WriteUsersStreamEvent("ops", x => {
-											if (x.Result == OperationResult.Success) {
+										WriteUsersStreamEvent("ops", x =>
+										{
+											if (x.Result == OperationResult.Success)
+											{
 												Logger.Information("'ops' user added to $users.");
 											}
-											else {
+											else
+											{
 												Logger.Error("unable to add 'ops' to $users. {OperationResult}", x.Result);
 											}
 

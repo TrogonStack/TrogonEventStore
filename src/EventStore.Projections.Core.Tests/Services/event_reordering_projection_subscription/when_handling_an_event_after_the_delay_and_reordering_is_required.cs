@@ -7,12 +7,14 @@ namespace EventStore.Projections.Core.Tests.Services.event_reordering_projection
 
 [TestFixture]
 public class when_handling_an_event_after_the_delay_and_reordering_is_required :
-	TestFixtureWithEventReorderingProjectionSubscription {
+	TestFixtureWithEventReorderingProjectionSubscription
+{
 	private Guid _firstEventId;
 	private DateTime _firstEventTimestamp;
 	private Guid _secondEventId;
 
-	protected override void When() {
+	protected override void When()
+	{
 		_firstEventId = Guid.NewGuid();
 		_secondEventId = Guid.NewGuid();
 		_firstEventTimestamp = DateTime.UtcNow;
@@ -32,7 +34,8 @@ public class when_handling_an_event_after_the_delay_and_reordering_is_required :
 	}
 
 	[Test]
-	public void first_two_events_are_reordered() {
+	public void first_two_events_are_reordered()
+	{
 		Assert.AreEqual(2, _eventHandler.HandledMessages.Count);
 		var first = _eventHandler.HandledMessages[0];
 		var second = _eventHandler.HandledMessages[1];

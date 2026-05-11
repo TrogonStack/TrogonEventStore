@@ -12,7 +12,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.Scavenge;
 
 [TestFixture]
-class when_scavenging_a_table_index_cancelled_while_waiting_for_lock : SpecificationWithDirectoryPerTestFixture {
+class when_scavenging_a_table_index_cancelled_while_waiting_for_lock : SpecificationWithDirectoryPerTestFixture
+{
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -20,7 +21,8 @@ class when_scavenging_a_table_index_cancelled_while_waiting_for_lock : Specifica
 	private FakeTFScavengerLog _log;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
@@ -67,14 +69,16 @@ class when_scavenging_a_table_index_cancelled_while_waiting_for_lock : Specifica
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_still_have_all_entries_in_sorted_order() {
+	public void should_still_have_all_entries_in_sorted_order()
+	{
 		var streamId = "testStream-1";
 		var result = _tableIndex.GetRange(streamId, 0, 5).ToArray();
 		var hash = (ulong)_lowHasher.Hash(streamId) << 32 | _highHasher.Hash(streamId);

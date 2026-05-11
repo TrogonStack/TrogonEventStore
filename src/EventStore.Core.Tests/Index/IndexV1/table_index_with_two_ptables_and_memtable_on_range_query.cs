@@ -14,7 +14,8 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true), Category("LongRunning")]
 [TestFixture(PTableVersions.IndexV4, false), Category("LongRunning")]
 [TestFixture(PTableVersions.IndexV4, true), Category("LongRunning")]
-public class table_index_with_two_ptables_and_memtable_on_range_query : SpecificationWithDirectoryPerTestFixture {
+public class table_index_with_two_ptables_and_memtable_on_range_query : SpecificationWithDirectoryPerTestFixture
+{
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -22,13 +23,15 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
 
-	public table_index_with_two_ptables_and_memtable_on_range_query(byte version, bool skipIndexVerify) {
+	public table_index_with_two_ptables_and_memtable_on_range_query(byte version, bool skipIndexVerify)
+	{
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
@@ -72,30 +75,35 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
-	private ulong GetHash(string streamId) {
+	private ulong GetHash(string streamId)
+	{
 		ulong hash = _lowHasher.Hash(streamId);
 		hash = _ptableVersion == PTableVersions.IndexV1 ? hash : hash << 32 | _highHasher.Hash(streamId);
 		return hash;
 	}
 
 	[Test]
-	public void should_not_return_latest_entry_for_nonexisting_stream() {
+	public void should_not_return_latest_entry_for_nonexisting_stream()
+	{
 		Assert.IsFalse(_tableIndex.TryGetLatestEntry("7", out _));
 	}
 
 	[Test]
-	public void should_not_return_oldest_entry_for_nonexisting_stream() {
+	public void should_not_return_oldest_entry_for_nonexisting_stream()
+	{
 		Assert.IsFalse(_tableIndex.TryGetLatestEntry("7", out _));
 	}
 
 	[Test]
-	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_memtable() {
+	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_memtable()
+	{
 		IndexEntry entry;
 		Assert.IsTrue(_tableIndex.TryGetLatestEntry("4", out entry));
 		Assert.AreEqual(GetHash("4"), entry.Stream);
@@ -104,7 +112,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_0() {
+	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_0()
+	{
 		IndexEntry entry;
 		Assert.IsTrue(_tableIndex.TryGetLatestEntry("1", out entry));
 		Assert.AreEqual(GetHash("1"), entry.Stream);
@@ -113,7 +122,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_latest_entry_for_another_stream_with_latest_entry_in_ptable_0() {
+	public void should_return_correct_latest_entry_for_another_stream_with_latest_entry_in_ptable_0()
+	{
 		IndexEntry entry;
 		Assert.IsTrue(_tableIndex.TryGetLatestEntry("6", out entry));
 		Assert.AreEqual(GetHash("6"), entry.Stream);
@@ -122,7 +132,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_1() {
+	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_1()
+	{
 		IndexEntry entry;
 		Assert.IsTrue(_tableIndex.TryGetLatestEntry("5", out entry));
 		Assert.AreEqual(GetHash("5"), entry.Stream);
@@ -131,7 +142,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_2() {
+	public void should_return_correct_latest_entry_for_stream_with_latest_entry_in_ptable_2()
+	{
 		IndexEntry entry;
 		Assert.IsTrue(_tableIndex.TryGetLatestEntry("2", out entry));
 		Assert.AreEqual(GetHash("2"), entry.Stream);
@@ -140,7 +152,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_latest_entry_for_another_stream_with_latest_entry_in_ptable_2() {
+	public void should_return_correct_latest_entry_for_another_stream_with_latest_entry_in_ptable_2()
+	{
 		IndexEntry entry;
 		Assert.IsTrue(_tableIndex.TryGetLatestEntry("3", out entry));
 		Assert.AreEqual(GetHash("3"), entry.Stream);
@@ -149,7 +162,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_oldest_entries_for_each_stream() {
+	public void should_return_correct_oldest_entries_for_each_stream()
+	{
 		IndexEntry entry;
 
 		Assert.IsTrue(_tableIndex.TryGetOldestEntry("1", out entry));
@@ -184,13 +198,15 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_empty_range_for_nonexisting_stream() {
+	public void should_return_empty_range_for_nonexisting_stream()
+	{
 		var range = _tableIndex.GetRange("7", 0, int.MaxValue).ToArray();
 		Assert.AreEqual(0, range.Length);
 	}
 
 	[Test]
-	public void should_return_correct_full_range_with_descending_order_for_1() {
+	public void should_return_correct_full_range_with_descending_order_for_1()
+	{
 		var range = _tableIndex.GetRange("1", 0, long.MaxValue).ToArray();
 		Assert.AreEqual(4, range.Length);
 		Assert.AreEqual(new IndexEntry(GetHash("1"), 1, 0xFF11), range[0]);
@@ -200,7 +216,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_full_range_with_descending_order_for_2() {
+	public void should_return_correct_full_range_with_descending_order_for_2()
+	{
 		var range = _tableIndex.GetRange("2", 0, long.MaxValue).ToArray();
 		Assert.AreEqual(2, range.Length);
 		Assert.AreEqual(new IndexEntry(GetHash("2"), 1, 0xFF01), range[0]);
@@ -208,7 +225,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_full_range_with_descending_order_for_3() {
+	public void should_return_correct_full_range_with_descending_order_for_3()
+	{
 		var range = _tableIndex.GetRange("3", 0, long.MaxValue).ToArray();
 		Assert.AreEqual(4, range.Length);
 		Assert.AreEqual(new IndexEntry(GetHash("3"), 1, 0xFF03), range[0]);
@@ -218,7 +236,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_full_range_with_descending_order_for_4() {
+	public void should_return_correct_full_range_with_descending_order_for_4()
+	{
 		var range = _tableIndex.GetRange("4", 0, long.MaxValue).ToArray();
 		Assert.AreEqual(2, range.Length);
 		Assert.AreEqual(new IndexEntry(GetHash("4"), 0, 0xFF01), range[0]);
@@ -226,14 +245,16 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_return_correct_full_range_with_descending_order_for_5() {
+	public void should_return_correct_full_range_with_descending_order_for_5()
+	{
 		var range = _tableIndex.GetRange("5", 0, long.MaxValue).ToArray();
 		Assert.AreEqual(1, range.Length);
 		Assert.AreEqual(new IndexEntry(GetHash("5"), 10, 0xFFF1), range[0]);
 	}
 
 	[Test]
-	public void should_return_correct_full_range_with_descending_order_for_6() {
+	public void should_return_correct_full_range_with_descending_order_for_6()
+	{
 		var range = _tableIndex.GetRange("6", 0, long.MaxValue).ToArray();
 		Assert.AreEqual(2, range.Length);
 		Assert.AreEqual(new IndexEntry(GetHash("6"), 1, 0xFF01), range[0]);
@@ -241,12 +262,14 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_not_return_one_value_for_nonexistent_stream() {
+	public void should_not_return_one_value_for_nonexistent_stream()
+	{
 		Assert.IsFalse(_tableIndex.TryGetOneValue("7", 0, out _));
 	}
 
 	[Test]
-	public void should_return_one_value_for_existing_streams_for_existing_version() {
+	public void should_return_one_value_for_existing_streams_for_existing_version()
+	{
 		long pos;
 		Assert.IsTrue(_tableIndex.TryGetOneValue("1", 1, out pos));
 		Assert.AreEqual(0xFF11, pos);
@@ -268,7 +291,8 @@ public class table_index_with_two_ptables_and_memtable_on_range_query : Specific
 	}
 
 	[Test]
-	public void should_not_return_one_value_for_existing_streams_for_nonexistent_version() {
+	public void should_not_return_one_value_for_existing_streams_for_nonexistent_version()
+	{
 		Assert.IsFalse(_tableIndex.TryGetOneValue("1", 2, out _));
 		Assert.IsFalse(_tableIndex.TryGetOneValue("2", 2, out _));
 		Assert.IsFalse(_tableIndex.TryGetOneValue("3", 2, out _));

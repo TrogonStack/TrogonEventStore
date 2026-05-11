@@ -25,7 +25,8 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Storage;
 
-public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	protected readonly int MaxEntriesInMemTable;
 	protected readonly int StreamInfoCacheCapacity;
 	protected readonly long MetastreamMaxCount;
@@ -62,7 +63,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		bool performAdditionalChecks = true,
 		int chunkSize = 10_000,
 		IHasher<TStreamId> lowHasher = null,
-		IHasher<TStreamId> highHasher = null) {
+		IHasher<TStreamId> highHasher = null)
+	{
 
 		Ensure.Positive(maxEntriesInMemTable, "maxEntriesInMemTable");
 		MaxEntriesInMemTable = maxEntriesInMemTable;
@@ -75,7 +77,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		_chunkSize = chunkSize;
 	}
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
@@ -150,8 +153,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		TableIndex.WaitForBackgroundTasks(30_000);
 
 		// scavenge must run after readIndex is built
-		if (_scavenge) {
-			if (_completeLastChunkOnScavenge) {
+		if (_scavenge)
+		{
+			if (_completeLastChunkOnScavenge)
+			{
 				await Db.Manager.GetChunk(Db.Manager.ChunksCount - 1).Complete(CancellationToken.None);
 			}
 
@@ -162,7 +167,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		}
 	}
 
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		_logFormat?.Dispose();
 		ReadIndex?.Close();
 		ReadIndex?.Dispose();
@@ -173,29 +179,34 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		await base.TestFixtureTearDown();
 	}
 
-	protected virtual ITableIndex<TStreamId> TransformTableIndex(ITableIndex<TStreamId> tableIndex) {
+	protected virtual ITableIndex<TStreamId> TransformTableIndex(ITableIndex<TStreamId> tableIndex)
+	{
 		return tableIndex;
 	}
 
 	protected virtual ValueTask WriteTestScenario(CancellationToken token)
 		=> token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;
 
-	protected async ValueTask<(TStreamId, long)> GetOrReserve(string eventStreamName, CancellationToken token) {
+	protected async ValueTask<(TStreamId, long)> GetOrReserve(string eventStreamName, CancellationToken token)
+	{
 		var newPos = Writer.Position;
 		_streamNameIndex.GetOrReserve(_logFormat.RecordFactory, eventStreamName, newPos, out var eventStreamId,
 			out var streamRecord);
-		if (streamRecord is not null) {
+		if (streamRecord is not null)
+		{
 			(_, newPos) = await Writer.Write(streamRecord, token);
 		}
 
 		return (eventStreamId, newPos);
 	}
 
-	protected async ValueTask<(TStreamId, long)> GetOrReserveEventType(string eventType, CancellationToken token) {
+	protected async ValueTask<(TStreamId, long)> GetOrReserveEventType(string eventType, CancellationToken token)
+	{
 		var newPos = Writer.Position;
 		_eventTypeIndex.GetOrReserveEventType(_logFormat.RecordFactory, eventType, newPos, out var eventTypeId,
 			out var eventTypeRecord);
-		if (eventTypeRecord is not null) {
+		if (eventTypeRecord is not null)
+		{
 			(_, newPos) = await Writer.Write(eventTypeRecord, token);
 		}
 
@@ -209,7 +220,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		Guid eventId = default,
 		bool retryOnFail = false,
 		string eventType = "some-type",
-		CancellationToken token = default) {
+		CancellationToken token = default)
+	{
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (eventTypeId, pos) = await GetOrReserveEventType(eventType, token);
 
@@ -223,13 +235,16 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 			null,
 			timestamp);
 
-		if (!retryOnFail) {
+		if (!retryOnFail)
+		{
 			Assert.IsTrue(await Writer.Write(prepare, token) is (true, _));
 		}
-		else {
+		else
+		{
 			long firstPos = prepare.LogPosition;
 			(var success, pos) = await Writer.Write(prepare, token);
-			if (!success) {
+			if (!success)
+			{
 				prepare = LogRecord.SingleWrite(_recordFactory, pos,
 					prepare.CorrelationId,
 					prepare.EventId,
@@ -240,7 +255,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 					prepare.Metadata,
 					prepare.TimeStamp);
 
-				if (await Writer.Write(prepare, token) is (false, _)) {
+				if (await Writer.Write(prepare, token) is (false, _))
+				{
 					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
 						prepare.LogPosition);
 				}
@@ -250,16 +266,20 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 
 		var commit = LogRecord.Commit(Writer.Position, prepare.CorrelationId, prepare.LogPosition,
 			eventNumber);
-		if (!retryOnFail) {
+		if (!retryOnFail)
+		{
 			Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
 		}
-		else {
+		else
+		{
 			var firstPos = commit.LogPosition;
 			(var success, pos) = await Writer.Write(commit, token);
-			if (!success) {
+			if (!success)
+			{
 				commit = LogRecord.Commit(pos, prepare.CorrelationId, prepare.LogPosition,
 					eventNumber);
-				if (await Writer.Write(commit, token) is (false, _)) {
+				if (await Writer.Write(commit, token) is (false, _))
+				{
 					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
 						prepare.LogPosition);
 				}
@@ -275,7 +295,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	protected async ValueTask<EventRecord> WriteStreamMetadata(string eventStreamName, long eventNumber,
 		string metadata,
 		DateTime? timestamp = null,
-		CancellationToken token = default) {
+		CancellationToken token = default)
+	{
 		var (eventStreamId, _) = await GetOrReserve(SystemStreams.MetastreamOf(eventStreamName), token);
 		var (eventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamMetadata, token);
 		var prepare = LogRecord.SingleWrite(_recordFactory, pos,
@@ -302,7 +323,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 
 	protected async ValueTask<EventRecord> WriteTransactionBegin(string eventStreamName, long expectedVersion,
 		long eventNumber,
-		string eventData, CancellationToken token) {
+		string eventData, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (eventTypeId, pos) = await GetOrReserveEventType("some-type", token);
@@ -324,7 +346,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionBegin(string eventStreamName,
-		long expectedVersion, CancellationToken token) {
+		long expectedVersion, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, pos) = await GetOrReserve(eventStreamName, token);
 		var prepare = LogRecord.TransactionBegin(_recordFactory, pos, Guid.NewGuid(), eventStreamId,
@@ -342,7 +365,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		PrepareFlags flags,
 		bool retryOnFail = false,
 		string eventType = "some-type",
-		CancellationToken token = default) {
+		CancellationToken token = default)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
@@ -360,17 +384,20 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 			Helper.UTF8NoBom.GetBytes(eventData),
 			null);
 
-		if (retryOnFail) {
+		if (retryOnFail)
+		{
 			long firstPos = prepare.LogPosition;
 			var (success, newPos) = await Writer.Write(prepare, token);
-			if (!success) {
+			if (!success)
+			{
 				var tPos = prepare.TransactionPosition == prepare.LogPosition
 					? newPos
 					: prepare.TransactionPosition;
 				prepare = prepare.CopyForRetry(
 					logPosition: newPos,
 					transactionPosition: tPos);
-				if (await Writer.Write(prepare, token) is (false, _)) {
+				if (await Writer.Write(prepare, token) is (false, _))
+				{
 					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
 						prepare.LogPosition);
 				}
@@ -387,14 +414,16 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionEnd(Guid correlationId, long transactionId,
-		string eventStreamName, CancellationToken token) {
+		string eventStreamName, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		return await WriteTransactionEnd(correlationId, transactionId, eventStreamId, token);
 	}
 
 	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteTransactionEnd(Guid correlationId, long transactionId,
-		TStreamId eventStreamId, CancellationToken token) {
+		TStreamId eventStreamId, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var prepare = LogRecord.TransactionEnd(_recordFactory, Writer.Position,
 			correlationId,
@@ -411,7 +440,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		string eventType = null,
 		string data = null,
 		PrepareFlags additionalFlags = PrepareFlags.None,
-		CancellationToken token = default) {
+		CancellationToken token = default)
+	{
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (eventTypeId, pos) =
 			await GetOrReserveEventType(eventType.IsEmptyString() ? "some-type" : eventType, token);
@@ -431,7 +461,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	protected async ValueTask<CommitLogRecord> WriteCommit(long preparePos, string eventStreamName, long eventNumber,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var commit = LogRecord.Commit(Writer.Position, Guid.NewGuid(), preparePos, eventNumber);
 		Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
@@ -439,21 +470,24 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	protected async ValueTask<long> WriteCommit(Guid correlationId, long transactionId, string eventStreamName,
-		long eventNumber, CancellationToken token) {
+		long eventNumber, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		return await WriteCommit(correlationId, transactionId, eventStreamId, eventNumber, token);
 	}
 
 	protected async ValueTask<long> WriteCommit(Guid correlationId, long transactionId, TStreamId eventStreamId,
-		long eventNumber, CancellationToken token) {
+		long eventNumber, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var commit = LogRecord.Commit(Writer.Position, correlationId, transactionId, eventNumber);
 		Assert.IsTrue(await Writer.Write(commit, token) is (true, _));
 		return commit.LogPosition;
 	}
 
-	protected async ValueTask<EventRecord> WriteDelete(string eventStreamName, CancellationToken token) {
+	protected async ValueTask<EventRecord> WriteDelete(string eventStreamName, CancellationToken token)
+	{
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (streamDeletedEventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamDeleted, token);
 		var prepare = LogRecord.DeleteTombstone(_recordFactory, pos,
@@ -470,7 +504,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	}
 
 	protected async ValueTask<IPrepareLogRecord<TStreamId>> WriteDeletePrepare(string eventStreamName,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		var (eventStreamId, _) = await GetOrReserve(eventStreamName, token);
 		var (streamDeletedEventTypeId, pos) = await GetOrReserveEventType(SystemEventTypes.StreamDeleted, token);
 		var prepare = LogRecord.DeleteTombstone(_recordFactory, pos,
@@ -480,7 +515,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return prepare;
 	}
 
-	protected async ValueTask<CommitLogRecord> WriteDeleteCommit(IPrepareLogRecord prepare, CancellationToken token) {
+	protected async ValueTask<CommitLogRecord> WriteDeleteCommit(IPrepareLogRecord prepare, CancellationToken token)
+	{
 		LogFormatHelper<TLogFormat, TStreamId>.CheckIfExplicitTransactionsSupported();
 		var commit = LogRecord.Commit(Writer.Position,
 			prepare.CorrelationId,
@@ -495,8 +531,10 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 	protected async ValueTask<PrepareLogRecord> WriteSingleEventWithLogVersion0(Guid id, string streamId,
 		long position,
 		long expectedVersion, PrepareFlags? flags = null,
-		CancellationToken token = default) {
-		if (!flags.HasValue) {
+		CancellationToken token = default)
+	{
+		if (!flags.HasValue)
+		{
 			flags = PrepareFlags.SingleWrite;
 		}
 
@@ -510,13 +548,16 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 		return record;
 	}
 
-	protected TFPos GetBackwardReadPos() {
+	protected TFPos GetBackwardReadPos()
+	{
 		var pos = new TFPos(WriterCheckpoint.ReadNonFlushed(), WriterCheckpoint.ReadNonFlushed());
 		return pos;
 	}
 
-	protected void Scavenge(bool completeLast, bool mergeChunks, bool scavengeIndex = true) {
-		if (_scavenge) {
+	protected void Scavenge(bool completeLast, bool mergeChunks, bool scavengeIndex = true)
+	{
+		if (_scavenge)
+		{
 			throw new InvalidOperationException("Scavenge can be executed only once in ReadIndexTestScenario");
 		}
 

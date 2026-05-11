@@ -9,14 +9,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture]
-public class a_checkpoint_requested_on_a_non_started_stream : TestFixtureWithReadWriteDispatchers {
+public class a_checkpoint_requested_on_a_non_started_stream : TestFixtureWithReadWriteDispatchers
+{
 	private EmittedStream _stream;
 
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private Exception _caughtException;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		;
 		_stream = new EmittedStream(
@@ -25,18 +27,23 @@ public class a_checkpoint_requested_on_a_non_started_stream : TestFixtureWithRea
 				new EmittedStream.WriterConfiguration.StreamMetadata(), null, 50), new ProjectionVersion(1, 0, 0),
 			new TransactionFilePositionTagger(0), CheckpointTag.FromPosition(0, 0, -1), _bus, _ioDispatcher,
 			_readyHandler);
-		try {
+		try
+		{
 			_stream.Checkpoint();
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_caughtException = ex;
 		}
 	}
 
 	[Test]
-	public void throws_invalid_operation_exception() {
-		Assert.Throws<InvalidOperationException>(() => {
-			if (_caughtException != null) {
+	public void throws_invalid_operation_exception()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+		{
+			if (_caughtException != null)
+			{
 				throw _caughtException;
 			}
 		});

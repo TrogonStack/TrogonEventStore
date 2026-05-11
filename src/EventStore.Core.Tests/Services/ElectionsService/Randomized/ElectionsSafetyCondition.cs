@@ -6,12 +6,16 @@ using EventStore.Core.Tests.Infrastructure;
 
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
-internal class ElectionsSafetyCondition : IRandTestFinishCondition {
+internal class ElectionsSafetyCondition : IRandTestFinishCondition
+{
 	public bool Done { get; private set; }
 
-	public bool Success {
-		get {
-			if (_electionsResults.Count == 0) {
+	public bool Success
+	{
+		get
+		{
+			if (_electionsResults.Count == 0)
+			{
 				return false;
 			}
 
@@ -25,18 +29,22 @@ internal class ElectionsSafetyCondition : IRandTestFinishCondition {
 	private readonly Dictionary<EndPoint, EndPoint>
 		_electionsResults = new Dictionary<EndPoint, EndPoint>();
 
-	public ElectionsSafetyCondition(int instancesCount) {
+	public ElectionsSafetyCondition(int instancesCount)
+	{
 		_instancesCount = instancesCount;
 	}
 
-	public void Process(int iteration, RandTestQueueItem item) {
+	public void Process(int iteration, RandTestQueueItem item)
+	{
 		var electionsMsg = item.Message as ElectionMessage.ElectionsDone;
-		if (electionsMsg != null) {
+		if (electionsMsg != null)
+		{
 			_electionsResults[item.EndPoint] = electionsMsg.Leader.HttpEndPoint;
 			Done = _electionsResults.Count == _instancesCount;
 		}
 	}
 
-	public void Log() {
+	public void Log()
+	{
 	}
 }

@@ -17,20 +17,23 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.transaction_file_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_stream_soft_deleted<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_stream_soft_deleted<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private TransactionFileEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
 	private Guid _secondEventId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
 	private FakeTimeProvider _fakeTimeProvider;
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_distibutionPointCorrelationId = Guid.NewGuid();
 		_fakeTimeProvider = new FakeTimeProvider();
 		_edp = new TransactionFileEventReader(_bus, _distibutionPointCorrelationId, null, new TFPos(100, 50),
@@ -64,7 +67,8 @@ public class when_handling_stream_soft_deleted<TLogFormat, TStreamId> : TestFixt
 	}
 
 	[Test]
-	public void publishes_event_reader_partition_deleted_messages() {
+	public void publishes_event_reader_partition_deleted_messages()
+	{
 		var deleteds =
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.EventReaderPartitionDeleted>().ToArray();
 		Assert.AreEqual(1, deleteds.Count());

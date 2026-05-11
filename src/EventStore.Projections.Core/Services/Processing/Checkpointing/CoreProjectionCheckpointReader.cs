@@ -10,7 +10,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Checkpointing;
 
-public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader {
+public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader
+{
 	private readonly IPublisher _publisher;
 	private readonly Guid _projectionCorrelationId;
 	private readonly IODispatcher _ioDispatcher;
@@ -27,7 +28,8 @@ public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader {
 
 	public CoreProjectionCheckpointReader(
 		IPublisher publisher, Guid projectionCorrelationId, IODispatcher ioDispatcher,
-		string projectionCheckpointStreamId, ProjectionVersion projectionVersion, bool useCheckpoints) {
+		string projectionCheckpointStreamId, ProjectionVersion projectionVersion, bool useCheckpoints)
+	{
 		_publisher = publisher;
 		_projectionCorrelationId = projectionCorrelationId;
 		_ioDispatcher = ioDispatcher;
@@ -36,58 +38,71 @@ public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader {
 		_useCheckpoints = useCheckpoints;
 	}
 
-	public void BeginLoadState() {
-		if (_stateRequested) {
+	public void BeginLoadState()
+	{
+		if (_stateRequested)
+		{
 			throw new InvalidOperationException("State has been already requested");
 		}
 
 		BeforeBeginLoadState();
 		_stateRequested = true;
-		if (_useCheckpoints) {
+		if (_useCheckpoints)
+		{
 			RequestLoadState();
 		}
-		else {
+		else
+		{
 			CheckpointLoaded(null, null);
 		}
 	}
 
-	public void Initialize() {
+	public void Initialize()
+	{
 		_ioDispatcher.BackwardReader.Cancel(_readRequestId);
 		_readRequestId = Guid.Empty;
 		_stateRequested = false;
 	}
 
-	protected void BeforeBeginLoadState() {
+	protected void BeforeBeginLoadState()
+	{
 		_lastWrittenCheckpointEventNumber = ExpectedVersion.NoStream;
 		_nextStateIndexToRequest = -1; // from the end
 	}
 
-	protected void RequestLoadState() {
+	protected void RequestLoadState()
+	{
 		const int recordsToRequest = 10;
 		_readRequestId = Guid.NewGuid();
 		_ioDispatcher.ReadBackward(
 			_projectionCheckpointStreamId, _nextStateIndexToRequest, recordsToRequest, false,
 			SystemAccounts.System, OnLoadStateReadRequestCompleted,
-			() => {
+			() =>
+			{
 				_logger.Warning("Read forward of stream {stream} timed out. Retrying.", _projectionCheckpointStreamId);
 				RequestLoadState();
 			}, _readRequestId);
 	}
 
 
-	private void OnLoadStateReadRequestCompleted(ClientMessage.ReadStreamEventsBackwardCompleted message) {
-		if (message.Events.Count > 0) {
+	private void OnLoadStateReadRequestCompleted(ClientMessage.ReadStreamEventsBackwardCompleted message)
+	{
+		if (message.Events.Count > 0)
+		{
 			var checkpoint = message.Events
 				.Where(v => v.Event.EventType == ProjectionEventTypes.ProjectionCheckpoint).Select(x => x.Event)
 				.FirstOrDefault();
-			if (checkpoint != null) {
+			if (checkpoint != null)
+			{
 				var parsed = checkpoint.Metadata.ParseCheckpointTagVersionExtraJson(_projectionVersion);
 				if (parsed.Version.ProjectionId != _projectionVersion.ProjectionId
-					|| _projectionVersion.Epoch > parsed.Version.Version) {
+					|| _projectionVersion.Epoch > parsed.Version.Version)
+				{
 					_lastWrittenCheckpointEventNumber = checkpoint.EventNumber;
 					CheckpointLoaded(null, null);
 				}
-				else {
+				else
+				{
 					//TODO: check epoch and correctly set _lastWrittenCheckpointEventNumber
 					var checkpointData = Helper.UTF8NoBom.GetString(checkpoint.Data.Span);
 					_lastWrittenCheckpointEventNumber = checkpoint.EventNumber;
@@ -99,7 +114,8 @@ public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader {
 			}
 		}
 
-		if (message.NextEventNumber != -1) {
+		if (message.NextEventNumber != -1)
+		{
 			_nextStateIndexToRequest = message.NextEventNumber;
 			RequestLoadState();
 			return;
@@ -110,7 +126,8 @@ public class CoreProjectionCheckpointReader : ICoreProjectionCheckpointReader {
 	}
 
 
-	protected void CheckpointLoaded(CheckpointTag checkpointTag, string checkpointData) {
+	protected void CheckpointLoaded(CheckpointTag checkpointTag, string checkpointData)
+	{
 		if (checkpointTag == null) // no checkpoint data found
 		{
 			checkpointData = null;

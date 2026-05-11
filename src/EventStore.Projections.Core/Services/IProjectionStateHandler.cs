@@ -7,12 +7,14 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Services;
 
-public interface ISourceDefinitionSource {
+public interface ISourceDefinitionSource
+{
 	IQuerySources GetSourceDefinition();
 }
 
 
-public interface IProjectionStateHandler : IDisposable, ISourceDefinitionSource {
+public interface IProjectionStateHandler : IDisposable, ISourceDefinitionSource
+{
 	void Load(string state);
 	void LoadShared(string state);
 	void Initialize();
@@ -57,15 +59,18 @@ public interface IProjectionStateHandler : IDisposable, ISourceDefinitionSource 
 	string TransformStateToResult();
 }
 
-public interface IProjectionCheckpointHandler {
+public interface IProjectionCheckpointHandler
+{
 	void ProcessNewCheckpoint(CheckpointTag checkpointPosition, out EmittedEventEnvelope[] emittedEvents);
 }
 
-public static class ProjectionStateHandlerTestExtensions {
+public static class ProjectionStateHandlerTestExtensions
+{
 	public static bool ProcessEvent(
 		this IProjectionStateHandler self, string partition, CheckpointTag eventPosition, string streamId,
 		string eventType, string category, Guid eventId, long eventSequenceNumber, string metadata, string data,
-		out string state, out EmittedEventEnvelope[] emittedEvents, bool isJson = true) {
+		out string state, out EmittedEventEnvelope[] emittedEvents, bool isJson = true)
+	{
 		return self.ProcessEvent(
 			partition, eventPosition, category,
 			new ResolvedEvent(
@@ -76,7 +81,8 @@ public static class ProjectionStateHandlerTestExtensions {
 	public static bool ProcessEvent(
 		this IProjectionStateHandler self, string partition, CheckpointTag eventPosition, string streamId,
 		string eventType, string category, Guid eventId, long eventSequenceNumber, string metadata, string data,
-		out string state, out string sharedState, out EmittedEventEnvelope[] emittedEvents, bool isJson = true) {
+		out string state, out string sharedState, out EmittedEventEnvelope[] emittedEvents, bool isJson = true)
+	{
 		return self.ProcessEvent(
 			partition, eventPosition, category,
 			new ResolvedEvent(
@@ -84,7 +90,8 @@ public static class ProjectionStateHandlerTestExtensions {
 				eventType, isJson, data, metadata), out state, out sharedState, out emittedEvents);
 	}
 
-	public static string GetNativeHandlerName(this Type handlerType) {
+	public static string GetNativeHandlerName(this Type handlerType)
+	{
 		return "native:" + handlerType.Namespace + "." + handlerType.Name;
 	}
 }

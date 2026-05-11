@@ -2,8 +2,10 @@
 
 namespace EventStore.Core.Data;
 
-public record UserData {
-	public UserData(string loginName, string fullName, string[]? groups, string hash, string salt, bool disabled) {
+public record UserData
+{
+	public UserData(string loginName, string fullName, string[]? groups, string hash, string salt, bool disabled)
+	{
 		LoginName = loginName;
 		FullName = fullName;
 		Groups = groups ?? [];

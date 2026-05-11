@@ -16,16 +16,20 @@ using Google.Protobuf;
 using Microsoft.Diagnostics.Tracing.Parsers.IIS_Trace;
 using OperationResult = EventStore.Core.Messages.OperationResult;
 
-namespace EventStore.Core.Services.Transport.Tcp {
-	public enum ClientVersion : byte {
+namespace EventStore.Core.Services.Transport.Tcp
+{
+	public enum ClientVersion : byte
+	{
 		V1 = 0,
 		V2 = 1
 	}
 
-	public class ClientWriteTcpDispatcher : TcpDispatcher {
+	public class ClientWriteTcpDispatcher : TcpDispatcher
+	{
 		private readonly TimeSpan _writeTimeout;
 
-		protected ClientWriteTcpDispatcher(TimeSpan writeTimeout) {
+		protected ClientWriteTcpDispatcher(TimeSpan writeTimeout)
+		{
 			_writeTimeout = writeTimeout;
 			AddUnwrapper(TcpCommand.WriteEvents, UnwrapWriteEvents, ClientVersion.V2);
 			AddWrapper<ClientMessage.WriteEvents>(WrapWriteEvents, ClientVersion.V2);
@@ -53,14 +57,17 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			AddWrapper<ClientMessage.DeleteStreamCompleted>(WrapDeleteStreamCompleted, ClientVersion.V2);
 		}
 		private ClientMessage.WriteEvents UnwrapWriteEvents(TcpPackage package, IEnvelope envelope,
-			ClaimsPrincipal user) {
+			ClaimsPrincipal user)
+		{
 			var dto = package.Data.Deserialize<WriteEvents>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
 			var events = new Event[dto.Events.Count];
-			for (int i = 0; i < events.Length; ++i) {
+			for (int i = 0; i < events.Length; ++i)
+			{
 				// ReSharper disable PossibleNullReferenceException
 				var e = dto.Events[i];
 				// ReSharper restore PossibleNullReferenceException
@@ -74,15 +81,18 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			return new ClientMessage.WriteEvents(Guid.NewGuid(), package.CorrelationId, envelopeWrapper, dto.RequireLeader,
 				dto.EventStreamId, dto.ExpectedVersion, events, user, package.Tokens, cts.Token);
 
-			void OnMessage(Message m) {
+			void OnMessage(Message m)
+			{
 				cts.Dispose();
 				envelope.ReplyWith(m);
 			}
 		}
 
-		private static TcpPackage WrapWriteEvents(ClientMessage.WriteEvents msg) {
+		private static TcpPackage WrapWriteEvents(ClientMessage.WriteEvents msg)
+		{
 			var events = new NewEvent[msg.Events.Length];
-			for (int i = 0; i < events.Length; ++i) {
+			for (int i = 0; i < events.Length; ++i)
+			{
 				var e = msg.Events[i];
 				events[i] = new NewEvent(e.EventId.ToByteArray(),
 					e.EventType,
@@ -97,19 +107,24 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		private static TcpPackage CreateWriteRequestPackage<T>(TcpCommand command, ClientMessage.WriteRequestMessage msg,
-			T dto) where T : IMessage<T> {
+			T dto) where T : IMessage<T>
+		{
 			// we forwarding with InternalCorrId, not client's CorrelationId!!!
-			if (msg.User == UserManagement.SystemAccounts.System) {
+			if (msg.User == UserManagement.SystemAccounts.System)
+			{
 				return new TcpPackage(command, TcpFlags.TrustedWrite, msg.InternalCorrId, null, null, dto.Serialize());
 			}
 
-			foreach (var identity in msg.User.Identities) {
-				if (!(identity is DelegatedClaimsIdentity dci)) {
+			foreach (var identity in msg.User.Identities)
+			{
+				if (!(identity is DelegatedClaimsIdentity dci))
+				{
 					continue;
 				}
 
 				var jwtClaim = dci.FindFirst("jwt");
-				if (jwtClaim != null) {
+				if (jwtClaim != null)
+				{
 					return new TcpPackage(command, TcpFlags.Authenticated, msg.InternalCorrId, jwtClaim.Value,
 						dto.Serialize());
 				}
@@ -117,7 +132,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				var uidClaim = dci.FindFirst("uid");
 				var pwdClaim = dci.FindFirst("pwd");
 
-				if (uidClaim != null && pwdClaim != null) {
+				if (uidClaim != null && pwdClaim != null)
+				{
 					return new TcpPackage(command, TcpFlags.Authenticated, msg.InternalCorrId, uidClaim.Value,
 						pwdClaim.Value, dto.Serialize());
 				}
@@ -130,13 +146,16 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		private static ClientMessage.WriteEventsCompleted UnwrapWriteEventsCompleted(TcpPackage package,
-			IEnvelope envelope) {
+			IEnvelope envelope)
+		{
 			var dto = package.Data.Deserialize<WriteEventsCompleted>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
-			if (dto.Result == Client.Messages.OperationResult.Success) {
+			if (dto.Result == Client.Messages.OperationResult.Success)
+			{
 				return new ClientMessage.WriteEventsCompleted(package.CorrelationId,
 					dto.FirstEventNumber,
 					dto.LastEventNumber,
@@ -150,7 +169,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				dto.CurrentVersion);
 		}
 
-		private static TcpPackage WrapWriteEventsCompleted(ClientMessage.WriteEventsCompleted msg) {
+		private static TcpPackage WrapWriteEventsCompleted(ClientMessage.WriteEventsCompleted msg)
+		{
 			var dto = new WriteEventsCompleted((Client.Messages.OperationResult)msg.Result,
 				msg.Message,
 				msg.FirstEventNumber,
@@ -162,9 +182,11 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		private static ClientMessage.TransactionStart UnwrapTransactionStart(TcpPackage package, IEnvelope envelope,
-			ClaimsPrincipal user) {
+			ClaimsPrincipal user)
+		{
 			var dto = package.Data.Deserialize<TransactionStart>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
@@ -173,16 +195,19 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				dto.EventStreamId, dto.ExpectedVersion, user, package.Tokens);
 		}
 
-		private static TcpPackage WrapTransactionStart(ClientMessage.TransactionStart msg) {
+		private static TcpPackage WrapTransactionStart(ClientMessage.TransactionStart msg)
+		{
 			var dto = new TransactionStart(msg.EventStreamId, msg.ExpectedVersion,
 				msg.RequireLeader);
 			return CreateWriteRequestPackage(TcpCommand.TransactionStart, msg, dto);
 		}
 
 		private static ClientMessage.TransactionStartCompleted UnwrapTransactionStartCompleted(TcpPackage package,
-			IEnvelope envelope) {
+			IEnvelope envelope)
+		{
 			var dto = package.Data.Deserialize<TransactionStartCompleted>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
@@ -190,21 +215,25 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				(OperationResult)dto.Result, dto.Message);
 		}
 
-		private static TcpPackage WrapTransactionStartCompleted(ClientMessage.TransactionStartCompleted msg) {
+		private static TcpPackage WrapTransactionStartCompleted(ClientMessage.TransactionStartCompleted msg)
+		{
 			var dto = new TransactionStartCompleted(msg.TransactionId,
 				(Client.Messages.OperationResult)msg.Result, msg.Message);
 			return new TcpPackage(TcpCommand.TransactionStartCompleted, msg.CorrelationId, dto.Serialize());
 		}
 
 		private static ClientMessage.TransactionWrite UnwrapTransactionWrite(TcpPackage package, IEnvelope envelope,
-			ClaimsPrincipal user) {
+			ClaimsPrincipal user)
+		{
 			var dto = package.Data.Deserialize<TransactionWrite>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
 			var events = new Event[dto.Events.Count];
-			for (int i = 0; i < events.Length; ++i) {
+			for (int i = 0; i < events.Length; ++i)
+			{
 				// ReSharper disable PossibleNullReferenceException
 				var e = dto.Events[i];
 				// ReSharper restore PossibleNullReferenceException
@@ -216,9 +245,11 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				dto.TransactionId, events, user, package.Tokens);
 		}
 
-		private static TcpPackage WrapTransactionWrite(ClientMessage.TransactionWrite msg) {
+		private static TcpPackage WrapTransactionWrite(ClientMessage.TransactionWrite msg)
+		{
 			var events = new NewEvent[msg.Events.Length];
-			for (int i = 0; i < events.Length; ++i) {
+			for (int i = 0; i < events.Length; ++i)
+			{
 				var e = msg.Events[i];
 				events[i] = new NewEvent(e.EventId.ToByteArray(), e.EventType, e.IsJson ? 1 : 0, 0,
 					e.Data, e.Metadata);
@@ -229,9 +260,11 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		private static ClientMessage.TransactionWriteCompleted UnwrapTransactionWriteCompleted(TcpPackage package,
-			IEnvelope envelope) {
+			IEnvelope envelope)
+		{
 			var dto = package.Data.Deserialize<TransactionWriteCompleted>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
@@ -239,16 +272,19 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				(OperationResult)dto.Result, dto.Message);
 		}
 
-		private static TcpPackage WrapTransactionWriteCompleted(ClientMessage.TransactionWriteCompleted msg) {
+		private static TcpPackage WrapTransactionWriteCompleted(ClientMessage.TransactionWriteCompleted msg)
+		{
 			var dto = new TransactionWriteCompleted(msg.TransactionId,
 				(Client.Messages.OperationResult)msg.Result, msg.Message);
 			return new TcpPackage(TcpCommand.TransactionWriteCompleted, msg.CorrelationId, dto.Serialize());
 		}
 
 		private static ClientMessage.TransactionCommit UnwrapTransactionCommit(TcpPackage package, IEnvelope envelope,
-			ClaimsPrincipal user) {
+			ClaimsPrincipal user)
+		{
 			var dto = package.Data.Deserialize<TransactionCommit>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
@@ -256,19 +292,23 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				dto.RequireLeader, dto.TransactionId, user, package.Tokens);
 		}
 
-		private static TcpPackage WrapTransactionCommit(ClientMessage.TransactionCommit msg) {
+		private static TcpPackage WrapTransactionCommit(ClientMessage.TransactionCommit msg)
+		{
 			var dto = new TransactionCommit(msg.TransactionId, msg.RequireLeader);
 			return CreateWriteRequestPackage(TcpCommand.TransactionCommit, msg, dto);
 		}
 
 		private static ClientMessage.TransactionCommitCompleted UnwrapTransactionCommitCompleted(TcpPackage package,
-			IEnvelope envelope) {
+			IEnvelope envelope)
+		{
 			var dto = package.Data.Deserialize<TransactionCommitCompleted>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
-			if (dto.Result == Client.Messages.OperationResult.Success) {
+			if (dto.Result == Client.Messages.OperationResult.Success)
+			{
 				return new ClientMessage.TransactionCommitCompleted(package.CorrelationId, dto.TransactionId,
 					dto.FirstEventNumber, dto.LastEventNumber, dto.PreparePosition, dto.CommitPosition);
 			}
@@ -277,7 +317,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				(OperationResult)dto.Result, dto.Message);
 		}
 
-		private static TcpPackage WrapTransactionCommitCompleted(ClientMessage.TransactionCommitCompleted msg) {
+		private static TcpPackage WrapTransactionCommitCompleted(ClientMessage.TransactionCommitCompleted msg)
+		{
 			var dto = new TransactionCommitCompleted(msg.TransactionId,
 				(Client.Messages.OperationResult)msg.Result,
 				msg.Message, msg.FirstEventNumber, msg.LastEventNumber, msg.PreparePosition, msg.CommitPosition);
@@ -285,9 +326,11 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		private ClientMessage.DeleteStream UnwrapDeleteStream(TcpPackage package, IEnvelope envelope,
-			ClaimsPrincipal user) {
+			ClaimsPrincipal user)
+		{
 			var dto = package.Data.Deserialize<DeleteStream>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
@@ -298,22 +341,26 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			return new ClientMessage.DeleteStream(Guid.NewGuid(), package.CorrelationId, envelopeWrapper, dto.RequireLeader,
 				dto.EventStreamId, dto.ExpectedVersion, dto.HardDelete, user, package.Tokens, cts.Token);
 
-			void OnMessage(Message m) {
+			void OnMessage(Message m)
+			{
 				cts.Dispose();
 				envelope.ReplyWith(m);
 			}
 		}
 
-		private static TcpPackage WrapDeleteStream(ClientMessage.DeleteStream msg) {
+		private static TcpPackage WrapDeleteStream(ClientMessage.DeleteStream msg)
+		{
 			var dto = new DeleteStream(msg.EventStreamId, msg.ExpectedVersion, msg.RequireLeader,
 				msg.HardDelete);
 			return CreateWriteRequestPackage(TcpCommand.DeleteStream, msg, dto);
 		}
 
 		private static ClientMessage.DeleteStreamCompleted UnwrapDeleteStreamCompleted(TcpPackage package,
-			IEnvelope envelope) {
+			IEnvelope envelope)
+		{
 			var dto = package.Data.Deserialize<DeleteStreamCompleted>();
-			if (dto == null) {
+			if (dto == null)
+			{
 				return null;
 			}
 
@@ -324,7 +371,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 				dto.CommitPosition);
 		}
 
-		private static TcpPackage WrapDeleteStreamCompleted(ClientMessage.DeleteStreamCompleted msg) {
+		private static TcpPackage WrapDeleteStreamCompleted(ClientMessage.DeleteStreamCompleted msg)
+		{
 			var dto = new DeleteStreamCompleted((Client.Messages.OperationResult)msg.Result,
 				msg.Message,
 				msg.CurrentVersion,

@@ -10,43 +10,53 @@ using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class WriteLongTermProcessor : ICmdProcessor {
-	public string Usage {
-		get {
+internal class WriteLongTermProcessor : ICmdProcessor
+{
+	public string Usage
+	{
+		get
+		{
 			return
 				"WRLT <clients> <min req. per second> <max req. per second> <run for n minutes> [<event-stream>]";
 		}
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "WRLT"; }
 	}
 
 	private readonly object _randomLockRoot = new object();
 	private readonly Random _random = new Random();
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		int clientsCnt = 1;
 		int minPerSecond = 1;
 		int maxPerSecond = 2;
 		int runTimeMinutes = 1;
 		string eventStreamId = null;
 
-		if (args.Length > 0) {
-			if (args.Length != 4 && args.Length != 5) {
+		if (args.Length > 0)
+		{
+			if (args.Length != 4 && args.Length != 5)
+			{
 				return false;
 			}
 
-			try {
+			try
+			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				minPerSecond = MetricPrefixValue.ParseInt(args[1]);
 				maxPerSecond = MetricPrefixValue.ParseInt(args[2]);
 				runTimeMinutes = MetricPrefixValue.ParseInt(args[3]);
-				if (args.Length == 5) {
+				if (args.Length == 5)
+				{
 					eventStreamId = args[4];
 				}
 			}
-			catch {
+			catch
+			{
 				return false;
 			}
 		}
@@ -60,7 +70,8 @@ internal class WriteLongTermProcessor : ICmdProcessor {
 		int clientsCnt,
 		int minPerSecond,
 		int maxPerSecond,
-		int runTimeMinutes) {
+		int runTimeMinutes)
+	{
 		context.IsAsync();
 
 		var clients = new List<TcpTypedConnection<byte[]>>();
@@ -78,71 +89,87 @@ internal class WriteLongTermProcessor : ICmdProcessor {
 
 		var watchLockRoot = new object();
 		var sw = Stopwatch.StartNew();
-		for (int i = 0; i < clientsCnt; i++) {
+		for (int i = 0; i < clientsCnt; i++)
+		{
 			var esId = eventStreamId ?? "Stream-" + Thread.CurrentThread.ManagedThreadId % 3;
 
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, pkg) => {
-					if (pkg.Command != TcpCommand.WriteEventsCompleted) {
+				(conn, pkg) =>
+				{
+					if (pkg.Command != TcpCommand.WriteEventsCompleted)
+					{
 						context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 						return;
 					}
 
 					var dto = pkg.Data.Deserialize<WriteEventsCompleted>();
-					if (dto.Result == OperationResult.Success) {
+					if (dto.Result == OperationResult.Success)
+					{
 						var succDone = Interlocked.Increment(ref succ);
-						if (succDone % maxPerSecond == 0) {
+						if (succDone % maxPerSecond == 0)
+						{
 							Console.Write(".");
 						}
 
 						Interlocked.Increment(ref requestsCnt);
 					}
-					else {
+					else
+					{
 						Interlocked.Increment(ref fail);
 					}
 
 					Interlocked.Increment(ref received);
 				},
-				connectionClosed: (conn, err) => {
-					if (!done) {
+				connectionClosed: (conn, err) =>
+				{
+					if (!done)
+					{
 						context.Fail(reason: "Socket was closed, but not all requests were completed.");
 					}
-					else {
+					else
+					{
 						context.Success();
 					}
 				});
 			clients.Add(client);
 
-			threads.Add(new Thread(() => {
+			threads.Add(new Thread(() =>
+			{
 				var sentCount = 0;
 				var sleepTime = 0;
 
 				var dataSizeCoefficient = 1;
 				var currentMinute = -1;
 
-				while (true) {
+				while (true)
+				{
 					TimeSpan elapsed;
-					lock (watchLockRoot) {
+					lock (watchLockRoot)
+					{
 						elapsed = sw.Elapsed;
 					}
 
-					if (elapsed.TotalMinutes > runTimeMinutes) {
+					if (elapsed.TotalMinutes > runTimeMinutes)
+					{
 						done = true;
 						doneEvent.Set();
 						break;
 					}
 
-					if (sentCount == 0) {
+					if (sentCount == 0)
+					{
 						int elapsedMinutesInt = (int)elapsed.TotalMinutes;
-						lock (_randomLockRoot) {
+						lock (_randomLockRoot)
+						{
 							sentCount = minPerSecond == maxPerSecond
 								? maxPerSecond
 								: _random.Next(minPerSecond, maxPerSecond);
 							dataSizeCoefficient = _random.Next(8, 256);
 						}
 
-						if (currentMinute != elapsedMinutesInt) {
+						if (currentMinute != elapsedMinutesInt)
+						{
 							currentMinute = elapsedMinutesInt;
 							context.Log.Information(
 								"\nElapsed {elapsed} of {runTime} minutes, sent {sent}; next block coef. {dataSizeCoefficient}",
@@ -177,14 +204,16 @@ internal class WriteLongTermProcessor : ICmdProcessor {
 					Thread.Sleep(sleepTime);
 					sentCount -= 1;
 
-					while (sent - received > context._tcpTestClient.Options.WriteWindow / clientsCnt) {
+					while (sent - received > context._tcpTestClient.Options.WriteWindow / clientsCnt)
+					{
 						Thread.Sleep(1);
 					}
 				}
 			}));
 		}
 
-		foreach (var thread in threads) {
+		foreach (var thread in threads)
+		{
 			thread.IsBackground = true;
 			thread.Start();
 		}
@@ -192,7 +221,8 @@ internal class WriteLongTermProcessor : ICmdProcessor {
 		doneEvent.WaitOne();
 		sw.Stop();
 
-		foreach (var client in clients) {
+		foreach (var client in clients)
+		{
 			client.Close();
 		}
 

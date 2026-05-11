@@ -8,15 +8,18 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_suspending_a_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+public class when_suspending_a_projection_and_an_event_is_received<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private Guid _lastEventIdBeforeSuspension;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//receive first event
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -46,7 +49,8 @@ public class when_suspending_a_projection_and_an_event_is_received<TLogFormat, T
 	}
 
 	[Test]
-	public void event_received_after_suspend_is_not_processed() {
+	public void event_received_after_suspend_is_not_processed()
+	{
 		Assert.AreEqual(2, _stateHandler._eventsProcessed);
 		Assert.AreEqual(_lastEventIdBeforeSuspension, _stateHandler._lastProcessedEventId);
 		Assert.AreEqual("data2", _stateHandler._lastProcessedData);

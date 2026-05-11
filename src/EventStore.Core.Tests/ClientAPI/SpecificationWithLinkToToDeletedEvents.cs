@@ -9,11 +9,13 @@ using EventStore.Core.Messages;
 namespace EventStore.Core.Tests.ClientAPI;
 
 public abstract class SpecificationWithLinkToToDeletedEvents<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	protected string LinkedStreamName;
 	protected string DeletedStreamName;
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		var creds = DefaultData.AdminCredentials;
 		LinkedStreamName = Guid.NewGuid().ToString();
 		DeletedStreamName = Guid.NewGuid().ToString();

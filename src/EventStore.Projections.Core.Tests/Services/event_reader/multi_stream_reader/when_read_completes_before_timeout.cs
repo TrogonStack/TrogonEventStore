@@ -16,11 +16,13 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private MultiStreamEventReader _eventReader;
 	private Guid _distibutionPointCorrelationId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
@@ -28,7 +30,8 @@ public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFix
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -82,7 +85,8 @@ public class when_read_completes_before_timeout<TLogFormat, TStreamId> : TestFix
 	}
 
 	[Test]
-	public void should_deliver_events() {
+	public void should_deliver_events()
+	{
 		Assert.AreEqual(3,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}

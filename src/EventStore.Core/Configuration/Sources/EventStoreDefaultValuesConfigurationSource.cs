@@ -5,8 +5,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using static System.StringComparer;
 
-namespace EventStore.Core.Configuration.Sources {
-	public class EventStoreDefaultValuesConfigurationSource(IEnumerable<KeyValuePair<string, string?>>? initialData = null) : IConfigurationSource {
+namespace EventStore.Core.Configuration.Sources
+{
+	public class EventStoreDefaultValuesConfigurationSource(IEnumerable<KeyValuePair<string, string?>>? initialData = null) : IConfigurationSource
+	{
 		private IEnumerable<KeyValuePair<string, string?>> InitialData { get; } =
 			initialData ?? new Dictionary<string, string?>();
 
@@ -15,17 +17,20 @@ namespace EventStore.Core.Configuration.Sources {
 	}
 
 	public class EventStoreDefaultValuesConfigurationProvider(IEnumerable<KeyValuePair<string, string?>> initialData)
-		: MemoryConfigurationProvider(new() {
+		: MemoryConfigurationProvider(new()
+		{
 			InitialData = initialData.ToDictionary(
 				kvp => $"{Prefix}:{kvp.Key}",
 				kvp => kvp.Value,
 				OrdinalIgnoreCase)
-		}) {
+		})
+	{
 
 		private const string Prefix = "EventStore";
 	}
 
-	public static class EventStoreDefaultValuesConfigurationExtensions {
+	public static class EventStoreDefaultValuesConfigurationExtensions
+	{
 		public static IConfigurationBuilder AddEventStoreDefaultValues(this IConfigurationBuilder configurationBuilder,
 			IEnumerable<KeyValuePair<string, string?>> initialData) =>
 			configurationBuilder.Add(new EventStoreDefaultValuesConfigurationSource(initialData));

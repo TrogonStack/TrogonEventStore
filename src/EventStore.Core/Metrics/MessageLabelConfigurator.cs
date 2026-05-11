@@ -7,17 +7,21 @@ using Serilog;
 
 namespace EventStore.Core.Metrics;
 
-public class MessageLabelConfigurator {
+public class MessageLabelConfigurator
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<MessageLabelConfigurator>();
 
 	public static void ConfigureMessageLabels(
 		MetricsConfiguration.LabelMappingCase[] configuration,
-		IEnumerable<Type> messageTypes) {
+		IEnumerable<Type> messageTypes)
+	{
 
 		var labels = new HashSet<string>();
 
-		foreach (var messageType in messageTypes) {
-			if (TryConfigureMessageType(configuration, messageType, out var label)) {
+		foreach (var messageType in messageTypes)
+		{
+			if (TryConfigureMessageType(configuration, messageType, out var label))
+			{
 				labels.Add(label);
 			}
 		}
@@ -28,31 +32,38 @@ public class MessageLabelConfigurator {
 	private static bool TryConfigureMessageType(
 		MetricsConfiguration.LabelMappingCase[] configuration,
 		Type messageType,
-		out string label) {
+		out string label)
+	{
 
 		label = default;
 
-		if (messageType.IsAbstract) {
+		if (messageType.IsAbstract)
+		{
 			return false;
 		}
 
 		var labelStaticProperty = messageType
 			.GetProperty("LabelStatic", BindingFlags.Static | BindingFlags.Public);
 
-		if (labelStaticProperty is null) {
+		if (labelStaticProperty is null)
+		{
 			Log.Warning($"{messageType} may be missing the DerivedMessage attribute.");
 			return false;
 		}
 
-		if (labelStaticProperty.GetValue(null) is not string oldLabel) {
+		if (labelStaticProperty.GetValue(null) is not string oldLabel)
+		{
 			oldLabel = "";
 		}
 
-		foreach (var @case in configuration) {
+		foreach (var @case in configuration)
+		{
 			var pattern = $"^{@case.Regex}$";
 			var match = Regex.Match(input: oldLabel, pattern: pattern);
-			if (match.Success) {
-				if (string.IsNullOrWhiteSpace(@case.Label)) {
+			if (match.Success)
+			{
+				if (string.IsNullOrWhiteSpace(@case.Label))
+				{
 					Log.Warning(
 						"Label for message {message} matching pattern {pattern} was not specified.",
 						oldLabel, @case.Regex);

@@ -11,7 +11,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.IndexCommitter;
 
 [TestFixture]
-public class when_creating_index_committer_service {
+public class when_creating_index_committer_service
+{
 	protected ICheckpoint ReplicationCheckpoint = new InMemoryCheckpoint(0);
 	protected ICheckpoint WriterCheckpoint = new InMemoryCheckpoint(0);
 	protected IPublisher Publisher = new FakePublisher();
@@ -20,24 +21,28 @@ public class when_creating_index_committer_service {
 	private readonly QueueStatsManager _queueStatsManager = new();
 
 	[Test]
-	public void null_index_committer_throws_argument_null_exception() {
+	public void null_index_committer_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => new IndexCommitterService<string>(null, Publisher,
 			 WriterCheckpoint, ReplicationCheckpoint, TableIndex, _queueStatsManager));
 	}
 
 	[Test]
-	public void null_publisher_throws_argument_null_exception() {
+	public void null_publisher_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => new IndexCommitterService<string>(IndexCommitter, null,
 			 WriterCheckpoint, ReplicationCheckpoint, TableIndex, _queueStatsManager));
 	}
 
 	[Test]
-	public void null_writer_checkpoint_throws_argument_null_exception() {
+	public void null_writer_checkpoint_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => new IndexCommitterService<string>(IndexCommitter, Publisher,
 			 null, ReplicationCheckpoint, TableIndex, _queueStatsManager));
 	}
 	[Test]
-	public void null_replication_checkpoint_throws_argument_null_exception() {
+	public void null_replication_checkpoint_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => new IndexCommitterService<string>(IndexCommitter, Publisher,
 			 WriterCheckpoint, null, TableIndex, _queueStatsManager));
 	}

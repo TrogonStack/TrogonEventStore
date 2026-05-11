@@ -10,9 +10,11 @@ namespace EventStore.Core.Tests.ClientAPI.Security;
 
 [Category("ClientAPI"), Category("LongRunning"), Category("Network")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class multiple_role_security<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId> {
+public class multiple_role_security<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId>
+{
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var settings = new SystemSettings(
@@ -23,7 +25,8 @@ public class multiple_role_security<TLogFormat, TStreamId> : AuthenticationTestB
 	}
 
 	[Test]
-	public async Task multiple_roles_are_handled_correctly() {
+	public async Task multiple_roles_are_handled_correctly()
+	{
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => ReadEvent("usr-stream", null, null));
 		await ReadEvent("usr-stream", "user1", "pa$$1");
 		await ReadEvent("usr-stream", "user2", "pa$$2");

@@ -15,8 +15,10 @@ using Serilog.Filters;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
 
-namespace EventStore.Common.Log {
-	public class EventStoreLoggerConfiguration {
+namespace EventStore.Common.Log
+{
+	public class EventStoreLoggerConfiguration
+	{
 		static readonly ExpressionTemplate ConsoleOutputExpressionTemplate = new(
 			"[{ProcessId,5},{ThreadId,2},{@t:HH:mm:ss.fff},{@l:u3}] {Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1), -30} {@m}\n{@x}",
 			theme: TemplateTheme.Literate
@@ -40,13 +42,17 @@ namespace EventStore.Common.Log {
 		private readonly string _componentName;
 		private readonly LoggerConfiguration _loggerConfiguration;
 
-		static EventStoreLoggerConfiguration() {
+		static EventStoreLoggerConfiguration()
+		{
 			Serilog.Log.Logger = ConsoleLog;
-			AppDomain.CurrentDomain.UnhandledException += (s, e) => {
-				if (e.ExceptionObject is Exception exc) {
+			AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+			{
+				if (e.ExceptionObject is Exception exc)
+				{
 					Serilog.Log.Fatal(exc, "Global Unhandled Exception occurred.");
 				}
-				else {
+				else
+				{
 					Serilog.Log.Fatal("Global Unhandled Exception object: {e}.", e.ExceptionObject);
 				}
 			};
@@ -55,12 +61,15 @@ namespace EventStore.Common.Log {
 
 		public static void Initialize(string logsDirectory, string componentName, LogConsoleFormat logConsoleFormat,
 			int logFileSize, RollingInterval logFileInterval, int logFileRetentionCount, bool disableLogFile,
-			string logConfig = "logconfig.json", IConfiguration telemetryConfiguration = null) {
-			if (Interlocked.Exchange(ref Initialized, 1) == 1) {
+			string logConfig = "logconfig.json", IConfiguration telemetryConfiguration = null)
+		{
+			if (Interlocked.Exchange(ref Initialized, 1) == 1)
+			{
 				throw new InvalidOperationException($"{nameof(Initialize)} may not be called more than once.");
 			}
 
-			if (logsDirectory.StartsWith("~")) {
+			if (logsDirectory.StartsWith("~"))
+			{
 				throw new ApplicationInitializationException(
 					"The given log path starts with a '~'. Event Store does not expand '~'.");
 			}
@@ -83,18 +92,22 @@ namespace EventStore.Common.Log {
 			Serilog.Debugging.SelfLog.Disable();
 		}
 
-		public static bool AdjustMinimumLogLevel(LogLevel logLevel) {
-			lock (_defaultLogLevelSwitchLock) {
+		public static bool AdjustMinimumLogLevel(LogLevel logLevel)
+		{
+			lock (_defaultLogLevelSwitchLock)
+			{
 #if !DEBUG
 				if (_defaultLogLevelSwitch == null) {
 					throw new InvalidOperationException("The logger configuration has not yet been initialized.");
 				}
 #endif
-				if (!Enum.TryParse<LogEventLevel>(logLevel.ToString(), out var serilogLogLevel)) {
+				if (!Enum.TryParse<LogEventLevel>(logLevel.ToString(), out var serilogLogLevel))
+				{
 					throw new ArgumentException($"'{logLevel}' is not a valid log level.");
 				}
 
-				if (serilogLogLevel == _defaultLogLevelSwitch.MinimumLevel) {
+				if (serilogLogLevel == _defaultLogLevelSwitch.MinimumLevel)
+				{
 					return false;
 				}
 
@@ -111,16 +124,20 @@ namespace EventStore.Common.Log {
 
 		private EventStoreLoggerConfiguration(string logsDirectory, string componentName,
 			IConfigurationRoot logLevelConfigurationRoot, LogConsoleFormat logConsoleFormat,
-			RollingInterval logFileInterval, int logFileSize, int logFileRetentionCount, bool disableLogFile) {
-			if (logsDirectory == null) {
+			RollingInterval logFileInterval, int logFileSize, int logFileRetentionCount, bool disableLogFile)
+		{
+			if (logsDirectory == null)
+			{
 				throw new ArgumentNullException(nameof(logsDirectory));
 			}
 
-			if (componentName == null) {
+			if (componentName == null)
+			{
 				throw new ArgumentNullException(nameof(componentName));
 			}
 
-			if (logLevelConfigurationRoot == null) {
+			if (logLevelConfigurationRoot == null)
+			{
 				throw new ArgumentNullException(nameof(logLevelConfigurationRoot));
 			}
 
@@ -129,8 +146,10 @@ namespace EventStore.Common.Log {
 
 			var loglevelSection = logLevelConfigurationRoot.GetSection("Logging").GetSection("LogLevel");
 			var defaultLogLevelSection = loglevelSection.GetSection("Default");
-			lock (_defaultLogLevelSwitchLock) {
-				_defaultLogLevelSwitch = new LoggingLevelSwitch {
+			lock (_defaultLogLevelSwitchLock)
+			{
+				_defaultLogLevelSwitch = new LoggingLevelSwitch
+				{
 					MinimumLevel = LogEventLevel.Verbose
 				};
 				ApplyLogLevel(defaultLogLevelSection, _defaultLogLevelSwitch);
@@ -140,7 +159,8 @@ namespace EventStore.Common.Log {
 				.MinimumLevel.ControlledBy(_defaultLogLevelSwitch)
 				.WriteTo.Async(AsyncSink);
 
-			foreach (var namedLogLevelSection in loglevelSection.GetChildren().Where(x => x.Key != "Default")) {
+			foreach (var namedLogLevelSection in loglevelSection.GetChildren().Where(x => x.Key != "Default"))
+			{
 				var levelSwitch = new LoggingLevelSwitch();
 				ApplyLogLevel(namedLogLevelSection, levelSwitch);
 				loggerConfiguration = loggerConfiguration.MinimumLevel.Override(namedLogLevelSection.Key, levelSwitch);
@@ -148,7 +168,8 @@ namespace EventStore.Common.Log {
 
 			_loggerConfiguration = loggerConfiguration;
 
-			void AsyncSink(LoggerSinkConfiguration configuration) {
+			void AsyncSink(LoggerSinkConfiguration configuration)
+			{
 				configuration.Logger(c => c
 					.Filter.ByIncludingOnly(RegularStats)
 					.WriteTo.Logger(Stats));
@@ -157,13 +178,15 @@ namespace EventStore.Common.Log {
 					.WriteTo.Logger(Default));
 			}
 
-			void Default(LoggerConfiguration configuration) {
+			void Default(LoggerConfiguration configuration)
+			{
 				configuration.WriteTo.Console(
 					logConsoleFormat == LogConsoleFormat.Plain
 						? ConsoleOutputExpressionTemplate
 						: new(CompactJsonTemplate));
 
-				if (!disableLogFile) {
+				if (!disableLogFile)
+				{
 					configuration.WriteTo
 						.RollingFile(GetLogFileName(), new ExpressionTemplate(CompactJsonTemplate),
 							logFileRetentionCount, logFileInterval, logFileSize)
@@ -171,8 +194,10 @@ namespace EventStore.Common.Log {
 				}
 			}
 
-			void Error(LoggerConfiguration configuration) {
-				if (!disableLogFile) {
+			void Error(LoggerConfiguration configuration)
+			{
+				if (!disableLogFile)
+				{
 					configuration
 						.Filter.ByIncludingOnly(Errors)
 						.WriteTo
@@ -181,22 +206,27 @@ namespace EventStore.Common.Log {
 				}
 			}
 
-			void Stats(LoggerConfiguration configuration) {
-				if (!disableLogFile) {
+			void Stats(LoggerConfiguration configuration)
+			{
+				if (!disableLogFile)
+				{
 					configuration.WriteTo.RollingFile(GetLogFileName("stats"),
 						new ExpressionTemplate(CompactJsonTemplate), logFileRetentionCount, logFileInterval,
 						logFileSize);
 				}
 			}
 
-			void ApplyLogLevel(IConfigurationSection namedLogLevelSection, LoggingLevelSwitch levelSwitch) {
+			void ApplyLogLevel(IConfigurationSection namedLogLevelSection, LoggingLevelSwitch levelSwitch)
+			{
 				TrySetLogLevel(namedLogLevelSection, levelSwitch);
 				ChangeToken.OnChange(namedLogLevelSection.GetReloadToken,
 					() => TrySetLogLevel(namedLogLevelSection, levelSwitch));
 			}
 
-			static void TrySetLogLevel(IConfigurationSection logLevel, LoggingLevelSwitch levelSwitch) {
-				if (!Enum.TryParse<LogEventLevel>(logLevel.Value, out var level)) {
+			static void TrySetLogLevel(IConfigurationSection logLevel, LoggingLevelSwitch levelSwitch)
+			{
+				if (!Enum.TryParse<LogEventLevel>(logLevel.Value, out var level))
+				{
 					return;
 				}
 

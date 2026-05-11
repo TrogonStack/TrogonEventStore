@@ -9,31 +9,39 @@ using OperationResult = EventStore.Client.Messages.OperationResult;
 
 namespace EventStore.TestClient.Commands;
 
-internal class TransactionWriteProcessor : ICmdProcessor {
-	public string Usage {
+internal class TransactionWriteProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		get { return "TWR [<stream-id> [<expected-version> [<events-cnt>]]]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "TWR"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		var eventStreamId = "test-stream";
 		var expectedVersion = ExpectedVersion.Any;
 		int eventsCnt = 10;
 
-		if (args.Length > 0) {
-			if (args.Length > 3) {
+		if (args.Length > 0)
+		{
+			if (args.Length > 3)
+			{
 				return false;
 			}
 
 			eventStreamId = args[0];
-			if (args.Length > 1) {
+			if (args.Length > 1)
+			{
 				expectedVersion = args[1].ToUpper() == "ANY" ? ExpectedVersion.Any : int.Parse(args[1]);
 			}
 
-			if (args.Length > 2) {
+			if (args.Length > 2)
+			{
 				eventsCnt = MetricPrefixValue.ParseInt(args[1]);
 			}
 		}
@@ -46,7 +54,8 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 		var writtenEvents = 0;
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn => {
+			connectionEstablished: conn =>
+			{
 				context.Log.Information("[{remoteEndPoint}, L{localEndPoint}]: Starting transaction...",
 					conn.RemoteEndPoint, conn.LocalEndPoint);
 				sw.Start();
@@ -55,23 +64,29 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 				var package = new TcpPackage(TcpCommand.TransactionStart, Guid.NewGuid(), tranStart.Serialize());
 				conn.EnqueueSend(package.AsByteArray());
 			},
-			handlePackage: (conn, pkg) => {
-				switch (stage) {
-					case Stage.AcquiringTransactionId: {
-							if (pkg.Command != TcpCommand.TransactionStartCompleted) {
+			handlePackage: (conn, pkg) =>
+			{
+				switch (stage)
+				{
+					case Stage.AcquiringTransactionId:
+						{
+							if (pkg.Command != TcpCommand.TransactionStartCompleted)
+							{
 								context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 								return;
 							}
 
 							var dto = pkg.Data.Deserialize<TransactionStartCompleted>();
-							if (dto.Result != OperationResult.Success) {
+							if (dto.Result != OperationResult.Success)
+							{
 								var msg = string.Format("Error while starting transaction: {0} ({1}).", dto.Message,
 									dto.Result);
 								context.Log.Information("Error while starting transaction: {message} ({e}).", dto.Message,
 									dto.Result);
 								context.Fail(reason: msg);
 							}
-							else {
+							else
+							{
 								context.Log.Information("Successfully started transaction. TransactionId: {transactionId}.",
 									dto.TransactionId);
 								context.Log.Information("Now sending transactional events. TransactionId: {transactionId}",
@@ -79,7 +94,8 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 
 								transactionId = dto.TransactionId;
 								stage = Stage.Writing;
-								for (int i = 0; i < eventsCnt; ++i) {
+								for (int i = 0; i < eventsCnt; ++i)
+								{
 									var writeDto = new TransactionWrite(
 										transactionId,
 										new[] {
@@ -98,23 +114,28 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 
 							break;
 						}
-					case Stage.Writing: {
-							if (pkg.Command != TcpCommand.TransactionWriteCompleted) {
+					case Stage.Writing:
+						{
+							if (pkg.Command != TcpCommand.TransactionWriteCompleted)
+							{
 								context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 								return;
 							}
 
 							var dto = pkg.Data.Deserialize<TransactionWriteCompleted>();
-							if (dto.Result != OperationResult.Success) {
+							if (dto.Result != OperationResult.Success)
+							{
 								context.Log.Information("Error while writing transactional event: {message} ({e}).",
 									dto.Message, dto.Result);
 								var msg = String.Format("Error while writing transactional event: {0} ({1}).",
 									dto.Message, dto.Result);
 								context.Fail(reason: msg);
 							}
-							else {
+							else
+							{
 								writtenEvents += 1;
-								if (writtenEvents == eventsCnt) {
+								if (writtenEvents == eventsCnt)
+								{
 									context.Log.Information("Written all events. Committing...");
 
 									stage = Stage.Committing;
@@ -127,8 +148,10 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 
 							break;
 						}
-					case Stage.Committing: {
-							if (pkg.Command != TcpCommand.TransactionCommitCompleted) {
+					case Stage.Committing:
+						{
+							if (pkg.Command != TcpCommand.TransactionCommitCompleted)
+							{
 								context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 								return;
 							}
@@ -136,7 +159,8 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 							sw.Stop();
 
 							var dto = pkg.Data.Deserialize<TransactionCommitCompleted>();
-							if (dto.Result != OperationResult.Success) {
+							if (dto.Result != OperationResult.Success)
+							{
 								var msg = string.Format("Error while committing transaction: {0} ({1}).", dto.Message,
 									dto.Result);
 								context.Log.Information("Error while committing transaction: {message} ({e}).", dto.Message,
@@ -144,7 +168,8 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 								context.Log.Information("Transaction took: {elapsed}.", sw.Elapsed);
 								context.Fail(reason: msg);
 							}
-							else {
+							else
+							{
 								context.Log.Information("Successfully committed transaction [{transactionId}]!",
 									dto.TransactionId);
 								context.Log.Information("Transaction took: {elapsed}.", sw.Elapsed);
@@ -165,7 +190,8 @@ internal class TransactionWriteProcessor : ICmdProcessor {
 		return true;
 	}
 
-	private enum Stage {
+	private enum Stage
+	{
 		AcquiringTransactionId,
 		Writing,
 		Committing

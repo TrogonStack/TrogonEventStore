@@ -11,14 +11,17 @@ namespace EventStore.Core.Tests.Integration;
 
 [Category("LongRunning"), Ignore("Flaky test - e.g. if multiple elections take place")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_a_leader_is_shutdown<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
+public class when_a_leader_is_shutdown<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
+{
 	private List<Guid> _epochIds = new List<Guid>();
 	private List<string> _roleAssignments = new List<string>();
 	private CountdownEvent _expectedNumberOfEvents;
 	private object _lock = new object();
 
-	protected override void BeforeNodesStart() {
-		_nodes.ToList().ForEach(x => {
+	protected override void BeforeNodesStart()
+	{
+		_nodes.ToList().ForEach(x =>
+		{
 			x.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.BecomeLeader>(Handle));
 			x.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.BecomeFollower>(Handle));
 			x.Node.MainBus.Subscribe(new AdHocHandler<SystemMessage.EpochWritten>(Handle));
@@ -28,7 +31,8 @@ public class when_a_leader_is_shutdown<TLogFormat, TStreamId> : specification_wi
 		base.BeforeNodesStart();
 	}
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		_expectedNumberOfEvents.Wait(5000);
 		var leader = _nodes.First(x => x.NodeState == Data.VNodeState.Leader);
 		await ShutdownNode(leader.DebugIndex);
@@ -37,24 +41,30 @@ public class when_a_leader_is_shutdown<TLogFormat, TStreamId> : specification_wi
 		await base.Given();
 	}
 
-	private void Handle(SystemMessage.BecomeLeader msg) {
-		lock (_lock) {
+	private void Handle(SystemMessage.BecomeLeader msg)
+	{
+		lock (_lock)
+		{
 			_roleAssignments.Add("leader");
 		}
 
 		_expectedNumberOfEvents?.Signal();
 	}
 
-	private void Handle(SystemMessage.BecomeFollower msg) {
-		lock (_lock) {
+	private void Handle(SystemMessage.BecomeFollower msg)
+	{
+		lock (_lock)
+		{
 			_roleAssignments.Add("follower");
 		}
 
 		_expectedNumberOfEvents?.Signal();
 	}
 
-	private void Handle(SystemMessage.EpochWritten msg) {
-		lock (_lock) {
+	private void Handle(SystemMessage.EpochWritten msg)
+	{
+		lock (_lock)
+		{
 			_epochIds.Add(msg.Epoch.EpochId);
 		}
 
@@ -62,7 +72,8 @@ public class when_a_leader_is_shutdown<TLogFormat, TStreamId> : specification_wi
 	}
 
 	[Test]
-	public void should_assign_leader_and_follower_roles_correctly() {
+	public void should_assign_leader_and_follower_roles_correctly()
+	{
 		Assert.AreEqual(5, _roleAssignments.Count());
 
 		Assert.AreEqual(1, _roleAssignments.Take(3).Where(x => x.Equals("leader")).Count());
@@ -74,7 +85,8 @@ public class when_a_leader_is_shutdown<TLogFormat, TStreamId> : specification_wi
 	}
 
 	[Test]
-	public void should_have_two_unique_epoch_writes() {
+	public void should_have_two_unique_epoch_writes()
+	{
 		Assert.AreEqual(2, _epochIds.Distinct().Count());
 	}
 }

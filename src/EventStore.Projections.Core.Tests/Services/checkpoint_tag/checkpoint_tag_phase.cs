@@ -9,7 +9,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.checkpoint_tag;
 
 [TestFixture]
-public class checkpoint_tag_phase {
+public class checkpoint_tag_phase
+{
 	private readonly CheckpointTag _p0 = CheckpointTag.FromPosition(0, 1000, 9);
 	private readonly CheckpointTag _p1a = CheckpointTag.FromPosition(1, 500, 400);
 	private readonly CheckpointTag _p1b = CheckpointTag.FromPosition(1, 500, 450);
@@ -20,7 +21,8 @@ public class checkpoint_tag_phase {
 		4, new TFPos(200, 150), new Dictionary<string, long> { { "a", 1 } });
 
 	[Test]
-	public void equal_equals() {
+	public void equal_equals()
+	{
 		Assert.IsTrue(_p0.Equals(_p0));
 		Assert.IsTrue(_p1a.Equals(_p1a));
 		Assert.IsTrue(_p1b.Equals(_p1b));
@@ -29,32 +31,37 @@ public class checkpoint_tag_phase {
 	}
 
 	[Test]
-	public void equal_operator() {
+	public void equal_operator()
+	{
 		Assert.IsTrue(_p1a == _p1a);
 	}
 
 	[Test]
-	public void less_operator() {
+	public void less_operator()
+	{
 		Assert.IsTrue(_p0 < _p1a);
 		Assert.IsTrue(_p2 < _p3);
 		Assert.IsTrue(_p3 < _p4);
 	}
 
 	[Test]
-	public void less_or_equal_operator() {
+	public void less_or_equal_operator()
+	{
 		Assert.IsTrue(_p1b <= _p2);
 		Assert.IsTrue(_p2 <= _p4);
 		Assert.IsTrue(_p3 <= _p3);
 	}
 
 	[Test]
-	public void greater_operator() {
+	public void greater_operator()
+	{
 		Assert.IsTrue(_p4 > _p1a);
 		Assert.IsTrue(_p1b > _p1a);
 	}
 
 	[Test]
-	public void greater_or_equal_operator() {
+	public void greater_or_equal_operator()
+	{
 		Assert.IsTrue(_p1a >= _p0);
 		Assert.IsTrue(_p4 >= _p3);
 		Assert.IsTrue(_p3 >= _p1a);

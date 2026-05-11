@@ -3,9 +3,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class StreamHandleTests {
+public class StreamHandleTests
+{
 	[Fact]
-	public void equals_int() {
+	public void equals_int()
+	{
 		Assert.Equal(new StreamHandle<int>(), new StreamHandle<int>());
 		Assert.Equal(StreamHandle.ForStreamId(5), StreamHandle.ForStreamId(5));
 		Assert.Equal(StreamHandle.ForHash<int>(5), StreamHandle.ForHash<int>(5));
@@ -20,7 +22,8 @@ public class StreamHandleTests {
 	}
 
 	[Fact]
-	public void equals_string() {
+	public void equals_string()
+	{
 		Assert.Equal(new StreamHandle<string>(), new StreamHandle<string>());
 		Assert.Equal(StreamHandle.ForStreamId("5"), StreamHandle.ForStreamId("5"));
 		Assert.Equal(StreamHandle.ForHash<string>(5), StreamHandle.ForHash<string>(5));

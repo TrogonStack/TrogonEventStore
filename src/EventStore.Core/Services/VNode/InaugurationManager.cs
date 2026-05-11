@@ -8,7 +8,8 @@ using EventStore.Core.Services.TimerService;
 using EventStore.Core.TransactionLog.Checkpoint;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.VNode {
+namespace EventStore.Core.Services.VNode
+{
 	public class InaugurationManager :
 		IHandle<SystemMessage.StateChangeMessage>,
 		IHandle<SystemMessage.ChaserCaughtUp>,
@@ -16,7 +17,8 @@ namespace EventStore.Core.Services.VNode {
 		IHandle<SystemMessage.CheckInaugurationConditions>,
 		IHandle<ElectionMessage.ElectionsDone>,
 		IHandle<ReplicationTrackingMessage.ReplicatedTo>,
-		IHandle<ReplicationTrackingMessage.IndexedTo> {
+		IHandle<ReplicationTrackingMessage.IndexedTo>
+	{
 
 		private readonly ILogger _log = Serilog.Log.ForContext<InaugurationManager>();
 		private readonly IPublisher _publisher;
@@ -32,15 +34,18 @@ namespace EventStore.Core.Services.VNode {
 		private long _replicationCheckpointTarget;
 		private long _indexCheckpointTarget;
 
-		private ManagerState State {
+		private ManagerState State
+		{
 			get => _managerState;
-			set {
+			set
+			{
 				_managerState = value;
 				_statusTracker.OnStateChange(value);
 			}
 		}
 
-		public enum ManagerState {
+		public enum ManagerState
+		{
 			Idle,
 			WaitingForChaser,
 			WritingEpoch,
@@ -52,7 +57,8 @@ namespace EventStore.Core.Services.VNode {
 			IPublisher publisher,
 			IReadOnlyCheckpoint replicationCheckpoint,
 			IReadOnlyCheckpoint indexCheckpoint,
-			IInaugurationStatusTracker statusTracker) {
+			IInaugurationStatusTracker statusTracker)
+		{
 
 			_log.Information("Using {name}", nameof(InaugurationManager));
 			_publisher = publisher;
@@ -66,21 +72,26 @@ namespace EventStore.Core.Services.VNode {
 				replyMessage: new SystemMessage.CheckInaugurationConditions());
 		}
 
-		public void Handle(ElectionMessage.ElectionsDone received) {
+		public void Handle(ElectionMessage.ElectionsDone received)
+		{
 			_currentEpochNumber = received.ProposalNumber;
 			Received(received, "currentEpochNumber {currentEpochNumber}.", _currentEpochNumber);
 		}
 
-		public void Handle(SystemMessage.StateChangeMessage received) {
-			if (received is SystemMessage.BecomePreLeader becomePreLeader) {
+		public void Handle(SystemMessage.StateChangeMessage received)
+		{
+			if (received is SystemMessage.BecomePreLeader becomePreLeader)
+			{
 				HandleBecomePreLeader(becomePreLeader);
 			}
-			else {
+			else
+			{
 				HandleBecomeOtherNodeState(received);
 			}
 		}
 
-		private void HandleBecomePreLeader(SystemMessage.BecomePreLeader received) {
+		private void HandleBecomePreLeader(SystemMessage.BecomePreLeader received)
+		{
 			Received(
 				received,
 				"Starting inauguration process with correlation id {currentCorrelationId}. Waiting for chaser.",
@@ -90,8 +101,10 @@ namespace EventStore.Core.Services.VNode {
 			_stateCorrelationId = received.CorrelationId;
 		}
 
-		private void HandleBecomeOtherNodeState(SystemMessage.StateChangeMessage received) {
-			if (State != ManagerState.Idle) {
+		private void HandleBecomeOtherNodeState(SystemMessage.StateChangeMessage received)
+		{
+			if (State != ManagerState.Idle)
+			{
 				Received(received, "Inauguration process is now stopped.");
 				State = ManagerState.Idle;
 			}
@@ -99,19 +112,23 @@ namespace EventStore.Core.Services.VNode {
 			_nodeState = received.State;
 		}
 
-		public void Handle(SystemMessage.ChaserCaughtUp received) {
-			if (State != ManagerState.WaitingForChaser) {
+		public void Handle(SystemMessage.ChaserCaughtUp received)
+		{
+			if (State != ManagerState.WaitingForChaser)
+			{
 				// will get this in prereplica and prereadonly replica
 				Ignore(received, "Not waiting for chaser.");
 			}
-			else if (received.CorrelationId != _stateCorrelationId) {
+			else if (received.CorrelationId != _stateCorrelationId)
+			{
 				Ignore(
 					received,
 					"Current correlation id is {currentCorrelationId} but received {receivedCorrelationId}.",
 					_stateCorrelationId,
 					received.CorrelationId);
 			}
-			else {
+			else
+			{
 				Respond(
 					received,
 					new SystemMessage.WriteEpoch(_currentEpochNumber),
@@ -121,18 +138,22 @@ namespace EventStore.Core.Services.VNode {
 			}
 		}
 
-		public void Handle(SystemMessage.EpochWritten received) {
-			if (State != ManagerState.WritingEpoch) {
+		public void Handle(SystemMessage.EpochWritten received)
+		{
+			if (State != ManagerState.WritingEpoch)
+			{
 				Ignore(received, "Not writing epoch.");
 			}
-			else if (received.Epoch.EpochNumber != _currentEpochNumber) {
+			else if (received.Epoch.EpochNumber != _currentEpochNumber)
+			{
 				Ignore(
 					received,
 					"Current epoch number is {currentEpochNumber} but received {receivedEpochNumber}.",
 					_currentEpochNumber,
 					received.Epoch.EpochNumber);
 			}
-			else {
+			else
+			{
 				Respond(received, new SystemMessage.EnablePreLeaderReplication());
 				State = ManagerState.WaitingForConditions;
 
@@ -147,41 +168,52 @@ namespace EventStore.Core.Services.VNode {
 			}
 		}
 
-		public void Handle(ReplicationTrackingMessage.ReplicatedTo received) {
-			if (State != ManagerState.WaitingForConditions) {
+		public void Handle(ReplicationTrackingMessage.ReplicatedTo received)
+		{
+			if (State != ManagerState.WaitingForConditions)
+			{
 				// silently ignore. we'll get these all the time
 			}
-			else {
+			else
+			{
 				ConsiderBecomingLeader(received, log: false);
 			}
 		}
 
-		public void Handle(ReplicationTrackingMessage.IndexedTo received) {
-			if (State != ManagerState.WaitingForConditions) {
+		public void Handle(ReplicationTrackingMessage.IndexedTo received)
+		{
+			if (State != ManagerState.WaitingForConditions)
+			{
 				// silently ignore. we'll get these all the time
 			}
-			else {
+			else
+			{
 				ConsiderBecomingLeader(received, log: false);
 			}
 		}
 
-		public void Handle(SystemMessage.CheckInaugurationConditions received) {
-			if (State != ManagerState.WaitingForConditions) {
+		public void Handle(SystemMessage.CheckInaugurationConditions received)
+		{
+			if (State != ManagerState.WaitingForConditions)
+			{
 				Ignore(received, "Not waiting for conditions.");
 			}
-			else {
+			else
+			{
 				Respond(received, _scheduleCheckInaugurationConditions);
 				ConsiderBecomingLeader(received, log: true);
 			}
 		}
 
-		private void ConsiderBecomingLeader(Message received, bool log) {
+		private void ConsiderBecomingLeader(Message received, bool log)
+		{
 			var replicationCurrent = _replicationCheckpoint.Read();
 			var indexCurrent = _indexCheckpoint.Read();
 			var replicationDone = replicationCurrent >= _replicationCheckpointTarget;
 			var indexDone = indexCurrent >= _indexCheckpointTarget;
 
-			if (log || (replicationDone && indexDone)) {
+			if (log || (replicationDone && indexDone))
+			{
 				LogExtraInformation(
 					"Replication {progress}: {current:N0}/{target:N0}. Remaining: {remaining:N0}.",
 					replicationDone ? "DONE" : "IN PROGRESS",
@@ -197,7 +229,8 @@ namespace EventStore.Core.Services.VNode {
 					Math.Max(0, _indexCheckpointTarget - indexCurrent));
 			}
 
-			if (replicationDone && indexDone) {
+			if (replicationDone && indexDone)
+			{
 				// transition to leader!
 				Respond(
 					received,
@@ -208,49 +241,59 @@ namespace EventStore.Core.Services.VNode {
 			}
 		}
 
-		private void Received(Message received, string template = null, params object[] templateArgs) {
+		private void Received(Message received, string template = null, params object[] templateArgs)
+		{
 			LogExtraInformation(
 				Combine(template, "RECEIVED {received}."),
 				Combine(templateArgs, received.GetType().Name));
 		}
 
-		private void Respond(Message received, Message send, string template = null, params object[] templateArgs) {
+		private void Respond(Message received, Message send, string template = null, params object[] templateArgs)
+		{
 			LogExtraInformation(
 				Combine(template, "RECEIVED {received}. RESPONDING with {send}."),
 				Combine(templateArgs, received.GetType().Name, send.GetType().Name));
 			_publisher.Publish(send);
 		}
 
-		private void Ignore(Message received, string template = null, params object[] templateArgs) {
+		private void Ignore(Message received, string template = null, params object[] templateArgs)
+		{
 			LogExtraInformation(
 				Combine(template, "IGNORING {received}."),
 				Combine(templateArgs, received.GetType().Name));
 		}
 
-		private void LogExtraInformation(string template = null, params object[] templateArgs) {
+		private void LogExtraInformation(string template = null, params object[] templateArgs)
+		{
 			_log.Information(
 				Combine(template, "{name} in state ({nodeState}, {managerState}):"),
 				Combine(templateArgs, nameof(InaugurationManager), _nodeState, State));
 		}
 
-		private static string Combine(string template2, string template1) {
-			if (template1 is null) {
+		private static string Combine(string template2, string template1)
+		{
+			if (template1 is null)
+			{
 				return template2;
 			}
 
-			if (template2 is null) {
+			if (template2 is null)
+			{
 				return template1;
 			}
 
 			return $"{template1} {template2}";
 		}
 
-		private static object[] Combine(object[] args2, params object[] args1) {
-			if (args1 is null) {
+		private static object[] Combine(object[] args2, params object[] args1)
+		{
+			if (args1 is null)
+			{
 				return args2;
 			}
 
-			if (args2 is null) {
+			if (args2 is null)
+			{
 				return args1;
 			}
 

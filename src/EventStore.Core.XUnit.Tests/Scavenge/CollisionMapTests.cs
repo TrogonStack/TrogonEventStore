@@ -8,9 +8,11 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 // generally the properties we need of the CollisionManager are tested at a higher
 // level. but a couple of fiddly bits are checked in here
-public class CollisionMapTests : SqliteDbPerTest<CollisionMapTests> {
+public class CollisionMapTests : SqliteDbPerTest<CollisionMapTests>
+{
 	[Fact]
-	public void sanity() {
+	public void sanity()
+	{
 		var collisions = new SqliteCollisionScavengeMap<string>();
 		collisions.Initialize(new SqliteBackend(Fixture.DbConnection));
 		var sut = GenSut(collisions);
@@ -35,7 +37,8 @@ public class CollisionMapTests : SqliteDbPerTest<CollisionMapTests> {
 		Assert.False(sut.TryGetValue("ab-2", out _));
 	}
 
-	private CollisionMap<string, string> GenSut(IScavengeMap<string, Unit> collisions) {
+	private CollisionMap<string, string> GenSut(IScavengeMap<string, Unit> collisions)
+	{
 		var nonCollisionsMap = new SqliteScavengeMap<ulong, string>("non_collisions");
 		nonCollisionsMap.Initialize(new SqliteBackend(Fixture.DbConnection));
 
@@ -52,9 +55,11 @@ public class CollisionMapTests : SqliteDbPerTest<CollisionMapTests> {
 	}
 }
 
-public class OriginalStreamCollisionMapTests : SqliteDbPerTest<OriginalStreamCollisionMapTests> {
+public class OriginalStreamCollisionMapTests : SqliteDbPerTest<OriginalStreamCollisionMapTests>
+{
 	[Fact]
-	public void can_enumerate() {
+	public void can_enumerate()
+	{
 		var collisions = new SqliteCollisionScavengeMap<string>();
 		collisions.Initialize(new SqliteBackend(Fixture.DbConnection));
 		var sut = GenSut(collisions);
@@ -99,7 +104,8 @@ public class OriginalStreamCollisionMapTests : SqliteDbPerTest<OriginalStreamCol
 		Assert.Empty(sut.EnumerateActive(checkpoint: StreamHandle.ForHash<string>(102)));
 	}
 
-	private OriginalStreamCollisionMap<string> GenSut(IScavengeMap<string, Unit> collisions) {
+	private OriginalStreamCollisionMap<string> GenSut(IScavengeMap<string, Unit> collisions)
+	{
 		var nonCollisionsMap = new SqliteOriginalStreamScavengeMap<ulong>("non_collisions");
 		nonCollisionsMap.Initialize(new SqliteBackend(Fixture.DbConnection));
 

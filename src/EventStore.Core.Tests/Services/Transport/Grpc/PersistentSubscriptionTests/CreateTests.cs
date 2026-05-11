@@ -11,10 +11,12 @@ namespace EventStore.Core.Tests.Services.Transport.Grpc.PersistentSubscriptionTe
 
 [TestFixture(typeof(LogFormat.V2), typeof(string), false)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), true)]
-public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId> {
+public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, TStreamId>
+{
 	private readonly bool _legacy;
 
-	public CreateTests(bool legacy) {
+	public CreateTests(bool legacy)
+	{
 		_legacy = legacy;
 	}
 	protected override Task Given() => Task.CompletedTask;
@@ -22,14 +24,16 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task can_create_persistent_subscription() {
+	public async Task can_create_persistent_subscription()
+	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 		await client.CreateAsync(CreateRequest(), GetCallOptions(AdminCredentials));
 	}
 
 	[Test]
-	public async Task creating_duplicate_persistent_subscription_returns_already_exists() {
+	public async Task creating_duplicate_persistent_subscription_returns_already_exists()
+	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 		var streamName = NewName("stream");
 		var groupName = NewName("group");
@@ -44,7 +48,8 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	}
 
 	[Test]
-	public void creating_persistent_subscription_without_permissions_returns_permission_denied() {
+	public void creating_persistent_subscription_without_permissions_returns_permission_denied()
+	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 		var ex = Assert.ThrowsAsync<RpcException>(async () =>
@@ -54,7 +59,8 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	}
 
 	[Test]
-	public void creating_persistent_subscription_with_bad_config_returns_invalid_argument() {
+	public void creating_persistent_subscription_with_bad_config_returns_invalid_argument()
+	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 		var settings = Settings();
 		settings.HistoryBufferSize = 10;
@@ -67,7 +73,8 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	}
 
 	[Test]
-	public async Task can_create_persistent_subscription_with_message_timeout_zero() {
+	public async Task can_create_persistent_subscription_with_message_timeout_zero()
+	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 		var settings = Settings(messageTimeoutMs: 0);
 
@@ -75,7 +82,8 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	}
 
 	[Test]
-	public async Task can_create_persistent_subscription_without_message_timeout() {
+	public async Task can_create_persistent_subscription_without_message_timeout()
+	{
 		var client = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 		await client.CreateAsync(
@@ -86,12 +94,16 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 	private CreateReq CreateRequest(
 		string streamName = null,
 		string groupName = null,
-		CreateReq.Types.Settings settings = null) => new() {
-			Options = new CreateReq.Types.Options {
+		CreateReq.Types.Settings settings = null) => new()
+		{
+			Options = new CreateReq.Types.Options
+			{
 				GroupName = groupName ?? NewName("group"),
-				Stream = new CreateReq.Types.StreamOptions {
+				Stream = new CreateReq.Types.StreamOptions
+				{
 					Start = new Empty(),
-					StreamIdentifier = new StreamIdentifier {
+					StreamIdentifier = new StreamIdentifier
+					{
 						StreamName = ByteString.CopyFromUtf8(streamName ?? NewName("stream"))
 					}
 				},
@@ -99,8 +111,10 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 			}
 		};
 
-	private CreateReq.Types.Settings Settings(int messageTimeoutMs = 20000, bool includeMessageTimeout = true) {
-		var settings = new CreateReq.Types.Settings {
+	private CreateReq.Types.Settings Settings(int messageTimeoutMs = 20000, bool includeMessageTimeout = true)
+	{
+		var settings = new CreateReq.Types.Settings
+		{
 			CheckpointAfterMs = 10000,
 			ExtraStatistics = true,
 			MaxCheckpointCount = 20,
@@ -112,16 +126,19 @@ public class CreateTests<TLogFormat, TStreamId> : GrpcSpecification<TLogFormat, 
 			ReadBatchSize = 50
 		};
 
-		if (includeMessageTimeout) {
+		if (includeMessageTimeout)
+		{
 			settings.MessageTimeoutMs = messageTimeoutMs;
 		}
 
-		if (_legacy) {
+		if (_legacy)
+		{
 #pragma warning disable 612
 			settings.NamedConsumerStrategy = CreateReq.Types.ConsumerStrategy.Pinned;
 #pragma warning restore 612
 		}
-		else {
+		else
+		{
 			settings.ConsumerStrategy = "Pinned";
 		}
 

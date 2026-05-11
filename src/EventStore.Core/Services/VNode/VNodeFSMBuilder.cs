@@ -14,7 +14,8 @@ namespace EventStore.Core.Services.VNode;
 /// <summary>
 /// Builder syntax for constructing <see cref="VNodeFSM"/> in the code
 /// </summary>
-public sealed class VNodeFSMBuilder {
+public sealed class VNodeFSMBuilder
+{
 	private readonly ReadOnlyValueReference<VNodeState> _stateRef;
 
 	// The dictionary keeps a mapping between concrete message typeof(T) type and its handler
@@ -24,7 +25,8 @@ public sealed class VNodeFSMBuilder {
 	private readonly Dictionary<Type, MulticastDelegate>[] _handlers;
 	private readonly Func<Message, CancellationToken, ValueTask>[] _defaultHandlers;
 
-	public VNodeFSMBuilder(ReadOnlyValueReference<VNodeState> stateRef) {
+	public VNodeFSMBuilder(ReadOnlyValueReference<VNodeState> stateRef)
+	{
 		_stateRef = stateRef;
 
 		var maxState = (int)Enum.GetValues<VNodeState>().Max();
@@ -33,19 +35,23 @@ public sealed class VNodeFSMBuilder {
 	}
 
 	internal void AddHandler<TActualMessage>(VNodeState state, Func<TActualMessage, CancellationToken, ValueTask> handler)
-		where TActualMessage : Message {
+		where TActualMessage : Message
+	{
 		var stateHandlers = _handlers[(int)state] ??= new();
 
 		// Perf: unsafe reinterpret cast is valid here because VNodeFSM routes the message by its type
-		if (!stateHandlers.TryAdd(typeof(TActualMessage), Unsafe.As<Action<Message>>(handler))) {
+		if (!stateHandlers.TryAdd(typeof(TActualMessage), Unsafe.As<Action<Message>>(handler)))
+		{
 			throw new InvalidOperationException(
 				$"Handler already defined for state {state} and message {typeof(TActualMessage).FullName}");
 		}
 	}
 
-	internal void AddDefaultHandler(VNodeState state, Func<Message, CancellationToken, ValueTask> handler) {
+	internal void AddDefaultHandler(VNodeState state, Func<Message, CancellationToken, ValueTask> handler)
+	{
 		ref var defaultHandler = ref _defaultHandlers[(int)state];
-		if (defaultHandler is not null) {
+		if (defaultHandler is not null)
+		{
 			throw new InvalidOperationException($"Default handler already defined for state {state}");
 		}
 
@@ -56,11 +62,13 @@ public sealed class VNodeFSMBuilder {
 
 	public VNodeFSMStatesDefinition InState(VNodeState state) => InStates(state);
 
-	public VNodeFSMStatesDefinition InStates(params VNodeState[] states) {
+	public VNodeFSMStatesDefinition InStates(params VNodeState[] states)
+	{
 		return new VNodeFSMStatesDefinition(this, states);
 	}
 
-	public VNodeFSMStatesDefinition InAllStatesExcept(params VNodeState[] states) {
+	public VNodeFSMStatesDefinition InAllStatesExcept(params VNodeState[] states)
+	{
 		Ensure.Positive(states.Length, "states.Length");
 
 		var s = Enum.GetValues<VNodeState>().Except(states).Distinct().ToArray();

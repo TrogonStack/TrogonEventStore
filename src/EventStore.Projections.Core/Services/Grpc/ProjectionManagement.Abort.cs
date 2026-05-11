@@ -8,17 +8,20 @@ using Grpc.Core;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement {
+internal partial class ProjectionManagement
+{
 	private static readonly Operation AbortOperation = new Operation(Operations.Projections.Abort);
 
-	public override async Task<AbortResp> Abort(AbortReq request, ServerCallContext context) {
+	public override async Task<AbortResp> Abort(AbortReq request, ServerCallContext context)
+	{
 		var abortSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var cancellationRegistration =
 			context.CancellationToken.Register(() => abortSource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
 		var user = context.GetHttpContext().User;
 
-		if (!await _authorizationProvider.CheckAccessAsync(user, AbortOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, AbortOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -31,8 +34,10 @@ internal partial class ProjectionManagement {
 		await abortSource.Task;
 		return new AbortResp();
 
-		void OnMessage(Message message) {
-			switch (message) {
+		void OnMessage(Message message)
+		{
+			switch (message)
+			{
 				case ProjectionManagementMessage.Updated:
 					abortSource.TrySetResult(true);
 					break;

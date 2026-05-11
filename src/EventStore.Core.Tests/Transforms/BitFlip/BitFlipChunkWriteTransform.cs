@@ -5,15 +5,18 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.BitFlip;
 
-public class BitFlipChunkWriteTransform : IChunkWriteTransform {
+public class BitFlipChunkWriteTransform : IChunkWriteTransform
+{
 	private BitFlipChunkWriteStream _transformedStream;
 
-	public ChunkDataWriteStream TransformData(ChunkDataWriteStream dataStream) {
+	public ChunkDataWriteStream TransformData(ChunkDataWriteStream dataStream)
+	{
 		_transformedStream = new BitFlipChunkWriteStream(dataStream);
 		return _transformedStream;
 	}
 
-	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token = default) {
+	public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token = default)
+	{
 		var chunkHeaderAndDataSize = (int)_transformedStream.ChunkFileStream.Position;
 		var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
 		var paddingSize = alignedSize - chunkHeaderAndDataSize - footerSize;
@@ -23,13 +26,16 @@ public class BitFlipChunkWriteTransform : IChunkWriteTransform {
 			: ValueTask.CompletedTask;
 	}
 
-	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token) {
+	public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
+	{
 		await _transformedStream.ChunkFileStream.WriteAsync(footer, token);
 		return (int)_transformedStream.ChunkFileStream.Length;
 	}
 
-	private static int GetAlignedSize(int size, int alignmentSize) {
-		if (size % alignmentSize == 0) {
+	private static int GetAlignedSize(int size, int alignmentSize)
+	{
+		if (size % alignmentSize == 0)
+		{
 			return size;
 		}
 

@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.Services.Storage.ReaderIndex {
-	public class BoundedCache<TKey, TValue> {
-		public int Count {
+namespace EventStore.Core.Services.Storage.ReaderIndex
+{
+	public class BoundedCache<TKey, TValue>
+	{
+		public int Count
+		{
 			get { return _cache.Count; }
 		}
 
@@ -20,13 +23,16 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 		private long _missCount;
 		private long _hitCount;
 
-		public BoundedCache(int maxCachedEntries, long maxDataSize, Func<TValue, long> valueSize) {
+		public BoundedCache(int maxCachedEntries, long maxDataSize, Func<TValue, long> valueSize)
+		{
 			Ensure.NotNull(valueSize, "valueSize");
-			if (maxCachedEntries <= 0) {
+			if (maxCachedEntries <= 0)
+			{
 				throw new ArgumentOutOfRangeException("maxCachedEntries");
 			}
 
-			if (maxDataSize <= 0) {
+			if (maxDataSize <= 0)
+			{
 				throw new ArgumentOutOfRangeException("maxDataSize");
 			}
 
@@ -35,39 +41,48 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 			_valueSize = valueSize;
 		}
 
-		public bool TryGetRecord(TKey key, out TValue value) {
+		public bool TryGetRecord(TKey key, out TValue value)
+		{
 			var found = _cache.TryGetValue(key, out value);
-			if (found) {
+			if (found)
+			{
 				_hitCount++;
 			}
-			else {
+			else
+			{
 				_missCount++;
 			}
 
 			return found;
 		}
 
-		public void PutRecord(TKey key, TValue value) {
+		public void PutRecord(TKey key, TValue value)
+		{
 			PutRecord(key, value, true);
 		}
 
-		public void PutRecord(TKey key, TValue value, bool throwOnDuplicate) {
-			while (IsFull()) {
+		public void PutRecord(TKey key, TValue value, bool throwOnDuplicate)
+		{
+			while (IsFull())
+			{
 				var oldKey = _queue.Dequeue();
 				RemoveRecord(oldKey);
 			}
 
 			_currentSize += _valueSize(value);
 			_queue.Enqueue(key);
-			if (!throwOnDuplicate && _cache.ContainsKey(key)) {
+			if (!throwOnDuplicate && _cache.ContainsKey(key))
+			{
 				return;
 			}
 
 			_cache.Add(key, value);
 		}
 
-		public bool TryPutRecord(TKey key, TValue value) {
-			if (IsFull()) {
+		public bool TryPutRecord(TKey key, TValue value)
+		{
+			if (IsFull())
+			{
 				return false;
 			}
 
@@ -77,26 +92,31 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 			return true;
 		}
 
-		public void Clear() {
+		public void Clear()
+		{
 			_currentSize = 0;
 			_queue.Clear();
 			_cache.Clear();
 		}
 
-		private bool IsFull() {
+		private bool IsFull()
+		{
 			return _queue.Count >= _maxCachedEntries
 				   || (_currentSize > _maxDataSize && _queue.Count > 0);
 		}
 
-		public void RemoveRecord(TKey key) {
+		public void RemoveRecord(TKey key)
+		{
 			TValue old;
-			if (_cache.TryGetValue(key, out old)) {
+			if (_cache.TryGetValue(key, out old))
+			{
 				_currentSize -= _valueSize(old);
 				_cache.Remove(key);
 			}
 		}
 
-		public ReadCacheStats GetStatistics() {
+		public ReadCacheStats GetStatistics()
+		{
 			return new ReadCacheStats(Interlocked.Read(ref _currentSize),
 				_cache.Count,
 				Interlocked.Read(ref _hitCount),

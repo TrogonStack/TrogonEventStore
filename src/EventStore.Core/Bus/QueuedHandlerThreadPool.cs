@@ -15,16 +15,19 @@ namespace EventStore.Core.Bus;
 /// to the consumer. It also tracks statistics about the message processing to help
 /// in identifying bottlenecks
 /// </summary>
-public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadPoolWorkItem {
+public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadPoolWorkItem
+{
 	private static readonly TimeSpan DefaultStopWaitTimeout = TimeSpan.FromSeconds(10);
 	public static readonly TimeSpan VerySlowMsgThreshold = TimeSpan.FromSeconds(7);
 	private static readonly ILogger Log = Serilog.Log.ForContext<QueuedHandlerThreadPool>();
 
-	public int MessageCount {
+	public int MessageCount
+	{
 		get { return _queue.Count; }
 	}
 
-	public string Name {
+	public string Name
+	{
 		get { return _queueStats.Name; }
 	}
 
@@ -56,7 +59,8 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		bool watchSlowMsg = true,
 		TimeSpan? slowMsgThreshold = null,
 		TimeSpan? threadStopWaitTimeout = null,
-		string groupName = null) {
+		string groupName = null)
+	{
 		Ensure.NotNull(consumer, "consumer");
 		Ensure.NotNull(name, "name");
 
@@ -75,44 +79,57 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		_tracker = trackers.GetTrackerForQueue(name);
 	}
 
-	public Task Start() {
+	public Task Start()
+	{
 		_queueMonitor.Register(this);
 		return _tcs.Task;
 	}
 
-	private void Cancel() {
-		if (Interlocked.Exchange(ref _lifetimeSource, null) is { } cts) {
-			using (cts) {
+	private void Cancel()
+	{
+		if (Interlocked.Exchange(ref _lifetimeSource, null) is { } cts)
+		{
+			using (cts)
+			{
 				cts.Cancel();
 			}
 		}
 	}
 
-	public async Task Stop() {
+	public async Task Stop()
+	{
 		RequestStop();
 
 		using var timeoutSource = new CancellationTokenSource(_threadStopWaitTimeout);
-		try {
+		try
+		{
 			await _tcs.Task.WaitAsync(timeoutSource.Token);
 		}
-		catch (OperationCanceledException ex) when (ex.CancellationToken == timeoutSource.Token) {
+		catch (OperationCanceledException ex) when (ex.CancellationToken == timeoutSource.Token)
+		{
 			throw new TimeoutException($"Unable to stop thread '{Name}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 		}
 	}
 
-	public void RequestStop() {
+	public void RequestStop()
+	{
 		Cancel();
-		if (TryStopQueueStats()) {
+		if (TryStopQueueStats())
+		{
 			_tcs.TrySetResult(null!);
 		}
 		_queueMonitor.Unregister(this);
 	}
 
-	private bool TryStopQueueStats() {
-		if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0) {
-			if (Interlocked.CompareExchange(ref _queueStatsState, 2, 1) == 1) {
+	private bool TryStopQueueStats()
+	{
+		if (Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0)
+		{
+			if (Interlocked.CompareExchange(ref _queueStatsState, 2, 1) == 1)
+			{
 				_queueStats.Stop();
 			}
 
@@ -122,40 +139,49 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		return false;
 	}
 
-	async void IThreadPoolWorkItem.Execute() {
-		try {
-			if (Interlocked.CompareExchange(ref _queueStatsState, 1, 0) == 0) {
+	async void IThreadPoolWorkItem.Execute()
+	{
+		try
+		{
+			if (Interlocked.CompareExchange(ref _queueStatsState, 1, 0) == 0)
+			{
 				_queueStats.Start();
 			}
 
 			bool proceed = true;
-			while (proceed) {
+			while (proceed)
+			{
 				_queueStats.EnterBusy();
 				_tracker.EnterBusy();
 
-				while (!_lifetimeToken.IsCancellationRequested && _queue.TryDequeue(out var item)) {
+				while (!_lifetimeToken.IsCancellationRequested && _queue.TryDequeue(out var item))
+				{
 					var start = _tracker.RecordMessageDequeued(item.EnqueuedAt);
 					var msg = item.Message;
 #if DEBUG
 					_queueStats.Dequeued(msg);
 #endif
-					try {
+					try
+					{
 						var queueCnt = _queue.Count;
 						_queueStats.ProcessingStarted(msg.GetType(), queueCnt);
 
-						if (_watchSlowMsg) {
+						if (_watchSlowMsg)
+						{
 							await _consumer.Invoke(msg, _lifetimeToken);
 
 							var end = _tracker.RecordMessageProcessed(start, msg.Label);
 							var elapsed = TimeSpan.FromSeconds(end.ElapsedSecondsSince(start));
 
-							if (elapsed > _slowMsgThreshold) {
+							if (elapsed > _slowMsgThreshold)
+							{
 								Log.Debug(
 									"SLOW QUEUE MSG [{queue}]: {message} - {elapsed}ms. Q: {prevQueueCount}/{curQueueCount}. {messageDetail}.",
 									_queueStats.Name, _queueStats.InProgressMessage.Name,
 									(int)elapsed.TotalMilliseconds, queueCnt, _queue.Count, msg);
 								if (elapsed > VerySlowMsgThreshold &&
-									!(msg is SystemMessage.SystemInit)) {
+									!(msg is SystemMessage.SystemInit))
+								{
 									Log.Error(
 										"---!!! VERY SLOW QUEUE MSG [{queue}]: {message} - {elapsed}ms. Q: {prevQueueCount}/{curQueueCount}.",
 										_queueStats.Name, _queueStats.InProgressMessage.Name,
@@ -163,22 +189,26 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 								}
 							}
 						}
-						else {
+						else
+						{
 							await _consumer.Invoke(msg, _lifetimeToken);
 							_tracker.RecordMessageProcessed(start, msg.Label);
 						}
 
 						_queueStats.ProcessingEnded(1);
 					}
-					catch (OperationCanceledException ex) when (IsExpectedCancellation(ex, msg, _lifetimeToken)) {
+					catch (OperationCanceledException ex) when (IsExpectedCancellation(ex, msg, _lifetimeToken))
+					{
 						_queueStats.ProcessingCancelled();
-						if (ex.CancellationToken == _lifetimeToken) {
+						if (ex.CancellationToken == _lifetimeToken)
+						{
 							_tcs.TrySetResult(null!);
 						}
 
 						break;
 					}
-					catch (Exception ex) {
+					catch (Exception ex)
+					{
 						Log.Error(ex,
 							"Error while processing message {message} in queued handler '{queue}'.", msg,
 							_queueStats.Name);
@@ -191,7 +221,8 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 				_queueStats.EnterIdle();
 				_tracker.EnterIdle();
 				Interlocked.CompareExchange(ref _isRunning, 0, 1);
-				if (_lifetimeToken.IsCancellationRequested) {
+				if (_lifetimeToken.IsCancellationRequested)
+				{
 					TryStopQueueStats();
 					_tcs.TrySetResult(null!);
 				}
@@ -202,10 +233,12 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 						  && Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0;
 			}
 		}
-		catch (OperationCanceledException e) when (e.CancellationToken == _lifetimeToken) {
+		catch (OperationCanceledException e) when (e.CancellationToken == _lifetimeToken)
+		{
 			_tcs.TrySetResult(null!);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_tcs.TrySetException(ex);
 			throw;
 		}
@@ -219,18 +252,21 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		|| (message.CancellationToken.CanBeCanceled
 			&& exception.CancellationToken == message.CancellationToken);
 
-	public void Publish(Message message) {
+	public void Publish(Message message)
+	{
 		//Ensure.NotNull(message, "message");
 #if DEBUG
 		_queueStats.Enqueued();
 #endif
 		_queue.Enqueue(new(_tracker.Now, message));
-		if (!_lifetimeToken.IsCancellationRequested && Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0) {
+		if (!_lifetimeToken.IsCancellationRequested && Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0)
+		{
 			ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);
 		}
 	}
 
-	public QueueStats GetStatistics() {
+	public QueueStats GetStatistics()
+	{
 		return _queueStats.GetStatistics(_queue.Count);
 	}
 }

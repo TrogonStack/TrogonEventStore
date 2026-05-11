@@ -7,31 +7,38 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.PersistentSubscriptionTests;
 
-internal class RestartSubsystemTests {
+internal class RestartSubsystemTests
+{
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_restarting_the_persistent_subscription_subsystem<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 		private Exception _exception;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 			return Task.CompletedTask;
 		}
 
-		protected override async Task When() {
-			try {
+		protected override async Task When()
+		{
+			try
+			{
 				await _persistentSubscriptionsClient.RestartSubsystemAsync(new Empty(), GetCallOptions(AdminCredentials));
 			}
-			catch (Exception e) {
+			catch (Exception e)
+			{
 				_exception = e;
 			}
 		}
 
 		[Test]
-		public void should_not_throw_an_exception() {
+		public void should_not_throw_an_exception()
+		{
 			Assert.IsNull(_exception);
 		}
 	}

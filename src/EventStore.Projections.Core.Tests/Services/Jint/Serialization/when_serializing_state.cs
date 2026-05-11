@@ -14,13 +14,15 @@ using JsonSerializer = Jint.Native.Json.JsonSerializer;
 namespace EventStore.Projections.Core.Tests.Services.Jint.Serialization;
 
 [TestFixture]
-public class when_serializing_state {
+public class when_serializing_state
+{
 	private readonly Engine _engine;
 	private readonly JintProjectionStateHandler _sut;
 	private readonly JsonSerializer _builtIn;
 	private readonly JsonParser _parser;
 
-	public when_serializing_state() {
+	public when_serializing_state()
+	{
 		_engine = new Engine();
 		_parser = new JsonParser(_engine);
 		_builtIn = new JsonSerializer(_engine);
@@ -31,12 +33,14 @@ public class when_serializing_state {
 			executionTimeout: TimeSpan.FromMilliseconds(500));
 	}
 
-	private void RoundTrip(string json, bool ignoreCase = false) {
+	private void RoundTrip(string json, bool ignoreCase = false)
+	{
 		var instance = _parser.Parse(json);
 		var builtInSerialized = _builtIn.Serialize(instance, JsValue.Undefined, JsValue.Undefined).AsString();
 		var serialized = _sut.Serialize(instance);
 
-		if (ignoreCase) {
+		if (ignoreCase)
+		{
 			Assert.IsTrue(
 				string.Equals(builtInSerialized, serialized, StringComparison.OrdinalIgnoreCase),
 				$"old {_builtIn} new {serialized}");
@@ -44,14 +48,16 @@ public class when_serializing_state {
 				string.Equals(json, serialized, StringComparison.OrdinalIgnoreCase),
 				$"in {json} out {serialized}");
 		}
-		else {
+		else
+		{
 			Assert.AreEqual(builtInSerialized, serialized, "different to old serializer");
 			Assert.AreEqual(json, serialized, "did not round trip");
 		}
 	}
 
 	[Test]
-	public void round_trip_objects() {
+	public void round_trip_objects()
+	{
 		RoundTrip(@"{}");
 		RoundTrip(@"{""foo"":123,""bar"":456}");
 		RoundTrip(@"{""fo o"":[1,2,3]}");
@@ -60,7 +66,8 @@ public class when_serializing_state {
 	}
 
 	[Test]
-	public void round_trip_arrays() {
+	public void round_trip_arrays()
+	{
 		RoundTrip(@"[]");
 		RoundTrip(@"[[],3]");
 		RoundTrip(@"[3,[]]");
@@ -68,7 +75,8 @@ public class when_serializing_state {
 	}
 
 	[Test]
-	public void round_trip_values() {
+	public void round_trip_values()
+	{
 		RoundTrip(@"""stringvalue""");
 		RoundTrip(@"34");
 		RoundTrip(@"{""foo"":""bar""}");
@@ -79,7 +87,8 @@ public class when_serializing_state {
 	}
 
 	[Test]
-	public void round_trip_strings() {
+	public void round_trip_strings()
+	{
 		RoundTrip(@"""""");
 		RoundTrip(@""" """);
 		RoundTrip(@"""foo""");
@@ -95,7 +104,8 @@ public class when_serializing_state {
 	}
 
 	[Test]
-	public void round_trip_numbers() {
+	public void round_trip_numbers()
+	{
 		//RoundTrip("18446744073709551615");
 		//RoundTrip("-18446744073709551615");
 		//RoundTrip("18446744073709551616");
@@ -113,19 +123,22 @@ public class when_serializing_state {
 	}
 
 	[Test]
-	public void big_int() {
+	public void big_int()
+	{
 		var serialized = _sut.Serialize(new JsBigInt(BigInteger.Parse("20000000000000000000")));
 		Assert.AreEqual(@"""20000000000000000000""", serialized);
 	}
 
 	[Test]
-	public void undefined() {
+	public void undefined()
+	{
 		var serialized = _sut.Serialize(JsValue.Undefined);
 		Assert.AreEqual(@"null", serialized);
 	}
 
 	[Test]
-	public void undefined_property() {
+	public void undefined_property()
+	{
 		var instance = new JsObject(_engine);
 		instance.Set("foo", JsValue.Undefined);
 		instance.Set("bar", "baz");
@@ -134,25 +147,29 @@ public class when_serializing_state {
 	}
 
 	[Test]
-	public void whitespace() {
+	public void whitespace()
+	{
 		// nothing. we only want to test the serializer in this file, not the parser.
 	}
 
 	[Test]
-	public void big_state() {
+	public void big_state()
+	{
 		var json = ReadJsonFromFile("big_state.json");
 		var instance = _parser.Parse(json);
 		var serialized = _sut.Serialize(instance);
 		Assert.AreEqual(json, serialized);
 	}
 
-	public static string ReadJsonFromFile(string filename) {
+	public static string ReadJsonFromFile(string filename)
+	{
 		var assembly = typeof(when_serializing_state).Assembly;
 		var availableFiles = assembly.GetManifestResourceNames();
 		var streamName = availableFiles.Where(
 			x => x.StartsWith(typeof(when_serializing_state).Namespace) && x.EndsWith(filename)
 			).SingleOrDefault();
-		if (streamName == null) {
+		if (streamName == null)
+		{
 			throw new InvalidOperationException($"Could not find {filename}");
 		}
 

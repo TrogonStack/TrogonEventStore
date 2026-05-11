@@ -10,11 +10,14 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.OpenTelemetry;
 
-public class OpenTelemetryLoggerTests {
+public class OpenTelemetryLoggerTests
+{
 	[Fact]
-	public void DoesNotConfigureExporterWhenLogsDisabled() {
+	public void DoesNotConfigureExporterWhenLogsDisabled()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 			})
 			.Build();
@@ -26,9 +29,11 @@ public class OpenTelemetryLoggerTests {
 	}
 
 	[Fact]
-	public void UsesSharedOtlpConfigWhenNoPerSignalSectionExists() {
+	public void UsesSharedOtlpConfigWhenNoPerSignalSectionExists()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 				["EventStore:OpenTelemetry:Otlp:Headers"] = "key=shared",
 				["EventStore:OpenTelemetry:Logs:Enabled"] = "true",
@@ -45,9 +50,11 @@ public class OpenTelemetryLoggerTests {
 	}
 
 	[Fact]
-	public void PerSignalLogsOtlpOverridesSharedSettings() {
+	public void PerSignalLogsOtlpOverridesSharedSettings()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 				["EventStore:OpenTelemetry:Otlp:Headers"] = "key=shared",
 				["EventStore:OpenTelemetry:Logs:Enabled"] = "true",
@@ -70,7 +77,8 @@ public class OpenTelemetryLoggerTests {
 	[InlineData("http://logs:4318", "http://logs:4318/v1/logs")]
 	[InlineData("http://logs:4318/", "http://logs:4318/v1/logs")]
 	[InlineData("http://logs:4318/custom/logs", "http://logs:4318/custom/logs")]
-	public void HttpProtobufLogsEndpointUsesSignalPathForBaseEndpoints(string endpoint, string expected) {
+	public void HttpProtobufLogsEndpointUsesSignalPathForBaseEndpoints(string endpoint, string expected)
+	{
 		var method = typeof(OpenTelemetryLogger).GetMethod(
 			"GetHttpProtobufLogsEndpoint",
 			BindingFlags.NonPublic | BindingFlags.Static);

@@ -1,6 +1,9 @@
-namespace EventStore.Core.Services.Transport.Grpc {
-	public static class Constants {
-		public static class Exceptions {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	public static class Constants
+	{
+		public static class Exceptions
+		{
 			public const string ExceptionKey = "exception";
 
 			public const string AccessDenied = "access-denied";
@@ -41,19 +44,22 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			public const string LoginName = "login-name";
 		}
 
-		public static class Metadata {
+		public static class Metadata
+		{
 			public const string Type = "type";
 			public const string Created = "created";
 			public const string ContentType = "content-type";
 			public static readonly string[] RequiredMetadata = { Type, ContentType };
 
-			public static class ContentTypes {
+			public static class ContentTypes
+			{
 				public const string ApplicationJson = "application/json";
 				public const string ApplicationOctetStream = "application/octet-stream";
 			}
 		}
 
-		public static class Headers {
+		public static class Headers
+		{
 			public const string Authorization = "authorization";
 			public const string BasicScheme = "Basic";
 

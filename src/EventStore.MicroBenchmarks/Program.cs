@@ -10,19 +10,23 @@ using Jint.Native.Json;
 
 namespace EventStore.MicroBenchmarks;
 
-internal class Program {
-	static void Main(string[] args) {
+internal class Program
+{
+	static void Main(string[] args)
+	{
 		BenchmarkRunner.Run<ProjectionSerializationBenchmarks>(DefaultConfig.Instance, args);
 	}
 }
 
 [MemoryDiagnoser]
-public class ProjectionSerializationBenchmarks {
+public class ProjectionSerializationBenchmarks
+{
 	private JsonSerializer _builtIn;
 	private JintProjectionStateHandler _handler;
 	private JsValue _stateInstance;
 
-	public ProjectionSerializationBenchmarks() {
+	public ProjectionSerializationBenchmarks()
+	{
 		var json = when_serializing_state.ReadJsonFromFile("big_state.json");
 
 		var engine = new Engine();
@@ -35,17 +39,21 @@ public class ProjectionSerializationBenchmarks {
 	}
 
 	[Benchmark(Baseline = true)]
-	public void JintSerializer() {
+	public void JintSerializer()
+	{
 		var s = _builtIn.Serialize(_stateInstance, JsValue.Undefined, JsValue.Undefined).AsString();
-		if (string.IsNullOrEmpty(s)) {
+		if (string.IsNullOrEmpty(s))
+		{
 			throw new Exception("something went wrong");
 		}
 	}
 
 	[Benchmark]
-	public void CustomSerializer() {
+	public void CustomSerializer()
+	{
 		var s = _handler.Serialize(_stateInstance);
-		if (string.IsNullOrEmpty(s)) {
+		if (string.IsNullOrEmpty(s))
+		{
 			throw new Exception("something went wrong");
 		}
 	}

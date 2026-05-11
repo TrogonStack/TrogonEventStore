@@ -3,7 +3,8 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Services.Processing.WorkItems;
 
-public abstract class WorkItem : StagedTask {
+public abstract class WorkItem : StagedTask
+{
 	private readonly int _lastStage;
 	private Action<int, object> _complete;
 	private int _onStage;
@@ -13,27 +14,34 @@ public abstract class WorkItem : StagedTask {
 	protected bool _requiresRunning;
 
 	protected WorkItem(object initialCorrelationId)
-		: base(initialCorrelationId) {
+		: base(initialCorrelationId)
+	{
 		_lastStage = 5;
 	}
 
-	protected CoreProjectionQueue Queue {
+	protected CoreProjectionQueue Queue
+	{
 		get { return _queue; }
 	}
 
-	public override void Process(int onStage, Action<int, object> readyForStage) {
-		if (_checkpointTag == null) {
+	public override void Process(int onStage, Action<int, object> readyForStage)
+	{
+		if (_checkpointTag == null)
+		{
 			throw new InvalidOperationException("CheckpointTag has not been initialized");
 		}
 
 		_complete = readyForStage;
 		_onStage = onStage;
 		//TODO:
-		if (_requiresRunning && !Queue.IsRunning) {
+		if (_requiresRunning && !Queue.IsRunning)
+		{
 			NextStage();
 		}
-		else {
-			switch (onStage) {
+		else
+		{
+			switch (onStage)
+			{
 				case 0:
 					RecordEventOrder();
 					break;
@@ -58,41 +66,50 @@ public abstract class WorkItem : StagedTask {
 		}
 	}
 
-	protected virtual void RecordEventOrder() {
+	protected virtual void RecordEventOrder()
+	{
 		NextStage();
 	}
 
-	protected virtual void GetStatePartition() {
+	protected virtual void GetStatePartition()
+	{
 		NextStage();
 	}
 
-	protected virtual void Load(CheckpointTag checkpointTag) {
+	protected virtual void Load(CheckpointTag checkpointTag)
+	{
 		NextStage();
 	}
 
-	protected virtual void ProcessEvent() {
+	protected virtual void ProcessEvent()
+	{
 		NextStage();
 	}
 
-	protected virtual void WriteOutput() {
+	protected virtual void WriteOutput()
+	{
 		NextStage();
 	}
 
 
-	protected virtual void CompleteItem() {
+	protected virtual void CompleteItem()
+	{
 		NextStage();
 	}
 
-	protected void NextStage(object newCorrelationId = null) {
+	protected void NextStage(object newCorrelationId = null)
+	{
 		_lastStageCorrelationId = newCorrelationId ?? _lastStageCorrelationId ?? InitialCorrelationId;
 		_complete(_onStage == _lastStage ? -1 : _onStage + 1, _lastStageCorrelationId);
 	}
 
-	public void SetCheckpointTag(CheckpointTag checkpointTag) {
+	public void SetCheckpointTag(CheckpointTag checkpointTag)
+	{
 		_checkpointTag = checkpointTag;
 	}
 
-	public void SetProjectionQueue(CoreProjectionQueue coreProjectionQueue) {
+	public void SetProjectionQueue(CoreProjectionQueue coreProjectionQueue)
+	{
 		_queue = coreProjectionQueue;
 	}
 }

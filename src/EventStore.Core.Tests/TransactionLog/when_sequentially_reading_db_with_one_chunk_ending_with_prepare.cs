@@ -15,14 +15,16 @@ namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLogFormat, TStreamId> :
-	SpecificationWithDirectoryPerTestFixture {
+	SpecificationWithDirectoryPerTestFixture
+{
 	private const int RecordsCount = 3;
 
 	private TFChunkDb _db;
 	private ILogRecord[] _records;
 	private RecordWriteResult[] _results;
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_db = new TFChunkDb(
@@ -38,7 +40,8 @@ public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLo
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		var expectedVersion = ExpectedVersion.NoStream;
 
-		for (int i = 0; i < _records.Length - 1; ++i) {
+		for (int i = 0; i < _records.Length - 1; ++i)
+		{
 			_records[i] = LogRecord.SingleWrite(
 				recordFactory,
 				i == 0 ? 0 : _results[i - 1].NewPosition,
@@ -72,18 +75,21 @@ public class when_sequentially_reading_db_with_one_chunk_ending_with_prepare<TLo
 		_db.Config.WriterCheckpoint.Flush();
 	}
 
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _db.DisposeAsync();
 
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public async Task only_the_last_record_is_marked_eof() {
+	public async Task only_the_last_record_is_marked_eof()
+	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
 		int count = 0;
-		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res) {
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
+		{
 			++count;
 			Assert.AreEqual(count == RecordsCount, res.Eof);
 		}

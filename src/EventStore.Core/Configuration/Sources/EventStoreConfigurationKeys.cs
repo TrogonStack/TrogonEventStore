@@ -9,8 +9,10 @@ using Microsoft.Extensions.Configuration;
 using static System.String;
 using static System.StringComparison;
 
-namespace EventStore.Core.Configuration.Sources {
-	public static class EventStoreConfigurationKeys {
+namespace EventStore.Core.Configuration.Sources
+{
+	public static class EventStoreConfigurationKeys
+	{
 		public const string Prefix = "EventStore";
 
 		private const string EnvVarKeyDelimiter = "__";
@@ -23,7 +25,8 @@ namespace EventStore.Core.Configuration.Sources {
 		private static readonly IReadOnlyList<string> OptionsKeys;
 		private static readonly IReadOnlyList<string> AllKnownKeys;
 
-		static EventStoreConfigurationKeys() {
+		static EventStoreConfigurationKeys()
+		{
 			SectionKeys = typeof(ClusterVNodeOptions).GetProperties()
 				.Where(prop => prop.GetCustomAttribute<ClusterVNodeOptions.OptionGroupAttribute>() != null)
 				.Select(property => property.Name)
@@ -40,11 +43,13 @@ namespace EventStore.Core.Configuration.Sources {
 		}
 
 		// outputs a key for IConfiguration e.g. EventStore:StreamInfoCacheCapacity
-		public static string Normalize(string key) {
+		public static string Normalize(string key)
+		{
 			// if the key doesn't contain any delimiters,
 			// we can just get out, transforming the key
 			// if needed because of cli lowercase args
-			if (!key.Any(Delimiters.Contains)) {
+			if (!key.Any(Delimiters.Contains))
+			{
 				return $"{Prefix}:{Transform(key)}";
 			}
 
@@ -59,7 +64,8 @@ namespace EventStore.Core.Configuration.Sources {
 			return $"{Prefix}:{Join(ConfigurationPath.KeyDelimiter, keys)}";
 
 			// because we know all keys, we can ensure the name is always correct
-			static string Transform(string key) {
+			static string Transform(string key)
+			{
 				var value = Pascalize(key);
 				return AllKnownKeys.FirstOrDefault(x => x.Equals(value, OrdinalIgnoreCase)) ?? value;
 			}

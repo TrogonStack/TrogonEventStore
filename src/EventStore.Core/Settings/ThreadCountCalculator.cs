@@ -2,14 +2,18 @@ using System;
 using EventStore.Common.Utils;
 using Serilog;
 
-namespace EventStore.Core.Settings {
+namespace EventStore.Core.Settings
+{
 
-	public static class ThreadCountCalculator {
+	public static class ThreadCountCalculator
+	{
 		private const int ReaderThreadCountFloor = 4;
 
 		public static int CalculateReaderThreadCount(int configuredCount, int processorCount,
-			bool isRunningInContainer) {
-			if (configuredCount > 0) {
+			bool isRunningInContainer)
+		{
+			if (configuredCount > 0)
+			{
 				Log.Information(
 					"ReaderThreadsCount set to {readerThreadsCount:N0}. " +
 					"Calculated based on processor count of {processorCount:N0} and configured value of {configuredCount:N0}",
@@ -18,7 +22,8 @@ namespace EventStore.Core.Settings {
 				return configuredCount;
 			}
 
-			if (isRunningInContainer) {
+			if (isRunningInContainer)
+			{
 				Log.Information(
 					"ReaderThreadsCount set to {readerThreadsCount:N0}. " +
 					"Calculated based on containerized environment and configured value of {configuredCount:N0}",
@@ -36,8 +41,10 @@ namespace EventStore.Core.Settings {
 			return readerCount;
 		}
 
-		public static int CalculateWorkerThreadCount(int configuredCount, int readerCount, bool isRunningInContainer) {
-			if (configuredCount > 0) {
+		public static int CalculateWorkerThreadCount(int configuredCount, int readerCount, bool isRunningInContainer)
+		{
+			if (configuredCount > 0)
+			{
 				Log.Information(
 					"WorkerThreads set to {workerThreadsCount:N0}. " +
 					"Calculated based on a reader thread count of {readerThreadsCount:N0} and a configured value of {configuredCount:N0}",
@@ -47,7 +54,8 @@ namespace EventStore.Core.Settings {
 			}
 
 
-			if (isRunningInContainer) {
+			if (isRunningInContainer)
+			{
 				Log.Information(
 					"WorkerThreads set to {workerThreadsCount:N0}. " +
 					"Calculated based on containerized environment and a configured value of {configuredCount:N0}",

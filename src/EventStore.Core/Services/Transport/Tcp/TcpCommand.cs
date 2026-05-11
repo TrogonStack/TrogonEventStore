@@ -1,5 +1,7 @@
-namespace EventStore.Core.Services.Transport.Tcp {
-	public enum TcpCommand : byte {
+namespace EventStore.Core.Services.Transport.Tcp
+{
+	public enum TcpCommand : byte
+	{
 		HeartbeatRequestCommand = 0x01,
 		HeartbeatResponseCommand = 0x02,
 

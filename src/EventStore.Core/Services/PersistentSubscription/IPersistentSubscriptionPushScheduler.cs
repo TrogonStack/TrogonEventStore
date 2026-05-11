@@ -1,5 +1,7 @@
-namespace EventStore.Core.Services.PersistentSubscription {
-	public interface IPersistentSubscriptionPushScheduler {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public interface IPersistentSubscriptionPushScheduler
+	{
 		void SchedulePush();
 	}
 }

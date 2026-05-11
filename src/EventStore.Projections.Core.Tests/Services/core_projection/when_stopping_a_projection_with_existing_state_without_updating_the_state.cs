@@ -16,10 +16,12 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_stopping_a_projection_with_existing_state_without_updating_the_state<TLogFormat, TStreamId> :
-		TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+		TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private string _testProjectionState = @"{""test"":1}";
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		//write existing checkpoint
 		ExistingEvent(
 			"$projections-projection-checkpoint", ProjectionEventTypes.ProjectionCheckpoint,
@@ -28,7 +30,8 @@ public class
 		AllWritesQueueUp();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//force write of another checkpoint
 		_bus.Publish(
 			new EventReaderSubscriptionMessage.CheckpointSuggested(
@@ -38,7 +41,8 @@ public class
 	}
 
 	[Test]
-	public void a_projection_checkpoint_event_is_published() {
+	public void a_projection_checkpoint_event_is_published()
+	{
 		AllWriteComplete();
 		Assert.AreEqual(
 			1,
@@ -48,7 +52,8 @@ public class
 	}
 
 	[Test]
-	public void previous_state_is_saved_in_checkpoint_event() {
+	public void previous_state_is_saved_in_checkpoint_event()
+	{
 		AllWriteComplete();
 		Assert.AreEqual(
 			1,

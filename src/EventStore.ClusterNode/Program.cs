@@ -32,8 +32,10 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.ClusterNode;
 
-internal static class Program {
-	public static async Task<int> Main(string[] args) {
+internal static class Program
+{
+	public static async Task<int> Main(string[] args)
+	{
 		var configuration = EventStoreConfiguration.Build(args);
 
 		ThreadPool.SetMaxThreads(1000, 1000);
@@ -41,7 +43,8 @@ internal static class Program {
 		var cts = new CancellationTokenSource();
 
 		Log.Logger = EventStoreLoggerConfiguration.ConsoleLog;
-		try {
+		try
+		{
 			var options = ClusterVNodeOptions.FromConfiguration(configuration);
 
 			var logsDirectory = string.IsNullOrWhiteSpace(options.Logging.Log)
@@ -57,17 +60,20 @@ internal static class Program {
 				options.Logging.LogConfig,
 				configuration);
 
-			if (options.Application.Help) {
+			if (options.Application.Help)
+			{
 				await Console.Out.WriteLineAsync(ClusterVNodeOptions.HelpText);
 				return 0;
 			}
 
-			if (options.Application.Version) {
+			if (options.Application.Version)
+			{
 				await Console.Out.WriteLineAsync(VersionInfo.Text);
 				return 0;
 			}
 
-			if (options.DevMode.RemoveDevCerts) {
+			if (options.DevMode.RemoveDevCerts)
+			{
 				Log.Information("Removing EventStoreDB dev certs.");
 				CertificateManager.Instance.CleanupHttpsCertificates();
 				Log.Information("Dev certs removed. Exiting.");
@@ -102,17 +108,21 @@ internal static class Program {
 				? LogEventLevel.Warning
 				: LogEventLevel.Fatal;
 
-			foreach (var (option, suggestion) in options.Unknown.Options) {
-				if (string.IsNullOrEmpty(suggestion)) {
+			foreach (var (option, suggestion) in options.Unknown.Options)
+			{
+				if (string.IsNullOrEmpty(suggestion))
+				{
 					Log.Write(level, "The option {option} is not a known option.", option);
 				}
-				else {
+				else
+				{
 					Log.Write(level, "The option {option} is not a known option. Did you mean {suggestion}?", option,
 						suggestion);
 				}
 			}
 
-			if (options.UnknownOptionsDetected && !options.Application.AllowUnknownOptions) {
+			if (options.UnknownOptionsDetected && !options.Application.AllowUnknownOptions)
+			{
 				Log.Fatal(
 					$"Found unknown options. To continue anyway, set {nameof(ClusterVNodeOptions.ApplicationOptions.AllowUnknownOptions)} to true.");
 				Log.Information(
@@ -121,7 +131,8 @@ internal static class Program {
 			}
 
 			CertificateProvider certificateProvider;
-			if (options.DevMode.Dev) {
+			if (options.DevMode.Dev)
+			{
 				Log.Information("Dev mode is enabled.");
 				Log.Warning(
 					"\n==============================================================================================================\n" +
@@ -132,7 +143,8 @@ internal static class Program {
 				var result =
 					manager.EnsureDevelopmentCertificate(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMonths(1));
 				if (result is not (EnsureCertificateResult.Succeeded
-					or EnsureCertificateResult.ValidCertificatePresent)) {
+					or EnsureCertificateResult.ValidCertificatePresent))
+				{
 					Log.Fatal("Could not ensure dev certificate is available. Reason: {result}", result);
 					return 1;
 				}
@@ -141,16 +153,19 @@ internal static class Program {
 				var machineCerts = manager.ListCertificates(StoreName.My, StoreLocation.LocalMachine, true);
 				var certs = userCerts.Concat(machineCerts).ToList();
 
-				if (!certs.Any()) {
+				if (!certs.Any())
+				{
 					Log.Fatal("Could not create dev certificate.");
 					return 1;
 				}
 
-				if (!manager.IsTrusted(certs[0]) && RuntimeInformation.IsWindows) {
+				if (!manager.IsTrusted(certs[0]) && RuntimeInformation.IsWindows)
+				{
 					Log.Information("Dev certificate {cert} is not trusted. Adding it to the trusted store.", certs[0]);
 					manager.TrustCertificate(certs[0]);
 				}
-				else {
+				else
+				{
 					Log.Warning("Automatically trusting dev certs is only supported on Windows.\n" +
 								"Please trust certificate {cert} if it's not trusted already.", certs[0]);
 				}
@@ -158,20 +173,24 @@ internal static class Program {
 				Log.Information("Running in dev mode using certificate '{cert}'", certs[0]);
 				certificateProvider = new DevCertificateProvider(certs[0]);
 			}
-			else {
+			else
+			{
 				certificateProvider = new OptionsCertificateProvider();
 			}
 
 			var deprecationWarnings = options.GetDeprecationWarnings();
-			if (deprecationWarnings != null) {
+			if (deprecationWarnings != null)
+			{
 				Log.Warning($"DEPRECATED{Environment.NewLine}{deprecationWarnings}");
 			}
 
-			if (!ClusterVNodeOptionsValidator.ValidateForStartup(options)) {
+			if (!ClusterVNodeOptionsValidator.ValidateForStartup(options))
+			{
 				return 1;
 			}
 
-			if (options.Application.Insecure) {
+			if (options.Application.Insecure)
+			{
 				Log.Warning(
 					"\n==============================================================================================================\n" +
 					"INSECURE MODE IS ON. THIS MODE IS *NOT* RECOMMENDED FOR PRODUCTION USE.\n" +
@@ -179,17 +198,20 @@ internal static class Program {
 					"==============================================================================================================\n");
 			}
 
-			if (options.Application.WhatIf) {
+			if (options.Application.WhatIf)
+			{
 				return 0;
 			}
 
-			Application.RegisterExitAction(code => {
+			Application.RegisterExitAction(code =>
+			{
 				// add a small delay to allow the host to start up in case there's a premature shutdown
 				cts.CancelAfter(TimeSpan.FromSeconds(1));
 				exitCodeSource.TrySetResult(code);
 			});
 
-			using (var hostedService = new ClusterVNodeHostedService(options, certificateProvider, configuration)) {
+			using (var hostedService = new ClusterVNodeHostedService(options, certificateProvider, configuration))
+			{
 				using var signal = new ManualResetEventSlim(false);
 				_ = Run(hostedService, signal);
 				// ReSharper disable MethodSupportsCancellation
@@ -199,9 +221,12 @@ internal static class Program {
 
 			return await exitCodeSource.Task;
 
-			async Task Run(ClusterVNodeHostedService hostedService, ManualResetEventSlim signal) {
-				try {
-					var builder = WebApplication.CreateBuilder(new WebApplicationOptions {
+			async Task Run(ClusterVNodeHostedService hostedService, ManualResetEventSlim signal)
+			{
+				try
+				{
+					var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+					{
 						Args = args,
 						ContentRootPath = AppDomain.CurrentDomain.BaseDirectory,
 					});
@@ -213,17 +238,20 @@ internal static class Program {
 					builder.Logging.ClearProviders().AddSerilog();
 					builder.Services
 						.Configure<KestrelServerOptions>(configuration.GetSection("Kestrel"))
-						.Configure<HostOptions>(x => {
+						.Configure<HostOptions>(x =>
+						{
 							x.ShutdownTimeout = ClusterVNode.ShutdownTimeout + TimeSpan.FromSeconds(1);
 #if DEBUG
 							x.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
 #endif
 						})
-						.Configure<ConsoleLifetimeOptions>(x => {
+						.Configure<ConsoleLifetimeOptions>(x =>
+						{
 							x.SuppressStatusMessages = true;
 						});
 
-					builder.WebHost.ConfigureKestrel(server => {
+					builder.WebHost.ConfigureKestrel(server =>
+					{
 						server.Limits.Http2.KeepAlivePingDelay =
 							TimeSpan.FromMilliseconds(options.Grpc.KeepAliveInterval);
 						server.Limits.Http2.KeepAlivePingTimeout =
@@ -233,7 +261,8 @@ internal static class Program {
 							ConfigureHttpOptions(listenOptions, hostedService,
 								useHttps: !hostedService.Node.DisableHttps));
 
-						if (hostedService.Node.EnableUnixSocket) {
+						if (hostedService.Node.EnableUnixSocket)
+						{
 							TryListenOnUnixSocket(hostedService, server);
 						}
 					});
@@ -258,17 +287,21 @@ internal static class Program {
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
 					var adminUiEnabled = !options.Interface.DisableAdminUi;
-					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory)) {
-						app.UseStaticFiles(new StaticFileOptions {
+					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory))
+					{
+						app.UseStaticFiles(new StaticFileOptions
+						{
 							FileProvider = new PhysicalFileProvider(Locations.UiAssetsDirectory),
 							RequestPath = "/ui/assets"
 						});
 					}
-					else if (adminUiEnabled) {
+					else if (adminUiEnabled)
+					{
 						Log.Warning("UI assets directory {UiAssetsDirectory} is not available.", Locations.UiAssetsDirectory);
 					}
 					hostedService.Node.Startup.Configure(app);
-					if (adminUiEnabled) {
+					if (adminUiEnabled)
+					{
 						app.MapAdminOperationsEndpoints();
 						app.MapQueueDashboardEndpoints();
 						app.MapRazorComponents<App>();
@@ -278,58 +311,73 @@ internal static class Program {
 
 					exitCodeSource.TrySetResult(0);
 				}
-				catch (OperationCanceledException) when (cts.IsCancellationRequested) {
+				catch (OperationCanceledException) when (cts.IsCancellationRequested)
+				{
 					exitCodeSource.TrySetResult(0);
 				}
-				catch (Exception ex) {
+				catch (Exception ex)
+				{
 					Log.Fatal(ex, "Exiting during setup");
 					exitCodeSource.TrySetResult(1);
 				}
-				finally {
+				finally
+				{
 					signal.Set();
 				}
 			}
 
 		}
-		catch (InvalidConfigurationException ex) {
+		catch (InvalidConfigurationException ex)
+		{
 			Log.Fatal("Invalid Configuration: " + ex.Message);
 			return 1;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Fatal(ex, "Host terminated unexpectedly.");
 			return 1;
 		}
-		finally {
+		finally
+		{
 			await Log.CloseAndFlushAsync();
 		}
 	}
 
 	private static void ConfigureHttpOptions(ListenOptions listenOptions, ClusterVNodeHostedService hostedService,
-		bool useHttps) {
-		if (useHttps) {
+		bool useHttps)
+	{
+		if (useHttps)
+		{
 			listenOptions.UseHttps(CreateServerOptionsSelectionCallback(hostedService), null);
 		}
-		else {
+		else
+		{
 			listenOptions.Use(next =>
 				new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);
 		}
 	}
 
-	private static void TryListenOnUnixSocket(ClusterVNodeHostedService hostedService, KestrelServerOptions server) {
-		if (!RuntimeInformation.IsLinux && !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17063)) {
+	private static void TryListenOnUnixSocket(ClusterVNodeHostedService hostedService, KestrelServerOptions server)
+	{
+		if (!RuntimeInformation.IsLinux && !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17063))
+		{
 			Log.Error("Not listening on a UNIX domain socket since it is not supported by the operating system.");
 			return;
 		}
 
-		try {
+		try
+		{
 			var unixSocket = Path.GetFullPath(Path.Combine(hostedService.Node.Db.Config.Path, "eventstore.sock"));
 
-			if (File.Exists(unixSocket)) {
-				try {
+			if (File.Exists(unixSocket))
+			{
+				try
+				{
 					File.Delete(unixSocket);
 					Log.Information("Cleaned up stale UNIX domain socket: {unixSocket}", unixSocket);
 				}
-				catch (Exception ex) {
+				catch (Exception ex)
+				{
 					Log.Error(ex,
 						"Failed to clean up stale UNIX domain socket: {unixSocket}. Please delete the file manually.",
 						unixSocket);
@@ -337,31 +385,37 @@ internal static class Program {
 				}
 			}
 
-			server.ListenUnixSocket(unixSocket, listenOptions => {
+			server.ListenUnixSocket(unixSocket, listenOptions =>
+			{
 				listenOptions.Use(next => new UnixSocketConnectionMiddleware(next).OnConnectAsync);
 				ConfigureHttpOptions(listenOptions, hostedService, useHttps: false);
 			});
 			Log.Information("Listening on UNIX domain socket: {unixSocket}", unixSocket);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Error(ex, "Failed to listen on UNIX domain socket.");
 			throw;
 		}
 	}
 
 	private static ServerOptionsSelectionCallback CreateServerOptionsSelectionCallback(
-		ClusterVNodeHostedService hostedService) {
-		return ((_, _, _, _) => {
-			var serverOptions = new SslServerAuthenticationOptions {
+		ClusterVNodeHostedService hostedService)
+	{
+		return ((_, _, _, _) =>
+		{
+			var serverOptions = new SslServerAuthenticationOptions
+			{
 				ServerCertificateContext = SslStreamCertificateContext.Create(
 					hostedService.Node.CertificateSelector(),
 					hostedService.Node.IntermediateCertificatesSelector(),
 					offline: true),
 				ClientCertificateRequired =
 					true, // request a client certificate but it's not necessary for the client to supply one
-				RemoteCertificateValidationCallback = (_, certificate, chain, sslPolicyErrors) => {
+				RemoteCertificateValidationCallback = (_, certificate, chain, sslPolicyErrors) =>
+				{
 					if (certificate == null) // not necessary to have a client certificate
-{
+					{
 						return true;
 					}
 
@@ -370,7 +424,8 @@ internal static class Program {
 							certificate,
 							chain,
 							sslPolicyErrors);
-					if (!isValid && error != null) {
+					if (!isValid && error != null)
+					{
 						Log.Error("Client certificate validation error: {e}", error);
 					}
 

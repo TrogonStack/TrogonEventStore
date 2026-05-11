@@ -6,17 +6,20 @@ using DotNext;
 
 namespace EventStore.Core.Tests;
 
-public static class TaskExtensions {
+public static class TaskExtensions
+{
 	public static async Task WithTimeout(this Task task, TimeSpan timeout, Action onFail = null,
 		[CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "",
-		[CallerLineNumber] int sourceLineNumber = 0) {
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
 		Debug.Assert(task is not null);
 
 		await task
 			.WaitAsync(timeout)
 			.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
 
-		if (!task.IsCompleted) {
+		if (!task.IsCompleted)
+		{
 			onFail?.Invoke();
 			throw new TimeoutException($"Timed out waiting for task at: {memberName} {sourceFilePath}:{sourceLineNumber}");
 		}
@@ -32,12 +35,14 @@ public static class TaskExtensions {
 
 	public static async Task<T> WithTimeout<T>(this Task<T> task, TimeSpan timeout, Action onFail = null,
 		[CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "",
-		[CallerLineNumber] int sourceLineNumber = 0) {
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
 		await task.As<Task>()
 			.WaitAsync(timeout)
 			.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing | ConfigureAwaitOptions.ContinueOnCapturedContext);
 
-		if (!task.IsCompleted) {
+		if (!task.IsCompleted)
+		{
 			onFail?.Invoke();
 			throw new TimeoutException(
 				$"Timed out waiting for task at: {memberName} {sourceFilePath}:{sourceLineNumber}");

@@ -8,8 +8,10 @@ using Microsoft.Extensions.Configuration;
 
 namespace EventStore.Core.Configuration;
 
-public static class EventStoreConfiguration {
-	public static IConfigurationRoot Build(string[] args, IDictionary environment) {
+public static class EventStoreConfiguration
+{
+	public static IConfigurationRoot Build(string[] args, IDictionary environment)
+	{
 		// resolve the main configuration file
 		var configFile = ResolveConfigurationFile(args, environment);
 
@@ -53,7 +55,8 @@ public static class EventStoreConfiguration {
 
 	public static IConfigurationRoot Build(params string[] args) => Build(args, Environment.GetEnvironmentVariables());
 
-	private static (string Path, bool Optional) ResolveConfigurationFile(string[] args, IDictionary environment) {
+	private static (string Path, bool Optional) ResolveConfigurationFile(string[] args, IDictionary environment)
+	{
 		var configuration = new ConfigurationBuilder()
 			.AddEventStoreEnvironmentVariables(environment)
 			.AddEventStoreCommandLine(args)

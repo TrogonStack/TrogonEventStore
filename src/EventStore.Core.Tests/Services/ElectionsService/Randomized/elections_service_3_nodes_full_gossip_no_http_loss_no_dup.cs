@@ -5,11 +5,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
 [TestFixture]
-public class elections_service_3_nodes_full_gossip_no_http_loss_no_dup {
+public class elections_service_3_nodes_full_gossip_no_http_loss_no_dup
+{
 	private RandomizedElectionsTestCase _randomCase;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_randomCase = new RandomizedElectionsTestCase(ElectionParams.MaxIterationCount,
 			instancesCnt: 3,
 			httpLossProbability: 0.0,
@@ -22,9 +24,11 @@ public class elections_service_3_nodes_full_gossip_no_http_loss_no_dup {
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public void should_always_arrive_at_coherent_results([Range(0, ElectionParams.TestRunCount - 1)]
-		int run) {
+		int run)
+	{
 		var success = _randomCase.Run();
-		if (!success) {
+		if (!success)
+		{
 			_randomCase.Logger.LogMessages();
 		}
 

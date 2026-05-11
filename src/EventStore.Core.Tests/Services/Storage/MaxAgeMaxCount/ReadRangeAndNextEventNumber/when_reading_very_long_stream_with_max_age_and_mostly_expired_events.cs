@@ -10,22 +10,27 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount.ReadRangeAndNext
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	WhenReadingVeryLongStreamWithMaxAgeAndMostlyExpiredEvents<TLogFormat, TStreamId>()
-	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize) {
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	: ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 500_000, chunkSize: TFConsts.ChunkSize)
+{
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var now = DateTime.UtcNow;
 		var metadata = $@"{{""$maxAge"":{(int)TimeSpan.FromMinutes(20).TotalSeconds}}}";
 		await WriteStreamMetadata("ES", 0, metadata, now.AddMinutes(-100), token: token);
-		for (int i = 0; i < 1_000_000; i++) {
+		for (int i = 0; i < 1_000_000; i++)
+		{
 			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-50), retryOnFail: true, token: token);
 		}
 
-		for (int i = 1_000_000; i < 1_000_015; i++) {
+		for (int i = 1_000_000; i < 1_000_015; i++)
+		{
 			await WriteSingleEvent("ES", i, "bla", now.AddMinutes(-1), retryOnFail: true, token: token);
 		}
 	}
 
 	[Test, Explicit, Category("LongRunning")]
-	public async Task on_read_from_beginning() {
+	public async Task on_read_from_beginning()
+	{
 		Stopwatch sw = Stopwatch.StartNew();
 		var res = await ReadIndex.ReadStreamEventsForward("ES", 1, 10, CancellationToken.None);
 		var elapsed = sw.Elapsed;

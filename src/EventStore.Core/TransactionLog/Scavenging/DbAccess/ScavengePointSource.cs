@@ -11,9 +11,11 @@ using Serilog;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IScavengePointSource {
+public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IScavengePointSource
+{
 	public async Task<ScavengePoint> GetLatestScavengePointOrDefaultAsync(
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		logger.Information("SCAVENGING: Getting latest scavenge point...");
 
@@ -27,41 +29,50 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 			maxCount: 1,
 			resolveLinks: false,
 			principal: SystemAccounts.System,
-			action: m => {
-				if (m.Result == ReadStreamResult.Success) {
+			action: m =>
+			{
+				if (m.Result == ReadStreamResult.Success)
+				{
 					readTcs.TrySetResult(m.Events);
 				}
-				else if (m.Result == ReadStreamResult.NoStream) {
+				else if (m.Result == ReadStreamResult.NoStream)
+				{
 					readTcs.TrySetResult(Array.Empty<ResolvedEvent>());
 				}
-				else {
+				else
+				{
 					readTcs.TrySetException(new Exception(
 						$"Failed to get latest scavenge point: {m.Result}. {m.Error}"));
 				}
 			},
-			timeoutAction: () => {
+			timeoutAction: () =>
+			{
 				readTcs.TrySetException(new Exception(
 					"Failed to get latest scavenge point: read timed out"));
 			},
 			corrId: Guid.NewGuid());
 
 		IReadOnlyList<ResolvedEvent> events;
-		await using (cancellationToken.Register(() => readTcs.TrySetCanceled())) {
+		await using (cancellationToken.Register(() => readTcs.TrySetCanceled()))
+		{
 			events = await readTcs.Task;
 		}
 
-		if (events is []) {
+		if (events is [])
+		{
 			logger.Information("SCAVENGING: No scavenge points exist");
 			return null;
 		}
 
-		if (events.Count is not 1) {
+		if (events.Count is not 1)
+		{
 			throw new Exception($"Expected 1 event but got {events.Count}");
 		}
 
 		var scavengePointEvent = events[0].Event;
 
-		if (scavengePointEvent.EventType != SystemEventTypes.ScavengePoint) {
+		if (scavengePointEvent.EventType != SystemEventTypes.ScavengePoint)
+		{
 			throw new Exception($"Last event in {SystemStreams.ScavengePointsStream} is not a scavenge point.");
 		}
 
@@ -80,7 +91,8 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 	public async Task<ScavengePoint> AddScavengePointAsync(
 		long expectedVersion,
 		int threshold,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		logger.Information("SCAVENGING: Adding new scavenge point #{eventNumber} with threshold {threshold}...",
 			expectedVersion + 1, threshold);
@@ -99,21 +111,26 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 				data: payload.ToJsonBytes(),
 				metadata: null),
 			principal: SystemAccounts.System,
-			action: m => {
-				if (m.Result == OperationResult.Success) {
+			action: m =>
+			{
+				if (m.Result == OperationResult.Success)
+				{
 					writeTcs.TrySetResult(true);
 				}
-				else {
+				else
+				{
 					writeTcs.TrySetException(new Exception(
 						$"Failed to add new scavenge point: {m.Result}"));
 				}
 			}
 		);
 
-		try {
+		try
+		{
 			await writeTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
 		}
-		catch (TimeoutException ex) {
+		catch (TimeoutException ex)
+		{
 			throw new TimeoutException("Timed out while trying to write a scavenge point", ex);
 		}
 
@@ -124,16 +141,19 @@ public class ScavengePointSource(ILogger logger, IODispatcher ioDispatcher) : IS
 
 		const int maxAttempts = 30;
 		var attempt = 0;
-		while (true) {
+		while (true)
+		{
 			var scavengePoint = await GetLatestScavengePointOrDefaultAsync(cancellationToken);
 
 			// success
-			if (scavengePoint.EventNumber == expectedVersion + 1) {
+			if (scavengePoint.EventNumber == expectedVersion + 1)
+			{
 				return scavengePoint;
 			}
 
 			// give up
-			if (++attempt > maxAttempts) {
+			if (++attempt > maxAttempts)
+			{
 				throw new Exception(
 					$"Unable to read back new scavenge point {expectedVersion + 1}. " +
 					$"This node is most likely significantly behind the leader. " +

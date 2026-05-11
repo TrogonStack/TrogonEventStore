@@ -13,17 +13,20 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV3, true)]
 [TestFixture(PTableVersions.IndexV4, false)]
 [TestFixture(PTableVersions.IndexV4, true)]
-public class table_index_should : SpecificationWithDirectoryPerTestFixture {
+public class table_index_should : SpecificationWithDirectoryPerTestFixture
+{
 	private TableIndex<string> _tableIndex;
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private bool _skipIndexVerify;
 
-	public table_index_should(byte version, bool skipIndexVerify) {
+	public table_index_should(byte version, bool skipIndexVerify)
+	{
 		_ptableVersion = version;
 		_skipIndexVerify = skipIndexVerify;
 	}
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		var lowHasher = new XXHashUnsafe();
 		var highHasher = new Murmur3AUnsafe();
@@ -37,40 +40,47 @@ public class table_index_should : SpecificationWithDirectoryPerTestFixture {
 		_tableIndex.Initialize(long.MaxValue);
 	}
 
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		_tableIndex.Close();
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_start_version() {
+	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_start_version()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(
 			() => _tableIndex.GetRange("0x0000", -1, long.MaxValue).ToArray());
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_end_version() {
+	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_end_version()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => _tableIndex.GetRange("0x0000", 0, -1).ToArray());
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_get_one_entry_query_when_provided_with_negative_version() {
+	public void throw_argumentoutofrangeexception_on_get_one_entry_query_when_provided_with_negative_version()
+	{
 		long pos;
 		Assert.Throws<ArgumentOutOfRangeException>(() => _tableIndex.TryGetOneValue("0x0000", -1, out pos));
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_commit_position() {
+	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_commit_position()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => _tableIndex.Add(-1, "0x0000", 0, 0));
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_version() {
+	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_version()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => _tableIndex.Add(0, "0x0000", -1, 0));
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_position() {
+	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_position()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => _tableIndex.Add(0, "0x0000", 0, -1));
 	}
 }

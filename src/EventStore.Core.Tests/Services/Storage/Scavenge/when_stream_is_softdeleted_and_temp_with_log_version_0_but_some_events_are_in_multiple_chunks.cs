@@ -15,9 +15,11 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 public class
 	when_stream_is_softdeleted_and_temp_with_log_version_0_but_some_events_are_in_multiple_chunks<TLogFormat,
 		TStreamId> :
-	ScavengeTestScenario<TLogFormat, TStreamId> {
+	ScavengeTestScenario<TLogFormat, TStreamId>
+{
 	protected override ValueTask<DbResult> CreateDb(TFChunkDbCreationHelper<TLogFormat, TStreamId> dbCreator,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		var version = LogRecordVersion.LogRecordV0;
 		return dbCreator.Chunk(Rec.Prepare(0, "test", version: version),
 				Rec.Commit(0, "test", version: version))
@@ -33,7 +35,8 @@ public class
 			.CreateDb(token: token);
 	}
 
-	protected override ILogRecord[][] KeptRecords(DbResult dbResult) {
+	protected override ILogRecord[][] KeptRecords(DbResult dbResult)
+	{
 		return new[]
 		{
 			new ILogRecord[0],
@@ -43,12 +46,14 @@ public class
 	}
 
 	[Test]
-	public async Task scavenging_goes_as_expected() {
+	public async Task scavenging_goes_as_expected()
+	{
 		await CheckRecords();
 	}
 
 	[Test]
-	public async Task the_stream_is_absent_logically() {
+	public async Task the_stream_is_absent_logically()
+	{
 		Assert.AreEqual(ReadStreamResult.NoStream,
 			(await ReadIndex.ReadStreamEventsForward("test", 0, 100, CancellationToken.None)).Result,
 			"Read test stream forward");
@@ -60,7 +65,8 @@ public class
 	}
 
 	[Test]
-	public async Task the_metastream_is_present_logically() {
+	public async Task the_metastream_is_present_logically()
+	{
 		Assert.AreEqual(ReadEventResult.Success,
 			(await ReadIndex.ReadEvent("$$test", -1, CancellationToken.None)).Result);
 		Assert.AreEqual(ReadStreamResult.Success,
@@ -74,7 +80,8 @@ public class
 	}
 
 	[Test]
-	public async Task the_stream_is_present_physically() {
+	public async Task the_stream_is_present_physically()
+	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.AreEqual(1,
 			(await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000, CancellationToken.None)).Records
@@ -85,7 +92,8 @@ public class
 	}
 
 	[Test]
-	public async Task the_metastream_is_present_physically() {
+	public async Task the_metastream_is_present_physically()
+	{
 		var headOfTf = new TFPos(Db.Config.WriterCheckpoint.Read(), Db.Config.WriterCheckpoint.Read());
 		Assert.AreEqual(1,
 			(await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 1000, CancellationToken.None)).Records

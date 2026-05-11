@@ -10,15 +10,18 @@ namespace EventStore.Core.Tests.Services.Storage.HashCollisions;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class read_event_with_hash_collision<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class read_event_with_hash_collision<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private MiniNode<TLogFormat, TStreamId> _node;
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.To(node, TcpType.Ssl);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName,
 			memTableSize: 20,
@@ -30,23 +33,27 @@ public class read_event_with_hash_collision<TLogFormat, TStreamId> : Specificati
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public async Task should_return_not_found() {
+	public async Task should_return_not_found()
+	{
 		const string stream1 = "account--696193173";
 		const string stream2 = "LPN-FC002_LPK51001";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			//Write event to stream 1
 			Assert.AreEqual(0,
 				(await store.AppendToStreamAsync(stream1, ExpectedVersion.NoStream,
 					new EventData(Guid.NewGuid(), "TestEvent", true, null, null))).NextExpectedVersion);
 			//Write 100 events to stream 2 which will have the same hash as stream 1.
-			for (int i = 0; i < 100; i++) {
+			for (int i = 0; i < 100; i++)
+			{
 				Assert.AreEqual(i,
 					(await store.AppendToStreamAsync(stream2, ExpectedVersion.Any,
 						new EventData(Guid.NewGuid(), "TestEvent", true, null, null))).NextExpectedVersion);
@@ -66,7 +73,8 @@ public class read_event_with_hash_collision<TLogFormat, TStreamId> : Specificati
 			hash32bit: true,
 			streamExistenceFilterSize: 0);
 		await _node.Start();
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(EventReadStatus.NoStream, (await store.ReadEventAsync(stream1, 0, true)).Status);
 		}

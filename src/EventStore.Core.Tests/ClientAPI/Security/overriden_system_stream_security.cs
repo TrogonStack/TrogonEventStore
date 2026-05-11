@@ -8,9 +8,11 @@ namespace EventStore.Core.Tests.ClientAPI.Security;
 
 [Category("ClientAPI"), Category("LongRunning"), Category("Network")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class overriden_system_stream_security<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId> {
+public class overriden_system_stream_security<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId>
+{
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var settings = new SystemSettings(userStreamAcl: null,
@@ -19,7 +21,8 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_succeed_for_authorized_user() {
+	public async Task operations_on_system_stream_succeed_for_authorized_user()
+	{
 		const string stream = "$sys-authorized-user";
 		await ReadEvent(stream, "user1", "pa$$1");
 		await ReadStreamForward(stream, "user1", "pa$$1");
@@ -27,11 +30,13 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 
 		await WriteStream(stream, "user1", "pa$$1");
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			await TransStart(stream, "user1", "pa$$1");
 		}
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId, new UserCredentials("user1", "pa$$1"));
 			await trans.WriteAsync();
@@ -47,7 +52,8 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_fail_for_not_authorized_user() {
+	public async Task operations_on_system_stream_fail_for_not_authorized_user()
+	{
 		const string stream = "$sys-not-authorized-user";
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => ReadEvent(stream, "user2", "pa$$2"));
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => ReadStreamForward(stream, "user2", "pa$$2"));
@@ -56,7 +62,8 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => WriteStream(stream, "user2", "pa$$2"));
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => TransStart(stream, "user2", "pa$$2"));
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId, new UserCredentials("user2", "pa$$2"));
 			await AssertEx.ThrowsAsync<AccessDeniedException>(() => trans.WriteAsync());
@@ -72,7 +79,8 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_fail_for_anonymous_user() {
+	public async Task operations_on_system_stream_fail_for_anonymous_user()
+	{
 		const string stream = "$sys-anonymous-user";
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => ReadEvent(stream, null, null));
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => ReadStreamForward(stream, null, null));
@@ -81,7 +89,8 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => WriteStream(stream, null, null));
 		await AssertEx.ThrowsAsync<AccessDeniedException>(() => TransStart(stream, null, null));
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId);
 			await AssertEx.ThrowsAsync<AccessDeniedException>(() => trans.WriteAsync());
@@ -97,7 +106,8 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_succeed_for_admin() {
+	public async Task operations_on_system_stream_succeed_for_admin()
+	{
 		const string stream = "$sys-admin";
 		await ReadEvent(stream, "adm", "admpa$$");
 		await ReadStreamForward(stream, "adm", "admpa$$");
@@ -105,11 +115,13 @@ public class overriden_system_stream_security<TLogFormat, TStreamId> : Authentic
 
 		await WriteStream(stream, "adm", "admpa$$");
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			await TransStart(stream, "adm", "admpa$$");
 		}
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId, new UserCredentials("adm", "admpa$$"));
 			await trans.WriteAsync();

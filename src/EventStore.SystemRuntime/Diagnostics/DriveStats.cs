@@ -4,18 +4,23 @@ using Serilog;
 
 namespace System.Diagnostics;
 
-public class DriveStats {
+public class DriveStats
+{
 	public static readonly ILogger Log = Serilog.Log.ForContext<DriveStats>();
 
-	public static DriveData GetDriveInfo(string path) {
-		try {
+	public static DriveData GetDriveInfo(string path)
+	{
+		try
+		{
 			var info = new DriveInfo(Path.GetFullPath(path));
 			var target = info.Name;
 			var diskName = "";
 
-			foreach (var candidate in DriveInfo.GetDrives()) {
+			foreach (var candidate in DriveInfo.GetDrives())
+			{
 				if (target.StartsWith(candidate.Name, StringComparison.InvariantCultureIgnoreCase) &&
-					candidate.Name.StartsWith(diskName, StringComparison.InvariantCultureIgnoreCase)) {
+					candidate.Name.StartsWith(diskName, StringComparison.InvariantCultureIgnoreCase))
+				{
 					diskName = candidate.Name;
 				}
 			}
@@ -23,7 +28,8 @@ public class DriveStats {
 			return new DriveData(diskName, info.TotalSize, info.AvailableFreeSpace);
 
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Warning(ex, "Failed to retrieve drive stats for {Path}", path);
 			return new DriveData("Unknown", 0, 0);
 		}
@@ -36,7 +42,8 @@ public class DriveStats {
 /// <param name="DiskName">The name of the disk.</param>
 /// <param name="TotalBytes">The total size of the disk in bytes.</param>
 /// <param name="AvailableBytes">The available free space on the disk in bytes.</param>
-public readonly record struct DriveData(string DiskName, long TotalBytes, long AvailableBytes) {
+public readonly record struct DriveData(string DiskName, long TotalBytes, long AvailableBytes)
+{
 	/// <summary>
 	/// The used space on the disk in bytes.
 	/// </summary>

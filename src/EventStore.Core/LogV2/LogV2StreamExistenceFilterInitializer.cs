@@ -23,7 +23,8 @@ namespace EventStore.Core.LogV2;
 /// log record. Sometimes we only have the pre-position, but this is also the post-position
 /// of the previous record, which is fine. the net effect is an extra record is initialized
 /// on startup next time.
-public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitializer {
+public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitializer
+{
 	private readonly Func<TFReaderLease> _tfReaderFactory;
 	private readonly ITableIndex _tableIndex;
 
@@ -31,7 +32,8 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 
 	public LogV2StreamExistenceFilterInitializer(
 		Func<TFReaderLease> tfReaderFactory,
-		ITableIndex tableIndex) {
+		ITableIndex tableIndex)
+	{
 
 		Ensure.NotNull(tableIndex, nameof(tableIndex));
 
@@ -39,8 +41,10 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 		_tableIndex = tableIndex;
 	}
 
-	public async ValueTask Initialize(INameExistenceFilter filter, long truncateToPosition, CancellationToken token) {
-		if (truncateToPosition < filter.CurrentCheckpoint) {
+	public async ValueTask Initialize(INameExistenceFilter filter, long truncateToPosition, CancellationToken token)
+	{
+		if (truncateToPosition < filter.CurrentCheckpoint)
+		{
 			filter.TruncateTo(checkpoint: truncateToPosition);
 		}
 
@@ -48,8 +52,10 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 		await InitializeFromLog(filter, token);
 	}
 
-	private void InitializeFromIndex(INameExistenceFilter filter) {
-		if (filter.CurrentCheckpoint != -1L) {
+	private void InitializeFromIndex(INameExistenceFilter filter)
+	{
+		if (filter.CurrentCheckpoint != -1L)
+		{
 			// can only use the index to build from scratch. if we have a checkpoint
 			// we need to build from the log in order to make use of it.
 			return;
@@ -66,14 +72,17 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 		var recordsTotal = enumerators.Sum(pair => pair.Count);
 		var recordsProcessed = 0L;
 		ulong? previousHash = null;
-		for (var t = 0; t < enumerators.Count; t++) {
+		for (var t = 0; t < enumerators.Count; t++)
+		{
 			var pair = enumerators[t];
 			var enumerator = pair.Enumerator;
-			do {
+			do
+			{
 				// enumerators are already advanced to first item
 				var entry = enumerator.Current;
 				checkpoint = Math.Max(checkpoint, entry.Position);
-				if (entry.Stream == previousHash) {
+				if (entry.Stream == previousHash)
+				{
 					continue;
 				}
 
@@ -95,18 +104,23 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 		filter.CurrentCheckpoint = checkpoint;
 	}
 
-	private List<(IEnumerator<IndexEntry> Enumerator, long Count)> GetEnumerators() {
+	private List<(IEnumerator<IndexEntry> Enumerator, long Count)> GetEnumerators()
+	{
 		var attempt = 0;
-		while (attempt < 5) {
+		while (attempt < 5)
+		{
 			attempt++;
 			var enumerators = new List<(IEnumerator<IndexEntry> Enumerator, long Count)>();
-			try {
+			try
+			{
 				var tables = _tableIndex.IterateAllInOrder();
-				foreach (var table in tables) {
+				foreach (var table in tables)
+				{
 					Log.Information("Found table {id}. Type: {type}. Count: {count:N0}. Version: {version}",
 						table.Id, table.GetType(), table.Count, table.Version);
 
-					if (table.Version == PTableVersions.IndexV1) {
+					if (table.Version == PTableVersions.IndexV1)
+					{
 						throw new NotSupportedException(
 							"The Stream Existence Filter is not supported with V1 index files. Please disable the filter by setting StreamExistenceFilterSize to 0, or rebuild the indexes.");
 					}
@@ -115,26 +129,32 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 
 					// advance into the enumerator so that we obtain a workitem in each table
 					// so that the ptables will definitely not be deleted until we are done.
-					if (enumerator.MoveNext()) {
+					if (enumerator.MoveNext())
+					{
 						// got workitem!
 						enumerators.Add((enumerator, table.Count));
 					}
-					else {
+					else
+					{
 						enumerator.Dispose();
 					}
 				}
 
 				return enumerators;
 			}
-			catch (NotSupportedException) {
-				foreach (var pair in enumerators) {
+			catch (NotSupportedException)
+			{
+				foreach (var pair in enumerators)
+				{
 					pair.Enumerator.Dispose();
 				}
 
 				throw;
 			}
-			catch (FileBeingDeletedException) {
-				foreach (var pair in enumerators) {
+			catch (FileBeingDeletedException)
+			{
+				foreach (var pair in enumerators)
+				{
 					pair.Enumerator.Dispose();
 				}
 
@@ -145,7 +165,8 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 		throw new InvalidOperationException("Failed to get enumerators for the index.");
 	}
 
-	private async ValueTask InitializeFromLog(INameExistenceFilter filter, CancellationToken token) {
+	private async ValueTask InitializeFromLog(INameExistenceFilter filter, CancellationToken token)
+	{
 		// if we have a checkpoint, start from that position in the log. this will work
 		// whether the checkpoint is the pre or post position of the last processed record.
 		var startPosition = filter.CurrentCheckpoint == -1 ? 0 : filter.CurrentCheckpoint;
@@ -153,8 +174,10 @@ public class LogV2StreamExistenceFilterInitializer : INameExistenceFilterInitial
 		using var reader = _tfReaderFactory();
 		reader.Reposition(startPosition);
 
-		while (await reader.TryReadNext(token) is { Success: true } result) {
-			switch (result.LogRecord.RecordType) {
+		while (await reader.TryReadNext(token) is { Success: true } result)
+		{
+			switch (result.LogRecord.RecordType)
+			{
 				case LogRecordType.Prepare:
 					// add regardless of expectedVersion because event 0 may be scavenged
 					// add regardless of committed or not because waiting for the commit is expensive

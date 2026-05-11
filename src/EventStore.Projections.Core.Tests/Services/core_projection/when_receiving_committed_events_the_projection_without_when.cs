@@ -11,33 +11,41 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
-public abstract class specification_with_query_without_when<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+public abstract class specification_with_query_without_when<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	protected Guid _eventId;
 
-	protected override bool GivenCheckpointsEnabled() {
+	protected override bool GivenCheckpointsEnabled()
+	{
 		return false;
 	}
 
-	protected override bool GivenEmitEventEnabled() {
+	protected override bool GivenEmitEventEnabled()
+	{
 		return false;
 	}
 
-	protected override bool GivenStopOnEof() {
+	protected override bool GivenStopOnEof()
+	{
 		return true;
 	}
 
-	protected override int GivenPendingEventsThreshold() {
+	protected override int GivenPendingEventsThreshold()
+	{
 		return 0;
 	}
 
-	protected override ProjectionProcessingStrategy GivenProjectionProcessingStrategy() {
+	protected override ProjectionProcessingStrategy GivenProjectionProcessingStrategy()
+	{
 		return CreateQueryProcessingStrategy();
 	}
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_checkpointHandledThreshold = 0;
 		_checkpointUnhandledBytesThreshold = 0;
-		_configureBuilderByQuerySource = source => {
+		_configureBuilderByQuerySource = source =>
+		{
 			source.FromAll();
 			source.AllEvents();
 			source.NoWhen();
@@ -49,8 +57,10 @@ public abstract class specification_with_query_without_when<TLogFormat, TStreamI
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_receiving_committed_events_the_projection_without_when<TLogFormat, TStreamId> : specification_with_query_without_when<TLogFormat, TStreamId> {
-	protected override void When() {
+public class when_receiving_committed_events_the_projection_without_when<TLogFormat, TStreamId> : specification_with_query_without_when<TLogFormat, TStreamId>
+{
+	protected override void When()
+	{
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_consumer.HandledMessages.Clear();
@@ -67,7 +77,8 @@ public class when_receiving_committed_events_the_projection_without_when<TLogFor
 	}
 
 	[Test]
-	public void update_state_snapshots_are_written_to_the_correct_stream() {
+	public void update_state_snapshots_are_written_to_the_correct_stream()
+	{
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "Result")).ToList();
 		Assert.AreEqual(2, writeEvents.Count);
@@ -81,8 +92,10 @@ public class when_receiving_committed_events_the_projection_without_when<TLogFor
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_handling_event_does_not_change_state_the_projection_without_when<TLogFormat, TStreamId> : specification_with_query_without_when<TLogFormat, TStreamId> {
-	protected override void When() {
+	when_handling_event_does_not_change_state_the_projection_without_when<TLogFormat, TStreamId> : specification_with_query_without_when<TLogFormat, TStreamId>
+{
+	protected override void When()
+	{
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_consumer.HandledMessages.Clear();
@@ -99,7 +112,8 @@ public class
 	}
 
 	[Test, Ignore("To be fixed")]
-	public void result_events_are_produced_for_each_received_event() {
+	public void result_events_are_produced_for_each_received_event()
+	{
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "Result")).ToList();
 		Assert.AreEqual(2, writeEvents.Count);
@@ -110,7 +124,8 @@ public class
 	}
 
 	[Test]
-	public void no_result_removed_events_are_produced() {
+	public void no_result_removed_events_are_produced()
+	{
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "ResultRemoved"))
 				.ToList();

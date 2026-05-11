@@ -18,7 +18,8 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Chunks;
 
-public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
+public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
+{
 	private const string ArchiveCheckpointFile = "archive.chk";
 	private const int ChunkSize = 4096;
 
@@ -31,7 +32,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 	private readonly ArchiveChunkNamer _archiveChunkNamer;
 	private readonly TFChunkManager _sut;
 
-	public TFChunkManagerArchiveSwitchTests() {
+	public TFChunkManagerArchiveSwitchTests()
+	{
 		_dbPath = Path.Combine(_fixture.Directory, "db");
 		_archivePath = Path.Combine(_fixture.Directory, "archive");
 		Directory.CreateDirectory(_dbPath);
@@ -67,13 +69,15 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 	public Task InitializeAsync() =>
 		_fixture.InitializeAsync();
 
-	public async Task DisposeAsync() {
+	public async Task DisposeAsync()
+	{
 		await _sut.TryClose(CancellationToken.None);
 		await _fixture.DisposeAsync();
 	}
 
 	[Fact]
-	public async Task switches_in_archived_chunks_for_a_precise_range() {
+	public async Task switches_in_archived_chunks_for_a_precise_range()
+	{
 		var chunk0 = await AddLocalChunk(0, 0);
 		var chunk45 = await AddLocalChunk(4, 5);
 		await AddLocalChunk(1, 3);
@@ -100,7 +104,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public async Task rejects_misaligned_archive_ranges_without_mutating_chunks() {
+	public async Task rejects_misaligned_archive_ranges_without_mutating_chunks()
+	{
 		var chunk0 = await AddLocalChunk(0, 0);
 		var chunk13 = await AddLocalChunk(1, 3);
 		var chunk45 = await AddLocalChunk(4, 5);
@@ -125,7 +130,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 	}
 
 	[Fact]
-	public async Task switch_chunk_throws_when_the_replacement_range_is_rejected() {
+	public async Task switch_chunk_throws_when_the_replacement_range_is_rejected()
+	{
 		var chunk0 = await AddLocalChunk(0, 0);
 		var chunk13 = await AddLocalChunk(1, 3);
 		var chunk45 = await AddLocalChunk(4, 5);
@@ -155,7 +161,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 			.Select(chunkNum => _sut.GetChunk(chunkNum).ChunkLocator)
 			.ToArray();
 
-	private async ValueTask<TFChunk> AddLocalChunk(int start, int end) {
+	private async ValueTask<TFChunk> AddLocalChunk(int start, int end)
+	{
 		var fileName = _localFileSystem.NamingStrategy.GetFilenameFor(start, 0);
 		var chunk = await TFChunk.CreateNew(
 			fileSystem: _localFileSystem,
@@ -176,7 +183,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 		return chunk;
 	}
 
-	private async ValueTask<TFChunk> CreateCompletedTempChunk(int start, int end) {
+	private async ValueTask<TFChunk> CreateCompletedTempChunk(int start, int end)
+	{
 		var chunk = await _sut.CreateTempChunk(
 			new ChunkHeader(
 				version: (byte)TFChunk.ChunkVersions.Transformed,
@@ -193,7 +201,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime {
 		return chunk;
 	}
 
-	private async ValueTask StoreArchivedChunk(int chunkNumber) {
+	private async ValueTask StoreArchivedChunk(int chunkNumber)
+	{
 		var sourcePath = Path.Combine(_dbPath, $"archive-source-{chunkNumber}.tmp");
 		var sourceChunk = await TFChunk.CreateNew(
 			fileSystem: _localFileSystem,

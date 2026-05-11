@@ -23,7 +23,8 @@ public class ArchiverService :
 	IHandle<SystemMessage.ChunkCompleted>,
 	IHandle<SystemMessage.ChunkSwitched>,
 	IHandle<ReplicationTrackingMessage.ReplicatedTo>,
-	IHandle<SystemMessage.BecomeShuttingDown> {
+	IHandle<SystemMessage.BecomeShuttingDown>
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<ArchiverService>();
 
 	private readonly ISubscriber _mainBus;
@@ -45,7 +46,8 @@ public class ArchiverService :
 		ISubscriber mainBus,
 		IArchiveStorageFactory archiveStorageFactory,
 		IChunkUnmerger chunkUnmerger,
-		IArchiveChunkNamer chunkNamer) {
+		IArchiveChunkNamer chunkNamer)
+	{
 		_mainBus = mainBus;
 		_archiveWriter = archiveStorageFactory.CreateWriter();
 		_archiveReader = archiveStorageFactory.CreateReader();
@@ -56,7 +58,8 @@ public class ArchiverService :
 		_existingChunks = new();
 		_cts = new();
 		_archiveChunkCommands = Channel.CreateUnboundedPrioritized(
-			new UnboundedPrioritizedChannelOptions<Commands.ArchiveChunk> {
+			new UnboundedPrioritizedChannelOptions<Commands.ArchiveChunk>
+			{
 				SingleWriter = false,
 				SingleReader = true,
 				Comparer = new ChunkPrioritizer()
@@ -65,7 +68,8 @@ public class ArchiverService :
 		Subscribe();
 	}
 
-	private void Subscribe() {
+	private void Subscribe()
+	{
 		_mainBus.Subscribe<SystemMessage.ChunkLoaded>(this);
 		_mainBus.Subscribe<SystemMessage.ChunkSwitched>(this);
 		_mainBus.Subscribe<SystemMessage.ChunkCompleted>(this);
@@ -73,21 +77,26 @@ public class ArchiverService :
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(this);
 	}
 
-	public void Handle(SystemMessage.ChunkLoaded message) {
-		if (!message.ChunkInfo.IsCompleted || message.ChunkInfo.IsRemote) {
+	public void Handle(SystemMessage.ChunkLoaded message)
+	{
+		if (!message.ChunkInfo.IsCompleted || message.ChunkInfo.IsRemote)
+		{
 			return;
 		}
 
 		_existingChunks[Path.GetFileName(message.ChunkInfo.ChunkLocator)!] = message.ChunkInfo;
 	}
 
-	public void Handle(SystemMessage.ChunkCompleted message) {
+	public void Handle(SystemMessage.ChunkCompleted message)
+	{
 		var chunkInfo = message.ChunkInfo;
-		if (chunkInfo.IsRemote) {
+		if (chunkInfo.IsRemote)
+		{
 			return;
 		}
 
-		if (chunkInfo.ChunkEndPosition > _replicationPosition) {
+		if (chunkInfo.ChunkEndPosition > _replicationPosition)
+		{
 			_uncommittedChunks.Enqueue(chunkInfo);
 			return;
 		}
@@ -95,19 +104,23 @@ public class ArchiverService :
 		ScheduleChunkForArchiving(chunkInfo, "new");
 	}
 
-	public void Handle(SystemMessage.ChunkSwitched message) {
-		if (message.ChunkInfo.IsRemote) {
+	public void Handle(SystemMessage.ChunkSwitched message)
+	{
+		if (message.ChunkInfo.IsRemote)
+		{
 			return;
 		}
 
 		ScheduleChunkForArchiving(message.ChunkInfo, "changed");
 	}
 
-	public void Handle(ReplicationTrackingMessage.ReplicatedTo message) {
+	public void Handle(ReplicationTrackingMessage.ReplicatedTo message)
+	{
 		_replicationPosition = Math.Max(_replicationPosition, message.LogPosition);
 		ProcessUncommittedChunks();
 
-		if (_archivingStarted) {
+		if (_archivingStarted)
+		{
 			return;
 		}
 
@@ -115,35 +128,46 @@ public class ArchiverService :
 		Task.Run(() => StartArchiving(_cts.Token), _cts.Token);
 	}
 
-	private async Task StartArchiving(CancellationToken ct) {
-		try {
+	private async Task StartArchiving(CancellationToken ct)
+	{
+		try
+		{
 			await LoadArchiveCheckpoint(ct);
 			ScheduleExistingChunksForArchiving();
 			await ArchiveChunks(ct);
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			// ignore
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Fatal(ex, "Archiving has stopped working due to an unhandled exception.");
 		}
 	}
 
-	public void Handle(SystemMessage.BecomeShuttingDown message) {
-		try {
+	public void Handle(SystemMessage.BecomeShuttingDown message)
+	{
+		try
+		{
 			_cts.Cancel();
 		}
-		catch {
+		catch
+		{
 			// ignore
 		}
-		finally {
+		finally
+		{
 			_cts?.Dispose();
 		}
 	}
 
-	private void ProcessUncommittedChunks() {
-		while (_uncommittedChunks.TryPeek(out var chunkInfo)) {
-			if (chunkInfo.ChunkEndPosition > _replicationPosition) {
+	private void ProcessUncommittedChunks()
+	{
+		while (_uncommittedChunks.TryPeek(out var chunkInfo))
+		{
+			if (chunkInfo.ChunkEndPosition > _replicationPosition)
+			{
 				break;
 			}
 
@@ -152,8 +176,10 @@ public class ArchiverService :
 		}
 	}
 
-	private void ScheduleChunkForArchiving(ChunkInfo chunkInfo, string chunkType) {
-		var writeResult = _archiveChunkCommands.Writer.TryWrite(new Commands.ArchiveChunk {
+	private void ScheduleChunkForArchiving(ChunkInfo chunkInfo, string chunkType)
+	{
+		var writeResult = _archiveChunkCommands.Writer.TryWrite(new Commands.ArchiveChunk
+		{
 			ChunkPath = chunkInfo.ChunkLocator,
 			ChunkStartNumber = chunkInfo.ChunkStartNumber,
 			ChunkEndNumber = chunkInfo.ChunkEndNumber,
@@ -166,26 +192,32 @@ public class ArchiverService :
 			Path.GetFileName(chunkInfo.ChunkLocator), chunkType);
 	}
 
-	private async Task ArchiveChunks(CancellationToken ct) {
-		await foreach (var cmd in _archiveChunkCommands.Reader.ReadAllAsync(ct)) {
+	private async Task ArchiveChunks(CancellationToken ct)
+	{
+		await foreach (var cmd in _archiveChunkCommands.Reader.ReadAllAsync(ct))
+		{
 			await ArchiveChunk(cmd.ChunkPath, cmd.ChunkStartNumber, cmd.ChunkEndNumber, cmd.ChunkEndPosition, ct);
 		}
 	}
 
 	private async Task ArchiveChunk(string chunkPath, int chunkStartNumber, int chunkEndNumber, long chunkEndPosition,
-		CancellationToken ct) {
+		CancellationToken ct)
+	{
 		var chunkFile = Path.GetFileName(chunkPath);
-		try {
+		try
+		{
 			Log.Information("Archiving {chunkFile}", chunkFile);
 
 			string[] chunksToStore;
 			bool chunksUnmerged;
 
-			if (chunkStartNumber == chunkEndNumber) {
+			if (chunkStartNumber == chunkEndNumber)
+			{
 				chunksToStore = [chunkPath];
 				chunksUnmerged = false;
 			}
-			else {
+			else
+			{
 				Log.Information("Unmerging {chunkFile}", chunkFile);
 				chunksToStore = await _chunkUnmerger.Unmerge(chunkPath, chunkStartNumber, chunkEndNumber)
 					.ToArrayAsync(cancellationToken: ct);
@@ -193,10 +225,12 @@ public class ArchiverService :
 			}
 
 			var logicalChunkNumber = chunkStartNumber;
-			foreach (var chunkToStore in chunksToStore) {
+			foreach (var chunkToStore in chunksToStore)
+			{
 				var destinationFile = _chunkNamer.GetFileNameFor(logicalChunkNumber);
 
-				while (!await _archiveWriter.StoreChunk(chunkToStore, destinationFile, ct)) {
+				while (!await _archiveWriter.StoreChunk(chunkToStore, destinationFile, ct))
+				{
 					Log.Warning("Archiving of {chunkFile}{chunkDetails} failed. Retrying in: {retryInterval}.",
 						Path.GetFileName(chunkPath),
 						chunksUnmerged ? $" (logical chunk no.: {logicalChunkNumber})" : string.Empty,
@@ -204,15 +238,18 @@ public class ArchiverService :
 					await Task.Delay(RetryInterval, ct);
 				}
 
-				if (chunksUnmerged) {
+				if (chunksUnmerged)
+				{
 					File.Delete(chunkToStore);
 				}
 
 				logicalChunkNumber++;
 			}
 
-			if (chunkEndPosition > _checkpoint) {
-				while (!await _archiveWriter.SetCheckpoint(chunkEndPosition, ct)) {
+			if (chunkEndPosition > _checkpoint)
+			{
+				while (!await _archiveWriter.SetCheckpoint(chunkEndPosition, ct))
+				{
 					Log.Warning(
 						"Failed to set the archive checkpoint to: 0x{checkpoint:X}. Retrying in: {retryInterval}.",
 						chunkEndPosition, RetryInterval);
@@ -225,40 +262,51 @@ public class ArchiverService :
 
 			Log.Information("Archiving of {chunkFile} succeeded.", chunkFile);
 		}
-		catch (ChunkDeletedException) {
+		catch (ChunkDeletedException)
+		{
 			// the chunk has been deleted, presumably during scavenge or redaction
 			Log.Information("Archiving of {chunkFile} cancelled as it was deleted.", Path.GetFileName(chunkPath));
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Error(ex, "Archiving of {chunkFile} failed.", chunkFile);
 			throw;
 		}
 	}
 
-	private async Task LoadArchiveCheckpoint(CancellationToken ct) {
-		do {
-			try {
+	private async Task LoadArchiveCheckpoint(CancellationToken ct)
+	{
+		do
+		{
+			try
+			{
 				_checkpoint = await _archiveReader.GetCheckpoint(ct);
 				Log.Debug("Archive checkpoint is: 0x{checkpoint:X}", _checkpoint);
 				return;
 			}
-			catch (OperationCanceledException) {
+			catch (OperationCanceledException)
+			{
 				throw;
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				Log.Warning(ex, "Failed to load the archive checkpoint. Retrying in: {retryInterval}.", RetryInterval);
 				await Task.Delay(RetryInterval, ct);
 			}
 		} while (true);
 	}
 
-	private void ScheduleExistingChunksForArchiving() {
+	private void ScheduleExistingChunksForArchiving()
+	{
 		var scheduledChunks = 0;
-		foreach (var chunkInfo in _existingChunks.Values) {
-			if (chunkInfo.ChunkEndPosition <= _checkpoint) {
+		foreach (var chunkInfo in _existingChunks.Values)
+		{
+			if (chunkInfo.ChunkEndPosition <= _checkpoint)
+			{
 				continue;
 			}
 

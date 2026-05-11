@@ -5,12 +5,14 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.ReplicationTracking;
 
 [TestFixture]
-public class when_3_node_cluster_receives_duplicate_replica_write_notifications : with_clustered_replication_tracking_service {
+public class when_3_node_cluster_receives_duplicate_replica_write_notifications : with_clustered_replication_tracking_service
+{
 	private long _logPosition = 4000;
 
 	protected override int ClusterSize => 3;
 
-	public override void When() {
+	public override void When()
+	{
 		BecomeLeader();
 		var replicaId = Guid.NewGuid();
 
@@ -20,11 +22,13 @@ public class when_3_node_cluster_receives_duplicate_replica_write_notifications 
 	}
 
 	[Test]
-	public void replicated_to_should_not_be_sent() {
+	public void replicated_to_should_not_be_sent()
+	{
 		Assert.AreEqual(0, ReplicatedTos.Count);
 	}
 	[Test]
-	public void replication_checkpoint_should_not_advance() {
+	public void replication_checkpoint_should_not_advance()
+	{
 		Assert.AreEqual(0, ReplicationCheckpoint.Read());
 		Assert.AreEqual(0, ReplicationCheckpoint.ReadNonFlushed());
 	}

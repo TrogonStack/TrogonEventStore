@@ -2,14 +2,18 @@ using System;
 using EventStore.Common.Utils;
 using Newtonsoft.Json;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class ScavengeCheckpointJsonPersistence<TStreamId> {
-		public enum Version {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class ScavengeCheckpointJsonPersistence<TStreamId>
+	{
+		public enum Version
+		{
 			None,
 			V0,
 		}
 
-		public enum Stage {
+		public enum Stage
+		{
 			None = 0,
 			Accumulating = 1,
 			Calculating = 2,
@@ -26,8 +30,10 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 		public int? DoneLogicalChunkNumber { get; set; }
 		public StreamHandle<TStreamId> DoneStreamHandle { get; set; }
 
-		public ScavengeCheckpoint ToDomain() {
-			switch (CheckpointStage) {
+		public ScavengeCheckpoint ToDomain()
+		{
+			switch (CheckpointStage)
+			{
 				case Stage.Accumulating:
 					return new ScavengeCheckpoint.Accumulating(ScavengePoint, DoneLogicalChunkNumber);
 				case Stage.Calculating:
@@ -50,13 +56,16 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			}
 		}
 
-		private static ScavengeCheckpointJsonPersistence<TStreamId> ToDto(ScavengeCheckpoint checkpoint) {
-			var dto = new ScavengeCheckpointJsonPersistence<TStreamId> {
+		private static ScavengeCheckpointJsonPersistence<TStreamId> ToDto(ScavengeCheckpoint checkpoint)
+		{
+			var dto = new ScavengeCheckpointJsonPersistence<TStreamId>
+			{
 				SchemaVersion = Version.V0,
 				ScavengePoint = checkpoint.ScavengePoint,
 			};
 
-			switch (checkpoint) {
+			switch (checkpoint)
+			{
 				case ScavengeCheckpoint.Accumulating x:
 					dto.CheckpointStage = Stage.Accumulating;
 					dto.DoneLogicalChunkNumber = x.DoneLogicalChunkNumber;
@@ -98,15 +107,18 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			return dto;
 		}
 
-		public static bool TryDeserialize(string input, out ScavengeCheckpoint checkpoint) {
-			try {
+		public static bool TryDeserialize(string input, out ScavengeCheckpoint checkpoint)
+		{
+			try
+			{
 				var dto = JsonConvert.DeserializeObject<ScavengeCheckpointJsonPersistence<TStreamId>>(
 					input,
 					Json.JsonSettings);
 				checkpoint = dto.ToDomain();
 				return checkpoint != null;
 			}
-			catch {
+			catch
+			{
 				// no op
 			}
 
@@ -114,7 +126,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			return false;
 		}
 
-		public static string Serialize(ScavengeCheckpoint checkpoint) {
+		public static string Serialize(ScavengeCheckpoint checkpoint)
+		{
 			var dto = ToDto(checkpoint);
 			return JsonConvert.SerializeObject(dto, Json.JsonSettings);
 		}

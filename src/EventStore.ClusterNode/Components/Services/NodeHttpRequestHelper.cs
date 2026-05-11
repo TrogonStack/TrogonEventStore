@@ -8,10 +8,13 @@ using Microsoft.AspNetCore.Http;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-internal static class NodeHttpRequestHelper {
-	public static LocalHttpEndPoint GetLocalEndPoint(StandardComponents standardComponents) {
+internal static class NodeHttpRequestHelper
+{
+	public static LocalHttpEndPoint GetLocalEndPoint(StandardComponents standardComponents)
+	{
 		var httpServices = standardComponents.HttpServices;
-		if (httpServices is null || httpServices.Length == 0) {
+		if (httpServices is null || httpServices.Length == 0)
+		{
 			throw new InvalidOperationException("Node HTTP endpoint is unavailable.");
 		}
 
@@ -19,16 +22,19 @@ internal static class NodeHttpRequestHelper {
 			.SelectMany(x => x.EndPoints)
 			.FirstOrDefault();
 
-		if (endPoint is null) {
+		if (endPoint is null)
+		{
 			throw new InvalidOperationException("Node HTTP endpoint is unavailable.");
 		}
 
 		return new LocalHttpEndPoint(LocalHostFor(endPoint), endPoint.GetPort());
 	}
 
-	public static Uri BuildUri(HttpRequest request, LocalHttpEndPoint endPoint, string path, string query) {
+	public static Uri BuildUri(HttpRequest request, LocalHttpEndPoint endPoint, string path, string query)
+	{
 		var normalizedPath = path.StartsWith('/') ? path : $"/{path}";
-		var builder = new UriBuilder(request.Scheme, endPoint.Host, endPoint.Port) {
+		var builder = new UriBuilder(request.Scheme, endPoint.Host, endPoint.Port)
+		{
 			Path = $"{request.PathBase}{normalizedPath}",
 			Query = query
 		};
@@ -36,14 +42,17 @@ internal static class NodeHttpRequestHelper {
 		return builder.Uri;
 	}
 
-	public static void CopyHeader(HttpRequest source, HttpRequestMessage target, string headerName) {
-		if (source.Headers.TryGetValue(headerName, out var value) && value.Count > 0) {
+	public static void CopyHeader(HttpRequest source, HttpRequestMessage target, string headerName)
+	{
+		if (source.Headers.TryGetValue(headerName, out var value) && value.Count > 0)
+		{
 			target.Headers.TryAddWithoutValidation(headerName, value.ToArray());
 		}
 	}
 
 	private static string LocalHostFor(EndPoint endPoint) =>
-		endPoint switch {
+		endPoint switch
+		{
 			IPEndPoint { Address: var address } when IPAddress.Any.Equals(address) => IPAddress.Loopback.ToString(),
 			IPEndPoint { Address: var address } when IPAddress.IPv6Any.Equals(address) => IPAddress.Loopback.ToString(),
 			IPEndPoint { Address: var address } => address.ToString(),

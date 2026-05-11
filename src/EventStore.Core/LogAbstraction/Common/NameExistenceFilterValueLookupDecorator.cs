@@ -1,18 +1,23 @@
-namespace EventStore.Core.LogAbstraction.Common {
-	public class NameExistenceFilterValueLookupDecorator<TValue> : IValueLookup<TValue> {
+namespace EventStore.Core.LogAbstraction.Common
+{
+	public class NameExistenceFilterValueLookupDecorator<TValue> : IValueLookup<TValue>
+	{
 		private readonly IValueLookup<TValue> _wrapped;
 		private readonly INameExistenceFilter _existenceFilter;
 
 		public NameExistenceFilterValueLookupDecorator(
 			IValueLookup<TValue> wrapped,
-			INameExistenceFilter existenceFilter) {
+			INameExistenceFilter existenceFilter)
+		{
 
 			_wrapped = wrapped;
 			_existenceFilter = existenceFilter;
 		}
 
-		public TValue LookupValue(string name) {
-			if (_existenceFilter.MightContain(name)) {
+		public TValue LookupValue(string name)
+		{
+			if (_existenceFilter.MightContain(name))
+			{
 				return _wrapped.LookupValue(name);
 			}
 

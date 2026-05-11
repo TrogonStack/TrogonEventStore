@@ -8,111 +8,133 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class prepare_log_record_should<TLogFormat, TStreamId> {
+public class prepare_log_record_should<TLogFormat, TStreamId>
+{
 	private readonly IRecordFactory<TStreamId> _recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 	private readonly TStreamId _streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
 
-	public prepare_log_record_should() {
+	public prepare_log_record_should()
+	{
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_when_given_negative_logposition() {
+	public void throw_argumentoutofrangeexception_when_given_negative_logposition()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentOutOfRangeException>(() => {
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, -1, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_when_given_negative_transactionposition() {
+	public void throw_argumentoutofrangeexception_when_given_negative_transactionposition()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentOutOfRangeException>(() => {
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), -1, 0, _streamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_when_given_transaction_offset_less_than_minus_one() {
+	public void throw_argumentoutofrangeexception_when_given_transaction_offset_less_than_minus_one()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentOutOfRangeException>(() => {
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, -2, _streamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentexception_when_given_empty_correlationid() {
+	public void throw_argumentexception_when_given_empty_correlationid()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentException>(() => {
+		Assert.Throws<ArgumentException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.Empty, Guid.NewGuid(), 0, 0, _streamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentexception_when_given_empty_eventid() {
+	public void throw_argumentexception_when_given_empty_eventid()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentException>(() => {
+		Assert.Throws<ArgumentException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.Empty, 0, 0, _streamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentnullexception_when_given_null_eventstreamid() {
+	public void throw_argumentnullexception_when_given_null_eventstreamid()
+	{
 		TStreamId nullStreamId = default;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		var expectedExceptionType = LogFormatHelper<TLogFormat, TStreamId>.ForV2<Type>(
 			typeof(ArgumentNullException));
 
-		Assert.Throws(expectedExceptionType, () => {
+		Assert.Throws(expectedExceptionType, () =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, nullStreamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentexception_when_given_empty_eventstreamid() {
+	public void throw_argumentexception_when_given_empty_eventstreamid()
+	{
 		var emptyStreamId = LogFormatHelper<TLogFormat, TStreamId>.EmptyStreamId;
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		var expectedExceptionType = LogFormatHelper<TLogFormat, TStreamId>.ForV2<Type>(
 			typeof(ArgumentNullException));
 
-		Assert.Throws(expectedExceptionType, () => {
+		Assert.Throws(expectedExceptionType, () =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, emptyStreamId, 0,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_when_given_incorrect_expectedversion() {
+	public void throw_argumentoutofrangeexception_when_given_incorrect_expectedversion()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentOutOfRangeException>(() => {
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, -3,
 				PrepareFlags.None, eventTypeId, new byte[0], null, DateTime.UtcNow);
 		});
 	}
 
 	[Test, Ignore("ReadOnlyMemory will always convert back to empty array if initialized with null array.")]
-	public void throw_argumentnullexception_when_given_null_data() {
+	public void throw_argumentnullexception_when_given_null_data()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
-		Assert.Throws<ArgumentNullException>(() => {
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 0,
 				PrepareFlags.None, eventTypeId, null, null, DateTime.UtcNow);
 		});
 	}
 
 	[Test]
-	public void throw_argumentnullexception_when_given_null_eventtype() {
+	public void throw_argumentnullexception_when_given_null_eventtype()
+	{
 		Assert.DoesNotThrow(() =>
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 0,
 				PrepareFlags.None, default, new byte[0], null, DateTime.UtcNow));
 	}
 
 	[Test]
-	public void throw_argumentexception_when_given_empty_eventtype() {
+	public void throw_argumentexception_when_given_empty_eventtype()
+	{
 		var emptyEventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		Assert.DoesNotThrow(() =>
 			LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 0,
@@ -120,7 +142,8 @@ public class prepare_log_record_should<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public void return_empty_data_when_event_is_redacted() {
+	public void return_empty_data_when_event_is_redacted()
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 
 		var prepare = LogRecord.Prepare(_recordFactory, 0, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 0,
@@ -129,7 +152,8 @@ public class prepare_log_record_should<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public void write_redacted_data_when_event_is_redacted() {
+	public void write_redacted_data_when_event_is_redacted()
+	{
 		var binaryWriter = new BufferWriterSlim<byte>();
 
 		const int dataSize = 10000;

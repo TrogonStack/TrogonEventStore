@@ -9,27 +9,33 @@ namespace EventStore.Core.Tests.Services.Storage.ReadIndex;
 public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTestScenario<LogFormat.V2, string>(
 	maxEntriesInMemTable: 3,
 	lowHasher: new ConstantHasher(0),
-	highHasher: new HumanReadableHasher32()) {
+	highHasher: new HumanReadableHasher32())
+{
 	private const string Stream = "ab-1";
 	private const string CollidingStream = "cb-1";
 	private const string CollidingStream1 = "db-1";
 
-	public class VerifyCollision : GetStreamLastEventNumber_KnownCollisions {
+	public class VerifyCollision : GetStreamLastEventNumber_KnownCollisions
+	{
 		[Test]
-		public void verify_that_streams_collide() {
+		public void verify_that_streams_collide()
+		{
 			Assert.AreEqual(Hasher.Hash(Stream), Hasher.Hash(CollidingStream));
 			Assert.AreEqual(Hasher.Hash(Stream), Hasher.Hash(CollidingStream1));
 		}
 	}
 
-	public class WithNoEvents : GetStreamLastEventNumber_KnownCollisions {
-		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	public class WithNoEvents : GetStreamLastEventNumber_KnownCollisions
+	{
+		protected override async ValueTask WriteTestScenario(CancellationToken token)
+		{
 			await WriteSingleEvent(CollidingStream, 0, "test data", token: token);
 			await WriteSingleEvent(CollidingStream1, 0, "test data", token: token);
 		}
 
 		[Test]
-		public async Task with_no_events() {
+		public async Task with_no_events()
+		{
 			Assert.AreEqual(ExpectedVersion.NoStream,
 				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
@@ -38,14 +44,17 @@ public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTest
 		}
 	}
 
-	public class WithOneEvent : GetStreamLastEventNumber_KnownCollisions {
-		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	public class WithOneEvent : GetStreamLastEventNumber_KnownCollisions
+	{
+		protected override async ValueTask WriteTestScenario(CancellationToken token)
+		{
 			await WriteSingleEvent(Stream, 2, "test data", token: token);
 			await WriteSingleEvent(CollidingStream, 3, "test data", token: token);
 		}
 
 		[Test]
-		public async Task with_one_event() {
+		public async Task with_one_event()
+		{
 			Assert.AreEqual(2,
 				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
@@ -61,10 +70,12 @@ public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTest
 		}
 	}
 
-	public class WithMultipleEvents : GetStreamLastEventNumber_KnownCollisions {
+	public class WithMultipleEvents : GetStreamLastEventNumber_KnownCollisions
+	{
 		private EventRecord _zeroth, _first, _second, _third;
 
-		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+		protected override async ValueTask WriteTestScenario(CancellationToken token)
+		{
 			// PTable 1
 			await WriteSingleEvent(CollidingStream, 0, string.Empty, token: token);
 			await WriteSingleEvent(CollidingStream1, 0, string.Empty, token: token);
@@ -81,7 +92,8 @@ public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTest
 		}
 
 		[Test]
-		public async Task with_multiple_events() {
+		public async Task with_multiple_events()
+		{
 			Assert.AreEqual(3,
 				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
@@ -102,7 +114,8 @@ public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTest
 		}
 
 		[Test]
-		public async Task with_multiple_events_and_before_position() {
+		public async Task with_multiple_events_and_before_position()
+		{
 			Assert.AreEqual(3,
 				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,
@@ -135,8 +148,10 @@ public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTest
 		}
 	}
 
-	public class WithDeletedStream : GetStreamLastEventNumber_KnownCollisions {
-		protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	public class WithDeletedStream : GetStreamLastEventNumber_KnownCollisions
+	{
+		protected override async ValueTask WriteTestScenario(CancellationToken token)
+		{
 			await WriteSingleEvent(Stream, 0, "test data", token: token);
 			await WriteSingleEvent(CollidingStream, 1, "test data", token: token);
 
@@ -145,7 +160,8 @@ public abstract class GetStreamLastEventNumber_KnownCollisions() : ReadIndexTest
 		}
 
 		[Test]
-		public async Task with_deleted_stream() {
+		public async Task with_deleted_stream()
+		{
 			Assert.AreEqual(EventNumber.DeletedStream,
 				await ReadIndex.GetStreamLastEventNumber_KnownCollisions(
 					Stream,

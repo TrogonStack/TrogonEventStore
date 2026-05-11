@@ -17,21 +17,24 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_an_emit_with_caused_by_and_correlation_id<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_an_emit_with_caused_by_and_correlation_id<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 	private EmittedDataEvent _emittedDataEvent;
 	private Guid _causedBy;
 	private string _correlationId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesQueueUp();
 		AllWritesToSucceed("$$test_stream");
 		NoOtherStreams();
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_causedBy = Guid.NewGuid();
 		_correlationId = "correlation_id";
 
@@ -56,7 +59,8 @@ public class when_handling_an_emit_with_caused_by_and_correlation_id<TLogFormat,
 
 
 	[Test]
-	public void publishes_write_events() {
+	public void publishes_write_events()
+	{
 		var writeEvents =
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.ExceptOfEventType(SystemEventTypes.StreamMetadata)

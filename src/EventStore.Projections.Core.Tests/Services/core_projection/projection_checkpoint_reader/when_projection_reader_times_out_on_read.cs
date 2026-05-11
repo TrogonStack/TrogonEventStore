@@ -15,25 +15,30 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_projection_reader_times_out_on_read<TLogFormat, TStreamId> : with_projection_checkpoint_reader<TLogFormat, TStreamId>,
 	IHandle<CoreProjectionProcessingMessage.CheckpointLoaded>,
-	IHandle<TimerMessage.Schedule> {
+	IHandle<TimerMessage.Schedule>
+{
 	private ManualResetEventSlim _mre = new ManualResetEventSlim();
 	private CoreProjectionProcessingMessage.CheckpointLoaded _checkpointLoaded;
 	private bool _hasTimedOut;
 	private Guid _timeoutCorrelationId;
 
-	public override void When() {
+	public override void When()
+	{
 		_bus.Subscribe<CoreProjectionProcessingMessage.CheckpointLoaded>(this);
 		_bus.Subscribe<TimerMessage.Schedule>(this);
 
 		_reader.Initialize();
 		_reader.BeginLoadState();
-		if (!_mre.Wait(10000)) {
+		if (!_mre.Wait(10000))
+		{
 			Assert.Fail("Timed out waiting for checkpoint to load");
 		}
 	}
 
-	public override void Handle(ClientMessage.ReadStreamEventsBackward message) {
-		if (!_hasTimedOut) {
+	public override void Handle(ClientMessage.ReadStreamEventsBackward message)
+	{
+		if (!_hasTimedOut)
+		{
 			_timeoutCorrelationId = message.CorrelationId;
 			_hasTimedOut = true;
 			return;
@@ -52,20 +57,24 @@ public class when_projection_reader_times_out_on_read<TLogFormat, TStreamId> : w
 		message.Envelope.ReplyWith(reply);
 	}
 
-	public void Handle(TimerMessage.Schedule message) {
+	public void Handle(TimerMessage.Schedule message)
+	{
 		var delay = message.ReplyMessage as IODispatcherDelayedMessage;
-		if (delay != null && delay.MessageCorrelationId == _timeoutCorrelationId) {
+		if (delay != null && delay.MessageCorrelationId == _timeoutCorrelationId)
+		{
 			message.Reply();
 		}
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message) {
+	public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message)
+	{
 		_checkpointLoaded = message;
 		_mre.Set();
 	}
 
 	[Test]
-	public void should_load_checkpoint() {
+	public void should_load_checkpoint()
+	{
 		Assert.IsNotNull(_checkpointLoaded);
 		Assert.AreEqual(_checkpointLoaded.ProjectionId, _projectionId);
 	}

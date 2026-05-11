@@ -7,7 +7,8 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public abstract class TestFixtureWithInterpretedProjection {
+public abstract class TestFixtureWithInterpretedProjection
+{
 	protected ProjectionStateHandlerFactory _stateHandlerFactory;
 	protected IProjectionStateHandler _stateHandler;
 	protected List<string> _logged;
@@ -19,7 +20,8 @@ public abstract class TestFixtureWithInterpretedProjection {
 	protected TimeSpan ExecutionTimeout { get; set; } = TimeSpan.FromMilliseconds(500);
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_state = null;
 		_projection = null;
 		Given();
@@ -29,14 +31,17 @@ public abstract class TestFixtureWithInterpretedProjection {
 		_stateHandler = CreateStateHandler();
 		_source = _stateHandler.GetSourceDefinition();
 
-		if (_state != null) {
+		if (_state != null)
+		{
 			_stateHandler.Load(_state);
 		}
-		else {
+		else
+		{
 			_stateHandler.Initialize();
 		}
 
-		if (_sharedState != null) {
+		if (_sharedState != null)
+		{
 			_stateHandler.LoadShared(_sharedState);
 		}
 
@@ -45,19 +50,24 @@ public abstract class TestFixtureWithInterpretedProjection {
 
 	protected const string _projectionType = "js";
 
-	protected virtual IProjectionStateHandler CreateStateHandler() {
+	protected virtual IProjectionStateHandler CreateStateHandler()
+	{
 		return _stateHandlerFactory.Create(
-			_projectionType, _projection, true, null, logger: (s, _) => {
-				if (s.StartsWith("P:")) {
+			_projectionType, _projection, true, null, logger: (s, _) =>
+			{
+				if (s.StartsWith("P:"))
+				{
 					Console.WriteLine(s);
 				}
-				else {
+				else
+				{
 					_logged.Add(s);
 				}
 			}); // skip prelude debug output
 	}
 
-	protected virtual void When() {
+	protected virtual void When()
+	{
 	}
 
 	protected abstract void Given();

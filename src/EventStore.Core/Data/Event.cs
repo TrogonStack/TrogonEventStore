@@ -2,8 +2,10 @@ using System;
 using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.Chunks;
 
-namespace EventStore.Core.Data {
-	public class Event {
+namespace EventStore.Core.Data
+{
+	public class Event
+	{
 		public readonly Guid EventId;
 		public readonly string EventType;
 		public readonly bool IsJson;
@@ -13,7 +15,8 @@ namespace EventStore.Core.Data {
 		public Event(Guid eventId, string eventType, bool isJson, string data, string metadata)
 			: this(
 				eventId, eventType, isJson, Helper.UTF8NoBom.GetBytes(data),
-				metadata != null ? Helper.UTF8NoBom.GetBytes(metadata) : null) {
+				metadata != null ? Helper.UTF8NoBom.GetBytes(metadata) : null)
+		{
 		}
 
 		public static int SizeOnDisk(string eventType, byte[] data, byte[] metadata) =>
@@ -22,16 +25,20 @@ namespace EventStore.Core.Data {
 		private static bool ExceedsMaximumSizeOnDisk(string eventType, byte[] data, byte[] metadata) =>
 			SizeOnDisk(eventType, data, metadata) > TFConsts.EffectiveMaxLogRecordSize;
 
-		public Event(Guid eventId, string eventType, bool isJson, byte[] data, byte[] metadata) {
-			if (eventId == Guid.Empty) {
+		public Event(Guid eventId, string eventType, bool isJson, byte[] data, byte[] metadata)
+		{
+			if (eventId == Guid.Empty)
+			{
 				throw new ArgumentException("Empty eventId provided.", nameof(eventId));
 			}
 
-			if (string.IsNullOrEmpty(eventType)) {
+			if (string.IsNullOrEmpty(eventType))
+			{
 				throw new ArgumentException("Empty eventType provided.", nameof(eventType));
 			}
 
-			if (ExceedsMaximumSizeOnDisk(eventType, data, metadata)) {
+			if (ExceedsMaximumSizeOnDisk(eventType, data, metadata))
+			{
 				throw new ArgumentException("Record is too big.", nameof(data));
 			}
 

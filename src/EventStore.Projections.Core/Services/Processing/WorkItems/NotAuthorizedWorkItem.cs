@@ -2,12 +2,15 @@ using System;
 
 namespace EventStore.Projections.Core.Services.Processing.WorkItems;
 
-class NotAuthorizedWorkItem : CheckpointWorkItemBase {
+class NotAuthorizedWorkItem : CheckpointWorkItemBase
+{
 	public NotAuthorizedWorkItem()
-		: base(null) {
+		: base(null)
+	{
 	}
 
-	protected override void ProcessEvent() {
+	protected override void ProcessEvent()
+	{
 		throw new Exception("Projection cannot read its source. Not authorized.");
 	}
 }

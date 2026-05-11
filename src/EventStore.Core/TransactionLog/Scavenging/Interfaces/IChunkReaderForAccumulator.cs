@@ -3,7 +3,8 @@ using System.Threading;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public interface IChunkReaderForAccumulator<TStreamId> {
+public interface IChunkReaderForAccumulator<TStreamId>
+{
 	// Each element in the enumerable indicates which of the three records has been populated for that iteration.
 	IAsyncEnumerable<AccumulatorRecordType> ReadChunkInto(
 		int logicalChunkNumber,

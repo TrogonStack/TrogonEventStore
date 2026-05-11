@@ -14,7 +14,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private List<EventData> _testEvents = new List<EventData>();
 
 	private List<EventData> _testEventsA;
@@ -23,7 +24,8 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 
 	public read_all_events_filtered_paging_should() : base(chunkSize: 2 * 1024 * 1024) { }
 
-	protected override async Task When() {
+	protected override async Task When()
+	{
 		await _conn.SetStreamMetadataAsync("$all", -1,
 			StreamMetadata.Build().SetReadRole(SystemRoles.All),
 			DefaultData.AdminCredentials);
@@ -51,7 +53,8 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public void handle_paging_between_events_forward() {
+	public void handle_paging_between_events_forward()
+	{
 		var numberOfEmptySlicesRead = 0;
 
 		var filter = Filter.EventType.Prefix("CE");
@@ -59,15 +62,18 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 		var read = new List<ResolvedEvent>();
 		AllEventsSlice slice;
 
-		do {
+		do
+		{
 			slice = _conn.FilteredReadAllEventsForwardAsync(sliceStart, 50, false, filter, maxSearchWindow: 100)
 				.GetAwaiter()
 				.GetResult();
 
-			if (slice.Events.Length == 0) {
+			if (slice.Events.Length == 0)
+			{
 				numberOfEmptySlicesRead++;
 			}
-			else {
+			else
+			{
 				read.AddRange(slice.Events);
 			}
 
@@ -82,7 +88,8 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public void handle_paging_between_events_backward() {
+	public void handle_paging_between_events_backward()
+	{
 		var numberOfEmptySlicesRead = 0;
 
 		var filter = Filter.EventType.Prefix("AE");
@@ -90,14 +97,17 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 		var read = new List<ResolvedEvent>();
 		AllEventsSlice slice;
 
-		do {
+		do
+		{
 			slice = _conn.FilteredReadAllEventsBackwardAsync(sliceStart, 50, false, filter, maxSearchWindow: 100)
 				.GetAwaiter()
 				.GetResult();
-			if (slice.Events.Length == 0) {
+			if (slice.Events.Length == 0)
+			{
 				numberOfEmptySlicesRead++;
 			}
-			else {
+			else
+			{
 				read.AddRange(slice.Events);
 			}
 
@@ -112,7 +122,8 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public void handle_paging_between_events_returns_correct_number_of_events_for_max_search_window_forward() {
+	public void handle_paging_between_events_returns_correct_number_of_events_for_max_search_window_forward()
+	{
 		var filter = Filter.EventType.Prefix("BE");
 
 		var slice = _conn.FilteredReadAllEventsForwardAsync(Position.Start, 30, false, filter, maxSearchWindow: 30)
@@ -126,7 +137,8 @@ public class read_all_events_filtered_paging_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public void handle_paging_between_events_returns_correct_number_of_events_for_max_search_window_backward() {
+	public void handle_paging_between_events_returns_correct_number_of_events_for_max_search_window_backward()
+	{
 		var filter = Filter.EventType.Prefix("BE");
 
 		var slice = _conn.FilteredReadAllEventsBackwardAsync(Position.End, 20, false, filter, maxSearchWindow: 20)

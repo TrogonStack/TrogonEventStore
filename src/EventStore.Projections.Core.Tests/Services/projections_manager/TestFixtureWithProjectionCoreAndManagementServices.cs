@@ -22,38 +22,48 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
-public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
-	protected class GuardBusToTriggerFixingIfUsed : IQueuedHandler, IPublisher, ISubscriber {
-		public void Handle(Message message) {
+public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
+	protected class GuardBusToTriggerFixingIfUsed : IQueuedHandler, IPublisher, ISubscriber
+	{
+		public void Handle(Message message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Publish(Message message) {
+		public void Publish(Message message)
+		{
 			throw new NotImplementedException();
 		}
 
 		public string Name { get; }
-		public Task Start() {
+		public Task Start()
+		{
 			throw new NotImplementedException();
 		}
 
-		public Task Stop() {
+		public Task Stop()
+		{
 			throw new NotImplementedException();
 		}
 
-		public void RequestStop() {
+		public void RequestStop()
+		{
 			throw new NotImplementedException();
 		}
 
-		public QueueStats GetStatistics() {
+		public QueueStats GetStatistics()
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message {
+		public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message {
+		public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message
+		{
 			throw new NotImplementedException();
 		}
 	}
@@ -63,25 +73,30 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 	protected Tuple<SynchronousScheduler, IPublisher, SynchronousScheduler, Guid>[] _processingQueues;
 	private ProjectionCoreCoordinator _coordinator;
 
-	protected override void Given1() {
+	protected override void Given1()
+	{
 		base.Given1();
 		_initializeSystemProjections = GivenInitializeSystemProjections();
-		if (!_initializeSystemProjections) {
+		if (!_initializeSystemProjections)
+		{
 			ExistingEvent(ProjectionNamesBuilder.ProjectionsRegistrationStream,
 				ProjectionEventTypes.ProjectionsInitialized, "", "");
 		}
 	}
 
-	protected virtual bool GivenInitializeSystemProjections() {
+	protected virtual bool GivenInitializeSystemProjections()
+	{
 		return false;
 	}
 
-	protected override ManualQueue GiveInputQueue() {
+	protected override ManualQueue GiveInputQueue()
+	{
 		return new ManualQueue(_bus, _timeProvider);
 	}
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		//TODO: this became an integration test - proper ProjectionCoreService and ProjectionManager testing is required as well
 		_bus.Subscribe(_consumer);
 
@@ -135,12 +150,14 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 		_bus.Subscribe<ProjectionSubsystemMessage.StartComponents>(_coordinator);
 		_bus.Subscribe<ProjectionSubsystemMessage.StopComponents>(_coordinator);
 
-		if (GetInputQueue() != _processingQueues.First().Item2) {
+		if (GetInputQueue() != _processingQueues.First().Item2)
+		{
 			_bus.Subscribe<CoreProjectionManagementControlMessage>(
 				_managerMessageDispatcher);
 		}
 
-		foreach (var q in _processingQueues) {
+		foreach (var q in _processingQueues)
+		{
 			SetUpCoreServices(q.Item4, q.Item1, q.Item2, q.Item3);
 		}
 
@@ -148,7 +165,8 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 		WhenLoop();
 	}
 
-	protected virtual Tuple<SynchronousScheduler, IPublisher, SynchronousScheduler, Guid>[] GivenProcessingQueues() {
+	protected virtual Tuple<SynchronousScheduler, IPublisher, SynchronousScheduler, Guid>[] GivenProcessingQueues()
+	{
 		return new[] {
 			Tuple.Create(_bus, GetInputQueue(), (SynchronousScheduler)null, Guid.NewGuid())
 		};
@@ -158,7 +176,8 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 		Guid workerId,
 		SynchronousScheduler bus,
 		IPublisher inputQueue,
-		SynchronousScheduler output_) {
+		SynchronousScheduler output_)
+	{
 		var output = (output_ ?? inputQueue);
 		ICheckpoint writerCheckpoint = new InMemoryCheckpoint(1000);
 		var readerService = new EventReaderCoreService(
@@ -236,7 +255,8 @@ public abstract class TestFixtureWithProjectionCoreAndManagementServices<TLogFor
 		bus.Subscribe<ReaderSubscriptionManagement.Subscribe>(readerService);
 		bus.Subscribe<ReaderSubscriptionManagement.Unsubscribe>(readerService);
 
-		if (output_ != null) {
+		if (output_ != null)
+		{
 			bus.Subscribe(new UnwrapEnvelopeHandler());
 			output_.Subscribe(Forwarder.Create<CoreProjectionStatusMessage.StateReport>(GetInputQueue()));
 			output_.Subscribe(Forwarder.Create<CoreProjectionStatusMessage.ResultReport>(GetInputQueue()));

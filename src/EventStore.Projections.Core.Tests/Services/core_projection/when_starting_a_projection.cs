@@ -17,7 +17,8 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture]
-public class when_starting_a_projection {
+public class when_starting_a_projection
+{
 	private const string _projectionStateStream = "$projections-projection-result";
 	private const string _projectionCheckpointStream = "$projections-projection-checkpoint";
 	private CoreProjection _coreProjection;
@@ -28,7 +29,8 @@ public class when_starting_a_projection {
 	private ProjectionConfig _projectionConfig;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_bus = new();
 		_listEventsHandler = new TestHandler<ClientMessage.ReadStreamEventsBackward>();
 		_bus.Subscribe(_listEventsHandler);
@@ -74,17 +76,20 @@ public class when_starting_a_projection {
 	}
 
 	[Test]
-	public void should_request_state_snapshot() {
+	public void should_request_state_snapshot()
+	{
 		Assert.IsTrue(_listEventsHandler.HandledMessages.Count == 1);
 	}
 
 	[Test]
-	public void should_request_state_snapshot_on_correct_stream() {
+	public void should_request_state_snapshot_on_correct_stream()
+	{
 		Assert.AreEqual(_projectionCheckpointStream, _listEventsHandler.HandledMessages[0].EventStreamId);
 	}
 
 	[Test]
-	public async Task should_accept_no_event_stream_response() {
+	public async Task should_accept_no_event_stream_response()
+	{
 		await _bus.DispatchAsync(
 			new ClientMessage.ReadStreamEventsBackwardCompleted(
 				_listEventsHandler.HandledMessages[0].CorrelationId,
@@ -93,7 +98,8 @@ public class when_starting_a_projection {
 	}
 
 	[Test]
-	public async Task should_accept_events_not_found_response() {
+	public async Task should_accept_events_not_found_response()
+	{
 		await _bus.DispatchAsync(
 			new ClientMessage.ReadStreamEventsBackwardCompleted(
 				_listEventsHandler.HandledMessages[0].CorrelationId,

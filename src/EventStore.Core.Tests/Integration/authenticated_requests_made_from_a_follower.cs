@@ -15,23 +15,28 @@ using StatusCode = Grpc.Core.StatusCode;
 
 namespace EventStore.Core.Tests.Integration;
 
-public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
+public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
+{
 	private const string ProtectedStream = "$foo";
 
 	private static readonly string AuthorizationHeaderValue =
 		$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes("admin:changeit"))}";
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class via_grpc_should : authenticated_requests_made_from_a_follower<TLogFormat, TStreamId> {
+	public class via_grpc_should : authenticated_requests_made_from_a_follower<TLogFormat, TStreamId>
+	{
 		private Status _status;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			var node = GetFollowers()[0];
 			await Task.WhenAll(node.AdminUserCreated, node.Started);
 
 			using var channel = GrpcChannel.ForAddress(new Uri($"https://{node.HttpEndPoint}"),
-				new GrpcChannelOptions {
-					HttpClient = new HttpClient(new SocketsHttpHandler {
+				new GrpcChannelOptions
+				{
+					HttpClient = new HttpClient(new SocketsHttpHandler
+					{
 						SslOptions = {
 							RemoteCertificateValidationCallback = delegate { return true; }
 						}
@@ -39,23 +44,30 @@ public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TS
 				});
 			var streamClient = new Streams.StreamsClient(channel);
 			using var call = streamClient.Append(new CallOptions(
-				credentials: CallCredentials.FromInterceptor((_, metadata) => {
+				credentials: CallCredentials.FromInterceptor((_, metadata) =>
+				{
 					metadata.Add("authorization", AuthorizationHeaderValue);
 					return Task.CompletedTask;
 				}),
 				deadline: DateTime.UtcNow.AddSeconds(10)));
 
-			await call.RequestStream.WriteAsync(new AppendReq {
-				Options = new AppendReq.Types.Options {
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				Options = new AppendReq.Types.Options
+				{
 					NoStream = new Empty(),
-					StreamIdentifier = new StreamIdentifier {
+					StreamIdentifier = new StreamIdentifier
+					{
 						StreamName = ByteString.CopyFromUtf8(ProtectedStream)
 					}
 				}
 			});
-			await call.RequestStream.WriteAsync(new AppendReq {
-				ProposedMessage = new AppendReq.Types.ProposedMessage {
-					Id = new UUID {
+			await call.RequestStream.WriteAsync(new AppendReq
+			{
+				ProposedMessage = new AppendReq.Types.ProposedMessage
+				{
+					Id = new UUID
+					{
 						String = Uuid.FromGuid(Guid.NewGuid()).ToString()
 					},
 					CustomMetadata = ByteString.Empty,
@@ -83,10 +95,12 @@ public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TS
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class via_tcp_should : authenticated_requests_made_from_a_follower<TLogFormat, TStreamId> {
+	public class via_tcp_should : authenticated_requests_made_from_a_follower<TLogFormat, TStreamId>
+	{
 		private Exception _caughtException;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			var node = GetFollowers()[0];
 			await Task.WhenAll(node.AdminUserCreated, node.Started);
 
@@ -96,12 +110,14 @@ public abstract class authenticated_requests_made_from_a_follower<TLogFormat, TS
 				node.ExternalTcpEndPoint);
 			await connection.ConnectAsync();
 
-			try {
+			try
+			{
 				await connection.AppendToStreamAsync(ProtectedStream, ExpectedVersion.NoStream,
 					new UserCredentials("admin", "changeit"),
 					new EventData(Guid.NewGuid(), "-", false, Array.Empty<byte>(), Array.Empty<byte>()));
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				_caughtException = ex;
 			}
 

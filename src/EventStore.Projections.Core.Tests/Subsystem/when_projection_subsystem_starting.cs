@@ -11,12 +11,15 @@ namespace EventStore.Projections.Core.Tests.Subsystem;
 
 [TestFixture]
 public class when_projection_subsystem_starting_and_all_components_started
-	: TestFixtureWithProjectionSubsystem {
+	: TestFixtureWithProjectionSubsystem
+{
 	private readonly ManualResetEventSlim _initializedReceived = new ManualResetEventSlim();
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		Subsystem.LeaderOutputBus.Subscribe(
-			new AdHocHandler<ProjectionSubsystemMessage.ComponentStarted>(msg => {
+			new AdHocHandler<ProjectionSubsystemMessage.ComponentStarted>(msg =>
+			{
 				_initializedReceived.Set();
 			}));
 
@@ -25,8 +28,10 @@ public class when_projection_subsystem_starting_and_all_components_started
 	}
 
 	[Test]
-	public void should_publish_all_components_started() {
-		if (!_initializedReceived.Wait(WaitTimeoutMs)) {
+	public void should_publish_all_components_started()
+	{
+		if (!_initializedReceived.Wait(WaitTimeoutMs))
+		{
 			Assert.Fail("Timed out waiting for Subsystem Initialized");
 		}
 	}
@@ -34,10 +39,12 @@ public class when_projection_subsystem_starting_and_all_components_started
 
 [TestFixture]
 public class when_projection_subsystem_starting_and_wrong_components_started
-	: TestFixtureWithProjectionSubsystem {
+	: TestFixtureWithProjectionSubsystem
+{
 	private readonly ManualResetEventSlim _initializedReceived = new ManualResetEventSlim();
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -52,17 +59,20 @@ public class when_projection_subsystem_starting_and_wrong_components_started
 	}
 
 	[Test]
-	public void should_ignore_component_started_for_incorrect_correlation() {
+	public void should_ignore_component_started_for_incorrect_correlation()
+	{
 		Assert.False(Started.Wait(WaitTimeoutMs));
 	}
 }
 
 [TestFixture]
 public class when_projection_subsystem_started_and_leader_changes
-	: TestFixtureWithProjectionSubsystem {
+	: TestFixtureWithProjectionSubsystem
+{
 	private Guid _instanceCorrelation;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -78,7 +88,8 @@ public class when_projection_subsystem_started_and_leader_changes
 	}
 
 	[Test]
-	public void should_stop_the_subsystem_with_start_correlation() {
+	public void should_stop_the_subsystem_with_start_correlation()
+	{
 		var stopMessage = WaitForStopMessage();
 		Assert.NotNull(stopMessage);
 		Assert.AreEqual(_instanceCorrelation, stopMessage.InstanceCorrelationId);
@@ -87,10 +98,12 @@ public class when_projection_subsystem_started_and_leader_changes
 
 [TestFixture]
 public class when_projection_subsystem_stopping_and_all_components_stopped
-	: TestFixtureWithProjectionSubsystem {
+	: TestFixtureWithProjectionSubsystem
+{
 	private Guid _instanceCorrelation;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -116,7 +129,8 @@ public class when_projection_subsystem_stopping_and_all_components_stopped
 	}
 
 	[Test]
-	public void should_allow_starting_the_subsystem_again() {
+	public void should_allow_starting_the_subsystem_again()
+	{
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 		var startMessage = WaitForStartMessage();
 
@@ -126,10 +140,12 @@ public class when_projection_subsystem_stopping_and_all_components_stopped
 
 [TestFixture]
 public class when_projection_subsystem_starting_and_node_becomes_unknown
-	: TestFixtureWithProjectionSubsystem {
+	: TestFixtureWithProjectionSubsystem
+{
 	private Guid _instanceCorrelation;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -146,7 +162,8 @@ public class when_projection_subsystem_starting_and_node_becomes_unknown
 	}
 
 	[Test]
-	public void should_stop_the_subsystem() {
+	public void should_stop_the_subsystem()
+	{
 		var stopMessage = WaitForStopMessage();
 		Assert.AreEqual(_instanceCorrelation, stopMessage.InstanceCorrelationId);
 	}
@@ -154,10 +171,12 @@ public class when_projection_subsystem_starting_and_node_becomes_unknown
 
 [TestFixture]
 public class when_projection_subsystem_stopping_and_node_becomes_leader
-	: TestFixtureWithProjectionSubsystem {
+	: TestFixtureWithProjectionSubsystem
+{
 	private Guid _instanceCorrelation;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		Subsystem.Handle(new SystemMessage.SystemCoreReady());
 		Subsystem.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 
@@ -186,7 +205,8 @@ public class when_projection_subsystem_stopping_and_node_becomes_leader
 	}
 
 	[Test]
-	public void should_start_the_subsystem_again() {
+	public void should_start_the_subsystem_again()
+	{
 		var startMessages = WaitForStartMessage();
 		Assert.AreNotEqual(_instanceCorrelation, startMessages.InstanceCorrelationId);
 	}

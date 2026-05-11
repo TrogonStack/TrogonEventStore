@@ -14,18 +14,21 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_deleting_a_persistent_projection_and_keep_checkpoint_stream<TLogFormat, TStreamId> :
-		TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+		TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+{
 	private string _projectionName;
 	private const string _projectionStateStream = "$projections-test-projection-result";
 	private const string _projectionCheckpointStream = "$projections-test-projection-checkpoint";
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_projectionName = "test-projection";
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 		yield return
 			new ProjectionManagementMessage.Command.Post(
@@ -42,7 +45,8 @@ public class
 	}
 
 	[Test, Category("v8")]
-	public void a_projection_deleted_event_is_written() {
+	public void a_projection_deleted_event_is_written()
+	{
 		Assert.AreEqual(
 			true,
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Any(x =>
@@ -51,7 +55,8 @@ public class
 	}
 
 	[Test, Category("v8")]
-	public void should_not_have_attempted_to_delete_the_checkpoint_stream() {
+	public void should_not_have_attempted_to_delete_the_checkpoint_stream()
+	{
 		Assert.IsFalse(
 			_consumer.HandledMessages.OfType<ClientMessage.DeleteStream>()
 				.Any(x => x.EventStreamId == _projectionCheckpointStream));

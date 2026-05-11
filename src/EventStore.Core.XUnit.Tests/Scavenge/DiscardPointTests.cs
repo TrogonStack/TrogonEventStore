@@ -3,9 +3,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class DiscardPointTests {
+public class DiscardPointTests
+{
 	[Fact]
-	public void can_keep_all() {
+	public void can_keep_all()
+	{
 		var sut = DiscardPoint.KeepAll;
 
 		Assert.False(sut.ShouldDiscard(0));
@@ -14,7 +16,8 @@ public class DiscardPointTests {
 	}
 
 	[Fact]
-	public void can_discard_before() {
+	public void can_discard_before()
+	{
 		var sut = DiscardPoint.DiscardBefore(500);
 
 		Assert.True(sut.ShouldDiscard(0));
@@ -23,7 +26,8 @@ public class DiscardPointTests {
 	}
 
 	[Fact]
-	public void can_discard_including() {
+	public void can_discard_including()
+	{
 		var sut = DiscardPoint.DiscardIncluding(500);
 
 		Assert.True(sut.ShouldDiscard(0));
@@ -32,7 +36,8 @@ public class DiscardPointTests {
 	}
 
 	[Fact]
-	public void can_discard_any_of() {
+	public void can_discard_any_of()
+	{
 		var sut = DiscardPoint.DiscardBefore(50)
 			.Or(DiscardPoint.DiscardBefore(500));
 
@@ -42,42 +47,48 @@ public class DiscardPointTests {
 	}
 
 	[Fact]
-	public void equals() {
+	public void equals()
+	{
 		Assert.Equal(DiscardPoint.DiscardBefore(3), DiscardPoint.DiscardBefore(3));
 		Assert.Equal(DiscardPoint.DiscardBefore(3), DiscardPoint.DiscardIncluding(2));
 		Assert.NotEqual(DiscardPoint.DiscardBefore(3), DiscardPoint.DiscardBefore(4));
 	}
 
 	[Fact]
-	public void equals_operator() {
+	public void equals_operator()
+	{
 		Assert.True(DiscardPoint.DiscardBefore(3) == DiscardPoint.DiscardBefore(3));
 		Assert.True(DiscardPoint.DiscardBefore(3) == DiscardPoint.DiscardIncluding(2));
 		Assert.False(DiscardPoint.DiscardBefore(3) == DiscardPoint.DiscardBefore(4));
 	}
 
 	[Fact]
-	public void not_equals_operator() {
+	public void not_equals_operator()
+	{
 		Assert.False(DiscardPoint.DiscardBefore(3) != DiscardPoint.DiscardBefore(3));
 		Assert.False(DiscardPoint.DiscardBefore(3) != DiscardPoint.DiscardIncluding(2));
 		Assert.True(DiscardPoint.DiscardBefore(3) != DiscardPoint.DiscardBefore(4));
 	}
 
 	[Fact]
-	public void less_than_operator() {
+	public void less_than_operator()
+	{
 		Assert.False(DiscardPoint.DiscardBefore(3) < DiscardPoint.DiscardBefore(3));
 		Assert.False(DiscardPoint.DiscardBefore(3) < DiscardPoint.DiscardBefore(2));
 		Assert.True(DiscardPoint.DiscardBefore(3) < DiscardPoint.DiscardBefore(4));
 	}
 
 	[Fact]
-	public void greater_than_operator() {
+	public void greater_than_operator()
+	{
 		Assert.False(DiscardPoint.DiscardBefore(3) > DiscardPoint.DiscardBefore(3));
 		Assert.True(DiscardPoint.DiscardBefore(3) > DiscardPoint.DiscardBefore(2));
 		Assert.False(DiscardPoint.DiscardBefore(3) > DiscardPoint.DiscardBefore(4));
 	}
 
 	[Fact]
-	public void get_hash_code() {
+	public void get_hash_code()
+	{
 		Assert.Equal(3.GetHashCode(), DiscardPoint.DiscardBefore(3).GetHashCode());
 	}
 }

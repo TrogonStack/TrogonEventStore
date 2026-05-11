@@ -6,25 +6,29 @@ using Microsoft.AspNetCore.Routing;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-internal static class AdminOperationsEndpoints {
-	public static IEndpointRouteBuilder MapAdminOperationsEndpoints(this IEndpointRouteBuilder app) {
+internal static class AdminOperationsEndpoints
+{
+	public static IEndpointRouteBuilder MapAdminOperationsEndpoints(this IEndpointRouteBuilder app)
+	{
 		app.MapPost("/ui/operations/scavenge/start", async (
 			HttpContext context,
-			AdminOperationsService operations) => {
-				var (request, error) = await ReadBody(context, new ScavengeStartRequest(), allowEmptyBody: true);
-				return await ToJson(async () => error is not null
-					? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
-					: await operations.StartScavenge(request, context.RequestAborted));
-			}).RequireAuthorization();
+			AdminOperationsService operations) =>
+		{
+			var (request, error) = await ReadBody(context, new ScavengeStartRequest(), allowEmptyBody: true);
+			return await ToJson(async () => error is not null
+				? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
+				: await operations.StartScavenge(request, context.RequestAborted));
+		}).RequireAuthorization();
 
 		app.MapPost("/ui/operations/scavenge/stop", async (
 			HttpContext context,
-			AdminOperationsService operations) => {
-				var (request, error) = await ReadBody(context, new ScavengeStopRequest(""));
-				return await ToJson(async () => error is not null
-					? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
-					: await operations.StopScavenge(request, context.RequestAborted));
-			}).RequireAuthorization();
+			AdminOperationsService operations) =>
+		{
+			var (request, error) = await ReadBody(context, new ScavengeStopRequest(""));
+			return await ToJson(async () => error is not null
+				? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
+				: await operations.StopScavenge(request, context.RequestAborted));
+		}).RequireAuthorization();
 
 		app.MapPost("/ui/operations/reload-config", async (
 			HttpContext context,
@@ -43,12 +47,13 @@ internal static class AdminOperationsEndpoints {
 
 		app.MapPost("/ui/operations/set-priority", async (
 			HttpContext context,
-			AdminOperationsService operations) => {
-				var (request, error) = await ReadBody(context, new SetNodePriorityRequest(0));
-				return await ToJson(async () => error is not null
-					? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
-					: await operations.SetNodePriority(request, context.RequestAborted));
-			}).RequireAuthorization();
+			AdminOperationsService operations) =>
+		{
+			var (request, error) = await ReadBody(context, new SetNodePriorityRequest(0));
+			return await ToJson(async () => error is not null
+				? AdminCommandResult.Failed(error, StatusCodes.Status400BadRequest)
+				: await operations.SetNodePriority(request, context.RequestAborted));
+		}).RequireAuthorization();
 
 		app.MapPost("/ui/operations/shutdown", async (
 			HttpContext context,
@@ -61,16 +66,20 @@ internal static class AdminOperationsEndpoints {
 	private static async Task<(T Request, string Error)> ReadBody<T>(
 		HttpContext context,
 		T fallback,
-		bool allowEmptyBody = false) {
-		if (context.Request.ContentLength == 0) {
+		bool allowEmptyBody = false)
+	{
+		if (context.Request.ContentLength == 0)
+		{
 			return allowEmptyBody
 				? (fallback, null)
 				: (fallback, "The command payload is required.");
 		}
 
-		try {
+		try
+		{
 			var request = await context.Request.ReadFromJsonAsync<T>(cancellationToken: context.RequestAborted);
-			if (request is null) {
+			if (request is null)
+			{
 				return allowEmptyBody
 					? (fallback, null)
 					: (fallback, "The command payload is required.");
@@ -78,7 +87,8 @@ internal static class AdminOperationsEndpoints {
 
 			return (request, null);
 		}
-		catch (Exception ex) when (ex is BadHttpRequestException or System.Text.Json.JsonException) {
+		catch (Exception ex) when (ex is BadHttpRequestException or System.Text.Json.JsonException)
+		{
 			return (fallback, "The command payload was not valid JSON.");
 		}
 	}
@@ -86,14 +96,18 @@ internal static class AdminOperationsEndpoints {
 	private static IResult ToJson(AdminCommandResult result) =>
 		Results.Json(result, statusCode: result.StatusCode);
 
-	private static async Task<IResult> ToJson(Func<Task<AdminCommandResult>> command) {
-		try {
+	private static async Task<IResult> ToJson(Func<Task<AdminCommandResult>> command)
+	{
+		try
+		{
 			return ToJson(await command());
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return ToJson(AdminCommandResult.Failed(UiMessages.Friendly(ex)));
 		}
 	}

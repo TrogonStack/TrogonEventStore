@@ -8,9 +8,11 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class checkpoint_manager_with_partition<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId> {
+	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
+{
 	[Test]
-	public void when_loading_partition_state_for_a_partition() {
+	public void when_loading_partition_state_for_a_partition()
+	{
 		var checkpointMetadata = @"{
 				  ""$v"": ""1:-1:0:1"",
 				  ""$s"": {
@@ -22,7 +24,8 @@ public class checkpoint_manager_with_partition<TLogFormat, TStreamId> :
 		var partition = "abc";
 		ExistingEvent(_namingBuilder.MakePartitionCheckpointStreamName(partition), "$Checkpoint",
 			checkpointMetadata, serializedState);
-		_manager.BeginLoadPartitionStateAt(partition, CheckpointTag.Empty, state => {
+		_manager.BeginLoadPartitionStateAt(partition, CheckpointTag.Empty, state =>
+		{
 			Assert.AreEqual(serializedState, state.Serialize());
 		});
 	}

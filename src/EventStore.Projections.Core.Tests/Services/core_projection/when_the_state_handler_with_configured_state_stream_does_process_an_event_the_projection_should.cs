@@ -11,9 +11,12 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_the_state_handler_with_configured_state_stream_does_process_an_event_the_projection_should<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
-	protected override void Given() {
-		_configureBuilderByQuerySource = source => {
+	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
+	protected override void Given()
+	{
+		_configureBuilderByQuerySource = source =>
+		{
 			source.FromAll();
 			source.AllEvents();
 			source.SetResultStreamNameOption("state-stream");
@@ -24,7 +27,8 @@ public class when_the_state_handler_with_configured_state_stream_does_process_an
 		NoOtherStreams();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//projection subscribes here
 		_bus.Publish(
 			EventReaderSubscriptionMessage.CommittedEventReceived.Sample(
@@ -35,7 +39,8 @@ public class when_the_state_handler_with_configured_state_stream_does_process_an
 	}
 
 	[Test]
-	public void write_the_new_state_snapshot() {
+	public void write_the_new_state_snapshot()
+	{
 		Assert.AreEqual(1, _writeEventHandler.HandledMessages.ToStream("state-stream").Count);
 
 		var message = _writeEventHandler.HandledMessages.ToStream("state-stream")[0];
@@ -45,7 +50,8 @@ public class when_the_state_handler_with_configured_state_stream_does_process_an
 	}
 
 	[Test]
-	public void emit_a_state_updated_event() {
+	public void emit_a_state_updated_event()
+	{
 		Assert.AreEqual(1, _writeEventHandler.HandledMessages.ToStream("state-stream").Count);
 
 		var @event = _writeEventHandler.HandledMessages.ToStream("state-stream")[0].Events[0];

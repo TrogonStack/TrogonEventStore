@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.PinnedState {
-	class PinnedConsumerState {
+namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.PinnedState
+{
+	class PinnedConsumerState
+	{
 		private const int MaxBucketCount = 1024;
 
-		public PinnedConsumerState() {
+		public PinnedConsumerState()
+		{
 			Version = -1;
 			Assignments = new BucketAssignment[MaxBucketCount];
 			Nodes = new List<Node>();
@@ -22,12 +25,16 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 
 		public int TotalCapacity { get; set; }
 
-		public int AvailableCapacity {
-			get {
+		public int AvailableCapacity
+		{
+			get
+			{
 				var cap = 0;
-				for (int index = 0; index < Nodes.Count; index++) {
+				for (int index = 0; index < Nodes.Count; index++)
+				{
 					var node = Nodes[index];
-					if (node.State == Node.NodeState.Connected) {
+					if (node.State == Node.NodeState.Connected)
+					{
 						cap += node.MaximumInFlightMessages - node.Client.InflightMessages;
 					}
 				}
@@ -36,39 +43,47 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 			}
 		}
 
-		public void DisconnectNode(Guid nodeId) {
+		public void DisconnectNode(Guid nodeId)
+		{
 			var node = Nodes.FirstOrDefault(_ => _.NodeId == nodeId);
 
-			if (node == null) {
+			if (node == null)
+			{
 				throw new ApplicationException(
 					"ClientRemoved was called for a client the consumer strategy didn't have.");
 			}
 
-			if (node.State == Node.NodeState.Disconnected) {
+			if (node.State == Node.NodeState.Disconnected)
+			{
 				throw new InvalidOperationException();
 			}
 
 			node.State = Node.NodeState.Disconnected;
 
 			AssignmentCount -= node.AssignmentCount;
-			if (AssignmentCount < 0) {
+			if (AssignmentCount < 0)
+			{
 				throw new InvalidOperationException();
 			}
 
 			TotalCapacity -= node.MaximumInFlightMessages;
-			if (TotalCapacity < 0) {
+			if (TotalCapacity < 0)
+			{
 				throw new InvalidOperationException();
 			}
 
-			for (int i = 0; i < Assignments.Length; i++) {
-				if (Assignments[i].NodeId == nodeId) {
+			for (int i = 0; i < Assignments.Length; i++)
+			{
+				if (Assignments[i].NodeId == nodeId)
+				{
 					Assignments[i].State = BucketAssignment.BucketState.Disconnected;
 					Assignments[i].InFlightCount = 0;
 				}
 			}
 		}
 
-		public void AddNode(Node newNode) {
+		public void AddNode(Node newNode)
+		{
 			Nodes.Add(newNode);
 			TotalCapacity += newNode.MaximumInFlightMessages;
 
@@ -78,12 +93,15 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 
 			var reassignments = new List<uint>();
 
-			foreach (var existingClient in Nodes) {
-				if (existingClient == newNode || existingClient.State == Node.NodeState.Disconnected) {
+			foreach (var existingClient in Nodes)
+			{
+				if (existingClient == newNode || existingClient.State == Node.NodeState.Disconnected)
+				{
 					continue;
 				}
 
-				if (existingClient.AssignmentCount > maxBalancedClientAssignmentCount) {
+				if (existingClient.AssignmentCount > maxBalancedClientAssignmentCount)
+				{
 					var assignmentsToMove = Assignments
 						.Select((node, bucket) => Tuple.Create(node, bucket))
 						.Where(_ => _.Item1.NodeId == existingClient.NodeId &&
@@ -91,47 +109,58 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 						.OrderBy(_ => _.Item1.InFlightCount) // Take buckets without inflight messages first.
 						.Take(existingClient.AssignmentCount - maxBalancedClientAssignmentCount);
 
-					foreach (var assignment in assignmentsToMove) {
+					foreach (var assignment in assignmentsToMove)
+					{
 						reassignments.Add((uint)assignment.Item2);
 					}
 				}
 			}
 
-			foreach (var reassignment in reassignments) {
+			foreach (var reassignment in reassignments)
+			{
 				ApplyBucketAssigned(reassignment, newNode.NodeId);
 			}
 
 			Clean();
 		}
 
-		public void EventRemoved(Guid nodeId, uint assignmentId) {
-			if (Assignments[assignmentId].NodeId == nodeId) {
+		public void EventRemoved(Guid nodeId, uint assignmentId)
+		{
+			if (Assignments[assignmentId].NodeId == nodeId)
+			{
 				Assignments[assignmentId].InFlightCount--;
 			}
 		}
 
-		public void RecordEventSent(uint bucket) {
+		public void RecordEventSent(uint bucket)
+		{
 			Assignments[bucket].InFlightCount++;
 		}
 
-		public void AssignBucket(uint bucket) {
+		public void AssignBucket(uint bucket)
+		{
 			var node = ChooseClient();
 			ApplyBucketAssigned(bucket, node.NodeId);
 		}
 
-		private void Clean() {
+		private void Clean()
+		{
 			var oldNodes = Nodes.Where(_ => _.AssignmentCount == 0 && _.State == Node.NodeState.Disconnected).ToList();
-			foreach (var oldNode in oldNodes) {
+			foreach (var oldNode in oldNodes)
+			{
 				Nodes.Remove(oldNode);
 			}
 		}
 
-		private void ApplyBucketAssigned(uint bucketId, Guid newNodeId) {
-			if (Assignments[bucketId].State != BucketAssignment.BucketState.Assigned) {
+		private void ApplyBucketAssigned(uint bucketId, Guid newNodeId)
+		{
+			if (Assignments[bucketId].State != BucketAssignment.BucketState.Assigned)
+			{
 				AssignmentCount++;
 			}
 
-			if (Assignments[bucketId].State != BucketAssignment.BucketState.Unassigned) {
+			if (Assignments[bucketId].State != BucketAssignment.BucketState.Unassigned)
+			{
 				Assignments[bucketId].Node.AssignmentCount--;
 			}
 
@@ -141,10 +170,13 @@ namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.Pinne
 			Assignments[bucketId].Node.AssignmentCount++;
 		}
 
-		private Node ChooseClient() {
+		private Node ChooseClient()
+		{
 			Node minAssignedNode = null;
-			foreach (var node in Nodes.Where(_ => _.State == Node.NodeState.Connected)) {
-				if (minAssignedNode == null || node.AssignmentCount < minAssignedNode.AssignmentCount) {
+			foreach (var node in Nodes.Where(_ => _.State == Node.NodeState.Connected))
+			{
+				if (minAssignedNode == null || node.AssignmentCount < minAssignedNode.AssignmentCount)
+				{
 					minAssignedNode = node;
 				}
 			}

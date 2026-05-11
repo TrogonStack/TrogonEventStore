@@ -8,7 +8,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement;
 
 [TestFixture]
-public class when_creating_stream_request_manager {
+public class when_creating_stream_request_manager
+{
 	protected static readonly IPublisher Publisher = new SynchronousScheduler();
 	protected static readonly TimeSpan CommitTimeout = TimeSpan.FromMinutes(5);
 	protected static readonly IEnvelope Envelope = new NoopEnvelope();
@@ -19,7 +20,8 @@ public class when_creating_stream_request_manager {
 
 
 	[Test]
-	public void null_publisher_throws_argument_null_exception() {
+	public void null_publisher_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() =>
 			new FakeRequestManager(
 				null,
@@ -32,7 +34,8 @@ public class when_creating_stream_request_manager {
 	}
 
 	[Test]
-	public void null_envelope_throws_argument_null_exception() {
+	public void null_envelope_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() =>
 			new FakeRequestManager(
 				Publisher,
@@ -44,7 +47,8 @@ public class when_creating_stream_request_manager {
 				new CommitSource()));
 	}
 	[Test]
-	public void internal_corrId_empty_guid_throws_argument_exception() {
+	public void internal_corrId_empty_guid_throws_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			new FakeRequestManager(
 				Publisher,
@@ -56,7 +60,8 @@ public class when_creating_stream_request_manager {
 				new CommitSource()));
 	}
 	[Test]
-	public void client_corrId_empty_guid_throws_argument_exception() {
+	public void client_corrId_empty_guid_throws_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			new FakeRequestManager(
 				Publisher,
@@ -69,7 +74,8 @@ public class when_creating_stream_request_manager {
 	}
 
 	[Test]
-	public void empty_commit_source_throws_null_argument_exception() {
+	public void empty_commit_source_throws_null_argument_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() =>
 			new FakeRequestManager(
 				Publisher,

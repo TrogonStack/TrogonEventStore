@@ -10,7 +10,8 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	with_truncatebefore_greater_than_int_maxvalue<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+	with_truncatebefore_greater_than_int_maxvalue<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -24,7 +25,8 @@ public class
 	private const long fourth = (long)int.MaxValue + 4;
 	private const long fifth = (long)int.MaxValue + 5;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var now = DateTime.UtcNow;
 
 		string metadata = @"{""$tb"":" + third + "}";
@@ -38,14 +40,16 @@ public class
 	}
 
 	[Test]
-	public async Task metastream_read_returns_metaevent() {
+	public async Task metastream_read_returns_metaevent()
+	{
 		var result = await ReadIndex.ReadEvent(SystemStreams.MetastreamOf("ES"), 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r1, result.Record);
 	}
 
 	[Test]
-	public async Task single_event_read_returns_records_after_truncate_before() {
+	public async Task single_event_read_returns_records_after_truncate_before()
+	{
 		var result = await ReadIndex.ReadEvent("ES", first, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
@@ -68,7 +72,8 @@ public class
 	}
 
 	[Test]
-	public async Task forward_range_read_returns_records_after_truncate_before() {
+	public async Task forward_range_read_returns_records_after_truncate_before()
+	{
 		var result = await ReadIndex.ReadStreamEventsForward("ES", first, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -78,7 +83,8 @@ public class
 	}
 
 	[Test]
-	public async Task backward_range_read_returns_records_after_truncate_before() {
+	public async Task backward_range_read_returns_records_after_truncate_before()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(3, result.Records.Length);
@@ -88,7 +94,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_forward_returns_all_records() {
+	public async Task read_all_forward_returns_all_records()
+	{
 		var records =
 			(await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None)).EventRecords();
 		Assert.AreEqual(6, records.Count);
@@ -101,7 +108,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_returns_all_records() {
+	public async Task read_all_backward_returns_all_records()
+	{
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);

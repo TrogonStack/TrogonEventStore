@@ -14,8 +14,10 @@ using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Helpers;
 
-public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<ClientMessage.NotHandled> {
-	public sealed class RequestTracking(bool trackPendingRequests) {
+public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<ClientMessage.NotHandled>
+{
+	public sealed class RequestTracking(bool trackPendingRequests)
+	{
 		private readonly WriterQueueSet _writerQueueSet = new WriterQueueSet();
 		private readonly PendingWrites _pendingWrites = new PendingWrites();
 		private readonly PendingReads _pendingReads = new PendingReads();
@@ -24,9 +26,12 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		private Action _onRequestsDrained;
 		private readonly object _lockObject = new object();
 
-		public void StartDraining(Action onRequestsDrained) {
-			lock (_lockObject) {
-				if (_allPendingRequests.IsEmpty()) {
+		public void StartDraining(Action onRequestsDrained)
+		{
+			lock (_lockObject)
+			{
+				if (_allPendingRequests.IsEmpty())
+				{
 					onRequestsDrained?.Invoke();
 					return;
 				}
@@ -36,9 +41,12 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			}
 		}
 
-		public void AddPendingRequest(Guid correlationId) {
-			lock (_lockObject) {
-				if (!trackPendingRequests) {
+		public void AddPendingRequest(Guid correlationId)
+		{
+			lock (_lockObject)
+			{
+				if (!trackPendingRequests)
+				{
 					return;
 				}
 
@@ -46,14 +54,18 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			}
 		}
 
-		public void RemovePendingRequest(Guid correlationId) {
-			lock (_lockObject) {
-				if (!trackPendingRequests) {
+		public void RemovePendingRequest(Guid correlationId)
+		{
+			lock (_lockObject)
+			{
+				if (!trackPendingRequests)
+				{
 					return;
 				}
 
 				_allPendingRequests.Remove(correlationId);
-				if (_draining && _allPendingRequests.IsEmpty()) {
+				if (_draining && _allPendingRequests.IsEmpty())
+				{
 					_onRequestsDrained?.Invoke();
 					_onRequestsDrained = null;
 					_draining = false;
@@ -61,17 +73,22 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			}
 		}
 
-		public void AddPendingRead(Guid corrId) {
-			lock (_lockObject) {
+		public void AddPendingRead(Guid corrId)
+		{
+			lock (_lockObject)
+			{
 				AddPendingRequest(corrId);
 				_pendingReads.Register(corrId);
 			}
 		}
 
-		public bool RemovePendingRead(Guid corrId) {
-			lock (_lockObject) {
+		public bool RemovePendingRead(Guid corrId)
+		{
+			lock (_lockObject)
+			{
 				RemovePendingRequest(corrId);
-				if (!_pendingReads.IsRegistered(corrId)) {
+				if (!_pendingReads.IsRegistered(corrId))
+				{
 					return false;
 				}
 
@@ -82,18 +99,22 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 
 		private void WorkQueue(
 			Guid key,
-			RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted> writer) {
+			RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted> writer)
+		{
 
-			if (_writerQueueSet.IsBusy(key)) {
+			if (_writerQueueSet.IsBusy(key))
+			{
 				return;
 			}
 
-			if (!_writerQueueSet.HasPendingWrites(key)) {
+			if (!_writerQueueSet.HasPendingWrites(key))
+			{
 				return;
 			}
 
 			var write = _writerQueueSet.Dequeue(key);
-			if (write != null) {
+			if (write != null)
+			{
 				writer.Publish(write, (msg) => Handle(key, msg, writer));
 			}
 		}
@@ -101,9 +122,11 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		private void Handle(
 			Guid key,
 			ClientMessage.WriteEventsCompleted message,
-			RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted> writer) {
+			RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted> writer)
+		{
 
-			lock (_lockObject) {
+			lock (_lockObject)
+			{
 				_writerQueueSet.Finish(key);
 
 				_pendingWrites.CompleteRequest(message);
@@ -118,9 +141,11 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			Guid corrId,
 			Action<ClientMessage.WriteEventsCompleted> action,
 			ClientMessage.WriteEvents message,
-			RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted> writer) {
+			RequestResponseDispatcher<ClientMessage.WriteEvents, ClientMessage.WriteEventsCompleted> writer)
+		{
 
-			lock (_lockObject) {
+			lock (_lockObject)
+			{
 				AddPendingRequest(corrId);
 				_pendingWrites.CaptureCallback(corrId, action);
 
@@ -172,7 +197,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		<ClientMessage.FilteredReadAllEventsBackward, ClientMessage.FilteredReadAllEventsBackwardCompleted>
 		AllBackwardFilteredReader;
 
-	public IODispatcher(IPublisher publisher, IEnvelope envelope, bool trackPendingRequests = false) {
+	public IODispatcher(IPublisher publisher, IEnvelope envelope, bool trackPendingRequests = false)
+	{
 		_publisher = publisher;
 		_inputQueueEnvelope = envelope;
 		_requestTracker = new RequestTracking(trackPendingRequests);
@@ -254,15 +280,18 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 					envelope);
 	}
 
-	public void StartDraining(Action onRequestsDrained) {
+	public void StartDraining(Action onRequestsDrained)
+	{
 		_requestTracker.StartDraining(onRequestsDrained);
 	}
 
-	private void AddPendingRequest(Guid correlationId) {
+	private void AddPendingRequest(Guid correlationId)
+	{
 		_requestTracker.AddPendingRequest(correlationId);
 	}
 
-	private void RemovePendingRequest(Guid correlationId) {
+	private void RemovePendingRequest(Guid correlationId)
+	{
 		_requestTracker.RemovePendingRequest(correlationId);
 	}
 
@@ -274,7 +303,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		ClaimsPrincipal principal,
 		Action<ClientMessage.ReadStreamEventsBackwardCompleted> action,
 		Guid? corrId = null,
-		DateTime? expires = null) {
+		DateTime? expires = null)
+	{
 		corrId ??= Guid.NewGuid();
 
 		return BackwardReader.Publish(
@@ -301,7 +331,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		ClaimsPrincipal principal,
 		Action<ClientMessage.ReadStreamEventsBackwardCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 
 		var handler = new ReadStreamEventsBackwardHandlers.Tracking(
 			corrId,
@@ -336,7 +367,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		bool resolveLinks,
 		ClaimsPrincipal principal,
 		IReadStreamEventsBackwardHandler handler,
-		Guid corrId) {
+		Guid corrId)
+	{
 
 		var trackingHandler = new ReadStreamEventsBackwardHandlers.Tracking(
 			corrId, _requestTracker, handler);
@@ -366,8 +398,10 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		bool resolveLinks,
 		ClaimsPrincipal principal,
 		Action<ClientMessage.ReadStreamEventsForwardCompleted> action,
-		Guid? corrId = null) {
-		if (!corrId.HasValue) {
+		Guid? corrId = null)
+	{
+		if (!corrId.HasValue)
+		{
 			corrId = Guid.NewGuid();
 		}
 
@@ -396,7 +430,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		ClaimsPrincipal principal,
 		Action<ClientMessage.ReadStreamEventsForwardCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 		_requestTracker.AddPendingRead(corrId);
 
 		ForwardReader.Publish(
@@ -412,13 +447,17 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				null,
 				principal,
 				replyOnExpired: false),
-			res => {
-				if (_requestTracker.RemovePendingRead(res.CorrelationId)) {
+			res =>
+			{
+				if (_requestTracker.RemovePendingRead(res.CorrelationId))
+				{
 					action(res);
 				}
 			},
-			() => {
-				if (_requestTracker.RemovePendingRead(corrId)) {
+			() =>
+			{
+				if (_requestTracker.RemovePendingRead(corrId))
+				{
 					timeoutAction();
 				}
 			});
@@ -432,7 +471,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		ClaimsPrincipal principal,
 		Action<ClientMessage.ReadEventCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 		_requestTracker.AddPendingRead(corrId);
 
 		EventReader.Publish(
@@ -445,13 +485,17 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				false,
 				false,
 				principal),
-			res => {
-				if (_requestTracker.RemovePendingRead(res.CorrelationId)) {
+			res =>
+			{
+				if (_requestTracker.RemovePendingRead(res.CorrelationId))
+				{
 					action(res);
 				}
 			},
-			() => {
-				if (_requestTracker.RemovePendingRead(corrId)) {
+			() =>
+			{
+				if (_requestTracker.RemovePendingRead(corrId))
+				{
 					timeoutAction();
 				}
 			});
@@ -470,7 +514,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		TimeSpan? longPollTimeout,
 		Action<ClientMessage.ReadAllEventsForwardCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 		_requestTracker.AddPendingRead(corrId);
 
 		AllForwardReader.Publish(
@@ -488,13 +533,17 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				replyOnExpired: false,
 				longPollTimeout: longPollTimeout
 			),
-			res => {
-				if (_requestTracker.RemovePendingRead(res.CorrelationId)) {
+			res =>
+			{
+				if (_requestTracker.RemovePendingRead(res.CorrelationId))
+				{
 					action(res);
 				}
 			},
-			() => {
-				if (_requestTracker.RemovePendingRead(corrId)) {
+			() =>
+			{
+				if (_requestTracker.RemovePendingRead(corrId))
+				{
 					timeoutAction();
 				}
 			});
@@ -513,7 +562,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		TimeSpan? longPollTimeout,
 		Action<ClientMessage.ReadAllEventsBackwardCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 		_requestTracker.AddPendingRead(corrId);
 
 		AllBackwardReader.Publish(
@@ -529,13 +579,17 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				validationTfLastCommitPosition,
 				user
 			),
-			res => {
-				if (_requestTracker.RemovePendingRead(res.CorrelationId)) {
+			res =>
+			{
+				if (_requestTracker.RemovePendingRead(res.CorrelationId))
+				{
 					action(res);
 				}
 			},
-			() => {
-				if (_requestTracker.RemovePendingRead(corrId)) {
+			() =>
+			{
+				if (_requestTracker.RemovePendingRead(corrId))
+				{
 					timeoutAction();
 				}
 			});
@@ -556,7 +610,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		TimeSpan? longPollTimeout,
 		Action<ClientMessage.FilteredReadAllEventsForwardCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 		_requestTracker.AddPendingRead(corrId);
 
 		AllForwardFilteredReader.Publish(
@@ -576,13 +631,17 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				replyOnExpired: false,
 				longPollTimeout: longPollTimeout
 			),
-			res => {
-				if (_requestTracker.RemovePendingRead(res.CorrelationId)) {
+			res =>
+			{
+				if (_requestTracker.RemovePendingRead(res.CorrelationId))
+				{
 					action(res);
 				}
 			},
-			() => {
-				if (_requestTracker.RemovePendingRead(corrId)) {
+			() =>
+			{
+				if (_requestTracker.RemovePendingRead(corrId))
+				{
 					timeoutAction();
 				}
 			});
@@ -602,7 +661,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		ClaimsPrincipal user,
 		Action<ClientMessage.FilteredReadAllEventsBackwardCompleted> action,
 		Action timeoutAction,
-		Guid corrId) {
+		Guid corrId)
+	{
 		_requestTracker.AddPendingRead(corrId);
 
 		AllBackwardFilteredReader.Publish(
@@ -620,13 +680,17 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				eventFilter,
 				user
 			),
-			res => {
-				if (_requestTracker.RemovePendingRead(res.CorrelationId)) {
+			res =>
+			{
+				if (_requestTracker.RemovePendingRead(res.CorrelationId))
+				{
 					action(res);
 				}
 			},
-			() => {
-				if (_requestTracker.RemovePendingRead(corrId)) {
+			() =>
+			{
+				if (_requestTracker.RemovePendingRead(corrId))
+				{
 					timeoutAction();
 				}
 			});
@@ -640,25 +704,32 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		Lazy<StreamMetadata> streamMetadata,
 		Event[] events,
 		ClaimsPrincipal principal,
-		Action<ClientMessage.WriteEventsCompleted> action) {
-		if (expectedVersion != ExpectedVersion.Any && expectedVersion != ExpectedVersion.NoStream) {
+		Action<ClientMessage.WriteEventsCompleted> action)
+	{
+		if (expectedVersion != ExpectedVersion.Any && expectedVersion != ExpectedVersion.NoStream)
+		{
 			WriteEvents(streamId, expectedVersion, events, principal, action);
 		}
-		else {
+		else
+		{
 			ReadBackward(
 				streamId,
 				-1,
 				1,
 				false,
 				principal,
-				completed => {
-					switch (completed.Result) {
+				completed =>
+				{
+					switch (completed.Result)
+					{
 						case ReadStreamResult.Success:
 						case ReadStreamResult.NoStream:
-							if (completed.Events is not null && completed.Events.Count > 0) {
+							if (completed.Events is not null && completed.Events.Count > 0)
+							{
 								WriteEvents(streamId, expectedVersion, events, principal, action);
 							}
-							else {
+							else
+							{
 								UpdateStreamAcl(
 									streamId,
 									ExpectedVersion.Any,
@@ -695,7 +766,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		long expectedVersion,
 		Event[] events,
 		ClaimsPrincipal principal,
-		Action<ClientMessage.WriteEventsCompleted> action) {
+		Action<ClientMessage.WriteEventsCompleted> action)
+	{
 		var corrId = Guid.NewGuid();
 		AddPendingRequest(corrId);
 		return
@@ -709,59 +781,73 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 					expectedVersion,
 					events,
 					principal),
-				res => {
+				res =>
+				{
 					RemovePendingRequest(res.CorrelationId);
 					action(res);
 				});
 	}
 
-	private class PendingWrites {
+	private class PendingWrites
+	{
 		private readonly Dictionary<Guid, Action<ClientMessage.WriteEventsCompleted>> _map;
 
-		public PendingWrites() {
+		public PendingWrites()
+		{
 			_map = new Dictionary<Guid, Action<ClientMessage.WriteEventsCompleted>>();
 		}
 
-		public void CaptureCallback(Guid correlationId, Action<ClientMessage.WriteEventsCompleted> action) {
+		public void CaptureCallback(Guid correlationId, Action<ClientMessage.WriteEventsCompleted> action)
+		{
 			_map.Add(correlationId, action);
 		}
 
-		public void CompleteRequest(ClientMessage.WriteEventsCompleted message) {
+		public void CompleteRequest(ClientMessage.WriteEventsCompleted message)
+		{
 			Action<ClientMessage.WriteEventsCompleted> action;
-			if (_map.TryGetValue(message.CorrelationId, out action)) {
+			if (_map.TryGetValue(message.CorrelationId, out action))
+			{
 				_map.Remove(message.CorrelationId);
 				action(message);
 			}
 		}
 	}
 
-	private class PendingReads {
+	private class PendingReads
+	{
 		private readonly HashSet<Guid> _pendingReads = new HashSet<Guid>();
 
-		public void Register(Guid id) {
+		public void Register(Guid id)
+		{
 			_pendingReads.Add(id);
 		}
 
-		public bool IsRegistered(Guid id) {
+		public bool IsRegistered(Guid id)
+		{
 			var ret = _pendingReads.Contains(id);
 			return ret;
 		}
 
-		public void Remove(Guid id) {
+		public void Remove(Guid id)
+		{
 			_pendingReads.Remove(id);
 		}
 	}
 
-	private class WriterQueueSet {
+	private class WriterQueueSet
+	{
 		private readonly Dictionary<Guid, WriterQueue> _queues;
 
-		public WriterQueueSet() {
+		public WriterQueueSet()
+		{
 			_queues = new Dictionary<Guid, WriterQueue>();
 		}
 
-		public void AddToQueue(Guid key, ClientMessage.WriteEvents message) {
+		public void AddToQueue(Guid key, ClientMessage.WriteEvents message)
+		{
 			WriterQueue writerQueue;
-			if (!_queues.TryGetValue(key, out writerQueue)) {
+			if (!_queues.TryGetValue(key, out writerQueue))
+			{
 				writerQueue = new WriterQueue();
 				_queues.Add(key, writerQueue);
 			}
@@ -769,9 +855,11 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			writerQueue.Enqueue(message);
 		}
 
-		public void Finish(Guid key) {
+		public void Finish(Guid key)
+		{
 			var queue = GetQueue(key);
-			if (queue == null) {
+			if (queue == null)
+			{
 				return;
 			}
 
@@ -789,18 +877,22 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		public ClientMessage.WriteEvents Dequeue(Guid key) =>
 			GetQueue(key)?.Dequeue();
 
-		private WriterQueue GetQueue(Guid key) {
+		private WriterQueue GetQueue(Guid key)
+		{
 			WriterQueue queue;
 			_queues.TryGetValue(key, out queue);
 			return queue;
 		}
 
-		private void CleanupQueue(Guid key, WriterQueue queue) {
-			if (queue.IsBusy) {
+		private void CleanupQueue(Guid key, WriterQueue queue)
+		{
+			if (queue.IsBusy)
+			{
 				return;
 			}
 
-			if (queue.Count > 0) {
+			if (queue.Count > 0)
+			{
 				return;
 			}
 
@@ -808,22 +900,27 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		}
 	}
 
-	private class WriterQueue {
+	private class WriterQueue
+	{
 		private readonly Queue<ClientMessage.WriteEvents> _queue;
 		public bool IsBusy;
 		public int Count => _queue.Count;
 
-		public WriterQueue() {
+		public WriterQueue()
+		{
 			IsBusy = false;
 			_queue = new Queue<ClientMessage.WriteEvents>();
 		}
 
-		public void Enqueue(ClientMessage.WriteEvents message) {
+		public void Enqueue(ClientMessage.WriteEvents message)
+		{
 			_queue.Enqueue(message);
 		}
 
-		public ClientMessage.WriteEvents Dequeue() {
-			if (_queue.Count == 0) {
+		public ClientMessage.WriteEvents Dequeue()
+		{
+			if (_queue.Count == 0)
+			{
 				return null;
 			}
 
@@ -839,7 +936,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		long expectedVersion,
 		Event[] events,
 		ClaimsPrincipal principal,
-		Action<ClientMessage.WriteEventsCompleted> action) {
+		Action<ClientMessage.WriteEventsCompleted> action)
+	{
 		var corrId = Guid.NewGuid();
 
 		var message = new ClientMessage.WriteEvents(
@@ -861,7 +959,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		long expectedVersion,
 		Event @event,
 		ClaimsPrincipal principal,
-		Action<ClientMessage.WriteEventsCompleted> action) {
+		Action<ClientMessage.WriteEventsCompleted> action)
+	{
 		var corrId = Guid.NewGuid();
 		AddPendingRequest(corrId);
 		return
@@ -875,7 +974,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 					expectedVersion,
 					new[] { @event },
 					principal),
-				res => {
+				res =>
+				{
 					RemovePendingRequest(res.CorrelationId);
 					action(res);
 				});
@@ -886,7 +986,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		long expectedVersion,
 		bool hardDelete,
 		ClaimsPrincipal principal,
-		Action<ClientMessage.DeleteStreamCompleted> action) {
+		Action<ClientMessage.DeleteStreamCompleted> action)
+	{
 		var corrId = Guid.NewGuid();
 		AddPendingRequest(corrId);
 		return StreamDeleter.Publish(
@@ -899,7 +1000,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				expectedVersion,
 				hardDelete,
 				principal),
-			res => {
+			res =>
+			{
 				RemovePendingRequest(res.CorrelationId);
 				action(res);
 			});
@@ -909,7 +1011,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		string streamId,
 		TFPos from,
 		Action<IODispatcherDelayedMessage> action,
-		Guid? correlationId = null) {
+		Guid? correlationId = null)
+	{
 		var corrId = correlationId ?? Guid.NewGuid();
 		AddPendingRequest(corrId);
 		Awaker.Publish(
@@ -919,13 +1022,15 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				streamId,
 				from,
 				new IODispatcherDelayedMessage(corrId, null)),
-			res => {
+			res =>
+			{
 				RemovePendingRequest(res.CorrelationId);
 				action(res);
 			});
 	}
 
-	public void UnsubscribeAwake(Guid correlationId) {
+	public void UnsubscribeAwake(Guid correlationId)
+	{
 		Awaker.Cancel(correlationId);
 	}
 
@@ -934,7 +1039,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 		long expectedVersion,
 		ClaimsPrincipal principal,
 		StreamMetadata metadata,
-		Action<ClientMessage.WriteEventsCompleted> completed) {
+		Action<ClientMessage.WriteEventsCompleted> completed)
+	{
 		WriteEvents(
 			SystemStreams.MetastreamOf(streamId),
 			expectedVersion,
@@ -943,7 +1049,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 			completed);
 	}
 
-	public void Delay(TimeSpan delay, Action<Guid> timeout) {
+	public void Delay(TimeSpan delay, Action<Guid> timeout)
+	{
 		_publisher.Publish(
 			TimerMessage.Schedule.Create(
 				delay,
@@ -951,7 +1058,8 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				new IODispatcherDelayedMessage(_selfId, new AdHocCorrelatedTimeout(timeout))));
 	}
 
-	private void Delay(TimeSpan delay, ICorrelatedTimeout timeout, Guid messageCorrelationId) {
+	private void Delay(TimeSpan delay, ICorrelatedTimeout timeout, Guid messageCorrelationId)
+	{
 		_publisher.Publish(
 			TimerMessage.Schedule.Create(
 				delay,
@@ -959,15 +1067,18 @@ public sealed class IODispatcher : IHandle<IODispatcherDelayedMessage>, IHandle<
 				new IODispatcherDelayedMessage(_selfId, timeout, messageCorrelationId)));
 	}
 
-	public void Handle(IODispatcherDelayedMessage message) {
-		if (_selfId != message.CorrelationId) {
+	public void Handle(IODispatcherDelayedMessage message)
+	{
+		if (_selfId != message.CorrelationId)
+		{
 			return;
 		}
 
 		message.Timeout();
 	}
 
-	public void Handle(ClientMessage.NotHandled message) {
+	public void Handle(ClientMessage.NotHandled message)
+	{
 		// we do not remove the pending read here but only the pending request.
 		// the pending read will be removed when calling the timeout action
 		_requestTracker.RemovePendingRequest(message.CorrelationId);

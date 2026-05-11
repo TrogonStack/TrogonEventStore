@@ -2,8 +2,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public interface IChunkMerger {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public interface IChunkMerger
+	{
 		ValueTask MergeChunks(
 			ScavengePoint scavengePoint,
 			IScavengeStateForChunkMerger state,

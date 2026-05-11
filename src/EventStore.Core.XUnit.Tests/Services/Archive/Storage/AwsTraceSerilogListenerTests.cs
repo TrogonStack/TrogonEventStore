@@ -16,9 +16,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
 
-public class AwsTraceSerilogListenerTests {
+public class AwsTraceSerilogListenerTests
+{
 	[Fact]
-	public void logs_formatted_aws_trace_messages() {
+	public void logs_formatted_aws_trace_messages()
+	{
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
@@ -36,7 +38,8 @@ public class AwsTraceSerilogListenerTests {
 	}
 
 	[Fact]
-	public void logs_plain_trace_messages() {
+	public void logs_plain_trace_messages()
+	{
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
@@ -54,14 +57,16 @@ public class AwsTraceSerilogListenerTests {
 	[Theory]
 	[InlineData("NoSuchKey")]
 	[InlineData("InvalidRange")]
-	public void logs_expected_s3_errors_at_verbose(string errorCode) {
+	public void logs_expected_s3_errors_at_verbose(string errorCode)
+	{
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
 			.WriteTo.Sink(sink)
 			.CreateLogger();
 		var sut = new AwsTraceSerilogListener(logger);
-		var exception = new AmazonS3Exception("expected") {
+		var exception = new AmazonS3Exception("expected")
+		{
 			ErrorCode = errorCode,
 		};
 
@@ -76,7 +81,8 @@ public class AwsTraceSerilogListenerTests {
 	[Theory]
 	[InlineData(HttpStatusCode.NotFound)]
 	[InlineData(HttpStatusCode.RequestedRangeNotSatisfiable)]
-	public void logs_expected_http_response_errors_at_verbose(HttpStatusCode statusCode) {
+	public void logs_expected_http_response_errors_at_verbose(HttpStatusCode statusCode)
+	{
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
@@ -94,7 +100,8 @@ public class AwsTraceSerilogListenerTests {
 	}
 
 	[Fact]
-	public void leaves_unexpected_http_response_errors_at_warning() {
+	public void leaves_unexpected_http_response_errors_at_warning()
+	{
 		var sink = new CollectingSink();
 		var logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
@@ -111,20 +118,23 @@ public class AwsTraceSerilogListenerTests {
 		Assert.Same(exception, logEvent.Exception);
 	}
 
-	private sealed class CollectingSink : ILogEventSink {
+	private sealed class CollectingSink : ILogEventSink
+	{
 		public List<LogEvent> Events { get; } = new();
 
 		public void Emit(LogEvent logEvent) =>
 			Events.Add(logEvent);
 	}
 
-	private sealed class FakeLogMessage(string format, params object[] args) : ILogMessage {
+	private sealed class FakeLogMessage(string format, params object[] args) : ILogMessage
+	{
 		public string Format => format;
 		public object[] Args => args;
 		public IFormatProvider Provider => null;
 	}
 
-	private sealed class FakeWebResponseData(HttpStatusCode statusCode) : IWebResponseData {
+	private sealed class FakeWebResponseData(HttpStatusCode statusCode) : IWebResponseData
+	{
 		public long ContentLength => 0;
 		public string ContentType => "application/xml";
 		public bool IsSuccessStatusCode => false;
@@ -136,8 +146,10 @@ public class AwsTraceSerilogListenerTests {
 		public bool IsHeaderPresent(string headerName) => false;
 	}
 
-	private sealed class FakeHttpResponseBody : IHttpResponseBody {
-		public void Dispose() {
+	private sealed class FakeHttpResponseBody : IHttpResponseBody
+	{
+		public void Dispose()
+		{
 		}
 
 		public Stream OpenResponse() => Stream.Null;

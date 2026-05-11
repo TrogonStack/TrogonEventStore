@@ -8,9 +8,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 // for testing the truncatebefore functionality specifically
-public class TruncateBeforeTests : SqliteDbPerTest<TruncateBeforeTests> {
+public class TruncateBeforeTests : SqliteDbPerTest<TruncateBeforeTests>
+{
 	[Fact]
-	public async Task simple_truncatebefore() {
+	public async Task simple_truncatebefore()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -30,7 +32,8 @@ public class TruncateBeforeTests : SqliteDbPerTest<TruncateBeforeTests> {
 	}
 
 	[Fact]
-	public async Task keep_last_event() {
+	public async Task keep_last_event()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

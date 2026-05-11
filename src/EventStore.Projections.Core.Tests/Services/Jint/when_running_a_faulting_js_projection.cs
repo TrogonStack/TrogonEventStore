@@ -9,10 +9,13 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public class when_running_a_faulting_js_projection {
+public class when_running_a_faulting_js_projection
+{
 	[TestFixture]
-	public class when_event_handler_throws : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class when_event_handler_throws : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromAll();
                     on_any(function(state, event) {
@@ -25,8 +28,10 @@ public class when_running_a_faulting_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void process_event_throws_javascript_exception() {
-			try {
+		public void process_event_throws_javascript_exception()
+		{
+			try
+			{
 				string state;
 				EmittedEventEnvelope[] emittedEvents;
 				_stateHandler.ProcessEvent(
@@ -34,7 +39,8 @@ public class when_running_a_faulting_js_projection {
 					"metadata",
 					@"{""a"":""b""}", out state, out emittedEvents);
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				Assert.IsInstanceOf<JavaScriptException>(ex);
 				Assert.AreEqual("failed", ex.Message);
 			}
@@ -42,8 +48,10 @@ public class when_running_a_faulting_js_projection {
 	}
 
 	[TestFixture]
-	public class when_state_transform_throws : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class when_state_transform_throws : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromAll().when({$any: function(state, event) {
                         return state;
@@ -54,8 +62,10 @@ public class when_running_a_faulting_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void process_event_throws_javascript_exception() {
-			try {
+		public void process_event_throws_javascript_exception()
+		{
+			try
+			{
 				string state;
 				EmittedEventEnvelope[] emittedEvents;
 				Assert.DoesNotThrow(() => _stateHandler.ProcessEvent(
@@ -64,7 +74,8 @@ public class when_running_a_faulting_js_projection {
 					@"{""a"":""b""}", out state, out emittedEvents));
 				_stateHandler.TransformStateToResult();
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				Assert.IsInstanceOf<JavaScriptException>(ex);
 				Assert.AreEqual("failed", ex.Message);
 			}

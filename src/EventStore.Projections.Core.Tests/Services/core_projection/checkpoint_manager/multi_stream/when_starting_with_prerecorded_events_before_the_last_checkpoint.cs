@@ -8,8 +8,10 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_starting_with_prerecorded_events_before_the_last_checkpoint<TLogFormat, TStreamId> :
-	TestFixtureWithMultiStreamCheckpointManager<TLogFormat, TStreamId> {
-	protected override void Given() {
+	TestFixtureWithMultiStreamCheckpointManager<TLogFormat, TStreamId>
+{
+	protected override void Given()
+	{
 		base.Given();
 		ExistingEvent(
 			"$projections-projection-checkpoint", ProjectionEventTypes.ProjectionCheckpoint,
@@ -25,7 +27,8 @@ public class when_starting_with_prerecorded_events_before_the_last_checkpoint<TL
 		ExistingEvent("d", "Event", "dd", @"{""data"":""d""");
 
 		// Lots of pre-recorded events before the checkpoint.
-		for (int i = 0; i < 1000; i++) {
+		for (int i = 0; i < 1000; i++)
+		{
 			ExistingEvent(
 				"$projections-projection-order", "$>", @"{""s"": {""a"": 0, ""b"": 0, ""c"": 0}}", "0@c");
 		}
@@ -35,7 +38,8 @@ public class when_starting_with_prerecorded_events_before_the_last_checkpoint<TL
 			"$projections-projection-order", "$>", @"{""s"": {""a"": 0, ""b"": 1, ""c"": 0}}", "1@b");
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		base.When();
 		_checkpointReader.BeginLoadState();
 		var checkpointLoaded =
@@ -45,7 +49,8 @@ public class when_starting_with_prerecorded_events_before_the_last_checkpoint<TL
 	}
 
 	[Test]
-	public void stops_reading_prerecorded_events_after_found_checkpoint() {
+	public void stops_reading_prerecorded_events_after_found_checkpoint()
+	{
 		Assert.AreEqual(1,
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsBackward>()
 				.Count(_ => _.EventStreamId == "$projections-projection-order"));

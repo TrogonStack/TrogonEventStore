@@ -11,7 +11,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public abstract class ProjectionProcessingStrategy {
+public abstract class ProjectionProcessingStrategy
+{
 	protected readonly string _name;
 	protected readonly ProjectionVersion _projectionVersion;
 	protected readonly ILogger _logger;
@@ -21,7 +22,8 @@ public abstract class ProjectionProcessingStrategy {
 		string name,
 		ProjectionVersion projectionVersion,
 		ILogger logger,
-		int maxProjectionStateSize) {
+		int maxProjectionStateSize)
+	{
 		_name = name;
 		_projectionVersion = projectionVersion;
 		_logger = logger;
@@ -36,20 +38,25 @@ public abstract class ProjectionProcessingStrategy {
 		IPublisher publisher,
 		IODispatcher ioDispatcher,
 		ReaderSubscriptionDispatcher subscriptionDispatcher,
-		ITimeProvider timeProvider) {
-		if (inputQueue == null) {
+		ITimeProvider timeProvider)
+	{
+		if (inputQueue == null)
+		{
 			throw new ArgumentNullException("inputQueue");
 		}
 		//if (runAs == null) throw new ArgumentNullException("runAs");
-		if (publisher == null) {
+		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
 		}
 
-		if (ioDispatcher == null) {
+		if (ioDispatcher == null)
+		{
 			throw new ArgumentNullException("ioDispatcher");
 		}
 
-		if (timeProvider == null) {
+		if (timeProvider == null)
+		{
 			throw new ArgumentNullException("timeProvider");
 		}
 

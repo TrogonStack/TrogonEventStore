@@ -13,7 +13,8 @@ using HeadingEventReader = EventStore.Projections.Core.Services.Processing.Trans
 namespace EventStore.Projections.Core.Tests.Services.event_reader.heading_event_reader;
 
 [TestFixture]
-public class when_the_heading_event_reader_subscribes_a_projection : TestFixtureWithReadWriteDispatchers {
+public class when_the_heading_event_reader_subscribes_a_projection : TestFixtureWithReadWriteDispatchers
+{
 	private HeadingEventReader _point;
 	private Exception _exception;
 	private Guid _distibutionPointCorrelationId;
@@ -21,12 +22,15 @@ public class when_the_heading_event_reader_subscribes_a_projection : TestFixture
 	private Guid _projectionSubscriptionId;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_exception = null;
-		try {
+		try
+		{
 			_point = new HeadingEventReader(10, _bus);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_exception = ex;
 		}
 
@@ -52,23 +56,28 @@ public class when_the_heading_event_reader_subscribes_a_projection : TestFixture
 
 
 	[Test]
-	public void projection_receives_at_least_one_cached_event_before_the_subscription_position() {
+	public void projection_receives_at_least_one_cached_event_before_the_subscription_position()
+	{
 		Assert.AreEqual(true, _subscription.ReceivedEvents.Any(v => v.Data.Position.PreparePosition <= 30));
 	}
 
 	[Test]
-	public void projection_receives_all_the_previously_handled_events_after_the_subscription_position() {
+	public void projection_receives_all_the_previously_handled_events_after_the_subscription_position()
+	{
 		Assert.AreEqual(true, _subscription.ReceivedEvents.Any(v => v.Data.Position.PreparePosition == 30));
 	}
 
 	[Test]
-	public void it_can_be_unsubscribed() {
+	public void it_can_be_unsubscribed()
+	{
 		_point.Unsubscribe(_projectionSubscriptionId);
 	}
 
 	[Test]
-	public void no_other_projection_can_subscribe_with_the_same_projection_id() {
-		Assert.Throws<InvalidOperationException>(() => {
+	public void no_other_projection_can_subscribe_with_the_same_projection_id()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+		{
 			_point.TrySubscribe(_projectionSubscriptionId, _subscription, 30);
 		});
 	}

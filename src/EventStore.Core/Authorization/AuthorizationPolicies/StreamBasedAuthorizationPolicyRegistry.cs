@@ -22,7 +22,8 @@ public class StreamBasedAuthorizationPolicyRegistry(
 	IPolicySelectorFactory[] pluginSelectorFactories,
 	AuthorizationPolicySettings defaultSettings)
 	:
-		IAuthorizationPolicyRegistry {
+		IAuthorizationPolicyRegistry
+{
 	private readonly string _stream = SystemStreams.AuthorizationPolicyRegistryStream;
 	private readonly ILogger _logger = Log.ForContext<StreamBasedAuthorizationPolicyRegistry>();
 
@@ -35,57 +36,71 @@ public class StreamBasedAuthorizationPolicyRegistry(
 	private static readonly JsonSerializerOptions SerializeOptions =
 		new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-	public class PolicyChangedEventArgs(ReadOnlyPolicy[] effectivePolicies) : EventArgs {
+	public class PolicyChangedEventArgs(ReadOnlyPolicy[] effectivePolicies) : EventArgs
+	{
 		public ReadOnlyPolicy[] EffectivePolicies { get; } = effectivePolicies;
 	}
 
-	public ReadOnlyPolicy[] EffectivePolicies {
-		get {
+	public ReadOnlyPolicy[] EffectivePolicies
+	{
+		get
+		{
 			return _effectivePolicySelectors.Length != 0
 				? _effectivePolicySelectors.Select(x => x.Select()).ToArray()
 				: [_fallbackStreamAccessPolicySelector.Select(), legacyPolicySelector.Select()];
 		}
 	}
 
-	public async Task Start() {
+	public async Task Start()
+	{
 		_cts = new CancellationTokenSource();
-		do {
-			try {
+		do
+		{
+			try
+			{
 				var checkpoint = await LoadSettings(_cts.Token);
 				_ = StartSubscription(checkpoint, _cts.Token);
 				return;
 			}
-			catch (ReadResponseException.NotHandled.ServerNotReady) {
+			catch (ReadResponseException.NotHandled.ServerNotReady)
+			{
 				_logger.Verbose("Subscription to {settingsStream}: server is not ready, retrying.", _stream);
 				await Task.Delay(TimeSpan.FromSeconds(3), _cts.Token);
 			}
-			catch (ReadResponseException.NotHandled.ServerBusy) {
+			catch (ReadResponseException.NotHandled.ServerBusy)
+			{
 				_logger.Verbose("Subscription to {settingsStream}: server is too busy, retrying.", _stream);
 				await Task.Delay(TimeSpan.FromSeconds(3), _cts.Token);
 			}
-			catch (ReadResponseException.Timeout) {
+			catch (ReadResponseException.Timeout)
+			{
 				_logger.Verbose("Subscription to {settingsStream}: timeout, retrying.", _stream);
 				await Task.Delay(TimeSpan.FromSeconds(3), _cts.Token);
 			}
-			catch (Exception exc) {
+			catch (Exception exc)
+			{
 				_logger.Fatal(exc, "Fatal error starting the subscription to {settingsStream}", _stream);
 				throw new ApplicationInitializationException($"Fatal error starting the subscription to {_stream}");
 			}
 		} while (true);
 	}
 
-	public async Task Stop() {
-		foreach (var factory in pluginSelectorFactories) {
+	public async Task Stop()
+	{
+		foreach (var factory in pluginSelectorFactories)
+		{
 			_logger.Information("Stopping policy selector factory {name}", factory.CommandLineName);
 			await factory.Disable();
 		}
 
-		if (_cts is not null) {
+		if (_cts is not null)
+		{
 			await _cts.CancelAsync();
 		}
 	}
 
-	private async Task StartSubscription(ulong? checkpoint, CancellationToken ct) {
+	private async Task StartSubscription(ulong? checkpoint, CancellationToken ct)
+	{
 		var start = checkpoint.HasValue
 			? new StreamRevision(checkpoint.GetValueOrDefault())
 			: (StreamRevision?)null;
@@ -99,16 +114,20 @@ public class StreamBasedAuthorizationPolicyRegistry(
 			requiresLeader: false,
 			cancellationToken: ct);
 
-		while (await sub.MoveNextAsync()) {
+		while (await sub.MoveNextAsync())
+		{
 			var response = sub.Current;
-			switch (response) {
+			switch (response)
+			{
 				case ReadResponse.EventReceived evnt:
 					_logger.Information("New Authorization Policy Settings event received");
 					var (success, settings) = TryParseAuthorizationPolicySettings(evnt.Event);
-					if (!success) {
+					if (!success)
+					{
 						_logger.Warning("New authorization settings could not be applied. Settings were not updated.");
 					}
-					else {
+					else
+					{
 						await TryApplyAuthorizationPolicySettings(settings);
 					}
 
@@ -117,53 +136,64 @@ public class StreamBasedAuthorizationPolicyRegistry(
 		}
 	}
 
-	private async ValueTask ApplyFallbackPolicySelector() {
+	private async ValueTask ApplyFallbackPolicySelector()
+	{
 		_logger.Debug("Applying fallback stream access policy.");
 		_effectivePolicySelectors = [];
-		foreach (var factory in pluginSelectorFactories) {
+		foreach (var factory in pluginSelectorFactories)
+		{
 			await factory.Disable();
 		}
 
 		PolicyChanged?.Invoke(this, new PolicyChangedEventArgs(EffectivePolicies));
 	}
 
-	private async ValueTask ApplyLegacyPolicySelector() {
+	private async ValueTask ApplyLegacyPolicySelector()
+	{
 		_logger.Debug("Applying ACL stream access policy.");
 		_effectivePolicySelectors = [legacyPolicySelector];
-		foreach (var factory in pluginSelectorFactories) {
+		foreach (var factory in pluginSelectorFactories)
+		{
 			await factory.Disable();
 		}
 
 		PolicyChanged?.Invoke(this, new PolicyChangedEventArgs(EffectivePolicies));
 	}
 
-	private (bool success, AuthorizationPolicySettings settings) TryParseAuthorizationPolicySettings(ResolvedEvent evnt) {
-		if (evnt.Event.EventType != SystemEventTypes.AuthorizationPolicyChanged) {
+	private (bool success, AuthorizationPolicySettings settings) TryParseAuthorizationPolicySettings(ResolvedEvent evnt)
+	{
+		if (evnt.Event.EventType != SystemEventTypes.AuthorizationPolicyChanged)
+		{
 			_logger.Error(
 				"Invalid authorization policy settings event. Expected event type {expectedType} but got {actualType}",
 				SystemEventTypes.AuthorizationPolicyChanged, evnt.Event.EventType);
 			return (false, new AuthorizationPolicySettings());
 		}
 
-		try {
+		try
+		{
 			var settings =
 				JsonSerializer.Deserialize<AuthorizationPolicySettings>(evnt.Event.Data.Span, SerializeOptions);
-			if (settings is not null) {
+			if (settings is not null)
+			{
 				return (true, settings);
 			}
 
 			_logger.Error("Could not parse authorization policy settings");
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_logger.Error(ex, "Could not parse authorization policy settings");
 		}
 
 		return (false, new AuthorizationPolicySettings());
 	}
 
-	private async ValueTask<bool> TryApplyPluginPolicySelector(IPolicySelectorFactory pluginFactory) {
+	private async ValueTask<bool> TryApplyPluginPolicySelector(IPolicySelectorFactory pluginFactory)
+	{
 		_logger.Information("Starting authorization policy factory {factory}", pluginFactory.CommandLineName);
-		if (!await pluginFactory.Enable()) {
+		if (!await pluginFactory.Enable())
+		{
 			_logger.Error("Failed to enable policy selector plugin {pluginName}. " +
 						  "Authorization settings will not be applied", pluginFactory.CommandLineName);
 			return false;
@@ -171,13 +201,17 @@ public class StreamBasedAuthorizationPolicyRegistry(
 
 		var selector = pluginFactory.Create(publisher);
 		_effectivePolicySelectors = [selector, legacyPolicySelector];
-		foreach (var otherFactory in pluginSelectorFactories) {
-			try {
-				if (otherFactory.CommandLineName != pluginFactory.CommandLineName) {
+		foreach (var otherFactory in pluginSelectorFactories)
+		{
+			try
+			{
+				if (otherFactory.CommandLineName != pluginFactory.CommandLineName)
+				{
 					await otherFactory.Disable();
 				}
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				_logger.Warning(ex, "Failed to disable policy selector plugin {pluginName}",
 					otherFactory.CommandLineName);
 			}
@@ -187,8 +221,10 @@ public class StreamBasedAuthorizationPolicyRegistry(
 		return true;
 	}
 
-	private async ValueTask<bool> TryApplyAuthorizationPolicySettings(AuthorizationPolicySettings settings) {
-		switch (settings.StreamAccessPolicyType) {
+	private async ValueTask<bool> TryApplyAuthorizationPolicySettings(AuthorizationPolicySettings settings)
+	{
+		switch (settings.StreamAccessPolicyType)
+		{
 			case FallbackStreamAccessPolicySelector.FallbackPolicyName:
 				await ApplyFallbackPolicySelector();
 				return true;
@@ -199,7 +235,8 @@ public class StreamBasedAuthorizationPolicyRegistry(
 				var factory =
 					pluginSelectorFactories.FirstOrDefault(x =>
 						x.CommandLineName == settings.StreamAccessPolicyType);
-				if (factory is not null) {
+				if (factory is not null)
+				{
 					return await TryApplyPluginPolicySelector(factory);
 				}
 
@@ -209,24 +246,31 @@ public class StreamBasedAuthorizationPolicyRegistry(
 		}
 	}
 
-	private async ValueTask<ulong?> LoadSettings(CancellationToken ct) {
+	private async ValueTask<ulong?> LoadSettings(CancellationToken ct)
+	{
 		ulong? checkpoint = null;
-		try {
+		try
+		{
 			await using var read = new Enumerator.ReadStreamBackwards(publisher, _stream,
 				StreamRevision.End, ulong.MaxValue, false, SystemAccounts.System, false, DateTime.MaxValue, 1, ct);
-			while (await read.MoveNextAsync()) {
+			while (await read.MoveNextAsync())
+			{
 				var readResponse = read.Current;
-				switch (readResponse) {
+				switch (readResponse)
+				{
 					case ReadResponse.EventReceived evnt:
 						checkpoint ??= (ulong)evnt.Event.OriginalEventNumber;
 						var (success, settings) = TryParseAuthorizationPolicySettings(evnt.Event);
-						if (!success) {
+						if (!success)
+						{
 							Log.Error(
 								"Could not load authorization policy settings from event {eventNumber}@{eventStream}",
 								evnt.Event.OriginalEventNumber, evnt.Event.OriginalStreamId);
 						}
-						else {
-							if (await TryApplyAuthorizationPolicySettings(settings)) {
+						else
+						{
+							if (await TryApplyAuthorizationPolicySettings(settings))
+							{
 								Log.Information("Authorization settings successfully loaded.");
 								return checkpoint;
 							}
@@ -238,17 +282,21 @@ public class StreamBasedAuthorizationPolicyRegistry(
 				}
 			}
 		}
-		catch (ReadResponseException.StreamDeleted) {
+		catch (ReadResponseException.StreamDeleted)
+		{
 			_logger.Warning("Authorization policy settings stream {stream} has been deleted.", _stream);
 		}
-		catch (ReadResponseException.StreamNotFound) {
+		catch (ReadResponseException.StreamNotFound)
+		{
 
 		}
 
-		if (checkpoint is null) {
+		if (checkpoint is null)
+		{
 			Log.Information("No existing authorization policy settings were found in {stream}. Using the default",
 				_stream);
-			if (await TryApplyAuthorizationPolicySettings(defaultSettings)) {
+			if (await TryApplyAuthorizationPolicySettings(defaultSettings))
+			{
 				_logger.Verbose("Successfully applied default settings");
 				return checkpoint;
 			}

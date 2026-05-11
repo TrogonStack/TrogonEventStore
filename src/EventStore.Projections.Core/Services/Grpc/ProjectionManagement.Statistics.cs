@@ -10,12 +10,15 @@ using static EventStore.Client.Projections.StatisticsReq.Types.Options;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement {
+internal partial class ProjectionManagement
+{
 	private static readonly Operation StatisticsOperation = new Operation(Operations.Projections.Statistics);
 	public override async Task Statistics(StatisticsReq request, IServerStreamWriter<StatisticsResp> responseStream,
-		ServerCallContext context) {
+		ServerCallContext context)
+	{
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, StatisticsOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, StatisticsOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -23,7 +26,8 @@ internal partial class ProjectionManagement {
 
 		var options = request.Options;
 		var name = string.IsNullOrEmpty(options.Name) ? null : options.Name;
-		var mode = options.ModeCase switch {
+		var mode = options.ModeCase switch
+		{
 			ModeOneofCase.AllNonTransient => ProjectionMode.AllNonTransient,
 			ModeOneofCase.Continuous => ProjectionMode.Continuous,
 			ModeOneofCase.Transient => ProjectionMode.Transient,
@@ -35,7 +39,8 @@ internal partial class ProjectionManagement {
 
 		_publisher.Publish(new ProjectionManagementMessage.Command.GetStatistics(envelope, mode, name, true));
 
-		foreach (var stats in Array.ConvertAll(await statsSource.Task, s => new StatisticsResp.Types.Details {
+		foreach (var stats in Array.ConvertAll(await statsSource.Task, s => new StatisticsResp.Types.Details
+		{
 			BufferedEvents = s.BufferedEvents,
 			CheckpointStatus = s.CheckpointStatus ?? string.Empty,
 			CoreProcessingTime = s.CoreProcessingTime,
@@ -55,12 +60,15 @@ internal partial class ProjectionManagement {
 			WritePendingEventsAfterCheckpoint = s.WritePendingEventsAfterCheckpoint,
 			WritePendingEventsBeforeCheckpoint = s.WritePendingEventsBeforeCheckpoint,
 			WritesInProgress = s.WritesInProgress
-		})) {
+		}))
+		{
 			await responseStream.WriteAsync(new StatisticsResp { Details = stats });
 		}
 
-		void OnMessage(Message message) {
-			switch (message) {
+		void OnMessage(Message message)
+		{
+			switch (message)
+			{
 				case ProjectionManagementMessage.Statistics statistics:
 					statsSource.TrySetResult(statistics.Projections);
 					break;

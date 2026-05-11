@@ -13,16 +13,19 @@ using Messages;
 using NUnit.Framework;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenDeletingAPersistentProjectionAndEmittedNotEnabled<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+public class WhenDeletingAPersistentProjectionAndEmittedNotEnabled<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+{
 	private string _projectionName;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_projectionName = "test-projection";
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 		yield return
 			new ProjectionManagementMessage.Command.Post(
@@ -39,7 +42,8 @@ public class WhenDeletingAPersistentProjectionAndEmittedNotEnabled<TLogFormat, T
 	}
 
 	[Test, Category("v8")]
-	public void a_projection_deleted_event_is_written() {
+	public void a_projection_deleted_event_is_written()
+	{
 		var deletedStreamEvents = _consumer.HandledMessages.OfType<ClientMessage.DeleteStream>().ToList();
 
 		Assert.AreEqual(deletedStreamEvents.Count, 1);

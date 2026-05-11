@@ -10,7 +10,8 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
 
-public class ClusterVNodeDbPathTests {
+public class ClusterVNodeDbPathTests
+{
 	public static TheoryData<Type> WriteFailureExceptions => [
 		typeof(UnauthorizedAccessException),
 		typeof(IOException)
@@ -18,10 +19,12 @@ public class ClusterVNodeDbPathTests {
 
 	[Theory]
 	[MemberData(nameof(WriteFailureExceptions))]
-	public void falls_back_when_default_database_directory_cannot_be_written(Type exceptionType) {
+	public void falls_back_when_default_database_directory_cannot_be_written(Type exceptionType)
+	{
 		var rootPath = CreateTemporaryDirectory();
 
-		try {
+		try
+		{
 			var defaultDataDirectory = Path.Combine(rootPath, "default-db");
 			var fallbackDefaultDataDirectory = Path.Combine(rootPath, "fallback-db");
 			var probedPaths = new List<string>();
@@ -30,10 +33,12 @@ public class ClusterVNodeDbPathTests {
 				defaultDataDirectory,
 				defaultDataDirectory,
 				fallbackDefaultDataDirectory,
-				dbPath => {
+				dbPath =>
+				{
 					probedPaths.Add(dbPath);
 
-					if (dbPath == defaultDataDirectory) {
+					if (dbPath == defaultDataDirectory)
+					{
 						throw CreateWriteFailure(exceptionType);
 					}
 				});
@@ -42,17 +47,20 @@ public class ClusterVNodeDbPathTests {
 			Directory.Exists(fallbackDefaultDataDirectory).Should().BeTrue();
 			probedPaths.Should().Equal(defaultDataDirectory, fallbackDefaultDataDirectory);
 		}
-		finally {
+		finally
+		{
 			DeleteTemporaryDirectory(rootPath);
 		}
 	}
 
 	[Theory]
 	[MemberData(nameof(WriteFailureExceptions))]
-	public void rethrows_when_custom_database_directory_cannot_be_written(Type exceptionType) {
+	public void rethrows_when_custom_database_directory_cannot_be_written(Type exceptionType)
+	{
 		var rootPath = CreateTemporaryDirectory();
 
-		try {
+		try
+		{
 			var customDataDirectory = Path.Combine(rootPath, "custom-db");
 			var defaultDataDirectory = Path.Combine(rootPath, "default-db");
 			var fallbackDefaultDataDirectory = Path.Combine(rootPath, "fallback-db");
@@ -62,7 +70,8 @@ public class ClusterVNodeDbPathTests {
 				customDataDirectory,
 				defaultDataDirectory,
 				fallbackDefaultDataDirectory,
-				dbPath => {
+				dbPath =>
+				{
 					probedPaths.Add(dbPath);
 					throw CreateWriteFailure(exceptionType);
 				});
@@ -71,7 +80,8 @@ public class ClusterVNodeDbPathTests {
 			probedPaths.Should().Equal(customDataDirectory);
 			Directory.Exists(fallbackDefaultDataDirectory).Should().BeFalse();
 		}
-		finally {
+		finally
+		{
 			DeleteTemporaryDirectory(rootPath);
 		}
 	}
@@ -87,7 +97,8 @@ public class ClusterVNodeDbPathTests {
 		string dbPath,
 		string defaultDataDirectory,
 		string fallbackDefaultDataDirectory,
-		Action<string> probeWriteAccess) {
+		Action<string> probeWriteAccess)
+	{
 		var method = typeof(ClusterVNode<string>).GetMethod(
 			"EnsureWritableDbPath",
 			BindingFlags.NonPublic | BindingFlags.Static,
@@ -100,11 +111,13 @@ public class ClusterVNodeDbPathTests {
 			],
 			null);
 
-		if (method is null) {
+		if (method is null)
+		{
 			throw new InvalidOperationException("Could not find ClusterVNode<TStreamId>.EnsureWritableDbPath.");
 		}
 
-		try {
+		try
+		{
 			return (string)method.Invoke(
 				obj: null,
 				[
@@ -114,20 +127,24 @@ public class ClusterVNodeDbPathTests {
 					probeWriteAccess
 				])!;
 		}
-		catch (TargetInvocationException ex) when (ex.InnerException is not null) {
+		catch (TargetInvocationException ex) when (ex.InnerException is not null)
+		{
 			ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
 			throw new UnreachableException();
 		}
 	}
 
-	private static string CreateTemporaryDirectory() {
+	private static string CreateTemporaryDirectory()
+	{
 		var path = Path.Combine(Path.GetTempPath(), $"ESX-{nameof(ClusterVNodeDbPathTests)}-{Guid.NewGuid():N}");
 		Directory.CreateDirectory(path);
 		return path;
 	}
 
-	private static void DeleteTemporaryDirectory(string path) {
-		if (Directory.Exists(path)) {
+	private static void DeleteTemporaryDirectory(string path)
+	{
+		if (Directory.Exists(path))
+		{
 			Directory.Delete(path, recursive: true);
 		}
 	}

@@ -4,7 +4,8 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public interface IIndexReaderForAccumulator<TStreamId> {
+public interface IIndexReaderForAccumulator<TStreamId>
+{
 	ValueTask<IndexReadEventInfoResult> ReadEventInfoForward(
 		StreamHandle<TStreamId> handle,
 		long fromEventNumber,

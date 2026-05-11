@@ -13,10 +13,12 @@ namespace EventStore.Core.TransactionLog.Scavenging;
 
 public class StreamCalculator<TStreamId>(
 	IIndexReaderForCalculator<TStreamId> index,
-	ScavengePoint scavengePoint) {
+	ScavengePoint scavengePoint)
+{
 	public void SetStream(
 		StreamHandle<TStreamId> originalStreamHandle,
-		OriginalStreamData originalStreamData) {
+		OriginalStreamData originalStreamData)
+	{
 
 		_lastEventNumber = null;
 		_truncateBeforeOrMaxCountDiscardPoint = null;
@@ -37,7 +39,8 @@ public class StreamCalculator<TStreamId>(
 	// Caller must handle that
 	private long? _lastEventNumber;
 
-	public async ValueTask<long> GetLastEventNumber(CancellationToken token) {
+	public async ValueTask<long> GetLastEventNumber(CancellationToken token)
+	{
 		_lastEventNumber ??= await Index.GetLastEventNumber(OriginalStreamHandle, ScavengePoint, token);
 		return _lastEventNumber.GetValueOrDefault();
 	}
@@ -55,7 +58,8 @@ public class StreamCalculator<TStreamId>(
 
 	private DiscardPoint? _truncateBeforeOrMaxCountDiscardPoint;
 
-	public async ValueTask<DiscardPoint> GetTruncateBeforeOrMaxCountDiscardPoint(CancellationToken token) {
+	public async ValueTask<DiscardPoint> GetTruncateBeforeOrMaxCountDiscardPoint(CancellationToken token)
+	{
 		_truncateBeforeOrMaxCountDiscardPoint ??= TruncateBeforeDiscardPoint.Or(await GetMaxCountDiscardPoint(token));
 		return _truncateBeforeOrMaxCountDiscardPoint.GetValueOrDefault();
 	}
@@ -67,20 +71,24 @@ public class StreamCalculator<TStreamId>(
 
 	// Calculates whether this stream needs recalculating, assuming the metadata and istombstoned
 	// do not change (either of these updates will cause the calculator to reactivate it).
-	public async ValueTask<CalculationStatus> CalculateStatus(CancellationToken token) {
-		if (OriginalStreamData.IsTombstoned) {
+	public async ValueTask<CalculationStatus> CalculateStatus(CancellationToken token)
+	{
+		if (OriginalStreamData.IsTombstoned)
+		{
 			// discard points will not move after this, BUT it cannot be deleted because we might
 			// run a scavenge with UnsafeIgnoreHardDeletes in which case we will need to know this is
 			// tombstoned in order to discard the tombstone from the index.
 			return CalculationStatus.Archived;
 		}
 
-		if (OriginalStreamData.MaxAge.HasValue) {
+		if (OriginalStreamData.MaxAge.HasValue)
+		{
 			//  because time will have passed so discard points might need moving
 			return CalculationStatus.Active;
 		}
 
-		if (OriginalStreamData.MaxCount.HasValue) {
+		if (OriginalStreamData.MaxCount.HasValue)
+		{
 			// new events might have been added so discard point might need moving
 			// (unless the accumulator tracked when new events have been written per stream, but
 			// this would likely not be worth it.)
@@ -90,7 +98,8 @@ public class StreamCalculator<TStreamId>(
 		var tb = OriginalStreamData.TruncateBefore;
 		if (tb.HasValue &&
 			tb.GetValueOrDefault() is not EventNumber.DeletedStream &&
-			await GetLastEventNumber(token) < tb.GetValueOrDefault()) {
+			await GetLastEventNumber(token) < tb.GetValueOrDefault())
+		{
 
 			// unspent TB. new events would cause the discard point to move.
 			// EventNumber.DeletedStream counts as spent because we would only need to

@@ -9,49 +9,61 @@ using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 
 namespace EventStore.Projections.Core.Standard;
 
-public class IndexStreams : IProjectionStateHandler {
-	public IndexStreams(string source, Action<string, object[]> logger) {
+public class IndexStreams : IProjectionStateHandler
+{
+	public IndexStreams(string source, Action<string, object[]> logger)
+	{
 		var trimmedSource = source == null ? null : source.Trim();
-		if (!string.IsNullOrEmpty(trimmedSource)) {
+		if (!string.IsNullOrEmpty(trimmedSource))
+		{
 			throw new InvalidOperationException(
 				"Cannot initialize categorize stream projection handler.  No source is allowed.");
 		}
 
-		if (logger != null) {
+		if (logger != null)
+		{
 			//                logger(string.Format("Index streams projection handler has been initialized"));
 		}
 	}
 
-	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder) {
+	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder)
+	{
 		builder.FromAll();
 		builder.AllEvents();
 		builder.SetIncludeLinks();
 	}
 
-	public void Load(string state) {
+	public void Load(string state)
+	{
 	}
 
-	public void LoadShared(string state) {
+	public void LoadShared(string state)
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Initialize() {
+	public void Initialize()
+	{
 	}
 
-	public void InitializeShared() {
+	public void InitializeShared()
+	{
 	}
 
-	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data) {
+	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data)
+	{
 		throw new NotImplementedException();
 	}
 
 	public bool ProcessEvent(
 		string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents) {
+		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+	{
 		newSharedState = null;
 		emittedEvents = null;
 		newState = null;
-		if (data.PositionSequenceNumber != 0) {
+		if (data.PositionSequenceNumber != 0)
+		{
 			return false; // not our event
 		}
 
@@ -67,23 +79,28 @@ public class IndexStreams : IProjectionStateHandler {
 	}
 
 	public bool ProcessPartitionCreated(string partition, CheckpointTag createPosition, ResolvedEvent data,
-		out EmittedEventEnvelope[] emittedEvents) {
+		out EmittedEventEnvelope[] emittedEvents)
+	{
 		emittedEvents = null;
 		return false;
 	}
 
-	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState) {
+	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+	{
 		throw new NotImplementedException();
 	}
 
-	public string TransformStateToResult() {
+	public string TransformStateToResult()
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 
-	public IQuerySources GetSourceDefinition() {
+	public IQuerySources GetSourceDefinition()
+	{
 		return SourceDefinitionBuilder.From(ConfigureSourceProcessingStrategy);
 	}
 }

@@ -20,7 +20,8 @@ namespace EventStore.ClusterNode.Components.Services;
 public sealed class SubscriptionBrowserService(
 	IPublisher publisher,
 	IAuthorizationProvider authorizationProvider,
-	IHttpContextAccessor httpContextAccessor) {
+	IHttpContextAccessor httpContextAccessor)
+{
 	private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 	private static readonly Operation StatisticsOperation = new(Operations.Subscriptions.Statistics);
 	private static readonly Operation CreateOperation = new(Operations.Subscriptions.Create);
@@ -34,8 +35,10 @@ public sealed class SubscriptionBrowserService(
 		new(SystemConsumerStrategies.PinnedByCorrelation, "Pinned by correlation")
 	];
 
-	public async Task<SubscriptionListPage> ReadAll(CancellationToken cancellationToken = default) {
-		if (!await HasAccess(StatisticsOperation, cancellationToken)) {
+	public async Task<SubscriptionListPage> ReadAll(CancellationToken cancellationToken = default)
+	{
+		if (!await HasAccess(StatisticsOperation, cancellationToken))
+		{
 			return SubscriptionListPage.Unavailable("Persistent subscription statistics access was denied.");
 		}
 
@@ -43,20 +46,25 @@ public sealed class SubscriptionBrowserService(
 		publisher.Publish(new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope));
 
 		MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed;
-		try {
+		try
+		{
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionListPage.Unavailable("Timed out reading persistent subscriptions.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionListPage.Unavailable($"Unable to read persistent subscriptions: {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success =>
 				SubscriptionListPage.Success(completed.SubscriptionStats
 					?.Select(SubscriptionView.From)
@@ -73,16 +81,19 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	public async Task<SubscriptionDetailPage> Read(string streamId, string groupName, CancellationToken cancellationToken = default) {
+	public async Task<SubscriptionDetailPage> Read(string streamId, string groupName, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateIdentity(streamId, groupName);
-		if (!validation.Success) {
+		if (!validation.Success)
+		{
 			return SubscriptionDetailPage.Unavailable(streamId, groupName, validation.Message);
 		}
 
 		streamId = streamId.Trim();
 		groupName = groupName.Trim();
 		var operation = WithSubscriptionParameters(StatisticsOperation, streamId, groupName);
-		if (!await HasAccess(operation, cancellationToken)) {
+		if (!await HasAccess(operation, cancellationToken))
+		{
 			return SubscriptionDetailPage.Unavailable(streamId, groupName, $"Subscription '{groupName}' access was denied.");
 		}
 
@@ -90,20 +101,25 @@ public sealed class SubscriptionBrowserService(
 		publisher.Publish(new MonitoringMessage.GetPersistentSubscriptionStats(envelope, streamId, groupName));
 
 		MonitoringMessage.GetPersistentSubscriptionStatsCompleted completed;
-		try {
+		try
+		{
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionDetailPage.Unavailable(streamId, groupName, $"Timed out reading subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionDetailPage.Unavailable(streamId, groupName, $"Unable to read subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			MonitoringMessage.GetPersistentSubscriptionStatsCompleted.OperationStatus.Success =>
 				completed.SubscriptionStats?.Select(SubscriptionView.From).FirstOrDefault() is { } subscription
 					? SubscriptionDetailPage.Success(subscription)
@@ -118,30 +134,36 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	public async Task<SubscriptionCommandResult> Create(SubscriptionUpdateRequest request, CancellationToken cancellationToken = default) {
+	public async Task<SubscriptionCommandResult> Create(SubscriptionUpdateRequest request, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateRequest(request);
-		if (!validation.Success) {
+		if (!validation.Success)
+		{
 			return validation;
 		}
 
 		var streamId = request.StreamId.Trim();
 		var groupName = request.GroupName.Trim();
 		var operation = WithSubscriptionParameters(CreateOperation, streamId, groupName);
-		if (!await HasAccess(operation, cancellationToken)) {
+		if (!await HasAccess(operation, cancellationToken))
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Subscription '{groupName}' creation access was denied.");
 		}
 
-		if (IsAllStream(streamId)) {
+		if (IsAllStream(streamId))
+		{
 			return await CreateAll(request, groupName, cancellationToken);
 		}
 
-		if (!request.StartFrom.TryGetStreamEventNumber(out var startFrom)) {
+		if (!request.StartFrom.TryGetStreamEventNumber(out var startFrom))
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, "Start from must be an event number.");
 		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.CreatePersistentSubscriptionToStreamCompleted>();
 		ClientMessage.CreatePersistentSubscriptionToStreamCompleted completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.CreatePersistentSubscriptionToStream(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -164,17 +186,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Timed out creating subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to create subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.CreatePersistentSubscriptionToStreamCompleted.CreatePersistentSubscriptionToStreamResult.Success =>
 				SubscriptionCommandResult.Succeeded(streamId, groupName, $"Subscription '{groupName}' was created."),
 			ClientMessage.CreatePersistentSubscriptionToStreamCompleted.CreatePersistentSubscriptionToStreamResult.AlreadyExists =>
@@ -185,30 +211,36 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	public async Task<SubscriptionCommandResult> Update(SubscriptionUpdateRequest request, CancellationToken cancellationToken = default) {
+	public async Task<SubscriptionCommandResult> Update(SubscriptionUpdateRequest request, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateRequest(request);
-		if (!validation.Success) {
+		if (!validation.Success)
+		{
 			return validation;
 		}
 
 		var streamId = request.StreamId.Trim();
 		var groupName = request.GroupName.Trim();
 		var operation = WithSubscriptionParameters(UpdateOperation, streamId, groupName);
-		if (!await HasAccess(operation, cancellationToken)) {
+		if (!await HasAccess(operation, cancellationToken))
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Subscription '{groupName}' update access was denied.");
 		}
 
-		if (IsAllStream(streamId)) {
+		if (IsAllStream(streamId))
+		{
 			return await UpdateAll(request, groupName, cancellationToken);
 		}
 
-		if (!request.StartFrom.TryGetStreamEventNumber(out var startFrom)) {
+		if (!request.StartFrom.TryGetStreamEventNumber(out var startFrom))
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, "Start from must be an event number.");
 		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.UpdatePersistentSubscriptionToStreamCompleted>();
 		ClientMessage.UpdatePersistentSubscriptionToStreamCompleted completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.UpdatePersistentSubscriptionToStream(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -231,17 +263,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Timed out updating subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to update subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.UpdatePersistentSubscriptionToStreamCompleted.UpdatePersistentSubscriptionToStreamResult.Success =>
 				SubscriptionCommandResult.Succeeded(streamId, groupName, $"Subscription '{groupName}' was updated."),
 			ClientMessage.UpdatePersistentSubscriptionToStreamCompleted.UpdatePersistentSubscriptionToStreamResult.DoesNotExist =>
@@ -252,14 +288,17 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	private async Task<SubscriptionCommandResult> CreateAll(SubscriptionUpdateRequest request, string groupName, CancellationToken cancellationToken) {
-		if (!request.StartFrom.TryGetAllStreamPosition(out var startFrom)) {
+	private async Task<SubscriptionCommandResult> CreateAll(SubscriptionUpdateRequest request, string groupName, CancellationToken cancellationToken)
+	{
+		if (!request.StartFrom.TryGetAllStreamPosition(out var startFrom))
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, "Start from must be a $all position like C:0/P:0.");
 		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.CreatePersistentSubscriptionToAllCompleted>();
 		ClientMessage.CreatePersistentSubscriptionToAllCompleted completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.CreatePersistentSubscriptionToAll(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -282,17 +321,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Timed out creating subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to create subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.CreatePersistentSubscriptionToAllCompleted.CreatePersistentSubscriptionToAllResult.Success =>
 				SubscriptionCommandResult.Succeeded(SystemStreams.AllStream, groupName, $"Subscription '{groupName}' was created."),
 			ClientMessage.CreatePersistentSubscriptionToAllCompleted.CreatePersistentSubscriptionToAllResult.AlreadyExists =>
@@ -303,14 +346,17 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	private async Task<SubscriptionCommandResult> UpdateAll(SubscriptionUpdateRequest request, string groupName, CancellationToken cancellationToken) {
-		if (!request.StartFrom.TryGetAllStreamPosition(out var startFrom)) {
+	private async Task<SubscriptionCommandResult> UpdateAll(SubscriptionUpdateRequest request, string groupName, CancellationToken cancellationToken)
+	{
+		if (!request.StartFrom.TryGetAllStreamPosition(out var startFrom))
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, "Start from must be a $all position like C:0/P:0.");
 		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.UpdatePersistentSubscriptionToAllCompleted>();
 		ClientMessage.UpdatePersistentSubscriptionToAllCompleted completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.UpdatePersistentSubscriptionToAll(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -332,17 +378,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Timed out updating subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to update subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.UpdatePersistentSubscriptionToAllCompleted.UpdatePersistentSubscriptionToAllResult.Success =>
 				SubscriptionCommandResult.Succeeded(SystemStreams.AllStream, groupName, $"Subscription '{groupName}' was updated."),
 			ClientMessage.UpdatePersistentSubscriptionToAllCompleted.UpdatePersistentSubscriptionToAllResult.DoesNotExist =>
@@ -353,26 +403,31 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	public async Task<SubscriptionCommandResult> Delete(string streamId, string groupName, CancellationToken cancellationToken = default) {
+	public async Task<SubscriptionCommandResult> Delete(string streamId, string groupName, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateIdentity(streamId, groupName);
-		if (!validation.Success) {
+		if (!validation.Success)
+		{
 			return validation;
 		}
 
 		streamId = streamId.Trim();
 		groupName = groupName.Trim();
 		var operation = WithSubscriptionParameters(DeleteOperation, streamId, groupName);
-		if (!await HasAccess(operation, cancellationToken)) {
+		if (!await HasAccess(operation, cancellationToken))
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Subscription '{groupName}' delete access was denied.");
 		}
 
-		if (IsAllStream(streamId)) {
+		if (IsAllStream(streamId))
+		{
 			return await DeleteAll(groupName, cancellationToken);
 		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.DeletePersistentSubscriptionToStreamCompleted>();
 		ClientMessage.DeletePersistentSubscriptionToStreamCompleted completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.DeletePersistentSubscriptionToStream(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -382,17 +437,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Timed out deleting subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to delete subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.DeletePersistentSubscriptionToStreamCompleted.DeletePersistentSubscriptionToStreamResult.Success =>
 				SubscriptionCommandResult.Succeeded(streamId, groupName, $"Subscription '{groupName}' was deleted."),
 			ClientMessage.DeletePersistentSubscriptionToStreamCompleted.DeletePersistentSubscriptionToStreamResult.DoesNotExist =>
@@ -403,10 +462,12 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	private async Task<SubscriptionCommandResult> DeleteAll(string groupName, CancellationToken cancellationToken) {
+	private async Task<SubscriptionCommandResult> DeleteAll(string groupName, CancellationToken cancellationToken)
+	{
 		var envelope = new TaskCompletionEnvelope<ClientMessage.DeletePersistentSubscriptionToAllCompleted>();
 		ClientMessage.DeletePersistentSubscriptionToAllCompleted completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.DeletePersistentSubscriptionToAll(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -415,17 +476,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Timed out deleting subscription '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(SystemStreams.AllStream, groupName, $"Unable to delete subscription '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.DeletePersistentSubscriptionToAllCompleted.DeletePersistentSubscriptionToAllResult.Success =>
 				SubscriptionCommandResult.Succeeded(SystemStreams.AllStream, groupName, $"Subscription '{groupName}' was deleted."),
 			ClientMessage.DeletePersistentSubscriptionToAllCompleted.DeletePersistentSubscriptionToAllResult.DoesNotExist =>
@@ -436,26 +501,31 @@ public sealed class SubscriptionBrowserService(
 		};
 	}
 
-	public async Task<SubscriptionCommandResult> ReplayParked(string streamId, string groupName, long? stopAt = null, CancellationToken cancellationToken = default) {
+	public async Task<SubscriptionCommandResult> ReplayParked(string streamId, string groupName, long? stopAt = null, CancellationToken cancellationToken = default)
+	{
 		var validation = ValidateIdentity(streamId, groupName);
-		if (!validation.Success) {
+		if (!validation.Success)
+		{
 			return validation;
 		}
 
-		if (stopAt.HasValue && stopAt.Value < 0) {
+		if (stopAt.HasValue && stopAt.Value < 0)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, "Stop at must be zero or greater.");
 		}
 
 		streamId = streamId.Trim();
 		groupName = groupName.Trim();
 		var operation = WithSubscriptionParameters(ReplayParkedOperation, streamId, groupName);
-		if (!await HasAccess(operation, cancellationToken)) {
+		if (!await HasAccess(operation, cancellationToken))
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Subscription '{groupName}' replay access was denied.");
 		}
 
 		var envelope = new TaskCompletionEnvelope<ClientMessage.ReplayMessagesReceived>();
 		ClientMessage.ReplayMessagesReceived completed;
-		try {
+		try
+		{
 			publisher.Publish(new ClientMessage.ReplayParkedMessages(
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -466,17 +536,21 @@ public sealed class SubscriptionBrowserService(
 				CurrentUser));
 			completed = await envelope.Task.WaitAsync(ReadTimeout, cancellationToken);
 		}
-		catch (TimeoutException) {
+		catch (TimeoutException)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Timed out replaying parked messages for '{groupName}'.");
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			return SubscriptionCommandResult.Failure(streamId, groupName, $"Unable to replay parked messages for '{groupName}': {UiMessages.Friendly(ex)}");
 		}
 
-		return completed.Result switch {
+		return completed.Result switch
+		{
 			ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.Success =>
 				SubscriptionCommandResult.Succeeded(streamId, groupName, $"Parked messages for '{groupName}' are replaying."),
 			ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.DoesNotExist =>
@@ -498,41 +572,51 @@ public sealed class SubscriptionBrowserService(
 			.WithParameter(Operations.Subscriptions.Parameters.StreamId(streamId))
 			.WithParameter(Operations.Subscriptions.Parameters.SubscriptionId(groupName));
 
-	private static SubscriptionCommandResult ValidateIdentity(string streamId, string groupName) {
-		if (string.IsNullOrWhiteSpace(streamId)) {
+	private static SubscriptionCommandResult ValidateIdentity(string streamId, string groupName)
+	{
+		if (string.IsNullOrWhiteSpace(streamId))
+		{
 			return SubscriptionCommandResult.Failure("", groupName ?? "", "Enter a stream id.");
 		}
 
-		if (string.IsNullOrWhiteSpace(groupName)) {
+		if (string.IsNullOrWhiteSpace(groupName))
+		{
 			return SubscriptionCommandResult.Failure(streamId, "", "Enter a subscription group name.");
 		}
 
 		return SubscriptionCommandResult.Succeeded(streamId.Trim(), groupName.Trim(), "");
 	}
 
-	private static SubscriptionCommandResult ValidateRequest(SubscriptionUpdateRequest request) {
-		if (request == null) {
+	private static SubscriptionCommandResult ValidateRequest(SubscriptionUpdateRequest request)
+	{
+		if (request == null)
+		{
 			return SubscriptionCommandResult.Failure("", "", "Subscription request is required.");
 		}
 
 		var validation = ValidateIdentity(request.StreamId, request.GroupName);
-		if (!validation.Success) {
+		if (!validation.Success)
+		{
 			return validation;
 		}
 
-		if (request.BufferSize <= 0) {
+		if (request.BufferSize <= 0)
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Buffer size must be positive.");
 		}
 
-		if (request.LiveBufferSize <= 0) {
+		if (request.LiveBufferSize <= 0)
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Live buffer size must be positive.");
 		}
 
-		if (request.ReadBatchSize <= 0) {
+		if (request.ReadBatchSize <= 0)
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Read batch size must be positive.");
 		}
 
-		if (request.BufferSize <= request.ReadBatchSize) {
+		if (request.BufferSize <= request.ReadBatchSize)
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Buffer size must be larger than read batch size.");
 		}
 
@@ -541,20 +625,25 @@ public sealed class SubscriptionBrowserService(
 			request.CheckPointAfterMilliseconds <= 0 ||
 			request.MinCheckPointCount < 0 ||
 			request.MaxCheckPointCount < request.MinCheckPointCount ||
-			request.MaxSubscriberCount <= 0) {
+			request.MaxSubscriberCount <= 0)
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Review the numeric settings before saving.");
 		}
 
-		if (!StrategyOptions.Any(x => string.Equals(x.Value, request.NamedConsumerStrategy, StringComparison.Ordinal))) {
+		if (!StrategyOptions.Any(x => string.Equals(x.Value, request.NamedConsumerStrategy, StringComparison.Ordinal)))
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Choose a valid consumer strategy.");
 		}
 
-		if (IsAllStream(request.StreamId)) {
-			if (!request.StartFrom.TryGetAllStreamPosition(out _)) {
+		if (IsAllStream(request.StreamId))
+		{
+			if (!request.StartFrom.TryGetAllStreamPosition(out _))
+			{
 				return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Start from must be a $all position like C:0/P:0.");
 			}
 		}
-		else if (!request.StartFrom.TryGetStreamEventNumber(out _)) {
+		else if (!request.StartFrom.TryGetStreamEventNumber(out _))
+		{
 			return SubscriptionCommandResult.Failure(request.StreamId, request.GroupName, "Start from must be an event number.");
 		}
 
@@ -571,7 +660,8 @@ public sealed class SubscriptionBrowserService(
 
 public sealed record SubscriptionListPage(
 	IReadOnlyList<SubscriptionView> Subscriptions,
-	string Message) {
+	string Message)
+{
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
 	public bool HasSubscriptions => Subscriptions.Count > 0;
 	public int ConnectedCount => Subscriptions.Count(x => x.ConnectionCount > 0);
@@ -590,7 +680,8 @@ public sealed record SubscriptionDetailPage(
 	SubscriptionView Subscription,
 	string StreamId,
 	string GroupName,
-	string Message) {
+	string Message)
+{
 	public bool HasSubscription => Subscription is not null;
 
 	public static SubscriptionDetailPage Success(SubscriptionView subscription) => new(subscription, subscription.StreamId, subscription.GroupName, "");
@@ -601,7 +692,8 @@ public sealed record SubscriptionCommandResult(
 	bool Success,
 	string StreamId,
 	string GroupName,
-	string Message) {
+	string Message)
+{
 	public static SubscriptionCommandResult Succeeded(string streamId, string groupName, string message) => new(true, streamId, groupName, message);
 	public static SubscriptionCommandResult Failure(string streamId, string groupName, string message) => new(false, streamId, groupName, message);
 }
@@ -627,7 +719,8 @@ public sealed record SubscriptionStrategyOption(
 	string Value,
 	string Label);
 
-public sealed class SubscriptionSettingsInput {
+public sealed class SubscriptionSettingsInput
+{
 	[Required(ErrorMessage = "Enter a stream id.")]
 	public string StreamId { get; set; } = "";
 
@@ -667,7 +760,8 @@ public sealed class SubscriptionSettingsInput {
 			NamedConsumerStrategy);
 
 	public static SubscriptionSettingsInput From(SubscriptionUpdateRequest request) =>
-		new() {
+		new()
+		{
 			StreamId = request.StreamId,
 			GroupName = request.GroupName,
 			ResolveLinkTos = request.ResolveLinkTos,
@@ -714,7 +808,8 @@ public sealed record SubscriptionView(
 	long LiveBufferCount,
 	int RetryBufferCount,
 	int MaxSubscriberCount,
-	IReadOnlyList<SubscriptionConnectionView> Connections) {
+	IReadOnlyList<SubscriptionConnectionView> Connections)
+{
 	public string StatusLabel => string.IsNullOrWhiteSpace(Status) ? "Unknown" : Status;
 	public string StatusTone => StatusLabel.Contains("live", StringComparison.OrdinalIgnoreCase)
 		? "good"
@@ -726,18 +821,23 @@ public sealed record SubscriptionView(
 				: "";
 	public string ConnectionLabel => ConnectionCount == 1 ? "1 consumer" : $"{ConnectionCount} consumers";
 	public long? BehindByMessages => CalculateBehindByMessages(StreamId, LastKnownEventPosition, LastCheckpointedEventPosition);
-	public string BehindStatusLabel {
-		get {
+	public string BehindStatusLabel
+	{
+		get
+		{
 			var behind = BehindByMessages;
-			if (!behind.HasValue) {
+			if (!behind.HasValue)
+			{
 				return "unknown";
 			}
 
-			if (behind.Value == 0) {
+			if (behind.Value == 0)
+			{
 				return "";
 			}
 
-			if (AveragePerSecond <= 0) {
+			if (AveragePerSecond <= 0)
+			{
 				return $"{behind.Value} behind / stalled";
 			}
 
@@ -771,24 +871,29 @@ public sealed record SubscriptionView(
 			MaxSubscriberCount,
 			string.IsNullOrWhiteSpace(NamedConsumerStrategy) ? SystemConsumerStrategies.RoundRobin : NamedConsumerStrategy);
 
-	private static long? CalculateBehindByMessages(string streamId, string lastKnown, string checkpointed) {
-		if (string.Equals(streamId, "$all", StringComparison.Ordinal)) {
+	private static long? CalculateBehindByMessages(string streamId, string lastKnown, string checkpointed)
+	{
+		if (string.Equals(streamId, "$all", StringComparison.Ordinal))
+		{
 			return string.Equals(lastKnown, checkpointed, StringComparison.Ordinal) ? 0 : null;
 		}
 
-		if (string.IsNullOrWhiteSpace(lastKnown)) {
+		if (string.IsNullOrWhiteSpace(lastKnown))
+		{
 			return null;
 		}
 
 		if (!long.TryParse(lastKnown, out var lastKnownNumber) ||
-			!long.TryParse(checkpointed, out var checkpointedNumber)) {
+			!long.TryParse(checkpointed, out var checkpointedNumber))
+		{
 			return null;
 		}
 
 		return Math.Max(0, lastKnownNumber - checkpointedNumber);
 	}
 
-	public static SubscriptionView From(MonitoringMessage.PersistentSubscriptionInfo info) {
+	public static SubscriptionView From(MonitoringMessage.PersistentSubscriptionInfo info)
+	{
 		var connections = info.Connections?
 			.Select(SubscriptionConnectionView.FromInfo)
 			.OrderBy(x => x.ConnectionName, StringComparer.OrdinalIgnoreCase)
@@ -826,19 +931,23 @@ public sealed record SubscriptionView(
 	}
 }
 
-public readonly record struct SubscriptionStartPosition(string Value) {
+public readonly record struct SubscriptionStartPosition(string Value)
+{
 	public static SubscriptionStartPosition From(string value) => new((value ?? "").Trim());
 
 	public bool TryGetStreamEventNumber(out long eventNumber) =>
 		long.TryParse(Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out eventNumber);
 
-	public bool TryGetAllStreamPosition(out TFPos position) {
-		if (TryGetStreamEventNumber(out var singlePosition)) {
+	public bool TryGetAllStreamPosition(out TFPos position)
+	{
+		if (TryGetStreamEventNumber(out var singlePosition))
+		{
 			position = new TFPos(singlePosition, singlePosition);
 			return true;
 		}
 
-		if (TFPos.TryParse(Value, out position)) {
+		if (TFPos.TryParse(Value, out position))
+		{
 			return true;
 		}
 
@@ -846,14 +955,17 @@ public readonly record struct SubscriptionStartPosition(string Value) {
 			   TryGetDelimitedAllStreamPosition(out position);
 	}
 
-	private bool TryGetPrefixedAllStreamPosition(out TFPos position) {
+	private bool TryGetPrefixedAllStreamPosition(out TFPos position)
+	{
 		position = TFPos.Invalid;
-		if (!Value.StartsWith("C:", StringComparison.OrdinalIgnoreCase)) {
+		if (!Value.StartsWith("C:", StringComparison.OrdinalIgnoreCase))
+		{
 			return false;
 		}
 
 		var separator = Value.IndexOf("/P:", StringComparison.OrdinalIgnoreCase);
-		if (separator < 0) {
+		if (separator < 0)
+		{
 			return false;
 		}
 
@@ -863,14 +975,17 @@ public readonly record struct SubscriptionStartPosition(string Value) {
 			out position);
 	}
 
-	private bool TryGetDelimitedAllStreamPosition(out TFPos position) {
+	private bool TryGetDelimitedAllStreamPosition(out TFPos position)
+	{
 		position = TFPos.Invalid;
 		var separator = Value.IndexOf(',', StringComparison.Ordinal);
-		if (separator < 0) {
+		if (separator < 0)
+		{
 			separator = Value.IndexOf(':', StringComparison.Ordinal);
 		}
 
-		if (separator < 0) {
+		if (separator < 0)
+		{
 			return false;
 		}
 
@@ -880,10 +995,12 @@ public readonly record struct SubscriptionStartPosition(string Value) {
 			out position);
 	}
 
-	private static bool TryCreateAllStreamPosition(string commit, string prepare, out TFPos position) {
+	private static bool TryCreateAllStreamPosition(string commit, string prepare, out TFPos position)
+	{
 		position = TFPos.Invalid;
 		if (!long.TryParse(commit.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var commitPosition) ||
-			!long.TryParse(prepare.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var preparePosition)) {
+			!long.TryParse(prepare.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var preparePosition))
+		{
 			return false;
 		}
 
@@ -899,7 +1016,8 @@ public sealed record SubscriptionConnectionView(
 	int AverageItemsPerSecond,
 	long TotalItems,
 	int AvailableSlots,
-	int InFlightMessages) {
+	int InFlightMessages)
+{
 	public string DisplayName => string.IsNullOrWhiteSpace(ConnectionName) ? From : ConnectionName;
 
 	public static SubscriptionConnectionView FromInfo(MonitoringMessage.ConnectionInfo info) =>

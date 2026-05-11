@@ -6,7 +6,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.ReplicationTracking;
 
 [TestFixture]
-public class when_5_node_cluster_receives_replica_lost_before_quorum_and_continues : with_clustered_replication_tracking_service {
+public class when_5_node_cluster_receives_replica_lost_before_quorum_and_continues : with_clustered_replication_tracking_service
+{
 	private readonly long _logPosition = 4000;
 	private readonly Guid _replicaId1 = Guid.NewGuid();
 	private readonly Guid _replicaId2 = Guid.NewGuid();
@@ -15,7 +16,8 @@ public class when_5_node_cluster_receives_replica_lost_before_quorum_and_continu
 
 	protected override int ClusterSize => 5;
 
-	public override void When() {
+	public override void When()
+	{
 		BecomeLeader();
 		WriterCheckpoint.Write(_logPosition);
 		WriterCheckpoint.Flush();
@@ -31,13 +33,15 @@ public class when_5_node_cluster_receives_replica_lost_before_quorum_and_continu
 	}
 
 	[Test]
-	public void replicated_to_should_be_sent() {
+	public void replicated_to_should_be_sent()
+	{
 		AssertEx.IsOrBecomesTrue(() => 1 == ReplicatedTos.Count);
 		Assert.True(ReplicatedTos.TryDequeue(out var msg));
 		Assert.AreEqual(_logPosition, msg.LogPosition);
 	}
 	[Test]
-	public void replication_checkpoint_should_advance() {
+	public void replication_checkpoint_should_advance()
+	{
 		Assert.AreEqual(_logPosition, ReplicationCheckpoint.Read());
 		Assert.AreEqual(_logPosition, ReplicationCheckpoint.ReadNonFlushed());
 	}

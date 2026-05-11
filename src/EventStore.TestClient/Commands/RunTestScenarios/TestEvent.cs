@@ -5,8 +5,10 @@ using EventStore.Common.Utils;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class TestEvent {
-	public static EventData NewTestEvent(int index) {
+internal class TestEvent
+{
+	public static EventData NewTestEvent(int index)
+	{
 		var subIndex = (index % 50);
 		var type = "TestEvent-" + subIndex.ToString();
 		var body = new string('#', 1 + subIndex * subIndex);
@@ -15,30 +17,36 @@ internal class TestEvent {
 		return new EventData(Guid.NewGuid(), type, false, encodedData, new byte[0]);
 	}
 
-	public static void VerifyIfMatched(RecordedEvent evnt) {
-		if (evnt.EventType.StartsWith("TestEvent")) {
+	public static void VerifyIfMatched(RecordedEvent evnt)
+	{
+		if (evnt.EventType.StartsWith("TestEvent"))
+		{
 			var data = Common.Utils.Helper.UTF8NoBom.GetString(evnt.Data);
 			var atoms = data.Split('-');
-			if (atoms.Length != 3) {
+			if (atoms.Length != 3)
+			{
 				throw new ApplicationException(string.Format("Invalid TestEvent object: currupted data format: {0}",
 					RecordDetailsString(evnt)));
 			}
 
 			var expectedLength = int.Parse(atoms[1]);
-			if (expectedLength != atoms[2].Length) {
+			if (expectedLength != atoms[2].Length)
+			{
 				throw new ApplicationException(string.Format(
 					"Invalid TestEvent object: not expected data length: {0}",
 					RecordDetailsString(evnt)));
 			}
 
-			if (new string('#', expectedLength) != atoms[2]) {
+			if (new string('#', expectedLength) != atoms[2])
+			{
 				throw new ApplicationException(string.Format("Invalid TestEvent object: currupted data: {0}",
 					RecordDetailsString(evnt)));
 			}
 		}
 	}
 
-	private static string RecordDetailsString(RecordedEvent evnt) {
+	private static string RecordDetailsString(RecordedEvent evnt)
+	{
 		var data = Common.Utils.Helper.UTF8NoBom.GetString(evnt.Data);
 		return string.Format("[stream:{0}; eventNumber:{1}; type:{2}; data:{3}]",
 			evnt.EventStreamId,

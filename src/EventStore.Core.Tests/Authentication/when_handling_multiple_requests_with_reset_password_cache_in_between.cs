@@ -6,18 +6,21 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Authentication;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_multiple_requests_with_reset_password_cache_in_between<TLogFormat, TStreamId> : with_internal_authentication_provider<TLogFormat, TStreamId> {
+public class when_handling_multiple_requests_with_reset_password_cache_in_between<TLogFormat, TStreamId> : with_internal_authentication_provider<TLogFormat, TStreamId>
+{
 	private bool _unauthorized;
 	private ClaimsPrincipal _authenticatedAs;
 	private bool _error;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		base.Given();
 		ExistingEvent("$user-user", "$user", null, "{LoginName:'user', Salt:'drowssap',Hash:'password'}");
 	}
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		SetUpProvider();
 
 		_internalAuthenticationProvider.Authenticate(
@@ -48,7 +51,8 @@ public class when_handling_multiple_requests_with_reset_password_cache_in_betwee
 	}
 
 	[Test]
-	public void authenticates_user() {
+	public void authenticates_user()
+	{
 		Assert.IsFalse(_unauthorized);
 		Assert.IsFalse(_error);
 		Assert.NotNull(_authenticatedAs);
@@ -56,7 +60,8 @@ public class when_handling_multiple_requests_with_reset_password_cache_in_betwee
 	}
 
 	[Test]
-	public void publishes_some_read_requests() {
+	public void publishes_some_read_requests()
+	{
 		Assert.Greater(
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsBackward>().Count()
 			+ _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count(), 0);

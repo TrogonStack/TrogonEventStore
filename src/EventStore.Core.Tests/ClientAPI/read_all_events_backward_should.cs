@@ -12,10 +12,12 @@ namespace EventStore.Core.Tests.ClientAPI;
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class read_all_events_backward_should<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private EventData[] _testEvents;
 
-	protected override async Task When() {
+	protected override async Task When()
+	{
 		await _conn.SetStreamMetadataAsync("$all", -1,
 				StreamMetadata.Build().SetReadRole(SystemRoles.All),
 				DefaultData.AdminCredentials);
@@ -25,14 +27,16 @@ public class read_all_events_backward_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task return_empty_slice_if_asked_to_read_from_start() {
+	public async Task return_empty_slice_if_asked_to_read_from_start()
+	{
 		var read = await _conn.ReadAllEventsBackwardAsync(Position.Start, 1, false);
 		Assert.That(read.IsEndOfStream, Is.True);
 		Assert.That(read.Events.Length, Is.EqualTo(0));
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task return_partial_slice_if_not_enough_events() {
+	public async Task return_partial_slice_if_not_enough_events()
+	{
 		var read = await _conn.ReadAllEventsBackwardAsync(Position.End, 40, false);
 		Assert.That(read.Events.Length, Is.LessThan(40));
 		Assert.That(EventDataComparer.Equal(_testEvents.Reverse().ToArray(),
@@ -40,19 +44,22 @@ public class read_all_events_backward_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task return_events_in_reversed_order_compared_to_written() {
+	public async Task return_events_in_reversed_order_compared_to_written()
+	{
 		var read = await _conn.ReadAllEventsBackwardAsync(Position.End, _testEvents.Length, false);
 		Assert.That(EventDataComparer.Equal(_testEvents.Reverse().ToArray(),
 			read.Events.Select(x => x.Event).ToArray()));
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task be_able_to_read_all_one_by_one_until_end_of_stream() {
+	public async Task be_able_to_read_all_one_by_one_until_end_of_stream()
+	{
 		var all = new List<RecordedEvent>();
 		var position = Position.End;
 		AllEventsSlice slice;
 
-		while (!(slice = await _conn.ReadAllEventsBackwardAsync(position, 1, false)).IsEndOfStream) {
+		while (!(slice = await _conn.ReadAllEventsBackwardAsync(position, 1, false)).IsEndOfStream)
+		{
 			all.Add(slice.Events.Single().Event);
 			position = slice.NextPosition;
 		}
@@ -62,12 +69,14 @@ public class read_all_events_backward_should<TLogFormat, TStreamId>
 	}
 
 	[Test, Category("LongRunning")]
-	public async Task be_able_to_read_events_slice_at_time() {
+	public async Task be_able_to_read_events_slice_at_time()
+	{
 		var all = new List<RecordedEvent>();
 		var position = Position.End;
 		AllEventsSlice slice;
 
-		while (!(slice = await _conn.ReadAllEventsBackwardAsync(position, 5, false)).IsEndOfStream) {
+		while (!(slice = await _conn.ReadAllEventsBackwardAsync(position, 5, false)).IsEndOfStream)
+		{
 			all.AddRange(slice.Events.Select(x => x.Event));
 			position = slice.NextPosition;
 		}
@@ -78,7 +87,8 @@ public class read_all_events_backward_should<TLogFormat, TStreamId>
 
 	[Test]
 	[Category("Network")]
-	public async Task throw_when_got_int_max_value_as_maxcount() {
+	public async Task throw_when_got_int_max_value_as_maxcount()
+	{
 		await AssertEx.ThrowsAsync<ArgumentException>(
 			() => _conn.ReadAllEventsBackwardAsync(Position.Start, int.MaxValue, resolveLinkTos: false));
 	}

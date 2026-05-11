@@ -6,9 +6,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
 
-public class DefaultValuesConfigurationSourceTests {
+public class DefaultValuesConfigurationSourceTests
+{
 	[Fact]
-	public void Adds() {
+	public void Adds()
+	{
 		// Arrange
 		var defaults = ClusterVNodeOptions.DefaultValues.OrderBy(x => x.Key).ToList();
 
@@ -19,7 +21,8 @@ public class DefaultValuesConfigurationSourceTests {
 			.GetSection(EventStoreConfigurationKeys.Prefix);
 
 		// Assert
-		foreach (var (key, expectedValue) in defaults) {
+		foreach (var (key, expectedValue) in defaults)
+		{
 			configuration.GetValue<object>(key)
 				.Should()
 				.BeEquivalentTo(expectedValue?.ToString(), $"because {key} should be {expectedValue}");

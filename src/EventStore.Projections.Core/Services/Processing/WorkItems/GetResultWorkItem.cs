@@ -7,18 +7,22 @@ using EventStore.Projections.Core.Services.Processing.Phases;
 
 namespace EventStore.Projections.Core.Services.Processing.WorkItems;
 
-class GetResultWorkItem : GetDataWorkItemBase {
+class GetResultWorkItem : GetDataWorkItemBase
+{
 	public GetResultWorkItem(
 		IPublisher publisher,
 		Guid correlationId,
 		Guid projectionId,
 		IProjectionPhaseStateManager projection,
 		string partition)
-		: base(publisher, correlationId, projectionId, projection, partition) {
+		: base(publisher, correlationId, projectionId, projection, partition)
+	{
 	}
 
-	protected override void Reply(PartitionState state, CheckpointTag checkpointTag) {
-		if (state == null) {
+	protected override void Reply(PartitionState state, CheckpointTag checkpointTag)
+	{
+		if (state == null)
+		{
 			_publisher.Publish(
 				new CoreProjectionStatusMessage.ResultReport(
 					_correlationId,
@@ -27,7 +31,8 @@ class GetResultWorkItem : GetDataWorkItemBase {
 					null,
 					checkpointTag));
 		}
-		else {
+		else
+		{
 			_publisher.Publish(
 				new CoreProjectionStatusMessage.ResultReport(
 					_correlationId,

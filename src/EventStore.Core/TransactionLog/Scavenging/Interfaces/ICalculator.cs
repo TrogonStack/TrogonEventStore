@@ -16,7 +16,8 @@ namespace EventStore.Core.TransactionLog.Scavenging;
 //
 // For streams that do not collide (which is ~all of them) the calculation can be done index-only.
 // that is, without hitting the log at all.
-public interface ICalculator<TStreamId> {
+public interface ICalculator<TStreamId>
+{
 	ValueTask Calculate(
 		ScavengePoint scavengePoint,
 		IScavengeStateForCalculator<TStreamId> source,

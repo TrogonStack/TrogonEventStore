@@ -3,13 +3,17 @@ using EventStore.Common.Utils;
 
 namespace EventStore.Core.Tests.ClientAPI.Helpers;
 
-internal static class EventDataComparer {
-	public static bool Equal(EventData expected, RecordedEvent actual) {
-		if (expected.EventId != actual.EventId) {
+internal static class EventDataComparer
+{
+	public static bool Equal(EventData expected, RecordedEvent actual)
+	{
+		if (expected.EventId != actual.EventId)
+		{
 			return false;
 		}
 
-		if (expected.Type != actual.EventType) {
+		if (expected.Type != actual.EventType)
+		{
 			return false;
 		}
 
@@ -22,13 +26,17 @@ internal static class EventDataComparer {
 		return expectedDataString == actualDataString && expectedMetadataString == actualMetadataDataString;
 	}
 
-	public static bool Equal(EventData[] expected, RecordedEvent[] actual) {
-		if (expected.Length != actual.Length) {
+	public static bool Equal(EventData[] expected, RecordedEvent[] actual)
+	{
+		if (expected.Length != actual.Length)
+		{
 			return false;
 		}
 
-		for (var i = 0; i < expected.Length; i++) {
-			if (!Equal(expected[i], actual[i])) {
+		for (var i = 0; i < expected.Length; i++)
+		{
+			if (!Equal(expected[i], actual[i]))
+			{
 				return false;
 			}
 		}

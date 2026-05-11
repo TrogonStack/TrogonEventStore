@@ -8,14 +8,16 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ThreadCountTests : SqliteDbPerTest<ThreadCountTests> {
+public class ThreadCountTests : SqliteDbPerTest<ThreadCountTests>
+{
 	[Theory]
 	[InlineData(-1)]
 	[InlineData(0)]
 	[InlineData(1)]
 	[InlineData(TFChunkScavenger.MaxThreadCount)]
 	[InlineData(TFChunkScavenger.MaxThreadCount + 1)]
-	public async Task runs_when_thread_count_too_high_or_low(int threads) {
+	public async Task runs_when_thread_count_too_high_or_low(int threads)
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithThreads(threads)

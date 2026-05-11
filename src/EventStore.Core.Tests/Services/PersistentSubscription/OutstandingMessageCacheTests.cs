@@ -7,13 +7,16 @@ namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture(EventSource.SingleStream)]
 [TestFixture(EventSource.AllStream)]
-public class OutstandingMessageCacheTests {
+public class OutstandingMessageCacheTests
+{
 	private EventSource _eventSource;
-	public OutstandingMessageCacheTests(EventSource eventSource) {
+	public OutstandingMessageCacheTests(EventSource eventSource)
+	{
 		_eventSource = eventSource;
 	}
 
-	private OutstandingMessage BuildMessageAt(int eventPosition, EventSource eventSource, Guid? forcedEventId = null) {
+	private OutstandingMessage BuildMessageAt(int eventPosition, EventSource eventSource, Guid? forcedEventId = null)
+	{
 		IPersistentSubscriptionStreamPosition previousEventPosition =
 			eventPosition > 0 ? GetStreamPositionFor(eventPosition - 1) : null;
 		var @event = Helper.GetFakeEventFor(eventPosition, eventSource, forcedEventId);
@@ -22,28 +25,33 @@ public class OutstandingMessageCacheTests {
 			eventPosition, previousEventPosition).message;
 	}
 
-	private Guid GetEventIdFor(int position) {
+	private Guid GetEventIdFor(int position)
+	{
 		return Helper.GetEventIdFor(position);
 	}
 
-	private IPersistentSubscriptionStreamPosition GetStreamPositionFor(int position) {
+	private IPersistentSubscriptionStreamPosition GetStreamPositionFor(int position)
+	{
 		return Helper.GetStreamPositionFor(position, _eventSource);
 	}
 
 	[Test]
-	public void when_created_has_zero_count() {
+	public void when_created_has_zero_count()
+	{
 		var cache = new OutstandingMessageCache();
 		Assert.AreEqual(0, cache.Count);
 	}
 
 	[Test]
-	public void can_remove_non_existing_item() {
+	public void can_remove_non_existing_item()
+	{
 		var cache = new OutstandingMessageCache();
 		Assert.DoesNotThrow(() => cache.Remove(Guid.NewGuid()));
 	}
 
 	[Test]
-	public void adding_an_item_causes_count_to_go_up() {
+	public void adding_an_item_causes_count_to_go_up()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(0, _eventSource), DateTime.Now);
 		Assert.AreEqual(1, cache.Count);
@@ -51,7 +59,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void can_add_duplicate() {
+	public void can_add_duplicate()
+	{
 		var cache = new OutstandingMessageCache();
 		var id = Guid.NewGuid();
 		var result1 =
@@ -65,7 +74,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void can_remove_duplicate() {
+	public void can_remove_duplicate()
+	{
 		var cache = new OutstandingMessageCache();
 		var id = Guid.NewGuid();
 		cache.StartMessage(BuildMessageAt(0, _eventSource, id), DateTime.Now);
@@ -77,7 +87,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void can_remove_existing_item() {
+	public void can_remove_existing_item()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(0, _eventSource), DateTime.Now);
 		cache.Remove(GetEventIdFor(0));
@@ -87,14 +98,16 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void lowest_works_on_add() {
+	public void lowest_works_on_add()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(9, _eventSource), DateTime.Now);
 		Assert.AreEqual(GetStreamPositionFor(9), cache.GetLowestPosition().message?.EventPosition);
 	}
 
 	[Test]
-	public void lowest_works_on_adds_then_remove() {
+	public void lowest_works_on_adds_then_remove()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(7, _eventSource), DateTime.Now);
 		cache.StartMessage(BuildMessageAt(8, _eventSource), DateTime.Now);
@@ -104,14 +117,16 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void lowest_on_empty_cache_returns_max() {
+	public void lowest_on_empty_cache_returns_max()
+	{
 		var cache = new OutstandingMessageCache();
 		Assert.IsNull(cache.GetLowestPosition().message);
 		Assert.AreEqual(long.MaxValue, cache.GetLowestPosition().sequenceNumber);
 	}
 
 	[Test]
-	public void lowest_ignores_replayed_events() {
+	public void lowest_ignores_replayed_events()
+	{
 		var cache = new OutstandingMessageCache();
 		//normal event:
 		cache.StartMessage(BuildMessageAt(5, _eventSource), DateTime.Now);
@@ -121,7 +136,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void get_expired_messages_returns_max_value_on_empty_cache() {
+	public void get_expired_messages_returns_max_value_on_empty_cache()
+	{
 		var cache = new OutstandingMessageCache();
 		Assert.AreEqual(0, cache.GetMessagesExpiringBefore(DateTime.Now).Count());
 		Assert.IsNull(cache.GetLowestPosition().message);
@@ -129,7 +145,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void message_that_expires_is_included_in_expired_list() {
+	public void message_that_expires_is_included_in_expired_list()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(0, _eventSource),
 			DateTime.Now.AddSeconds(-1));
@@ -139,7 +156,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void message_that_expires_is_included_in_expired_list_with_another_that_should_not() {
+	public void message_that_expires_is_included_in_expired_list_with_another_that_should_not()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(0, _eventSource), DateTime.Now.AddSeconds(-1));
 		cache.StartMessage(
@@ -150,7 +168,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void message_that_is_removed_does_not_show_up_in_expired_list() {
+	public void message_that_is_removed_does_not_show_up_in_expired_list()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(1, _eventSource),
 			DateTime.Now.AddSeconds(-11));
@@ -160,7 +179,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void can_remove_non_first_message_and_have_removed_from_time() {
+	public void can_remove_non_first_message_and_have_removed_from_time()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(
 			BuildMessageAt(1, _eventSource),
@@ -175,7 +195,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void can_add_multiple_messages_same_time_different_ids() {
+	public void can_add_multiple_messages_same_time_different_ids()
+	{
 		var cache = new OutstandingMessageCache();
 		var time = DateTime.Now.AddSeconds(-12);
 		cache.StartMessage(
@@ -187,7 +208,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void can_remove_second_message_same_time_different_ids() {
+	public void can_remove_second_message_same_time_different_ids()
+	{
 		var cache = new OutstandingMessageCache();
 		var time = DateTime.Now.AddSeconds(-12);
 		cache.StartMessage(
@@ -201,7 +223,8 @@ public class OutstandingMessageCacheTests {
 	}
 
 	[Test]
-	public void message_that_notexpired_is_not_included_in_expired_list() {
+	public void message_that_notexpired_is_not_included_in_expired_list()
+	{
 		var cache = new OutstandingMessageCache();
 		cache.StartMessage(BuildMessageAt(0, _eventSource),
 			DateTime.Now.AddSeconds(1));

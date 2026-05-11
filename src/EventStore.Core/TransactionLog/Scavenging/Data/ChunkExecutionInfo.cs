@@ -1,13 +1,16 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// For ChunkExecutor, which implements maxAge more accurately than the index executor
-	public struct ChunkExecutionInfo : IEquatable<ChunkExecutionInfo> {
+	public struct ChunkExecutionInfo : IEquatable<ChunkExecutionInfo>
+	{
 		public ChunkExecutionInfo(
 			bool isTombstoned,
 			DiscardPoint discardPoint,
 			DiscardPoint maybeDiscardPoint,
-			TimeSpan? maxAge) {
+			TimeSpan? maxAge)
+		{
 
 			IsTombstoned = isTombstoned;
 			DiscardPoint = discardPoint;

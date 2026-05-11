@@ -1,8 +1,10 @@
 #nullable enable
 using System;
 
-namespace EventStore.Core.Services.PersistentSubscription {
-	public class PersistentSubscriptionAllStreamPosition : IPersistentSubscriptionStreamPosition {
+namespace EventStore.Core.Services.PersistentSubscription
+{
+	public class PersistentSubscriptionAllStreamPosition : IPersistentSubscriptionStreamPosition
+	{
 		public bool IsSingleStreamPosition => false;
 		public long StreamEventNumber => throw new InvalidOperationException();
 		public bool IsAllStreamPosition => true;
@@ -11,17 +13,21 @@ namespace EventStore.Core.Services.PersistentSubscription {
 		private readonly long _commitPosition;
 		private readonly long _preparePosition;
 
-		public PersistentSubscriptionAllStreamPosition(long commitPosition, long preparePosition) {
+		public PersistentSubscriptionAllStreamPosition(long commitPosition, long preparePosition)
+		{
 			_commitPosition = commitPosition;
 			_preparePosition = preparePosition;
 		}
 
-		public bool Equals(IPersistentSubscriptionStreamPosition? other) {
-			if (other == null) {
+		public bool Equals(IPersistentSubscriptionStreamPosition? other)
+		{
+			if (other == null)
+			{
 				throw new InvalidOperationException();
 			}
 
-			if (!(other is PersistentSubscriptionAllStreamPosition)) {
+			if (!(other is PersistentSubscriptionAllStreamPosition))
+			{
 				throw new InvalidOperationException();
 			}
 
@@ -29,22 +35,27 @@ namespace EventStore.Core.Services.PersistentSubscription {
 				   TFPosition.Prepare == other.TFPosition.Prepare;
 		}
 
-		public int CompareTo(IPersistentSubscriptionStreamPosition? other) {
-			if (other == null) {
+		public int CompareTo(IPersistentSubscriptionStreamPosition? other)
+		{
+			if (other == null)
+			{
 				throw new InvalidOperationException();
 			}
 
-			if (!(other is PersistentSubscriptionAllStreamPosition)) {
+			if (!(other is PersistentSubscriptionAllStreamPosition))
+			{
 				throw new InvalidOperationException();
 			}
 
-			if (Equals(other)) {
+			if (Equals(other))
+			{
 				return 0;
 			}
 
 			if (TFPosition.Commit < other.TFPosition.Commit ||
 				TFPosition.Commit == other.TFPosition.Commit &&
-				TFPosition.Prepare < other.TFPosition.Prepare) {
+				TFPosition.Prepare < other.TFPosition.Prepare)
+			{
 				return -1;
 			}
 

@@ -9,44 +9,55 @@ using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class ReadFloodProcessor : ICmdProcessor {
-	public string Usage {
+internal class ReadFloodProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		//                     0          1           2               3                  4
 		get { return "RDFL [<clients> <requests> [<streams-cnt> [<stream-prefix> [<require-leader>]]]]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "RDFL"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		int clientsCnt = 1;
 		long requestsCnt = 5000;
 		int streamsCnt = 1;
 		var streamPrefix = "test-stream";
 		bool resolveLinkTos = false;
 		bool requireLeader = false;
-		if (args.Length > 0) {
-			if (args.Length != 2 && args.Length != 3 && args.Length != 4 && args.Length != 5) {
+		if (args.Length > 0)
+		{
+			if (args.Length != 2 && args.Length != 3 && args.Length != 4 && args.Length != 5)
+			{
 				return false;
 			}
 
-			try {
+			try
+			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
-				if (args.Length >= 3) {
+				if (args.Length >= 3)
+				{
 					streamsCnt = MetricPrefixValue.ParseInt(args[2]);
 				}
 
-				if (args.Length >= 4) {
+				if (args.Length >= 4)
+				{
 					streamPrefix = args[3];
 				}
 
-				if (args.Length >= 5) {
+				if (args.Length >= 5)
+				{
 					requireLeader = bool.Parse(args[4]);
 				}
 			}
-			catch {
+			catch
+			{
 				return false;
 			}
 		}
@@ -57,7 +68,8 @@ internal class ReadFloodProcessor : ICmdProcessor {
 	}
 
 	private void ReadFlood(CommandProcessorContext context, string streamPrefix, int clientsCnt, long requestsCnt, int streamsCnt,
-		bool resolveLinkTos, bool requireLeader, RequestMonitor monitor) {
+		bool resolveLinkTos, bool requireLeader, RequestMonitor monitor)
+	{
 		context.IsAsync();
 
 		string[] streams = streamsCnt == 1
@@ -75,41 +87,50 @@ internal class ReadFloodProcessor : ICmdProcessor {
 		long succ = 0;
 		long fail = 0;
 		long all = 0;
-		for (int i = 0; i < clientsCnt; i++) {
+		for (int i = 0; i < clientsCnt; i++)
+		{
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
 			long received = 0;
 			long sent = 0;
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(conn, pkg) => {
-					if (pkg.Command != TcpCommand.ReadEventCompleted) {
+				(conn, pkg) =>
+				{
+					if (pkg.Command != TcpCommand.ReadEventCompleted)
+					{
 						context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 						return;
 					}
 
 					var dto = pkg.Data.Deserialize<ReadEventCompleted>();
 					monitor.EndOperation(pkg.CorrelationId);
-					if (dto.Result == ReadEventCompleted.Types.ReadEventResult.Success) {
-						if (Interlocked.Increment(ref succ) % 1000 == 0) {
+					if (dto.Result == ReadEventCompleted.Types.ReadEventResult.Success)
+					{
+						if (Interlocked.Increment(ref succ) % 1000 == 0)
+						{
 							Console.Write(".");
 						}
 					}
-					else {
-						if (Interlocked.Increment(ref fail) % 1000 == 0) {
+					else
+					{
+						if (Interlocked.Increment(ref fail) % 1000 == 0)
+						{
 							Console.Write("#");
 						}
 					}
 
 					Interlocked.Increment(ref received);
 					var localAll = Interlocked.Increment(ref all);
-					if (localAll % 100000 == 0) {
+					if (localAll % 100000 == 0)
+					{
 						var elapsed = sw2.Elapsed;
 						sw2.Restart();
 						context.Log.Information("\nDONE TOTAL {reads} READS IN {elapsed} ({rate:0.0}/s).", localAll,
 							elapsed, 1000.0 * 100000 / elapsed.TotalMilliseconds);
 					}
 
-					if (localAll == requestsCnt) {
+					if (localAll == requestsCnt)
+					{
 						doneEvent.Set();
 					}
 				},
@@ -117,15 +138,18 @@ internal class ReadFloodProcessor : ICmdProcessor {
 			clients.Add(client);
 
 			var clientNum = i;
-			threads.Add(new Thread(() => {
+			threads.Add(new Thread(() =>
+			{
 				int streamIndex = (streamsCnt / clientsCnt) * clientNum;
 				context.Log.Information("Reader #{clientNum} performing {count} reads on {streamsCnt} streams starting at stream index {streamIndex}",
 					clientNum, count, streamsCnt, streamIndex);
-				for (int j = 0; j < count; ++j) {
+				for (int j = 0; j < count; ++j)
+				{
 					var corrId = Guid.NewGuid();
 
 					var eventStreamId = streams[streamIndex++];
-					if (streamIndex >= streamsCnt) {
+					if (streamIndex >= streamsCnt)
+					{
 						streamIndex = 0;
 					}
 
@@ -136,13 +160,15 @@ internal class ReadFloodProcessor : ICmdProcessor {
 
 					var localSent = Interlocked.Increment(ref sent);
 					while (localSent - Interlocked.Read(ref received) >
-						   context._tcpTestClient.Options.ReadWindow / clientsCnt) {
+						   context._tcpTestClient.Options.ReadWindow / clientsCnt)
+					{
 						Thread.Sleep(1);
 					}
 				}
 				context.Log.Information("Reader #{clientNum} done", clientNum);
 
-			}) { IsBackground = true });
+			})
+			{ IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -166,10 +192,12 @@ internal class ReadFloodProcessor : ICmdProcessor {
 		PerfUtils.LogTeamCityGraphData(string.Format("{0}-{1}-{2}-reqPerSec", Keyword, clientsCnt, requestsCnt),
 			(int)reqPerSec);
 
-		if (succ != requestsCnt) {
+		if (succ != requestsCnt)
+		{
 			context.Fail(reason: "There were errors or not all requests completed.");
 		}
-		else {
+		else
+		{
 			context.Success();
 		}
 	}

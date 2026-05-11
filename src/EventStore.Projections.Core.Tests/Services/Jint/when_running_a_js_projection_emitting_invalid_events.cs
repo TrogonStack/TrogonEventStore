@@ -8,9 +8,11 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public abstract class when_running_a_js_projection_emitting_invalid_events : TestFixtureWithInterpretedProjection {
+public abstract class when_running_a_js_projection_emitting_invalid_events : TestFixtureWithInterpretedProjection
+{
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_projection = @"
 			              fromAll().when({$any: 
 			                  function(state, event) {
@@ -27,7 +29,8 @@ public abstract class when_running_a_js_projection_emitting_invalid_events : Tes
 	protected virtual bool IsNull => false;
 	protected abstract string ParameterName { get; }
 	[Test, Category(_projectionType)]
-	public void process_event_faults() {
+	public void process_event_faults()
+	{
 		string state;
 		EmittedEventEnvelope[] emittedEvents;
 		TestDelegate td = () =>
@@ -39,24 +42,28 @@ public abstract class when_running_a_js_projection_emitting_invalid_events : Tes
 		Assert.AreEqual(ParameterName, ae.ParamName);
 	}
 
-	public class null_stream : when_running_a_js_projection_emitting_invalid_events {
+	public class null_stream : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "streamId";
 		protected override string StreamId => "null";
 		protected override bool IsNull => true;
 	}
 
-	public class empty_stream : when_running_a_js_projection_emitting_invalid_events {
+	public class empty_stream : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "streamId";
 		protected override string StreamId => "''";
 		protected override bool IsNull => true;
 	}
 
-	public class object_stream : when_running_a_js_projection_emitting_invalid_events {
+	public class object_stream : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "streamId";
 		protected override string StreamId => "{\"a\":\"b\"}";
 	}
 
-	public class undefined_stream : when_running_a_js_projection_emitting_invalid_events {
+	public class undefined_stream : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "streamId";
 		protected override string StreamId => "undefined";
 		protected override bool IsNull => true;
@@ -64,41 +71,48 @@ public abstract class when_running_a_js_projection_emitting_invalid_events : Tes
 	}
 
 
-	public class null_eventtype : when_running_a_js_projection_emitting_invalid_events {
+	public class null_eventtype : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventName";
 		protected override string EventType => "null";
 		protected override bool IsNull => true;
 	}
 
-	public class empty_eventtype : when_running_a_js_projection_emitting_invalid_events {
+	public class empty_eventtype : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventName";
 		protected override string EventType => "''";
 		protected override bool IsNull => true;
 	}
 
-	public class object_eventtype : when_running_a_js_projection_emitting_invalid_events {
+	public class object_eventtype : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventName";
 		protected override string EventType => "{\"a\":\"b\"}";
 	}
 
-	public class undefined_eventtype : when_running_a_js_projection_emitting_invalid_events {
+	public class undefined_eventtype : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventName";
 		protected override string EventType => "undefined";
 		protected override bool IsNull => true;
 	}
 
-	public class null_eventbody : when_running_a_js_projection_emitting_invalid_events {
+	public class null_eventbody : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventBody";
 		protected override string EventBody => "null";
 		protected override bool IsNull => true;
 	}
 
-	public class nonobject_eventbody : when_running_a_js_projection_emitting_invalid_events {
+	public class nonobject_eventbody : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventBody";
 		protected override string EventBody => "'test'";
 	}
 
-	public class undefined_eventbody : when_running_a_js_projection_emitting_invalid_events {
+	public class undefined_eventbody : when_running_a_js_projection_emitting_invalid_events
+	{
 		protected override string ParameterName => "eventBody";
 		protected override bool IsNull => true;
 		protected override string EventBody => "undefined";

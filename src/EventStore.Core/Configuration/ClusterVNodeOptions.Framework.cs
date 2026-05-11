@@ -13,14 +13,17 @@ using EventStore.Core.Configuration.Sources;
 using Microsoft.Extensions.Configuration;
 
 #nullable enable
-namespace EventStore.Core {
-	public partial record ClusterVNodeOptions {
+namespace EventStore.Core
+{
+	public partial record ClusterVNodeOptions
+	{
 		private static readonly IEnumerable<Type> OptionSections;
 		public static readonly string HelpText;
 		public string GetComponentName() => $"{Interface.NodeIp}-{Interface.NodePort}-cluster-node";
 		public static readonly List<SectionMetadata> Metadata;
 
-		static ClusterVNodeOptions() {
+		static ClusterVNodeOptions()
+		{
 			OptionSections = typeof(ClusterVNodeOptions)
 				.GetProperties(BindingFlags.Public | BindingFlags.Instance)
 				.Where(p => p.GetCustomAttribute<OptionGroupAttribute>() != null)
@@ -38,11 +41,13 @@ namespace EventStore.Core {
 
 			return;
 
-			static IEnumerable<KeyValuePair<string, object?>> GetDefaultValues(Type type) {
+			static IEnumerable<KeyValuePair<string, object?>> GetDefaultValues(Type type)
+			{
 				var defaultInstance = Activator.CreateInstance(type)!;
 
 				return type.GetProperties().Select(property =>
-					new KeyValuePair<string, object?>(property.Name, property.PropertyType switch {
+					new KeyValuePair<string, object?>(property.Name, property.PropertyType switch
+					{
 						{ IsArray: true } => string.Join(",",
 							((Array)(property.GetValue(defaultInstance) ?? Array.Empty<object>())).OfType<object>()),
 						_ => property.GetValue(defaultInstance)
@@ -58,7 +63,8 @@ namespace EventStore.Core {
 		public IReadOnlyDictionary<string, LoadedOption> LoadedOptions { get; init; } =
 			new Dictionary<string, LoadedOption>();
 
-		public string? GetDeprecationWarnings() {
+		public string? GetDeprecationWarnings()
+		{
 			var defaultValues = new Dictionary<string, object?>(DefaultValues, StringComparer.OrdinalIgnoreCase);
 
 			var deprecationWarnings = from section in OptionSections
@@ -79,15 +85,19 @@ namespace EventStore.Core {
 		public string? CheckForEnvironmentOnlyOptions() =>
 			ConfigurationRoot.CheckProvidersForEnvironmentVariables(OptionSections);
 
-		public static IReadOnlyDictionary<string, LoadedOption> GetLoadedOptions(IConfigurationRoot configurationRoot) {
+		public static IReadOnlyDictionary<string, LoadedOption> GetLoadedOptions(IConfigurationRoot configurationRoot)
+		{
 			var loadedOptions = new Dictionary<string, LoadedOption>();
 
 			// because we always start with defaults, we can just add them all first.
 			// then we can override them with the actual values.
-			foreach (var provider in configurationRoot.Providers) {
+			foreach (var provider in configurationRoot.Providers)
+			{
 
-				foreach (var option in Metadata.SelectMany(x => x.Options)) {
-					if (!provider.TryGet(option.Value.Key, out var value)) {
+				foreach (var option in Metadata.SelectMany(x => x.Options))
+				{
+					if (!provider.TryGet(option.Value.Key, out var value))
+					{
 						continue;
 					}
 
@@ -96,13 +106,16 @@ namespace EventStore.Core {
 					var isDefault = provider.GetType() == typeof(EventStoreDefaultValuesConfigurationProvider);
 
 					// Handle array-style options; currently only GossipSeed uses this
-					if (sourceDisplayName is "<UNKNOWN>" && value is null) {
+					if (sourceDisplayName is "<UNKNOWN>" && value is null)
+					{
 						var parentPath = option.Value.Key;
 						var childValues = new List<string>();
 
-						foreach (var childKey in provider.GetChildKeys([], parentPath)) {
+						foreach (var childKey in provider.GetChildKeys([], parentPath))
+						{
 							var absoluteChildKey = parentPath + ":" + childKey;
-							if (!provider.TryGet(absoluteChildKey, out var childValue) || childValue is null) {
+							if (!provider.TryGet(absoluteChildKey, out var childValue) || childValue is null)
+							{
 								continue;
 							}
 
@@ -129,8 +142,10 @@ namespace EventStore.Core {
 				CombineByPascalCase(EventStoreConfigurationKeys.StripConfigurationPrefix(option.Value.Key)).ToUpper();
 		}
 
-		public static string GetSourceDisplayName(string key, IConfigurationProvider provider) {
-			return provider switch {
+		public static string GetSourceDisplayName(string key, IConfigurationProvider provider)
+		{
+			return provider switch
+			{
 				EventStoreDefaultValuesConfigurationProvider => "<DEFAULT>",
 				SectionProvider sectionProvider => sectionProvider.TryGetProviderFor(key, out var innerProvider)
 					? GetSourceDisplayName(key, innerProvider)
@@ -141,7 +156,8 @@ namespace EventStore.Core {
 			};
 		}
 
-		private static string GetHelpText() {
+		private static string GetHelpText()
+		{
 			const string OPTION = nameof(OPTION);
 			const string DESCRIPTION = nameof(DESCRIPTION);
 
@@ -175,21 +191,25 @@ namespace EventStore.Core {
 				.ToString();
 
 
-			string Line(PropertyInfo property) {
+			string Line(PropertyInfo property)
+			{
 				var description = property.GetCustomAttribute<DescriptionAttribute>()?.Description;
-				if (property.PropertyType.IsEnum) {
+				if (property.PropertyType.IsEnum)
+				{
 					description += $" ({string.Join(", ", Enum.GetNames(property.PropertyType))})";
 				}
 
 				return GetOption(property).PadRight(optionColumnWidth, ' ') + description;
 			}
 
-			string GetOption(PropertyInfo property) {
+			string GetOption(PropertyInfo property)
+			{
 				var builder = new StringBuilder();
 				builder.AppendJoin(string.Empty, GnuOption(property.Name));
 
 				var defaultValue = DefaultValue(property);
-				if (defaultValue != string.Empty) {
+				if (defaultValue != string.Empty)
+				{
 					builder.Append(" (Default:").Append(defaultValue).Append(')');
 				}
 
@@ -204,9 +224,11 @@ namespace EventStore.Core {
 			int OptionHeaderColumnWidth(string name, string @default) =>
 				Math.Max(OptionWidth(name, @default) + 1, OPTION.Length);
 
-			static string DefaultValue(PropertyInfo option) {
+			static string DefaultValue(PropertyInfo option)
+			{
 				var value = option.GetValue(Activator.CreateInstance(option.DeclaringType!));
-				return (value, RuntimeInformation.IsWindows) switch {
+				return (value, RuntimeInformation.IsWindows) switch
+				{
 					(bool b, false) => b.ToString().ToLower(),
 					(bool b, true) => b.ToString(),
 					(Array { Length: 0 }, _) => string.Empty,
@@ -215,10 +237,13 @@ namespace EventStore.Core {
 				};
 			}
 
-			static IEnumerable<char> GnuOption(string x) {
+			static IEnumerable<char> GnuOption(string x)
+			{
 				yield return '-';
-				foreach (var c in x) {
-					if (char.IsUpper(c)) {
+				foreach (var c in x)
+				{
+					if (char.IsUpper(c))
+					{
 						yield return '-';
 					}
 
@@ -226,7 +251,8 @@ namespace EventStore.Core {
 				}
 			}
 
-			static string GetEnvironmentOption(PropertyInfo property, int optionColumnWidth) {
+			static string GetEnvironmentOption(PropertyInfo property, int optionColumnWidth)
+			{
 				const string Prefix = "EVENTSTORE";
 
 				var builder = new StringBuilder();
@@ -241,7 +267,8 @@ namespace EventStore.Core {
 			}
 		}
 
-		static string CombineByPascalCase(string name, string token = " ") {
+		static string CombineByPascalCase(string name, string token = " ")
+		{
 			var regex = new System.Text.RegularExpressions.Regex(
 				@"(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])|(?<=[A-Za-z])(?=[^A-Za-z])");
 			return regex.Replace(name, token);

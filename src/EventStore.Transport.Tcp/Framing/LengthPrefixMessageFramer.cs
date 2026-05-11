@@ -10,7 +10,8 @@ namespace EventStore.Transport.Tcp.Framing;
 /// incoming messages, using internal state and raising a callback once 
 /// full message arrives.
 /// </summary>
-public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>> {
+public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>>
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<LengthPrefixMessageFramer>();
 
 	public const int HeaderLength = sizeof(Int32);
@@ -26,31 +27,37 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>> {
 	/// <summary>
 	/// Initializes a new instance of the <see cref="LengthPrefixMessageFramer"/> class.
 	/// </summary>
-	public LengthPrefixMessageFramer(int maxPackageSize = 64 * 1024 * 1024) {
+	public LengthPrefixMessageFramer(int maxPackageSize = 64 * 1024 * 1024)
+	{
 		Ensure.Positive(maxPackageSize, "maxPackageSize");
 		_maxPackageSize = maxPackageSize;
 	}
 
 	public bool HasData => _headerBytes > 0;
 
-	public void Reset() {
+	public void Reset()
+	{
 		_messageBuffer = null;
 		_headerBytes = 0;
 		_packageLength = 0;
 		_bufferIndex = 0;
 	}
 
-	public void UnFrameData(IEnumerable<ArraySegment<byte>> data) {
-		if (data == null) {
+	public void UnFrameData(IEnumerable<ArraySegment<byte>> data)
+	{
+		if (data == null)
+		{
 			throw new ArgumentNullException("data");
 		}
 
-		foreach (ArraySegment<byte> buffer in data) {
+		foreach (ArraySegment<byte> buffer in data)
+		{
 			Parse(buffer);
 		}
 	}
 
-	public void UnFrameData(ArraySegment<byte> data) {
+	public void UnFrameData(ArraySegment<byte> data)
+	{
 		Parse(data);
 	}
 
@@ -60,14 +67,19 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>> {
 	/// callback is raised (it is registered via <see cref="RegisterMessageArrivedCallback"/>
 	/// </summary>
 	/// <param name="bytes">A byte array of data to append</param>
-	private void Parse(ArraySegment<byte> bytes) {
+	private void Parse(ArraySegment<byte> bytes)
+	{
 		byte[] data = bytes.Array;
-		for (int i = bytes.Offset, n = bytes.Offset + bytes.Count; i < n; i++) {
-			if (_headerBytes < HeaderLength) {
+		for (int i = bytes.Offset, n = bytes.Offset + bytes.Count; i < n; i++)
+		{
+			if (_headerBytes < HeaderLength)
+			{
 				_packageLength |= (data[i] << (_headerBytes * 8)); // little-endian order
 				++_headerBytes;
-				if (_headerBytes == HeaderLength) {
-					if (_packageLength <= 0 || _packageLength > _maxPackageSize) {
+				if (_headerBytes == HeaderLength)
+				{
+					if (_packageLength <= 0 || _packageLength > _maxPackageSize)
+					{
 						Log.Error("FRAMING ERROR! Data:\n {data}", Common.Utils.Helper.FormatBinaryDump(bytes));
 						throw new PackageFramingException(string.Format(
 							"Package size is out of bounds: {0} (max: {1}).",
@@ -77,14 +89,17 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>> {
 					_messageBuffer = new byte[_packageLength];
 				}
 			}
-			else {
+			else
+			{
 				int copyCnt = Math.Min(bytes.Count + bytes.Offset - i, _packageLength - _bufferIndex);
 				Buffer.BlockCopy(bytes.Array, i, _messageBuffer, _bufferIndex, copyCnt);
 				_bufferIndex += copyCnt;
 				i += copyCnt - 1;
 
-				if (_bufferIndex == _packageLength) {
-					if (_receivedHandler != null) {
+				if (_bufferIndex == _packageLength)
+				{
+					if (_receivedHandler != null)
+					{
 						_receivedHandler(new ArraySegment<byte>(_messageBuffer, 0, _bufferIndex));
 					}
 
@@ -97,7 +112,8 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>> {
 		}
 	}
 
-	public IEnumerable<ArraySegment<byte>> FrameData(ArraySegment<byte> data) {
+	public IEnumerable<ArraySegment<byte>> FrameData(ArraySegment<byte> data)
+	{
 		var length = data.Count;
 
 		yield return new ArraySegment<byte>(
@@ -105,7 +121,8 @@ public class LengthPrefixMessageFramer : IMessageFramer<ArraySegment<byte>> {
 		yield return data;
 	}
 
-	public void RegisterMessageArrivedCallback(Action<ArraySegment<byte>> handler) {
+	public void RegisterMessageArrivedCallback(Action<ArraySegment<byte>> handler)
+	{
 		Ensure.NotNull(handler, nameof(handler));
 		_receivedHandler = handler;
 	}

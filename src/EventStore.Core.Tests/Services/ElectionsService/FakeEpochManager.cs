@@ -11,7 +11,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Tests.Services.ElectionsService;
 
-internal class FakeEpochManager : IEpochManager {
+internal class FakeEpochManager : IEpochManager
+{
 	public int LastEpochNumber => _epochs.LastOrNone().Convert(static epoch => epoch.EpochNumber).Or(-1);
 
 	private readonly AsyncExclusiveLock _lock = new();
@@ -23,7 +24,8 @@ internal class FakeEpochManager : IEpochManager {
 
 	public ValueTask<IReadOnlyList<EpochRecord>> GetLastEpochs(
 		int maxCount,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		IReadOnlyList<EpochRecord> epochs = _epochs;
 		return new ValueTask<IReadOnlyList<EpochRecord>>((maxCount >= epochs.Count
 			? epochs
@@ -33,28 +35,35 @@ internal class FakeEpochManager : IEpochManager {
 	public ValueTask<EpochRecord> GetEpochAfter(
 		int epochNumber,
 		bool throwIfNotFound,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		ValueTask<EpochRecord> task;
-		try {
+		try
+		{
 			ImmutableList<EpochRecord> epochs = _epochs;
-			if (epochs.FirstOrDefault(e => e.EpochNumber == epochNumber) is { } epoch) {
+			if (epochs.FirstOrDefault(e => e.EpochNumber == epochNumber) is { } epoch)
+			{
 				var index = epochs.IndexOf(epoch);
 				epoch = null;
-				if (index + 1 < epochs.Count) {
+				if (index + 1 < epochs.Count)
+				{
 					epoch = epochs[index + 1];
 				}
 			}
-			else {
+			else
+			{
 				epoch = null;
 			}
 
-			if (throwIfNotFound && epoch is null) {
+			if (throwIfNotFound && epoch is null)
+			{
 				throw new ArgumentOutOfRangeException(nameof(epochNumber), "Epoch not Found");
 			}
 
 			task = new ValueTask<EpochRecord>(epoch);
 		}
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			task = ValueTask.FromException<EpochRecord>(e);
 		}
 
@@ -65,14 +74,17 @@ internal class FakeEpochManager : IEpochManager {
 		long epochPosition,
 		int epochNumber,
 		Guid epochId,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		ValueTask<bool> task;
-		try {
+		try
+		{
 			task = new ValueTask<bool>(_epochs.FirstOrDefault(e => e.EpochNumber == epochNumber) is { } epoch
 									   && epoch.EpochNumber == epochNumber
 									   && epoch.EpochId == epochId);
 		}
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			task = ValueTask.FromException<bool>(e);
 		}
 
@@ -84,12 +96,15 @@ internal class FakeEpochManager : IEpochManager {
 
 	public async ValueTask CacheEpoch(
 		EpochRecord epoch,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		await _lock.AcquireAsync(token);
-		try {
+		try
+		{
 			_epochs = _epochs.Add(epoch);
 		}
-		finally {
+		finally
+		{
 			_lock.Release();
 		}
 	}

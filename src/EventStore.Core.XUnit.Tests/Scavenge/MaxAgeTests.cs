@@ -10,9 +10,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 // for testing the maxage functionality specifically
-public class MaxAgeTests : SqliteDbPerTest<MaxAgeTests> {
+public class MaxAgeTests : SqliteDbPerTest<MaxAgeTests>
+{
 	[Fact]
-	public async Task simple_maxage() {
+	public async Task simple_maxage()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -42,7 +44,8 @@ public class MaxAgeTests : SqliteDbPerTest<MaxAgeTests> {
 	}
 
 	[Fact]
-	public async Task keep_last_event() {
+	public async Task keep_last_event()
+	{
 		// records kept in the index because they are 'maybe' expired
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -69,7 +72,8 @@ public class MaxAgeTests : SqliteDbPerTest<MaxAgeTests> {
 	}
 
 	[Fact]
-	public async Task whole_chunk_expired() {
+	public async Task whole_chunk_expired()
+	{
 		// the records can be removed from the chunks and the index
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -93,7 +97,8 @@ public class MaxAgeTests : SqliteDbPerTest<MaxAgeTests> {
 	}
 
 	[Fact]
-	public async Task whole_chunk_expired_keep_last_event() {
+	public async Task whole_chunk_expired_keep_last_event()
+	{
 		// the records can be removed from the chunks and the index
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -116,7 +121,8 @@ public class MaxAgeTests : SqliteDbPerTest<MaxAgeTests> {
 	}
 
 	[Fact]
-	public async Task whole_chunk_active() {
+	public async Task whole_chunk_active()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

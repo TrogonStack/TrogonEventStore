@@ -13,16 +13,19 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Bus;
 
 [TestFixture]
-public class FSMSpeedTest {
+public class FSMSpeedTest
+{
 	[Test, Category("LongRunning"), Explicit]
-	public async Task FSMSpeedTest1() {
+	public async Task FSMSpeedTest1()
+	{
 		var fsm = CreateFSM();
 		var msg = new StorageMessage.WriteCommit(Guid.NewGuid(), new NoopEnvelope(), 0);
 		const int iterations = 1000000;
 
 		var ts = new Timestamp();
 
-		for (int i = 0; i < iterations; ++i) {
+		for (int i = 0; i < iterations; ++i)
+		{
 			await fsm.HandleAsync(msg);
 		}
 
@@ -31,7 +34,8 @@ public class FSMSpeedTest {
 	}
 
 	[Test, Category("LongRunning"), Explicit]
-	public async Task FSMSpeedTest2() {
+	public async Task FSMSpeedTest2()
+	{
 		var bus = InMemoryBus.CreateTest();
 		bus.Subscribe(new AdHocHandler<StorageMessage.WriteCommit>(x => { }));
 		bus.Subscribe(new AdHocHandler<Message>(x => { }));
@@ -41,7 +45,8 @@ public class FSMSpeedTest {
 
 		var ts = new Timestamp();
 
-		for (int i = 0; i < iterations; ++i) {
+		for (int i = 0; i < iterations; ++i)
+		{
 			await bus.DispatchAsync(msg);
 		}
 
@@ -49,7 +54,8 @@ public class FSMSpeedTest {
 		Console.WriteLine($"Elapsed: {elapsedMs} ({elapsedMs / iterations} per item).");
 	}
 
-	private VNodeFSM CreateFSM() {
+	private VNodeFSM CreateFSM()
+	{
 		var outputBus = InMemoryBus.CreateTest(false);
 		var scheduler = new QueuedHandlerThreadPool(outputBus, "Test", new(), new());
 

@@ -11,7 +11,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_coordinator;
 
 [TestFixture]
-public class when_stopping_with_projection_type_all {
+public class when_stopping_with_projection_type_all
+{
 	private FakePublisher[] queues;
 	private FakePublisher publisher;
 	private ProjectionCoreCoordinator _coordinator;
@@ -20,7 +21,8 @@ public class when_stopping_with_projection_type_all {
 		new List<ProjectionCoreServiceMessage.StopCore>();
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		queues = new List<FakePublisher>() { new FakePublisher() }.ToArray();
 		publisher = new FakePublisher();
 
@@ -47,7 +49,8 @@ public class when_stopping_with_projection_type_all {
 			.FindAll(x => x.GetType() == typeof(ProjectionCoreServiceMessage.StopCore))
 			.Select(x => x as ProjectionCoreServiceMessage.StopCore)
 			.ToList();
-		foreach (var msg in stopCoreMessages) {
+		foreach (var msg in stopCoreMessages)
+		{
 			_coordinator.Handle(
 				new ProjectionCoreServiceMessage.SubComponentStopped(ProjectionCoreService.SubComponentName,
 					msg.QueueId));
@@ -55,12 +58,14 @@ public class when_stopping_with_projection_type_all {
 	}
 
 	[Test]
-	public void should_publish_stop_core_messages() {
+	public void should_publish_stop_core_messages()
+	{
 		Assert.AreEqual(1, stopCoreMessages.Count);
 	}
 
 	[Test]
-	public void should_publish_stop_reader_messages_after_core_stopped() {
+	public void should_publish_stop_reader_messages_after_core_stopped()
+	{
 		Assert.AreEqual(1, queues[0].Messages.FindAll(x => x is ReaderCoreServiceMessage.StopReader).Count);
 	}
 }

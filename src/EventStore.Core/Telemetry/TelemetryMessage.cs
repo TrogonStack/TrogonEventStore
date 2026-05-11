@@ -5,12 +5,15 @@ using EventStore.Core.Messaging;
 namespace EventStore.Core.Telemetry;
 
 [DerivedMessage]
-public abstract partial class TelemetryMessage : Message {
+public abstract partial class TelemetryMessage : Message
+{
 	[DerivedMessage(CoreMessage.Telemetry)]
-	public partial class Request : TelemetryMessage {
+	public partial class Request : TelemetryMessage
+	{
 		public readonly IEnvelope<Response> Envelope;
 
-		public Request(IEnvelope<Response> envelope) {
+		public Request(IEnvelope<Response> envelope)
+		{
 			Ensure.NotNull(envelope, "envelope");
 
 			Envelope = envelope;
@@ -18,12 +21,14 @@ public abstract partial class TelemetryMessage : Message {
 	}
 
 	[DerivedMessage(CoreMessage.Telemetry)]
-	public partial class Response : TelemetryMessage {
+	public partial class Response : TelemetryMessage
+	{
 		public readonly string Root;
 		public readonly string Key;
 		public readonly JsonNode Value;
 
-		public Response(string root, string key, JsonNode value) {
+		public Response(string root, string key, JsonNode value)
+		{
 			Ensure.NotNull(root, "root");
 			Ensure.NotNullOrEmpty(key, "key");
 			Ensure.NotNull(value, "value");
@@ -33,7 +38,8 @@ public abstract partial class TelemetryMessage : Message {
 			Value = value;
 		}
 
-		public Response(string key, JsonNode value) : this("", key, value) {
+		public Response(string key, JsonNode value) : this("", key, value)
+		{
 		}
 	}
 

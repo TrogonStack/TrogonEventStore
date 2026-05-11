@@ -20,20 +20,24 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 public abstract class TruncateAndReOpenDbScenario<TLogFormat, TStreamId>(
 	int maxEntriesInMemTable = 100,
-	int metastreamMaxCount = 1) : TruncateScenario<TLogFormat, TStreamId>(maxEntriesInMemTable, metastreamMaxCount) {
-	public override async Task TestFixtureSetUp() {
+	int metastreamMaxCount = 1) : TruncateScenario<TLogFormat, TStreamId>(maxEntriesInMemTable, metastreamMaxCount)
+{
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		await ReOpenDb(CancellationToken.None);
 	}
 
-	private async ValueTask ReOpenDb(CancellationToken token) {
+	private async ValueTask ReOpenDb(CancellationToken token)
+	{
 		Db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, WriterCheckpoint, ChaserCheckpoint));
 
 		await Db.Open(token: token);
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		{
 			IndexDirectory = indexDirectory,
 		});
 		var readers = new ObjectPool<ITransactionFileReader>("Readers", 2, 5,

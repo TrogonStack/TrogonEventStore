@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 
-namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
-	public static class SqliteTypeMapping {
+namespace EventStore.Core.TransactionLog.Scavenging.Sqlite
+{
+	public static class SqliteTypeMapping
+	{
 		private static readonly Dictionary<Type, SqliteType> _sqliteTypeMap = new Dictionary<Type, SqliteType>() {
 			{typeof(int), SqliteType.Integer},
 			{typeof(float), SqliteType.Real},
@@ -15,14 +17,16 @@ namespace EventStore.Core.TransactionLog.Scavenging.Sqlite {
 		/// <summary>
 		/// Returns the mapped SqliteType. 
 		/// </summary>
-		public static SqliteType Map<T>() {
+		public static SqliteType Map<T>()
+		{
 			return _sqliteTypeMap[typeof(T)];
 		}
 
 		/// <summary>
 		/// Returns the name of the mapped type.
 		/// </summary>
-		public static string GetTypeName<T>() {
+		public static string GetTypeName<T>()
+		{
 			return Map<T>().ToString().ToUpper();
 		}
 	}

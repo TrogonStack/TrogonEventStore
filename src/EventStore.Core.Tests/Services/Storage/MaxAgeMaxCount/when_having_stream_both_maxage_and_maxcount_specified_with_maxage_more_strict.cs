@@ -11,7 +11,8 @@ namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
 	when_having_stream_both_maxage_and_maxcount_specified_with_maxage_more_strict<TLogFormat, TStreamId> :
-	ReadIndexTestScenario<TLogFormat, TStreamId> {
+	ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -19,7 +20,8 @@ public class
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var now = DateTime.UtcNow;
 
 		var metadata = $$"""{"$maxAge":{{(int)TimeSpan.FromMinutes(10).TotalSeconds}},"$maxCount":4}""";
@@ -32,7 +34,8 @@ public class
 	}
 
 	[Test]
-	public async Task single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones() {
+	public async Task single_event_read_doesnt_return_expired_events_and_returns_all_actual_ones()
+	{
 		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 		Assert.IsNull(result.Record);
@@ -55,7 +58,8 @@ public class
 	}
 
 	[Test]
-	public async Task forward_range_read_doesnt_return_expired_records() {
+	public async Task forward_range_read_doesnt_return_expired_records()
+	{
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -64,7 +68,8 @@ public class
 	}
 
 	[Test]
-	public async Task backward_range_read_doesnt_return_expired_records() {
+	public async Task backward_range_read_doesnt_return_expired_records()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -73,7 +78,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_forward_returns_all_records_including_expired_ones() {
+	public async Task read_all_forward_returns_all_records_including_expired_ones()
+	{
 		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);
@@ -86,7 +92,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_returns_all_records_including_expired_ones() {
+	public async Task read_all_backward_returns_all_records_including_expired_ones()
+	{
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);

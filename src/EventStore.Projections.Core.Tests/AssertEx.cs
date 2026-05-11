@@ -4,8 +4,10 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests;
 
-public static class AssertEx {
-	public static void AreEqual(IQuerySources expected, IQuerySources actual) {
+public static class AssertEx
+{
+	public static void AreEqual(IQuerySources expected, IQuerySources actual)
+	{
 		Assert.AreEqual(expected.AllEvents, actual.AllEvents, $"Expected {nameof(expected.AllEvents)} to be {expected.AllEvents} but was {actual.AllEvents}");
 		Assert.AreEqual(expected.AllStreams, actual.AllStreams, $"Expected {nameof(expected.AllStreams)} to be {expected.AllStreams} but was {actual.AllStreams}");
 		Assert.AreEqual(expected.ByCustomPartitions, actual.ByCustomPartitions, $"Expected {nameof(expected.ByCustomPartitions)} to be {expected.ByCustomPartitions} but was {actual.ByCustomPartitions}");
@@ -26,11 +28,14 @@ public static class AssertEx {
 		AssertWithName(nameof(expected.Events), expected.Events, actual.Events);
 		AssertWithName(nameof(expected.Streams), expected.Streams, actual.Streams);
 
-		static void AssertWithName(string name, string[] expected, string[] actual) {
-			try {
+		static void AssertWithName(string name, string[] expected, string[] actual)
+		{
+			try
+			{
 				Assert.AreEqual(expected, actual);
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				var msg = name + ex.Message;
 				throw new Exception(msg);
 			}

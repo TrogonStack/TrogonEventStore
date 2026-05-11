@@ -11,7 +11,8 @@ using EventStore.Projections.Core.Tests.Services.projections_manager;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint.Scenarios;
 
-public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+{
 	protected string _projectionName;
 	protected string _projectionSource;
 	protected ProjectionMode _projectionMode;
@@ -21,7 +22,8 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 	protected bool _startSystemProjections;
 
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		base.Given();
 		AllWritesSucceed();
 		NoOtherStreams();
@@ -36,7 +38,8 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 		_startSystemProjections = GivenStartSystemProjections();
 	}
 
-	protected override Tuple<SynchronousScheduler, IPublisher, SynchronousScheduler, Guid>[] GivenProcessingQueues() {
+	protected override Tuple<SynchronousScheduler, IPublisher, SynchronousScheduler, Guid>[] GivenProcessingQueues()
+	{
 		SynchronousScheduler[] buses = [new("1"), new("2")];
 		SynchronousScheduler[] outBuses = [new("o1"), new("o2")];
 		_otherQueues = [new(buses[0], _timeProvider), new(buses[1], _timeProvider)];
@@ -58,11 +61,13 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 
 	protected abstract string GivenQuery();
 
-	protected virtual bool GivenStartSystemProjections() {
+	protected virtual bool GivenStartSystemProjections()
+	{
 		return false;
 	}
 
-	protected Message CreateQueryMessage(string name, string source) {
+	protected Message CreateQueryMessage(string name, string source)
+	{
 		return new ProjectionManagementMessage.Command.Post(
 			_bus, ProjectionMode.Transient, name,
 			ProjectionManagementMessage.RunAs.System, "JS", source, enabled: true, checkpointsEnabled: false,
@@ -70,15 +75,18 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 			emitEnabled: false);
 	}
 
-	protected Message CreateNewProjectionMessage(string name, string source) {
+	protected Message CreateNewProjectionMessage(string name, string source)
+	{
 		return new ProjectionManagementMessage.Command.Post(
 			_bus, ProjectionMode.Continuous, name, ProjectionManagementMessage.RunAs.System,
 			"INTERPRETED", source, enabled: true, checkpointsEnabled: true, trackEmittedStreams: true, emitEnabled: true);
 	}
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
-		if (_startSystemProjections) {
+		if (_startSystemProjections)
+		{
 			yield return
 				new ProjectionManagementMessage.Command.Enable(
 					Envelope, ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection,
@@ -99,7 +107,8 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 
 		var otherProjections = GivenOtherProjections();
 		var index = 0;
-		foreach (var source in otherProjections) {
+		foreach (var source in otherProjections)
+		{
 			yield return
 				(new ProjectionManagementMessage.Command.Post(
 					_bus, ProjectionMode.Continuous, "other_" + index,
@@ -109,7 +118,8 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 			index++;
 		}
 
-		if (!string.IsNullOrEmpty(_projectionSource)) {
+		if (!string.IsNullOrEmpty(_projectionSource))
+		{
 			yield return
 				(new ProjectionManagementMessage.Command.Post(
 					_bus, _projectionMode, _projectionName,
@@ -119,7 +129,8 @@ public abstract class specification_with_js_query_posted<TLogFormat, TStreamId> 
 		}
 	}
 
-	protected virtual IEnumerable<string> GivenOtherProjections() {
+	protected virtual IEnumerable<string> GivenOtherProjections()
+	{
 		return new string[0];
 	}
 }

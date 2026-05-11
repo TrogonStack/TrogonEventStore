@@ -11,7 +11,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager.multi_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TStreamId> : TestFixtureWithMultiStreamCheckpointManager<TLogFormat, TStreamId> {
+public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TStreamId> : TestFixtureWithMultiStreamCheckpointManager<TLogFormat, TStreamId>
+{
 	private readonly CheckpointTag _tag1 =
 		CheckpointTag.FromStreamPositions(0, new Dictionary<string, long> { { "a", 0 }, { "b", 0 }, { "c", 1 } });
 
@@ -20,7 +21,8 @@ public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TSt
 
 	//private readonly CheckpointTag _tag3 =CheckpointTag.FromStreamPositions(new Dictionary<string, int> {{"a", 1}, {"b", 1}, {"c", 1}});
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		base.Given();
 		_projectionVersion = new ProjectionVersion(1, 2, 2);
 		ExistingEvent(
@@ -51,7 +53,8 @@ public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TSt
 			"1@a");
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		base.When();
 		_checkpointReader.BeginLoadState();
 		var checkpointLoaded =
@@ -61,7 +64,8 @@ public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TSt
 	}
 
 	[Test]
-	public void sends_correct_checkpoint_loaded_message() {
+	public void sends_correct_checkpoint_loaded_message()
+	{
 		Assert.AreEqual(1, _projection._checkpointLoadedMessages.Count);
 		Assert.AreEqual(
 			CheckpointTag.FromStreamPositions(0, new Dictionary<string, long> { { "a", 0 }, { "b", 0 }, { "c", 0 } }),
@@ -70,7 +74,8 @@ public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TSt
 	}
 
 	[Test]
-	public void sends_correct_prerecorded_events_loaded_message() {
+	public void sends_correct_prerecorded_events_loaded_message()
+	{
 		Assert.AreEqual(1, _projection._prerecordedEventsLoadedMessages.Count);
 		Assert.AreEqual(
 			CheckpointTag.FromStreamPositions(0, new Dictionary<string, long> { { "a", 1 }, { "b", 0 }, { "c", 1 } }),
@@ -78,7 +83,8 @@ public class when_starting_with_prerecorded_events_in_past_epoch<TLogFormat, TSt
 	}
 
 	[Test]
-	public void sends_committed_event_received_messages_in_correct_order() {
+	public void sends_committed_event_received_messages_in_correct_order()
+	{
 		var messages = HandledMessages.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToList();
 		Assert.AreEqual(2, messages.Count);
 

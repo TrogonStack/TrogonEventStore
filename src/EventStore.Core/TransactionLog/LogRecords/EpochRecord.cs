@@ -3,16 +3,20 @@ using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.Util;
 
-namespace EventStore.Core.TransactionLog.LogRecords {
-	public static class EpochRecordExtensions {
-		public static string AsString(this EpochRecord epoch) {
+namespace EventStore.Core.TransactionLog.LogRecords
+{
+	public static class EpochRecordExtensions
+	{
+		public static string AsString(this EpochRecord epoch)
+		{
 			return string.Format("E{0}@{1}:{2:B}",
 				epoch == null ? -1 : epoch.EpochNumber,
 				epoch == null ? -1 : epoch.EpochPosition,
 				epoch == null ? Guid.Empty : epoch.EpochId);
 		}
 
-		public static string AsString(this Epoch epoch) {
+		public static string AsString(this Epoch epoch)
+		{
 			return string.Format("E{0}@{1}:{2:B}",
 				epoch == null ? -1 : epoch.EpochNumber,
 				epoch == null ? -1 : epoch.EpochPosition,
@@ -20,7 +24,8 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 		}
 	}
 
-	public class EpochRecord : IComparable {
+	public class EpochRecord : IComparable
+	{
 		public readonly long EpochPosition;
 		public readonly int EpochNumber;
 		public readonly Guid EpochId;
@@ -30,7 +35,8 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 		public readonly Guid LeaderInstanceId;
 
 		public EpochRecord(long epochPosition, int epochNumber, Guid epochId, long prevEpochPosition,
-			DateTime timeStamp, Guid leaderInstanceId) {
+			DateTime timeStamp, Guid leaderInstanceId)
+		{
 			EpochPosition = epochPosition;
 			EpochNumber = epochNumber;
 			EpochId = epochId;
@@ -40,14 +46,17 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 		}
 
 		internal EpochRecord(EpochRecordDto dto)
-			: this(dto.EpochPosition, dto.EpochNumber, dto.EpochId, dto.PrevEpochPosition, dto.TimeStamp, dto.LeaderInstanceId) {
+			: this(dto.EpochPosition, dto.EpochNumber, dto.EpochId, dto.PrevEpochPosition, dto.TimeStamp, dto.LeaderInstanceId)
+		{
 		}
 
-		public byte[] AsSerialized() {
+		public byte[] AsSerialized()
+		{
 			return new EpochRecordDto(this).ToJsonBytes();
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format(
 				"EpochPosition: {0}, EpochNumber: {1}, EpochId: {2}, PrevEpochPosition: {3}, TimeStamp: {4}, LeaderInstanceId: {5}",
 				EpochPosition,
@@ -58,20 +67,24 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 				LeaderInstanceId);
 		}
 
-		public int CompareTo(object obj) {
-			if (obj == null) {
+		public int CompareTo(object obj)
+		{
+			if (obj == null)
+			{
 				return 1;
 			}
 
 			EpochRecord other = obj as EpochRecord;
-			if (other == null) {
+			if (other == null)
+			{
 				throw new ArgumentException("Object is not a Epoch Record");
 			}
 
 			return EpochNumber.CompareTo(other.EpochNumber);
 		}
 
-		internal class EpochRecordDto {
+		internal class EpochRecordDto
+		{
 			public long EpochPosition { get; set; }
 			public int EpochNumber { get; set; }
 			public Guid EpochId { get; set; }
@@ -80,10 +93,12 @@ namespace EventStore.Core.TransactionLog.LogRecords {
 			public DateTime TimeStamp { get; set; }
 			public Guid LeaderInstanceId { get; set; }
 
-			public EpochRecordDto() {
+			public EpochRecordDto()
+			{
 			}
 
-			public EpochRecordDto(EpochRecord rec) {
+			public EpochRecordDto(EpochRecord rec)
+			{
 				EpochPosition = rec.EpochPosition;
 				EpochNumber = rec.EpochNumber;
 				EpochId = rec.EpochId;

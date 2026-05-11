@@ -6,8 +6,10 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TestScavengeBackend : IScavengeStateBackend<string> {
-	public TestScavengeBackend() {
+public class TestScavengeBackend : IScavengeStateBackend<string>
+{
+	public TestScavengeBackend()
+	{
 		var checkpointStore = new TestScavengeMap<Unit, ScavengeCheckpoint>();
 
 		ChunkTimeStampRanges = new TestScavengeMap<int, ChunkTimeStampRange>();
@@ -33,17 +35,21 @@ public class TestScavengeBackend : IScavengeStateBackend<string> {
 	public IChunkWeightScavengeMap ChunkWeights { get; }
 	public ITransactionManager TransactionManager { get; }
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 
-	public void LogStats() {
+	public void LogStats()
+	{
 	}
 }
 
-public class TestScavengeMap<TKey, TValue> : IScavengeMap<TKey, TValue> {
+public class TestScavengeMap<TKey, TValue> : IScavengeMap<TKey, TValue>
+{
 	private readonly Dictionary<TKey, TValue> _records = new();
 
-	public TValue this[TKey key] {
+	public TValue this[TKey key]
+	{
 		set => _records[key] = value;
 	}
 
@@ -54,7 +60,8 @@ public class TestScavengeMap<TKey, TValue> : IScavengeMap<TKey, TValue> {
 			.ToDictionary(x => x.Key, x => x.Value)
 			.OrderBy(x => x.Key);
 
-	public bool TryRemove(TKey key, out TValue value) {
+	public bool TryRemove(TKey key, out TValue value)
+	{
 		_records.TryGetValue(key, out value);
 		return _records.Remove(key);
 	}
@@ -62,9 +69,12 @@ public class TestScavengeMap<TKey, TValue> : IScavengeMap<TKey, TValue> {
 
 public class TestMetastreamScavengeMap<TKey> :
 	TestScavengeMap<TKey, MetastreamData>,
-	IMetastreamScavengeMap<TKey> {
-	public void SetTombstone(TKey key) {
-		if (!TryGetValue(key, out var existing)) {
+	IMetastreamScavengeMap<TKey>
+{
+	public void SetTombstone(TKey key)
+	{
+		if (!TryGetValue(key, out var existing))
+		{
 			existing = new MetastreamData();
 		}
 
@@ -73,8 +83,10 @@ public class TestMetastreamScavengeMap<TKey> :
 			discardPoint: existing.DiscardPoint);
 	}
 
-	public void SetDiscardPoint(TKey key, DiscardPoint discardPoint) {
-		if (!TryGetValue(key, out var existing)) {
+	public void SetDiscardPoint(TKey key, DiscardPoint discardPoint)
+	{
+		if (!TryGetValue(key, out var existing))
+		{
 			existing = new MetastreamData();
 		}
 
@@ -83,8 +95,10 @@ public class TestMetastreamScavengeMap<TKey> :
 			discardPoint: discardPoint);
 	}
 
-	public void DeleteAll() {
-		foreach (var record in AllRecords()) {
+	public void DeleteAll()
+	{
+		foreach (var record in AllRecords())
+		{
 			TryRemove(record.Key, out _);
 		}
 	}
@@ -92,13 +106,17 @@ public class TestMetastreamScavengeMap<TKey> :
 
 public class TestOriginalStreamScavengeMap<TKey> :
 	TestScavengeMap<TKey, OriginalStreamData>,
-	IOriginalStreamScavengeMap<TKey> {
-	public void SetTombstone(TKey key) {
-		if (!TryGetValue(key, out var existing)) {
+	IOriginalStreamScavengeMap<TKey>
+{
+	public void SetTombstone(TKey key)
+	{
+		if (!TryGetValue(key, out var existing))
+		{
 			existing = new OriginalStreamData();
 		}
 
-		this[key] = new OriginalStreamData {
+		this[key] = new OriginalStreamData
+		{
 			DiscardPoint = existing.DiscardPoint,
 			MaybeDiscardPoint = existing.MaybeDiscardPoint,
 			MaxAge = existing.MaxAge,
@@ -109,12 +127,15 @@ public class TestOriginalStreamScavengeMap<TKey> :
 		};
 	}
 
-	public void SetMetadata(TKey key, StreamMetadata metadata) {
-		if (!TryGetValue(key, out var existing)) {
+	public void SetMetadata(TKey key, StreamMetadata metadata)
+	{
+		if (!TryGetValue(key, out var existing))
+		{
 			existing = new OriginalStreamData();
 		}
 
-		this[key] = new OriginalStreamData {
+		this[key] = new OriginalStreamData
+		{
 			MaybeDiscardPoint = existing.MaybeDiscardPoint,
 			DiscardPoint = existing.DiscardPoint,
 			IsTombstoned = existing.IsTombstoned,
@@ -129,12 +150,15 @@ public class TestOriginalStreamScavengeMap<TKey> :
 		TKey key,
 		CalculationStatus status,
 		DiscardPoint discardPoint,
-		DiscardPoint maybeDiscardPoint) {
-		if (!TryGetValue(key, out var existing)) {
+		DiscardPoint maybeDiscardPoint)
+	{
+		if (!TryGetValue(key, out var existing))
+		{
 			throw new Exception("Missing original stream scavenge data for test key.");
 		}
 
-		this[key] = new OriginalStreamData {
+		this[key] = new OriginalStreamData
+		{
 			IsTombstoned = existing.IsTombstoned,
 			MaxAge = existing.MaxAge,
 			MaxCount = existing.MaxCount,
@@ -145,8 +169,10 @@ public class TestOriginalStreamScavengeMap<TKey> :
 		};
 	}
 
-	public bool TryGetChunkExecutionInfo(TKey key, out ChunkExecutionInfo info) {
-		if (!TryGetValue(key, out var data)) {
+	public bool TryGetChunkExecutionInfo(TKey key, out ChunkExecutionInfo info)
+	{
+		if (!TryGetValue(key, out var data))
+		{
 			info = default;
 			return false;
 		}
@@ -166,10 +192,13 @@ public class TestOriginalStreamScavengeMap<TKey> :
 	public IEnumerable<KeyValuePair<TKey, OriginalStreamData>> ActiveRecordsFromCheckpoint(TKey checkpoint) =>
 		ActiveRecords().SkipWhile(x => Comparer<TKey>.Default.Compare(x.Key, checkpoint) <= 0);
 
-	public void DeleteMany(bool deleteArchived) {
-		foreach (var record in AllRecords()) {
+	public void DeleteMany(bool deleteArchived)
+	{
+		foreach (var record in AllRecords())
+		{
 			if (record.Value.Status == CalculationStatus.Spent ||
-				record.Value.Status == CalculationStatus.Archived && deleteArchived) {
+				record.Value.Status == CalculationStatus.Archived && deleteArchived)
+			{
 				TryRemove(record.Key, out _);
 			}
 		}
@@ -178,10 +207,14 @@ public class TestOriginalStreamScavengeMap<TKey> :
 
 public class TestChunkWeightScavengeMap :
 	TestScavengeMap<int, float>,
-	IChunkWeightScavengeMap {
-	public bool AllWeightsAreZero() {
-		foreach (var record in AllRecords()) {
-			if (record.Value != 0) {
+	IChunkWeightScavengeMap
+{
+	public bool AllWeightsAreZero()
+	{
+		foreach (var record in AllRecords())
+		{
+			if (record.Value != 0)
+			{
 				return false;
 			}
 		}
@@ -189,25 +222,32 @@ public class TestChunkWeightScavengeMap :
 		return true;
 	}
 
-	public void IncreaseWeight(int logicalChunkNumber, float extraWeight) {
-		if (!TryGetValue(logicalChunkNumber, out var weight)) {
+	public void IncreaseWeight(int logicalChunkNumber, float extraWeight)
+	{
+		if (!TryGetValue(logicalChunkNumber, out var weight))
+		{
 			weight = 0;
 		}
 
 		this[logicalChunkNumber] = weight + extraWeight;
 	}
 
-	public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
-		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++) {
+	public void ResetChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber)
+	{
+		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++)
+		{
 			TryRemove(i, out _);
 		}
 	}
 
-	public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber) {
+	public float SumChunkWeights(int startLogicalChunkNumber, int endLogicalChunkNumber)
+	{
 		var totalWeight = 0f;
 
-		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++) {
-			if (TryGetValue(i, out var weight)) {
+		for (var i = startLogicalChunkNumber; i <= endLogicalChunkNumber; i++)
+		{
+			if (TryGetValue(i, out var weight))
+			{
 				totalWeight += weight;
 			}
 		}
@@ -216,14 +256,17 @@ public class TestChunkWeightScavengeMap :
 	}
 }
 
-public class TestTransactionFactory : ITransactionFactory<int> {
+public class TestTransactionFactory : ITransactionFactory<int>
+{
 	private int _transactionNumber;
 
 	public int Begin() => _transactionNumber++;
 
-	public void Commit(int transaction) {
+	public void Commit(int transaction)
+	{
 	}
 
-	public void Rollback(int transaction) {
+	public void Rollback(int transaction)
+	{
 	}
 }

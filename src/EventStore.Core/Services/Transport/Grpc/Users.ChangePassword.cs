@@ -7,20 +7,24 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Users {
+internal partial class Users
+{
 	private static readonly Operation ChangePasswordOperation = new Operation(Plugins.Authorization.Operations.Users.ChangePassword);
 	public override async Task<ChangePasswordResp> ChangePassword(ChangePasswordReq request,
-		ServerCallContext context) {
+		ServerCallContext context)
+	{
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
 		var changePasswordOperation = ChangePasswordOperation;
-		if (options?.LoginName != null) {
+		if (options?.LoginName != null)
+		{
 			changePasswordOperation =
 				changePasswordOperation.WithParameter(
 					Plugins.Authorization.Operations.Users.Parameters.User(options.LoginName));
 		}
-		if (!await _authorizationProvider.CheckAccessAsync(user, changePasswordOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, changePasswordOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 		var changePasswordSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -35,8 +39,10 @@ internal partial class Users {
 
 		return new ChangePasswordResp();
 
-		void OnMessage(Message message) {
-			if (HandleErrors(options.LoginName, message, changePasswordSource)) {
+		void OnMessage(Message message)
+		{
+			if (HandleErrors(options.LoginName, message, changePasswordSource))
+			{
 				return;
 			}
 

@@ -11,7 +11,8 @@ using Serilog;
 
 namespace EventStore.Core.TransactionLog.Scavenging;
 
-public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStreamId, ILogRecord> {
+public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStreamId, ILogRecord>
+{
 	const int BatchLength = 2000;
 	private readonly ILogger _logger;
 	private readonly ChunkManagerForExecutor<TStreamId> _manager;
@@ -24,7 +25,8 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		ILogger logger,
 		ChunkManagerForExecutor<TStreamId> manager,
 		IChunkFileSystem fileSystem,
-		TFChunk outputChunk) {
+		TFChunk outputChunk)
+	{
 
 		_logger = logger;
 		_manager = manager;
@@ -43,7 +45,8 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 		TFChunkDbConfig dbConfig,
 		IChunkReaderForExecutor<TStreamId, ILogRecord> sourceChunk,
 		DbTransformManager transformManager,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
 		// from TFChunkScavenger.ScavengeChunk
 		var chunk = await TFChunk.CreateNew(
@@ -66,12 +69,14 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 
 	public string LocalFileName => _outputChunk.LocalFileName;
 
-	public async ValueTask WriteRecord(RecordForExecutor<TStreamId, ILogRecord> record, CancellationToken token) {
+	public async ValueTask WriteRecord(RecordForExecutor<TStreamId, ILogRecord> record, CancellationToken token)
+	{
 		var posMap = await TFChunkScavenger<TStreamId>.WriteRecord(_outputChunk, record.Record, token);
 
 		// add the posmap in memory so we can write it when we complete
 		var lastBatch = _posMapss[^1];
-		if (lastBatch.Count >= BatchLength) {
+		if (lastBatch.Count >= BatchLength)
+		{
 			lastBatch = new List<PosMap>(capacity: BatchLength);
 			_posMapss.Add(lastBatch);
 		}
@@ -80,21 +85,25 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 
 		// occasionally flush the chunk. based on TFChunkScavenger.ScavengeChunk
 		var currentPage = _outputChunk.RawWriterPosition / 4046;
-		if (currentPage - _lastFlushedPage > TFChunkScavenger.FlushPageInterval) {
+		if (currentPage - _lastFlushedPage > TFChunkScavenger.FlushPageInterval)
+		{
 			await _outputChunk.Flush(token);
 			_lastFlushedPage = currentPage;
 		}
 	}
 
-	public async ValueTask<(string, long)> Complete(CancellationToken token) {
+	public async ValueTask<(string, long)> Complete(CancellationToken token)
+	{
 		// write posmap
 		var posMapCount = 0;
-		foreach (var list in _posMapss) {
+		foreach (var list in _posMapss)
+		{
 			posMapCount += list.Count;
 		}
 
 		var unifiedPosMap = new List<PosMap>(capacity: posMapCount);
-		foreach (var list in _posMapss) {
+		foreach (var list in _posMapss)
+		{
 			unifiedPosMap.AddRange(list);
 		}
 
@@ -105,13 +114,16 @@ public class ChunkWriterForExecutor<TStreamId> : IChunkWriterForExecutor<TStream
 	}
 
 	// tbh not sure why this distinction is important
-	public void Abort(bool deleteImmediately) {
-		if (deleteImmediately) {
+	public void Abort(bool deleteImmediately)
+	{
+		if (deleteImmediately)
+		{
 			_outputChunk.Dispose();
 			TFChunkScavenger<TStreamId>.DeleteTempChunk(_logger, LocalFileName, TFChunkScavenger.MaxRetryCount,
 				_fileSystem);
 		}
-		else {
+		else
+		{
 			_outputChunk.MarkForDeletion();
 		}
 	}

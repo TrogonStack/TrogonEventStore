@@ -9,11 +9,13 @@ namespace EventStore.Core.Tests.Services.Storage.Scavenge;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_having_commit_spanning_multiple_chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+	when_having_commit_spanning_multiple_chunks<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private List<ILogRecord> _survivors;
 	private List<ILogRecord> _scavenged;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		_survivors = new List<ILogRecord>();
 		_scavenged = new List<ILogRecord>();
 
@@ -21,7 +23,8 @@ public class
 		var (eventTypeId, _) = await GetOrReserveEventType("event-type", token);
 		var transPos = Writer.Position;
 
-		for (int i = 0; i < 10; ++i) {
+		for (int i = 0; i < 10; ++i)
+		{
 			var r = LogRecord.Prepare(_recordFactory, Writer.Position,
 				Guid.NewGuid(),
 				Guid.NewGuid(),
@@ -64,13 +67,16 @@ public class
 	}
 
 	[Test]
-	public async Task all_chunks_are_merged_and_scavenged() {
-		foreach (var rec in _scavenged) {
+	public async Task all_chunks_are_merged_and_scavenged()
+	{
+		foreach (var rec in _scavenged)
+		{
 			var chunk = Db.Manager.GetChunkFor(rec.LogPosition);
 			Assert.IsTrue(await chunk.TryReadAt(rec.LogPosition, couldBeScavenged: true, CancellationToken.None) is { Success: false });
 		}
 
-		foreach (var rec in _survivors) {
+		foreach (var rec in _survivors)
+		{
 			var chunk = Db.Manager.GetChunkFor(rec.LogPosition);
 			var res = await chunk.TryReadAt(rec.LogPosition, couldBeScavenged: false, CancellationToken.None);
 			Assert.IsTrue(res.Success);

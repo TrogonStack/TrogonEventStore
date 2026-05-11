@@ -6,15 +6,19 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
 [TestFixture]
-public class when_receiving_multiple_events_not_passing_event_filter : TestFixtureWithProjectionSubscription {
-	protected override void Given() {
-		_source = source => {
+public class when_receiving_multiple_events_not_passing_event_filter : TestFixtureWithProjectionSubscription
+{
+	protected override void Given()
+	{
+		_source = source =>
+		{
 			source.FromAll();
 			source.IncludeEvent("specific-event");
 		};
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(200, 150), "test-stream", 1, false, Guid.NewGuid(),
@@ -30,7 +34,8 @@ public class when_receiving_multiple_events_not_passing_event_filter : TestFixtu
 	}
 
 	[Test]
-	public void checkpoint_suggested_message_is_published_once_for_interval() {
+	public void checkpoint_suggested_message_is_published_once_for_interval()
+	{
 		Assert.AreEqual(1, _checkpointHandler.HandledMessages.Count);
 		Assert.AreEqual(2000, _checkpointHandler.HandledMessages[0].CheckpointTag.CommitPosition);
 		Assert.AreEqual(1950, _checkpointHandler.HandledMessages[0].CheckpointTag.PreparePosition);

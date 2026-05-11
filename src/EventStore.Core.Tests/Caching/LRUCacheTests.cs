@@ -5,7 +5,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Caching;
 
 [TestFixture]
-public class LRUCacheTests {
+public class LRUCacheTests
+{
 
 	private static LRUCache<TKey, TValue> GenSut<TKey, TValue>(int capacity,
 		LRUCache<TKey, TValue>.CalculateItemSize calculateItemSize = null,
@@ -13,7 +14,8 @@ public class LRUCacheTests {
 		new(string.Empty, capacity, calculateItemSize, calculateFreedSize);
 
 	[Test]
-	public void can_add_and_read_item() {
+	public void can_add_and_read_item()
+	{
 		var sut = GenSut<string, int>(3);
 
 		Assert.AreEqual(0, sut.Size);
@@ -27,7 +29,8 @@ public class LRUCacheTests {
 	}
 
 	[Test]
-	public void can_clear_items() {
+	public void can_clear_items()
+	{
 		var sut = GenSut<string, int>(10);
 
 		sut.Put("key1", 1);
@@ -42,7 +45,8 @@ public class LRUCacheTests {
 	}
 
 	[Test]
-	public void least_recently_added_item_is_replaced_when_capacity_reached() {
+	public void least_recently_added_item_is_replaced_when_capacity_reached()
+	{
 		var sut = GenSut<string, int>(2);
 
 		sut.Put("key1", 1);
@@ -55,7 +59,8 @@ public class LRUCacheTests {
 	}
 
 	[Test]
-	public void least_recently_used_item_is_replaced_when_capacity_reached() {
+	public void least_recently_used_item_is_replaced_when_capacity_reached()
+	{
 		var sut = GenSut<string, int>(2);
 
 		sut.Put("key1", 1);
@@ -70,14 +75,16 @@ public class LRUCacheTests {
 		Assert.True(sut.TryGet("key3", out _));
 	}
 
-	public class WithCustomItemSizeCalculator {
+	public class WithCustomItemSizeCalculator
+	{
 		private readonly LRUCache<int, int> _sut;
 
 		public WithCustomItemSizeCalculator() =>
 			_sut = GenSut<int, int>(7, (k, v) => k + v);
 
 		[Test]
-		public void size_is_correct_when_items_are_added() {
+		public void size_is_correct_when_items_are_added()
+		{
 			_sut.Put(1, 0);
 			Assert.AreEqual(1, _sut.Size);
 
@@ -97,7 +104,8 @@ public class LRUCacheTests {
 		}
 
 		[Test]
-		public void size_is_correct_when_items_are_updated() {
+		public void size_is_correct_when_items_are_updated()
+		{
 			_sut.Put(1, 0);
 			_sut.Put(2, 0);
 			_sut.Put(3, 0);
@@ -107,7 +115,8 @@ public class LRUCacheTests {
 		}
 
 		[Test]
-		public void size_is_correct_when_items_are_cleared() {
+		public void size_is_correct_when_items_are_cleared()
+		{
 			_sut.Put(1, 0);
 			_sut.Put(2, 0);
 			_sut.Put(3, 0);
@@ -118,10 +127,12 @@ public class LRUCacheTests {
 		}
 	}
 
-	public class WhenResizing {
+	public class WhenResizing
+	{
 
 		[Test]
-		public void can_increase_capacity() {
+		public void can_increase_capacity()
+		{
 			var sut = GenSut<int, int>(6, (k, v) => k + v);
 
 			sut.Put(1, 0);
@@ -137,7 +148,8 @@ public class LRUCacheTests {
 		}
 
 		[Test]
-		public void can_decrease_capacity() {
+		public void can_decrease_capacity()
+		{
 			var sut = GenSut<int, int>(6, (k, v) => k + v);
 
 			sut.Put(1, 0);
@@ -153,7 +165,8 @@ public class LRUCacheTests {
 		}
 
 		[Test]
-		public void can_set_capacity_to_zero() {
+		public void can_set_capacity_to_zero()
+		{
 			var sut = GenSut<int, int>(6, (k, v) => k + v);
 
 			sut.Put(1, 0);
@@ -169,7 +182,8 @@ public class LRUCacheTests {
 		}
 
 		[Test]
-		public void throws_when_setting_negative_capacity() {
+		public void throws_when_setting_negative_capacity()
+		{
 			var sut = GenSut<int, int>(6, (k, v) => k + v);
 
 			Assert.Throws<ArgumentOutOfRangeException>(() =>

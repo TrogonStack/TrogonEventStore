@@ -8,21 +8,24 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.PeriodicLogs;
 
-public class PeriodicallyLoggingServiceTests {
+public class PeriodicallyLoggingServiceTests
+{
 
 	private FakePublisher _publisher;
 	private FakeLogger _logger;
 	private string _esVersion;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_publisher = new();
 		_logger = new FakeLogger();
 		_esVersion = "0.0.0.0";
 	}
 
 	[Test]
-	public void on_start() {
+	public void on_start()
+	{
 		// given
 		var sut = new PeriodicallyLoggingService(_publisher, _esVersion, _logger);
 
@@ -35,7 +38,8 @@ public class PeriodicallyLoggingServiceTests {
 	}
 
 	[Test]
-	public void log_es_version_periodically() {
+	public void log_es_version_periodically()
+	{
 		// given
 		var sut = new PeriodicallyLoggingService(_publisher, _esVersion, _logger);
 

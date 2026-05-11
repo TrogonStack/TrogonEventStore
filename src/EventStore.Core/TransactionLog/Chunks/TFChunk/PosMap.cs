@@ -5,19 +5,22 @@ using DotNext.Buffers.Binary;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-public struct PosMap : IBinaryFormattable<PosMap> {
+public struct PosMap : IBinaryFormattable<PosMap>
+{
 	public const int FullSize = sizeof(long) + sizeof(int);
 
 	public readonly long LogPos;
 	public readonly int ActualPos;
 
-	public PosMap(long logPos, int actualPos) {
+	public PosMap(long logPos, int actualPos)
+	{
 		LogPos = logPos;
 		ActualPos = actualPos;
 	}
 
 	// for new format only
-	public PosMap(ReadOnlySpan<byte> source) {
+	public PosMap(ReadOnlySpan<byte> source)
+	{
 		Debug.Assert(source.Length >= FullSize);
 
 		SpanReader<byte> reader = new(source);
@@ -33,7 +36,8 @@ public struct PosMap : IBinaryFormattable<PosMap> {
 	public static PosMap FromNewFormat(ReadOnlySpan<byte> source)
 		=> new(source);
 
-	public readonly void Format(Span<byte> destination) {
+	public readonly void Format(Span<byte> destination)
+	{
 		SpanWriter<byte> writer = new(destination);
 		writer.WriteLittleEndian(ActualPos);
 		writer.WriteLittleEndian(LogPos);

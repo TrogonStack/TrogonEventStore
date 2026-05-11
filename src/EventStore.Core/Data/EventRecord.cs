@@ -3,9 +3,12 @@ using System.Text;
 using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.LogRecords;
 
-namespace EventStore.Core.Data {
-	public class EventRecord : IEquatable<EventRecord> {
-		public bool IsJson {
+namespace EventStore.Core.Data
+{
+	public class EventRecord : IEquatable<EventRecord>
+	{
+		public bool IsJson
+		{
 			get { return (Flags & PrepareFlags.IsJson) == PrepareFlags.IsJson; }
 		}
 
@@ -25,7 +28,8 @@ namespace EventStore.Core.Data {
 		public readonly ReadOnlyMemory<byte> Data;
 		public readonly ReadOnlyMemory<byte> Metadata;
 
-		public EventRecord(long eventNumber, IPrepareLogRecord prepare, string eventStreamId, string eventType) {
+		public EventRecord(long eventNumber, IPrepareLogRecord prepare, string eventStreamId, string eventType)
+		{
 			Ensure.Nonnegative(eventNumber, "eventNumber");
 			Ensure.NotNull(eventStreamId, "eventStreamId");
 
@@ -58,10 +62,12 @@ namespace EventStore.Core.Data {
 			PrepareFlags flags,
 			string eventType,
 			byte[] data,
-			byte[] metadata) {
+			byte[] metadata)
+		{
 			Ensure.Nonnegative(logPosition, "logPosition");
 			Ensure.Nonnegative(transactionPosition, "transactionPosition");
-			if (transactionOffset < -1) {
+			if (transactionOffset < -1)
+			{
 				throw new ArgumentOutOfRangeException("transactionOffset");
 			}
 
@@ -85,12 +91,15 @@ namespace EventStore.Core.Data {
 			Metadata = metadata ?? Empty.ByteArray;
 		}
 
-		public bool Equals(EventRecord other) {
-			if (ReferenceEquals(null, other)) {
+		public bool Equals(EventRecord other)
+		{
+			if (ReferenceEquals(null, other))
+			{
 				return false;
 			}
 
-			if (ReferenceEquals(this, other)) {
+			if (ReferenceEquals(this, other))
+			{
 				return true;
 			}
 
@@ -109,24 +118,30 @@ namespace EventStore.Core.Data {
 				   && Metadata.Span.SequenceEqual(other.Metadata.Span);
 		}
 
-		public override bool Equals(object obj) {
-			if (ReferenceEquals(null, obj)) {
+		public override bool Equals(object obj)
+		{
+			if (ReferenceEquals(null, obj))
+			{
 				return false;
 			}
 
-			if (ReferenceEquals(this, obj)) {
+			if (ReferenceEquals(this, obj))
+			{
 				return true;
 			}
 
-			if (obj.GetType() != GetType()) {
+			if (obj.GetType() != GetType())
+			{
 				return false;
 			}
 
 			return Equals((EventRecord)obj);
 		}
 
-		public override int GetHashCode() {
-			unchecked {
+		public override int GetHashCode()
+		{
+			unchecked
+			{
 				int hashCode = EventNumber.GetHashCode();
 				hashCode = (hashCode * 397) ^ LogPosition.GetHashCode();
 				hashCode = (hashCode * 397) ^ CorrelationId.GetHashCode();
@@ -144,15 +159,18 @@ namespace EventStore.Core.Data {
 			}
 		}
 
-		public static bool operator ==(EventRecord left, EventRecord right) {
+		public static bool operator ==(EventRecord left, EventRecord right)
+		{
 			return Equals(left, right);
 		}
 
-		public static bool operator !=(EventRecord left, EventRecord right) {
+		public static bool operator !=(EventRecord left, EventRecord right)
+		{
 			return !Equals(left, right);
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format("EventNumber: {0}, "
 								 + "LogPosition: {1}, "
 								 + "CorrelationId: {2}, "
@@ -178,11 +196,13 @@ namespace EventStore.Core.Data {
 		}
 
 #if DEBUG
-		public string DebugDataView {
+		public string DebugDataView
+		{
 			get { return Encoding.UTF8.GetString(Data.Span); }
 		}
 
-		public string DebugMetadataView {
+		public string DebugMetadataView
+		{
 			get { return Encoding.UTF8.GetString(Metadata.Span); }
 		}
 #endif

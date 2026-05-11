@@ -1,6 +1,7 @@
 namespace EventStore.Common.DevCertificates;
 
-public enum CertificateKeyExportFormat {
+public enum CertificateKeyExportFormat
+{
 	Pfx,
 	Pem,
 }

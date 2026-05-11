@@ -6,8 +6,10 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public class when_running_a_js_projection_emitting_invalid_links : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_running_a_js_projection_emitting_invalid_links : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
                 fromAll().when({$any: 
                     function(state, event) {
@@ -19,8 +21,10 @@ public class when_running_a_js_projection_emitting_invalid_links : TestFixtureWi
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_does_not_allow_emitted_event() {
-		var ex = Assert.Throws<Exception>(() => {
+	public void process_event_does_not_allow_emitted_event()
+	{
+		var ex = Assert.Throws<Exception>(() =>
+		{
 			_stateHandler.ProcessEvent(
 				"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 				"metadata",

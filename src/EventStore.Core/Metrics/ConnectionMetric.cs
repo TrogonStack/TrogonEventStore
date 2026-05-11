@@ -3,32 +3,41 @@ using System.Diagnostics.Tracing;
 
 namespace EventStore.Core.Metrics;
 
-public class ConnectionMetric : EventListener {
+public class ConnectionMetric : EventListener
+{
 	private readonly UpDownCounter<long> _connectionsMetric;
 
-	public ConnectionMetric(Meter meter, string name) {
+	public ConnectionMetric(Meter meter, string name)
+	{
 		_connectionsMetric = meter.CreateUpDownCounter<long>(name);
 	}
 
-	protected override void OnEventSourceCreated(EventSource eventSource) {
-		if (eventSource.Name is not "Microsoft-AspNetCore-Server-Kestrel") {
+	protected override void OnEventSourceCreated(EventSource eventSource)
+	{
+		if (eventSource.Name is not "Microsoft-AspNetCore-Server-Kestrel")
+		{
 			return;
 		}
 
 		EnableEvents(eventSource, EventLevel.Verbose);
 	}
 
-	protected override void OnEventWritten(EventWrittenEventArgs eventData) {
-		if (_connectionsMetric == null) {
+	protected override void OnEventWritten(EventWrittenEventArgs eventData)
+	{
+		if (_connectionsMetric == null)
+		{
 			return;
 		}
 
-		switch (eventData.EventName) {
-			case "ConnectionStart": {
+		switch (eventData.EventName)
+		{
+			case "ConnectionStart":
+				{
 					_connectionsMetric.Add(1);
 					break;
 				}
-			case "ConnectionStop": {
+			case "ConnectionStop":
+				{
 					_connectionsMetric.Add(-1);
 					break;
 				}

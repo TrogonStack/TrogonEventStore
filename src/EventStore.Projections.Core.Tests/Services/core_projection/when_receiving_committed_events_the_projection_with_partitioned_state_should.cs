@@ -13,11 +13,14 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_receiving_committed_events_the_projection_with_partitioned_state_should<TLogFormat, TStreamId> :
-	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+	TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private Guid _eventId;
 
-	protected override void Given() {
-		_configureBuilderByQuerySource = source => {
+	protected override void Given()
+	{
+		_configureBuilderByQuerySource = source =>
+		{
 			source.FromAll();
 			source.AllEvents();
 			source.SetByStream();
@@ -29,7 +32,8 @@ public class when_receiving_committed_events_the_projection_with_partitioned_sta
 		AllWritesSucceed();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_consumer.HandledMessages.Clear();
@@ -58,7 +62,8 @@ public class when_receiving_committed_events_the_projection_with_partitioned_sta
 	}
 
 	[Test]
-	public void request_partition_state_from_the_correct_stream() {
+	public void request_partition_state_from_the_correct_stream()
+	{
 		Assert.AreEqual(
 			1,
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsBackward>()
@@ -70,7 +75,8 @@ public class when_receiving_committed_events_the_projection_with_partitioned_sta
 	}
 
 	[Test]
-	public void update_state_snapshots_are_written_to_the_correct_stream() {
+	public void update_state_snapshots_are_written_to_the_correct_stream()
+	{
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "Result")).ToList();
 		Assert.AreEqual(4, writeEvents.Count);
@@ -81,7 +87,8 @@ public class when_receiving_committed_events_the_projection_with_partitioned_sta
 	}
 
 	[Test]
-	public void update_state_snapshots_are_correct() {
+	public void update_state_snapshots_are_correct()
+	{
 		var writeEvents =
 			_writeEventHandler.HandledMessages.Where(v => v.Events.Any(e => e.EventType == "Result")).ToList();
 		Assert.AreEqual(4, writeEvents.Count);
@@ -92,7 +99,8 @@ public class when_receiving_committed_events_the_projection_with_partitioned_sta
 	}
 
 	[Test]
-	public void register_new_partition_state_stream_only_once() {
+	public void register_new_partition_state_stream_only_once()
+	{
 		var writes =
 			_writeEventHandler.HandledMessages.Where(v => v.EventStreamId == "$projections-projection-partitions")
 				.ToArray();

@@ -11,7 +11,8 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.LogV2;
 
-public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2StreamExistenceFilterInitializerTests> {
+public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2StreamExistenceFilterInitializerTests>
+{
 	private readonly TableIndex<string> _tableIndex;
 	private readonly LogV2StreamExistenceFilterInitializer _sut;
 	private readonly FakeInMemoryTfReader _log;
@@ -19,7 +20,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	private readonly int _recordOffset = 100;
 	private long _nextLogPosition = 0;
 
-	public LogV2StreamExistenceFilterInitializerTests() {
+	public LogV2StreamExistenceFilterInitializerTests()
+	{
 		_log = new FakeInMemoryTfReader(recordOffset: _recordOffset);
 		_tableIndex = new TableIndex<string>(
 			directory: Fixture.Directory,
@@ -44,7 +46,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 
 	}
 
-	private void AddEventToSut(string stream, int eventNumber) {
+	private void AddEventToSut(string stream, int eventNumber)
+	{
 		var record = LogRecord.SingleWrite(
 			factory: new LogV2RecordFactory(),
 			logPosition: _nextLogPosition,
@@ -67,7 +70,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	}
 
 	[Fact]
-	public async Task can_initialize_empty() {
+	public async Task can_initialize_empty()
+	{
 		Assert.Equal(-1, _filter.CurrentCheckpoint);
 		await _sut.Initialize(_filter, 0, CancellationToken.None);
 		Assert.Equal(-1, _filter.CurrentCheckpoint);
@@ -79,7 +83,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	[InlineData(100, 600)] // if we do truncate (to 100)
 	[InlineData(1000, 1000)] // if we dont truncate
 	[InlineData(2000, 1000)] // if we dont truncate
-	public async Task can_truncate(long truncateTo, long expectedCheckpoint) {
+	public async Task can_truncate(long truncateTo, long expectedCheckpoint)
+	{
 		_filter.CurrentCheckpoint = 1000;
 
 		AddEventToSut("1", 0);
@@ -95,7 +100,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	}
 
 	[Fact]
-	public async Task can_initialize_from_beginning() {
+	public async Task can_initialize_from_beginning()
+	{
 		// (implementation detail: initializes from index)
 		AddEventToSut("1", 0);
 		AddEventToSut("1", 1);
@@ -113,7 +119,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 
 	// this ensures every record is processed because each stream has 1 record
 	[Fact]
-	public async Task can_initialize_from_beginning_unique() {
+	public async Task can_initialize_from_beginning_unique()
+	{
 		// (implementation detail: initializes from index)
 		AddEventToSut("1", 0);
 		AddEventToSut("2", 0);
@@ -130,7 +137,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	}
 
 	[Fact]
-	public async Task can_initialize_incremental() {
+	public async Task can_initialize_incremental()
+	{
 		// (implementation detail: initializes from log)
 		_filter.CurrentCheckpoint = 0;
 
@@ -153,12 +161,15 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	// after the fix the window for getting the filedeletedexception is small so the test
 	// is unlikely to exercise it.
 	[Fact(Skip = "manual")]
-	public async Task can_initalize_during_merge() {
+	public async Task can_initalize_during_merge()
+	{
 		var eventsPerStream = 1_000;
 		var numStreams = 1_000;
 		var numEvents = eventsPerStream * numStreams;
-		for (int i = 0; i < numStreams; i++) {
-			for (int j = 0; j < eventsPerStream; j++) {
+		for (int i = 0; i < numStreams; i++)
+		{
+			for (int j = 0; j < eventsPerStream; j++)
+			{
 				AddEventToSut(stream: $"stream-{i}", eventNumber: j);
 			}
 		}
@@ -174,7 +185,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 	}
 
 	[Fact]
-	public async Task cannot_initialize_with_v1_indexes() {
+	public async Task cannot_initialize_with_v1_indexes()
+	{
 		var tableIndex = new TableIndex<string>(
 			directory: Fixture.Directory,
 			lowHasher: new XXHashUnsafe(),
@@ -195,7 +207,8 @@ public class LogV2StreamExistenceFilterInitializerTests : DirectoryPerTest<LogV2
 
 		var filter = new MockExistenceFilter(hasher: null);
 
-		var ex = await Assert.ThrowsAsync<NotSupportedException>(async () => {
+		var ex = await Assert.ThrowsAsync<NotSupportedException>(async () =>
+		{
 			await sut.Initialize(filter, 0, CancellationToken.None);
 		});
 		Assert.Equal(

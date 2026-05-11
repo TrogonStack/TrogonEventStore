@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using EventStore.Core.Time;
 
-namespace EventStore.Core.Metrics {
+namespace EventStore.Core.Metrics
+{
 	// This represents an activity that can fail
-	public struct Duration : IDisposable {
+	public struct Duration : IDisposable
+	{
 		private readonly DurationMetric _metric;
 		private readonly string _name;
 		private readonly Instant _start;
@@ -12,18 +14,21 @@ namespace EventStore.Core.Metrics {
 
 		public static Duration Nil { get; } = new();
 
-		public Duration(DurationMetric metric, string name, Instant start) {
+		public Duration(DurationMetric metric, string name, Instant start)
+		{
 			_metric = metric;
 			_name = name;
 			_start = start;
 			_failed = false;
 		}
 
-		public void SetException(Exception ex) {
+		public void SetException(Exception ex)
+		{
 			_failed = true;
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_metric?.Record(
 				_start,
 				new KeyValuePair<string, object>("activity", _name),

@@ -6,12 +6,15 @@ using EventStore.Core.TransactionLog.Chunks;
 
 namespace EventStore.Core.Tests.Services.Storage.Scavenge.ScavengeLogManager;
 
-public static class ScavengerLogHelper {
-	public static string ScavengeStreamId(Guid scavengeId) {
+public static class ScavengerLogHelper
+{
+	public static string ScavengeStreamId(Guid scavengeId)
+	{
 		return $"{SystemStreams.ScavengesStream}-{scavengeId}";
 	}
 
-	public static StreamMetadata CreateScavengeMetadata(TimeSpan scavengeHistoryMaxAge) {
+	public static StreamMetadata CreateScavengeMetadata(TimeSpan scavengeHistoryMaxAge)
+	{
 		return new StreamMetadata(maxAge: scavengeHistoryMaxAge, acl: new(
 			new[] { "$ops" },
 			new string[] { },
@@ -22,7 +25,8 @@ public static class ScavengerLogHelper {
 	}
 
 	public static Dictionary<string, object> CreateScavengeStarted(Guid scavengeId, string nodeEndpoint,
-		int startFromChunk = 0) {
+		int startFromChunk = 0)
+	{
 		return new Dictionary<string, object> {
 			{ "scavengeId", scavengeId },
 			{ "nodeEndpoint", nodeEndpoint },
@@ -34,7 +38,8 @@ public static class ScavengerLogHelper {
 	}
 
 	public static Dictionary<string, object> CreateScavengeInterruptedByRestart
-		(Guid scavengeId, string nodeEndpoint, TimeSpan timeTaken, long spaceSaved = 0, int maxChunkScavenged = 0) {
+		(Guid scavengeId, string nodeEndpoint, TimeSpan timeTaken, long spaceSaved = 0, int maxChunkScavenged = 0)
+	{
 		return new Dictionary<string, object> {
 			{ "scavengeId", scavengeId },
 			{ "nodeEndpoint", nodeEndpoint },
@@ -47,7 +52,8 @@ public static class ScavengerLogHelper {
 	}
 
 	public static Dictionary<string, object> CreateScavengeChunkCompleted
-		(Guid scavengeId, string nodeEndpoint, int chunkStart, int chunkEnd, TimeSpan elapsed, long spaceSaved) {
+		(Guid scavengeId, string nodeEndpoint, int chunkStart, int chunkEnd, TimeSpan elapsed, long spaceSaved)
+	{
 		return new Dictionary<string, object> {
 			{ "scavengeId", scavengeId },
 			{ "chunkStartNumber", chunkStart },
@@ -61,7 +67,8 @@ public static class ScavengerLogHelper {
 	}
 
 	public static Dictionary<string, object> CreateScavengeCompletedSuccessfully(
-		Guid scavengeId, string nodeEndpoint, TimeSpan elapsed, long spaceSaved, int maxChunkScavenged) {
+		Guid scavengeId, string nodeEndpoint, TimeSpan elapsed, long spaceSaved, int maxChunkScavenged)
+	{
 		return new Dictionary<string, object> {
 			{ "scavengeId", scavengeId },
 			{ "nodeEndpoint", nodeEndpoint },

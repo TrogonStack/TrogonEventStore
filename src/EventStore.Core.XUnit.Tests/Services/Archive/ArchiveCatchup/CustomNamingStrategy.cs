@@ -3,7 +3,8 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.XUnit.Tests.Services.Archive.ArchiveCatchup;
 
-internal class CustomNamingStrategy : IVersionedFileNamingStrategy {
+internal class CustomNamingStrategy : IVersionedFileNamingStrategy
+{
 	public string Prefix => "chunk-";
 
 	public string GetFilenameFor(int chunkStartNumber, int chunkEndNumber) =>
@@ -15,13 +16,15 @@ internal class CustomNamingStrategy : IVersionedFileNamingStrategy {
 	public string CreateTempFilename() => throw new NotImplementedException();
 	public string[] GetAllTempFiles() => throw new NotImplementedException();
 
-	public int GetIndexFor(string fileName) {
+	public int GetIndexFor(string fileName)
+	{
 		var idx1 = fileName.IndexOf('-') + 1;
 		var idx2 = fileName.IndexOf('.');
 		return int.Parse(fileName[idx1..idx2]);
 	}
 
-	public int GetVersionFor(string fileName) {
+	public int GetVersionFor(string fileName)
+	{
 		var idx = fileName.IndexOf('.') + 1;
 		return int.Parse(fileName[idx..]);
 	}

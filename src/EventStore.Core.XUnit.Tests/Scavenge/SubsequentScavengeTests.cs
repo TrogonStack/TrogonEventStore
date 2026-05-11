@@ -14,9 +14,11 @@ namespace EventStore.Core.XUnit.Tests.Scavenge;
 // these tests test that the right steps happen and the right results are obtained when scavenge is
 // run on a database that has already been scavenged.
 // a new scavenge point may need to be created, but not necessarily.
-public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> {
+public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
+{
 	[Fact]
-	public async Task can_create_first_scavenge_point() {
+	public async Task can_create_first_scavenge_point()
+	{
 		// first scavenge creates the first scavenge point SP-1
 		var newScavengePoint = new List<ScavengePoint>();
 		var t = 0;
@@ -37,7 +39,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 		Assert.Equal(ScavengeResult.Stopped, logger.Result);
 		Assert.Collection(
 			newScavengePoint,
-			sp => {
+			sp =>
+			{
 				Assert.Equal(EffectiveNow, sp.EffectiveNow);
 				Assert.Equal(0, sp.EventNumber);
 				Assert.Equal(0, sp.Threshold);
@@ -45,7 +48,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task can_create_subsequent_scavenge_point() {
+	public async Task can_create_subsequent_scavenge_point()
+	{
 		// set up some state and some chunks simulating a scavenge that has been completed
 		// and then some new records added. it should create a new SP
 		var newScavengePoint = new List<ScavengePoint>();
@@ -67,7 +71,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 				.Chunk())
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
 			.WithLogger(logger)
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				x.SetOriginalStreamMetadata("ab-1", MaxCount1);
 				x.SetOriginalStreamDiscardPoints(
 					StreamHandle.ForHash<string>(98),
@@ -84,7 +89,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 		Assert.Equal(ScavengeResult.Stopped, logger.Result);
 		Assert.Collection(
 			newScavengePoint,
-			sp => {
+			sp =>
+			{
 				Assert.Equal(EffectiveNow, sp.EffectiveNow);
 				Assert.Equal(1, sp.EventNumber);
 				Assert.Equal(0, sp.Threshold);
@@ -92,7 +98,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task can_find_existing_scavenge_point() {
+	public async Task can_find_existing_scavenge_point()
+	{
 		// set up some state and some chunks simulating a scavenge that has been completed
 		// and then some new records added including a SP. it should perform an an incremental
 		// scavenge using that SP.
@@ -120,7 +127,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 					Rec.Write(t++, "ab-1"))
 				.CompleteLastChunk())
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				x.SetOriginalStreamMetadata("ab-1", MaxCount1);
 				x.SetOriginalStreamDiscardPoints(
 					StreamHandle.ForHash<string>(98),
@@ -130,7 +138,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 				x.SetCheckpoint(new ScavengeCheckpoint.Done(ScavengePoint(
 					chunk: 1,
 					eventNumber: 0)));
-				for (int i = 0; i < 6; i++) {
+				for (int i = 0; i < 6; i++)
+				{
 					x.SetChunkTimeStampRange(i, new ChunkTimeStampRange(DateTime.UtcNow, DateTime.UtcNow));
 				}
 			})
@@ -232,7 +241,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	// - that it stops successfully if there isn't one at all
 	// - that it stops successfully if it has done all of them.
 	[Fact]
-	public async Task can_sync_only_with_scavenge_point_to_do() {
+	public async Task can_sync_only_with_scavenge_point_to_do()
+	{
 		// first scavenge creates the first scavenge point SP-1
 		var newScavengePoint = new List<ScavengePoint>();
 		var t = 0;
@@ -250,7 +260,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task can_sync_only_with_no_scavenge_point() {
+	public async Task can_sync_only_with_no_scavenge_point()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)
@@ -269,7 +280,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task can_sync_only_with_completed_scavenge_point() {
+	public async Task can_sync_only_with_completed_scavenge_point()
+	{
 		var newScavengePoint = new List<ScavengePoint>();
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -281,7 +293,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 					Rec.Write(t++, "ab-1"),
 					Rec.Write(t++, "ab-1")))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				x.SetCheckpoint(new ScavengeCheckpoint.Done(ScavengePoint(
 					chunk: 0,
 					eventNumber: 0)));
@@ -295,7 +308,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task can_subsequent_scavenge_without_state() {
+	public async Task can_subsequent_scavenge_without_state()
+	{
 		// say we deleted the state, or old scavenge has been run but not new scavenge
 		// so there is no state.
 		var t = 0;
@@ -322,7 +336,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 					Rec.Write(t++, "ab-1"))
 				.CompleteLastChunk())
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 			})
 			.RunAsync(x => new[]
 			{
@@ -332,7 +347,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task accumulates_from_right_place_sp_in_chunk_0() {
+	public async Task accumulates_from_right_place_sp_in_chunk_0()
+	{
 		// set up as if we have done a scavenge with a SP in chunk 0
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -341,7 +357,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 				.Chunk(ScavengePointRec(t++)) // SP-0
 				.Chunk(ScavengePointRec(t++, threshold: 1))) // SP-1
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				x.SetCheckpoint(new ScavengeCheckpoint.Done(ScavengePoint(
 					chunk: 0,
 					eventNumber: 0)));
@@ -402,7 +419,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task accumulates_from_right_place_sp_in_chunk_2() {
+	public async Task accumulates_from_right_place_sp_in_chunk_2()
+	{
 		// set up as if we have done a scavenge with a SP in chunk 2
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -413,7 +431,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 				.Chunk(ScavengePointRec(t++)) // SP-2
 				.Chunk(ScavengePointRec(t++, threshold: 1))) // SP-3
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				x.SetCheckpoint(new ScavengeCheckpoint.Done(ScavengePoint(
 					chunk: 2,
 					eventNumber: 2)));
@@ -482,7 +501,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task cannot_move_discard_points_backward() {
+	public async Task cannot_move_discard_points_backward()
+	{
 		// scavenge where SP-0 has been run. about to run SP-1
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -502,7 +522,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 				.Chunk(
 					ScavengePointRec(t++))) // <-- SP-1
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				x.DetectCollisions("$$ab-1");
 				x.DetectCollisions("ab-1");
 				x.SetOriginalStreamMetadata("ab-1", MaxCount1);
@@ -517,11 +538,13 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 					chunk: 1,
 					eventNumber: 0)));
 
-				for (int i = 0; i < 4; i++) {
+				for (int i = 0; i < 4; i++)
+				{
 					x.SetChunkTimeStampRange(i, new ChunkTimeStampRange(DateTime.UtcNow, DateTime.UtcNow));
 				}
 			})
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				// we changed the maxcount to 4, but we expect the discard points to remain
 				// where they are rather than moving back to DiscardBefore(1)
 				Assert.True(state.TryGetOriginalStreamData("ab-1", out var data));
@@ -532,7 +555,8 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests> 
 	}
 
 	[Fact]
-	public async Task stream_starts_after_scavenge_point() {
+	public async Task stream_starts_after_scavenge_point()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

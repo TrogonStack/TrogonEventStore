@@ -13,7 +13,8 @@ using EventStore.Common.Utils;
 namespace EventStore.Common.DevCertificates;
 
 
-internal sealed class MacOSCertificateManager : CertificateManager {
+internal sealed class MacOSCertificateManager : CertificateManager
+{
 	private const string CertificateSubjectRegex = "CN=(.*[^,]+).*";
 
 	private static readonly string MacOSUserKeyChain =
@@ -59,27 +60,34 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 
 	private static readonly TimeSpan MaxRegexTimeout = TimeSpan.FromMinutes(1);
 
-	public MacOSCertificateManager() {
+	public MacOSCertificateManager()
+	{
 	}
 
 	internal MacOSCertificateManager(string subject, int version)
-		: base(subject, version) {
+		: base(subject, version)
+	{
 	}
 
-	protected override void TrustCertificateCore(X509Certificate2 publicCertificate) {
+	protected override void TrustCertificateCore(X509Certificate2 publicCertificate)
+	{
 		var tmpFile = Path.GetTempFileName();
-		try {
+		try
+		{
 			ExportCertificate(publicCertificate, tmpFile, includePrivateKey: false, password: null,
 				CertificateKeyExportFormat.Pfx);
-			if (Log.IsEnabled()) {
+			if (Log.IsEnabled())
+			{
 				Log.MacOSTrustCommandStart(
 					$"{MacOSTrustCertificateCommandLine} {MacOSTrustCertificateCommandLineArguments}{tmpFile}");
 			}
 
 			using (var process = Process.Start(MacOSTrustCertificateCommandLine,
-					   MacOSTrustCertificateCommandLineArguments + tmpFile)) {
+					   MacOSTrustCertificateCommandLineArguments + tmpFile))
+			{
 				process.WaitForExit();
-				if (process.ExitCode != 0) {
+				if (process.ExitCode != 0)
+				{
 					Log.MacOSTrustCommandError(process.ExitCode);
 					throw new InvalidOperationException("There was an error trusting the certificate.");
 				}
@@ -87,30 +95,38 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 
 			Log.MacOSTrustCommandEnd();
 		}
-		finally {
-			try {
-				if (File.Exists(tmpFile)) {
+		finally
+		{
+			try
+			{
+				if (File.Exists(tmpFile))
+				{
 					File.Delete(tmpFile);
 				}
 			}
-			catch {
+			catch
+			{
 				// We don't care if we can't delete the temp file.
 			}
 		}
 	}
 
 	internal override CheckCertificateStateResult CheckCertificateState(X509Certificate2 candidate,
-		bool interactive) {
+		bool interactive)
+	{
 		var sentinelPath = Path.Combine(RuntimeInformation.HomeFolder, ".dotnet",
 			$"certificates.{candidate.GetCertHashString(HashAlgorithmName.SHA256)}.sentinel");
-		if (!interactive && !File.Exists(sentinelPath)) {
+		if (!interactive && !File.Exists(sentinelPath))
+		{
 			return new CheckCertificateStateResult(false, KeyNotAccessibleWithoutUserInteraction);
 		}
 
 		// Tries to use the certificate key to validate it can't access it
-		try {
+		try
+		{
 			using var rsa = candidate.GetRSAPrivateKey();
-			if (rsa == null) {
+			if (rsa == null)
+			{
 				return new CheckCertificateStateResult(false, InvalidCertificateState);
 			}
 
@@ -123,29 +139,35 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 
 			// If we were able to access the key, create a sentinel so that we don't have to show a prompt
 			// on every kestrel run.
-			if (Directory.Exists(Path.GetDirectoryName(sentinelPath)) && !File.Exists(sentinelPath)) {
+			if (Directory.Exists(Path.GetDirectoryName(sentinelPath)) && !File.Exists(sentinelPath))
+			{
 				File.WriteAllText(sentinelPath, "true");
 			}
 
 			// Being able to encrypt and decrypt a payload is the strongest guarantee that the key is valid.
 			return new CheckCertificateStateResult(true, null);
 		}
-		catch (Exception) {
+		catch (Exception)
+		{
 			return new CheckCertificateStateResult(false, InvalidCertificateState);
 		}
 	}
 
-	internal override void CorrectCertificateState(X509Certificate2 candidate) {
+	internal override void CorrectCertificateState(X509Certificate2 candidate)
+	{
 		var status = CheckCertificateState(candidate, true);
-		if (!status.Success) {
+		if (!status.Success)
+		{
 			throw new InvalidOperationException(InvalidCertificateState);
 		}
 	}
 
-	public override bool IsTrusted(X509Certificate2 certificate) {
+	public override bool IsTrusted(X509Certificate2 certificate)
+	{
 		var subjectMatch = Regex.Match(certificate.Subject, CertificateSubjectRegex, RegexOptions.Singleline,
 			MaxRegexTimeout);
-		if (!subjectMatch.Success) {
+		if (!subjectMatch.Success)
+		{
 			throw new InvalidOperationException(
 				$"Can't determine the subject for the certificate with subject '{certificate.Subject}'.");
 		}
@@ -153,7 +175,8 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 		var subject = subjectMatch.Groups[1].Value;
 		using var checkTrustProcess = Process.Start(new ProcessStartInfo(
 			MacOSFindCertificateCommandLine,
-			string.Format(CultureInfo.InvariantCulture, MacOSFindCertificateCommandLineArgumentsFormat, subject)) {
+			string.Format(CultureInfo.InvariantCulture, MacOSFindCertificateCommandLineArgumentsFormat, subject))
+		{
 			RedirectStandardOutput = true
 		});
 		var output = checkTrustProcess!.StandardOutput.ReadToEnd();
@@ -164,7 +187,8 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 		return hashes.Any(h => string.Equals(h, certificate.Thumbprint, StringComparison.Ordinal));
 	}
 
-	protected override void RemoveCertificateFromTrustedRoots(X509Certificate2 certificate) {
+	protected override void RemoveCertificateFromTrustedRoots(X509Certificate2 certificate)
+	{
 		if (IsTrusted(certificate)) // On OSX this check just ensures its on the system keychain
 		{
 			// A trusted certificate in OSX is installed into the system keychain and
@@ -175,23 +199,28 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 			// for some reason the certificate became untrusted.
 			// Trying to remove the certificate from the keychain will fail if the certificate is
 			// trusted.
-			try {
+			try
+			{
 				RemoveCertificateTrustRule(certificate);
 			}
-			catch {
+			catch
+			{
 			}
 
 			RemoveCertificateFromKeyChain(MacOSSystemKeyChain, certificate);
 		}
-		else {
+		else
+		{
 			Log.MacOSCertificateUntrusted(GetDescription(certificate));
 		}
 	}
 
-	private static void RemoveCertificateTrustRule(X509Certificate2 certificate) {
+	private static void RemoveCertificateTrustRule(X509Certificate2 certificate)
+	{
 		Log.MacOSRemoveCertificateTrustRuleStart(GetDescription(certificate));
 		var certificatePath = Path.GetTempFileName();
-		try {
+		try
+		{
 			var certBytes = certificate.Export(X509ContentType.Cert);
 			File.WriteAllBytes(certificatePath, certBytes);
 			var processInfo = new ProcessStartInfo(
@@ -203,25 +232,31 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 				));
 			using var process = Process.Start(processInfo);
 			process!.WaitForExit();
-			if (process.ExitCode != 0) {
+			if (process.ExitCode != 0)
+			{
 				Log.MacOSRemoveCertificateTrustRuleError(process.ExitCode);
 			}
 
 			Log.MacOSRemoveCertificateTrustRuleEnd();
 		}
-		finally {
-			try {
-				if (File.Exists(certificatePath)) {
+		finally
+		{
+			try
+			{
+				if (File.Exists(certificatePath))
+				{
 					File.Delete(certificatePath);
 				}
 			}
-			catch {
+			catch
+			{
 				// We don't care about failing to do clean-up on a temp file.
 			}
 		}
 	}
 
-	private static void RemoveCertificateFromKeyChain(string keyChain, X509Certificate2 certificate) {
+	private static void RemoveCertificateFromKeyChain(string keyChain, X509Certificate2 certificate)
+	{
 		var processInfo = new ProcessStartInfo(
 			MacOSDeleteCertificateCommandLine,
 			string.Format(
@@ -229,20 +264,24 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 				MacOSDeleteCertificateCommandLineArgumentsFormat,
 				certificate.Thumbprint.ToUpperInvariant(),
 				keyChain
-			)) {
+			))
+		{
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
 
-		if (Log.IsEnabled()) {
+		if (Log.IsEnabled())
+		{
 			Log.MacOSRemoveCertificateFromKeyChainStart(keyChain, GetDescription(certificate));
 		}
 
-		using (var process = Process.Start(processInfo)) {
+		using (var process = Process.Start(processInfo))
+		{
 			var output = process!.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
 			process.WaitForExit();
 
-			if (process.ExitCode != 0) {
+			if (process.ExitCode != 0)
+			{
 				Log.MacOSRemoveCertificateFromKeyChainError(process.ExitCode);
 				throw new InvalidOperationException(
 					$@"There was an error removing the certificate with thumbprint '{certificate.Thumbprint}'.
@@ -257,7 +296,8 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 	protected override bool IsExportable(X509Certificate2 c) => true;
 
 	protected override X509Certificate2 SaveCertificateCore(X509Certificate2 certificate, StoreName storeName,
-		StoreLocation storeLocation) {
+		StoreLocation storeLocation)
+	{
 		// security import https.pfx -k $loginKeyChain -t cert -f pkcs12 -P password -A;
 		var passwordBytes = new byte[48];
 		RandomNumberGenerator.Fill(passwordBytes.AsSpan()[0..35]);
@@ -273,20 +313,24 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 				MacOSAddCertificateToKeyChainCommandLineArgumentsFormat,
 				certificatePath,
 				password
-			)) {
+			))
+		{
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
 
-		if (Log.IsEnabled()) {
+		if (Log.IsEnabled())
+		{
 			Log.MacOSAddCertificateToKeyChainStart(MacOSUserKeyChain, GetDescription(certificate));
 		}
 
-		using (var process = Process.Start(processInfo)) {
+		using (var process = Process.Start(processInfo))
+		{
 			var output = process!.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
 			process.WaitForExit();
 
-			if (process.ExitCode != 0) {
+			if (process.ExitCode != 0)
+			{
 				Log.MacOSAddCertificateToKeyChainError(process.ExitCode);
 				throw new InvalidOperationException(
 					$@"There was an error importing the certificate into the user key chain '{certificate.Thumbprint}'.
@@ -300,7 +344,8 @@ internal sealed class MacOSCertificateManager : CertificateManager {
 	}
 
 	protected override IList<X509Certificate2> GetCertificatesToRemove(StoreName storeName,
-		StoreLocation storeLocation) {
+		StoreLocation storeLocation)
+	{
 		return ListCertificates(StoreName.My, StoreLocation.CurrentUser, isValid: false);
 	}
 }

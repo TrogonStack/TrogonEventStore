@@ -17,13 +17,15 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core;
 
-public class ProjectionManagerNode {
+public class ProjectionManagerNode
+{
 	public static void CreateManagerService(
 		StandardComponents standardComponents,
 		ProjectionsStandardComponents projectionsStandardComponents,
 		IDictionary<Guid, IPublisher> queues,
 		TimeSpan projectionQueryExpiry,
-		IProjectionTracker projectionTracker) {
+		IProjectionTracker projectionTracker)
+	{
 		IPublisher inputQueue = projectionsStandardComponents.LeaderInputQueue;
 		IPublisher outputQueue = projectionsStandardComponents.LeaderOutputQueue;
 		var ioDispatcher = new IODispatcher(outputQueue, inputQueue, true);
@@ -60,8 +62,10 @@ public class ProjectionManagerNode {
 		ProjectionManager projectionManager,
 		ProjectionType runProjections,
 		IODispatcher ioDispatcher,
-		ProjectionManagerMessageDispatcher projectionManagerMessageDispatcher) {
-		if (runProjections >= ProjectionType.System) {
+		ProjectionManagerMessageDispatcher projectionManagerMessageDispatcher)
+	{
+		if (runProjections >= ProjectionType.System)
+		{
 			mainBus.Subscribe<ProjectionManagementMessage.Command.Post>(projectionManager);
 			mainBus.Subscribe<ProjectionManagementMessage.Command.PostBatch>(projectionManager);
 			mainBus.Subscribe<ProjectionManagementMessage.Command.UpdateQuery>(projectionManager);
@@ -113,7 +117,8 @@ public class ProjectionManagerNode {
 		StandardComponents standardComponents,
 		ProjectionsStandardComponents projectionsStandardComponents,
 		RequestResponseQueueForwarder forwarder,
-		IODispatcher ioDispatcher) {
+		IODispatcher ioDispatcher)
+	{
 		var managerOutput = projectionsStandardComponents.LeaderOutputBus;
 		managerOutput.Subscribe<ClientMessage.ReadEvent>(forwarder);
 		managerOutput.Subscribe<ClientMessage.ReadStreamEventsBackward>(forwarder);

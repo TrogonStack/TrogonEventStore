@@ -1,6 +1,7 @@
 namespace EventStore.Projections.Core.Services.Processing.Subscriptions;
 
-public class ReaderSubscriptionOptions {
+public class ReaderSubscriptionOptions
+{
 	private readonly long _checkpointUnhandledBytesThreshold;
 	private readonly int? _checkpointProcessedEventsThreshold;
 	private readonly int _checkpointAfterMs;
@@ -10,7 +11,8 @@ public class ReaderSubscriptionOptions {
 
 	public ReaderSubscriptionOptions(
 		long checkpointUnhandledBytesThreshold, int? checkpointProcessedEventsThreshold, int checkpointAfterMs,
-		bool stopOnEof, int? stopAfterNEvents, bool enableContentTypeValidation) {
+		bool stopOnEof, int? stopAfterNEvents, bool enableContentTypeValidation)
+	{
 		_checkpointUnhandledBytesThreshold = checkpointUnhandledBytesThreshold;
 		_checkpointProcessedEventsThreshold = checkpointProcessedEventsThreshold;
 		_checkpointAfterMs = checkpointAfterMs;
@@ -19,27 +21,33 @@ public class ReaderSubscriptionOptions {
 		_enableContentTypeValidation = enableContentTypeValidation;
 	}
 
-	public long CheckpointUnhandledBytesThreshold {
+	public long CheckpointUnhandledBytesThreshold
+	{
 		get { return _checkpointUnhandledBytesThreshold; }
 	}
 
-	public int? CheckpointProcessedEventsThreshold {
+	public int? CheckpointProcessedEventsThreshold
+	{
 		get { return _checkpointProcessedEventsThreshold; }
 	}
 
-	public int CheckpointAfterMs {
+	public int CheckpointAfterMs
+	{
 		get { return _checkpointAfterMs; }
 	}
 
-	public bool StopOnEof {
+	public bool StopOnEof
+	{
 		get { return _stopOnEof; }
 	}
 
-	public int? StopAfterNEvents {
+	public int? StopAfterNEvents
+	{
 		get { return _stopAfterNEvents; }
 	}
 
-	public bool EnableContentTypeValidation {
+	public bool EnableContentTypeValidation
+	{
 		get { return _enableContentTypeValidation; }
 	}
 }

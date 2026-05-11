@@ -3,44 +3,56 @@ using System.Threading;
 
 namespace EventStore.Core.Synchronization;
 
-public class SemaphoreSlimLock : IDisposable {
+public class SemaphoreSlimLock : IDisposable
+{
 	private readonly SemaphoreSlim _semaphoreSlim;
 	private readonly object _idLock = new();
 	private Guid _acquisitionId = Guid.Empty;
 
-	public Guid CurrentAcquisitionId {
-		get {
-			lock (_idLock) {
+	public Guid CurrentAcquisitionId
+	{
+		get
+		{
+			lock (_idLock)
+			{
 				return _acquisitionId;
 			}
 		}
 	}
 
-	public SemaphoreSlimLock() {
+	public SemaphoreSlimLock()
+	{
 		_semaphoreSlim = new SemaphoreSlim(1, 1);
 	}
 
-	public bool TryAcquire(out Guid acquisitionId) {
-		if (!_semaphoreSlim.Wait(TimeSpan.Zero)) {
+	public bool TryAcquire(out Guid acquisitionId)
+	{
+		if (!_semaphoreSlim.Wait(TimeSpan.Zero))
+		{
 			acquisitionId = Guid.Empty;
 			return false;
 		}
 
 		acquisitionId = Guid.NewGuid();
-		lock (_idLock) {
+		lock (_idLock)
+		{
 			_acquisitionId = acquisitionId;
 		}
 
 		return true;
 	}
 
-	public bool TryRelease(Guid acquisitionId) {
-		lock (_idLock) {
-			if (_acquisitionId == Guid.Empty) {
+	public bool TryRelease(Guid acquisitionId)
+	{
+		lock (_idLock)
+		{
+			if (_acquisitionId == Guid.Empty)
+			{
 				return false;
 			}
 
-			if (_acquisitionId != acquisitionId) {
+			if (_acquisitionId != acquisitionId)
+			{
 				return false;
 			}
 
@@ -51,7 +63,8 @@ public class SemaphoreSlimLock : IDisposable {
 		return true;
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		GC.SuppressFinalize(this);
 		_semaphoreSlim?.Dispose();
 	}

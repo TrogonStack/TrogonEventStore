@@ -5,11 +5,13 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TracingChunkExecutor<TStreamId> : IChunkExecutor<TStreamId> {
+public class TracingChunkExecutor<TStreamId> : IChunkExecutor<TStreamId>
+{
 	private readonly IChunkExecutor<TStreamId> _wrapped;
 	private readonly Tracer _tracer;
 
-	public TracingChunkExecutor(IChunkExecutor<TStreamId> wrapped, Tracer tracer) {
+	public TracingChunkExecutor(IChunkExecutor<TStreamId> wrapped, Tracer tracer)
+	{
 		_wrapped = wrapped;
 		_tracer = tracer;
 	}
@@ -18,14 +20,17 @@ public class TracingChunkExecutor<TStreamId> : IChunkExecutor<TStreamId> {
 		ScavengePoint scavengePoint,
 		IScavengeStateForChunkExecutor<TStreamId> state,
 		ITFChunkScavengerLog scavengerLogger,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		_tracer.TraceIn($"Executing chunks for {scavengePoint.GetName()}");
-		try {
+		try
+		{
 			await _wrapped.Execute(scavengePoint, state, scavengerLogger, cancellationToken);
 			_tracer.TraceOut("Done");
 		}
-		catch {
+		catch
+		{
 			_tracer.TraceOut("Exception executing chunks");
 			throw;
 		}
@@ -35,14 +40,17 @@ public class TracingChunkExecutor<TStreamId> : IChunkExecutor<TStreamId> {
 		ScavengeCheckpoint.ExecutingChunks checkpoint,
 		IScavengeStateForChunkExecutor<TStreamId> state,
 		ITFChunkScavengerLog scavengerLogger,
-		CancellationToken cancellationToken) {
+		CancellationToken cancellationToken)
+	{
 
 		_tracer.TraceIn($"Executing chunks from checkpoint: {checkpoint}");
-		try {
+		try
+		{
 			await _wrapped.Execute(checkpoint, state, scavengerLogger, cancellationToken);
 			_tracer.TraceOut("Done");
 		}
-		catch {
+		catch
+		{
 			_tracer.TraceOut("Exception executing chunks");
 			throw;
 		}

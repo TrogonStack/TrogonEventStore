@@ -12,8 +12,10 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_requesting_partition_state_from_a_stopped_foreach_projection<TLogFormat, TStreamId> :
-	TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
-	protected override void Given() {
+	TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+{
+	protected override void Given()
+	{
 		NoStream("$projections-test-projection-order");
 		ExistingEvent(ProjectionNamesBuilder.ProjectionsRegistrationStream, ProjectionEventTypes.ProjectionCreated,
 			null, "test-projection");
@@ -37,14 +39,16 @@ public class when_requesting_partition_state_from_a_stopped_foreach_projection<T
 
 	private string _projectionName;
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		_projectionName = "test-projection";
 		// when
 		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 	}
 
 	[Test]
-	public void the_projection_state_can_be_retrieved() {
+	public void the_projection_state_can_be_retrieved()
+	{
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetState(_bus, _projectionName, "a"));
 		_queue.Process();

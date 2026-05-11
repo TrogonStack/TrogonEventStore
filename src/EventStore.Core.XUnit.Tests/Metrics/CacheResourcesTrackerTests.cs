@@ -9,15 +9,18 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public sealed class CacheResourcesTrackerTests : IDisposable {
+public sealed class CacheResourcesTrackerTests : IDisposable
+{
 	private Scope _disposables = new();
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_disposables.Dispose();
 	}
 
 	private (CacheResourcesTracker, TestMeterListener<long>) GenSut(
-		[CallerMemberName] string callerName = "") {
+		[CallerMemberName] string callerName = "")
+	{
 
 		var meter = new Meter($"{typeof(CacheResourcesTrackerTests)}-{callerName}");
 		_disposables.RegisterForDispose(meter);
@@ -30,7 +33,8 @@ public sealed class CacheResourcesTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void observes_all_caches() {
+	public void observes_all_caches()
+	{
 		var (sut, listener) = GenSut();
 
 		sut.Register("cacheA", Caching.ResizerUnit.Entries, () => new("", "",
@@ -62,15 +66,18 @@ public sealed class CacheResourcesTrackerTests : IDisposable {
 		string kind,
 		long expectedValue) =>
 
-		actualMeasurement => {
+		actualMeasurement =>
+		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
 			Assert.Collection(
 				actualMeasurement.Tags.ToArray(),
-				tag => {
+				tag =>
+				{
 					Assert.Equal("cache", tag.Key);
 					Assert.Equal(cacheKey, tag.Value);
 				},
-				tag => {
+				tag =>
+				{
 					Assert.Equal("kind", tag.Key);
 					Assert.Equal(kind, tag.Value);
 				});
@@ -79,7 +86,8 @@ public sealed class CacheResourcesTrackerTests : IDisposable {
 	static void AssertMeasurements(
 		TestMeterListener<long> listener,
 		string metric,
-		params Action<TestMeterListener<long>.TestMeasurement>[] actions) {
+		params Action<TestMeterListener<long>.TestMeasurement>[] actions)
+	{
 
 		Assert.Collection(listener.RetrieveMeasurements(metric), actions);
 	}

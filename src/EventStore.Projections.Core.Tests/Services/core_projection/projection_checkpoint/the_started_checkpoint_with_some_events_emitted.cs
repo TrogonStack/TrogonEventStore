@@ -12,12 +12,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_checkpoint;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class the_started_checkpoint_with_some_events_emitted<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class the_started_checkpoint_with_some_events_emitted<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		;
 		_checkpoint = new ProjectionCheckpoint(
@@ -48,8 +50,10 @@ public class the_started_checkpoint_with_some_events_emitted<TLogFormat, TStream
 	}
 
 	[Test]
-	public void requesting_checkpoints_with_position_before_the_last_known_throws_invalid_operation_exception() {
-		Assert.Throws<InvalidOperationException>(() => {
+	public void requesting_checkpoints_with_position_before_the_last_known_throws_invalid_operation_exception()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+		{
 			_checkpoint.Prepare(CheckpointTag.FromPosition(0, 140, 130));
 		});
 	}

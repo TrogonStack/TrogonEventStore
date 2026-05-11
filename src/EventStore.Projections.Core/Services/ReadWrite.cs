@@ -1,6 +1,7 @@
 namespace EventStore.Projections.Core.Services;
 
-public enum ReadWrite {
+public enum ReadWrite
+{
 	Read,
 	Write
 }

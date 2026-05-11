@@ -7,9 +7,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.AllReader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenASingleWriteBeforeTheTransactionIsPresent<TLogFormat, TStreamId> : RepeatableDbTestScenario<TLogFormat, TStreamId> {
+public class WhenASingleWriteBeforeTheTransactionIsPresent<TLogFormat, TStreamId> : RepeatableDbTestScenario<TLogFormat, TStreamId>
+{
 	[Test]
-	public async Task should_be_able_to_read_the_transactional_writes_when_the_commit_is_present() {
+	public async Task should_be_able_to_read_the_transactional_writes_when_the_commit_is_present()
+	{
 		await CreateDb([
 			Rec.Prepare(0, "single_write_stream_id_1", prepareFlags: PrepareFlags.Data | PrepareFlags.IsCommitted),
 			Rec.TransSt(1, "transaction_stream_id"),

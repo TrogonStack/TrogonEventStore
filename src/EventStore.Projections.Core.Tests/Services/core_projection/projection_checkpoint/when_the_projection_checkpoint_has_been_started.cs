@@ -7,12 +7,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_checkpoint;
 
 [TestFixture]
-public class when_the_projection_checkpoint_has_been_started : TestFixtureWithReadWriteDispatchers {
+public class when_the_projection_checkpoint_has_been_started : TestFixtureWithReadWriteDispatchers
+{
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_checkpoint = new ProjectionCheckpoint(
 			_bus, _ioDispatcher, new ProjectionVersion(1, 0, 0), null, _readyHandler,
@@ -21,7 +23,8 @@ public class when_the_projection_checkpoint_has_been_started : TestFixtureWithRe
 	}
 
 	[Test]
-	public void start_throws_invalid_operation_exception() {
+	public void start_throws_invalid_operation_exception()
+	{
 		Assert.Throws<InvalidOperationException>(() => { _checkpoint.Start(); });
 	}
 }

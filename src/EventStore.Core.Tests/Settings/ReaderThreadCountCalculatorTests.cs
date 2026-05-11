@@ -4,7 +4,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Settings;
 
 [TestFixture]
-public class ReaderThreadCountCalculatorTests {
+public class ReaderThreadCountCalculatorTests
+{
 	[TestCase]
 	public void configured_takes_precedence() => Test(configuredCount: 1, processorCount: 4, isRunningInContainer: false, expected: 1);
 

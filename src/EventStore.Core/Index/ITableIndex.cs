@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.Index;
 
-public interface ITableIndex {
+public interface ITableIndex
+{
 	long CommitCheckpoint { get; }
 	long PrepareCheckpoint { get; }
 
@@ -24,7 +25,8 @@ public interface ITableIndex {
 	bool IsBackgroundTaskRunning { get; }
 }
 
-public interface ITableIndex<TStreamId> : ITableIndex {
+public interface ITableIndex<TStreamId> : ITableIndex
+{
 	void Add(long commitPos, TStreamId streamId, long version, long position);
 	void AddEntries(long commitPos, IList<IndexKey<TStreamId>> entries);
 

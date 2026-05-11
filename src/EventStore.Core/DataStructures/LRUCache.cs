@@ -6,13 +6,17 @@ using EventStore.Common.Utils;
 using EventStore.Core.Caching;
 using Serilog;
 
-namespace EventStore.Core.DataStructures {
-	public class LRUCache {
+namespace EventStore.Core.DataStructures
+{
+	public class LRUCache
+	{
 		protected static readonly ILogger Log = Serilog.Log.ForContext<LRUCache>();
 	}
 
-	public class LRUCache<TKey, TValue> : LRUCache, ILRUCache<TKey, TValue> {
-		private class LRUItem {
+	public class LRUCache<TKey, TValue> : LRUCache, ILRUCache<TKey, TValue>
+	{
+		private class LRUItem
+		{
 			public TKey Key;
 			public TValue Value;
 
@@ -48,9 +52,12 @@ namespace EventStore.Core.DataStructures {
 		public long Size => Interlocked.Read(ref _size);
 		public long FreedSize => Interlocked.Read(ref _freedSize);
 		public long Capacity => Interlocked.Read(ref _capacity);
-		public long Count {
-			get {
-				lock (_lock) {
+		public long Count
+		{
+			get
+			{
+				lock (_lock)
+				{
 					return _items.Count;
 				}
 			}
@@ -61,7 +68,8 @@ namespace EventStore.Core.DataStructures {
 			long capacity,
 			CalculateItemSize calculateItemSize = null,
 			CalculateFreedSize calculateFreedSize = null,
-			string unit = null) {
+			string unit = null)
+		{
 
 			Ensure.NotNull(name, nameof(name));
 			Ensure.Nonnegative(capacity, nameof(capacity));
@@ -81,8 +89,10 @@ namespace EventStore.Core.DataStructures {
 			MemSizer.SizeOfDictionaryEntry<TKey, LinkedListNode<LRUItem>>() + // _items entry
 			MemSizer.LinkedListEntrySize; // _orderList entry
 
-		private void PutItem(TKey key, TValue value) {
-			lock (_lock) {
+		private void PutItem(TKey key, TValue value)
+		{
+			lock (_lock)
+			{
 				var node = GetNode();
 				node.Value.Key = key;
 				node.Value.Value = value;
@@ -96,8 +106,10 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		private void UpdateItem(LinkedListNode<LRUItem> node, TValue value) {
-			lock (_lock) {
+		private void UpdateItem(LinkedListNode<LRUItem> node, TValue value)
+		{
+			lock (_lock)
+			{
 				const bool reuseNode = true;
 				_size -= _calculateItemSize(node.Value.Key, node.Value.Value);
 				_size += _calculateItemSize(node.Value.Key, value);
@@ -105,21 +117,26 @@ namespace EventStore.Core.DataStructures {
 
 				node.Value.Value = value;
 
-				if (!ReferenceEquals(node, _orderList.Last)) {
+				if (!ReferenceEquals(node, _orderList.Last))
+				{
 					_orderList.Remove(node);
 					_orderList.AddLast(node);
 				}
 
-				if (_size > _capacity) {
+				if (_size > _capacity)
+				{
 					EnsureCapacity(0, reuseNode, out _, out _);
 				}
 			}
 		}
 
-		private void RemoveItem(TKey key) {
-			lock (_lock) {
+		private void RemoveItem(TKey key)
+		{
+			lock (_lock)
+			{
 				LinkedListNode<LRUItem> node;
-				if (_items.TryGetValue(key, out node)) {
+				if (_items.TryGetValue(key, out node))
+				{
 					_orderList.Remove(node);
 					_items.Remove(key);
 					_size -= _calculateItemSize(key, node.Value.Value);
@@ -130,10 +147,13 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		private void RemoveFirstItem(bool reuseNode) {
-			lock (_lock) {
+		private void RemoveFirstItem(bool reuseNode)
+		{
+			lock (_lock)
+			{
 				var node = _orderList.First;
-				if (node == null) {
+				if (node == null)
+				{
 					return;
 				}
 
@@ -142,16 +162,20 @@ namespace EventStore.Core.DataStructures {
 				_size -= _calculateItemSize(node.Value.Key, node.Value.Value);
 				_freedSize += _calculateFreedSize(node.Value.Key, node.Value.Value, true, true, !reuseNode);
 
-				if (reuseNode) {
+				if (reuseNode)
+				{
 					ReturnNode(node);
 				}
 			}
 		}
 
-		public bool TryGet(TKey key, out TValue value) {
-			lock (_lock) {
+		public bool TryGet(TKey key, out TValue value)
+		{
+			lock (_lock)
+			{
 				LinkedListNode<LRUItem> node;
-				if (_items.TryGetValue(key, out node)) {
+				if (_items.TryGetValue(key, out node))
+				{
 					_orderList.Remove(node);
 					_orderList.AddLast(node);
 					value = node.Value.Value;
@@ -163,13 +187,17 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		public TValue Put(TKey key, TValue value) {
-			lock (_lock) {
+		public TValue Put(TKey key, TValue value)
+		{
+			lock (_lock)
+			{
 				LinkedListNode<LRUItem> node;
-				if (!_items.TryGetValue(key, out node)) {
+				if (!_items.TryGetValue(key, out node))
+				{
 					PutItem(key, value);
 				}
-				else {
+				else
+				{
 					UpdateItem(node, value);
 				}
 
@@ -177,30 +205,39 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		public void Remove(TKey key) {
-			lock (_lock) {
+		public void Remove(TKey key)
+		{
+			lock (_lock)
+			{
 				RemoveItem(key);
 			}
 		}
 
-		public void Clear() {
-			lock (_lock) {
-				while (_orderList.Count > 0) {
+		public void Clear()
+		{
+			lock (_lock)
+			{
+				while (_orderList.Count > 0)
+				{
 					RemoveFirstItem(false);
 				}
 			}
 		}
 
 		public TValue Put<T>(TKey key, T userData, Func<TKey, T, TValue> addFactory,
-			Func<TKey, TValue, T, TValue> updateFactory) {
-			lock (_lock) {
+			Func<TKey, TValue, T, TValue> updateFactory)
+		{
+			lock (_lock)
+			{
 				TValue value;
 				LinkedListNode<LRUItem> node;
-				if (!_items.TryGetValue(key, out node)) {
+				if (!_items.TryGetValue(key, out node))
+				{
 					value = addFactory(key, userData);
 					PutItem(key, value);
 				}
-				else {
+				else
+				{
 					value = updateFactory(key, node.Value.Value, userData);
 					UpdateItem(node, value);
 				}
@@ -209,12 +246,15 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		private void EnsureCapacity(int forItemSize, bool reuseNodes, out int removedCount, out long removedSize) {
-			lock (_lock) {
+		private void EnsureCapacity(int forItemSize, bool reuseNodes, out int removedCount, out long removedSize)
+		{
+			lock (_lock)
+			{
 				var initialCount = _items.Count;
 				var initialSize = _size;
 
-				while (_items.Count > 0 && _size + forItemSize > _capacity) {
+				while (_items.Count > 0 && _size + forItemSize > _capacity)
+				{
 					RemoveFirstItem(reuseNodes);
 				}
 
@@ -223,10 +263,12 @@ namespace EventStore.Core.DataStructures {
 			}
 		}
 
-		public void SetCapacity(long newCapacity) {
+		public void SetCapacity(long newCapacity)
+		{
 			const int resizeBatchSize = 100_000;
 
-			if (newCapacity < 0) {
+			if (newCapacity < 0)
+			{
 				throw new ArgumentOutOfRangeException(nameof(newCapacity));
 			}
 
@@ -238,7 +280,8 @@ namespace EventStore.Core.DataStructures {
 			// when increasing, jump straight up.
 			var curCapacity = Interlocked.Read(ref _capacity);
 
-			while (curCapacity != newCapacity) {
+			while (curCapacity != newCapacity)
+			{
 				curCapacity = Math.Max(curCapacity - resizeBatchSize, newCapacity);
 				Interlocked.Exchange(ref _capacity, curCapacity);
 				EnsureCapacity(0, false, out var curRemovedCount, out var curRemovedSize);
@@ -246,31 +289,37 @@ namespace EventStore.Core.DataStructures {
 				removedSize += curRemovedSize;
 			}
 
-			if (removedCount > 0) {
+			if (removedCount > 0)
+			{
 				Log.Information(
 					"{name} cache removed {removedCount:N0} entries amounting to ~{removedSize:N0} " + _unit,
 					Name, removedCount, removedSize);
 			}
 		}
 
-		public void ResetFreedSize() {
+		public void ResetFreedSize()
+		{
 			// note: if something's already holding the lock when this method is called,
 			// the calculation may become off by a few items, but it doesn't matter much
 			// since the freed size is only an approximation.
-			lock (_lock) {
+			lock (_lock)
+			{
 				_freedSize = 0;
 			}
 		}
 
-		private LinkedListNode<LRUItem> GetNode() {
-			if (_nodesPool.Count > 0) {
+		private LinkedListNode<LRUItem> GetNode()
+		{
+			if (_nodesPool.Count > 0)
+			{
 				return _nodesPool.Dequeue();
 			}
 
 			return new LinkedListNode<LRUItem>(new LRUItem());
 		}
 
-		private void ReturnNode(LinkedListNode<LRUItem> node) {
+		private void ReturnNode(LinkedListNode<LRUItem> node)
+		{
 			// set to default to allow memory to be gced
 			node.Value.Key = default;
 			node.Value.Value = default;

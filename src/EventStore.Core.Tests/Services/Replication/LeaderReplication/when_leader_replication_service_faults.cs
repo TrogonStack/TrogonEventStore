@@ -15,31 +15,39 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
 [TestFixture]
-public class when_leader_replication_service_faults : SpecificationWithDirectory {
+public class when_leader_replication_service_faults : SpecificationWithDirectory
+{
 	[Test]
-	public async Task publishes_service_shutdown_after_service_initialized() {
+	public async Task publishes_service_shutdown_after_service_initialized()
+	{
 		var publisher = new SynchronousScheduler("publisher");
 		var shutdowns = new ConcurrentQueue<SystemMessage.ServiceShutdown>();
 		var initializations = new ConcurrentQueue<SystemMessage.ServiceInitialized>();
-		var writerCheckpoint = new FaultingCheckpoint(Checkpoint.Writer) {
+		var writerCheckpoint = new FaultingCheckpoint(Checkpoint.Writer)
+		{
 			ThrowOnFlushedSubscription = true
 		};
 		var dbConfig = CreateDbConfig(writerCheckpoint);
 		var leaderId = Guid.NewGuid();
 
-		publisher.Subscribe(new AdHocHandler<SystemMessage.ServiceInitialized>(message => {
-			if (message.ServiceName == "Leader Replication Service") {
+		publisher.Subscribe(new AdHocHandler<SystemMessage.ServiceInitialized>(message =>
+		{
+			if (message.ServiceName == "Leader Replication Service")
+			{
 				initializations.Enqueue(message);
 			}
 		}));
-		publisher.Subscribe(new AdHocHandler<SystemMessage.ServiceShutdown>(message => {
-			if (message.ServiceName == "Leader Replication Service") {
+		publisher.Subscribe(new AdHocHandler<SystemMessage.ServiceShutdown>(message =>
+		{
+			if (message.ServiceName == "Leader Replication Service")
+			{
 				shutdowns.Enqueue(message);
 			}
 		}));
 
 		var db = new TFChunkDb(dbConfig);
-		try {
+		try
+		{
 			await db.Open();
 
 			var service = new LeaderReplicationService(
@@ -60,12 +68,14 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			AssertEx.IsOrBecomesTrue(() => service.Task.IsFaulted, TimeSpan.FromSeconds(5));
 			AssertEx.IsOrBecomesTrue(() => shutdowns.Count == 1, TimeSpan.FromSeconds(5));
 		}
-		finally {
+		finally
+		{
 			await db.DisposeAsync();
 		}
 	}
 
-	private TFChunkDbConfig CreateDbConfig(ICheckpoint writerCheckpoint) {
+	private TFChunkDbConfig CreateDbConfig(ICheckpoint writerCheckpoint)
+	{
 		ICheckpoint chaserCheckpoint = new InMemoryCheckpoint(Checkpoint.Chaser);
 		ICheckpoint epochCheckpoint = new InMemoryCheckpoint(Checkpoint.Epoch, initValue: -1);
 		ICheckpoint proposalCheckpoint = new InMemoryCheckpoint(Checkpoint.Proposal, initValue: -1);
@@ -89,7 +99,8 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			streamExistenceFilterCheckpoint);
 	}
 
-	private sealed class FaultingCheckpoint(string name, long initialValue = 0) : ICheckpoint {
+	private sealed class FaultingCheckpoint(string name, long initialValue = 0) : ICheckpoint
+	{
 		private long _last = initialValue;
 		private long _lastFlushed = initialValue;
 		private Action<long> _flushed;
@@ -97,18 +108,22 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 		public bool ThrowOnFlushedSubscription { get; set; }
 		public string Name => name;
 
-		public long Read() {
+		public long Read()
+		{
 			return _lastFlushed;
 		}
 
 		public long ReadNonFlushed() => _last;
 
-		public void Write(long checkpoint) {
+		public void Write(long checkpoint)
+		{
 			_last = checkpoint;
 		}
 
-		public void Flush() {
-			if (_last == _lastFlushed) {
+		public void Flush()
+		{
+			if (_last == _lastFlushed)
+			{
 				return;
 			}
 
@@ -116,21 +131,27 @@ public class when_leader_replication_service_faults : SpecificationWithDirectory
 			_flushed?.Invoke(_lastFlushed);
 		}
 
-		public event Action<long> Flushed {
-			add {
-				if (ThrowOnFlushedSubscription) {
+		public event Action<long> Flushed
+		{
+			add
+			{
+				if (ThrowOnFlushedSubscription)
+				{
 					throw new InvalidOperationException("writer checkpoint subscription failed");
 				}
 
 				_flushed += value;
 			}
-			remove {
+			remove
+			{
 				_flushed -= value;
 			}
 		}
 
-		public void Close(bool flush) {
-			if (flush) {
+		public void Close(bool flush)
+		{
+			if (flush)
+			{
 				Flush();
 			}
 		}

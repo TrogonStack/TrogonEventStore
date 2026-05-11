@@ -4,7 +4,8 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 
-public class EmittedLinkTo : EmittedEvent {
+public class EmittedLinkTo : EmittedEvent
+{
 	private readonly string _targetStreamId;
 	private long? _eventNumber;
 
@@ -12,7 +13,8 @@ public class EmittedLinkTo : EmittedEvent {
 		string streamId, Guid eventId,
 		string targetStreamId, CheckpointTag causedByTag, CheckpointTag expectedTag,
 		Action<long> onCommitted = null)
-		: base(streamId, eventId, "$>", causedByTag, expectedTag, onCommitted) {
+		: base(streamId, eventId, "$>", causedByTag, expectedTag, onCommitted)
+	{
 		_targetStreamId = targetStreamId;
 	}
 
@@ -20,14 +22,18 @@ public class EmittedLinkTo : EmittedEvent {
 		string streamId, Guid eventId,
 		string targetStreamId, int targetEventNumber, CheckpointTag causedByTag, CheckpointTag expectedTag,
 		string originalStreamId = null)
-		: base(streamId, eventId, "$>", causedByTag, expectedTag, null) {
+		: base(streamId, eventId, "$>", causedByTag, expectedTag, null)
+	{
 		_eventNumber = targetEventNumber;
 		_targetStreamId = targetStreamId;
 	}
 
-	public override string Data {
-		get {
-			if (!IsReady()) {
+	public override string Data
+	{
+		get
+		{
+			if (!IsReady())
+			{
 				throw new InvalidOperationException("Link target has not been yet committed");
 			}
 
@@ -36,16 +42,20 @@ public class EmittedLinkTo : EmittedEvent {
 		}
 	}
 
-	public override bool IsJson {
+	public override bool IsJson
+	{
 		get { return false; }
 	}
 
-	public override bool IsReady() {
+	public override bool IsReady()
+	{
 		return _eventNumber != null;
 	}
 
-	public void SetTargetEventNumber(long eventNumber) {
-		if (_eventNumber != null) {
+	public void SetTargetEventNumber(long eventNumber)
+	{
+		if (_eventNumber != null)
+		{
 			throw new InvalidOperationException("Target event number has been already set");
 		}
 

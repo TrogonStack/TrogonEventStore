@@ -5,9 +5,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_reading_file_checkpoints : SpecificationWithFile {
+public class when_reading_file_checkpoints : SpecificationWithFile
+{
 	[Test]
-	public void mem_mapped_file_checkpoint_can_be_read_as_file_checkpoint() {
+	public void mem_mapped_file_checkpoint_can_be_read_as_file_checkpoint()
+	{
 		var memoryMapped = new MemoryMappedFileCheckpoint(Filename);
 		memoryMapped.Write(0xDEAD);
 		memoryMapped.Close(flush: true);
@@ -19,7 +21,8 @@ public class when_reading_file_checkpoints : SpecificationWithFile {
 	}
 
 	[Test]
-	public void file_checkpoint_can_be_read_as_mem_mapped_file_checkpoint() {
+	public void file_checkpoint_can_be_read_as_mem_mapped_file_checkpoint()
+	{
 		var fileCheckpoint = new FileCheckpoint(Filename);
 		fileCheckpoint.Write(0xDEAD);
 		fileCheckpoint.Close(flush: true);

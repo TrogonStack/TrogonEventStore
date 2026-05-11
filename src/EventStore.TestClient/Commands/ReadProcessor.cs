@@ -6,32 +6,40 @@ using EventStore.Core.Services.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class ReadProcessor : ICmdProcessor {
-	public string Usage {
+internal class ReadProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		get { return "RD [<stream-id> [<from-number> [<only-if-leader>]]]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "RD"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		var eventStreamId = "test-stream";
 		var fromNumber = 0;
 		const bool resolveLinkTos = false;
 		var requireLeader = false;
 
-		if (args.Length > 0) {
-			if (args.Length > 3) {
+		if (args.Length > 0)
+		{
+			if (args.Length > 3)
+			{
 				return false;
 			}
 
 			eventStreamId = args[0];
-			if (args.Length >= 2) {
+			if (args.Length >= 2)
+			{
 				fromNumber = MetricPrefixValue.ParseInt(args[1]);
 			}
 
-			if (args.Length >= 3) {
+			if (args.Length >= 3)
+			{
 				requireLeader = bool.Parse(args[2]);
 			}
 		}
@@ -41,7 +49,8 @@ internal class ReadProcessor : ICmdProcessor {
 		var sw = new Stopwatch();
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn => {
+			connectionEstablished: conn =>
+			{
 				context.Log.Information("[{remoteEndPoint}, L{localEndPoint}]: Reading...", conn.RemoteEndPoint,
 					conn.LocalEndPoint);
 				var readDto =
@@ -51,11 +60,13 @@ internal class ReadProcessor : ICmdProcessor {
 				sw.Start();
 				conn.EnqueueSend(package);
 			},
-			handlePackage: (conn, pkg) => {
+			handlePackage: (conn, pkg) =>
+			{
 				sw.Stop();
 				context.Log.Information("Read request took: {elapsed}.", sw.Elapsed);
 
-				if (pkg.Command != TcpCommand.ReadEventCompleted) {
+				if (pkg.Command != TcpCommand.ReadEventCompleted)
+				{
 					context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 					return;
 				}
@@ -77,12 +88,14 @@ internal class ReadProcessor : ICmdProcessor {
 					Helper.UTF8NoBom.GetString(dto.Event.Event.Metadata.ToByteArray()));
 
 
-				if (dto.Result == ReadEventCompleted.Types.ReadEventResult.Success) {
+				if (dto.Result == ReadEventCompleted.Types.ReadEventResult.Success)
+				{
 					PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 						(int)Math.Round(sw.Elapsed.TotalMilliseconds));
 					context.Success();
 				}
-				else {
+				else
+				{
 					context.Fail();
 				}
 

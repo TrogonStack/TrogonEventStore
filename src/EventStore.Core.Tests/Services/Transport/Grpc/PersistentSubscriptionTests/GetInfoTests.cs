@@ -15,28 +15,35 @@ using StreamsReadResp = EventStore.Client.Streams.ReadResp;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.PersistentSubscriptionTests;
 
-public class GetInfoTests {
+public class GetInfoTests
+{
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_getting_info_for_persistent_subscription_group_on_stream<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private string _groupName = "test-group";
 		private string _streamName = "test-stream";
 		private SubscriptionInfo _actualSubscriptionInfo;
 		private SubscriptionInfo _expectedSubscriptionInfo;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 			var settings = WithoutExtraStatistics(TestPersistentSubscriptionSettings);
 
-			await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-				Options = new CreateReq.Types.Options {
+			await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+			{
+				Options = new CreateReq.Types.Options
+				{
 					GroupName = _groupName,
-					Stream = new CreateReq.Types.StreamOptions {
+					Stream = new CreateReq.Types.StreamOptions
+					{
 						Start = new Empty(),
-						StreamIdentifier = new StreamIdentifier {
+						StreamIdentifier = new StreamIdentifier
+						{
 							StreamName = ByteString.CopyFromUtf8(_streamName)
 						}
 					},
@@ -46,10 +53,13 @@ public class GetInfoTests {
 
 			// create a connection to the persistent subscription
 			var call = _persistentSubscriptionsClient.Read(GetCallOptions(AdminCredentials));
-			await call.RequestStream.WriteAsync(new ReadReq {
-				Options = new ReadReq.Types.Options {
+			await call.RequestStream.WriteAsync(new ReadReq
+			{
+				Options = new ReadReq.Types.Options
+				{
 					GroupName = _groupName,
-					StreamIdentifier = new StreamIdentifier {
+					StreamIdentifier = new StreamIdentifier
+					{
 						StreamName = ByteString.CopyFromUtf8(_streamName)
 					},
 					UuidOption = new ReadReq.Types.Options.Types.UUIDOption { Structured = new Empty() },
@@ -61,7 +71,8 @@ public class GetInfoTests {
 
 			Assert.IsTrue(call.ResponseStream.Current.ContentCase == ReadResp.ContentOneofCase.SubscriptionConfirmation);
 
-			var expectedConnection = new SubscriptionInfo.Types.ConnectionInfo() {
+			var expectedConnection = new SubscriptionInfo.Types.ConnectionInfo()
+			{
 				Username = "admin",
 				AvailableSlots = 10,
 				ConnectionName = "\u003cunknown\u003e"
@@ -70,18 +81,23 @@ public class GetInfoTests {
 				_groupName, _streamName, "0", string.Empty, new[] { expectedConnection });
 		}
 
-		private CreateReq.Types.Settings WithoutExtraStatistics(CreateReq.Types.Settings settings) {
+		private CreateReq.Types.Settings WithoutExtraStatistics(CreateReq.Types.Settings settings)
+		{
 			settings.ExtraStatistics = false;
 			return settings;
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
-			var resp = await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq {
-				Options = new GetInfoReq.Types.Options {
+			var resp = await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq
+			{
+				Options = new GetInfoReq.Types.Options
+				{
 					GroupName = _groupName,
-					StreamIdentifier = new StreamIdentifier {
+					StreamIdentifier = new StreamIdentifier
+					{
 						StreamName = ByteString.CopyFromUtf8(_streamName)
 					}
 				}
@@ -90,7 +106,8 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_receive_the_correct_stats() {
+		public void should_receive_the_correct_stats()
+		{
 			Assert.AreEqual(_expectedSubscriptionInfo, _actualSubscriptionInfo);
 		}
 	}
@@ -98,23 +115,30 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_persistent_subscriptions_on_stream<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private string _streamName = "test-stream";
 		private List<SubscriptionInfo> _actualSubscriptionInfo;
 		private List<SubscriptionInfo> _expectedSubscriptionInfo = new();
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 			var groupNames = new[] { "groupA", "groupB", "groupC" };
-			foreach (var group in groupNames) {
-				await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-					Options = new CreateReq.Types.Options {
+			foreach (var group in groupNames)
+			{
+				await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+				{
+					Options = new CreateReq.Types.Options
+					{
 						GroupName = group,
-						Stream = new CreateReq.Types.StreamOptions {
+						Stream = new CreateReq.Types.StreamOptions
+						{
 							Start = new Empty(),
-							StreamIdentifier = new StreamIdentifier {
+							StreamIdentifier = new StreamIdentifier
+							{
 								StreamName = ByteString.CopyFromUtf8(_streamName)
 							}
 						},
@@ -126,13 +150,18 @@ public class GetInfoTests {
 			}
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
-			ListResp resp = await _persistentSubscriptionsClient.ListAsync(new ListReq {
-				Options = new ListReq.Types.Options {
-					ListForStream = new ListReq.Types.StreamOption {
-						Stream = new StreamIdentifier {
+			ListResp resp = await _persistentSubscriptionsClient.ListAsync(new ListReq
+			{
+				Options = new ListReq.Types.Options
+				{
+					ListForStream = new ListReq.Types.StreamOption
+					{
+						Stream = new StreamIdentifier
+						{
 							StreamName = ByteString.CopyFromUtf8(_streamName)
 						}
 					}
@@ -142,7 +171,8 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_receive_the_correct_stats() {
+		public void should_receive_the_correct_stats()
+		{
 			CollectionAssert.AreEquivalent(_expectedSubscriptionInfo, _actualSubscriptionInfo);
 		}
 	}
@@ -150,33 +180,42 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_getting_info_for_missing_persistent_subscription_on_stream<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private RpcException _exception;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 			return Task.CompletedTask;
 		}
 
-		protected override async Task When() {
-			try {
-				await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq {
-					Options = new GetInfoReq.Types.Options {
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq
+				{
+					Options = new GetInfoReq.Types.Options
+					{
 						GroupName = "missing-group",
-						StreamIdentifier = new StreamIdentifier {
+						StreamIdentifier = new StreamIdentifier
+						{
 							StreamName = ByteString.CopyFromUtf8("missing-stream")
 						}
 					}
 				}, GetCallOptions(AdminCredentials));
 			}
-			catch (RpcException ex) {
+			catch (RpcException ex)
+			{
 				_exception = ex;
 			}
 		}
 
 		[Test]
-		public void returns_not_found() {
+		public void returns_not_found()
+		{
 			Assert.IsNotNull(_exception);
 			Assert.AreEqual(StatusCode.NotFound, _exception.Status.StatusCode);
 		}
@@ -185,35 +224,45 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_persistent_subscriptions_on_missing_stream<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private const string StreamName = "missing-stream";
 		private RpcException _exception;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 			return Task.CompletedTask;
 		}
 
-		protected override async Task When() {
-			try {
-				await _persistentSubscriptionsClient.ListAsync(new ListReq {
-					Options = new ListReq.Types.Options {
-						ListForStream = new ListReq.Types.StreamOption {
-							Stream = new StreamIdentifier {
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.ListAsync(new ListReq
+				{
+					Options = new ListReq.Types.Options
+					{
+						ListForStream = new ListReq.Types.StreamOption
+						{
+							Stream = new StreamIdentifier
+							{
 								StreamName = ByteString.CopyFromUtf8(StreamName)
 							}
 						}
 					}
 				}, GetCallOptions(AdminCredentials));
 			}
-			catch (RpcException ex) {
+			catch (RpcException ex)
+			{
 				_exception = ex;
 			}
 		}
 
 		[Test]
-		public void returns_not_found() {
+		public void returns_not_found()
+		{
 			Assert.IsNotNull(_exception);
 			Assert.AreEqual(StatusCode.NotFound, _exception.Status.StatusCode);
 		}
@@ -222,20 +271,26 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_persistent_subscriptions_on_all_stream<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private List<SubscriptionInfo> _actualSubscriptionInfo;
 		private List<SubscriptionInfo> _expectedSubscriptionInfo = new();
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 			var groupNames = new[] { "groupA", "groupB", "groupC" };
-			foreach (var group in groupNames) {
-				await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-					Options = new CreateReq.Types.Options {
+			foreach (var group in groupNames)
+			{
+				await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+				{
+					Options = new CreateReq.Types.Options
+					{
 						GroupName = group,
-						All = new CreateReq.Types.AllOptions {
+						All = new CreateReq.Types.AllOptions
+						{
 							Start = new Empty()
 						},
 						Settings = TestPersistentSubscriptionSettings
@@ -251,13 +306,17 @@ public class GetInfoTests {
 					$"C:{lastPosition}/P:{lastPosition}")).ToList();
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
 			// Get the subscription info
-			ListResp resp = await _persistentSubscriptionsClient.ListAsync(new ListReq {
-				Options = new ListReq.Types.Options {
-					ListForStream = new ListReq.Types.StreamOption {
+			ListResp resp = await _persistentSubscriptionsClient.ListAsync(new ListReq
+			{
+				Options = new ListReq.Types.Options
+				{
+					ListForStream = new ListReq.Types.StreamOption
+					{
 						All = new Empty()
 					}
 				}
@@ -266,7 +325,8 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_receive_the_correct_stats() {
+		public void should_receive_the_correct_stats()
+		{
 			// Set the buffer counts to 0 to make comparison easier
 			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
@@ -277,12 +337,14 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_all_persistent_subscriptions<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private List<SubscriptionInfo> _actualSubscriptionInfo;
 		private List<SubscriptionInfo> _expectedSubscriptionInfo = new();
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 			var subscriptionNames = new Dictionary<string, string[]> {
@@ -290,14 +352,20 @@ public class GetInfoTests {
 				{"streamB", new[] {"groupB-1", "groupB-2"}},
 				{"streamC", new[] {"groupC"}},
 			};
-			foreach (var (stream, groupNames) in subscriptionNames) {
-				foreach (var group in groupNames) {
-					await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-						Options = new CreateReq.Types.Options {
+			foreach (var (stream, groupNames) in subscriptionNames)
+			{
+				foreach (var group in groupNames)
+				{
+					await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+					{
+						Options = new CreateReq.Types.Options
+						{
 							GroupName = group,
-							Stream = new CreateReq.Types.StreamOptions {
+							Stream = new CreateReq.Types.StreamOptions
+							{
 								Start = new Empty(),
-								StreamIdentifier = new StreamIdentifier {
+								StreamIdentifier = new StreamIdentifier
+								{
 									StreamName = ByteString.CopyFromUtf8(stream)
 								}
 							},
@@ -308,10 +376,13 @@ public class GetInfoTests {
 						TestPersistentSubscriptionSettings, group, stream, "0", string.Empty));
 				}
 			}
-			await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-				Options = new CreateReq.Types.Options {
+			await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+			{
+				Options = new CreateReq.Types.Options
+				{
 					GroupName = "groupD",
-					All = new CreateReq.Types.AllOptions {
+					All = new CreateReq.Types.AllOptions
+					{
 						Start = new Empty()
 					},
 					Settings = TestPersistentSubscriptionSettings
@@ -326,11 +397,14 @@ public class GetInfoTests {
 				$"C:{lastPosition}/P:{lastPosition}"));
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
-			var resp = await _persistentSubscriptionsClient.ListAsync(new ListReq {
-				Options = new ListReq.Types.Options {
+			var resp = await _persistentSubscriptionsClient.ListAsync(new ListReq
+			{
+				Options = new ListReq.Types.Options
+				{
 					ListAllSubscriptions = new Empty()
 				}
 			}, GetCallOptions(AdminCredentials));
@@ -339,7 +413,8 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_receive_the_correct_stats() {
+		public void should_receive_the_correct_stats()
+		{
 			// Set the buffer counts to 0 to make comparison easier
 			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
@@ -350,21 +425,27 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_all_persistent_subscriptions_without_options<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private const string StreamName = "test-stream";
 		private List<SubscriptionInfo> _actualSubscriptionInfo;
 		private SubscriptionInfo _expectedSubscriptionInfo;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
-			await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-				Options = new CreateReq.Types.Options {
+			await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+			{
+				Options = new CreateReq.Types.Options
+				{
 					GroupName = "groupA",
-					Stream = new CreateReq.Types.StreamOptions {
+					Stream = new CreateReq.Types.StreamOptions
+					{
 						Start = new Empty(),
-						StreamIdentifier = new StreamIdentifier {
+						StreamIdentifier = new StreamIdentifier
+						{
 							StreamName = ByteString.CopyFromUtf8(StreamName)
 						}
 					},
@@ -375,7 +456,8 @@ public class GetInfoTests {
 				TestPersistentSubscriptionSettings, "groupA", StreamName, "0", string.Empty);
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
 			var resp = await _persistentSubscriptionsClient.ListAsync(new ListReq(), GetCallOptions(AdminCredentials));
@@ -383,7 +465,8 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_receive_the_correct_stats() {
+		public void should_receive_the_correct_stats()
+		{
 			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
 			CollectionAssert.AreEquivalent(new[] { _expectedSubscriptionInfo }, _actualSubscriptionInfo);
@@ -393,11 +476,13 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_all_persistent_subscriptions_with_paging<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private ListResp _resp;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
 			var subscriptionNames = new Dictionary<string, string[]> {
@@ -406,14 +491,20 @@ public class GetInfoTests {
 				{"paged-stream-c", new[] {"paged-group-c"}},
 				{"paged-stream-d", new[] {"paged-group-d"}},
 			};
-			foreach (var (stream, groupNames) in subscriptionNames) {
-				foreach (var group in groupNames) {
-					await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-						Options = new CreateReq.Types.Options {
+			foreach (var (stream, groupNames) in subscriptionNames)
+			{
+				foreach (var group in groupNames)
+				{
+					await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+					{
+						Options = new CreateReq.Types.Options
+						{
 							GroupName = group,
-							Stream = new CreateReq.Types.StreamOptions {
+							Stream = new CreateReq.Types.StreamOptions
+							{
 								Start = new Empty(),
-								StreamIdentifier = new StreamIdentifier {
+								StreamIdentifier = new StreamIdentifier
+								{
 									StreamName = ByteString.CopyFromUtf8(stream)
 								}
 							},
@@ -424,11 +515,14 @@ public class GetInfoTests {
 			}
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
-			_resp = await _persistentSubscriptionsClient.ListAsync(new ListReq {
-				Options = new ListReq.Types.Options {
+			_resp = await _persistentSubscriptionsClient.ListAsync(new ListReq
+			{
+				Options = new ListReq.Types.Options
+				{
 					ListAllSubscriptions = new Empty(),
 					Offset = 1,
 					Count = 2
@@ -437,14 +531,16 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_return_the_requested_page_metadata() {
+		public void should_return_the_requested_page_metadata()
+		{
 			Assert.AreEqual(1, _resp.Offset);
 			Assert.AreEqual(2, _resp.Count);
 			Assert.AreEqual(4, _resp.Total);
 		}
 
 		[Test]
-		public void should_return_the_requested_page_size() {
+		public void should_return_the_requested_page_size()
+		{
 			Assert.AreEqual(2, _resp.Subscriptions.Count);
 		}
 	}
@@ -452,31 +548,39 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_all_persistent_subscriptions_with_incomplete_paging<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private RpcException _exception;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 			return Task.CompletedTask;
 		}
 
-		protected override async Task When() {
-			try {
-				await _persistentSubscriptionsClient.ListAsync(new ListReq {
-					Options = new ListReq.Types.Options {
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.ListAsync(new ListReq
+				{
+					Options = new ListReq.Types.Options
+					{
 						ListAllSubscriptions = new Empty(),
 						Offset = 0
 					}
 				}, GetCallOptions(AdminCredentials));
 			}
-			catch (RpcException ex) {
+			catch (RpcException ex)
+			{
 				_exception = ex;
 			}
 		}
 
 		[Test]
-		public void returns_invalid_argument() {
+		public void returns_invalid_argument()
+		{
 			Assert.IsNotNull(_exception);
 			Assert.AreEqual(StatusCode.InvalidArgument, _exception.Status.StatusCode);
 		}
@@ -485,32 +589,40 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_listing_all_persistent_subscriptions_with_invalid_count<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private RpcException _exception;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override Task Given() {
+		protected override Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 			return Task.CompletedTask;
 		}
 
-		protected override async Task When() {
-			try {
-				await _persistentSubscriptionsClient.ListAsync(new ListReq {
-					Options = new ListReq.Types.Options {
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.ListAsync(new ListReq
+				{
+					Options = new ListReq.Types.Options
+					{
 						ListAllSubscriptions = new Empty(),
 						Offset = 0,
 						Count = 0
 					}
 				}, GetCallOptions(AdminCredentials));
 			}
-			catch (RpcException ex) {
+			catch (RpcException ex)
+			{
 				_exception = ex;
 			}
 		}
 
 		[Test]
-		public void returns_invalid_argument() {
+		public void returns_invalid_argument()
+		{
 			Assert.IsNotNull(_exception);
 			Assert.AreEqual(StatusCode.InvalidArgument, _exception.Status.StatusCode);
 		}
@@ -519,19 +631,24 @@ public class GetInfoTests {
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
 		when_getting_info_for_persistent_subscription_group_on_all<TLogFormat, TStreamId>
-			: GrpcSpecification<TLogFormat, TStreamId> {
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
 		private string _groupName = "test-group";
 		private SubscriptionInfo _actualSubscriptionInfo;
 		private SubscriptionInfo _expectedSubscriptionInfo;
 		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
 
-			await _persistentSubscriptionsClient.CreateAsync(new CreateReq {
-				Options = new CreateReq.Types.Options {
+			await _persistentSubscriptionsClient.CreateAsync(new CreateReq
+			{
+				Options = new CreateReq.Types.Options
+				{
 					GroupName = _groupName,
-					All = new CreateReq.Types.AllOptions {
+					All = new CreateReq.Types.AllOptions
+					{
 						Start = new Empty()
 					},
 					Settings = TestPersistentSubscriptionSettings
@@ -546,11 +663,14 @@ public class GetInfoTests {
 					"$all", "C:0/P:0", $"C:{lastPosition}/P:{lastPosition}");
 		}
 
-		protected override async Task When() {
+		protected override async Task When()
+		{
 			await WaitForSubscriptionsToBeLive(_persistentSubscriptionsClient, GetCallOptions(AdminCredentials));
 
-			var resp = await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq {
-				Options = new GetInfoReq.Types.Options {
+			var resp = await _persistentSubscriptionsClient.GetInfoAsync(new GetInfoReq
+			{
+				Options = new GetInfoReq.Types.Options
+				{
 					GroupName = _groupName,
 					All = new Empty()
 				}
@@ -559,7 +679,8 @@ public class GetInfoTests {
 		}
 
 		[Test]
-		public void should_receive_the_correct_stats() {
+		public void should_receive_the_correct_stats()
+		{
 			// Set the buffer counts to 0 to make comparison easier
 			_actualSubscriptionInfo.LiveBufferCount = 0;
 			_actualSubscriptionInfo.ReadBufferCount = 0;
@@ -567,22 +688,28 @@ public class GetInfoTests {
 		}
 	}
 
-	private static async Task<List<StreamsReadResp>> GetAllEvents(Streams.StreamsClient client, CallOptions callOptions) {
-		var call = client.Read(new() {
-			Options = new() {
+	private static async Task<List<StreamsReadResp>> GetAllEvents(Streams.StreamsClient client, CallOptions callOptions)
+	{
+		var call = client.Read(new()
+		{
+			Options = new()
+			{
 				ReadDirection = StreamsReadReq.Types.Options.Types.ReadDirection.Forwards,
 				Count = 100,
 				NoFilter = new(),
 				UuidOption = new() { Structured = new() },
-				All = new() {
+				All = new()
+				{
 					Start = new()
 				}
 			}
 		}, callOptions);
 
 		var events = new List<StreamsReadResp>();
-		await foreach (var evnt in call.ResponseStream.ReadAllAsync()) {
-			if (evnt.ContentCase is StreamsReadResp.ContentOneofCase.Event) {
+		await foreach (var evnt in call.ResponseStream.ReadAllAsync())
+		{
+			if (evnt.ContentCase is StreamsReadResp.ContentOneofCase.Event)
+			{
 				events.Add(evnt);
 
 			}
@@ -590,7 +717,8 @@ public class GetInfoTests {
 		return events;
 	}
 
-	private static CreateReq.Types.Settings TestPersistentSubscriptionSettings => new CreateReq.Types.Settings {
+	private static CreateReq.Types.Settings TestPersistentSubscriptionSettings => new CreateReq.Types.Settings
+	{
 		CheckpointAfterMs = 10000,
 		ExtraStatistics = true,
 		MaxCheckpointCount = 20,
@@ -606,8 +734,10 @@ public class GetInfoTests {
 
 	private static SubscriptionInfo GetSubscriptionInfoFromSettings(
 		CreateReq.Types.Settings settings, string groupName, string streamName, string startFrom,
-		string lastKnownEvent, SubscriptionInfo.Types.ConnectionInfo[] connections = null) {
-		var info = new SubscriptionInfo() {
+		string lastKnownEvent, SubscriptionInfo.Types.ConnectionInfo[] connections = null)
+	{
+		var info = new SubscriptionInfo()
+		{
 			EventSource = streamName,
 			GroupName = groupName,
 			Status = "Live",
@@ -637,26 +767,32 @@ public class GetInfoTests {
 			ParkedMessageCount = 0
 		};
 
-		if (connections != null) {
+		if (connections != null)
+		{
 			info.Connections.AddRange(connections);
 		}
 
 		return info;
 	}
 
-	private static async Task WaitForSubscriptionsToBeLive(PersistentSubscriptions.PersistentSubscriptionsClient client, CallOptions callOptions) {
+	private static async Task WaitForSubscriptionsToBeLive(PersistentSubscriptions.PersistentSubscriptionsClient client, CallOptions callOptions)
+	{
 		var resp = await GetSubscriptions();
 
-		for (int i = 0; resp.Subscriptions.Any(s => s.Status != "Live"); i++) {
+		for (int i = 0; resp.Subscriptions.Any(s => s.Status != "Live"); i++)
+		{
 			Assert.AreNotEqual(20, i, "Reached too many retries to get all subscriptions live!");
 
 			await Task.Delay(1000);
 			resp = await GetSubscriptions();
 		}
 
-		async Task<ListResp> GetSubscriptions() {
-			return await client.ListAsync(new ListReq {
-				Options = new ListReq.Types.Options {
+		async Task<ListResp> GetSubscriptions()
+		{
+			return await client.ListAsync(new ListReq
+			{
+				Options = new ListReq.Types.Options
+				{
 					ListAllSubscriptions = new Empty()
 				}
 			}, callOptions);

@@ -1,5 +1,7 @@
-namespace EventStore.Core.TransactionLog.FileNamingStrategy {
-	public interface IVersionedFileNamingStrategy {
+namespace EventStore.Core.TransactionLog.FileNamingStrategy
+{
+	public interface IVersionedFileNamingStrategy
+	{
 		string Prefix { get; }
 		string GetFilenameFor(int index, int version);
 		string DetermineNewVersionFilenameForIndex(int index, int defaultVersion);

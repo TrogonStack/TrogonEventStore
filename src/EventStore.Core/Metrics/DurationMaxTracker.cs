@@ -5,7 +5,8 @@ using EventStore.Core.Time;
 
 namespace EventStore.Core.Metrics;
 
-public interface IDurationMaxTracker {
+public interface IDurationMaxTracker
+{
 	// Returns the current instant
 	Instant RecordNow(Instant start);
 }
@@ -25,7 +26,8 @@ public interface IDurationMaxTracker {
 // On recording/observing, buckets that contain data that is old enough to not be relevant are reset.
 //
 // One thread can RecordNow while another Observes concurrently.
-public class DurationMaxTracker : IDurationMaxTracker {
+public class DurationMaxTracker : IDurationMaxTracker
+{
 	private readonly IClock _clock;
 	private readonly KeyValuePair<string, object>[] _maxTags;
 	private readonly RecentMax<double> _recentMax;
@@ -34,13 +36,15 @@ public class DurationMaxTracker : IDurationMaxTracker {
 		DurationMaxMetric metric,
 		string name,
 		int expectedScrapeIntervalSeconds,
-		IClock clock = null) {
+		IClock clock = null)
+	{
 
 		_clock = clock ?? Clock.Instance;
 		_recentMax = new RecentMax<double>(expectedScrapeIntervalSeconds);
 
 		var maxTags = new List<KeyValuePair<string, object>>();
-		if (!string.IsNullOrWhiteSpace(name)) {
+		if (!string.IsNullOrWhiteSpace(name))
+		{
 			maxTags.Add(new("name", name));
 		}
 
@@ -50,23 +54,27 @@ public class DurationMaxTracker : IDurationMaxTracker {
 		metric.Add(this);
 	}
 
-	public Instant RecordNow(Instant start) {
+	public Instant RecordNow(Instant start)
+	{
 		var now = _clock.Now;
 		var elapsedSeconds = now.ElapsedSecondsSince(start);
 		_recentMax.Record(now, elapsedSeconds);
 		return now;
 	}
 
-	public void RecordNow(TimeSpan duration) {
+	public void RecordNow(TimeSpan duration)
+	{
 		_recentMax.Record(_clock.Now, duration.TotalSeconds);
 	}
 
-	public Measurement<double> Observe() {
+	public Measurement<double> Observe()
+	{
 		var value = _recentMax.Observe(_clock.Now);
 		return new(value, _maxTags.AsSpan());
 	}
 
-	public class NoOp : IDurationMaxTracker {
+	public class NoOp : IDurationMaxTracker
+	{
 		public Instant RecordNow(Instant start) => Instant.Now;
 	}
 }

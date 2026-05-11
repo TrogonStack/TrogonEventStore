@@ -8,26 +8,31 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class PersistentSubscriptions {
+internal partial class PersistentSubscriptions
+{
 	private static readonly Operation ReplayParkedOperation = new Operation(Plugins.Authorization.Operations.Subscriptions.ReplayParked);
-	public override async Task<ReplayParkedResp> ReplayParked(ReplayParkedReq request, ServerCallContext context) {
+	public override async Task<ReplayParkedResp> ReplayParked(ReplayParkedReq request, ServerCallContext context)
+	{
 		var replayParkedMessagesSource = new TaskCompletionSource<ReplayParkedResp>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var correlationId = Guid.NewGuid();
 
 		var user = context.GetHttpContext().User;
 
 		if (!await _authorizationProvider.CheckAccessAsync(user,
-			ReplayParkedOperation, context.CancellationToken)) {
+			ReplayParkedOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
-		string streamId = request.Options.StreamOptionCase switch {
+		string streamId = request.Options.StreamOptionCase switch
+		{
 			ReplayParkedReq.Types.Options.StreamOptionOneofCase.All => "$all",
 			ReplayParkedReq.Types.Options.StreamOptionOneofCase.StreamIdentifier => request.Options.StreamIdentifier,
 			_ => throw new InvalidOperationException()
 		};
 
-		long? stopAt = request.Options.StopAtOptionCase switch {
+		long? stopAt = request.Options.StopAtOptionCase switch
+		{
 			ReplayParkedReq.Types.Options.StopAtOptionOneofCase.StopAt => request.Options.StopAt,
 			ReplayParkedReq.Types.Options.StopAtOptionOneofCase.NoLimit => null,
 			_ => throw new InvalidOperationException()
@@ -43,14 +48,18 @@ internal partial class PersistentSubscriptions {
 			user));
 		return await replayParkedMessagesSource.Task;
 
-		void HandleReplayParkedMessagesCompleted(Message message) {
-			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex)) {
+		void HandleReplayParkedMessagesCompleted(Message message)
+		{
+			if (message is ClientMessage.NotHandled notHandled && RpcExceptions.TryHandleNotHandled(notHandled, out var ex))
+			{
 				replayParkedMessagesSource.TrySetException(ex);
 				return;
 			}
 
-			if (message is ClientMessage.ReplayMessagesReceived completed) {
-				switch (completed.Result) {
+			if (message is ClientMessage.ReplayMessagesReceived completed)
+			{
+				switch (completed.Result)
+				{
 					case ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.Success:
 						replayParkedMessagesSource.TrySetResult(new ReplayParkedResp());
 						return;

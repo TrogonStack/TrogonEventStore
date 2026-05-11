@@ -16,11 +16,13 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager.multi_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_prerecording_event_order<TLogFormat, TStreamId> : TestFixtureWithMultiStreamCheckpointManager<TLogFormat, TStreamId> {
+public class when_prerecording_event_order<TLogFormat, TStreamId> : TestFixtureWithMultiStreamCheckpointManager<TLogFormat, TStreamId>
+{
 	private ResolvedEvent _event1;
 	private ResolvedEvent _event2;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		base.Given();
 		_streams = new[] { "pa", "pb" };
 		ExistingEvent("a", "test1", "{}", "{}");
@@ -38,7 +40,8 @@ public class when_prerecording_event_order<TLogFormat, TStreamId> : TestFixtureW
 		AllWritesSucceed();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		base.When();
 		Action noop = () => { };
 		_manager.Initialize();
@@ -59,7 +62,8 @@ public class when_prerecording_event_order<TLogFormat, TStreamId> : TestFixtureW
 	}
 
 	[Test]
-	public void writes_correct_link_tos() {
+	public void writes_correct_link_tos()
+	{
 		var writeEvents =
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.SelectMany(v => v.Events)

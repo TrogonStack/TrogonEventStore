@@ -55,7 +55,8 @@ public class ProjectionManager
 		IHandle<CoreProjectionStatusMessage.StateReport>,
 		IHandle<CoreProjectionStatusMessage.ResultReport>,
 		IHandle<CoreProjectionStatusMessage.StatisticsReport>,
-		IHandle<TelemetryMessage.Request> {
+		IHandle<TelemetryMessage.Request>
+{
 	public const int ProjectionQueryId = -2;
 	public const int ProjectionCreationRetryCount = 1;
 	public const string ServiceName = "ProjectionManager";
@@ -122,20 +123,25 @@ public class ProjectionManager
 		IODispatcher ioDispatcher,
 		TimeSpan projectionQueryExpiry,
 		IProjectionTracker projectionTracker,
-		bool initializeSystemProjections = true) {
-		if (inputQueue == null) {
+		bool initializeSystemProjections = true)
+	{
+		if (inputQueue == null)
+		{
 			throw new ArgumentNullException("inputQueue");
 		}
 
-		if (publisher == null) {
+		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
 		}
 
-		if (queueMap == null) {
+		if (queueMap == null)
+		{
 			throw new ArgumentNullException("queueMap");
 		}
 
-		if (queueMap.Count == 0) {
+		if (queueMap.Count == 0)
+		{
 			throw new ArgumentException("At least one queue is required", "queueMap");
 		}
 
@@ -199,16 +205,20 @@ public class ProjectionManager
 				ProjectionMode.AllNonTransient, null, true));
 	}
 
-	private void PushStatsToProjectionTracker(Message message) {
-		if (message is ProjectionManagementMessage.Statistics stats) {
+	private void PushStatsToProjectionTracker(Message message)
+	{
+		if (message is ProjectionManagementMessage.Statistics stats)
+		{
 			_projectionTracker.OnNewStats(stats.Projections);
 		}
 
 		_publisher.Publish(_getStats);
 	}
 
-	public void Handle(ProjectionSubsystemMessage.StartComponents message) {
-		if (_started) {
+	public void Handle(ProjectionSubsystemMessage.StartComponents message)
+	{
+		if (_started)
+		{
 			_logger.Debug("PROJECTIONS: Projection manager already started. Correlation: {correlation}",
 				message.InstanceCorrelationId);
 			return;
@@ -218,8 +228,10 @@ public class ProjectionManager
 		_logger.Debug("PROJECTIONS: Starting Projections Manager. Correlation: {correlation}", _instanceCorrelationId);
 
 		_started = true;
-		if (_runProjections >= ProjectionType.System) {
-			StartExistingProjections(() => {
+		if (_runProjections >= ProjectionType.System)
+		{
+			StartExistingProjections(() =>
+			{
 				_projectionsStarted = true;
 				_publisher.Publish(_getStats);
 				ScheduleExpire();
@@ -229,14 +241,17 @@ public class ProjectionManager
 		_publisher.Publish(new ProjectionSubsystemMessage.ComponentStarted(ServiceName, _instanceCorrelationId));
 	}
 
-	public void Handle(ProjectionSubsystemMessage.StopComponents message) {
-		if (!_started) {
+	public void Handle(ProjectionSubsystemMessage.StopComponents message)
+	{
+		if (!_started)
+		{
 			_logger.Debug("PROJECTIONS: Projection manager already stopped. Correlation: {correlation}",
 				message.InstanceCorrelationId);
 			return;
 		}
 
-		if (_instanceCorrelationId != message.InstanceCorrelationId) {
+		if (_instanceCorrelationId != message.InstanceCorrelationId)
+		{
 			_logger.Debug("PROJECTIONS: Projection Manager received stop request for incorrect correlation id." +
 						  "Current: {correlationId}. Requested: {requestedCorrelationId}", _instanceCorrelationId,
 				message.InstanceCorrelationId);
@@ -247,8 +262,10 @@ public class ProjectionManager
 		Stop();
 	}
 
-	private void ScheduleExpire() {
-		if (!_projectionsStarted) {
+	private void ScheduleExpire()
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
@@ -259,7 +276,8 @@ public class ProjectionManager
 				new ProjectionManagementMessage.Internal.CleanupExpired()));
 	}
 
-	private void Stop() {
+	private void Stop()
+	{
 		_started = false;
 		_projectionsStarted = false;
 		_ioDispatcher.StartDraining(() =>
@@ -271,30 +289,38 @@ public class ProjectionManager
 		_publisher.Publish(new ProjectionSubsystemMessage.ComponentStopped(ServiceName, _instanceCorrelationId));
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Post message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.Post message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
-		if (message.Mode == ProjectionMode.Transient) {
+		if (message.Mode == ProjectionMode.Transient)
+		{
 			var transientProjection = new PendingProjection(ProjectionQueryId, message);
-			if (!ValidateProjections(new[] { transientProjection }, message)) {
+			if (!ValidateProjections(new[] { transientProjection }, message))
+			{
 				return;
 			}
 
 			PostNewTransientProjection(transientProjection, message.Envelope);
 		}
-		else {
-			if (_isWritePending) {
+		else
+		{
+			if (_isWritePending)
+			{
 				DelayMessage(message);
 			}
-			else {
+			else
+			{
 				var expectedVersion = _projectionsRegistrationExpectedVersion;
 				var pendingProjections = new Dictionary<string, PendingProjection>
 				{
 					{ message.Name, new PendingProjection(expectedVersion + 1, message) }
 				};
-				if (!ValidateProjections(pendingProjections.Values.ToArray(), message)) {
+				if (!ValidateProjections(pendingProjections.Values.ToArray(), message))
+				{
 					return;
 				}
 
@@ -303,32 +329,39 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.PostBatch message) {
-		if (!_projectionsStarted || !message.Projections.Any()) {
+	public void Handle(ProjectionManagementMessage.Command.PostBatch message)
+	{
+		if (!_projectionsStarted || !message.Projections.Any())
+		{
 			return;
 		}
 
-		if (message.Projections.Any(p => p.Mode == ProjectionMode.Transient)) {
+		if (message.Projections.Any(p => p.Mode == ProjectionMode.Transient))
+		{
 			message.Envelope.ReplyWith(
 				new ProjectionManagementMessage.OperationFailed(
 					"Transient projections in batches are not supported."));
 			return;
 		}
 
-		if (_isWritePending) {
+		if (_isWritePending)
+		{
 			DelayMessage(message);
 		}
-		else {
+		else
+		{
 			var expectedVersion = _projectionsRegistrationExpectedVersion;
 			var pendingProjections = new Dictionary<string, PendingProjection>();
 
 			var projectionId = expectedVersion + 1;
-			foreach (var projection in message.Projections) {
+			foreach (var projection in message.Projections)
+			{
 				pendingProjections.Add(projection.Name, new PendingProjection(projectionId, projection));
 				projectionId++;
 			}
 
-			if (!ValidateProjections(pendingProjections.Values.ToArray(), message)) {
+			if (!ValidateProjections(pendingProjections.Values.ToArray(), message))
+			{
 				return;
 			}
 
@@ -338,16 +371,19 @@ public class ProjectionManager
 
 	private bool ValidateProjections(
 		PendingProjection[] projections,
-		ProjectionManagementMessage.Command.ControlMessage message) {
+		ProjectionManagementMessage.Command.ControlMessage message)
+	{
 		var duplicateNames = new List<string>();
 
-		foreach (var projection in projections) {
+		foreach (var projection in projections)
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(
 					projection.Mode,
 					ReadWrite.Write,
 					null,
 					message,
-					replace: projection.EnableRunAs)) {
+					replace: projection.EnableRunAs))
+			{
 
 				_logger.Information("PROJECTIONS: Projections batch rejected due to invalid RunAs");
 				message.Envelope.ReplyWith(
@@ -355,18 +391,21 @@ public class ProjectionManager
 				return false;
 			}
 
-			if (string.IsNullOrWhiteSpace(projection.Name)) {
+			if (string.IsNullOrWhiteSpace(projection.Name))
+			{
 				message.Envelope.ReplyWith(
 					new ProjectionManagementMessage.OperationFailed("Projection name is required"));
 				return false;
 			}
 
-			if (_projectionsRegistrationState.Contains(projection.Name)) {
+			if (_projectionsRegistrationState.Contains(projection.Name))
+			{
 				duplicateNames.Add(projection.Name);
 			}
 		}
 
-		if (duplicateNames.Any()) {
+		if (duplicateNames.Any())
+		{
 			var duplicatesMsg = $"Duplicate projection names : {string.Join(", ", duplicateNames)}";
 			_logger.Debug($"PROJECTIONS: Conflict. {duplicatesMsg}");
 			message.Envelope.ReplyWith(
@@ -377,18 +416,22 @@ public class ProjectionManager
 		return true;
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Delete message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.Delete message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 			return;
 		}
 
-		if (IsSystemProjection(message.Name)) {
+		if (IsSystemProjection(message.Name))
+		{
 			message.Envelope.ReplyWith(
 				new ProjectionManagementMessage.OperationFailed(
 					"We currently don't allow for the deletion of System Projections."));
@@ -396,19 +439,23 @@ public class ProjectionManager
 		}
 
 		if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-				message)) {
+				message))
+		{
 			return;
 		}
 
-		try {
+		try
+		{
 			projection.Handle(message);
 		}
-		catch (InvalidOperationException ex) {
+		catch (InvalidOperationException ex)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.OperationFailed(ex.Message));
 		}
 	}
 
-	private bool IsSystemProjection(string name) {
+	private bool IsSystemProjection(string name)
+	{
 		return name == ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection ||
 			   name == ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection ||
 			   name == ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection ||
@@ -416,18 +463,23 @@ public class ProjectionManager
 			   name == ProjectionNamesBuilder.StandardProjections.EventByCorrIdStandardProjection;
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetQuery message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.GetQuery message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -435,8 +487,10 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.UpdateQuery message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.UpdateQuery message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
@@ -446,12 +500,15 @@ public class ProjectionManager
 			message.Query);
 		var projection = GetProjection(message.Name);
 
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -459,20 +516,25 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Disable message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.Disable message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		_logger.Information("Disabling '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -480,21 +542,26 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Enable message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.Enable message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		_logger.Information("Enabling '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			_logger.Error("DBG: PROJECTION *{projection}* NOT FOUND.", message.Name);
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -502,20 +569,25 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Abort message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.Abort message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		_logger.Information("Aborting '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -523,23 +595,28 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.SetRunAs message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.SetRunAs message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		_logger.Information("Setting RunAs1 account for '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			_logger.Error("DBG: PROJECTION *{projection}* NOT FOUND.", message.Name);
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (
 				!ProjectionManagementMessage.RunAs.ValidateRunAs(
 					projection.Mode, ReadWrite.Write, projection.RunAs, message,
-					message.Action == ProjectionManagementMessage.Command.SetRunAs.SetRemove.Set)) {
+					message.Action == ProjectionManagementMessage.Command.SetRunAs.SetRemove.Set))
+			{
 				return;
 			}
 
@@ -547,21 +624,26 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.Reset message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.Reset message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		_logger.Information("Resetting '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			_logger.Error("DBG: PROJECTION *{projection}* NOT FOUND.", message.Name);
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Write, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -569,22 +651,28 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetStatistics message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.GetStatistics message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
-		if (!string.IsNullOrEmpty(message.Name)) {
+		if (!string.IsNullOrEmpty(message.Name))
+		{
 			var projection = GetProjection(message.Name);
-			if (projection == null) {
+			if (projection == null)
+			{
 				message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 			}
-			else {
+			else
+			{
 				message.Envelope.ReplyWith(
 					new ProjectionManagementMessage.Statistics(new[] { projection.GetStatistics() }));
 			}
 		}
-		else {
+		else
+		{
 			var statuses = (from projectionNameValue in _projections
 							let projection = projectionNameValue.Value
 							where !projection.Deleted
@@ -598,46 +686,59 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetState message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.GetState message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetResult message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.GetResult message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.GetConfig message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.GetConfig message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
@@ -645,114 +746,143 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Command.UpdateConfig message) {
-		if (!_projectionsStarted) {
+	public void Handle(ProjectionManagementMessage.Command.UpdateConfig message)
+	{
+		if (!_projectionsStarted)
+		{
 			return;
 		}
 
 		var projection = GetProjection(message.Name);
-		if (projection == null) {
+		if (projection == null)
+		{
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
-		else {
+		else
+		{
 			if (!ProjectionManagementMessage.RunAs.ValidateRunAs(projection.Mode, ReadWrite.Read, projection.RunAs,
-					message)) {
+					message))
+			{
 				return;
 			}
 
-			try {
+			try
+			{
 				projection.Handle(message);
 			}
-			catch (InvalidOperationException ex) {
+			catch (InvalidOperationException ex)
+			{
 				message.Envelope.ReplyWith(new ProjectionManagementMessage.OperationFailed(ex.Message));
 				return;
 			}
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Internal.CleanupExpired message) {
+	public void Handle(ProjectionManagementMessage.Internal.CleanupExpired message)
+	{
 		ScheduleExpire();
 		CleanupExpired();
 	}
 
-	private void CleanupExpired() {
-		foreach (var managedProjection in _projections.ToArray()) {
+	private void CleanupExpired()
+	{
+		foreach (var managedProjection in _projections.ToArray())
+		{
 			managedProjection.Value.Handle(new ProjectionManagementMessage.Internal.CleanupExpired());
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Started message) {
+	public void Handle(CoreProjectionStatusMessage.Started message)
+	{
 		string name;
-		if (_projectionsMap.TryGetValue(message.ProjectionId, out name)) {
+		if (_projectionsMap.TryGetValue(message.ProjectionId, out name))
+		{
 			var projection = _projections[name];
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Stopped message) {
+	public void Handle(CoreProjectionStatusMessage.Stopped message)
+	{
 		string name;
-		if (_projectionsMap.TryGetValue(message.ProjectionId, out name)) {
+		if (_projectionsMap.TryGetValue(message.ProjectionId, out name))
+		{
 			var projection = _projections[name];
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Faulted message) {
+	public void Handle(CoreProjectionStatusMessage.Faulted message)
+	{
 		string name;
-		if (_projectionsMap.TryGetValue(message.ProjectionId, out name)) {
+		if (_projectionsMap.TryGetValue(message.ProjectionId, out name))
+		{
 			var projection = _projections[name];
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.Prepared message) {
+	public void Handle(CoreProjectionStatusMessage.Prepared message)
+	{
 		string name;
-		if (_projectionsMap.TryGetValue(message.ProjectionId, out name)) {
+		if (_projectionsMap.TryGetValue(message.ProjectionId, out name))
+		{
 			var projection = _projections[name];
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(CoreProjectionStatusMessage.StateReport message) {
+	public void Handle(CoreProjectionStatusMessage.StateReport message)
+	{
 		_getStateDispatcher.Handle(message);
 	}
 
-	public void Handle(CoreProjectionStatusMessage.ResultReport message) {
+	public void Handle(CoreProjectionStatusMessage.ResultReport message)
+	{
 		_getResultDispatcher.Handle(message);
 	}
 
-	public void Handle(CoreProjectionStatusMessage.StatisticsReport message) {
+	public void Handle(CoreProjectionStatusMessage.StatisticsReport message)
+	{
 		string name;
-		if (_projectionsMap.TryGetValue(message.ProjectionId, out name)) {
+		if (_projectionsMap.TryGetValue(message.ProjectionId, out name))
+		{
 			var projection = _projections[name];
 			projection.Handle(message);
 		}
 	}
 
-	public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message) {
+	public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message)
+	{
 		_readDispatcher.Handle(message);
 	}
 
-	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message) {
+	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message)
+	{
 		_readForwardDispatcher.Handle(message);
 	}
 
-	public void Handle(ClientMessage.WriteEventsCompleted message) {
+	public void Handle(ClientMessage.WriteEventsCompleted message)
+	{
 		_writeDispatcher.Handle(message);
 	}
 
-	public void Handle(ClientMessage.DeleteStreamCompleted message) {
+	public void Handle(ClientMessage.DeleteStreamCompleted message)
+	{
 		_streamDispatcher.Handle(message);
 	}
 
-	public void Handle(ProjectionManagementMessage.Internal.Deleted message) {
+	public void Handle(ProjectionManagementMessage.Internal.Deleted message)
+	{
 		var projection = GetProjection(message.Name);
 
-		if (projection == null) {
+		if (projection == null)
+		{
 			return;
 		}
 
-		if (projection.Mode == ProjectionMode.Transient) {
+		if (projection.Mode == ProjectionMode.Transient)
+		{
 			// We don't need to write a delete, as transient projections don't write creations
 			_projections.Remove(message.Name);
 			_projectionsMap.Remove(message.Id);
@@ -760,12 +890,15 @@ public class ProjectionManager
 			return;
 		}
 
-		if (_isWritePending) {
+		if (_isWritePending)
+		{
 			DelayMessage(message);
 		}
-		else {
+		else
+		{
 			DeleteProjection(message,
-				expVer => {
+				expVer =>
+				{
 					_projections.Remove(message.Name);
 					_projectionsMap.Remove(message.Id);
 					_projectionsRegistrationState.Remove(message.Name);
@@ -776,7 +909,8 @@ public class ProjectionManager
 
 	private void DeleteProjection(
 		ProjectionManagementMessage.Internal.Deleted message, Action<long> completed,
-		int retryCount = ProjectionCreationRetryCount) {
+		int retryCount = ProjectionCreationRetryCount)
+	{
 		var corrId = Guid.NewGuid();
 		var writeDelete = new ClientMessage.WriteEvents(
 			corrId,
@@ -799,20 +933,24 @@ public class ProjectionManager
 			m => WriteProjectionDeletedCompleted(m, writeDelete, message, completed, retryCount));
 	}
 
-	public void Dispose() {
-		foreach (var projection in _projections.Values) {
+	public void Dispose()
+	{
+		foreach (var projection in _projections.Values)
+		{
 			projection.Dispose();
 		}
 
 		_projections.Clear();
 	}
 
-	private ManagedProjection GetProjection(string name) {
+	private ManagedProjection GetProjection(string name)
+	{
 		ManagedProjection result;
 		return _projections.TryGetValue(name, out result) ? result : null;
 	}
 
-	private void StartExistingProjections(Action completed) {
+	private void StartExistingProjections(Action completed)
+	{
 		var registeredProjections = new Dictionary<string, long>();
 		ReadProjectionsList(
 			registeredProjections,
@@ -822,7 +960,8 @@ public class ProjectionManager
 	private void ReadProjectionsList(
 		IDictionary<string, long> registeredProjections,
 		Action<IDictionary<string, long>> completedAction,
-		long from = 0) {
+		long from = 0)
+	{
 
 		_logger.Debug("PROJECTIONS: Reading Existing Projections from {stream}",
 			ProjectionNamesBuilder.ProjectionsRegistrationStream);
@@ -848,31 +987,39 @@ public class ProjectionManager
 		ClientMessage.ReadStreamEventsForwardCompleted msg,
 		IDictionary<string, long> registeredProjections,
 		long requestedFrom,
-		Action<IDictionary<string, long>> completedAction) {
-		switch (msg.Result) {
+		Action<IDictionary<string, long>> completedAction)
+	{
+		switch (msg.Result)
+		{
 			case ReadStreamResult.Success:
-				foreach (var evnt in msg.Events) {
+				foreach (var evnt in msg.Events)
+				{
 					var projectionId = evnt.Event.EventNumber;
-					if (projectionId == 0) {
+					if (projectionId == 0)
+					{
 						projectionId = Int32.MaxValue - 1;
 					}
 
-					if (evnt.Event.EventType == ProjectionEventTypes.ProjectionsInitialized) {
+					if (evnt.Event.EventType == ProjectionEventTypes.ProjectionsInitialized)
+					{
 						registeredProjections.Add(ProjectionEventTypes.ProjectionsInitialized, projectionId);
 						continue;
 					}
 
 					var projectionName = Helper.UTF8NoBom.GetString(evnt.Event.Data.Span);
 					if (string.IsNullOrEmpty(projectionName)
-						|| _projections.ContainsKey(projectionName)) {
+						|| _projections.ContainsKey(projectionName))
+					{
 						_logger.Warning(
 							"PROJECTIONS: The following projection: {projection} has a duplicate registration event.",
 							projectionName);
 						continue;
 					}
 
-					if (evnt.Event.EventType == ProjectionEventTypes.ProjectionCreated) {
-						if (registeredProjections.ContainsKey(projectionName)) {
+					if (evnt.Event.EventType == ProjectionEventTypes.ProjectionCreated)
+					{
+						if (registeredProjections.ContainsKey(projectionName))
+						{
 							registeredProjections[projectionName] = projectionId;
 							_logger.Warning(
 								"PROJECTIONS: The following projection: {projection} has a duplicate created event. Using projection Id {projectionId}",
@@ -882,14 +1029,16 @@ public class ProjectionManager
 
 						registeredProjections.Add(projectionName, projectionId);
 					}
-					else if (evnt.Event.EventType == ProjectionEventTypes.ProjectionDeleted) {
+					else if (evnt.Event.EventType == ProjectionEventTypes.ProjectionDeleted)
+					{
 						registeredProjections.Remove(projectionName);
 					}
 				}
 
 				_projectionsRegistrationExpectedVersion = msg.LastEventNumber;
 
-				if (!msg.IsEndOfStream) {
+				if (!msg.IsEndOfStream)
+				{
 					ReadProjectionsList(registeredProjections, completedAction, @from: msg.NextEventNumber);
 					return;
 				}
@@ -908,12 +1057,15 @@ public class ProjectionManager
 	}
 
 	private void StartRegisteredProjections(IDictionary<string, long> registeredProjections,
-		Action completedAction) {
-		if (!registeredProjections.Any()) {
+		Action completedAction)
+	{
+		if (!registeredProjections.Any())
+		{
 			_logger.Debug("PROJECTIONS: No projections were found in {stream}, starting from empty stream",
 				ProjectionNamesBuilder.ProjectionsRegistrationStream);
 			WriteProjectionsInitialized(
-				() => {
+				() =>
+				{
 					completedAction();
 					CreateSystemProjections();
 				},
@@ -930,7 +1082,8 @@ public class ProjectionManager
 			ProjectionNamesBuilder.ProjectionsRegistrationStream,
 			projections);
 
-		foreach (var projection in projections) {
+		foreach (var projection in projections)
+		{
 			_projectionsRegistrationState.Add(projection);
 		}
 
@@ -938,7 +1091,8 @@ public class ProjectionManager
 		CreateSystemProjections(registeredProjections.Select(x => x.Key).ToList());
 
 		foreach (var projectionRegistration in registeredProjections.Where(x =>
-					 x.Key != ProjectionEventTypes.ProjectionsInitialized)) {
+					 x.Key != ProjectionEventTypes.ProjectionsInitialized))
+		{
 			int queueIndex = GetNextWorkerIndex();
 			var managedProjection = CreateManagedProjectionInstance(
 				projectionRegistration.Key,
@@ -951,12 +1105,14 @@ public class ProjectionManager
 		completedAction();
 	}
 
-	private bool IsProjectionEnabledToRunByMode(string projectionName) {
+	private bool IsProjectionEnabledToRunByMode(string projectionName)
+	{
 		return _runProjections >= ProjectionType.All
 			   || _runProjections == ProjectionType.System && projectionName.StartsWith("$");
 	}
 
-	private void WriteProjectionsInitialized(Action action, Guid registrationEventId) {
+	private void WriteProjectionsInitialized(Action action, Guid registrationEventId)
+	{
 		var corrId = Guid.NewGuid();
 		_writeDispatcher.Publish(
 			new ClientMessage.WriteEvents(
@@ -973,8 +1129,10 @@ public class ProjectionManager
 	}
 
 	private void WriteProjectionsInitializedCompleted(ClientMessage.WriteEventsCompleted completed,
-		Guid registrationEventId, Action action) {
-		switch (completed.Result) {
+		Guid registrationEventId, Action action)
+	{
+		switch (completed.Result)
+		{
 			case OperationResult.Success:
 				action();
 				break;
@@ -989,19 +1147,23 @@ public class ProjectionManager
 		}
 	}
 
-	private void CreateSystemProjections() {
+	private void CreateSystemProjections()
+	{
 		CreateSystemProjections(new List<string>());
 	}
 
-	private void CreateSystemProjections(List<string> existingSystemProjections) {
+	private void CreateSystemProjections(List<string> existingSystemProjections)
+	{
 		var systemProjections = new List<ProjectionManagementMessage.Command.PostBatch.ProjectionPost>();
 
-		if (!_initializeSystemProjections) {
+		if (!_initializeSystemProjections)
+		{
 			return;
 		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-				.StreamsStandardProjection)) {
+				.StreamsStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.StreamsStandardProjection,
 				typeof(IndexStreams),
@@ -1009,7 +1171,8 @@ public class ProjectionManager
 		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-				.StreamByCategoryStandardProjection)) {
+				.StreamByCategoryStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.StreamByCategoryStandardProjection,
 				typeof(CategorizeStreamByPath),
@@ -1017,7 +1180,8 @@ public class ProjectionManager
 		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-				.EventByCategoryStandardProjection)) {
+				.EventByCategoryStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByCategoryStandardProjection,
 				typeof(CategorizeEventsByStreamPath),
@@ -1025,7 +1189,8 @@ public class ProjectionManager
 		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-				.EventByTypeStandardProjection)) {
+				.EventByTypeStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByTypeStandardProjection,
 				typeof(IndexEventsByEventType),
@@ -1033,7 +1198,8 @@ public class ProjectionManager
 		}
 
 		if (!existingSystemProjections.Contains(ProjectionNamesBuilder.StandardProjections
-				.EventByCorrIdStandardProjection)) {
+				.EventByCorrIdStandardProjection))
+		{
 			systemProjections.Add(CreateSystemProjectionPost(
 				ProjectionNamesBuilder.StandardProjections.EventByCorrIdStandardProjection,
 				typeof(ByCorrelationId),
@@ -1047,7 +1213,8 @@ public class ProjectionManager
 	}
 
 	private ProjectionManagementMessage.Command.PostBatch.ProjectionPost CreateSystemProjectionPost
-		(string name, Type handlerType, string config) {
+		(string name, Type handlerType, string config)
+	{
 		return new ProjectionManagementMessage.Command.PostBatch.ProjectionPost(
 			ProjectionMode.Continuous,
 			ProjectionManagementMessage.RunAs.System,
@@ -1061,7 +1228,8 @@ public class ProjectionManager
 			enableRunAs: true);
 	}
 
-	private void PostNewTransientProjection(PendingProjection projection, IEnvelope replyEnvelope) {
+	private void PostNewTransientProjection(PendingProjection projection, IEnvelope replyEnvelope)
+	{
 		var initializer = projection.CreateInitializer(replyEnvelope);
 		ReadProjectionPossibleStream(projection.Name,
 			m => ReadProjectionPossibleStreamCompleted
@@ -1069,12 +1237,15 @@ public class ProjectionManager
 	}
 
 	private void PostNewProjections
-		(IDictionary<string, PendingProjection> newProjections, long expectedVersion, IEnvelope replyEnvelope) {
+		(IDictionary<string, PendingProjection> newProjections, long expectedVersion, IEnvelope replyEnvelope)
+	{
 		var corrId = Guid.NewGuid();
 		var events = new List<Event>();
 
-		foreach (var projection in newProjections.Values) {
-			if (projection.Mode >= ProjectionMode.OneTime) {
+		foreach (var projection in newProjections.Values)
+		{
+			if (projection.Mode >= ProjectionMode.OneTime)
+			{
 				var eventId = Guid.NewGuid();
 				events.Add(new Event(
 					eventId,
@@ -1083,12 +1254,14 @@ public class ProjectionManager
 					Helper.UTF8NoBom.GetBytes(projection.Name),
 					Empty.ByteArray));
 			}
-			else {
+			else
+			{
 				_logger.Warning("PROJECTIONS: Should not be processing transient projections here.");
 			}
 		}
 
-		if (!events.Any()) {
+		if (!events.Any())
+		{
 			return;
 		}
 
@@ -1113,11 +1286,14 @@ public class ProjectionManager
 	private void WriteNewProjectionsCompleted(ClientMessage.WriteEventsCompleted completed,
 		ClientMessage.WriteEvents write,
 		IDictionary<string, PendingProjection> newProjections,
-		IEnvelope envelope, int retryCount = ProjectionCreationRetryCount) {
+		IEnvelope envelope, int retryCount = ProjectionCreationRetryCount)
+	{
 
 		_isWritePending = false;
-		if (completed.Result == OperationResult.Success) {
-			foreach (var name in newProjections.Keys) {
+		if (completed.Result == OperationResult.Success)
+		{
+			foreach (var name in newProjections.Keys)
+			{
 				_projectionsRegistrationState.Add(name);
 			}
 
@@ -1134,8 +1310,10 @@ public class ProjectionManager
 
 		if (completed.Result == OperationResult.ForwardTimeout ||
 			completed.Result == OperationResult.PrepareTimeout ||
-			completed.Result == OperationResult.CommitTimeout) {
-			if (retryCount > 0) {
+			completed.Result == OperationResult.CommitTimeout)
+		{
+			if (retryCount > 0)
+			{
 				_logger.Information("PROJECTIONS: Retrying write projection creations for {projections}",
 					newProjections.Keys);
 				_isWritePending = true;
@@ -1155,9 +1333,11 @@ public class ProjectionManager
 
 	private void StartNewlyRegisteredProjections
 	(IDictionary<string, PendingProjection> newProjections,
-		Action completedAction, IEnvelope replyEnvelope) {
+		Action completedAction, IEnvelope replyEnvelope)
+	{
 
-		if (!newProjections.Any()) {
+		if (!newProjections.Any())
+		{
 			replyEnvelope.ReplyWith(
 				new ProjectionManagementMessage.OperationFailed("Projections were invalid"));
 			return;
@@ -1168,15 +1348,18 @@ public class ProjectionManager
 			ProjectionNamesBuilder.ProjectionsRegistrationStream,
 			newProjections.Keys);
 
-		try {
-			foreach (var projection in newProjections.Values) {
+		try
+		{
+			foreach (var projection in newProjections.Values)
+			{
 				var initializer = projection.CreateInitializer(replyEnvelope);
 				ReadProjectionPossibleStream(projection.Name,
 					m => ReadProjectionPossibleStreamCompleted
 						(m, initializer, replyEnvelope));
 			}
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			replyEnvelope.ReplyWith(new ProjectionManagementMessage.OperationFailed(ex.Message));
 		}
 
@@ -1185,7 +1368,8 @@ public class ProjectionManager
 
 	private void ReadProjectionPossibleStream(
 		string projectionName,
-		Action<ClientMessage.ReadStreamEventsBackwardCompleted> onComplete) {
+		Action<ClientMessage.ReadStreamEventsBackwardCompleted> onComplete)
+	{
 		var corrId = Guid.NewGuid();
 		_readDispatcher.Publish(
 			new ClientMessage.ReadStreamEventsBackward(
@@ -1206,24 +1390,29 @@ public class ProjectionManager
 	private void ReadProjectionPossibleStreamCompleted(
 		ClientMessage.ReadStreamEventsBackwardCompleted completed,
 		NewProjectionInitializer initializer,
-		IEnvelope replyEnvelope) {
+		IEnvelope replyEnvelope)
+	{
 
 		long version = -1;
-		if (completed.Result == ReadStreamResult.Success) {
+		if (completed.Result == ReadStreamResult.Success)
+		{
 			version = completed.LastEventNumber + 1;
 		}
 
-		try {
+		try
+		{
 			int queueIndex = GetNextWorkerIndex();
 			initializer.CreateAndInitializeNewProjection(this, Guid.NewGuid(), _workers[queueIndex],
 				version: version);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			replyEnvelope.ReplyWith(new ProjectionManagementMessage.OperationFailed(ex.Message));
 		}
 	}
 
-	private void OnProjectionsRegistrationCaughtUp() {
+	private void OnProjectionsRegistrationCaughtUp()
+	{
 		_logger.Debug(
 			$"PROJECTIONS: Caught up with projections registration. Next expected version: {_projectionsRegistrationExpectedVersion}");
 	}
@@ -1232,10 +1421,12 @@ public class ProjectionManager
 		ClientMessage.WriteEvents writeDelete,
 		ProjectionManagementMessage.Internal.Deleted message,
 		Action<long> onCompleted,
-		int retryCount) {
+		int retryCount)
+	{
 
 		_isWritePending = false;
-		if (writeCompleted.Result == OperationResult.Success) {
+		if (writeCompleted.Result == OperationResult.Success)
+		{
 			onCompleted?.Invoke(writeCompleted.LastEventNumber);
 			return;
 		}
@@ -1249,8 +1440,10 @@ public class ProjectionManager
 		if (writeCompleted.Result == OperationResult.CommitTimeout || writeCompleted.Result ==
 																   OperationResult.ForwardTimeout
 																   || writeCompleted.Result ==
-																   OperationResult.PrepareTimeout) {
-			if (retryCount > 0) {
+																   OperationResult.PrepareTimeout)
+		{
+			if (retryCount > 0)
+			{
 				_logger.Information("PROJECTIONS: Retrying write projection deletion for {projection}", message.Name);
 				_isWritePending = true;
 				_writeDispatcher.Publish(
@@ -1260,7 +1453,8 @@ public class ProjectionManager
 			}
 		}
 
-		if (writeCompleted.Result == OperationResult.WrongExpectedVersion) {
+		if (writeCompleted.Result == OperationResult.WrongExpectedVersion)
+		{
 			_logger.Error("PROJECTIONS: Got wrong expected version writing projection deletion for {projection}.",
 				message.Name);
 			return;
@@ -1271,11 +1465,13 @@ public class ProjectionManager
 			message.Name, writeCompleted.Result);
 	}
 
-	private void DelayMessage(Message messageToDelay) {
+	private void DelayMessage(Message messageToDelay)
+	{
 		_publisher.Publish(TimerMessage.Schedule.Create(TimeSpan.FromSeconds(2), _inputQueue, messageToDelay));
 	}
 
-	public class NewProjectionInitializer {
+	public class NewProjectionInitializer
+	{
 		private readonly long _projectionId;
 		private readonly bool _enabled;
 		private readonly string _handlerType;
@@ -1301,12 +1497,15 @@ public class ProjectionManager
 			bool enableRunAs,
 			bool trackEmittedStreams,
 			ProjectionManagementMessage.RunAs runAs,
-			IEnvelope replyEnvelope) {
-			if (projectionMode >= ProjectionMode.Continuous && !checkpointsEnabled) {
+			IEnvelope replyEnvelope)
+		{
+			if (projectionMode >= ProjectionMode.Continuous && !checkpointsEnabled)
+			{
 				throw new InvalidOperationException("Continuous mode requires checkpoints");
 			}
 
-			if (emitEnabled && !checkpointsEnabled) {
+			if (emitEnabled && !checkpointsEnabled)
+			{
 				throw new InvalidOperationException("Emit requires checkpoints");
 			}
 
@@ -1328,14 +1527,16 @@ public class ProjectionManager
 			ProjectionManager projectionManager,
 			Guid projectionCorrelationId,
 			Guid workerId,
-			long? version = -1) {
+			long? version = -1)
+		{
 			var projection = projectionManager.CreateManagedProjectionInstance(
 				_name,
 				_projectionId,
 				projectionCorrelationId,
 				workerId);
 			projection.InitializeNew(
-				new ManagedProjection.PersistedState {
+				new ManagedProjection.PersistedState
+				{
 					Enabled = _enabled,
 					HandlerType = _handlerType,
 					Query = _query,
@@ -1360,7 +1561,8 @@ public class ProjectionManager
 		string name,
 		long projectionId,
 		Guid projectionCorrelationId,
-		Guid workerID) {
+		Guid workerID)
+	{
 		var enabledToRun = IsProjectionEnabledToRunByMode(name);
 		var workerId = workerID;
 		var managedProjectionInstance = new ManagedProjection(
@@ -1387,8 +1589,10 @@ public class ProjectionManager
 		return managedProjectionInstance;
 	}
 
-	private int GetNextWorkerIndex() {
-		if (_lastUsedQueue >= _workers.Length) {
+	private int GetNextWorkerIndex()
+	{
+		if (_lastUsedQueue >= _workers.Length)
+		{
 			_lastUsedQueue = 0;
 		}
 
@@ -1397,7 +1601,8 @@ public class ProjectionManager
 		return queueIndex;
 	}
 
-	public class PendingProjection {
+	public class PendingProjection
+	{
 		public ProjectionMode Mode { get; }
 		public SerializedRunAs RunAs { get; }
 		public string Name { get; }
@@ -1414,7 +1619,8 @@ public class ProjectionManager
 			long projectionId, ProjectionMode mode, SerializedRunAs runAs, string name, string handlerType,
 			string query,
 			bool enabled, bool checkpointsEnabled, bool emitEnabled, bool enableRunAs,
-			bool trackEmittedStreams) {
+			bool trackEmittedStreams)
+		{
 			ProjectionId = projectionId;
 			Mode = mode;
 			RunAs = runAs;
@@ -1432,16 +1638,19 @@ public class ProjectionManager
 			ProjectionManagementMessage.Command.PostBatch.ProjectionPost projection)
 			: this(projectionId, projection.Mode, projection.RunAs, projection.Name, projection.HandlerType,
 				projection.Query, projection.Enabled, projection.CheckpointsEnabled,
-				projection.EmitEnabled, projection.EnableRunAs, projection.TrackEmittedStreams) {
+				projection.EmitEnabled, projection.EnableRunAs, projection.TrackEmittedStreams)
+		{
 		}
 
 		public PendingProjection(long projectionId, ProjectionManagementMessage.Command.Post projection)
 			: this(projectionId, projection.Mode, projection.RunAs, projection.Name, projection.HandlerType,
 				projection.Query, projection.Enabled, projection.CheckpointsEnabled,
-				projection.EmitEnabled, projection.EnableRunAs, projection.TrackEmittedStreams) {
+				projection.EmitEnabled, projection.EnableRunAs, projection.TrackEmittedStreams)
+		{
 		}
 
-		public NewProjectionInitializer CreateInitializer(IEnvelope replyEnvelope) {
+		public NewProjectionInitializer CreateInitializer(IEnvelope replyEnvelope)
+		{
 			return new NewProjectionInitializer(
 				ProjectionId,
 				Name,
@@ -1458,36 +1667,44 @@ public class ProjectionManager
 		}
 	}
 
-	public void Handle(TelemetryMessage.Request message) {
+	public void Handle(TelemetryMessage.Request message)
+	{
 		var customProjectionCount = 0;
 		var customProjectionRunningCount = 0;
 		var standardProjectionCount = 0;
 		var standardProjectionRunningCount = 0;
 
-		foreach (var proj in _projections.Values) {
-			if (proj.Mode != ProjectionMode.Continuous) {
+		foreach (var proj in _projections.Values)
+		{
+			if (proj.Mode != ProjectionMode.Continuous)
+			{
 				continue;
 			}
 
 			var stats = proj.GetStatistics();
 
-			if (stats.Name.StartsWith("$")) {
+			if (stats.Name.StartsWith("$"))
+			{
 				standardProjectionCount += 1;
 
-				if (stats.Status.Contains("Running")) {
+				if (stats.Status.Contains("Running"))
+				{
 					standardProjectionRunningCount += 1;
 				}
 			}
-			else {
+			else
+			{
 				customProjectionCount += 1;
 
-				if (stats.Status.Contains("Running")) {
+				if (stats.Status.Contains("Running"))
+				{
 					customProjectionRunningCount += 1;
 				}
 			}
 		}
 
-		message.Envelope.ReplyWith(new TelemetryMessage.Response("projections", new JsonObject {
+		message.Envelope.ReplyWith(new TelemetryMessage.Response("projections", new JsonObject
+		{
 			["customProjectionCount"] = customProjectionCount,
 			["standardProjectionCount"] = standardProjectionCount,
 			["customProjectionRunningCount"] = customProjectionRunningCount,

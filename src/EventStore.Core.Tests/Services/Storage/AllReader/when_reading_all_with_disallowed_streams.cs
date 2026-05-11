@@ -13,13 +13,15 @@ namespace EventStore.Core.Tests.Services.Storage.AllReader;
 [TestFixture(typeof(LogFormat.V2), typeof(string), "$persistentsubscription-$all::group-checkpoint")]
 [TestFixture(typeof(LogFormat.V2), typeof(string), "$persistentsubscription-$all::group-parked")]
 public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string disallowedStream)
-	: ReadIndexTestScenario<TLogFormat, TStreamId> {
+	: ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	TFPos _forwardReadPos;
 	TFPos _backwardReadPos;
 	private string _allowedStream1 = "ES1";
 	private string _allowedStream2 = "$persistentsubscription-$all::group-somethingallowed";
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var firstEvent = await WriteSingleEvent(_allowedStream1, 1, new string('.', 3000), eventId: Guid.NewGuid(),
 			eventType: "event-type-1", retryOnFail: true, token: token);
 		await WriteSingleEvent(disallowedStream, 1, new string('.', 3000), eventId: Guid.NewGuid(),
@@ -34,7 +36,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_forward() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_forward()
+	{
 		var records = (await ReadIndex.ReadAllEventsForward(_forwardReadPos, 10, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(2, records.Count);
@@ -44,7 +47,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_event_type_prefix() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_event_type_prefix()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Prefix, new[] { "event-type" });
@@ -59,7 +63,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_event_type_regex() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_event_type_regex()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Regex, new[] { @"^.*event-type-.*$" });
@@ -74,7 +79,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_stream_id_prefix() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_stream_id_prefix()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Prefix, new[] { "$persistentsubscripti" });
@@ -88,7 +94,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_stream_id_regex() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_forward_with_stream_id_regex()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Regex, new[] { @"^.*istentsubsc.*$" });
@@ -102,7 +109,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_backward() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_backward()
+	{
 		var records = (await ReadIndex.ReadAllEventsBackward(_backwardReadPos, 10, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(2, records.Count);
@@ -112,7 +120,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_event_type_prefix() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_event_type_prefix()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Prefix, ["event-type"]);
@@ -128,7 +137,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_event_type_regex() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_event_type_regex()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.EventType,
 			Filter.Types.FilterType.Regex, [@"^.*event-type-.*$"]);
@@ -144,7 +154,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_stream_id_prefix() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_stream_id_prefix()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Prefix, ["$persistentsubscripti"]);
@@ -159,7 +170,8 @@ public class WhenReadingAllWithDisallowedStreams<TLogFormat, TStreamId>(string d
 	}
 
 	[Test]
-	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_stream_id_regex() {
+	public async Task should_filter_out_disallowed_streams_when_reading_events_backward_with_stream_id_regex()
+	{
 		var filter = new Filter(
 			Filter.Types.FilterContext.StreamId,
 			Filter.Types.FilterType.Regex, [@"^.*istentsubsc.*$"]);

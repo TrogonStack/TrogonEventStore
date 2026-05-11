@@ -6,12 +6,14 @@ using Microsoft.Extensions.Logging;
 
 namespace EventStore.Core.Tests.Common.ClusterNodeOptionsTests;
 
-public class TestAuthenticationProviderFactory : IAuthenticationProviderFactory {
+public class TestAuthenticationProviderFactory : IAuthenticationProviderFactory
+{
 	public IAuthenticationProvider Build(bool logFailedAuthenticationAttempts) =>
 		new TestAuthenticationProvider();
 }
 
-public class TestAuthenticationProvider() : AuthenticationProviderBase(name: "test") {
+public class TestAuthenticationProvider() : AuthenticationProviderBase(name: "test")
+{
 	public override void Authenticate(AuthenticationRequest authenticationRequest) =>
 		authenticationRequest.Authenticated(
 			new(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, authenticationRequest.Name) }))

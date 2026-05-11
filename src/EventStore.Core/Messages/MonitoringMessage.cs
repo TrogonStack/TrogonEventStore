@@ -4,22 +4,27 @@ using EventStore.Common.Utils;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.PersistentSubscription;
 
-namespace EventStore.Core.Messages {
-	public static partial class MonitoringMessage {
+namespace EventStore.Core.Messages
+{
+	public static partial class MonitoringMessage
+	{
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetAllPersistentSubscriptionStats : Message {
+		public partial class GetAllPersistentSubscriptionStats : Message
+		{
 			public readonly IEnvelope Envelope;
 			public readonly int Offset;
 			public readonly int Count;
 
-			public GetAllPersistentSubscriptionStats(IEnvelope envelope) {
+			public GetAllPersistentSubscriptionStats(IEnvelope envelope)
+			{
 				Ensure.NotNull(envelope, "envelope");
 				Envelope = envelope;
 				Offset = 0;
 				Count = int.MaxValue;
 			}
 
-			public GetAllPersistentSubscriptionStats(IEnvelope envelope, int offset, int count) {
+			public GetAllPersistentSubscriptionStats(IEnvelope envelope, int offset, int count)
+			{
 				Ensure.NotNull(envelope, "envelope");
 				Envelope = envelope;
 				Offset = offset;
@@ -28,12 +33,15 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetPersistentSubscriptionStats : Message {
-			public string EventStreamId {
+		public partial class GetPersistentSubscriptionStats : Message
+		{
+			public string EventStreamId
+			{
 				get { return _eventStreamId; }
 			}
 
-			public string GroupName {
+			public string GroupName
+			{
 				get { return _groupName; }
 			}
 
@@ -41,7 +49,8 @@ namespace EventStore.Core.Messages {
 			private readonly string _eventStreamId;
 			private readonly string _groupName;
 
-			public GetPersistentSubscriptionStats(IEnvelope envelope, string eventStreamId, string groupName) {
+			public GetPersistentSubscriptionStats(IEnvelope envelope, string eventStreamId, string groupName)
+			{
 				Ensure.NotNull(envelope, "envelope");
 				Envelope = envelope;
 				_eventStreamId = eventStreamId;
@@ -50,15 +59,18 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetStreamPersistentSubscriptionStats : Message {
-			public string EventStreamId {
+		public partial class GetStreamPersistentSubscriptionStats : Message
+		{
+			public string EventStreamId
+			{
 				get { return _eventStreamId; }
 			}
 
 			public readonly IEnvelope Envelope;
 			private readonly string _eventStreamId;
 
-			public GetStreamPersistentSubscriptionStats(IEnvelope envelope, string eventStreamId) {
+			public GetStreamPersistentSubscriptionStats(IEnvelope envelope, string eventStreamId)
+			{
 				Ensure.NotNull(envelope, "envelope");
 				Envelope = envelope;
 				_eventStreamId = eventStreamId;
@@ -66,7 +78,8 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetPersistentSubscriptionStatsCompleted : Message {
+		public partial class GetPersistentSubscriptionStatsCompleted : Message
+		{
 			public readonly OperationStatus Result;
 			public readonly List<PersistentSubscriptionInfo> SubscriptionStats;
 			public readonly int RequestedOffset;
@@ -75,7 +88,8 @@ namespace EventStore.Core.Messages {
 			public string ErrorString;
 
 			public GetPersistentSubscriptionStatsCompleted(OperationStatus result,
-				List<PersistentSubscriptionInfo> subscriptionStats, string errorString = "") {
+				List<PersistentSubscriptionInfo> subscriptionStats, string errorString = "")
+			{
 				Result = result;
 				SubscriptionStats = subscriptionStats;
 				RequestedOffset = 0;
@@ -86,7 +100,8 @@ namespace EventStore.Core.Messages {
 
 			public GetPersistentSubscriptionStatsCompleted(OperationStatus result,
 				List<PersistentSubscriptionInfo> subscriptionStats, int requestedOffset, int requestedCount,
-				int total, string errorString = "") {
+				int total, string errorString = "")
+			{
 				Result = result;
 				SubscriptionStats = subscriptionStats;
 				RequestedOffset = requestedOffset;
@@ -95,7 +110,8 @@ namespace EventStore.Core.Messages {
 				ErrorString = errorString;
 			}
 
-			public enum OperationStatus {
+			public enum OperationStatus
+			{
 				Success = 0,
 				NotFound = 1,
 				Fail = 2,
@@ -103,7 +119,8 @@ namespace EventStore.Core.Messages {
 			}
 		}
 
-		public class PersistentSubscriptionInfo {
+		public class PersistentSubscriptionInfo
+		{
 			public string EventSource { get; set; }
 			public string GroupName { get; set; }
 			public string Status { get; set; }
@@ -135,7 +152,8 @@ namespace EventStore.Core.Messages {
 			public long OldestParkedMessage { get; set; }
 		}
 
-		public class ConnectionInfo {
+		public class ConnectionInfo
+		{
 			public string From { get; set; }
 			public string Username { get; set; }
 			public int AverageItemsPerSecond { get; set; }
@@ -148,7 +166,8 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetFreshStats : Message {
+		public partial class GetFreshStats : Message
+		{
 			public readonly IEnvelope Envelope;
 			public readonly Func<Dictionary<string, object>, Dictionary<string, object>> StatsSelector;
 			public readonly bool UseMetadata;
@@ -157,7 +176,8 @@ namespace EventStore.Core.Messages {
 			public GetFreshStats(IEnvelope envelope,
 				Func<Dictionary<string, object>, Dictionary<string, object>> statsSelector,
 				bool useMetadata,
-				bool useGrouping) {
+				bool useGrouping)
+			{
 				Ensure.NotNull(envelope, "envelope");
 				Ensure.NotNull(statsSelector, "statsSelector");
 
@@ -169,21 +189,25 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetFreshStatsCompleted : Message {
+		public partial class GetFreshStatsCompleted : Message
+		{
 			public readonly bool Success;
 			public readonly Dictionary<string, object> Stats;
 
-			public GetFreshStatsCompleted(bool success, Dictionary<string, object> stats) {
+			public GetFreshStatsCompleted(bool success, Dictionary<string, object> stats)
+			{
 				Success = success;
 				Stats = stats;
 			}
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetFreshTcpConnectionStats : Message {
+		public partial class GetFreshTcpConnectionStats : Message
+		{
 			public readonly IEnvelope Envelope;
 
-			public GetFreshTcpConnectionStats(IEnvelope envelope) {
+			public GetFreshTcpConnectionStats(IEnvelope envelope)
+			{
 				Ensure.NotNull(envelope, "envelope");
 
 				Envelope = envelope;
@@ -191,15 +215,18 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class GetFreshTcpConnectionStatsCompleted : Message {
+		public partial class GetFreshTcpConnectionStatsCompleted : Message
+		{
 			public readonly List<TcpConnectionStats> ConnectionStats;
 
-			public GetFreshTcpConnectionStatsCompleted(List<TcpConnectionStats> connectionStats) {
+			public GetFreshTcpConnectionStatsCompleted(List<TcpConnectionStats> connectionStats)
+			{
 				ConnectionStats = connectionStats;
 			}
 		}
 
-		public class TcpConnectionStats {
+		public class TcpConnectionStats
+		{
 			public string RemoteEndPoint { get; set; }
 			public string LocalEndPoint { get; set; }
 			public string ClientConnectionName { get; set; }
@@ -213,10 +240,12 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class InternalStatsRequest : Message {
+		public partial class InternalStatsRequest : Message
+		{
 			public readonly IEnvelope Envelope;
 
-			public InternalStatsRequest(IEnvelope envelope) {
+			public InternalStatsRequest(IEnvelope envelope)
+			{
 				Ensure.NotNull(envelope, "envelope");
 
 				Envelope = envelope;
@@ -224,10 +253,12 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Monitoring)]
-		public partial class InternalStatsRequestResponse : Message {
+		public partial class InternalStatsRequestResponse : Message
+		{
 			public readonly Dictionary<string, object> Stats;
 
-			public InternalStatsRequestResponse(Dictionary<string, object> stats) {
+			public InternalStatsRequestResponse(Dictionary<string, object> stats)
+			{
 				Ensure.NotNull(stats, "stats");
 
 				Stats = stats;
@@ -235,15 +266,18 @@ namespace EventStore.Core.Messages {
 		}
 
 		[DerivedMessage(CoreMessage.Misc)]
-		public partial class DynamicCacheManagerTick : Message {
+		public partial class DynamicCacheManagerTick : Message
+		{
 		}
 
 		[DerivedMessage(CoreMessage.Misc)]
-		public partial class CheckCertificateExpiry : Message {
+		public partial class CheckCertificateExpiry : Message
+		{
 		}
 
 		[DerivedMessage(CoreMessage.Misc)]
-		public partial class CheckEsVersion : Message {
+		public partial class CheckEsVersion : Message
+		{
 		}
 	}
 }

@@ -7,14 +7,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.partition_state_cache;
 
 [TestFixture]
-public class when_unlocking_and_forgetting_part_of_cached_states {
+public class when_unlocking_and_forgetting_part_of_cached_states
+{
 	private PartitionStateCache _cache;
 	private CheckpointTag _cachedAtCheckpointTag1;
 	private CheckpointTag _cachedAtCheckpointTag2;
 	private CheckpointTag _cachedAtCheckpointTag3;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		//given
 		_cache = new PartitionStateCache();
 		_cachedAtCheckpointTag1 = CheckpointTag.FromPosition(0, 1000, 900);
@@ -31,12 +33,14 @@ public class when_unlocking_and_forgetting_part_of_cached_states {
 	}
 
 	[Test]
-	public void partitions_locked_before_the_unlock_position_cannot_be_retrieved_as_locked() {
+	public void partitions_locked_before_the_unlock_position_cannot_be_retrieved_as_locked()
+	{
 		Assert.Throws<InvalidOperationException>(() => { _cache.GetLockedPartitionState("partition1"); });
 	}
 
 	[Test]
-	public void partitions_locked_before_the_unlock_position_cannot_be_retrieved_and_relocked_at_later_position() {
+	public void partitions_locked_before_the_unlock_position_cannot_be_retrieved_and_relocked_at_later_position()
+	{
 		var data = _cache.TryGetAndLockPartitionState("partition1", CheckpointTag.FromPosition(0, 1600, 1500));
 		Assert.IsNull(data);
 	}

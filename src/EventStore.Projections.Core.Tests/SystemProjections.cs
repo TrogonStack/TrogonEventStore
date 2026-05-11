@@ -6,8 +6,10 @@ using EventStore.Projections.Core.Services.Processing;
 
 namespace EventStore.Projections.Core.Tests;
 
-internal static class SystemProjections {
-	public static Task Created(ISubscriber bus) {
+internal static class SystemProjections
+{
+	public static Task Created(ISubscriber bus)
+	{
 		var systemProjectionsReady =
 			typeof(ProjectionNamesBuilder.StandardProjections).GetFields(
 					System.Reflection.BindingFlags.Public |
@@ -17,8 +19,10 @@ internal static class SystemProjections {
 				.Select(x => x.GetRawConstantValue().ToString())
 				.ToDictionary(x => x, _ => new TaskCompletionSource<bool>());
 
-		bus.Subscribe(new AdHocHandler<CoreProjectionStatusMessage.Stopped>(m => {
-			if (!systemProjectionsReady.TryGetValue(m.Name, out var ready)) {
+		bus.Subscribe(new AdHocHandler<CoreProjectionStatusMessage.Stopped>(m =>
+		{
+			if (!systemProjectionsReady.TryGetValue(m.Name, out var ready))
+			{
 				return;
 			}
 

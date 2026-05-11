@@ -4,16 +4,21 @@ using EventStore.Core.LogV2;
 
 namespace EventStore.Core.Tests;
 
-public class LogFormat {
+public class LogFormat
+{
 	public class V2 { }
 }
 
-public static class LogFormatHelper<TLogFormat, TStreamId> {
+public static class LogFormatHelper<TLogFormat, TStreamId>
+{
 	public static bool IsV2 => typeof(TLogFormat) == typeof(LogFormat.V2);
 
-	public static T ForV2<T>(object value) {
-		if (typeof(TLogFormat) == typeof(LogFormat.V2)) {
-			if (typeof(TStreamId) != typeof(string)) {
+	public static T ForV2<T>(object value)
+	{
+		if (typeof(TLogFormat) == typeof(LogFormat.V2))
+		{
+			if (typeof(TStreamId) != typeof(string))
+			{
 				throw new InvalidOperationException();
 			}
 
@@ -39,9 +44,11 @@ public static class LogFormatHelper<TLogFormat, TStreamId> {
 	public static TStreamId EventTypeId2 { get; } = ForV2<TStreamId>("eventType2");
 	public static TStreamId EmptyEventTypeId { get; } = ForV2<TStreamId>(string.Empty);
 
-	public static void CheckIfExplicitTransactionsSupported() {
+	public static void CheckIfExplicitTransactionsSupported()
+	{
 	}
 
-	public static void EnsureV0PrepareSupported() {
+	public static void EnsureV0PrepareSupported()
+	{
 	}
 }

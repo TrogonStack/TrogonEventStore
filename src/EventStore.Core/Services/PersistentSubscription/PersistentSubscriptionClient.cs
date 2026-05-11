@@ -8,7 +8,8 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Services.PersistentSubscription;
 
-public class PersistentSubscriptionClient {
+public class PersistentSubscriptionClient
+{
 	public readonly int MaximumInFlightMessages;
 
 	private readonly Guid _correlationId;
@@ -30,7 +31,8 @@ public class PersistentSubscriptionClient {
 		string username,
 		string from,
 		Stopwatch watch,
-		bool extraStatistics) {
+		bool extraStatistics)
+	{
 		_correlationId = correlationId;
 		_connectionId = connectionId;
 		_connectionName = connectionName;
@@ -39,7 +41,8 @@ public class PersistentSubscriptionClient {
 		Username = username;
 		From = @from;
 		MaximumInFlightMessages = inFlightMessages;
-		if (extraStatistics) {
+		if (extraStatistics)
+		{
 			_extraStatistics = new RequestStatistics(watch, 1000);
 		}
 	}
@@ -49,43 +52,53 @@ public class PersistentSubscriptionClient {
 	/// </summary>
 	public event Action<PersistentSubscriptionClient, ResolvedEvent> EventConfirmed;
 
-	public int InflightMessages {
+	public int InflightMessages
+	{
 		get { return _unconfirmedEvents.Count; }
 	}
 
-	public int AvailableSlots {
+	public int AvailableSlots
+	{
 		get { return _allowedMessages; }
 	}
 
 	public Guid InstanceId { get; } = Guid.NewGuid();
 
-	public Guid ConnectionId {
+	public Guid ConnectionId
+	{
 		get { return _connectionId; }
 	}
 
-	public string ConnectionName {
+	public string ConnectionName
+	{
 		get { return _connectionName; }
 	}
 
-	public long TotalItems {
+	public long TotalItems
+	{
 		get { return _totalItems; }
 	}
 
 	public long LastTotalItems { get; set; }
 
-	public Guid CorrelationId {
+	public Guid CorrelationId
+	{
 		get { return _correlationId; }
 	}
 
-	internal bool RemoveFromProcessing(Guid[] processedEventIds) {
+	internal bool RemoveFromProcessing(Guid[] processedEventIds)
+	{
 		bool removedAny = false;
-		foreach (var processedEventId in processedEventIds) {
-			if (_extraStatistics != null) {
+		foreach (var processedEventId in processedEventIds)
+		{
+			if (_extraStatistics != null)
+			{
 				_extraStatistics.EndOperation(processedEventId);
 			}
 
 			OutstandingMessage ev;
-			if (!_unconfirmedEvents.TryGetValue(processedEventId, out ev)) {
+			if (!_unconfirmedEvents.TryGetValue(processedEventId, out ev))
+			{
 				continue;
 			}
 
@@ -98,47 +111,57 @@ public class PersistentSubscriptionClient {
 		return removedAny;
 	}
 
-	public bool Push(OutstandingMessage message) {
-		if (!CanSend()) {
+	public bool Push(OutstandingMessage message)
+	{
+		if (!CanSend())
+		{
 			return false;
 		}
 
 		var evnt = message.ResolvedEvent;
 		_allowedMessages--;
 		Interlocked.Increment(ref _totalItems);
-		if (_extraStatistics != null) {
+		if (_extraStatistics != null)
+		{
 			_extraStatistics.StartOperation(evnt.OriginalEvent.EventId);
 		}
 
 		_envelope.ReplyWith(
 			new ClientMessage.PersistentSubscriptionStreamEventAppeared(CorrelationId, evnt, message.RetryCount));
-		if (!_unconfirmedEvents.ContainsKey(evnt.OriginalEvent.EventId)) {
+		if (!_unconfirmedEvents.ContainsKey(evnt.OriginalEvent.EventId))
+		{
 			_unconfirmedEvents.Add(evnt.OriginalEvent.EventId, message);
 		}
 
 		return true;
 	}
 
-	public IEnumerable<OutstandingMessage> GetUnconfirmedEvents() {
+	public IEnumerable<OutstandingMessage> GetUnconfirmedEvents()
+	{
 		return _unconfirmedEvents.Values;
 	}
 
-	internal void SendDropNotification() {
+	internal void SendDropNotification()
+	{
 		_envelope.ReplyWith(
 			new ClientMessage.SubscriptionDropped(CorrelationId, SubscriptionDropReason.Unsubscribed));
 	}
 
-	internal ObservedTimingMeasurement GetExtraStats() {
+	internal ObservedTimingMeasurement GetExtraStats()
+	{
 		return _extraStatistics == null ? null : _extraStatistics.GetMeasurementDetails();
 	}
 
-	private bool CanSend() {
+	private bool CanSend()
+	{
 		return AvailableSlots > 0;
 	}
 
-	private void OnEventConfirmed(OutstandingMessage ev) {
+	private void OnEventConfirmed(OutstandingMessage ev)
+	{
 		var handler = EventConfirmed;
-		if (handler != null) {
+		if (handler != null)
+		{
 			handler(this, ev.ResolvedEvent);
 		}
 	}

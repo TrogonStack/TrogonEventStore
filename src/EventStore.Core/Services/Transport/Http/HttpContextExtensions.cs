@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Http;
 
 namespace EventStore.Core.Services.Transport.Http;
 
-public static class HttpContextExtensions {
-	public static bool IsUnixSocketConnection(this HttpContext ctx) {
+public static class HttpContextExtensions
+{
+	public static bool IsUnixSocketConnection(this HttpContext ctx)
+	{
 		var connectionItemsFeature = ctx.Features.Get<IConnectionItemsFeature>();
-		if (connectionItemsFeature is null) {
+		if (connectionItemsFeature is null)
+		{
 			return false;
 		}
 

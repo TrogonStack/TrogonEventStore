@@ -1,7 +1,9 @@
 using System;
 
-namespace EventStore.Core.DataStructures.ProbabilisticFilter {
-	public interface IPersistenceStrategy : IDisposable {
+namespace EventStore.Core.DataStructures.ProbabilisticFilter
+{
+	public interface IPersistenceStrategy : IDisposable
+	{
 		BloomFilterAccessor DataAccessor { get; }
 		bool Create { get; }
 		void Init();

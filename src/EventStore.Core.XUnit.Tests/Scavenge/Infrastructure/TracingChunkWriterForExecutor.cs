@@ -7,14 +7,16 @@ using EventStore.Core.TransactionLog.Scavenging;
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
 public class TracingChunkWriterForExecutor<TStreamId, TRecord> :
-	IChunkWriterForExecutor<TStreamId, TRecord> {
+	IChunkWriterForExecutor<TStreamId, TRecord>
+{
 
 	private readonly IChunkWriterForExecutor<TStreamId, TRecord> _wrapped;
 	private readonly Tracer _tracer;
 
 	public TracingChunkWriterForExecutor(
 		IChunkWriterForExecutor<TStreamId, TRecord> wrapped,
-		Tracer tracer) {
+		Tracer tracer)
+	{
 
 		_wrapped = wrapped;
 		_tracer = tracer;
@@ -25,14 +27,16 @@ public class TracingChunkWriterForExecutor<TStreamId, TRecord> :
 	public ValueTask WriteRecord(RecordForExecutor<TStreamId, TRecord> record, CancellationToken token)
 		=> _wrapped.WriteRecord(record, token);
 
-	public async ValueTask<(string, long)> Complete(CancellationToken token) {
+	public async ValueTask<(string, long)> Complete(CancellationToken token)
+	{
 		var result = await _wrapped.Complete(token);
 		_tracer.Trace($"Switched in {Path.GetFileName(result.NewFileName)}");
 
 		return result;
 	}
 
-	public void Abort(bool deleteImmediately) {
+	public void Abort(bool deleteImmediately)
+	{
 		_wrapped.Abort(deleteImmediately);
 	}
 }

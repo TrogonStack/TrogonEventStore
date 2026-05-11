@@ -6,7 +6,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Services.Storage.EpochManager;
 
-public interface IEpochManager {
+public interface IEpochManager
+{
 	int LastEpochNumber { get; }
 
 	ValueTask Init(CancellationToken token);

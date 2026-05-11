@@ -9,9 +9,11 @@ using Xunit.Abstractions;
 
 namespace EventStore.Projections.Core.Javascript.Tests.Integration;
 
-public class MetadataSerializationTests : ProjectionRuntimeScenario {
+public class MetadataSerializationTests : ProjectionRuntimeScenario
+{
 	[Fact]
-	public async Task CanHandleNulls() {
+	public async Task CanHandleNulls()
+	{
 		var notification = Notify("emitted-stream");
 
 
@@ -46,7 +48,8 @@ fromStream('source-stream').
 	}
 
 	[Fact]
-	public async Task CanHandleEscapedMetadata() {
+	public async Task CanHandleEscapedMetadata()
+	{
 		var notification = Notify("emitted-stream");
 
 		await WriteEvents("source-stream", ExpectedVersion.NoStream,

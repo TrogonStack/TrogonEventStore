@@ -12,9 +12,11 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Tests.Services.handlers;
 
-public static class categorize_events_by_correlation_id {
+public static class categorize_events_by_correlation_id
+{
 	[TestFixture]
-	public class when_handling_simple_event {
+	public class when_handling_simple_event
+	{
 		private ByCorrelationId _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
@@ -22,7 +24,8 @@ public static class categorize_events_by_correlation_id {
 		private DateTime _dateTime;
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 			_handler = new ByCorrelationId("", Console.WriteLine);
 			_handler.Initialize();
 			_dateTime = DateTime.UtcNow;
@@ -40,17 +43,20 @@ public static class categorize_events_by_correlation_id {
 		}
 
 		[Test]
-		public void result_is_true() {
+		public void result_is_true()
+		{
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null() {
+		public void state_stays_null()
+		{
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link() {
+		public void emits_correct_link()
+		{
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -60,8 +66,10 @@ public static class categorize_events_by_correlation_id {
 
 			string eventTimestampJson = null;
 			var extraMetadata = @event.ExtraMetaData();
-			foreach (var kvp in extraMetadata) {
-				if (kvp.Key.Equals("$eventTimestamp")) {
+			foreach (var kvp in extraMetadata)
+			{
+				if (kvp.Key.Equals("$eventTimestamp"))
+				{
 					eventTimestampJson = kvp.Value;
 				}
 			}
@@ -72,7 +80,8 @@ public static class categorize_events_by_correlation_id {
 	}
 
 	[TestFixture]
-	public class when_handling_link_to_event {
+	public class when_handling_link_to_event
+	{
 		private ByCorrelationId _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
@@ -81,7 +90,8 @@ public static class categorize_events_by_correlation_id {
 		private Guid _eventId;
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 			_handler = new ByCorrelationId("", Console.WriteLine);
 			_handler.Initialize();
 			_dateTime = DateTime.UtcNow;
@@ -100,17 +110,20 @@ public static class categorize_events_by_correlation_id {
 		}
 
 		[Test]
-		public void result_is_true() {
+		public void result_is_true()
+		{
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null() {
+		public void state_stays_null()
+		{
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link() {
+		public void emits_correct_link()
+		{
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -121,8 +134,10 @@ public static class categorize_events_by_correlation_id {
 			string eventTimestampJson = null;
 			string linkJson = null;
 			var extraMetadata = @event.ExtraMetaData();
-			foreach (var kvp in extraMetadata) {
-				switch (kvp.Key) {
+			foreach (var kvp in extraMetadata)
+			{
+				switch (kvp.Key)
+				{
 					case "$eventTimestamp":
 						eventTimestampJson = kvp.Value;
 						break;
@@ -147,14 +162,16 @@ public static class categorize_events_by_correlation_id {
 	}
 
 	[TestFixture]
-	public class when_handling_non_json_event {
+	public class when_handling_non_json_event
+	{
 		private ByCorrelationId _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 			_handler = new ByCorrelationId("", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -167,30 +184,35 @@ public static class categorize_events_by_correlation_id {
 		}
 
 		[Test]
-		public void result_is_false() {
+		public void result_is_false()
+		{
 			Assert.IsFalse(_result);
 		}
 
 		[Test]
-		public void state_stays_null() {
+		public void state_stays_null()
+		{
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void does_not_emit_link() {
+		public void does_not_emit_link()
+		{
 			Assert.IsNull(_emittedEvents);
 		}
 	}
 
 	[TestFixture]
-	public class when_handling_json_event_with_no_correlation_id {
+	public class when_handling_json_event_with_no_correlation_id
+	{
 		private ByCorrelationId _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 			_handler = new ByCorrelationId("", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -202,30 +224,35 @@ public static class categorize_events_by_correlation_id {
 		}
 
 		[Test]
-		public void result_is_false() {
+		public void result_is_false()
+		{
 			Assert.IsFalse(_result);
 		}
 
 		[Test]
-		public void state_stays_null() {
+		public void state_stays_null()
+		{
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void does_not_emit_link() {
+		public void does_not_emit_link()
+		{
 			Assert.IsNull(_emittedEvents);
 		}
 	}
 
 	[TestFixture]
-	public class when_handling_json_event_with_non_json_metadata {
+	public class when_handling_json_event_with_non_json_metadata
+	{
 		private ByCorrelationId _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
 		private bool _result;
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 			_handler = new ByCorrelationId("", Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -238,23 +265,27 @@ public static class categorize_events_by_correlation_id {
 		}
 
 		[Test]
-		public void result_is_false() {
+		public void result_is_false()
+		{
 			Assert.IsFalse(_result);
 		}
 
 		[Test]
-		public void state_stays_null() {
+		public void state_stays_null()
+		{
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void does_not_emit_link() {
+		public void does_not_emit_link()
+		{
 			Assert.IsNull(_emittedEvents);
 		}
 	}
 
 	[TestFixture]
-	public class with_custom_valid_correlation_id_property {
+	public class with_custom_valid_correlation_id_property
+	{
 		private ByCorrelationId _handler;
 		private string _state;
 		private EmittedEventEnvelope[] _emittedEvents;
@@ -262,7 +293,8 @@ public static class categorize_events_by_correlation_id {
 		private string source = "{\"correlationIdProperty\":\"$myCorrelationId\"}";
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 			_handler = new ByCorrelationId(source, Console.WriteLine);
 			_handler.Initialize();
 			string sharedState;
@@ -275,17 +307,20 @@ public static class categorize_events_by_correlation_id {
 		}
 
 		[Test]
-		public void result_is_true() {
+		public void result_is_true()
+		{
 			Assert.IsTrue(_result);
 		}
 
 		[Test]
-		public void state_stays_null() {
+		public void state_stays_null()
+		{
 			Assert.IsNull(_state);
 		}
 
 		[Test]
-		public void emits_correct_link() {
+		public void emits_correct_link()
+		{
 			Assert.NotNull(_emittedEvents);
 			Assert.AreEqual(1, _emittedEvents.Length);
 			var @event = _emittedEvents[0].Event;
@@ -296,15 +331,18 @@ public static class categorize_events_by_correlation_id {
 	}
 
 	[TestFixture]
-	public class with_custom_invalid_correlation_id_property {
+	public class with_custom_invalid_correlation_id_property
+	{
 		private string source = "{\"thisisnotvalid\":\"$myCorrelationId\"}";
 
 		[SetUp]
-		public void when() {
+		public void when()
+		{
 		}
 
 		[Test]
-		public void should_throw_invalid_operation_exception() {
+		public void should_throw_invalid_operation_exception()
+		{
 			Assert.Throws<InvalidOperationException>(() => { new ByCorrelationId(source, Console.WriteLine); });
 		}
 	}

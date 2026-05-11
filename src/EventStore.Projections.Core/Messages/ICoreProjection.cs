@@ -7,5 +7,6 @@ public interface ICoreProjection :
 	IHandle<CoreProjectionProcessingMessage.PrerecordedEventsLoaded>,
 	IHandle<CoreProjectionProcessingMessage.CheckpointCompleted>,
 	IHandle<CoreProjectionProcessingMessage.RestartRequested>,
-	IHandle<CoreProjectionProcessingMessage.Failed> {
+	IHandle<CoreProjectionProcessingMessage.Failed>
+{
 }

@@ -6,11 +6,13 @@ namespace EventStore.Projections.Core.Services.Management;
 
 
 
-public class ProjectionStateHandlerFactory {
+public class ProjectionStateHandlerFactory
+{
 	private readonly TimeSpan _javascriptCompilationTimeout;
 	private readonly TimeSpan _javascriptExecutionTimeout;
 
-	public ProjectionStateHandlerFactory(TimeSpan javascriptCompilationTimeout, TimeSpan javascriptExecutionTimeout) {
+	public ProjectionStateHandlerFactory(TimeSpan javascriptCompilationTimeout, TimeSpan javascriptExecutionTimeout)
+	{
 		_javascriptCompilationTimeout = javascriptCompilationTimeout;
 		_javascriptExecutionTimeout = javascriptExecutionTimeout;
 	}
@@ -18,15 +20,18 @@ public class ProjectionStateHandlerFactory {
 		string factoryType, string source,
 		bool enableContentTypeValidation,
 		int? projectionExecutionTimeout,
-		Action<string, object[]> logger = null) {
+		Action<string, object[]> logger = null)
+	{
 		var colonPos = factoryType.IndexOf(':');
 		string kind = null;
 		string rest = null;
-		if (colonPos > 0) {
+		if (colonPos > 0)
+		{
 			kind = factoryType.Substring(0, colonPos);
 			rest = factoryType.Substring(colonPos + 1);
 		}
-		else {
+		else
+		{
 			kind = factoryType;
 		}
 
@@ -34,14 +39,16 @@ public class ProjectionStateHandlerFactory {
 		var executionTimeout = projectionExecutionTimeout is > 0
 			? TimeSpan.FromMilliseconds(projectionExecutionTimeout.Value)
 			: _javascriptExecutionTimeout;
-		switch (kind.ToLowerInvariant()) {
+		switch (kind.ToLowerInvariant())
+		{
 			case "js":
 				result = new JintProjectionStateHandler(source, enableContentTypeValidation,
 					_javascriptCompilationTimeout, executionTimeout);
 				break;
 			case "native":
 				var type = Type.GetType(rest);
-				if (type == null) {
+				if (type == null)
+				{
 					//TODO: explicitly list all the assemblies to look for handlers
 					type =
 						AppDomain.CurrentDomain.GetAssemblies()

@@ -8,14 +8,17 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Users {
+internal partial class Users
+{
 	private static readonly Operation UpdateOperation = new Operation(Plugins.Authorization.Operations.Users.Update);
 
-	public override async Task<UpdateResp> Update(UpdateReq request, ServerCallContext context) {
+	public override async Task<UpdateResp> Update(UpdateReq request, ServerCallContext context)
+	{
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, UpdateOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, UpdateOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 		var updateSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -29,8 +32,10 @@ internal partial class Users {
 
 		return new UpdateResp();
 
-		void OnMessage(Message message) {
-			if (HandleErrors(options.LoginName, message, updateSource)) {
+		void OnMessage(Message message)
+		{
+			if (HandleErrors(options.LoginName, message, updateSource))
+			{
 				return;
 			}
 

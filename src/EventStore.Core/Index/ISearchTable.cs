@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.Index;
 
-public interface ISearchTable {
+public interface ISearchTable
+{
 	Guid Id { get; }
 	long Count { get; }
 	byte Version { get; }

@@ -9,9 +9,11 @@ using Xunit;
 namespace EventStore.Core.XUnit.Tests.Services.Archive.Storage;
 
 [Collection("ArchiveStorageTests")]
-public abstract class ArchiveStorageWriterTests<T> : ArchiveStorageTestsBase<T> {
+public abstract class ArchiveStorageWriterTests<T> : ArchiveStorageTestsBase<T>
+{
 	[Fact]
-	public async Task can_store_a_chunk() {
+	public async Task can_store_a_chunk()
+	{
 		var sut = CreateWriterSut(StorageType);
 		var localChunk = CreateLocalChunk(0, 0);
 		var destinationFile = Path.GetFileName(localChunk);
@@ -24,7 +26,8 @@ public abstract class ArchiveStorageWriterTests<T> : ArchiveStorageTestsBase<T> 
 	}
 
 	[Fact]
-	public async Task throws_chunk_deleted_exception_if_local_chunk_doesnt_exist() {
+	public async Task throws_chunk_deleted_exception_if_local_chunk_doesnt_exist()
+	{
 		var sut = CreateWriterSut(StorageType);
 		var localChunk = CreateLocalChunk(0, 0);
 		var destinationFile = Path.GetFileName(localChunk);
@@ -34,7 +37,8 @@ public abstract class ArchiveStorageWriterTests<T> : ArchiveStorageTestsBase<T> 
 	}
 
 	[Fact]
-	public async Task can_write_and_read_checkpoint() {
+	public async Task can_write_and_read_checkpoint()
+	{
 		var checkpoint = Random.Shared.NextInt64();
 		var sut = CreateReaderSut(StorageType);
 

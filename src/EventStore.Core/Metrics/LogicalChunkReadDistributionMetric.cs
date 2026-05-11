@@ -4,18 +4,21 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Metrics;
 
-public class LogicalChunkReadDistributionMetric {
+public class LogicalChunkReadDistributionMetric
+{
 	private readonly Histogram<long> _histogram;
 	private readonly IReadOnlyCheckpoint _writer;
 	private readonly int _chunkSize;
 
-	public LogicalChunkReadDistributionMetric(Meter meter, string name, IReadOnlyCheckpoint writer, int chunkSize) {
+	public LogicalChunkReadDistributionMetric(Meter meter, string name, IReadOnlyCheckpoint writer, int chunkSize)
+	{
 		_histogram = meter.CreateHistogram<long>(name);
 		_writer = writer;
 		_chunkSize = chunkSize;
 	}
 
-	public void Record(ILogRecord record) {
+	public void Record(ILogRecord record)
+	{
 		// todo: consider sampling if this turns out to have a performance implication.
 		// in the mean time event read metrics can be turned off in metricsconfig.json
 		var recordLogicalChunk = record.LogPosition / _chunkSize;

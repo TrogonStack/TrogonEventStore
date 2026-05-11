@@ -14,7 +14,8 @@ namespace EventStore.Projections.Core.Services.Processing.SingleStream;
 
 public class StreamEventReader : EventReader,
 	IHandle<ClientMessage.ReadStreamEventsForwardCompleted>,
-	IHandle<ProjectionManagementMessage.Internal.ReadTimeout> {
+	IHandle<ProjectionManagementMessage.Internal.ReadTimeout>
+{
 	private readonly string _streamName;
 	private long _fromSequenceNumber;
 	private readonly ITimeProvider _timeProvider;
@@ -37,16 +38,20 @@ public class StreamEventReader : EventReader,
 		bool resolveLinkTos,
 		bool produceStreamDeletes,
 		bool stopOnEof = false)
-		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof) {
-		if (fromSequenceNumber < 0) {
+		: base(publisher, eventReaderCorrelationId, readAs, stopOnEof)
+	{
+		if (fromSequenceNumber < 0)
+		{
 			throw new ArgumentException("fromSequenceNumber");
 		}
 
-		if (streamName == null) {
+		if (streamName == null)
+		{
 			throw new ArgumentNullException("streamName");
 		}
 
-		if (string.IsNullOrEmpty(streamName)) {
+		if (string.IsNullOrEmpty(streamName))
+		{
 			throw new ArgumentException("streamName");
 		}
 
@@ -57,36 +62,44 @@ public class StreamEventReader : EventReader,
 		_produceStreamDeletes = produceStreamDeletes;
 	}
 
-	protected override bool AreEventsRequested() {
+	protected override bool AreEventsRequested()
+	{
 		return _eventsRequested;
 	}
 
-	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message) {
-		if (_disposed) {
+	public void Handle(ClientMessage.ReadStreamEventsForwardCompleted message)
+	{
+		if (_disposed)
+		{
 			return;
 		}
 
-		if (!_eventsRequested) {
+		if (!_eventsRequested)
+		{
 			throw new InvalidOperationException("Read events has not been requested");
 		}
 
-		if (message.EventStreamId != _streamName) {
+		if (message.EventStreamId != _streamName)
+		{
 			throw new InvalidOperationException(
 				string.Format("Invalid stream name: {0}.  Expected: {1}", message.EventStreamId, _streamName));
 		}
 
-		if (Paused) {
+		if (Paused)
+		{
 			throw new InvalidOperationException("Paused");
 		}
 
-		if (message.CorrelationId != _pendingRequestCorrelationId) {
+		if (message.CorrelationId != _pendingRequestCorrelationId)
+		{
 			return;
 		}
 
 		_eventsRequested = false;
 		_lastPosition = message.TfLastCommitPosition;
 		NotifyIfStarting(message.TfLastCommitPosition);
-		switch (message.Result) {
+		switch (message.Result)
+		{
 			case ReadStreamResult.StreamDeleted:
 				_eof = true;
 				DeliverSafeJoinPosition(GetLastCommitPositionFrom(message)); // allow joining heading distribution
@@ -100,7 +113,8 @@ public class StreamEventReader : EventReader,
 				DeliverSafeJoinPosition(GetLastCommitPositionFrom(message)); // allow joining heading distribution
 				PauseOrContinueProcessing();
 				SendIdle();
-				if (message.LastEventNumber >= 0) {
+				if (message.LastEventNumber >= 0)
+				{
 					SendPartitionDeleted_WhenReadingDataStream(_streamName, message.LastEventNumber, null, null,
 						null, null);
 				}
@@ -114,18 +128,22 @@ public class StreamEventReader : EventReader,
 				_eof = eof;
 				var willDispose = eof && _stopOnEof;
 
-				if (!willDispose) {
+				if (!willDispose)
+				{
 					PauseOrContinueProcessing();
 				}
 
-				if (eof) {
+				if (eof)
+				{
 					// the end
 					DeliverSafeJoinPosition(GetLastCommitPositionFrom(message));
 					SendIdle();
 					SendEof();
 				}
-				else {
-					for (int index = 0; index < message.Events.Count; index++) {
+				else
+				{
+					for (int index = 0; index < message.Events.Count; index++)
+					{
 						var @event = message.Events[index].Event;
 						var @link = message.Events[index].Link;
 						DeliverEvent(message.Events[index],
@@ -144,16 +162,20 @@ public class StreamEventReader : EventReader,
 		}
 	}
 
-	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message) {
-		if (_disposed) {
+	public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
+	{
+		if (_disposed)
+		{
 			return;
 		}
 
-		if (Paused) {
+		if (Paused)
+		{
 			return;
 		}
 
-		if (message.CorrelationId != _pendingRequestCorrelationId) {
+		if (message.CorrelationId != _pendingRequestCorrelationId)
+		{
 			return;
 		}
 
@@ -161,33 +183,41 @@ public class StreamEventReader : EventReader,
 		PauseOrContinueProcessing();
 	}
 
-	private long StartFrom(ClientMessage.ReadStreamEventsForwardCompleted message, long fromSequenceNumber) {
-		if (fromSequenceNumber != 0) {
+	private long StartFrom(ClientMessage.ReadStreamEventsForwardCompleted message, long fromSequenceNumber)
+	{
+		if (fromSequenceNumber != 0)
+		{
 			return fromSequenceNumber;
 		}
 
-		if (message.Events.Count > 0) {
+		if (message.Events.Count > 0)
+		{
 			return message.Events[0].OriginalEventNumber;
 		}
 
 		return fromSequenceNumber;
 	}
 
-	private void SendIdle() {
+	private void SendIdle()
+	{
 		_publisher.Publish(
 			new ReaderSubscriptionMessage.EventReaderIdle(EventReaderCorrelationId, _timeProvider.UtcNow));
 	}
 
-	protected override void RequestEvents() {
-		if (_disposed) {
+	protected override void RequestEvents()
+	{
+		if (_disposed)
+		{
 			throw new InvalidOperationException("Disposed");
 		}
 
-		if (_eventsRequested) {
+		if (_eventsRequested)
+		{
 			throw new InvalidOperationException("Read operation is already in progress");
 		}
 
-		if (PauseRequested || Paused) {
+		if (PauseRequested || Paused)
+		{
 			throw new InvalidOperationException("Paused or pause requested");
 		}
 
@@ -195,7 +225,8 @@ public class StreamEventReader : EventReader,
 
 		_pendingRequestCorrelationId = Guid.NewGuid();
 		var readEventsForward = CreateReadEventsMessage(_pendingRequestCorrelationId);
-		if (_eof) {
+		if (_eof)
+		{
 			_publisher.Publish(
 				new AwakeServiceMessage.SubscribeAwake(
 					_publisher, Guid.NewGuid(), null,
@@ -206,31 +237,37 @@ public class StreamEventReader : EventReader,
 					_publisher, Guid.NewGuid(), null,
 					new TFPos(_lastPosition, _lastPosition), readEventsForward));
 		}
-		else {
+		else
+		{
 			_publisher.Publish(readEventsForward);
 			ScheduleReadTimeoutMessage(_pendingRequestCorrelationId, _streamName);
 		}
 	}
 
-	private void ScheduleReadTimeoutMessage(Guid correlationId, string streamId) {
+	private void ScheduleReadTimeoutMessage(Guid correlationId, string streamId)
+	{
 		_publisher.Publish(CreateReadTimeoutMessage(correlationId, streamId));
 	}
 
-	private Message CreateReadTimeoutMessage(Guid correlationId, string streamId) {
+	private Message CreateReadTimeoutMessage(Guid correlationId, string streamId)
+	{
 		return TimerMessage.Schedule.Create(
 			TimeSpan.FromMilliseconds(ESConsts.ReadRequestTimeout),
 			new SendToThisEnvelope(this),
 			new ProjectionManagementMessage.Internal.ReadTimeout(correlationId, streamId));
 	}
 
-	private Message CreateReadEventsMessage(Guid readCorrelationId) {
+	private Message CreateReadEventsMessage(Guid readCorrelationId)
+	{
 		return new ClientMessage.ReadStreamEventsForward(
 			readCorrelationId, readCorrelationId, new SendToThisEnvelope(this), _streamName, _fromSequenceNumber,
 			_maxReadCount, _resolveLinkTos, false, null, ReadAs, replyOnExpired: false);
 	}
 
-	private void DeliverSafeJoinPosition(long? safeJoinPosition) {
-		if (_stopOnEof || safeJoinPosition == null || safeJoinPosition == -1) {
+	private void DeliverSafeJoinPosition(long? safeJoinPosition)
+	{
+		if (_stopOnEof || safeJoinPosition == null || safeJoinPosition == -1)
+		{
 			return; //TODO: this should not happen, but StorageReader does not return it now
 		}
 
@@ -239,9 +276,11 @@ public class StreamEventReader : EventReader,
 				EventReaderCorrelationId, null, safeJoinPosition, 100.0f, source: this.GetType()));
 	}
 
-	private void DeliverEvent(EventStore.Core.Data.ResolvedEvent pair, float progress, ref long sequenceNumber) {
+	private void DeliverEvent(EventStore.Core.Data.ResolvedEvent pair, float progress, ref long sequenceNumber)
+	{
 		EventRecord positionEvent = pair.OriginalEvent;
-		if (positionEvent.EventNumber != sequenceNumber) {
+		if (positionEvent.EventNumber != sequenceNumber)
+		{
 			// This can happen when the original stream has $maxAge/$maxCount set
 			_publisher.Publish(new ReaderSubscriptionMessage.Faulted(EventReaderCorrelationId, string.Format(
 				"Event number {0} was expected in the stream {1}, but event number {2} was received. This may happen if events have been deleted from the beginning of your stream, please reset your projection.",
@@ -254,7 +293,8 @@ public class StreamEventReader : EventReader,
 
 		string deletedPartitionStreamId;
 
-		if (resolvedEvent.IsLinkToDeletedStream && !resolvedEvent.IsLinkToDeletedStreamTombstone) {
+		if (resolvedEvent.IsLinkToDeletedStream && !resolvedEvent.IsLinkToDeletedStreamTombstone)
+		{
 			return;
 		}
 
@@ -262,10 +302,12 @@ public class StreamEventReader : EventReader,
 			StreamDeletedHelper.IsStreamDeletedEventOrLinkToStreamDeletedEvent(resolvedEvent, pair.ResolveResult,
 				out deletedPartitionStreamId);
 
-		if (isDeletedStreamEvent) {
+		if (isDeletedStreamEvent)
+		{
 			var deletedPartition = deletedPartitionStreamId;
 
-			if (_produceStreamDeletes) {
+			if (_produceStreamDeletes)
+			{
 				_publisher.Publish(
 					//TODO: publish both link and event data
 					new ReaderSubscriptionMessage.EventReaderPartitionDeleted(
@@ -276,7 +318,8 @@ public class StreamEventReader : EventReader,
 						positionEventNumber: resolvedEvent.PositionSequenceNumber));
 			}
 		}
-		else if (!resolvedEvent.IsStreamDeletedEvent) {
+		else if (!resolvedEvent.IsStreamDeletedEvent)
+		{
 			_publisher.Publish(
 				//TODO: publish both link and event data
 				new ReaderSubscriptionMessage.CommittedEventDistributed(

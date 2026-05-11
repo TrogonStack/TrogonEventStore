@@ -21,12 +21,14 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_starting_the_projection_manager_with_duplicate_projection_created<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	when_starting_the_projection_manager_with_duplicate_projection_created<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private new ITimeProvider _timeProvider;
 	private ProjectionManager _manager;
 	private Guid _workerId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_workerId = Guid.NewGuid();
 		ExistingEvent(ProjectionNamesBuilder.ProjectionsRegistrationStream, ProjectionEventTypes.ProjectionCreated,
 			null, "projection1");
@@ -38,7 +40,8 @@ public class
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_timeProvider = new FakeTimeProvider();
 		var queues = new Dictionary<Guid, IPublisher> { { _workerId, _bus } };
 		_manager = new ProjectionManager(
@@ -57,12 +60,14 @@ public class
 	}
 
 	[TearDown]
-	public void TearDown() {
+	public void TearDown()
+	{
 		_manager.Dispose();
 	}
 
 	[Test]
-	public void projection_status_is_preparing() {
+	public void projection_status_is_preparing()
+	{
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, "projection1",
 				true));
@@ -73,7 +78,8 @@ public class
 	}
 
 	[Test]
-	public void projection_id_is_latest() {
+	public void projection_id_is_latest()
+	{
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, "projection1",
 				true));

@@ -14,17 +14,20 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.projection_checkpoint;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_requesting_checkpoint_before_all_writes_completed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_requesting_checkpoint_before_all_writes_completed<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private ProjectionCheckpoint _checkpoint;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_checkpoint = new ProjectionCheckpoint(
 			_bus, _ioDispatcher, new ProjectionVersion(1, 0, 0), null, _readyHandler,
@@ -59,13 +62,15 @@ public class when_requesting_checkpoint_before_all_writes_completed<TLogFormat, 
 	}
 
 	[Test]
-	public void not_ready_for_checkpoint_immediately() {
+	public void not_ready_for_checkpoint_immediately()
+	{
 		Assert.AreEqual(0,
 			_consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.ReadyForCheckpoint>().Count());
 	}
 
 	[Test]
-	public void ready_for_checkpoint_after_all_writes_complete() {
+	public void ready_for_checkpoint_after_all_writes_complete()
+	{
 		var writes = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().ToArray();
 		writes[0].Envelope.ReplyWith(new ClientMessage.WriteEventsCompleted(writes[0].CorrelationId, 0, 0, -1, -1));
 		writes[1].Envelope.ReplyWith(new ClientMessage.WriteEventsCompleted(writes[1].CorrelationId, 0, 0, -1, -1));

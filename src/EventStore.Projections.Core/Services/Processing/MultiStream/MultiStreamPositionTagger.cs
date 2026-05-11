@@ -7,15 +7,19 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Services.Processing.MultiStream;
 
-public class MultiStreamPositionTagger : PositionTagger {
+public class MultiStreamPositionTagger : PositionTagger
+{
 	private readonly HashSet<string> _streams;
 
-	public MultiStreamPositionTagger(int phase, string[] streams) : base(phase) {
-		if (streams == null) {
+	public MultiStreamPositionTagger(int phase, string[] streams) : base(phase)
+	{
+		if (streams == null)
+		{
 			throw new ArgumentNullException("streams");
 		}
 
-		if (streams.Length == 0) {
+		if (streams.Length == 0)
+		{
 			throw new ArgumentException("streams");
 		}
 
@@ -23,12 +27,15 @@ public class MultiStreamPositionTagger : PositionTagger {
 	}
 
 	public override bool IsMessageAfterCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent) {
-		if (previous.Phase < Phase) {
+		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
+	{
+		if (previous.Phase < Phase)
+		{
 			return true;
 		}
 
-		if (previous.Mode_ != CheckpointTag.Mode.MultiStream) {
+		if (previous.Mode_ != CheckpointTag.Mode.MultiStream)
+		{
 			throw new ArgumentException("Mode.MultiStream expected", "previous");
 		}
 
@@ -38,13 +45,16 @@ public class MultiStreamPositionTagger : PositionTagger {
 	}
 
 	public override CheckpointTag MakeCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent) {
-		if (previous.Phase != Phase) {
+		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
+	{
+		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
 		}
 
-		if (!_streams.Contains(committedEvent.Data.PositionStreamId)) {
+		if (!_streams.Contains(committedEvent.Data.PositionStreamId))
+		{
 			throw new InvalidOperationException(
 				string.Format("Invalid stream '{0}'", committedEvent.Data.EventStreamId));
 		}
@@ -54,44 +64,53 @@ public class MultiStreamPositionTagger : PositionTagger {
 	}
 
 	public override CheckpointTag MakeCheckpointTag(CheckpointTag previous,
-		ReaderSubscriptionMessage.EventReaderPartitionEof partitionEof) {
+		ReaderSubscriptionMessage.EventReaderPartitionEof partitionEof)
+	{
 		throw new NotImplementedException();
 	}
 
 	public override CheckpointTag MakeCheckpointTag(CheckpointTag previous,
-		ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted) {
+		ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted)
+	{
 		throw new NotSupportedException();
 	}
 
-	public override CheckpointTag MakeZeroCheckpointTag() {
+	public override CheckpointTag MakeZeroCheckpointTag()
+	{
 		return CheckpointTag.FromStreamPositions(Phase,
 			_streams.ToDictionary(v => v, v => (long)ExpectedVersion.NoStream));
 	}
 
-	public override bool IsCompatible(CheckpointTag checkpointTag) {
+	public override bool IsCompatible(CheckpointTag checkpointTag)
+	{
 		//TODO: should Stream be supported here as well if in the set?
 		return checkpointTag.Mode_ == CheckpointTag.Mode.MultiStream
 			   && checkpointTag.Streams.All(v => _streams.Contains(v.Key));
 	}
 
-	public override CheckpointTag AdjustTag(CheckpointTag tag) {
-		if (tag.Phase < Phase) {
+	public override CheckpointTag AdjustTag(CheckpointTag tag)
+	{
+		if (tag.Phase < Phase)
+		{
 			return tag;
 		}
 
-		if (tag.Phase > Phase) {
+		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase,
 					tag.Phase), "tag");
 		}
 
-		if (tag.Mode_ == CheckpointTag.Mode.MultiStream) {
+		if (tag.Mode_ == CheckpointTag.Mode.MultiStream)
+		{
 			long p;
 			return CheckpointTag.FromStreamPositions(
 				tag.Phase, _streams.ToDictionary(v => v, v => tag.Streams.TryGetValue(v, out p) ? p : -1));
 		}
 
-		switch (tag.Mode_) {
+		switch (tag.Mode_)
+		{
 			case CheckpointTag.Mode.EventTypeIndex:
 				throw new NotSupportedException(
 					"Conversion from EventTypeIndex to MultiStream position tag is not supported");

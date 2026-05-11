@@ -14,10 +14,12 @@ namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 public class
 	WhenWritingFewPreparesWithSameEventNumberAndCommitingDeleteOnThisVersionReadIndexShould<
 		TLogFormat, TStreamId> :
-	ReadIndexTestScenario<TLogFormat, TStreamId> {
+	ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private EventRecord _deleteTombstone;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		string stream = "ES";
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		var (streamId, _) = await GetOrReserve(stream, token);
@@ -79,50 +81,58 @@ public class
 	}
 
 	[Test]
-	public async Task indicate_that_stream_is_deleted() {
+	public async Task indicate_that_stream_is_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted() {
+	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ZZ", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted() {
+	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("XXX", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task read_single_events_with_number_0_should_return_stream_deleted() {
+	public async Task read_single_events_with_number_0_should_return_stream_deleted()
+	{
 		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public async Task read_single_events_with_number_1_should_return_stream_deleted() {
+	public async Task read_single_events_with_number_1_should_return_stream_deleted()
+	{
 		var result = await ReadIndex.ReadEvent("ES", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.StreamDeleted, result.Result);
 		Assert.IsNull(result.Record);
 	}
 
 	[Test]
-	public async Task read_stream_events_forward_should_return_stream_deleted() {
+	public async Task read_stream_events_forward_should_return_stream_deleted()
+	{
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public async Task read_stream_events_backward_should_return_stream_deleted() {
+	public async Task read_stream_events_backward_should_return_stream_deleted()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.StreamDeleted, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public async Task read_all_forward_should_return_all_stream_records_except_uncommited() {
+	public async Task read_all_forward_should_return_all_stream_records_except_uncommited()
+	{
 		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None)).EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
@@ -131,7 +141,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_should_return_all_stream_records_except_uncommited() {
+	public async Task read_all_backward_should_return_all_stream_records_except_uncommited()
+	{
 		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords()
 			.Select(r => r.Event)

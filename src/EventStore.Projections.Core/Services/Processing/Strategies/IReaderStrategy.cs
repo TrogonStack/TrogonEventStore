@@ -6,7 +6,8 @@ using EventStore.Projections.Core.Services.Processing.Subscriptions;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public interface IReaderStrategy {
+public interface IReaderStrategy
+{
 	bool IsReadingOrderRepeatable { get; }
 	EventFilter EventFilter { get; }
 	PositionTagger PositionTagger { get; }

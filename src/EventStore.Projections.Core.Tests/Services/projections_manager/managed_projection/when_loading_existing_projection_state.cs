@@ -16,14 +16,17 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_loading_existing_projection_state_with_no_projection_subsystem_version<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_loading_existing_projection_state_with_no_projection_subsystem_version<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private new ITimeProvider _timeProvider;
 	private string _projectionName = Guid.NewGuid().ToString();
 
 	private ManagedProjection _mp;
 
-	protected override void Given() {
-		var persistedState = new ManagedProjection.PersistedState {
+	protected override void Given()
+	{
+		var persistedState = new ManagedProjection.PersistedState
+		{
 			Enabled = true,
 			HandlerType = "JS",
 			Query = @"log(1);",
@@ -65,21 +68,25 @@ public class when_loading_existing_projection_state_with_no_projection_subsystem
 	}
 
 	[Test]
-	public void content_type_validation_is_disabled() {
+	public void content_type_validation_is_disabled()
+	{
 		_mp.InitializeExisting(_projectionName);
 		Assert.False(_mp.EnableContentTypeValidation);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_loading_existing_projection_state_with_projection_subsystem_version<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_loading_existing_projection_state_with_projection_subsystem_version<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private new ITimeProvider _timeProvider;
 	private string _projectionName = Guid.NewGuid().ToString();
 
 	private ManagedProjection _mp;
 
-	protected override void Given() {
-		var persistedState = new ManagedProjection.PersistedState {
+	protected override void Given()
+	{
+		var persistedState = new ManagedProjection.PersistedState
+		{
 			Enabled = true,
 			HandlerType = "JS",
 			Query = @"log(1);",
@@ -122,7 +129,8 @@ public class when_loading_existing_projection_state_with_projection_subsystem_ve
 	}
 
 	[Test]
-	public void content_type_validation_is_enabled() {
+	public void content_type_validation_is_enabled()
+	{
 		_mp.InitializeExisting(_projectionName);
 		Assert.True(_mp.EnableContentTypeValidation);
 	}

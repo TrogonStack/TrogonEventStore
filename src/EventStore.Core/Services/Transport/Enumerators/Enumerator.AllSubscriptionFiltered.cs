@@ -12,9 +12,12 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Common;
 using Serilog;
 
-namespace EventStore.Core.Services.Transport.Enumerators {
-	partial class Enumerator {
-		public class AllSubscriptionFiltered : IAsyncEnumerator<ReadResponse> {
+namespace EventStore.Core.Services.Transport.Enumerators
+{
+	partial class Enumerator
+	{
+		public class AllSubscriptionFiltered : IAsyncEnumerator<ReadResponse>
+		{
 			private static readonly ILogger Log = Serilog.Log.ForContext<AllSubscriptionFiltered>();
 
 			private readonly IExpiryStrategy _expiryStrategy;
@@ -47,7 +50,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				bool requiresLeader,
 				uint? maxSearchWindow,
 				uint checkpointIntervalMultiplier,
-				CancellationToken cancellationToken) {
+				CancellationToken cancellationToken)
+			{
 				ArgumentNullException.ThrowIfNull(bus);
 				ArgumentNullException.ThrowIfNull(eventFilter);
 				ArgumentOutOfRangeException.ThrowIfZero(checkpointIntervalMultiplier);
@@ -70,8 +74,10 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				Subscribe(checkpoint, _cts.Token);
 			}
 
-			public ValueTask DisposeAsync() {
-				if (_disposed) {
+			public ValueTask DisposeAsync()
+			{
+				if (_disposed)
+				{
 					return ValueTask.CompletedTask;
 				}
 
@@ -86,20 +92,24 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				return ValueTask.CompletedTask;
 			}
 
-			public async ValueTask<bool> MoveNextAsync() {
+			public async ValueTask<bool> MoveNextAsync()
+			{
 ReadLoop:
 
-				if (!await _channel.Reader.WaitToReadAsync(_cts.Token)) {
+				if (!await _channel.Reader.WaitToReadAsync(_cts.Token))
+				{
 					return false;
 				}
 
 				var readResponse = await _channel.Reader.ReadAsync(_cts.Token);
 
-				if (readResponse is ReadResponse.EventReceived eventReceived) {
+				if (readResponse is ReadResponse.EventReceived eventReceived)
+				{
 					var eventPos = eventReceived.Event.OriginalPosition!.Value;
 					var position = Position.FromInt64(eventPos.CommitPosition, eventPos.PreparePosition);
 
-					if (_currentPosition.HasValue && position <= _currentPosition.Value) {
+					if (_currentPosition.HasValue && position <= _currentPosition.Value)
+					{
 						// this should no longer happen
 						Log.Warning("Subscription {subscriptionId} to $all:{eventFilter} skipping event {position} as it is less than {currentPosition}.",
 							_subscriptionId, _eventFilter, position, _currentPosition);
@@ -112,10 +122,12 @@ ReadLoop:
 
 					_currentPosition = position;
 				}
-				else if (readResponse is ReadResponse.CheckpointReceived checkpointReceived) {
+				else if (readResponse is ReadResponse.CheckpointReceived checkpointReceived)
+				{
 					var checkpointPos = new Position(checkpointReceived.CommitPosition, checkpointReceived.PreparePosition);
 
-					if (_currentCheckpoint.HasValue && checkpointPos <= _currentCheckpoint.Value) {
+					if (_currentCheckpoint.HasValue && checkpointPos <= _currentCheckpoint.Value)
+					{
 						// in some cases, it's possible to receive the same checkpoint twice for example:
 						// i) when the subscription goes live and it turns out that the next thing on the live channel is a checkpoint
 						// ii) when catching-up, reaching the checkpoint interval and the next page read reaches the end of the stream
@@ -135,16 +147,20 @@ ReadLoop:
 				return true;
 			}
 
-			private void Subscribe(Position? checkpoint, CancellationToken ct) {
+			private void Subscribe(Position? checkpoint, CancellationToken ct)
+			{
 				Task.Factory.StartNew(() => MainLoop(checkpoint, ct), ct);
 			}
 
-			private static TFPos ConvertCheckpoint(Position? checkpoint, TFPos lastLivePos) {
-				if (!checkpoint.HasValue) {
+			private static TFPos ConvertCheckpoint(Position? checkpoint, TFPos lastLivePos)
+			{
+				if (!checkpoint.HasValue)
+				{
 					return TFPos.HeadOfTf;
 				}
 
-				if (checkpoint == Position.End) {
+				if (checkpoint == Position.End)
+				{
 					return lastLivePos;
 				}
 
@@ -152,8 +168,10 @@ ReadLoop:
 				return new TFPos(commitPos, preparePos);
 			}
 
-			private async Task MainLoop(Position? checkpointPosition, CancellationToken ct) {
-				try {
+			private async Task MainLoop(Position? checkpointPosition, CancellationToken ct)
+			{
+				try
+				{
 					Log.Debug("Subscription {subscriptionId} to $all:{eventFilter} has started at checkpoint {position}",
 						_subscriptionId, _eventFilter, checkpointPosition?.ToString() ?? "Start");
 
@@ -167,31 +185,37 @@ ReadLoop:
 					// the most recently read sequence number from the live channel. 0 when we haven't read any.
 					var sequenceNumber = 0UL;
 
-					if (checkpoint >= confirmationLastPos) {
+					if (checkpoint >= confirmationLastPos)
+					{
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
 					}
 
-					while (true) {
+					while (true)
+					{
 						ct.ThrowIfCancellationRequested();
 						checkpoint = await CatchUp(checkpoint, ct);
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
 					}
 				}
-				catch (Exception ex) {
-					if (ex is not (OperationCanceledException or ReadResponseException.InvalidPosition)) {
+				catch (Exception ex)
+				{
+					if (ex is not (OperationCanceledException or ReadResponseException.InvalidPosition))
+					{
 						Log.Error(ex, "Subscription {subscriptionId} to $all:{eventFilter} experienced an error.",
 							_subscriptionId, _eventFilter);
 					}
 
 					_channel.Writer.TryComplete(ex);
 				}
-				finally {
+				finally
+				{
 					Log.Debug("Subscription {subscriptionId} to $all:{eventFilter} has ended.",
 						_subscriptionId, _eventFilter);
 				}
 			}
 
-			private async Task NotifyCaughtUp(TFPos checkpoint, CancellationToken ct) {
+			private async Task NotifyCaughtUp(TFPos checkpoint, CancellationToken ct)
+			{
 				Log.Debug(
 					"Subscription {subscriptionId} to $all:{eventFilter} caught up at checkpoint {position}.",
 					_subscriptionId, _eventFilter, checkpoint);
@@ -199,7 +223,8 @@ ReadLoop:
 				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionCaughtUp(), ct);
 			}
 
-			private async Task NotifyFellBehind(TFPos checkpoint, CancellationToken ct) {
+			private async Task NotifyFellBehind(TFPos checkpoint, CancellationToken ct)
+			{
 				Log.Debug(
 					"Subscription {subscriptionId} to $all:{eventFilter} fell behind at checkpoint {position}.",
 					_subscriptionId, _eventFilter, checkpoint);
@@ -207,14 +232,17 @@ ReadLoop:
 				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionFellBehind(), ct);
 			}
 
-			private async ValueTask<(TFPos, ulong)> GoLive(TFPos checkpoint, ulong sequenceNumber, CancellationToken ct) {
+			private async ValueTask<(TFPos, ulong)> GoLive(TFPos checkpoint, ulong sequenceNumber, CancellationToken ct)
+			{
 				await NotifyCaughtUp(checkpoint, ct);
 
-				await foreach (var liveEvent in _liveEvents.Reader.ReadAllAsync(ct)) {
+				await foreach (var liveEvent in _liveEvents.Reader.ReadAllAsync(ct))
+				{
 					var sequenceCorrect = liveEvent.SequenceNumber == sequenceNumber + 1;
 					sequenceNumber = liveEvent.SequenceNumber;
 
-					if (liveEvent.ResolvedEvent.HasValue && liveEvent.ResolvedEvent.Value.OriginalPosition <= checkpoint) {
+					if (liveEvent.ResolvedEvent.HasValue && liveEvent.ResolvedEvent.Value.OriginalPosition <= checkpoint)
+					{
 						// skip because this event has already been sent towards the client
 						// (or the client specified a checkpoint for events that don't exist yet and so
 						// is not interested in them)
@@ -223,12 +251,14 @@ ReadLoop:
 						continue;
 					}
 
-					if (liveEvent.Checkpoint.HasValue && liveEvent.Checkpoint.Value < checkpoint) {
+					if (liveEvent.Checkpoint.HasValue && liveEvent.Checkpoint.Value < checkpoint)
+					{
 						// skip because the checkpoint received is earlier than the last event or checkpoint sent towards the client
 						continue;
 					}
 
-					if (!sequenceCorrect) {
+					if (!sequenceCorrect)
+					{
 						// there's a gap in the sequence numbers, at least one live event was discarded
 						// due to the live channel becoming full.
 						// switch back to catchup to make sure we didn't miss anything we wanted to send.
@@ -241,12 +271,14 @@ ReadLoop:
 						return (checkpoint, sequenceNumber);
 					}
 
-					if (liveEvent.ResolvedEvent.HasValue) {
+					if (liveEvent.ResolvedEvent.HasValue)
+					{
 						// this is the next event to send towards the client. send it and update `checkpoint`
 						await SendEventToSubscription(liveEvent.ResolvedEvent.Value, ct);
 						checkpoint = liveEvent.ResolvedEvent.Value.OriginalPosition!.Value;
 					}
-					else if (liveEvent.Checkpoint.HasValue) {
+					else if (liveEvent.Checkpoint.HasValue)
+					{
 						// this is a valid checkpoint that we can send towards the client. send it and update `checkpoint`
 						await SendCheckpointToSubscription(liveEvent.Checkpoint.Value, ct);
 						checkpoint = liveEvent.Checkpoint.Value;
@@ -256,7 +288,8 @@ ReadLoop:
 				throw new Exception($"Unexpected error: live events channel for subscription {_subscriptionId} to $all:{_eventFilter} completed without exception");
 			}
 
-			private Task<TFPos> CatchUp(TFPos checkpoint, CancellationToken ct) {
+			private Task<TFPos> CatchUp(TFPos checkpoint, CancellationToken ct)
+			{
 				Log.Verbose(
 					"Subscription {subscriptionId} to $all:{eventFilter} is catching up from checkpoint {position}",
 					_subscriptionId, _eventFilter, checkpoint);
@@ -273,26 +306,33 @@ ReadLoop:
 
 				return catchupCompletionTcs.Task;
 
-				async Task OnMessage(Message message, CancellationToken ct) {
-					try {
+				async Task OnMessage(Message message, CancellationToken ct)
+				{
+					try
+					{
 						if (message is ClientMessage.NotHandled notHandled &&
-							TryHandleNotHandled(notHandled, out var ex)) {
+							TryHandleNotHandled(notHandled, out var ex))
+						{
 							throw ex;
 						}
 
-						if (message is not ClientMessage.FilteredReadAllEventsForwardCompleted completed) {
+						if (message is not ClientMessage.FilteredReadAllEventsForwardCompleted completed)
+						{
 							throw ReadResponseException.UnknownMessage
 								.Create<ClientMessage.FilteredReadAllEventsForwardCompleted>(message);
 						}
 
-						switch (completed.Result) {
+						switch (completed.Result)
+						{
 							case FilteredReadAllResult.Success:
-								foreach (var @event in completed.Events) {
+								foreach (var @event in completed.Events)
+								{
 									var eventPosition = @event.OriginalPosition!.Value;
 
 									// this can only be true for the first event of the first page
 									// as we start page reads from the checkpoint's position
-									if (eventPosition <= checkpoint) {
+									if (eventPosition <= checkpoint)
+									{
 										continue;
 									}
 
@@ -304,7 +344,8 @@ ReadLoop:
 									checkpoint = eventPosition;
 								}
 
-								if (checkpoint < completed.CurrentPos && completed.CurrentPos < completed.NextPos) {
+								if (checkpoint < completed.CurrentPos && completed.CurrentPos < completed.NextPos)
+								{
 									checkpoint = completed.CurrentPos;
 								}
 
@@ -313,8 +354,10 @@ ReadLoop:
 									"Subscription {subscriptionId} to $all:{eventFilter} considered {consideredEventsCount} catch-up events (interval: {checkpointInterval}, counter: {checkpointIntervalCounter})",
 									_subscriptionId, _eventFilter, completed.ConsideredEventsCount, _checkpointInterval, checkpointIntervalCounter);
 
-								if (completed.IsEndOfStream) {
-									if (checkpoint < TFPos.FirstRecordOfTf && TFPos.FirstRecordOfTf < completed.NextPos) {
+								if (completed.IsEndOfStream)
+								{
+									if (checkpoint < TFPos.FirstRecordOfTf && TFPos.FirstRecordOfTf < completed.NextPos)
+									{
 										checkpoint = TFPos.FirstRecordOfTf;
 									}
 
@@ -326,7 +369,8 @@ ReadLoop:
 									return;
 								}
 
-								if (checkpointIntervalCounter >= _checkpointInterval) {
+								if (checkpointIntervalCounter >= _checkpointInterval)
+								{
 									checkpointIntervalCounter %= _checkpointInterval;
 
 									Log.Verbose(
@@ -349,18 +393,22 @@ ReadLoop:
 								throw ReadResponseException.UnknownError.Create(completed.Result);
 						}
 					}
-					catch (Exception exception) {
+					catch (Exception exception)
+					{
 						catchupCompletionTcs.TrySetException(exception);
 					}
 				}
 			}
 
-			private async Task SendEventToSubscription(ResolvedEvent @event, CancellationToken ct) {
+			private async Task SendEventToSubscription(ResolvedEvent @event, CancellationToken ct)
+			{
 				await _channel.Writer.WriteAsync(new ReadResponse.EventReceived(@event), ct);
 			}
 
-			private async Task SendCheckpointToSubscription(TFPos checkpoint, CancellationToken ct) {
-				if (checkpoint == TFPos.HeadOfTf) {
+			private async Task SendCheckpointToSubscription(TFPos checkpoint, CancellationToken ct)
+			{
+				if (checkpoint == TFPos.HeadOfTf)
+				{
 					return;
 				}
 
@@ -370,7 +418,8 @@ ReadLoop:
 					preparePosition: checkpointPos.PreparePosition), ct);
 			}
 
-			private Task<TFPos> SubscribeToLive() {
+			private Task<TFPos> SubscribeToLive()
+			{
 				var nextLiveSequenceNumber = 0UL;
 				var confirmationPositionTcs = new TaskCompletionSource<TFPos>();
 
@@ -381,14 +430,18 @@ ReadLoop:
 
 				return confirmationPositionTcs.Task;
 
-				void OnSubscriptionMessage(Message message) {
-					try {
+				void OnSubscriptionMessage(Message message)
+				{
+					try
+					{
 						if (message is ClientMessage.NotHandled notHandled &&
-							TryHandleNotHandled(notHandled, out var ex)) {
+							TryHandleNotHandled(notHandled, out var ex))
+						{
 							throw ex;
 						}
 
-						switch (message) {
+						switch (message)
+						{
 							case ClientMessage.SubscriptionConfirmation confirmed:
 								long caughtUp = confirmed.LastIndexedPosition;
 
@@ -402,7 +455,8 @@ ReadLoop:
 								Log.Debug(
 									"Subscription {subscriptionId} to $all:{eventFilter} dropped by subscription service: {droppedReason}",
 									_subscriptionId, _eventFilter, dropped.Reason);
-								switch (dropped.Reason) {
+								switch (dropped.Reason)
+								{
 									case SubscriptionDropReason.AccessDenied:
 										throw new ReadResponseException.AccessDenied();
 									case SubscriptionDropReason.Unsubscribed:
@@ -412,24 +466,28 @@ ReadLoop:
 									default:
 										throw ReadResponseException.UnknownError.Create(dropped.Reason);
 								}
-							case ClientMessage.StreamEventAppeared appeared: {
+							case ClientMessage.StreamEventAppeared appeared:
+								{
 									Log.Verbose(
 										"Subscription {subscriptionId} to $all:{eventFilter} received live event {position}.",
 										_subscriptionId, _eventFilter, appeared.Event.OriginalPosition!.Value);
 
-									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event, null))) {
+									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event, null)))
+									{
 										// this cannot happen because _liveEvents does not have full mode 'wait'.
 										throw new Exception($"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to $all:{_eventFilter}");
 									}
 
 									return;
 								}
-							case ClientMessage.CheckpointReached checkpointReached: {
+							case ClientMessage.CheckpointReached checkpointReached:
+								{
 									Log.Verbose(
 										"Subscription {subscriptionId} to $all:{eventFilter} received live checkpoint {position}.",
 										_subscriptionId, _eventFilter, checkpointReached.Position);
 
-									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, null, checkpointReached.Position!.Value))) {
+									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, null, checkpointReached.Position!.Value)))
+									{
 										// this cannot happen because _liveEvents does not have full mode 'wait'.
 										throw new Exception(
 											$"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to $all:{_eventFilter}");
@@ -442,24 +500,28 @@ ReadLoop:
 									.Create<ClientMessage.SubscriptionConfirmation>(message);
 						}
 					}
-					catch (Exception exception) {
+					catch (Exception exception)
+					{
 						_liveEvents.Writer.TryComplete(exception);
 						confirmationPositionTcs.TrySetException(exception);
 					}
 				}
 			}
 
-			private ValueTask ConfirmSubscription(CancellationToken ct) {
+			private ValueTask ConfirmSubscription(CancellationToken ct)
+			{
 				return _channel.Writer.WriteAsync(new ReadResponse.SubscriptionConfirmed(SubscriptionId), ct);
 			}
 
-			private void ReadPage(TFPos startPos, IEnvelope envelope, CancellationToken ct) {
+			private void ReadPage(TFPos startPos, IEnvelope envelope, CancellationToken ct)
+			{
 				Guid correlationId = Guid.NewGuid();
 				Log.Verbose(
 					"Subscription {subscriptionId} to $all:{eventFilter} reading next page starting from {position}.",
 					_subscriptionId, _eventFilter, startPos);
 
-				if (startPos is { CommitPosition: < 0, PreparePosition: < 0 }) {
+				if (startPos is { CommitPosition: < 0, PreparePosition: < 0 })
+				{
 					startPos = new TFPos(0, 0);
 				}
 

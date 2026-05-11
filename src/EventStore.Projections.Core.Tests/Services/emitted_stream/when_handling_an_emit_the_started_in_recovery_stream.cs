@@ -13,17 +13,20 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesQueueUp();
 		ExistingEvent("test_stream", "type", @"{""c"": 100, ""p"": 50}", "data");
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test_stream",
@@ -36,8 +39,10 @@ public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TS
 	}
 
 	[Test]
-	public void throws_if_position_is_prior_to_from_position() {
-		Assert.Throws<InvalidOperationException>(() => {
+	public void throws_if_position_is_prior_to_from_position()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+		{
 			_stream.EmitEvents(
 				new[] {
 					new EmittedDataEvent(
@@ -48,7 +53,8 @@ public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TS
 	}
 
 	[Test]
-	public void does_not_publish_already_published_events() {
+	public void does_not_publish_already_published_events()
+	{
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -59,7 +65,8 @@ public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TS
 	}
 
 	[Test]
-	public void publishes_not_yet_published_events() {
+	public void publishes_not_yet_published_events()
+	{
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -70,7 +77,8 @@ public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TS
 	}
 
 	[Test]
-	public void does_not_reply_with_write_completed_message() {
+	public void does_not_reply_with_write_completed_message()
+	{
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(
@@ -81,7 +89,8 @@ public class when_handling_an_emit_the_started_in_recovery_stream<TLogFormat, TS
 	}
 
 	[Test]
-	public void reply_with_write_completed_message_when_write_completes() {
+	public void reply_with_write_completed_message_when_write_completes()
+	{
 		_stream.EmitEvents(
 			new[] {
 				new EmittedDataEvent(

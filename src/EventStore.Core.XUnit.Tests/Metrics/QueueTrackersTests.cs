@@ -5,18 +5,22 @@ using Conf = EventStore.Common.Configuration.MetricsConfiguration;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class QueueTrackersTests {
+public class QueueTrackersTests
+{
 	[Fact]
-	public void default_trackers_yields_noop_tracker() {
+	public void default_trackers_yields_noop_tracker()
+	{
 		var sut = new QueueTrackers();
 		var tracker = sut.GetTrackerForQueue("MainQueue");
 		Assert.Equal("NoOp", tracker.Name);
 	}
 
 	[Fact]
-	public void not_matched_yields_noop_tracker() {
+	public void not_matched_yields_noop_tracker()
+	{
 		var sut = GenSut(
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = "MainQueue",
 				Label = "MainQueue",
 			});
@@ -30,13 +34,16 @@ public class QueueTrackersTests {
 	}
 
 	[Fact]
-	public void empty_tracker_yields_no_op() {
+	public void empty_tracker_yields_no_op()
+	{
 		var sut = GenSut(
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = "MainQueue",
 				Label = "",
 			},
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = "WriterQueue",
 				Label = "WriterQueue",
 			});
@@ -50,9 +57,11 @@ public class QueueTrackersTests {
 	}
 
 	[Fact]
-	public void unspecified_label_yields_no_op() {
+	public void unspecified_label_yields_no_op()
+	{
 		var sut = GenSut(
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = "MainQueue",
 				// no Label
 			});
@@ -62,9 +71,11 @@ public class QueueTrackersTests {
 	}
 
 	[Fact]
-	public void unspecified_regex_does_not_match() {
+	public void unspecified_regex_does_not_match()
+	{
 		var sut = GenSut(
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				// no Regex
 				Label = "MainQueue",
 			});
@@ -74,13 +85,16 @@ public class QueueTrackersTests {
 	}
 
 	[Fact]
-	public void patterns_applied_in_order() {
+	public void patterns_applied_in_order()
+	{
 		var sut = GenSut(
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = "MainQueue",
 				Label = "MainQueue",
 			},
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = ".*",
 				Label = "OtherQueue",
 			});
@@ -93,9 +107,11 @@ public class QueueTrackersTests {
 	}
 
 	[Fact]
-	public void matches_groups() {
+	public void matches_groups()
+	{
 		var sut = GenSut(
-			new Conf.LabelMappingCase {
+			new Conf.LabelMappingCase
+			{
 				Regex = "Worker #(.*)",
 				Label = "Worker Queue $1",
 			});
@@ -110,13 +126,16 @@ public class QueueTrackersTests {
 			x => new FakeTracker { Name = x },
 			x => new FakeTracker { Name = x });
 
-	class FakeTracker : IDurationMaxTracker, IQueueProcessingTracker, IQueueBusyTracker {
+	class FakeTracker : IDurationMaxTracker, IQueueProcessingTracker, IQueueBusyTracker
+	{
 		public string Name { get; init; }
 
-		public void EnterBusy() {
+		public void EnterBusy()
+		{
 		}
 
-		public void EnterIdle() {
+		public void EnterIdle()
+		{
 		}
 
 		public Instant RecordNow(Instant start) => start;

@@ -10,16 +10,21 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.query;
 
-public class a_failed_projection {
-	public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId> {
-		protected override void Given() {
+public class a_failed_projection
+{
+	public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId>
+	{
+		protected override void Given()
+		{
 			base.Given();
 			_projectionSource = "fail";
 			NoOtherStreams();
 		}
 
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -36,9 +41,12 @@ public class a_failed_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_updating_query<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_updating_query<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -49,7 +57,8 @@ public class a_failed_projection {
 		}
 
 		[Test]
-		public void the_projection_status_becomes_running() {
+		public void the_projection_status_becomes_running()
+		{
 			_manager.Handle(
 				new ProjectionManagementMessage.Command.GetStatistics(
 					_bus, null, _projectionName, false));
@@ -76,9 +85,12 @@ public class a_failed_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_stopping<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_stopping<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -88,7 +100,8 @@ public class a_failed_projection {
 		}
 
 		[Test]
-		public void the_projection_status_becomes_faulted_disabled() {
+		public void the_projection_status_becomes_faulted_disabled()
+		{
 			_manager.Handle(
 				new ProjectionManagementMessage.Command.GetStatistics(
 					_bus, null, _projectionName, false));
@@ -121,9 +134,12 @@ public class a_failed_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_starting<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_starting<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 

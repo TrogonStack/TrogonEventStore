@@ -3,8 +3,10 @@ using System.Threading.Tasks;
 using EventStore.Core.TransactionLog.Chunks;
 using Serilog;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class ChunkMerger : IChunkMerger {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class ChunkMerger : IChunkMerger
+	{
 		private readonly ILogger _logger;
 		private readonly bool _mergeChunks;
 		private readonly IChunkMergerBackend _backend;
@@ -14,7 +16,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ILogger logger,
 			bool mergeChunks,
 			IChunkMergerBackend backend,
-			Throttle throttle) {
+			Throttle throttle)
+		{
 
 			_logger = logger;
 			_mergeChunks = mergeChunks;
@@ -26,7 +29,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ScavengePoint scavengePoint,
 			IScavengeStateForChunkMerger state,
 			ITFChunkScavengerLog scavengerLogger,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 
 			_logger.Debug("SCAVENGING: Started new scavenge chunk merging phase for {scavengePoint}",
 				scavengePoint.GetName());
@@ -40,9 +44,11 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			ScavengeCheckpoint.MergingChunks checkpoint,
 			IScavengeStateForChunkMerger state,
 			ITFChunkScavengerLog scavengerLogger,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 
-			if (_mergeChunks) {
+			if (_mergeChunks)
+			{
 				_logger.Debug("SCAVENGING: Merging chunks from checkpoint: {checkpoint}", checkpoint);
 				return _backend.MergeChunks(scavengerLogger, _throttle, cancellationToken);
 			}

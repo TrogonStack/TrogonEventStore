@@ -9,7 +9,8 @@ using EventStore.Projections.Core.Services.Processing.Emitting.EmittedEvents;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
-public class FakeProjectionStateHandler : IProjectionStateHandler {
+public class FakeProjectionStateHandler : IProjectionStateHandler
+{
 	public int _initializeCalled = 0;
 	public int _initializeSharedCalled = 0;
 	public int _loadCalled = 0;
@@ -38,14 +39,16 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 	private readonly Action<SourceDefinitionBuilder> _configureBuilder;
 	private readonly IQuerySources _definition;
 
-	public FakeProjectionStateHandler(string source, Action<string, object[]> logger) {
+	public FakeProjectionStateHandler(string source, Action<string, object[]> logger)
+	{
 		_definition = source.ParseJson<QuerySourcesDefinition>();
 	}
 
 	public FakeProjectionStateHandler(
 		bool failOnInitialize = false, bool failOnLoad = false, bool failOnProcessEvent = false,
 		bool failOnGetPartition = true,
-		Action<SourceDefinitionBuilder> configureBuilder = null) {
+		Action<SourceDefinitionBuilder> configureBuilder = null)
+	{
 		_failOnInitialize = failOnInitialize;
 		_failOnLoad = failOnLoad;
 		_failOnProcessEvent = failOnProcessEvent;
@@ -53,11 +56,14 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 		_configureBuilder = configureBuilder;
 	}
 
-	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder) {
-		if (_configureBuilder != null) {
+	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder)
+	{
+		if (_configureBuilder != null)
+		{
 			_configureBuilder(builder);
 		}
-		else {
+		else
+		{
 			builder.FromAll();
 			builder.AllEvents();
 			builder.SetDefinesStateTransform();
@@ -65,8 +71,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 		}
 	}
 
-	public void Load(string state) {
-		if (_failOnLoad) {
+	public void Load(string state)
+	{
+		if (_failOnLoad)
+		{
 			throw new Exception("LOAD_FAILED");
 		}
 
@@ -74,12 +82,15 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 		_loadedState = state;
 	}
 
-	public void LoadShared(string state) {
+	public void LoadShared(string state)
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Initialize() {
-		if (_failOnInitialize) {
+	public void Initialize()
+	{
+		if (_failOnInitialize)
+		{
 			throw new Exception("INITIALIZE_FAILED");
 		}
 
@@ -87,8 +98,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 		_loadedState = "";
 	}
 
-	public void InitializeShared() {
-		if (_failOnInitialize) {
+	public void InitializeShared()
+	{
+		if (_failOnInitialize)
+		{
 			throw new Exception("INITIALIZE_SHARED_FAILED");
 		}
 
@@ -97,8 +110,10 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 	}
 
 
-	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data) {
-		if (_failOnGetPartition) {
+	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data)
+	{
+		if (_failOnGetPartition)
+		{
 			throw new Exception("GetStatePartition FAILED");
 		}
 
@@ -107,9 +122,11 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 
 	public bool ProcessEvent(
 		string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents) {
+		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+	{
 		newSharedState = null;
-		if (_failOnProcessEvent) {
+		if (_failOnProcessEvent)
+		{
 			throw new Exception("PROCESS_EVENT_FAILED");
 		}
 
@@ -122,7 +139,8 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 		_lastPartition = partition;
 
 		_eventsProcessed++;
-		switch (data.EventType) {
+		switch (data.EventType)
+		{
 			case "skip_this_type":
 				newState = null;
 				emittedEvents = null;
@@ -211,24 +229,29 @@ public class FakeProjectionStateHandler : IProjectionStateHandler {
 	}
 
 	public bool ProcessPartitionCreated(string partition, CheckpointTag createPosition, ResolvedEvent data,
-		out EmittedEventEnvelope[] emittedEvents) {
+		out EmittedEventEnvelope[] emittedEvents)
+	{
 		_partitionCreatedProcessed++;
 		emittedEvents = null;
 		return true;
 	}
 
-	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState) {
+	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+	{
 		throw new NotImplementedException();
 	}
 
-	public string TransformStateToResult() {
+	public string TransformStateToResult()
+	{
 		return _loadedState;
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 
-	public IQuerySources GetSourceDefinition() {
+	public IQuerySources GetSourceDefinition()
+	{
 		return _definition ?? SourceDefinitionBuilder.From(ConfigureSourceProcessingStrategy);
 	}
 }

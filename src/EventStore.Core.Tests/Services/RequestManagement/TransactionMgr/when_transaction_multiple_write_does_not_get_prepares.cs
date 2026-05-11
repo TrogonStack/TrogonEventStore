@@ -10,14 +10,16 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.TransactionMgr;
 
 [TestFixture]
-public class when_transaction_multiple_write_does_not_get_prepares : RequestManagerSpecification<TransactionWrite> {
+public class when_transaction_multiple_write_does_not_get_prepares : RequestManagerSpecification<TransactionWrite>
+{
 
 	private long _transactionId = 1000;
 	private long _event1Position = 1500;
 	private long _event2Position = 2000;
 	private long _event3Position = 2500;
 
-	protected override TransactionWrite OnManager(FakePublisher publisher) {
+	protected override TransactionWrite OnManager(FakePublisher publisher)
+	{
 		return new TransactionWrite(
 		 	publisher,
 			PrepareTimeout,
@@ -29,22 +31,26 @@ public class when_transaction_multiple_write_does_not_get_prepares : RequestMana
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages() {
+	protected override IEnumerable<Message> WithInitialMessages()
+	{
 		yield return new StorageMessage.PrepareAck(InternalCorrId, _event1Position, PrepareFlags.Data);
 		yield return new StorageMessage.PrepareAck(InternalCorrId, _event2Position, PrepareFlags.Data);
 	}
 
-	protected override Message When() {
+	protected override Message When()
+	{
 		return new ReplicationTrackingMessage.ReplicatedTo(_event3Position);
 	}
 
 	[Test]
-	public void successful_request_message_is_not_published() {
+	public void successful_request_message_is_not_published()
+	{
 		Assert.That(!Produced.Any());
 	}
 
 	[Test]
-	public void the_envelope_is_not_replied_to_with_success() {
+	public void the_envelope_is_not_replied_to_with_success()
+	{
 		Assert.That(!Envelope.Replies.Any());
 	}
 }

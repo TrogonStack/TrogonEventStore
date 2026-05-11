@@ -11,8 +11,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
                 fromAll().when({$any: 
                     function(state, event) {
@@ -23,7 +25,8 @@ public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInt
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_returns_true() {
+	public void process_event_returns_true()
+	{
 		var result = _stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 			"metadata",
@@ -33,7 +36,8 @@ public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInt
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_returns_emitted_event() {
+	public void process_event_returns_emitted_event()
+	{
 		EmittedEventEnvelope[] emittedEvents;
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
@@ -51,10 +55,12 @@ public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInt
 	}
 
 	[Test, Category(_projectionType), Category("Manual"), Explicit]
-	public void can_pass_though_millions_of_events() {
+	public void can_pass_though_millions_of_events()
+	{
 		int i;
 		var sw = Stopwatch.StartNew();
-		for (i = 0; i < 100000000; i++) {
+		for (i = 0; i < 100000000; i++)
+		{
 			EmittedEventEnvelope[] emittedEvents;
 			_stateHandler.ProcessEvent(
 				"", CheckpointTag.FromPosition(0, i * 10 + 20, i * 10 + 10), "stream" + i, "type" + i, "category",
@@ -65,7 +71,8 @@ public class when_running_a_js_projection_emitting_metadata : TestFixtureWithInt
 			Assert.AreEqual("emitted-event" + i, emittedEvents[0].Event.EventType);
 			Assert.AreEqual("output-stream" + i, emittedEvents[0].Event.StreamId);
 			Assert.AreEqual(@"{""a"":""" + i + @"""}", emittedEvents[0].Event.Data);
-			if (sw.Elapsed > TimeSpan.FromSeconds(120)) {
+			if (sw.Elapsed > TimeSpan.FromSeconds(120))
+			{
 				break;
 			}
 		}

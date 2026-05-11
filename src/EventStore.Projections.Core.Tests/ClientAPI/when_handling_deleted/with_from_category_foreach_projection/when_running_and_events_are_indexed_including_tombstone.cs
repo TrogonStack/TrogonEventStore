@@ -6,12 +6,15 @@ namespace EventStore.Projections.Core.Tests.ClientAPI.when_handling_deleted.with
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_running_and_events_are_indexed_including_tombstone<TLogFormat, TStreamId> :
-	specification_with_standard_projections_runnning<TLogFormat, TStreamId> {
-	protected override bool GivenStandardProjectionsRunning() {
+	specification_with_standard_projections_runnning<TLogFormat, TStreamId>
+{
+	protected override bool GivenStandardProjectionsRunning()
+	{
 		return false;
 	}
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		await base.Given();
 		await PostEvent("stream-1", "type1", "{}");
 		await PostEvent("stream-2", "type1", "{}");
@@ -23,7 +26,8 @@ public class when_running_and_events_are_indexed_including_tombstone<TLogFormat,
 		WaitIdle();
 	}
 
-	protected override async Task When() {
+	protected override async Task When()
+	{
 		await base.When();
 
 		await PostProjection(@"
@@ -39,7 +43,8 @@ fromCategory('stream').foreachStream().when({
 
 	[Test, Category("Network")]
 	[Ignore("Regression")]
-	public async Task receives_deleted_notification() {
+	public async Task receives_deleted_notification()
+	{
 		await DumpStream("$ce-stream");
 		await AssertStreamTail("$projections-test-projection-stream-1-result", "Result:{\"a\":0,\"deleted\":1}");
 	}

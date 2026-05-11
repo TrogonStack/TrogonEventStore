@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.Telemetry;
 
-public interface ITelemetrySink {
+public interface ITelemetrySink
+{
 	Task Flush(JsonObject data, CancellationToken token);
 }

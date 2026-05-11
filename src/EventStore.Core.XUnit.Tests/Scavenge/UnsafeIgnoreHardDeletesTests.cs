@@ -8,9 +8,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDeletesTests> {
+public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDeletesTests>
+{
 	[Fact]
-	public async Task simple_tombstone() {
+	public async Task simple_tombstone()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithUnsafeIgnoreHardDeletes()
@@ -23,7 +25,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 					Rec.CommittedDelete(t++, "ab-1"))
 				.Chunk(ScavengePointRec(t++, threshold: 1000)))
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.False(state.TryGetOriginalStreamData("ab-1", out _));
 				Assert.False(state.TryGetMetastreamData("$$ab-1", out _));
 			})
@@ -34,7 +37,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 	}
 
 	[Fact]
-	public async Task tombstone_then_normal_scavenge_then_unsafeharddeletes() {
+	public async Task tombstone_then_normal_scavenge_then_unsafeharddeletes()
+	{
 		// after the normal scavenge of a tombstoned stream we still need to be
 		// able to remove the tombstone with a unsafeharddeletes scavenge
 
@@ -52,7 +56,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 				.Chunk(ScavengePointRec(t++)) // SP-0
 				.Chunk(ScavengePointRec(t++))) // SP-1
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				// make it scavenge SP-0
 				x.SetCheckpoint(new ScavengeCheckpoint.Accumulating(
 					ScavengePoint(
@@ -72,7 +77,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 			.WithDb(db)
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
 			.WithUnsafeIgnoreHardDeletes()
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.False(state.TryGetOriginalStreamData("ab-1", out _));
 				Assert.False(state.TryGetMetastreamData("$$ab-1", out _));
 			})
@@ -84,7 +90,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 	}
 
 	[Fact]
-	public async Task normal_scavenge_then_tombstone_then_unsafeharddeletes() {
+	public async Task normal_scavenge_then_tombstone_then_unsafeharddeletes()
+	{
 		// after the normal scavenge runs and clears the metastreamdatas,
 		// we need to be able to tombstone a stream and still be able to remove
 		// the leftover metadata record.
@@ -103,7 +110,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 				.Chunk(Rec.CommittedDelete(t++, "ab-1"))
 				.Chunk(ScavengePointRec(t++))) // SP-1
 			.WithState(x => x.WithConnectionPool(Fixture.DbConnectionPool))
-			.MutateState(x => {
+			.MutateState(x =>
+			{
 				// make it scavenge SP-0
 				x.SetCheckpoint(new ScavengeCheckpoint.Accumulating(
 					ScavengePoint(
@@ -132,7 +140,8 @@ public class UnsafeIgnoreHardDeletesTests : SqliteDbPerTest<UnsafeIgnoreHardDele
 			.AssertTrace(
 				Tracer.Line("Accumulating from SP-0 to SP-1"),
 				Tracer.AnythingElse)
-			.AssertState(state => {
+			.AssertState(state =>
+			{
 				Assert.False(state.TryGetOriginalStreamData("ab-1", out _));
 				Assert.False(state.TryGetMetastreamData("$$ab-1", out _));
 			})

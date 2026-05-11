@@ -13,18 +13,21 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_checkpoint_requested_with_pending_writes<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_checkpoint_requested_with_pending_writes<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		base.Given();
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		;
 		_stream = new EmittedStream(
@@ -44,13 +47,15 @@ public class when_checkpoint_requested_with_pending_writes<TLogFormat, TStreamId
 	}
 
 	[Test]
-	public void does_not_publish_ready_for_checkpoint_immediately() {
+	public void does_not_publish_ready_for_checkpoint_immediately()
+	{
 		Assert.AreEqual(
 			0, _consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.ReadyForCheckpoint>().Count());
 	}
 
 	[Test]
-	public void publishes_ready_for_checkpoint_on_handling_last_write_events_completed() {
+	public void publishes_ready_for_checkpoint_on_handling_last_write_events_completed()
+	{
 		var msg = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().First();
 		_bus.Publish(new ClientMessage.WriteEventsCompleted(msg.CorrelationId, 0, 0, -1, -1));
 		Assert.AreEqual(

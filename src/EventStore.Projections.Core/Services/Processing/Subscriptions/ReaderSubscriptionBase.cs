@@ -10,7 +10,8 @@ using Serilog;
 
 namespace EventStore.Projections.Core.Services.Processing.Subscriptions;
 
-public class ReaderSubscriptionBase {
+public class ReaderSubscriptionBase
+{
 	private readonly IPublisher _publisher;
 	private readonly IReaderStrategy _readerStrategy;
 	private readonly ITimeProvider _timeProvider;
@@ -45,20 +46,25 @@ public class ReaderSubscriptionBase {
 		int checkpointAfterMs,
 		bool stopOnEof,
 		int? stopAfterNEvents,
-		bool enableContentTypeValidation) {
-		if (publisher == null) {
+		bool enableContentTypeValidation)
+	{
+		if (publisher == null)
+		{
 			throw new ArgumentNullException("publisher");
 		}
 
-		if (readerStrategy == null) {
+		if (readerStrategy == null)
+		{
 			throw new ArgumentNullException("readerStrategy");
 		}
 
-		if (timeProvider == null) {
+		if (timeProvider == null)
+		{
 			throw new ArgumentNullException("timeProvider");
 		}
 
-		if (checkpointProcessedEventsThreshold > 0 && stopAfterNEvents > 0) {
+		if (checkpointProcessedEventsThreshold > 0 && stopAfterNEvents > 0)
+		{
 			throw new ArgumentException("checkpointProcessedEventsThreshold > 0 && stopAfterNEvents > 0");
 		}
 
@@ -83,16 +89,20 @@ public class ReaderSubscriptionBase {
 		_logger = Serilog.Log.ForContext<ReaderSubscriptionBase>();
 	}
 
-	public string Tag {
+	public string Tag
+	{
 		get { return _tag; }
 	}
 
-	public Guid SubscriptionId {
+	public Guid SubscriptionId
+	{
 		get { return _subscriptionId; }
 	}
 
-	protected void ProcessOne(ReaderSubscriptionMessage.CommittedEventDistributed message) {
-		if (_eofReached) {
+	protected void ProcessOne(ReaderSubscriptionMessage.CommittedEventDistributed message)
+	{
+		if (_eofReached)
+		{
 			return; // eof may be set by reach N events
 		}
 
@@ -104,13 +114,15 @@ public class ReaderSubscriptionBase {
 		bool passesStreamSourceFilter = _eventFilter.PassesSource(message.Data.ResolvedLinkTo, message.Data.PositionStreamId, message.Data.EventType);
 		bool passesEventFilter = _eventFilter.Passes(message.Data.ResolvedLinkTo, message.Data.PositionStreamId, message.Data.EventType, message.Data.IsStreamDeletedEvent);
 		bool isValid = !_enableContentTypeValidation || _eventFilter.PassesValidation(message.Data.IsJson, message.Data.DataMemory);
-		if (!isValid) {
+		if (!isValid)
+		{
 			_logger.Verbose($"Event {message.Data.EventSequenceNumber}@{message.Data.EventStreamId} is not valid json. Data: ({message.Data.Data})");
 		}
 
 		CheckpointTag eventCheckpointTag = null;
 
-		if (passesStreamSourceFilter) {
+		if (passesStreamSourceFilter)
+		{
 			// NOTE: after joining heading distribution point it delivers all cached events to the subscription
 			// some of this events we may have already received. The delivered events may have different order
 			// (in case of partially ordered cases multi-stream reader etc). We discard all the messages that are not
@@ -118,7 +130,8 @@ public class ReaderSubscriptionBase {
 
 			//NOTE: older events can appear here when replaying events from the heading event reader
 			//      or when event-by-type-index reader reads TF and both event and resolved-event appear as output
-			if (!_positionTagger.IsMessageAfterCheckpointTag(_positionTracker.LastTag, message)) {
+			if (!_positionTagger.IsMessageAfterCheckpointTag(_positionTracker.LastTag, message))
+			{
 				return;
 			}
 
@@ -128,7 +141,8 @@ public class ReaderSubscriptionBase {
 
 		var now = _timeProvider.UtcNow;
 		var timeDifference = now - _lastCheckpointTime;
-		if (isValid && passesEventFilter) {
+		if (isValid && passesEventFilter)
+		{
 			Debug.Assert(passesStreamSourceFilter, "Event passes event filter but not source filter");
 			Debug.Assert(eventCheckpointTag != null, "Event checkpoint tag is null");
 
@@ -142,39 +156,47 @@ public class ReaderSubscriptionBase {
 			if (_checkpointProcessedEventsThreshold > 0
 				&& timeDifference > _checkpointAfter
 				&& _eventsSinceLastCheckpointSuggestedOrStart >= _checkpointProcessedEventsThreshold
-				&& _lastCheckpointTag != _positionTracker.LastTag) {
+				&& _lastCheckpointTag != _positionTracker.LastTag)
+			{
 				SuggestCheckpoint(message);
 			}
 
-			if (_stopAfterNEvents > 0 && _eventsSinceLastCheckpointSuggestedOrStart >= _stopAfterNEvents) {
+			if (_stopAfterNEvents > 0 && _eventsSinceLastCheckpointSuggestedOrStart >= _stopAfterNEvents)
+			{
 				NEventsReached();
 			}
 		}
-		else {
+		else
+		{
 			if (_checkpointUnhandledBytesThreshold > 0
 				&& timeDifference > _checkpointAfter
 				&& (_lastPassedOrCheckpointedEventPosition != null
 					&& message.Data.Position.PreparePosition - _lastPassedOrCheckpointedEventPosition.Value
 					> _checkpointUnhandledBytesThreshold)
-				&& _lastCheckpointTag != _positionTracker.LastTag) {
+				&& _lastCheckpointTag != _positionTracker.LastTag)
+			{
 				SuggestCheckpoint(message);
 			}
-			else if (progressChanged) {
+			else if (progressChanged)
+			{
 				_progress = roundedProgress;
 			}
 		}
 
 		// initialize checkpointing based on first message
-		if (_lastPassedOrCheckpointedEventPosition == null) {
+		if (_lastPassedOrCheckpointedEventPosition == null)
+		{
 			_lastPassedOrCheckpointedEventPosition = message.Data.Position.PreparePosition;
 		}
 	}
 
-	private void NEventsReached() {
+	private void NEventsReached()
+	{
 		ProcessEofAndEmitEof();
 	}
 
-	protected void NotifyProgress() {
+	protected void NotifyProgress()
+	{
 		_publisher.Publish(new EventReaderSubscriptionMessage.ProgressChanged(
 			_subscriptionId,
 			_positionTracker.LastTag,
@@ -186,24 +208,28 @@ public class ReaderSubscriptionBase {
 	/// Forces a progression value.
 	/// </summary>
 	/// <param name="value">a percentage rate. For example if the progress is 42%, value parameter must be 42</param>
-	protected void ForceProgressValue(float value) {
+	protected void ForceProgressValue(float value)
+	{
 		_progress = value;
 	}
 
-	protected void PublishPartitionDeleted(string partition, CheckpointTag deletePosition) {
+	protected void PublishPartitionDeleted(string partition, CheckpointTag deletePosition)
+	{
 		_publisher.Publish(
 			new EventReaderSubscriptionMessage.PartitionDeleted(
 				_subscriptionId, deletePosition, partition, _subscriptionMessageSequenceNumber++));
 	}
 
-	private void PublishStartingAt(long startingLastCommitPosition) {
+	private void PublishStartingAt(long startingLastCommitPosition)
+	{
 		_publisher.Publish(
 			new EventReaderSubscriptionMessage.SubscriptionStarted(
 				_subscriptionId, _positionTracker.LastTag, startingLastCommitPosition,
 				_subscriptionMessageSequenceNumber++));
 	}
 
-	private void SuggestCheckpoint(ReaderSubscriptionMessage.CommittedEventDistributed message) {
+	private void SuggestCheckpoint(ReaderSubscriptionMessage.CommittedEventDistributed message)
+	{
 		_lastPassedOrCheckpointedEventPosition = message.Data.Position.PreparePosition;
 		_lastCheckpointTag = _positionTracker.LastTag;
 		_publisher.Publish(
@@ -215,8 +241,10 @@ public class ReaderSubscriptionBase {
 	}
 
 	public IEventReader CreatePausedEventReader(IPublisher publisher, IODispatcher ioDispatcher,
-		Guid eventReaderId) {
-		if (_eofReached) {
+		Guid eventReaderId)
+	{
+		if (_eofReached)
+		{
 			throw new InvalidOperationException("Onetime projection has already reached the eof position");
 		}
 		//            _logger.Trace("Creating an event distribution point at '{lastTag}'", _positionTracker.LastTag);
@@ -224,17 +252,21 @@ public class ReaderSubscriptionBase {
 			eventReaderId, publisher, ioDispatcher, _positionTracker.LastTag, _stopOnEof, _stopAfterNEvents);
 	}
 
-	public void Handle(ReaderSubscriptionMessage.EventReaderEof message) {
-		if (_eofReached) {
+	public void Handle(ReaderSubscriptionMessage.EventReaderEof message)
+	{
+		if (_eofReached)
+		{
 			return; // self eof-reached, but reader is still running
 		}
 
-		if (_stopOnEof) {
+		if (_stopOnEof)
+		{
 			ProcessEofAndEmitEof();
 		}
 	}
 
-	private void ProcessEofAndEmitEof() {
+	private void ProcessEofAndEmitEof()
+	{
 		_eofReached = true;
 		EofReached();
 		_publisher.Publish(
@@ -246,8 +278,10 @@ public class ReaderSubscriptionBase {
 		_publisher.Publish(new ReaderSubscriptionManagement.Unsubscribe(_subscriptionId));
 	}
 
-	public void Handle(ReaderSubscriptionMessage.EventReaderPartitionEof message) {
-		if (_eofReached) {
+	public void Handle(ReaderSubscriptionMessage.EventReaderPartitionEof message)
+	{
+		if (_eofReached)
+		{
 			return; // self eof-reached, but reader is still running
 		}
 
@@ -259,12 +293,15 @@ public class ReaderSubscriptionBase {
 				_subscriptionMessageSequenceNumber++));
 	}
 
-	public void Handle(ReaderSubscriptionMessage.EventReaderNotAuthorized message) {
-		if (_eofReached) {
+	public void Handle(ReaderSubscriptionMessage.EventReaderNotAuthorized message)
+	{
+		if (_eofReached)
+		{
 			return; // self eof-reached, but reader is still running
 		}
 
-		if (_stopOnEof) {
+		if (_stopOnEof)
+		{
 			_eofReached = true;
 		}
 		_publisher.Publish(
@@ -272,10 +309,12 @@ public class ReaderSubscriptionBase {
 				_subscriptionId, _positionTracker.LastTag, _progress, _subscriptionMessageSequenceNumber++));
 	}
 
-	public void Handle(ReaderSubscriptionMessage.EventReaderStarting message) {
+	public void Handle(ReaderSubscriptionMessage.EventReaderStarting message)
+	{
 		PublishStartingAt(message.LastCommitPosition);
 	}
 
-	protected virtual void EofReached() {
+	protected virtual void EofReached()
+	{
 	}
 }

@@ -3,7 +3,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace EventStore.SourceGenerators.Messaging;
 
-static class ContextReportingExtensions {
+static class ContextReportingExtensions
+{
 	static readonly DiagnosticDescriptor _impartialMessage = new(
 		id: "ESGEN001",
 		title: "Messages must be partial classes",

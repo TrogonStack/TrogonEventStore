@@ -8,9 +8,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class RemoteChunkTests : SqliteDbPerTest<RemoteChunkTests> {
+public class RemoteChunkTests : SqliteDbPerTest<RemoteChunkTests>
+{
 	[Fact]
-	public async Task remote_chunks_are_not_executed() {
+	public async Task remote_chunks_are_not_executed()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

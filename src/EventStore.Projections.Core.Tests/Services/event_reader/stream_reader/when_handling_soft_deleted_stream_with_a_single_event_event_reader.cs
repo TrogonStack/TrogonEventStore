@@ -15,14 +15,16 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_soft_deleted_stream_with_a_single_event_event_reader<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_soft_deleted_stream_with_a_single_event_event_reader<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private StreamEventReader _streamEventReader;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
 	private Guid _secondEventId;
 	private string _streamId = Guid.NewGuid().ToString();
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 
 		_distibutionPointCorrelationId = Guid.NewGuid();
@@ -35,7 +37,8 @@ public class when_handling_soft_deleted_stream_with_a_single_event_event_reader<
 	}
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		var correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Last()
 			.CorrelationId;
 		_streamEventReader.Handle(
@@ -59,7 +62,8 @@ public class when_handling_soft_deleted_stream_with_a_single_event_event_reader<
 	}
 
 	[Test]
-	public void should_handle_the_2_events() {
+	public void should_handle_the_2_events()
+	{
 		Assert.AreEqual(2,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 

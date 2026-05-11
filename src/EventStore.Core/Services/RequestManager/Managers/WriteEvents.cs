@@ -5,8 +5,10 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 
-namespace EventStore.Core.Services.RequestManager.Managers {
-	public class WriteEvents : RequestManagerBase {
+namespace EventStore.Core.Services.RequestManager.Managers
+{
+	public class WriteEvents : RequestManagerBase
+	{
 		private readonly string _streamId;
 		private readonly Event[] _events;
 		private readonly CancellationToken _cancellationToken;
@@ -29,7 +31,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					 expectedVersion,
 					 commitSource,
 					 prepareCount: 0,
-					 waitForCommit: true) {
+					 waitForCommit: true)
+		{
 			_streamId = streamId;
 			_events = events;
 			_cancellationToken = cancellationToken;

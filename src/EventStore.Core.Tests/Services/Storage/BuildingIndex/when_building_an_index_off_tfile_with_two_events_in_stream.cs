@@ -13,14 +13,16 @@ namespace EventStore.Core.Tests.Services.Storage.BuildingIndex;
 public class
 	WhenBuildingAnIndexOffTfileWithTwoEventsInStream<TLogFormat, TStreamId> : ReadIndexTestScenario<
 	TLogFormat
-	, TStreamId> {
+	, TStreamId>
+{
 	private Guid _id1;
 	private Guid _id2;
 
 	private IPrepareLogRecord<TStreamId> _prepare1;
 	private IPrepareLogRecord<TStreamId> _prepare2;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		_id1 = Guid.NewGuid();
 		_id2 = Guid.NewGuid();
 
@@ -36,34 +38,39 @@ public class
 	}
 
 	[Test]
-	public async Task the_first_event_can_be_read() {
+	public async Task the_first_event_can_be_read()
+	{
 		var result = await ReadIndex.ReadEvent("test1", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(new EventRecord(0, _prepare1, "test1", "eventType"), result.Record);
 	}
 
 	[Test]
-	public async Task the_second_event_can_be_read() {
+	public async Task the_second_event_can_be_read()
+	{
 		var result = await ReadIndex.ReadEvent("test1", 1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(new EventRecord(1, _prepare2, "test1", "eventType"), result.Record);
 	}
 
 	[Test]
-	public async Task the_nonexisting_event_can_not_be_read() {
+	public async Task the_nonexisting_event_can_not_be_read()
+	{
 		var result = await ReadIndex.ReadEvent("test1", 2, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.NotFound, result.Result);
 	}
 
 	[Test]
-	public async Task the_last_event_can_be_read_and_is_correct() {
+	public async Task the_last_event_can_be_read_and_is_correct()
+	{
 		var result = await ReadIndex.ReadEvent("test1", -1, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(new EventRecord(1, _prepare2, "test1", "eventType"), result.Record);
 	}
 
 	[Test]
-	public async Task the_first_event_can_be_read_through_range_query() {
+	public async Task the_first_event_can_be_read_through_range_query()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("test1", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
@@ -71,7 +78,8 @@ public class
 	}
 
 	[Test]
-	public async Task the_second_event_can_be_read_through_range_query() {
+	public async Task the_second_event_can_be_read_through_range_query()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("test1", 1, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(1, result.Records.Length);
@@ -79,7 +87,8 @@ public class
 	}
 
 	[Test]
-	public async Task the_stream_can_be_read_as_a_whole_with_specific_from_version() {
+	public async Task the_stream_can_be_read_as_a_whole_with_specific_from_version()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("test1", 1, 2, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -88,7 +97,8 @@ public class
 	}
 
 	[Test]
-	public async Task the_stream_can_be_read_as_a_whole_with_from_end() {
+	public async Task the_stream_can_be_read_as_a_whole_with_from_end()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("test1", -1, 2, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -97,14 +107,16 @@ public class
 	}
 
 	[Test]
-	public async Task the_stream_cant_be_read_for_second_stream() {
+	public async Task the_stream_cant_be_read_for_second_stream()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("test2", 0, 1, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.NoStream, result.Result);
 		Assert.AreEqual(0, result.Records.Length);
 	}
 
 	[Test]
-	public async Task read_all_events_forward_returns_all_events_in_correct_order() {
+	public async Task read_all_events_forward_returns_all_events_in_correct_order()
+	{
 		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 10, CancellationToken.None))
 			.EventRecords();
 
@@ -114,7 +126,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_events_backward_returns_all_events_in_correct_order() {
+	public async Task read_all_events_backward_returns_all_events_in_correct_order()
+	{
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 10, CancellationToken.None))
 			.EventRecords();
 

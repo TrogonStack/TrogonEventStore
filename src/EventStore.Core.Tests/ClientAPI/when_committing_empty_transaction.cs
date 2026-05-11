@@ -11,7 +11,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_committing_empty_transaction<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class when_committing_empty_transaction<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 	private const int LongRunningTimeout = 120000;
 	private MiniNode<TLogFormat, TStreamId> _node;
@@ -19,7 +20,8 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 	private EventData _firstEvent;
 
 	[SetUp]
-	public override async Task SetUp() {
+	public override async Task SetUp()
+	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start(StartupTimeout);
@@ -38,17 +40,21 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 			TestEvent.NewTestEvent(),
 			TestEvent.NewTestEvent())).NextExpectedVersion);
 
-		using (var transaction = await _connection.StartTransactionAsync("test-stream", 2)) {
+		using (var transaction = await _connection.StartTransactionAsync("test-stream", 2))
+		{
 			Assert.AreEqual(2, (await transaction.CommitAsync()).NextExpectedVersion);
 		}
 	}
 
 	[TearDown]
-	public override async Task TearDown() {
-		try {
+	public override async Task TearDown()
+	{
+		try
+		{
 			await TestConnectionLifecycle.CloseConnectionAndWait(_connection, TimeSpan.FromSeconds(10));
 		}
-		catch {
+		catch
+		{
 			TestConnectionLifecycle.TryCloseConnection(_connection);
 		}
 
@@ -57,12 +63,14 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		await base.TearDown();
 	}
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public async Task following_append_with_correct_expected_version_are_commited_correctly() {
+	public async Task following_append_with_correct_expected_version_are_commited_correctly()
+	{
 		Assert.AreEqual(4,
 			(await _connection.AppendToStreamAsync("test-stream", 2, TestEvent.NewTestEvent(),
 				TestEvent.NewTestEvent())
@@ -71,13 +79,15 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		var res = await _connection.ReadStreamEventsForwardAsync("test-stream", 0, 100, false);
 		Assert.AreEqual(SliceReadStatus.Success, res.Status);
 		Assert.AreEqual(5, res.Events.Length);
-		for (int i = 0; i < 5; ++i) {
+		for (int i = 0; i < 5; ++i)
+		{
 			Assert.AreEqual(i, res.Events[i].OriginalEventNumber);
 		}
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public async Task following_append_with_expected_version_any_are_commited_correctly() {
+	public async Task following_append_with_expected_version_any_are_commited_correctly()
+	{
 		Assert.AreEqual(4,
 			(await _connection.AppendToStreamAsync("test-stream", ExpectedVersion.Any, TestEvent.NewTestEvent(),
 				TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -85,13 +95,15 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		var res = await _connection.ReadStreamEventsForwardAsync("test-stream", 0, 100, false);
 		Assert.AreEqual(SliceReadStatus.Success, res.Status);
 		Assert.AreEqual(5, res.Events.Length);
-		for (int i = 0; i < 5; ++i) {
+		for (int i = 0; i < 5; ++i)
+		{
 			Assert.AreEqual(i, res.Events[i].OriginalEventNumber);
 		}
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public async Task committing_first_event_with_expected_version_no_stream_is_idempotent() {
+	public async Task committing_first_event_with_expected_version_no_stream_is_idempotent()
+	{
 		Assert.AreEqual(0,
 			(await _connection.AppendToStreamAsync("test-stream", ExpectedVersion.NoStream, _firstEvent))
 			.NextExpectedVersion);
@@ -99,13 +111,15 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		var res = await _connection.ReadStreamEventsForwardAsync("test-stream", 0, 100, false);
 		Assert.AreEqual(SliceReadStatus.Success, res.Status);
 		Assert.AreEqual(3, res.Events.Length);
-		for (int i = 0; i < 3; ++i) {
+		for (int i = 0; i < 3; ++i)
+		{
 			Assert.AreEqual(i, res.Events[i].OriginalEventNumber);
 		}
 	}
 
 	[Test, Timeout(LongRunningTimeout)]
-	public async Task trying_to_append_new_events_with_expected_version_no_stream_fails() {
+	public async Task trying_to_append_new_events_with_expected_version_no_stream_fails()
+	{
 		await AssertEx.ThrowsAsync<WrongExpectedVersionException>(() =>
 			_connection.AppendToStreamAsync("test-stream", ExpectedVersion.NoStream, TestEvent.NewTestEvent()));
 	}

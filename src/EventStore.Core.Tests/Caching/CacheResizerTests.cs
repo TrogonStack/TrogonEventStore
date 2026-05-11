@@ -5,15 +5,18 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Caching;
 
 [TestFixture]
-public class CacheResizerTests {
+public class CacheResizerTests
+{
 	[Test]
-	public void dynamic_resizer_loopback() {
+	public void dynamic_resizer_loopback()
+	{
 		var cacheResizer = new DynamicCacheResizer(ResizerUnit.Bytes, 10, 100, 12, EmptyDynamicCache.Instance);
 		Assert.AreEqual(12, cacheResizer.Weight);
 	}
 
 	[Test]
-	public void static_resizer_loopback() {
+	public void static_resizer_loopback()
+	{
 		var cacheResizer = new StaticCacheResizer(ResizerUnit.Bytes, 10, EmptyDynamicCache.Instance);
 		Assert.AreEqual(0, cacheResizer.Weight);
 	}
@@ -51,7 +54,8 @@ public class CacheResizerTests {
 				new StaticCacheResizer(ResizerUnit.Entries, 10, EmptyDynamicCache.Instance)));
 
 	[Test]
-	public void static_calculates_capacity_correctly() {
+	public void static_calculates_capacity_correctly()
+	{
 		var cache = new EmptyDynamicCache();
 
 		var sut = new StaticCacheResizer(ResizerUnit.Bytes, 1000, cache);
@@ -64,7 +68,8 @@ public class CacheResizerTests {
 	}
 
 	[Test]
-	public void dynamic_calculates_capacity_correctly() {
+	public void dynamic_calculates_capacity_correctly()
+	{
 		var cache = new EmptyDynamicCache();
 
 		var sut = new DynamicCacheResizer(ResizerUnit.Bytes, 1000, 100_000, 50, cache);
@@ -77,7 +82,8 @@ public class CacheResizerTests {
 	}
 
 	[Test]
-	public void composite_calculates_capacity_correctly_static() {
+	public void composite_calculates_capacity_correctly_static()
+	{
 		var cacheA = new EmptyDynamicCache();
 		var cacheB = new EmptyDynamicCache();
 
@@ -95,7 +101,8 @@ public class CacheResizerTests {
 	}
 
 	[Test]
-	public void composite_calculates_capacity_correctly_dynamic() {
+	public void composite_calculates_capacity_correctly_dynamic()
+	{
 		var cacheA = new EmptyDynamicCache();
 		var cacheB = new EmptyDynamicCache();
 
@@ -119,7 +126,8 @@ public class CacheResizerTests {
 	}
 
 	[Test]
-	public void composite_calculates_capacity_correctly_mixed() {
+	public void composite_calculates_capacity_correctly_mixed()
+	{
 		var cacheA = new EmptyDynamicCache();
 		var cacheB = new EmptyDynamicCache();
 
@@ -133,7 +141,8 @@ public class CacheResizerTests {
 	}
 
 	[Test]
-	public void composite_calculates_capacity_correctly_complex() {
+	public void composite_calculates_capacity_correctly_complex()
+	{
 		var cacheA = new EmptyDynamicCache();
 		var cacheB = new EmptyDynamicCache();
 		var cacheC = new EmptyDynamicCache();

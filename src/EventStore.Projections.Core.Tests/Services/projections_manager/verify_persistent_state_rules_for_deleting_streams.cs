@@ -4,13 +4,15 @@ using Core.Services.Management;
 using NUnit.Framework;
 
 [TestFixture]
-public class VerifyPersistentStateRulesForDeletingStreams {
+public class VerifyPersistentStateRulesForDeletingStreams
+{
 	[Test]
 	[TestCase(true, true, true)]
 	[TestCase(false, true, false)]
 	[TestCase(true, false, false)]
 	[TestCase(false, false, false)]
-	public void EmitStreamNeedsDeletedAsExpected(bool emitEnabled, bool deleteEmitStreams, bool expectedResult) {
+	public void EmitStreamNeedsDeletedAsExpected(bool emitEnabled, bool deleteEmitStreams, bool expectedResult)
+	{
 		ManagedProjection.PersistedState persistedState = new ManagedProjection.PersistedState();
 
 		persistedState.EmitEnabled = emitEnabled;
@@ -24,7 +26,8 @@ public class VerifyPersistentStateRulesForDeletingStreams {
 	[TestCase(false, true, true)]
 	[TestCase(true, false, false)]
 	[TestCase(false, false, false)]
-	public void CheckpointStreamNeedsDeletedAsExpected(bool checkPointsDisabled, bool deleteCheckpointStreams, bool expectedResult) {
+	public void CheckpointStreamNeedsDeletedAsExpected(bool checkPointsDisabled, bool deleteCheckpointStreams, bool expectedResult)
+	{
 		ManagedProjection.PersistedState persistedState = new ManagedProjection.PersistedState();
 
 		persistedState.CheckpointsDisabled = checkPointsDisabled;

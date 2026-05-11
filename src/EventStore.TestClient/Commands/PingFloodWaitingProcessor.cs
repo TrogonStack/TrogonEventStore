@@ -7,28 +7,36 @@ using EventStore.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class PingFloodWaitingProcessor : ICmdProcessor {
-	public string Usage {
+internal class PingFloodWaitingProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		get { return "PINGFLW [<clients> <messages>]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "PINGFLW"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		int clientsCnt = 1;
 		long requestsCnt = 100000;
-		if (args.Length > 0) {
-			if (args.Length != 2) {
+		if (args.Length > 0)
+		{
+			if (args.Length != 2)
+			{
 				return false;
 			}
 
-			try {
+			try
+			{
 				clientsCnt = MetricPrefixValue.ParseInt(args[0]);
 				requestsCnt = MetricPrefixValue.ParseLong(args[1]);
 			}
-			catch {
+			catch
+			{
 				return false;
 			}
 		}
@@ -37,7 +45,8 @@ internal class PingFloodWaitingProcessor : ICmdProcessor {
 		return true;
 	}
 
-	private void PingFloodWaiting(CommandProcessorContext context, int clientsCnt, long requestsCnt) {
+	private void PingFloodWaiting(CommandProcessorContext context, int clientsCnt, long requestsCnt)
+	{
 		context.IsAsync();
 
 		var clients = new List<TcpTypedConnection<byte[]>>();
@@ -45,11 +54,13 @@ internal class PingFloodWaitingProcessor : ICmdProcessor {
 		var doneEvent = new ManualResetEventSlim(false);
 		var clientsDone = 0;
 		long all = 0;
-		for (int i = 0; i < clientsCnt; i++) {
+		for (int i = 0; i < clientsCnt; i++)
+		{
 			var autoResetEvent = new AutoResetEvent(false);
 			var client = context._tcpTestClient.CreateTcpConnection(
 				context,
-				(_, __) => {
+				(_, __) =>
+				{
 					Interlocked.Increment(ref all);
 					autoResetEvent.Set();
 				},
@@ -57,18 +68,22 @@ internal class PingFloodWaitingProcessor : ICmdProcessor {
 			clients.Add(client);
 
 			var count = requestsCnt / clientsCnt + ((i == clientsCnt - 1) ? requestsCnt % clientsCnt : 0);
-			threads.Add(new Thread(() => {
-				for (int j = 0; j < count; ++j) {
+			threads.Add(new Thread(() =>
+			{
+				for (int j = 0; j < count; ++j)
+				{
 					var package = new TcpPackage(TcpCommand.Ping, Guid.NewGuid(), null);
 					client.EnqueueSend(package.AsByteArray());
 					autoResetEvent.WaitOne();
 				}
 
-				if (Interlocked.Increment(ref clientsDone) == clientsCnt) {
+				if (Interlocked.Increment(ref clientsDone) == clientsCnt)
+				{
 					context.Success();
 					doneEvent.Set();
 				}
-			}) { IsBackground = true });
+			})
+			{ IsBackground = true });
 		}
 
 		var sw = Stopwatch.StartNew();
@@ -89,10 +104,12 @@ internal class PingFloodWaitingProcessor : ICmdProcessor {
 		PerfUtils.LogTeamCityGraphData(string.Format("{0}-latency-ms", Keyword),
 			(int)Math.Round(sw.Elapsed.TotalMilliseconds / all));
 
-		if (Interlocked.Read(ref all) == requestsCnt) {
+		if (Interlocked.Read(ref all) == requestsCnt)
+		{
 			context.Success();
 		}
-		else {
+		else
+		{
 			context.Fail();
 		}
 	}

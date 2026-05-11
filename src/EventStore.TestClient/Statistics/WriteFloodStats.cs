@@ -10,7 +10,8 @@ namespace EventStore.TestClient.Statistics;
 /// <summary>
 /// Statistics for WriteFlood
 /// </summary>
-public class WriteFloodStats {
+public class WriteFloodStats
+{
 	/// <summary>
 	/// The number of successful writes
 	/// </summary>
@@ -71,13 +72,15 @@ public class WriteFloodStats {
 	/// <param name="command"></param>
 	/// <param name="csv"></param>
 	/// <param name="args"></param>
-	public WriteFloodStats(string command, bool csv, string[] args) {
+	public WriteFloodStats(string command, bool csv, string[] args)
+	{
 		Command = command;
 		_csv = csv;
 		CommandString = $"{Command} {string.Join(" ", args)}";
 	}
 
-	private Dictionary<string, object> GetStats() {
+	private Dictionary<string, object> GetStats()
+	{
 		var stats = new Dictionary<string, object>();
 		stats[$"{Command}-starttime"] = StartTime.ToString("O", CultureInfo.InvariantCulture);
 		stats[$"{Command}-succ"] = Succ;
@@ -100,19 +103,24 @@ public class WriteFloodStats {
 	/// Write the current round of stats to the log
 	/// </summary>
 	/// <param name="log">The logger to write to</param>
-	public void WriteStatsToFile(ILogger log) {
-		try {
+	public void WriteStatsToFile(ILogger log)
+	{
+		try
+		{
 			var statsContainer = new StatsContainer();
 			statsContainer.Add(GetStats());
 			var rawStats = statsContainer.GetStats(useGrouping: false, useMetadata: false);
-			if (!_csv) {
+			if (!_csv)
+			{
 				rawStats.Add("timestamp", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
 				log.Information("{@stats}", rawStats);
 			}
-			else {
+			else
+			{
 				var writeHeader = false;
 				var header = StatsCsvEncoder.GetHeader(rawStats);
-				if (header != _lastWrittenCsvHeader) {
+				if (header != _lastWrittenCsvHeader)
+				{
 					_lastWrittenCsvHeader = header;
 					writeHeader = true;
 				}
@@ -120,7 +128,8 @@ public class WriteFloodStats {
 				var line = StatsCsvEncoder.GetLine(rawStats);
 				var timestamp = GetTimestamp(line);
 
-				if (writeHeader) {
+				if (writeHeader)
+				{
 					log.Information(Environment.NewLine);
 					log.Information(header);
 				}
@@ -128,21 +137,26 @@ public class WriteFloodStats {
 			}
 
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Error(ex, "Error on regular stats collection.");
 		}
 	}
 
-	private DateTime? GetTimestamp(string line) {
+	private DateTime? GetTimestamp(string line)
+	{
 		var separatorIdx = line.IndexOf(',');
-		if (separatorIdx == -1) {
+		if (separatorIdx == -1)
+		{
 			return null;
 		}
 
-		try {
+		try
+		{
 			return DateTime.Parse(line.Substring(0, separatorIdx)).ToUniversalTime();
 		}
-		catch {
+		catch
+		{
 			return null;
 		}
 	}

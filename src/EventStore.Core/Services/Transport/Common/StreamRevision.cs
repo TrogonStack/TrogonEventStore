@@ -1,7 +1,9 @@
 using System;
 
-namespace EventStore.Core.Services.Transport.Common {
-	public struct StreamRevision : IEquatable<StreamRevision>, IComparable<StreamRevision> {
+namespace EventStore.Core.Services.Transport.Common
+{
+	public struct StreamRevision : IEquatable<StreamRevision>, IComparable<StreamRevision>
+	{
 		private readonly ulong _value;
 
 		public static readonly StreamRevision Start = new StreamRevision(0);
@@ -10,8 +12,10 @@ namespace EventStore.Core.Services.Transport.Common {
 		public static StreamRevision FromInt64(long value) =>
 			value == -1 ? End : new StreamRevision(Convert.ToUInt64(value));
 
-		public StreamRevision(ulong value) {
-			if (value > long.MaxValue && value != ulong.MaxValue) {
+		public StreamRevision(ulong value)
+		{
+			if (value > long.MaxValue && value != ulong.MaxValue)
+			{
 				throw new ArgumentOutOfRangeException(nameof(value));
 			}
 
@@ -25,26 +29,34 @@ namespace EventStore.Core.Services.Transport.Common {
 		public static bool operator ==(StreamRevision left, StreamRevision right) => left.Equals(right);
 		public static bool operator !=(StreamRevision left, StreamRevision right) => !left.Equals(right);
 
-		public static StreamRevision operator +(StreamRevision left, ulong right) {
-			checked {
+		public static StreamRevision operator +(StreamRevision left, ulong right)
+		{
+			checked
+			{
 				return new StreamRevision(left._value + right);
 			}
 		}
 
-		public static StreamRevision operator +(ulong left, StreamRevision right) {
-			checked {
+		public static StreamRevision operator +(ulong left, StreamRevision right)
+		{
+			checked
+			{
 				return new StreamRevision(left + right._value);
 			}
 		}
 
-		public static StreamRevision operator -(StreamRevision left, ulong right) {
-			checked {
+		public static StreamRevision operator -(StreamRevision left, ulong right)
+		{
+			checked
+			{
 				return new StreamRevision(left._value - right);
 			}
 		}
 
-		public static StreamRevision operator -(ulong left, StreamRevision right) {
-			checked {
+		public static StreamRevision operator -(ulong left, StreamRevision right)
+		{
+			checked
+			{
 				return new StreamRevision(left - right._value);
 			}
 		}

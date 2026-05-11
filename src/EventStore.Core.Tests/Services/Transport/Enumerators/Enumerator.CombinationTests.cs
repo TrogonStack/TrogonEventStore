@@ -7,14 +7,17 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
-public partial class EnumeratorTests {
+public partial class EnumeratorTests
+{
 	[TestFixture]
-	public class TestFixtureWithMiniNodeConnection : SpecificationWithDirectoryPerTestFixture {
+	public class TestFixtureWithMiniNodeConnection : SpecificationWithDirectoryPerTestFixture
+	{
 		protected MiniNode<LogFormat.V2, string> Node { get; private set; }
 		protected IEventStoreConnection NodeConnection { get; private set; }
 
 		[OneTimeSetUp]
-		public override async Task TestFixtureSetUp() {
+		public override async Task TestFixtureSetUp()
+		{
 			await base.TestFixtureSetUp();
 			Node = new MiniNode<LogFormat.V2, string>(PathName);
 			await Node.Start();
@@ -23,7 +26,8 @@ public partial class EnumeratorTests {
 		}
 
 		[OneTimeTearDown]
-		public override async Task TestFixtureTearDown() {
+		public override async Task TestFixtureTearDown()
+		{
 			NodeConnection?.Dispose();
 			await Node.Shutdown();
 			await base.TestFixtureTearDown();

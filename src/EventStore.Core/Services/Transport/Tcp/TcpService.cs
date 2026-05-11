@@ -10,20 +10,24 @@ using EventStore.Plugins.Authentication;
 using EventStore.Transport.Tcp;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.Transport.Tcp {
-	public enum TcpServiceType {
+namespace EventStore.Core.Services.Transport.Tcp
+{
+	public enum TcpServiceType
+	{
 		Internal,
 		External
 	}
 
-	public enum TcpSecurityType {
+	public enum TcpSecurityType
+	{
 		Normal,
 		Secure
 	}
 
 	public class TcpService : IHandle<SystemMessage.SystemInit>,
 		IHandle<SystemMessage.SystemStart>,
-		IHandle<SystemMessage.BecomeShuttingDown> {
+		IHandle<SystemMessage.BecomeShuttingDown>
+	{
 		private static readonly ILogger Log = Serilog.Log.ForContext<TcpService>();
 
 		private readonly IPublisher _publisher;
@@ -59,7 +63,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			int connectionPendingSendBytesThreshold,
 			int connectionQueueSizeThreshold)
 			: this(publisher, serverEndPoint, networkSendQueue, serviceType, securityType, (_, __) => dispatcher,
-				heartbeatInterval, heartbeatTimeout, authProvider, authorizationGateway, certificateSelector, intermediatesSelector, sslClientCertValidator, connectionPendingSendBytesThreshold, connectionQueueSizeThreshold) {
+				heartbeatInterval, heartbeatTimeout, authProvider, authorizationGateway, certificateSelector, intermediatesSelector, sslClientCertValidator, connectionPendingSendBytesThreshold, connectionQueueSizeThreshold)
+		{
 		}
 
 		public TcpService(IPublisher publisher,
@@ -76,7 +81,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			Func<X509Certificate2Collection> intermediatesSelector,
 			CertificateDelegates.ClientCertificateValidator sslClientCertValidator,
 			int connectionPendingSendBytesThreshold,
-			int connectionQueueSizeThreshold) {
+			int connectionQueueSizeThreshold)
+		{
 			Ensure.NotNull(publisher, "publisher");
 			Ensure.NotNull(serverEndPoint, "serverEndPoint");
 			Ensure.NotNull(networkSendQueue, "networkSendQueue");
@@ -102,23 +108,29 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_sslClientCertValidator = sslClientCertValidator;
 		}
 
-		public void Handle(SystemMessage.SystemInit message) {
-			try {
+		public void Handle(SystemMessage.SystemInit message)
+		{
+			try
+			{
 				_serverListener.StartListening(OnConnectionAccepted, _securityType.ToString());
 			}
-			catch (Exception e) {
+			catch (Exception e)
+			{
 				Application.Exit(ExitCode.Error, e.Message);
 			}
 		}
 
-		public void Handle(SystemMessage.SystemStart message) {
+		public void Handle(SystemMessage.SystemStart message)
+		{
 		}
 
-		public void Handle(SystemMessage.BecomeShuttingDown message) {
+		public void Handle(SystemMessage.BecomeShuttingDown message)
+		{
 			_serverListener.Stop();
 		}
 
-		private void OnConnectionAccepted(IPEndPoint endPoint, Socket socket) {
+		private void OnConnectionAccepted(IPEndPoint endPoint, Socket socket)
+		{
 			var conn = _securityType == TcpSecurityType.Secure
 				? TcpConnectionSsl.CreateServerFromSocket(Guid.NewGuid(), endPoint, socket, _certificateSelector, _intermediatesSelector, _sslClientCertValidator, verbose: true)
 				: TcpConnection.CreateAcceptedTcpConnection(Guid.NewGuid(), endPoint, socket, verbose: true);

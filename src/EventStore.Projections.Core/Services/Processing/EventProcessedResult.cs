@@ -5,7 +5,8 @@ using EventStore.Projections.Core.Services.Processing.Partitioning;
 
 namespace EventStore.Projections.Core.Services.Processing;
 
-public class EventProcessedResult {
+public class EventProcessedResult
+{
 	private readonly EmittedEventEnvelope[] _emittedEvents;
 	private readonly PartitionState _oldState;
 	private readonly PartitionState _newState;
@@ -20,12 +21,15 @@ public class EventProcessedResult {
 	public EventProcessedResult(
 		string partition, CheckpointTag checkpointTag, PartitionState oldState, PartitionState newState,
 		PartitionState oldSharedState, PartitionState newSharedState, EmittedEventEnvelope[] emittedEvents,
-		Guid causedBy, string correlationId, bool isPartitionTombstone = false) {
-		if (partition == null) {
+		Guid causedBy, string correlationId, bool isPartitionTombstone = false)
+	{
+		if (partition == null)
+		{
 			throw new ArgumentNullException("partition");
 		}
 
-		if (checkpointTag == null) {
+		if (checkpointTag == null)
+		{
 			throw new ArgumentNullException("checkpointTag");
 		}
 
@@ -41,49 +45,59 @@ public class EventProcessedResult {
 		_checkpointTag = checkpointTag;
 	}
 
-	public EmittedEventEnvelope[] EmittedEvents {
+	public EmittedEventEnvelope[] EmittedEvents
+	{
 		get { return _emittedEvents; }
 	}
 
-	public PartitionState OldState {
+	public PartitionState OldState
+	{
 		get { return _oldState; }
 	}
 
 	/// <summary>
 	/// null - means no state change
 	/// </summary>
-	public PartitionState NewState {
+	public PartitionState NewState
+	{
 		get { return _newState; }
 	}
 
-	public PartitionState OldSharedState {
+	public PartitionState OldSharedState
+	{
 		get { return _oldSharedState; }
 	}
 
 	/// <summary>
 	/// null - means no state change
 	/// </summary>
-	public PartitionState NewSharedState {
+	public PartitionState NewSharedState
+	{
 		get { return _newSharedState; }
 	}
 
-	public string Partition {
+	public string Partition
+	{
 		get { return _partition; }
 	}
 
-	public CheckpointTag CheckpointTag {
+	public CheckpointTag CheckpointTag
+	{
 		get { return _checkpointTag; }
 	}
 
-	public Guid CausedBy {
+	public Guid CausedBy
+	{
 		get { return _causedBy; }
 	}
 
-	public string CorrelationId {
+	public string CorrelationId
+	{
 		get { return _correlationId; }
 	}
 
-	public bool IsPartitionTombstone {
+	public bool IsPartitionTombstone
+	{
 		get { return _isPartitionTombstone; }
 	}
 }

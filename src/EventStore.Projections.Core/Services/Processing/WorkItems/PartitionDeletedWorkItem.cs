@@ -5,7 +5,8 @@ using EventStore.Projections.Core.Services.Processing.Phases;
 
 namespace EventStore.Projections.Core.Services.Processing.WorkItems;
 
-class PartitionDeletedWorkItem : WorkItem {
+class PartitionDeletedWorkItem : WorkItem
+{
 	private readonly EventReaderSubscriptionMessage.PartitionDeleted _message;
 	private readonly string _partition;
 	private readonly IEventProcessingProjectionPhase _projection;
@@ -13,42 +14,51 @@ class PartitionDeletedWorkItem : WorkItem {
 
 	public PartitionDeletedWorkItem(
 		IEventProcessingProjectionPhase projection, EventReaderSubscriptionMessage.PartitionDeleted message)
-		: base(null) {
+		: base(null)
+	{
 		_partition = message.Partition;
 		_projection = projection;
 		_message = message;
 		_requiresRunning = true;
 	}
 
-	protected override void GetStatePartition() {
+	protected override void GetStatePartition()
+	{
 		NextStage(_partition);
 	}
 
-	protected override void Load(CheckpointTag checkpointTag) {
+	protected override void Load(CheckpointTag checkpointTag)
+	{
 		// we load partition state even if stopping etc.  should we skip?
 		_projection.BeginGetPartitionStateAt(_partition, _message.CheckpointTag, LoadCompleted, lockLoaded: true);
 	}
 
-	private void LoadCompleted(PartitionState state) {
+	private void LoadCompleted(PartitionState state)
+	{
 		NextStage();
 	}
 
-	protected override void ProcessEvent() {
-		if (_partition == null) {
+	protected override void ProcessEvent()
+	{
+		if (_partition == null)
+		{
 			NextStage();
 			return;
 		}
 
 		var eventProcessedResult = _projection.ProcessPartitionDeleted(_partition, _message.CheckpointTag);
-		if (eventProcessedResult != null) {
+		if (eventProcessedResult != null)
+		{
 			SetEventProcessedResult(eventProcessedResult);
 		}
 
 		NextStage();
 	}
 
-	protected override void WriteOutput() {
-		if (_partition == null) {
+	protected override void WriteOutput()
+	{
+		if (_partition == null)
+		{
 			NextStage();
 			return;
 		}
@@ -57,7 +67,8 @@ class PartitionDeletedWorkItem : WorkItem {
 		NextStage();
 	}
 
-	private void SetEventProcessedResult(EventProcessedResult eventProcessedResult) {
+	private void SetEventProcessedResult(EventProcessedResult eventProcessedResult)
+	{
 		_eventProcessedResult = eventProcessedResult;
 	}
 }

@@ -3,9 +3,12 @@ using System.Threading.Tasks;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Services;
 
-namespace EventStore.Core.LogV2 {
-	public class LogV2SystemStreams : ISystemStreamLookup<string> {
-		public LogV2SystemStreams() {
+namespace EventStore.Core.LogV2
+{
+	public class LogV2SystemStreams : ISystemStreamLookup<string>
+	{
+		public LogV2SystemStreams()
+		{
 		}
 
 		public string AllStream { get; } = SystemStreams.AllStream;

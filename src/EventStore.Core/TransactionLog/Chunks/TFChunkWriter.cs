@@ -10,11 +10,13 @@ using Serilog.Events;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
-public class TFChunkWriter : ITransactionFileWriter {
+public class TFChunkWriter : ITransactionFileWriter
+{
 	public long Position => _writerCheckpoint.ReadNonFlushed();
 	public long FlushedPosition => _writerCheckpoint.Read();
 
-	public TFChunk.TFChunk CurrentChunk {
+	public TFChunk.TFChunk CurrentChunk
+	{
 		get { return _currentChunk; }
 	}
 
@@ -35,7 +37,8 @@ public class TFChunkWriter : ITransactionFileWriter {
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<TFChunkWriter>();
 
-	public TFChunkWriter(TFChunkDb db) {
+	public TFChunkWriter(TFChunkDb db)
+	{
 		Ensure.NotNull(db, "db");
 
 		_db = db;
@@ -43,29 +46,36 @@ public class TFChunkWriter : ITransactionFileWriter {
 		_nextRecordPosition = _writerCheckpoint.Read();
 	}
 
-	public void Open() {
-		if (_db.Manager.ChunksCount == 0) {
+	public void Open()
+	{
+		if (_db.Manager.ChunksCount == 0)
+		{
 			// new database
 			_currentChunk = null;
 		}
-		else if (!_db.Manager.TryGetChunkFor(_nextRecordPosition, out _currentChunk)) {
+		else if (!_db.Manager.TryGetChunkFor(_nextRecordPosition, out _currentChunk))
+		{
 			// we may have been at a chunk boundary and the new chunk wasn't yet created
-			if (!_db.Manager.TryGetChunkFor(_nextRecordPosition - 1, out _currentChunk)) {
+			if (!_db.Manager.TryGetChunkFor(_nextRecordPosition - 1, out _currentChunk))
+			{
 				throw new Exception($"Failed to get chunk for log position: {_nextRecordPosition}");
 			}
 		}
 	}
 
-	public bool CanWrite(int numBytes) {
+	public bool CanWrite(int numBytes)
+	{
 		return _currentChunk.ChunkHeader.ChunkEndPosition - _nextRecordPosition >= numBytes;
 	}
 
-	public async ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token) {
+	public async ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token)
+	{
 		token.ThrowIfCancellationRequested();
 
 		OpenTransaction();
 
-		if (await WriteToTransaction(record, CancellationToken.None) is not { } result) {
+		if (await WriteToTransaction(record, CancellationToken.None) is not { } result)
+		{
 			await CompleteChunkInTransaction(CancellationToken.None);
 			await AddNewChunk(token: CancellationToken.None);
 			CommitTransaction();
@@ -77,8 +87,10 @@ public class TFChunkWriter : ITransactionFileWriter {
 		return (true, result);
 	}
 
-	public void OpenTransaction() {
-		if (_inTransaction) {
+	public void OpenTransaction()
+	{
+		if (_inTransaction)
+		{
 			throw new InvalidOperationException(
 				"Attempted to open a new transaction while there was an ongoing transaction.");
 		}
@@ -91,8 +103,10 @@ public class TFChunkWriter : ITransactionFileWriter {
 			? _nextRecordPosition = result.NewPosition + _currentChunk.ChunkHeader.ChunkStartPosition
 			: null;
 
-	public void CommitTransaction() {
-		if (!_inTransaction) {
+	public void CommitTransaction()
+	{
+		if (!_inTransaction)
+		{
 			throw new InvalidOperationException(
 				"Attempted to commit a transaction while there was no ongoing transaction.");
 		}
@@ -104,7 +118,8 @@ public class TFChunkWriter : ITransactionFileWriter {
 	public bool HasOpenTransaction() => _inTransaction;
 
 	public async ValueTask AddNewChunk(ChunkHeader chunkHeader = null,
-		ReadOnlyMemory<byte> transformHeader = default, int? chunkSize = null, CancellationToken token = default) {
+		ReadOnlyMemory<byte> transformHeader = default, int? chunkSize = null, CancellationToken token = default)
+	{
 		var nextChunkNumber = _currentChunk?.ChunkHeader.ChunkEndNumber + 1 ?? 0;
 		VerifyChunkNumberLimits(nextChunkNumber);
 
@@ -113,12 +128,14 @@ public class TFChunkWriter : ITransactionFileWriter {
 			: _db.Manager.AddNewChunk(chunkHeader, transformHeader, chunkSize!.Value, token));
 	}
 
-	private async ValueTask CompleteChunkInTransaction(CancellationToken token) {
+	private async ValueTask CompleteChunkInTransaction(CancellationToken token)
+	{
 		await _currentChunk.Complete(token);
 		_nextRecordPosition = _currentChunk.ChunkHeader.ChunkEndPosition;
 	}
 
-	public async ValueTask CompleteChunk(CancellationToken token) {
+	public async ValueTask CompleteChunk(CancellationToken token)
+	{
 		token.ThrowIfCancellationRequested();
 
 		OpenTransaction();
@@ -128,7 +145,8 @@ public class TFChunkWriter : ITransactionFileWriter {
 	}
 
 	private async ValueTask CompleteReplicatedRawChunkInTransaction(TFChunk.TFChunk rawChunk,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		await rawChunk.CompleteRaw(token);
 		_currentChunk = await _db.Manager.SwitchChunk(rawChunk, verifyHash: true,
 			removeChunksWithGreaterNumbers: true, token);
@@ -136,7 +154,8 @@ public class TFChunkWriter : ITransactionFileWriter {
 		_nextRecordPosition = rawChunk.ChunkHeader.ChunkEndPosition;
 	}
 
-	public async ValueTask CompleteReplicatedRawChunk(TFChunk.TFChunk rawChunk, CancellationToken token) {
+	public async ValueTask CompleteReplicatedRawChunk(TFChunk.TFChunk rawChunk, CancellationToken token)
+	{
 		token.ThrowIfCancellationRequested();
 
 		OpenTransaction();
@@ -145,13 +164,16 @@ public class TFChunkWriter : ITransactionFileWriter {
 		await Flush(CancellationToken.None);
 	}
 
-	private static void VerifyChunkNumberLimits(int chunkNumber) {
-		switch (chunkNumber) {
+	private static void VerifyChunkNumberLimits(int chunkNumber)
+	{
+		switch (chunkNumber)
+		{
 			case >= MaxChunkNumber:
 				throw new Exception($"Max chunk number limit reached: {MaxChunkNumber:N0}. Shutting down.");
 			case < MaxChunkNumberWarning:
 				break;
-			default: {
+			default:
+				{
 					var level = chunkNumber >= MaxChunkNumberError ? LogEventLevel.Error : LogEventLevel.Warning;
 					Log.Write(level,
 						"You are approaching the max chunk number limit: {chunkNumber:N0} / {maxChunkNumber:N0}. " +
@@ -163,11 +185,12 @@ public class TFChunkWriter : ITransactionFileWriter {
 
 	public ValueTask DisposeAsync() => Flush(CancellationToken.None);
 
-	public async ValueTask Flush(CancellationToken token) {
+	public async ValueTask Flush(CancellationToken token)
+	{
 		Debug.Assert(HasOpenTransaction() is false);
 
 		if (_currentChunk is null) // the last chunk allocation failed
-{
+		{
 			return;
 		}
 

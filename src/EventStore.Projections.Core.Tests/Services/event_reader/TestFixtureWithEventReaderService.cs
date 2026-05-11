@@ -9,20 +9,24 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.event_reader;
 
-public class TestFixtureWithEventReaderService<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class TestFixtureWithEventReaderService<TLogFormat, TStreamId> : core_projection.TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	protected EventReaderCoreService _readerService;
 
-	protected override void Given1() {
+	protected override void Given1()
+	{
 		base.Given1();
 		EnableReadAll();
 	}
 
-	protected override ManualQueue GiveInputQueue() {
+	protected override ManualQueue GiveInputQueue()
+	{
 		return new ManualQueue(_bus, _timeProvider);
 	}
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_bus.Subscribe(_consumer);
 
 		ICheckpoint writerCheckpoint = new InMemoryCheckpoint(1000);
@@ -71,14 +75,17 @@ public class TestFixtureWithEventReaderService<TLogFormat, TStreamId> : core_pro
 		WhenLoop();
 	}
 
-	protected virtual bool GivenHeadingReaderRunning() {
+	protected virtual bool GivenHeadingReaderRunning()
+	{
 		return false;
 	}
 
-	protected virtual void GivenAdditionalServices() {
+	protected virtual void GivenAdditionalServices()
+	{
 	}
 
-	protected Guid GetReaderId() {
+	protected Guid GetReaderId()
+	{
 		var readerAssignedMessage =
 			_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.ReaderAssignedReader>().LastOrDefault();
 		Assert.IsNotNull(readerAssignedMessage);

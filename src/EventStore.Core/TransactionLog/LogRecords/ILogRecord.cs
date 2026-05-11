@@ -4,7 +4,8 @@ using EventStore.LogCommon;
 
 namespace EventStore.Core.TransactionLog.LogRecords;
 
-public interface ILogRecord {
+public interface ILogRecord
+{
 	LogRecordType RecordType { get; }
 	byte Version { get; }
 	public long LogPosition { get; }

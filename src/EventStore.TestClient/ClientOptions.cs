@@ -14,7 +14,8 @@ namespace EventStore.TestClient;
 /// Data contract for the command-line options accepted by test client.
 /// This contract is handled by CommandLine project for .NET
 /// </summary>
-public sealed record ClientOptions {
+public sealed record ClientOptions
+{
 	public string Host { get; init; }
 	public int TcpPort { get; init; }
 	public int HttpPort { get; init; }
@@ -32,7 +33,8 @@ public sealed record ClientOptions {
 	public bool OutputCsv { get; set; }
 	public ILogger StatsLog { get; set; }
 
-	public ClientOptions() {
+	public ClientOptions()
+	{
 		Command = Array.Empty<string>();
 		Host = IPAddress.Loopback.ToString();
 		TcpPort = 1113;
@@ -48,7 +50,8 @@ public sealed record ClientOptions {
 		OutputCsv = true;
 	}
 
-	public override string ToString() {
+	public override string ToString()
+	{
 		return GetType()
 			.GetProperties()
 			.Aggregate(new StringBuilder(),

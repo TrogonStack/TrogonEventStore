@@ -3,38 +3,48 @@ using System.IO;
 
 namespace EventStore.BufferManagement;
 
-public class BufferPoolStream : Stream {
+public class BufferPoolStream : Stream
+{
 	private readonly BufferPool _bufferPool;
 	private long _position;
 
-	public BufferPool BufferPool {
+	public BufferPool BufferPool
+	{
 		get { return _bufferPool; }
 	}
 
-	public override bool CanRead {
+	public override bool CanRead
+	{
 		get { return true; }
 	}
 
-	public override bool CanSeek {
+	public override bool CanSeek
+	{
 		get { return true; }
 	}
 
-	public override bool CanWrite {
+	public override bool CanWrite
+	{
 		get { return true; }
 	}
 
-	public override long Length {
+	public override long Length
+	{
 		get { return _bufferPool.Length; }
 	}
 
-	public int Capacity {
+	public int Capacity
+	{
 		get { return _bufferPool.Capacity; }
 	}
 
-	public override long Position {
+	public override long Position
+	{
 		get { return _position; }
-		set {
-			if (value < 0 || value > _bufferPool.Length) {
+		set
+		{
+			if (value < 0 || value > _bufferPool.Length)
+			{
 				throw new ArgumentOutOfRangeException("value");
 			}
 
@@ -46,20 +56,25 @@ public class BufferPoolStream : Stream {
 	/// Initializes a new instance of the <see cref="BufferPoolStream"/> class.
 	/// </summary>
 	/// <param name="bufferPool">The buffer pool used as underlying storage.</param>
-	public BufferPoolStream(BufferPool bufferPool) {
-		if (bufferPool == null) {
+	public BufferPoolStream(BufferPool bufferPool)
+	{
+		if (bufferPool == null)
+		{
 			throw new ArgumentNullException("bufferPool");
 		}
 
 		_bufferPool = bufferPool;
 	}
 
-	public override void Flush() {
+	public override void Flush()
+	{
 		//noop
 	}
 
-	public override long Seek(long offset, SeekOrigin origin) {
-		switch (origin) {
+	public override long Seek(long offset, SeekOrigin origin)
+	{
+		switch (origin)
+		{
 			case SeekOrigin.Begin:
 				Position = offset;
 				break;
@@ -76,15 +91,19 @@ public class BufferPoolStream : Stream {
 		return Position;
 	}
 
-	public override void SetLength(long value) {
+	public override void SetLength(long value)
+	{
 		_bufferPool.SetLength((int)value);
-		if (_position > value) {
+		if (_position > value)
+		{
 			_position = value;
 		}
 	}
 
-	public override int Read(byte[] buffer, int offset, int count) {
-		if (_position >= _bufferPool.Length) {
+	public override int Read(byte[] buffer, int offset, int count)
+	{
+		if (_position >= _bufferPool.Length)
+		{
 			return 0;
 		}
 
@@ -93,20 +112,24 @@ public class BufferPoolStream : Stream {
 		return ret;
 	}
 
-	public override void Write(byte[] buffer, int offset, int count) {
+	public override void Write(byte[] buffer, int offset, int count)
+	{
 		_bufferPool.Write((int)_position, buffer, offset, count);
 		_position += count;
 	}
 
-	protected override void Dispose(bool disposing) {
-		if (disposing) {
+	protected override void Dispose(bool disposing)
+	{
+		if (disposing)
+		{
 			_bufferPool.Dispose();
 		}
 
 		base.Dispose(disposing);
 	}
 
-	public byte[] ToArray() {
+	public byte[] ToArray()
+	{
 		return _bufferPool.ToByteArray();
 	}
 }

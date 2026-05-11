@@ -7,36 +7,44 @@ using EventStore.Core.Messaging;
 using EventStore.Plugins.Authorization;
 using Grpc.Core;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	internal partial class Redaction {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	internal partial class Redaction
+	{
 		private static readonly Operation SwitchChunkOperation = new(EventStore.Plugins.Authorization.Operations.Node.Redaction.SwitchChunk);
 
 		public override async Task SwitchChunks(
 			IAsyncStreamReader<SwitchChunkReq> requestStream,
 			IServerStreamWriter<SwitchChunkResp> responseStream,
-			ServerCallContext context) {
+			ServerCallContext context)
+		{
 
 			var user = context.GetHttpContext().User;
-			if (!await _authorizationProvider.CheckAccessAsync(user, SwitchChunkOperation, context.CancellationToken)) {
+			if (!await _authorizationProvider.CheckAccessAsync(user, SwitchChunkOperation, context.CancellationToken))
+			{
 				throw RpcExceptions.AccessDenied();
 			}
 
 			var acquisitionId = Guid.Empty;
-			try {
+			try
+			{
 				acquisitionId = await AcquireChunksLock(context);
 				await SwitchChunks(requestStream, responseStream, acquisitionId);
 			}
-			finally {
+			finally
+			{
 				await ReleaseChunksLock(acquisitionId);
 			}
 		}
 
-		private async Task<Guid> AcquireChunksLock(ServerCallContext context) {
+		private async Task<Guid> AcquireChunksLock(ServerCallContext context)
+		{
 			var tcsEnvelope = new TcsEnvelope<RedactionMessage.AcquireChunksLockCompleted>();
 			_bus.Publish(new RedactionMessage.AcquireChunksLock(tcsEnvelope));
 
 			var completionMsg = await tcsEnvelope.Task;
-			if (completionMsg.Result != AcquireChunksLockResult.Success) {
+			if (completionMsg.Result != AcquireChunksLockResult.Success)
+			{
 				throw RpcExceptions.RedactionLockFailed();
 			}
 
@@ -50,15 +58,18 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		private async Task SwitchChunks(
 			IAsyncStreamReader<SwitchChunkReq> requestStream,
 			IServerStreamWriter<SwitchChunkResp> responseStream,
-			Guid acquisitionId) {
+			Guid acquisitionId)
+		{
 
-			await foreach (var request in requestStream.ReadAllAsync()) {
+			await foreach (var request in requestStream.ReadAllAsync())
+			{
 				var tcsEnvelope = new TcsEnvelope<RedactionMessage.SwitchChunkCompleted>();
 				_bus.Publish(new RedactionMessage.SwitchChunk(tcsEnvelope, acquisitionId, request.TargetChunkFile, request.NewChunkFile));
 
 				var completionMsg = await tcsEnvelope.Task;
 				var result = completionMsg.Result;
-				if (result != SwitchChunkResult.Success) {
+				if (result != SwitchChunkResult.Success)
+				{
 					throw RpcExceptions.RedactionSwitchChunkFailed(result.GetErrorMessage());
 				}
 
@@ -66,8 +77,10 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			}
 		}
 
-		private async Task ReleaseChunksLock(Guid acquisitionId) {
-			if (acquisitionId == Guid.Empty) {
+		private async Task ReleaseChunksLock(Guid acquisitionId)
+		{
+			if (acquisitionId == Guid.Empty)
+			{
 				return;
 			}
 
@@ -76,7 +89,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 			var completionMsg = await tcsEnvelope.Task;
 			var result = completionMsg.Result;
-			if (result != ReleaseChunksLockResult.Success) {
+			if (result != ReleaseChunksLockResult.Success)
+			{
 				throw RpcExceptions.RedactionSwitchChunkFailed(result.GetErrorMessage());
 			}
 		}

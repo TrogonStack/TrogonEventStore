@@ -16,13 +16,15 @@ namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_starting_and_enqueue_prerecorded_events_read_times_out<TLogFormat, TStreamId> : with_multi_stream_checkpoint_manager<TLogFormat, TStreamId>,
 	IHandle<TimerMessage.Schedule>,
-	IHandle<CoreProjectionProcessingMessage.PrerecordedEventsLoaded> {
+	IHandle<CoreProjectionProcessingMessage.PrerecordedEventsLoaded>
+{
 	private bool _hasTimedOut;
 	private Guid _timeoutCorrelationId;
 	private ManualResetEventSlim _mre = new ManualResetEventSlim();
 	private CoreProjectionProcessingMessage.PrerecordedEventsLoaded _eventsLoadedMessage;
 
-	public override void When() {
+	public override void When()
+	{
 		_bus.Subscribe<TimerMessage.Schedule>(this);
 		_bus.Subscribe<CoreProjectionProcessingMessage.PrerecordedEventsLoaded>(this);
 
@@ -30,13 +32,16 @@ public class when_starting_and_enqueue_prerecorded_events_read_times_out<TLogFor
 		var positions = new Dictionary<string, long> { { "a", 1 }, { "b", 1 }, { "c", 1 } };
 		_checkpointManager.BeginLoadPrerecordedEvents(CheckpointTag.FromStreamPositions(0, positions));
 
-		if (!_mre.Wait(10000)) {
+		if (!_mre.Wait(10000))
+		{
 			Assert.Fail("Timed out waiting for pre recorded events loaded message");
 		}
 	}
 
-	public override void Handle(ClientMessage.ReadStreamEventsBackward message) {
-		if (!_hasTimedOut && message.EventStreamId == "a") {
+	public override void Handle(ClientMessage.ReadStreamEventsBackward message)
+	{
+		if (!_hasTimedOut && message.EventStreamId == "a")
+		{
 			_hasTimedOut = true;
 			_timeoutCorrelationId = message.CorrelationId;
 			return;
@@ -45,20 +50,24 @@ public class when_starting_and_enqueue_prerecorded_events_read_times_out<TLogFor
 		base.Handle(message);
 	}
 
-	public void Handle(TimerMessage.Schedule message) {
+	public void Handle(TimerMessage.Schedule message)
+	{
 		var delay = message.ReplyMessage as IODispatcherDelayedMessage;
-		if (delay != null && delay.MessageCorrelationId == _timeoutCorrelationId) {
+		if (delay != null && delay.MessageCorrelationId == _timeoutCorrelationId)
+		{
 			message.Reply();
 		}
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message) {
+	public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message)
+	{
 		_eventsLoadedMessage = message;
 		_mre.Set();
 	}
 
 	[Test]
-	public void should_send_prerecorded_events_message() {
+	public void should_send_prerecorded_events_message()
+	{
 		Assert.IsNotNull(_eventsLoadedMessage);
 	}
 }

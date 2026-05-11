@@ -13,13 +13,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_writing_a_new_chunked_transaction_file<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class when_writing_a_new_chunked_transaction_file<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	private readonly Guid _eventId = Guid.NewGuid();
 	private readonly Guid _correlationId = Guid.NewGuid();
 	private InMemoryCheckpoint _checkpoint;
 
 	[Test]
-	public async Task a_record_can_be_written() {
+	public async Task a_record_can_be_written()
+	{
 		_checkpoint = new InMemoryCheckpoint(0);
 		var db = new TFChunkDb(TFChunkHelper.CreateDbConfig(PathName, _checkpoint, new InMemoryCheckpoint()));
 		await db.Open();

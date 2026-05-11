@@ -7,7 +7,8 @@ using EventStore.Core.TransactionLog.Chunks;
 
 namespace EventStore.Core.Tests.Services.ElectionsService;
 
-public class ClusterVNodeSettings {
+public class ClusterVNodeSettings
+{
 	public readonly VNodeInfo NodeInfo;
 
 	public readonly int NodePriority;
@@ -21,7 +22,8 @@ public class ClusterVNodeSettings {
 		IPEndPoint externalSecureTcpEndPoint,
 		IPEndPoint httpEndPoint,
 		int nodePriority,
-		bool readOnlyReplica) {
+		bool readOnlyReplica)
+	{
 		Ensure.NotEmptyGuid(instanceId, "instanceId");
 		Ensure.Equal(false, internalTcpEndPoint == null && internalSecureTcpEndPoint == null, "Both internal TCP endpoints are null");
 

@@ -1,5 +1,7 @@
-namespace EventStore.Core.Data {
-	public static class ExpectedVersion {
+namespace EventStore.Core.Data
+{
+	public static class ExpectedVersion
+	{
 		public const long Any = -2;
 
 		public const long NoStream = -1;

@@ -9,7 +9,8 @@ using EventStore.Projections.Core.Services.Processing.Partitioning;
 
 namespace EventStore.Projections.Core.Services.Processing.Phases;
 
-public sealed class WriteQueryResultProjectionProcessingPhase : WriteQueryResultProjectionProcessingPhaseBase {
+public sealed class WriteQueryResultProjectionProcessingPhase : WriteQueryResultProjectionProcessingPhaseBase
+{
 	public WriteQueryResultProjectionProcessingPhase(
 		IPublisher publisher,
 		int phase,
@@ -20,10 +21,12 @@ public sealed class WriteQueryResultProjectionProcessingPhase : WriteQueryResult
 		IEmittedEventWriter emittedEventWriter,
 		IEmittedStreamsTracker emittedStreamsTracker)
 		: base(publisher, phase, resultStream, coreProjection, stateCache, checkpointManager, emittedEventWriter,
-			emittedStreamsTracker) {
+			emittedStreamsTracker)
+	{
 	}
 
-	protected override IEnumerable<EmittedEventEnvelope> WriteResults(CheckpointTag phaseCheckpointTag) {
+	protected override IEnumerable<EmittedEventEnvelope> WriteResults(CheckpointTag phaseCheckpointTag)
+	{
 		var items = _stateCache.Enumerate();
 		EmittedStream.WriterConfiguration.StreamMetadata streamMetadata = null;
 		return from item in items

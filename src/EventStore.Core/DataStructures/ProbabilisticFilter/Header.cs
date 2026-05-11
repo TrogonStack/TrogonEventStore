@@ -1,8 +1,10 @@
 using System.Runtime.InteropServices;
 
-namespace EventStore.Core.DataStructures.ProbabilisticFilter {
+namespace EventStore.Core.DataStructures.ProbabilisticFilter
+{
 	[StructLayout(LayoutKind.Explicit, Size = Size, Pack = 1)]
-	public struct Header {
+	public struct Header
+	{
 		public const byte CurrentVersion = 1;
 		public const int Size = 16;
 
@@ -11,17 +13,20 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 		[FieldOffset(8)] private long _numBits;
 
 
-		public byte Version {
+		public byte Version
+		{
 			get => _version;
 			set => _version = value;
 		}
 
-		public int CorruptionRebuildCount {
+		public int CorruptionRebuildCount
+		{
 			get => _corruptionRebuildCount;
 			set => _corruptionRebuildCount = value;
 		}
 
-		public long NumBits {
+		public long NumBits
+		{
 			get => _numBits;
 			set => _numBits = value;
 		}

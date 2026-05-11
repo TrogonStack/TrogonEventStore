@@ -1,5 +1,7 @@
-namespace EventStore.Core.Services.Storage.ReaderIndex {
-	public struct CommitCheckResult<TStreamId> {
+namespace EventStore.Core.Services.Storage.ReaderIndex
+{
+	public struct CommitCheckResult<TStreamId>
+	{
 		public readonly CommitDecision Decision;
 		public readonly TStreamId EventStreamId;
 		public readonly long CurrentVersion;
@@ -14,7 +16,8 @@ namespace EventStore.Core.Services.Storage.ReaderIndex {
 			long startEventNumber,
 			long endEventNumber,
 			bool isSoftDeleted,
-			long idempotentLogPosition = -1) {
+			long idempotentLogPosition = -1)
+		{
 			Decision = decision;
 			EventStreamId = eventStreamId;
 			CurrentVersion = currentVersion;

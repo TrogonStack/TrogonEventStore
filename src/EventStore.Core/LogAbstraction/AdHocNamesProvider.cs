@@ -2,9 +2,11 @@ using System;
 using EventStore.Core.Index;
 using EventStore.Core.Services.Storage.ReaderIndex;
 
-namespace EventStore.Core.LogAbstraction {
+namespace EventStore.Core.LogAbstraction
+{
 	// mechanism to delay construction of StreamNames and SystemStreams until the IndexReader is available
-	public class AdHocStreamNamesProvider<TStreamId> : IStreamNamesProvider<TStreamId> {
+	public class AdHocStreamNamesProvider<TStreamId> : IStreamNamesProvider<TStreamId>
+	{
 		private readonly Action<AdHocStreamNamesProvider<TStreamId>, IIndexReader<TStreamId>> _setReader;
 		private readonly Action<AdHocStreamNamesProvider<TStreamId>, ITableIndex> _setTableIndex;
 
@@ -15,28 +17,33 @@ namespace EventStore.Core.LogAbstraction {
 
 		public AdHocStreamNamesProvider(
 			Action<AdHocStreamNamesProvider<TStreamId>, IIndexReader<TStreamId>> setReader = null,
-			Action<AdHocStreamNamesProvider<TStreamId>, ITableIndex> setTableIndex = null) {
+			Action<AdHocStreamNamesProvider<TStreamId>, ITableIndex> setTableIndex = null)
+		{
 
 			_setReader = setReader;
 			_setTableIndex = setTableIndex;
 		}
 
-		public INameLookup<TStreamId> StreamNames {
+		public INameLookup<TStreamId> StreamNames
+		{
 			get => _streamNames ?? throw new InvalidOperationException("Call SetReader or SetTableIndex first");
 			set => _streamNames = value;
 		}
 
-		public INameLookup<TStreamId> EventTypes {
+		public INameLookup<TStreamId> EventTypes
+		{
 			get => _eventTypes ?? throw new InvalidOperationException("Call SetReader or SetTableIndex first");
 			set => _eventTypes = value;
 		}
 
-		public ISystemStreamLookup<TStreamId> SystemStreams {
+		public ISystemStreamLookup<TStreamId> SystemStreams
+		{
 			get => _systemStreams ?? throw new InvalidOperationException("Call SetReader or SetTableIndex first");
 			set => _systemStreams = value;
 		}
 
-		public INameExistenceFilterInitializer StreamExistenceFilterInitializer {
+		public INameExistenceFilterInitializer StreamExistenceFilterInitializer
+		{
 			get => _streamExistenceFilterInitializer ?? throw new InvalidOperationException("Call SetReader or SetTableIndex first");
 			set => _streamExistenceFilterInitializer = value;
 		}

@@ -5,7 +5,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.TransactionLog;
 
-public interface ITransactionFileWriter : IAsyncDisposable {
+public interface ITransactionFileWriter : IAsyncDisposable
+{
 	void Open();
 	bool CanWrite(int numBytes);
 	ValueTask<(bool, long)> Write(ILogRecord record, CancellationToken token);

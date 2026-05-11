@@ -19,23 +19,28 @@ public sealed class NodeInformationProvider(
 	ClusterVNodeOptions options,
 	IReadOnlyDictionary<string, bool> features,
 	IAuthenticationProvider authenticationProvider)
-	: IHandle<SystemMessage.StateChangeMessage> {
+	: IHandle<SystemMessage.StateChangeMessage>
+{
 	private int _currentState;
 
-	public NodeInfo Read() {
-		var result = new NodeInfo {
+	public NodeInfo Read()
+	{
+		var result = new NodeInfo
+		{
 			EsVersion = VersionInfo.Version,
 			State = ((VNodeState)Volatile.Read(ref _currentState)).ToString().ToLowerInvariant(),
 			Authentication = AuthenticationInfo()
 		};
-		foreach (var (key, value) in features) {
+		foreach (var (key, value) in features)
+		{
 			result.Features.Add(key, value);
 		}
 
 		return result;
 	}
 
-	public NodeOptions Options() {
+	public NodeOptions Options()
+	{
 		var result = new NodeOptions();
 		result.Options.AddRange(options.LoadedOptions.Values.Select(ToOption));
 		return result;
@@ -47,15 +52,19 @@ public sealed class NodeInformationProvider(
 	public void Handle(SystemMessage.StateChangeMessage message) =>
 		Volatile.Write(ref _currentState, (int)message.State);
 
-	private AuthenticationInfo AuthenticationInfo() {
-		if (authenticationProvider is null) {
+	private AuthenticationInfo AuthenticationInfo()
+	{
+		if (authenticationProvider is null)
+		{
 			return new AuthenticationInfo();
 		}
 
-		var result = new AuthenticationInfo {
+		var result = new AuthenticationInfo
+		{
 			Type = authenticationProvider.Name
 		};
-		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? []) {
+		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? [])
+		{
 			result.Properties.Add(key, value);
 		}
 
@@ -63,7 +72,8 @@ public sealed class NodeInformationProvider(
 	}
 
 	private static NodeOption ToOption(LoadedOption option) =>
-		new() {
+		new()
+		{
 			Name = option.Metadata.Name,
 			Description = option.Metadata.Description,
 			Group = option.Metadata.SectionMetadata.SectionType.Name,

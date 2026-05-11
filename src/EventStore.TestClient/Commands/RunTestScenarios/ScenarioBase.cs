@@ -18,7 +18,8 @@ using TcpPackage = EventStore.Core.Services.Transport.Tcp.TcpPackage;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal abstract class ScenarioBase : IScenario {
+internal abstract class ScenarioBase : IScenario
+{
 	protected static readonly ILogger Log = Serilog.Log.ForContext<ScenarioBase>();
 
 	protected static readonly ClientAPI.ILogger ApiLogger =
@@ -47,7 +48,8 @@ internal abstract class ScenarioBase : IScenario {
 	private int _nextConnectionNum = -1;
 	private readonly ProjectionsManager _projectionsManager;
 
-	protected virtual TimeSpan StartupWaitInterval {
+	protected virtual TimeSpan StartupWaitInterval
+	{
 		get { return TimeSpan.FromSeconds(12); }
 	}
 
@@ -58,7 +60,8 @@ internal abstract class ScenarioBase : IScenario {
 		int eventsPerStream,
 		int streamDeleteStep,
 		string dbParentPath,
-		NodeConnectionInfo customNodeConnection) {
+		NodeConnectionInfo customNodeConnection)
+	{
 		DirectSendOverTcp = directSendOverTcp;
 		MaxConcurrentRequests = maxConcurrentRequests;
 		Connections = connections;
@@ -71,11 +74,13 @@ internal abstract class ScenarioBase : IScenario {
 
 		var ipAddress = IPAddress.Loopback;
 
-		if (_customNodeConnection != null) {
+		if (_customNodeConnection != null)
+		{
 			_nodeConnection = _customNodeConnection;
 			_dbPath = null;
 		}
-		else {
+		else
+		{
 			_dbPath = CreateNewDbPath(dbParentPath);
 			_nodeConnection = new NodeConnectionInfo(ipAddress,
 				PortsHelper.GetAvailablePort(ipAddress),
@@ -95,14 +100,16 @@ internal abstract class ScenarioBase : IScenario {
 		};
 	}
 
-	private static string CreateNewDbPath(string dbParentPath) {
+	private static string CreateNewDbPath(string dbParentPath)
+	{
 		var dbParent = dbParentPath ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
 		var dataFolder = Path.Combine(dbParent, "data");
 		var idx = 0;
 		var dbPath = Path.Combine(dataFolder, string.Format("es_{0}", idx));
 
-		while (Directory.Exists(dbPath)) {
+		while (Directory.Exists(dbPath))
+		{
 			idx += 1;
 			dbPath = Path.Combine(dataFolder, string.Format("es_{0}", idx));
 		}
@@ -110,20 +117,24 @@ internal abstract class ScenarioBase : IScenario {
 		return dbPath;
 	}
 
-	protected IEventStoreConnection GetConnection() {
+	protected IEventStoreConnection GetConnection()
+	{
 		var connectionNum = (int)(((uint)Interlocked.Increment(ref _nextConnectionNum)) % Connections);
 		return _connections[connectionNum];
 	}
 
-	protected ProjectionsManager GetProjectionsManager() {
+	protected ProjectionsManager GetProjectionsManager()
+	{
 		return _projectionsManager;
 	}
 
-	public void Run() {
+	public void Run()
+	{
 		const int maxReconnections = 200;
 		const int maxOperationRetries = 200;
 
-		for (int i = 0; i < Connections; ++i) {
+		for (int i = 0; i < Connections; ++i)
+		{
 			_connections[i] = EventStoreConnection.Create(
 				ConnectionSettings.Create()
 					.UseCustomLogger(ApiLogger)
@@ -154,30 +165,37 @@ internal abstract class ScenarioBase : IScenario {
 
 	protected abstract void RunInternal();
 
-	public void Clean() {
+	public void Clean()
+	{
 		CloseConnections();
 		KillStartedNodes();
 		DeleteDatabase();
 	}
 
-	private void DeleteDatabase() {
-		try {
-			if (_dbPath != null) {
+	private void DeleteDatabase()
+	{
+		try
+		{
+			if (_dbPath != null)
+			{
 				Log.Information("Deleting {dbPath}...", _dbPath);
 				Directory.Delete(_dbPath, true);
 				Log.Information("Deleted {dbPath}", _dbPath);
 			}
 		}
-		catch (IOException ex) {
+		catch (IOException ex)
+		{
 			Log.Error(ex, "Failed to delete dir {dbPath}, IOException was raised", _dbPath);
 		}
-		catch (UnauthorizedAccessException ex) {
+		catch (UnauthorizedAccessException ex)
+		{
 			Log.Error(ex, "Failed to delete dir {dbPath}, UnauthorizedAccessException was raised",
 				_dbPath);
 		}
 	}
 
-	protected T[][] Split<T>(IEnumerable<T> sequence, int parts) {
+	protected T[][] Split<T>(IEnumerable<T> sequence, int parts)
+	{
 		return sequence.Select((x, i) => new { GroupNum = i % parts, Item = x })
 			.GroupBy(x => x.GroupNum, y => y.Item)
 			.Select(x => x.ToArray())
@@ -185,12 +203,14 @@ internal abstract class ScenarioBase : IScenario {
 	}
 
 
-	protected Task Write(WriteMode mode, string[] streams, int eventsPerStream) {
+	protected Task Write(WriteMode mode, string[] streams, int eventsPerStream)
+	{
 		Func<int, EventData> createEvent = TestEvent.NewTestEvent;
 		return Write(mode, streams, eventsPerStream, createEvent);
 	}
 
-	protected Task Write(WriteMode mode, string[] streams, int eventsPerStream, Func<int, EventData> createEvent) {
+	protected Task Write(WriteMode mode, string[] streams, int eventsPerStream, Func<int, EventData> createEvent)
+	{
 		Log.Information(
 			"Writing. Mode : {mode,-15} Streams : {streamsLength,-10} Events per stream : {eventsPerStream,-10}",
 			mode,
@@ -198,17 +218,20 @@ internal abstract class ScenarioBase : IScenario {
 			eventsPerStream);
 
 		Func<string, int, Func<int, EventData>, Task> handler;
-		if (!_writeHandlers.TryGetValue(mode, out handler)) {
+		if (!_writeHandlers.TryGetValue(mode, out handler))
+		{
 			throw new ArgumentOutOfRangeException("mode");
 		}
 
 		var tasks = new List<Task>();
-		for (var i = 0; i < streams.Length; i++) {
+		for (var i = 0; i < streams.Length; i++)
+		{
 			//Console.WriteLine("WRITING TO {0}", streams[i]);
 			tasks.Add(handler(streams[i], eventsPerStream, createEvent));
 		}
 
-		return Task.Factory.ContinueWhenAll(tasks.ToArray(), tsks => {
+		return Task.Factory.ContinueWhenAll(tasks.ToArray(), tsks =>
+		{
 			Task.WaitAll(tsks);
 			Log.Information(
 				"Finished writing. Mode : {mode,-15} Streams : {streamsLength,-10} Events per stream : {eventsPerStream,-10}",
@@ -218,12 +241,14 @@ internal abstract class ScenarioBase : IScenario {
 		});
 	}
 
-	protected void DeleteStreams(IEnumerable<string> streams) {
+	protected void DeleteStreams(IEnumerable<string> streams)
+	{
 		Log.Information("Deleting streams...");
 		var store = GetConnection();
 
 		var tasks = new List<Task>();
-		foreach (var stream in streams) {
+		foreach (var stream in streams)
+		{
 			var s = stream;
 			Log.Information("Deleting stream {stream}...", stream);
 			var task = store.DeleteStreamAsync(stream, (EventsPerStream - 1), hardDelete: true)
@@ -237,16 +262,20 @@ internal abstract class ScenarioBase : IScenario {
 		Log.Information("All streams successfully deleted");
 	}
 
-	protected Task CheckStreamsDeleted(IEnumerable<string> streams) {
+	protected Task CheckStreamsDeleted(IEnumerable<string> streams)
+	{
 		Log.Information("Verifying streams are deleted...");
 
 		var store = GetConnection();
 		var tasks = new List<Task>();
 
-		foreach (var stream in streams) {
+		foreach (var stream in streams)
+		{
 			var s = stream;
-			var task = store.ReadStreamEventsForwardAsync(stream, 0, 1, resolveLinkTos: false).ContinueWith(t => {
-				if (t.Result.Status != SliceReadStatus.StreamDeleted) {
+			var task = store.ReadStreamEventsForwardAsync(stream, 0, 1, resolveLinkTos: false).ContinueWith(t =>
+			{
+				if (t.Result.Status != SliceReadStatus.StreamDeleted)
+				{
 					throw new Exception(string.Format("Stream '{0}' is not deleted, but should be!", s));
 				}
 			});
@@ -254,14 +283,17 @@ internal abstract class ScenarioBase : IScenario {
 			tasks.Add(task);
 		}
 
-		return Task.Factory.ContinueWhenAll(tasks.ToArray(), tsks => {
+		return Task.Factory.ContinueWhenAll(tasks.ToArray(), tsks =>
+		{
 			Task.WaitAll(tsks);
 			Log.Information("Stream deletion verification succeeded.");
 		});
 	}
 
-	protected Task Read(string[] streams, int @from, int count) {
-		if (streams.Length == 0) {
+	protected Task Read(string[] streams, int @from, int count)
+	{
+		if (streams.Length == 0)
+		{
 			throw new Exception("Streams shouldn't be empty.");
 		}
 
@@ -269,33 +301,39 @@ internal abstract class ScenarioBase : IScenario {
 
 		var tasks = new List<Task>();
 
-		for (int i = 0; i < streams.Length; i++) {
+		for (int i = 0; i < streams.Length; i++)
+		{
 			var task = ReadStream(streams[i], from, count);
 			tasks.Add(task);
 		}
 
-		return Task.Factory.ContinueWhenAll(tasks.ToArray(), tsks => {
+		return Task.Factory.ContinueWhenAll(tasks.ToArray(), tsks =>
+		{
 			Task.WaitAll(tsks);
 			Log.Information("Done reading [{streams}]", string.Join(",", streams));
 		});
 	}
 
-	private bool TryGetPathToMono(out string pathToMono) {
+	private bool TryGetPathToMono(out string pathToMono)
+	{
 		const string monopathVariable = "EVENTSTORE_MONOPATH";
 		pathToMono = Environment.GetEnvironmentVariable(monopathVariable);
 		return !string.IsNullOrEmpty(pathToMono);
 	}
 
-	protected int StartNode() {
+	protected int StartNode()
+	{
 		int processId = -1;
-		if (_customNodeConnection == null) {
+		if (_customNodeConnection == null)
+		{
 			processId = StartNewNode();
 		}
 
 		return processId;
 	}
 
-	private int StartNewNode() {
+	private int StartNewNode()
+	{
 		var clientFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 		//../../EventStore.ClusterNode/net471/EventStore.ClusterNode.exe
 		var clusterNodeFolder = System.IO.Directory.GetParent(System.IO.Directory.GetParent(clientFolder).FullName)
@@ -304,13 +342,15 @@ internal abstract class ScenarioBase : IScenario {
 		string argumentsHead;
 
 		string pathToMono;
-		if (TryGetPathToMono(out pathToMono)) {
+		if (TryGetPathToMono(out pathToMono))
+		{
 			Log.Information("Mono at {pathToMono} will be used.", pathToMono);
 			fileName = pathToMono;
 			argumentsHead = string.Format("--debug --gc=sgen {0}",
 				Path.Combine(clusterNodeFolder, "EventStore.ClusterNode.exe"));
 		}
-		else {
+		else
+		{
 			fileName = Path.Combine(clusterNodeFolder, "EventStore.ClusterNode.exe");
 			argumentsHead = "";
 		}
@@ -328,7 +368,8 @@ internal abstract class ScenarioBase : IScenario {
 		var startInfo = new ProcessStartInfo(fileName, arguments);
 
 		var nodeProcess = Process.Start(startInfo);
-		if (nodeProcess == null || nodeProcess.HasExited) {
+		if (nodeProcess == null || nodeProcess.HasExited)
+		{
 			throw new ApplicationException(string.Format("Process was not started [{0} {1}].", fileName,
 				arguments));
 		}
@@ -336,7 +377,8 @@ internal abstract class ScenarioBase : IScenario {
 		Thread.Sleep(3000);
 		Process tmp;
 		var running = TryGetProcessById(nodeProcess.Id, out tmp);
-		if (!running || tmp.HasExited) {
+		if (!running || tmp.HasExited)
+		{
 			throw new ApplicationException(string.Format("Process was not started [{0} {1}].", fileName,
 				arguments));
 		}
@@ -351,45 +393,56 @@ internal abstract class ScenarioBase : IScenario {
 		return nodeProcess.Id;
 	}
 
-	private bool TryGetProcessById(int processId, out Process process) {
+	private bool TryGetProcessById(int processId, out Process process)
+	{
 		process = null;
 
-		try {
+		try
+		{
 			process = Process.GetProcessById(processId);
 		}
-		catch (ArgumentException) {
+		catch (ArgumentException)
+		{
 			return false;
 		}
-		catch (InvalidOperationException) {
+		catch (InvalidOperationException)
+		{
 			return false;
 		}
 
 		return true;
 	}
 
-	protected void KillNode(int processId) {
-		if (processId != -1) {
+	protected void KillNode(int processId)
+	{
+		if (processId != -1)
+		{
 			KillStartedNode(processId);
 		}
-		else {
+		else
+		{
 			Log.Information("Skip killing, procId -1");
 		}
 	}
 
-	private void KillStartedNode(int processId) {
+	private void KillStartedNode(int processId)
+	{
 		Log.Information("Killing {processId}...", processId);
 
 		Process process;
-		if (TryGetProcessById(processId, out process)) {
+		if (TryGetProcessById(processId, out process))
+		{
 			process.Kill();
 
 			var waitCount = 200;
-			while (!process.HasExited && waitCount > 0) {
+			while (!process.HasExited && waitCount > 0)
+			{
 				Thread.Sleep(250);
 				waitCount -= 1;
 			}
 
-			if (process.HasExited) {
+			if (process.HasExited)
+			{
 				_startedNodesProcIds.Remove(processId);
 
 				PortsHelper.ReturnPort(_nodeConnection.TcpPort);
@@ -398,67 +451,82 @@ internal abstract class ScenarioBase : IScenario {
 				Log.Information("Killed process {processId}, wait a bit.", processId);
 				Thread.Sleep(1000); // wait for system to release port used by HttpListener.
 			}
-			else {
-				if (TryGetProcessById(processId, out _)) {
+			else
+			{
+				if (TryGetProcessById(processId, out _))
+				{
 					Log.Error(
 						"Process {processId} did not report about exit in time and is still present in processes list.",
 						processId);
 				}
-				else {
+				else
+				{
 					Log.Information("Process {processId} did not report about exit in time but is not found again.",
 						processId);
 				}
 			}
 		}
-		else {
+		else
+		{
 			Log.Error("Process {processId} was not found to be killed.", processId);
 		}
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		CloseConnections();
 		Thread.Sleep(2 * 1000);
 		KillStartedNodes();
 	}
 
-	private void CloseConnections() {
-		for (int i = 0; i < _connections.Length; ++i) {
+	private void CloseConnections()
+	{
+		for (int i = 0; i < _connections.Length; ++i)
+		{
 			_connections[i].Close();
 		}
 	}
 
-	private void KillStartedNodes() {
+	private void KillStartedNodes()
+	{
 		Log.Information("Killing remaining nodes...");
-		try {
+		try
+		{
 			_startedNodesProcIds.ToList().ForEach(KillNode);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Error("Failed to kill started nodes: {e}.", ex.Message);
 		}
 	}
 
-	protected void Scavenge() {
+	protected void Scavenge()
+	{
 		Log.Information("Send scavenge command...");
 		var package = new TcpPackage(TcpCommand.ScavengeDatabase, Guid.NewGuid(), null).AsByteArray();
 		DirectSendOverTcp(new IPEndPoint(_nodeConnection.IpAddress, _nodeConnection.TcpPort), package);
 		Log.Information("Scavenge command was sent.");
 	}
 
-	private Task WriteSingleEventAtTime(string stream, int events, Func<int, EventData> createEvent) {
+	private Task WriteSingleEventAtTime(string stream, int events, Func<int, EventData> createEvent)
+	{
 		var resSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		Log.Information("Starting to write {events} events to [{stream}]", events, stream);
 		var store = GetConnection();
 		int eventVersion = 0;
 
-		Action<Task> fail = prevTask => {
+		Action<Task> fail = prevTask =>
+		{
 			Log.Information("WriteSingleEventAtTime for stream {stream} failed.", stream);
 			resSource.SetException(prevTask.Exception);
 		};
 
 		Action<Task> writeSingleEvent = null;
-		writeSingleEvent = _ => {
-			if (eventVersion == events) {
+		writeSingleEvent = _ =>
+		{
+			if (eventVersion == events)
+			{
 				Log.Information("Wrote {events} events to [{stream}]", events, stream);
 				resSource.SetResult(null);
 				return;
@@ -479,7 +547,8 @@ internal abstract class ScenarioBase : IScenario {
 		return resSource.Task;
 	}
 
-	private Task WriteBucketOfEventsAtTime(string stream, int eventCount, Func<int, EventData> createEvent) {
+	private Task WriteBucketOfEventsAtTime(string stream, int eventCount, Func<int, EventData> createEvent)
+	{
 		const int bucketSize = 25;
 		Log.Information("Starting to write {eventCount} events to [{stream}] ({bucketSize} events at once)", eventCount,
 			stream, bucketSize);
@@ -488,14 +557,17 @@ internal abstract class ScenarioBase : IScenario {
 		var store = GetConnection();
 		int writtenCount = 0;
 
-		Action<Task> fail = prevTask => {
+		Action<Task> fail = prevTask =>
+		{
 			Log.Information("WriteBucketOfEventsAtTime for stream {stream} failed.", stream);
 			resSource.SetException(prevTask.Exception);
 		};
 
 		Action<Task> writeBatch = null;
-		writeBatch = _ => {
-			if (writtenCount == eventCount) {
+		writeBatch = _ =>
+		{
+			if (writtenCount == eventCount)
+			{
 				Log.Information("Wrote {eventCount} events to [{stream}] ({bucketSize} events at once)", eventCount,
 					stream, bucketSize);
 				resSource.SetResult(null);
@@ -520,13 +592,15 @@ internal abstract class ScenarioBase : IScenario {
 		return resSource.Task;
 	}
 
-	private Task WriteEventsInTransactionalWay(string stream, int eventCount, Func<int, EventData> createEvent) {
+	private Task WriteEventsInTransactionalWay(string stream, int eventCount, Func<int, EventData> createEvent)
+	{
 		Log.Information("Starting to write {eventCount} events to [{stream}] (in single transaction)", eventCount, stream);
 
 		var resSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var store = GetConnection();
 
-		Action<Task> fail = prevTask => {
+		Action<Task> fail = prevTask =>
+		{
 			Log.Information("WriteEventsInTransactionalWay for stream {stream} failed.", stream);
 			resSource.SetException(prevTask.Exception);
 		};
@@ -535,11 +609,14 @@ internal abstract class ScenarioBase : IScenario {
 		EventStoreTransaction transaction = null;
 
 		Action<Task> writeTransactionEvent = null;
-		writeTransactionEvent = prevTask => {
-			if (writtenCount == eventCount) {
+		writeTransactionEvent = prevTask =>
+		{
+			if (writtenCount == eventCount)
+			{
 				var commitTask = transaction.CommitAsync();
 				commitTask.ContinueWith(fail, TaskContinuationOptions.OnlyOnFaulted);
-				commitTask.ContinueWith(t => {
+				commitTask.ContinueWith(t =>
+				{
 					Log.Information("Wrote {eventCount} events to [{stream}] (in single transaction)", eventCount, stream);
 					resSource.SetResult(null);
 				}, TaskContinuationOptions.OnlyOnRanToCompletion);
@@ -556,7 +633,8 @@ internal abstract class ScenarioBase : IScenario {
 
 		var startTask = store.StartTransactionAsync(stream, -1);
 		startTask.ContinueWith(fail, TaskContinuationOptions.OnlyOnFaulted);
-		startTask.ContinueWith(t => {
+		startTask.ContinueWith(t =>
+		{
 			transaction = t.Result;
 			writeTransactionEvent(t);
 		}, TaskContinuationOptions.OnlyOnRanToCompletion);
@@ -564,22 +642,27 @@ internal abstract class ScenarioBase : IScenario {
 		return resSource.Task;
 	}
 
-	private Task ReadStream(string stream, int from, int count) {
+	private Task ReadStream(string stream, int from, int count)
+	{
 		Log.Information("Reading [{stream}] from {from,-10} count {count,-10}", stream, from, count);
 		var resSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var store = GetConnection();
 
-		Action<Task> fail = prevTask => {
+		Action<Task> fail = prevTask =>
+		{
 			Log.Information("ReadStream for stream {stream} failed.", stream);
 			resSource.SetException(prevTask.Exception);
 		};
 
 		var readTask = store.ReadStreamEventsForwardAsync(stream, @from, count, resolveLinkTos: false);
 		readTask.ContinueWith(fail, TaskContinuationOptions.OnlyOnFaulted);
-		readTask.ContinueWith(t => {
-			try {
+		readTask.ContinueWith(t =>
+		{
+			try
+			{
 				var slice = t.Result;
-				if (slice?.Events == null || slice.Events.Length != count) {
+				if (slice?.Events == null || slice.Events.Length != count)
+				{
 					throw new Exception(string.Format(
 						"Tried to read {0} events from event number {1} from stream '{2}' but failed. Reason: {3}.",
 						count,
@@ -592,9 +675,11 @@ internal abstract class ScenarioBase : IScenario {
 						: "WAT?!?"));
 				}
 
-				for (int i = 0; i < count; ++i) {
+				for (int i = 0; i < count; ++i)
+				{
 					var evnt = slice.Events[i].Event;
-					if (evnt.EventNumber != i + from) {
+					if (evnt.EventNumber != i + from)
+					{
 						throw new Exception(string.Format(
 							"Received event with wrong event number. Expected: {0}, actual: {1}.\nEvent: {2}.",
 							from + i,
@@ -608,7 +693,8 @@ internal abstract class ScenarioBase : IScenario {
 				Log.Information("Done reading [{stream}] from {from,-10} count {count,-10}", stream, from, count);
 				resSource.SetResult(null);
 			}
-			catch (Exception exc) {
+			catch (Exception exc)
+			{
 				Log.Information("ReadStream for stream {stream} failed.", stream);
 				resSource.SetException(exc);
 			}

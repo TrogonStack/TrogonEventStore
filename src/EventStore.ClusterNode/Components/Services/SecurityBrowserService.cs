@@ -9,13 +9,16 @@ using Microsoft.AspNetCore.Http;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-public sealed class SecurityBrowserService(IAuthenticationProvider authenticationProvider) {
+public sealed class SecurityBrowserService(IAuthenticationProvider authenticationProvider)
+{
 	private static readonly Uri LocalBaseUri = new("http://localhost", UriKind.Absolute);
 
-	public SecurityAuthenticationInfo AuthenticationInfo() {
+	public SecurityAuthenticationInfo AuthenticationInfo()
+	{
 		var schemes = authenticationProvider.GetSupportedAuthenticationSchemes() ?? [];
 		var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? []) {
+		foreach (var (key, value) in authenticationProvider.GetPublicProperties() ?? [])
+		{
 			properties[key] = value;
 		}
 
@@ -26,12 +29,15 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 			properties);
 	}
 
-	public async Task<SecurityCommandResult> Validate(string username, string password) {
-		if (string.IsNullOrWhiteSpace(username)) {
+	public async Task<SecurityCommandResult> Validate(string username, string password)
+	{
+		if (string.IsNullOrWhiteSpace(username))
+		{
 			return SecurityCommandResult.Failure("Enter a username.");
 		}
 
-		if (string.IsNullOrWhiteSpace(password)) {
+		if (string.IsNullOrWhiteSpace(password))
+		{
 			return SecurityCommandResult.Failure("Enter a password.");
 		}
 
@@ -40,7 +46,8 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 		authenticationProvider.Authenticate(request);
 		var (status, _) = await request.AuthenticateAsync();
 
-		return status switch {
+		return status switch
+		{
 			HttpAuthenticationRequestStatus.Authenticated => SecurityCommandResult.Succeeded(),
 			HttpAuthenticationRequestStatus.NotReady => SecurityCommandResult.Failure("The authentication provider is not ready yet."),
 			HttpAuthenticationRequestStatus.Error => SecurityCommandResult.Failure("The authentication provider failed while checking credentials."),
@@ -48,15 +55,18 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 		};
 	}
 
-	public static string NormalizeReturnUrl(string returnUrl) {
-		if (string.IsNullOrWhiteSpace(returnUrl)) {
+	public static string NormalizeReturnUrl(string returnUrl)
+	{
+		if (string.IsNullOrWhiteSpace(returnUrl))
+		{
 			return "/ui";
 		}
 
 		if (!returnUrl.StartsWith("/", StringComparison.Ordinal) ||
 			returnUrl.StartsWith("//", StringComparison.Ordinal) ||
 			returnUrl.IndexOf('\\') >= 0 ||
-			!Uri.TryCreate(returnUrl, UriKind.Relative, out var relative)) {
+			!Uri.TryCreate(returnUrl, UriKind.Relative, out var relative))
+		{
 			return "/ui";
 		}
 
@@ -78,7 +88,8 @@ public sealed record SecurityAuthenticationInfo(
 	string Type,
 	bool SupportsBasic,
 	bool IsInsecure,
-	IReadOnlyDictionary<string, string> Properties) {
+	IReadOnlyDictionary<string, string> Properties)
+{
 	public static SecurityAuthenticationInfo Unavailable() =>
 		new("Unavailable", SupportsBasic: false, IsInsecure: false, new Dictionary<string, string>());
 
@@ -86,7 +97,8 @@ public sealed record SecurityAuthenticationInfo(
 	public string PropertiesJson => JsonSerializer.Serialize(Properties);
 }
 
-public sealed record SecurityCommandResult(bool Success, string Message) {
+public sealed record SecurityCommandResult(bool Success, string Message)
+{
 	public static SecurityCommandResult Succeeded() => new(true, "");
 	public static SecurityCommandResult Failure(string message) => new(false, message);
 }

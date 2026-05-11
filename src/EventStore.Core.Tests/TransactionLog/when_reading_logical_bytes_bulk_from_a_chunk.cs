@@ -16,11 +16,14 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	[Test]
-	public async Task the_file_will_not_be_deleted_until_reader_released() {
+	public async Task the_file_will_not_be_deleted_until_reader_released()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			chunk.MarkForDeletion();
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
@@ -32,9 +35,11 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task a_read_on_new_file_can_be_performed_but_returns_nothing() {
+	public async Task a_read_on_new_file_can_be_performed_but_returns_nothing()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 2000);
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsFalse(result.IsEOF);
@@ -46,10 +51,12 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task a_read_past_end_of_completed_chunk_does_not_include_footer() {
+	public async Task a_read_past_end_of_completed_chunk_does_not_include_footer()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		await chunk.Complete(CancellationToken.None); // chunk has 0 bytes of actual data
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsTrue(result.IsEOF);
@@ -61,10 +68,12 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task a_read_on_scavenged_chunk_does_not_include_map() {
+	public async Task a_read_on_scavenged_chunk_does_not_include_map()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("afile"), 200, isScavenged: true);
 		await chunk.CompleteScavenge([new PosMap(0, 0), new PosMap(1, 1)], CancellationToken.None);
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsTrue(result.IsEOF);
@@ -76,7 +85,8 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task if_asked_for_more_than_buffer_size_will_only_read_buffer_size() {
+	public async Task if_asked_for_more_than_buffer_size_will_only_read_buffer_size()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 3000);
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
 		var streamId = LogFormatHelper<TLogFormat, TStreamId>.StreamId;
@@ -86,7 +96,8 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 			new byte[2000], null);
 		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsFalse(result.IsEOF);
@@ -98,11 +109,13 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task a_read_past_eof_doesnt_return_eof_if_chunk_is_not_yet_completed() {
+	public async Task a_read_past_eof_doesnt_return_eof_if_chunk_is_not_yet_completed()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
 		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsFalse(result.IsEOF, "EOF was returned.");
@@ -116,14 +129,16 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task a_read_past_eof_returns_eof_if_chunk_is_completed() {
+	public async Task a_read_past_eof_returns_eof_if_chunk_is_completed()
+	{
 		var chunk = await TFChunkHelper.CreateNewChunk(GetFilePathFor("file1"), 300);
 
 		var rec = LogRecord.Commit(0, Guid.NewGuid(), 0, 0);
 		Assert.IsTrue((await chunk.TryAppend(rec, CancellationToken.None)).Success, "Record was not appended");
 		await chunk.Complete(CancellationToken.None);
 
-		using (var reader = await chunk.AcquireDataReader()) {
+		using (var reader = await chunk.AcquireDataReader())
+		{
 			var buffer = new byte[1024];
 			var result = await reader.ReadNextBytes(buffer, CancellationToken.None);
 			Assert.IsTrue(result.IsEOF, "EOF was not returned.");
@@ -137,7 +152,8 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 	}
 
 	[Test]
-	public async Task a_failed_data_reader_wrap_disposes_the_owned_stream() {
+	public async Task a_failed_data_reader_wrap_disposes_the_owned_stream()
+	{
 		var fileSystem = new TrackingChunkFileSystem(
 			new ChunkLocalFileSystem(new VersionedPatternFileNamingStrategy(PathName, "chunk-")));
 		var chunk = await TFChunk.CreateNew(
@@ -169,23 +185,27 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		chunk.WaitForDestroy(5000);
 	}
 
-	private sealed class ThrowingReadChunkTransform : IChunkTransform {
+	private sealed class ThrowingReadChunkTransform : IChunkTransform
+	{
 		public IChunkReadTransform Read { get; } = new ThrowingReadChunkReadTransform();
 		public IChunkWriteTransform Write { get; } = new IdentityChunkWriteTransform();
 	}
 
-	private sealed class ThrowingReadChunkReadTransform : IChunkReadTransform {
+	private sealed class ThrowingReadChunkReadTransform : IChunkReadTransform
+	{
 		public ChunkDataReadStream TransformData(ChunkDataReadStream stream) =>
 			throw new InvalidOperationException("boom");
 	}
 
-	private sealed class TrackingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem {
+	private sealed class TrackingChunkFileSystem(IChunkFileSystem inner) : IChunkFileSystem
+	{
 		public TrackingChunkHandle LastHandle { get; private set; }
 
 		public IVersionedFileNamingStrategy NamingStrategy => inner.NamingStrategy;
 
 		public async ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
-			bool asyncIO, CancellationToken token) {
+			bool asyncIO, CancellationToken token)
+		{
 			LastHandle = new TrackingChunkHandle(await inner.OpenForReadAsync(fileName, readOptimizationHint, asyncIO, token));
 			return LastHandle;
 		}
@@ -208,7 +228,8 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 			inner.SetAttributes(fileName, fileAttributes);
 	}
 
-	private sealed class TrackingChunkHandle(IChunkHandle inner) : IChunkHandle {
+	private sealed class TrackingChunkHandle(IChunkHandle inner) : IChunkHandle
+	{
 		public bool IsDisposed { get; private set; }
 
 		public void Flush() => inner.Flush();
@@ -219,7 +240,8 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) =>
 			inner.ReadAsync(buffer, offset, token);
 
-		public long Length {
+		public long Length
+		{
 			get => inner.Length;
 			set => inner.Length = value;
 		}
@@ -230,8 +252,10 @@ public class when_reading_logical_bytes_bulk_from_a_chunk<TLogFormat, TStreamId>
 		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) =>
 			inner.SetReadOnlyAsync(value, token);
 
-		public void Dispose() {
-			if (IsDisposed) {
+		public void Dispose()
+		{
+			if (IsDisposed)
+			{
 				return;
 			}
 

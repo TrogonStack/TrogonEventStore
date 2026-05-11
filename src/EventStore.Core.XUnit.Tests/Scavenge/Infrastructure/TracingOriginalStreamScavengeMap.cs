@@ -5,13 +5,15 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class TracingOriginalStreamScavengeMap<TKey> : IOriginalStreamScavengeMap<TKey> {
+public class TracingOriginalStreamScavengeMap<TKey> : IOriginalStreamScavengeMap<TKey>
+{
 	private readonly IOriginalStreamScavengeMap<TKey> _wrapped;
 	private readonly Tracer _tracer;
 
 	public TracingOriginalStreamScavengeMap(
 		IOriginalStreamScavengeMap<TKey> wrapped,
-		Tracer tracer) {
+		Tracer tracer)
+	{
 
 		_wrapped = wrapped;
 		_tracer = tracer;
@@ -19,7 +21,8 @@ public class TracingOriginalStreamScavengeMap<TKey> : IOriginalStreamScavengeMap
 
 	public OriginalStreamData this[TKey key] { set => _wrapped[key] = value; }
 
-	public void DeleteMany(bool deleteArchived) {
+	public void DeleteMany(bool deleteArchived)
+	{
 		_wrapped.DeleteMany(deleteArchived);
 	}
 
@@ -36,29 +39,35 @@ public class TracingOriginalStreamScavengeMap<TKey> : IOriginalStreamScavengeMap
 		TKey key,
 		CalculationStatus status,
 		DiscardPoint discardPoint,
-		DiscardPoint maybeDiscardPoint) {
+		DiscardPoint maybeDiscardPoint)
+	{
 
 		_tracer.Trace($"SetDiscardPoints({key}, {status}, {discardPoint}, {maybeDiscardPoint})");
 		_wrapped.SetDiscardPoints(key, status, discardPoint, maybeDiscardPoint);
 	}
 
-	public void SetMetadata(TKey key, StreamMetadata metadata) {
+	public void SetMetadata(TKey key, StreamMetadata metadata)
+	{
 		_wrapped.SetMetadata(key, metadata);
 	}
 
-	public void SetTombstone(TKey key) {
+	public void SetTombstone(TKey key)
+	{
 		_wrapped.SetTombstone(key);
 	}
 
-	public bool TryGetChunkExecutionInfo(TKey key, out ChunkExecutionInfo details) {
+	public bool TryGetChunkExecutionInfo(TKey key, out ChunkExecutionInfo details)
+	{
 		return _wrapped.TryGetChunkExecutionInfo(key, out details);
 	}
 
-	public bool TryGetValue(TKey key, out OriginalStreamData value) {
+	public bool TryGetValue(TKey key, out OriginalStreamData value)
+	{
 		return _wrapped.TryGetValue(key, out value);
 	}
 
-	public bool TryRemove(TKey key, out OriginalStreamData value) {
+	public bool TryRemove(TKey key, out OriginalStreamData value)
+	{
 		return _wrapped.TryRemove(key, out value);
 	}
 }

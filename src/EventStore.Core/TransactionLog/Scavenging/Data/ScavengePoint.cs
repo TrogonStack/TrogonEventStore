@@ -1,8 +1,11 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class ScavengePoint {
-		public ScavengePoint(long position, long eventNumber, DateTime effectiveNow, int threshold) {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class ScavengePoint
+	{
+		public ScavengePoint(long position, long eventNumber, DateTime effectiveNow, int threshold)
+		{
 			Position = position;
 			EventNumber = eventNumber;
 			EffectiveNow = effectiveNow;

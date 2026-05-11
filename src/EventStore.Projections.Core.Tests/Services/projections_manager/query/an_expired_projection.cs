@@ -11,17 +11,22 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.query;
 
-public class an_expired_projection {
-	public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId> {
+public class an_expired_projection
+{
+	public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId>
+	{
 		protected Guid _reader;
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			AllWritesSucceed();
 			base.Given();
 		}
 
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -38,16 +43,20 @@ public class an_expired_projection {
 					"type", false, new byte[0], new byte[0], 100, 33.3f));
 			_timeProvider.AddToUtcTime(TimeSpan.FromMinutes(6));
 			yield return Yield;
-			foreach (var m in _consumer.HandledMessages.OfType<TimerMessage.Schedule>().ToArray()) {
+			foreach (var m in _consumer.HandledMessages.OfType<TimerMessage.Schedule>().ToArray())
+			{
 				m.Envelope.ReplyWith(m.ReplyMessage);
 			}
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_retrieving_statistics<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var s in base.When()) {
+	public class when_retrieving_statistics<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var s in base.When())
+			{
 				yield return s;
 			}
 
@@ -58,16 +67,20 @@ public class an_expired_projection {
 		}
 
 		[Test]
-		public void projection_is_not_found() {
+		public void projection_is_not_found()
+		{
 			Assert.AreEqual(1, _consumer.HandledMessages.OfType<ProjectionManagementMessage.NotFound>().Count());
 			Assert.IsFalse(_consumer.HandledMessages.OfType<ProjectionManagementMessage.Statistics>().Any());
 		}
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_deleted_on_expiry<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var s in base.When()) {
+	public class when_deleted_on_expiry<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var s in base.When())
+			{
 				yield return s;
 			}
 
@@ -75,7 +88,8 @@ public class an_expired_projection {
 		}
 
 		[Test]
-		public void projection_deletion_should_not_be_written() {
+		public void projection_deletion_should_not_be_written()
+		{
 			var registrationEvents = _streams["$projections-$all"];
 			Assert.AreEqual(1, registrationEvents.Count(e => e.EventType == "$ProjectionsInitialized"));
 			Assert.AreEqual(0,

@@ -8,9 +8,11 @@ using EventStore.Core.Services.Transport.Http.NodeHttpClientFactory;
 using Grpc.Net.Client;
 using Serilog.Extensions.Logging;
 
-namespace EventStore.Core.Cluster {
+namespace EventStore.Core.Cluster
+{
 
-	public partial class EventStoreClusterClient : IDisposable {
+	public partial class EventStoreClusterClient : IDisposable
+	{
 		private readonly EventStore.Cluster.Gossip.GossipClient _gossipClient;
 		private readonly EventStore.Cluster.Elections.ElectionsClient _electionsClient;
 
@@ -29,7 +31,8 @@ namespace EventStore.Core.Cluster {
 			INodeHttpClientFactory nodeHttpClientFactory,
 			string clusterDns,
 			IDurationTracker gossipSendTracker,
-			IDurationTracker gossipGetTracker) {
+			IDurationTracker gossipGetTracker)
+		{
 
 			_clusterDns = clusterDns;
 
@@ -38,7 +41,8 @@ namespace EventStore.Core.Cluster {
 			httpClient.DefaultRequestVersion = new Version(2, 0);
 
 			var address = new UriBuilder(uriScheme, nodeEndPoint.GetHost(), nodeEndPoint.GetPort()).Uri;
-			_channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions {
+			_channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
+			{
 				HttpClient = httpClient,
 				LoggerFactory = new SerilogLoggerFactory()
 			});
@@ -50,8 +54,10 @@ namespace EventStore.Core.Cluster {
 			_gossipGetTracker = gossipGetTracker;
 		}
 
-		public void Dispose() {
-			if (Disposed) {
+		public void Dispose()
+		{
+			if (Disposed)
+			{
 				return;
 			}
 

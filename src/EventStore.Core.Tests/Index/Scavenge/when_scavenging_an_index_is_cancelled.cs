@@ -9,12 +9,14 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.Scavenge;
 
 [TestFixture]
-public class when_scavenging_an_index_is_cancelled : SpecificationWithDirectoryPerTestFixture {
+public class when_scavenging_an_index_is_cancelled : SpecificationWithDirectoryPerTestFixture
+{
 	private PTable _oldTable;
 	private string _expectedOutputFile;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var table = new HashListMemTable(PTableVersions.IndexV4, maxSize: 20);
@@ -25,7 +27,8 @@ public class when_scavenging_an_index_is_cancelled : SpecificationWithDirectoryP
 		_oldTable = PTable.FromMemtable(table, GetTempFilePath(), Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault);
 
 		var cancellationTokenSource = new CancellationTokenSource();
-		Func<IndexEntry, bool> existsAt = x => {
+		Func<IndexEntry, bool> existsAt = x =>
+		{
 			cancellationTokenSource.Cancel();
 			return true;
 		};
@@ -38,14 +41,16 @@ public class when_scavenging_an_index_is_cancelled : SpecificationWithDirectoryP
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		_oldTable.Dispose();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void the_output_file_is_deleted() {
+	public void the_output_file_is_deleted()
+	{
 		Assert.That(File.Exists(_expectedOutputFile), Is.False);
 		Assert.That(File.Exists(PTable.GenBloomFilterFilename(_expectedOutputFile)), Is.False);
 	}

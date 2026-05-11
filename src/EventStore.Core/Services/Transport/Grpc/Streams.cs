@@ -5,8 +5,10 @@ using EventStore.Core.Metrics;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Plugins.Authorization;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	internal partial class Streams<TStreamId> : EventStore.Client.Streams.Streams.StreamsBase {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	internal partial class Streams<TStreamId> : EventStore.Client.Streams.Streams.StreamsBase
+	{
 		private readonly IPublisher _publisher;
 		private readonly int _maxAppendSize;
 		private readonly TimeSpan _writeTimeout;
@@ -24,9 +26,11 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		public Streams(IPublisher publisher, int maxAppendSize, TimeSpan writeTimeout,
 			IExpiryStrategy expiryStrategy,
 			GrpcTrackers trackers,
-			IAuthorizationProvider provider) {
+			IAuthorizationProvider provider)
+		{
 
-			if (publisher == null) {
+			if (publisher == null)
+			{
 				throw new ArgumentNullException(nameof(publisher));
 			}
 

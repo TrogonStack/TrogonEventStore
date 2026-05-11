@@ -3,7 +3,8 @@ using EventStore.Common.Utils;
 
 namespace EventStore.Common.Tests.Utils;
 
-public class JsonTests {
+public class JsonTests
+{
 	[Theory]
 	[InlineData("""
 		{
@@ -20,7 +21,8 @@ public class JsonTests {
 		}
 		// d comment
 		""")]
-	public void accepts_valid(string json) {
+	public void accepts_valid(string json)
+	{
 		Assert.True(new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(json)).IsValidUtf8Json());
 	}
 
@@ -44,21 +46,24 @@ public class JsonTests {
 		{ "foo": "bar" }
 		{ "foo": "bar" }
 		""")]
-	public void rejects_invalid(string invalidJson) {
+	public void rejects_invalid(string invalidJson)
+	{
 		Assert.False(new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(invalidJson)).IsValidUtf8Json());
 	}
 
 	[Theory]
 	[InlineData(64, true)]
 	[InlineData(65, false)]
-	public void checks_depth(int depth, bool isValid) {
+	public void checks_depth(int depth, bool isValid)
+	{
 		var json = new string('[', depth) + new string(']', depth);
 
 		Assert.Equal(isValid, new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(json)).IsValidUtf8Json());
 	}
 
 	[Fact]
-	public void rejects_bom() {
+	public void rejects_bom()
+	{
 		var json = new byte[] {
 			0xEF, 0xBB, 0xBF,
 			(byte)'{',
@@ -69,7 +74,8 @@ public class JsonTests {
 	}
 
 	[Fact]
-	public void utf16_is_not_valid() {
+	public void utf16_is_not_valid()
+	{
 		const string json = """{ "foo": "bar" }""";
 
 		Assert.False(new ReadOnlyMemory<byte>(Encoding.Unicode.GetBytes(json)).IsValidUtf8Json());

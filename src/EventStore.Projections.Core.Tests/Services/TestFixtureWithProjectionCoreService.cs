@@ -19,63 +19,79 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Tests.Services;
 
-public class TestFixtureWithProjectionCoreService {
-	class GuardBusToTriggerFixingIfUsed : IQueuedHandler, ISubscriber, IPublisher {
-		public void Handle(Message message) {
+public class TestFixtureWithProjectionCoreService
+{
+	class GuardBusToTriggerFixingIfUsed : IQueuedHandler, ISubscriber, IPublisher
+	{
+		public void Handle(Message message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Publish(Message message) {
+		public void Publish(Message message)
+		{
 			throw new NotImplementedException();
 		}
 
 		public string Name { get; }
-		public Task Start() {
+		public Task Start()
+		{
 			throw new NotImplementedException();
 		}
 
-		public Task Stop() {
+		public Task Stop()
+		{
 			throw new NotImplementedException();
 		}
 
-		public void RequestStop() {
+		public void RequestStop()
+		{
 			throw new NotImplementedException();
 		}
 
-		public QueueStats GetStatistics() {
+		public QueueStats GetStatistics()
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message {
+		public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message {
+		public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message
+		{
 			throw new NotImplementedException();
 		}
 	}
-	public class TestCoreProjection : ICoreProjection {
+	public class TestCoreProjection : ICoreProjection
+	{
 		public List<EventReaderSubscriptionMessage.CommittedEventReceived> HandledMessages =
 			new List<EventReaderSubscriptionMessage.CommittedEventReceived>();
 
-		public void Handle(CoreProjectionProcessingMessage.CheckpointCompleted message) {
+		public void Handle(CoreProjectionProcessingMessage.CheckpointCompleted message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message) {
+		public void Handle(CoreProjectionProcessingMessage.CheckpointLoaded message)
+		{
 			throw new NotImplementedException();
 		}
 
 
-		public void Handle(CoreProjectionProcessingMessage.RestartRequested message) {
+		public void Handle(CoreProjectionProcessingMessage.RestartRequested message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(CoreProjectionProcessingMessage.Failed message) {
+		public void Handle(CoreProjectionProcessingMessage.Failed message)
+		{
 			throw new NotImplementedException();
 		}
 
-		public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message) {
+		public void Handle(CoreProjectionProcessingMessage.PrerecordedEventsLoaded message)
+		{
 			throw new NotImplementedException();
 		}
 	}
@@ -90,7 +106,8 @@ public class TestFixtureWithProjectionCoreService {
 	protected Guid _workerId;
 
 	[SetUp]
-	public virtual void Setup() {
+	public virtual void Setup()
+	{
 		_consumer = new TestHandler<Message>();
 		_bus = new();
 		_bus.Subscribe(_consumer);
@@ -126,7 +143,8 @@ public class TestFixtureWithProjectionCoreService {
 		_service.Handle(new ProjectionCoreServiceMessage.StartCore(instanceCorrelationId));
 	}
 
-	protected IReaderStrategy CreateReaderStrategy() {
+	protected IReaderStrategy CreateReaderStrategy()
+	{
 		var result = new SourceDefinitionBuilder();
 		result.FromAll();
 		result.AllEvents();
@@ -139,7 +157,8 @@ public class TestFixtureWithProjectionCoreService {
 			runAs: null);
 	}
 
-	protected static ResolvedEvent CreateEvent() {
+	protected static ResolvedEvent CreateEvent()
+	{
 		return new ResolvedEvent(
 			"test", -1, "test", -1, false, new TFPos(10, 5), new TFPos(10, 5), Guid.NewGuid(), "t", false,
 			new byte[0], new byte[0], null, null, default(DateTime));

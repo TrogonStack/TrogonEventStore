@@ -1,8 +1,10 @@
 using System;
 using HashCode = EventStore.Core.Services.Transport.Common.HashCode;
 
-namespace EventStore.Core.Services.Transport.Grpc {
-	public struct Uuid : IEquatable<Uuid> {
+namespace EventStore.Core.Services.Transport.Grpc
+{
+	public struct Uuid : IEquatable<Uuid>
+	{
 		public static readonly Uuid Empty = new Uuid(Guid.Empty);
 
 		private readonly long _lsb;
@@ -13,26 +15,32 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		public static Uuid Parse(string value) => new Uuid(value);
 		public static Uuid FromInt64(long msb, long lsb) => new Uuid(msb, lsb);
 
-		public static Uuid FromDto(Client.UUID dto) {
-			if (dto == null) {
+		public static Uuid FromDto(Client.UUID dto)
+		{
+			if (dto == null)
+			{
 				throw new ArgumentNullException(nameof(dto));
 			}
 
-			return dto.ValueCase switch {
+			return dto.ValueCase switch
+			{
 				Client.UUID.ValueOneofCase.String => new Uuid(dto.String),
 				Client.UUID.ValueOneofCase.Structured => new Uuid(dto.Structured.MostSignificantBits,
 					dto.Structured.LeastSignificantBits),
 				_ => throw new ArgumentException($"Invalid argument: {dto.ValueCase}", nameof(dto))
 			};
 		}
-		private Uuid(Guid value) {
-			if (!BitConverter.IsLittleEndian) {
+		private Uuid(Guid value)
+		{
+			if (!BitConverter.IsLittleEndian)
+			{
 				throw new NotSupportedException();
 			}
 
 			Span<byte> data = stackalloc byte[16];
 
-			if (!value.TryWriteBytes(data)) {
+			if (!value.TryWriteBytes(data))
+			{
 				throw new InvalidOperationException();
 			}
 
@@ -48,16 +56,20 @@ namespace EventStore.Core.Services.Transport.Grpc {
 
 		private Uuid(string value) : this(value != null
 			? Guid.Parse(value)
-			: throw new ArgumentNullException(nameof(value))) {
+			: throw new ArgumentNullException(nameof(value)))
+		{
 		}
 
-		private Uuid(long msb, long lsb) {
+		private Uuid(long msb, long lsb)
+		{
 			_msb = msb;
 			_lsb = lsb;
 		}
 
-		public readonly Client.UUID ToDto() => new() {
-			Structured = new() {
+		public readonly Client.UUID ToDto() => new()
+		{
+			Structured = new()
+			{
 				LeastSignificantBits = _lsb,
 				MostSignificantBits = _msb
 			}
@@ -71,14 +83,17 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		public override string ToString() => ToGuid().ToString();
 		public string ToString(string format) => ToGuid().ToString(format);
 
-		public readonly Guid ToGuid() {
-			if (!BitConverter.IsLittleEndian) {
+		public readonly Guid ToGuid()
+		{
+			if (!BitConverter.IsLittleEndian)
+			{
 				throw new NotSupportedException();
 			}
 
 			Span<byte> data = stackalloc byte[16];
 			if (!BitConverter.TryWriteBytes(data, _msb) ||
-				!BitConverter.TryWriteBytes(data.Slice(8), _lsb)) {
+				!BitConverter.TryWriteBytes(data.Slice(8), _lsb))
+			{
 				throw new InvalidOperationException();
 			}
 

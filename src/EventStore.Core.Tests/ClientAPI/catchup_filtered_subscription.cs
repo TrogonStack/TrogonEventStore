@@ -16,7 +16,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("LongRunning"), Category("ClientAPI"), NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class catchup_filtered_subscription<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class catchup_filtered_subscription<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private IEventStoreConnection _conn;
 	private List<EventData> _testEvents;
@@ -27,7 +28,8 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 	private const int LongRunningTimeout = 600000;
 
 	[SetUp]
-	public override async Task SetUp() {
+	public override async Task SetUp()
+	{
 		await base.SetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start(StartupTimeout);
@@ -65,12 +67,14 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		await _conn.AppendToStreamAsync("stream-b", ExpectedVersion.NoStream, _testEvents.OddEvents());
 	}
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
 	[Test]
-	public void calls_checkpoint_delegate_during_catchup() {
+	public void calls_checkpoint_delegate_during_catchup()
+	{
 		var filter = Filter.StreamId.Prefix("stream-a");
 		// in v2 there are 20 events, 10 in stream-a and 10 in stream-b.
 		// in v3 there are additionally two stream records and two event type records
@@ -91,29 +95,35 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 			Position.Start,
 			filter,
 			settings,
-			(s, e) => {
+			(s, e) =>
+			{
 				eventsSeen++;
 				return Task.CompletedTask;
 			},
-			(s, p) => {
+			(s, p) =>
+			{
 				checkpointReached.Signal();
 				return Task.CompletedTask;
 			}, 1);
 
-		try {
-			if (!checkpointReached.Wait(Timeout)) {
+		try
+		{
+			if (!checkpointReached.Wait(Timeout))
+			{
 				Assert.Fail("Checkpoint reached not called enough times within time limit.");
 			}
 
 			Assert.AreEqual(10, eventsSeen);
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	[Test]
-	public void calls_checkpoint_during_live_processing_stage() {
+	public void calls_checkpoint_during_live_processing_stage()
+	{
 		var filter = Filter.StreamId.Prefix("stream-a");
 		var appeared = new CountdownEvent(_testEventsAfter.EvenEvents().Count + 1); // Calls once for switch to live.
 		var eventsSeen = 0;
@@ -132,107 +142,131 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 			Position.Start,
 			filter,
 			settings,
-			(s, e) => {
+			(s, e) =>
+			{
 				eventsSeen++;
 				return Task.CompletedTask;
 			},
-			(s, p) => {
-				if (isLive) {
+			(s, p) =>
+			{
+				if (isLive)
+				{
 					appeared.Signal();
 				}
 
 				return Task.CompletedTask;
-			}, 1, s => {
+			}, 1, s =>
+			{
 				isLive = true;
 				_conn.AppendToStreamAsync("stream-a", ExpectedVersion.Any, _testEventsAfter.EvenEvents()).Wait();
 			});
 
-		try {
-			if (!appeared.Wait(Timeout)) {
+		try
+		{
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.Fail("Checkpoint appeared not called enough times within time limit.");
 			}
 
 			Assert.AreEqual(20, eventsSeen);
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public void only_return_events_with_a_given_stream_prefix() {
+	public void only_return_events_with_a_given_stream_prefix()
+	{
 		var filter = Filter.StreamId.Prefix("stream-a");
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		try {
-			if (!appeared.Wait(Timeout)) {
+		try
+		{
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
 
 			Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-a"));
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public void only_return_events_with_a_given_event_prefix() {
+	public void only_return_events_with_a_given_event_prefix()
+	{
 		var filter = Filter.EventType.Prefix("AE");
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		try {
-			if (!appeared.Wait(Timeout)) {
+		try
+		{
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
 
 			Assert.True(foundEvents.All(e => e.Event.EventType == "AEvent"));
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public void only_return_events_that_satisfy_a_given_stream_regex() {
+	public void only_return_events_that_satisfy_a_given_stream_regex()
+	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		try {
-			if (!appeared.Wait(Timeout)) {
+		try
+		{
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
 
 			Assert.True(foundEvents.All(e => e.Event.EventStreamId == "stream-b"));
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public void only_return_events_that_satisfy_a_given_event_regex() {
+	public void only_return_events_that_satisfy_a_given_event_regex()
+	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		var appeared = new CountdownEvent(20);
 		var subscription = Subscribe(filter, foundEvents, appeared);
-		try {
-			if (!appeared.Wait(Timeout)) {
+		try
+		{
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
 
 			Assert.True(foundEvents.All(e => e.Event.EventType == "BEvent"));
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
-	public void only_return_events_that_are_not_system_events() {
+	public void only_return_events_that_are_not_system_events()
+	{
 		var filter = Filter.ExcludeSystemEvents;
 		var foundEvents = new ConcurrentBag<ResolvedEvent>();
 		using var appeared = new ManualResetEventSlim();
@@ -242,55 +276,67 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 			Position.Start,
 			filter,
 			CatchUpSubscriptionFilteredSettings.Default,
-			(s, e) => {
+			(s, e) =>
+			{
 				foundEvents.Add(e);
-				if (Interlocked.Increment(ref foundEventsCount) >= requiredEvents) {
+				if (Interlocked.Increment(ref foundEventsCount) >= requiredEvents)
+				{
 					appeared.Set();
 				}
 
 				return Task.CompletedTask;
 			},
 			(s, p) => Task.CompletedTask, 5,
-			s => {
+			s =>
+			{
 				_conn.AppendToStreamAsync("stream-a", ExpectedVersion.Any, _testEventsAfter.EvenEvents()).Wait();
 				_conn.AppendToStreamAsync("stream-b", ExpectedVersion.Any, _testEventsAfter.OddEvents()).Wait();
 			});
-		try {
-			if (!appeared.Wait(Timeout)) {
+		try
+		{
+			if (!appeared.Wait(Timeout))
+			{
 				Assert.Fail("Appeared countdown event timed out.");
 			}
 
 			Assert.True(foundEvents.All(e => !e.Event.EventType.StartsWith("$")));
 		}
-		finally {
+		finally
+		{
 			StopSubscription(subscription);
 		}
 	}
 
 	private EventStoreCatchUpSubscription Subscribe(Filter filter, ConcurrentBag<ResolvedEvent> foundEvents,
-		CountdownEvent appeared) {
+		CountdownEvent appeared)
+	{
 		return _conn.FilteredSubscribeToAllFrom(
 			Position.Start,
 			filter,
 			CatchUpSubscriptionFilteredSettings.Default,
-			(s, e) => {
+			(s, e) =>
+			{
 				foundEvents.Add(e);
 				appeared.Signal();
 				return Task.CompletedTask;
 			},
 			(s, p) => Task.CompletedTask, 5,
-			s => {
+			s =>
+			{
 				_conn.AppendToStreamAsync("stream-a", ExpectedVersion.Any, _testEventsAfter.EvenEvents()).Wait();
 				_conn.AppendToStreamAsync("stream-b", ExpectedVersion.Any, _testEventsAfter.OddEvents()).Wait();
 			});
 	}
 
 	[TearDown]
-	public override async Task TearDown() {
-		try {
+	public override async Task TearDown()
+	{
+		try
+		{
 			await TestConnectionLifecycle.CloseConnectionAndWait(_conn, ConnectionCloseTimeout);
 		}
-		catch {
+		catch
+		{
 			TestConnectionLifecycle.TryCloseConnection(_conn);
 		}
 
@@ -299,11 +345,14 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		await base.TearDown();
 	}
 
-	private static void StopSubscription(EventStoreCatchUpSubscription subscription) {
-		try {
+	private static void StopSubscription(EventStoreCatchUpSubscription subscription)
+	{
+		try
+		{
 			subscription.Stop(ConnectionCloseTimeout);
 		}
-		catch {
+		catch
+		{
 		}
 	}
 }

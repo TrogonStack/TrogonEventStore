@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.Services.Transport.Tcp {
+namespace EventStore.Core.Services.Transport.Tcp
+{
 	[Flags]
-	public enum TcpFlags : byte {
+	public enum TcpFlags : byte
+	{
 		None = 0x00,
 		Authenticated = 0x01,
 		TrustedWrite = 0x02
 	}
 
-	public struct TcpPackage {
+	public struct TcpPackage
+	{
 		private static readonly IReadOnlyDictionary<string, string> NotAuthenticated = new Dictionary<string, string>();
 		public const int CommandOffset = 0;
 		public const int FlagsOffset = CommandOffset + 1;
@@ -32,14 +35,17 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		private readonly string _password;
 		private readonly string _authToken;
 
-		public IReadOnlyDictionary<string, string> Tokens => (_login, _authToken) switch {
+		public IReadOnlyDictionary<string, string> Tokens => (_login, _authToken) switch
+		{
 			(null, null) => NotAuthenticated,
 			(null, _) => new Dictionary<string, string> { ["jwt"] = _authToken },
 			_ => new Dictionary<string, string> { ["uid"] = _login, ["pwd"] = _password }
 		};
 
-		public static TcpPackage FromArraySegment(ArraySegment<byte> data) {
-			if (data.Count < MandatorySize) {
+		public static TcpPackage FromArraySegment(ArraySegment<byte> data)
+		{
+			if (data.Count < MandatorySize)
+			{
 				throw new ArgumentException($"ArraySegment too short, length: {data.Count}", nameof(data));
 			}
 
@@ -53,10 +59,12 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			var headerSize = MandatorySize;
 			string login = null;
 			string pass = null;
-			if ((flags & TcpFlags.Authenticated) != 0) {
+			if ((flags & TcpFlags.Authenticated) != 0)
+			{
 				var firstByte = data.Array[data.Offset + AuthOffset];
 				var tokenLength = BitConverter.ToInt16(data.Array, AuthOffset);
-				if (Math.Sign(tokenLength) == -1) {
+				if (Math.Sign(tokenLength) == -1)
+				{
 					var token = Helper.UTF8NoBom.GetString(data.Array, AuthOffset + 2, -tokenLength);
 
 					headerSize += token.Length + 2;
@@ -83,39 +91,49 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		public TcpPackage(TcpCommand command, Guid correlationId, byte[] data)
-			: this(command, TcpFlags.None, correlationId, null, new ArraySegment<byte>(data ?? Empty.ByteArray)) {
+			: this(command, TcpFlags.None, correlationId, null, new ArraySegment<byte>(data ?? Empty.ByteArray))
+		{
 		}
 
 		public TcpPackage(TcpCommand command, Guid correlationId, ArraySegment<byte> data)
-			: this(command, TcpFlags.None, correlationId, null, data) {
+			: this(command, TcpFlags.None, correlationId, null, data)
+		{
 		}
 
 		public TcpPackage(TcpCommand command, TcpFlags flags, Guid correlationId, string login, string password,
 			byte[] data)
-			: this(command, flags, correlationId, login, password, new ArraySegment<byte>(data ?? Empty.ByteArray)) {
+			: this(command, flags, correlationId, login, password, new ArraySegment<byte>(data ?? Empty.ByteArray))
+		{
 		}
 
 		public TcpPackage(TcpCommand command, TcpFlags flags, Guid correlationId, string login, string password,
-			ArraySegment<byte> data) : this(command, flags, correlationId, data) {
-			if ((flags & TcpFlags.Authenticated) != 0) {
+			ArraySegment<byte> data) : this(command, flags, correlationId, data)
+		{
+			if ((flags & TcpFlags.Authenticated) != 0)
+			{
 				Ensure.NotNull(login, nameof(login));
 				Ensure.NotNull(password, nameof(password));
-				if (Helper.UTF8NoBom.GetByteCount(login) > MaxLoginLength) {
+				if (Helper.UTF8NoBom.GetByteCount(login) > MaxLoginLength)
+				{
 					throw new ArgumentException($"Login length must be less than {MaxLoginLength} bytes.",
 						nameof(login));
 				}
 
-				if (Helper.UTF8NoBom.GetByteCount(password) > MaxPasswordLength) {
+				if (Helper.UTF8NoBom.GetByteCount(password) > MaxPasswordLength)
+				{
 					throw new ArgumentException($"Password length must be less than {MaxPasswordLength} bytes.",
 						nameof(password));
 				}
 			}
-			else {
-				if (login != null) {
+			else
+			{
+				if (login != null)
+				{
 					throw new ArgumentException("Login provided for non-authorized TcpPackage", nameof(login));
 				}
 
-				if (password != null) {
+				if (password != null)
+				{
 					throw new ArgumentException("Password provided for non-authorized TcpPackage", nameof(password));
 				}
 			}
@@ -125,17 +143,21 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 		public TcpPackage(TcpCommand command, TcpFlags flags, Guid correlationId, string authToken,
-			ArraySegment<byte> data) : this(command, flags, correlationId, data) {
-			if ((flags & TcpFlags.Authenticated) != 0) {
+			ArraySegment<byte> data) : this(command, flags, correlationId, data)
+		{
+			if ((flags & TcpFlags.Authenticated) != 0)
+			{
 				Ensure.NotNull(authToken, nameof(authToken));
 
-				if (Helper.UTF8NoBom.GetByteCount(authToken) > MaxTokenLength) {
+				if (Helper.UTF8NoBom.GetByteCount(authToken) > MaxTokenLength)
+				{
 					throw new ArgumentException($"Token length must be smaller than {MaxTokenLength} bytes",
 						nameof(authToken));
 				}
 			}
 
-			if ((flags & TcpFlags.Authenticated) == 0 && authToken != null) {
+			if ((flags & TcpFlags.Authenticated) == 0 && authToken != null)
+			{
 				throw new ArgumentException("Token provided for non-authorized TcpPackage", nameof(authToken));
 			}
 
@@ -143,7 +165,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		}
 
 
-		private TcpPackage(TcpCommand command, TcpFlags flags, Guid correlationId, ArraySegment<byte> data) {
+		private TcpPackage(TcpCommand command, TcpFlags flags, Guid correlationId, ArraySegment<byte> data)
+		{
 			Command = command;
 			Flags = flags;
 			CorrelationId = correlationId;
@@ -153,9 +176,12 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			_authToken = null;
 		}
 
-		public byte[] AsByteArray() {
-			if ((Flags & TcpFlags.Authenticated) != 0) {
-				if (_authToken == null) {
+		public byte[] AsByteArray()
+		{
+			if ((Flags & TcpFlags.Authenticated) != 0)
+			{
+				if (_authToken == null)
+				{
 					var loginLen = Helper.UTF8NoBom.GetByteCount(_login);
 					var passLen = Helper.UTF8NoBom.GetByteCount(_password);
 					var res = new byte[MandatorySize + 2 + loginLen + passLen + Data.Count];
@@ -171,7 +197,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					Buffer.BlockCopy(Data.Array, Data.Offset, res, res.Length - Data.Count, Data.Count);
 					return res;
 				}
-				else {
+				else
+				{
 					var authTokenLength = Helper.UTF8NoBom.GetByteCount(_authToken);
 					var res = new byte[MandatorySize + 2 + authTokenLength + Data.Count];
 					res[CommandOffset] = (byte)Command;
@@ -185,7 +212,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					return res;
 				}
 			}
-			else {
+			else
+			{
 				var res = new byte[MandatorySize + Data.Count];
 				res[CommandOffset] = (byte)Command;
 				res[FlagsOffset] = (byte)Flags;
@@ -195,7 +223,8 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			}
 		}
 
-		public ArraySegment<byte> AsArraySegment() {
+		public ArraySegment<byte> AsArraySegment()
+		{
 			return new ArraySegment<byte>(AsByteArray());
 		}
 	}

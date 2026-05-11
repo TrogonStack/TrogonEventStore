@@ -9,9 +9,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Authorization;
 
 [TestFixture]
-public class MultiClaimMatchTests {
+public class MultiClaimMatchTests
+{
 	[Test]
-	public async Task NoneMatchingHasMatches() {
+	public async Task NoneMatchingHasMatches()
+	{
 		var assertion = new MultipleClaimMatchAssertion(Grant.Deny, MultipleMatchMode.None,
 			new Claim("test1", "value1"), new Claim("test2", "value2"));
 		var cp = new ClaimsPrincipal(new ClaimsIdentity(new Claim[] { new Claim("test1", "value1") }));
@@ -22,7 +24,8 @@ public class MultiClaimMatchTests {
 	}
 
 	[Test]
-	public async Task NonMatchingHasNoMatches() {
+	public async Task NonMatchingHasNoMatches()
+	{
 		var assertion = new MultipleClaimMatchAssertion(Grant.Deny, MultipleMatchMode.None,
 			new Claim("test1", "value1"), new Claim("test2", "value2"));
 		var cp = new ClaimsPrincipal(new ClaimsIdentity(new Claim[] { new Claim("test3", "value3") }));

@@ -1,42 +1,54 @@
 using System;
 
-namespace EventStore.Core.Index.Hashes {
-	public class Murmur2Unsafe : IHasher, IHasher<string> {
+namespace EventStore.Core.Index.Hashes
+{
+	public class Murmur2Unsafe : IHasher, IHasher<string>
+	{
 		private const uint Seed = 0xc58f1a7b;
 
 		private const UInt32 m = 0x5bd1e995;
 		private const Int32 r = 24;
 
-		public unsafe UInt32 Hash(string s) {
-			fixed (char* input = s) {
+		public unsafe UInt32 Hash(string s)
+		{
+			fixed (char* input = s)
+			{
 				return Hash((byte*)input, (uint)s.Length * sizeof(char), Seed);
 			}
 		}
 
-		public unsafe uint Hash(byte[] data) {
-			fixed (byte* input = &data[0]) {
+		public unsafe uint Hash(byte[] data)
+		{
+			fixed (byte* input = &data[0])
+			{
 				return Hash(input, (uint)data.Length, Seed);
 			}
 		}
 
-		public unsafe uint Hash(byte[] data, int offset, uint len, uint seed) {
-			fixed (byte* input = &data[offset]) {
+		public unsafe uint Hash(byte[] data, int offset, uint len, uint seed)
+		{
+			fixed (byte* input = &data[offset])
+			{
 				return Hash(input, len, seed);
 			}
 		}
 
-		public unsafe uint Hash(ReadOnlySpan<byte> data) {
-			fixed (byte* input = data) {
+		public unsafe uint Hash(ReadOnlySpan<byte> data)
+		{
+			fixed (byte* input = data)
+			{
 				return Hash(input, (uint)data.Length, Seed);
 			}
 		}
 
-		private unsafe static uint Hash(byte* data, uint len, uint seed) {
+		private unsafe static uint Hash(byte* data, uint len, uint seed)
+		{
 			UInt32 h = seed ^ len;
 			UInt32 numberOfLoops = len >> 2; // div 4
 
 			UInt32* realData = (UInt32*)data;
-			while (numberOfLoops > 0) {
+			while (numberOfLoops > 0)
+			{
 				UInt32 k = *realData;
 
 				k *= m;

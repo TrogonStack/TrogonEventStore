@@ -4,19 +4,22 @@ using Microsoft.Extensions.Configuration;
 
 namespace EventStore.Common.Configuration;
 
-public class MetricsConfiguration {
+public class MetricsConfiguration
+{
 	public static MetricsConfiguration Get(IConfiguration configuration) =>
 		configuration
 			.GetSection("EventStore:Metrics")
 			.Get<MetricsConfiguration>() ?? new();
 
-	public enum StatusTracker {
+	public enum StatusTracker
+	{
 		Index = 1,
 		Node,
 		Scavenge,
 	}
 
-	public enum Checkpoint {
+	public enum Checkpoint
+	{
 		Chaser = 1,
 		Epoch,
 		Index,
@@ -27,7 +30,8 @@ public class MetricsConfiguration {
 		Writer,
 	}
 
-	public enum IncomingGrpcCall {
+	public enum IncomingGrpcCall
+	{
 		Current = 1,
 		Total,
 		Failed,
@@ -35,7 +39,8 @@ public class MetricsConfiguration {
 		DeadlineExceeded,
 	}
 
-	public enum GrpcMethod {
+	public enum GrpcMethod
+	{
 		StreamRead = 1,
 		StreamAppend,
 		StreamBatchAppend,
@@ -43,7 +48,8 @@ public class MetricsConfiguration {
 		StreamTombstone,
 	}
 
-	public enum GossipTracker {
+	public enum GossipTracker
+	{
 		PullFromPeer = 1,
 		PushToPeer,
 		ProcessingPushFromPeer,
@@ -51,26 +57,31 @@ public class MetricsConfiguration {
 		ProcessingRequestFromGrpcClient,
 	}
 
-	public enum WriterTracker {
+	public enum WriterTracker
+	{
 		FlushSize = 1,
 		FlushDuration,
 	}
 
-	public enum EventTracker {
+	public enum EventTracker
+	{
 		Read = 1,
 		Written,
 	}
 
-	public enum Cache {
+	public enum Cache
+	{
 		StreamInfo = 1,
 		Chunk,
 	}
 
-	public enum KestrelTracker {
+	public enum KestrelTracker
+	{
 		ConnectionCount = 1,
 	}
 
-	public enum SystemTracker {
+	public enum SystemTracker
+	{
 		Cpu = 1,
 		LoadAverage1m,
 		LoadAverage5m,
@@ -81,7 +92,8 @@ public class MetricsConfiguration {
 		DriveUsedBytes,
 	}
 
-	public enum ProcessTracker {
+	public enum ProcessTracker
+	{
 		UpTime = 1,
 		Cpu,
 		MemWorkingSet,
@@ -109,18 +121,21 @@ public class MetricsConfiguration {
 		GcPauseDuration,
 	}
 
-	public enum QueueTracker {
+	public enum QueueTracker
+	{
 		Busy = 1,
 		Length,
 		Processing,
 	}
 
-	public class LabelMappingCase {
+	public class LabelMappingCase
+	{
 		public string Regex { get; set; } = "";
 		public string Label { get; set; } = "";
 	}
 
-	public class OtlpExporterConfiguration {
+	public class OtlpExporterConfiguration
+	{
 		public bool Enabled { get; set; }
 	}
 

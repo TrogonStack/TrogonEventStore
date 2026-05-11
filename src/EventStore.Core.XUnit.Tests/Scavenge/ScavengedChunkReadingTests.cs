@@ -8,9 +8,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ScavengedChunkReadingTests : SqliteDbPerTest<ScavengedChunkReadingTests> {
+public class ScavengedChunkReadingTests : SqliteDbPerTest<ScavengedChunkReadingTests>
+{
 	[Fact]
-	public async Task missing_midpoint() {
+	public async Task missing_midpoint()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

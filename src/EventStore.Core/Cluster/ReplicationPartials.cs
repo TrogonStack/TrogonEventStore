@@ -3,29 +3,38 @@ using EventStore.Common.Utils;
 using Google.Protobuf;
 
 // ReSharper disable once CheckNamespace
-namespace EventStore.Cluster {
-	partial class ReplicaLogWrite {
-		public ReplicaLogWrite(long logPosition, byte[] replicaId) {
+namespace EventStore.Cluster
+{
+	partial class ReplicaLogWrite
+	{
+		public ReplicaLogWrite(long logPosition, byte[] replicaId)
+		{
 			LogPosition = logPosition;
 			ReplicaId = ByteString.CopyFrom(replicaId);
 		}
 	}
-	partial class ReplicatedTo {
-		public ReplicatedTo(long logPosition) {
+	partial class ReplicatedTo
+	{
+		public ReplicatedTo(long logPosition)
+		{
 			LogPosition = logPosition;
 		}
 	}
 
-	partial class Epoch {
-		public Epoch(long epochPosition, int epochNumber, byte[] epochId) {
+	partial class Epoch
+	{
+		public Epoch(long epochPosition, int epochNumber, byte[] epochId)
+		{
 			EpochPosition = epochPosition;
 			EpochNumber = epochNumber;
 			EpochId = ByteString.CopyFrom(epochId);
 		}
 	}
-	partial class SubscribeReplica {
+	partial class SubscribeReplica
+	{
 		public SubscribeReplica(long logPosition, byte[] chunkId, Epoch[] lastEpochs, byte[] ip, int port,
-			byte[] leaderId, byte[] subscriptionId, bool isPromotable, int version) {
+			byte[] leaderId, byte[] subscriptionId, bool isPromotable, int version)
+		{
 			LogPosition = logPosition;
 			ChunkId = ByteString.CopyFrom(chunkId);
 			LastEpochs.AddRange(lastEpochs);
@@ -39,8 +48,10 @@ namespace EventStore.Cluster {
 		}
 	}
 
-	partial class ReplicaSubscriptionRetry {
-		public ReplicaSubscriptionRetry(byte[] leaderId, byte[] subscriptionId) {
+	partial class ReplicaSubscriptionRetry
+	{
+		public ReplicaSubscriptionRetry(byte[] leaderId, byte[] subscriptionId)
+		{
 			Ensure.NotNull(leaderId, "leaderId");
 			Ensure.NotNull(subscriptionId, "subscriptionId");
 
@@ -48,8 +59,10 @@ namespace EventStore.Cluster {
 			SubscriptionId = ByteString.CopyFrom(subscriptionId);
 		}
 	}
-	partial class ReplicaSubscribed {
-		public ReplicaSubscribed(byte[] leaderId, byte[] subscriptionId, long subscriptionPosition) {
+	partial class ReplicaSubscribed
+	{
+		public ReplicaSubscribed(byte[] leaderId, byte[] subscriptionId, long subscriptionPosition)
+		{
 			Ensure.NotNull(leaderId, "leaderId");
 			Ensure.NotNull(subscriptionId, "subscriptionId");
 			Ensure.Nonnegative(subscriptionPosition, "subscriptionPosition");
@@ -60,11 +73,13 @@ namespace EventStore.Cluster {
 		}
 	}
 
-	partial class ReplicaLogPositionAck {
+	partial class ReplicaLogPositionAck
+	{
 		public ReplicaLogPositionAck(
 			byte[] subscriptionId,
 			long replicationLogPosition,
-			long writerLogPosition) {
+			long writerLogPosition)
+		{
 
 			SubscriptionId = ByteString.CopyFrom(subscriptionId);
 			ReplicationLogPosition = replicationLogPosition;
@@ -72,9 +87,11 @@ namespace EventStore.Cluster {
 		}
 	}
 
-	partial class CreateChunk {
+	partial class CreateChunk
+	{
 		public CreateChunk(byte[] leaderId, byte[] subscriptionId, byte[] chunkHeaderBytes, int fileSize,
-			bool isScavengedChunk, ReadOnlySpan<byte> transformHeaderBytes) {
+			bool isScavengedChunk, ReadOnlySpan<byte> transformHeaderBytes)
+		{
 			Ensure.NotNull(leaderId, "leaderId");
 			Ensure.NotNull(subscriptionId, "subscriptionId");
 			Ensure.NotNull(chunkHeaderBytes, "chunkHeaderBytes");
@@ -88,14 +105,16 @@ namespace EventStore.Cluster {
 		}
 	}
 
-	partial class RawChunkBulk {
+	partial class RawChunkBulk
+	{
 		public RawChunkBulk(byte[] leaderId,
 			byte[] subscriptionId,
 			int chunkStartNumber,
 			int chunkEndNumber,
 			int rawPosition,
 			byte[] rawBytes,
-			bool completeChunk) {
+			bool completeChunk)
+		{
 			Ensure.NotNull(leaderId, "leaderId");
 			Ensure.NotNull(subscriptionId, "subscriptionId");
 			Ensure.NotNull(rawBytes, "rawBytes");
@@ -111,7 +130,8 @@ namespace EventStore.Cluster {
 			CompleteChunk = completeChunk;
 		}
 	}
-	partial class DataChunkBulk {
+	partial class DataChunkBulk
+	{
 
 		public DataChunkBulk(byte[] leaderId,
 			byte[] subscriptionId,
@@ -119,7 +139,8 @@ namespace EventStore.Cluster {
 			int chunkEndNumber,
 			long subscriptionPosition,
 			byte[] dataBytes,
-			bool completeChunk) {
+			bool completeChunk)
+		{
 			Ensure.NotNull(leaderId, "leaderId");
 			Ensure.NotNull(subscriptionId, "subscriptionId");
 			Ensure.NotNull(dataBytes, "rawBytes");
@@ -136,22 +157,28 @@ namespace EventStore.Cluster {
 		}
 	}
 
-	partial class FollowerAssignment {
-		public FollowerAssignment(byte[] leaderId, byte[] subscriptionId) {
+	partial class FollowerAssignment
+	{
+		public FollowerAssignment(byte[] leaderId, byte[] subscriptionId)
+		{
 			LeaderId = ByteString.CopyFrom(leaderId);
 			SubscriptionId = ByteString.CopyFrom(subscriptionId);
 		}
 	}
 
-	partial class CloneAssignment {
-		public CloneAssignment(byte[] leaderId, byte[] subscriptionId) {
+	partial class CloneAssignment
+	{
+		public CloneAssignment(byte[] leaderId, byte[] subscriptionId)
+		{
 			LeaderId = ByteString.CopyFrom(leaderId);
 			SubscriptionId = ByteString.CopyFrom(subscriptionId);
 		}
 	}
 
-	partial class DropSubscription {
-		public DropSubscription(byte[] leaderId, byte[] subscriptionId) {
+	partial class DropSubscription
+	{
+		public DropSubscription(byte[] leaderId, byte[] subscriptionId)
+		{
 			LeaderId = ByteString.CopyFrom(leaderId);
 			SubscriptionId = ByteString.CopyFrom(subscriptionId);
 		}

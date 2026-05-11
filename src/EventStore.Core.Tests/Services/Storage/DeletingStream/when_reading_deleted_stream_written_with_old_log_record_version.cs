@@ -11,13 +11,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_reading_deleted_stream_written_with_old_log_record_version<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+public class when_reading_deleted_stream_written_with_old_log_record_version<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private Guid _id1;
 	private Guid _id2;
 	private Guid _id3;
 	private Guid _deleteId;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		_id1 = Guid.NewGuid();
 		_id2 = Guid.NewGuid();
 		_id3 = Guid.NewGuid();
@@ -52,12 +54,14 @@ public class when_reading_deleted_stream_written_with_old_log_record_version<TLo
 	}
 
 	[Test]
-	public async Task the_stream_is_deleted() {
+	public async Task the_stream_is_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None));
 	}
 
 	[Test]
-	public async Task the_last_event_number_is_deleted_stream() {
+	public async Task the_last_event_number_is_deleted_stream()
+	{
 		Assert.AreEqual(EventNumber.DeletedStream, await ReadIndex.GetStreamLastEventNumber("ES", CancellationToken.None));
 	}
 }

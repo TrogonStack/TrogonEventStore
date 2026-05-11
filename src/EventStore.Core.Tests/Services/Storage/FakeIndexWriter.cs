@@ -8,17 +8,21 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.Tests.Services.Storage;
 
-public class FakeIndexWriter<TStreamId> : IIndexWriter<TStreamId> {
+public class FakeIndexWriter<TStreamId> : IIndexWriter<TStreamId>
+{
 	public long CachedTransInfo => 0;
 	public long NotCachedTransInfo => 0;
 	public void Reset() { }
 
-	private TStreamId GetFakeStreamId() {
-		if (typeof(TStreamId) == typeof(long)) {
+	private TStreamId GetFakeStreamId()
+	{
+		if (typeof(TStreamId) == typeof(long))
+		{
 			return (TStreamId)(object)0L;
 		}
 
-		if (typeof(TStreamId) == typeof(string)) {
+		if (typeof(TStreamId) == typeof(string))
+		{
 			return (TStreamId)(object)string.Empty;
 		}
 
@@ -39,7 +43,8 @@ public class FakeIndexWriter<TStreamId> : IIndexWriter<TStreamId> {
 
 	public void PreCommit(ReadOnlySpan<IPrepareLogRecord<TStreamId>> committedPrepares) { }
 
-	public void UpdateTransactionInfo(long transactionId, long logPosition, TransactionInfo<TStreamId> transactionInfo) {
+	public void UpdateTransactionInfo(long transactionId, long logPosition, TransactionInfo<TStreamId> transactionInfo)
+	{
 	}
 
 	public ValueTask<TransactionInfo<TStreamId>> GetTransactionInfo(long writerCheckpoint, long transactionId,

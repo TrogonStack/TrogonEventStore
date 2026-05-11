@@ -6,7 +6,8 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.BitFlip;
 
-public class BitFlipChunkTransformFactory : IChunkTransformFactory {
+public class BitFlipChunkTransformFactory : IChunkTransformFactory
+{
 	public TransformType Type => (TransformType)0xFF;
 	public int TransformDataPosition(int dataPosition) => dataPosition;
 	public void CreateTransformHeader(Span<byte> transformHeader) => transformHeader.Clear();

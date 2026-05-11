@@ -6,8 +6,10 @@ using EventStore.Common.Utils;
 using EventStore.Core.Util;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core {
-	public class ExclusiveDbLock : IDisposable {
+namespace EventStore.Core
+{
+	public class ExclusiveDbLock : IDisposable
+	{
 		private static readonly ILogger Log = Serilog.Log.ForContext<ExclusiveDbLock>();
 
 		public readonly string MutexName;
@@ -17,22 +19,27 @@ namespace EventStore.Core {
 		private Mutex _dbMutex;
 		private bool _acquired;
 
-		public ExclusiveDbLock(string dbPath) {
+		public ExclusiveDbLock(string dbPath)
+		{
 			Ensure.NotNullOrEmpty(dbPath, "dbPath");
 			MutexName = @"Global\ESDB-HASHED:" + GetDbPathHash(dbPath);
 		}
 
-		public bool Acquire() {
-			if (_acquired) {
+		public bool Acquire()
+		{
+			if (_acquired)
+			{
 				throw new InvalidOperationException($"DB mutex '{MutexName}' is already acquired.");
 			}
 
-			try {
+			try
+			{
 				_dbMutex?.Dispose();
 				_dbMutex = new Mutex(initiallyOwned: true, name: MutexName, createdNew: out _acquired);
 				_dbMutex.WaitOne(TimeSpan.FromSeconds(5));
 			}
-			catch (AbandonedMutexException exc) {
+			catch (AbandonedMutexException exc)
+			{
 				Log.Warning(exc,
 					"DB mutex '{mutex}' is said to be abandoned. "
 					+ "Probably previous instance of server was terminated abruptly.",
@@ -42,29 +49,37 @@ namespace EventStore.Core {
 			return _acquired;
 		}
 
-		private static string GetDbPathHash(string dbPath) {
+		private static string GetDbPathHash(string dbPath)
+		{
 			using var memStream = new MemoryStream(Helper.UTF8NoBom.GetBytes(dbPath));
 			return BitConverter.ToString(MD5Hash.GetHashFor(memStream)).Replace("-", "");
 		}
 
-		public void Release() {
-			if (!_acquired) {
+		public void Release()
+		{
+			if (!_acquired)
+			{
 				throw new InvalidOperationException($"DB mutex '{MutexName}' was not acquired.");
 			}
 
-			try {
+			try
+			{
 				_dbMutex.ReleaseMutex();
 			}
-			catch (ApplicationException ex) {
+			catch (ApplicationException ex)
+			{
 				Log.Warning(ex, "Error occurred while releasing lock.");
 			}
-			finally {
+			finally
+			{
 				_acquired = false;
 			}
 		}
 
-		public void Dispose() {
-			if (_acquired) {
+		public void Dispose()
+		{
+			if (_acquired)
+			{
 				Release();
 			}
 			_dbMutex?.Dispose();

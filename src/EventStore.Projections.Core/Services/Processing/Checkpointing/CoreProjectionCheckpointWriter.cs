@@ -12,7 +12,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Checkpointing;
 
-public class CoreProjectionCheckpointWriter {
+public class CoreProjectionCheckpointWriter
+{
 	private readonly string _projectionCheckpointStreamId;
 	private readonly ILogger _logger;
 	private readonly IODispatcher _ioDispatcher;
@@ -33,7 +34,8 @@ public class CoreProjectionCheckpointWriter {
 
 	public CoreProjectionCheckpointWriter(
 		string projectionCheckpointStreamId, IODispatcher ioDispatcher, ProjectionVersion projectionVersion,
-		string name) {
+		string name)
+	{
 		_projectionCheckpointStreamId = projectionCheckpointStreamId;
 		_logger = Serilog.Log.ForContext<CoreProjectionCheckpointWriter>();
 		_ioDispatcher = ioDispatcher;
@@ -42,7 +44,8 @@ public class CoreProjectionCheckpointWriter {
 	}
 
 	public void BeginWriteCheckpoint(IEnvelope envelope,
-		CheckpointTag requestedCheckpointPosition, string requestedCheckpointState) {
+		CheckpointTag requestedCheckpointPosition, string requestedCheckpointState)
+	{
 		_envelope = envelope;
 		_requestedCheckpointPosition = requestedCheckpointPosition;
 		_inCheckpointWriteAttempt = 1;
@@ -55,13 +58,17 @@ public class CoreProjectionCheckpointWriter {
 	}
 
 	private void WriteCheckpointEventCompleted(
-		string eventStreamId, OperationResult operationResult, long firstWrittenEventNumber) {
-		if (_inCheckpointWriteAttempt == 0) {
+		string eventStreamId, OperationResult operationResult, long firstWrittenEventNumber)
+	{
+		if (_inCheckpointWriteAttempt == 0)
+		{
 			throw new InvalidOperationException();
 		}
 
-		if (operationResult == OperationResult.Success) {
-			if (_logger != null) {
+		if (operationResult == OperationResult.Success)
+		{
+			if (_logger != null)
+			{
 				_logger.Verbose(
 					"Checkpoint has been written for projection {projection} at sequence number {firstWrittenEventNumber} (current)",
 					_name,
@@ -74,14 +81,17 @@ public class CoreProjectionCheckpointWriter {
 			_envelope.ReplyWith(
 				new CoreProjectionCheckpointWriterMessage.CheckpointWritten(_requestedCheckpointPosition));
 		}
-		else {
-			if (_logger != null) {
+		else
+		{
+			if (_logger != null)
+			{
 				_logger.Information(
 					"Failed to write projection checkpoint to stream {stream}. Error: {e}", eventStreamId,
 					Enum.GetName(typeof(OperationResult), operationResult));
 			}
 
-			switch (operationResult) {
+			switch (operationResult)
+			{
 				case OperationResult.WrongExpectedVersion:
 					_envelope.ReplyWith(new CoreProjectionProcessingMessage.Failed(Guid.Empty,
 						$"Checkpoint stream `{eventStreamId}` has been written to from the outside"
@@ -90,7 +100,8 @@ public class CoreProjectionCheckpointWriter {
 				case OperationResult.PrepareTimeout:
 				case OperationResult.ForwardTimeout:
 				case OperationResult.CommitTimeout:
-					if (_inCheckpointWriteAttempt >= MaxNumberOfRetries) {
+					if (_inCheckpointWriteAttempt >= MaxNumberOfRetries)
+					{
 						//The first parameter is not needed in this case as the CoreProjectionCheckpointManager takes care of filling in the projection id when it reconstructs the message
 						_envelope.ReplyWith(new CoreProjectionProcessingMessage.Failed(Guid.Empty,
 							string.Format(
@@ -110,14 +121,18 @@ public class CoreProjectionCheckpointWriter {
 		}
 	}
 
-	private void PublishWriteStreamMetadataAndCheckpointEventDelayed() {
+	private void PublishWriteStreamMetadataAndCheckpointEventDelayed()
+	{
 		var attempt = _inCheckpointWriteAttempt;
 		var delayInSeconds = CalculateBackoffTimeSecs(attempt);
-		if (delayInSeconds == 0) {
+		if (delayInSeconds == 0)
+		{
 			PublishWriteStreamMetadataAndCheckpointEvent();
 		}
-		else {
-			if (attempt >= MinAttemptWarnThreshold && _logger != null) {
+		else
+		{
+			if (attempt >= MinAttemptWarnThreshold && _logger != null)
+			{
 				_logger.Warning("Attempt: {attempt} to write checkpoint for {projection} at {requestedCheckpointPosition} with expected version number {lastWrittenCheckpointEventNumber}. Backing off for {time} second(s).",
 					attempt,
 					_name,
@@ -131,26 +146,33 @@ public class CoreProjectionCheckpointWriter {
 		}
 	}
 
-	private void PublishWriteStreamMetadataAndCheckpointEvent() {
-		if (_logger != null) {
+	private void PublishWriteStreamMetadataAndCheckpointEvent()
+	{
+		if (_logger != null)
+		{
 			_logger.Verbose(
 				"Writing checkpoint for {projection} at {requestedCheckpointPosition} with expected version number {lastWrittenCheckpointEventNumber}",
 				_name, _requestedCheckpointPosition, _lastWrittenCheckpointEventNumber);
 		}
 
-		if (!_metaStreamWritten) {
+		if (!_metaStreamWritten)
+		{
 			PublishWriteStreamMetadata();
 		}
-		else {
+		else
+		{
 			PublishWriteCheckpointEvent();
 		}
 	}
 
-	private void PublishWriteStreamMetadata() {
+	private void PublishWriteStreamMetadata()
+	{
 		var metaStreamId = SystemStreams.MetastreamOf(_projectionCheckpointStreamId);
 		_writeRequestId = _ioDispatcher.WriteEvent(
-			metaStreamId, ExpectedVersion.Any, CreateStreamMetadataEvent(), SystemAccounts.System, msg => {
-				switch (msg.Result) {
+			metaStreamId, ExpectedVersion.Any, CreateStreamMetadataEvent(), SystemAccounts.System, msg =>
+			{
+				switch (msg.Result)
+				{
 					case OperationResult.Success:
 						_metaStreamWritten = true;
 						PublishWriteCheckpointEvent();
@@ -162,7 +184,8 @@ public class CoreProjectionCheckpointWriter {
 			});
 	}
 
-	private Event CreateStreamMetadataEvent() {
+	private Event CreateStreamMetadataEvent()
+	{
 		var eventId = Guid.NewGuid();
 		var acl = new StreamAcl(
 			readRole: SystemRoles.Admins, writeRole: SystemRoles.Admins,
@@ -173,7 +196,8 @@ public class CoreProjectionCheckpointWriter {
 		return new Event(eventId, SystemEventTypes.StreamMetadata, isJson: true, data: dataBytes, metadata: null);
 	}
 
-	private void PublishWriteCheckpointEvent() {
+	private void PublishWriteCheckpointEvent()
+	{
 		CheckpointSizeCheck();
 		_writeRequestId = _ioDispatcher.WriteEvent(
 			_projectionCheckpointStreamId, _lastWrittenCheckpointEventNumber, _checkpointEventToBePublished,
@@ -181,8 +205,10 @@ public class CoreProjectionCheckpointWriter {
 			msg => WriteCheckpointEventCompleted(_projectionCheckpointStreamId, msg.Result, msg.FirstEventNumber));
 	}
 
-	private void CheckpointSizeCheck() {
-		if (!_largeCheckpointWarningLogged && _checkpointEventToBePublished.Data.Length >= 8_000_000) {
+	private void CheckpointSizeCheck()
+	{
+		if (!_largeCheckpointWarningLogged && _checkpointEventToBePublished.Data.Length >= 8_000_000)
+		{
 			Log.Warning(
 				"Checkpoint size for the Projection {projectionName} is greater than 8 MB. Checkpoint size for a projection should be less than 16 MB. Current checkpoint size for Projection {projectionName} is {stateSize} MB.",
 				_name, _name,
@@ -191,7 +217,8 @@ public class CoreProjectionCheckpointWriter {
 		}
 	}
 
-	public void Initialize() {
+	public void Initialize()
+	{
 		_checkpointEventToBePublished = null;
 		_inCheckpointWriteAttempt = 0;
 		_ioDispatcher.Writer.Cancel(_writeRequestId);
@@ -199,21 +226,25 @@ public class CoreProjectionCheckpointWriter {
 		_metaStreamWritten = false;
 	}
 
-	public void GetStatistics(ProjectionStatistics info) {
+	public void GetStatistics(ProjectionStatistics info)
+	{
 		info.WritesInProgress = ((_inCheckpointWriteAttempt != 0) ? 1 : 0) + info.WritesInProgress;
 		info.CheckpointStatus = _inCheckpointWriteAttempt > 0
 			? "Writing (" + _inCheckpointWriteAttempt + ")"
 			: info.CheckpointStatus;
 	}
 
-	public void StartFrom(CheckpointTag checkpointTag, long checkpointEventNumber) {
+	public void StartFrom(CheckpointTag checkpointTag, long checkpointEventNumber)
+	{
 		_lastWrittenCheckpointEventNumber = checkpointEventNumber;
 		_metaStreamWritten = checkpointEventNumber != ExpectedVersion.NoStream;
 	}
 
-	private int CalculateBackoffTimeSecs(int attempt) {
+	private int CalculateBackoffTimeSecs(int attempt)
+	{
 		attempt--;
-		if (attempt == 0) {
+		if (attempt == 0)
+		{
 			return 0;
 		}
 

@@ -7,21 +7,25 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Replication.LogReplication.Tests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId> {
+public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixture<TLogFormat, TStreamId>
+{
 	private readonly string _bulkSizedEvent = new(' ', LeaderReplicationService.BulkSize);
 
 	private async Task<long> WriteEventsToFillChunks(
-		int numChunksToFill, int numEventsPerChunk, int numEventsPerTransaction, Func<string[], Task<long>> writeEvents) {
+		int numChunksToFill, int numEventsPerChunk, int numEventsPerTransaction, Func<string[], Task<long>> writeEvents)
+	{
 		var eventData = new string(' ', ChunkSize / numEventsPerChunk);
 		var eventsPerTransaction = Enumerable.Repeat(eventData, numEventsPerTransaction).ToArray();
 
 		var writerPos = -1L;
 		var numTransactions = numEventsPerChunk * numChunksToFill / numEventsPerTransaction;
-		for (var i = 0; i < numTransactions; i++) {
+		for (var i = 0; i < numTransactions; i++)
+		{
 			writerPos = await writeEvents(eventsPerTransaction);
 		}
 
-		if (writerPos < 0) {
+		if (writerPos < 0)
+		{
 			throw new Exception("No events were written");
 		}
 
@@ -29,7 +33,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_a_transaction_of_one_event() {
+	public async Task correctly_checkpoints_a_transaction_of_one_event()
+	{
 		await WriteEvents("stream", "event 1");
 
 		await ConnectReplica();
@@ -39,7 +44,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_a_transaction_of_two_events() {
+	public async Task correctly_checkpoints_a_transaction_of_two_events()
+	{
 		await WriteEvents("stream", "event 1", "event 2");
 
 		await ConnectReplica();
@@ -49,7 +55,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_two_transactions_of_two_events() {
+	public async Task correctly_checkpoints_two_transactions_of_two_events()
+	{
 		await WriteEvents("stream", "event 1", "event 2");
 		await WriteEvents("stream", "event 1", "event 2");
 
@@ -60,7 +67,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_two_transactions_of_two_events_to_different_streams() {
+	public async Task correctly_checkpoints_two_transactions_of_two_events_to_different_streams()
+	{
 		await WriteEvents("stream 1", "event 1", "event 2");
 		await WriteEvents("stream 2", "event 1", "event 2");
 
@@ -71,7 +79,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_when_interrupted_at_chunk_bulk_0_then_resumed() {
+	public async Task correctly_checkpoints_when_interrupted_at_chunk_bulk_0_then_resumed()
+	{
 		var writerPos = await WriteEvents("stream", "event 1"); // chunk bulk 0
 
 		await ConnectReplica(pauseReplication: true);
@@ -87,7 +96,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_when_interrupted_at_chunk_bulk_1_then_resumed() {
+	public async Task correctly_checkpoints_when_interrupted_at_chunk_bulk_1_then_resumed()
+	{
 		var writerPos = await WriteEvents("stream", _bulkSizedEvent); // chunk bulk 0-1
 
 		await ConnectReplica(pauseReplication: true);
@@ -103,7 +113,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_when_interrupted_at_chunk_bulk_2_then_resumed() {
+	public async Task correctly_checkpoints_when_interrupted_at_chunk_bulk_2_then_resumed()
+	{
 		await WriteEvents("stream", "event 1", "event 2"); // chunk bulk 0
 		await WriteEvents("stream", "event 3"); // chunk bulk 0
 		await WriteEvents("stream", _bulkSizedEvent); // chunk bulk 0-1
@@ -124,7 +135,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_when_interrupted_and_resumed_multiple_times() {
+	public async Task correctly_checkpoints_when_interrupted_and_resumed_multiple_times()
+	{
 		await WriteEvents("stream", "event 1", "event 2"); // chunk bulk 0
 		var writerPos0 = await WriteEvents("stream", "event 3"); // chunk bulk 0
 		await WriteEvents("stream", _bulkSizedEvent); // chunk bulk 0-1
@@ -158,7 +170,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_when_interrupted_in_the_middle_of_a_transaction_then_resumed() {
+	public async Task correctly_checkpoints_when_interrupted_in_the_middle_of_a_transaction_then_resumed()
+	{
 		var eventData = new string(' ', LeaderReplicationService.BulkSize / 4);
 		var events = Enumerable.Repeat(eventData, 6).ToArray();
 
@@ -178,7 +191,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task correctly_checkpoints_when_replicating_multiple_chunk_files() {
+	public async Task correctly_checkpoints_when_replicating_multiple_chunk_files()
+	{
 		const int numChunksToFill = 4;
 		var writerPos = await WriteEventsToFillChunks(
 			numChunksToFill: numChunksToFill,
@@ -197,7 +211,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task when_replica_becomes_leader_it_can_rollback_an_incomplete_log_record_spanning_one_chunk_file() {
+	public async Task when_replica_becomes_leader_it_can_rollback_an_incomplete_log_record_spanning_one_chunk_file()
+	{
 		// calculate an empty event's size to use as a reference value to later determine the replica's writer position.
 		// for log v3, this empty event size includes the stream record size. normally, the stream record size
 		// should have been excluded but since we do not have a storage chaser & index committer in this test fixture,
@@ -231,7 +246,8 @@ public class data_chunk_replication<TLogFormat, TStreamId> : LogReplicationFixtu
 	}
 
 	[Test]
-	public async Task when_replica_becomes_leader_it_can_rollback_an_incomplete_transaction_spanning_one_chunk_file() {
+	public async Task when_replica_becomes_leader_it_can_rollback_an_incomplete_transaction_spanning_one_chunk_file()
+	{
 		// see above notes regarding why we calculate an empty event's size
 		var emptyEventSize = await WriteEvents("s", string.Empty); // chunk bulk 0
 

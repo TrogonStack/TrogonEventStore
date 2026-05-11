@@ -6,7 +6,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Transport.Tcp;
 
-public class TcpServerListener {
+public class TcpServerListener
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<TcpServerListener>();
 
 	private readonly IPEndPoint _serverEndPoint;
@@ -14,7 +15,8 @@ public class TcpServerListener {
 	private readonly SocketArgsPool _acceptSocketArgsPool;
 	private Action<IPEndPoint, Socket> _onSocketAccepted;
 
-	public TcpServerListener(IPEndPoint serverEndPoint) {
+	public TcpServerListener(IPEndPoint serverEndPoint)
+	{
 		Ensure.NotNull(serverEndPoint, "serverEndPoint");
 
 		_serverEndPoint = serverEndPoint;
@@ -26,58 +28,71 @@ public class TcpServerListener {
 			CreateAcceptSocketArgs);
 	}
 
-	private SocketAsyncEventArgs CreateAcceptSocketArgs() {
+	private SocketAsyncEventArgs CreateAcceptSocketArgs()
+	{
 		var socketArgs = new SocketAsyncEventArgs();
 		socketArgs.Completed += AcceptCompleted;
 		return socketArgs;
 	}
 
-	public void StartListening(Action<IPEndPoint, Socket> callback, string securityType) {
+	public void StartListening(Action<IPEndPoint, Socket> callback, string securityType)
+	{
 		Ensure.NotNull(callback, "callback");
 
 		_onSocketAccepted = callback;
 
 		Log.Information("Starting {securityType} TCP listening on TCP endpoint: {serverEndPoint}.", securityType,
 			_serverEndPoint);
-		try {
+		try
+		{
 			_listeningSocket.ExclusiveAddressUse = true;
 			_listeningSocket.Bind(_serverEndPoint);
 			_listeningSocket.Listen(TcpConfiguration.AcceptBacklogCount);
 		}
-		catch (Exception) {
+		catch (Exception)
+		{
 			Log.Information("Failed to listen on TCP endpoint: {serverEndPoint}.", _serverEndPoint);
 			Helper.EatException(() => _listeningSocket.Close(TcpConfiguration.SocketCloseTimeoutSecs));
 			throw;
 		}
 
-		for (int i = 0; i < TcpConfiguration.ConcurrentAccepts; ++i) {
+		for (int i = 0; i < TcpConfiguration.ConcurrentAccepts; ++i)
+		{
 			StartAccepting();
 		}
 	}
 
-	private void StartAccepting() {
+	private void StartAccepting()
+	{
 		var socketArgs = _acceptSocketArgsPool.Get();
 
-		try {
+		try
+		{
 			var firedAsync = _listeningSocket.AcceptAsync(socketArgs);
-			if (!firedAsync) {
+			if (!firedAsync)
+			{
 				ProcessAccept(socketArgs);
 			}
 		}
-		catch (ObjectDisposedException) {
+		catch (ObjectDisposedException)
+		{
 			HandleBadAccept(socketArgs);
 		}
 	}
 
-	private void AcceptCompleted(object sender, SocketAsyncEventArgs e) {
+	private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
+	{
 		ProcessAccept(e);
 	}
 
-	private void ProcessAccept(SocketAsyncEventArgs e) {
-		if (e.SocketError != SocketError.Success) {
+	private void ProcessAccept(SocketAsyncEventArgs e)
+	{
+		if (e.SocketError != SocketError.Success)
+		{
 			HandleBadAccept(e);
 		}
-		else {
+		else
+		{
 			var acceptSocket = e.AcceptSocket;
 			e.AcceptSocket = null;
 			_acceptSocketArgsPool.Return(e);
@@ -88,11 +103,13 @@ public class TcpServerListener {
 		StartAccepting();
 	}
 
-	private void HandleBadAccept(SocketAsyncEventArgs socketArgs) {
+	private void HandleBadAccept(SocketAsyncEventArgs socketArgs)
+	{
 		Helper.EatException(
-			() => {
+			() =>
+			{
 				if (socketArgs.AcceptSocket != null) // avoid annoying exceptions
-{
+				{
 					socketArgs.AcceptSocket.Close(TcpConfiguration.SocketCloseTimeoutSecs);
 				}
 			});
@@ -100,19 +117,23 @@ public class TcpServerListener {
 		_acceptSocketArgsPool.Return(socketArgs);
 	}
 
-	private void OnSocketAccepted(Socket socket) {
+	private void OnSocketAccepted(Socket socket)
+	{
 		IPEndPoint socketEndPoint;
-		try {
+		try
+		{
 			socketEndPoint = (IPEndPoint)socket.RemoteEndPoint;
 		}
-		catch (Exception) {
+		catch (Exception)
+		{
 			return;
 		}
 
 		_onSocketAccepted(socketEndPoint, socket);
 	}
 
-	public void Stop() {
+	public void Stop()
+	{
 		Helper.EatException(() => _listeningSocket.Close(TcpConfiguration.SocketCloseTimeoutSecs));
 	}
 }

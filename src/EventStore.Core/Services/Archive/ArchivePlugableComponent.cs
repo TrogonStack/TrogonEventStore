@@ -14,7 +14,8 @@ using Microsoft.Extensions.Logging;
 
 namespace EventStore.Core.Services.Archive;
 
-public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent {
+public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
+{
 	public string Name => "Archiver";
 
 	public string DiagnosticsName => Name;
@@ -27,19 +28,23 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent {
 
 	public string LicensePublicKey => LicenseConstants.LicensePublicKey;
 
-	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration) {
-		if (!Enabled) {
+	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
+	{
+		if (!Enabled)
+		{
 			return;
 		}
 
 		_ = builder.ApplicationServices.GetService<ArchiverService>();
 	}
 
-	public void ConfigureServices(IServiceCollection services, IConfiguration configuration) {
+	public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+	{
 		var options = configuration.GetSection("EventStore:Archive").Get<ArchiveOptions>() ?? new ArchiveOptions();
 		Enabled = options.Enabled;
 
-		if (!Enabled) {
+		if (!Enabled)
+		{
 			return;
 		}
 
@@ -48,7 +53,8 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent {
 		services.Decorate<IReadOnlyList<IClusterVNodeStartupTask>>(AddArchiveCatchupTask);
 		services.AddSingleton<IArchiveChunkNamer, ArchiveChunkNamer>();
 
-		if (isArchiver) {
+		if (isArchiver)
+		{
 			services.AddSingleton<IChunkUnmerger, ChunkUnmerger>();
 			services.AddSingleton<ArchiverService>();
 		}
@@ -56,10 +62,12 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent {
 
 	private static IReadOnlyList<IClusterVNodeStartupTask> AddArchiveCatchupTask(
 		IReadOnlyList<IClusterVNodeStartupTask> startupTasks,
-		IServiceProvider serviceProvider) {
+		IServiceProvider serviceProvider)
+	{
 
 		var newStartupTasks = new List<IClusterVNodeStartupTask>();
-		if (startupTasks != null) {
+		if (startupTasks != null)
+		{
 			newStartupTasks.AddRange(startupTasks);
 		}
 

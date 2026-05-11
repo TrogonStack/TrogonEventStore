@@ -8,33 +8,41 @@ using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-internal static class ChunkFileReadHelper {
-	public static SafeFileHandle OpenValidatedMetadataReadHandle(string fileName, out long length) {
+internal static class ChunkFileReadHelper
+{
+	public static SafeFileHandle OpenValidatedMetadataReadHandle(string fileName, out long length)
+	{
 		SafeFileHandle handle = null;
-		try {
+		try
+		{
 			handle = File.OpenHandle(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
 				FileOptions.Asynchronous);
 			length = RandomAccess.GetLength(handle);
 			ValidateMetadataLength(length, fileName);
 			return handle;
 		}
-		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) {
+		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+		{
 			handle?.Dispose();
 			length = 0;
 			throw new CorruptDatabaseException(new ChunkNotFoundException(fileName));
 		}
-		catch {
+		catch
+		{
 			handle?.Dispose();
 			throw;
 		}
 	}
 
 	public static async ValueTask ReadExactlyAsync(SafeFileHandle handle, Memory<byte> buffer, long offset,
-		string fileName, CancellationToken token) {
+		string fileName, CancellationToken token)
+	{
 		var totalRead = 0;
-		while (totalRead < buffer.Length) {
+		while (totalRead < buffer.Length)
+		{
 			var bytesRead = await RandomAccess.ReadAsync(handle, buffer[totalRead..], offset + totalRead, token);
-			if (bytesRead == 0) {
+			if (bytesRead == 0)
+			{
 				throw new CorruptDatabaseException(new BadChunkInDatabaseException(
 					$"Chunk file '{fileName}' was truncated while reading metadata."));
 			}
@@ -44,11 +52,14 @@ internal static class ChunkFileReadHelper {
 	}
 
 	public static async ValueTask ReadExactlyAsync(IChunkHandle handle, Memory<byte> buffer, long offset,
-		string fileName, CancellationToken token) {
+		string fileName, CancellationToken token)
+	{
 		var totalRead = 0;
-		while (totalRead < buffer.Length) {
+		while (totalRead < buffer.Length)
+		{
 			var bytesRead = await handle.ReadAsync(buffer[totalRead..], offset + totalRead, token);
-			if (bytesRead == 0) {
+			if (bytesRead == 0)
+			{
 				throw new CorruptDatabaseException(new BadChunkInDatabaseException(
 					$"Chunk file '{fileName}' was truncated while reading metadata."));
 			}
@@ -58,7 +69,8 @@ internal static class ChunkFileReadHelper {
 	}
 
 	public static async ValueTask<ChunkHeader> ReadHeaderAsync(IChunkHandle handle, string fileName,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		ValidateMetadataLength(handle.Length, fileName);
 
 		using var buffer = Memory.AllocateExactly<byte>(ChunkHeader.Size);
@@ -67,7 +79,8 @@ internal static class ChunkFileReadHelper {
 	}
 
 	public static async ValueTask<ChunkFooter> ReadFooterAsync(IChunkHandle handle, string fileName,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		ValidateMetadataLength(handle.Length, fileName);
 
 		using var buffer = Memory.AllocateExactly<byte>(ChunkFooter.Size);
@@ -75,8 +88,10 @@ internal static class ChunkFileReadHelper {
 		return new(buffer.Span);
 	}
 
-	private static void ValidateMetadataLength(long length, string fileName) {
-		if (length >= ChunkFooter.Size + ChunkHeader.Size) {
+	private static void ValidateMetadataLength(long length, string fileName)
+	{
+		if (length >= ChunkFooter.Size + ChunkHeader.Size)
+		{
 			return;
 		}
 

@@ -7,7 +7,8 @@ using EventStore.Projections.Core.Services.Processing.Strategies;
 
 namespace EventStore.Projections.Core.Services.Processing.Subscriptions;
 
-public class ReaderSubscription : ReaderSubscriptionBase, IReaderSubscription {
+public class ReaderSubscription : ReaderSubscriptionBase, IReaderSubscription
+{
 	public ReaderSubscription(
 		string tag,
 		IPublisher publisher,
@@ -32,20 +33,25 @@ public class ReaderSubscription : ReaderSubscriptionBase, IReaderSubscription {
 			checkpointAfterMs,
 			stopOnEof,
 			stopAfterNEvents,
-			enableContentTypeValidation) {
+			enableContentTypeValidation)
+	{
 		_tag = tag;
 	}
 
-	public void Handle(ReaderSubscriptionMessage.CommittedEventDistributed message) {
+	public void Handle(ReaderSubscriptionMessage.CommittedEventDistributed message)
+	{
 		ProcessOne(message);
 	}
 
-	public void Handle(ReaderSubscriptionMessage.EventReaderIdle message) {
+	public void Handle(ReaderSubscriptionMessage.EventReaderIdle message)
+	{
 		ForceProgressValue(100);
 	}
 
-	public void Handle(ReaderSubscriptionMessage.EventReaderPartitionDeleted message) {
-		if (!base._eventFilter.PassesDeleteNotification(message.PositionStreamId)) {
+	public void Handle(ReaderSubscriptionMessage.EventReaderPartitionDeleted message)
+	{
+		if (!base._eventFilter.PassesDeleteNotification(message.PositionStreamId))
+		{
 			return;
 		}
 
@@ -53,7 +59,8 @@ public class ReaderSubscription : ReaderSubscriptionBase, IReaderSubscription {
 		PublishPartitionDeleted(message.Partition, deletePosition);
 	}
 
-	public void Handle(ReaderSubscriptionMessage.ReportProgress message) {
+	public void Handle(ReaderSubscriptionMessage.ReportProgress message)
+	{
 		NotifyProgress();
 	}
 }

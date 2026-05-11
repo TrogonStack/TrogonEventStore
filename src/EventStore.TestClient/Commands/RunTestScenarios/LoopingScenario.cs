@@ -7,14 +7,16 @@ using System.Threading.Tasks;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class LoopingScenario : ScenarioBase {
+internal class LoopingScenario : ScenarioBase
+{
 	private readonly TimeSpan _executionPeriod;
 
 	private readonly Random _rnd = new Random();
 	private volatile bool _stopParalleWrites;
 	private TimeSpan _startupWaitInterval;
 
-	protected override TimeSpan StartupWaitInterval {
+	protected override TimeSpan StartupWaitInterval
+	{
 		get { return _startupWaitInterval; }
 	}
 
@@ -28,20 +30,24 @@ internal class LoopingScenario : ScenarioBase {
 		string dbParentPath,
 		NodeConnectionInfo customNodeConnection)
 		: base(directSendOverTcp, maxConcurrentRequests, connections, streams, eventsPerStream, streamDeleteStep,
-			dbParentPath, customNodeConnection) {
+			dbParentPath, customNodeConnection)
+	{
 		_executionPeriod = executionPeriod;
 		SetStartupWaitInterval(TimeSpan.FromSeconds(10));
 	}
 
-	private void SetStartupWaitInterval(TimeSpan interval) {
+	private void SetStartupWaitInterval(TimeSpan interval)
+	{
 		_startupWaitInterval = interval;
 	}
 
-	protected override void RunInternal() {
+	protected override void RunInternal()
+	{
 		var stopWatch = Stopwatch.StartNew();
 
 		var runIndex = 0;
-		while (stopWatch.Elapsed < _executionPeriod) {
+		while (stopWatch.Elapsed < _executionPeriod)
+		{
 			var msg = string.Format(
 				"=================== Start run #{0}, elapsed {1} of {2} minutes, {3} =================== ",
 				runIndex,
@@ -62,7 +68,8 @@ internal class LoopingScenario : ScenarioBase {
 		}
 	}
 
-	protected virtual void InnerRun(int runIndex) {
+	protected virtual void InnerRun(int runIndex)
+	{
 		var nodeProcessId = StartNode();
 
 		var parallelWritesTimeout = TimeSpan.FromMinutes((EventsPerStream / 1000.0) * 10);
@@ -80,7 +87,8 @@ internal class LoopingScenario : ScenarioBase {
 		var wr2 = Write(WriteMode.Bucket, batchSlice, EventsPerStream);
 		var wr3 = Write(WriteMode.Transactional, transSlice, EventsPerStream);
 
-		if (runIndex % 4 == 0) {
+		if (runIndex % 4 == 0)
+		{
 			Scavenge();
 		}
 
@@ -90,7 +98,8 @@ internal class LoopingScenario : ScenarioBase {
 		DeleteStreams(deleted);
 
 		_stopParalleWrites = true;
-		if (!parallelWriteTask.Wait(parallelWritesTimeout)) {
+		if (!parallelWriteTask.Wait(parallelWritesTimeout))
+		{
 			throw new ApplicationException("Parallel writes stop timed out, 1.");
 		}
 
@@ -124,7 +133,8 @@ internal class LoopingScenario : ScenarioBase {
 									  select FormatStreamName(run, streamNum)).ToArray();
 
 		var prevCheckTasks = new List<Task>();
-		if (allExistingStreamsSlice.Length > 0) {
+		if (allExistingStreamsSlice.Length > 0)
+		{
 			var rd4 = Read(allExistingStreamsSlice, 0, Math.Max(1, EventsPerStream / 5));
 			var rd5 = Read(allExistingStreamsSlice, EventsPerStream / 2, Math.Max(1, EventsPerStream / 5));
 
@@ -132,7 +142,8 @@ internal class LoopingScenario : ScenarioBase {
 			prevCheckTasks.Add(rd5);
 		}
 
-		if (allDeletedStreamsSlice.Length > 0) {
+		if (allDeletedStreamsSlice.Length > 0)
+		{
 			var dl2 = CheckStreamsDeleted(allDeletedStreamsSlice);
 			prevCheckTasks.Add(dl2);
 		}
@@ -140,19 +151,23 @@ internal class LoopingScenario : ScenarioBase {
 		Task.WaitAll(new[] { dl1, rd1, rd2, rd3 }.Union(prevCheckTasks).ToArray());
 
 		_stopParalleWrites = true;
-		if (!parallelWriteTask.Wait(parallelWritesTimeout)) {
+		if (!parallelWriteTask.Wait(parallelWritesTimeout))
+		{
 			throw new ApplicationException("Parallel writes stop timed out, 2.");
 		}
 
 		KillNode(nodeProcessId);
 	}
 
-	protected virtual Task RunParallelWrites(int runIndex) {
+	protected virtual Task RunParallelWrites(int runIndex)
+	{
 		_stopParalleWrites = false;
 
-		return Task.Factory.StartNew(() => {
+		return Task.Factory.StartNew(() =>
+		{
 			int index = 0;
-			while (!_stopParalleWrites) {
+			while (!_stopParalleWrites)
+			{
 				Log.Debug("Start RunParallelWrites #{index} for runIndex {runIndex}", index, runIndex);
 
 				var parallelStreams = Enumerable.Range(0, 2)
@@ -179,7 +194,8 @@ internal class LoopingScenario : ScenarioBase {
 		}, TaskCreationOptions.LongRunning);
 	}
 
-	protected static string FormatStreamName(int runIndex, int i) {
+	protected static string FormatStreamName(int runIndex, int i)
+	{
 		return string.Format("stream-in{0}-{1}", runIndex, i);
 	}
 }

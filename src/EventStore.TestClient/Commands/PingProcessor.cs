@@ -3,28 +3,35 @@ using EventStore.Core.Services.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class PingProcessor : ICmdProcessor {
-	public string Usage {
+internal class PingProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		get { return Keyword; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "PING"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		context.IsAsync();
 
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn => {
+			connectionEstablished: conn =>
+			{
 				var package = new TcpPackage(TcpCommand.Ping, Guid.NewGuid(), null);
 				context.Log.Information("[{ip}:{tcpPort}]: PING...", context._tcpTestClient.Options.Host,
 					context._tcpTestClient.Options.TcpPort);
 				conn.EnqueueSend(package.AsByteArray());
 			},
-			handlePackage: (conn, pkg) => {
-				if (pkg.Command != TcpCommand.Pong) {
+			handlePackage: (conn, pkg) =>
+			{
+				if (pkg.Command != TcpCommand.Pong)
+				{
 					context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 					return;
 				}

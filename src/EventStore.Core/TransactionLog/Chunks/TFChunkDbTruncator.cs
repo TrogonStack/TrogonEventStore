@@ -10,23 +10,27 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.TransactionLog.Chunks;
 
-public class TFChunkDbTruncator {
+public class TFChunkDbTruncator
+{
 	private static readonly ILogger Log = Serilog.Log.ForContext<TFChunkDbTruncator>();
 
 	private readonly TFChunkDbConfig _config;
 	private readonly Func<TransformType, IChunkTransformFactory> _getTransformFactory;
 
-	public TFChunkDbTruncator(TFChunkDbConfig config, Func<TransformType, IChunkTransformFactory> getTransformFactory) {
+	public TFChunkDbTruncator(TFChunkDbConfig config, Func<TransformType, IChunkTransformFactory> getTransformFactory)
+	{
 		Ensure.NotNull(config, "config");
 		Ensure.NotNull(getTransformFactory, "getTransformFactory");
 		_config = config;
 		_getTransformFactory = getTransformFactory;
 	}
 
-	public async ValueTask TruncateDb(long truncateChk, CancellationToken token) {
+	public async ValueTask TruncateDb(long truncateChk, CancellationToken token)
+	{
 		var writerChk = _config.WriterCheckpoint.Read();
 		var requestedTruncation = writerChk - truncateChk;
-		if (_config.MaxTruncation >= 0 && requestedTruncation > _config.MaxTruncation) {
+		if (_config.MaxTruncation >= 0 && requestedTruncation > _config.MaxTruncation)
+		{
 			Log.Error(
 				"MaxTruncation is set and truncate checkpoint is out of bounds. MaxTruncation {maxTruncation} vs requested truncation {requestedTruncation} [{writerChk} => {truncateChk}].  To proceed, set MaxTruncation to -1 (no max) or greater than {requestedTruncationHint}.",
 				_config.MaxTruncation, requestedTruncation, writerChk, truncateChk, requestedTruncation);
@@ -39,7 +43,8 @@ public class TFChunkDbTruncator {
 		var truncatingToBoundary = truncateChk % _config.ChunkSize == 0;
 
 		var excessiveChunks = _config.FileNamingStrategy.GetAllVersionsFor(oldLastChunkNum + 1);
-		if (excessiveChunks.Length > 0) {
+		if (excessiveChunks.Length > 0)
+		{
 			throw new Exception(
 				$"During truncation of DB excessive TFChunks were found:\n{string.Join("\n", excessiveChunks)}.");
 		}
@@ -51,10 +56,13 @@ public class TFChunkDbTruncator {
 
 		// find the chunk to truncate to
 		await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(oldLastChunkNum, token)
-						   .WithCancellation(token)) {
-			switch (chunkInfo) {
+						   .WithCancellation(token))
+		{
+			switch (chunkInfo)
+			{
 				case LatestVersion(var fileName, var _, var end):
-					if (newLastChunkFilename != null || end < newLastChunkNum) {
+					if (newLastChunkFilename != null || end < newLastChunkNum)
+					{
 						break;
 					}
 
@@ -67,33 +75,40 @@ public class TFChunkDbTruncator {
 		}
 
 		// it's not bad if there is no file, it could have been deleted on previous run
-		if (newLastChunkHeader != null) {
+		if (newLastChunkHeader != null)
+		{
 			var chunksToDelete = new List<string>();
 			var chunkNumToDeleteFrom = newLastChunkNum + 1;
-			if (newLastChunkHeader.IsScavenged) {
+			if (newLastChunkHeader.IsScavenged)
+			{
 				Log.Information(
 					"Deleting ALL chunks from #{chunkStartNumber} inclusively "
 					+ "as truncation position is in the middle of scavenged chunk.",
 					newLastChunkHeader.ChunkStartNumber);
 				chunkNumToDeleteFrom = newLastChunkHeader.ChunkStartNumber;
 			}
-			else if (truncatingToBoundary) {
+			else if (truncatingToBoundary)
+			{
 				// we're truncating to a chunk boundary:
 				// delete the chunk after the boundary so that we can re-replicate the chunk header from the leader
 				chunkNumToDeleteFrom--;
 			}
 
 			await foreach (var chunkInfo in chunkEnumerator.EnumerateChunks(oldLastChunkNum, token)
-							   .WithCancellation(token)) {
-				switch (chunkInfo) {
+							   .WithCancellation(token))
+			{
+				switch (chunkInfo)
+				{
 					case LatestVersion(var fileName, var start, _):
-						if (start >= chunkNumToDeleteFrom) {
+						if (start >= chunkNumToDeleteFrom)
+						{
 							chunksToDelete.Add(fileName);
 						}
 
 						break;
 					case OldVersion(var fileName, var start):
-						if (start >= chunkNumToDeleteFrom) {
+						if (start >= chunkNumToDeleteFrom)
+						{
 							chunksToDelete.Add(fileName);
 						}
 
@@ -104,16 +119,19 @@ public class TFChunkDbTruncator {
 			// we need to remove excessive chunks from largest number to lowest one, so in case of crash
 			// mid-process, we don't end up with broken non-sequential chunks sequence.
 			chunksToDelete.Reverse();
-			foreach (var chunkFile in chunksToDelete) {
+			foreach (var chunkFile in chunksToDelete)
+			{
 				Log.Information("File {chunk} will be deleted during TruncateDb procedure.", chunkFile);
 				_config.ChunkFileSystem.SetAttributes(chunkFile, FileAttributes.Normal);
 				_config.ChunkFileSystem.DeleteFile(chunkFile);
 			}
 
-			if (!newLastChunkHeader.IsScavenged && !truncatingToBoundary) {
+			if (!newLastChunkHeader.IsScavenged && !truncatingToBoundary)
+			{
 				TruncateChunkAndFillWithZeros(newLastChunkHeader, newLastChunkFilename, truncateChk);
 			}
-			else {
+			else
+			{
 				truncateChk = newLastChunkHeader.ChunkStartPosition;
 				Log.Information(
 					"Setting TruncateCheckpoint to {truncateCheckpoint} "
@@ -126,7 +144,8 @@ public class TFChunkDbTruncator {
 		// located before the truncate position (if such a record is present in the epoch cache).
 		// This saves us from resetting it to -1 here and also saves us from scanning the transaction log for
 		// a proper epoch record during startup.
-		if (_config.EpochCheckpoint.Read() >= truncateChk) {
+		if (_config.EpochCheckpoint.Read() >= truncateChk)
+		{
 			var epochChk = _config.EpochCheckpoint.Read();
 			Log.Information("Truncating epoch from {epochFrom} (0x{epochFrom:X}) to {epochTo} (0x{epochTo:X}).",
 				epochChk,
@@ -135,7 +154,8 @@ public class TFChunkDbTruncator {
 			_config.EpochCheckpoint.Flush();
 		}
 
-		if (_config.ChaserCheckpoint.Read() > truncateChk) {
+		if (_config.ChaserCheckpoint.Read() > truncateChk)
+		{
 			var chaserChk = _config.ChaserCheckpoint.Read();
 			Log.Information(
 				"Truncating chaser from {chaserCheckpoint} (0x{chaserCheckpoint:X}) to {truncateCheckpoint} (0x{truncateCheckpoint:X}).",
@@ -144,7 +164,8 @@ public class TFChunkDbTruncator {
 			_config.ChaserCheckpoint.Flush();
 		}
 
-		if (_config.WriterCheckpoint.Read() > truncateChk) {
+		if (_config.WriterCheckpoint.Read() > truncateChk)
+		{
 			var writerCheckpoint = _config.WriterCheckpoint.Read();
 			Log.Information(
 				"Truncating writer from {writerCheckpoint} (0x{writerCheckpoint:X}) to {truncateCheckpoint} (0x{truncateCheckpoint:X}).",
@@ -158,11 +179,13 @@ public class TFChunkDbTruncator {
 		_config.TruncateCheckpoint.Flush();
 	}
 
-	private void TruncateChunkAndFillWithZeros(ChunkHeader chunkHeader, string chunkFilename, long truncateChk) {
+	private void TruncateChunkAndFillWithZeros(ChunkHeader chunkHeader, string chunkFilename, long truncateChk)
+	{
 		if (chunkHeader.IsScavenged
 			|| chunkHeader.ChunkStartNumber != chunkHeader.ChunkEndNumber
 			|| truncateChk < chunkHeader.ChunkStartPosition
-			|| truncateChk >= chunkHeader.ChunkEndPosition) {
+			|| truncateChk >= chunkHeader.ChunkEndPosition)
+		{
 			throw new Exception(
 				string.Format(
 					"Chunk #{0}-{1} ({2}) is not correct unscavenged chunk. TruncatePosition: {3}, ChunkHeader: {4}.",
@@ -176,12 +199,14 @@ public class TFChunkDbTruncator {
 		var dataTruncatePos = transformFactory.TransformDataPosition((int)chunkHeader.GetLocalLogPosition(truncateChk));
 
 		_config.ChunkFileSystem.SetAttributes(chunkFilename, FileAttributes.Normal);
-		using (var fs = new FileStream(chunkFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read)) {
+		using (var fs = new FileStream(chunkFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+		{
 			fs.SetLength(newFileSize);
 			fs.Position = ChunkHeader.Size + dataTruncatePos;
 			var zeros = new byte[65536];
 			var leftToWrite = fs.Length - fs.Position;
-			while (leftToWrite > 0) {
+			while (leftToWrite > 0)
+			{
 				var toWrite = (int)Math.Min(leftToWrite, zeros.Length);
 				fs.Write(zeros, 0, toWrite);
 				leftToWrite -= toWrite;

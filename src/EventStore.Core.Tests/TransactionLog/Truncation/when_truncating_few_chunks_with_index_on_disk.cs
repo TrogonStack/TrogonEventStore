@@ -8,7 +8,8 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_truncating_few_chunks_with_index_on_disk<TLogFormat, TStreamId>()
-	: TruncateScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 3) {
+	: TruncateScenario<TLogFormat, TStreamId>(maxEntriesInMemTable: 3)
+{
 	private EventRecord _event4;
 
 	private string _chunk0;
@@ -16,7 +17,8 @@ public class when_truncating_few_chunks_with_index_on_disk<TLogFormat, TStreamId
 	private string _chunk2;
 	private string _chunk3;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		await WriteSingleEvent("ES", 0, new string('.', 4000), token: token);
 		await WriteSingleEvent("ES", 1, new string('.', 4000), token: token);
 		await WriteSingleEvent("ES", 2, new string('.', 4000), retryOnFail: true, token: token); // ptable 1, chunk 1
@@ -38,26 +40,30 @@ public class when_truncating_few_chunks_with_index_on_disk<TLogFormat, TStreamId
 		Assert.IsTrue(File.Exists(_chunk3));
 	}
 
-	private string GetChunkName(int chunkNumber) {
+	private string GetChunkName(int chunkNumber)
+	{
 		var allVersions = Db.Config.FileNamingStrategy.GetAllVersionsFor(chunkNumber);
 		Assert.AreEqual(1, allVersions.Length);
 		return allVersions[0];
 	}
 
 	[Test]
-	public void checksums_should_be_equal_to_ack_checksum() {
+	public void checksums_should_be_equal_to_ack_checksum()
+	{
 		Assert.AreEqual(TruncateCheckpoint, WriterCheckpoint.Read());
 		Assert.AreEqual(TruncateCheckpoint, ChaserCheckpoint.Read());
 	}
 
 	[Test]
-	public void truncated_chunks_should_be_deleted() {
+	public void truncated_chunks_should_be_deleted()
+	{
 		Assert.IsFalse(File.Exists(_chunk2));
 		Assert.IsFalse(File.Exists(_chunk3));
 	}
 
 	[Test]
-	public void not_truncated_chunks_should_survive() {
+	public void not_truncated_chunks_should_survive()
+	{
 		var chunks = Db.Config.FileNamingStrategy.GetAllPresentFiles();
 		Assert.AreEqual(2, chunks.Length);
 		Assert.AreEqual(_chunk0, GetChunkName(0));
@@ -65,6 +71,7 @@ public class when_truncating_few_chunks_with_index_on_disk<TLogFormat, TStreamId
 	}
 
 	[Test]
-	public void read_all_returns_only_survived_events() {
+	public void read_all_returns_only_survived_events()
+	{
 	}
 }

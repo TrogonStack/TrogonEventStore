@@ -9,8 +9,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers;
 
 [TestFixture]
-abstract public class ScavengeLifeCycleScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
-	protected TFChunkDb Db {
+abstract public class ScavengeLifeCycleScenario<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
+	protected TFChunkDb Db
+	{
 		get { return _dbResult.Db; }
 	}
 
@@ -20,11 +22,13 @@ abstract public class ScavengeLifeCycleScenario<TLogFormat, TStreamId> : Specifi
 	protected FakeTableIndex<TStreamId> FakeTableIndex;
 	protected LogFormatAbstractor<TStreamId> _logFormat;
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
-		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+		_logFormat = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		{
 			IndexDirectory = indexDirectory,
 		});
 
@@ -46,15 +50,18 @@ abstract public class ScavengeLifeCycleScenario<TLogFormat, TStreamId> : Specifi
 		TfChunkScavenger = new TFChunkScavenger<TStreamId>(Serilog.Log.Logger, _dbResult.Db, Log, FakeTableIndex, new FakeReadIndex<TLogFormat, TStreamId>(_ => false, _logFormat.Metastreams),
 			_logFormat.Metastreams);
 
-		try {
+		try
+		{
 			await When().WithTimeout(TimeSpan.FromMinutes(1));
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			throw new Exception("When Failed", ex);
 		}
 	}
 
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		_logFormat?.Dispose();
 		await _dbResult.Db.DisposeAsync();
 

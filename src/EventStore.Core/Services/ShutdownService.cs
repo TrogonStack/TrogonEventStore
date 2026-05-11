@@ -12,9 +12,11 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 	IHandle<ClientMessage.RequestShutdown>,
 	IHandle<SystemMessage.RegisterForGracefulTermination>,
 	IHandle<SystemMessage.ComponentTerminated>,
-	IHandle<SystemMessage.PeripheralShutdownTimeout> {
+	IHandle<SystemMessage.PeripheralShutdownTimeout>
+{
 
-	enum State {
+	enum State
+	{
 		Running,
 		ShuttingDownPeriphery,
 		ShuttingDownCore,
@@ -31,7 +33,8 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 	private bool _exitProcess;
 	private bool _shutdownHttp;
 
-	private void ShutDownInternalCore() {
+	private void ShutDownInternalCore()
+	{
 		_state = State.ShuttingDownCore;
 		mainQueue.Publish(new SystemMessage.BecomeShuttingDown(
 			correlationId: Guid.NewGuid(),
@@ -39,15 +42,18 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 			shutdownHttp: _shutdownHttp));
 	}
 
-	public void Handle(SystemMessage.RegisterForGracefulTermination message) {
-		if (_state is not State.Running) {
+	public void Handle(SystemMessage.RegisterForGracefulTermination message)
+	{
+		if (_state is not State.Running)
+		{
 			Log.Warning(
 				"Component {ComponentName} tried to register for graceful shutdown while the server is shutting down",
 				message.ComponentName);
 			return;
 		}
 
-		if (!_shutdownActions.TryAdd(message.ComponentName, message.Action)) {
+		if (!_shutdownActions.TryAdd(message.ComponentName, message.Action))
+		{
 			throw new InvalidOperationException($"Component {message.ComponentName} already registered");
 		}
 
@@ -56,8 +62,10 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 			message.ComponentName);
 	}
 
-	public void Handle(ClientMessage.RequestShutdown message) {
-		if (_state is not State.Running) {
+	public void Handle(ClientMessage.RequestShutdown message)
+	{
+		if (_state is not State.Running)
+		{
 			Log.Debug("Ignored request shutdown message because the server is already shutting down");
 			return;
 		}
@@ -65,7 +73,8 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 		_exitProcess = message.ExitProcess;
 		_shutdownHttp = message.ShutdownHttp;
 
-		if (_shutdownActions.Count == 0) {
+		if (_shutdownActions.Count == 0)
+		{
 			ShutDownInternalCore();
 			return;
 		}
@@ -73,11 +82,14 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 		_state = State.ShuttingDownPeriphery;
 		Log.Information("========== [{httpEndPoint}] Is shutting down peripheral components", nodeInfo.HttpEndPoint);
 
-		foreach (var entry in _shutdownActions) {
-			try {
+		foreach (var entry in _shutdownActions)
+		{
+			try
+			{
 				entry.Value();
 			}
-			catch (Exception e) {
+			catch (Exception e)
+			{
 				Log.Warning(e, "Component {ComponentName} faulted when initiating shutdown", entry.Key);
 			}
 		}
@@ -88,15 +100,18 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 			new SystemMessage.PeripheralShutdownTimeout()));
 	}
 
-	public void Handle(SystemMessage.ComponentTerminated message) {
-		if (!_shutdownActions.Remove(message.ComponentName)) {
+	public void Handle(SystemMessage.ComponentTerminated message)
+	{
+		if (!_shutdownActions.Remove(message.ComponentName))
+		{
 			throw new InvalidOperationException($"Component {message.ComponentName} already terminated");
 		}
 
 		Log.Information("========== [{HttpEndPoint}] Component '{ComponentName}' has shut down.", nodeInfo.HttpEndPoint,
 			message.ComponentName);
 
-		if (_state is not State.ShuttingDownPeriphery || _shutdownActions.Count != 0) {
+		if (_state is not State.ShuttingDownPeriphery || _shutdownActions.Count != 0)
+		{
 			return;
 		}
 
@@ -104,8 +119,10 @@ public class ShutdownService(IPublisher mainQueue, VNodeInfo nodeInfo, TimeSpan?
 		ShutDownInternalCore();
 	}
 
-	public void Handle(SystemMessage.PeripheralShutdownTimeout message) {
-		if (_state is not State.ShuttingDownPeriphery) {
+	public void Handle(SystemMessage.PeripheralShutdownTimeout message)
+	{
+		if (_state is not State.ShuttingDownPeriphery)
+		{
 			Log.Debug("Ignored shutdown timeout message when in state {State}", _state);
 			return;
 		}

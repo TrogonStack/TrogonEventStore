@@ -12,14 +12,18 @@ namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests.when
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_ssl_enabled_and_using_a_security_certificate_from_file<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
+public class with_ssl_enabled_and_using_a_security_certificate_from_file<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
+{
 	private readonly IPEndPoint _internalSecTcp = new(IPAddress.Parse("127.0.1.15"), 1114);
 	private readonly IPEndPoint _externalSecTcp = new(IPAddress.Parse("127.0.1.15"), 1115);
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
+	{
 
-		return options.WithReplicationEndpointOn(_internalSecTcp).WithExternalTcpOn(_externalSecTcp) with {
-			CertificateFile = new() {
+		return options.WithReplicationEndpointOn(_internalSecTcp).WithExternalTcpOn(_externalSecTcp) with
+		{
+			CertificateFile = new()
+			{
 				CertificateFile = GetCertificatePath(),
 				CertificatePrivateKeyFile = string.Empty,
 				CertificatePassword = "password"
@@ -28,16 +32,19 @@ public class with_ssl_enabled_and_using_a_security_certificate_from_file<TLogFor
 	}
 
 	[Test]
-	public void should_set_certificate() {
+	public void should_set_certificate()
+	{
 		Assert.AreNotEqual("n/a", _options.Certificate == null ? "n/a" : _options.Certificate.ToString());
 	}
 
 	[Test]
-	public void should_set_internal_secure_tcp_endpoint() {
+	public void should_set_internal_secure_tcp_endpoint()
+	{
 		Assert.AreEqual(_internalSecTcp, _node.NodeInfo.InternalSecureTcp);
 	}
 
-	private string GetCertificatePath() {
+	private string GetCertificatePath()
+	{
 		var filePath = Path.Combine(PathName, $"cert-{Guid.NewGuid()}.p12");
 		var cert = ssl_connections.GetUntrustedCertificate();
 
@@ -49,12 +56,14 @@ public class with_ssl_enabled_and_using_a_security_certificate_from_file<TLogFor
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_ssl_enabled_and_using_a_security_certificate<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId> {
+public class with_ssl_enabled_and_using_a_security_certificate<TLogFormat, TStreamId> : SingleNodeScenario<TLogFormat, TStreamId>
+{
 	private readonly IPEndPoint _internalSecTcp = new(IPAddress.Parse("127.0.1.15"), 1114);
 	private readonly IPEndPoint _externalSecTcp = new(IPAddress.Parse("127.0.1.15"), 1115);
 	private readonly X509Certificate2 _certificate = ssl_connections.GetServerCertificate();
 
-	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options) {
+	protected override ClusterVNodeOptions WithOptions(ClusterVNodeOptions options)
+	{
 		return options
 			.WithReplicationEndpointOn(_internalSecTcp)
 			.WithExternalTcpOn(_externalSecTcp)
@@ -62,23 +71,27 @@ public class with_ssl_enabled_and_using_a_security_certificate<TLogFormat, TStre
 	}
 
 	[Test]
-	public void should_set_certificate() {
+	public void should_set_certificate()
+	{
 		Assert.AreNotEqual("n/a", _options.Certificate == null ? "n/a" : _options.Certificate.ToString());
 	}
 
 	[Test]
-	public void should_set_internal_secure_tcp_endpoint() {
+	public void should_set_internal_secure_tcp_endpoint()
+	{
 		Assert.AreEqual(_internalSecTcp, _node.NodeInfo.InternalSecureTcp);
 	}
 }
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_secure_tcp_endpoints_and_no_certificates<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class with_secure_tcp_endpoints_and_no_certificates<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private ClusterVNodeOptions _options;
 	private Exception _caughtException;
 
 	[OneTimeSetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		var baseIpAddress = IPAddress.Parse("127.0.1.15");
 		var internalSecTcp = new IPEndPoint(baseIpAddress, 1114);
 		var externalSecTcp = new IPEndPoint(baseIpAddress, 1115);
@@ -87,17 +100,20 @@ public class with_secure_tcp_endpoints_and_no_certificates<TLogFormat, TStreamId
 			.RunOnDisk(PathName)
 			.WithReplicationEndpointOn(internalSecTcp)
 			.WithExternalTcpOn(externalSecTcp);
-		try {
+		try
+		{
 			_ = new ClusterVNode<TStreamId>(_options, LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory,
 				certificateProvider: new OptionsCertificateProvider());
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_caughtException = ex;
 		}
 	}
 
 	[Test]
-	public void should_throw_an_exception() {
+	public void should_throw_an_exception()
+	{
 		Assert.IsNotNull(_caughtException);
 	}
 }

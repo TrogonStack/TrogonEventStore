@@ -4,8 +4,10 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index.AutoMergeLevelTests;
 
 [TestFixture]
-public class when_only_one_table_file_higher_than_manual_merge_level : when_max_auto_merge_level_is_set {
-	public override void Setup() {
+public class when_only_one_table_file_higher_than_manual_merge_level : when_max_auto_merge_level_is_set
+{
+	public override void Setup()
+	{
 		base.Setup();
 		AddTables(5);
 		_map.Dispose(TimeSpan.FromMilliseconds(100));
@@ -16,7 +18,8 @@ public class when_only_one_table_file_higher_than_manual_merge_level : when_max_
 	}
 
 	[Test]
-	public void no_table_should_manually_merged() {
+	public void no_table_should_manually_merged()
+	{
 		var result = _map.TryMergeOneLevel(
 			_fileNameProvider,
 			_ptableVersion,

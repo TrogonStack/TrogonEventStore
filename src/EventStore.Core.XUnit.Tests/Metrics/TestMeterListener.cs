@@ -4,15 +4,20 @@ using System.Diagnostics.Metrics;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class TestMeterListener<T> : IDisposable where T : struct {
+public class TestMeterListener<T> : IDisposable where T : struct
+{
 	private readonly MeterListener _listener;
 	private readonly Dictionary<string, List<TestMeasurement>> _measurementsByInstrument;
 
-	public TestMeterListener(Meter meter) {
+	public TestMeterListener(Meter meter)
+	{
 		_measurementsByInstrument = new();
-		_listener = new MeterListener {
-			InstrumentPublished = (instrument, listener) => {
-				if (instrument.Meter == meter) {
+		_listener = new MeterListener
+		{
+			InstrumentPublished = (instrument, listener) =>
+			{
+				if (instrument.Meter == meter)
+				{
 					listener.EnableMeasurementEvents(instrument);
 				}
 			}
@@ -21,17 +26,21 @@ public class TestMeterListener<T> : IDisposable where T : struct {
 		_listener.Start();
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_listener?.Dispose();
 	}
 
-	public void Observe() {
+	public void Observe()
+	{
 		_listener.RecordObservableInstruments();
 	}
 
 	// gets the measurements for a given instrument and clears them
-	public IReadOnlyList<TestMeasurement> RetrieveMeasurements(string instrumentName) {
-		if (!_measurementsByInstrument.Remove(instrumentName, out var measurements)) {
+	public IReadOnlyList<TestMeasurement> RetrieveMeasurements(string instrumentName)
+	{
+		if (!_measurementsByInstrument.Remove(instrumentName, out var measurements))
+		{
 			return Array.Empty<TestMeasurement>();
 		}
 
@@ -42,15 +51,18 @@ public class TestMeterListener<T> : IDisposable where T : struct {
 		Instrument instrument,
 		T value,
 		ReadOnlySpan<KeyValuePair<string, object>> tags,
-		object state) {
+		object state)
+	{
 
 		var instrumentName = GenName(instrument);
-		if (!_measurementsByInstrument.TryGetValue(instrumentName, out var measurements)) {
+		if (!_measurementsByInstrument.TryGetValue(instrumentName, out var measurements))
+		{
 			measurements = new();
 			_measurementsByInstrument[instrumentName] = measurements;
 		}
 
-		measurements.Add(new TestMeasurement {
+		measurements.Add(new TestMeasurement
+		{
 			Value = value,
 			Tags = tags.ToArray(),
 		});
@@ -61,7 +73,8 @@ public class TestMeterListener<T> : IDisposable where T : struct {
 		? instrument.Name
 		: instrument.Name + "-" + instrument.Unit;
 
-	public class TestMeasurement {
+	public class TestMeasurement
+	{
 		public T Value { get; init; }
 		public KeyValuePair<string, object>[] Tags { get; init; }
 	}

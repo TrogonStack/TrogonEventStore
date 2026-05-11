@@ -14,17 +14,20 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_an_emit_with_not_ready_event<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_an_emit_with_not_ready_event<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		_stream = new EmittedStream(
 			"test_stream",
@@ -37,7 +40,8 @@ public class when_handling_an_emit_with_not_ready_event<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public void replies_with_await_message() {
+	public void replies_with_await_message()
+	{
 		_stream.EmitEvents(
 			new[] {
 				new EmittedLinkTo(
@@ -48,7 +52,8 @@ public class when_handling_an_emit_with_not_ready_event<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public void processes_write_on_write_completed_if_ready() {
+	public void processes_write_on_write_completed_if_ready()
+	{
 		var linkTo = new EmittedLinkTo(
 			"test_stream", Guid.NewGuid(), "other_stream", CheckpointTag.FromPosition(0, 1100, 1000), null);
 		_stream.EmitEvents(new[] { linkTo });
@@ -64,7 +69,8 @@ public class when_handling_an_emit_with_not_ready_event<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public void replies_with_await_message_on_write_completed_if_not_yet_ready() {
+	public void replies_with_await_message_on_write_completed_if_not_yet_ready()
+	{
 		var linkTo = new EmittedLinkTo(
 			"test_stream", Guid.NewGuid(), "other_stream", CheckpointTag.FromPosition(0, 1100, 1000), null);
 		_stream.EmitEvents(new[] { linkTo });

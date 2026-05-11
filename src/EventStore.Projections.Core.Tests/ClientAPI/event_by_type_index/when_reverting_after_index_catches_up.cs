@@ -7,12 +7,15 @@ namespace EventStore.Projections.Core.Tests.ClientAPI.event_by_type_index;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [NonParallelizable]
-public class when_reverting_after_index_catches_up<TLogFormat, TStreamId> : specification_with_standard_projections_runnning<TLogFormat, TStreamId> {
-	protected override bool GivenStandardProjectionsRunning() {
+public class when_reverting_after_index_catches_up<TLogFormat, TStreamId> : specification_with_standard_projections_runnning<TLogFormat, TStreamId>
+{
+	protected override bool GivenStandardProjectionsRunning()
+	{
 		return false;
 	}
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		await base.Given();
 		await PostEvent("stream-1", "type1", "{}");
 		await PostEvent("stream-1", "type2", "{}");
@@ -38,14 +41,16 @@ fromAll().foreachStream().when({
 		WaitIdle();
 	}
 
-	protected override async Task When() {
+	protected override async Task When()
+	{
 		await base.When();
 		await EnableProjection("test-projection");
 		WaitIdle();
 	}
 
 	[Test, Category("Network")]
-	public async Task receives_deleted_notification() {
+	public async Task receives_deleted_notification()
+	{
 		await AssertStreamTail("$projections-test-projection-stream-1-result", "Result:{\"a\":1}", "Result:{\"a\":2}");
 		await AssertStreamTail("$projections-test-projection-stream-2-result", "Result:{\"a\":1}", "Result:{\"a\":2}");
 	}

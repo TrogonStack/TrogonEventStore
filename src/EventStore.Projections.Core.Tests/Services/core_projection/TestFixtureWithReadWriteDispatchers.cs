@@ -6,11 +6,13 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 public abstract class TestFixtureWithReadWriteDispatchers :
-	EventStore.Core.Tests.Helpers.TestFixtureWithReadWriteDispatchers {
+	EventStore.Core.Tests.Helpers.TestFixtureWithReadWriteDispatchers
+{
 	protected ReaderSubscriptionDispatcher _subscriptionDispatcher;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_subscriptionDispatcher = new ReaderSubscriptionDispatcher(_bus);
 		_bus.Subscribe(
 			_subscriptionDispatcher.CreateSubscriber<EventReaderSubscriptionMessage.CommittedEventReceived>());

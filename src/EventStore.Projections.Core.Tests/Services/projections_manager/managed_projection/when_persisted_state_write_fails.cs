@@ -20,7 +20,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.managed
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.CommitTimeout)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.ForwardTimeout)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.PrepareTimeout)]
-public class when_persisted_state_write_fails<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_persisted_state_write_fails<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private new ITimeProvider _timeProvider;
 	private ManagedProjection _managedProjection;
 	private Guid _coreProjectionId;
@@ -30,21 +31,25 @@ public class when_persisted_state_write_fails<TLogFormat, TStreamId> : TestFixtu
 
 	private OperationResult _failureCondition;
 
-	public when_persisted_state_write_fails(OperationResult failureCondition) {
+	public when_persisted_state_write_fails(OperationResult failureCondition)
+	{
 		_failureCondition = failureCondition;
 	}
 
-	protected override ManualQueue GiveInputQueue() {
+	protected override ManualQueue GiveInputQueue()
+	{
 		return new ManualQueue(_bus, _timeProvider);
 	}
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		AllWritesQueueUp();
 		WhenLoop();
 	}
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_projectionName = "projectionName";
 		_projectionDefinitionStreamId = ProjectionNamesBuilder.ProjectionsStreamPrefix + _projectionName;
 		_coreProjectionId = Guid.NewGuid();
@@ -76,12 +81,14 @@ public class when_persisted_state_write_fails<TLogFormat, TStreamId> : TestFixtu
 			TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault));
 	}
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		ProjectionManagementMessage.Command.Post message = new ProjectionManagementMessage.Command.Post(
 			Envelope, ProjectionMode.OneTime, _projectionName, ProjectionManagementMessage.RunAs.System,
 			typeof(FakeForeachStreamProjection), "", true, false, false, false);
 		_managedProjection.InitializeNew(
-			new ManagedProjection.PersistedState {
+			new ManagedProjection.PersistedState
+			{
 				Enabled = message.Enabled,
 				HandlerType = message.HandlerType,
 				Query = message.Query,
@@ -112,7 +119,8 @@ public class when_persisted_state_write_fails<TLogFormat, TStreamId> : TestFixtu
 	}
 
 	[Test]
-	public void should_retry_writing_the_persisted_state_with_the_same_event_id() {
+	public void should_retry_writing_the_persisted_state_with_the_same_event_id()
+	{
 		var eventId = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 			.Where(x => x.EventStreamId == _projectionDefinitionStreamId).First().Events[0].EventId;
 		Assert.AreEqual(eventId, _originalPersistedStateEventId);

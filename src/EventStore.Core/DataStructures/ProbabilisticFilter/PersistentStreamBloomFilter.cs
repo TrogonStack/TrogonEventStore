@@ -3,13 +3,15 @@ using System.Runtime.InteropServices;
 using EventStore.Common.Utils;
 using EventStore.Core.Index.Hashes;
 
-namespace EventStore.Core.DataStructures.ProbabilisticFilter {
+namespace EventStore.Core.DataStructures.ProbabilisticFilter
+{
 	// this class exists to deal with the fact that v3 stores strings in the bloom filter
 	// but v2 stores hashes (to make it faster to rebuild from the standard index)
 	//
 	// if you provide a ILongHasher then strings are hashed using it and the resulting ulong
 	// added to the filter. if you add a ulong directly, it must be the result of the same hash.
-	public class PersistentStreamBloomFilter : PersistentBloomFilter {
+	public class PersistentStreamBloomFilter : PersistentBloomFilter
+	{
 		private readonly ILongHasher<string> _hasher;
 
 		public PersistentStreamBloomFilter(
@@ -17,31 +19,39 @@ namespace EventStore.Core.DataStructures.ProbabilisticFilter {
 			ILongHasher<string> hasher,
 			int corruptionRebuildCount = 0) :
 
-			base(persistenceStrategy, corruptionRebuildCount) {
+			base(persistenceStrategy, corruptionRebuildCount)
+		{
 			_hasher = hasher;
 		}
 
-		public void Add(string stream) {
-			if (_hasher != null) {
+		public void Add(string stream)
+		{
+			if (_hasher != null)
+			{
 				var hash = _hasher.Hash(stream);
 				Add(GetSpan(ref hash));
 			}
-			else {
+			else
+			{
 				Add(MemoryMarshal.AsBytes(stream.AsSpan()));
 			}
 		}
 
-		public void Add(ulong streamHash) {
+		public void Add(ulong streamHash)
+		{
 			Ensure.NotNull(_hasher, "Hasher");
 			Add(GetSpan(ref streamHash));
 		}
 
-		public bool MightContain(string stream) {
-			if (_hasher != null) {
+		public bool MightContain(string stream)
+		{
+			if (_hasher != null)
+			{
 				var hash = _hasher.Hash(stream);
 				return MightContain(GetSpan(ref hash));
 			}
-			else {
+			else
+			{
 				return MightContain(MemoryMarshal.AsBytes(stream.AsSpan()));
 			}
 		}

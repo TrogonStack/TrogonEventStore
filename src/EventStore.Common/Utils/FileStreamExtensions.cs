@@ -10,7 +10,8 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 
 namespace EventStore.Common.Utils;
 
-public static class FileStreamExtensions {
+public static class FileStreamExtensions
+{
 	private static readonly ILogger Log =
 		Serilog.Log.ForContext(Serilog.Core.Constants.SourceContextPropertyName, "FileStreamExtensions");
 	private static Action<FileStream> FlushSafe;
@@ -23,28 +24,36 @@ public static class FileStreamExtensions {
 	//[return: MarshalAs(UnmanagedType.Bool)]
 	//static extern bool FlushViewOfFile(IntPtr lpBaseAddress, UIntPtr dwNumberOfBytesToFlush);
 
-	static FileStreamExtensions() {
+	static FileStreamExtensions()
+	{
 		ConfigureFlush(disableFlushToDisk: false);
 	}
 
-	public static void FlushToDisk(this FileStream fs) {
+	public static void FlushToDisk(this FileStream fs)
+	{
 		FlushSafe(fs);
 	}
 
-	public static void ConfigureFlush(bool disableFlushToDisk) {
-		if (disableFlushToDisk) {
+	public static void ConfigureFlush(bool disableFlushToDisk)
+	{
+		if (disableFlushToDisk)
+		{
 			Log.Information("FlushToDisk: DISABLED");
 			FlushSafe = f => f.Flush(flushToDisk: false);
 			return;
 		}
 
-		if (!RuntimeInformation.IsWindows) {
+		if (!RuntimeInformation.IsWindows)
+		{
 			FlushSafe = f => f.Flush(flushToDisk: true);
 		}
-		else {
-			FlushSafe = f => {
+		else
+		{
+			FlushSafe = f =>
+			{
 				f.Flush(flushToDisk: false);
-				if (!FlushFileBuffers(f.SafeFileHandle)) {
+				if (!FlushFileBuffers(f.SafeFileHandle))
+				{
 					throw new Exception($"FlushFileBuffers failed with err: {Marshal.GetLastWin32Error()}");
 				}
 			};

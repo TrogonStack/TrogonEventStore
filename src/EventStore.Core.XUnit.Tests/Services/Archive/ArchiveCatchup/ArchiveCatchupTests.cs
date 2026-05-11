@@ -12,15 +12,18 @@ namespace EventStore.Core.XUnit.Tests.Services.Archive.ArchiveCatchup;
 
 using ArchiveCatchup = Core.Services.Archive.ArchiveCatchup.ArchiveCatchup;
 
-public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
+public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests>
+{
 	private const int ChunkSize = 1000;
 	private string DbPath => Path.Combine(Fixture.Directory, "db");
 
-	public ArchiveCatchupTests() {
+	public ArchiveCatchupTests()
+	{
 		Directory.CreateDirectory(DbPath);
 	}
 
-	private struct Sut {
+	private struct Sut
+	{
 		public ArchiveCatchup Catchup { get; init; }
 		public FakeArchiveStorage Archive { get; init; }
 		public string[] DbChunks { get; init; }
@@ -35,13 +38,15 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 		long? archiveCheckpoint = null,
 		string[] dbChunks = null,
 		string[] archiveChunks = null,
-		Action<string> onGetChunk = null) {
+		Action<string> onGetChunk = null)
+	{
 		dbCheckpoint ??= 0L;
 		archiveCheckpoint ??= 0L;
 		dbChunks ??= CreateChunkList(dbCheckpoint.Value);
 		archiveChunks ??= CreateChunkList(archiveCheckpoint.Value);
 
-		foreach (var dbChunk in dbChunks) {
+		foreach (var dbChunk in dbChunks)
+		{
 			using var _ = File.CreateText(Path.Combine(DbPath, dbChunk));
 		}
 
@@ -64,7 +69,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 			archiveStorageFactory: archive
 		);
 
-		return new Sut {
+		return new Sut
+		{
 			Catchup = catchup,
 			Archive = archive,
 			DbChunks = dbChunks,
@@ -75,16 +81,19 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 		};
 	}
 
-	private string[] CreateChunkList(long checkpoint) {
+	private string[] CreateChunkList(long checkpoint)
+	{
 		var chunks = new List<string>();
 		var namingStrategy = new CustomNamingStrategy();
 
 		var numChunks = checkpoint / ChunkSize;
-		if (checkpoint % ChunkSize != 0) {
+		if (checkpoint % ChunkSize != 0)
+		{
 			numChunks++;
 		}
 
-		for (var i = 0; i < numChunks; i++) {
+		for (var i = 0; i < numChunks; i++)
+		{
 			chunks.Add(namingStrategy.GetFilenameFor(i, i));
 		}
 
@@ -99,7 +108,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 	[InlineData(1005L, 1000L)] // db is ahead of archive by some data
 	[InlineData(4000L, 1000L)] // db is ahead of archive by multiple chunks
 	[InlineData(4005L, 1000L)] // db is ahead of archive by multiple chunks & some data
-	public async Task doesnt_catch_up_if_db_is_ahead_or_in_sync_with_archive(long dbCheckpoint, long archiveCheckpoint) {
+	public async Task doesnt_catch_up_if_db_is_ahead_or_in_sync_with_archive(long dbCheckpoint, long archiveCheckpoint)
+	{
 		var sut = CreateSut(dbCheckpoint: dbCheckpoint, archiveCheckpoint: archiveCheckpoint);
 
 		await sut.Catchup.Run();
@@ -121,7 +131,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 	[InlineData(2000L, 5000L)] // db has multiple complete chunks, archive has multiple chunks
 	[InlineData(3000L, 4000L)] // db is exactly one chunk behind archive
 	[InlineData(3005L, 4000L)] // db is less than one chunk behind archive
-	public async Task catches_up_if_db_is_behind_archive_1(long dbCheckpoint, long archiveCheckpoint) {
+	public async Task catches_up_if_db_is_behind_archive_1(long dbCheckpoint, long archiveCheckpoint)
+	{
 		var sut = CreateSut(
 			dbCheckpoint: dbCheckpoint,
 			archiveCheckpoint: archiveCheckpoint);
@@ -129,12 +140,14 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 		await sut.Catchup.Run();
 
 		var chunksToGet = new List<string>();
-		for (var i = (int)(dbCheckpoint / ChunkSize); i < (int)(archiveCheckpoint / ChunkSize); i++) {
+		for (var i = (int)(dbCheckpoint / ChunkSize); i < (int)(archiveCheckpoint / ChunkSize); i++)
+		{
 			chunksToGet.Add($"chunk-{i}.{i}");
 		}
 
 		var chunksToBackup = new List<string>();
-		if (dbCheckpoint % ChunkSize != 0) {
+		if (dbCheckpoint % ChunkSize != 0)
+		{
 			chunksToBackup.Add($"{sut.DbChunks[dbCheckpoint / ChunkSize]}.archive.bkup");
 		}
 
@@ -165,7 +178,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 		string[] dbChunks,
 		string[] archiveChunks,
 		string[] expectedChunksToFetch,
-		string[] expectedChunksToBackup) {
+		string[] expectedChunksToBackup)
+	{
 
 		var sut = CreateSut(
 			dbCheckpoint: dbCheckpoint,
@@ -178,7 +192,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 	}
 
 	[Fact]
-	public async Task retries_if_a_chunk_is_deleted_from_the_archive_when_catching_up() {
+	public async Task retries_if_a_chunk_is_deleted_from_the_archive_when_catching_up()
+	{
 		// scenario: there is an ongoing scavenge on the archive, so while catching up,
 		// chunks in the archive listing may no longer be present.
 
@@ -202,8 +217,10 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 		// we just want to test retries here. for simplicity, we just throw an exception the first time chunk-1.1 is
 		// fetched, then we don't throw on the second fetch. but in practice, it would be slightly different: the
 		// archive's directory listing would change on retry.
-		void OnGetChunk(string chunkFile) {
-			if (chunkFile == "chunk-1.1" && !exceptionThrown) {
+		void OnGetChunk(string chunkFile)
+		{
+			if (chunkFile == "chunk-1.1" && !exceptionThrown)
+			{
 				exceptionThrown = true;
 				throw new ChunkDeletedException();
 			}
@@ -211,7 +228,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 	}
 
 	[Fact]
-	public async Task propagates_cancellation_while_fetching_chunk() {
+	public async Task propagates_cancellation_while_fetching_chunk()
+	{
 		var cancellation = new OperationCanceledException();
 		var sut = CreateSut(
 			dbCheckpoint: 0L,
@@ -225,7 +243,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 	}
 
 	private async Task VerifyCatchUp(Sut sut, long dbCheckpoint, long archiveCheckpoint, string[] expectedChunkGets,
-		string[] expectedChunkBackups) {
+		string[] expectedChunkBackups)
+	{
 		// lists archive chunks
 		Assert.Equal(1, sut.Archive.NumListings);
 
@@ -248,7 +267,8 @@ public class ArchiveCatchupTests : DirectoryPerTest<ArchiveCatchupTests> {
 		Assert.Equal(expectedChunkBackups, ListBackedUpChunks());
 	}
 
-	private IEnumerable<string> ListBackedUpChunks() {
+	private IEnumerable<string> ListBackedUpChunks()
+	{
 		return Directory.EnumerateFiles(DbPath)
 			.Where(x => x.EndsWith(".bkup"))
 			.Select(Path.GetFileName)

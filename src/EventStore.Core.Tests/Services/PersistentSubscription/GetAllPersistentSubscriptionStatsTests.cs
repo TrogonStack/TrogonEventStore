@@ -24,12 +24,14 @@ using StreamMetadata = EventStore.Core.Data.StreamMetadata;
 namespace EventStore.Core.Tests.Services.PersistentSubscription;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
+public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId>
+{
 	private PersistentSubscriptionService<TStreamId> _sut;
 	private FakeStorage _storage;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		var bus = new SynchronousScheduler();
 		var ioDispatcher = new IODispatcher(bus, bus);
 		var trackers = new Trackers();
@@ -51,7 +53,8 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public async Task returns_not_ready_with_zero_total_before_starting() {
+	public async Task returns_not_ready_with_zero_total_before_starting()
+	{
 		var response = await GetStats(offset: 0, count: 5);
 
 		Assert.AreEqual(
@@ -62,7 +65,8 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public async Task returns_empty_page_when_no_subscriptions_exist() {
+	public async Task returns_empty_page_when_no_subscriptions_exist()
+	{
 		StartAsLeader();
 
 		var response = await GetStats(offset: 0, count: 5);
@@ -77,7 +81,8 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public async Task pages_by_subscription_in_stream_then_group_order() {
+	public async Task pages_by_subscription_in_stream_then_group_order()
+	{
 		StartAsLeader();
 		await CreateSubscription("beta", "group-1");
 		await CreateSubscription("alpha", "group-2");
@@ -98,7 +103,8 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 	}
 
 	[Test]
-	public async Task counts_subscription_records_when_returning_total_for_a_page() {
+	public async Task counts_subscription_records_when_returning_total_for_a_page()
+	{
 		StartAsLeader();
 		await CreateSubscription("alpha", "group-1");
 		await CreateSubscription("alpha", "group-2");
@@ -115,12 +121,14 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 		Assert.That(response.SubscriptionStats[0].GroupName, Is.EqualTo("group-1"));
 	}
 
-	private void StartAsLeader() {
+	private void StartAsLeader()
+	{
 		_sut.Start();
 		_sut.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 	}
 
-	private async Task CreateSubscription(string stream, string groupName) {
+	private async Task CreateSubscription(string stream, string groupName)
+	{
 		var envelope = new TcsEnvelope<ClientMessage.CreatePersistentSubscriptionToStreamCompleted>();
 		_sut.Handle(new ClientMessage.CreatePersistentSubscriptionToStream(
 			internalCorrId: Guid.NewGuid(),
@@ -150,7 +158,8 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 			response.Reason);
 	}
 
-	private async Task<MonitoringMessage.GetPersistentSubscriptionStatsCompleted> GetStats(int offset, int count) {
+	private async Task<MonitoringMessage.GetPersistentSubscriptionStatsCompleted> GetStats(int offset, int count)
+	{
 		var envelope = new TcsEnvelope<MonitoringMessage.GetPersistentSubscriptionStatsCompleted>();
 		_sut.Handle(new MonitoringMessage.GetAllPersistentSubscriptionStats(envelope, offset, count));
 		return await envelope.Task.WithTimeout();
@@ -158,17 +167,21 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 
 	private sealed class FakeStorage :
 		IHandle<ClientMessage.ReadStreamEventsBackward>,
-		IHandle<ClientMessage.WriteEvents> {
+		IHandle<ClientMessage.WriteEvents>
+	{
 		private readonly Dictionary<string, List<Event>> _streams = new();
 
-		public void Handle(ClientMessage.ReadStreamEventsBackward msg) {
+		public void Handle(ClientMessage.ReadStreamEventsBackward msg)
+		{
 			var result = ReadStreamResult.NoStream;
 			var resolvedEvents = new List<ResolvedEvent>();
 
-			if (_streams.TryGetValue(msg.EventStreamId, out var events)) {
+			if (_streams.TryGetValue(msg.EventStreamId, out var events))
+			{
 				result = ReadStreamResult.Success;
 
-				foreach (var ev in events) {
+				foreach (var ev in events)
+				{
 					var prepareLogRecord = new PrepareLogRecord(
 						logPosition: 0,
 						correlationId: Guid.NewGuid(),
@@ -206,8 +219,10 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 				tfLastCommitPosition: 0));
 		}
 
-		public void Handle(ClientMessage.WriteEvents msg) {
-			if (!_streams.TryGetValue(msg.EventStreamId, out var events)) {
+		public void Handle(ClientMessage.WriteEvents msg)
+		{
+			if (!_streams.TryGetValue(msg.EventStreamId, out var events))
+			{
 				events = new List<Event>();
 				_streams.Add(msg.EventStreamId, events);
 			}
@@ -223,7 +238,8 @@ public class GetAllPersistentSubscriptionStatsTests<TLogFormat, TStreamId> {
 		}
 	}
 
-	private sealed class MetaStreamLookup : IMetastreamLookup<TStreamId> {
+	private sealed class MetaStreamLookup : IMetastreamLookup<TStreamId>
+	{
 		public bool IsMetaStream(TStreamId streamId) => throw new NotSupportedException();
 		public TStreamId MetaStreamOf(TStreamId streamId) => throw new NotSupportedException();
 		public TStreamId OriginalStreamOf(TStreamId streamId) => throw new NotSupportedException();

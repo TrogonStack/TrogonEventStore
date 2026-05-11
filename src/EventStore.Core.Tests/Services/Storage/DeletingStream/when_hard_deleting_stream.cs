@@ -12,19 +12,23 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenHardDeletingStream<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+public class WhenHardDeletingStream<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		await WriteSingleEvent("ES1", 0, new string('.', 3000), token: token);
 		await WriteSingleEvent("ES1", 1, new string('.', 3000), token: token);
 		await WriteDelete("ES1", token);
 	}
 
 	[Test]
-	public async Task should_change_expected_version_to_deleted_event_number_when_reading() {
+	public async Task should_change_expected_version_to_deleted_event_number_when_reading()
+	{
 		var chunk = Db.Manager.GetChunk(0);
 		var chunkRecords = new List<ILogRecord>();
 		RecordReadResult result = await chunk.TryReadFirst(CancellationToken.None);
-		while (result.Success) {
+		while (result.Success)
+		{
 			chunkRecords.Add(result.LogRecord);
 			result = await chunk.TryReadClosestForward(result.NextPosition, CancellationToken.None);
 		}

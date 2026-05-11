@@ -21,21 +21,25 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Index;
 
-public abstract class TableIndex {
+public abstract class TableIndex
+{
 	internal static readonly IndexEntry InvalidIndexEntry = new IndexEntry(0, -1, -1);
 	public const string IndexMapFilename = "indexmap";
 	public const string ForceIndexVerifyFilename = ".forceverify";
 	protected static readonly ILogger Log = Serilog.Log.ForContext<TableIndex>();
 }
 
-public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
+public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId>
+{
 	private const int MaxMemoryTables = 1;
 
-	public long CommitCheckpoint {
+	public long CommitCheckpoint
+	{
 		get { return Interlocked.Read(ref _commitCheckpoint); }
 	}
 
-	public long PrepareCheckpoint {
+	public long PrepareCheckpoint
+	{
 		get { return Interlocked.Read(ref _prepareCheckpoint); }
 	}
 
@@ -92,7 +96,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		int initializationThreads = 1,
 		bool useBloomFilter = true,
 		int lruCacheSize = 1_000_000,
-		IIndexStatusTracker statusTracker = null) {
+		IIndexStatusTracker statusTracker = null)
+	{
 
 		Ensure.NotNullOrEmpty(directory, "directory");
 		Ensure.NotNull(memTableFactory, "memTableFactory");
@@ -102,11 +107,13 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		Ensure.Positive(initializationThreads, "initializationThreads");
 		Ensure.Positive(pTableMaxReaderCount, "pTableMaxReaderCount");
 
-		if (maxTablesPerLevel <= 1) {
+		if (maxTablesPerLevel <= 1)
+		{
 			throw new ArgumentOutOfRangeException("maxTablesPerLevel");
 		}
 
-		if (indexCacheDepth > 28 || indexCacheDepth < 8) {
+		if (indexCacheDepth > 28 || indexCacheDepth < 8)
+		{
 			throw new ArgumentOutOfRangeException("indexCacheDepth");
 		}
 
@@ -134,17 +141,20 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		_pTableMaxReaderCount = pTableMaxReaderCount;
 	}
 
-	public void Initialize(long chaserCheckpoint) {
+	public void Initialize(long chaserCheckpoint)
+	{
 		Ensure.Nonnegative(chaserCheckpoint, "chaserCheckpoint");
 
 		//NOT THREAD SAFE (assumes one thread)
-		if (_initialized) {
+		if (_initialized)
+		{
 			throw new IOException("TableIndex is already initialized.");
 		}
 
 		_initialized = true;
 
-		if (ShouldForceIndexVerify()) {
+		if (ShouldForceIndexVerify())
+		{
 			Log.Debug("Forcing verification of index files...");
 		}
 
@@ -154,7 +164,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		// if TableIndex's CommitCheckpoint is >= amount of written TFChunk data,
 		// we'll have to remove some of PTables as they point to non-existent data
 		// this can happen (very unlikely, though) on leader crash
-		try {
+		try
+		{
 			_indexMap = IndexMap.FromFile(indexmapFile, _maxTablesPerLevel, true, _indexCacheDepth,
 				_skipIndexVerify,
 				useBloomFilter: _useBloomFilter,
@@ -162,7 +173,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 				threads: _initializationThreads,
 				maxAutoMergeLevel: _maxAutoMergeIndexLevel,
 				pTableMaxReaderCount: _pTableMaxReaderCount);
-			if (_indexMap.CommitCheckpoint >= chaserCheckpoint) {
+			if (_indexMap.CommitCheckpoint >= chaserCheckpoint)
+			{
 				_indexMap.Dispose(TimeSpan.FromMilliseconds(5000));
 				throw new CorruptIndexException(String.Format(
 					"IndexMap's CommitCheckpoint ({0}) is greater than ChaserCheckpoint ({1}).",
@@ -172,7 +184,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 			//verification should be completed by now
 			DeleteForceIndexVerifyFile();
 		}
-		catch (CorruptIndexException exc) {
+		catch (CorruptIndexException exc)
+		{
 			Log.Error(exc, "ReadIndex is corrupted...");
 			LogIndexMapContent(indexmapFile);
 			DumpAndCopyIndex();
@@ -197,43 +210,53 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 			.Union(new[] { IndexMapFilename });
 		var toDeleteFiles = Directory.EnumerateFiles(_directory).Select(Path.GetFileName)
 			.Except(indexFiles, StringComparer.OrdinalIgnoreCase);
-		foreach (var filePath in toDeleteFiles) {
+		foreach (var filePath in toDeleteFiles)
+		{
 			var file = Path.Combine(_directory, filePath);
 			File.SetAttributes(file, FileAttributes.Normal);
 			File.Delete(file);
 		}
 	}
 
-	private static void LogIndexMapContent(string indexmapFile) {
-		try {
+	private static void LogIndexMapContent(string indexmapFile)
+	{
+		try
+		{
 			Log.Error("IndexMap '{indexMap}' content:\n {content}", indexmapFile,
 				Helper.FormatBinaryDump(File.ReadAllBytes(indexmapFile)));
 		}
-		catch (Exception exc) {
+		catch (Exception exc)
+		{
 			Log.Error(exc, "Unexpected error while dumping IndexMap '{indexMap}'.", indexmapFile);
 		}
 	}
 
-	private void DumpAndCopyIndex() {
+	private void DumpAndCopyIndex()
+	{
 		string dumpPath = null;
-		try {
+		try
+		{
 			dumpPath = Path.Combine(Path.GetDirectoryName(_directory),
 				string.Format("index-backup-{0:yyyy-MM-dd_HH-mm-ss.fff}", DateTime.UtcNow));
 			Log.Error("Making backup of index folder for inspection to {dumpPath}...", dumpPath);
 			FileUtils.DirectoryCopy(_directory, dumpPath, copySubDirs: true);
 		}
-		catch (Exception exc) {
+		catch (Exception exc)
+		{
 			Log.Error(exc, "Unexpected error while copying index to backup dir '{dumpPath}'", dumpPath);
 		}
 	}
 
-	private static void CreateIfDoesNotExist(string directory) {
-		if (!Directory.Exists(directory)) {
+	private static void CreateIfDoesNotExist(string directory)
+	{
+		if (!Directory.Exists(directory))
+		{
 			Directory.CreateDirectory(directory);
 		}
 	}
 
-	public void Add(long commitPos, TStreamId streamId, long version, long position) {
+	public void Add(long commitPos, TStreamId streamId, long version, long position)
+	{
 		Ensure.Nonnegative(commitPos, "commitPos");
 		Ensure.Nonnegative(version, "version");
 		Ensure.Nonnegative(position, "position");
@@ -241,16 +264,19 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		AddEntries(commitPos, new[] { CreateIndexKey(streamId, version, position) });
 	}
 
-	public void AddEntries(long commitPos, IList<IndexKey<TStreamId>> entries) {
+	public void AddEntries(long commitPos, IList<IndexKey<TStreamId>> entries)
+	{
 		//should only be called on a single thread.
 		var table = (IMemTable)_awaitingMemTables[0].Table; // always a memtable
 
 		var collection = entries.Select(x => CreateIndexEntry(x)).ToList();
 		table.AddEntries(collection);
 
-		if (table.Count >= _maxSizeForMemory) {
+		if (table.Count >= _maxSizeForMemory)
+		{
 			long prepareCheckpoint = collection[0].Position;
-			for (int i = 1, n = collection.Count; i < n; ++i) {
+			for (int i = 1, n = collection.Count; i < n; ++i)
+			{
 				prepareCheckpoint = Math.Max(prepareCheckpoint, collection[i].Position);
 			}
 
@@ -258,18 +284,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		}
 	}
 
-	public Task MergeIndexes() {
+	public Task MergeIndexes()
+	{
 		TryManualMerge();
 		return Task.CompletedTask;
 	}
 
-	public bool IsBackgroundTaskRunning {
+	public bool IsBackgroundTaskRunning
+	{
 		get { return _backgroundRunning; }
 	}
 
 	//Automerge only
-	private void TryProcessAwaitingTables(long commitPos, long prepareCheckpoint) {
-		lock (_awaitingTablesLock) {
+	private void TryProcessAwaitingTables(long commitPos, long prepareCheckpoint)
+	{
+		lock (_awaitingTablesLock)
+		{
 			var newTables = new List<TableItem> { new TableItem(_memTableFactory(), -1, -1, 0) };
 			newTables.AddRange(_awaitingMemTables.Select((x, i) =>
 				i == 0 ? new TableItem(x.Table, prepareCheckpoint, commitPos, x.Level) : x));
@@ -279,20 +309,25 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 			_awaitingMemTables = newTables;
 			TryProcessAwaitingTables();
 
-			if (_additionalReclaim) {
+			if (_additionalReclaim)
+			{
 				ThreadPool.QueueUserWorkItem(x => ReclaimMemoryIfNeeded(_awaitingMemTables));
 			}
 		}
 	}
 
-	public void TryManualMerge() {
+	public void TryManualMerge()
+	{
 		_isManualMergePending = true;
 		TryProcessAwaitingTables();
 	}
 
-	private void TryProcessAwaitingTables() {
-		lock (_awaitingTablesLock) {
-			if (!_backgroundRunning) {
+	private void TryProcessAwaitingTables()
+	{
+		lock (_awaitingTablesLock)
+		{
+			if (!_backgroundRunning)
+			{
 				_backgroundRunningEvent.Reset();
 				_backgroundRunning = true;
 				ThreadPool.QueueUserWorkItem(x => ReadOffQueue());
@@ -300,13 +335,17 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		}
 	}
 
-	private void ReadOffQueue() {
-		try {
+	private void ReadOffQueue()
+	{
+		try
+		{
 			using var _ = _statusTracker.StartMerging();
-			while (true) {
+			while (true)
+			{
 				var indexmapFile = Path.Combine(_directory, IndexMapFilename);
 
-				if (_isManualMergePending) {
+				if (_isManualMergePending)
+				{
 					Log.Debug("Performing manual index merge.");
 
 					_isManualMergePending = false;
@@ -318,7 +357,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 						useBloomFilter: _useBloomFilter,
 						lruCacheSize: _lruCacheSize);
 
-					if (manualMergeResult.HasMergedAny) {
+					if (manualMergeResult.HasMergedAny)
+					{
 						_indexMap = manualMergeResult.MergedMap;
 						_indexMap.SaveToFile(indexmapFile);
 						manualMergeResult.ToDelete.ForEach(x => x.MarkForDestruction());
@@ -330,9 +370,11 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 
 				TableItem tableItem;
 				//ISearchTable table;
-				lock (_awaitingTablesLock) {
+				lock (_awaitingTablesLock)
+				{
 					Log.Debug("Awaiting tables queue size is: {awaitingMemTables}.", _awaitingMemTables.Count);
-					if (_awaitingMemTables.Count == 1) {
+					if (_awaitingMemTables.Count == 1)
+					{
 						return;
 					}
 
@@ -341,7 +383,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 
 				PTable ptable;
 				var memtable = tableItem.Table as IMemTable;
-				if (memtable != null) {
+				if (memtable != null)
+				{
 					memtable.MarkForConversion();
 					ptable = PTable.FromMemtable(memtable, _fileNameProvider.GetFilenameNewTable(),
 						ESConsts.PTableInitialReaderCount,
@@ -351,7 +394,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 						useBloomFilter: _useBloomFilter,
 						lruCacheSize: _lruCacheSize);
 				}
-				else {
+				else
+				{
 					ptable = (PTable)tableItem.Table;
 				}
 
@@ -359,9 +403,11 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 				_indexMap = addResult.NewMap;
 				_indexMap.SaveToFile(indexmapFile);
 
-				if (addResult.CanMergeAny) {
+				if (addResult.CanMergeAny)
+				{
 					MergeResult mergeResult;
-					do {
+					do
+					{
 						mergeResult = _indexMap.TryMergeOneLevel(
 							_fileNameProvider,
 							_ptableVersion,
@@ -370,7 +416,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 							useBloomFilter: _useBloomFilter,
 							lruCacheSize: _lruCacheSize);
 
-						if (mergeResult.HasMergedAny) {
+						if (mergeResult.HasMergedAny)
+						{
 							_indexMap = mergeResult.MergedMap;
 							_indexMap.SaveToFile(indexmapFile);
 							mergeResult.ToDelete.ForEach(x => x.MarkForDestruction());
@@ -378,7 +425,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 					} while (mergeResult.CanMergeAny);
 				}
 
-				lock (_awaitingTablesLock) {
+				lock (_awaitingTablesLock)
+				{
 					var memTables = _awaitingMemTables.ToList();
 
 					var corrTable = memTables.First(x => x.Table.Id == ptable.Id);
@@ -387,7 +435,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 					// parallel thread could already switch table,
 					// so if we have another PTable instance with same ID,
 					// we need to kill that instance as we added ours already
-					if (!ReferenceEquals(corrTable.Table, ptable) && corrTable.Table is PTable) {
+					if (!ReferenceEquals(corrTable.Table, ptable) && corrTable.Table is PTable)
+					{
 						((PTable)corrTable.Table).MarkForDestruction();
 					}
 
@@ -396,24 +445,30 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 				}
 			}
 		}
-		catch (FileBeingDeletedException exc) {
+		catch (FileBeingDeletedException exc)
+		{
 			Log.Error(exc,
 				"Could not acquire chunk in TableIndex.ReadOffQueue. It is OK if node is shutting down.");
 		}
-		catch (Exception exc) {
+		catch (Exception exc)
+		{
 			Log.Error(exc, "Error in TableIndex.ReadOffQueue");
 			throw;
 		}
-		finally {
-			lock (_awaitingTablesLock) {
+		finally
+		{
+			lock (_awaitingTablesLock)
+			{
 				_backgroundRunning = false;
 				_backgroundRunningEvent.Set();
 			}
 		}
 	}
 
-	public void WaitForBackgroundTasks(int millisecondsTimeout = 7_000) {
-		if (!_backgroundRunningEvent.Wait(millisecondsTimeout)) {
+	public void WaitForBackgroundTasks(int millisecondsTimeout = 7_000)
+	{
+		if (!_backgroundRunningEvent.Wait(millisecondsTimeout))
+		{
 			throw new TimeoutException(
 				$"Waiting for TableIndex background tasks took longer than {millisecondsTimeout:N0} ms.");
 		}
@@ -425,18 +480,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 	public async ValueTask Scavenge(
 		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
 		IIndexScavengerLog log,
-		CancellationToken ct) {
+		CancellationToken ct)
+	{
 
 		GetExclusiveBackgroundTask(ct);
 		var sw = Stopwatch.StartNew();
 
-		try {
+		try
+		{
 			using var _ = _statusTracker.StartScavenging();
 			Log.Information("Starting scavenge of TableIndex.");
 			await ScavengeInternal(shouldKeep, log, ct);
 		}
-		finally {
-			lock (_awaitingTablesLock) {
+		finally
+		{
+			lock (_awaitingTablesLock)
+			{
 				_backgroundRunning = false;
 				_backgroundRunningEvent.Set();
 
@@ -450,15 +509,19 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 	private async ValueTask ScavengeInternal(
 		Func<IndexEntry, CancellationToken, ValueTask<bool>> shouldKeep,
 		IIndexScavengerLog log,
-		CancellationToken ct) {
+		CancellationToken ct)
+	{
 
 		var toScavenge = _indexMap.InOrder().ToList();
 
-		foreach (var pTable in toScavenge) {
+		foreach (var pTable in toScavenge)
+		{
 			var startNew = new Timestamp();
 
-			try {
-				using (var reader = _tfReaderFactory()) {
+			try
+			{
+				using (var reader = _tfReaderFactory())
+				{
 					var indexmapFile = Path.Combine(_directory, IndexMapFilename);
 
 					Func<IndexEntry, CancellationToken, ValueTask<bool>> existsAt =
@@ -475,7 +538,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 						useBloomFilter: _useBloomFilter,
 						lruCacheSize: _lruCacheSize);
 
-					if (scavengeResult.IsSuccess) {
+					if (scavengeResult.IsSuccess)
+					{
 						_indexMap = scavengeResult.ScavengedMap;
 						_indexMap.SaveToFile(indexmapFile);
 
@@ -485,27 +549,34 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 						log.IndexTableScavenged(scavengeResult.Level, scavengeResult.Index, startNew.Elapsed,
 							entriesDeleted, scavengeResult.NewTable.Count, scavengeResult.SpaceSaved);
 					}
-					else {
+					else
+					{
 						log.IndexTableNotScavenged(scavengeResult.Level, scavengeResult.Index, startNew.Elapsed,
 							pTable.Count, "");
 					}
 				}
 			}
-			catch (OperationCanceledException) {
+			catch (OperationCanceledException)
+			{
 				log.IndexTableNotScavenged(-1, -1, startNew.Elapsed, pTable.Count, "Scavenge cancelled");
 				throw;
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				log.IndexTableNotScavenged(-1, -1, startNew.Elapsed, pTable.Count, ex.Message);
 				throw;
 			}
 		}
 	}
 
-	private void GetExclusiveBackgroundTask(CancellationToken ct) {
-		while (true) {
-			lock (_awaitingTablesLock) {
-				if (!_backgroundRunning) {
+	private void GetExclusiveBackgroundTask(CancellationToken ct)
+	{
+		while (true)
+		{
+			lock (_awaitingTablesLock)
+			{
+				if (!_backgroundRunning)
+				{
 					_backgroundRunningEvent.Reset();
 					_backgroundRunning = true;
 					return;
@@ -517,11 +588,14 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		}
 	}
 
-	private void ReclaimMemoryIfNeeded(List<TableItem> awaitingMemTables) {
+	private void ReclaimMemoryIfNeeded(List<TableItem> awaitingMemTables)
+	{
 		var toPutOnDisk = awaitingMemTables.OfType<IMemTable>().Count() - MaxMemoryTables;
-		for (var i = awaitingMemTables.Count - 1; i >= 1 && toPutOnDisk > 0; i--) {
+		for (var i = awaitingMemTables.Count - 1; i >= 1 && toPutOnDisk > 0; i--)
+		{
 			var memtable = awaitingMemTables[i].Table as IMemTable;
-			if (memtable == null || !memtable.MarkForConversion()) {
+			if (memtable == null || !memtable.MarkForConversion())
+			{
 				continue;
 			}
 
@@ -535,10 +609,13 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 				useBloomFilter: _useBloomFilter,
 				lruCacheSize: _lruCacheSize);
 			var swapped = false;
-			lock (_awaitingTablesLock) {
-				for (var j = _awaitingMemTables.Count - 1; j >= 1; j--) {
+			lock (_awaitingTablesLock)
+			{
+				for (var j = _awaitingMemTables.Count - 1; j >= 1; j--)
+				{
 					var tableItem = _awaitingMemTables[j];
-					if (!(tableItem.Table is IMemTable) || tableItem.Table.Id != ptable.Id) {
+					if (!(tableItem.Table is IMemTable) || tableItem.Table.Id != ptable.Id)
+					{
 						continue;
 					}
 
@@ -551,7 +628,8 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 				}
 			}
 
-			if (!swapped) {
+			if (!swapped)
+			{
 				ptable.MarkForDestruction();
 			}
 
@@ -559,18 +637,23 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		}
 	}
 
-	public void Visit(Action<PTable> f) {
+	public void Visit(Action<PTable> f)
+	{
 		int counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				VisitInternal(f);
 				return;
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -579,25 +662,32 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		throw new InvalidOperationException("Files are locked.");
 	}
 
-	private void VisitInternal(Action<PTable> f) {
+	private void VisitInternal(Action<PTable> f)
+	{
 		var map = _indexMap;
-		foreach (var table in map.InOrder()) {
+		foreach (var table in map.InOrder())
+		{
 			f(table);
 		}
 	}
 
-	public bool TryGetOneValue(TStreamId streamId, long version, out long position) {
+	public bool TryGetOneValue(TStreamId streamId, long version, out long position)
+	{
 		ulong stream = CreateHash(streamId);
 		int counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return TryGetOneValueInternal(stream, version, out position);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -606,21 +696,27 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		throw new InvalidOperationException("Files are locked.");
 	}
 
-	private bool TryGetOneValueInternal(ulong stream, long version, out long position) {
-		if (version < 0) {
+	private bool TryGetOneValueInternal(ulong stream, long version, out long position)
+	{
+		if (version < 0)
+		{
 			throw new ArgumentOutOfRangeException("version");
 		}
 
 		var awaiting = _awaitingMemTables;
-		foreach (var tableItem in awaiting) {
-			if (tableItem.Table.TryGetOneValue(stream, version, out position)) {
+		foreach (var tableItem in awaiting)
+		{
+			if (tableItem.Table.TryGetOneValue(stream, version, out position))
+			{
 				return true;
 			}
 		}
 
 		var map = _indexMap;
-		foreach (var table in map.InOrder()) {
-			if (table.TryGetOneValue(stream, version, out position)) {
+		foreach (var table in map.InOrder())
+		{
+			if (table.TryGetOneValue(stream, version, out position))
+			{
 				return true;
 			}
 		}
@@ -629,18 +725,23 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		return false;
 	}
 
-	public bool TryGetLatestEntry(TStreamId streamId, out IndexEntry entry) {
+	public bool TryGetLatestEntry(TStreamId streamId, out IndexEntry entry)
+	{
 		ulong stream = CreateHash(streamId);
 		var counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return TryGetLatestEntryInternal(stream, out entry);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -649,17 +750,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		throw new InvalidOperationException("Files are locked.");
 	}
 
-	private bool TryGetLatestEntryInternal(ulong stream, out IndexEntry entry) {
+	private bool TryGetLatestEntryInternal(ulong stream, out IndexEntry entry)
+	{
 		var awaiting = _awaitingMemTables;
-		foreach (var t in awaiting) {
-			if (t.Table.TryGetLatestEntry(stream, out entry)) {
+		foreach (var t in awaiting)
+		{
+			if (t.Table.TryGetLatestEntry(stream, out entry))
+			{
 				return true;
 			}
 		}
 
 		var map = _indexMap;
-		foreach (var table in map.InOrder()) {
-			if (table.TryGetLatestEntry(stream, out entry)) {
+		foreach (var table in map.InOrder())
+		{
+			if (table.TryGetLatestEntry(stream, out entry))
+			{
 				return true;
 			}
 		}
@@ -669,17 +775,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 	}
 
 	public async ValueTask<IndexEntry?> TryGetLatestEntry(ulong stream, long beforePosition,
-		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token) {
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token)
+	{
 		var counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return await TryGetLatestEntryInternal(stream, beforePosition, isForThisStream, token);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -689,24 +800,30 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 	}
 
 	public ValueTask<IndexEntry?> TryGetLatestEntry(TStreamId streamId, long beforePosition,
-		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token) {
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token)
+	{
 		ulong stream = CreateHash(streamId);
 		return TryGetLatestEntry(stream, beforePosition, isForThisStream, token);
 	}
 
 	private async ValueTask<IndexEntry?> TryGetLatestEntryInternal(ulong stream, long beforePosition,
-		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token) {
+		Func<IndexEntry, CancellationToken, ValueTask<bool>> isForThisStream, CancellationToken token)
+	{
 		var awaiting = _awaitingMemTables;
 
-		foreach (var t in awaiting) {
-			if (await t.Table.TryGetLatestEntry(stream, beforePosition, isForThisStream, token) is { } entry) {
+		foreach (var t in awaiting)
+		{
+			if (await t.Table.TryGetLatestEntry(stream, beforePosition, isForThisStream, token) is { } entry)
+			{
 				return entry;
 			}
 		}
 
 		var map = _indexMap;
-		foreach (var table in map.InOrder()) {
-			if (await table.TryGetLatestEntry(stream, beforePosition, isForThisStream, token) is { } entry) {
+		foreach (var table in map.InOrder())
+		{
+			if (await table.TryGetLatestEntry(stream, beforePosition, isForThisStream, token) is { } entry)
+			{
 				return entry;
 			}
 		}
@@ -714,18 +831,23 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		return null;
 	}
 
-	public bool TryGetOldestEntry(TStreamId streamId, out IndexEntry entry) {
+	public bool TryGetOldestEntry(TStreamId streamId, out IndexEntry entry)
+	{
 		ulong stream = CreateHash(streamId);
 		var counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return TryGetOldestEntryInternal(stream, out entry);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -734,17 +856,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		throw new InvalidOperationException("Files are locked.");
 	}
 
-	private bool TryGetOldestEntryInternal(ulong stream, out IndexEntry entry) {
+	private bool TryGetOldestEntryInternal(ulong stream, out IndexEntry entry)
+	{
 		var map = _indexMap;
-		foreach (var table in map.InReverseOrder()) {
-			if (table.TryGetOldestEntry(stream, out entry)) {
+		foreach (var table in map.InReverseOrder())
+		{
+			if (table.TryGetOldestEntry(stream, out entry))
+			{
 				return true;
 			}
 		}
 
 		var awaiting = _awaitingMemTables;
-		for (var index = awaiting.Count - 1; index >= 0; index--) {
-			if (awaiting[index].Table.TryGetOldestEntry(stream, out entry)) {
+		for (var index = awaiting.Count - 1; index >= 0; index--)
+		{
+			if (awaiting[index].Table.TryGetOldestEntry(stream, out entry))
+			{
 				return true;
 			}
 		}
@@ -753,22 +880,28 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		return false;
 	}
 
-	public bool TryGetNextEntry(TStreamId streamId, long afterVersion, out IndexEntry entry) {
+	public bool TryGetNextEntry(TStreamId streamId, long afterVersion, out IndexEntry entry)
+	{
 		ulong stream = CreateHash(streamId);
 		return TryGetNextEntry(stream, afterVersion, out entry);
 	}
 
-	public bool TryGetNextEntry(ulong stream, long afterVersion, out IndexEntry entry) {
+	public bool TryGetNextEntry(ulong stream, long afterVersion, out IndexEntry entry)
+	{
 		var counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return TryGetNextEntryInternal(stream, afterVersion, out entry);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -777,17 +910,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		throw new InvalidOperationException("Files are locked.");
 	}
 
-	private bool TryGetNextEntryInternal(ulong stream, long afterVersion, out IndexEntry entry) {
+	private bool TryGetNextEntryInternal(ulong stream, long afterVersion, out IndexEntry entry)
+	{
 		var map = _indexMap;
-		foreach (var table in map.InReverseOrder()) {
-			if (table.TryGetNextEntry(stream, afterVersion, out entry)) {
+		foreach (var table in map.InReverseOrder())
+		{
+			if (table.TryGetNextEntry(stream, afterVersion, out entry))
+			{
 				return true;
 			}
 		}
 
 		var awaiting = _awaitingMemTables;
-		for (var index = awaiting.Count - 1; index >= 0; index--) {
-			if (awaiting[index].Table.TryGetNextEntry(stream, afterVersion, out entry)) {
+		for (var index = awaiting.Count - 1; index >= 0; index--)
+		{
+			if (awaiting[index].Table.TryGetNextEntry(stream, afterVersion, out entry))
+			{
 				return true;
 			}
 		}
@@ -796,22 +934,28 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		return false;
 	}
 
-	public bool TryGetPreviousEntry(TStreamId streamId, long beforeVersion, out IndexEntry entry) {
+	public bool TryGetPreviousEntry(TStreamId streamId, long beforeVersion, out IndexEntry entry)
+	{
 		ulong stream = CreateHash(streamId);
 		return TryGetPreviousEntry(stream, beforeVersion, out entry);
 	}
 
-	public bool TryGetPreviousEntry(ulong stream, long beforeVersion, out IndexEntry entry) {
+	public bool TryGetPreviousEntry(ulong stream, long beforeVersion, out IndexEntry entry)
+	{
 		var counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return TryGetPreviousEntryInternal(stream, beforeVersion, out entry);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -820,18 +964,23 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		throw new InvalidOperationException("Files are locked.");
 	}
 
-	private bool TryGetPreviousEntryInternal(ulong stream, long beforeVersion, out IndexEntry entry) {
+	private bool TryGetPreviousEntryInternal(ulong stream, long beforeVersion, out IndexEntry entry)
+	{
 		var awaiting = _awaitingMemTables;
 
-		foreach (var t in awaiting) {
-			if (t.Table.TryGetPreviousEntry(stream, beforeVersion, out entry)) {
+		foreach (var t in awaiting)
+		{
+			if (t.Table.TryGetPreviousEntry(stream, beforeVersion, out entry))
+			{
 				return true;
 			}
 		}
 
 		var map = _indexMap;
-		foreach (var table in map.InOrder()) {
-			if (table.TryGetPreviousEntry(stream, beforeVersion, out entry)) {
+		foreach (var table in map.InOrder())
+		{
+			if (table.TryGetPreviousEntry(stream, beforeVersion, out entry))
+			{
 				return true;
 			}
 		}
@@ -843,17 +992,22 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 	public IReadOnlyList<IndexEntry> GetRange(TStreamId streamId, long startVersion, long endVersion,
 		int? limit = null) => GetRange(CreateHash(streamId), startVersion, endVersion, limit);
 
-	public IReadOnlyList<IndexEntry> GetRange(ulong stream, long startVersion, long endVersion, int? limit = null) {
+	public IReadOnlyList<IndexEntry> GetRange(ulong stream, long startVersion, long endVersion, int? limit = null)
+	{
 		var counter = 0;
-		while (counter < 5) {
+		while (counter < 5)
+		{
 			counter++;
-			try {
+			try
+			{
 				return GetRangeInternal(stream, startVersion, endVersion, limit);
 			}
-			catch (FileBeingDeletedException) {
+			catch (FileBeingDeletedException)
+			{
 				Log.Debug("File being deleted.");
 			}
-			catch (MaybeCorruptIndexException) {
+			catch (MaybeCorruptIndexException)
+			{
 				ForceIndexVerifyOnNextStartup();
 				throw;
 			}
@@ -863,12 +1017,15 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 	}
 
 	private IReadOnlyList<IndexEntry> GetRangeInternal(ulong hash, long startVersion, long endVersion,
-		int? limit = null) {
-		if (startVersion < 0) {
+		int? limit = null)
+	{
+		if (startVersion < 0)
+		{
 			throw new ArgumentOutOfRangeException("startVersion");
 		}
 
-		if (endVersion < 0) {
+		if (endVersion < 0)
+		{
 			throw new ArgumentOutOfRangeException("endVersion");
 		}
 
@@ -877,17 +1034,21 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		var resultsPerTable = new List<IReadOnlyList<IndexEntry>>(16);
 
 		var awaiting = _awaitingMemTables;
-		for (int index = 0; index < awaiting.Count; index++) {
+		for (int index = 0; index < awaiting.Count; index++)
+		{
 			var range = awaiting[index].Table.GetRange(hash, startVersion, endVersion, limit);
-			if (range.Count > 0) {
+			if (range.Count > 0)
+			{
 				resultsPerTable.Add(range);
 			}
 		}
 
 		var map = _indexMap;
-		foreach (var table in map.InOrder()) {
+		foreach (var table in map.InOrder())
+		{
 			var range = table.GetRange(hash, startVersion, endVersion, limit);
-			if (range.Count > 0) {
+			if (range.Count > 0)
+			{
 				resultsPerTable.Add(range);
 			}
 		}
@@ -900,17 +1061,20 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		var prevOldestVersion = long.MaxValue;
 		var totalEntryCount = 0;
 		var candidates = new List<IEnumerator<IndexEntry>>(resultsPerTable.Count);
-		foreach (var entries in resultsPerTable) {
+		foreach (var entries in resultsPerTable)
+		{
 			var entriesEnumerator = entries.GetEnumerator();
 			entriesEnumerator.MoveNext();
 			candidates.Add(entriesEnumerator);
 
 			totalEntryCount += entries.Count;
 
-			if (maybeInOrder) {
+			if (maybeInOrder)
+			{
 				var latestVersion = entriesEnumerator.Current.Version;
 
-				if (latestVersion >= prevOldestVersion) {
+				if (latestVersion >= prevOldestVersion)
+				{
 					maybeInOrder = false;
 				}
 
@@ -931,20 +1095,23 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		// reverse so that typically the largest candidate is at the back, making the RemoveAt cheap
 		candidates.Reverse();
 
-		while (candidates.Count > 0) {
+		while (candidates.Count > 0)
+		{
 			var maxIdx = areInOrder ? (candidates.Count - 1) : GetMaxOf(candidates);
 			var winner = candidates[maxIdx];
 
 			var best = winner.Current;
 			if (first ||
 				((last.Stream != best.Stream) && (last.Version != best.Version)) ||
-				last.Position != best.Position) {
+				last.Position != best.Position)
+			{
 				last = best;
 				sortedCandidates.Add(best);
 				first = false;
 			}
 
-			if (!winner.MoveNext()) {
+			if (!winner.MoveNext())
+			{
 				candidates.RemoveAt(maxIdx);
 			}
 		}
@@ -952,16 +1119,19 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		return sortedCandidates;
 	}
 
-	private static int GetMaxOf(List<IEnumerator<IndexEntry>> enumerators) {
+	private static int GetMaxOf(List<IEnumerator<IndexEntry>> enumerators)
+	{
 		var max = new IndexEntry(
 			stream: ulong.MinValue,
 			version: 0,
 			position: long.MinValue);
 
 		int idx = 0;
-		for (int i = 0; i < enumerators.Count; i++) {
+		for (int i = 0; i < enumerators.Count; i++)
+		{
 			var cur = enumerators[i].Current;
-			if (cur.CompareTo(max) > 0) {
+			if (cur.CompareTo(max) > 0)
+			{
 				max = cur;
 				idx = i;
 			}
@@ -970,64 +1140,78 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		return idx;
 	}
 
-	public void Close(bool removeFiles = true) {
-		if (!_backgroundRunningEvent.Wait(7000)) {
+	public void Close(bool removeFiles = true)
+	{
+		if (!_backgroundRunningEvent.Wait(7000))
+		{
 			throw new TimeoutException("Could not finish background thread in reasonable time.");
 		}
 
-		if (_indexMap == null) {
+		if (_indexMap == null)
+		{
 			return;
 		}
 
-		if (removeFiles) {
+		if (removeFiles)
+		{
 			_indexMap.InOrder().ToList().ForEach(x => x.MarkForDestruction());
 			var fileName = Path.Combine(_directory, IndexMapFilename);
-			if (File.Exists(fileName)) {
+			if (File.Exists(fileName))
+			{
 				File.SetAttributes(fileName, FileAttributes.Normal);
 				File.Delete(fileName);
 			}
 		}
-		else {
+		else
+		{
 			_indexMap.InOrder().ToList().ForEach(x => x.Dispose());
 		}
 
 		_indexMap.InOrder().ToList().ForEach(x => x.WaitForDisposal(TimeSpan.FromMilliseconds(5000)));
 	}
 
-	private IndexEntry CreateIndexEntry(IndexKey<TStreamId> key) {
+	private IndexEntry CreateIndexEntry(IndexKey<TStreamId> key)
+	{
 		key = CreateIndexKey(key.StreamId, key.Version, key.Position);
 		return new IndexEntry(key.Hash, key.Version, key.Position);
 	}
 
-	private ulong CreateHash(TStreamId streamId) {
+	private ulong CreateHash(TStreamId streamId)
+	{
 		return (ulong)_lowHasher.Hash(streamId) << 32 | _highHasher.Hash(streamId);
 	}
 
 	/// newest to oldest
-	public IEnumerable<ISearchTable> IterateAllInOrder() {
+	public IEnumerable<ISearchTable> IterateAllInOrder()
+	{
 		var awaiting = _awaitingMemTables;
 		var map = _indexMap;
 
-		foreach (var tableItem in awaiting) {
+		foreach (var tableItem in awaiting)
+		{
 			yield return tableItem.Table;
 		}
 
-		foreach (var table in map.InOrder()) {
+		foreach (var table in map.InOrder())
+		{
 			yield return table;
 		}
 	}
 
-	private IndexKey<TStreamId> CreateIndexKey(TStreamId streamId, long version, long position) {
+	private IndexKey<TStreamId> CreateIndexKey(TStreamId streamId, long version, long position)
+	{
 		return new IndexKey<TStreamId>(streamId, version, position, CreateHash(streamId));
 	}
 
-	private class TableItem {
+	private class TableItem
+	{
 		public readonly ISearchTable Table;
 		public readonly long PrepareCheckpoint;
 		public readonly long CommitCheckpoint;
 		public readonly int Level;
 
-		public TableItem(ISearchTable table, long prepareCheckpoint, long commitCheckpoint, int level) {
+		public TableItem(ISearchTable table, long prepareCheckpoint, long commitCheckpoint, int level)
+		{
 			Table = table;
 			PrepareCheckpoint = prepareCheckpoint;
 			CommitCheckpoint = commitCheckpoint;
@@ -1035,36 +1219,45 @@ public class TableIndex<TStreamId> : TableIndex, ITableIndex<TStreamId> {
 		}
 	}
 
-	private void ForceIndexVerifyOnNextStartup() {
+	private void ForceIndexVerifyOnNextStartup()
+	{
 		Log.Debug("Forcing index verification on next startup");
 		string path = Path.Combine(_directory, ForceIndexVerifyFilename);
-		try {
-			using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate)) {
+		try
+		{
+			using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate))
+			{
 			}
 
 			;
 		}
-		catch {
+		catch
+		{
 			Log.Error("Could not create force index verification file at: {path}", path);
 		}
 
 		return;
 	}
 
-	private bool ShouldForceIndexVerify() {
+	private bool ShouldForceIndexVerify()
+	{
 		string path = Path.Combine(_directory, ForceIndexVerifyFilename);
 		return File.Exists(path);
 	}
 
-	private void DeleteForceIndexVerifyFile() {
+	private void DeleteForceIndexVerifyFile()
+	{
 		string path = Path.Combine(_directory, ForceIndexVerifyFilename);
-		try {
-			if (File.Exists(path)) {
+		try
+		{
+			if (File.Exists(path))
+			{
 				File.SetAttributes(path, FileAttributes.Normal);
 				File.Delete(path);
 			}
 		}
-		catch {
+		catch
+		{
 			Log.Error("Could not delete force index verification file at: {path}", path);
 		}
 	}

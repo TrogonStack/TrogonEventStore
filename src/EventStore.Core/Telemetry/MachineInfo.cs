@@ -8,7 +8,8 @@ public readonly record struct MachineInfo(
 	string OS,
 	int ProcessorCount,
 	long TotalMemory,
-	long TotalDiskSpace) {
+	long TotalDiskSpace)
+{
 
 	public static MachineInfo Collect(ClusterVNodeOptions options) => new(
 		RuntimeInformation.OSDescription,

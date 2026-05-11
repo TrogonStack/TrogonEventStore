@@ -6,9 +6,12 @@ using EventStore.TestClient.Commands;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class BankAccountEvent {
-	public static EventData FromEvent(object accountObject) {
-		if (accountObject == null) {
+internal class BankAccountEvent
+{
+	public static EventData FromEvent(object accountObject)
+	{
+		if (accountObject == null)
+		{
 			throw new ArgumentNullException("accountObject");
 		}
 

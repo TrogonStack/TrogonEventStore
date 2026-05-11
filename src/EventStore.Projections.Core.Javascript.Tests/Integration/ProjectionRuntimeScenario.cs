@@ -19,16 +19,19 @@ using Xunit.Abstractions;
 
 namespace EventStore.Projections.Core.Javascript.Tests.Integration;
 
-public abstract class ProjectionRuntimeScenario : SubsystemScenario {
+public abstract class ProjectionRuntimeScenario : SubsystemScenario
+{
 	static readonly IConfiguration EmptyConfiguration = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
 	protected ProjectionRuntimeScenario() : base(CreateRuntime, "$et",
-		new CancellationTokenSource(5 * 1000).Token) {
+		new CancellationTokenSource(5 * 1000).Token)
+	{
 
 	}
 
 	static (Func<ValueTask>, IPublisher) CreateRuntime(SynchronousScheduler mainBus, IQueuedHandler mainQueue,
-		ICheckpoint writerCheckpoint) {
+		ICheckpoint writerCheckpoint)
+	{
 		var options =
 			new ProjectionSubsystemOptions(3, ProjectionType.All, true, TimeSpan.FromMinutes(5), false, 500, 500);
 		var dbPath = Path.Combine(Path.GetTempPath(), $"projection-runtime-{Guid.NewGuid():N}");
@@ -54,32 +57,43 @@ public abstract class ProjectionRuntimeScenario : SubsystemScenario {
 		subsystem.ConfigureApplication(builder.Build().UseRouting(), EmptyConfiguration);
 		subsystem.Start();
 
-		async ValueTask StopAsync() {
+		async ValueTask StopAsync()
+		{
 			Exception? primaryException = null;
-			try {
+			try
+			{
 				await subsystem.Stop();
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				primaryException = ex;
 				throw;
 			}
-			finally {
-				try {
+			finally
+			{
+				try
+				{
 					await db.DisposeAsync();
 				}
-				catch (Exception) when (primaryException is not null) {
+				catch (Exception) when (primaryException is not null)
+				{
 				}
-				catch (Exception ex) {
+				catch (Exception ex)
+				{
 					primaryException = ex;
 					throw;
 				}
-				finally {
-					try {
-						if (Directory.Exists(dbPath)) {
+				finally
+				{
+					try
+					{
+						if (Directory.Exists(dbPath))
+						{
 							Directory.Delete(dbPath, recursive: true);
 						}
 					}
-					catch (Exception) when (primaryException is not null) {
+					catch (Exception) when (primaryException is not null)
+					{
 					}
 				}
 			}

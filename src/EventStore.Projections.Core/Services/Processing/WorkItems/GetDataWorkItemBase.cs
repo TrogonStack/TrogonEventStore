@@ -6,7 +6,8 @@ using EventStore.Projections.Core.Services.Processing.Phases;
 
 namespace EventStore.Projections.Core.Services.Processing.WorkItems;
 
-abstract class GetDataWorkItemBase : WorkItem {
+abstract class GetDataWorkItemBase : WorkItem
+{
 	protected readonly IPublisher _publisher;
 	protected readonly string _partition;
 	protected Guid _correlationId;
@@ -21,8 +22,10 @@ abstract class GetDataWorkItemBase : WorkItem {
 		Guid projectionId,
 		IProjectionPhaseStateManager projection,
 		string partition)
-		: base(null) {
-		if (partition == null) {
+		: base(null)
+	{
+		if (partition == null)
+		{
 			throw new ArgumentNullException("partition");
 		}
 
@@ -33,11 +36,13 @@ abstract class GetDataWorkItemBase : WorkItem {
 		_projection = projection;
 	}
 
-	protected override void GetStatePartition() {
+	protected override void GetStatePartition()
+	{
 		NextStage(_partition);
 	}
 
-	protected override void Load(CheckpointTag checkpointTag) {
+	protected override void Load(CheckpointTag checkpointTag)
+	{
 		_lastProcessedCheckpointTag = _projection.LastProcessedEventPosition;
 		_projection.BeginGetPartitionStateAt(
 			_partition,
@@ -46,12 +51,14 @@ abstract class GetDataWorkItemBase : WorkItem {
 			lockLoaded: false);
 	}
 
-	private void LoadCompleted(PartitionState state) {
+	private void LoadCompleted(PartitionState state)
+	{
 		_state = state;
 		NextStage();
 	}
 
-	protected override void WriteOutput() {
+	protected override void WriteOutput()
+	{
 		Reply(_state, _lastProcessedCheckpointTag);
 		NextStage();
 	}

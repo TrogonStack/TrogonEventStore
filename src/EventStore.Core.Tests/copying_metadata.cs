@@ -8,16 +8,19 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests;
 
 [TestFixture]
-public class copying_metadata {
+public class copying_metadata
+{
 	[Test]
-	public void copies_empty_metadata() {
+	public void copies_empty_metadata()
+	{
 		var empty = StreamMetadata.Build().Build();
 		var copied = empty.Copy().Build();
 		Assert.AreEqual(empty.AsJsonString(), copied.AsJsonString());
 	}
 
 	[Test]
-	public void copies_all_values() {
+	public void copies_all_values()
+	{
 		var source = StreamMetadata.Build()
 			.SetCacheControl(TimeSpan.FromDays(1))
 			.SetCustomProperty("Test", "Value")
@@ -35,7 +38,8 @@ public class copying_metadata {
 	}
 
 	[Test]
-	public void can_mutate_copy() {
+	public void can_mutate_copy()
+	{
 		var source = StreamMetadata.Build()
 			.SetCacheControl(TimeSpan.FromDays(1))
 			.SetCustomProperty("Test", "Value")

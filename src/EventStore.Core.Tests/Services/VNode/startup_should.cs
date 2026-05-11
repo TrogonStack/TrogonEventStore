@@ -23,9 +23,11 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode;
 
 [TestFixture]
-public class startup_should : SpecificationWithDirectory {
+public class startup_should : SpecificationWithDirectory
+{
 	[Test]
-	public async Task propagate_cancellation_into_startup_tasks() {
+	public async Task propagate_cancellation_into_startup_tasks()
+	{
 		var startupTaskStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var blockingStartupTask = new BlockingStartupTask(startupTaskStarted);
 		var ip = IPAddress.Loopback;
@@ -33,22 +35,27 @@ public class startup_should : SpecificationWithDirectory {
 		var internalEndPoint = new IPEndPoint(ip, PortsHelper.GetAvailablePort(ip));
 		var httpEndPoint = new IPEndPoint(ip, PortsHelper.GetAvailablePort(ip));
 
-		var options = new ClusterVNodeOptions {
-			Application = new() {
+		var options = new ClusterVNodeOptions
+		{
+			Application = new()
+			{
 				AllowAnonymousEndpointAccess = true,
 				AllowAnonymousStreamAccess = true,
 				StatsPeriodSec = 60 * 60,
 				WorkerThreads = 1
 			},
-			Interface = new() {
+			Interface = new()
+			{
 				ReplicationHeartbeatInterval = 10_000,
 				ReplicationHeartbeatTimeout = 10_000
 			},
-			Cluster = new() {
+			Cluster = new()
+			{
 				DiscoverViaDns = false,
 				StreamInfoCacheCapacity = 10_000
 			},
-			Database = new() {
+			Database = new()
+			{
 				ChunkSize = MiniNode.ChunkSize,
 				ChunksCacheSize = MiniNode.CachedChunkSize,
 				SkipDbVerify = true,
@@ -95,7 +102,8 @@ public class startup_should : SpecificationWithDirectory {
 					startupTasks => [.. startupTasks, blockingStartupTask]));
 
 		using var host = new HostBuilder()
-			.ConfigureWebHost(webHost => {
+			.ConfigureWebHost(webHost =>
+			{
 				webHost
 					.UseTestServer()
 					.UseStartup(node.Startup);
@@ -106,19 +114,23 @@ public class startup_should : SpecificationWithDirectory {
 		using var cancellationTokenSource = new CancellationTokenSource();
 		var startTask = node.StartAsync(false, cancellationTokenSource.Token);
 
-		try {
+		try
+		{
 			await startupTaskStarted.Task.WithTimeout(TimeSpan.FromSeconds(5));
 			await cancellationTokenSource.CancelAsync();
 
 			Assert.That(async () => await startTask, Throws.InstanceOf<OperationCanceledException>());
 		}
-		finally {
+		finally
+		{
 			await node.StopAsync(TimeSpan.FromSeconds(20));
 		}
 	}
 
-	private sealed class BlockingStartupTask(TaskCompletionSource<bool> started) : IClusterVNodeStartupTask {
-		public async Task Run(CancellationToken token = default) {
+	private sealed class BlockingStartupTask(TaskCompletionSource<bool> started) : IClusterVNodeStartupTask
+	{
+		public async Task Run(CancellationToken token = default)
+		{
 			started.TrySetResult(true);
 			await Task.Delay(Timeout.InfiniteTimeSpan, token);
 		}

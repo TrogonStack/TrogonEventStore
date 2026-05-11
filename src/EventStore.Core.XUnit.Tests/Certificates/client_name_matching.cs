@@ -6,9 +6,12 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Certificates;
 
-public class client_name_matching {
-	private static X509Certificate2 GenSut(string subjectName) {
-		using (RSA rsa = RSA.Create()) {
+public class client_name_matching
+{
+	private static X509Certificate2 GenSut(string subjectName)
+	{
+		using (RSA rsa = RSA.Create())
+		{
 			var certReq = new CertificateRequest(subjectName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 			return certReq.CreateSelfSigned(DateTimeOffset.UtcNow.AddMonths(-1), DateTimeOffset.UtcNow.AddMonths(1));
 		}
@@ -24,7 +27,8 @@ public class client_name_matching {
 	[InlineData("CN=abc.test.com", "*.tEst.cOm", "client_cn_matches_wildcard_dns_name_case_insensitive")]
 	[InlineData("CN=*.test.com", "*.test.com", "client_wildcard_cn_matches_wildcard_dns_name")]
 	[InlineData("CN=*.test.com", "*.teSt.cOm", "client_wildcard_cn_matches_wildcard_dns_name_case_insensitive")]
-	public void does_match(string clientCN, string pattern, string testCase) {
+	public void does_match(string clientCN, string pattern, string testCase)
+	{
 		var sut = GenSut(clientCN);
 		Assert.True(sut.ClientCertificateMatchesName(pattern), testCase);
 	}
@@ -40,7 +44,8 @@ public class client_name_matching {
 	[InlineData("CN=*.test.com", "abc.d.test.com", "client_wildcard_cn_does_not_match_non_wildcard_subdomain_name")]
 	[InlineData("CN=*.*.test.com", "*.*.test.com", "client_invalid_wildcard_cn_does_not_match_invalid_wildcard_dns_name")]
 	[InlineData("CN=*", "*", "client_single_star_cn_does_not_match_single_star_dns_name")]
-	public void does_not_match(string clientCN, string pattern, string testCase) {
+	public void does_not_match(string clientCN, string pattern, string testCase)
+	{
 		var sut = GenSut(clientCN);
 		Assert.False(sut.ClientCertificateMatchesName(pattern), testCase);
 	}

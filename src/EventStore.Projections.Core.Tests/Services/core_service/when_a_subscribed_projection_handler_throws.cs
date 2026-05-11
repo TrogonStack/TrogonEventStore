@@ -11,9 +11,11 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_service;
 
 [TestFixture]
-public class when_a_subscribed_projection_handler_throws : TestFixtureWithProjectionCoreService {
+public class when_a_subscribed_projection_handler_throws : TestFixtureWithProjectionCoreService
+{
 	[SetUp]
-	public new void Setup() {
+	public new void Setup()
+	{
 		var readerStrategy = new FakeReaderStrategy();
 		var projectionCorrelationId = Guid.NewGuid();
 		_readerService.Handle(
@@ -27,7 +29,8 @@ public class when_a_subscribed_projection_handler_throws : TestFixtureWithProjec
 	}
 
 	[Test]
-	public void projection_is_notified_that_it_is_to_fault() {
+	public void projection_is_notified_that_it_is_to_fault()
+	{
 		Assert.AreEqual(1, _consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.Failed>().Count());
 	}
 }

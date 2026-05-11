@@ -7,21 +7,24 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Tests.Transforms.WithHeader;
 
-public class WithHeaderChunkTransformFactory : IChunkTransformFactory {
+public class WithHeaderChunkTransformFactory : IChunkTransformFactory
+{
 	private const int TransformHeaderSize = 133;
 	private readonly byte[] _header;
 
 	public TransformType Type => (TransformType)0xFD;
 	public int TransformDataPosition(int dataPosition) => TransformHeaderSize + dataPosition;
 
-	public WithHeaderChunkTransformFactory() {
+	public WithHeaderChunkTransformFactory()
+	{
 		_header = new byte[TransformHeaderSize];
 		RandomNumberGenerator.Fill(_header);
 	}
 
 	public void CreateTransformHeader(Span<byte> transformHeader) => _header.CopyTo(transformHeader);
 
-	public ValueTask ReadTransformHeader(Stream stream, Memory<byte> transformHeader, CancellationToken token) {
+	public ValueTask ReadTransformHeader(Stream stream, Memory<byte> transformHeader, CancellationToken token)
+	{
 		return stream.ReadExactlyAsync(transformHeader, token);
 	}
 

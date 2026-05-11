@@ -15,7 +15,8 @@ using EventStore.Projections.Core.Services.Processing.Partitioning;
 
 namespace EventStore.Projections.Core.Services.Processing.MultiStream;
 
-public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpointManager, IEmittedStreamContainer {
+public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpointManager, IEmittedStreamContainer
+{
 	private readonly PositionTagger _positionTagger;
 	private CheckpointTag _lastOrderCheckpointTag; //TODO: use position tracker to ensure order?
 	private EmittedStream _orderStream;
@@ -34,30 +35,36 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 		: base(
 			publisher, projectionCorrelationId, projectionVersion, runAs, ioDispatcher, projectionConfig, name,
 			positionTagger, namingBuilder, usePersistentCheckpoints, producesRunningResults, definesFold,
-			coreProjectionCheckpointWriter, maxProjectionStateSize) {
+			coreProjectionCheckpointWriter, maxProjectionStateSize)
+	{
 		_positionTagger = positionTagger;
 	}
 
-	public override void Initialize() {
+	public override void Initialize()
+	{
 		base.Initialize();
 		_lastOrderCheckpointTag = null;
-		if (_orderStream != null) {
+		if (_orderStream != null)
+		{
 			_orderStream.Dispose();
 		}
 
 		_orderStream = null;
 	}
 
-	public override void Start(CheckpointTag checkpointTag, PartitionState rootPartitionState) {
+	public override void Start(CheckpointTag checkpointTag, PartitionState rootPartitionState)
+	{
 		base.Start(checkpointTag, rootPartitionState);
 		_orderStream = CreateOrderStream(checkpointTag);
 		_orderStream.Start();
 	}
 
 	public override void RecordEventOrder(
-		ResolvedEvent resolvedEvent, CheckpointTag orderCheckpointTag, Action committed) {
+		ResolvedEvent resolvedEvent, CheckpointTag orderCheckpointTag, Action committed)
+	{
 		EnsureStarted();
-		if (_stopping) {
+		if (_stopping)
+		{
 			throw new InvalidOperationException("Stopping");
 		}
 
@@ -74,7 +81,8 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 		_lastOrderCheckpointTag = orderCheckpointTag;
 	}
 
-	private EmittedStream CreateOrderStream(CheckpointTag from) {
+	private EmittedStream CreateOrderStream(CheckpointTag from)
+	{
 		//TODO: this stream requires $startFrom to be updated from time to time to reduce space taken
 		return new EmittedStream(
 			/* MUST NEVER SEND READY MESSAGE */
@@ -85,9 +93,11 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 			_projectionVersion, _positionTagger, @from, _publisher, _ioDispatcher, this, noCheckpoints: true);
 	}
 
-	public override void GetStatistics(ProjectionStatistics info) {
+	public override void GetStatistics(ProjectionStatistics info)
+	{
 		base.GetStatistics(info);
-		if (_orderStream != null) {
+		if (_orderStream != null)
+		{
 			info.WritePendingEventsAfterCheckpoint += _orderStream.GetWritePendingEvents();
 			info.ReadsInProgress += _orderStream.GetReadsInProgress();
 			info.WritesInProgress += _orderStream.GetWritesInProgress();
@@ -95,28 +105,34 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 	}
 
 
-	public override void BeginLoadPrerecordedEvents(CheckpointTag checkpointTag) {
+	public override void BeginLoadPrerecordedEvents(CheckpointTag checkpointTag)
+	{
 		BeginLoadPrerecordedEventsChunk(checkpointTag, -1);
 	}
 
-	private void BeginLoadPrerecordedEventsChunk(CheckpointTag checkpointTag, long fromEventNumber) {
+	private void BeginLoadPrerecordedEventsChunk(CheckpointTag checkpointTag, long fromEventNumber)
+	{
 		_loadingPrerecordedEventsFrom = checkpointTag;
 		_ioDispatcher.ReadBackward(
 			_namingBuilder.GetOrderStreamName(), fromEventNumber, 100, false, SystemAccounts.System,
-			completed => {
-				switch (completed.Result) {
+			completed =>
+			{
+				switch (completed.Result)
+				{
 					case ReadStreamResult.NoStream:
 						_lastOrderCheckpointTag = _positionTagger.MakeZeroCheckpointTag();
 						PrerecordedEventsLoaded(checkpointTag);
 						break;
 					case ReadStreamResult.Success:
 						var epochEnded = false;
-						foreach (var @event in completed.Events) {
+						foreach (var @event in completed.Events)
+						{
 							var parsed = @event.Event.Metadata.ParseCheckpointTagVersionExtraJson(
 								_projectionVersion);
 							//TODO: throw exception if different projectionID?
 							if (_projectionVersion.ProjectionId != parsed.Version.ProjectionId
-								|| _projectionVersion.Epoch > parsed.Version.Version) {
+								|| _projectionVersion.Epoch > parsed.Version.Version)
+							{
 								epochEnded = true;
 								break;
 							}
@@ -124,11 +140,13 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 							var tag = parsed.AdjustBy(_positionTagger, _projectionVersion);
 							//NOTE: even if this tag <= checkpointTag we set last tag
 							// this is to know the exact last tag to request when writing
-							if (_lastOrderCheckpointTag == null) {
+							if (_lastOrderCheckpointTag == null)
+							{
 								_lastOrderCheckpointTag = tag;
 							}
 
-							if (tag <= checkpointTag) {
+							if (tag <= checkpointTag)
+							{
 								SetOrderStreamReadCompleted();
 								return;
 							}
@@ -136,10 +154,12 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 							EnqueuePrerecordedEvent(@event.Event, tag);
 						}
 
-						if (epochEnded || completed.IsEndOfStream) {
+						if (epochEnded || completed.IsEndOfStream)
+						{
 							SetOrderStreamReadCompleted();
 						}
-						else {
+						else
+						{
 							BeginLoadPrerecordedEventsChunk(checkpointTag, completed.NextEventNumber);
 						}
 
@@ -147,23 +167,28 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 					default:
 						throw new Exception("Cannot read order stream");
 				}
-			}, () => {
+			}, () =>
+			{
 				_logger.Warning("Read backward of stream {stream} timed out. Retrying",
 					_namingBuilder.GetOrderStreamName());
 				BeginLoadPrerecordedEventsChunk(checkpointTag, fromEventNumber);
 			}, Guid.NewGuid());
 	}
 
-	private void EnqueuePrerecordedEvent(EventRecord @event, CheckpointTag tag) {
-		if (@event == null) {
+	private void EnqueuePrerecordedEvent(EventRecord @event, CheckpointTag tag)
+	{
+		if (@event == null)
+		{
 			throw new ArgumentNullException("event");
 		}
 
-		if (tag == null) {
+		if (tag == null)
+		{
 			throw new ArgumentNullException("tag");
 		}
 
-		if (@event.EventType != "$>") {
+		if (@event.EventType != "$>")
+		{
 			throw new ArgumentException("linkto ($>) event expected", "event");
 		}
 
@@ -179,12 +204,15 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 		long eventNumber = long.Parse(parts[0]);
 		string streamId = parts[1];
 
-		ReadPrerecordedEventStream(streamId, eventNumber, completed => {
-			switch (completed.Result) {
+		ReadPrerecordedEventStream(streamId, eventNumber, completed =>
+		{
+			switch (completed.Result)
+			{
 				case ReadStreamResult.Success:
 				case ReadStreamResult.NoStream:
 				case ReadStreamResult.StreamDeleted:
-					if (completed.Events.Count == 1) {
+					if (completed.Events.Count == 1)
+					{
 						item.SetLoadedEvent(completed.Events[0]);
 					}
 
@@ -198,23 +226,29 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 	}
 
 	private void ReadPrerecordedEventStream(string streamId, long eventNumber,
-		Action<ClientMessage.ReadStreamEventsBackwardCompleted> action) {
+		Action<ClientMessage.ReadStreamEventsBackwardCompleted> action)
+	{
 		_ioDispatcher.ReadBackward(
-			streamId, eventNumber, 1, true, SystemAccounts.System, action, () => {
+			streamId, eventNumber, 1, true, SystemAccounts.System, action, () =>
+			{
 				_logger.Warning("Read backward of stream {stream} timed out. Retrying", streamId);
 				ReadPrerecordedEventStream(streamId, eventNumber, action);
 			}, Guid.NewGuid());
 	}
 
-	private void CheckAllEventsLoaded() {
+	private void CheckAllEventsLoaded()
+	{
 		CheckpointTag lastTag = null;
-		if (_orderStreamReadingCompleted && _loadingItemsCount == 0) {
+		if (_orderStreamReadingCompleted && _loadingItemsCount == 0)
+		{
 			var number = 0;
-			while (_loadQueue.Count > 0) {
+			while (_loadQueue.Count > 0)
+			{
 				var item = _loadQueue.Pop();
 				var @event = item._result;
 				lastTag = item.Tag;
-				if (@event.HasValue) {
+				if (@event.HasValue)
+				{
 					SendPrerecordedEvent(@event.Value, lastTag, number);
 					number++;
 				}
@@ -225,21 +259,26 @@ public partial class MultiStreamMultiOutputCheckpointManager : DefaultCheckpoint
 		}
 	}
 
-	private void SetOrderStreamReadCompleted() {
+	private void SetOrderStreamReadCompleted()
+	{
 		_orderStreamReadingCompleted = true;
 		CheckAllEventsLoaded();
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.EmittedStreamAwaiting message) {
-		if (_stopped) {
+	public void Handle(CoreProjectionProcessingMessage.EmittedStreamAwaiting message)
+	{
+		if (_stopped)
+		{
 			return;
 		}
 
 		throw new NotImplementedException();
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.EmittedStreamWriteCompleted message) {
-		if (_stopped) {
+	public void Handle(CoreProjectionProcessingMessage.EmittedStreamWriteCompleted message)
+	{
+		if (_stopped)
+		{
 			return;
 		}
 	}

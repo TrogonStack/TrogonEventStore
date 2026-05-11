@@ -10,11 +10,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.TransactionMgr;
 
 [TestFixture]
-public class when_transaction_commit_gets_already_committed_before_committed : RequestManagerSpecification<TransactionCommit> {
+public class when_transaction_commit_gets_already_committed_before_committed : RequestManagerSpecification<TransactionCommit>
+{
 	private long commitPosition = 1000;
 	private int transactionId = 500;
 
-	protected override TransactionCommit OnManager(FakePublisher publisher) {
+	protected override TransactionCommit OnManager(FakePublisher publisher)
+	{
 		return new TransactionCommit(
 			publisher,
 			PrepareTimeout,
@@ -27,23 +29,27 @@ public class when_transaction_commit_gets_already_committed_before_committed : R
 	}
 
 
-	protected override IEnumerable<Message> WithInitialMessages() {
+	protected override IEnumerable<Message> WithInitialMessages()
+	{
 
 		yield return new StorageMessage.PrepareAck(InternalCorrId, transactionId, PrepareFlags.TransactionEnd);
 	}
 
-	protected override Message When() {
+	protected override Message When()
+	{
 		return new StorageMessage.AlreadyCommitted(InternalCorrId, "test123", 0, 1, commitPosition);
 	}
 
 	[Test]
-	public void successful_request_message_is_published() {
+	public void successful_request_message_is_published()
+	{
 		Assert.That(Produced.ContainsSingle<StorageMessage.RequestCompleted>(
 			x => x.CorrelationId == InternalCorrId && x.Success));
 	}
 
 	[Test]
-	public void the_envelope_is_replied_to_with_success() {
+	public void the_envelope_is_replied_to_with_success()
+	{
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.TransactionCommitCompleted>(
 			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.Success));
 	}

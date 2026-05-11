@@ -8,7 +8,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> : SpecificationWithFilePerTestFixture {
+public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> : SpecificationWithFilePerTestFixture
+{
 	private TFChunk _chunk;
 	private readonly Guid _corrId = Guid.NewGuid();
 	private readonly Guid _eventId = Guid.NewGuid();
@@ -21,7 +22,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	private IPrepareLogRecord<TStreamId> _prepare2;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename);
 
@@ -46,28 +48,33 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[OneTimeTearDown]
-	public override void TestFixtureTearDown() {
+	public override void TestFixtureTearDown()
+	{
 		_chunk.Dispose();
 		base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void the_chunk_is_cached() {
+	public void the_chunk_is_cached()
+	{
 		Assert.IsTrue(_chunk.IsCached);
 	}
 
 	[Test]
-	public void the_first_record_was_written() {
+	public void the_first_record_was_written()
+	{
 		Assert.IsTrue(_written1);
 	}
 
 	[Test]
-	public void the_second_record_was_written() {
+	public void the_second_record_was_written()
+	{
 		Assert.IsTrue(_written2);
 	}
 
 	[Test]
-	public async Task the_first_record_can_be_read_at_position() {
+	public async Task the_first_record_can_be_read_at_position()
+	{
 		var res = await _chunk.TryReadAt((int)_position1, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.IsTrue(res.LogRecord is IPrepareLogRecord<TStreamId>);
@@ -75,7 +82,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task the_second_record_can_be_read_at_position() {
+	public async Task the_second_record_can_be_read_at_position()
+	{
 		var res = await _chunk.TryReadAt((int)_position2, couldBeScavenged: true, CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.IsTrue(res.LogRecord is IPrepareLogRecord<TStreamId>);
@@ -83,7 +91,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task the_first_record_can_be_read() {
+	public async Task the_first_record_can_be_read()
+	{
 		var res = await _chunk.TryReadFirst(CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_prepare1.GetSizeWithLengthPrefixAndSuffix(), res.NextPosition);
@@ -92,7 +101,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task the_second_record_can_be_read_as_closest_forward_after_first() {
+	public async Task the_second_record_can_be_read_as_closest_forward_after_first()
+	{
 		var res = await _chunk.TryReadClosestForward(_prepare1.GetSizeWithLengthPrefixAndSuffix(),
 			CancellationToken.None);
 		Assert.IsTrue(res.Success);
@@ -103,7 +113,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task cannot_read_past_second_record_with_closest_forward_method() {
+	public async Task cannot_read_past_second_record_with_closest_forward_method()
+	{
 		var res = await _chunk.TryReadClosestForward(_prepare1.GetSizeWithLengthPrefixAndSuffix()
 													 + _prepare2.GetSizeWithLengthPrefixAndSuffix(),
 			CancellationToken.None);
@@ -111,7 +122,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task the_seconds_record_can_be_read_as_last() {
+	public async Task the_seconds_record_can_be_read_as_last()
+	{
 		var res = await _chunk.TryReadLast(CancellationToken.None);
 		Assert.IsTrue(res.Success);
 		Assert.AreEqual(_prepare1.GetSizeWithLengthPrefixAndSuffix(), res.NextPosition);
@@ -119,7 +131,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task the_first_record_can_be_read_as_closest_backward_after_last() {
+	public async Task the_first_record_can_be_read_as_closest_backward_after_last()
+	{
 		var res = await _chunk.TryReadClosestBackward(_prepare1.GetSizeWithLengthPrefixAndSuffix(),
 			CancellationToken.None);
 		Assert.IsTrue(res.Success);
@@ -128,7 +141,8 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 	}
 
 	[Test]
-	public async Task cannot_read_backward_from_zero_pos() {
+	public async Task cannot_read_backward_from_zero_pos()
+	{
 		var res = await _chunk.TryReadClosestBackward(0, CancellationToken.None);
 		Assert.IsFalse(res.Success);
 	}

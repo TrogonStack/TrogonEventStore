@@ -5,8 +5,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class with_return_link_metadata : specification_with_event_handled {
-	protected override void Given() {
+public class with_return_link_metadata : specification_with_event_handled
+{
+	protected override void Given()
+	{
 		_projection = @"fromAll().when({$any:function(s,e){
                 return e.linkMetadata;
             }})";
@@ -15,7 +17,8 @@ public class with_return_link_metadata : specification_with_event_handled {
 	}
 
 	[Test]
-	public void returns_position_metadata_as_state() {
+	public void returns_position_metadata_as_state()
+	{
 		Assert.AreEqual("{\"position_meta\":1}", _newState);
 		Assert.IsTrue(_emittedEventEnvelopes == null || !_emittedEventEnvelopes.Any());
 	}

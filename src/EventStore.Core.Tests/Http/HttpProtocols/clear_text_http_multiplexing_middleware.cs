@@ -18,15 +18,20 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Http.HttpProtocols;
 
 
-public class Startup : IStartup {
-	public IServiceProvider ConfigureServices(IServiceCollection services) {
+public class Startup : IStartup
+{
+	public IServiceProvider ConfigureServices(IServiceCollection services)
+	{
 		services.AddRouting();
 		return null;
 	}
 
-	public void Configure(IApplicationBuilder app) {
-		app.UseRouter(router => {
-			router.MapGet("/test", async context => {
+	public void Configure(IApplicationBuilder app)
+	{
+		app.UseRouter(router =>
+		{
+			router.MapGet("/test", async context =>
+			{
 				await context.Response.WriteAsync("hello");
 			});
 		});
@@ -34,17 +39,22 @@ public class Startup : IStartup {
 }
 
 [TestFixture]
-public class clear_text_http_multiplexing_middleware {
+public class clear_text_http_multiplexing_middleware
+{
 	private IHost _host;
 	private string _endpoint;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_host = new HostBuilder()
-			.ConfigureWebHost(webHost => {
+			.ConfigureWebHost(webHost =>
+			{
 				webHost
-					.UseKestrel(server => {
-						server.Listen(IPAddress.Loopback, 0, listenOptions => {
+					.UseKestrel(server =>
+					{
+						server.Listen(IPAddress.Loopback, 0, listenOptions =>
+						{
 							listenOptions.Use(next => new ClearTextHttpMultiplexingMiddleware(next).OnConnectAsync);
 						});
 					})
@@ -59,13 +69,15 @@ public class clear_text_http_multiplexing_middleware {
 	}
 
 	[TearDown]
-	public Task Teardown() {
+	public Task Teardown()
+	{
 		_host?.Dispose();
 		return Task.CompletedTask;
 	}
 
 	[Test]
-	public async Task http1_request() {
+	public async Task http1_request()
+	{
 		using var client = new HttpClient();
 		var request = new HttpRequestMessage(HttpMethod.Get, _endpoint + "/test");
 		var result = await client.SendAsync(request);
@@ -74,9 +86,11 @@ public class clear_text_http_multiplexing_middleware {
 	}
 
 	[Test]
-	public async Task http2_request() {
+	public async Task http2_request()
+	{
 		using var client = new HttpClient();
-		var request = new HttpRequestMessage(HttpMethod.Get, _endpoint + "/test") {
+		var request = new HttpRequestMessage(HttpMethod.Get, _endpoint + "/test")
+		{
 			Version = new Version(2, 0),
 			VersionPolicy = HttpVersionPolicy.RequestVersionExact
 		};

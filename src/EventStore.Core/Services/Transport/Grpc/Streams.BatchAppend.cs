@@ -29,9 +29,11 @@ using Status = Google.Rpc.Status;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-partial class Streams<TStreamId> {
+partial class Streams<TStreamId>
+{
 	public override async Task BatchAppend(IAsyncStreamReader<BatchAppendReq> requestStream,
-		IServerStreamWriter<BatchAppendResp> responseStream, ServerCallContext context) {
+		IServerStreamWriter<BatchAppendResp> responseStream, ServerCallContext context)
+	{
 		var worker = new BatchAppendWorker(_publisher, _provider,
 			_batchAppendTracker,
 			requestStream, responseStream,
@@ -40,7 +42,8 @@ partial class Streams<TStreamId> {
 		await worker.Work(context.CancellationToken);
 	}
 
-	private class BatchAppendWorker {
+	private class BatchAppendWorker
+	{
 		private readonly IPublisher _publisher;
 		private readonly IAuthorizationProvider _authorizationProvider;
 		private readonly IDurationTracker _tracker;
@@ -57,7 +60,8 @@ partial class Streams<TStreamId> {
 		public BatchAppendWorker(IPublisher publisher, IAuthorizationProvider authorizationProvider,
 			IDurationTracker tracker,
 			IAsyncStreamReader<BatchAppendReq> requestStream, IServerStreamWriter<BatchAppendResp> responseStream,
-			ClaimsPrincipal user, int maxAppendSize, TimeSpan writeTimeout, bool requiresLeader) {
+			ClaimsPrincipal user, int maxAppendSize, TimeSpan writeTimeout, bool requiresLeader)
+		{
 			_publisher = publisher;
 			_authorizationProvider = authorizationProvider;
 			_tracker = tracker;
@@ -67,14 +71,16 @@ partial class Streams<TStreamId> {
 			_maxAppendSize = maxAppendSize;
 			_writeTimeout = writeTimeout;
 			_requiresLeader = requiresLeader;
-			_channel = Channel.CreateUnbounded<BatchAppendResp>(new() {
+			_channel = Channel.CreateUnbounded<BatchAppendResp>(new()
+			{
 				AllowSynchronousContinuations = false,
 				SingleReader = false,
 				SingleWriter = false
 			});
 		}
 
-		public Task Work(CancellationToken cancellationToken) {
+		public Task Work(CancellationToken cancellationToken)
+		{
 			var remaining = 2;
 			var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -91,58 +97,76 @@ partial class Streams<TStreamId> {
 
 			return tcs.Task;
 
-			async Task HandleCompletion(Task task) {
-				try {
+			async Task HandleCompletion(Task task)
+			{
+				try
+				{
 					await task;
-					if (Interlocked.Decrement(ref remaining) == 0) {
+					if (Interlocked.Decrement(ref remaining) == 0)
+					{
 						tcs.TrySetResult();
 					}
 				}
-				catch (OperationCanceledException) {
+				catch (OperationCanceledException)
+				{
 					tcs.TrySetCanceled(cancellationToken);
 				}
-				catch (IOException ex) {
+				catch (IOException ex)
+				{
 					Log.Information("Closing gRPC client connection: {message}", ex.GetBaseException().Message);
 					tcs.TrySetException(ex);
 				}
-				catch (Exception ex) {
+				catch (Exception ex)
+				{
 					tcs.TrySetException(ex);
 				}
 			}
 		}
 
-		private async Task Send(ChannelReader<BatchAppendResp> reader, CancellationToken cancellationToken) {
+		private async Task Send(ChannelReader<BatchAppendResp> reader, CancellationToken cancellationToken)
+		{
 			var isClosing = false;
-			await foreach (var response in reader.ReadAllAsync(cancellationToken)) {
-				if (!response.IsClosing) {
+			await foreach (var response in reader.ReadAllAsync(cancellationToken))
+			{
+				if (!response.IsClosing)
+				{
 					await _responseStream.WriteAsync(response);
-					if (Interlocked.Decrement(ref _pending) >= 0 && isClosing) {
+					if (Interlocked.Decrement(ref _pending) >= 0 && isClosing)
+					{
 						break;
 					}
 				}
-				else {
+				else
+				{
 					isClosing = true;
 				}
 			}
 		}
 
 		private async Task Receive(ChannelWriter<BatchAppendResp> writer, ClaimsPrincipal user, bool requiresLeader,
-			CancellationToken cancellationToken) {
+			CancellationToken cancellationToken)
+		{
 			var pendingWrites = new ConcurrentDictionary<Guid, ClientWriteRequest>();
 
-			try {
-				await foreach (var request in _requestStream.ReadAllAsync(cancellationToken)) {
+			try
+			{
+				await foreach (var request in _requestStream.ReadAllAsync(cancellationToken))
+				{
 					using var duration = _tracker.Start();
-					try {
+					try
+					{
 						var correlationId = Uuid.FromDto(request.CorrelationId).ToGuid();
 
-						if (request.Options != null) {
+						if (request.Options != null)
+						{
 							var timeout = Min(GetRequestedTimeout(request.Options), _writeTimeout);
 
 							if (!await _authorizationProvider.CheckAccessAsync(user, WriteOperation.WithParameter(
 								Plugins.Authorization.Operations.Streams.Parameters.StreamId(
-									request.Options.StreamIdentifier)), cancellationToken)) {
-								await writer.WriteAsync(new BatchAppendResp {
+									request.Options.StreamIdentifier)), cancellationToken))
+							{
+								await writer.WriteAsync(new BatchAppendResp
+								{
 									CorrelationId = request.CorrelationId,
 									StreamIdentifier = request.Options.StreamIdentifier,
 									Error = Status.AccessDenied
@@ -150,8 +174,10 @@ partial class Streams<TStreamId> {
 								continue;
 							}
 
-							if (request.Options.StreamIdentifier == null) {
-								await writer.WriteAsync(new BatchAppendResp {
+							if (request.Options.StreamIdentifier == null)
+							{
+								await writer.WriteAsync(new BatchAppendResp
+								{
 									CorrelationId = request.CorrelationId,
 									StreamIdentifier = request.Options.StreamIdentifier,
 									Error = Status.BadRequest(
@@ -160,8 +186,10 @@ partial class Streams<TStreamId> {
 								continue;
 							}
 
-							if (Max(timeout, TimeSpan.Zero) == TimeSpan.Zero) {
-								await writer.WriteAsync(new BatchAppendResp {
+							if (Max(timeout, TimeSpan.Zero) == TimeSpan.Zero)
+							{
+								await writer.WriteAsync(new BatchAppendResp
+								{
 									CorrelationId = request.CorrelationId,
 									StreamIdentifier = request.Options.StreamIdentifier,
 									Error = Status.Timeout
@@ -174,46 +202,59 @@ partial class Streams<TStreamId> {
 								(_, writeRequest) => writeRequest);
 						}
 
-						if (!pendingWrites.TryGetValue(correlationId, out var clientWriteRequest)) {
+						if (!pendingWrites.TryGetValue(correlationId, out var clientWriteRequest))
+						{
 							continue;
 						}
 
 						clientWriteRequest.AddEvents(request.ProposedMessages.Select(FromProposedMessage));
 
-						if (clientWriteRequest.Size > _maxAppendSize) {
+						if (clientWriteRequest.Size > _maxAppendSize)
+						{
 							pendingWrites.TryRemove(correlationId, out _);
-							await writer.WriteAsync(new BatchAppendResp {
+							await writer.WriteAsync(new BatchAppendResp
+							{
 								CorrelationId = request.CorrelationId,
 								StreamIdentifier = clientWriteRequest.StreamId,
 								Error = Status.MaximumAppendSizeExceeded((uint)_maxAppendSize)
 							}, cancellationToken);
 						}
 
-						if (!request.IsFinal) {
+						if (!request.IsFinal)
+						{
 							continue;
 						}
 
-						if (!pendingWrites.TryRemove(correlationId, out _)) {
+						if (!pendingWrites.TryRemove(correlationId, out _))
+						{
 							continue;
 						}
 
 						Interlocked.Increment(ref _pending);
 
-						_publisher.Publish(ToInternalMessage(clientWriteRequest, new CallbackEnvelope(message => {
-							try {
+						_publisher.Publish(ToInternalMessage(clientWriteRequest, new CallbackEnvelope(message =>
+						{
+							try
+							{
 								writer.TryWrite(ConvertMessage(message));
 							}
-							catch (Exception ex) {
+							catch (Exception ex)
+							{
 								writer.TryComplete(ex);
 							}
 						}), requiresLeader, user, cancellationToken));
 
-						BatchAppendResp ConvertMessage(Message message) {
-							var batchAppendResp = message switch {
-								ClientMessage.NotHandled notHandled => new BatchAppendResp {
-									Error = new Status {
+						BatchAppendResp ConvertMessage(Message message)
+						{
+							var batchAppendResp = message switch
+							{
+								ClientMessage.NotHandled notHandled => new BatchAppendResp
+								{
+									Error = new Status
+									{
 										Details = Any.Pack(new Empty()),
-										Message = (notHandled.Reason, AdditionalInfo: notHandled.LeaderInfo) switch {
+										Message = (notHandled.Reason, AdditionalInfo: notHandled.LeaderInfo) switch
+										{
 											(ClientMessage.NotHandled.Types.NotHandledReason.NotReady, _) => "Server Is Not Ready",
 											(ClientMessage.NotHandled.Types.NotHandledReason.TooBusy, _) => "Server Is Busy",
 											(ClientMessage.NotHandled.Types.NotHandledReason.NotLeader or ClientMessage.NotHandled.Types.NotHandledReason.IsReadOnly,
@@ -226,18 +267,22 @@ partial class Streams<TStreamId> {
 										}
 									}
 								},
-								ClientMessage.WriteEventsCompleted completed => completed.Result switch {
-									OperationResult.Success => new BatchAppendResp {
+								ClientMessage.WriteEventsCompleted completed => completed.Result switch
+								{
+									OperationResult.Success => new BatchAppendResp
+									{
 										Success = BatchAppendResp.Types.Success.Completed(completed.CommitPosition,
 											completed.PreparePosition, completed.LastEventNumber),
 									},
-									OperationResult.WrongExpectedVersion => new BatchAppendResp {
+									OperationResult.WrongExpectedVersion => new BatchAppendResp
+									{
 										Error = Status.WrongExpectedVersion(
 											StreamRevision.FromInt64(completed.CurrentVersion),
 											clientWriteRequest.ExpectedVersion)
 									},
 									OperationResult.AccessDenied => new BatchAppendResp { Error = Status.AccessDenied },
-									OperationResult.StreamDeleted => new BatchAppendResp {
+									OperationResult.StreamDeleted => new BatchAppendResp
+									{
 										Error = Status.StreamDeleted(clientWriteRequest.StreamId)
 									},
 									OperationResult.CommitTimeout or
@@ -245,21 +290,25 @@ partial class Streams<TStreamId> {
 										OperationResult.PrepareTimeout => new BatchAppendResp { Error = Status.Timeout },
 									_ => new BatchAppendResp { Error = Status.Unknown }
 								},
-								_ => new BatchAppendResp {
+								_ => new BatchAppendResp
+								{
 									Error = Status.InternalError(
 										$"Envelope callback expected either {nameof(ClientMessage.WriteEventsCompleted)} or {nameof(ClientMessage.NotHandled)}, received {message.GetType().Name} instead.")
 								}
 							};
 							batchAppendResp.CorrelationId = request.CorrelationId;
-							batchAppendResp.StreamIdentifier = new StreamIdentifier {
+							batchAppendResp.StreamIdentifier = new StreamIdentifier
+							{
 								StreamName = ByteString.CopyFromUtf8(clientWriteRequest.StreamId)
 							};
 							return batchAppendResp;
 						}
 					}
-					catch (Exception ex) {
+					catch (Exception ex)
+					{
 						duration.SetException(ex);
-						await writer.WriteAsync(new BatchAppendResp {
+						await writer.WriteAsync(new BatchAppendResp
+						{
 							CorrelationId = request.CorrelationId,
 							StreamIdentifier = request.Options.StreamIdentifier,
 							Error = Status.BadRequest(ex.Message)
@@ -267,18 +316,21 @@ partial class Streams<TStreamId> {
 					}
 				}
 
-				await writer.WriteAsync(new BatchAppendResp {
+				await writer.WriteAsync(new BatchAppendResp
+				{
 					IsClosing = true
 				}, cancellationToken);
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				writer.TryComplete(ex);
 				throw;
 			}
 
 			ClientWriteRequest FromOptions(Guid correlationId, Options options, TimeSpan timeout,
 				CancellationToken cancellationToken) =>
-				new(correlationId, options.StreamIdentifier, options.ExpectedStreamPositionCase switch {
+				new(correlationId, options.StreamIdentifier, options.ExpectedStreamPositionCase switch
+				{
 					ExpectedStreamPositionOneofCase.StreamPosition => new StreamRevision(options.StreamPosition)
 						.ToInt64(),
 					ExpectedStreamPositionOneofCase.Any => AnyStreamRevision.Any.ToInt64(),
@@ -287,9 +339,11 @@ partial class Streams<TStreamId> {
 					_ => throw RpcExceptions.InvalidArgument(options.ExpectedStreamPositionCase)
 				}, timeout, () =>
 					pendingWrites.TryRemove(correlationId, out var pendingWrite)
-						? writer.WriteAsync(new BatchAppendResp {
+						? writer.WriteAsync(new BatchAppendResp
+						{
 							CorrelationId = Uuid.FromGuid(correlationId).ToDto(),
-							StreamIdentifier = new StreamIdentifier {
+							StreamIdentifier = new StreamIdentifier
+							{
 								StreamName = ByteString.CopyFromUtf8(pendingWrite.StreamId)
 							},
 							Error = Status.Timeout
@@ -308,7 +362,8 @@ partial class Streams<TStreamId> {
 				new(Guid.NewGuid(), request.CorrelationId, envelope, requiresLeader, request.StreamId,
 					request.ExpectedVersion, request.Events.ToArray(), user, cancellationToken: token);
 
-			static TimeSpan GetRequestedTimeout(Options options) => options.DeadlineOptionCase switch {
+			static TimeSpan GetRequestedTimeout(Options options) => options.DeadlineOptionCase switch
+			{
 				DeadlineOptionOneofCase.Deadline => options.Deadline.ToTimeSpan(),
 				_ => (options.Deadline21100?.ToDateTime() ?? DateTime.MaxValue) - DateTime.UtcNow,
 			};
@@ -318,7 +373,8 @@ partial class Streams<TStreamId> {
 		}
 	}
 
-	private record ClientWriteRequest {
+	private record ClientWriteRequest
+	{
 		public Guid CorrelationId { get; }
 		public string StreamId { get; }
 		public long ExpectedVersion { get; }
@@ -328,7 +384,8 @@ partial class Streams<TStreamId> {
 		public int Size => _size;
 
 		public ClientWriteRequest(Guid correlationId, string streamId, long expectedVersion, TimeSpan timeout,
-			Func<ValueTask> onTimeout, CancellationToken cancellationToken) {
+			Func<ValueTask> onTimeout, CancellationToken cancellationToken)
+		{
 			CorrelationId = correlationId;
 			StreamId = streamId;
 			_events = new List<Event>();
@@ -338,8 +395,10 @@ partial class Streams<TStreamId> {
 			Task.Delay(timeout, cancellationToken).ContinueWith(_ => onTimeout(), cancellationToken);
 		}
 
-		public ClientWriteRequest AddEvents(IEnumerable<Event> events) {
-			foreach (var e in events) {
+		public ClientWriteRequest AddEvents(IEnumerable<Event> events)
+		{
+			foreach (var e in events)
+			{
 				_size += Event.SizeOnDisk(e.EventType, e.Data, e.Metadata);
 				_events.Add(e);
 			}

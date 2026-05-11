@@ -1,7 +1,9 @@
 using EventStore.Core.Data;
 
-namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy {
-	public interface IPersistentSubscriptionConsumerStrategy {
+namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy
+{
+	public interface IPersistentSubscriptionConsumerStrategy
+	{
 		string Name { get; }
 
 		void ClientAdded(PersistentSubscriptionClient client);

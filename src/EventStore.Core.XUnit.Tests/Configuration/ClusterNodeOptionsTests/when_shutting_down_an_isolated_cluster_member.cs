@@ -19,9 +19,11 @@ using NUnit.Framework;
 namespace EventStore.Core.XUnit.Tests.Configuration.ClusterNodeOptionsTests;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId> : SpecificationWithDirectory {
+public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId> : SpecificationWithDirectory
+{
 	[Test]
-	public async Task completes_without_waiting_for_services_that_never_initialized() {
+	public async Task completes_without_waiting_for_services_that_never_initialized()
+	{
 		var coreServicesStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var shutdownComplete = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var startedServices = new HashSet<string>();
@@ -29,8 +31,10 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 		var shutdownSignals = 0;
 		var logFormatFactory = LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory;
 
-		static string[] Snapshot(HashSet<string> services) {
-			lock (services) {
+		static string[] Snapshot(HashSet<string> services)
+		{
+			lock (services)
+			{
 				return services.OrderBy(x => x).ToArray();
 			}
 		}
@@ -52,38 +56,48 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 					options.Application.OverrideAnonymousEndpointAccessForGossip).Create(c.MainQueue)]))),
 			certificateProvider: new OptionsCertificateProvider());
 
-		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.ServiceInitialized>(message => {
-			lock (startedServices) {
-				if (!startedServices.Add(message.ServiceName)) {
+		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.ServiceInitialized>(message =>
+		{
+			lock (startedServices)
+			{
+				if (!startedServices.Add(message.ServiceName))
+				{
 					return;
 				}
 
 				if (startedServices.Contains("StorageChaser")
 					&& startedServices.Contains("StorageReader")
-					&& startedServices.Contains("StorageWriter")) {
+					&& startedServices.Contains("StorageWriter"))
+				{
 					coreServicesStarted.TrySetResult(true);
 				}
 			}
 		}));
 
-		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.BecomeShutdown>(_ => {
+		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.BecomeShutdown>(_ =>
+		{
 			Interlocked.Increment(ref shutdownSignals);
 			shutdownComplete.TrySetResult(true);
 		}));
 
-		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.ServiceShutdown>(message => {
-			lock (shutdownServices) {
+		node.MainBus.Subscribe(new AdHocHandler<SystemMessage.ServiceShutdown>(message =>
+		{
+			lock (shutdownServices)
+			{
 				shutdownServices.Add(message.ServiceName);
 			}
 		}));
 
-		try {
+		try
+		{
 			await node.StartAsync(waitUntilReady: false);
 			await coreServicesStarted.Task.WithTimeout(TimeSpan.FromSeconds(30));
-			try {
+			try
+			{
 				await node.StopAsync(TimeSpan.FromSeconds(2));
 			}
-			catch (TimeoutException) {
+			catch (TimeoutException)
+			{
 				await shutdownComplete.Task.WithTimeout(TimeSpan.FromSeconds(10));
 				var startedServicesSnapshot = Snapshot(startedServices);
 				var shutdownServicesSnapshot = Snapshot(shutdownServices);
@@ -94,7 +108,8 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 			await shutdownComplete.Task.WithTimeout(TimeSpan.FromSeconds(5));
 
 			var completedStartedServices = Snapshot(startedServices);
-			if (completedStartedServices.Contains("Leader Replication Service")) {
+			if (completedStartedServices.Contains("Leader Replication Service"))
+			{
 				AssertEx.IsOrBecomesTrue(
 					() => Snapshot(shutdownServices).Contains("Leader Replication Service"),
 					TimeSpan.FromSeconds(1),
@@ -103,8 +118,10 @@ public class when_shutting_down_an_isolated_cluster_member<TLogFormat, TStreamId
 
 			Assert.That(Volatile.Read(ref shutdownSignals), Is.EqualTo(1));
 		}
-		finally {
-			if (!shutdownComplete.Task.IsCompleted) {
+		finally
+		{
+			if (!shutdownComplete.Task.IsCompleted)
+			{
 				await shutdownComplete.Task.WithTimeout(TimeSpan.FromSeconds(10));
 			}
 		}

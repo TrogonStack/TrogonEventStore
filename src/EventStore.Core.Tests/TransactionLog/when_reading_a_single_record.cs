@@ -13,14 +13,16 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_reading_a_single_record<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class when_reading_a_single_record<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private const int RecordsCount = 8;
 
 	private TFChunkDb _db;
 	private ILogRecord[] _records;
 	private RecordWriteResult[] _results;
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_db = new TFChunkDb(TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 4096));
 		await _db.Open();
@@ -34,8 +36,10 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		var expectedVersion = ExpectedVersion.NoStream;
 		var pos = 0;
-		for (int i = 0; i < RecordsCount; ++i) {
-			if (i > 0 && i % 3 == 0) {
+		for (int i = 0; i < RecordsCount; ++i)
+		{
+			if (i > 0 && i % 3 == 0)
+			{
 				pos = i / 3 * _db.Config.ChunkSize;
 				await chunk.Complete(CancellationToken.None);
 				chunk = await _db.Manager.AddNewChunk(CancellationToken.None);
@@ -55,21 +59,26 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 		_db.Config.WriterCheckpoint.Flush();
 	}
 
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _db.DisposeAsync();
 
 		await base.TestFixtureTearDown();
 	}
 
-	private TFChunkReader GetTFChunkReader(long from) {
+	private TFChunkReader GetTFChunkReader(long from)
+	{
 		return new TFChunkReader(_db, _db.Config.WriterCheckpoint, from);
 	}
 
 	[Test]
-	public void all_records_were_written() {
+	public void all_records_were_written()
+	{
 		var pos = 0;
-		for (int i = 0; i < RecordsCount; ++i) {
-			if (i % 3 == 0) {
+		for (int i = 0; i < RecordsCount; ++i)
+		{
+			if (i % 3 == 0)
+			{
 				pos = 0;
 			}
 
@@ -82,11 +91,13 @@ public class when_reading_a_single_record<TLogFormat, TStreamId> : Specification
 	}
 
 	[Test]
-	public async Task all_records_can_be_read() {
+	public async Task all_records_can_be_read()
+	{
 		var reader = GetTFChunkReader(0);
 
 		RecordReadResult res;
-		for (var i = 0; i < RecordsCount; i++) {
+		for (var i = 0; i < RecordsCount; i++)
+		{
 			var rec = _records[i];
 			res = await reader.TryReadAt(rec.LogPosition, couldBeScavenged: true, CancellationToken.None);
 

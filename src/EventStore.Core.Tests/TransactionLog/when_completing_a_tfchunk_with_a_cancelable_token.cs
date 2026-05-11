@@ -13,14 +13,16 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWithFilePerTestFixture {
+public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWithFilePerTestFixture
+{
 	private TFChunk _chunk;
 	private ObservingChunkHandle _observingHandle;
 	private ObservingWriteState _writeState;
 	private long _nextLogPosition;
 
 	[SetUp]
-	public async Task SetUp() {
+	public async Task SetUp()
+	{
 		Filename = Path.Combine(Path.GetTempPath(), $"{nameof(when_completing_a_tfchunk_with_a_cancelable_token)}-{Guid.NewGuid()}");
 
 		_writeState = new ObservingWriteState();
@@ -43,16 +45,19 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 	}
 
 	[TearDown]
-	public void TearDown() {
+	public void TearDown()
+	{
 		_chunk?.Dispose();
 		_chunk = null;
-		if (File.Exists(Filename)) {
+		if (File.Exists(Filename))
+		{
 			File.Delete(Filename);
 		}
 	}
 
 	[Test]
-	public async Task appending_does_not_forward_the_cancelable_token_to_writes() {
+	public async Task appending_does_not_forward_the_cancelable_token_to_writes()
+	{
 		using var cancellationTokenSource = new CancellationTokenSource();
 		var record = LogRecord.Commit(_nextLogPosition, Guid.NewGuid(), _nextLogPosition, 0);
 
@@ -64,7 +69,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 	}
 
 	[Test]
-	public async Task completes_without_forwarding_the_cancelable_token_to_writes_or_read_only_transition() {
+	public async Task completes_without_forwarding_the_cancelable_token_to_writes_or_read_only_transition()
+	{
 		using var cancellationTokenSource = new CancellationTokenSource();
 
 		await _chunk.Complete(cancellationTokenSource.Token);
@@ -79,7 +85,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 	}
 
 	[Test]
-	public async Task completes_even_if_cancellation_arrives_during_complete_data_after_the_no_rollback_boundary() {
+	public async Task completes_even_if_cancellation_arrives_during_complete_data_after_the_no_rollback_boundary()
+	{
 		using var cancellationTokenSource = new CancellationTokenSource();
 		_writeState.OnCompleteDataObserved = cancellationTokenSource.Cancel;
 
@@ -90,7 +97,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		Assert.That(_observingHandle.SetReadOnlyCalls, Is.EqualTo(1));
 	}
 
-	private sealed class ObservingWriteState {
+	private sealed class ObservingWriteState
+	{
 		public int StreamWriteCalls { get; private set; }
 		public int CompleteDataCalls { get; private set; }
 		public int FooterWriteCalls { get; private set; }
@@ -100,24 +108,28 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		public Action OnCompleteDataObserved { get; set; }
 		public Action OnFooterWriteObserved { get; set; }
 
-		public void ObserveStreamWrite(CancellationToken token) {
+		public void ObserveStreamWrite(CancellationToken token)
+		{
 			StreamWriteCalls++;
 			SawCancelableStreamWriteToken |= token.CanBeCanceled;
 		}
 
-		public void ObserveCompleteData(CancellationToken token) {
+		public void ObserveCompleteData(CancellationToken token)
+		{
 			CompleteDataCalls++;
 			SawCancelableCompleteDataToken |= token.CanBeCanceled;
 			OnCompleteDataObserved?.Invoke();
 		}
 
-		public void ObserveFooterWrite(CancellationToken token) {
+		public void ObserveFooterWrite(CancellationToken token)
+		{
 			FooterWriteCalls++;
 			SawCancelableFooterToken |= token.CanBeCanceled;
 			OnFooterWriteObserved?.Invoke();
 		}
 
-		public void Reset() {
+		public void Reset()
+		{
 			StreamWriteCalls = 0;
 			CompleteDataCalls = 0;
 			FooterWriteCalls = 0;
@@ -129,7 +141,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		}
 	}
 
-	private sealed class ObservingChunkTransformFactory(ObservingWriteState writeState) : IChunkTransformFactory {
+	private sealed class ObservingChunkTransformFactory(ObservingWriteState writeState) : IChunkTransformFactory
+	{
 		public TransformType Type => TransformType.Identity;
 		public int TransformDataPosition(int dataPosition) => dataPosition;
 		public void CreateTransformHeader(Span<byte> transformHeader) => transformHeader.Clear();
@@ -143,20 +156,24 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		public int TransformHeaderLength => 0;
 	}
 
-	private sealed class ObservingChunkTransform(ObservingWriteState writeState) : IChunkTransform {
+	private sealed class ObservingChunkTransform(ObservingWriteState writeState) : IChunkTransform
+	{
 		public IChunkReadTransform Read => IdentityChunkReadTransform.Instance;
 		public IChunkWriteTransform Write { get; } = new ObservingChunkWriteTransform(writeState);
 	}
 
-	private sealed class ObservingChunkWriteTransform(ObservingWriteState writeState) : IChunkWriteTransform {
+	private sealed class ObservingChunkWriteTransform(ObservingWriteState writeState) : IChunkWriteTransform
+	{
 		private ObservingChunkWriteStream _stream;
 
-		public ChunkDataWriteStream TransformData(ChunkDataWriteStream dataStream) {
+		public ChunkDataWriteStream TransformData(ChunkDataWriteStream dataStream)
+		{
 			_stream = new ObservingChunkWriteStream(dataStream, writeState);
 			return _stream;
 		}
 
-		public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token) {
+		public ValueTask CompleteData(int footerSize, int alignmentSize, CancellationToken token)
+		{
 			writeState.ObserveCompleteData(token);
 			var chunkHeaderAndDataSize = (int)_stream.Position;
 			var alignedSize = GetAlignedSize(chunkHeaderAndDataSize + footerSize, alignmentSize);
@@ -167,14 +184,17 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 				: ValueTask.CompletedTask;
 		}
 
-		public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token) {
+		public async ValueTask<int> WriteFooter(ReadOnlyMemory<byte> footer, CancellationToken token)
+		{
 			writeState.ObserveFooterWrite(token);
 			await _stream.ChunkFileStream.WriteAsync(footer, token);
 			return (int)_stream.ChunkFileStream.Length;
 		}
 
-		private static int GetAlignedSize(int size, int alignmentSize) {
-			if (size % alignmentSize == 0) {
+		private static int GetAlignedSize(int size, int alignmentSize)
+		{
+			if (size % alignmentSize == 0)
+			{
 				return size;
 			}
 
@@ -183,18 +203,22 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 	}
 
 	private sealed class ObservingChunkWriteStream(ChunkDataWriteStream stream, ObservingWriteState writeState) :
-		ChunkDataWriteStream(stream.ChunkFileStream, stream.ChecksumAlgorithm) {
-		public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken token = default) {
+		ChunkDataWriteStream(stream.ChunkFileStream, stream.ChecksumAlgorithm)
+	{
+		public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken token = default)
+		{
 			writeState.ObserveStreamWrite(token);
 			return base.WriteAsync(buffer, token);
 		}
 	}
 
-	private sealed class ObservingChunkHandle(IChunkHandle inner) : IChunkHandle {
+	private sealed class ObservingChunkHandle(IChunkHandle inner) : IChunkHandle
+	{
 		public int SetReadOnlyCalls { get; private set; }
 		public bool SawCancelableReadOnlyToken { get; private set; }
 
-		public long Length {
+		public long Length
+		{
 			get => inner.Length;
 			set => inner.Length = value;
 		}
@@ -211,7 +235,8 @@ public class when_completing_a_tfchunk_with_a_cancelable_token : SpecificationWi
 		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) =>
 			inner.ReadAsync(buffer, offset, token);
 
-		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) {
+		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token)
+		{
 			SetReadOnlyCalls++;
 			SawCancelableReadOnlyToken |= token.CanBeCanceled;
 			return inner.SetReadOnlyAsync(value, token);

@@ -11,7 +11,8 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 public class
 	when_truncating_few_chunks_with_index_on_disk_and_then_reopening_db<TLogFormat, TStreamId>() :
 	TruncateAndReOpenDbScenario
-	<TLogFormat, TStreamId>(maxEntriesInMemTable: 3) {
+	<TLogFormat, TStreamId>(maxEntriesInMemTable: 3)
+{
 	private EventRecord _event1;
 	private EventRecord _event2;
 	private EventRecord _event3;
@@ -23,7 +24,8 @@ public class
 	private string _chunk2;
 	private string _chunk3;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		_event1 = await WriteSingleEvent("ES", 0, new string('.', 4000), token: token); // chunk 0
 		_event2 = await WriteSingleEvent("ES", 1, new string('.', 4000), token: token);
 		_event3 = await WriteSingleEvent("ES", 2, new string('.', 4000), retryOnFail: true,
@@ -46,26 +48,30 @@ public class
 		Assert.IsTrue(File.Exists(_chunk3));
 	}
 
-	private string GetChunkName(int chunkNumber) {
+	private string GetChunkName(int chunkNumber)
+	{
 		var allVersions = Db.Config.FileNamingStrategy.GetAllVersionsFor(chunkNumber);
 		Assert.AreEqual(1, allVersions.Length);
 		return allVersions[0];
 	}
 
 	[Test]
-	public void checksums_should_be_equal_to_ack_checksum() {
+	public void checksums_should_be_equal_to_ack_checksum()
+	{
 		Assert.AreEqual(TruncateCheckpoint, WriterCheckpoint.Read());
 		Assert.AreEqual(TruncateCheckpoint, ChaserCheckpoint.Read());
 	}
 
 	[Test]
-	public void truncated_chunks_should_be_deleted() {
+	public void truncated_chunks_should_be_deleted()
+	{
 		Assert.IsFalse(File.Exists(_chunk2));
 		Assert.IsFalse(File.Exists(_chunk3));
 	}
 
 	[Test]
-	public void not_truncated_chunks_should_survive() {
+	public void not_truncated_chunks_should_survive()
+	{
 		var chunks = Db.Config.FileNamingStrategy.GetAllPresentFiles();
 		Assert.AreEqual(2, chunks.Length);
 		Assert.AreEqual(_chunk0, GetChunkName(0));
@@ -73,7 +79,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_one_by_one_doesnt_return_truncated_records() {
+	public async Task read_one_by_one_doesnt_return_truncated_records()
+	{
 		var res = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, res.Result);
 		Assert.AreEqual(_event1, res.Record);
@@ -102,7 +109,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_stream_forward_doesnt_return_truncated_records() {
+	public async Task read_stream_forward_doesnt_return_truncated_records()
+	{
 		var res = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		var records = res.Records;
 		Assert.AreEqual(3, records.Length);
@@ -112,7 +120,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_stream_backward_doesnt_return_truncated_records() {
+	public async Task read_stream_backward_doesnt_return_truncated_records()
+	{
 		var res = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		var records = res.Records;
 		Assert.AreEqual(3, records.Length);
@@ -122,7 +131,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_returns_only_survived_events() {
+	public async Task read_all_returns_only_survived_events()
+	{
 		var res = await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None);
 		var records = res.EventRecords()
 			.Select(r => r.Event)
@@ -135,7 +145,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_doesnt_return_truncated_records() {
+	public async Task read_all_backward_doesnt_return_truncated_records()
+	{
 		var res = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None));
 		var records = res.EventRecords()
 			.Select(r => r.Event)
@@ -147,7 +158,8 @@ public class
 	}
 
 	[Test]
-	public async Task read_all_backward_from_last_truncated_record_returns_no_records() {
+	public async Task read_all_backward_from_last_truncated_record_returns_no_records()
+	{
 		var pos = new TFPos(_event7.LogPosition, _event3.LogPosition);
 		var res = await ReadIndex.ReadAllEventsForward(pos, 100, CancellationToken.None);
 		var records = res.EventRecords()

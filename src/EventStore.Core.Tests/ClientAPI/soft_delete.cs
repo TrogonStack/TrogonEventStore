@@ -13,12 +13,14 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private MiniNode<TLogFormat, TStreamId> _node;
 	private IEventStoreConnection _conn;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
@@ -28,20 +30,23 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		_conn.Close();
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return EventStoreConnection.Create(
 			ConnectionSettings.Create().DisableServerCertificateValidation().Build(),
 			node.TcpEndPoint.ToESTcpUri());
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_returns_no_stream_and_no_events_on_read() {
+	public async Task soft_deleted_stream_returns_no_stream_and_no_events_on_read()
+	{
 		const string stream = "soft_deleted_stream_returns_no_stream_and_no_events_on_read";
 
 		Assert.AreEqual(1,
@@ -56,7 +61,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_allows_recreation_when_expver_any() {
+	public async Task soft_deleted_stream_allows_recreation_when_expver_any()
+	{
 		const string stream = "soft_deleted_stream_allows_recreation_when_expver_any";
 
 		Assert.AreEqual(1,
@@ -83,7 +89,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_allows_recreation_when_expver_no_stream() {
+	public async Task soft_deleted_stream_allows_recreation_when_expver_no_stream()
+	{
 		const string stream = "soft_deleted_stream_allows_recreation_when_expver_no_stream";
 
 		Assert.AreEqual(1,
@@ -110,7 +117,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_allows_recreation_when_expver_is_exact() {
+	public async Task soft_deleted_stream_allows_recreation_when_expver_is_exact()
+	{
 		const string stream = "soft_deleted_stream_allows_recreation_when_expver_is_exact";
 
 		Assert.AreEqual(1,
@@ -136,7 +144,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_when_recreated_preserves_metadata_except_truncatebefore() {
+	public async Task soft_deleted_stream_when_recreated_preserves_metadata_except_truncatebefore()
+	{
 		const string stream = "soft_deleted_stream_when_recreated_preserves_metadata_except_truncatebefore";
 
 		Assert.AreEqual(1,
@@ -173,7 +182,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_can_be_hard_deleted() {
+	public async Task soft_deleted_stream_can_be_hard_deleted()
+	{
 		const string stream = "soft_deleted_stream_can_be_deleted";
 
 		Assert.AreEqual(1,
@@ -192,7 +202,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_allows_recreation_only_for_first_write() {
+	public async Task soft_deleted_stream_allows_recreation_only_for_first_write()
+	{
 		const string stream = "soft_deleted_stream_allows_recreation_only_for_first_write";
 
 		Assert.AreEqual(1,
@@ -221,7 +232,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 	}
 
 	[Test, Category("LongRunning"), Category("Network")]
-	public async Task soft_deleted_stream_appends_both_writes_when_expver_any() {
+	public async Task soft_deleted_stream_appends_both_writes_when_expver_any()
+	{
 		const string stream = "soft_deleted_stream_appends_both_concurrent_writes_when_expver_any";
 
 		Assert.AreEqual(1,
@@ -253,7 +265,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public async Task
-		setting_json_metadata_on_empty_soft_deleted_stream_recreates_stream_not_overriding_metadataAsync() {
+		setting_json_metadata_on_empty_soft_deleted_stream_recreates_stream_not_overriding_metadataAsync()
+	{
 		const string stream =
 			"setting_json_metadata_on_empty_soft_deleted_stream_recreates_stream_not_overriding_metadata";
 
@@ -286,7 +299,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public async Task
-		setting_json_metadata_on_nonempty_soft_deleted_stream_recreates_stream_not_overriding_metadataAsync() {
+		setting_json_metadata_on_nonempty_soft_deleted_stream_recreates_stream_not_overriding_metadataAsync()
+	{
 		const string stream =
 			"setting_json_metadata_on_nonempty_soft_deleted_stream_recreates_stream_not_overriding_metadata";
 
@@ -321,7 +335,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public async Task
-		setting_nonjson_metadata_on_empty_soft_deleted_stream_recreates_stream_keeping_original_metadataAsync() {
+		setting_nonjson_metadata_on_empty_soft_deleted_stream_recreates_stream_keeping_original_metadataAsync()
+	{
 		const string stream =
 			"setting_nonjson_metadata_on_empty_soft_deleted_stream_recreates_stream_overriding_metadata";
 
@@ -344,7 +359,8 @@ public class soft_delete<TLogFormat, TStreamId> : SpecificationWithDirectoryPerT
 
 	[Test, Category("LongRunning"), Category("Network")]
 	public async Task
-		setting_nonjson_metadata_on_nonempty_soft_deleted_stream_recreates_stream_keeping_original_metadataAsync() {
+		setting_nonjson_metadata_on_nonempty_soft_deleted_stream_recreates_stream_keeping_original_metadataAsync()
+	{
 		const string stream =
 			"setting_nonjson_metadata_on_nonempty_soft_deleted_stream_recreates_stream_overriding_metadata";
 

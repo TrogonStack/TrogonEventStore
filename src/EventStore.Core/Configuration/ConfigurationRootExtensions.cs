@@ -12,9 +12,12 @@ using Microsoft.Extensions.Configuration;
 
 namespace EventStore.Core.Configuration;
 
-public static class ConfigurationRootExtensions {
-	public static string? CheckProvidersForEnvironmentVariables(this IConfigurationRoot? configurationRoot, IEnumerable<Type> optionSections) {
-		if (configurationRoot == null) {
+public static class ConfigurationRootExtensions
+{
+	public static string? CheckProvidersForEnvironmentVariables(this IConfigurationRoot? configurationRoot, IEnumerable<Type> optionSections)
+	{
+		if (configurationRoot == null)
+		{
 			return null;
 		}
 
@@ -25,11 +28,13 @@ public static class ConfigurationRootExtensions {
 
 		var errorBuilder = new StringBuilder();
 
-		foreach (var provider in configurationRoot.Providers) {
+		foreach (var provider in configurationRoot.Providers)
+		{
 			var source = provider.GetType();
 
 			if (source == typeof(EventStoreDefaultValuesConfigurationProvider) ||
-				source == typeof(EventStoreEnvironmentVariablesConfigurationProvider)) {
+				source == typeof(EventStoreEnvironmentVariablesConfigurationProvider))
+			{
 				continue;
 			}
 
@@ -51,11 +56,14 @@ public static class ConfigurationRootExtensions {
 		return errorBuilder.Length != 0 ? errorBuilder.ToString() : null;
 	}
 
-	public static T BindOptions<T>(this IConfiguration configuration) where T : new() {
-		try {
+	public static T BindOptions<T>(this IConfiguration configuration) where T : new()
+	{
+		try
+		{
 			return configuration.Get<T>() ?? new T();
 		}
-		catch (InvalidOperationException ex) {
+		catch (InvalidOperationException ex)
+		{
 			var messages = new string?[] { ex.Message, ex.InnerException?.Message }
 				.Where(x => !string.IsNullOrWhiteSpace(x))
 				.Select(x => x?.TrimEnd('.'));

@@ -3,16 +3,19 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Serilog;
 
-namespace EventStore.Core.Services.Transport.Grpc {
+namespace EventStore.Core.Services.Transport.Grpc
+{
 	// Detect calls that have been automatically retried per https://github.com/grpc/proposal/blob/master/A6-client-retries.md
 	// such calls may not have been intended by the user and as such may disguise a network interruption as a slow server response
-	class RetryInterceptor : Interceptor {
+	class RetryInterceptor : Interceptor
+	{
 		public static readonly ILogger Log = Serilog.Log.ForContext<RetryInterceptor>();
 
 		public override Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(
 			IAsyncStreamReader<TRequest> requestStream,
 			ServerCallContext context,
-			ClientStreamingServerMethod<TRequest, TResponse> continuation) {
+			ClientStreamingServerMethod<TRequest, TResponse> continuation)
+		{
 
 			LogRetries(context);
 			return base.ClientStreamingServerHandler(requestStream, context, continuation);
@@ -22,7 +25,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			IAsyncStreamReader<TRequest> requestStream,
 			IServerStreamWriter<TResponse> responseStream,
 			ServerCallContext context,
-			DuplexStreamingServerMethod<TRequest, TResponse> continuation) {
+			DuplexStreamingServerMethod<TRequest, TResponse> continuation)
+		{
 
 			LogRetries(context);
 			return base.DuplexStreamingServerHandler(requestStream, responseStream, context, continuation);
@@ -32,7 +36,8 @@ namespace EventStore.Core.Services.Transport.Grpc {
 			TRequest request,
 			IServerStreamWriter<TResponse> responseStream,
 			ServerCallContext context,
-			ServerStreamingServerMethod<TRequest, TResponse> continuation) {
+			ServerStreamingServerMethod<TRequest, TResponse> continuation)
+		{
 
 			LogRetries(context);
 			return base.ServerStreamingServerHandler(request, responseStream, context, continuation);
@@ -41,16 +46,19 @@ namespace EventStore.Core.Services.Transport.Grpc {
 		public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(
 			TRequest request,
 			ServerCallContext context,
-			UnaryServerMethod<TRequest, TResponse> continuation) {
+			UnaryServerMethod<TRequest, TResponse> continuation)
+		{
 
 			LogRetries(context);
 			return base.UnaryServerHandler(request, context, continuation);
 
 		}
 
-		private void LogRetries(ServerCallContext context) {
+		private void LogRetries(ServerCallContext context)
+		{
 			var entry = context.RequestHeaders.Get("grpc-previous-rpc-attempts");
-			if (entry is null) {
+			if (entry is null)
+			{
 				return;
 			}
 

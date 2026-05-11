@@ -1,9 +1,12 @@
 using System;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
-	public class OriginalStreamData {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
+	public class OriginalStreamData
+	{
 
-		public OriginalStreamData() {
+		public OriginalStreamData()
+		{
 		}
 
 		// Populated by Accumulator and Calculator. Read by Calculator and Cleaner.

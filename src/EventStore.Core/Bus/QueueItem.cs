@@ -3,8 +3,10 @@ using EventStore.Core.Time;
 
 namespace EventStore.Core.Bus;
 
-public struct QueueItem {
-	public QueueItem(Instant enqueuedAt, Message message) {
+public struct QueueItem
+{
+	public QueueItem(Instant enqueuedAt, Message message)
+	{
 		EnqueuedAt = enqueuedAt;
 		Message = message;
 	}

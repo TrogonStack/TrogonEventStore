@@ -9,14 +9,17 @@ namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 public abstract class TruncateScenario<TLogFormat, TStreamId>(
 	int maxEntriesInMemTable = 100,
-	int metastreamMaxCount = 1) : ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable, metastreamMaxCount) {
+	int metastreamMaxCount = 1) : ReadIndexTestScenario<TLogFormat, TStreamId>(maxEntriesInMemTable, metastreamMaxCount)
+{
 	protected TFChunkDbTruncator Truncator;
 	protected long TruncateCheckpoint = long.MinValue;
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
-		if (TruncateCheckpoint == long.MinValue) {
+		if (TruncateCheckpoint == long.MinValue)
+		{
 			throw new InvalidOperationException("AckCheckpoint must be set in WriteTestScenario.");
 		}
 
@@ -35,6 +38,7 @@ public abstract class TruncateScenario<TLogFormat, TStreamId>(
 		await truncator.TruncateDb(TruncateCheckpoint, CancellationToken.None);
 	}
 
-	protected virtual void OnBeforeTruncating() {
+	protected virtual void OnBeforeTruncating()
+	{
 	}
 }

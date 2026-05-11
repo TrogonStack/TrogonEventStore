@@ -11,16 +11,20 @@ using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Standard;
 
-public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckpointHandler {
+public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckpointHandler
+{
 	private readonly string _indexStreamPrefix;
 	private readonly string _indexCheckpointStream;
 
-	public IndexEventsByEventType(string source, Action<string, object[]> logger) {
-		if (!string.IsNullOrWhiteSpace(source)) {
+	public IndexEventsByEventType(string source, Action<string, object[]> logger)
+	{
+		if (!string.IsNullOrWhiteSpace(source))
+		{
 			throw new InvalidOperationException("Empty source expected");
 		}
 
-		if (logger != null) {
+		if (logger != null)
+		{
 			//                logger("Index events by event type projection handler has been initialized");
 		}
 
@@ -29,47 +33,57 @@ public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckp
 		_indexCheckpointStream = "$et";
 	}
 
-	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder) {
+	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder)
+	{
 		builder.FromAll();
 		builder.AllEvents();
 	}
 
-	public void Load(string state) {
+	public void Load(string state)
+	{
 	}
 
-	public void LoadShared(string state) {
+	public void LoadShared(string state)
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Initialize() {
+	public void Initialize()
+	{
 	}
 
-	public void InitializeShared() {
+	public void InitializeShared()
+	{
 	}
 
-	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data) {
+	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data)
+	{
 		throw new NotImplementedException();
 	}
 
 	public bool ProcessEvent(
 		string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents) {
+		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+	{
 		newSharedState = null;
 		emittedEvents = null;
 		newState = null;
-		if (data.EventStreamId != data.PositionStreamId) {
+		if (data.EventStreamId != data.PositionStreamId)
+		{
 			return false;
 		}
 
 		var indexedEventType = data.EventType;
-		if (indexedEventType == "$>") {
+		if (indexedEventType == "$>")
+		{
 			return false;
 		}
 
 		string positionStreamId;
 		var isStreamDeletedEvent = StreamDeletedHelper.IsStreamDeletedEvent(
 			data.PositionStreamId, data.EventType, data.Data, out positionStreamId);
-		if (isStreamDeletedEvent) {
+		if (isStreamDeletedEvent)
+		{
 			indexedEventType = "$deleted";
 		}
 
@@ -87,23 +101,28 @@ public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckp
 	}
 
 	public bool ProcessPartitionCreated(string partition, CheckpointTag createPosition, ResolvedEvent data,
-		out EmittedEventEnvelope[] emittedEvents) {
+		out EmittedEventEnvelope[] emittedEvents)
+	{
 		emittedEvents = null;
 		return false;
 	}
 
-	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState) {
+	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+	{
 		throw new NotImplementedException();
 	}
 
-	public string TransformStateToResult() {
+	public string TransformStateToResult()
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 
-	public void ProcessNewCheckpoint(CheckpointTag checkpointPosition, out EmittedEventEnvelope[] emittedEvents) {
+	public void ProcessNewCheckpoint(CheckpointTag checkpointPosition, out EmittedEventEnvelope[] emittedEvents)
+	{
 		emittedEvents = new[] {
 			new EmittedEventEnvelope(
 				new EmittedDataEvent(
@@ -112,7 +131,8 @@ public class IndexEventsByEventType : IProjectionStateHandler, IProjectionCheckp
 		};
 	}
 
-	public IQuerySources GetSourceDefinition() {
+	public IQuerySources GetSourceDefinition()
+	{
 		return SourceDefinitionBuilder.From(ConfigureSourceProcessingStrategy);
 	}
 }

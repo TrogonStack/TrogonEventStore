@@ -1,14 +1,17 @@
 using System;
 using EventStore.Plugins.Authentication;
 
-namespace EventStore.Core.Authentication {
-	public class AuthenticationProviderFactory {
+namespace EventStore.Core.Authentication
+{
+	public class AuthenticationProviderFactory
+	{
 		private readonly Func<AuthenticationProviderFactoryComponents, IAuthenticationProviderFactory>
 			_authenticationProviderFactory;
 
 		public AuthenticationProviderFactory(
 			Func<AuthenticationProviderFactoryComponents, IAuthenticationProviderFactory>
-				authenticationProviderFactory) {
+				authenticationProviderFactory)
+		{
 			_authenticationProviderFactory = authenticationProviderFactory;
 		}
 

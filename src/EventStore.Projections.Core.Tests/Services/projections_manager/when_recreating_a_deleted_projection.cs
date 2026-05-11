@@ -12,16 +12,19 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_recreating_a_deleted_projection<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+public class when_recreating_a_deleted_projection<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+{
 	private string _projectionName;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_projectionName = "test-projection";
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 		yield return
 			new ProjectionManagementMessage.Command.Post(
@@ -43,7 +46,8 @@ public class when_recreating_a_deleted_projection<TLogFormat, TStreamId> : TestF
 	}
 
 	[Test, Category("v8")]
-	public void a_projection_created_event_should_be_written() {
+	public void a_projection_created_event_should_be_written()
+	{
 		Assert.AreEqual(
 			ProjectionEventTypes.ProjectionCreated,
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().First().Events[0].EventType);
@@ -54,7 +58,8 @@ public class when_recreating_a_deleted_projection<TLogFormat, TStreamId> : TestF
 	}
 
 	[Test, Category("v8")]
-	public void it_can_be_listed() {
+	public void it_can_be_listed()
+	{
 		_manager.Handle(
 			new ProjectionManagementMessage.Command.GetStatistics(_bus, null, null, false));
 

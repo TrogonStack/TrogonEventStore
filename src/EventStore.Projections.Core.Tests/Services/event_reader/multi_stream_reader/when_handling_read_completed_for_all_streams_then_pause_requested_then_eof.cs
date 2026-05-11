@@ -19,7 +19,8 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_handling_read_completed_for_all_streams_then_pause_requested_then_eof<TLogFormat, TStreamId> :
-	TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private MultiStreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
@@ -27,7 +28,8 @@ public class when_handling_read_completed_for_all_streams_then_pause_requested_t
 	private Guid _thirdEventId;
 	private Guid _fourthEventId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
@@ -35,7 +37,8 @@ public class when_handling_read_completed_for_all_streams_then_pause_requested_t
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 
@@ -95,7 +98,8 @@ public class when_handling_read_completed_for_all_streams_then_pause_requested_t
 	}
 
 	[Test]
-	public void publishes_read_events_from_beginning_with_correct_next_event_number() {
+	public void publishes_read_events_from_beginning_with_correct_next_event_number()
+	{
 		Assert.AreEqual(3, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
@@ -116,7 +120,8 @@ public class when_handling_read_completed_for_all_streams_then_pause_requested_t
 	}
 
 	[Test]
-	public void does_not_publish_schedule() {
+	public void does_not_publish_schedule()
+	{
 		Assert.AreEqual(0,
 			_consumer.HandledMessages.OfType<TimerMessage.Schedule>().Where(x =>
 				x.ReplyMessage.GetType() != typeof(ProjectionManagementMessage.Internal.ReadTimeout)).Count());

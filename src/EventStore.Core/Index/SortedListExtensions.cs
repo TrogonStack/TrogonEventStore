@@ -5,29 +5,36 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.Index;
 
-public static class SortedListExtensions {
+public static class SortedListExtensions
+{
 	/// <summary>
 	/// Returns the index of smallest (according to comparer) element greater than or equal to provided key.
 	/// Returns -1 if all keys are smaller than provided key.
 	/// </summary>
-	public static int LowerBound<TKey, TValue>(this SortedList<TKey, TValue> list, TKey key) {
-		if (list.Count == 0) {
+	public static int LowerBound<TKey, TValue>(this SortedList<TKey, TValue> list, TKey key)
+	{
+		if (list.Count == 0)
+		{
 			return -1;
 		}
 
 		var comparer = list.Comparer;
-		if (comparer.Compare(list.Keys[list.Keys.Count - 1], key) < 0) {
+		if (comparer.Compare(list.Keys[list.Keys.Count - 1], key) < 0)
+		{
 			return -1; // if all elements are smaller, then no lower bound
 		}
 
 		int l = 0;
 		int r = list.Count - 1;
-		while (l < r) {
+		while (l < r)
+		{
 			int m = l + (r - l) / 2;
-			if (comparer.Compare(list.Keys[m], key) >= 0) {
+			if (comparer.Compare(list.Keys[m], key) >= 0)
+			{
 				r = m;
 			}
-			else {
+			else
+			{
 				l = m + 1;
 			}
 		}
@@ -43,45 +50,56 @@ public static class SortedListExtensions {
 		this SortedList<TKey, TValue> list,
 		TKey key,
 		IComparer<TKey> comparer = null,
-		Func<TKey, bool> continueSearch = null) {
+		Func<TKey, bool> continueSearch = null)
+	{
 
-		if (continueSearch == null) {
+		if (continueSearch == null)
+		{
 			continueSearch = _ => true;
 		}
 
-		if (comparer == null) {
+		if (comparer == null)
+		{
 			comparer = list.Comparer;
 		}
 
-		if (list.Count == 0) {
+		if (list.Count == 0)
+		{
 			return -1;
 		}
 
-		if (!continueSearch(list.Keys[0])) {
+		if (!continueSearch(list.Keys[0]))
+		{
 			throw new SearchStoppedException();
 		}
 
-		if (comparer.Compare(key, list.Keys[0]) < 0) {
+		if (comparer.Compare(key, list.Keys[0]) < 0)
+		{
 			return -1; // if all elements are greater, then no upper bound
 		}
 
 		int l = 0;
 		int r = list.Count - 1;
-		while (l < r) {
+		while (l < r)
+		{
 			int m = l + (r - l + 1) / 2;
-			if (!continueSearch(list.Keys[m])) {
+			if (!continueSearch(list.Keys[m]))
+			{
 				throw new SearchStoppedException();
 			}
 
-			if (comparer.Compare(list.Keys[m], key) <= 0) {
+			if (comparer.Compare(list.Keys[m], key) <= 0)
+			{
 				l = m;
 			}
-			else {
+			else
+			{
 				r = m - 1;
 			}
 		}
 
-		if (!continueSearch(list.Keys[l])) {
+		if (!continueSearch(list.Keys[l]))
+		{
 			throw new SearchStoppedException();
 		}
 
@@ -93,37 +111,46 @@ public static class SortedListExtensions {
 		TKey key,
 		IComparer<TKey> comparer,
 		Func<TKey, CancellationToken, ValueTask<bool>> continueSearch,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
-		if (list.Count is 0) {
+		if (list.Count is 0)
+		{
 			return -1;
 		}
 
-		if (!await continueSearch(list.Keys[0], token)) {
+		if (!await continueSearch(list.Keys[0], token))
+		{
 			throw new SearchStoppedException();
 		}
 
-		if (comparer.Compare(key, list.Keys[0]) < 0) {
+		if (comparer.Compare(key, list.Keys[0]) < 0)
+		{
 			return -1; // if all elements are greater, then no upper bound
 		}
 
 		int l = 0;
 		int r = list.Count - 1;
-		while (l < r) {
+		while (l < r)
+		{
 			int m = l + (r - l + 1) / 2;
-			if (!await continueSearch(list.Keys[m], token)) {
+			if (!await continueSearch(list.Keys[m], token))
+			{
 				throw new SearchStoppedException();
 			}
 
-			if (comparer.Compare(list.Keys[m], key) <= 0) {
+			if (comparer.Compare(list.Keys[m], key) <= 0)
+			{
 				l = m;
 			}
-			else {
+			else
+			{
 				r = m - 1;
 			}
 		}
 
-		if (!await continueSearch(list.Keys[l], token)) {
+		if (!await continueSearch(list.Keys[l], token))
+		{
 			throw new SearchStoppedException();
 		}
 
@@ -137,20 +164,25 @@ public static class SortedListExtensions {
 	public static async ValueTask<int> FindMax<TKey, TValue>(
 		this SortedList<TKey, TValue> list,
 		Func<TKey, CancellationToken, ValueTask<bool>> predicate,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
-		if (list.Count is 0) {
+		if (list.Count is 0)
+		{
 			return -1;
 		}
 
 		int maxIdx = -1;
 
-		for (int i = 0; i < list.Keys.Count; i++) {
-			if (!await predicate(list.Keys[i], token)) {
+		for (int i = 0; i < list.Keys.Count; i++)
+		{
+			if (!await predicate(list.Keys[i], token))
+			{
 				continue;
 			}
 
-			if (maxIdx is -1 || list.Comparer.Compare(list.Keys[i], list.Keys[maxIdx]) > 0) {
+			if (maxIdx is -1 || list.Comparer.Compare(list.Keys[i], list.Keys[maxIdx]) > 0)
+			{
 				maxIdx = i;
 			}
 		}

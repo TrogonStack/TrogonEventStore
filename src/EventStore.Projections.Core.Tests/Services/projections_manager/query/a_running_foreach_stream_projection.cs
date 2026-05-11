@@ -13,11 +13,14 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.query;
 
-public class a_running_foreach_stream_projection {
-	public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId> {
+public class a_running_foreach_stream_projection
+{
+	public abstract class Base<TLogFormat, TStreamId> : a_new_posted_projection.Base<TLogFormat, TStreamId>
+	{
 		protected Guid _reader;
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			base.Given();
 			_fakeProjectionType = typeof(FakeForeachStreamProjection);
 			_projectionMode = ProjectionMode.Transient;
@@ -29,8 +32,10 @@ public class a_running_foreach_stream_projection {
 			//NoStream("$projections-test-projection-stream-checkpoint");
 		}
 
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -66,9 +71,12 @@ public class a_running_foreach_stream_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_receiving_eof<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_receiving_eof<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -76,7 +84,8 @@ public class a_running_foreach_stream_projection {
 		}
 
 		[Test]
-		public void the_projection_status_becomes_completed_enabled() {
+		public void the_projection_status_becomes_completed_enabled()
+		{
 			_manager.Handle(
 				new ProjectionManagementMessage.Command.GetStatistics(
 					_bus, null, _projectionName, false));
@@ -108,14 +117,16 @@ public class a_running_foreach_stream_projection {
 		}
 
 		[Test]
-		public void writes_result_stream() {
+		public void writes_result_stream()
+		{
 			List<EventRecord> resultsStream;
 			Assert.IsTrue((_streams.TryGetValue("$projections-test-projection-result", out resultsStream)));
 			Assert.AreEqual(3 + 1 /* $Eof */, resultsStream.Count);
 		}
 
 		[Test]
-		public void does_not_write_to_any_other_streams() {
+		public void does_not_write_to_any_other_streams()
+		{
 			Assert.IsEmpty(
 				HandledMessages.OfType<ClientMessage.WriteEvents>()
 					.Where(v => v.EventStreamId != "$projections-test-projection-result")

@@ -23,7 +23,8 @@ namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public sealed class
-	WhenStartingHavingTfLogWithNoEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture, IDisposable {
+	WhenStartingHavingTfLogWithNoEpochs<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture, IDisposable
+{
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
 	private LogFormatAbstractor<TStreamId> _logFormat;
@@ -39,7 +40,8 @@ public sealed class
 
 	private static long _currentEpoch = -1;
 
-	private EpochManager<TStreamId> GetManager() {
+	private EpochManager<TStreamId> GetManager()
+	{
 		return new EpochManager<TStreamId>(_mainBus,
 			10,
 			_db.Config.EpochCheckpoint,
@@ -56,14 +58,16 @@ public sealed class
 			_instanceId);
 	}
 
-	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager) {
+	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager)
+	{
 		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>)
 			.GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
 			.GetValue(_epochManager);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
@@ -81,13 +85,15 @@ public sealed class
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		Dispose();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public async Task starting_epoch_manager_loads_without_epochs() {
+	public async Task starting_epoch_manager_loads_without_epochs()
+	{
 
 		_epochManager = GetManager();
 		await _epochManager.Init(CancellationToken.None);
@@ -106,19 +112,23 @@ public sealed class
 
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		//epochManager?.Dispose();
 		//reader?.Dispose();
-		try {
+		try
+		{
 			_logFormat?.Dispose();
 			using var task = _writer?.DisposeAsync().AsTask() ?? Task.CompletedTask;
 			task.Wait();
 		}
-		catch {
+		catch
+		{
 			//workaround for TearDown error
 		}
 
-		using (var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask) {
+		using (var task = _db?.DisposeAsync().AsTask() ?? Task.CompletedTask)
+		{
 			task.Wait();
 		}
 	}

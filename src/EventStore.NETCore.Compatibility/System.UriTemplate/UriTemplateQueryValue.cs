@@ -11,33 +11,42 @@ using System.ServiceModel.Channels;
 using System.Text;
 
 // This represents a Query value, which can either be Empty, a Literal or a Variable
-abstract class UriTemplateQueryValue {
+abstract class UriTemplateQueryValue
+{
 
 	readonly UriTemplatePartType nature;
 	static UriTemplateQueryValue empty = new EmptyUriTemplateQueryValue();
 
-	protected UriTemplateQueryValue(UriTemplatePartType nature) {
+	protected UriTemplateQueryValue(UriTemplatePartType nature)
+	{
 		this.nature = nature;
 	}
 
-	public static UriTemplateQueryValue Empty {
-		get {
+	public static UriTemplateQueryValue Empty
+	{
+		get
+		{
 			return UriTemplateQueryValue.empty;
 		}
 	}
 
-	public UriTemplatePartType Nature {
-		get {
+	public UriTemplatePartType Nature
+	{
+		get
+		{
 			return this.nature;
 		}
 	}
-	public static UriTemplateQueryValue CreateFromUriTemplate(string value, UriTemplate template) {
+	public static UriTemplateQueryValue CreateFromUriTemplate(string value, UriTemplate template)
+	{
 		// Checking for empty value
-		if (value == null) {
+		if (value == null)
+		{
 			return UriTemplateQueryValue.Empty;
 		}
 		// Identifying the type of value - Literal|Compound|Variable
-		switch (UriTemplateHelpers.IdentifyPartType(value)) {
+		switch (UriTemplateHelpers.IdentifyPartType(value))
+		{
 			case UriTemplatePartType.Literal:
 				return UriTemplateLiteralQueryValue.CreateFromUriTemplate(value);
 
@@ -54,11 +63,14 @@ abstract class UriTemplateQueryValue {
 		}
 	}
 
-	public static bool IsNullOrEmpty(UriTemplateQueryValue utqv) {
-		if (utqv == null) {
+	public static bool IsNullOrEmpty(UriTemplateQueryValue utqv)
+	{
+		if (utqv == null)
+		{
 			return true;
 		}
-		if (utqv == UriTemplateQueryValue.Empty) {
+		if (utqv == UriTemplateQueryValue.Empty)
+		{
 			return true;
 		}
 		return false;
@@ -68,18 +80,23 @@ abstract class UriTemplateQueryValue {
 	public abstract bool IsEquivalentTo(UriTemplateQueryValue other);
 	public abstract void Lookup(string value, NameValueCollection boundParameters);
 
-	class EmptyUriTemplateQueryValue : UriTemplateQueryValue {
+	class EmptyUriTemplateQueryValue : UriTemplateQueryValue
+	{
 		public EmptyUriTemplateQueryValue()
-			: base(UriTemplatePartType.Literal) {
+			: base(UriTemplatePartType.Literal)
+		{
 		}
-		public override void Bind(string keyName, string[] values, ref int valueIndex, StringBuilder query) {
+		public override void Bind(string keyName, string[] values, ref int valueIndex, StringBuilder query)
+		{
 			query.AppendFormat("&{0}", UrlUtility.UrlEncode(keyName, Encoding.UTF8));
 		}
 
-		public override bool IsEquivalentTo(UriTemplateQueryValue other) {
+		public override bool IsEquivalentTo(UriTemplateQueryValue other)
+		{
 			return (other == UriTemplateQueryValue.Empty);
 		}
-		public override void Lookup(string value, NameValueCollection boundParameters) {
+		public override void Lookup(string value, NameValueCollection boundParameters)
+		{
 			Fx.Assert(string.IsNullOrEmpty(value), "shouldn't have a value");
 		}
 	}

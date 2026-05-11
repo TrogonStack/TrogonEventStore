@@ -12,10 +12,12 @@ using EventStore.Projections.Core.Messages;
 
 namespace EventStore.Projections.Core.Services.Processing.EventByType;
 
-public partial class EventByTypeIndexEventReader {
+public partial class EventByTypeIndexEventReader
+{
 	private class TfBased : State,
 		IHandle<ClientMessage.ReadAllEventsForwardCompleted>,
-		IHandle<ProjectionManagementMessage.Internal.ReadTimeout> {
+		IHandle<ProjectionManagementMessage.Internal.ReadTimeout>
+	{
 		private readonly HashSet<string> _eventTypes;
 		private readonly ITimeProvider _timeProvider;
 		private bool _tfEventsRequested;
@@ -29,7 +31,8 @@ public partial class EventByTypeIndexEventReader {
 		public TfBased(
 			ITimeProvider timeProvider, EventByTypeIndexEventReader reader, TFPos fromTfPosition,
 			IPublisher publisher, ClaimsPrincipal readAs)
-			: base(reader, readAs) {
+			: base(reader, readAs)
+		{
 			_timeProvider = timeProvider;
 			_eventTypes = reader._eventTypes;
 			_streamToEventType = _eventTypes.ToDictionary(v => "$et-" + v, v => v);
@@ -37,42 +40,51 @@ public partial class EventByTypeIndexEventReader {
 			_fromTfPosition = fromTfPosition;
 		}
 
-		public void Handle(ClientMessage.ReadAllEventsForwardCompleted message) {
-			if (_disposed) {
+		public void Handle(ClientMessage.ReadAllEventsForwardCompleted message)
+		{
+			if (_disposed)
+			{
 				return;
 			}
 
-			if (message.CorrelationId != _pendingRequestCorrelationId) {
+			if (message.CorrelationId != _pendingRequestCorrelationId)
+			{
 				return;
 			}
 
-			if (message.Result == ReadAllResult.AccessDenied) {
+			if (message.Result == ReadAllResult.AccessDenied)
+			{
 				SendNotAuthorized();
 				return;
 			}
 
-			if (!_tfEventsRequested) {
+			if (!_tfEventsRequested)
+			{
 				throw new InvalidOperationException("TF events has not been requested");
 			}
 
-			if (_reader.Paused) {
+			if (_reader.Paused)
+			{
 				throw new InvalidOperationException("Paused");
 			}
 
 			_reader._lastPosition = message.TfLastCommitPosition;
 			_tfEventsRequested = false;
-			switch (message.Result) {
+			switch (message.Result)
+			{
 				case ReadAllResult.Success:
 					var eof = message.Events.Count == 0;
 					_eof = eof;
 					var willDispose = _reader._stopOnEof && eof;
 					_fromTfPosition = message.NextPos;
 
-					if (!willDispose) {
+					if (!willDispose)
+					{
 						_reader.PauseOrContinueProcessing();
 					}
 
-					if (eof) {
+					if (eof)
+					{
 						// the end
 						//TODO: is it safe to pass NEXT as last commit position here
 						DeliverLastCommitPosition(message.NextPos);
@@ -80,17 +92,21 @@ public partial class EventByTypeIndexEventReader {
 						SendIdle();
 						_reader.SendEof();
 					}
-					else {
-						foreach (var @event in message.Events) {
+					else
+					{
+						foreach (var @event in message.Events)
+						{
 							var link = @event.Link;
 							var data = @event.Event;
 							var byStream = link != null && _streamToEventType.ContainsKey(link.EventStreamId);
-							if (data == null) {
+							if (data == null)
+							{
 								continue;
 							}
 
 							var originalTfPosition = @event.OriginalPosition.Value;
-							if (byStream) {
+							if (byStream)
+							{
 								// ignore data just update positions
 								_reader.UpdateNextStreamPosition(link.EventStreamId, link.EventNumber + 1);
 								// recover unresolved link event
@@ -101,7 +117,8 @@ public partial class EventByTypeIndexEventReader {
 									unresolvedLinkEvent, 100.0f * link.LogPosition / message.TfLastCommitPosition,
 									originalTfPosition);
 							}
-							else {
+							else
+							{
 								DeliverEventRetrievedFromTf(
 									@event, 100.0f * data.LogPosition / message.TfLastCommitPosition,
 									originalTfPosition);
@@ -109,7 +126,8 @@ public partial class EventByTypeIndexEventReader {
 						}
 					}
 
-					if (_disposed) {
+					if (_disposed)
+					{
 						return;
 					}
 
@@ -120,16 +138,20 @@ public partial class EventByTypeIndexEventReader {
 			}
 		}
 
-		public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message) {
-			if (_disposed) {
+		public void Handle(ProjectionManagementMessage.Internal.ReadTimeout message)
+		{
+			if (_disposed)
+			{
 				return;
 			}
 
-			if (_reader.Paused) {
+			if (_reader.Paused)
+			{
 				return;
 			}
 
-			if (message.CorrelationId != _pendingRequestCorrelationId) {
+			if (message.CorrelationId != _pendingRequestCorrelationId)
+			{
 				return;
 			}
 
@@ -137,16 +159,20 @@ public partial class EventByTypeIndexEventReader {
 			_reader.PauseOrContinueProcessing();
 		}
 
-		private void RequestTfEvents(bool delay) {
-			if (_disposed) {
+		private void RequestTfEvents(bool delay)
+		{
+			if (_disposed)
+			{
 				throw new InvalidOperationException("Disposed");
 			}
 
-			if (_reader.PauseRequested || _reader.Paused) {
+			if (_reader.PauseRequested || _reader.Paused)
+			{
 				throw new InvalidOperationException("Paused or pause requested");
 			}
 
-			if (_tfEventsRequested) {
+			if (_tfEventsRequested)
+			{
 				return;
 			}
 
@@ -168,8 +194,10 @@ public partial class EventByTypeIndexEventReader {
 			_reader.PublishIORequest(delay, readRequest, timeoutMessage, _pendingRequestCorrelationId);
 		}
 
-		private void DeliverLastCommitPosition(TFPos lastPosition) {
-			if (_reader._stopOnEof) {
+		private void DeliverLastCommitPosition(TFPos lastPosition)
+		{
+			if (_reader._stopOnEof)
+			{
 				return;
 			}
 
@@ -181,26 +209,31 @@ public partial class EventByTypeIndexEventReader {
 		}
 
 		private void DeliverEventRetrievedFromTf(EventStore.Core.Data.ResolvedEvent pair, float progress,
-			TFPos position) {
+			TFPos position)
+		{
 			var resolvedEvent = new ResolvedEvent(pair, null);
 
 			DeliverEvent(progress, resolvedEvent, position, pair);
 		}
 
-		private void SendIdle() {
+		private void SendIdle()
+		{
 			_publisher.Publish(
 				new ReaderSubscriptionMessage.EventReaderIdle(_reader.EventReaderCorrelationId, _timeProvider.UtcNow));
 		}
 
-		public override void Dispose() {
+		public override void Dispose()
+		{
 			_disposed = true;
 		}
 
-		public override void RequestEvents() {
+		public override void RequestEvents()
+		{
 			RequestTfEvents(delay: _eof);
 		}
 
-		public override bool AreEventsRequested() {
+		public override bool AreEventsRequested()
+		{
 			return _tfEventsRequested;
 		}
 	}

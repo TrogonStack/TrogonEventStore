@@ -8,7 +8,8 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection.checkpoint_manager;
 
-public abstract class TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public abstract class TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	protected DefaultCheckpointManager _manager;
 	protected FakeCoreProjection _projection;
 	protected ProjectionConfig _config;
@@ -35,7 +36,8 @@ public abstract class TestFixtureWithCoreProjectionCheckpointManager<TLogFormat,
 	protected int _maxProjectionStateSize = int.MaxValue;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		Given();
 		_namingBuilder = ProjectionNamesBuilder.CreateForTest("projection");
 		_config = new ProjectionConfig(null, _checkpointHandledThreshold, _checkpointUnhandledBytesThreshold,
@@ -45,7 +47,8 @@ public abstract class TestFixtureWithCoreProjectionCheckpointManager<TLogFormat,
 		When();
 	}
 
-	protected new virtual void When() {
+	protected new virtual void When()
+	{
 		_projectionVersion = new ProjectionVersion(1, 0, 0);
 		_projectionName = "projection";
 		_checkpointWriter = new CoreProjectionCheckpointWriter(
@@ -56,7 +59,8 @@ public abstract class TestFixtureWithCoreProjectionCheckpointManager<TLogFormat,
 		_manager = GivenCheckpointManager();
 	}
 
-	protected virtual DefaultCheckpointManager GivenCheckpointManager() {
+	protected virtual DefaultCheckpointManager GivenCheckpointManager()
+	{
 		return new DefaultCheckpointManager(
 			_bus, _projectionCorrelationId, _projectionVersion, null, _ioDispatcher, _config, _projectionName,
 			new StreamPositionTagger(0, "stream"), _namingBuilder, _checkpointsEnabled, _producesResults,
@@ -64,7 +68,8 @@ public abstract class TestFixtureWithCoreProjectionCheckpointManager<TLogFormat,
 			_checkpointWriter, _maxProjectionStateSize);
 	}
 
-	protected new virtual void Given() {
+	protected new virtual void Given()
+	{
 		_projectionCheckpointStreamId = "$projections-projection-checkpoint";
 		_projectionCorrelationId = Guid.NewGuid();
 		_projection = new FakeCoreProjection();

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EventStore.Core;
 
-public interface IInternalStartup : IStartup {
+public interface IInternalStartup : IStartup
+{
 	void ConfigureServicesOnly(IServiceCollection services);
 }

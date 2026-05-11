@@ -1,8 +1,11 @@
 using System;
 
-namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.PinnedState {
-	internal struct BucketAssignment {
-		internal enum BucketState {
+namespace EventStore.Core.Services.PersistentSubscription.ConsumerStrategy.PinnedState
+{
+	internal struct BucketAssignment
+	{
+		internal enum BucketState
+		{
 			Unassigned,
 			Assigned,
 			Disconnected

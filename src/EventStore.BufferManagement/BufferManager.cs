@@ -21,7 +21,8 @@ namespace EventStore.BufferManagement;
 /// require an update of all GC roots as would be the case with lots of smaller arrays
 /// that were in the normal heap.
 /// </remarks>
-public class BufferManager {
+public class BufferManager
+{
 	private static readonly ILogger Logger = Log.ForContext<BufferManager>();
 
 	private const int TrialsCount = 100;
@@ -44,10 +45,13 @@ public class BufferManager {
 	/// </summary>
 	/// <remarks>You should only be using this method if you don't want to manage buffers on your own.</remarks>
 	/// <value>The default buffer manager.</value>
-	public static BufferManager Default {
-		get {
+	public static BufferManager Default
+	{
+		get
+		{
 			//default to 1024 1kb buffers if people don't want to manage it on their own;
-			if (_defaultBufferManager == null) {
+			if (_defaultBufferManager == null)
+			{
 				_defaultBufferManager = new BufferManager(1024, 1024, 1);
 			}
 
@@ -59,37 +63,44 @@ public class BufferManager {
 	/// Sets the default buffer manager.
 	/// </summary>
 	/// <param name="manager">The new default buffer manager.</param>
-	public static void SetDefaultBufferManager(BufferManager manager) {
-		if (manager == null) {
+	public static void SetDefaultBufferManager(BufferManager manager)
+	{
+		if (manager == null)
+		{
 			throw new ArgumentNullException("manager");
 		}
 
 		_defaultBufferManager = manager;
 	}
 
-	public int ChunkSize {
+	public int ChunkSize
+	{
 		get { return _chunkSize; }
 	}
 
-	public int SegmentsCount {
+	public int SegmentsCount
+	{
 		get { return _segments.Count; }
 	}
 
-	public int SegmentChunksCount {
+	public int SegmentChunksCount
+	{
 		get { return _segmentChunks; }
 	}
 
 	/// <summary>
 	/// The current number of buffers available
 	/// </summary>
-	public int AvailableBuffers {
+	public int AvailableBuffers
+	{
 		get { return _buffers.Count; } //do we really care about volatility here?
 	}
 
 	/// <summary>
 	/// The total size of all buffers
 	/// </summary>
-	public int TotalBufferSize {
+	public int TotalBufferSize
+	{
 		get { return _segments.Count * _segmentSize; } //do we really care about volatility here?
 	}
 
@@ -99,7 +110,8 @@ public class BufferManager {
 	/// <param name="segmentChunks">The number of chunks to create per segment</param>
 	/// <param name="chunkSize">The size of a chunk in bytes</param>
 	public BufferManager(int segmentChunks, int chunkSize)
-		: this(segmentChunks, chunkSize, 1) {
+		: this(segmentChunks, chunkSize, 1)
+	{
 	}
 
 	/// <summary>
@@ -109,7 +121,8 @@ public class BufferManager {
 	/// <param name="chunkSize">The size of a chunk in bytes</param>
 	/// <param name="initialSegments">The initial number of segments to create</param>
 	public BufferManager(int segmentChunks, int chunkSize, int initialSegments)
-		: this(segmentChunks, chunkSize, initialSegments, true) {
+		: this(segmentChunks, chunkSize, initialSegments, true)
+	{
 	}
 
 	/// <summary>
@@ -119,16 +132,20 @@ public class BufferManager {
 	/// <param name="chunkSize">The size of a chunk in bytes</param>
 	/// <param name="initialSegments">The initial number of segments to create</param>
 	/// <param name="allowedToCreateMemory">If false when empty and checkout is called an exception will be thrown</param>
-	public BufferManager(int segmentChunks, int chunkSize, int initialSegments, bool allowedToCreateMemory) {
-		if (segmentChunks <= 0) {
+	public BufferManager(int segmentChunks, int chunkSize, int initialSegments, bool allowedToCreateMemory)
+	{
+		if (segmentChunks <= 0)
+		{
 			throw new ArgumentException("segmentChunks");
 		}
 
-		if (chunkSize <= 0) {
+		if (chunkSize <= 0)
+		{
 			throw new ArgumentException("chunkSize");
 		}
 
-		if (initialSegments < 0) {
+		if (initialSegments < 0)
+		{
 			throw new ArgumentException("initialSegments");
 		}
 
@@ -139,7 +156,8 @@ public class BufferManager {
 		_segments = new List<byte[]>();
 
 		_allowedToCreateMemory = true;
-		for (int i = 0; i < initialSegments; i++) {
+		for (int i = 0; i < initialSegments; i++)
+		{
 			CreateNewSegment(true);
 		}
 
@@ -149,19 +167,24 @@ public class BufferManager {
 	/// <summary>
 	/// Creates a new segment, makes buffers available
 	/// </summary>
-	private void CreateNewSegment(bool forceCreation) {
-		if (!_allowedToCreateMemory) {
+	private void CreateNewSegment(bool forceCreation)
+	{
+		if (!_allowedToCreateMemory)
+		{
 			throw new UnableToCreateMemoryException();
 		}
 
-		lock (_creatingNewSegmentLock) {
-			if (!forceCreation && _buffers.Count > _segmentChunks / 2) {
+		lock (_creatingNewSegmentLock)
+		{
+			if (!forceCreation && _buffers.Count > _segmentChunks / 2)
+			{
 				return;
 			}
 
 			var bytes = new byte[_segmentSize];
 			_segments.Add(bytes);
-			for (int i = 0; i < _segmentChunks; i++) {
+			for (int i = 0; i < _segmentChunks; i++)
+			{
 				var chunk = new ArraySegment<byte>(bytes, i * _chunkSize, _chunkSize);
 				_buffers.Push(chunk);
 			}
@@ -181,11 +204,14 @@ public class BufferManager {
 	/// calling <see cref="CheckIn(ArraySegment{byte})"></see> on the buffer
 	/// </remarks>
 	/// <returns>A <see cref="ArraySegment{T}"></see> that can be used as a buffer</returns>
-	public ArraySegment<byte> CheckOut() {
+	public ArraySegment<byte> CheckOut()
+	{
 		int trial = 0;
-		while (trial < TrialsCount) {
+		while (trial < TrialsCount)
+		{
 			ArraySegment<byte> result;
-			if (_buffers.TryPop(out result)) {
+			if (_buffers.TryPop(out result))
+			{
 				return result;
 			}
 
@@ -204,16 +230,21 @@ public class BufferManager {
 	/// calling <see cref="CheckIn(IEnumerable{ArraySegment{byte}})"></see> on the buffer
 	/// </remarks>
 	/// <returns>A <see cref="ArraySegment{T}"></see> that can be used as a buffer</returns>
-	public IEnumerable<ArraySegment<byte>> CheckOut(int toGet) {
+	public IEnumerable<ArraySegment<byte>> CheckOut(int toGet)
+	{
 		var result = new ArraySegment<byte>[toGet];
 		var count = 0;
 		var totalReceived = 0;
 
-		try {
-			while (count < TrialsCount) {
+		try
+		{
+			while (count < TrialsCount)
+			{
 				ArraySegment<byte> piece;
-				while (totalReceived < toGet) {
-					if (!_buffers.TryPop(out piece)) {
+				while (totalReceived < toGet)
+				{
+					if (!_buffers.TryPop(out piece))
+					{
 						break;
 					}
 
@@ -221,7 +252,8 @@ public class BufferManager {
 					++totalReceived;
 				}
 
-				if (totalReceived == toGet) {
+				if (totalReceived == toGet)
+				{
 					return result;
 				}
 
@@ -231,8 +263,10 @@ public class BufferManager {
 
 			throw new UnableToAllocateBufferException();
 		}
-		catch {
-			if (totalReceived > 0) {
+		catch
+		{
+			if (totalReceived > 0)
+			{
 				CheckIn(result.Take(totalReceived));
 			}
 
@@ -248,7 +282,8 @@ public class BufferManager {
 	/// calling <see cref="CheckIn(ArraySegment{byte})"></see> on the buffer
 	/// </remarks>
 	/// <param name="buffer">The <see cref="ArraySegment{T}"></see> to return to the cache</param>
-	public void CheckIn(ArraySegment<byte> buffer) {
+	public void CheckIn(ArraySegment<byte> buffer)
+	{
 		CheckBuffer(buffer);
 		_buffers.Push(buffer);
 	}
@@ -261,24 +296,30 @@ public class BufferManager {
 	/// calling <see cref="CheckIn(IEnumerable{ArraySegment{byte}})"></see> on the buffer
 	/// </remarks>
 	/// <param name="buffersToReturn">The <see cref="ArraySegment{T}"></see> to return to the cache</param>
-	public void CheckIn(IEnumerable<ArraySegment<byte>> buffersToReturn) {
-		if (buffersToReturn == null) {
+	public void CheckIn(IEnumerable<ArraySegment<byte>> buffersToReturn)
+	{
+		if (buffersToReturn == null)
+		{
 			throw new ArgumentNullException("buffersToReturn");
 		}
 
-		foreach (var buf in buffersToReturn) {
+		foreach (var buf in buffersToReturn)
+		{
 			CheckBuffer(buf);
 			_buffers.Push(buf);
 		}
 	}
 
 	//[Conditional("DEBUG")]
-	private void CheckBuffer(ArraySegment<byte> buffer) {
-		if (buffer.Array == null || buffer.Count == 0 || buffer.Array.Length < buffer.Offset + buffer.Count) {
+	private void CheckBuffer(ArraySegment<byte> buffer)
+	{
+		if (buffer.Array == null || buffer.Count == 0 || buffer.Array.Length < buffer.Offset + buffer.Count)
+		{
 			throw new Exception("Attempt to check in invalid buffer");
 		}
 
-		if (buffer.Count != _chunkSize) {
+		if (buffer.Count != _chunkSize)
+		{
 			throw new ArgumentException("Buffer was not of the same chunk size as the buffer manager", "buffer");
 		}
 	}

@@ -11,9 +11,11 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture]
-public class when_creating_a_projection {
+public class when_creating_a_projection
+{
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		var fakePublisher = new FakePublisher();
 		_ioDispatcher = new IODispatcher(fakePublisher, fakePublisher, true);
 
@@ -30,8 +32,10 @@ public class when_creating_a_projection {
 
 	[Test]
 	public void
-		a_checkpoint_threshold_less_tan_checkpoint_handled_threshold_throws_argument_out_of_range_exception() {
-		Assert.Throws<ArgumentException>(() => {
+		a_checkpoint_threshold_less_tan_checkpoint_handled_threshold_throws_argument_out_of_range_exception()
+	{
+		Assert.Throws<ArgumentException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			var projectionConfig = new ProjectionConfig(null, 10, 5, 1000, 250, true, true, false, false,
@@ -57,8 +61,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_negative_checkpoint_handled_interval_throws_argument_out_of_range_exception() {
-		Assert.Throws<ArgumentOutOfRangeException>(() => {
+	public void a_negative_checkpoint_handled_interval_throws_argument_out_of_range_exception()
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			var projectionConfig = new ProjectionConfig(null, -1, 10, 1000, 250, true, true, false, false,
@@ -84,8 +90,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_null_io_dispatcher__throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void a_null_io_dispatcher__throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			new ContinuousProjectionProcessingStrategy(
@@ -109,8 +117,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_null_name_throws_argument_null_excveption() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void a_null_name_throws_argument_null_excveption()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			new ContinuousProjectionProcessingStrategy(
@@ -134,33 +144,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_null_publisher_throws_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
-			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
-			var version = new ProjectionVersion(1, 0, 0);
-			new ContinuousProjectionProcessingStrategy(
-				"projection",
-				version,
-				projectionStateHandler,
-				_defaultProjectionConfig,
-				projectionStateHandler.GetSourceDefinition(),
-				null,
-				_subscriptionDispatcher,
-				true).Create(
-				Guid.NewGuid(),
-				new FakePublisher(),
-				Guid.NewGuid(),
-				SystemAccounts.System,
-				null,
-				_ioDispatcher,
-				_subscriptionDispatcher,
-				new RealTimeProvider());
-		});
-	}
-
-	[Test]
-	public void a_null_input_queue_throws_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void a_null_publisher_throws_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			new ContinuousProjectionProcessingStrategy(
@@ -173,6 +160,33 @@ public class when_creating_a_projection {
 				_subscriptionDispatcher,
 				true).Create(
 				Guid.NewGuid(),
+				new FakePublisher(),
+				Guid.NewGuid(),
+				SystemAccounts.System,
+				null,
+				_ioDispatcher,
+				_subscriptionDispatcher,
+				new RealTimeProvider());
+		});
+	}
+
+	[Test]
+	public void a_null_input_queue_throws_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
+			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
+			var version = new ProjectionVersion(1, 0, 0);
+			new ContinuousProjectionProcessingStrategy(
+				"projection",
+				version,
+				projectionStateHandler,
+				_defaultProjectionConfig,
+				projectionStateHandler.GetSourceDefinition(),
+				null,
+				_subscriptionDispatcher,
+				true).Create(
+				Guid.NewGuid(),
 				null,
 				Guid.NewGuid(),
 				SystemAccounts.System,
@@ -184,7 +198,8 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_null_run_as_does_not_throw_exception() {
+	public void a_null_run_as_does_not_throw_exception()
+	{
 		IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 		var version = new ProjectionVersion(1, 0, 0);
 		new ContinuousProjectionProcessingStrategy(
@@ -207,8 +222,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_null_subscription_dispatcher__throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void a_null_subscription_dispatcher__throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			new ContinuousProjectionProcessingStrategy(
@@ -232,8 +249,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_null_time_provider__throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void a_null_time_provider__throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			new ContinuousProjectionProcessingStrategy(
@@ -257,8 +276,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void a_zero_checkpoint_handled_threshold_throws_argument_out_of_range_exception() {
-		Assert.Throws<ArgumentOutOfRangeException>(() => {
+	public void a_zero_checkpoint_handled_threshold_throws_argument_out_of_range_exception()
+	{
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			var projectionConfig = new ProjectionConfig(null, 0, 10, 1000, 250, true, true, false, false,
@@ -284,8 +305,10 @@ public class when_creating_a_projection {
 	}
 
 	[Test]
-	public void an_empty_name_throws_argument_exception() {
-		Assert.Throws<ArgumentException>(() => {
+	public void an_empty_name_throws_argument_exception()
+	{
+		Assert.Throws<ArgumentException>(() =>
+		{
 			IProjectionStateHandler projectionStateHandler = new FakeProjectionStateHandler();
 			var version = new ProjectionVersion(1, 0, 0);
 			new ContinuousProjectionProcessingStrategy(

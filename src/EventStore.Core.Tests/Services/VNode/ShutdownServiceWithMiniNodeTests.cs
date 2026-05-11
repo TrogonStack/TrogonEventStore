@@ -17,20 +17,23 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.VNode;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ShutdownServiceWithMiniNodeTests<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class ShutdownServiceWithMiniNodeTests<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private readonly CancellationTokenSource _cancellationTokenSource = new();
 	private readonly TaskCompletionSource _taskCompletionSource = new();
 	private MiniNode<TLogFormat, TStreamId> _node;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName, subsystems: [new FakePlugin(_taskCompletionSource)]);
 		await _node.Start();
 	}
 
 	[Test]
-	public async Task Shutdown_WithMiniNode_ShouldCompleteGracefully() {
+	public async Task Shutdown_WithMiniNode_ShouldCompleteGracefully()
+	{
 		await using var _ = _cancellationTokenSource.Token.Register(() =>
 			_taskCompletionSource.TrySetCanceled(_cancellationTokenSource.Token));
 		_cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(15));
@@ -38,19 +41,25 @@ public class ShutdownServiceWithMiniNodeTests<TLogFormat, TStreamId> : Specifica
 		await _taskCompletionSource.Task;
 	}
 
-	private class FakePlugin(TaskCompletionSource source) : ISubsystem {
+	private class FakePlugin(TaskCompletionSource source) : ISubsystem
+	{
 		private IPublisher _publisher;
 		public void ConfigureServices(IServiceCollection services, IConfiguration configuration) { }
 
-		public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration) {
+		public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
+		{
 			_publisher = builder.ApplicationServices.GetRequiredService<IPublisher>();
-			_publisher.Publish(new SystemMessage.RegisterForGracefulTermination("foobar", () => {
-				var envelope = new CallbackEnvelope(msg => {
-					if (msg is not ClientMessage.ReadStreamEventsForwardCompleted resp) {
+			_publisher.Publish(new SystemMessage.RegisterForGracefulTermination("foobar", () =>
+			{
+				var envelope = new CallbackEnvelope(msg =>
+				{
+					if (msg is not ClientMessage.ReadStreamEventsForwardCompleted resp)
+					{
 						return;
 					}
 
-					if (resp.Result != ReadStreamResult.NoStream) {
+					if (resp.Result != ReadStreamResult.NoStream)
+					{
 						return;
 					}
 

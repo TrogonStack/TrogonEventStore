@@ -11,8 +11,10 @@ using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Transport.Tcp;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.Monitoring {
-	public class SystemStatsHelper : IDisposable {
+namespace EventStore.Core.Services.Monitoring
+{
+	public class SystemStatsHelper : IDisposable
+	{
 		private readonly ILogger _log;
 		private readonly IReadOnlyCheckpoint _writerCheckpoint;
 		private readonly string _dbPath;
@@ -20,7 +22,8 @@ namespace EventStore.Core.Services.Monitoring {
 		private readonly long _totalMem;
 		private bool _giveup;
 
-		public SystemStatsHelper(ILogger log, IReadOnlyCheckpoint writerCheckpoint, string dbPath, long collectIntervalMs) {
+		public SystemStatsHelper(ILogger log, IReadOnlyCheckpoint writerCheckpoint, string dbPath, long collectIntervalMs)
+		{
 			Ensure.NotNull(log, "log");
 			Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
 
@@ -33,7 +36,8 @@ namespace EventStore.Core.Services.Monitoring {
 
 		public void Start() => _eventCountersHelper.Start();
 
-		public IDictionary<string, object> GetSystemStats() {
+		public IDictionary<string, object> GetSystemStats()
+		{
 			var stats = new Dictionary<string, object>();
 			GetPerfCounterInformation(stats, 0);
 
@@ -71,7 +75,8 @@ namespace EventStore.Core.Services.Monitoring {
 			Func<string, string, string> queueStat = (queueName, stat) =>
 				string.Format("es-queue-{0}-{1}", queueName, stat);
 			var queues = QueueMonitor.Default.GetStats();
-			foreach (var queue in queues) {
+			foreach (var queue in queues)
+			{
 				stats[queueStat(queue.Name, "queueName")] = queue.Name;
 				stats[queueStat(queue.Name, "groupName")] = queue.GroupName ?? string.Empty;
 				stats[queueStat(queue.Name, "avgItemsPerSecond")] = queue.AvgItemsPerSecond;
@@ -98,13 +103,16 @@ namespace EventStore.Core.Services.Monitoring {
 			return stats;
 		}
 
-		private void GetPerfCounterInformation(Dictionary<string, object> stats, int count) {
-			if (_giveup) {
+		private void GetPerfCounterInformation(Dictionary<string, object> stats, int count)
+		{
+			if (_giveup)
+			{
 				return;
 			}
 
 			var process = Process.GetCurrentProcess();
-			try {
+			try
+			{
 				stats["proc-startTime"] = process.StartTime.ToUniversalTime().ToString("O");
 				stats["proc-id"] = process.Id;
 				stats["proc-mem"] = new StatMetadata(process.WorkingSet64, "Process", "Process Virtual Memory");
@@ -115,7 +123,8 @@ namespace EventStore.Core.Services.Monitoring {
 
 				stats["sys-cpu"] = RuntimeStats.GetCpuUsage();
 
-				if (RuntimeInformation.IsUnix) {
+				if (RuntimeInformation.IsUnix)
+				{
 					var loadAverages = RuntimeStats.GetCpuLoadAverages();
 					stats["sys-loadavg-1m"] = loadAverages.OneMinute;
 					stats["sys-loadavg-5m"] = loadAverages.FiveMinutes;
@@ -138,19 +147,23 @@ namespace EventStore.Core.Services.Monitoring {
 				stats["proc-gc-timeInGc"] = gcStats.TimeInGc;
 				stats["proc-gc-totalBytesInHeaps"] = gcStats.TotalBytesInHeaps;
 			}
-			catch (InvalidOperationException) {
+			catch (InvalidOperationException)
+			{
 				_log.Information("Received error reading counters. Attempting to rebuild.");
 				_giveup = count > 10;
-				if (_giveup) {
+				if (_giveup)
+				{
 					_log.Error("Maximum rebuild attempts reached. Giving up on rebuilds.");
 				}
-				else {
+				else
+				{
 					GetPerfCounterInformation(stats, count + 1);
 				}
 			}
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_eventCountersHelper.Dispose();
 		}
 	}

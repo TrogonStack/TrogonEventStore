@@ -2,23 +2,28 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace EventStore.Core.Helpers {
+namespace EventStore.Core.Helpers
+{
 	// Thread-safe reusable buffer: similar concept as an ArrayPool<byte> but has only one buffer and one user at a time.
 	// If used correctly, there should not be any contention since there can be only one user of the buffer at a time.
 	// However, some synchronization is done since the AcquireAs*() and Release() methods are allowed to be called from
 	// different threads.
-	public class ReusableBuffer {
+	public class ReusableBuffer
+	{
 		private byte[] _buffer;
 		private int _state;
 
-		private enum State {
+		private enum State
+		{
 			Free = 0,
 			LockedToAcquire = 1,
 			Acquired = 2,
 		}
 
-		public ReusableBuffer(int defaultSize) {
-			if (defaultSize <= 0) {
+		public ReusableBuffer(int defaultSize)
+		{
+			if (defaultSize <= 0)
+			{
 				throw new ArgumentOutOfRangeException(nameof(defaultSize), "default size must be positive");
 			}
 
@@ -26,14 +31,17 @@ namespace EventStore.Core.Helpers {
 			_state = (int)State.Free;
 		}
 
-		private static int ClosestPowerOf2(int x) {
+		private static int ClosestPowerOf2(int x)
+		{
 			int y = 0;
-			while (x > 0) {
+			while (x > 0)
+			{
 				x >>= 1;
 				y++;
 			}
 
-			if (y >= 31) {
+			if (y >= 31)
+			{
 				throw new ArgumentOutOfRangeException();
 			}
 
@@ -42,14 +50,17 @@ namespace EventStore.Core.Helpers {
 
 		// Note: The acquired buffer size can be larger than the requested size
 		// It is better to use AcquireAsSpan() or AcquireAsMemory() where possible.
-		public byte[] AcquireAsByteArray(int size) {
-			if (size <= 0) {
+		public byte[] AcquireAsByteArray(int size)
+		{
+			if (size <= 0)
+			{
 				throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
 			}
 
 			TrySwitchState(State.Free, State.LockedToAcquire);
 
-			if (_buffer.Length < size) {
+			if (_buffer.Length < size)
+			{
 				_buffer = new byte[ClosestPowerOf2(size)];
 			}
 
@@ -61,14 +72,17 @@ namespace EventStore.Core.Helpers {
 
 		public Memory<byte> AcquireAsMemory(int size) => AcquireAsByteArray(size).AsMemory(0, size);
 
-		public void Release() {
+		public void Release()
+		{
 			TrySwitchState(State.Acquired, State.Free);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private void TrySwitchState(State from, State to) {
+		private void TrySwitchState(State from, State to)
+		{
 			var was = (State)Interlocked.CompareExchange(ref _state, (int)to, (int)from);
-			if (was != from) {
+			if (was != from)
+			{
 				throw new InvalidOperationException($"Failed to transition buffer from state: {from} to {to}. Was {was}.");
 			}
 		}

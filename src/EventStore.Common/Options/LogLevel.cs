@@ -1,6 +1,7 @@
 namespace EventStore.Common.Options;
 
-public enum LogLevel {
+public enum LogLevel
+{
 	Default = 0,
 	Verbose = 1,
 	Debug = 2,

@@ -3,9 +3,11 @@ using EventStore.Core.TransactionLog.Scavenging;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class AdHocScavengeBackendInterceptor<TStreamId> : IScavengeStateBackend<TStreamId> {
+public class AdHocScavengeBackendInterceptor<TStreamId> : IScavengeStateBackend<TStreamId>
+{
 	private readonly IScavengeStateBackend<TStreamId> _wrapped;
-	public AdHocScavengeBackendInterceptor(IScavengeStateBackend<TStreamId> wrapped) {
+	public AdHocScavengeBackendInterceptor(IScavengeStateBackend<TStreamId> wrapped)
+	{
 		_wrapped = wrapped;
 		CollisionStorage = wrapped.CollisionStorage;
 		Hashes = wrapped.Hashes;

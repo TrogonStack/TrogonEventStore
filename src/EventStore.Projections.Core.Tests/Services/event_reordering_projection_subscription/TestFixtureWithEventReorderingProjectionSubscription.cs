@@ -10,15 +10,18 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.event_reordering_projection_subscription;
 
-public abstract class TestFixtureWithEventReorderingProjectionSubscription : TestFixtureWithProjectionSubscription {
+public abstract class TestFixtureWithEventReorderingProjectionSubscription : TestFixtureWithProjectionSubscription
+{
 	protected int _timeBetweenEvents;
 	protected int _processingLagMs;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_timeBetweenEvents = 1100;
 		_processingLagMs = 500;
 		base.Given();
-		_source = builder => {
+		_source = builder =>
+		{
 			builder.FromStream("a");
 			builder.FromStream("b");
 			builder.AllEvents();
@@ -27,7 +30,8 @@ public abstract class TestFixtureWithEventReorderingProjectionSubscription : Tes
 		};
 	}
 
-	protected override IReaderSubscription CreateProjectionSubscription() {
+	protected override IReaderSubscription CreateProjectionSubscription()
+	{
 		return new EventReorderingReaderSubscription(_bus,
 			_projectionCorrelationId,
 			CheckpointTag.FromStreamPositions(0,

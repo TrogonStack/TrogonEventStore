@@ -10,11 +10,13 @@ using EventStore.Plugins.Authentication;
 
 namespace EventStore.Core.Tests.Authentication;
 
-public abstract class with_internal_authentication_provider<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public abstract class with_internal_authentication_provider<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	protected new IODispatcher _ioDispatcher;
 	protected InternalAuthenticationProvider _internalAuthenticationProvider;
 
-	protected void SetUpProvider() {
+	protected void SetUpProvider()
+	{
 		_ioDispatcher = new IODispatcher(_bus, _bus);
 		_bus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(_ioDispatcher.BackwardReader);
 		_bus.Subscribe<ClientMessage.NotHandled>(_ioDispatcher.BackwardReader);
@@ -37,10 +39,12 @@ class TestAuthenticationRequest(
 	Action<ClaimsPrincipal> authenticated,
 	Action error,
 	Action notReady
-) : AuthenticationRequest("test", new Dictionary<string, string> {
+) : AuthenticationRequest("test", new Dictionary<string, string>
+{
 	["uid"] = name,
 	["pwd"] = suppliedPassword
-}) {
+})
+{
 	public override void Unauthorized() => unauthorized();
 
 	public override void Authenticated(ClaimsPrincipal principal) => authenticated(principal);

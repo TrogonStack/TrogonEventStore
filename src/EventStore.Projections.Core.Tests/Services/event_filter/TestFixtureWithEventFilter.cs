@@ -6,30 +6,36 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.event_filter;
 
-public class TestFixtureWithEventFilter {
+public class TestFixtureWithEventFilter
+{
 	protected SourceDefinitionBuilder _builder;
 	protected EventFilter _ef;
 	protected Exception _exception;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_builder = new SourceDefinitionBuilder();
 		Given();
 		When();
 	}
 
-	protected virtual void Given() {
+	protected virtual void Given()
+	{
 	}
 
-	protected virtual void When() {
+	protected virtual void When()
+	{
 		_ef = null;
-		try {
+		try
+		{
 			var sources = _builder.Build();
 			_ef =
 				ReaderStrategy.Create("test", 0, sources, new RealTimeProvider(), stopOnEof: false, runAs: null)
 					.EventFilter;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_exception = ex;
 		}
 	}

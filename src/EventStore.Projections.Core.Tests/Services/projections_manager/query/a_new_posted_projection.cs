@@ -11,8 +11,10 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager.query;
 
-public static class a_new_posted_projection {
-	public abstract class Base<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+public static class a_new_posted_projection
+{
+	public abstract class Base<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+	{
 		protected string _projectionName;
 		protected string _projectionSource;
 		protected Type _fakeProjectionType;
@@ -21,7 +23,8 @@ public static class a_new_posted_projection {
 		protected bool _trackEmittedStreams;
 		protected bool _emitEnabled;
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			base.Given();
 
 			_projectionName = "test-projection";
@@ -34,7 +37,8 @@ public static class a_new_posted_projection {
 			NoOtherStreams();
 		}
 
-		protected override IEnumerable<WhenStep> When() {
+		protected override IEnumerable<WhenStep> When()
+		{
 			yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
 			yield return
 				(new ProjectionManagementMessage.Command.Post(
@@ -46,9 +50,12 @@ public static class a_new_posted_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_get_query<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_get_query<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -58,7 +65,8 @@ public static class a_new_posted_projection {
 		}
 
 		[Test]
-		public void returns_correct_source() {
+		public void returns_correct_source()
+		{
 			Assert.AreEqual(
 				1, _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionQuery>().Count());
 			var projectionQuery =
@@ -69,9 +77,12 @@ public static class a_new_posted_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_get_state<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_get_state<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -80,7 +91,8 @@ public static class a_new_posted_projection {
 		}
 
 		[Test]
-		public void returns_correct_state() {
+		public void returns_correct_state()
+		{
 			Assert.AreEqual(
 				1, _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Count());
 			Assert.AreEqual(
@@ -92,9 +104,12 @@ public static class a_new_posted_projection {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_failing<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId> {
-		protected override IEnumerable<WhenStep> When() {
-			foreach (var m in base.When()) {
+	public class when_failing<TLogFormat, TStreamId> : Base<TLogFormat, TStreamId>
+	{
+		protected override IEnumerable<WhenStep> When()
+		{
+			foreach (var m in base.When())
+			{
 				yield return m;
 			}
 
@@ -111,12 +126,14 @@ public static class a_new_posted_projection {
 		}
 
 		[Test]
-		public void publishes_faulted_message() {
+		public void publishes_faulted_message()
+		{
 			Assert.AreEqual(1, _consumer.HandledMessages.OfType<CoreProjectionStatusMessage.Faulted>().Count());
 		}
 
 		[Test]
-		public void the_projection_status_becomes_faulted() {
+		public void the_projection_status_becomes_faulted()
+		{
 			_manager.Handle(
 				new ProjectionManagementMessage.Command.GetStatistics(
 					_bus, null, _projectionName, false));

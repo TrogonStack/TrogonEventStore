@@ -14,13 +14,15 @@ using CoreTcpConnectionStats = EventStore.Core.Messages.MonitoringMessage.TcpCon
 namespace EventStore.Core.Tests.Services.Transport.Grpc.MonitoringTests;
 
 [TestFixture]
-public class TcpStatsTests {
+public class TcpStatsTests
+{
 	private readonly Guid _connectionId = Guid.Parse("1e1c6d68-3c7c-446f-915e-8bdf8d35e122");
 	private TcpStatsResp _response;
 	private CapturingPublisher _publisher;
 
 	[SetUp]
-	public async Task SetUp() {
+	public async Task SetUp()
+	{
 		_publisher = new CapturingPublisher(new List<CoreTcpConnectionStats> {
 			new() {
 				RemoteEndPoint = "127.0.0.1:1113",
@@ -54,17 +56,20 @@ public class TcpStatsTests {
 	}
 
 	[Test]
-	public void should_request_fresh_tcp_connection_stats() {
+	public void should_request_fresh_tcp_connection_stats()
+	{
 		Assert.IsTrue(_publisher.RequestedTcpStats);
 	}
 
 	[Test]
-	public void should_return_the_tcp_connection_stats() {
+	public void should_return_the_tcp_connection_stats()
+	{
 		Assert.AreEqual(2, _response.Connections.Count);
 	}
 
 	[Test]
-	public void should_map_all_tcp_connection_fields() {
+	public void should_map_all_tcp_connection_fields()
+	{
 		var connection = _response.Connections[0];
 
 		Assert.AreEqual("127.0.0.1:1113", connection.RemoteEndpoint);
@@ -80,7 +85,8 @@ public class TcpStatsTests {
 	}
 
 	[Test]
-	public void should_map_null_strings_to_empty_values() {
+	public void should_map_null_strings_to_empty_values()
+	{
 		var connection = _response.Connections[1];
 
 		Assert.AreEqual(string.Empty, connection.RemoteEndpoint);
@@ -88,11 +94,14 @@ public class TcpStatsTests {
 		Assert.AreEqual(string.Empty, connection.ClientConnectionName);
 	}
 
-	private sealed class CapturingPublisher(List<CoreTcpConnectionStats> connectionStats) : IPublisher {
+	private sealed class CapturingPublisher(List<CoreTcpConnectionStats> connectionStats) : IPublisher
+	{
 		public bool RequestedTcpStats { get; private set; }
 
-		public void Publish(Message message) {
-			if (message is not MonitoringMessage.GetFreshTcpConnectionStats request) {
+		public void Publish(Message message)
+		{
+			if (message is not MonitoringMessage.GetFreshTcpConnectionStats request)
+			{
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
 			}
 
@@ -101,10 +110,12 @@ public class TcpStatsTests {
 		}
 	}
 
-	private sealed class TestServerCallContext : ServerCallContext {
+	private sealed class TestServerCallContext : ServerCallContext
+	{
 		public static readonly TestServerCallContext Instance = new();
 
-		private TestServerCallContext() {
+		private TestServerCallContext()
+		{
 		}
 
 		protected override string MethodCore => nameof(EventStore.Client.Monitoring.Monitoring.MonitoringBase.TcpStats);

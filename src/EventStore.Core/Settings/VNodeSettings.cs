@@ -4,8 +4,10 @@ using System.Security.Cryptography.X509Certificates;
 using EventStore.Common.Utils;
 using EventStore.Core.Services.Monitoring;
 
-namespace EventStore.Core.Settings {
-	public class SingleVNodeSettings {
+namespace EventStore.Core.Settings
+{
+	public class SingleVNodeSettings
+	{
 		public readonly IPEndPoint ExternalTcpEndPoint;
 		public readonly IPEndPoint ExternalSecureTcpEndPoint;
 		public readonly IPEndPoint HttpEndPoint;
@@ -41,10 +43,12 @@ namespace EventStore.Core.Settings {
 			TimeSpan tcpTimeout,
 			StatsStorage statsStorage = StatsStorage.StreamAndFile,
 			bool skipInitializeStandardUsersCheck = false,
-			bool disableScavengeMerging = false) {
+			bool disableScavengeMerging = false)
+		{
 			Ensure.NotNull(httpEndPoint, nameof(httpEndPoint));
 			Ensure.NotNull(httpPrefixes, "httpPrefixes");
-			if (externalSecureTcpEndPoint != null) {
+			if (externalSecureTcpEndPoint != null)
+			{
 				Ensure.NotNull(certificate, "certificate");
 			}
 
@@ -70,7 +74,8 @@ namespace EventStore.Core.Settings {
 			TcpTimeout = tcpTimeout;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format("ExternalTcpEndPoint: {0},\n"
 								 + "ExternalSecureTcpEndPoint: {1},\n"
 								 + "HttpEndPoint: {2},\n"

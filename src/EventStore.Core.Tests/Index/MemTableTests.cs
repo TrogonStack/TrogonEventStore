@@ -8,80 +8,95 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Index;
 
 [TestFixture]
-public class HashListMemTableTests : MemTableTestsFixture {
+public class HashListMemTableTests : MemTableTestsFixture
+{
 	public HashListMemTableTests()
-		: base(() => new HashListMemTable(PTableVersions.IndexV2, maxSize: 20)) {
+		: base(() => new HashListMemTable(PTableVersions.IndexV2, maxSize: 20))
+	{
 	}
 }
 
 [TestFixture]
-public abstract class MemTableTestsFixture {
+public abstract class MemTableTestsFixture
+{
 	private readonly Func<IMemTable> _memTableFactory;
 
 	protected IMemTable MemTable;
 
-	protected MemTableTestsFixture(Func<IMemTable> memTableFactory) {
+	protected MemTableTestsFixture(Func<IMemTable> memTableFactory)
+	{
 		_memTableFactory = memTableFactory;
 		Ensure.NotNull(memTableFactory, "memTableFactory");
 	}
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		MemTable = _memTableFactory();
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_start_version() {
+	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_start_version()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => MemTable.GetRange(0x0000, -1, int.MaxValue).ToArray());
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_end_version() {
+	public void throw_argumentoutofrangeexception_on_range_query_when_provided_with_negative_end_version()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => MemTable.GetRange(0x0000, 0, -1).ToArray());
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_get_one_entry_query_when_provided_with_negative_version() {
+	public void throw_argumentoutofrangeexception_on_get_one_entry_query_when_provided_with_negative_version()
+	{
 		long pos;
 		Assert.Throws<ArgumentOutOfRangeException>(() => MemTable.TryGetOneValue(0x0000, -1, out pos));
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_version() {
+	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_version()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => MemTable.Add(0x0000, -1, 0));
 	}
 
 	[Test]
-	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_position() {
+	public void throw_argumentoutofrangeexception_on_adding_entry_with_negative_position()
+	{
 		Assert.Throws<ArgumentOutOfRangeException>(() => MemTable.Add(0x0000, 0, -1));
 	}
 
 	[Test]
-	public void empty_memtable_has_count_of_zero() {
+	public void empty_memtable_has_count_of_zero()
+	{
 		Assert.AreEqual(0, MemTable.Count);
 	}
 
 	[Test]
-	public void adding_an_item_increments_count() {
+	public void adding_an_item_increments_count()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		Assert.AreEqual(1, MemTable.Count);
 	}
 
 	[Test]
-	public void non_existent_item_is_not_found() {
+	public void non_existent_item_is_not_found()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		Assert.IsFalse(MemTable.TryGetOneValue(0x11, 0x02, out _));
 	}
 
 
 	[Test]
-	public void existing_item_is_found() {
+	public void existing_item_is_found()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		Assert.IsTrue(MemTable.TryGetOneValue(0x11, 0x01, out _));
 	}
 
 	[Test]
-	public void items_come_out_sorted() {
+	public void items_come_out_sorted()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -99,7 +114,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void items_come_out_sorted_with_duplicates_in_descending_order() {
+	public void items_come_out_sorted_with_duplicates_in_descending_order()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x12, 0x01, 0xfff4);
@@ -117,7 +133,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void can_do_range_query_of_existing_items() {
+	public void can_do_range_query_of_existing_items()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -132,7 +149,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void can_do_range_query_of_existing_items_with_duplicates_on_edges() {
+	public void can_do_range_query_of_existing_items_with_duplicates_on_edges()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff5);
 		MemTable.Add(0x12, 0x01, 0xfff3);
@@ -155,7 +173,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void range_query_of_non_existing_stream_returns_nothing() {
+	public void range_query_of_non_existing_stream_returns_nothing()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -164,7 +183,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void range_query_of_non_existing_version_returns_nothing() {
+	public void range_query_of_non_existing_version_returns_nothing()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -174,7 +194,8 @@ public abstract class MemTableTestsFixture {
 
 
 	[Test]
-	public void range_query_with_hole_returns_items_included() {
+	public void range_query_with_hole_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -193,7 +214,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_in_range_but_not_end_results_returns_items_included() {
+	public void query_with_start_in_range_but_not_end_results_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -208,7 +230,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_end_in_range_but_not_start_results_returns_items_included() {
+	public void query_with_end_in_range_but_not_start_results_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -223,7 +246,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_end_and_start_exclusive_results_returns_items_included() {
+	public void query_with_end_and_start_exclusive_results_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x12, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x02, 0xfff2);
@@ -238,7 +262,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_end_inside_the_hole_in_list_returns_items_included() {
+	public void query_with_end_inside_the_hole_in_list_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -253,7 +278,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_end_inside_the_hole_in_list_returns_items_included_with_duplicates() {
+	public void query_with_end_inside_the_hole_in_list_returns_items_included_with_duplicates()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x03, 0xfff2);
@@ -272,7 +298,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_inside_the_hole_in_list_returns_items_included() {
+	public void query_with_start_inside_the_hole_in_list_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -287,7 +314,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_inside_the_hole_in_list_returns_duplicated_items_included() {
+	public void query_with_start_inside_the_hole_in_list_returns_duplicated_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x03, 0xfff2);
@@ -306,7 +334,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_and_end_inside_the_hole_in_list_returns_items_included() {
+	public void query_with_start_and_end_inside_the_hole_in_list_returns_items_included()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -318,7 +347,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_and_end_inside_the_hole_in_list_returns_items_included_with_duplicates() {
+	public void query_with_start_and_end_inside_the_hole_in_list_returns_items_included_with_duplicates()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff2);
 		MemTable.Add(0x11, 0x03, 0xfff3);
@@ -335,7 +365,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_and_end_less_than_all_items_returns_nothing() {
+	public void query_with_start_and_end_less_than_all_items_returns_nothing()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -344,7 +375,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void query_with_start_and_end_greater_than_all_items_returns_nothing() {
+	public void query_with_start_and_end_greater_than_all_items_returns_nothing()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x03, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -353,7 +385,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_one_value_returns_value_with_highest_position() {
+	public void try_get_one_value_returns_value_with_highest_position()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -363,7 +396,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void get_range_of_same_version_returns_both_values_in_descending_order_when_duplicated() {
+	public void get_range_of_same_version_returns_both_values_in_descending_order_when_duplicated()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x05, 0xfff5);
@@ -378,7 +412,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_one_value_returns_the_value_with_largest_position_when_triduplicated() {
+	public void try_get_one_value_returns_the_value_with_largest_position_when_triduplicated()
+	{
 		MemTable.Add(0x01, 0x05, 0xfff9);
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff3);
@@ -391,7 +426,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void get_range_of_same_version_returns_both_values_in_descending_order_when_triduplicated() {
+	public void get_range_of_same_version_returns_both_values_in_descending_order_when_triduplicated()
+	{
 		MemTable.Add(0x01, 0x05, 0xfff9);
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff3);
@@ -414,18 +450,21 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_latest_entry_finds_nothing_on_empty_memtable() {
+	public void try_get_latest_entry_finds_nothing_on_empty_memtable()
+	{
 		Assert.IsFalse(MemTable.TryGetLatestEntry(0x12, out _));
 	}
 
 	[Test]
-	public void try_get_latest_entry_finds_nothing_on_empty_stream() {
+	public void try_get_latest_entry_finds_nothing_on_empty_stream()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		Assert.IsFalse(MemTable.TryGetLatestEntry(0x12, out _));
 	}
 
 	[Test]
-	public void single_item_is_latest() {
+	public void single_item_is_latest()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		IndexEntry entry;
 		Assert.IsTrue(MemTable.TryGetLatestEntry(0x11, out entry));
@@ -435,7 +474,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_latest_entry_returns_correct_entry() {
+	public void try_get_latest_entry_returns_correct_entry()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		MemTable.Add(0x11, 0x02, 0xfff2);
 		IndexEntry entry;
@@ -446,7 +486,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_latest_entry_when_duplicated_entries_returns_the_one_with_largest_position() {
+	public void try_get_latest_entry_when_duplicated_entries_returns_the_one_with_largest_position()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x02, 0xfff2);
 		MemTable.Add(0x11, 0x01, 0xfff3);
@@ -459,7 +500,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_latest_entry_returns_the_entry_with_the_largest_position_when_triduplicated() {
+	public void try_get_latest_entry_returns_the_entry_with_the_largest_position_when_triduplicated()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x01, 0xfff5);
@@ -471,18 +513,21 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_oldest_entry_finds_nothing_on_empty_memtable() {
+	public void try_get_oldest_entry_finds_nothing_on_empty_memtable()
+	{
 		Assert.IsFalse(MemTable.TryGetOldestEntry(0x12, out _));
 	}
 
 	[Test]
-	public void try_get_oldest_entry_finds_nothing_on_empty_stream() {
+	public void try_get_oldest_entry_finds_nothing_on_empty_stream()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		Assert.IsFalse(MemTable.TryGetOldestEntry(0x12, out _));
 	}
 
 	[Test]
-	public void single_item_is_oldest() {
+	public void single_item_is_oldest()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		IndexEntry entry;
 		Assert.IsTrue(MemTable.TryGetOldestEntry(0x11, out entry));
@@ -492,7 +537,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_oldest_entry_returns_correct_entry() {
+	public void try_get_oldest_entry_returns_correct_entry()
+	{
 		MemTable.Add(0x11, 0x01, 0xffff);
 		MemTable.Add(0x11, 0x02, 0xfff2);
 		IndexEntry entry;
@@ -503,7 +549,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_oldest_entry_when_duplicated_entries_returns_the_one_with_smallest_position() {
+	public void try_get_oldest_entry_when_duplicated_entries_returns_the_one_with_smallest_position()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x02, 0xfff2);
 		MemTable.Add(0x11, 0x01, 0xfff3);
@@ -516,7 +563,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_oldest_entry_returns_the_entry_with_the_smallest_position_when_triduplicated() {
+	public void try_get_oldest_entry_returns_the_entry_with_the_smallest_position_when_triduplicated()
+	{
 		MemTable.Add(0x11, 0x01, 0xfff1);
 		MemTable.Add(0x11, 0x01, 0xfff3);
 		MemTable.Add(0x11, 0x01, 0xfff5);
@@ -529,7 +577,8 @@ public abstract class MemTableTestsFixture {
 
 
 	[Test]
-	public void the_smallest_items_with_hash_collisions_can_be_found() {
+	public void the_smallest_items_with_hash_collisions_can_be_found()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -542,7 +591,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void the_smallest_items_with_hash_collisions_are_returned_in_descending_order() {
+	public void the_smallest_items_with_hash_collisions_are_returned_in_descending_order()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -560,7 +610,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_latest_entry_for_smallest_hash_with_collisions_returns_correct_index_entry() {
+	public void try_get_latest_entry_for_smallest_hash_with_collisions_returns_correct_index_entry()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -575,7 +626,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_oldest_entry_for_smallest_hash_with_collisions_returns_correct_index_entry() {
+	public void try_get_oldest_entry_for_smallest_hash_with_collisions_returns_correct_index_entry()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -590,7 +642,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void the_largest_items_with_hash_collisions_can_be_found() {
+	public void the_largest_items_with_hash_collisions_can_be_found()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -603,7 +656,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void the_largest_items_with_hash_collisions_are_returned_in_descending_order() {
+	public void the_largest_items_with_hash_collisions_are_returned_in_descending_order()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -624,7 +678,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_latest_entry_for_largest_hash_collision_returns_correct_index_entry() {
+	public void try_get_latest_entry_for_largest_hash_collision_returns_correct_index_entry()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);
@@ -639,7 +694,8 @@ public abstract class MemTableTestsFixture {
 	}
 
 	[Test]
-	public void try_get_oldest_entry_for_largest_hash_with_collisions_returns_correct_index_entry() {
+	public void try_get_oldest_entry_for_largest_hash_with_collisions_returns_correct_index_entry()
+	{
 		MemTable.Add(0, 0, 0x0001);
 		MemTable.Add(0, 0, 0x0002);
 		MemTable.Add(1, 0, 0x0003);

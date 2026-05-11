@@ -1,7 +1,9 @@
 namespace EventStore.TestClient.Commands.DvuBasic;
 
-internal static class BankAccountEventFactory {
-	public static object CreateAccountObject(int version) {
+internal static class BankAccountEventFactory
+{
+	public static object CreateAccountObject(int version)
+	{
 		object accountObject;
 
 		var internalCounter = version + 1;
@@ -10,7 +12,8 @@ internal static class BankAccountEventFactory {
 			const int checkpointVersion = 10;
 
 			var checkPointModVersion = internalCounter % checkpointVersion;
-			if (checkPointModVersion == 0) {
+			if (checkPointModVersion == 0)
+			{
 				int otherCheckPointsCount = internalCounter / checkpointVersion;
 
 				var elementsCount = internalCounter / 2;
@@ -22,13 +25,16 @@ internal static class BankAccountEventFactory {
 
 				accountObject = checkpoint;
 			}
-			else {
+			else
+			{
 				var modVersion = internalCounter % 2;
-				if (modVersion == 0) {
+				if (modVersion == 0)
+				{
 					var credited = new AccountCredited(internalCounter * 10, internalCounter % 17);
 					accountObject = credited;
 				}
-				else {
+				else
+				{
 					var debited = new AccountDebited(internalCounter * 10, internalCounter % 17);
 					accountObject = debited;
 				}
@@ -37,7 +43,8 @@ internal static class BankAccountEventFactory {
 		return accountObject;
 	}
 
-	private static int ComputeSum(int first, int count, int step) {
+	private static int ComputeSum(int first, int count, int step)
+	{
 		var sum = count * (2 * first + step * (count - 1)) / 2;
 		return sum;
 	}

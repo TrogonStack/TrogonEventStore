@@ -3,7 +3,8 @@ using System.Threading.Tasks;
 
 namespace EventStore.Core.LogAbstraction.Common;
 
-public class NoNameExistenceFilter : INameExistenceFilter {
+public class NoNameExistenceFilter : INameExistenceFilter
+{
 	public ValueTask Initialize(INameExistenceFilterInitializer source, long truncateToPosition,
 		CancellationToken token)
 		=> token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;

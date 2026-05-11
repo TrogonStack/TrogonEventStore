@@ -12,10 +12,12 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ScavengeOptionsCalculatorTests {
+public class ScavengeOptionsCalculatorTests
+{
 	private static ScavengeOptionsCalculator GenSut(
 		KeyValuePair<string, string?>[]? vNodeOptions = null,
-		int? threshold = null) {
+		int? threshold = null)
+	{
 
 		vNodeOptions ??= [];
 		var message = new ClientMessage.ScavengeDatabase(
@@ -37,7 +39,8 @@ public class ScavengeOptionsCalculatorTests {
 	}
 
 	[Fact]
-	public void merging_enabled_by_default() {
+	public void merging_enabled_by_default()
+	{
 		var sut = GenSut([
 		]);
 
@@ -45,7 +48,8 @@ public class ScavengeOptionsCalculatorTests {
 	}
 
 	[Fact]
-	public void merging_can_be_disabled() {
+	public void merging_can_be_disabled()
+	{
 		var sut = GenSut([
 			new("EventStore:DisableScavengeMerging", "true"),
 		]);
@@ -54,7 +58,8 @@ public class ScavengeOptionsCalculatorTests {
 	}
 
 	[Fact]
-	public void merging_is_disabled_when_archiving_is_enabled() {
+	public void merging_is_disabled_when_archiving_is_enabled()
+	{
 		var sut = GenSut(
 			vNodeOptions:
 			[
@@ -69,7 +74,8 @@ public class ScavengeOptionsCalculatorTests {
 	[InlineData(-5, -5)]
 	[InlineData(0, 0)]
 	[InlineData(5, 5)]
-	public void threshold_can_be_set(int? configuredThreshold, int expectedThreshold) {
+	public void threshold_can_be_set(int? configuredThreshold, int expectedThreshold)
+	{
 		var sut = GenSut(threshold: configuredThreshold);
 
 		Assert.Equal(expectedThreshold, sut.ChunkExecutionThreshold);

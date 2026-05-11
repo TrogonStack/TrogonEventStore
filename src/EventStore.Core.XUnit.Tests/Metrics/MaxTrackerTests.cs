@@ -6,12 +6,14 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class MaxTrackerTests : IDisposable {
+public class MaxTrackerTests : IDisposable
+{
 	private readonly TestMeterListener<long> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly MaxTracker<long> _sut;
 
-	public MaxTrackerTests() {
+	public MaxTrackerTests()
+	{
 		var meter = new Meter($"{typeof(MaxTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		var metric = new MaxMetric<long>(meter, "the-metric");
@@ -22,17 +24,20 @@ public class MaxTrackerTests : IDisposable {
 			clock: _clock);
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		_listener.Dispose();
 	}
 
 	[Fact]
-	public void no_records() {
+	public void no_records()
+	{
 		AssertMeasurements(0);
 	}
 
 	[Fact]
-	public void two_records_ascending() {
+	public void two_records_ascending()
+	{
 		AssertMeasurements(0);
 		_sut.Record(1);
 		AssertMeasurements(1);
@@ -41,7 +46,8 @@ public class MaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void two_records_descending() {
+	public void two_records_descending()
+	{
 		AssertMeasurements(0);
 		_sut.Record(2);
 		AssertMeasurements(2);
@@ -50,7 +56,8 @@ public class MaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void removes_stale_data() {
+	public void removes_stale_data()
+	{
 		_sut.Record(1);
 		_clock.AdvanceSeconds(19);
 		AssertMeasurements(1);
@@ -59,20 +66,24 @@ public class MaxTrackerTests : IDisposable {
 		AssertMeasurements(0);
 	}
 
-	void AssertMeasurements(double expectedValue) {
+	void AssertMeasurements(double expectedValue)
+	{
 		_listener.Observe();
 
 		Assert.Collection(
 			_listener.RetrieveMeasurements("the-metric"),
-			m => {
+			m =>
+			{
 				Assert.Equal(expectedValue, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t => {
+					t =>
+					{
 						Assert.Equal("name", t.Key);
 						Assert.Equal("the-tracker", t.Value);
 					},
-					t => {
+					t =>
+					{
 						Assert.Equal("range", t.Key);
 						Assert.Equal("16-20 seconds", t.Value);
 					});
@@ -80,7 +91,8 @@ public class MaxTrackerTests : IDisposable {
 	}
 
 	[Fact]
-	public void no_name() {
+	public void no_name()
+	{
 		using var meter = new Meter($"{typeof(MaxTrackerTests)}");
 		using var listener = new TestMeterListener<long>(meter);
 		var sut = new MaxTracker<long>(
@@ -92,11 +104,13 @@ public class MaxTrackerTests : IDisposable {
 
 		Assert.Collection(
 			listener.RetrieveMeasurements("the-metric"),
-			m => {
+			m =>
+			{
 				Assert.Equal(0, m.Value);
 				Assert.Collection(
 					m.Tags.ToArray(),
-					t => {
+					t =>
+					{
 						Assert.Equal("range", t.Key);
 						Assert.Equal("16-20 seconds", t.Value);
 					});

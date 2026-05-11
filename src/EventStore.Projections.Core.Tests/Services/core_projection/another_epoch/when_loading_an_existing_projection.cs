@@ -6,10 +6,12 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_projection.another_epoch;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_starting_an_existing_projection<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+public class when_starting_an_existing_projection<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private string _testProjectionState = @"{""test"":1}";
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_version = new ProjectionVersion(1, 2, 2);
 		ExistingEvent(
 			"$projections-projection-result", "Result",
@@ -25,12 +27,14 @@ public class when_starting_an_existing_projection<TLogFormat, TStreamId> : TestF
 			@"{""v"":1, ""c"": 300, ""p"": 250}", _testProjectionState);
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 	}
 
 
 	[Test]
-	public void should_subscribe_from_the_beginning() {
+	public void should_subscribe_from_the_beginning()
+	{
 		Assert.AreEqual(1, _subscribeProjectionHandler.HandledMessages.Count);
 		Assert.AreEqual(0, _subscribeProjectionHandler.HandledMessages[0].FromPosition.Position.CommitPosition);
 		Assert.AreEqual(-1, _subscribeProjectionHandler.HandledMessages[0].FromPosition.Position.PreparePosition);

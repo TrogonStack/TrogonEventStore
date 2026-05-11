@@ -2,7 +2,8 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Certificates;
 
-public class validity_checks_for_chain_of_length_1 : with_certificate_chain_of_length_1 {
+public class validity_checks_for_chain_of_length_1 : with_certificate_chain_of_length_1
+{
 	[Test]
 	public void leaf_is_valid_node_certificate() => Assert.True(CertificateUtils.IsValidNodeCertificate(_leaf, out _));
 
@@ -13,7 +14,8 @@ public class validity_checks_for_chain_of_length_1 : with_certificate_chain_of_l
 	public void leaf_is_valid_root() => Assert.True(CertificateUtils.IsValidRootCertificate(_leaf, out _));
 }
 
-public class validity_checks_for_chain_of_length_2 : with_certificate_chain_of_length_2 {
+public class validity_checks_for_chain_of_length_2 : with_certificate_chain_of_length_2
+{
 	[Test]
 	public void leaf_is_valid_node_certificate() => Assert.True(CertificateUtils.IsValidNodeCertificate(_leaf, out _));
 
@@ -33,7 +35,8 @@ public class validity_checks_for_chain_of_length_2 : with_certificate_chain_of_l
 	public void root_is_valid_root() => Assert.True(CertificateUtils.IsValidRootCertificate(_root, out _));
 }
 
-public class validity_checks_for_chain_of_length_3 : with_certificate_chain_of_length_3 {
+public class validity_checks_for_chain_of_length_3 : with_certificate_chain_of_length_3
+{
 	[Test]
 	public void leaf_is_valid_node_certificate() => Assert.True(CertificateUtils.IsValidNodeCertificate(_leaf, out _));
 

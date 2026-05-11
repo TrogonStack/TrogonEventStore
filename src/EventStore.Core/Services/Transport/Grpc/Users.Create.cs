@@ -8,13 +8,16 @@ using Grpc.Core;
 
 namespace EventStore.Core.Services.Transport.Grpc;
 
-internal partial class Users {
+internal partial class Users
+{
 	private static readonly Operation CreateOperation = new Operation(Plugins.Authorization.Operations.Users.Create);
-	public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context) {
+	public override async Task<CreateResp> Create(CreateReq request, ServerCallContext context)
+	{
 		var options = request.Options;
 
 		var user = context.GetHttpContext().User;
-		if (!await _authorizationProvider.CheckAccessAsync(user, CreateOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, CreateOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 		var createSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -29,8 +32,10 @@ internal partial class Users {
 
 		return new CreateResp();
 
-		void OnMessage(Message message) {
-			if (HandleErrors(options.LoginName, message, createSource)) {
+		void OnMessage(Message message)
+		{
+			if (HandleErrors(options.LoginName, message, createSource))
+			{
 				return;
 			}
 

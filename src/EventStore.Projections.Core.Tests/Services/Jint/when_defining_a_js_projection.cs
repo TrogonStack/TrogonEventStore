@@ -4,11 +4,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_defining_a_js_projection {
+public class when_defining_a_js_projection
+{
 	private const string _projectionType = "INTERPRETED";
 	[TestFixture]
-	public class with_from_all_source : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_from_all_source : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                    fromAll().when({
                         $any:function(state, event) {
@@ -19,8 +22,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.FromAll();
 				b.AllEvents();
 			});
@@ -29,8 +34,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_from_stream : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_from_stream : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromStream('stream1').when({
                         $any:function(state, event) {
@@ -41,8 +48,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromStream("stream1");
 			});
@@ -51,8 +60,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_multiple_from_streams : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_multiple_from_streams : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromStreams(['stream1', 'stream2', 'stream3']).when({
                     $any: function(state, event) {
@@ -63,8 +74,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromStream("stream1");
 				b.FromStream("stream2");
@@ -75,8 +88,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_multiple_from_streams_plain : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_multiple_from_streams_plain : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromStreams('stream1', 'stream2', 'stream3').when({
                         $any:function(state, event) {
@@ -87,8 +102,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromStream("stream1");
 				b.FromStream("stream2");
@@ -99,8 +116,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_multiple_from_categories : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_multiple_from_categories : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromCategories(['category1', 'category2', 'category3']).when({
                     $any: function(state, event) {
@@ -111,8 +130,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromStream("$ce-category1");
 				b.FromStream("$ce-category2");
@@ -123,8 +144,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_multiple_from_categories_plain : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_multiple_from_categories_plain : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromCategories('category1', 'category2', 'category3').when({
                         $any:function(state, event) {
@@ -135,8 +158,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromStream("$ce-category1");
 				b.FromStream("$ce-category2");
@@ -147,8 +172,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_from_category : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_from_category : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromCategory('category1').when({
                         $any:function(state, event) {
@@ -159,8 +186,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromCategory("category1");
 			});
@@ -169,8 +198,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_from_category_by_stream : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_from_category_by_stream : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromCategory('category1').foreachStream().when({
                         $any:function(state, event) {
@@ -181,8 +212,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromCategory("category1");
 				b.SetByStream();
@@ -192,8 +225,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_from_all_by_custom_partitions : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_from_all_by_custom_partitions : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromAll().partitionBy(function(event){
                         return event.eventType;
@@ -206,8 +241,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetByCustomPartitions();
@@ -217,8 +254,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_output_to : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_output_to : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromAll()
                     .when({
@@ -231,8 +270,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetDefinesStateTransform();
@@ -243,8 +284,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_transform_by : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_transform_by : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromAll().when({
                         $any:function(state, event) {
@@ -255,8 +298,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetDefinesStateTransform();
@@ -266,8 +311,10 @@ public class when_defining_a_js_projection {
 		}
 	}
 
-	public class with_filter_by : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_filter_by : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     fromAll().when({
                         some: function(state, event) {
@@ -279,8 +326,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.FromAll();
 				b.IncludeEvent("some");
 				b.SetDefinesStateTransform();
@@ -290,8 +339,10 @@ public class when_defining_a_js_projection {
 		}
 	}
 
-	public class with_output_state : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_output_state : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     var z = fromAll().outputState();
                 ";
@@ -299,8 +350,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.NoWhen();
@@ -310,8 +363,10 @@ public class when_defining_a_js_projection {
 		}
 	}
 
-	public class without_when : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class without_when : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     var z = fromAll();
                 ";
@@ -319,8 +374,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.NoWhen();
@@ -329,8 +386,10 @@ public class when_defining_a_js_projection {
 		}
 	}
 
-	public class with_when : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_when : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     var z = fromAll().when({a: function(s,e) {}});
                 ";
@@ -338,8 +397,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.FromAll();
 				b.IncludeEvent("a");
 			});
@@ -348,8 +409,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_state_stream_name_option : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_state_stream_name_option : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     options({
                         resultStreamName: 'state-stream',
@@ -363,8 +426,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetResultStreamNameOption("state-stream");
@@ -374,8 +439,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_include_links_option : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_include_links_option : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     options({
                         $includeLinks: true,
@@ -389,8 +456,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetIncludeLinks();
@@ -400,8 +469,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_bi_state_option : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_bi_state_option : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     options({
                         biState: true,
@@ -415,8 +486,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetDefinesFold();
@@ -427,8 +500,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_reorder_events_option : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_reorder_events_option : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     options({
                         reorderEvents: true,
@@ -443,8 +518,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetProcessingLag(500);
@@ -455,8 +532,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_multiple_option_statements : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_multiple_option_statements : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                     options({
                         reorderEvents: false,
@@ -474,8 +553,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test, Category(_projectionType)]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetProcessingLag(500);
@@ -486,8 +567,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_foreach_and_deleted_notification_handled : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_foreach_and_deleted_notification_handled : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"fromAll().foreachStream().when({
                 $deleted: function(){}
             })";
@@ -495,8 +578,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetByStream();
@@ -507,8 +592,10 @@ public class when_defining_a_js_projection {
 	}
 
 	[TestFixture]
-	public class with_deleted_notification_handled : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class with_deleted_notification_handled : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"fromAll().when({
                 $deleted: function(){}
             })";
@@ -516,8 +603,10 @@ public class when_defining_a_js_projection {
 		}
 
 		[Test]
-		public void source_definition_is_correct() {
-			var expected = SourceDefinitionBuilder.From(b => {
+		public void source_definition_is_correct()
+		{
+			var expected = SourceDefinitionBuilder.From(b =>
+			{
 				b.AllEvents();
 				b.FromAll();
 				b.SetHandlesStreamDeletedNotifications();

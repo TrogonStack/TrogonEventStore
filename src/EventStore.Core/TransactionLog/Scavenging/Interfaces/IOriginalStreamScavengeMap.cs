@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using EventStore.Core.Data;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	public interface IOriginalStreamScavengeMap<TKey> :
-		IScavengeMap<TKey, OriginalStreamData> {
+		IScavengeMap<TKey, OriginalStreamData>
+	{
 
 		IEnumerable<KeyValuePair<TKey, OriginalStreamData>> ActiveRecords();
 

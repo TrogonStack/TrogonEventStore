@@ -9,13 +9,15 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.core_coordinator;
 
 [TestFixture]
-public class when_starting_with_projection_type_system {
+public class when_starting_with_projection_type_system
+{
 	private FakePublisher[] queues;
 	private FakePublisher publisher;
 	private ProjectionCoreCoordinator _coordinator;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		queues = new List<FakePublisher>() { new FakePublisher() }.ToArray();
 		publisher = new FakePublisher();
 
@@ -25,12 +27,14 @@ public class when_starting_with_projection_type_system {
 	}
 
 	[Test]
-	public void should_publish_start_reader_messages() {
+	public void should_publish_start_reader_messages()
+	{
 		Assert.AreEqual(1, queues[0].Messages.FindAll(x => x is ReaderCoreServiceMessage.StartReader).Count);
 	}
 
 	[Test]
-	public void should_publish_start_core_messages() {
+	public void should_publish_start_core_messages()
+	{
 		Assert.AreEqual(1,
 			queues[0].Messages.FindAll(x => x.GetType() == typeof(ProjectionCoreServiceMessage.StartCore)).Count);
 	}

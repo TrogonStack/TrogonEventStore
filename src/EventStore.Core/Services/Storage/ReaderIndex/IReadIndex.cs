@@ -6,7 +6,8 @@ using EventStore.Core.Messages;
 
 namespace EventStore.Core.Services.Storage.ReaderIndex;
 
-public interface IReadIndex {
+public interface IReadIndex
+{
 	long LastIndexedPosition { get; }
 
 	ReadIndexStats GetStatistics();
@@ -41,7 +42,8 @@ public interface IReadIndex {
 	void Dispose();
 }
 
-public interface IReadIndex<TStreamId> : IReadIndex {
+public interface IReadIndex<TStreamId> : IReadIndex
+{
 	IIndexWriter<TStreamId> IndexWriter { get; }
 
 	// ReadEvent() / ReadStreamEvents*() :

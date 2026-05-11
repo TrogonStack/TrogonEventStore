@@ -15,7 +15,8 @@ namespace EventStore.Core.Tests.Index.Scavenge;
 [TestFixture(false)]
 [TestFixture(true)]
 class
-	when_scavenging_a_table_index_and_another_table_is_completed_during : SpecificationWithDirectoryPerTestFixture {
+	when_scavenging_a_table_index_and_another_table_is_completed_during : SpecificationWithDirectoryPerTestFixture
+{
 	private TableIndex<string> _tableIndex;
 	private IHasher<string> _lowHasher;
 	private IHasher<string> _highHasher;
@@ -23,12 +24,14 @@ class
 	private FakeTFScavengerLog _log;
 	private readonly bool _useBloomFilter;
 
-	public when_scavenging_a_table_index_and_another_table_is_completed_during(bool useBloomFilter) {
+	public when_scavenging_a_table_index_and_another_table_is_completed_during(bool useBloomFilter)
+	{
 		_useBloomFilter = useBloomFilter;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_indexDir = PathName;
@@ -36,9 +39,11 @@ class
 		var scavengeBlocker = new ManualResetEventSlim(false);
 		var scavengeStarted = new ManualResetEventSlim(false);
 
-		var fakeReader = new TFReaderLease(new FakeIndexReader(l => {
+		var fakeReader = new TFReaderLease(new FakeIndexReader(l =>
+		{
 			scavengeStarted.Set();
-			if (!scavengeBlocker.Wait(5000)) {
+			if (!scavengeBlocker.Wait(5000))
+			{
 				throw new Exception("Failed to continue.");
 			}
 
@@ -93,14 +98,16 @@ class
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		_tableIndex.Close();
 
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_have_logged_each_index_table() {
+	public void should_have_logged_each_index_table()
+	{
 		Assert.That(_log.ScavengedIndices.Count, Is.EqualTo(1));
 		Assert.That(_log.ScavengedIndices[0].Scavenged, Is.True);
 		Assert.That(_log.ScavengedIndices[0].Error, Is.Null);
@@ -108,7 +115,8 @@ class
 	}
 
 	[Test]
-	public void should_still_have_all_entries_in_sorted_order() {
+	public void should_still_have_all_entries_in_sorted_order()
+	{
 		var streamId = "testStream-1";
 		var result = _tableIndex.GetRange(streamId, 0, 5).ToArray();
 		var hash = (ulong)_lowHasher.Hash(streamId) << 32 | _highHasher.Hash(streamId);
@@ -134,11 +142,14 @@ class
 
 
 	[Test]
-	public void all_tables_are_written_to_disk() {
-		if (_useBloomFilter) {
+	public void all_tables_are_written_to_disk()
+	{
+		if (_useBloomFilter)
+		{
 			Assert.That(Directory.EnumerateFiles(_indexDir).Count(), Is.EqualTo(7), "Expected IndexMap and 3 tables and 3 bloom filters.");
 		}
-		else {
+		else
+		{
 			Assert.That(Directory.EnumerateFiles(_indexDir).Count(), Is.EqualTo(4), "Expected IndexMap and 3 tables.");
 		}
 	}

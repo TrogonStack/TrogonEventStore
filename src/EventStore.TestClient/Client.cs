@@ -11,7 +11,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.TestClient;
 
-public class Client {
+public class Client
+{
 	public static readonly TimeSpan ConnectionTimeout = TimeSpan.FromMilliseconds(1000);
 	private static readonly ILogger Log = Serilog.Log.ForContext<Client>();
 
@@ -25,7 +26,8 @@ public class Client {
 
 	private readonly CommandsProcessor _commands = new CommandsProcessor(Log);
 
-	public Client(ClientOptions options, CancellationTokenSource cancellationTokenSource) {
+	public Client(ClientOptions options, CancellationTokenSource cancellationTokenSource)
+	{
 		Options = options;
 
 		var interactiveMode = options.Command.IsEmpty();
@@ -39,7 +41,8 @@ public class Client {
 		RegisterProcessors(cancellationTokenSource);
 	}
 
-	private void RegisterProcessors(CancellationTokenSource cancellationTokenSource) {
+	private void RegisterProcessors(CancellationTokenSource cancellationTokenSource)
+	{
 		_commands.Register(new UsageProcessor(_commands), usageProcessor: true);
 		_commands.Register(new ExitProcessor(cancellationTokenSource));
 
@@ -85,59 +88,73 @@ public class Client {
 		_commands.Register(new ClientApiTcpCommands.WriteFloodProcessor());
 	}
 
-	public string GetCommandList() {
+	public string GetCommandList()
+	{
 		var sb = new StringBuilder();
 		_commands.RegisteredProcessors.Select(x => x.Usage.ToUpper()).ToList().ForEach(s => sb.AppendLine(s));
 		return sb.ToString();
 	}
 
-	public int Run(CancellationToken cancellationToken) {
-		if (!InteractiveMode) {
+	public int Run(CancellationToken cancellationToken)
+	{
+		if (!InteractiveMode)
+		{
 			var args = ParseCommandLine(Options.Command[0]);
 			return Execute(args, cancellationToken);
 		}
 
-		new Thread(() => {
+		new Thread(() =>
+		{
 			Thread.Sleep(100);
 			Console.WriteLine(GetCommandList());
 			Console.Write(">>> ");
 
 			string line;
-			while ((line = Console.ReadLine()) != null) {
-				try {
-					if (string.IsNullOrWhiteSpace(line)) {
+			while ((line = Console.ReadLine()) != null)
+			{
+				try
+				{
+					if (string.IsNullOrWhiteSpace(line))
+					{
 						continue;
 					}
 
-					try {
+					try
+					{
 						var args = ParseCommandLine(line);
 						Execute(args, cancellationToken);
 					}
-					catch (Exception exc) {
+					catch (Exception exc)
+					{
 						Log.Error(exc, "Error during executing command.");
 					}
 				}
-				finally {
+				finally
+				{
 					Thread.Sleep(100);
 					Console.Write(">>> ");
 				}
 			}
-		}) { IsBackground = true, Name = "Client Main Loop Thread" }.Start();
+		})
+		{ IsBackground = true, Name = "Client Main Loop Thread" }.Start();
 		return 0;
 	}
 
-	private static string[] ParseCommandLine(string line) {
+	private static string[] ParseCommandLine(string line)
+	{
 		return line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 	}
 
-	private int Execute(string[] args, CancellationToken cancellationToken) {
+	private int Execute(string[] args, CancellationToken cancellationToken)
+	{
 		Log.Information("Processing command: {command}.", string.Join(" ", args));
 
 		var context = new CommandProcessorContext(_tcpTestClient, _grpcTestClient, _clientApiTestClient, Options.Timeout,
 			Log, Options.StatsLog, Options.OutputCsv, new ManualResetEventSlim(true), cancellationToken);
 
 		int exitCode;
-		if (_commands.TryProcess(context, args, out exitCode)) {
+		if (_commands.TryProcess(context, args, out exitCode))
+		{
 			Log.Information("Command exited with code {exitCode}.", exitCode);
 			return exitCode;
 		}

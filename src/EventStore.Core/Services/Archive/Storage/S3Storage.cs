@@ -4,9 +4,12 @@ using FluentStorage.AWS.Blobs;
 
 namespace EventStore.Core.Services.Archive.Storage;
 
-internal static class S3Storage {
-	public static IAwsS3BlobStorage Create(S3Options options) {
-		if (!string.IsNullOrWhiteSpace(options.ServiceUrl)) {
+internal static class S3Storage
+{
+	public static IAwsS3BlobStorage Create(S3Options options)
+	{
+		if (!string.IsNullOrWhiteSpace(options.ServiceUrl))
+		{
 			var sessionToken = string.IsNullOrWhiteSpace(options.SessionToken) ? null : options.SessionToken;
 
 			return (IAwsS3BlobStorage)StorageFactory.Blobs.AwsS3(
@@ -18,7 +21,8 @@ internal static class S3Storage {
 				options.ServiceUrl);
 		}
 
-		if (HasExplicitCredentials(options)) {
+		if (HasExplicitCredentials(options))
+		{
 			return (IAwsS3BlobStorage)StorageFactory.Blobs.AwsS3(
 				CreateCredentials(options),
 				options.Bucket,

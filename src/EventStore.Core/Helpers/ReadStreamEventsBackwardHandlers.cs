@@ -4,16 +4,20 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using static EventStore.Core.Helpers.IODispatcher;
 
-namespace EventStore.Core.Helpers {
+namespace EventStore.Core.Helpers
+{
 	public interface IReadStreamEventsBackwardHandler :
 		IHandle<ClientMessage.ReadStreamEventsBackwardCompleted>,
 		IHandleAlt<ClientMessage.NotHandled>,
-		IHandleTimeout {
+		IHandleTimeout
+	{
 	}
 
-	public static class ReadStreamEventsBackwardHandlers {
+	public static class ReadStreamEventsBackwardHandlers
+	{
 		// Adds and removes from a tracker so it knows what is outstanding
-		public class Tracking : IReadStreamEventsBackwardHandler {
+		public class Tracking : IReadStreamEventsBackwardHandler
+		{
 			private readonly Guid _correlationId;
 			private readonly RequestTracking _requestTracker;
 			private readonly IReadStreamEventsBackwardHandler _wrapped;
@@ -21,7 +25,8 @@ namespace EventStore.Core.Helpers {
 			public Tracking(
 				Guid correlationId,
 				RequestTracking requestTracker,
-				IReadStreamEventsBackwardHandler wrapped) {
+				IReadStreamEventsBackwardHandler wrapped)
+			{
 
 				Ensure.NotNull(requestTracker, nameof(requestTracker));
 				Ensure.NotNull(wrapped, nameof(wrapped));
@@ -36,20 +41,26 @@ namespace EventStore.Core.Helpers {
 			public bool HandlesAlt => _wrapped.HandlesAlt;
 			public bool HandlesTimeout => _wrapped.HandlesTimeout;
 
-			public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message) {
-				if (_requestTracker.RemovePendingRead(message.CorrelationId)) {
+			public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message)
+			{
+				if (_requestTracker.RemovePendingRead(message.CorrelationId))
+				{
 					_wrapped.Handle(message);
 				}
 			}
 
-			public void Handle(ClientMessage.NotHandled message) {
-				if (_requestTracker.RemovePendingRead(message.CorrelationId)) {
+			public void Handle(ClientMessage.NotHandled message)
+			{
+				if (_requestTracker.RemovePendingRead(message.CorrelationId))
+				{
 					_wrapped.Handle(message);
 				}
 			}
 
-			public void Timeout() {
-				if (_requestTracker.RemovePendingRead(_correlationId)) {
+			public void Timeout()
+			{
+				if (_requestTracker.RemovePendingRead(_correlationId))
+				{
 					_wrapped.Timeout();
 				}
 			}
@@ -57,7 +68,8 @@ namespace EventStore.Core.Helpers {
 
 		// todo: move away from this and towards bespoke implementations (like AuthReadResponseHandler) to avoid having to
 		// allocate all these delegates
-		public class AdHoc : IReadStreamEventsBackwardHandler {
+		public class AdHoc : IReadStreamEventsBackwardHandler
+		{
 			private readonly Action<ClientMessage.ReadStreamEventsBackwardCompleted> _handled;
 			private readonly Action<ClientMessage.NotHandled> _notHandled;
 			private readonly Action _timedout;
@@ -65,7 +77,8 @@ namespace EventStore.Core.Helpers {
 			public AdHoc(
 				Action<ClientMessage.ReadStreamEventsBackwardCompleted> handled,
 				Action<ClientMessage.NotHandled> notHandled,
-				Action timedout) {
+				Action timedout)
+			{
 
 				Ensure.NotNull(handled, nameof(handled));
 
@@ -79,25 +92,30 @@ namespace EventStore.Core.Helpers {
 			public bool HandlesAlt { get; }
 			public bool HandlesTimeout { get; }
 
-			public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message) {
+			public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted message)
+			{
 				_handled(message);
 			}
 
-			public void Handle(ClientMessage.NotHandled message) {
+			public void Handle(ClientMessage.NotHandled message)
+			{
 				_notHandled(message);
 			}
 
-			public void Timeout() {
+			public void Timeout()
+			{
 				_timedout();
 			}
 		}
 
 		// Assumes the request will eventually receive a reponse of the expected type
 		// And not be dropped due to timeout or responded to with a different message
-		public class Optimistic : AdHoc {
+		public class Optimistic : AdHoc
+		{
 			public Optimistic(
 				Action<ClientMessage.ReadStreamEventsBackwardCompleted> handle) : base(
-					handle, null, null) {
+					handle, null, null)
+			{
 			}
 		}
 	}

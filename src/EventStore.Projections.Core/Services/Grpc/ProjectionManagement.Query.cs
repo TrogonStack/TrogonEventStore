@@ -8,17 +8,20 @@ using Grpc.Core;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement {
+internal partial class ProjectionManagement
+{
 	private static readonly Operation ReadOperation = new Operation(Operations.Projections.Read);
 
-	public override async Task<GetQueryResp> GetQuery(GetQueryReq request, ServerCallContext context) {
+	public override async Task<GetQueryResp> GetQuery(GetQueryReq request, ServerCallContext context)
+	{
 		var querySource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionQuery>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var cancellationRegistration =
 			context.CancellationToken.Register(() => querySource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
 		var user = context.GetHttpContext().User;
 
-		if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, ReadOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -29,7 +32,8 @@ internal partial class ProjectionManagement {
 			new ProjectionManagementMessage.RunAs(user)));
 
 		var query = await querySource.Task;
-		var details = new GetQueryResp.Types.Details {
+		var details = new GetQueryResp.Types.Details
+		{
 			Name = query.Name ?? string.Empty,
 			Query = query.Query ?? string.Empty,
 			EmitEnabled = query.EmitEnabled,
@@ -37,20 +41,25 @@ internal partial class ProjectionManagement {
 			DefinitionJson = ToJson(query.Definition),
 			OutputConfigJson = ToJson(query.OutputConfig)
 		};
-		if (query.TrackEmittedStreams is { } trackEmittedStreams) {
+		if (query.TrackEmittedStreams is { } trackEmittedStreams)
+		{
 			details.TrackEmittedStreams = trackEmittedStreams;
 		}
 
-		if (query.CheckpointsEnabled is { } checkpointsEnabled) {
+		if (query.CheckpointsEnabled is { } checkpointsEnabled)
+		{
 			details.CheckpointsEnabled = checkpointsEnabled;
 		}
 
-		return new GetQueryResp {
+		return new GetQueryResp
+		{
 			Details = details
 		};
 
-		void OnMessage(Message message) {
-			switch (message) {
+		void OnMessage(Message message)
+		{
+			switch (message)
+			{
 				case ProjectionManagementMessage.ProjectionQuery projectionQuery:
 					querySource.TrySetResult(projectionQuery);
 					break;

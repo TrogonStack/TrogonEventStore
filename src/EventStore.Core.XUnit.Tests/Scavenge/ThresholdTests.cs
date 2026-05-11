@@ -7,9 +7,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ThresholdTests : SqliteDbPerTest<ThresholdTests> {
+public class ThresholdTests : SqliteDbPerTest<ThresholdTests>
+{
 	[Fact]
-	public async Task negative_threshold_executes_all_chunks() {
+	public async Task negative_threshold_executes_all_chunks()
+	{
 		var threshold = -1;
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -96,7 +98,8 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests> {
 	}
 
 	[Fact]
-	public async Task zero_threshold_executes_all_chunks_with_positive_weight() {
+	public async Task zero_threshold_executes_all_chunks_with_positive_weight()
+	{
 		var threshold = 0;
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
@@ -182,7 +185,8 @@ public class ThresholdTests : SqliteDbPerTest<ThresholdTests> {
 	}
 
 	[Fact]
-	public async Task positive_threshold_executes_all_chunks_that_exceed_it() {
+	public async Task positive_threshold_executes_all_chunks_that_exceed_it()
+	{
 		var threshold = 2;
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()

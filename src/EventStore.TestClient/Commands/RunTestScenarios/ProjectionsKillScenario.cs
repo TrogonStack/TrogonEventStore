@@ -10,7 +10,8 @@ using EventStore.TestClient.Commands.DvuBasic;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class ProjectionsKillScenario : ProjectionsScenarioBase {
+internal class ProjectionsKillScenario : ProjectionsScenarioBase
+{
 	public ProjectionsKillScenario(Action<IPEndPoint, byte[]> directSendOverTcp,
 		int maxConcurrentRequests,
 		int connections,
@@ -20,20 +21,24 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 		string dbParentPath,
 		NodeConnectionInfo customNode)
 		: base(directSendOverTcp, maxConcurrentRequests, connections, streams, eventsPerStream, streamDeleteStep,
-			dbParentPath, customNode) {
+			dbParentPath, customNode)
+	{
 	}
 
-	private EventData CreateBankEvent(int version) {
+	private EventData CreateBankEvent(int version)
+	{
 		var accountObject = BankAccountEventFactory.CreateAccountObject(version);
 		var @event = BankAccountEvent.FromEvent(accountObject);
 		return @event;
 	}
 
-	protected virtual int GetIterationCode() {
+	protected virtual int GetIterationCode()
+	{
 		return 0;
 	}
 
-	protected override void RunInternal() {
+	protected override void RunInternal()
+	{
 		var nodeProcessId = StartNode();
 		EnableProjectionByCategory();
 
@@ -51,12 +56,15 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 		var stopWatch = new Stopwatch();
 
 		var waitDuration = TimeSpan.FromMilliseconds(20 * 1000 + 5 * Streams * EventsPerStream);
-		while (stopWatch.Elapsed < waitDuration) {
-			if (writeTask.IsFaulted) {
+		while (stopWatch.Elapsed < waitDuration)
+		{
+			if (writeTask.IsFaulted)
+			{
 				throw new ApplicationException("Failed to write data");
 			}
 
-			if (writeTask.IsCompleted && !stopWatch.IsRunning) {
+			if (writeTask.IsCompleted && !stopWatch.IsRunning)
+			{
 				stopWatch.Start();
 				isWatchStarted = true;
 			}
@@ -65,11 +73,13 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 					  && CheckProjectionState(sumCheckForBankAccount0, "success",
 						  x => x == lastExpectedEventVersion);
 
-			if (success) {
+			if (success)
+			{
 				break;
 			}
 
-			if (isWatchStarted) {
+			if (isWatchStarted)
+			{
 				stopWatch.Stop();
 			}
 
@@ -78,7 +88,8 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 			KillNode(nodeProcessId);
 			nodeProcessId = StartNode();
 
-			if (isWatchStarted) {
+			if (isWatchStarted)
+			{
 				stopWatch.Start();
 			}
 		}
@@ -87,13 +98,15 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 
 		KillNode(nodeProcessId);
 
-		if (!success) {
+		if (!success)
+		{
 			throw new ApplicationException(
 				string.Format("Projections did not complete with expected result in time"));
 		}
 	}
 
-	protected Task WriteData() {
+	protected Task WriteData()
+	{
 		var streams = Enumerable.Range(0, Streams)
 			.Select(i => string.Format("bank_account_it{0}-{1}", GetIterationCode(), i)).ToArray();
 		var slices = Split(streams, 3);
@@ -106,7 +119,8 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 		return task.ContinueWith(x => Log.Information("Data written for iteration {iteration}.", GetIterationCode()));
 	}
 
-	protected string CreateCountItem() {
+	protected string CreateCountItem()
+	{
 		var projectionManager = GetProjectionsManager();
 
 		string countItemsProjectionName = string.Format("CountItems_it{0}", GetIterationCode());
@@ -130,7 +144,8 @@ internal class ProjectionsKillScenario : ProjectionsScenarioBase {
 		return countItemsProjectionName;
 	}
 
-	protected string CreateSumCheckForBankAccount0() {
+	protected string CreateSumCheckForBankAccount0()
+	{
 		string countItemsProjectionName = string.Format("CheckSumsInAccounts_it{0}", GetIterationCode());
 		string countItemsProjection = string.Format(@"
                 fromStream('bank_account_it{0}-0').when({{

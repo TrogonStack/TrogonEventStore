@@ -11,7 +11,8 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 
-public abstract class TestFixtureWithProjectionSubscription {
+public abstract class TestFixtureWithProjectionSubscription
+{
 	protected Guid _projectionCorrelationId;
 	protected TestHandler<EventReaderSubscriptionMessage.CommittedEventReceived> _eventHandler;
 	protected TestHandler<EventReaderSubscriptionMessage.CheckpointSuggested> _checkpointHandler;
@@ -31,7 +32,8 @@ public abstract class TestFixtureWithProjectionSubscription {
 	protected IReaderStrategy _readerStrategy;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_checkpointUnhandledBytesThreshold = 1000;
 		_checkpointProcessedEventsThreshold = 2000;
 		_checkpointAfterMs = 10000;
@@ -60,7 +62,8 @@ public abstract class TestFixtureWithProjectionSubscription {
 		When();
 	}
 
-	protected virtual IReaderSubscription CreateProjectionSubscription() {
+	protected virtual IReaderSubscription CreateProjectionSubscription()
+	{
 		return new ReaderSubscription(
 			"Test Subscription",
 			_bus,
@@ -76,17 +79,21 @@ public abstract class TestFixtureWithProjectionSubscription {
 			false);
 	}
 
-	protected virtual void Given() {
+	protected virtual void Given()
+	{
 	}
 
 	protected abstract void When();
 
-	protected virtual IReaderStrategy CreateCheckpointStrategy() {
+	protected virtual IReaderStrategy CreateCheckpointStrategy()
+	{
 		var readerBuilder = new SourceDefinitionBuilder();
-		if (_source != null) {
+		if (_source != null)
+		{
 			_source(readerBuilder);
 		}
-		else {
+		else
+		{
 			readerBuilder.FromAll();
 			readerBuilder.AllEvents();
 		}

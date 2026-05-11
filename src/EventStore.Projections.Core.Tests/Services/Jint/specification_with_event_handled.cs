@@ -8,13 +8,15 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public abstract class specification_with_event_handled : TestFixtureWithInterpretedProjection {
+public abstract class specification_with_event_handled : TestFixtureWithInterpretedProjection
+{
 	protected ResolvedEvent _handledEvent;
 	protected string _newState;
 	protected string _newSharedState;
 	protected EmittedEventEnvelope[] _emittedEventEnvelopes;
 
-	protected override void When() {
+	protected override void When()
+	{
 		_stateHandler.ProcessEvent(
 			"",
 			CheckpointTag.FromPosition(
@@ -24,7 +26,8 @@ public abstract class specification_with_event_handled : TestFixtureWithInterpre
 	}
 
 	protected static ResolvedEvent CreateSampleEvent(
-		string streamId, int sequenceNumber, string eventType, string data, TFPos tfPos) {
+		string streamId, int sequenceNumber, string eventType, string data, TFPos tfPos)
+	{
 		return new ResolvedEvent(
 			streamId, sequenceNumber, streamId, sequenceNumber, true, tfPos, Guid.NewGuid(), eventType, true, data,
 			"{}", "{\"position_meta\":1}");

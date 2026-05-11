@@ -5,8 +5,10 @@ using Xunit;
 #pragma warning disable xUnit1026 // Theory methods should use all of their parameters
 namespace EventStore.Core.XUnit.Tests.DataStructures.ProbabilisticFilter;
 
-public unsafe class BloomFilterAccessorTests {
-	BloomFilterAccessor GenSut(long logicalFilterSize, BloomFilterAccessor.OnPageDirty onPageDirty = null) {
+public unsafe class BloomFilterAccessorTests
+{
+	BloomFilterAccessor GenSut(long logicalFilterSize, BloomFilterAccessor.OnPageDirty onPageDirty = null)
+	{
 		return new BloomFilterAccessor(
 			logicalFilterSize: logicalFilterSize,
 			cacheLineSize: BloomFilterIntegrity.CacheLineSize,
@@ -17,7 +19,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CorrectProperties() {
+	public void CorrectProperties()
+	{
 		var sut = GenSut(10 * 1024);
 		Assert.Equal(BloomFilterIntegrity.CacheLineSize, sut.CacheLineSize);
 		Assert.Equal(BloomFilterIntegrity.HashSize, sut.HashSize);
@@ -28,7 +31,8 @@ public unsafe class BloomFilterAccessorTests {
 	[InlineData(10_000)]
 	[InlineData(10_001)]
 	[InlineData(256_000_000)]
-	public void CalculatesLogicalSize(int size) {
+	public void CalculatesLogicalSize(int size)
+	{
 		var sut = GenSut(size);
 
 		Assert.Equal(size, sut.LogicalFilterSize);
@@ -43,7 +47,8 @@ public unsafe class BloomFilterAccessorTests {
 	[InlineData(60 * 500 - 1, 64 * 500 + 64, "one less byte would need one less cache line")]
 	[InlineData(60 * 500 + 59, 64 * 500 + 64 + 64, "adding 59 more bytes still fits")]
 	[InlineData(60 * 500 + 60, 64 * 500 + 64 + 64 + 64, "but a 60th byte requires an extra cache line")]
-	public void CalculatesFileSize(int size, int expected, string detail) {
+	public void CalculatesFileSize(int size, int expected, string detail)
+	{
 		var sut = GenSut(size);
 		Assert.Equal(expected, sut.FileSize);
 		Assert.True(sut.FileSize % 64 == 0);
@@ -52,8 +57,10 @@ public unsafe class BloomFilterAccessorTests {
 
 	// we don't mind how many pages there are (within reason) as long as there are enough
 	[Fact]
-	public void CanGetPageForLastBit() {
-		for (int size = 10_000; size < 40_000; size++) {
+	public void CanGetPageForLastBit()
+	{
+		for (int size = 10_000; size < 40_000; size++)
+		{
 			var sut = GenSut(size);
 			var lastBit = size * 8 - 1;
 			var lastByte = sut.GetBytePositionInFile(lastBit);
@@ -65,7 +72,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CalculatesBytePositionInFile() {
+	public void CalculatesBytePositionInFile()
+	{
 		var sut = GenSut(10_000);
 		Assert.Equal(64, sut.GetBytePositionInFile(0));
 		Assert.Equal(64, sut.GetBytePositionInFile(1));
@@ -77,7 +85,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CalculatesPagePositionInFile() {
+	public void CalculatesPagePositionInFile()
+	{
 		var sut = GenSut(10_000);
 		var expectedFirstPageSize = 8 * 1024 - 64;
 		var expectedLastPageSize = 2560;
@@ -88,14 +97,16 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CalculatesPagePositionInFileLarge() {
+	public void CalculatesPagePositionInFileLarge()
+	{
 		var sut = GenSut(4_000_000_000);
 		Assert.Equal((64, 8 * 1024 - 64), sut.GetPagePositionInFile(0));
 		Assert.Equal((4_266_663_936, 2816), sut.GetPagePositionInFile(520_833));
 	}
 
 	[Fact]
-	public void CalculatesPageNumber() {
+	public void CalculatesPageNumber()
+	{
 		var sut = GenSut(10_000);
 		Assert.Equal(0, sut.GetPageNumber(0));
 		Assert.Equal(0, sut.GetPageNumber(8 * 1024 - 1));
@@ -104,7 +115,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CanSetAndTestBits() {
+	public void CanSetAndTestBits()
+	{
 		var dirtyPage = -1L;
 		var sut = GenSut(10_000, pageNumber => dirtyPage = pageNumber);
 		using var mem = new AlignedMemory(sut.FileSize, 64);
@@ -119,7 +131,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CanSetAndTestBitsLargeFile() {
+	public void CanSetAndTestBitsLargeFile()
+	{
 		var dirtyPage = -1L;
 		var sut = GenSut(4_000_000_000, pageNumber => dirtyPage = pageNumber);
 		using var mem = new AlignedMemory(sut.FileSize, 64);
@@ -135,7 +148,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CanVerifySuccessfully() {
+	public void CanVerifySuccessfully()
+	{
 		var sut = GenSut(10_000);
 		using var mem = new AlignedMemory(sut.FileSize, 64);
 		sut.Pointer = mem.Pointer;
@@ -146,7 +160,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void CanFailToVerify() {
+	public void CanFailToVerify()
+	{
 		var sut = GenSut(10_000);
 		using var mem = new AlignedMemory(sut.FileSize, 64);
 		sut.Pointer = mem.Pointer;
@@ -165,7 +180,8 @@ public unsafe class BloomFilterAccessorTests {
 		// corruption doesn't meet 5% threshold
 		sut.Verify(corruptionRebuildCount: 0, corruptionThreshold: 5);
 
-		Assert.Throws<CorruptedHashException>(() => {
+		Assert.Throws<CorruptedHashException>(() =>
+		{
 			// corruption does meet 0% threshold
 			sut.Verify(0, 0);
 		});
@@ -173,7 +189,8 @@ public unsafe class BloomFilterAccessorTests {
 	}
 
 	[Fact]
-	public void ComplainsAboutUnalignedPointer() {
+	public void ComplainsAboutUnalignedPointer()
+	{
 		var sut = GenSut(10_000);
 		var ex = Assert.Throws<InvalidOperationException>(() => sut.Pointer = (byte*)123);
 		Assert.Equal("Pointer 123 is not aligned to a cacheline (64)", ex.Message);

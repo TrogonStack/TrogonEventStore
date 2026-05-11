@@ -15,13 +15,15 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 [TestFixture]
-public class when_truncating_into_the_middle_of_completed_chunk : SpecificationWithDirectoryPerTestFixture {
+public class when_truncating_into_the_middle_of_completed_chunk : SpecificationWithDirectoryPerTestFixture
+{
 	private TFChunkDbConfig _config;
 	private byte[] _file1Contents;
 	private byte[] _file2Contents;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_config = TFChunkHelper.CreateDbConfigEx(PathName, 3711, 5500, 5500, -1, 1111, 1000, -1);
@@ -42,8 +44,10 @@ public class when_truncating_into_the_middle_of_completed_chunk : SpecificationW
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
-		await using (var db = new TFChunkDb(_config)) {
+	public override async Task TestFixtureTearDown()
+	{
+		await using (var db = new TFChunkDb(_config))
+		{
 			Assert.DoesNotThrowAsync(async () => await db.Open(verifyHash: false));
 		}
 
@@ -55,40 +59,47 @@ public class when_truncating_into_the_middle_of_completed_chunk : SpecificationW
 	}
 
 	[Test]
-	public void writer_checkpoint_should_be_set_to_exactly_truncation_checkpoint() {
+	public void writer_checkpoint_should_be_set_to_exactly_truncation_checkpoint()
+	{
 		Assert.AreEqual(1111, _config.WriterCheckpoint.Read());
 		Assert.AreEqual(1111, _config.WriterCheckpoint.ReadNonFlushed());
 	}
 
 	[Test]
-	public void chaser_checkpoint_should_be_adjusted_if_less_than_actual_truncate_checkpoint() {
+	public void chaser_checkpoint_should_be_adjusted_if_less_than_actual_truncate_checkpoint()
+	{
 		Assert.AreEqual(1111, _config.ChaserCheckpoint.Read());
 		Assert.AreEqual(1111, _config.ChaserCheckpoint.ReadNonFlushed());
 	}
 
 	[Test]
-	public void epoch_checkpoint_should_be_reset_if_less_than_actual_truncate_checkpoint() {
+	public void epoch_checkpoint_should_be_reset_if_less_than_actual_truncate_checkpoint()
+	{
 		Assert.AreEqual(-1, _config.EpochCheckpoint.Read());
 		Assert.AreEqual(-1, _config.EpochCheckpoint.ReadNonFlushed());
 	}
 
 	[Test]
-	public void truncate_checkpoint_should_be_reset_after_truncation() {
+	public void truncate_checkpoint_should_be_reset_after_truncation()
+	{
 		Assert.AreEqual(-1, _config.TruncateCheckpoint.Read());
 		Assert.AreEqual(-1, _config.TruncateCheckpoint.ReadNonFlushed());
 	}
 
 	[Test]
-	public void chunks_after_truncation_point_are_deleted() {
+	public void chunks_after_truncation_point_are_deleted()
+	{
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000000.000001")));
 		Assert.IsTrue(File.Exists(GetFilePathFor("chunk-000001.000002")));
 		Assert.AreEqual(2, Directory.GetFiles(PathName, "*").Length);
 	}
 
 	[Test]
-	public void contents_of_first_chunk_should_be_untouched() {
+	public void contents_of_first_chunk_should_be_untouched()
+	{
 		var contents = new byte[_config.ChunkSize];
-		using (var fs = File.OpenRead(GetFilePathFor("chunk-000000.000001"))) {
+		using (var fs = File.OpenRead(GetFilePathFor("chunk-000000.000001")))
+		{
 			fs.Position = ChunkHeader.Size;
 			fs.Read(contents, 0, contents.Length);
 			Assert.AreEqual(_file1Contents, contents);
@@ -96,11 +107,13 @@ public class when_truncating_into_the_middle_of_completed_chunk : SpecificationW
 	}
 
 	[Test]
-	public void ongoing_chunk_should_have_full_size_and_filled_with_zeros_after_writer_checkpoint() {
+	public void ongoing_chunk_should_have_full_size_and_filled_with_zeros_after_writer_checkpoint()
+	{
 		var fileInfo = new FileInfo(GetFilePathFor("chunk-000001.000002"));
 		Assert.AreEqual(TFChunk.GetAlignedSize(ChunkHeader.Size + 1000 + ChunkFooter.Size), fileInfo.Length);
 
-		using (var fs = File.OpenRead(fileInfo.FullName)) {
+		using (var fs = File.OpenRead(fileInfo.FullName))
+		{
 			var leftDataSize = (int)(_config.WriterCheckpoint.Read() % _config.ChunkSize);
 			var leftData = new byte[leftDataSize];
 			var shouldBeZeros = new byte[_config.ChunkSize - leftDataSize + ChunkFooter.Size];

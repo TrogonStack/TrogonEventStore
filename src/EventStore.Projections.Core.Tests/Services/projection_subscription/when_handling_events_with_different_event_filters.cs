@@ -28,7 +28,8 @@ namespace EventStore.Projections.Core.Tests.Services.projection_subscription;
 [TestFixture("good-stream", "good-event-type", "bad-stream", "bad-event-type", false, false)]
 public class
 	when_handling_events_with_different_event_filters :
-		TestFixtureWithProjectionSubscription {
+		TestFixtureWithProjectionSubscription
+{
 	private string _sourceStream;
 	private string _sourceEventType;
 	private string _stream;
@@ -38,7 +39,8 @@ public class
 	private int _processedEvents;
 
 	public when_handling_events_with_different_event_filters(
-		string sourceStream, string sourceEventType, string stream, string eventType, bool exceedUnhandledBytesThreshold, bool checkpointIfEventsProcessed) {
+		string sourceStream, string sourceEventType, string stream, string eventType, bool exceedUnhandledBytesThreshold, bool checkpointIfEventsProcessed)
+	{
 		_sourceStream = sourceStream;
 		_sourceEventType = sourceEventType;
 		_stream = stream;
@@ -49,12 +51,16 @@ public class
 		_processedEvents = passesEventFilter ? 1 : 0;
 	}
 
-	protected override void Given() {
-		_source = source => {
-			if (_sourceStream == "$all") {
+	protected override void Given()
+	{
+		_source = source =>
+		{
+			if (_sourceStream == "$all")
+			{
 				source.FromAll();
 			}
-			else {
+			else
+			{
 				source.FromStream(_sourceStream);
 			}
 			source.IncludeEvent(_sourceEventType);
@@ -65,7 +71,8 @@ public class
 		_timeProvider = new FakeTimeProvider();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		var firstPosition = new TFPos(200, 200);
 		var offset = _exceedUnhandledBytesThreshold
 			? (_checkpointUnhandledBytesThreshold + 1)
@@ -89,7 +96,8 @@ public class
 	}
 
 	[Test]
-	public void checkpoint_is_suggested_when_processed_events_threshold_exceeded_or_unhandled_bytes_threshold_exceeded() {
+	public void checkpoint_is_suggested_when_processed_events_threshold_exceeded_or_unhandled_bytes_threshold_exceeded()
+	{
 		var shouldCheckpoint = (_processedEvents >= _checkpointProcessedEventsThreshold) ||
 							   (_processedEvents == 0 && _exceedUnhandledBytesThreshold);
 		Assert.AreEqual(shouldCheckpoint ? 1 : 0, _checkpointHandler.HandledMessages.Count);

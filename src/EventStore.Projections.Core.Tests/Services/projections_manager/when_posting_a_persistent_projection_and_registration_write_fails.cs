@@ -18,14 +18,17 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 [TestFixture(typeof(LogFormat.V2), typeof(string), OperationResult.PrepareTimeout)]
 public class
 	when_posting_a_persistent_projection_and_registration_write_fails<TLogFormat, TStreamId> :
-		TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId> {
+		TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+{
 	private OperationResult _failureCondition;
 
-	public when_posting_a_persistent_projection_and_registration_write_fails(OperationResult failureCondition) {
+	public when_posting_a_persistent_projection_and_registration_write_fails(OperationResult failureCondition)
+	{
 		_failureCondition = failureCondition;
 	}
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		NoStream("$projections-test-projection-order");
 		AllWritesToSucceed("$projections-test-projection-order");
 		NoStream("$projections-test-projection-checkpoint");
@@ -35,7 +38,8 @@ public class
 
 	private string _projectionName;
 
-	protected override IEnumerable<WhenStep> When() {
+	protected override IEnumerable<WhenStep> When()
+	{
 		_projectionName = "test-projection";
 		yield return new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid());
 		yield return
@@ -46,12 +50,14 @@ public class
 	}
 
 	[Test, Category("v8")]
-	public void retries_creating_the_projection_only_the_specified_number_of_times_and_the_same_event_id() {
+	public void retries_creating_the_projection_only_the_specified_number_of_times_and_the_same_event_id()
+	{
 		int retryCount = 0;
 		var projectionRegistrationWrite = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 			.Where(x => x.EventStreamId == ProjectionNamesBuilder.ProjectionsRegistrationStream).Last();
 		var eventId = projectionRegistrationWrite.Events[0].EventId;
-		while (projectionRegistrationWrite != null) {
+		while (projectionRegistrationWrite != null)
+		{
 			Assert.AreEqual(eventId, projectionRegistrationWrite.Events[0].EventId);
 			projectionRegistrationWrite.Envelope.ReplyWith(new ClientMessage.WriteEventsCompleted(
 				projectionRegistrationWrite.CorrelationId, _failureCondition,
@@ -60,7 +66,8 @@ public class
 			projectionRegistrationWrite = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
 				.Where(x => x.EventStreamId == ProjectionNamesBuilder.ProjectionsRegistrationStream)
 				.LastOrDefault();
-			if (projectionRegistrationWrite != null) {
+			if (projectionRegistrationWrite != null)
+			{
 				retryCount++;
 			}
 

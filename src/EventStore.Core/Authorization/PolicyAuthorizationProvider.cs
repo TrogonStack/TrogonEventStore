@@ -9,14 +9,16 @@ using Serilog;
 
 namespace EventStore.Core.Authorization;
 
-public class PolicyAuthorizationProvider(IPolicyEvaluator policyEvaluator, bool logAuthorization = true, bool logSuccesses = false) : AuthorizationProviderBase {
+public class PolicyAuthorizationProvider(IPolicyEvaluator policyEvaluator, bool logAuthorization = true, bool logSuccesses = false) : AuthorizationProviderBase
+{
 	static readonly ILogger Logger = Log.ForContext<PolicyAuthorizationProvider>();
 	static readonly TimeProvider Time = TimeProvider.System;
 
 	bool LogAccessDenied => logAuthorization;
 	bool LogAccessGranted => LogAccessDenied && logSuccesses;
 
-	public override ValueTask<bool> CheckAccessAsync(ClaimsPrincipal principal, Operation operation, CancellationToken ct) {
+	public override ValueTask<bool> CheckAccessAsync(ClaimsPrincipal principal, Operation operation, CancellationToken ct)
+	{
 		var startedAt = Time.GetTimestamp();
 
 		var evaluateTask = policyEvaluator.EvaluateAsync(principal, operation, ct);
@@ -27,10 +29,12 @@ public class PolicyAuthorizationProvider(IPolicyEvaluator policyEvaluator, bool 
 
 		static string GetIdentity(ClaimsPrincipal principal) => principal.FindFirstValue(ClaimTypes.Name) ?? "(anonymous)";
 
-		static bool HasAccess(EvaluationResult result, ClaimsPrincipal principal, long startedAt, bool logAccessDenied, bool logAccessGranted) {
+		static bool HasAccess(EvaluationResult result, ClaimsPrincipal principal, long startedAt, bool logAccessDenied, bool logAccessGranted)
+		{
 			var accessGranted = result.Grant == Grant.Allow;
 
-			switch (accessGranted) {
+			switch (accessGranted)
+			{
 				case true when logAccessGranted:
 					Logger.Information(
 						"Successful authorization check for {Identity} in {Duration} with {EvaluationResult}",
@@ -51,11 +55,14 @@ public class PolicyAuthorizationProvider(IPolicyEvaluator policyEvaluator, bool 
 		static async ValueTask<bool> EnforceCheck(
 			ValueTask<EvaluationResult> evaluate, ClaimsPrincipal principal,
 			long startedAt, bool logAccessDenied, bool logAccessGranted
-		) {
-			try {
+		)
+		{
+			try
+			{
 				return HasAccess(await evaluate, principal, startedAt, logAccessDenied, logAccessGranted);
 			}
-			catch (Exception ex) when (ex is not OperationCanceledException) {
+			catch (Exception ex) when (ex is not OperationCanceledException)
+			{
 				Logger.Error(ex, "Error performing permission check for {Identity}", GetIdentity(principal));
 				return false;
 			}

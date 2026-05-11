@@ -3,8 +3,10 @@ using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 
-namespace EventStore.Core.TransactionLog.Chunks {
-	public class TFChunkDbConfig {
+namespace EventStore.Core.TransactionLog.Chunks
+{
+	public class TFChunkDbConfig
+	{
 		public readonly string Path;
 		public readonly int ChunkSize;
 		public readonly long MaxChunksCacheSize;
@@ -57,7 +59,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 				writethrough,
 				reduceFileCachePressure,
 				maxTruncation,
-				asyncIO) {
+				asyncIO)
+		{
 		}
 
 		public TFChunkDbConfig(string path,
@@ -76,7 +79,8 @@ namespace EventStore.Core.TransactionLog.Chunks {
 			bool writethrough = false,
 			bool reduceFileCachePressure = false,
 			long maxTruncation = 256 * 1024 * 1024,
-			bool asyncIO = false) {
+			bool asyncIO = false)
+		{
 			Ensure.NotNullOrEmpty(path, "path");
 			Ensure.NotNull(chunkFileSystem, "chunkFileSystem");
 			Ensure.Positive(chunkSize, "chunkSize");

@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 
 namespace EventStore.Transport.Tcp.Framing;
 
-public interface IMessageFramer {
+public interface IMessageFramer
+{
 	bool HasData { get; }
 	IEnumerable<ArraySegment<byte>> FrameData(ArraySegment<byte> data);
 	void Reset();
@@ -16,13 +17,15 @@ public interface IMessageFramer {
 /// For decoding it uses an internal state, raising a registered
 /// callback, once full message arrives
 /// </summary>
-public interface IMessageFramer<out TMessage> : IMessageFramer {
+public interface IMessageFramer<out TMessage> : IMessageFramer
+{
 	void UnFrameData(IEnumerable<ArraySegment<byte>> data);
 	void UnFrameData(ArraySegment<byte> data);
 	void RegisterMessageArrivedCallback(Action<TMessage> handler);
 }
 
-public interface IAsyncMessageFramer<out TMessage> : IMessageFramer {
+public interface IAsyncMessageFramer<out TMessage> : IMessageFramer
+{
 	ValueTask UnFrameData(IEnumerable<ArraySegment<byte>> data, CancellationToken token);
 	ValueTask UnFrameData(ArraySegment<byte> data, CancellationToken token);
 	void RegisterMessageArrivedCallback(Func<TMessage, CancellationToken, ValueTask> handler);

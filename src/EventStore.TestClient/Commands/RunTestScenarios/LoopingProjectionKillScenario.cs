@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace EventStore.TestClient.Commands.RunTestScenarios;
 
-internal class LoopingProjectionKillScenario : ProjectionsKillScenario {
+internal class LoopingProjectionKillScenario : ProjectionsKillScenario
+{
 	private TimeSpan _executionPeriod;
 
 	private int _iterationCode;
@@ -17,28 +18,33 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario {
 		int connections, int streams, int eventsPerStream, int streamDeleteStep, TimeSpan executionPeriod,
 		string dbParentPath, NodeConnectionInfo customNode)
 		: base(directSendOverTcp, maxConcurrentRequests, connections, streams, eventsPerStream, streamDeleteStep,
-			dbParentPath, customNode) {
+			dbParentPath, customNode)
+	{
 		_executionPeriod = executionPeriod;
 
 		_iterationLoopDuration = TimeSpan.FromMilliseconds(10 * (Streams * EventsPerStream + Streams) + 20 * 1000);
 		_firstKillInterval = TimeSpan.FromSeconds(_iterationLoopDuration.TotalSeconds / 2);
 	}
 
-	protected override int GetIterationCode() {
+	protected override int GetIterationCode()
+	{
 		return _iterationCode;
 	}
 
-	protected void SetNextIterationCode() {
+	protected void SetNextIterationCode()
+	{
 		_iterationCode += 1;
 	}
 
-	protected override void RunInternal() {
+	protected override void RunInternal()
+	{
 		var nodeProcessId = StartNode();
 		EnableProjectionByCategory();
 
 		var stopWatch = Stopwatch.StartNew();
 
-		while (stopWatch.Elapsed < _executionPeriod) {
+		while (stopWatch.Elapsed < _executionPeriod)
+		{
 			var msg = string.Format(
 				"=================== Start run #{0}, elapsed {1} of {2} minutes, {3} =================== ",
 				GetIterationCode(),
@@ -60,11 +66,13 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario {
 			KillNode(nodeProcessId);
 			nodeProcessId = StartNode();
 
-			if (!iterationTask.Wait(_iterationLoopDuration)) {
+			if (!iterationTask.Wait(_iterationLoopDuration))
+			{
 				throw new TimeoutException("Iteration execution timeout.");
 			}
 
-			if (iterationTask.Result != true) {
+			if (iterationTask.Result != true)
+			{
 				throw new ApplicationException("Iteration faulted.", iterationTask.Exception);
 			}
 
@@ -72,7 +80,8 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario {
 		}
 	}
 
-	private Task<bool> RunIteration() {
+	private Task<bool> RunIteration()
+	{
 		var countItem = CreateCountItem();
 		var sumCheckForBankAccount0 = CreateSumCheckForBankAccount0();
 
@@ -81,15 +90,19 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario {
 		var expectedAllEventsCount = (Streams * EventsPerStream).ToString();
 		var lastExpectedEventVersion = (EventsPerStream - 1).ToString();
 
-		var successTask = Task.Factory.StartNew(() => {
+		var successTask = Task.Factory.StartNew(() =>
+		{
 			var success = false;
 			var stopWatch = new Stopwatch();
-			while (stopWatch.Elapsed < _iterationLoopDuration) {
-				if (writeTask.IsFaulted) {
+			while (stopWatch.Elapsed < _iterationLoopDuration)
+			{
+				if (writeTask.IsFaulted)
+				{
 					throw new ApplicationException("Failed to write data");
 				}
 
-				if (writeTask.IsCompleted && !stopWatch.IsRunning) {
+				if (writeTask.IsCompleted && !stopWatch.IsRunning)
+				{
 					stopWatch.Start();
 				}
 
@@ -97,20 +110,23 @@ internal class LoopingProjectionKillScenario : ProjectionsKillScenario {
 						  && CheckProjectionState(sumCheckForBankAccount0, "success",
 							  x => x == lastExpectedEventVersion);
 
-				if (success) {
+				if (success)
+				{
 					break;
 				}
 
 				Thread.Sleep(4000);
 			}
 
-			if (!CheckProjectionState(countItem, "count", x => x == expectedAllEventsCount)) {
+			if (!CheckProjectionState(countItem, "count", x => x == expectedAllEventsCount))
+			{
 				Log.Error(
 					"Projection '{projection}' has not completed with expected result {expectedCount} in time. ",
 					countItem, expectedAllEventsCount);
 			}
 
-			if (!CheckProjectionState(sumCheckForBankAccount0, "success", x => x == lastExpectedEventVersion)) {
+			if (!CheckProjectionState(sumCheckForBankAccount0, "success", x => x == lastExpectedEventVersion))
+			{
 				Log.Error(
 					"Projection '{projection}' has not completed with expected result {lastExpectedEventVersion} in time.",
 					sumCheckForBankAccount0, lastExpectedEventVersion);

@@ -21,7 +21,8 @@ namespace EventStore.Core.Services.Archive.ArchiveCatchup;
 //     in this case, we still want all nodes to catch up with the archive *before* joining the cluster to maintain
 //     consistency between the data that's in the cluster and in the archive.
 
-public class ArchiveCatchup : IClusterVNodeStartupTask {
+public class ArchiveCatchup : IClusterVNodeStartupTask
+{
 	private readonly string _dbPath;
 	private readonly ICheckpoint _writerCheckpoint;
 	private readonly ICheckpoint _chaserCheckpoint;
@@ -40,7 +41,8 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 		ICheckpoint epochCheckpoint,
 		int chunkSize,
 		IVersionedFileNamingStrategy fileNamingStrategy,
-		IArchiveStorageFactory archiveStorageFactory) {
+		IArchiveStorageFactory archiveStorageFactory)
+	{
 		_dbPath = dbPath;
 		_writerCheckpoint = writerCheckpoint;
 		_chaserCheckpoint = chaserCheckpoint;
@@ -50,11 +52,13 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 		_archiveReader = archiveStorageFactory.CreateReader();
 	}
 
-	public async Task Run(CancellationToken ct = default) {
+	public async Task Run(CancellationToken ct = default)
+	{
 		var writerChk = _writerCheckpoint.Read();
 		var archiveChk = await GetArchiveCheckpoint(ct);
 
-		if (writerChk >= archiveChk) {
+		if (writerChk >= archiveChk)
+		{
 			return;
 		}
 
@@ -62,14 +66,16 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 			"Catching up with the archive. Writer checkpoint: 0x{writerCheckpoint:X}, Archive checkpoint: 0x{archiveCheckpoint:X}.",
 			writerChk, archiveChk);
 
-		while (!await CatchUpWithArchive(writerChk, ct)) {
+		while (!await CatchUpWithArchive(writerChk, ct))
+		{
 			writerChk = _writerCheckpoint.Read();
 		}
 	}
 
 	// returns true if the catchup is done
 	// returns false if it needs to be invoked again to continue the catchup
-	private async Task<bool> CatchUpWithArchive(long writerChk, CancellationToken ct) {
+	private async Task<bool> CatchUpWithArchive(long writerChk, CancellationToken ct)
+	{
 		string previousChunk = null;
 		var firstChunksToFetch = new List<string>(capacity: 2);
 
@@ -77,16 +83,19 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 
 		// after this loop, the enumerator will be positioned just after the first chunk in the archive that starts
 		// at or after the writer checkpoint
-		while (await enumerator.MoveNextAsync()) {
+		while (await enumerator.MoveNextAsync())
+		{
 			var chunk = enumerator.Current;
 			var chunkStartPos = CalcChunkStartPosition(chunk);
 
-			if (chunkStartPos == writerChk) {
+			if (chunkStartPos == writerChk)
+			{
 				firstChunksToFetch.Add(chunk);
 				break;
 			}
 
-			if (chunkStartPos > writerChk) {
+			if (chunkStartPos > writerChk)
+			{
 				firstChunksToFetch.Add(previousChunk);
 				firstChunksToFetch.Add(chunk);
 				break;
@@ -99,8 +108,10 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 		// checkpoint. this case can happen when the database is (less than) one chunk behind the archive.
 		// we already know that we are behind the archive as we've compared the checkpoints at the beginning, so there
 		// must be at least one chunk to fetch from the archive: the last chunk.
-		if (firstChunksToFetch.Count == 0) {
-			if (previousChunk == null) {
+		if (firstChunksToFetch.Count == 0)
+		{
+			if (previousChunk == null)
+			{
 				// `previousChunk` cannot be null, there must be at least one chunk in the archive
 				// (we would not be here otherwise: we cannot be behind the archive if it is empty)
 				throw new Exception("There are no chunks in the archive");
@@ -110,15 +121,19 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 		}
 
 		// fetch the first one or two chunks
-		foreach (var chunk in firstChunksToFetch) {
-			if (!await FetchAndCommitChunk(chunk, ct)) {
+		foreach (var chunk in firstChunksToFetch)
+		{
+			if (!await FetchAndCommitChunk(chunk, ct))
+			{
 				return false;
 			}
 		}
 
 		// all the remaining chunks are definitely after the writer checkpoint
-		while (await enumerator.MoveNextAsync()) {
-			if (!await FetchAndCommitChunk(enumerator.Current, ct)) {
+		while (await enumerator.MoveNextAsync())
+		{
+			if (!await FetchAndCommitChunk(enumerator.Current, ct))
+			{
 				return false;
 			}
 		}
@@ -127,30 +142,38 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 		return true;
 	}
 
-	private async Task<long> GetArchiveCheckpoint(CancellationToken ct) {
-		do {
-			try {
+	private async Task<long> GetArchiveCheckpoint(CancellationToken ct)
+	{
+		do
+		{
+			try
+			{
 				return await _archiveReader.GetCheckpoint(ct);
 			}
-			catch (OperationCanceledException) {
+			catch (OperationCanceledException)
+			{
 				throw;
 			}
-			catch (Exception ex) {
+			catch (Exception ex)
+			{
 				Log.Error(ex, "Failed to get archive checkpoint. Retrying in: {interval}", RetryInterval);
 				await Task.Delay(RetryInterval, ct);
 			}
 		} while (true);
 	}
 
-	private long CalcChunkStartPosition(string chunk) {
+	private long CalcChunkStartPosition(string chunk)
+	{
 		var chunkNumber = _fileNamingStrategy.GetIndexFor(chunk);
 		return (long)chunkNumber * _chunkSize;
 	}
 
-	private async Task<bool> FetchAndCommitChunk(string chunkFile, CancellationToken ct) {
+	private async Task<bool> FetchAndCommitChunk(string chunkFile, CancellationToken ct)
+	{
 		var chunkPath = Path.Combine(_dbPath, chunkFile);
 
-		if (!await FetchChunk(chunkFile, chunkPath, ct)) {
+		if (!await FetchChunk(chunkFile, chunkPath, ct))
+		{
 			return false;
 		}
 
@@ -158,16 +181,20 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 		return true;
 	}
 
-	private async Task<bool> FetchChunk(string chunkFile, string destinationPath, CancellationToken ct) {
-		try {
+	private async Task<bool> FetchChunk(string chunkFile, string destinationPath, CancellationToken ct)
+	{
+		try
+		{
 			Log.Information("Fetching {chunk} from the archive", chunkFile);
 
 			var tempPath = Path.Combine(_dbPath, Guid.NewGuid() + ".archive.tmp");
 
-			await using (var inputStream = await _archiveReader.GetChunk(chunkFile, ct)) {
+			await using (var inputStream = await _archiveReader.GetChunk(chunkFile, ct))
+			{
 				await using var outputStream = File.Open(
 					path: tempPath,
-					options: new FileStreamOptions {
+					options: new FileStreamOptions
+					{
 						Mode = FileMode.CreateNew,
 						Access = FileAccess.ReadWrite,
 						Share = FileShare.None,
@@ -178,7 +205,8 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 				await inputStream.CopyToAsync(outputStream, ct);
 			}
 
-			if (File.Exists(destinationPath)) {
+			if (File.Exists(destinationPath))
+			{
 				var backupPath = $"{destinationPath}.archive.bkup";
 				Log.Information("Backing up {chunk} to {chunkBackup}", Path.GetFileName(destinationPath),
 					Path.GetFileName(backupPath));
@@ -189,23 +217,27 @@ public class ArchiveCatchup : IClusterVNodeStartupTask {
 
 			return true;
 		}
-		catch (ChunkDeletedException) {
+		catch (ChunkDeletedException)
+		{
 			Log.Warning(
 				"Failed to fetch {chunk} from the archive as it was deleted. This can happen if the archive is being scavenged.",
 				chunkFile);
 			return false;
 		}
-		catch (OperationCanceledException) {
+		catch (OperationCanceledException)
+		{
 			throw;
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			Log.Error(ex, "Failed to fetch {chunk} from the archive. Retrying in {interval}", chunkFile, RetryInterval);
 			await Task.Delay(RetryInterval, ct);
 			return false;
 		}
 	}
 
-	private async Task CommitChunk(string chunkPath, CancellationToken ct) {
+	private async Task CommitChunk(string chunkPath, CancellationToken ct)
+	{
 		await using var headerStream = File.OpenRead(chunkPath);
 		var header = await ChunkHeader.FromStream(headerStream, ct);
 

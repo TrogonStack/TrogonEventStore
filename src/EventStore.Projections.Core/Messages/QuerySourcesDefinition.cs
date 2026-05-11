@@ -4,7 +4,8 @@ using System.Runtime.Serialization;
 namespace EventStore.Projections.Core.Messages;
 
 [DataContract]
-public class QuerySourcesDefinition : IQuerySources {
+public class QuerySourcesDefinition : IQuerySources
+{
 	[DataMember(Name = "allStreams")] public bool AllStreams { get; set; }
 
 	[DataMember(Name = "categories")] public string[] Categories { get; set; }
@@ -23,50 +24,62 @@ public class QuerySourcesDefinition : IQuerySources {
 	[DataMember(Name = "limitingCommitPosition")]
 	public long? LimitingCommitPosition { get; set; }
 
-	bool IQuerySources.DefinesStateTransform {
+	bool IQuerySources.DefinesStateTransform
+	{
 		get { return Options != null && Options.DefinesStateTransform; }
 	}
 
-	bool IQuerySources.ProducesResults {
+	bool IQuerySources.ProducesResults
+	{
 		get { return Options != null && Options.ProducesResults; }
 	}
 
-	bool IQuerySources.DefinesFold {
+	bool IQuerySources.DefinesFold
+	{
 		get { return Options != null && Options.DefinesFold; }
 	}
 
-	bool IQuerySources.HandlesDeletedNotifications {
+	bool IQuerySources.HandlesDeletedNotifications
+	{
 		get { return Options != null && Options.HandlesDeletedNotifications; }
 	}
 
-	bool IQuerySources.IncludeLinksOption {
+	bool IQuerySources.IncludeLinksOption
+	{
 		get { return Options != null && Options.IncludeLinks; }
 	}
 
-	string IQuerySources.ResultStreamNameOption {
+	string IQuerySources.ResultStreamNameOption
+	{
 		get { return Options != null ? Options.ResultStreamName : null; }
 	}
 
-	string IQuerySources.PartitionResultStreamNamePatternOption {
+	string IQuerySources.PartitionResultStreamNamePatternOption
+	{
 		get { return Options != null ? Options.PartitionResultStreamNamePattern : null; }
 	}
 
-	bool IQuerySources.ReorderEventsOption {
+	bool IQuerySources.ReorderEventsOption
+	{
 		get { return Options != null && Options.ReorderEvents; }
 	}
 
-	int? IQuerySources.ProcessingLagOption {
+	int? IQuerySources.ProcessingLagOption
+	{
 		get { return Options != null ? Options.ProcessingLag : null; }
 	}
 
-	bool IQuerySources.IsBiState {
+	bool IQuerySources.IsBiState
+	{
 		get { return Options != null ? Options.IsBiState : false; }
 	}
 
 	[DataMember(Name = "options")] public QuerySourcesDefinitionOptions Options { get; set; }
 
-	public static QuerySourcesDefinition From(IQuerySources sources) {
-		return new QuerySourcesDefinition {
+	public static QuerySourcesDefinition From(IQuerySources sources)
+	{
+		return new QuerySourcesDefinition
+		{
 			AllEvents = sources.AllEvents,
 			AllStreams = sources.AllStreams,
 			ByStreams = sources.ByStreams,
@@ -76,7 +89,8 @@ public class QuerySourcesDefinition : IQuerySources {
 			Streams = (sources.Streams ?? new string[0]).ToArray(),
 			LimitingCommitPosition = sources.LimitingCommitPosition,
 			Options =
-				new QuerySourcesDefinitionOptions {
+				new QuerySourcesDefinitionOptions
+				{
 					DefinesStateTransform = sources.DefinesStateTransform,
 					ProducesResults = sources.ProducesResults,
 					DefinesFold = sources.DefinesFold,

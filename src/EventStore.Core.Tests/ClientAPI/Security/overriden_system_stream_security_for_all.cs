@@ -8,9 +8,11 @@ namespace EventStore.Core.Tests.ClientAPI.Security;
 
 [Category("ClientAPI"), Category("LongRunning"), Category("Network")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId> {
+public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : AuthenticationTestBase<TLogFormat, TStreamId>
+{
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var settings = new SystemSettings(
@@ -21,7 +23,8 @@ public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : A
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_succeeds_for_user() {
+	public async Task operations_on_system_stream_succeeds_for_user()
+	{
 		const string stream = "$sys-authorized-user";
 		await ReadEvent(stream, "user1", "pa$$1");
 		await ReadStreamForward(stream, "user1", "pa$$1");
@@ -29,11 +32,13 @@ public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : A
 
 		await WriteStream(stream, "user1", "pa$$1");
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			await TransStart(stream, "user1", "pa$$1");
 		}
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId, new UserCredentials("user1", "pa$$1"));
 			await trans.WriteAsync();
@@ -49,7 +54,8 @@ public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : A
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_fail_for_anonymous_user() {
+	public async Task operations_on_system_stream_fail_for_anonymous_user()
+	{
 		const string stream = "$sys-anonymous-user";
 		await ReadEvent(stream, null, null);
 		await ReadStreamForward(stream, null, null);
@@ -57,11 +63,13 @@ public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : A
 
 		await WriteStream(stream, null, null);
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			await TransStart(stream, null, null);
 		}
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId);
 			await trans.WriteAsync();
@@ -77,7 +85,8 @@ public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : A
 	}
 
 	[Test]
-	public async Task operations_on_system_stream_succeed_for_admin() {
+	public async Task operations_on_system_stream_succeed_for_admin()
+	{
 		const string stream = "$sys-admin";
 		await ReadEvent(stream, "adm", "admpa$$");
 		await ReadStreamForward(stream, "adm", "admpa$$");
@@ -85,11 +94,13 @@ public class overriden_system_stream_security_for_all<TLogFormat, TStreamId> : A
 
 		await WriteStream(stream, "adm", "admpa$$");
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			await TransStart(stream, "adm", "admpa$$");
 		}
 
-		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions) {
+		if (LogFormatHelper<TLogFormat, TStreamId>.SupportsExplicitTransactions)
+		{
 			var transId = (await TransStart(stream, "adm", "admpa$$")).TransactionId;
 			var trans = Connection.ContinueTransaction(transId, new UserCredentials("adm", "admpa$$"));
 			await trans.WriteAsync();

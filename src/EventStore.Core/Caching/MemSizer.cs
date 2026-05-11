@@ -3,8 +3,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.Caching {
-	public class MemSizer {
+namespace EventStore.Core.Caching
+{
+	public class MemSizer
+	{
 		public const int ObjectHeaderSize = 16;
 		public const int ArraySize = 24;
 		public const int StringSize = 20;
@@ -12,16 +14,20 @@ namespace EventStore.Core.Caching {
 		private const int LinkedListNodeOverhead = 40;
 		public const int LinkedListEntrySize = 0;
 
-		public static int SizeOf(string s) {
-			if (string.IsNullOrEmpty(s)) {
+		public static int SizeOf(string s)
+		{
+			if (string.IsNullOrEmpty(s))
+			{
 				return 0;
 			}
 
 			return (StringSize + s.Length * 2 + 1).RoundUpToMultipleOf(IntPtr.Size);
 		}
 
-		public static int SizeOf(string[] arr) {
-			if (arr == null) {
+		public static int SizeOf(string[] arr)
+		{
+			if (arr == null)
+			{
 				return 0;
 			}
 

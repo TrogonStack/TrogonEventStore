@@ -7,28 +7,34 @@ using RuntimeInformation = System.Runtime.RuntimeInformation;
 namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
-public class when_writing_a_memorymappedpoint_to_a_file : SpecificationWithFile {
-	public override async Task SetUp() {
+public class when_writing_a_memorymappedpoint_to_a_file : SpecificationWithFile
+{
+	public override async Task SetUp()
+	{
 		await base.SetUp();
-		if (!RuntimeInformation.IsWindows) {
+		if (!RuntimeInformation.IsWindows)
+		{
 			Assert.Ignore($"{nameof(MemoryMappedFileCheckpoint)} is for windows only.");
 		}
 	}
 
 	[Test]
-	public void a_null_file_throws_argumentnullexception() {
+	public void a_null_file_throws_argumentnullexception()
+	{
 		Assert.Throws<ArgumentNullException>(() => new MemoryMappedFileCheckpoint(null));
 	}
 
 	[Test]
-	public void name_is_set() {
+	public void name_is_set()
+	{
 		var checksum = new MemoryMappedFileCheckpoint(Filename, "test");
 		Assert.AreEqual("test", checksum.Name);
 		checksum.Close(flush: true);
 	}
 
 	[Test]
-	public void reading_off_same_instance_gives_most_up_to_date_info() {
+	public void reading_off_same_instance_gives_most_up_to_date_info()
+	{
 		var checkSum = new MemoryMappedFileCheckpoint(Filename);
 		checkSum.Write(0xDEAD);
 		checkSum.Flush();
@@ -38,7 +44,8 @@ public class when_writing_a_memorymappedpoint_to_a_file : SpecificationWithFile 
 	}
 
 	[Test]
-	public void can_read_existing_checksum() {
+	public void can_read_existing_checksum()
+	{
 		var checksum = new MemoryMappedFileCheckpoint(Filename);
 		checksum.Write(0xDEAD);
 		checksum.Close(flush: true);
@@ -49,7 +56,8 @@ public class when_writing_a_memorymappedpoint_to_a_file : SpecificationWithFile 
 	}
 
 	[Test]
-	public async Task the_new_value_is_not_accessible_if_not_flushed_even_with_delay() {
+	public async Task the_new_value_is_not_accessible_if_not_flushed_even_with_delay()
+	{
 		var checkSum = new MemoryMappedFileCheckpoint(Filename);
 		checkSum.Write(1011);
 		await Task.Delay(200);
@@ -58,7 +66,8 @@ public class when_writing_a_memorymappedpoint_to_a_file : SpecificationWithFile 
 	}
 
 	[Test]
-	public async Task the_new_value_is_accessible_after_flush() {
+	public async Task the_new_value_is_accessible_after_flush()
+	{
 		var checkSum = new MemoryMappedFileCheckpoint(Filename);
 		checkSum.Write(1011);
 		checkSum.Flush();

@@ -9,8 +9,10 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public class when_specifying_meta_data_for_linked_event : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_specifying_meta_data_for_linked_event : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
             fromAll().when({$any: 
                 function(state, event) {
@@ -21,7 +23,8 @@ public class when_specifying_meta_data_for_linked_event : TestFixtureWithInterpr
 	}
 
 	[Test, Category(_projectionType)]
-	public void meta_data_should_be_set() {
+	public void meta_data_should_be_set()
+	{
 		EmittedEventEnvelope[] emittedEvents;
 
 		_stateHandler.ProcessEvent(

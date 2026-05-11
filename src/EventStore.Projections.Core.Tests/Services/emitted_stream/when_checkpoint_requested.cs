@@ -10,12 +10,14 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_stream;
 
 [TestFixture]
-public class when_checkpoint_requested : TestFixtureWithReadWriteDispatchers {
+public class when_checkpoint_requested : TestFixtureWithReadWriteDispatchers
+{
 	private EmittedStream _stream;
 	private TestCheckpointManagerMessageHandler _readyHandler;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_readyHandler = new TestCheckpointManagerMessageHandler();
 		;
 		_stream = new EmittedStream(
@@ -29,8 +31,10 @@ public class when_checkpoint_requested : TestFixtureWithReadWriteDispatchers {
 	}
 
 	[Test]
-	public void emit_events_throws_invalid_operation_exception() {
-		Assert.Throws<InvalidOperationException>(() => {
+	public void emit_events_throws_invalid_operation_exception()
+	{
+		Assert.Throws<InvalidOperationException>(() =>
+		{
 			_stream.EmitEvents(
 				new[] {
 					new EmittedDataEvent(
@@ -41,7 +45,8 @@ public class when_checkpoint_requested : TestFixtureWithReadWriteDispatchers {
 	}
 
 	[Test]
-	public void checkpoint_throws_invalid_operation_exception() {
+	public void checkpoint_throws_invalid_operation_exception()
+	{
 		Assert.Throws<InvalidOperationException>(() => { _stream.Checkpoint(); });
 	}
 }

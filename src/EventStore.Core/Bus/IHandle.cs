@@ -5,19 +5,24 @@ using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Bus;
 
-public interface IAsyncHandle<in T> where T : Message {
+public interface IAsyncHandle<in T> where T : Message
+{
 	ValueTask HandleAsync(T message, CancellationToken token);
 }
 
-public interface IHandle<in T> : IAsyncHandle<T> where T : Message {
+public interface IHandle<in T> : IAsyncHandle<T> where T : Message
+{
 	void Handle(T message);
 
-	ValueTask IAsyncHandle<T>.HandleAsync(T message, CancellationToken token) {
+	ValueTask IAsyncHandle<T>.HandleAsync(T message, CancellationToken token)
+	{
 		var task = ValueTask.CompletedTask;
-		try {
+		try
+		{
 			Handle(message);
 		}
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			task = ValueTask.FromException(e);
 		}
 

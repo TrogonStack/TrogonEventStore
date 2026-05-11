@@ -15,13 +15,15 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture]
-public class when_creating_projection_manager {
+public class when_creating_projection_manager
+{
 	private ITimeProvider _timeProvider;
 	private Dictionary<Guid, IPublisher> _queues;
 	private IODispatcher _ioDispatcher;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_timeProvider = new FakeTimeProvider();
 		_queues = new Dictionary<Guid, IPublisher> { { Guid.NewGuid(), new FakePublisher() } };
 		var fakePublisher = new FakePublisher();
@@ -33,7 +35,8 @@ public class when_creating_projection_manager {
 	}
 
 	[Test]
-	public void it_can_be_created() {
+	public void it_can_be_created()
+	{
 		using (
 			new ProjectionManager(
 				new FakePublisher(),
@@ -43,13 +46,16 @@ public class when_creating_projection_manager {
 				ProjectionType.All,
 				_ioDispatcher,
 				TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault),
-				IProjectionTracker.NoOp)) {
+				IProjectionTracker.NoOp))
+		{
 		}
 	}
 
 	[Test]
-	public void null_main_queue_throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void null_main_queue_throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			using (
 				new ProjectionManager(
 					null,
@@ -59,14 +65,17 @@ public class when_creating_projection_manager {
 					ProjectionType.All,
 					_ioDispatcher,
 					TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault),
-					IProjectionTracker.NoOp)) {
+					IProjectionTracker.NoOp))
+			{
 			}
 		});
 	}
 
 	[Test]
-	public void null_publisher_throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void null_publisher_throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			using (
 				new ProjectionManager(
 					new FakePublisher(),
@@ -76,14 +85,17 @@ public class when_creating_projection_manager {
 					ProjectionType.All,
 					_ioDispatcher,
 					TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault),
-					IProjectionTracker.NoOp)) {
+					IProjectionTracker.NoOp))
+			{
 			}
 		});
 	}
 
 	[Test]
-	public void null_queues_throws_argument_null_exception() {
-		Assert.Throws<ArgumentNullException>(() => {
+	public void null_queues_throws_argument_null_exception()
+	{
+		Assert.Throws<ArgumentNullException>(() =>
+		{
 			using (
 				new ProjectionManager(
 					new FakePublisher(),
@@ -93,14 +105,17 @@ public class when_creating_projection_manager {
 					ProjectionType.All,
 					_ioDispatcher,
 					TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault),
-					IProjectionTracker.NoOp)) {
+					IProjectionTracker.NoOp))
+			{
 			}
 		});
 	}
 
 	[Test]
-	public void empty_queues_throws_argument_exception() {
-		Assert.Throws<ArgumentException>(() => {
+	public void empty_queues_throws_argument_exception()
+	{
+		Assert.Throws<ArgumentException>(() =>
+		{
 			using (
 				new ProjectionManager(
 					new FakePublisher(),
@@ -110,7 +125,8 @@ public class when_creating_projection_manager {
 					ProjectionType.All,
 					_ioDispatcher,
 					TimeSpan.FromMinutes(Opts.ProjectionsQueryExpiryDefault),
-					IProjectionTracker.NoOp)) {
+					IProjectionTracker.NoOp))
+			{
 			}
 		});
 	}

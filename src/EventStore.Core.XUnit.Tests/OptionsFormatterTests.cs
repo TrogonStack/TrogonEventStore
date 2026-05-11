@@ -8,11 +8,13 @@ using Xunit;
 namespace EventStore.Core.XUnit.Tests;
 
 [Collection("SerilogLoggingTests")]
-public class OptionsFormatterTests : IDisposable {
+public class OptionsFormatterTests : IDisposable
+{
 	private readonly ILogger _previousLogger = Log.Logger;
 	private readonly CollectingSink _sink = new();
 
-	public OptionsFormatterTests() {
+	public OptionsFormatterTests()
+	{
 		Log.Logger = new LoggerConfiguration()
 			.MinimumLevel.Verbose()
 			.WriteTo.Sink(_sink)
@@ -20,8 +22,10 @@ public class OptionsFormatterTests : IDisposable {
 	}
 
 	[Fact]
-	public void logs_named_configuration_as_json() {
-		OptionsFormatter.LogConfig("Archive", new SampleOptions {
+	public void logs_named_configuration_as_json()
+	{
+		OptionsFormatter.LogConfig("Archive", new SampleOptions
+		{
 			Mode = SampleMode.FileSystem,
 			Path = "/tmp/archive",
 		});
@@ -34,12 +38,15 @@ public class OptionsFormatterTests : IDisposable {
 	}
 
 	[Fact]
-	public void redacts_sensitive_values() {
-		OptionsFormatter.LogConfig("Archive", new SampleOptions {
+	public void redacts_sensitive_values()
+	{
+		OptionsFormatter.LogConfig("Archive", new SampleOptions
+		{
 			Mode = SampleMode.FileSystem,
 			Path = "/tmp/archive",
 			Password = "secret-password",
-			Nested = new NestedOptions {
+			Nested = new NestedOptions
+			{
 				AccessKey = "abc123",
 				ApiToken = "token-value",
 			}
@@ -55,18 +62,21 @@ public class OptionsFormatterTests : IDisposable {
 		Assert.Contains("\"ApiToken\": \"***REDACTED***\"", message, StringComparison.Ordinal);
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 		Log.Logger = _previousLogger;
 	}
 
-	private sealed class CollectingSink : ILogEventSink {
+	private sealed class CollectingSink : ILogEventSink
+	{
 		public List<LogEvent> Events { get; } = [];
 
 		public void Emit(LogEvent logEvent) =>
 			Events.Add(logEvent);
 	}
 
-	private sealed class SampleOptions {
+	private sealed class SampleOptions
+	{
 		public SampleMode Mode { get; init; }
 		public string Path { get; init; } = "";
 		public string Ignored { get; init; }
@@ -74,12 +84,14 @@ public class OptionsFormatterTests : IDisposable {
 		public NestedOptions Nested { get; init; }
 	}
 
-	private sealed class NestedOptions {
+	private sealed class NestedOptions
+	{
 		public string AccessKey { get; init; }
 		public string ApiToken { get; init; }
 	}
 
-	private enum SampleMode {
+	private enum SampleMode
+	{
 		FileSystem,
 	}
 }

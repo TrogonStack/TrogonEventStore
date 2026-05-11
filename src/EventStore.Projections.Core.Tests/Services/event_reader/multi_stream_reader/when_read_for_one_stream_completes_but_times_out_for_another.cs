@@ -16,11 +16,13 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_read_for_one_stream_completes_but_times_out_for_another<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_read_for_one_stream_completes_but_times_out_for_another<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private MultiStreamEventReader _eventReader;
 	private Guid _distibutionPointCorrelationId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
@@ -28,7 +30,8 @@ public class when_read_for_one_stream_completes_but_times_out_for_another<TLogFo
 	private Dictionary<string, long> _ab12Tag;
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_ab12Tag = new Dictionary<string, long> { { "a", 1 }, { "b", 2 } };
 		_abStreams = new[] { "a", "b" };
 		_distibutionPointCorrelationId = Guid.NewGuid();
@@ -107,7 +110,8 @@ public class when_read_for_one_stream_completes_but_times_out_for_another<TLogFo
 	}
 
 	[Test]
-	public void should_not_deliver_events_from_last_read() {
+	public void should_not_deliver_events_from_last_read()
+	{
 		Assert.AreEqual(0,
 			_consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 	}

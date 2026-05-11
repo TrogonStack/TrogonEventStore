@@ -1,7 +1,9 @@
 using System;
 
-namespace EventStore.Core.Index.Hashes {
-	public class XXHashUnsafe : IHasher, IHasher<string> {
+namespace EventStore.Core.Index.Hashes
+{
+	public class XXHashUnsafe : IHasher, IHasher<string>
+	{
 		private readonly uint _seed;
 
 		private const uint PRIME1 = 2654435761U;
@@ -10,36 +12,47 @@ namespace EventStore.Core.Index.Hashes {
 		private const uint PRIME4 = 668265263U;
 		private const int PRIME5 = 0x165667b1;
 
-		public XXHashUnsafe(uint seed = 0xc58f1a7b) {
+		public XXHashUnsafe(uint seed = 0xc58f1a7b)
+		{
 			_seed = seed;
 		}
 
-		public unsafe UInt32 Hash(string s) {
-			fixed (char* input = s) {
+		public unsafe UInt32 Hash(string s)
+		{
+			fixed (char* input = s)
+			{
 				return Hash((byte*)input, (uint)s.Length * sizeof(char), _seed);
 			}
 		}
 
-		public unsafe uint Hash(byte[] data) {
-			fixed (byte* input = &data[0]) {
+		public unsafe uint Hash(byte[] data)
+		{
+			fixed (byte* input = &data[0])
+			{
 				return Hash(input, (uint)data.Length, _seed);
 			}
 		}
 
-		public unsafe uint Hash(byte[] data, int offset, uint len, uint seed) {
-			fixed (byte* input = &data[offset]) {
+		public unsafe uint Hash(byte[] data, int offset, uint len, uint seed)
+		{
+			fixed (byte* input = &data[offset])
+			{
 				return Hash(input, len, seed);
 			}
 		}
 
-		public unsafe uint Hash(ReadOnlySpan<byte> data) {
-			fixed (byte* input = data) {
+		public unsafe uint Hash(ReadOnlySpan<byte> data)
+		{
+			fixed (byte* input = data)
+			{
 				return Hash(input, (uint)data.Length, _seed);
 			}
 		}
 
-		private unsafe static uint Hash(byte* data, uint len, uint seed) {
-			if (len < 16) {
+		private unsafe static uint Hash(byte* data, uint len, uint seed)
+		{
+			if (len < 16)
+			{
 				return HashSmall(data, len, seed);
 			}
 
@@ -51,7 +64,8 @@ namespace EventStore.Core.Index.Hashes {
 			uint* p = (uint*)data;
 			uint* limit = (uint*)(data + len - 16);
 
-			while (p < limit) {
+			while (p < limit)
+			{
 				v1 += Rotl32(v1, 13);
 				v1 *= PRIME1;
 				v1 += *p;
@@ -108,7 +122,8 @@ namespace EventStore.Core.Index.Hashes {
 			return crc;
 		}
 
-		private unsafe static uint HashSmall(byte* data, uint len, uint seed) {
+		private unsafe static uint HashSmall(byte* data, uint len, uint seed)
+		{
 			byte* p = data;
 			byte* bEnd = data + len;
 			byte* limit = bEnd - 4;
@@ -116,7 +131,8 @@ namespace EventStore.Core.Index.Hashes {
 			uint idx = seed + PRIME1;
 			uint crc = PRIME5;
 
-			while (p < limit) {
+			while (p < limit)
+			{
 				crc += (*(uint*)p) + idx;
 				idx++;
 				crc += Rotl32(crc, 17) * PRIME4;
@@ -124,7 +140,8 @@ namespace EventStore.Core.Index.Hashes {
 				p += 4;
 			}
 
-			while (p < bEnd) {
+			while (p < bEnd)
+			{
 				crc += (*p) + idx;
 				idx++;
 				crc *= PRIME1;
@@ -142,7 +159,8 @@ namespace EventStore.Core.Index.Hashes {
 			return crc;
 		}
 
-		private static UInt32 Rotl32(UInt32 x, int r) {
+		private static UInt32 Rotl32(UInt32 x, int r)
+		{
 			return (x << r) | (x >> (32 - r));
 		}
 	}

@@ -4,28 +4,35 @@ using EventStore.ClientAPI;
 
 namespace EventStore.Core.Tests.ClientAPI.Helpers;
 
-public static class TestConnectionLifecycle {
+public static class TestConnectionLifecycle
+{
 	public static async Task<IEventStoreConnection> ReconnectUntilReady(
 		Func<IEventStoreConnection> createConnection,
 		Func<IEventStoreConnection, Task> readinessProbe,
-		TimeSpan timeout) {
+		TimeSpan timeout)
+	{
 		var deadline = DateTime.UtcNow + timeout;
 
-		while (true) {
+		while (true)
+		{
 			IEventStoreConnection connection = null;
 
-			try {
+			try
+			{
 				connection = createConnection();
 				await connection.ConnectAsync();
 				await readinessProbe(connection);
 				return connection;
 			}
-			catch (Exception ex) {
-				if (connection != null) {
+			catch (Exception ex)
+			{
+				if (connection != null)
+				{
 					TryCloseConnection(connection);
 				}
 
-				if (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline) {
+				if (IsTransientConnectionFailure(ex) && DateTime.UtcNow < deadline)
+				{
 					await Task.Delay(250);
 					continue;
 				}
@@ -35,7 +42,8 @@ public static class TestConnectionLifecycle {
 		}
 	}
 
-	public static async Task CloseConnectionAndWait(IEventStoreConnection connection, TimeSpan timeout) {
+	public static async Task CloseConnectionAndWait(IEventStoreConnection connection, TimeSpan timeout)
+	{
 		var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 		connection.Closed += (_, _) => closed.TrySetResult();
 		connection.Close();
@@ -48,16 +56,21 @@ public static class TestConnectionLifecycle {
 			or "NotAuthenticatedException"
 			or "AccessDeniedException";
 
-	public static void TryCloseConnection(IEventStoreConnection connection) {
-		try {
+	public static void TryCloseConnection(IEventStoreConnection connection)
+	{
+		try
+		{
 			connection.Close();
 		}
-		catch {
+		catch
+		{
 		}
 	}
 
-	public static void DisposeIfNeeded(object candidate) {
-		if (candidate is IDisposable disposable) {
+	public static void DisposeIfNeeded(object candidate)
+	{
+		if (candidate is IDisposable disposable)
+		{
 			disposable.Dispose();
 		}
 	}

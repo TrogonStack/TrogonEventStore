@@ -12,19 +12,22 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_streams_deleter.when_deleting;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> {
+public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId>
+{
 	protected Action _onDeleteStreamCompleted;
 	protected ManualResetEvent _resetEvent = new ManualResetEvent(false);
 	private string _testStreamName = "test_stream";
 	private ManualResetEvent _eventAppeared = new ManualResetEvent(false);
 	private EventStore.ClientAPI.SystemData.UserCredentials _credentials;
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		_credentials = new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit");
 		_onDeleteStreamCompleted = () => { _resetEvent.Set(); };
 
 		await base.Given();
-		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) => {
+		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) =>
+		{
 			_eventAppeared.Set();
 			return Task.CompletedTask;
 		}, userCredentials: _credentials);
@@ -35,7 +38,8 @@ public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : Sp
 				"data", null, CheckpointTag.FromPosition(0, 100, 50), null),
 		});
 
-		if (!_eventAppeared.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventAppeared.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			Assert.Fail("Timed out waiting for emitted stream event");
 		}
 
@@ -48,9 +52,11 @@ public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : Sp
 		Assert.AreEqual(SliceReadStatus.Success, emittedStreamResult.Status);
 	}
 
-	protected override Task When() {
+	protected override Task When()
+	{
 		_emittedStreamsDeleter.DeleteEmittedStreams(_onDeleteStreamCompleted);
-		if (!_resetEvent.WaitOne(TimeSpan.FromSeconds(10))) {
+		if (!_resetEvent.WaitOne(TimeSpan.FromSeconds(10)))
+		{
 			throw new Exception("Timed out waiting callback.");
 		}
 
@@ -58,7 +64,8 @@ public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : Sp
 	}
 
 	[Test]
-	public async Task should_have_deleted_the_tracked_emitted_stream() {
+	public async Task should_have_deleted_the_tracked_emitted_stream()
+	{
 		var result = await _conn.ReadStreamEventsForwardAsync(_testStreamName, 0, 1, false,
 			new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit"));
 		Assert.AreEqual(SliceReadStatus.StreamNotFound, result.Status);
@@ -66,14 +73,16 @@ public class with_an_existing_emitted_streams_stream<TLogFormat, TStreamId> : Sp
 
 
 	[Test]
-	public async Task should_have_deleted_the_checkpoint_stream() {
+	public async Task should_have_deleted_the_checkpoint_stream()
+	{
 		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsCheckpointName(),
 			0, 1, false, new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit"));
 		Assert.AreEqual(SliceReadStatus.StreamNotFound, result.Status);
 	}
 
 	[Test]
-	public async Task should_have_deleted_the_emitted_streams_stream() {
+	public async Task should_have_deleted_the_emitted_streams_stream()
+	{
 		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsName(), 0, 1,
 			false, new EventStore.ClientAPI.SystemData.UserCredentials("admin", "changeit"));
 		Assert.AreEqual(SliceReadStatus.StreamNotFound, result.Status);

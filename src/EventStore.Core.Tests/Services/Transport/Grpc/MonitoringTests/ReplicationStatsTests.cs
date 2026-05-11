@@ -14,14 +14,16 @@ using CoreReplicationStats = EventStore.Core.Messages.ReplicationMessage.Replica
 namespace EventStore.Core.Tests.Services.Transport.Grpc.MonitoringTests;
 
 [TestFixture]
-public class ReplicationStatsTests {
+public class ReplicationStatsTests
+{
 	private readonly Guid _subscriptionId = Guid.Parse("3c870871-1a1a-48f1-a9d6-89f471512f1e");
 	private readonly Guid _connectionId = Guid.Parse("d8b2ac45-2510-4a29-9e2a-713a5af7d6c5");
 	private ReplicationStatsResp _response;
 	private CapturingPublisher _publisher;
 
 	[SetUp]
-	public async Task SetUp() {
+	public async Task SetUp()
+	{
 		_publisher = new CapturingPublisher(new List<CoreReplicationStats> {
 			new(
 				_subscriptionId,
@@ -59,17 +61,20 @@ public class ReplicationStatsTests {
 	}
 
 	[Test]
-	public void should_request_replication_stats() {
+	public void should_request_replication_stats()
+	{
 		Assert.IsTrue(_publisher.RequestedReplicationStats);
 	}
 
 	[Test]
-	public void should_return_the_replication_stats() {
+	public void should_return_the_replication_stats()
+	{
 		Assert.AreEqual(2, _response.Stats.Count);
 	}
 
 	[Test]
-	public void should_map_all_replication_stats_fields() {
+	public void should_map_all_replication_stats_fields()
+	{
 		var stats = _response.Stats[0];
 
 		Assert.AreEqual(_subscriptionId.ToString("D"), stats.SubscriptionId);
@@ -83,15 +88,19 @@ public class ReplicationStatsTests {
 	}
 
 	[Test]
-	public void should_map_null_strings_to_empty_values() {
+	public void should_map_null_strings_to_empty_values()
+	{
 		Assert.AreEqual(string.Empty, _response.Stats[1].SubscriptionEndpoint);
 	}
 
-	private sealed class CapturingPublisher(List<CoreReplicationStats> replicationStats) : IPublisher {
+	private sealed class CapturingPublisher(List<CoreReplicationStats> replicationStats) : IPublisher
+	{
 		public bool RequestedReplicationStats { get; private set; }
 
-		public void Publish(Message message) {
-			if (message is not ReplicationMessage.GetReplicationStats request) {
+		public void Publish(Message message)
+		{
+			if (message is not ReplicationMessage.GetReplicationStats request)
+			{
 				throw new InvalidOperationException($"Unexpected message {message.GetType().Name}");
 			}
 
@@ -100,10 +109,12 @@ public class ReplicationStatsTests {
 		}
 	}
 
-	private sealed class TestServerCallContext : ServerCallContext {
+	private sealed class TestServerCallContext : ServerCallContext
+	{
 		public static readonly TestServerCallContext Instance = new();
 
-		private TestServerCallContext() {
+		private TestServerCallContext()
+		{
 		}
 
 		protected override string MethodCore =>

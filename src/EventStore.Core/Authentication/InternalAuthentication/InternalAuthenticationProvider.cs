@@ -15,7 +15,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Core.Authentication.InternalAuthentication;
 
-public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandle<InternalAuthenticationProviderMessages.ResetPasswordCache> {
+public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandle<InternalAuthenticationProviderMessages.ResetPasswordCache>
+{
 	static readonly ILogger Logger = Serilog.Log.ForContext<InternalAuthenticationProvider>();
 
 	readonly IODispatcher _ioDispatcher;
@@ -31,7 +32,8 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 		PasswordHashAlgorithm passwordHashAlgorithm,
 		int cacheSize, bool logFailedAuthenticationAttempts,
 		ClusterVNodeOptions.DefaultUserOptions defaultUserOptions
-	) : base(name: "internal", diagnosticsName: "InternalAuthentication") {
+	) : base(name: "internal", diagnosticsName: "InternalAuthentication")
+	{
 		_ioDispatcher = ioDispatcher;
 		_passwordHashAlgorithm = passwordHashAlgorithm;
 		_userPasswordsCache = new LRUCache<string, (string, string, ClaimsPrincipal)>("UserPasswords", cacheSize);
@@ -62,11 +64,14 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 	public void Handle(InternalAuthenticationProviderMessages.ResetPasswordCache message) =>
 		_userPasswordsCache.Remove(message.LoginName);
 
-	public override void Authenticate(AuthenticationRequest authenticationRequest) {
-		if (_userPasswordsCache.TryGet(authenticationRequest.Name, out var cached)) {
+	public override void Authenticate(AuthenticationRequest authenticationRequest)
+	{
+		if (_userPasswordsCache.TryGet(authenticationRequest.Name, out var cached))
+		{
 			AuthenticateCached(authenticationRequest, cached.hash, cached.salt, cached.principal);
 		}
-		else {
+		else
+		{
 			var userStreamId = $"$user-{authenticationRequest.Name}";
 			_ioDispatcher.ReadBackward(
 				streamId: userStreamId,
@@ -82,8 +87,10 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 
 	public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => ["Basic", "UserCertificate"];
 
-	void AuthenticateUncached(AuthenticationRequest authenticationRequest, UserData userData) {
-		if (!AuthenticateImpl(authenticationRequest, userData.Hash, userData.Salt)) {
+	void AuthenticateUncached(AuthenticationRequest authenticationRequest, UserData userData)
+	{
+		if (!AuthenticateImpl(authenticationRequest, userData.Hash, userData.Salt))
+		{
 			authenticationRequest.Unauthorized();
 			return;
 		}
@@ -93,7 +100,8 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 		authenticationRequest.Authenticated(principal);
 	}
 
-	static ClaimsPrincipal CreatePrincipal(UserData userData) {
+	static ClaimsPrincipal CreatePrincipal(UserData userData)
+	{
 		var claims = userData.Groups
 			.Select(role => new Claim(ClaimTypes.Role, role))
 			.Prepend(new(ClaimTypes.Name, userData.LoginName))
@@ -105,8 +113,10 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 	void CachePassword(string loginName, string hash, string salt, ClaimsPrincipal principal) =>
 		_userPasswordsCache.Put(loginName, (hash, salt, principal));
 
-	void AuthenticateCached(AuthenticationRequest authenticationRequest, string passwordHash, string passwordSalt, ClaimsPrincipal principal) {
-		if (!AuthenticateImpl(authenticationRequest, passwordHash, passwordSalt)) {
+	void AuthenticateCached(AuthenticationRequest authenticationRequest, string passwordHash, string passwordSalt, ClaimsPrincipal principal)
+	{
+		if (!AuthenticateImpl(authenticationRequest, passwordHash, passwordSalt))
+		{
 			authenticationRequest.Unauthorized();
 			return;
 		}
@@ -114,19 +124,23 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 		authenticationRequest.Authenticated(principal);
 	}
 
-	bool AuthenticateImpl(AuthenticationRequest authenticationRequest, string passwordHash, string passwordSalt) {
-		if (authenticationRequest.HasValidClientCertificate) {
+	bool AuthenticateImpl(AuthenticationRequest authenticationRequest, string passwordHash, string passwordSalt)
+	{
+		if (authenticationRequest.HasValidClientCertificate)
+		{
 			// a valid user certificate was supplied. we only needed to verify if the certificate's user
 			// exists and is enabled, which we have.
 			return true;
 		}
 
 		// otherwise default to password authentication
-		if (_passwordHashAlgorithm.Verify(authenticationRequest.SuppliedPassword, passwordHash, passwordSalt)) {
+		if (_passwordHashAlgorithm.Verify(authenticationRequest.SuppliedPassword, passwordHash, passwordSalt))
+		{
 			return true;
 		}
 
-		if (_logFailedAuthenticationAttempts) {
+		if (_logFailedAuthenticationAttempts)
+		{
 			Logger.Warning("Authentication Failed for {Id}: {Reason}", authenticationRequest.Id, "Invalid credentials supplied.");
 		}
 
@@ -135,16 +149,21 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 
 	public override Task Initialize() => _tcs.Task;
 
-	class AuthReadResponseHandler(InternalAuthenticationProvider self, AuthenticationRequest request) : IReadStreamEventsBackwardHandler {
+	class AuthReadResponseHandler(InternalAuthenticationProvider self, AuthenticationRequest request) : IReadStreamEventsBackwardHandler
+	{
 		public bool HandlesAlt => true;
 		public bool HandlesTimeout => true;
 
-		public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted completed) {
-			try {
+		public void Handle(ClientMessage.ReadStreamEventsBackwardCompleted completed)
+		{
+			try
+			{
 				if (completed.Result == ReadStreamResult.StreamDeleted ||
 					completed.Result == ReadStreamResult.NoStream ||
-					completed.Result == ReadStreamResult.AccessDenied) {
-					if (self._logFailedAuthenticationAttempts) {
+					completed.Result == ReadStreamResult.AccessDenied)
+				{
+					if (self._logFailedAuthenticationAttempts)
+					{
 						Logger.Warning("Authentication Failed for {Id}: {Reason}", request.Id, "Invalid user.");
 					}
 
@@ -152,8 +171,10 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 					return;
 				}
 
-				if (completed.Result == ReadStreamResult.Error) {
-					if (self._logFailedAuthenticationAttempts) {
+				if (completed.Result == ReadStreamResult.Error)
+				{
+					if (self._logFailedAuthenticationAttempts)
+					{
 						Logger.Warning("Authentication Failed for {Id}: {Reason}", request.Id, "Unexpected error.");
 					}
 
@@ -162,29 +183,36 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 				}
 
 				var userData = completed.Events[0].Event.Data.ParseJson<UserData>();
-				if (userData.LoginName != request.Name) {
+				if (userData.LoginName != request.Name)
+				{
 					request.Error();
 					return;
 				}
 
-				if (userData.Disabled) {
-					if (self._logFailedAuthenticationAttempts) {
+				if (userData.Disabled)
+				{
+					if (self._logFailedAuthenticationAttempts)
+					{
 						Logger.Warning("Authentication Failed for {Id}: {Reason}", request.Id, "The account is disabled.");
 					}
 
 					request.Unauthorized();
 				}
-				else {
+				else
+				{
 					self.AuthenticateUncached(request, userData);
 				}
 			}
-			catch {
+			catch
+			{
 				request.Unauthorized();
 			}
 		}
 
-		public void Handle(ClientMessage.NotHandled notHandled) {
-			if (self._logFailedAuthenticationAttempts) {
+		public void Handle(ClientMessage.NotHandled notHandled)
+		{
+			if (self._logFailedAuthenticationAttempts)
+			{
 				Logger.Warning(
 					"Authentication Failed for {Id}: {Reason}. {Description}",
 					request.Id, notHandled.Reason, notHandled.Description
@@ -194,8 +222,10 @@ public class InternalAuthenticationProvider : AuthenticationProviderBase, IHandl
 			request.NotReady();
 		}
 
-		public void Timeout() {
-			if (self._logFailedAuthenticationAttempts) {
+		public void Timeout()
+		{
+			if (self._logFailedAuthenticationAttempts)
+			{
 				Logger.Warning("Authentication Failed for {Id}: {Reason}", request.Id, "Timeout.");
 			}
 

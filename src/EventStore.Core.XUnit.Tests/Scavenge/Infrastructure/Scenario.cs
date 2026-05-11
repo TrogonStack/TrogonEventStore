@@ -34,12 +34,14 @@ using Type = System.Type;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class Scenario {
+public class Scenario
+{
 	public const bool CollideEverything = false;
 }
 
 // sort of similar to ScavengeTestScenario
-public class Scenario<TLogFormat, TStreamId> : Scenario {
+public class Scenario<TLogFormat, TStreamId> : Scenario
+{
 	private const int ForceImmediatePTableConversion = 1;
 	private const int KeepIndexInMemoryWhenSkippingIndexCheck = 1_000_000;
 
@@ -72,19 +74,22 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 	protected Tracer Tracer { get; set; }
 
-	public Scenario() {
+	public Scenario()
+	{
 		_getDb = (_, _) => throw new Exception("db not configured. call WithDb");
 		_stateTransform = x => x;
 		Tracer = new Tracer();
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithTracerFrom(Scenario<TLogFormat, TStreamId> scenario) {
+	public Scenario<TLogFormat, TStreamId> WithTracerFrom(Scenario<TLogFormat, TStreamId> scenario)
+	{
 		Tracer = scenario.Tracer;
 		return this;
 	}
 
 	public Scenario<TLogFormat, TStreamId> WithUnsafeIgnoreHardDeletes(
-		bool unsafeIgnoreHardDeletes = true) {
+		bool unsafeIgnoreHardDeletes = true)
+	{
 
 		_unsafeIgnoreHardDeletes = unsafeIgnoreHardDeletes;
 		return this;
@@ -93,7 +98,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 	public Scenario<TLogFormat, TStreamId> WithArchive(
 		long chunksInArchive,
 		long? retainBytes = null,
-		int? retainDays = null) {
+		int? retainDays = null)
+	{
 
 		_archiveCheckpoint = chunksInArchive * ChunkSize;
 		_retainBytes = retainBytes ?? 0;
@@ -101,27 +107,32 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithThreads(int threads) {
+	public Scenario<TLogFormat, TStreamId> WithThreads(int threads)
+	{
 		_threads = threads;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> IsArchiver(bool isArchiver = true) {
+	public Scenario<TLogFormat, TStreamId> IsArchiver(bool isArchiver = true)
+	{
 		_isArchiver = isArchiver;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> SkipIndexCheck() {
+	public Scenario<TLogFormat, TStreamId> SkipIndexCheck()
+	{
 		_skipIndexCheck = true;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithDbPath(string path) {
+	public Scenario<TLogFormat, TStreamId> WithDbPath(string path)
+	{
 		_dbPath = path;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithDb(DbResult db) {
+	public Scenario<TLogFormat, TStreamId> WithDb(DbResult db)
+	{
 		_getDb = (_, _) => new(db);
 		return this;
 	}
@@ -129,7 +140,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 	public Scenario<TLogFormat, TStreamId> WithDb(
 		Func<
 			TFChunkDbCreationHelper<TLogFormat, TStreamId>,
-			TFChunkDbCreationHelper<TLogFormat, TStreamId>> f) {
+			TFChunkDbCreationHelper<TLogFormat, TStreamId>> f)
+	{
 
 		_getDb = async (dbConfig, logFormat) =>
 			await f(await TFChunkDbCreationHelper<TLogFormat, TStreamId>.CreateAsync(dbConfig, logFormat,
@@ -137,13 +149,15 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithLogger(ITFChunkScavengerLog logger) {
+	public Scenario<TLogFormat, TStreamId> WithLogger(ITFChunkScavengerLog logger)
+	{
 		_logger = logger;
 		return this;
 	}
 
 	public Scenario<TLogFormat, TStreamId> WithState(
-		Func<ScavengeStateBuilder<TStreamId>, ScavengeStateBuilder<TStreamId>> f) {
+		Func<ScavengeStateBuilder<TStreamId>, ScavengeStateBuilder<TStreamId>> f)
+	{
 
 		var wrapped = _stateTransform;
 		_stateTransform = builder => builder
@@ -152,12 +166,14 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> AssertState(Action<ScavengeState<TStreamId>> f) {
+	public Scenario<TLogFormat, TStreamId> AssertState(Action<ScavengeState<TStreamId>> f)
+	{
 		_assertState = f;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> MutateState(Action<ScavengeState<TStreamId>> f) {
+	public Scenario<TLogFormat, TStreamId> MutateState(Action<ScavengeState<TStreamId>> f)
+	{
 		var wrapped = _stateTransform;
 		_stateTransform = builder => builder
 			.TransformBuilder(wrapped)
@@ -165,46 +181,54 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithMergeChunks(bool mergeChunks = true) {
+	public Scenario<TLogFormat, TStreamId> WithMergeChunks(bool mergeChunks = true)
+	{
 		_mergeChunks = mergeChunks;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> WithSyncOnly(bool syncOnly = true) {
+	public Scenario<TLogFormat, TStreamId> WithSyncOnly(bool syncOnly = true)
+	{
 		_syncOnly = syncOnly;
 		return this;
 	}
 
 	public Scenario<TLogFormat, TStreamId> CancelOnNewScavengePoint(
-		List<ScavengePoint> newScavengePoint) {
+		List<ScavengePoint> newScavengePoint)
+	{
 
 		_newScavengePoint = newScavengePoint;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> CancelWhenAccumulatingMetaRecordFor(TStreamId trigger) {
+	public Scenario<TLogFormat, TStreamId> CancelWhenAccumulatingMetaRecordFor(TStreamId trigger)
+	{
 		_accumulatingCancellationTrigger = trigger;
 		return this;
 	}
 
 	// note for this to work the trigger stream needs metadata so it will be calculated
 	// and it needs to have at least one record
-	public Scenario<TLogFormat, TStreamId> CancelWhenCalculatingOriginalStream(TStreamId trigger) {
+	public Scenario<TLogFormat, TStreamId> CancelWhenCalculatingOriginalStream(TStreamId trigger)
+	{
 		_calculatingCancellationTrigger = trigger;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> CancelWhenExecutingChunk(TStreamId trigger) {
+	public Scenario<TLogFormat, TStreamId> CancelWhenExecutingChunk(TStreamId trigger)
+	{
 		_executingChunkCancellationTrigger = trigger;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> CancelWhenExecutingIndexEntry(TStreamId trigger) {
+	public Scenario<TLogFormat, TStreamId> CancelWhenExecutingIndexEntry(TStreamId trigger)
+	{
 		_executingIndexEntryCancellationTrigger = trigger;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> CancelWhenCheckpointing<TCheckpoint>() {
+	public Scenario<TLogFormat, TStreamId> CancelWhenCheckpointing<TCheckpoint>()
+	{
 		_cancelWhenCheckpointingType = typeof(TCheckpoint);
 		return this;
 	}
@@ -213,19 +237,22 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 	// This is not black box testing, handle with care.
 	public delegate Scenario<TLogFormat, TStreamId> TraceDelegate(params string[] expected);
 
-	public Scenario<TLogFormat, TStreamId> AssertTrace(params (string, int)[] expected) {
+	public Scenario<TLogFormat, TStreamId> AssertTrace(params (string, int)[] expected)
+	{
 		_expectedTrace = expected;
 		return this;
 	}
 
-	public Scenario<TLogFormat, TStreamId> EmptyChunk(int chunkNumber) {
+	public Scenario<TLogFormat, TStreamId> EmptyChunk(int chunkNumber)
+	{
 		_chunkNumsToEmpty.Add(chunkNumber);
 		return this;
 	}
 
 	public async Task RunAsync(
 		Func<DbResult, ILogRecord[][]> getExpectedKeptRecords = null,
-		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries = null) {
+		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries = null)
+	{
 
 		await using var x = await RunInternalAsync(
 			getExpectedKeptRecords,
@@ -235,7 +262,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 	// caller disposes DbResult
 	public async Task<DbResult> RunAndKeepDbAsync(
 		Func<DbResult, ILogRecord[][]> getExpectedKeptRecords = null,
-		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries = null) {
+		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries = null)
+	{
 
 		return await RunInternalAsync(
 			getExpectedKeptRecords,
@@ -244,9 +272,11 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 	private async Task<DbResult> RunInternalAsync(
 		Func<DbResult, ILogRecord[][]> getExpectedKeptRecords,
-		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries) {
+		Func<DbResult, ILogRecord[][]> getExpectedKeptIndexEntries)
+	{
 
-		if (string.IsNullOrEmpty(_dbPath)) {
+		if (string.IsNullOrEmpty(_dbPath))
+		{
 			throw new Exception("call WithDbPath");
 		}
 
@@ -282,11 +312,13 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		var highHasher = logFormat.HighHasher;
 
 		var humanHashers = true;
-		if (CollideEverything) {
+		if (CollideEverything)
+		{
 			lowHasher = new ConstantHasher(0) as IHasher<TStreamId>;
 			highHasher = new ConstantHasher(0) as IHasher<TStreamId>;
 		}
-		else if (humanHashers) {
+		else if (humanHashers)
+		{
 			lowHasher = new ConstantHasher(0) as IHasher<TStreamId>;
 			highHasher = new HumanReadableHasher32() as IHasher<TStreamId>;
 		}
@@ -336,19 +368,23 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 		await readIndex.IndexCommitter.Init(dbResult.Db.Config.WriterCheckpoint.Read(), CancellationToken.None);
 		// wait for tables to be merged. for one of the tests this takes a while
-		for (int i = 0; i < 10; i++) {
-			try {
+		for (int i = 0; i < 10; i++)
+		{
+			try
+			{
 				tableIndex.WaitForBackgroundTasks();
 				break;
 			}
-			catch {
+			catch
+			{
 			}
 		}
 
 		await EmptyRequestedChunks(dbResult.Db, CancellationToken.None);
 
 		Scavenger<TStreamId> sut = null;
-		try {
+		try
+		{
 			var cancellationTokenSource = new CancellationTokenSource();
 			var metastreamLookup = logFormat.Metastreams;
 
@@ -369,8 +405,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 			var accumulatorMetastreamLookup = new AdHocMetastreamLookupInterceptor<TStreamId>(
 				metastreamLookup,
-				(continuation, streamId) => {
-					if (StreamIdComparer.Equals(streamId, _accumulatingCancellationTrigger)) {
+				(continuation, streamId) =>
+				{
+					if (StreamIdComparer.Equals(streamId, _accumulatingCancellationTrigger))
+					{
 						cancellationTokenSource.Cancel();
 					}
 
@@ -382,12 +420,15 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 					readIndex,
 					() => new TFReaderLease(readerPool),
 					scavengeState.LookupUniqueHashUser),
-				(f, handle, from, maxCount, x, token) => {
-					if (_calculatingCancellationTrigger != null) {
+				(f, handle, from, maxCount, x, token) =>
+				{
+					if (_calculatingCancellationTrigger != null)
+					{
 						if ((handle.Kind == StreamHandle.Kind.Hash &&
 							 handle.StreamHash == hasher.Hash(_calculatingCancellationTrigger)) ||
 							(handle.Kind == StreamHandle.Kind.Id &&
-							 StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger))) {
+							 StreamIdComparer.Equals(handle.StreamId, _calculatingCancellationTrigger)))
+						{
 
 							cancellationTokenSource.Cancel();
 						}
@@ -398,8 +439,10 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 			var chunkExecutorMetastreamLookup = new AdHocMetastreamLookupInterceptor<TStreamId>(
 				metastreamLookup,
-				(continuation, streamId) => {
-					if (StreamIdComparer.Equals(streamId, _executingChunkCancellationTrigger)) {
+				(continuation, streamId) =>
+				{
+					if (StreamIdComparer.Equals(streamId, _executingChunkCancellationTrigger))
+					{
 						cancellationTokenSource.Cancel();
 					}
 
@@ -409,13 +452,16 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 			var indexScavenger = new IndexScavenger(tableIndex);
 			var cancellationWrappedIndexScavenger = new AdHocIndexScavengerInterceptor(
 				indexScavenger,
-				f => (entry, token) => {
-					if (token.IsCancellationRequested) {
+				f => (entry, token) =>
+				{
+					if (token.IsCancellationRequested)
+					{
 						return ValueTask.FromCanceled<bool>(token);
 					}
 
 					if (_executingIndexEntryCancellationTrigger is not null &&
-						entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger)) {
+						entry.Stream == hasher.Hash(_executingIndexEntryCancellationTrigger))
+					{
 
 						cancellationTokenSource.Cancel();
 					}
@@ -537,7 +583,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 			await sut.ScavengeAsync(cancellationTokenSource.Token);
 
 			// check if successful
-			if (_logger == null) {
+			if (_logger == null)
+			{
 				Assert.True(successLogger.Completed);
 				Assert.True(
 					successLogger.Result == Core.TransactionLog.Chunks.ScavengeResult.Success,
@@ -546,12 +593,15 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 			// check the trace. only when Threads == 1 or the order isn't guaranteed.
 			// only when not colliding everything, because the collisions will change the trace
-			if (_expectedTrace != null && _threads == 1 && !CollideEverything) {
+			if (_expectedTrace != null && _threads == 1 && !CollideEverything)
+			{
 				var expected = _expectedTrace;
 				var actual = Tracer.ToArray();
-				for (var i = 0; i < Math.Max(expected.Length, actual.Length); i++) {
+				for (var i = 0; i < Math.Max(expected.Length, actual.Length); i++)
+				{
 
-					if (expected[i] == Tracer.AnythingElse) {
+					if (expected[i] == Tracer.AnythingElse)
+					{
 						// actual can be anything it likes from this point on
 						break;
 					}
@@ -580,56 +630,70 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 			var hashesInUse = new Dictionary<ulong, TStreamId>();
 			var collidingStreams = new HashSet<TStreamId>();
 
-			void RegisterUse(TStreamId streamId) {
+			void RegisterUse(TStreamId streamId)
+			{
 				var hash = hasher.Hash(streamId);
-				if (hashesInUse.TryGetValue(hash, out var user)) {
-					if (StreamIdComparer.Equals(user, streamId)) {
+				if (hashesInUse.TryGetValue(hash, out var user))
+				{
+					if (StreamIdComparer.Equals(user, streamId))
+					{
 						// in use by us. not a collision.
 					}
-					else {
+					else
+					{
 						// collision. register both as collisions.
 						collidingStreams.Add(streamId);
 						collidingStreams.Add(user);
 					}
 				}
-				else {
+				else
+				{
 					// hash was not in use. so it isn't a collision.
 					hashesInUse[hash] = streamId;
 				}
 			}
 
-			foreach (var chunk in dbResult.Recs) {
-				foreach (var record in chunk) {
-					if (record is not IPrepareLogRecord<TStreamId> prepare) {
+			foreach (var chunk in dbResult.Recs)
+			{
+				foreach (var record in chunk)
+				{
+					if (record is not IPrepareLogRecord<TStreamId> prepare)
+					{
 						continue;
 					}
 
 					RegisterUse(prepare.EventStreamId);
 
-					if (prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete)) {
+					if (prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete))
+					{
 						RegisterUse(metastreamLookup.MetaStreamOf(prepare.EventStreamId));
 					}
 
-					if (metastreamLookup.IsMetaStream(prepare.EventStreamId)) {
+					if (metastreamLookup.IsMetaStream(prepare.EventStreamId))
+					{
 						RegisterUse(metastreamLookup.OriginalStreamOf(prepare.EventStreamId));
 					}
 				}
 			}
 
-			if (CollideEverything) {
+			if (CollideEverything)
+			{
 				// collidingStreams is all collisions in the log, not just up to the scavenge point
 				// so can contains extra collisions, which becomes apparent when everything collides.
 			}
-			else {
+			else
+			{
 				//   - Assert list of collisions.
 				Assert.Equal(collidingStreams.OrderBy(x => x), scavengeState.AllCollisions().OrderBy(x => x));
 			}
 
 			// The records we expected to keep are kept
 			// The index entries we expected to be kept are kept
-			if (keptRecords != null) {
+			if (keptRecords != null)
+			{
 				await CheckRecords(keptRecords, dbResult, cancellationTokenSource.Token);
-				if (!_skipIndexCheck) {
+				if (!_skipIndexCheck)
+				{
 					await CheckIndex(keptIndexEntries, readIndex, collidingStreams, hasher,
 						cancellationTokenSource.Token);
 				}
@@ -640,7 +704,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 			return dbResult;
 
 		}
-		finally {
+		finally
+		{
 			sut?.Dispose();
 			readIndex.Close();
 		}
@@ -648,18 +713,21 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 
 	// nicked from scavengetestscenario
 	private static async ValueTask CheckRecords(ILogRecord[][] expected, DbResult actual,
-		CancellationToken token = default) {
+		CancellationToken token = default)
+	{
 		Assert.True(
 			expected.Length == actual.Db.Manager.ChunksCount,
 			"Wrong number of chunks. " +
 			$"Expected {expected.Length}. Actual {actual.Db.Manager.ChunksCount}");
 
-		for (int i = 0; i < expected.Length; ++i) {
+		for (int i = 0; i < expected.Length; ++i)
+		{
 			var chunk = actual.Db.Manager.GetChunk(i);
 
 			var chunkRecords = new List<ILogRecord>();
 			var result = await chunk.TryReadFirst(token);
-			while (result.Success) {
+			while (result.Success)
+			{
 				chunkRecords.Add(result.LogRecord);
 				result = await chunk.TryReadClosestForward((int)result.NextPosition, token);
 			}
@@ -669,7 +737,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 				$"Wrong number of records in chunk #{i}. " +
 				$"Expected {expected[i].Length}. Actual {chunkRecords.Count}");
 
-			for (int j = 0; j < expected[i].Length; ++j) {
+			for (int j = 0; j < expected[i].Length; ++j)
+			{
 				Assert.True(
 					expected[i][j].Equals(chunkRecords[j]),
 					$"Wrong log record #{j} read from chunk #{i}. " +
@@ -686,9 +755,11 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		IReadIndex<TStreamId> actual,
 		HashSet<TStreamId> collisions,
 		ILongHasher<TStreamId> hasher,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
-		if (expected == null) {
+		if (expected == null)
+		{
 			// test didn't ask us to check the index
 			return;
 		}
@@ -698,9 +769,12 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		var minEventNumbers = new Dictionary<TStreamId, long>();
 		var maxEventNumbers = new Dictionary<TStreamId, long>();
 
-		foreach (var chunk in expected) {
-			foreach (var record in chunk) {
-				if (record is not IPrepareLogRecord<TStreamId> prepare) {
+		foreach (var chunk in expected)
+		{
+			foreach (var record in chunk)
+			{
+				if (record is not IPrepareLogRecord<TStreamId> prepare)
+				{
 					throw new Exception("expected to find commit record in index but this is impossible");
 				}
 
@@ -710,17 +784,20 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 				// indexcommitter blesses tombstones with EventNumber.DeletedStream when they are
 				// committed with an explicit commit record
 				if (prepare.Flags.HasAnyOf(PrepareFlags.StreamDelete) &&
-					prepare.Flags.HasNoneOf(PrepareFlags.IsCommitted)) {
+					prepare.Flags.HasNoneOf(PrepareFlags.IsCommitted))
+				{
 					eventNumber = EventNumber.DeletedStream;
 				}
 
-				if (!minEventNumbers.TryGetValue(streamId, out var min)) {
+				if (!minEventNumbers.TryGetValue(streamId, out var min))
+				{
 					min = eventNumber;
 				}
 
 				minEventNumbers[streamId] = Math.Min(eventNumber, min);
 
-				if (!maxEventNumbers.TryGetValue(streamId, out var max)) {
+				if (!maxEventNumbers.TryGetValue(streamId, out var max))
+				{
 					max = eventNumber;
 				}
 
@@ -740,7 +817,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 						beforePosition: long.MaxValue,
 						token));
 
-				if (result.EventInfos.Length != 1) {
+				if (result.EventInfos.Length != 1)
+				{
 					// remember this applies metadata, so is of limited use
 					var wholeStream = await actual.ReadStreamEventsForward($"{streamId}", streamId, fromEventNumber: 0,
 						maxCount: 100, token);
@@ -758,7 +836,8 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 		// (we can't easily check that there aren't unexpected streams in the index, but risk of this
 		// is low)
 		// nothing before the min, or after the max that we found in the log.
-		foreach (var kvp in minEventNumbers) {
+		foreach (var kvp in minEventNumbers)
+		{
 			var streamId = kvp.Key;
 			var min = kvp.Value;
 			var max = maxEventNumbers[streamId];
@@ -777,19 +856,23 @@ public class Scenario<TLogFormat, TStreamId> : Scenario {
 					beforePosition: long.MaxValue,
 					token));
 
-			if (result.EventInfos.Length > 100) {
+			if (result.EventInfos.Length > 100)
+			{
 				throw new Exception("wasn't expecting a stream this long in the tests");
 			}
 
-			Assert.All(result.EventInfos, info => {
+			Assert.All(result.EventInfos, info =>
+			{
 				Assert.True(info.EventNumber >= min);
 				Assert.True(info.EventNumber <= max);
 			});
 		}
 	}
 
-	private async ValueTask EmptyRequestedChunks(TFChunkDb db, CancellationToken token) {
-		foreach (var chunkNum in _chunkNumsToEmpty) {
+	private async ValueTask EmptyRequestedChunks(TFChunkDb db, CancellationToken token)
+	{
+		foreach (var chunkNum in _chunkNumsToEmpty)
+		{
 			var chunk = db.Manager.GetChunk(chunkNum);
 			var header = chunk.ChunkHeader;
 

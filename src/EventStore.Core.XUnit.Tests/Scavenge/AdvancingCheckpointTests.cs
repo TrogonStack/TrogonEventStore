@@ -5,21 +5,25 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class AdvancingCheckpointTests {
+public class AdvancingCheckpointTests
+{
 	readonly AdvancingCheckpoint _sut;
 
 	int _readCount;
 	long _checkpoint;
 
-	public AdvancingCheckpointTests() {
-		_sut = new AdvancingCheckpoint(_ => {
+	public AdvancingCheckpointTests()
+	{
+		_sut = new AdvancingCheckpoint(_ =>
+		{
 			_readCount++;
 			return new(_checkpoint);
 		});
 	}
 
 	[Fact]
-	public async Task compares_correctly() {
+	public async Task compares_correctly()
+	{
 		_checkpoint = 4;
 		Assert.True(await _sut.IsGreaterThanOrEqualTo(3, CancellationToken.None));
 		Assert.True(await _sut.IsGreaterThanOrEqualTo(4, CancellationToken.None));
@@ -34,7 +38,8 @@ public class AdvancingCheckpointTests {
 	}
 
 	[Fact]
-	public async Task makes_use_of_cache() {
+	public async Task makes_use_of_cache()
+	{
 		_checkpoint = 5;
 
 		Assert.Equal(0, _readCount);
@@ -57,7 +62,8 @@ public class AdvancingCheckpointTests {
 	}
 
 	[Fact]
-	public async Task can_reset() {
+	public async Task can_reset()
+	{
 		_checkpoint = 5;
 
 		Assert.True(await _sut.IsGreaterThanOrEqualTo(4, CancellationToken.None));

@@ -13,9 +13,12 @@ using EventStore.Core.Services.Transport.Common;
 using Serilog;
 using IReadIndex = EventStore.Core.Services.Storage.ReaderIndex.IReadIndex;
 
-namespace EventStore.Core.Services.Transport.Enumerators {
-	partial class Enumerator {
-		public class ReadAllBackwardsFiltered : IAsyncEnumerator<ReadResponse> {
+namespace EventStore.Core.Services.Transport.Enumerators
+{
+	partial class Enumerator
+	{
+		public class ReadAllBackwardsFiltered : IAsyncEnumerator<ReadResponse>
+		{
 			private static readonly ILogger Log = Serilog.Log.ForContext<ReadAllBackwardsFiltered>();
 
 			private readonly IPublisher _bus;
@@ -43,12 +46,15 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				bool requiresLeader,
 				uint? maxSearchWindow,
 				DateTime deadline,
-				CancellationToken cancellationToken) {
-				if (bus == null) {
+				CancellationToken cancellationToken)
+			{
+				if (bus == null)
+				{
 					throw new ArgumentNullException(nameof(bus));
 				}
 
-				if (eventFilter == null) {
+				if (eventFilter == null)
+				{
 					throw new ArgumentNullException(nameof(eventFilter));
 				}
 
@@ -67,13 +73,16 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				ReadPage(position);
 			}
 
-			public ValueTask DisposeAsync() {
+			public ValueTask DisposeAsync()
+			{
 				_channel.Writer.TryComplete();
 				return new ValueTask(Task.CompletedTask);
 			}
 
-			public async ValueTask<bool> MoveNextAsync() {
-				if (!await _channel.Reader.WaitToReadAsync(_cancellationToken)) {
+			public async ValueTask<bool> MoveNextAsync()
+			{
+				if (!await _channel.Reader.WaitToReadAsync(_cancellationToken))
+				{
 					return false;
 				}
 
@@ -82,7 +91,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				return true;
 			}
 
-			private void ReadPage(Position startPosition, ulong readCount = 0) {
+			private void ReadPage(Position startPosition, ulong readCount = 0)
+			{
 				var correlationId = Guid.NewGuid();
 
 				var (commitPosition, preparePosition) = startPosition.ToInt64();
@@ -93,23 +103,29 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 					_requiresLeader, (int)_maxSearchWindow, null, _eventFilter, _user, expires: _deadline,
 					cancellationToken: _cancellationToken));
 
-				async Task OnMessage(Message message, CancellationToken ct) {
+				async Task OnMessage(Message message, CancellationToken ct)
+				{
 					if (message is ClientMessage.NotHandled notHandled &&
-						TryHandleNotHandled(notHandled, out var ex)) {
+						TryHandleNotHandled(notHandled, out var ex))
+					{
 						_channel.Writer.TryComplete(ex);
 						return;
 					}
 
-					if (message is not ClientMessage.FilteredReadAllEventsBackwardCompleted completed) {
+					if (message is not ClientMessage.FilteredReadAllEventsBackwardCompleted completed)
+					{
 						_channel.Writer.TryComplete(
 							ReadResponseException.UnknownMessage.Create<ClientMessage.FilteredReadAllEventsBackwardCompleted>(message));
 						return;
 					}
 
-					switch (completed.Result) {
+					switch (completed.Result)
+					{
 						case FilteredReadAllResult.Success:
-							foreach (var @event in completed.Events) {
-								if (readCount >= _maxCount) {
+							foreach (var @event in completed.Events)
+							{
+								if (readCount >= _maxCount)
+								{
 									_channel.Writer.TryComplete();
 									return;
 								}
@@ -117,7 +133,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 								readCount++;
 							}
 
-							if (completed.IsEndOfStream) {
+							if (completed.IsEndOfStream)
+							{
 								_channel.Writer.TryComplete();
 								return;
 							}

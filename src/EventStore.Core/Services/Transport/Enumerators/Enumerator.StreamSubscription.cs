@@ -14,16 +14,20 @@ using EventStore.Core.Services.Transport.Common;
 using Serilog;
 using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
-namespace EventStore.Core.Services.Transport.Enumerators {
-	static partial class Enumerator {
-		public abstract class StreamSubscription : IAsyncEnumerator<ReadResponse> {
+namespace EventStore.Core.Services.Transport.Enumerators
+{
+	static partial class Enumerator
+	{
+		public abstract class StreamSubscription : IAsyncEnumerator<ReadResponse>
+		{
 			protected static readonly ILogger Log = Serilog.Log.ForContext<StreamSubscription>();
 			public abstract ValueTask DisposeAsync();
 			public abstract ValueTask<bool> MoveNextAsync();
 			public abstract ReadResponse Current { get; }
 		}
 
-		public class StreamSubscription<TStreamId> : StreamSubscription {
+		public class StreamSubscription<TStreamId> : StreamSubscription
+		{
 			private readonly IExpiryStrategy _expiryStrategy;
 			private readonly Guid _subscriptionId;
 			private readonly IPublisher _bus;
@@ -50,7 +54,8 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				bool resolveLinks,
 				ClaimsPrincipal user,
 				bool requiresLeader,
-				CancellationToken cancellationToken) {
+				CancellationToken cancellationToken)
+			{
 				ArgumentNullException.ThrowIfNull(bus);
 				ArgumentNullException.ThrowIfNull(streamName);
 
@@ -71,8 +76,10 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				Subscribe(checkpoint, _cts.Token);
 			}
 
-			public override ValueTask DisposeAsync() {
-				if (_disposed) {
+			public override ValueTask DisposeAsync()
+			{
+				if (_disposed)
+				{
 					return ValueTask.CompletedTask;
 				}
 
@@ -88,20 +95,24 @@ namespace EventStore.Core.Services.Transport.Enumerators {
 				return ValueTask.CompletedTask;
 			}
 
-			public override async ValueTask<bool> MoveNextAsync() {
+			public override async ValueTask<bool> MoveNextAsync()
+			{
 ReadLoop:
 
-				if (!await _channel.Reader.WaitToReadAsync(_cts.Token)) {
+				if (!await _channel.Reader.WaitToReadAsync(_cts.Token))
+				{
 					return false;
 				}
 
 				var readResponse = await _channel.Reader.ReadAsync(_cts.Token);
 
-				if (readResponse is ReadResponse.EventReceived eventReceived) {
+				if (readResponse is ReadResponse.EventReceived eventReceived)
+				{
 					var @event = eventReceived.Event;
 					var streamRevision = StreamRevision.FromInt64(@event.OriginalEventNumber);
 
-					if (_currentRevision.HasValue && streamRevision <= _currentRevision.Value) {
+					if (_currentRevision.HasValue && streamRevision <= _currentRevision.Value)
+					{
 						// this should no longer happen
 						Log.Warning(
 							"Subscription {subscriptionId} to {streamName} skipping event {streamRevision} as it is less than {currentRevision}.",
@@ -122,24 +133,30 @@ ReadLoop:
 				return true;
 			}
 
-			private void Subscribe(StreamRevision? checkpoint, CancellationToken ct) {
+			private void Subscribe(StreamRevision? checkpoint, CancellationToken ct)
+			{
 				Task.Factory.StartNew(() => MainLoop(checkpoint, ct), ct);
 			}
 
-			private static long ConvertCheckpoint(StreamRevision? checkpoint, long lastLiveEventNumber) {
-				if (!checkpoint.HasValue) {
+			private static long ConvertCheckpoint(StreamRevision? checkpoint, long lastLiveEventNumber)
+			{
+				if (!checkpoint.HasValue)
+				{
 					return -1;
 				}
 
-				if (checkpoint == StreamRevision.End) {
+				if (checkpoint == StreamRevision.End)
+				{
 					return lastLiveEventNumber;
 				}
 
 				return checkpoint.Value.ToInt64();
 			}
 
-			private async Task MainLoop(StreamRevision? checkpointRevision, CancellationToken ct) {
-				try {
+			private async Task MainLoop(StreamRevision? checkpointRevision, CancellationToken ct)
+			{
+				try
+				{
 					Log.Debug("Subscription {subscriptionId} to {streamName} has started at checkpoint {streamRevision:N0}",
 						_subscriptionId, _streamName, checkpointRevision?.ToString() ?? "Start");
 
@@ -153,29 +170,35 @@ ReadLoop:
 					// the most recently read sequence number from the live channel. 0 when we haven't read any.
 					var sequenceNumber = 0UL;
 
-					if (checkpoint >= confirmationLastEventNumber) {
+					if (checkpoint >= confirmationLastEventNumber)
+					{
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
 					}
 
-					while (true) {
+					while (true)
+					{
 						ct.ThrowIfCancellationRequested();
 						checkpoint = await CatchUp(checkpoint, ct);
 						(checkpoint, sequenceNumber) = await GoLive(checkpoint, sequenceNumber, ct);
 					}
 				}
-				catch (Exception ex) {
-					if (ex is not (OperationCanceledException or ReadResponseException.StreamDeleted)) {
+				catch (Exception ex)
+				{
+					if (ex is not (OperationCanceledException or ReadResponseException.StreamDeleted))
+					{
 						Log.Error(ex, "Subscription {subscriptionId} to {streamName} experienced an error.", _subscriptionId, _streamName);
 					}
 
 					_channel.Writer.TryComplete(ex);
 				}
-				finally {
+				finally
+				{
 					Log.Debug("Subscription {subscriptionId} to {streamName} has ended.", _subscriptionId, _streamName);
 				}
 			}
 
-			private async Task NotifyCaughtUp(long checkpoint, CancellationToken ct) {
+			private async Task NotifyCaughtUp(long checkpoint, CancellationToken ct)
+			{
 				Log.Debug(
 					"Subscription {subscriptionId} to {streamName} caught up at checkpoint {streamRevision:N0}.",
 					_subscriptionId, _streamName, checkpoint);
@@ -183,7 +206,8 @@ ReadLoop:
 				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionCaughtUp(), ct);
 			}
 
-			private async Task NotifyFellBehind(long checkpoint, CancellationToken ct) {
+			private async Task NotifyFellBehind(long checkpoint, CancellationToken ct)
+			{
 				Log.Debug(
 					"Subscription {subscriptionId} to {streamName} fell behind at checkpoint {streamRevision:N0}.",
 					_subscriptionId, _streamName, checkpoint);
@@ -191,14 +215,17 @@ ReadLoop:
 				await _channel.Writer.WriteAsync(new ReadResponse.SubscriptionFellBehind(), ct);
 			}
 
-			private async ValueTask<(long, ulong)> GoLive(long checkpoint, ulong sequenceNumber, CancellationToken ct) {
+			private async ValueTask<(long, ulong)> GoLive(long checkpoint, ulong sequenceNumber, CancellationToken ct)
+			{
 				await NotifyCaughtUp(checkpoint, ct);
 
-				await foreach (var liveEvent in _liveEvents.Reader.ReadAllAsync(ct)) {
+				await foreach (var liveEvent in _liveEvents.Reader.ReadAllAsync(ct))
+				{
 					var sequenceCorrect = liveEvent.SequenceNumber == sequenceNumber + 1;
 					sequenceNumber = liveEvent.SequenceNumber;
 
-					if (liveEvent.ResolvedEvent.OriginalEventNumber <= checkpoint) {
+					if (liveEvent.ResolvedEvent.OriginalEventNumber <= checkpoint)
+					{
 						// skip because this event has already been sent towards the client
 						// (or the client specified a checkpoint for events that don't exist yet and so
 						// is not interested in them)
@@ -207,7 +234,8 @@ ReadLoop:
 						continue;
 					}
 
-					if (!sequenceCorrect) {
+					if (!sequenceCorrect)
+					{
 						// there's a gap in the sequence numbers, at least one live event was discarded
 						// due to the live channel becoming full.
 						// switch back to catchup to make sure we didn't miss anything we wanted to send.
@@ -223,7 +251,8 @@ ReadLoop:
 				throw new Exception($"Unexpected error: live events channel for subscription {_subscriptionId} to {_streamName} completed without exception");
 			}
 
-			private Task<long> CatchUp(long checkpoint, CancellationToken ct) {
+			private Task<long> CatchUp(long checkpoint, CancellationToken ct)
+			{
 				var startEventNumber = checkpoint + 1;
 				Log.Verbose(
 					"Subscription {subscriptionId} to {streamName} is catching up from checkpoint {checkpoint:N0}",
@@ -240,21 +269,27 @@ ReadLoop:
 
 				return catchupCompletionTcs.Task;
 
-				async Task OnMessage(Message message, CancellationToken ct) {
-					try {
+				async Task OnMessage(Message message, CancellationToken ct)
+				{
+					try
+					{
 						if (message is ClientMessage.NotHandled notHandled &&
-							TryHandleNotHandled(notHandled, out var ex)) {
+							TryHandleNotHandled(notHandled, out var ex))
+						{
 							throw ex;
 						}
 
-						if (message is not ClientMessage.ReadStreamEventsForwardCompleted completed) {
+						if (message is not ClientMessage.ReadStreamEventsForwardCompleted completed)
+						{
 							throw ReadResponseException.UnknownMessage
 								.Create<ClientMessage.ReadStreamEventsForwardCompleted>(message);
 						}
 
-						switch (completed.Result) {
+						switch (completed.Result)
+						{
 							case ReadStreamResult.Success:
-								foreach (var @event in completed.Events) {
+								foreach (var @event in completed.Events)
+								{
 									var streamRevision = StreamRevision.FromInt64(@event.OriginalEvent.EventNumber);
 
 									Log.Verbose(
@@ -265,7 +300,8 @@ ReadLoop:
 									checkpoint = @event.OriginalEventNumber;
 								}
 
-								if (completed.IsEndOfStream) {
+								if (completed.IsEndOfStream)
+								{
 									catchupCompletionTcs.TrySetResult(checkpoint);
 									return;
 								}
@@ -289,21 +325,25 @@ ReadLoop:
 								throw ReadResponseException.UnknownError.Create(completed.Result);
 						}
 					}
-					catch (Exception exception) {
+					catch (Exception exception)
+					{
 						catchupCompletionTcs.TrySetException(exception);
 					}
 				}
 			}
 
-			private async Task SendEventToSubscription(ResolvedEvent @event, CancellationToken ct) {
+			private async Task SendEventToSubscription(ResolvedEvent @event, CancellationToken ct)
+			{
 				await _channel.Writer.WriteAsync(new ReadResponse.EventReceived(@event), ct);
 
-				if (@event.OriginalEvent.EventType == SystemEventTypes.StreamDeleted) {
+				if (@event.OriginalEvent.EventType == SystemEventTypes.StreamDeleted)
+				{
 					throw new ReadResponseException.StreamDeleted(_streamName);
 				}
 			}
 
-			private Task<long> SubscribeToLive() {
+			private Task<long> SubscribeToLive()
+			{
 				var nextLiveSequenceNumber = 0UL;
 				var confirmationEventNumberTcs = new TaskCompletionSource<long>();
 
@@ -313,14 +353,18 @@ ReadLoop:
 
 				return confirmationEventNumberTcs.Task;
 
-				void OnSubscriptionMessage(Message message) {
-					try {
+				void OnSubscriptionMessage(Message message)
+				{
+					try
+					{
 						if (message is ClientMessage.NotHandled notHandled &&
-							TryHandleNotHandled(notHandled, out var ex)) {
+							TryHandleNotHandled(notHandled, out var ex))
+						{
 							throw ex;
 						}
 
-						switch (message) {
+						switch (message)
+						{
 							case ClientMessage.SubscriptionConfirmation confirmed:
 								long caughtUp = confirmed.LastEventNumber ??
 												throw ReadResponseException.UnknownError.Create(
@@ -336,7 +380,8 @@ ReadLoop:
 								Log.Debug(
 									"Subscription {subscriptionId} to {streamName} dropped by subscription service: {droppedReason}",
 									_subscriptionId, _streamName, dropped.Reason);
-								switch (dropped.Reason) {
+								switch (dropped.Reason)
+								{
 									case SubscriptionDropReason.AccessDenied:
 										throw new ReadResponseException.AccessDenied();
 									case SubscriptionDropReason.StreamDeleted:
@@ -347,12 +392,14 @@ ReadLoop:
 									default:
 										throw ReadResponseException.UnknownError.Create(dropped.Reason);
 								}
-							case ClientMessage.StreamEventAppeared appeared: {
+							case ClientMessage.StreamEventAppeared appeared:
+								{
 									Log.Verbose(
 										"Subscription {subscriptionId} to {streamName} received live event {streamRevision}.",
 										_subscriptionId, _streamName, appeared.Event.OriginalEventNumber);
 
-									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event))) {
+									if (!_liveEvents.Writer.TryWrite((++nextLiveSequenceNumber, appeared.Event)))
+									{
 										// this cannot happen because _liveEvents does not have full mode 'wait'.
 										throw new Exception($"Unexpected error: could not write to live events channel for subscription {_subscriptionId} to {_streamName}");
 									}
@@ -364,18 +411,21 @@ ReadLoop:
 									.Create<ClientMessage.SubscriptionConfirmation>(message);
 						}
 					}
-					catch (Exception exception) {
+					catch (Exception exception)
+					{
 						_liveEvents.Writer.TryComplete(exception);
 						confirmationEventNumberTcs.TrySetException(exception);
 					}
 				}
 			}
 
-			private ValueTask ConfirmSubscription(CancellationToken ct) {
+			private ValueTask ConfirmSubscription(CancellationToken ct)
+			{
 				return _channel.Writer.WriteAsync(new ReadResponse.SubscriptionConfirmed(SubscriptionId), ct);
 			}
 
-			private void ReadPage(long startEventNumber, IEnvelope envelope, CancellationToken ct) {
+			private void ReadPage(long startEventNumber, IEnvelope envelope, CancellationToken ct)
+			{
 				Guid correlationId = Guid.NewGuid();
 				Log.Verbose(
 					"Subscription {subscriptionId} to {streamName} reading next page starting from {streamRevision}.",

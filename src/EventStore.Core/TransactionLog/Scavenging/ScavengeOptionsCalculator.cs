@@ -7,14 +7,16 @@ using Microsoft.Extensions.Configuration;
 namespace EventStore.Core.TransactionLog.Scavenging;
 
 // Calculates the way to configure the scavenge based on various configuration sources
-public class ScavengeOptionsCalculator {
+public class ScavengeOptionsCalculator
+{
 	readonly ClusterVNodeOptions _vNodeOptions;
 	readonly ClientMessage.ScavengeDatabase _message;
 	readonly bool _archiveEnabled;
 
 	public ScavengeOptionsCalculator(
 		ClusterVNodeOptions vNodeOptions,
-		ClientMessage.ScavengeDatabase message) {
+		ClientMessage.ScavengeDatabase message)
+	{
 
 		_vNodeOptions = vNodeOptions;
 		_message = message;

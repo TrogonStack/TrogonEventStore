@@ -15,14 +15,16 @@ namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_sequentially_reading_db_with_few_chunks<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+	when_sequentially_reading_db_with_few_chunks<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private const int RecordsCount = 8;
 
 	private TFChunkDb _db;
 	private ILogRecord[] _records;
 	private RecordWriteResult[] _results;
 
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_db = new TFChunkDb(TFChunkHelper.CreateSizedDbConfig(PathName, 0, chunkSize: 4096));
@@ -39,8 +41,10 @@ public class
 		var expectedVersion = ExpectedVersion.NoStream;
 
 		var pos = 0;
-		for (int i = 0; i < RecordsCount; ++i) {
-			if (i > 0 && i % 3 == 0) {
+		for (int i = 0; i < RecordsCount; ++i)
+		{
+			if (i > 0 && i % 3 == 0)
+			{
 				pos = i / 3 * _db.Config.ChunkSize;
 				await chunk.Complete(CancellationToken.None);
 				chunk = await _db.Manager.AddNewChunk(CancellationToken.None);
@@ -60,17 +64,21 @@ public class
 		_db.Config.WriterCheckpoint.Flush();
 	}
 
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _db.DisposeAsync();
 
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void all_records_were_written() {
+	public void all_records_were_written()
+	{
 		var pos = 0;
-		for (int i = 0; i < RecordsCount; ++i) {
-			if (i % 3 == 0) {
+		for (int i = 0; i < RecordsCount; ++i)
+		{
+			if (i % 3 == 0)
+			{
 				pos = 0;
 			}
 
@@ -83,11 +91,13 @@ public class
 	}
 
 	[Test]
-	public async Task all_records_could_be_read_with_forward_pass() {
+	public async Task all_records_could_be_read_with_forward_pass()
+	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
 		int count = 0;
-		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res) {
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
+		{
 			var rec = _records[count];
 			Assert.AreEqual(rec, res.LogRecord);
 			Assert.AreEqual(rec.LogPosition, res.RecordPrePosition);
@@ -100,12 +110,14 @@ public class
 	}
 
 	[Test]
-	public async Task all_records_could_be_read_with_backward_pass() {
+	public async Task all_records_could_be_read_with_backward_pass()
+	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, _db.Config.WriterCheckpoint.Read());
 
 		SeqReadResult res;
 		int count = 0;
-		while ((res = await seqReader.TryReadPrev(CancellationToken.None)).Success) {
+		while ((res = await seqReader.TryReadPrev(CancellationToken.None)).Success)
+		{
 			var rec = _records[RecordsCount - count - 1];
 			Assert.AreEqual(rec, res.LogRecord);
 			Assert.AreEqual(rec.LogPosition, res.RecordPrePosition);
@@ -118,11 +130,13 @@ public class
 	}
 
 	[Test]
-	public async Task all_records_could_be_read_doing_forward_backward_pass() {
+	public async Task all_records_could_be_read_doing_forward_backward_pass()
+	{
 		var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, 0);
 
 		int count1 = 0;
-		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res) {
+		while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
+		{
 			var rec = _records[count1];
 			Assert.AreEqual(rec, res.LogRecord);
 			Assert.AreEqual(rec.LogPosition, res.RecordPrePosition);
@@ -134,7 +148,8 @@ public class
 		Assert.AreEqual(RecordsCount, count1);
 
 		int count2 = 0;
-		while (await seqReader.TryReadPrev(CancellationToken.None) is { Success: true } res) {
+		while (await seqReader.TryReadPrev(CancellationToken.None) is { Success: true } res)
+		{
 			var rec = _records[RecordsCount - count2 - 1];
 			Assert.AreEqual(rec, res.LogRecord);
 			Assert.AreEqual(rec.LogPosition, res.RecordPrePosition);
@@ -147,12 +162,15 @@ public class
 	}
 
 	[Test]
-	public async Task records_can_be_read_forward_starting_from_any_position() {
-		for (int i = 0; i < RecordsCount; ++i) {
+	public async Task records_can_be_read_forward_starting_from_any_position()
+	{
+		for (int i = 0; i < RecordsCount; ++i)
+		{
 			var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, _records[i].LogPosition);
 
 			int count = 0;
-			while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res) {
+			while (await seqReader.TryReadNext(CancellationToken.None) is { Success: true } res)
+			{
 				var rec = _records[i + count];
 				Assert.AreEqual(rec, res.LogRecord);
 				Assert.AreEqual(rec.LogPosition, res.RecordPrePosition);
@@ -166,13 +184,16 @@ public class
 	}
 
 	[Test]
-	public async Task records_can_be_read_backward_starting_from_any_position() {
-		for (int i = 0; i < RecordsCount; ++i) {
+	public async Task records_can_be_read_backward_starting_from_any_position()
+	{
+		for (int i = 0; i < RecordsCount; ++i)
+		{
 			var seqReader = new TFChunkReader(_db, _db.Config.WriterCheckpoint, _records[i].LogPosition);
 
 			SeqReadResult res;
 			int count = 0;
-			while ((res = await seqReader.TryReadPrev(CancellationToken.None)).Success) {
+			while ((res = await seqReader.TryReadPrev(CancellationToken.None)).Success)
+			{
 				var rec = _records[i - count - 1];
 				Assert.AreEqual(rec, res.LogRecord);
 				Assert.AreEqual(rec.LogPosition, res.RecordPrePosition);

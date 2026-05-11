@@ -6,10 +6,13 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
-public class when_running_with_content_type_validation {
+public class when_running_with_content_type_validation
+{
 	[TestFixture]
-	public class when_running_with_content_type_validation_enabled : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class when_running_with_content_type_validation_enabled : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                 fromAll().when({$any:
                     function(state, event) {
@@ -19,23 +22,28 @@ public class when_running_with_content_type_validation {
             ";
 		}
 
-		protected override IProjectionStateHandler CreateStateHandler() {
+		protected override IProjectionStateHandler CreateStateHandler()
+		{
 			return _stateHandlerFactory.Create(
 				_projectionType, _projection,
 				enableContentTypeValidation: true,
 				null,
-				logger: (s, _) => {
-					if (s.StartsWith("P:")) {
+				logger: (s, _) =>
+				{
+					if (s.StartsWith("P:"))
+					{
 						Console.WriteLine(s);
 					}
-					else {
+					else
+					{
 						_logged.Add(s);
 					}
 				}); // skip prelude debug output
 		}
 
 		[Test, Category(_projectionType)]
-		public void process_null_json_event_does_not_emit() {
+		public void process_null_json_event_does_not_emit()
+		{
 			EmittedEventEnvelope[] emittedEvents;
 
 			_stateHandler.ProcessEvent(
@@ -47,7 +55,8 @@ public class when_running_with_content_type_validation {
 		}
 
 		[Test, Category(_projectionType)]
-		public void process_null_non_json_event_does_emit() {
+		public void process_null_non_json_event_does_emit()
+		{
 			EmittedEventEnvelope[] emittedEvents;
 
 			_stateHandler.ProcessEvent(
@@ -61,8 +70,10 @@ public class when_running_with_content_type_validation {
 	}
 
 	[TestFixture]
-	public class when_running_with_content_type_validation_disabled : TestFixtureWithInterpretedProjection {
-		protected override void Given() {
+	public class when_running_with_content_type_validation_disabled : TestFixtureWithInterpretedProjection
+	{
+		protected override void Given()
+		{
 			_projection = @"
                 fromAll().when({$any:
                     function(state, event) {
@@ -72,23 +83,28 @@ public class when_running_with_content_type_validation {
             ";
 		}
 
-		protected override IProjectionStateHandler CreateStateHandler() {
+		protected override IProjectionStateHandler CreateStateHandler()
+		{
 			return _stateHandlerFactory.Create(
 				_projectionType, _projection,
 				enableContentTypeValidation: false,
 				projectionExecutionTimeout: null,
-				logger: (s, _) => {
-					if (s.StartsWith("P:")) {
+				logger: (s, _) =>
+				{
+					if (s.StartsWith("P:"))
+					{
 						Console.WriteLine(s);
 					}
-					else {
+					else
+					{
 						_logged.Add(s);
 					}
 				}); // skip prelude debug output
 		}
 
 		[Test, Category(_projectionType)]
-		public void process_null_json_event_does_not_emit() {
+		public void process_null_json_event_does_not_emit()
+		{
 			EmittedEventEnvelope[] emittedEvents;
 
 			_stateHandler.ProcessEvent(
@@ -100,7 +116,8 @@ public class when_running_with_content_type_validation {
 		}
 
 		[Test, Category(_projectionType)]
-		public void process_null_non_json_event_does_not_emit() {
+		public void process_null_non_json_event_does_not_emit()
+		{
 			EmittedEventEnvelope[] emittedEvents;
 
 			_stateHandler.ProcessEvent(

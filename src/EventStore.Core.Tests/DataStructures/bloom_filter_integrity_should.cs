@@ -8,10 +8,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.DataStructures;
 
 [TestFixture]
-public class bloom_filter_integrity_should {
-	private static byte[] NewCacheLine(byte b) {
+public class bloom_filter_integrity_should
+{
+	private static byte[] NewCacheLine(byte b)
+	{
 		var xs = new byte[64];
-		for (int i = 0; i < xs.Length; i++) {
+		for (int i = 0; i < xs.Length; i++)
+		{
 			xs[i] = b;
 		}
 		return xs;
@@ -28,24 +31,29 @@ public class bloom_filter_integrity_should {
 	};
 
 	[TestCaseSource(nameof(RecoverCases))]
-	public void recover_correctly(string name, bool expected, byte[] bytes) {
+	public void recover_correctly(string name, bool expected, byte[] bytes)
+	{
 		var originalBytes = bytes.ToArray();
 
 		var byteSpan = bytes.AsSpan();
 
-		if (expected) {
+		if (expected)
+		{
 			Assert.True(BloomFilterIntegrity.ValidateHash(byteSpan));
 
 			// bytes should be unchanged
-			for (var i = 0; i < bytes.Length; i++) {
+			for (var i = 0; i < bytes.Length; i++)
+			{
 				Assert.AreEqual(originalBytes[i], bytes[i]);
 			}
 		}
-		else {
+		else
+		{
 			Assert.False(BloomFilterIntegrity.ValidateHash(byteSpan));
 
 			// bytes should be all 1s
-			foreach (var b in bytes) {
+			foreach (var b in bytes)
+			{
 				Assert.AreEqual(0b1111_1111, b);
 			}
 		}
@@ -59,28 +67,33 @@ public class bloom_filter_integrity_should {
 	};
 
 	[TestCaseSource(nameof(WriteCases))]
-	public void write_correctly(string name, bool expected, byte[] bytes) {
+	public void write_correctly(string name, bool expected, byte[] bytes)
+	{
 		var originalBytes = bytes.ToArray();
 		var byteSpan = bytes.AsSpan();
 
 		BloomFilterIntegrity.WriteHash(byteSpan);
 
 		// bytes before the hash should be unchanged
-		for (var i = 0; i < bytes.Length - sizeof(uint); i++) {
+		for (var i = 0; i < bytes.Length - sizeof(uint); i++)
+		{
 			Assert.AreEqual(originalBytes[i], bytes[i]);
 		}
 
 		// cacheline should be valid
-		if (expected) {
+		if (expected)
+		{
 			Assert.True(BloomFilterIntegrity.ValidateHash(byteSpan));
 		}
-		else {
+		else
+		{
 			Assert.False(BloomFilterIntegrity.ValidateHash(byteSpan));
 		}
 	}
 
 	[TestCase]
-	public void rehash_when_exactly_one_too_many_bits_are_set() {
+	public void rehash_when_exactly_one_too_many_bits_are_set()
+	{
 		// some data with hash
 		var cacheLine = NewCacheLine(0x01).WithHash();
 
@@ -99,7 +112,8 @@ public class bloom_filter_integrity_should {
 	}
 
 	[TestCase]
-	public void not_rehash_when_very_different() {
+	public void not_rehash_when_very_different()
+	{
 		// some data with hash
 		var cacheLine = NewCacheLine(0x01).WithHash();
 
@@ -111,13 +125,16 @@ public class bloom_filter_integrity_should {
 	}
 }
 
-static class ByteArrayExtensions {
-	public static byte[] With(this byte[] self, int offset, byte value) {
+static class ByteArrayExtensions
+{
+	public static byte[] With(this byte[] self, int offset, byte value)
+	{
 		self[offset] = value;
 		return self;
 	}
 
-	public static byte[] WithHash(this byte[] self) {
+	public static byte[] WithHash(this byte[] self)
+	{
 		var hasher = new XXHashUnsafe();
 		var hash = hasher.Hash(self.AsSpan()[..^4]);
 		var hashSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref hash, 1));

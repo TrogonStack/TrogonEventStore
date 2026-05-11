@@ -9,9 +9,11 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class OtlpMetricsConfigurationTests {
+public class OtlpMetricsConfigurationTests
+{
 	[Fact]
-	public void IsDisabledByDefault() {
+	public void IsDisabledByDefault()
+	{
 		var configuration = new ConfigurationBuilder().Build();
 
 		var metrics = MetricsConfiguration.Get(configuration);
@@ -20,9 +22,11 @@ public class OtlpMetricsConfigurationTests {
 	}
 
 	[Fact]
-	public void BindsOtlpSettings() {
+	public void BindsOtlpSettings()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:Metrics:Otlp:Enabled"] = "true",
 			})
 			.Build();
@@ -34,9 +38,11 @@ public class OtlpMetricsConfigurationTests {
 	}
 
 	[Fact]
-	public void DoesNotEnableMetricsWhenOnlySharedOpenTelemetryOtlpSectionExists() {
+	public void DoesNotEnableMetricsWhenOnlySharedOpenTelemetryOtlpSectionExists()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 			})
 			.Build();
@@ -47,9 +53,11 @@ public class OtlpMetricsConfigurationTests {
 	}
 
 	[Fact]
-	public void EnablesMetricsWhenRuntimeSwitchUsesSharedOpenTelemetryOtlpSettings() {
+	public void EnablesMetricsWhenRuntimeSwitchUsesSharedOpenTelemetryOtlpSettings()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Metrics:Enabled"] = "true",
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 			})
@@ -63,9 +71,11 @@ public class OtlpMetricsConfigurationTests {
 	}
 
 	[Fact]
-	public void EnablesMetricsWhenPerSignalOpenTelemetryOtlpSectionExists() {
+	public void EnablesMetricsWhenPerSignalOpenTelemetryOtlpSectionExists()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Metrics:Otlp:Endpoint"] = "http://metrics:4317",
 			})
 			.Build();
@@ -76,9 +86,11 @@ public class OtlpMetricsConfigurationTests {
 	}
 
 	[Fact]
-	public void PerSignalMetricsOtlpOverridesSharedSettings() {
+	public void PerSignalMetricsOtlpOverridesSharedSettings()
+	{
 		var configuration = new ConfigurationBuilder()
-			.AddInMemoryCollection(new Dictionary<string, string> {
+			.AddInMemoryCollection(new Dictionary<string, string>
+			{
 				["EventStore:OpenTelemetry:Otlp:Endpoint"] = "http://shared:4317",
 				["EventStore:OpenTelemetry:Otlp:Headers"] = "key=shared",
 				["EventStore:OpenTelemetry:Metrics:Otlp:Endpoint"] = "http://metrics:4317",

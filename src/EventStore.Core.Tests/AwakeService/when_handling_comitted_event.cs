@@ -7,20 +7,23 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.AwakeService;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_comitted_event<TLogFormat, TStreamId> {
+public class when_handling_comitted_event<TLogFormat, TStreamId>
+{
 	private Core.Services.AwakeReaderService.AwakeService _it;
 	private EventRecord _eventRecord;
 	private StorageMessage.EventCommitted _eventCommitted;
 	private Exception _exception;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_exception = null;
 		Given();
 		When();
 	}
 
-	private void Given() {
+	private void Given()
+	{
 		_it = new Core.Services.AwakeReaderService.AwakeService();
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
@@ -35,17 +38,21 @@ public class when_handling_comitted_event<TLogFormat, TStreamId> {
 		_eventCommitted = new StorageMessage.EventCommitted(1000, _eventRecord, isTfEof: true);
 	}
 
-	private void When() {
-		try {
+	private void When()
+	{
+		try
+		{
 			_it.Handle(_eventCommitted);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void it_is_handled() {
+	public void it_is_handled()
+	{
 		Assert.IsNull(_exception, (_exception ?? (object)"").ToString());
 	}
 }

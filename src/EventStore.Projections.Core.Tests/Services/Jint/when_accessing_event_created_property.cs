@@ -9,16 +9,19 @@ namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture(DateTimeKind.Utc)]
 [TestFixture(DateTimeKind.Unspecified)]
-public class when_accessing_event_created_property : specification_with_event_handled {
+public class when_accessing_event_created_property : specification_with_event_handled
+{
 	private readonly DateTimeKind _timestampKind;
 
-	public when_accessing_event_created_property(DateTimeKind timestampKind) {
+	public when_accessing_event_created_property(DateTimeKind timestampKind)
+	{
 		_timestampKind = timestampKind;
 	}
 
 	private DateTime ExpectedTimestamp => new(2023, 4, 5, 12, 34, 56, _timestampKind);
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		_projection = @"
             fromAll().when({$any:
                 function(state, event) {
@@ -46,7 +49,8 @@ public class when_accessing_event_created_property : specification_with_event_ha
 	}
 
 	[Test, Category(_projectionType)]
-	public void exposes_the_event_timestamp_as_an_iso_8601_string() {
+	public void exposes_the_event_timestamp_as_an_iso_8601_string()
+	{
 		using var state = JsonDocument.Parse(_newState);
 
 		var expectedTimestamp = DateTime.SpecifyKind(ExpectedTimestamp, DateTimeKind.Utc).ToString("o");

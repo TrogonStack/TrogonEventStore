@@ -25,7 +25,8 @@ namespace EventStore.Core.Tests.Services.Storage;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	WhenHavingAnEpochManagerAndEmptyTfLog<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+	WhenHavingAnEpochManagerAndEmptyTfLog<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private TFChunkDb _db;
 	private EpochManager<TStreamId> _epochManager;
 	private LogFormatAbstractor<TStreamId> _logFormat;
@@ -40,7 +41,8 @@ public class
 
 	private long _currentEpoch = -1;
 
-	private EpochManager<TStreamId> GetManager() {
+	private EpochManager<TStreamId> GetManager()
+	{
 		return new EpochManager<TStreamId>(_mainBus,
 			10,
 			_db.Config.EpochCheckpoint,
@@ -57,14 +59,16 @@ public class
 			_instanceId);
 	}
 
-	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager) {
+	private LinkedList<EpochRecord> GetCache(EpochManager<TStreamId> manager)
+	{
 		return (LinkedList<EpochRecord>)typeof(EpochManager<TStreamId>)
 			.GetField("_epochs", BindingFlags.NonPublic | BindingFlags.Instance)
 			.GetValue(_epochManager);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		var indexDirectory = GetFilePathFor("index");
@@ -86,7 +90,8 @@ public class
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		_logFormat?.Dispose();
 		await (_writer?.DisposeAsync() ?? ValueTask.CompletedTask);
 		await (_db?.DisposeAsync() ?? ValueTask.CompletedTask);
@@ -99,7 +104,8 @@ public class
 	// so this test will run through the test cases
 	// in order
 	[Test]
-	public async Task can_write_epochs() {
+	public async Task can_write_epochs()
+	{
 
 		//can write first epoch
 		_published.Clear();
@@ -117,7 +123,8 @@ public class
 
 		// will_cache_epochs_written() {
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 4; i++)
+		{
 			await _epochManager.WriteNewEpoch(GetNextEpoch(), CancellationToken.None);
 		}
 
@@ -126,7 +133,8 @@ public class
 		Assert.That(_cache.Last.Value.EpochNumber == 4);
 		var epochs = new List<int>();
 		var epoch = _cache.First;
-		while (epoch != null) {
+		while (epoch != null)
+		{
 			epochs.Add(epoch.Value.EpochNumber);
 			epoch = epoch.Next;
 		}
@@ -135,7 +143,8 @@ public class
 
 		// can_write_more_epochs_than_cache_size
 
-		for (int i = 0; i < 16; i++) {
+		for (int i = 0; i < 16; i++)
+		{
 			await _epochManager.WriteNewEpoch(GetNextEpoch(), CancellationToken.None);
 		}
 
@@ -144,7 +153,8 @@ public class
 		Assert.That(_cache.Last.Value.EpochNumber == 20);
 		epochs = new List<int>();
 		epoch = _cache.First;
-		while (epoch != null) {
+		while (epoch != null)
+		{
 			epochs.Add(epoch.Value.EpochNumber);
 			epoch = epoch.Next;
 		}
@@ -154,14 +164,17 @@ public class
 		// has written epoch information
 		var epochsWritten = _published.OfType<SystemMessage.EpochWritten>().ToArray();
 		Assert.AreEqual(1 + 4 + 16, epochsWritten.Length);
-		for (int i = 0; i < epochsWritten.Length; i++) {
+		for (int i = 0; i < epochsWritten.Length; i++)
+		{
 			_reader.Reposition(epochsWritten[i].Epoch.EpochPosition);
 			await _reader.TryReadNext(CancellationToken.None); // read epoch
 			IPrepareLogRecord<TStreamId> epochInfo;
-			while (true) {
+			while (true)
+			{
 				var result = await _reader.TryReadNext(CancellationToken.None);
 				Assert.True(result.Success);
-				if (result.LogRecord is IPrepareLogRecord<TStreamId> prepare) {
+				if (result.LogRecord is IPrepareLogRecord<TStreamId> prepare)
+				{
 					epochInfo = prepare;
 					break;
 				}
@@ -180,7 +193,8 @@ public class
 		_published.Clear();
 	}
 
-	public class EpochDto {
+	public class EpochDto
+	{
 		public Guid LeaderInstanceId { get; set; }
 	}
 }

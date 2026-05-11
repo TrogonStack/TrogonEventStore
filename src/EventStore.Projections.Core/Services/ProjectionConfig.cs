@@ -5,7 +5,8 @@ using EventStore.Projections.Core.Common;
 
 namespace EventStore.Projections.Core.Services;
 
-public class ProjectionConfig {
+public class ProjectionConfig
+{
 	private readonly ClaimsPrincipal _runAs;
 	private readonly int _checkpointHandledThreshold;
 	private readonly int _checkpointUnhandledBytesThreshold;
@@ -22,33 +23,42 @@ public class ProjectionConfig {
 	public ProjectionConfig(ClaimsPrincipal runAs, int checkpointHandledThreshold, int checkpointUnhandledBytesThreshold,
 		int pendingEventsThreshold, int maxWriteBatchLength, bool emitEventEnabled, bool checkpointsEnabled,
 		bool createTempStreams, bool stopOnEof, bool trackEmittedStreams,
-		int checkpointAfterMs, int maximumAllowedWritesInFlight, int? projectionExecutionTimeout) {
-		if (checkpointsEnabled) {
-			if (checkpointHandledThreshold <= 0) {
+		int checkpointAfterMs, int maximumAllowedWritesInFlight, int? projectionExecutionTimeout)
+	{
+		if (checkpointsEnabled)
+		{
+			if (checkpointHandledThreshold <= 0)
+			{
 				throw new ArgumentOutOfRangeException("checkpointHandledThreshold");
 			}
 
-			if (checkpointUnhandledBytesThreshold < checkpointHandledThreshold) {
+			if (checkpointUnhandledBytesThreshold < checkpointHandledThreshold)
+			{
 				throw new ArgumentException(
 					"Checkpoint threshold cannot be less than checkpoint handled threshold");
 			}
 		}
-		else {
-			if (checkpointHandledThreshold != 0) {
+		else
+		{
+			if (checkpointHandledThreshold != 0)
+			{
 				throw new ArgumentOutOfRangeException("checkpointHandledThreshold must be 0");
 			}
 
-			if (checkpointUnhandledBytesThreshold != 0) {
+			if (checkpointUnhandledBytesThreshold != 0)
+			{
 				throw new ArgumentException("checkpointUnhandledBytesThreshold must be 0");
 			}
 		}
 
-		if (maximumAllowedWritesInFlight < AllowedWritesInFlight.Unbounded) {
+		if (maximumAllowedWritesInFlight < AllowedWritesInFlight.Unbounded)
+		{
 			throw new ArgumentException(
 				$"The Maximum Number of Allowed Writes in Flight cannot be less than {AllowedWritesInFlight.Unbounded}");
 		}
 
-		if (projectionExecutionTimeout is not null && projectionExecutionTimeout <= 0) {
+		if (projectionExecutionTimeout is not null && projectionExecutionTimeout <= 0)
+		{
 			throw new ArgumentException(
 				$"The projection execution timeout should be positive. Found : {projectionExecutionTimeout}");
 		}
@@ -68,51 +78,63 @@ public class ProjectionConfig {
 		ProjectionExecutionTimeout = projectionExecutionTimeout;
 	}
 
-	public int CheckpointHandledThreshold {
+	public int CheckpointHandledThreshold
+	{
 		get { return _checkpointHandledThreshold; }
 	}
 
-	public int CheckpointUnhandledBytesThreshold {
+	public int CheckpointUnhandledBytesThreshold
+	{
 		get { return _checkpointUnhandledBytesThreshold; }
 	}
 
-	public int MaxWriteBatchLength {
+	public int MaxWriteBatchLength
+	{
 		get { return _maxWriteBatchLength; }
 	}
 
-	public bool EmitEventEnabled {
+	public bool EmitEventEnabled
+	{
 		get { return _emitEventEnabled; }
 	}
 
-	public bool CheckpointsEnabled {
+	public bool CheckpointsEnabled
+	{
 		get { return _checkpointsEnabled; }
 	}
 
-	public int PendingEventsThreshold {
+	public int PendingEventsThreshold
+	{
 		get { return _pendingEventsThreshold; }
 	}
 
-	public bool CreateTempStreams {
+	public bool CreateTempStreams
+	{
 		get { return _createTempStreams; }
 	}
 
-	public bool StopOnEof {
+	public bool StopOnEof
+	{
 		get { return _stopOnEof; }
 	}
 
-	public ClaimsPrincipal RunAs {
+	public ClaimsPrincipal RunAs
+	{
 		get { return _runAs; }
 	}
 
-	public bool TrackEmittedStreams {
+	public bool TrackEmittedStreams
+	{
 		get { return _trackEmittedStreams; }
 	}
 
-	public int CheckpointAfterMs {
+	public int CheckpointAfterMs
+	{
 		get { return _checkpointAfterMs; }
 	}
 
-	public int MaximumAllowedWritesInFlight {
+	public int MaximumAllowedWritesInFlight
+	{
 		get { return _maximumAllowedWritesInFlight; }
 	}
 

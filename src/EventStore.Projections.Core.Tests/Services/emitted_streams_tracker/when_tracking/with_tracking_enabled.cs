@@ -13,12 +13,15 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.emitted_streams_tracker.when_tracking;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_tracking_enabled<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId> {
+public class with_tracking_enabled<TLogFormat, TStreamId> : SpecificationWithEmittedStreamsTrackerAndDeleter<TLogFormat, TStreamId>
+{
 	private CountdownEvent _eventAppeared = new CountdownEvent(1);
 	private UserCredentials _credentials = new UserCredentials("admin", "changeit");
 
-	protected override async Task When() {
-		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) => {
+	protected override async Task When()
+	{
+		var sub = await _conn.SubscribeToStreamAsync(_projectionNamesBuilder.GetEmittedStreamsName(), true, (s, evnt) =>
+		{
 			_eventAppeared.Signal();
 			return Task.CompletedTask;
 		}, userCredentials: _credentials);
@@ -34,7 +37,8 @@ public class with_tracking_enabled<TLogFormat, TStreamId> : SpecificationWithEmi
 	}
 
 	[Test]
-	public async Task should_write_a_stream_tracked_event() {
+	public async Task should_write_a_stream_tracked_event()
+	{
 		var result = await _conn.ReadStreamEventsForwardAsync(_projectionNamesBuilder.GetEmittedStreamsName(), 0, 200,
 			false, _credentials);
 		Assert.AreEqual(1, result.Events.Length);

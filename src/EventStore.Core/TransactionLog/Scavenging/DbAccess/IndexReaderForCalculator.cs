@@ -10,13 +10,16 @@ public class IndexReaderForCalculator<TStreamId>(
 	IReadIndex<TStreamId> readIndex,
 	Func<TFReaderLease> tfReaderFactory,
 	Func<ulong, TStreamId> lookupUniqueHashUser)
-	: IIndexReaderForCalculator<TStreamId> {
+	: IIndexReaderForCalculator<TStreamId>
+{
 	public ValueTask<long> GetLastEventNumber(
 		StreamHandle<TStreamId> handle,
 		ScavengePoint scavengePoint,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
-		return handle.Kind switch {
+		return handle.Kind switch
+		{
 			StreamHandle.Kind.Hash =>
 				// tries as far as possible to use the index without consulting the log to fetch the last event number
 				readIndex.GetStreamLastEventNumber_NoCollisions(handle.StreamHash, lookupUniqueHashUser,
@@ -33,9 +36,11 @@ public class IndexReaderForCalculator<TStreamId>(
 		long fromEventNumber,
 		int maxCount,
 		ScavengePoint scavengePoint,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 
-		return handle.Kind switch {
+		return handle.Kind switch
+		{
 			StreamHandle.Kind.Hash =>
 				// uses the index only
 				readIndex.ReadEventInfoForward_NoCollisions(handle.StreamHash, fromEventNumber, maxCount,
@@ -49,15 +54,18 @@ public class IndexReaderForCalculator<TStreamId>(
 		};
 	}
 
-	public async ValueTask<bool> IsTombstone(long logPosition, CancellationToken token) {
+	public async ValueTask<bool> IsTombstone(long logPosition, CancellationToken token)
+	{
 		using var reader = tfReaderFactory();
 		var result = await reader.TryReadAt(logPosition, couldBeScavenged: true, token);
 
-		if (!result.Success) {
+		if (!result.Success)
+		{
 			return false;
 		}
 
-		if (result.LogRecord is not IPrepareLogRecord prepare) {
+		if (result.LogRecord is not IPrepareLogRecord prepare)
+		{
 			throw new Exception(
 				$"Incorrect type of log record {result.LogRecord.RecordType}, " +
 				$"expected Prepare record.");

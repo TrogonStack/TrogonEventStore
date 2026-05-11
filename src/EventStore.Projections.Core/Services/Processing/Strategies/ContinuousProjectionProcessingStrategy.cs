@@ -9,7 +9,8 @@ using ILogger = Serilog.ILogger;
 
 namespace EventStore.Projections.Core.Services.Processing.Strategies;
 
-public class ContinuousProjectionProcessingStrategy : DefaultProjectionProcessingStrategy {
+public class ContinuousProjectionProcessingStrategy : DefaultProjectionProcessingStrategy
+{
 	public ContinuousProjectionProcessingStrategy(
 		string name, ProjectionVersion projectionVersion, IProjectionStateHandler stateHandler,
 		ProjectionConfig projectionConfig, IQuerySources sourceDefinition, ILogger logger,
@@ -17,18 +18,22 @@ public class ContinuousProjectionProcessingStrategy : DefaultProjectionProcessin
 		int maxProjectionStateSize = int.MaxValue)
 		: base(
 			name, projectionVersion, stateHandler, projectionConfig, sourceDefinition, logger,
-			subscriptionDispatcher, enableContentTypeValidation, maxProjectionStateSize) {
+			subscriptionDispatcher, enableContentTypeValidation, maxProjectionStateSize)
+	{
 	}
 
-	public override bool GetStopOnEof() {
+	public override bool GetStopOnEof()
+	{
 		return false;
 	}
 
-	public override bool GetUseCheckpoints() {
+	public override bool GetUseCheckpoints()
+	{
 		return _projectionConfig.CheckpointsEnabled;
 	}
 
-	public override bool GetProducesRunningResults() {
+	public override bool GetProducesRunningResults()
+	{
 		return _sourceDefinition.ProducesResults;
 	}
 
@@ -40,11 +45,13 @@ public class ContinuousProjectionProcessingStrategy : DefaultProjectionProcessin
 		PartitionStateCache partitionStateCache,
 		CoreProjection coreProjection,
 		IODispatcher ioDispatcher,
-		IProjectionProcessingPhase firstPhase) {
+		IProjectionProcessingPhase firstPhase)
+	{
 		return new IProjectionProcessingPhase[] { firstPhase };
 	}
 
-	protected override IResultEventEmitter CreateFirstPhaseResultEmitter(ProjectionNamesBuilder namingBuilder) {
+	protected override IResultEventEmitter CreateFirstPhaseResultEmitter(ProjectionNamesBuilder namingBuilder)
+	{
 		return _sourceDefinition.ProducesResults
 			? new ResultEventEmitter(namingBuilder)
 			: (IResultEventEmitter)new NoopResultEventEmitter();

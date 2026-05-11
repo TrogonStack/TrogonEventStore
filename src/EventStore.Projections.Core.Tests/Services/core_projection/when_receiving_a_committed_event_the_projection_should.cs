@@ -12,16 +12,19 @@ using ResolvedEvent = EventStore.Projections.Core.Services.Processing.ResolvedEv
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_receiving_a_committed_event_the_projection_should<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId> {
+public class when_receiving_a_committed_event_the_projection_should<TLogFormat, TStreamId> : TestFixtureWithCoreProjectionStarted<TLogFormat, TStreamId>
+{
 	private Guid _eventId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 		AllWritesSucceed();
 		NoOtherStreams();
 	}
 
-	protected override void When() {
+	protected override void When()
+	{
 		//projection subscribes here
 		_eventId = Guid.NewGuid();
 		_bus.Publish(
@@ -32,7 +35,8 @@ public class when_receiving_a_committed_event_the_projection_should<TLogFormat, 
 	}
 
 	[Test]
-	public void update_state_snapshot_at_correct_position() {
+	public void update_state_snapshot_at_correct_position()
+	{
 		Assert.AreEqual(1, _writeEventHandler.HandledMessages.OfEventType("Result").Count);
 
 		var metedata =
@@ -44,7 +48,8 @@ public class when_receiving_a_committed_event_the_projection_should<TLogFormat, 
 	}
 
 	[Test]
-	public void pass_event_to_state_handler() {
+	public void pass_event_to_state_handler()
+	{
 		Assert.AreEqual(1, _stateHandler._eventsProcessed);
 		Assert.AreEqual("/event_category/1", _stateHandler._lastProcessedStreamId);
 		Assert.AreEqual("handle_this_type", _stateHandler._lastProcessedEventType);

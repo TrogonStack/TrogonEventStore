@@ -8,18 +8,21 @@ using Grpc.Core;
 
 namespace EventStore.Projections.Core.Services.Grpc;
 
-internal partial class ProjectionManagement {
+internal partial class ProjectionManagement
+{
 	private static readonly Operation ReadConfigurationOperation = new Operation(Operations.Projections.ReadConfiguration);
 	private static readonly Operation UpdateConfigurationOperation = new Operation(Operations.Projections.UpdateConfiguration);
 
-	public override async Task<GetConfigResp> GetConfig(GetConfigReq request, ServerCallContext context) {
+	public override async Task<GetConfigResp> GetConfig(GetConfigReq request, ServerCallContext context)
+	{
 		var configSource = new TaskCompletionSource<ProjectionManagementMessage.ProjectionConfig>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var getConfigCancellationRegistration =
 			context.CancellationToken.Register(() => configSource.TrySetCanceled(context.CancellationToken));
 		var name = request.Options.Name;
 		var user = context.GetHttpContext().User;
 
-		if (!await _authorizationProvider.CheckAccessAsync(user, ReadConfigurationOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, ReadConfigurationOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -30,7 +33,8 @@ internal partial class ProjectionManagement {
 			new ProjectionManagementMessage.RunAs(user)));
 
 		var config = await configSource.Task;
-		var details = new GetConfigResp.Types.Details {
+		var details = new GetConfigResp.Types.Details
+		{
 			EmitEnabled = config.EmitEnabled,
 			TrackEmittedStreams = config.TrackEmittedStreams,
 			CheckpointAfterMs = config.CheckpointAfterMs,
@@ -40,16 +44,20 @@ internal partial class ProjectionManagement {
 			MaxWriteBatchLength = config.MaxWriteBatchLength,
 			MaxAllowedWritesInFlight = config.MaxAllowedWritesInFlight
 		};
-		if (config.ProjectionExecutionTimeout is { } projectionExecutionTimeout) {
+		if (config.ProjectionExecutionTimeout is { } projectionExecutionTimeout)
+		{
 			details.ProjectionExecutionTimeout = projectionExecutionTimeout;
 		}
 
-		return new GetConfigResp {
+		return new GetConfigResp
+		{
 			Details = details
 		};
 
-		void OnMessage(Message message) {
-			switch (message) {
+		void OnMessage(Message message)
+		{
+			switch (message)
+			{
 				case ProjectionManagementMessage.ProjectionConfig projectionConfig:
 					configSource.TrySetResult(projectionConfig);
 					break;
@@ -63,7 +71,8 @@ internal partial class ProjectionManagement {
 		}
 	}
 
-	public override async Task<UpdateConfigResp> UpdateConfig(UpdateConfigReq request, ServerCallContext context) {
+	public override async Task<UpdateConfigResp> UpdateConfig(UpdateConfigReq request, ServerCallContext context)
+	{
 		var updateSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var updateConfigCancellationRegistration =
 			context.CancellationToken.Register(() => updateSource.TrySetCanceled(context.CancellationToken));
@@ -71,7 +80,8 @@ internal partial class ProjectionManagement {
 		var name = options.Name;
 		var user = context.GetHttpContext().User;
 
-		if (!await _authorizationProvider.CheckAccessAsync(user, UpdateConfigurationOperation, context.CancellationToken)) {
+		if (!await _authorizationProvider.CheckAccessAsync(user, UpdateConfigurationOperation, context.CancellationToken))
+		{
 			throw RpcExceptions.AccessDenied();
 		}
 
@@ -93,8 +103,10 @@ internal partial class ProjectionManagement {
 		await updateSource.Task;
 		return new UpdateConfigResp();
 
-		void OnMessage(Message message) {
-			switch (message) {
+		void OnMessage(Message message)
+		{
+			switch (message)
+			{
 				case ProjectionManagementMessage.Updated:
 					updateSource.TrySetResult(true);
 					break;

@@ -5,13 +5,17 @@ using System.Threading;
 using Google.Protobuf;
 using ILogger = Serilog.ILogger;
 
-namespace EventStore.Core.Services.Transport.Tcp {
-	public static class ProtobufExtensions {
+namespace EventStore.Core.Services.Transport.Tcp
+{
+	public static class ProtobufExtensions
+	{
 		private static readonly ConcurrentStack<MemoryStream> _streams;
 
-		static ProtobufExtensions() {
+		static ProtobufExtensions()
+		{
 			_streams = new ConcurrentStack<MemoryStream>();
-			for (var i = 0; i < 300; i++) {
+			for (var i = 0; i < 300; i++)
+			{
 				_streams.Push(new MemoryStream(2048));
 			}
 		}
@@ -19,15 +23,19 @@ namespace EventStore.Core.Services.Transport.Tcp {
 		private static readonly ILogger Log =
 			Serilog.Log.ForContext(Serilog.Core.Constants.SourceContextPropertyName, "ProtobufExtensions");
 
-		static MemoryStream AcquireStream() {
-			for (var i = 0; i < 1000; i++) {
+		static MemoryStream AcquireStream()
+		{
+			for (var i = 0; i < 1000; i++)
+			{
 				MemoryStream ret;
-				if (_streams.TryPop(out ret)) {
+				if (_streams.TryPop(out ret))
+				{
 					ret.SetLength(0);
 					return ret;
 				}
 
-				if ((i + 1) % 5 == 0) {
+				if ((i + 1) % 5 == 0)
+				{
 					Thread.Sleep(1); //need to do better than this
 				}
 			}
@@ -35,16 +43,20 @@ namespace EventStore.Core.Services.Transport.Tcp {
 			throw new UnableToAcquireStreamException();
 		}
 
-		static void ReleaseStream(MemoryStream stream) {
+		static void ReleaseStream(MemoryStream stream)
+		{
 			_streams.Push(stream);
 		}
 
-		public static T Deserialize<T>(this byte[] data) where T : IMessage<T>, new() {
+		public static T Deserialize<T>(this byte[] data) where T : IMessage<T>, new()
+		{
 			return Deserialize<T>(new ArraySegment<byte>(data));
 		}
 
-		public static T Deserialize<T>(this ArraySegment<byte> data) where T : IMessage<T>, new() {
-			try {
+		public static T Deserialize<T>(this ArraySegment<byte> data) where T : IMessage<T>, new()
+		{
+			try
+			{
 				using (var memory = new MemoryStream(data.Array, data.Offset, data.Count)
 				) //uses original buffer as memory
 				{
@@ -53,36 +65,45 @@ namespace EventStore.Core.Services.Transport.Tcp {
 					return res;
 				}
 			}
-			catch (Exception e) {
+			catch (Exception e)
+			{
 				Log.Information(e, "Deserialization to {type} failed", typeof(T).FullName);
 				return default(T);
 			}
 		}
 
-		public static ArraySegment<byte> Serialize<T>(this T protoContract) where T : IMessage<T> {
+		public static ArraySegment<byte> Serialize<T>(this T protoContract) where T : IMessage<T>
+		{
 			MemoryStream stream = null;
-			try {
+			try
+			{
 				stream = AcquireStream();
 				protoContract.WriteTo(stream);
 				var res = new ArraySegment<byte>(stream.ToArray(), 0, (int)stream.Length);
 				return res;
 			}
-			finally {
-				if (stream != null) {
+			finally
+			{
+				if (stream != null)
+				{
 					ReleaseStream(stream);
 				}
 			}
 		}
 
-		public static byte[] SerializeToArray<T>(this T protoContract) where T : IMessage<T> {
+		public static byte[] SerializeToArray<T>(this T protoContract) where T : IMessage<T>
+		{
 			MemoryStream stream = null;
-			try {
+			try
+			{
 				stream = AcquireStream();
 				protoContract.WriteTo(stream);
 				return stream.ToArray();
 			}
-			finally {
-				if (stream != null) {
+			finally
+			{
+				if (stream != null)
+				{
 					ReleaseStream(stream);
 				}
 			}

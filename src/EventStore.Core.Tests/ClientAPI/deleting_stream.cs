@@ -9,31 +9,37 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class deleting_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class deleting_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private MiniNode<TLogFormat, TStreamId> _node;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
-	virtual protected IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	virtual protected IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
 	[Test]
 	[Category("Network")]
-	public async Task which_doesnt_exists_should_success_when_passed_empty_stream_expected_version() {
+	public async Task which_doesnt_exists_should_success_when_passed_empty_stream_expected_version()
+	{
 		const string stream = "which_already_exists_should_success_when_passed_empty_stream_expected_version";
-		using (var connection = BuildConnection(_node)) {
+		using (var connection = BuildConnection(_node))
+		{
 			await connection.ConnectAsync();
 			await connection.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
 		}
@@ -41,9 +47,11 @@ public class deleting_stream<TLogFormat, TStreamId> : SpecificationWithDirectory
 
 	[Test]
 	[Category("Network")]
-	public async Task which_doesnt_exists_should_success_when_passed_any_for_expected_version() {
+	public async Task which_doesnt_exists_should_success_when_passed_any_for_expected_version()
+	{
 		const string stream = "which_already_exists_should_success_when_passed_any_for_expected_version";
-		using (var connection = BuildConnection(_node)) {
+		using (var connection = BuildConnection(_node))
+		{
 			await connection.ConnectAsync();
 
 			await connection.DeleteStreamAsync(stream, ExpectedVersion.Any, hardDelete: true);
@@ -52,9 +60,11 @@ public class deleting_stream<TLogFormat, TStreamId> : SpecificationWithDirectory
 
 	[Test]
 	[Category("Network")]
-	public async Task with_invalid_expected_version_should_fail() {
+	public async Task with_invalid_expected_version_should_fail()
+	{
 		const string stream = "with_invalid_expected_version_should_fail";
-		using (var connection = BuildConnection(_node)) {
+		using (var connection = BuildConnection(_node))
+		{
 			await connection.ConnectAsync();
 
 			await AssertEx.ThrowsAsync<WrongExpectedVersionException>(() =>
@@ -62,9 +72,11 @@ public class deleting_stream<TLogFormat, TStreamId> : SpecificationWithDirectory
 		}
 	}
 
-	public async Task should_return_log_position_when_writing() {
+	public async Task should_return_log_position_when_writing()
+	{
 		const string stream = "delete_should_return_log_position_when_writing";
-		using (var connection = BuildConnection(_node)) {
+		using (var connection = BuildConnection(_node))
+		{
 			await connection.ConnectAsync();
 
 			var result = await connection
@@ -78,9 +90,11 @@ public class deleting_stream<TLogFormat, TStreamId> : SpecificationWithDirectory
 
 	[Test]
 	[Category("Network")]
-	public async Task which_was_already_deleted_should_fail() {
+	public async Task which_was_already_deleted_should_fail()
+	{
 		const string stream = "which_was_allready_deleted_should_fail";
-		using (var connection = BuildConnection(_node)) {
+		using (var connection = BuildConnection(_node))
+		{
 			await connection.ConnectAsync();
 
 			await connection.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);

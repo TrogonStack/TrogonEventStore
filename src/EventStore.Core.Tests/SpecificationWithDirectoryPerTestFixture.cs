@@ -6,20 +6,24 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests;
 
-public class SpecificationWithDirectoryPerTestFixture {
+public class SpecificationWithDirectoryPerTestFixture
+{
 	protected internal string PathName;
 
-	protected string GetTempFilePath() {
+	protected string GetTempFilePath()
+	{
 		var typeName = GetType().Name.Length > 30 ? GetType().Name.Substring(0, 30) : GetType().Name;
 		return Path.Combine(PathName, string.Format("{0}-{1}", Guid.NewGuid(), typeName));
 	}
 
-	protected string GetFilePathFor(string fileName) {
+	protected string GetFilePathFor(string fileName)
+	{
 		return Path.Combine(PathName, fileName);
 	}
 
 	[OneTimeSetUp]
-	public virtual Task TestFixtureSetUp() {
+	public virtual Task TestFixtureSetUp()
+	{
 		ThreadPool.SetMinThreads(100, 1000);
 		var typeName = GetType().Name.Length > 30 ? GetType().Name.Substring(0, 30) : GetType().Name;
 		PathName = Path.Combine(Path.GetTempPath(), string.Format("ES-{0}-{1}", Guid.NewGuid(), typeName));
@@ -29,7 +33,8 @@ public class SpecificationWithDirectoryPerTestFixture {
 	}
 
 	[OneTimeTearDown]
-	public virtual async Task TestFixtureTearDown() {
+	public virtual async Task TestFixtureTearDown()
+	{
 		// kill whole tree
 		await DirectoryDeleter.TryForceDeleteDirectoryAsync(PathName, retries: 10);
 	}

@@ -4,7 +4,8 @@ using System.Net.Sockets;
 
 namespace EventStore.Transport.Tcp;
 
-internal class SocketArgsPool {
+internal class SocketArgsPool
+{
 	public readonly string Name;
 
 	private readonly Func<SocketAsyncEventArgs> _socketArgsCreator;
@@ -12,33 +13,40 @@ internal class SocketArgsPool {
 	private readonly ConcurrentStack<SocketAsyncEventArgs> _socketArgsPool =
 		new ConcurrentStack<SocketAsyncEventArgs>();
 
-	public SocketArgsPool(string name, int initialCount, Func<SocketAsyncEventArgs> socketArgsCreator) {
-		if (socketArgsCreator == null) {
+	public SocketArgsPool(string name, int initialCount, Func<SocketAsyncEventArgs> socketArgsCreator)
+	{
+		if (socketArgsCreator == null)
+		{
 			throw new ArgumentNullException("socketArgsCreator");
 		}
 
-		if (initialCount < 0) {
+		if (initialCount < 0)
+		{
 			throw new ArgumentOutOfRangeException("initialCount");
 		}
 
 		Name = name;
 		_socketArgsCreator = socketArgsCreator;
 
-		for (int i = 0; i < initialCount; ++i) {
+		for (int i = 0; i < initialCount; ++i)
+		{
 			_socketArgsPool.Push(socketArgsCreator());
 		}
 	}
 
-	public SocketAsyncEventArgs Get() {
+	public SocketAsyncEventArgs Get()
+	{
 		SocketAsyncEventArgs result;
-		if (_socketArgsPool.TryPop(out result)) {
+		if (_socketArgsPool.TryPop(out result))
+		{
 			return result;
 		}
 
 		return _socketArgsCreator();
 	}
 
-	public void Return(SocketAsyncEventArgs socketArgs) {
+	public void Return(SocketAsyncEventArgs socketArgs)
+	{
 		_socketArgsPool.Push(socketArgs);
 	}
 }

@@ -3,9 +3,11 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 
-namespace EventStore.Core.Services.RequestManager.Managers {
+namespace EventStore.Core.Services.RequestManager.Managers
+{
 	public class TransactionCommit : RequestManagerBase,
-		IHandle<StorageMessage.CommitIndexed> {
+		IHandle<StorageMessage.CommitIndexed>
+	{
 		private readonly TimeSpan _commitTimeout;
 		private bool _transactionWritten;
 		public TransactionCommit(
@@ -27,7 +29,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					 commitSource,
 					 transactionId: transactionId,
 					 prepareCount: 1,
-					 waitForCommit: true) {
+					 waitForCommit: true)
+		{
 			_commitTimeout = commitTimeout;
 		}
 
@@ -38,7 +41,8 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					TransactionId,
 					LiveUntil);
 
-		protected override void AllPreparesWritten() {
+		protected override void AllPreparesWritten()
+		{
 			base.AllPreparesWritten();
 			NextTimeoutTime = DateTime.UtcNow + _commitTimeout;
 			Publisher.Publish(
@@ -64,19 +68,23 @@ namespace EventStore.Core.Services.RequestManager.Managers {
 					Result,
 					FailureMessage);
 
-		public override void Handle(StorageMessage.CommitIndexed message) {
+		public override void Handle(StorageMessage.CommitIndexed message)
+		{
 			base.Handle(message);
 			_transactionWritten = true;
 			Committed();
 		}
-		protected override void Committed() {
-			if (!_transactionWritten) {
+		protected override void Committed()
+		{
+			if (!_transactionWritten)
+			{
 				return;
 			}
 
 			base.Committed();
 		}
-		protected override void ReturnCommitAt(long logPosition, long firstEvent, long lastEvent) {
+		protected override void ReturnCommitAt(long logPosition, long firstEvent, long lastEvent)
+		{
 			_transactionWritten = true;
 			base.ReturnCommitAt(logPosition, firstEvent, lastEvent);
 		}

@@ -9,10 +9,13 @@ using EventStore.Core.Services.Monitoring.Stats;
 using EventStore.Core.Time;
 using Serilog;
 
-namespace EventStore.Core.Services.TimerService {
-	public sealed class ThreadBasedScheduler : IMonitoredQueue, IScheduler {
+namespace EventStore.Core.Services.TimerService
+{
+	public sealed class ThreadBasedScheduler : IMonitoredQueue, IScheduler
+	{
 		private static readonly ILogger Log = Serilog.Log.ForContext<ThreadBasedScheduler>();
-		public string Name {
+		public string Name
+		{
 			get { return _queueStats.Name; }
 		}
 
@@ -32,29 +35,34 @@ namespace EventStore.Core.Services.TimerService {
 
 		private long _nextWakeupTimeTicks = long.MinValue;
 
-		public Task Task {
+		public Task Task
+		{
 			get { return _tcs.Task; }
 		}
 
 		public ThreadBasedScheduler(
 			QueueStatsManager queueStatsManager,
 			QueueTrackers trackers,
-			IClock timeProvider = null) {
+			IClock timeProvider = null)
+		{
 			_timeProvider = timeProvider ?? Clock.Instance;
 			_queueStats = queueStatsManager.CreateQueueStatsCollector("Timer");
 			_tracker = trackers.GetTrackerForQueue("Timer");
 
-			new Thread(DoTiming) {
+			new Thread(DoTiming)
+			{
 				IsBackground = true,
 				Name = Name
 			}.Start();
 		}
 
-		public void Stop() {
+		public void Stop()
+		{
 			Dispose();
 		}
 
-		public void Schedule(TimeSpan after, Action<IScheduler, object> callback, object state) {
+		public void Schedule(TimeSpan after, Action<IScheduler, object> callback, object state)
+		{
 			var nextWakeup = Interlocked.Read(ref _nextWakeupTimeTicks);
 			var now = _timeProvider.Now;
 
@@ -62,27 +70,32 @@ namespace EventStore.Core.Services.TimerService {
 			_pending.Enqueue(new ScheduledTask(dueTime, callback, state));
 
 			// don't unnecessarily wake up the timer thread if it's going to wake up before this task's due time anyway
-			if (nextWakeup < now.Ticks || nextWakeup > dueTime.Ticks) {
+			if (nextWakeup < now.Ticks || nextWakeup > dueTime.Ticks)
+			{
 				_pendingEvent.Set();
 			}
 		}
 
-		private void DoTiming() {
+		private void DoTiming()
+		{
 			_queueStats.Start();
 			QueueMonitor.Default.Register(this);
 
 			var minTimeout = TimeSpan.FromMilliseconds(1);
 			var maxTimeout = TimeSpan.FromSeconds(5);
 
-			while (!_stop) {
-				try {
+			while (!_stop)
+			{
+				try
+				{
 					_queueStats.EnterBusy();
 					_queueStats.ProcessingStarted<SchedulePendingTasks>(_pending.Count);
 
 					_pendingEvent.Reset();
 
 					int pending = 0;
-					while (_pending.TryDequeue(out var task)) {
+					while (_pending.TryDequeue(out var task))
+					{
 						_tasks.Add(task);
 						pending += 1;
 					}
@@ -93,14 +106,17 @@ namespace EventStore.Core.Services.TimerService {
 					int processed = 0;
 
 					Instant? nextTaskDueTime;
-					while (true) {
-						if (_tasks.Count == 0) {
+					while (true)
+					{
+						if (_tasks.Count == 0)
+						{
 							nextTaskDueTime = null;
 							break;
 						}
 
 						nextTaskDueTime = _tasks.FindMin().DueTime;
-						if (nextTaskDueTime > _timeProvider.Now) {
+						if (nextTaskDueTime > _timeProvider.Now)
+						{
 							break;
 						}
 
@@ -114,7 +130,8 @@ namespace EventStore.Core.Services.TimerService {
 
 					_queueStats.ProcessingEnded(processed);
 
-					if (processed == 0 && !_pendingEvent.IsSet) {
+					if (processed == 0 && !_pendingEvent.IsSet)
+					{
 						_queueStats.EnterIdle();
 
 						// give some processor time to other threads since we're free right now
@@ -122,7 +139,8 @@ namespace EventStore.Core.Services.TimerService {
 
 						var timeout = nextTaskDueTime?.ElapsedTimeSince(_timeProvider.Now) ?? maxTimeout;
 
-						if (timeout <= TimeSpan.Zero) {
+						if (timeout <= TimeSpan.Zero)
+						{
 							// we have already reached the due time of the next task, so we process it immediately
 							continue;
 						}
@@ -133,7 +151,8 @@ namespace EventStore.Core.Services.TimerService {
 					}
 
 				}
-				catch (Exception ex) {
+				catch (Exception ex)
+				{
 					Log.Error(ex, "Error executing scheduled task");
 					_tcs.TrySetException(ex);
 				}
@@ -144,20 +163,24 @@ namespace EventStore.Core.Services.TimerService {
 			_pendingEvent.Dispose();
 		}
 
-		public void Dispose() {
+		public void Dispose()
+		{
 			_stop = true;
 		}
 
-		public QueueStats GetStatistics() {
+		public QueueStats GetStatistics()
+		{
 			return _queueStats.GetStatistics(_tasks.Count);
 		}
 
-		private struct ScheduledTask {
+		private struct ScheduledTask
+		{
 			public readonly Instant DueTime;
 			public readonly Action<IScheduler, object> Action;
 			public readonly object State;
 
-			public ScheduledTask(Instant dueTime, Action<IScheduler, object> action, object state) {
+			public ScheduledTask(Instant dueTime, Action<IScheduler, object> action, object state)
+			{
 				DueTime = dueTime;
 				Action = action;
 				State = state;

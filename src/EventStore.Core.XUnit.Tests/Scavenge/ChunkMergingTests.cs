@@ -9,9 +9,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ChunkMergingTests : SqliteDbPerTest<ChunkMergingTests> {
+public class ChunkMergingTests : SqliteDbPerTest<ChunkMergingTests>
+{
 	[Fact]
-	public async Task can_merge() {
+	public async Task can_merge()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithMergeChunks(true)
@@ -52,7 +54,8 @@ public class ChunkMergingTests : SqliteDbPerTest<ChunkMergingTests> {
 	}
 
 	[Fact]
-	public async Task can_not_merge() {
+	public async Task can_not_merge()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

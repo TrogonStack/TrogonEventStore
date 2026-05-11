@@ -4,9 +4,12 @@ using System.IO.MemoryMappedFiles;
 using System.Threading;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.TransactionLog.Checkpoint {
-	public class MemoryMappedFileCheckpoint : ICheckpoint {
-		public string Name {
+namespace EventStore.Core.TransactionLog.Checkpoint
+{
+	public class MemoryMappedFileCheckpoint : ICheckpoint
+	{
+		public string Name
+		{
 			get { return _name; }
 		}
 
@@ -18,11 +21,13 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 		private long _lastFlushed;
 		private readonly MemoryMappedViewAccessor _accessor;
 
-		public MemoryMappedFileCheckpoint(string filename) : this(filename, Guid.NewGuid().ToString()) {
+		public MemoryMappedFileCheckpoint(string filename) : this(filename, Guid.NewGuid().ToString())
+		{
 		}
 
 		public MemoryMappedFileCheckpoint(string filename, string name, bool mustExist = false,
-			long initValue = 0) {
+			long initValue = 0)
+		{
 			_filename = filename;
 			_name = name;
 			var old = File.Exists(_filename);
@@ -39,17 +44,21 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 				false);
 			_accessor = _file.CreateViewAccessor(0, sizeof(long));
 
-			if (old) {
+			if (old)
+			{
 				_last = _lastFlushed = _accessor.ReadInt64(0);
 			}
-			else {
+			else
+			{
 				_last = initValue;
 				Flush();
 			}
 		}
 
-		public void Close(bool flush) {
-			if (flush) {
+		public void Close(bool flush)
+		{
+			if (flush)
+			{
 				Flush();
 			}
 
@@ -57,13 +66,16 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 			_file.Dispose();
 		}
 
-		public void Write(long checkpoint) {
+		public void Write(long checkpoint)
+		{
 			Interlocked.Exchange(ref _last, checkpoint);
 		}
 
-		public void Flush() {
+		public void Flush()
+		{
 			var last = Interlocked.Read(ref _last);
-			if (last == _lastFlushed) {
+			if (last == _lastFlushed)
+			{
 				return;
 			}
 
@@ -77,19 +89,23 @@ namespace EventStore.Core.TransactionLog.Checkpoint {
 			OnFlushed(last);
 		}
 
-		public long Read() {
+		public long Read()
+		{
 			return Interlocked.Read(ref _lastFlushed);
 		}
 
-		public long ReadNonFlushed() {
+		public long ReadNonFlushed()
+		{
 			return Interlocked.Read(ref _last);
 		}
 
 		public event Action<long> Flushed;
 
-		private void OnFlushed(long obj) {
+		private void OnFlushed(long obj)
+		{
 			var onFlushed = Flushed;
-			if (onFlushed != null) {
+			if (onFlushed != null)
+			{
 				onFlushed.Invoke(obj);
 			}
 		}

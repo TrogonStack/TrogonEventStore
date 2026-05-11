@@ -12,7 +12,8 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.AwakeService;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_committed_event_with_subscribers<TLogFormat, TStreamId> {
+public class when_handling_committed_event_with_subscribers<TLogFormat, TStreamId>
+{
 	private Core.Services.AwakeReaderService.AwakeService _it;
 	private EventRecord _eventRecord;
 	private StorageMessage.EventCommitted _eventCommitted;
@@ -27,13 +28,15 @@ public class when_handling_committed_event_with_subscribers<TLogFormat, TStreamI
 	private TestMessage _reply5;
 
 	[SetUp]
-	public void SetUp() {
+	public void SetUp()
+	{
 		_exception = null;
 		Given();
 		When();
 	}
 
-	private void Given() {
+	private void Given()
+	{
 		_it = new Core.Services.AwakeReaderService.AwakeService();
 
 		var recordFactory = LogFormatHelper<TLogFormat, TStreamId>.RecordFactory;
@@ -73,42 +76,51 @@ public class when_handling_committed_event_with_subscribers<TLogFormat, TStreamI
 				_envelope, Guid.NewGuid(), null, new TFPos(100000, 99500), _reply5));
 	}
 
-	private void When() {
-		try {
+	private void When()
+	{
+		try
+		{
 			_it.Handle(_eventCommitted);
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			_exception = ex;
 		}
 	}
 
 	[Test]
-	public void it_is_handled() {
+	public void it_is_handled()
+	{
 		Assert.IsNull(_exception, (_exception ?? (object)"").ToString());
 	}
 
 	[Test]
-	public void awakes_stream_subscriber_before_position() {
+	public void awakes_stream_subscriber_before_position()
+	{
 		Assert.That(_handler.HandledMessages.Any(m => m.Kind == 1));
 	}
 
 	[Test]
-	public void does_not_awake_stream_subscriber_after_position() {
+	public void does_not_awake_stream_subscriber_after_position()
+	{
 		Assert.That(_handler.HandledMessages.All(m => m.Kind != 2));
 	}
 
 	[Test]
-	public void awakes_all_subscriber_before_position() {
+	public void awakes_all_subscriber_before_position()
+	{
 		Assert.That(_handler.HandledMessages.Any(m => m.Kind == 4));
 	}
 
 	[Test]
-	public void does_not_awake_all_subscriber_after_position() {
+	public void does_not_awake_all_subscriber_after_position()
+	{
 		Assert.That(_handler.HandledMessages.All(m => m.Kind != 5));
 	}
 
 	[Test]
-	public void does_not_awake_another_stream_subscriber_before_position() {
+	public void does_not_awake_another_stream_subscriber_before_position()
+	{
 		Assert.That(_handler.HandledMessages.All(m => m.Kind != 3));
 	}
 }

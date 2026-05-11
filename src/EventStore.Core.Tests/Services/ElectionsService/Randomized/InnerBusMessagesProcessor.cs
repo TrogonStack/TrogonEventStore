@@ -8,21 +8,26 @@ using EventStore.Core.Tests.Infrastructure;
 
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
-internal class InnerBusMessagesProcessor : IHandle<Message> {
+internal class InnerBusMessagesProcessor : IHandle<Message>
+{
 	private readonly RandomTestRunner _runner;
 	private readonly IPEndPoint _endPoint;
 	private readonly IPublisher _bus;
 
-	public InnerBusMessagesProcessor(RandomTestRunner runner, IPEndPoint endPoint, IPublisher bus) {
-		if (runner == null) {
+	public InnerBusMessagesProcessor(RandomTestRunner runner, IPEndPoint endPoint, IPublisher bus)
+	{
+		if (runner == null)
+		{
 			throw new ArgumentNullException("runner");
 		}
 
-		if (endPoint == null) {
+		if (endPoint == null)
+		{
 			throw new ArgumentNullException("endPoint");
 		}
 
-		if (bus == null) {
+		if (bus == null)
+		{
 			throw new ArgumentNullException("bus");
 		}
 
@@ -31,9 +36,11 @@ internal class InnerBusMessagesProcessor : IHandle<Message> {
 		_bus = bus;
 	}
 
-	public void Handle(Message message) {
+	public void Handle(Message message)
+	{
 		// timer message and SendOverGrpc is handled differently
-		if (message is TimerMessage.Schedule) {
+		if (message is TimerMessage.Schedule)
+		{
 			return;
 		}
 

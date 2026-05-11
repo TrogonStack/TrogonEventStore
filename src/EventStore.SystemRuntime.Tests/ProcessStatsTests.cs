@@ -2,9 +2,11 @@ using System.Diagnostics;
 
 namespace EventStore.SystemRuntime.Tests;
 
-public class ProcessStatsTests {
+public class ProcessStatsTests
+{
 	[Fact]
-	public void linux_parser_keeps_reading_after_write_ops() {
+	public void linux_parser_keeps_reading_after_write_ops()
+	{
 		var lines = new[]
 		{
 			"rchar: 1",
@@ -24,7 +26,8 @@ public class ProcessStatsTests {
 	}
 
 	[Fact]
-	public void linux_parser_treats_zero_values_as_parsed() {
+	public void linux_parser_treats_zero_values_as_parsed()
+	{
 		var result = ProcessStats.ParseLinuxDiskIo(ThrowAfter(
 			"write_bytes: 0",
 			"syscw: 0",
@@ -39,14 +42,17 @@ public class ProcessStatsTests {
 	}
 
 	[Fact]
-	public void get_disk_io_returns_without_throwing() {
+	public void get_disk_io_returns_without_throwing()
+	{
 		var result = ProcessStats.GetDiskIo(Process.GetCurrentProcess());
 
 		Assert.IsType<DiskIoData>(result);
 	}
 
-	private static IEnumerable<string> ThrowAfter(params string[] lines) {
-		foreach (var line in lines) {
+	private static IEnumerable<string> ThrowAfter(params string[] lines)
+	{
+		foreach (var line in lines)
+		{
 			yield return line;
 		}
 

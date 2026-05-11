@@ -9,8 +9,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests> {
-	public static IEnumerable<object[]> TheCases() {
+public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests>
+{
+	public static IEnumerable<object[]> TheCases()
+	{
 		var none = Array.Empty<string>();
 
 		// the first letter of the stream name determines the hash
@@ -64,7 +66,8 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests> {
 			("a-stream1", CollisionResult.OldCollision, "", none), // 1b
 			("a-stream2", CollisionResult.OldCollision, "", none)); // 1a
 
-		object[] Case(string name, params (string, CollisionResult, string oldUser, string[])[] data) {
+		object[] Case(string name, params (string, CollisionResult, string oldUser, string[])[] data)
+		{
 			return new object[] {
 				name, data
 			};
@@ -75,7 +78,8 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests> {
 	[MemberData(nameof(TheCases))]
 	public void Works(
 		string caseName,
-		(string StreamName, CollisionResult CollisionResult, string ExpectedOldUser, string[] NewCollisions)[] data) {
+		(string StreamName, CollisionResult CollisionResult, string ExpectedOldUser, string[] NewCollisions)[] data)
+	{
 
 		Assert.NotNull(caseName);
 
@@ -86,10 +90,12 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests> {
 		var index = new Dictionary<ulong, List<int>>();
 
 		// populate the index
-		for (var i = 0; i < log.Length; i++) {
+		for (var i = 0; i < log.Length; i++)
+		{
 			var streamName = log[i];
 			var hash = hasher.Hash(streamName);
-			if (!index.TryGetValue(hash, out var entries)) {
+			if (!index.TryGetValue(hash, out var entries))
+			{
 				entries = new List<int>();
 				index[hash] = entries;
 			}
@@ -115,8 +121,10 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests> {
 
 		var expectedCollisions = new HashSet<string>();
 
-		for (var i = 0; i < data.Length; i++) {
-			foreach (var newCollision in data[i].NewCollisions) {
+		for (var i = 0; i < data.Length; i++)
+		{
+			foreach (var newCollision in data[i].NewCollisions)
+			{
 				expectedCollisions.Add(newCollision);
 			}
 
@@ -126,7 +134,8 @@ public class CollisionDetectorTests : SqliteDbPerTest<CollisionDetectorTests> {
 				expectedCollisions.OrderBy(x => x),
 				sut.AllCollisions());
 
-			if (result == CollisionResult.NewCollision) {
+			if (result == CollisionResult.NewCollision)
+			{
 				Assert.Equal(data[i].ExpectedOldUser, oldUser);
 			}
 		}

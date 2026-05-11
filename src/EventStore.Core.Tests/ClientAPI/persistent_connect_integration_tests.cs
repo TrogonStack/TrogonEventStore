@@ -12,7 +12,8 @@ namespace EventStore.Core.Tests.ClientAPI;
 [NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -22,7 +23,8 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -33,10 +35,12 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
+			(subscription, resolvedEvent) =>
+			{
 				subscription.Acknowledge(resolvedEvent);
 
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
@@ -46,13 +50,15 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 				Console.WriteLine("Subscription dropped (reason:{0}, exception:{1}).", reason, exception),
 			bufferSize: 10, autoAck: false, userCredentials: DefaultData.AdminCredentials);
 
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
 		}
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			throw new Exception("Timed out waiting for events.");
 		}
 	}
@@ -62,7 +68,8 @@ public class happy_case_writing_and_subscribing_to_normal_events_manual_ack<TLog
 [Category("LongRunning")]
 [NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -72,7 +79,8 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -83,8 +91,10 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials)
 ;
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+			(subscription, resolvedEvent) =>
+			{
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
@@ -94,13 +104,15 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 				Console.WriteLine("Subscription dropped (reason:{0}, exception:{1}).", reason, exception),
 			userCredentials: DefaultData.AdminCredentials);
 
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
 		}
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(15))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(15)))
+		{
 			throw new Exception($"Timed out waiting for events, received {_eventReceivedCount} event(s).");
 		}
 	}
@@ -110,7 +122,8 @@ public class happy_case_writing_and_subscribing_to_normal_events_auto_ack<TLogFo
 [Category("LongRunning")]
 [NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -121,7 +134,8 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -129,7 +143,8 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 			.StartFromBeginning()
 			.ResolveLinkTos()
 			.Build();
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
@@ -137,20 +152,24 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+			(subscription, resolvedEvent) =>
+			{
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
 				return Task.CompletedTask;
 			},
-			(sub, reason, exception) => {
+			(sub, reason, exception) =>
+			{
 				Console.WriteLine($"Subscription dropped (reason:{reason}, exception:{exception}).");
 			},
 			userCredentials: DefaultData.AdminCredentials,
 			autoAck: true);
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			throw new Exception("Timed out waiting for events.");
 		}
 	}
@@ -160,7 +179,8 @@ public class happy_case_catching_up_to_normal_events_auto_ack<TLogFormat, TStrea
 [Category("LongRunning")]
 [NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -171,7 +191,8 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -179,7 +200,8 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 			.StartFromBeginning()
 			.ResolveLinkTos()
 			.Build();
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
@@ -187,9 +209,11 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
+			(subscription, resolvedEvent) =>
+			{
 				subscription.Acknowledge(resolvedEvent);
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
@@ -200,7 +224,8 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 			userCredentials: DefaultData.AdminCredentials,
 			autoAck: false);
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			throw new Exception("Timed out waiting for events.");
 		}
 	}
@@ -210,7 +235,8 @@ public class happy_case_catching_up_to_normal_events_manual_ack<TLogFormat, TStr
 [Category("LongRunning")]
 [NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -220,7 +246,8 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -228,7 +255,8 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 			.StartFromBeginning()
 			.ResolveLinkTos()
 			.Build();
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 			await _conn.AppendToStreamAsync(streamName + "original", ExpectedVersion.Any, DefaultData.AdminCredentials,
 				eventData);
@@ -236,9 +264,11 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
+			(subscription, resolvedEvent) =>
+			{
 				subscription.Acknowledge(resolvedEvent);
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
@@ -248,13 +278,15 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 				Console.WriteLine("Subscription dropped (reason:{0}, exception:{1}).", reason, exception),
 			userCredentials: DefaultData.AdminCredentials,
 			autoAck: false);
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), SystemEventTypes.LinkTo, false,
 				Encoding.UTF8.GetBytes(i + "@" + streamName + "original"), null);
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
 		}
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			throw new Exception("Timed out waiting for events.");
 		}
 	}
@@ -264,7 +296,8 @@ public class happy_case_catching_up_to_link_to_events_manual_ack<TLogFormat, TSt
 [Category("LongRunning")]
 [NonParallelizable]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId> {
+public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStreamId> : SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -274,7 +307,8 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -282,7 +316,8 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 			.StartFromBeginning()
 			.ResolveLinkTos()
 			.Build();
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 			await _conn.AppendToStreamAsync(streamName + "original", ExpectedVersion.Any, DefaultData.AdminCredentials,
 				eventData);
@@ -290,8 +325,10 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+			(subscription, resolvedEvent) =>
+			{
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
@@ -301,13 +338,15 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 				Console.WriteLine("Subscription dropped (reason:{0}, exception:{1}).", reason, exception),
 			userCredentials: DefaultData.AdminCredentials,
 			autoAck: true);
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), SystemEventTypes.LinkTo, false,
 				Encoding.UTF8.GetBytes(i + "@" + streamName + "original"), null);
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
 		}
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			throw new Exception("Timed out waiting for events.");
 		}
 	}
@@ -316,7 +355,8 @@ public class happy_case_catching_up_to_link_to_events_auto_ack<TLogFormat, TStre
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private const int BufferCount = 10;
 	private const int EventWriteCount = BufferCount * 2;
 
@@ -326,7 +366,8 @@ public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogForma
 	protected override Task When() => Task.CompletedTask;
 
 	[Test]
-	public async Task Test() {
+	public async Task Test()
+	{
 		var streamName = Guid.NewGuid().ToString();
 		var groupName = Guid.NewGuid().ToString();
 		var settings = PersistentSubscriptionSettings
@@ -337,10 +378,12 @@ public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogForma
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
 		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName,
-			(subscription, resolvedEvent) => {
+			(subscription, resolvedEvent) =>
+			{
 				subscription.Fail(resolvedEvent, PersistentSubscriptionNakEventAction.Park, "fail");
 
-				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount) {
+				if (Interlocked.Increment(ref _eventReceivedCount) == EventWriteCount)
+				{
 					_eventsReceived.Set();
 				}
 
@@ -350,13 +393,15 @@ public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogForma
 				Console.WriteLine("Subscription dropped (reason:{0}, exception:{1}).", reason, exception),
 			bufferSize: 10, autoAck: false, userCredentials: DefaultData.AdminCredentials);
 
-		for (var i = 0; i < EventWriteCount; i++) {
+		for (var i = 0; i < EventWriteCount; i++)
+		{
 			var eventData = new EventData(Guid.NewGuid(), "SomeEvent", false, new byte[0], new byte[0]);
 
 			await _conn.AppendToStreamAsync(streamName, ExpectedVersion.Any, DefaultData.AdminCredentials, eventData);
 		}
 
-		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5))) {
+		if (!_eventsReceived.WaitOne(TimeSpan.FromSeconds(5)))
+		{
 			throw new Exception("Timed out waiting for events.");
 		}
 	}
@@ -365,7 +410,8 @@ public class when_writing_and_subscribing_to_normal_events_manual_nack<TLogForma
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_connection_drops_messages_that_have_run_out_of_retries_are_not_retried<TLogFormat, TStreamId>
-	: SpecificationWithMiniNode<TLogFormat, TStreamId> {
+	: SpecificationWithMiniNode<TLogFormat, TStreamId>
+{
 	private readonly TaskCompletionSource<bool> _subscriptionDropped = new TaskCompletionSource<bool>();
 	private readonly TaskCompletionSource<bool> _eventReceived = new TaskCompletionSource<bool>();
 	private ResolvedEvent _receivedEvent;
@@ -374,7 +420,8 @@ public class when_connection_drops_messages_that_have_run_out_of_retries_are_not
 
 	[Test]
 	[Retry(10)]
-	public void Test() => Assert.DoesNotThrowAsync(async () => {
+	public void Test() => Assert.DoesNotThrowAsync(async () =>
+	{
 		await CloseConnectionAndWait(_conn);
 		_conn = BuildConnection(_node);
 		AddLogging(_conn);
@@ -389,10 +436,12 @@ public class when_connection_drops_messages_that_have_run_out_of_retries_are_not
 			.Build();
 
 		await _conn.CreatePersistentSubscriptionAsync(streamName, groupName, settings, DefaultData.AdminCredentials);
-		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName, async (subscription, resolvedEvent) => {
+		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName, async (subscription, resolvedEvent) =>
+		{
 			await CloseConnectionAndWait(_conn);
 		},
-			(sub, reason, exception) => {
+			(sub, reason, exception) =>
+			{
 				Console.WriteLine("Subscription dropped (reason:{0}, exception:{1}). @ {2}", reason, exception, DateTime.Now);
 				_subscriptionDropped.TrySetResult(true);
 			},
@@ -407,11 +456,13 @@ public class when_connection_drops_messages_that_have_run_out_of_retries_are_not
 		AddLogging(_conn);
 		await _conn.ConnectAsync();
 
-		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName, (subscription, resolvedEvent) => {
+		await _conn.ConnectToPersistentSubscriptionAsync(streamName, groupName, (subscription, resolvedEvent) =>
+		{
 			subscription.Acknowledge(resolvedEvent);
 			_receivedEvent = resolvedEvent;
 			_eventReceived.TrySetResult(true);
-		}, (sub, reason, exception) => {
+		}, (sub, reason, exception) =>
+		{
 			Console.WriteLine("Second Subscription dropped (reason:{0}, exception:{1}).", reason, exception);
 		}, bufferSize: 10, autoAck: false, userCredentials: DefaultData.AdminCredentials);
 
@@ -423,7 +474,8 @@ public class when_connection_drops_messages_that_have_run_out_of_retries_are_not
 		Assert.AreEqual(newEventData.EventId, _receivedEvent.Event.EventId);
 
 		//flaky: temporarily added for debugging
-		void AddLogging(IEventStoreConnection conn) {
+		void AddLogging(IEventStoreConnection conn)
+		{
 			conn.AuthenticationFailed += (_, args) => Console.WriteLine($"_conn.AuthenticationFailed: {args.Connection.ConnectionName} @ {DateTime.Now} {TestContext.CurrentContext.CurrentRepeatCount}");
 			conn.Closed += (_, args) => Console.WriteLine($"_conn.Closed: {args.Connection.ConnectionName} @ {DateTime.Now} {TestContext.CurrentContext.CurrentRepeatCount}");
 			conn.Connected += (_, args) => Console.WriteLine($"_conn.Connected: {args.Connection.ConnectionName} @ {DateTime.Now} {TestContext.CurrentContext.CurrentRepeatCount}");

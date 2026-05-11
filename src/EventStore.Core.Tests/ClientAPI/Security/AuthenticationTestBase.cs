@@ -13,22 +13,26 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.ClientAPI.Security;
 
-public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private readonly UserCredentials _userCredentials;
 	private MiniNode<TLogFormat, TStreamId> _node;
 	protected IEventStoreConnection Connection;
 
-	protected AuthenticationTestBase(UserCredentials userCredentials = null) {
+	protected AuthenticationTestBase(UserCredentials userCredentials = null)
+	{
 		_userCredentials = userCredentials;
 	}
 
 
-	public virtual IEventStoreConnection SetupConnection(MiniNode<TLogFormat, TStreamId> node) {
+	public virtual IEventStoreConnection SetupConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.Create(node.TcpEndPoint, TcpType.Ssl, _userCredentials);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName, enableTrustedAuth: true);
 		await _node.Start();
@@ -37,7 +41,8 @@ public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : Specificat
 		_node.Node.MainQueue.Publish(
 			new UserManagementMessage.Create(
 				new CallbackEnvelope(
-					m => {
+					m =>
+					{
 						Assert.IsTrue(m is UserManagementMessage.UpdateResult);
 						var msg = (UserManagementMessage.UpdateResult)m;
 						Assert.IsTrue(msg.Success);
@@ -54,7 +59,8 @@ public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : Specificat
 		_node.Node.MainQueue.Publish(
 			new UserManagementMessage.Create(
 				new CallbackEnvelope(
-					m => {
+					m =>
+					{
 						Assert.IsTrue(m is UserManagementMessage.UpdateResult);
 						var msg = (UserManagementMessage.UpdateResult)m;
 						Assert.IsTrue(msg.Success);
@@ -71,7 +77,8 @@ public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : Specificat
 		_node.Node.MainQueue.Publish(
 			new UserManagementMessage.Create(
 				new CallbackEnvelope(
-					m => {
+					m =>
+					{
 						Assert.IsTrue(m is UserManagementMessage.UpdateResult);
 						var msg = (UserManagementMessage.UpdateResult)m;
 						Assert.IsTrue(msg.Success);
@@ -154,53 +161,63 @@ public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : Specificat
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		Connection.Close();
 		await base.TestFixtureTearDown();
 	}
 
-	protected Task ReadEvent(string streamId, string login, string password) {
+	protected Task ReadEvent(string streamId, string login, string password)
+	{
 		return Connection.ReadEventAsync(streamId, -1, false,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task ReadStreamForward(string streamId, string login, string password) {
+	protected Task ReadStreamForward(string streamId, string login, string password)
+	{
 		return Connection.ReadStreamEventsForwardAsync(streamId, 0, 1, false,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task ReadStreamBackward(string streamId, string login, string password) {
+	protected Task ReadStreamBackward(string streamId, string login, string password)
+	{
 		return Connection.ReadStreamEventsBackwardAsync(streamId, 0, 1, false,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task WriteStream(string streamId, string login, string password) {
+	protected Task WriteStream(string streamId, string login, string password)
+	{
 		return Connection.AppendToStreamAsync(streamId, ExpectedVersion.Any, CreateEvents(),
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task<EventStoreTransaction> TransStart(string streamId, string login, string password) {
+	protected Task<EventStoreTransaction> TransStart(string streamId, string login, string password)
+	{
 		return Connection.StartTransactionAsync(streamId, ExpectedVersion.Any,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task ReadAllForward(string login, string password) {
+	protected Task ReadAllForward(string login, string password)
+	{
 		return Connection.ReadAllEventsForwardAsync(Position.Start, 1, false,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task ReadAllBackward(string login, string password) {
+	protected Task ReadAllBackward(string login, string password)
+	{
 		return Connection.ReadAllEventsBackwardAsync(Position.End, 1, false,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task ReadMeta(string streamId, string login, string password) {
+	protected Task ReadMeta(string streamId, string login, string password)
+	{
 		return Connection.GetStreamMetadataAsRawBytesAsync(streamId,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected Task WriteMeta(string streamId, string login, string password, string metawriteRole) {
+	protected Task WriteMeta(string streamId, string login, string password, string metawriteRole)
+	{
 		return Connection.SetStreamMetadataAsync(streamId, ExpectedVersion.Any,
 			metawriteRole == null
 				? StreamMetadata.Build()
@@ -211,34 +228,41 @@ public abstract class AuthenticationTestBase<TLogFormat, TStreamId> : Specificat
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
-	protected async Task SubscribeToStream(string streamId, string login, string password) {
+	protected async Task SubscribeToStream(string streamId, string login, string password)
+	{
 		using (await Connection.SubscribeToStreamAsync(streamId, false, (x, y) => Task.CompletedTask,
 			(x, y, z) => { },
-			login == null && password == null ? null : new UserCredentials(login, password))) {
+			login == null && password == null ? null : new UserCredentials(login, password)))
+		{
 		}
 	}
 
-	protected async Task SubscribeToAll(string login, string password) {
+	protected async Task SubscribeToAll(string login, string password)
+	{
 		using (await Connection.SubscribeToAllAsync(false, (x, y) => Task.CompletedTask, (x, y, z) => { },
-			login == null && password == null ? null : new UserCredentials(login, password))) {
+			login == null && password == null ? null : new UserCredentials(login, password)))
+		{
 		}
 	}
 
-	protected async Task<string> CreateStreamWithMeta(StreamMetadata metadata, string streamPrefix = null) {
+	protected async Task<string> CreateStreamWithMeta(StreamMetadata metadata, string streamPrefix = null)
+	{
 		var stream = (streamPrefix ?? string.Empty) + Guid.NewGuid().ToString();
 		await Connection.SetStreamMetadataAsync(stream, ExpectedVersion.NoStream,
 			metadata, new UserCredentials("adm", "admpa$$"));
 		return stream;
 	}
 
-	protected Task DeleteStream(string streamId, string login, string password) {
+	protected Task DeleteStream(string streamId, string login, string password)
+	{
 		return Connection.DeleteStreamAsync(streamId, ExpectedVersion.Any, true,
 			login == null && password == null ? null : new UserCredentials(login, password));
 	}
 
 	protected Task ExpectNoException(Func<Task> action) => action();
 
-	protected EventData[] CreateEvents() {
+	protected EventData[] CreateEvents()
+	{
 		return new[] { new EventData(Guid.NewGuid(), "some-type", false, new byte[] { 1, 2, 3 }, null) };
 	}
 }

@@ -1,8 +1,10 @@
 using System;
 using EventStore.Core.TransactionLog.Chunks;
 
-namespace EventStore.Core.Settings {
-	public static class ESConsts {
+namespace EventStore.Core.Settings
+{
+	public static class ESConsts
+	{
 		public const int PTableInitialReaderCount = 5;
 		public const int MemTableEntryCount = 1000000;
 		public const int IndexWriterCacheCapacity = 100_000;

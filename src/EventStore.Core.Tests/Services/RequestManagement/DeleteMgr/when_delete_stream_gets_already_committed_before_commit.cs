@@ -11,10 +11,12 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.RequestManagement.DeleteMgr;
 
 [TestFixture]
-public class when_delete_stream_gets_already_committed_before_commit : RequestManagerSpecification<DeleteStream> {
+public class when_delete_stream_gets_already_committed_before_commit : RequestManagerSpecification<DeleteStream>
+{
 	private long _commitPosition = 3000;
 	private readonly string _streamId = $"delete_test-{Guid.NewGuid()}";
-	protected override DeleteStream OnManager(FakePublisher publisher) {
+	protected override DeleteStream OnManager(FakePublisher publisher)
+	{
 		return new DeleteStream(
 			publisher,
 			CommitTimeout,
@@ -27,22 +29,26 @@ public class when_delete_stream_gets_already_committed_before_commit : RequestMa
 			CommitSource);
 	}
 
-	protected override IEnumerable<Message> WithInitialMessages() {
+	protected override IEnumerable<Message> WithInitialMessages()
+	{
 		yield break;
 	}
 
-	protected override Message When() {
+	protected override Message When()
+	{
 		return new StorageMessage.AlreadyCommitted(InternalCorrId, _streamId, 0, 1, _commitPosition);
 	}
 
 	[Test]
-	public void successful_request_message_is_published() {
+	public void successful_request_message_is_published()
+	{
 		Assert.That(Produced.ContainsSingle<StorageMessage.RequestCompleted>(
 			x => x.CorrelationId == InternalCorrId && x.Success));
 	}
 
 	[Test]
-	public void the_envelope_is_replied_to_with_success() {
+	public void the_envelope_is_replied_to_with_success()
+	{
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.DeleteStreamCompleted>(
 			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.Success));
 	}

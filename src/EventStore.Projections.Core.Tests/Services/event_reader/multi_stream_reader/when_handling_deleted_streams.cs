@@ -17,21 +17,24 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private MultiStreamEventReader _edp;
 	private string[] _streamNames;
 	private Dictionary<string, long> _streamPositions;
 	private Guid _distibutionPointCorrelationId;
 	private long _fromSequenceNumber = 10;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 		_streamNames = new[] { "stream1", "stream2" };
 		_streamPositions = new Dictionary<string, long> { { "stream1", 10 }, { "stream2", _fromSequenceNumber } };
 	}
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_distibutionPointCorrelationId = Guid.NewGuid();
 
 		_edp = new MultiStreamEventReader(
@@ -41,11 +44,13 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 		_edp.Resume();
 	}
 
-	private void HandleEvents(string stream, long[] eventNumbers) {
+	private void HandleEvents(string stream, long[] eventNumbers)
+	{
 		string eventType = "event_type";
 		List<ResolvedEvent> events = new List<ResolvedEvent>();
 
-		foreach (long eventNumber in eventNumbers) {
+		foreach (long eventNumber in eventNumbers)
+		{
 			events.Add(
 				ResolvedEvent.ForUnresolvedEvent(
 					new EventRecord(
@@ -59,11 +64,13 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 		}
 
 		long start, end;
-		if (eventNumbers.Length > 0) {
+		if (eventNumbers.Length > 0)
+		{
 			start = eventNumbers[0];
 			end = eventNumbers[eventNumbers.Length - 1];
 		}
-		else {
+		else
+		{
 			start = _fromSequenceNumber;
 			end = _fromSequenceNumber;
 		}
@@ -78,16 +85,19 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 		);
 	}
 
-	private void HandleEvents(string stream, long start, long end) {
+	private void HandleEvents(string stream, long start, long end)
+	{
 		List<long> eventNumbers = new List<long>();
-		for (long i = start; i <= end; i++) {
+		for (long i = start; i <= end; i++)
+		{
 			eventNumbers.Add(i);
 		}
 
 		HandleEvents(stream, eventNumbers.ToArray());
 	}
 
-	private void HandleDeletedStream(string stream, long sequenceNumber, ReadStreamResult result) {
+	private void HandleDeletedStream(string stream, long sequenceNumber, ReadStreamResult result)
+	{
 		var correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
 			.Last(x => x.EventStreamId == stream).CorrelationId;
 
@@ -99,7 +109,8 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 	}
 
 	[Test]
-	public void when_no_stream_and_sequence_num_equal_to_minus_one_should_not_publish_partition_deleted_message() {
+	public void when_no_stream_and_sequence_num_equal_to_minus_one_should_not_publish_partition_deleted_message()
+	{
 		HandleDeletedStream(_streamNames[0], -1, ReadStreamResult.NoStream);
 		//trigger event delivery:
 		HandleEvents(_streamNames[1], _fromSequenceNumber, _fromSequenceNumber);
@@ -109,7 +120,8 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 	}
 
 	[Test]
-	public void when_no_stream_and_sequence_num_equal_to_zero_should_publish_partition_deleted_message() {
+	public void when_no_stream_and_sequence_num_equal_to_zero_should_publish_partition_deleted_message()
+	{
 		HandleDeletedStream(_streamNames[0], 0, ReadStreamResult.NoStream);
 		//trigger event delivery:
 		HandleEvents(_streamNames[1], _fromSequenceNumber, _fromSequenceNumber);
@@ -122,7 +134,8 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 	}
 
 	[Test]
-	public void when_no_stream_and_sequence_num_greater_than_zero_should_publish_partition_deleted_message() {
+	public void when_no_stream_and_sequence_num_greater_than_zero_should_publish_partition_deleted_message()
+	{
 		HandleDeletedStream(_streamNames[0], 100, ReadStreamResult.NoStream);
 		//trigger event delivery:
 		HandleEvents(_streamNames[1], _fromSequenceNumber, _fromSequenceNumber);
@@ -135,7 +148,8 @@ public class when_handling_deleted_streams<TLogFormat, TStreamId> : TestFixtureW
 	}
 
 	[Test]
-	public void when_stream_deleted_should_publish_partition_deleted_message() {
+	public void when_stream_deleted_should_publish_partition_deleted_message()
+	{
 		HandleDeletedStream(_streamNames[0], 0, ReadStreamResult.StreamDeleted);
 		//trigger event delivery:
 		HandleEvents(_streamNames[1], _fromSequenceNumber, _fromSequenceNumber);

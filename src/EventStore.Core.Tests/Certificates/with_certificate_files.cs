@@ -9,11 +9,13 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Certificates;
 
-public class with_der : with_certificate_chain_of_length_1 {
+public class with_der : with_certificate_chain_of_length_1
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.der";
 		_keyPath = $"{PathName}/leaf.key";
 		File.WriteAllBytes(_certPath, _leaf.Export(X509ContentType.Cert));
@@ -21,7 +23,8 @@ public class with_der : with_certificate_chain_of_length_1 {
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -29,11 +32,13 @@ public class with_der : with_certificate_chain_of_length_1 {
 	}
 }
 
-public class with_der_and_wrong_key : with_certificate_chain_of_length_1 {
+public class with_der_and_wrong_key : with_certificate_chain_of_length_1
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.der";
 		_keyPath = $"{PathName}/leaf.key";
 
@@ -43,18 +48,21 @@ public class with_der_and_wrong_key : with_certificate_chain_of_length_1 {
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty)
 		);
 	}
 }
 
-public class with_pem : with_certificate_chain_of_length_1 {
+public class with_pem : with_certificate_chain_of_length_1
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.pem";
 		_keyPath = $"{PathName}/leaf.key";
 		File.WriteAllText(_certPath, _leaf.Export(X509ContentType.Cert).PEM("CERTIFICATE"));
@@ -62,7 +70,8 @@ public class with_pem : with_certificate_chain_of_length_1 {
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -70,11 +79,13 @@ public class with_pem : with_certificate_chain_of_length_1 {
 	}
 }
 
-public class with_pem_and_wrong_key : with_certificate_chain_of_length_1 {
+public class with_pem_and_wrong_key : with_certificate_chain_of_length_1
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.pem";
 		_keyPath = $"{PathName}/leaf.key";
 
@@ -84,25 +95,29 @@ public class with_pem_and_wrong_key : with_certificate_chain_of_length_1 {
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(
 			() => CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty)
 		);
 	}
 }
 
-public class with_password_protected_pkcs12 : with_certificate_chain_of_length_1 {
+public class with_password_protected_pkcs12 : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private const string Password = "test$1234";
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.p12";
 		File.WriteAllBytes(_certPath, _leaf.ExportToPkcs12(Password));
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, null, Password);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -110,13 +125,15 @@ public class with_password_protected_pkcs12 : with_certificate_chain_of_length_1
 	}
 }
 
-public class with_password_protected_pkcs12_and_separate_key : with_certificate_chain_of_length_1 {
+public class with_password_protected_pkcs12_and_separate_key : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private string _keyPath;
 	private const string Password = "test$1234";
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.p12";
 		_keyPath = $"{PathName}/leaf.key";
 		File.WriteAllBytes(_certPath, _leaf.ExportToPkcs12(Password));
@@ -124,7 +141,8 @@ public class with_password_protected_pkcs12_and_separate_key : with_certificate_
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, _keyPath, Password);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -132,13 +150,15 @@ public class with_password_protected_pkcs12_and_separate_key : with_certificate_
 	}
 }
 
-public class with_password_protected_pkcs12_and_wrong_separate_key : with_certificate_chain_of_length_1 {
+public class with_password_protected_pkcs12_and_wrong_separate_key : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private string _keyPath;
 	private const string Password = "test$1234";
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.p12";
 		_keyPath = $"{PathName}/leaf.key";
 
@@ -148,19 +168,22 @@ public class with_password_protected_pkcs12_and_wrong_separate_key : with_certif
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			CertificateUtils.LoadFromFile(_certPath, _keyPath, Password)
 		);
 	}
 }
 
-public class with_passwordless_pkcs8_private_key : with_certificate_chain_of_length_1 {
+public class with_passwordless_pkcs8_private_key : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private string _privateKeyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.pem";
 		File.WriteAllText(_certPath, _leaf.Export(X509ContentType.Cert).PEM("CERTIFICATE"));
 
@@ -169,7 +192,8 @@ public class with_passwordless_pkcs8_private_key : with_certificate_chain_of_len
 	}
 
 	[Test]
-	public void can_load_certificate_and_private_key() {
+	public void can_load_certificate_and_private_key()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, _privateKeyPath, null);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -177,13 +201,15 @@ public class with_passwordless_pkcs8_private_key : with_certificate_chain_of_len
 	}
 }
 
-public class with_password_protected_pkcs8_private_key : with_certificate_chain_of_length_1 {
+public class with_password_protected_pkcs8_private_key : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private string _privateKeyPath;
 	private const string Password = "test$1234";
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.pem";
 		File.WriteAllText(_certPath, _leaf.Export(X509ContentType.Cert).PEM("CERTIFICATE"));
 
@@ -192,7 +218,8 @@ public class with_password_protected_pkcs8_private_key : with_certificate_chain_
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, _privateKeyPath, null, Password);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -200,18 +227,21 @@ public class with_password_protected_pkcs8_private_key : with_certificate_chain_
 	}
 }
 
-public class with_passwordless_pkcs12 : with_certificate_chain_of_length_1 {
+public class with_passwordless_pkcs12 : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.p12";
 		File.WriteAllBytes(_certPath, _leaf.ExportToPkcs12(Password));
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, null, Password);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.IsNull(intermediates);
@@ -219,12 +249,14 @@ public class with_passwordless_pkcs12 : with_certificate_chain_of_length_1 {
 	}
 }
 
-public class with_pkcs12_and_wrong_key : with_certificate_chain_of_length_1 {
+public class with_pkcs12_and_wrong_key : with_certificate_chain_of_length_1
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/leaf.p12";
 
 		using var wrongKey = RSA.Create();
@@ -240,18 +272,21 @@ public class with_pkcs12_and_wrong_key : with_certificate_chain_of_length_1 {
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(() =>
 			CertificateUtils.LoadFromFile(_certPath, null, Password)
 		);
 	}
 }
 
-public class with_pem_bundle : with_certificate_chain_of_length_3 {
+public class with_pem_bundle : with_certificate_chain_of_length_3
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.pem";
 		_keyPath = $"{PathName}/leaf.key";
 		var leaf = _leaf.Export(X509ContentType.Cert).PEM("CERTIFICATE");
@@ -262,7 +297,8 @@ public class with_pem_bundle : with_certificate_chain_of_length_3 {
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.AreEqual(1, intermediates.Count);
@@ -272,11 +308,13 @@ public class with_pem_bundle : with_certificate_chain_of_length_3 {
 	}
 }
 
-public class with_pem_bundle_and_wrong_key : with_certificate_chain_of_length_3 {
+public class with_pem_bundle_and_wrong_key : with_certificate_chain_of_length_3
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.pem";
 		_keyPath = $"{PathName}/leaf.key";
 		var leaf = _leaf.Export(X509ContentType.Cert).PEM("CERTIFICATE");
@@ -288,18 +326,21 @@ public class with_pem_bundle_and_wrong_key : with_certificate_chain_of_length_3 
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(
 		() => CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty)
 		);
 	}
 }
 
-public class with_wrongly_ordered_pem_bundle : with_certificate_chain_of_length_3 {
+public class with_wrongly_ordered_pem_bundle : with_certificate_chain_of_length_3
+{
 	private string _certPath, _keyPath;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.pem";
 		_keyPath = $"{PathName}/leaf.key";
 		var leaf = _leaf.Export(X509ContentType.Cert).PEM("CERTIFICATE");
@@ -310,19 +351,22 @@ public class with_wrongly_ordered_pem_bundle : with_certificate_chain_of_length_
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(
 		() => CertificateUtils.LoadFromFile(_certPath, _keyPath, string.Empty)
 		);
 	}
 }
 
-public class with_password_protected_pkcs12_bundle : with_certificate_chain_of_length_3 {
+public class with_password_protected_pkcs12_bundle : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = "test$1234";
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -340,7 +384,8 @@ public class with_password_protected_pkcs12_bundle : with_certificate_chain_of_l
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, null, Password);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.AreEqual(1, intermediates.Count);
@@ -350,12 +395,14 @@ public class with_password_protected_pkcs12_bundle : with_certificate_chain_of_l
 	}
 }
 
-public class with_passwordless_pkcs12_bundle : with_certificate_chain_of_length_3 {
+public class with_passwordless_pkcs12_bundle : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -373,7 +420,8 @@ public class with_passwordless_pkcs12_bundle : with_certificate_chain_of_length_
 	}
 
 	[Test]
-	public void can_load_certificate() {
+	public void can_load_certificate()
+	{
 		var (certificate, intermediates) = CertificateUtils.LoadFromFile(_certPath, null, Password);
 		Assert.AreEqual(_leaf, certificate);
 		Assert.AreEqual(1, intermediates.Count);
@@ -383,12 +431,14 @@ public class with_passwordless_pkcs12_bundle : with_certificate_chain_of_length_
 	}
 }
 
-public class with_wrongly_ordered_pkcs12_bundle : with_certificate_chain_of_length_3 {
+public class with_wrongly_ordered_pkcs12_bundle : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -406,19 +456,22 @@ public class with_wrongly_ordered_pkcs12_bundle : with_certificate_chain_of_leng
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(
 			() => CertificateUtils.LoadFromFile(_certPath, null, Password)
 		);
 	}
 }
 
-public class with_pkcs12_bundle_having_no_keys : with_certificate_chain_of_length_3 {
+public class with_pkcs12_bundle_having_no_keys : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -435,7 +488,8 @@ public class with_pkcs12_bundle_having_no_keys : with_certificate_chain_of_lengt
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		var ex = Assert.Throws<Exception>(
 			() => CertificateUtils.LoadFromFile(_certPath, null, Password)
 		);
@@ -443,12 +497,14 @@ public class with_pkcs12_bundle_having_no_keys : with_certificate_chain_of_lengt
 	}
 }
 
-public class with_pkcs12_bundle_having_no_certificates : with_certificate_chain_of_length_3 {
+public class with_pkcs12_bundle_having_no_certificates : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -464,7 +520,8 @@ public class with_pkcs12_bundle_having_no_certificates : with_certificate_chain_
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		var ex = Assert.Throws<Exception>(
 			() => CertificateUtils.LoadFromFile(_certPath, null, Password)
 		);
@@ -472,12 +529,14 @@ public class with_pkcs12_bundle_having_no_certificates : with_certificate_chain_
 	}
 }
 
-public class with_pkcs12_bundle_having_multiple_keys : with_certificate_chain_of_length_3 {
+public class with_pkcs12_bundle_having_multiple_keys : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -498,7 +557,8 @@ public class with_pkcs12_bundle_having_multiple_keys : with_certificate_chain_of
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		var ex = Assert.Throws<Exception>(
 			() => CertificateUtils.LoadFromFile(_certPath, null, Password)
 		);
@@ -506,12 +566,14 @@ public class with_pkcs12_bundle_having_multiple_keys : with_certificate_chain_of
 	}
 }
 
-public class with_pkcs12_bundle_having_wrong_key : with_certificate_chain_of_length_3 {
+public class with_pkcs12_bundle_having_wrong_key : with_certificate_chain_of_length_3
+{
 	private string _certPath;
 	private const string Password = null;
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		_certPath = $"{PathName}/bundle.p12";
 
 		using var rsa = RSA.Create();
@@ -528,18 +590,21 @@ public class with_pkcs12_bundle_having_wrong_key : with_certificate_chain_of_len
 	}
 
 	[Test]
-	public void cannot_load_certificate() {
+	public void cannot_load_certificate()
+	{
 		Assert.Throws<ArgumentException>(
 			() => CertificateUtils.LoadFromFile(_certPath, null, Password)
 		);
 	}
 }
 
-public class when_loading_certificates_from_directory : with_certificate_chain_of_length_1 {
+public class when_loading_certificates_from_directory : with_certificate_chain_of_length_1
+{
 	private const string CertsDir = "certs";
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		Directory.CreateDirectory($"{PathName}/{CertsDir}");
 		var p = $"{PathName}/{CertsDir}/leaf";
 		File.WriteAllBytes($"{p}.der", _leaf.Export(X509ContentType.Cert));
@@ -554,7 +619,8 @@ public class when_loading_certificates_from_directory : with_certificate_chain_o
 
 
 	[Test]
-	public void loads_only_certificates_with_accepted_extensions() {
+	public void loads_only_certificates_with_accepted_extensions()
+	{
 		var certs = CertificateUtils.LoadAllCertificates($"{PathName}/{CertsDir}").ToArray();
 		Assert.AreEqual(8 - 3, certs.Length);
 		var accepted = new[] { ".crt", ".cert", ".cer", ".pem", ".der" };

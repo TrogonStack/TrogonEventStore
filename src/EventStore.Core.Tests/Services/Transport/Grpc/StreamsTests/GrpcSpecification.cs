@@ -22,7 +22,8 @@ using Streams = EventStore.Client.Streams.Streams;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.StreamsTests;
 
-public abstract class GrpcSpecification<TLogFormat, TStreamId> {
+public abstract class GrpcSpecification<TLogFormat, TStreamId>
+{
 	protected readonly GrpcChannel Channel;
 	private readonly MiniNode<TLogFormat, TStreamId> _node;
 	private readonly string _dbPath;
@@ -30,15 +31,18 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId> {
 	internal Streams.StreamsClient StreamsClient { get; }
 	private readonly BatchAppender _batchAppender;
 
-	protected GrpcSpecification(IExpiryStrategy expiryStrategy = null) {
+	protected GrpcSpecification(IExpiryStrategy expiryStrategy = null)
+	{
 		_dbPath = Path.Combine(Path.GetTempPath(), $"grpc-node-{Guid.NewGuid():N}");
 		_node = new MiniNode<TLogFormat, TStreamId>(Path.GetTempPath(),
 			dbPath: _dbPath,
 			expiryStrategy: expiryStrategy);
 
-		Channel = GrpcChannel.ForAddress(new UriBuilder {
+		Channel = GrpcChannel.ForAddress(new UriBuilder
+		{
 			Scheme = Uri.UriSchemeHttps
-		}.Uri, new GrpcChannelOptions {
+		}.Uri, new GrpcChannelOptions
+		{
 			HttpClient = _node.HttpClient,
 			DisposeHttpClient = false,
 		});
@@ -51,50 +55,63 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId> {
 	protected abstract Task When();
 
 	[OneTimeSetUp]
-	public async Task SetUp() {
+	public async Task SetUp()
+	{
 		await _node.Start();
 		await _node.AdminUserCreated;
 		_batchAppender.Start();
-		try {
+		try
+		{
 			await Given().WithTimeout(TimeSpan.FromSeconds(30));
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			throw new Exception("Given Failed", ex);
 		}
 
-		try {
+		try
+		{
 			await When().WithTimeout(TimeSpan.FromSeconds(30));
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			throw new Exception("When Failed", ex);
 		}
 	}
 
 	[OneTimeTearDown]
-	public async Task TearDown() {
+	public async Task TearDown()
+	{
 		Exception shutdownException = null;
 		await _batchAppender.DisposeAsync();
 		Channel?.Dispose();
-		try {
+		try
+		{
 			await _node.Shutdown();
 		}
-		catch (Exception ex) {
+		catch (Exception ex)
+		{
 			shutdownException = ex;
 			throw;
 		}
-		finally {
-			try {
-				if (Directory.Exists(_dbPath)) {
+		finally
+		{
+			try
+			{
+				if (Directory.Exists(_dbPath))
+				{
 					Directory.Delete(_dbPath, recursive: true);
 				}
 			}
-			catch (Exception) when (shutdownException is not null) {
+			catch (Exception) when (shutdownException is not null)
+			{
 			}
 		}
 	}
 
 	private static CallCredentials CallCredentialsFromUser((string userName, string password) credentials) =>
-		CallCredentials.FromInterceptor((_, metadata) => {
+		CallCredentials.FromInterceptor((_, metadata) =>
+		{
 			metadata.Add(new Metadata.Entry("authorization",
 				$"Basic {Convert.ToBase64String(Encoding.ASCII.GetBytes($"{credentials.userName}:{credentials.password}"))}"));
 
@@ -119,7 +136,8 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId> {
 		Enumerable.Range(0, count).Select(_ => CreateEvent());
 
 	internal static BatchAppendReq.Types.ProposedMessage CreateEvent(string type = "-") =>
-		new BatchAppendReq.Types.ProposedMessage {
+		new BatchAppendReq.Types.ProposedMessage
+		{
 			Data = ByteString.Empty,
 			Id = Uuid.NewUuid().ToDto(),
 			CustomMetadata = ByteString.Empty,
@@ -129,12 +147,14 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId> {
 			}
 		};
 
-	private class BatchAppender : IAsyncDisposable {
+	private class BatchAppender : IAsyncDisposable
+	{
 		private readonly Lazy<AsyncDuplexStreamingCall<BatchAppendReq, BatchAppendResp>> _batchAppendLazy;
 		private AsyncDuplexStreamingCall<BatchAppendReq, BatchAppendResp> BatchAppend => _batchAppendLazy.Value;
 		private readonly ConcurrentDictionary<Uuid, TaskCompletionSource<BatchAppendResp>> _responses;
 
-		public BatchAppender(Streams.StreamsClient streamsClient) {
+		public BatchAppender(Streams.StreamsClient streamsClient)
+		{
 			_batchAppendLazy = new Lazy<AsyncDuplexStreamingCall<BatchAppendReq, BatchAppendResp>>(() =>
 				streamsClient.BatchAppend(new CallOptions(credentials: GetCredentials(default),
 					deadline: DateTime.UtcNow.AddDays(1))));
@@ -142,12 +162,15 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId> {
 		}
 
 		public void Start() =>
-			Task.Run(async () => {
-				while (await BatchAppend.ResponseStream.MoveNext()) {
+			Task.Run(async () =>
+			{
+				while (await BatchAppend.ResponseStream.MoveNext())
+				{
 					var response = BatchAppend.ResponseStream.Current;
 					var correlationId = Uuid.FromDto(response.CorrelationId);
 
-					if (_responses.TryRemove(correlationId, out var tcs)) {
+					if (_responses.TryRemove(correlationId, out var tcs))
+					{
 						tcs.TrySetResult(response);
 					}
 				}
@@ -158,24 +181,29 @@ public abstract class GrpcSpecification<TLogFormat, TStreamId> {
 				? new(_batchAppendLazy.Value.RequestStream.CompleteAsync())
 				: new(Task.CompletedTask);
 
-		public async ValueTask<BatchAppendResp> Call(params BatchAppendReq[] requests) {
-			if (requests.Length == 0) {
+		public async ValueTask<BatchAppendResp> Call(params BatchAppendReq[] requests)
+		{
+			if (requests.Length == 0)
+			{
 				throw new ArgumentException($"Must have at least one {nameof(BatchAppendReq)}.",
 					nameof(requests));
 			}
 
-			if (requests.Select(r => r.CorrelationId).Distinct().Count() > 1) {
+			if (requests.Select(r => r.CorrelationId).Distinct().Count() > 1)
+			{
 				throw new ArgumentException($"All {nameof(BatchAppendReq)} must have same CorrelationId.",
 					nameof(requests));
 			}
 			var tcs = new TaskCompletionSource<BatchAppendResp>();
 			var correlationId = Uuid.FromDto(requests[0].CorrelationId);
 
-			if (!_responses.TryAdd(correlationId, tcs)) {
+			if (!_responses.TryAdd(correlationId, tcs))
+			{
 				throw new ArgumentException("CorrelationId is already reserved.", nameof(correlationId));
 			}
 
-			foreach (var request in requests) {
+			foreach (var request in requests)
+			{
 				await BatchAppend.RequestStream.WriteAsync(request);
 			}
 

@@ -15,14 +15,16 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 
 [TestFixture]
-public partial class EnumeratorTests {
+public partial class EnumeratorTests
+{
 	private static EnumeratorWrapper CreateAllSubscriptionFiltered(
 		IPublisher publisher,
 		Position? checkpoint,
 		IEventFilter eventFilter = null,
 		uint? maxSearchWindow = null,
 		uint checkpointIntervalMultiplier = 1,
-		ClaimsPrincipal user = null) {
+		ClaimsPrincipal user = null)
+	{
 
 		return new EnumeratorWrapper(new Enumerator.AllSubscriptionFiltered(
 			bus: publisher,
@@ -39,10 +41,12 @@ public partial class EnumeratorTests {
 
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class subscribe_filtered_all_from_start<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	public class subscribe_filtered_all_from_start<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
 		private Guid _eventId;
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			EnableReadAll();
 			_eventId = WriteEvent("test-stream", "type1", "{}", "{Data: 1}").Item1.EventId;
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
@@ -50,7 +54,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_receive_live_caught_up_message_after_reading_existing_events() {
+		public async Task should_receive_live_caught_up_message_after_reading_existing_events()
+		{
 			await using var sub = CreateAllSubscriptionFiltered(
 				_publisher, null, EventFilter.EventType.Prefixes(false, "type1"));
 
@@ -63,7 +68,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_receive_a_valid_checkpoint_when_no_events_match_from_start() {
+		public async Task should_receive_a_valid_checkpoint_when_no_events_match_from_start()
+		{
 			await using var sub = CreateAllSubscriptionFiltered(
 				_publisher, null, EventFilter.EventType.Prefixes(false, "match-nothing"));
 
@@ -76,8 +82,10 @@ public partial class EnumeratorTests {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class subscribe_filtered_all_from_end<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
-		protected override void Given() {
+	public class subscribe_filtered_all_from_end<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
+		protected override void Given()
+		{
 			EnableReadAll();
 			WriteEvent("test-stream", "type1", "{}", "{Data: 1}");
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
@@ -85,7 +93,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_receive_live_caught_up_message_immediately() {
+		public async Task should_receive_live_caught_up_message_immediately()
+		{
 			await using var sub = CreateAllSubscriptionFiltered(
 				_publisher, Position.End, EventFilter.EventType.Prefixes(false, "type1"));
 
@@ -95,11 +104,13 @@ public partial class EnumeratorTests {
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class subscribe_filtered_all_from_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	public class subscribe_filtered_all_from_position<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
 		private Guid _eventId;
 		private TFPos _subscribeFrom;
 
-		protected override void Given() {
+		protected override void Given()
+		{
 			EnableReadAll();
 			WriteEvent("test-stream", "theType", "{}", "{Data: 1}");
 			WriteEvent("test-stream", "type2", "{}", "{Data: 2}");
@@ -110,7 +121,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_receive_matching_events_after_start_position() {
+		public async Task should_receive_matching_events_after_start_position()
+		{
 			await using var sub = CreateAllSubscriptionFiltered(
 				_publisher,
 				new Position((ulong)_subscribeFrom.CommitPosition, (ulong)_subscribeFrom.PreparePosition),
@@ -125,7 +137,8 @@ public partial class EnumeratorTests {
 		}
 
 		[Test]
-		public async Task should_receive_a_valid_checkpoint_when_no_events_match_after_the_start_position() {
+		public async Task should_receive_a_valid_checkpoint_when_no_events_match_after_the_start_position()
+		{
 			await using var sub = CreateAllSubscriptionFiltered(
 				_publisher,
 				new Position((ulong)_subscribeFrom.CommitPosition, (ulong)_subscribeFrom.PreparePosition),

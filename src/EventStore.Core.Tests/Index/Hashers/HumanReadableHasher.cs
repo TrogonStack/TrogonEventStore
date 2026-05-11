@@ -9,19 +9,24 @@ namespace EventStore.Core.Tests.Index.Hashers;
 // e.g.
 //   "$$ma-1 -> 'm'
 //   "ma-1" -> 'a' (97)
-public class HumanReadableHasher : ILongHasher<string> {
+public class HumanReadableHasher : ILongHasher<string>
+{
 	private readonly HumanReadableHasher32 _hash32;
 
-	public HumanReadableHasher() {
+	public HumanReadableHasher()
+	{
 		_hash32 = new HumanReadableHasher32();
 	}
 
 	public ulong Hash(string x) => _hash32.Hash(x);
 }
 
-public class HumanReadableHasher32 : IHasher<string> {
-	public uint Hash(string x) {
-		if (x == "") {
+public class HumanReadableHasher32 : IHasher<string>
+{
+	public uint Hash(string x)
+	{
+		if (x == "")
+		{
 			return 0;
 		}
 

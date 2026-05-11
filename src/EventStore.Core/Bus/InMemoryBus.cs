@@ -16,7 +16,8 @@ namespace EventStore.Core.Bus;
 /// Synchronously dispatches messages to zero or more subscribers.
 /// Subscribers are responsible for handling exceptions
 /// </summary>
-public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message> {
+public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message>
+{
 	public static InMemoryBus CreateTest(bool watchSlowMsg = true) =>
 		new("Test", watchSlowMsg);
 
@@ -26,21 +27,25 @@ public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message> {
 	private readonly FrozenDictionary<Type, MessageTypeHandler> _handlers;
 	private readonly double _slowMsgThresholdMs;
 
-	public InMemoryBus(string name, bool watchSlowMsg = true, TimeSpan? slowMsgThreshold = null) {
+	public InMemoryBus(string name, bool watchSlowMsg = true, TimeSpan? slowMsgThreshold = null)
+	{
 		_handlers = CreateMessageTypeHandlers();
 		Name = name;
 
-		if (watchSlowMsg) {
+		if (watchSlowMsg)
+		{
 			_slowMsgThresholdMs = slowMsgThreshold.GetValueOrDefault(DefaultSlowMessageThreshold).TotalMilliseconds;
 		}
 	}
 
 	public string Name { get; }
 
-	public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message {
+	public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message
+	{
 		ArgumentNullException.ThrowIfNull(handler);
 
-		if (!_handlers.TryGetValue(typeof(T), out var handlers)) {
+		if (!_handlers.TryGetValue(typeof(T), out var handlers))
+		{
 			throw new GenericArgumentException<T>("Unexpected message type", nameof(handler));
 		}
 
@@ -48,10 +53,12 @@ public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message> {
 		Unsafe.As<MessageTypeHandler<T>>(handlers).AddHandler(handler);
 	}
 
-	public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message {
+	public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message
+	{
 		ArgumentNullException.ThrowIfNull(handler);
 
-		if (!_handlers.TryGetValue(typeof(T), out var handlers)) {
+		if (!_handlers.TryGetValue(typeof(T), out var handlers))
+		{
 			throw new GenericArgumentException<T>("Unexpected message type", nameof(handler));
 		}
 
@@ -61,12 +68,15 @@ public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message> {
 
 	private bool IsSlowMsgWatchEnabled => BitConverter.DoubleToInt64Bits(_slowMsgThresholdMs) is not 0L;
 
-	public ValueTask DispatchAsync(Message message, CancellationToken token = default) {
-		if (message is null) {
+	public ValueTask DispatchAsync(Message message, CancellationToken token = default)
+	{
+		if (message is null)
+		{
 			return ValueTask.FromException(new ArgumentNullException(nameof(message)));
 		}
 
-		if (!_handlers.TryGetValue(message.GetType(), out var handlers)) {
+		if (!_handlers.TryGetValue(message.GetType(), out var handlers))
+		{
 			return ValueTask.FromException(new ArgumentOutOfRangeException(nameof(message), "Unexpected message type"));
 		}
 
@@ -77,17 +87,20 @@ public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message> {
 	}
 
 	private async ValueTask DispatchAndWatchSlowMsg(MessageTypeHandler handlers, Message message,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		var ts = new Timestamp();
 
 		await handlers.InvokeAsync(message, token);
 
 		var elapsedMs = ts.ElapsedMilliseconds;
-		if (elapsedMs > _slowMsgThresholdMs) {
+		if (elapsedMs > _slowMsgThresholdMs)
+		{
 			Log.Debug("SLOW BUS MSG [{bus}]: {message} - {elapsed}ms.",
 				Name, message.GetType().Name, (int)elapsedMs);
 			if (elapsedMs > QueuedHandlerThreadPool.VerySlowMsgThreshold.TotalMilliseconds &&
-				message is not SystemMessage.SystemInit) {
+				message is not SystemMessage.SystemInit)
+			{
 				Log.Error("---!!! VERY SLOW BUS MSG [{bus}]: {message} - {elapsed}ms.",
 					Name, message.GetType().Name, (int)elapsedMs);
 			}

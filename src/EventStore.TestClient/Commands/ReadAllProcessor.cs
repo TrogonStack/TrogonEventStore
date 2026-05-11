@@ -7,16 +7,20 @@ using EventStore.Core.Services.Transport.Tcp;
 
 namespace EventStore.TestClient.Commands;
 
-internal class ReadAllProcessor : ICmdProcessor {
-	public string Usage {
+internal class ReadAllProcessor : ICmdProcessor
+{
+	public string Usage
+	{
 		get { return "RDALL [[F|B] [<commit pos> <prepare pos> [<only-if-leader>]]]"; }
 	}
 
-	public string Keyword {
+	public string Keyword
+	{
 		get { return "RDALL"; }
 	}
 
-	public bool Execute(CommandProcessorContext context, string[] args) {
+	public bool Execute(CommandProcessorContext context, string[] args)
+	{
 		bool forward = true;
 		long commitPos = 0;
 		long preparePos = 0;
@@ -24,34 +28,43 @@ internal class ReadAllProcessor : ICmdProcessor {
 		bool resolveLinkTos = false;
 		bool requireLeader = false;
 
-		if (args.Length > 0) {
-			if (args.Length != 1 && args.Length != 3 && args.Length != 4) {
+		if (args.Length > 0)
+		{
+			if (args.Length != 1 && args.Length != 3 && args.Length != 4)
+			{
 				return false;
 			}
 
-			if (args[0].ToUpper() == "F") {
+			if (args[0].ToUpper() == "F")
+			{
 				forward = true;
 			}
-			else if (args[0].ToUpper() == "B") {
+			else if (args[0].ToUpper() == "B")
+			{
 				forward = false;
 			}
-			else {
+			else
+			{
 				return false;
 			}
 
-			if (args.Length >= 3) {
+			if (args.Length >= 3)
+			{
 				posOverriden = true;
-				if (!long.TryParse(args[1], out commitPos) || !long.TryParse(args[2], out preparePos)) {
+				if (!long.TryParse(args[1], out commitPos) || !long.TryParse(args[2], out preparePos))
+				{
 					return false;
 				}
 			}
 
-			if (args.Length >= 4) {
+			if (args.Length >= 4)
+			{
 				requireLeader = bool.Parse(args[3]);
 			}
 		}
 
-		if (!posOverriden) {
+		if (!posOverriden)
+		{
 			commitPos = forward ? 0 : -1;
 			preparePos = forward ? 0 : -1;
 		}
@@ -65,7 +78,8 @@ internal class ReadAllProcessor : ICmdProcessor {
 
 		context._tcpTestClient.CreateTcpConnection(
 			context,
-			connectionEstablished: conn => {
+			connectionEstablished: conn =>
+			{
 				context.Log.Information("[{remoteEndPoint}, L{localEndPoint}]: Reading all {readDirection}...",
 					conn.RemoteEndPoint, conn.LocalEndPoint, forward ? "FORWARD" : "BACKWARD");
 
@@ -75,14 +89,17 @@ internal class ReadAllProcessor : ICmdProcessor {
 				sw.Start();
 				conn.EnqueueSend(package);
 			},
-			handlePackage: (conn, pkg) => {
-				if (pkg.Command != tcpCommandToReceive) {
+			handlePackage: (conn, pkg) =>
+			{
+				if (pkg.Command != tcpCommandToReceive)
+				{
 					context.Fail(reason: string.Format("Unexpected TCP package: {0}.", pkg.Command));
 					return;
 				}
 
 				var dto = pkg.Data.Deserialize<ReadAllEventsCompleted>();
-				if (dto.Events.IsEmpty()) {
+				if (dto.Events.IsEmpty())
+				{
 					sw.Stop();
 					context.Log.Information("=== Reading ALL {readDirection} completed in {elapsed}. Total read: {total}",
 						forward ? "FORWARD" : "BACKWARD", sw.Elapsed, total);

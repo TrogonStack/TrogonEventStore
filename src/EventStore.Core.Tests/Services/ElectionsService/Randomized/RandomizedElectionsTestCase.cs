@@ -12,7 +12,8 @@ using EventStore.Core.TransactionLog.Checkpoint;
 
 namespace EventStore.Core.Tests.Services.ElectionsService.Randomized;
 
-internal class RandomizedElectionsTestCase {
+internal class RandomizedElectionsTestCase
+{
 	protected readonly int RndSeed;
 	protected readonly Random Rnd;
 
@@ -45,7 +46,8 @@ internal class RandomizedElectionsTestCase {
 		int timerMinDelay,
 		int timerMaxDelay,
 		int? rndSeed = null,
-		bool isReadOnlyReplica = false) {
+		bool isReadOnlyReplica = false)
+	{
 		RndSeed = rndSeed ?? Math.Abs(Environment.TickCount);
 		Rnd = new Random(RndSeed);
 
@@ -62,10 +64,12 @@ internal class RandomizedElectionsTestCase {
 		Logger = new ElectionsLogger();
 	}
 
-	public virtual void Init() {
+	public virtual void Init()
+	{
 		var sendOverHttpHandler = GetSendOverHttpProcessor();
 
-		for (int i = 0; i < InstancesCnt; ++i) {
+		for (int i = 0; i < InstancesCnt; ++i)
+		{
 			var inputBus = new SynchronousScheduler($"ELECTIONS-INPUT-BUS-{i}");
 			var outputBus = new SynchronousScheduler($"ELECTIONS-OUTPUT-BUS-{i}");
 			var endPoint = new IPEndPoint(BaseEndPoint.Address, BaseEndPoint.Port + i);
@@ -97,7 +101,8 @@ internal class RandomizedElectionsTestCase {
 		}
 	}
 
-	protected virtual SendOverGrpcProcessor GetSendOverHttpProcessor() {
+	protected virtual SendOverGrpcProcessor GetSendOverHttpProcessor()
+	{
 		return new SendOverGrpcProcessor(Rnd,
 			Runner,
 			HttpLossProbability,
@@ -105,16 +110,19 @@ internal class RandomizedElectionsTestCase {
 			HttpMaxDelay);
 	}
 
-	protected virtual IRandTestFinishCondition GetFinishCondition() {
+	protected virtual IRandTestFinishCondition GetFinishCondition()
+	{
 		return new ElectionsProgressCondition(InstancesCnt);
 	}
 
-	protected virtual IRandTestItemProcessor[] GetAdditionalProcessors() {
+	protected virtual IRandTestItemProcessor[] GetAdditionalProcessors()
+	{
 		return new IRandTestItemProcessor[] { };
 	}
 
 	protected virtual GossipMessage.GossipUpdated GetInitialGossipFor(ElectionsInstance instance,
-		List<ElectionsInstance> allInstances) {
+		List<ElectionsInstance> allInstances)
+	{
 		var members = allInstances.Select(
 			x => MemberInfo.ForVNode(x.InstanceId, DateTime.UtcNow, VNodeState.Unknown, true,
 				x.EndPoint, null, x.EndPoint, null,
@@ -123,10 +131,12 @@ internal class RandomizedElectionsTestCase {
 		return gossip;
 	}
 
-	public bool Run() {
+	public bool Run()
+	{
 		FinishCondition = GetFinishCondition();
 
-		foreach (var instance in _instances) {
+		foreach (var instance in _instances)
+		{
 			Runner.Enqueue(instance.EndPoint, new SystemMessage.SystemInit(), instance.InputBus);
 			Runner.Enqueue(instance.EndPoint, new ElectionMessage.StartElections(), instance.InputBus);
 
@@ -139,7 +149,8 @@ internal class RandomizedElectionsTestCase {
 
 		var isGood = Runner.Run(FinishCondition, processors.ToArray());
 
-		if (!isGood) {
+		if (!isGood)
+		{
 			Console.WriteLine("Unsuccessful run. Parameters:\n"
 							  + "rndSeed: {0}\n"
 							  + "maxIterCnt = {1}\n"

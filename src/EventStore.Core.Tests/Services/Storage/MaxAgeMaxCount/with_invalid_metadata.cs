@@ -9,7 +9,8 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.MaxAgeMaxCount;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private EventRecord _r1;
 	private EventRecord _r2;
 	private EventRecord _r3;
@@ -17,7 +18,8 @@ public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenari
 	private EventRecord _r5;
 	private EventRecord _r6;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var now = DateTime.UtcNow;
 
 		const string metadata = @"{""$maxCount"":4,,""$maxAge"":}";
@@ -31,7 +33,8 @@ public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenari
 	}
 
 	[Test]
-	public async Task on_single_event_read_all_metadata_is_ignored() {
+	public async Task on_single_event_read_all_metadata_is_ignored()
+	{
 		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_r2, result.Record);
@@ -54,7 +57,8 @@ public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenari
 	}
 
 	[Test]
-	public async Task on_forward_range_read_all_metadata_is_ignored() {
+	public async Task on_forward_range_read_all_metadata_is_ignored()
+	{
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
@@ -66,7 +70,8 @@ public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenari
 	}
 
 	[Test]
-	public async Task on_backward_range_read_all_metadata_is_ignored() {
+	public async Task on_backward_range_read_all_metadata_is_ignored()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(5, result.Records.Length);
@@ -78,7 +83,8 @@ public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenari
 	}
 
 	[Test]
-	public async Task on_read_all_forward_all_metadata_is_ignored() {
+	public async Task on_read_all_forward_all_metadata_is_ignored()
+	{
 		var records = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);
@@ -91,7 +97,8 @@ public class with_invalid_metadata<TLogFormat, TStreamId> : ReadIndexTestScenari
 	}
 
 	[Test]
-	public async Task on_read_all_backward_all_metadata_is_ignored() {
+	public async Task on_read_all_backward_all_metadata_is_ignored()
+	{
 		var records = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords();
 		Assert.AreEqual(6, records.Count);

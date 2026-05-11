@@ -10,37 +10,43 @@ namespace EventStore.Core.Tests.ClientAPI;
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string), TcpType.Normal)]
 [TestFixture(typeof(LogFormat.V2), typeof(string), TcpType.Ssl)]
-public class event_store_connection_should<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class event_store_connection_should<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private readonly TcpType _tcpType;
 	private MiniNode<TLogFormat, TStreamId> _node;
 
-	public event_store_connection_should(TcpType tcpType) {
+	public event_store_connection_should(TcpType tcpType)
+	{
 		_tcpType = tcpType;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
 	[Category("Network")]
-	public void not_throw_on_close_if_connect_was_not_called() {
+	public void not_throw_on_close_if_connect_was_not_called()
+	{
 		var connection = TestConnection.To(_node, _tcpType);
 		Assert.DoesNotThrow(connection.Close);
 	}
 
 	[Test]
 	[Category("Network")]
-	public async Task not_throw_on_close_if_called_multiple_times() {
+	public async Task not_throw_on_close_if_called_multiple_times()
+	{
 		var connection = TestConnection.To(_node, _tcpType);
 		await connection.ConnectAsync();
 		connection.Close();
@@ -74,7 +80,8 @@ public class event_store_connection_should<TLogFormat, TStreamId> : Specificatio
 	*/
 	[Test]
 	[Category("Network")]
-	public async Task throw_invalid_operation_on_every_api_call_if_connect_was_not_called() {
+	public async Task throw_invalid_operation_on_every_api_call_if_connect_was_not_called()
+	{
 		var connection = TestConnection.To(_node, _tcpType);
 
 		const string s = "stream";

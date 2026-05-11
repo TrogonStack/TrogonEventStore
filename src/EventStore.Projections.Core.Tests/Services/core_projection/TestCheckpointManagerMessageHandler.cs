@@ -3,7 +3,8 @@ using EventStore.Projections.Core.Messages;
 
 namespace EventStore.Projections.Core.Tests.Services.core_projection;
 
-public class TestCheckpointManagerMessageHandler : IProjectionCheckpointManager, IEmittedStreamContainer {
+public class TestCheckpointManagerMessageHandler : IProjectionCheckpointManager, IEmittedStreamContainer
+{
 	public readonly List<CoreProjectionProcessingMessage.ReadyForCheckpoint> HandledMessages =
 		new List<CoreProjectionProcessingMessage.ReadyForCheckpoint>();
 
@@ -19,23 +20,28 @@ public class TestCheckpointManagerMessageHandler : IProjectionCheckpointManager,
 	public readonly List<CoreProjectionProcessingMessage.EmittedStreamAwaiting> HandledStreamAwaitingMessage =
 		new List<CoreProjectionProcessingMessage.EmittedStreamAwaiting>();
 
-	public void Handle(CoreProjectionProcessingMessage.ReadyForCheckpoint message) {
+	public void Handle(CoreProjectionProcessingMessage.ReadyForCheckpoint message)
+	{
 		HandledMessages.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.RestartRequested message) {
+	public void Handle(CoreProjectionProcessingMessage.RestartRequested message)
+	{
 		HandledRestartRequestedMessages.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.Failed message) {
+	public void Handle(CoreProjectionProcessingMessage.Failed message)
+	{
 		HandledFailedMessages.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.EmittedStreamAwaiting message) {
+	public void Handle(CoreProjectionProcessingMessage.EmittedStreamAwaiting message)
+	{
 		HandledStreamAwaitingMessage.Add(message);
 	}
 
-	public void Handle(CoreProjectionProcessingMessage.EmittedStreamWriteCompleted message) {
+	public void Handle(CoreProjectionProcessingMessage.EmittedStreamWriteCompleted message)
+	{
 		HandledWriteCompletedMessage.Add(message);
 	}
 }

@@ -11,32 +11,38 @@ namespace EventStore.Core.Tests.ClientAPI;
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private readonly TcpType _tcpType = TcpType.Ssl;
 	private MiniNode<TLogFormat, TStreamId> _node;
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.To(node, _tcpType);
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test, Category("Network")]
-	public async Task should_allow_appending_zero_events_to_stream_with_no_problems() {
+	public async Task should_allow_appending_zero_events_to_stream_with_no_problems()
+	{
 		const string stream1 = "should_allow_appending_zero_events_to_stream_with_no_problems1";
 		const string stream2 = "should_allow_appending_zero_events_to_stream_with_no_problems2";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			Assert.AreEqual(-1,
@@ -61,9 +67,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test, Category("Network")]
-	public async Task should_create_stream_with_no_stream_exp_ver_on_first_write_if_does_not_exist() {
+	public async Task should_create_stream_with_no_stream_exp_ver_on_first_write_if_does_not_exist()
+	{
 		const string stream = "should_create_stream_with_no_stream_exp_ver_on_first_write_if_does_not_exist";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			Assert.AreEqual(0, (await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent()))
@@ -76,9 +84,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_create_stream_with_any_exp_ver_on_first_write_if_does_not_exist() {
+	public async Task should_create_stream_with_any_exp_ver_on_first_write_if_does_not_exist()
+	{
 		const string stream = "should_create_stream_with_any_exp_ver_on_first_write_if_does_not_exist";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0, (await store.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent())).NextExpectedVersion);
 
@@ -89,9 +99,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task multiple_idempotent_writes() {
+	public async Task multiple_idempotent_writes()
+	{
 		const string stream = "multiple_idempotent_writes";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = new[] {
@@ -107,9 +119,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task multiple_idempotent_writes_with_same_id_bug_case() {
+	public async Task multiple_idempotent_writes_with_same_id_bug_case()
+	{
 		const string stream = "multiple_idempotent_writes_with_same_id_bug_case";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var x = TestEvent.NewTestEvent();
 			var events = new[] { x, x, x, x, x, x };
@@ -120,9 +134,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	[Test]
 	[Category("Network")]
 	public async Task
-		in_case_where_multiple_writes_of_multiple_events_with_the_same_ids_using_expected_version_any_then_next_expected_version_is_unreliable() {
+		in_case_where_multiple_writes_of_multiple_events_with_the_same_ids_using_expected_version_any_then_next_expected_version_is_unreliable()
+	{
 		const string stream = "in_wtf_multiple_case_of_multiple_writes_expected_version_any_per_all_same_id";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var x = TestEvent.NewTestEvent();
 			var events = new[] { x, x, x, x, x, x };
@@ -135,10 +151,12 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	[Test]
 	[Category("Network")]
 	public async Task
-		in_case_where_multiple_writes_of_multiple_events_with_the_same_ids_using_expected_version_nostream_then_next_expected_version_is_correct() {
+		in_case_where_multiple_writes_of_multiple_events_with_the_same_ids_using_expected_version_nostream_then_next_expected_version_is_correct()
+	{
 		const string stream =
 			"in_slightly_reasonable_multiple_case_of_multiple_writes_with_expected_version_per_all_same_id";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var x = TestEvent.NewTestEvent();
 			var events = new[] { x, x, x, x, x, x };
@@ -151,9 +169,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_writing_with_correct_exp_ver_to_deleted_stream() {
+	public async Task should_fail_writing_with_correct_exp_ver_to_deleted_stream()
+	{
 		const string stream = "should_fail_writing_with_correct_exp_ver_to_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
@@ -166,9 +186,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_return_log_position_when_writing() {
+	public async Task should_return_log_position_when_writing()
+	{
 		const string stream = "should_return_log_position_when_writing";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var result = await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent());
 			Assert.IsTrue(0 < result.LogPosition.PreparePosition);
@@ -178,15 +200,19 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_writing_with_any_exp_ver_to_deleted_stream() {
+	public async Task should_fail_writing_with_any_exp_ver_to_deleted_stream()
+	{
 		const string stream = "should_fail_writing_with_any_exp_ver_to_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
-			try {
+			try
+			{
 				await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
 			}
-			catch (Exception exc) {
+			catch (Exception exc)
+			{
 				Console.WriteLine(exc);
 				Assert.Fail();
 			}
@@ -198,9 +224,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_writing_with_invalid_exp_ver_to_deleted_stream() {
+	public async Task should_fail_writing_with_invalid_exp_ver_to_deleted_stream()
+	{
 		const string stream = "should_fail_writing_with_invalid_exp_ver_to_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
@@ -211,9 +239,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_append_with_correct_exp_ver_to_existing_stream() {
+	public async Task should_append_with_correct_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_append_with_correct_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent());
 
@@ -223,9 +253,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_append_with_any_exp_ver_to_existing_stream() {
+	public async Task should_append_with_any_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_append_with_any_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0, (await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
 			Assert.AreEqual(1, (await store.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -234,9 +266,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_appending_with_wrong_exp_ver_to_existing_stream() {
+	public async Task should_fail_appending_with_wrong_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_fail_appending_with_wrong_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var wev = await AssertEx.ThrowsAsync<WrongExpectedVersionException>(() =>
@@ -248,9 +282,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_append_with_stream_exists_exp_ver_to_existing_stream() {
+	public async Task should_append_with_stream_exists_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_append_with_stream_exists_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent());
 
@@ -260,11 +296,14 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_append_with_stream_exists_exp_ver_to_stream_with_multiple_events() {
+	public async Task should_append_with_stream_exists_exp_ver_to_stream_with_multiple_events()
+	{
 		const string stream = "should_append_with_stream_exists_exp_ver_to_stream_with_multiple_events";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
-			for (var i = 0; i < 5; i++) {
+			for (var i = 0; i < 5; i++)
+			{
 				await store.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent());
 			}
 
@@ -274,9 +313,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_append_with_stream_exists_exp_ver_if_metadata_stream_exists() {
+	public async Task should_append_with_stream_exists_exp_ver_if_metadata_stream_exists()
+	{
 		const string stream = "should_append_with_stream_exists_exp_ver_if_metadata_stream_exists";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			await store.SetStreamMetadataAsync(stream, ExpectedVersion.Any,
 				new StreamMetadata(10, null, null, null, null));
@@ -287,9 +328,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_appending_with_stream_exists_exp_ver_and_stream_does_not_exist() {
+	public async Task should_fail_appending_with_stream_exists_exp_ver_and_stream_does_not_exist()
+	{
 		const string stream = "should_fail_appending_with_stream_exists_exp_ver_and_stream_does_not_exist";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var wev = await AssertEx.ThrowsAsync<WrongExpectedVersionException>(
@@ -301,9 +344,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_appending_with_stream_exists_exp_ver_to_hard_deleted_stream() {
+	public async Task should_fail_appending_with_stream_exists_exp_ver_to_hard_deleted_stream()
+	{
 		const string stream = "should_fail_appending_with_stream_exists_exp_ver_to_hard_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
@@ -315,9 +360,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 	[Test]
 	[Category("Network")]
-	public async Task should_fail_appending_with_stream_exists_exp_ver_to_soft_deleted_stream() {
+	public async Task should_fail_appending_with_stream_exists_exp_ver_to_soft_deleted_stream()
+	{
 		const string stream = "should_fail_appending_with_stream_exists_exp_ver_to_soft_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent());
@@ -330,9 +377,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test, Category("Network")]
-	public async Task can_append_multiple_events_at_once() {
+	public async Task can_append_multiple_events_at_once()
+	{
 		const string stream = "can_append_multiple_events_at_once";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 100).Select(i => TestEvent.NewTestEvent(i.ToString(), i.ToString()));
@@ -341,9 +390,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test]
-	public async Task cannot_append_multiple_events_larger_than_chunk_size_at_once() {
+	public async Task cannot_append_multiple_events_larger_than_chunk_size_at_once()
+	{
 		const string stream = "cannot_append_multiple_events_larger_than_chunk_size_at_once";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			// Create events with large payloads (20KB each) to exceed chunk size when combined
@@ -371,9 +422,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test]
-	public async Task can_append_to_stream_with_long_name() {
+	public async Task can_append_to_stream_with_long_name()
+	{
 		var stream = "can_append_to_stream_with_long_name" + new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0, (await store.AppendToStreamAsync
 				(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -381,9 +434,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test]
-	public async Task can_append_multiple_events_to_stream_with_long_name_at_once() {
+	public async Task can_append_multiple_events_to_stream_with_long_name_at_once()
+	{
 		var stream = "can_append_multiple_events_to_stream_with_long_name_at_once" + new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var events = Enumerable.Range(0, 3).Select(i => TestEvent.NewTestEvent(i.ToString(), i.ToString()));
 			Assert.AreEqual(2, (await store.AppendToStreamAsync
@@ -392,10 +447,12 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test]
-	public async Task can_append_event_with_long_event_type() {
+	public async Task can_append_event_with_long_event_type()
+	{
 		const string stream = "can_append_event_with_long_event_type";
 		var eventType = new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0, (await store.AppendToStreamAsync
 				(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent(eventName: eventType))).NextExpectedVersion);
@@ -403,10 +460,12 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test]
-	public async Task can_append_multiple_events_with_long_event_type_at_once() {
+	public async Task can_append_multiple_events_with_long_event_type_at_once()
+	{
 		const string stream = "can_append_multiple_events_with_long_event_type_at_once";
 		var eventType = new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var events = Enumerable.Range(0, 3).Select(i =>
 				TestEvent.NewTestEvent(i.ToString(), i.ToString(), eventName: eventType));
@@ -416,9 +475,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test, Category("Network")]
-	public async Task returns_failure_status_when_conditionally_appending_with_version_mismatch() {
+	public async Task returns_failure_status_when_conditionally_appending_with_version_mismatch()
+	{
 		const string stream = "returns_failure_status_when_conditionally_appending_with_version_mismatch";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var result = await store.ConditionalAppendToStreamAsync(stream, 7, new[] { TestEvent.NewTestEvent() });
@@ -428,9 +489,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test, Category("Network")]
-	public async Task returns_success_status_when_conditionally_appending_with_matching_version() {
+	public async Task returns_success_status_when_conditionally_appending_with_matching_version()
+	{
 		const string stream = "returns_success_status_when_conditionally_appending_with_matching_version";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var result = await store
@@ -443,9 +506,11 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 	}
 
 	[Test, Category("Network")]
-	public async Task returns_failure_status_when_conditionally_appending_to_a_deleted_stream() {
+	public async Task returns_failure_status_when_conditionally_appending_to_a_deleted_stream()
+	{
 		const string stream = "returns_failure_status_when_conditionally_appending_to_a_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent());
@@ -461,32 +526,38 @@ public class append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirector
 
 [Category("ClientAPI"), Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture {
+public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDirectoryPerTestFixture
+{
 	private readonly TcpType _tcpType = TcpType.Ssl;
 	protected MiniNode<TLogFormat, TStreamId> _node;
 
-	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node) {
+	protected virtual IEventStoreConnection BuildConnection(MiniNode<TLogFormat, TStreamId> node)
+	{
 		return TestConnection.To(node, _tcpType);
 	}
 
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		_node = new MiniNode<TLogFormat, TStreamId>(PathName);
 		await _node.Start();
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await _node.Shutdown();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public async Task should_allow_appending_zero_events_to_stream_with_no_problems() {
+	public async Task should_allow_appending_zero_events_to_stream_with_no_problems()
+	{
 		const string stream = "should_allow_appending_zero_events_to_stream_with_no_problems";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(-1,
 				(await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream)).NextExpectedVersion);
@@ -497,9 +568,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_create_stream_with_no_stream_exp_ver_on_first_write_if_does_not_exist() {
+	public async Task should_create_stream_with_no_stream_exp_ver_on_first_write_if_does_not_exist()
+	{
 		const string stream = "should_create_stream_with_no_stream_exp_ver_on_first_write_if_does_not_exist";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0,
 				(await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -510,9 +583,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_create_stream_with_any_exp_ver_on_first_write_if_does_not_exist() {
+	public async Task should_create_stream_with_any_exp_ver_on_first_write_if_does_not_exist()
+	{
 		const string stream = "should_create_stream_with_any_exp_ver_on_first_write_if_does_not_exist";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0,
 				(await store.AppendToStreamAsync(stream, ExpectedVersion.Any, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -523,9 +598,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_fail_writing_with_correct_exp_ver_to_deleted_stream() {
+	public async Task should_fail_writing_with_correct_exp_ver_to_deleted_stream()
+	{
 		const string stream = "should_fail_writing_with_correct_exp_ver_to_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
@@ -536,9 +613,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_fail_writing_with_any_exp_ver_to_deleted_stream() {
+	public async Task should_fail_writing_with_any_exp_ver_to_deleted_stream()
+	{
 		const string stream = "should_fail_writing_with_any_exp_ver_to_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
@@ -549,9 +628,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_fail_writing_with_invalid_exp_ver_to_deleted_stream() {
+	public async Task should_fail_writing_with_invalid_exp_ver_to_deleted_stream()
+	{
 		const string stream = "should_fail_writing_with_invalid_exp_ver_to_deleted_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			await store.DeleteStreamAsync(stream, ExpectedVersion.NoStream, hardDelete: true);
@@ -562,9 +643,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_append_with_correct_exp_ver_to_existing_stream() {
+	public async Task should_append_with_correct_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_append_with_correct_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0,
 				(await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -573,9 +656,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_append_with_any_exp_ver_to_existing_stream() {
+	public async Task should_append_with_any_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_append_with_any_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0,
 				(await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -584,9 +669,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_return_log_position_when_writing() {
+	public async Task should_return_log_position_when_writing()
+	{
 		const string stream = "should_return_log_position_when_writing";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var result = await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent());
 			Assert.IsTrue(0 < result.LogPosition.PreparePosition);
@@ -595,9 +682,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task should_fail_appending_with_wrong_exp_ver_to_existing_stream() {
+	public async Task should_fail_appending_with_wrong_exp_ver_to_existing_stream()
+	{
 		const string stream = "should_fail_appending_with_wrong_exp_ver_to_existing_stream";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0,
 				(await store.AppendToStreamAsync(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -610,9 +699,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task can_append_multiple_events_at_once() {
+	public async Task can_append_multiple_events_at_once()
+	{
 		const string stream = "can_append_multiple_events_at_once";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			var events = Enumerable.Range(0, 100).Select(i => TestEvent.NewTestEvent(i.ToString(), i.ToString()));
@@ -621,9 +712,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task cannot_append_multiple_events_larger_than_chunk_size_at_once() {
+	public async Task cannot_append_multiple_events_larger_than_chunk_size_at_once()
+	{
 		const string stream = "cannot_append_multiple_events_larger_than_chunk_size_at_once";
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 
 			// Create events with large payloads (20KB each) to exceed chunk size when combined
@@ -651,9 +744,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task can_append_to_stream_with_long_name() {
+	public async Task can_append_to_stream_with_long_name()
+	{
 		var stream = "can_append_to_stream_with_long_name" + new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0, (await store.AppendToStreamAsync
 				(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent())).NextExpectedVersion);
@@ -661,9 +756,11 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task can_append_multiple_events_to_stream_with_long_name_at_once() {
+	public async Task can_append_multiple_events_to_stream_with_long_name_at_once()
+	{
 		var stream = "can_append_multiple_events_to_stream_with_long_name_at_once" + new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var events = Enumerable.Range(0, 3).Select(i => TestEvent.NewTestEvent(i.ToString(), i.ToString()));
 			Assert.AreEqual(2, (await store.AppendToStreamAsync
@@ -672,10 +769,12 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task can_append_event_with_long_event_type() {
+	public async Task can_append_event_with_long_event_type()
+	{
 		const string stream = "can_append_event_with_long_event_type";
 		var eventType = new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			Assert.AreEqual(0, (await store.AppendToStreamAsync
 				(stream, ExpectedVersion.NoStream, TestEvent.NewTestEvent(eventName: eventType))).NextExpectedVersion);
@@ -683,10 +782,12 @@ public class ssl_append_to_stream<TLogFormat, TStreamId> : SpecificationWithDire
 	}
 
 	[Test]
-	public async Task can_append_multiple_events_with_long_event_type_at_once() {
+	public async Task can_append_multiple_events_with_long_event_type_at_once()
+	{
 		const string stream = "can_append_multiple_events_with_long_event_type_at_once";
 		var eventType = new string('A', 300);
-		using (var store = BuildConnection(_node)) {
+		using (var store = BuildConnection(_node))
+		{
 			await store.ConnectAsync();
 			var events = Enumerable.Range(0, 3).Select(i =>
 				TestEvent.NewTestEvent(i.ToString(), i.ToString(), eventName: eventType));

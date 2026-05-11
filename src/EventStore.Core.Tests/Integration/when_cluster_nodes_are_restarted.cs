@@ -11,20 +11,24 @@ namespace EventStore.Core.Tests.Integration;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 [NonParallelizable]
-public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
+public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
+{
 	private const int RestartCount = 3;
 	private static readonly bool IsArm64 = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
 	private static readonly TimeSpan InitialStabilizationTimeout = TimeSpan.FromMinutes(IsArm64 ? 15 : 5);
 	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(10);
 	protected override TimeSpan GivenTimeout { get; } = TimeSpan.FromMinutes(IsArm64 ? 30 : 20);
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		await base.Given();
 
 		var restartedNodes = new bool[RestartCount];
-		for (int i = 0; i < RestartCount; i++) {
+		for (int i = 0; i < RestartCount; i++)
+		{
 			AssertEx.IsOrBecomesTrue(
-				() => {
+				() =>
+				{
 					var states = _nodes.Select(x => x.NodeState).ToArray();
 					return states.Count(x => x == VNodeState.Leader) == 1 &&
 						   states.Count(x => x == VNodeState.Follower) == 2;
@@ -38,7 +42,8 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 
 			await _nodes[restartedNodeIndex].Shutdown(keepDb: true);
 			AssertEx.IsOrBecomesTrue(
-				() => {
+				() =>
+				{
 					var states = _nodes
 						.Where((_, index) => index != restartedNodeIndex)
 						.Select(x => x.NodeState)
@@ -55,7 +60,8 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			_nodes[restartedNodeIndex] = node;
 
 			AssertEx.IsOrBecomesTrue(
-				() => {
+				() =>
+				{
 					var states = _nodes.Select(x => x.NodeState).ToArray();
 					return states.Count(x => x == VNodeState.Leader) == 1 &&
 						   states.Count(x => x == VNodeState.Follower) == 2;
@@ -66,18 +72,21 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 		}
 	}
 
-	private int SelectRestartNode(bool[] restartedNodes, bool restartLeader) {
+	private int SelectRestartNode(bool[] restartedNodes, bool restartLeader)
+	{
 		var targetState = restartLeader ? VNodeState.Leader : VNodeState.Follower;
 		var candidate = _nodes
 			.Select((node, index) => (node, index))
 			.FirstOrDefault(x => !restartedNodes[x.index] && x.node.NodeState == targetState);
 
-		if (candidate.node is not null) {
+		if (candidate.node is not null)
+		{
 			return candidate.index;
 		}
 
 		var fallbackIndex = Array.FindIndex(restartedNodes, restarted => !restarted);
-		if (fallbackIndex >= 0) {
+		if (fallbackIndex >= 0)
+		{
 			return fallbackIndex;
 		}
 
@@ -91,23 +100,28 @@ public class when_restarting_one_node_at_a_time<TLogFormat, TStreamId> : specifi
 			.ToArray();
 
 	[Test]
-	public void cluster_should_stabilize() {
+	public void cluster_should_stabilize()
+	{
 		var leaders = 0;
 		var followers = 0;
 		var acceptedStates = new[] { VNodeState.Leader, VNodeState.Follower };
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 3; i++)
+		{
 			AssertEx.IsOrBecomesTrue(() => acceptedStates.Contains(_nodes[i].NodeState),
 				TimeSpan.FromSeconds(5), $"node {i} failed to become a leader/follower");
 
 			var state = _nodes[i].NodeState;
-			if (state == VNodeState.Leader) {
+			if (state == VNodeState.Leader)
+			{
 				leaders++;
 			}
-			else if (state == VNodeState.Follower) {
+			else if (state == VNodeState.Follower)
+			{
 				followers++;
 			}
-			else {
+			else
+			{
 				throw new Exception($"node {i} in unexpected state {state}");
 			}
 		}

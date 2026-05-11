@@ -10,10 +10,12 @@ namespace EventStore.Core.Authorization.AuthorizationPolicies;
 /// but none of them are valid or can be started.
 /// Only admins have stream access to prevent falling back to a more permissive policy.
 /// </summary>
-public class FallbackStreamAccessPolicySelector : IPolicySelector {
+public class FallbackStreamAccessPolicySelector : IPolicySelector
+{
 	public const string FallbackPolicyName = "system-fallback";
 
-	public ReadOnlyPolicy Select() {
+	public ReadOnlyPolicy Select()
+	{
 		var restrictedAccess = new RestrictedAccessAssertion();
 		var policy = new Policy(FallbackPolicyName, 1, DateTimeOffset.MinValue);
 
@@ -31,14 +33,17 @@ public class FallbackStreamAccessPolicySelector : IPolicySelector {
 	}
 }
 
-public class RestrictedAccessAssertion : IStreamPermissionAssertion {
+public class RestrictedAccessAssertion : IStreamPermissionAssertion
+{
 	public Grant Grant => Grant.Deny;
 	public AssertionInformation Information { get; } = new("stream", "restricted access", Grant.Deny);
 
 	public async ValueTask<bool> Evaluate(ClaimsPrincipal cp, Operation operation, PolicyInformation policy,
-		EvaluationContext context) {
+		EvaluationContext context)
+	{
 		if (await WellKnownAssertions.System.Evaluate(cp, operation, policy, context) ||
-			await WellKnownAssertions.Admin.Evaluate(cp, operation, policy, context)) {
+			await WellKnownAssertions.Admin.Evaluate(cp, operation, policy, context))
+		{
 			return true;
 		}
 

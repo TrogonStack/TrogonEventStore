@@ -6,7 +6,8 @@ using EventStore.Plugins.Transforms;
 
 namespace EventStore.Core.Transforms.Identity;
 
-public sealed class IdentityChunkTransformFactory : IChunkTransformFactory {
+public sealed class IdentityChunkTransformFactory : IChunkTransformFactory
+{
 	public TransformType Type => TransformType.Identity;
 	public int TransformDataPosition(int dataPosition) => dataPosition;
 	public void CreateTransformHeader(Span<byte> transformHeader) => transformHeader.Clear();

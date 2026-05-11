@@ -5,49 +5,61 @@ using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Unbuffered;
 
-public unsafe class NativeFileWindows : INativeFile {
-	public uint GetDriveSectorSize(string path) {
+public unsafe class NativeFileWindows : INativeFile
+{
+	public uint GetDriveSectorSize(string path)
+	{
 		WinNative.GetDiskFreeSpace(Path.GetPathRoot(path), out _, out var size, out _, out _);
 		return size;
 	}
 
-	public long GetPageSize(string path) {
+	public long GetPageSize(string path)
+	{
 		return GetDriveSectorSize(path);
 	}
 
-	public void SetFileSize(SafeFileHandle handle, long count) {
+	public void SetFileSize(SafeFileHandle handle, long count)
+	{
 		var low = (int)(count & 0xffffffff);
 		var high = (int)(count >> 32);
 		WinNative.SetFilePointer(handle, low, ref high, WinNative.EMoveMethod.Begin);
-		if (!WinNative.SetEndOfFile(handle)) {
+		if (!WinNative.SetEndOfFile(handle))
+		{
 			throw new Win32Exception();
 		}
 
 		FSync(handle);
 	}
 
-	private static void FSync(SafeFileHandle handle) {
+	private static void FSync(SafeFileHandle handle)
+	{
 		WinNative.FlushFileBuffers(handle);
 	}
 
-	public void Write(SafeFileHandle handle, byte* buffer, uint count, ref int written) {
-		if (!WinNative.WriteFile(handle, buffer, count, ref written, IntPtr.Zero)) {
+	public void Write(SafeFileHandle handle, byte* buffer, uint count, ref int written)
+	{
+		if (!WinNative.WriteFile(handle, buffer, count, ref written, IntPtr.Zero))
+		{
 			throw new Win32Exception();
 		}
 	}
 
-	public int Read(SafeFileHandle handle, byte* buffer, int offset, int count) {
+	public int Read(SafeFileHandle handle, byte* buffer, int offset, int count)
+	{
 		var read = 0;
 
-		if (!WinNative.ReadFile(handle, buffer, count, ref read, 0)) {
+		if (!WinNative.ReadFile(handle, buffer, count, ref read, 0))
+		{
 			throw new Win32Exception();
 		}
 
 		return read;
 	}
 
-	public long GetFileSize(SafeFileHandle handle) {
-		if (!WinNative.GetFileSizeEx(handle, out var size)) {
+	public long GetFileSize(SafeFileHandle handle)
+	{
+		if (!WinNative.GetFileSizeEx(handle, out var size))
+		{
 			throw new Win32Exception();
 		}
 
@@ -55,7 +67,8 @@ public unsafe class NativeFileWindows : INativeFile {
 	}
 
 	//TODO UNBUFF use FileAccess etc or do custom?
-	public SafeFileHandle Create(string path, FileAccess acc, FileShare readWrite, FileMode mode, int flags) {
+	public SafeFileHandle Create(string path, FileAccess acc, FileShare readWrite, FileMode mode, int flags)
+	{
 		var handle = WinNative.CreateFile(path,
 			acc,
 			FileShare.ReadWrite,
@@ -63,7 +76,8 @@ public unsafe class NativeFileWindows : INativeFile {
 			mode,
 			flags,
 			IntPtr.Zero);
-		if (handle.IsInvalid) {
+		if (handle.IsInvalid)
+		{
 			throw new Win32Exception();
 		}
 
@@ -72,9 +86,11 @@ public unsafe class NativeFileWindows : INativeFile {
 
 
 	public SafeFileHandle CreateUnbufferedRW(string path, FileAccess acc, FileShare share, FileMode mode,
-		bool writeThrough) {
+		bool writeThrough)
+	{
 		var flags = ExtendedFileOptions.NoBuffering;
-		if (writeThrough) {
+		if (writeThrough)
+		{
 			flags = flags | ExtendedFileOptions.WriteThrough;
 		}
 
@@ -85,23 +101,27 @@ public unsafe class NativeFileWindows : INativeFile {
 			FileMode.OpenOrCreate,
 			(int)flags,
 			IntPtr.Zero);
-		if (handle.IsInvalid) {
+		if (handle.IsInvalid)
+		{
 			throw new Win32Exception();
 		}
 
 		return handle;
 	}
 
-	public void Seek(SafeFileHandle handle, long position, SeekOrigin origin) {
+	public void Seek(SafeFileHandle handle, long position, SeekOrigin origin)
+	{
 		var low = (int)(position & 0xffffffff);
 		var high = (int)(position >> 32);
-		var moveMethod = origin switch {
+		var moveMethod = origin switch
+		{
 			SeekOrigin.Current => WinNative.EMoveMethod.Current,
 			SeekOrigin.End => WinNative.EMoveMethod.End,
 			_ => WinNative.EMoveMethod.Begin
 		};
 		var f = WinNative.SetFilePointer(handle, low, ref high, moveMethod);
-		if (f == WinNative.INVALID_SET_FILE_POINTER) {
+		if (f == WinNative.INVALID_SET_FILE_POINTER)
+		{
 			throw new Win32Exception();
 		}
 	}

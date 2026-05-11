@@ -16,7 +16,8 @@ namespace EventStore.Core.Tests.Services.RequestManagement.Service;
 
 public abstract class RequestManagerServiceSpecification :
 	IHandle<StorageMessage.WritePrepares>,
-	IHandle<StorageMessage.RequestCompleted> {
+	IHandle<StorageMessage.RequestCompleted>
+{
 	protected readonly TimeSpan PrepareTimeout = TimeSpan.FromMinutes(5);
 	protected readonly TimeSpan CommitTimeout = TimeSpan.FromMinutes(5);
 
@@ -38,7 +39,8 @@ public abstract class RequestManagerServiceSpecification :
 	protected abstract Message When();
 
 
-	protected RequestManagerServiceSpecification() {
+	protected RequestManagerServiceSpecification()
+	{
 		Dispatcher.Subscribe<StorageMessage.WritePrepares>(this);
 		Dispatcher.Subscribe<StorageMessage.RequestCompleted>(this);
 
@@ -60,7 +62,8 @@ public abstract class RequestManagerServiceSpecification :
 		Dispatcher.Subscribe<SystemMessage.StateChangeMessage>(Service);
 	}
 	[OneTimeSetUp]
-	public virtual void Setup() {
+	public virtual void Setup()
+	{
 		Envelope.Replies.Clear();
 		Publisher.Messages.Clear();
 
@@ -75,16 +78,19 @@ public abstract class RequestManagerServiceSpecification :
 
 	private static readonly StreamAcl PublicStream = new StreamAcl(SystemRoles.All, SystemRoles.All, SystemRoles.All,
 		SystemRoles.All, SystemRoles.All);
-	public void Handle(StorageMessage.EffectiveStreamAclRequest message) {
+	public void Handle(StorageMessage.EffectiveStreamAclRequest message)
+	{
 		message.Envelope.ReplyWith(new StorageMessage.EffectiveStreamAclResponse(new StorageMessage.EffectiveAcl(
 			PublicStream, PublicStream, PublicStream
 			)));
 	}
 
-	public void Handle(StorageMessage.WritePrepares message) {
+	public void Handle(StorageMessage.WritePrepares message)
+	{
 
 		var transactionPosition = LogPosition;
-		foreach (var _ in message.Events) {
+		foreach (var _ in message.Events)
+		{
 			Dispatcher.Publish(new StorageMessage.PrepareAck(
 									message.CorrelationId,
 									LogPosition,
@@ -99,11 +105,13 @@ public abstract class RequestManagerServiceSpecification :
 								message.Events.Length));
 	}
 
-	protected Event DummyEvent() {
+	protected Event DummyEvent()
+	{
 		return new Event(Guid.NewGuid(), "SomethingHappened", true, EventData, Metadata);
 	}
 
-	public void Handle(StorageMessage.RequestCompleted message) {
+	public void Handle(StorageMessage.RequestCompleted message)
+	{
 		Produced.Add(message);
 	}
 }

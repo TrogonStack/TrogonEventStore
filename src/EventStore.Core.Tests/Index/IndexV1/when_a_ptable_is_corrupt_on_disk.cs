@@ -11,18 +11,21 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV2)]
 [TestFixture(PTableVersions.IndexV3)]
 [TestFixture(PTableVersions.IndexV4)]
-public class when_a_ptable_is_corrupt_on_disk : SpecificationWithDirectory {
+public class when_a_ptable_is_corrupt_on_disk : SpecificationWithDirectory
+{
 	private string _filename;
 	private PTable _table;
 	private string _copiedfilename;
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 
-	public when_a_ptable_is_corrupt_on_disk(byte version) {
+	public when_a_ptable_is_corrupt_on_disk(byte version)
+	{
 		_ptableVersion = version;
 	}
 
 	[SetUp]
-	public override async Task SetUp() {
+	public override async Task SetUp()
+	{
 		await base.SetUp();
 
 		_filename = GetTempFilePath();
@@ -33,14 +36,16 @@ public class when_a_ptable_is_corrupt_on_disk : SpecificationWithDirectory {
 		_table = PTable.FromMemtable(mtable, _filename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault);
 		_table.Dispose();
 		File.Copy(_filename, _copiedfilename);
-		using (var f = new FileStream(_copiedfilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite)) {
+		using (var f = new FileStream(_copiedfilename, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+		{
 			f.Seek(130, SeekOrigin.Begin);
 			f.WriteByte(0x22);
 		}
 	}
 
 	[TearDown]
-	public override Task TearDown() {
+	public override Task TearDown()
+	{
 		_table.MarkForDestruction();
 		_table.WaitForDisposal(1000);
 
@@ -48,7 +53,8 @@ public class when_a_ptable_is_corrupt_on_disk : SpecificationWithDirectory {
 	}
 
 	[Test]
-	public void the_hash_is_invalid() {
+	public void the_hash_is_invalid()
+	{
 		var exc = Assert.Throws<CorruptIndexException>(() => PTable.FromFile(_copiedfilename, Constants.PTableInitialReaderCount, Constants.PTableMaxReaderCountDefault, 16, false));
 		Assert.IsInstanceOf<HashValidationException>(exc.InnerException);
 	}

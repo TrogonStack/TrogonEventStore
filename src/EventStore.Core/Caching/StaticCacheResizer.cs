@@ -2,12 +2,15 @@ using System.Collections.Generic;
 using EventStore.Common.Utils;
 using Serilog;
 
-namespace EventStore.Core.Caching {
-	public class StaticCacheResizer : CacheResizer, ICacheResizer {
+namespace EventStore.Core.Caching
+{
+	public class StaticCacheResizer : CacheResizer, ICacheResizer
+	{
 		private readonly long _capacity;
 
 		public StaticCacheResizer(ResizerUnit unit, long capacity, IDynamicCache cache)
-			: base(unit, cache) {
+			: base(unit, cache)
+		{
 			Ensure.Nonnegative(capacity, nameof(capacity));
 			_capacity = capacity;
 		}
@@ -16,18 +19,21 @@ namespace EventStore.Core.Caching {
 
 		public long ReservedCapacity => _capacity;
 
-		public void CalcCapacity(long unreservedCapacity, int totalWeight) {
+		public void CalcCapacity(long unreservedCapacity, int totalWeight)
+		{
 			Cache.SetCapacity(_capacity);
 			Log.Debug(
 				"{name} statically allotted {capacity:N0} " + Unit,
 				Name, Cache.Capacity);
 		}
 
-		public void ResetFreedSize() {
+		public void ResetFreedSize()
+		{
 			Cache.ResetFreedSize();
 		}
 
-		public IEnumerable<CacheStats> GetStats(string parentKey) {
+		public IEnumerable<CacheStats> GetStats(string parentKey)
+		{
 			yield return new CacheStats(BuildStatsKey(parentKey), Name, Cache.Capacity, Size, Count, numChildren: 0);
 		}
 	}

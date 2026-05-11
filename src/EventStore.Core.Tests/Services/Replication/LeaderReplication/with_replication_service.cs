@@ -24,7 +24,8 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Replication.LeaderReplication;
 
-public abstract class WithReplicationService : SpecificationWithDirectoryPerTestFixture {
+public abstract class WithReplicationService : SpecificationWithDirectoryPerTestFixture
+{
 	protected string EventStreamId = "test_stream";
 	protected int ClusterSize = 3;
 	protected SynchronousScheduler Publisher = new("publisher");
@@ -57,7 +58,8 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 	protected TFChunkDbConfig DbConfig;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 		Publisher.Subscribe(
 			new AdHocHandler<ReplicationTrackingMessage.ReplicaWriteAck>(msg => ReplicaWriteAcks.Enqueue(msg)));
@@ -94,13 +96,15 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		await base.TestFixtureTearDown();
 		Service.Handle(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), true, true));
 	}
 
 	private async ValueTask<(Guid, TcpConnectionManager)> AddSubscription(Guid replicaId, int version,
-		bool isPromotable, CancellationToken token = default) {
+		bool isPromotable, CancellationToken token = default)
+	{
 		var tcpConn = new DummyTcpConnection() { ConnectionId = replicaId };
 
 		var manager = new TcpConnectionManager(
@@ -130,15 +134,18 @@ public abstract class WithReplicationService : SpecificationWithDirectoryPerTest
 
 	public abstract void When();
 
-	protected void BecomeLeader() {
+	protected void BecomeLeader()
+	{
 		Service.Handle(new SystemMessage.BecomeLeader(Guid.NewGuid()));
 	}
 
-	protected void BecomeUnknown() {
+	protected void BecomeUnknown()
+	{
 		Service.Handle(new SystemMessage.BecomeUnknown(Guid.NewGuid()));
 	}
 
-	private TFChunkDbConfig CreateDbConfig() {
+	private TFChunkDbConfig CreateDbConfig()
+	{
 		ICheckpoint writerChk = new InMemoryCheckpoint(Checkpoint.Writer);
 		ICheckpoint chaserChk = new InMemoryCheckpoint(Checkpoint.Chaser);
 		ICheckpoint epochChk = new InMemoryCheckpoint(Checkpoint.Epoch, initValue: -1);

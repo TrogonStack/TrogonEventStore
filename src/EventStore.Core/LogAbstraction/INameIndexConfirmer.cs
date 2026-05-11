@@ -7,7 +7,8 @@ using EventStore.Core.TransactionLog.LogRecords;
 
 namespace EventStore.Core.LogAbstraction;
 
-public interface INameIndexConfirmer<TValue> : IDisposable {
+public interface INameIndexConfirmer<TValue> : IDisposable
+{
 	ValueTask InitializeWithConfirmed(INameLookup<TValue> source, CancellationToken token);
 
 	/// Entries are confirmed once they are replicated.

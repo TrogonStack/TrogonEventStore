@@ -15,18 +15,21 @@ using ResolvedEvent = EventStore.Core.Data.ResolvedEvent;
 namespace EventStore.Projections.Core.Tests.Services.event_reader.stream_reader;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_handling_read_completed_stream_event_reader<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public class when_handling_read_completed_stream_event_reader<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private StreamEventReader _edp;
 	private Guid _distibutionPointCorrelationId;
 	private Guid _firstEventId;
 	private Guid _secondEventId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 	}
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_distibutionPointCorrelationId = Guid.NewGuid();
 		_edp = new StreamEventReader(_bus, _distibutionPointCorrelationId, null, "stream", 10,
 			new RealTimeProvider(), false,
@@ -57,17 +60,20 @@ public class when_handling_read_completed_stream_event_reader<TLogFormat, TStrea
 	}
 
 	[Test]
-	public void cannot_be_resumed() {
+	public void cannot_be_resumed()
+	{
 		Assert.Throws<InvalidOperationException>(() => { _edp.Resume(); });
 	}
 
 	[Test]
-	public void cannot_be_paused() {
+	public void cannot_be_paused()
+	{
 		_edp.Pause();
 	}
 
 	[Test]
-	public void publishes_correct_committed_event_received_messages() {
+	public void publishes_correct_committed_event_received_messages()
+	{
 		Assert.AreEqual(
 			2, _consumer.HandledMessages.OfType<ReaderSubscriptionMessage.CommittedEventDistributed>().Count());
 		var first =
@@ -102,7 +108,8 @@ public class when_handling_read_completed_stream_event_reader<TLogFormat, TStrea
 	}
 
 	[Test]
-	public void publishes_read_events_from_beginning_with_correct_next_event_number() {
+	public void publishes_read_events_from_beginning_with_correct_next_event_number()
+	{
 		Assert.AreEqual(2, _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Count());
 		Assert.AreEqual(
 			"stream",
@@ -112,7 +119,8 @@ public class when_handling_read_completed_stream_event_reader<TLogFormat, TStrea
 	}
 
 	[Test]
-	public void cannot_handle_repeated_read_events_completed() {
+	public void cannot_handle_repeated_read_events_completed()
+	{
 		var correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Last()
 			.CorrelationId;
 		_edp.Handle(
@@ -130,7 +138,8 @@ public class when_handling_read_completed_stream_event_reader<TLogFormat, TStrea
 	}
 
 	[Test]
-	public void can_handle_following_read_events_completed() {
+	public void can_handle_following_read_events_completed()
+	{
 		var correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>().Last()
 			.CorrelationId;
 		_edp.Handle(

@@ -17,7 +17,8 @@ namespace EventStore.Core.Tests.Integration;
 
 [Category("LongRunning")]
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId> {
+public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamId> : specification_with_a_single_node<TLogFormat, TStreamId>
+{
 	private List<Guid> _epochIds = new List<Guid>();
 	private const int _numberOfNodeStarts = 5;
 	private static readonly TimeSpan RestartTimeout = TimeSpan.FromMinutes(3);
@@ -26,13 +27,15 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 	protected override TimeSpan Timeout { get; } =
 		TimeSpan.FromSeconds((RestartTimeout.TotalSeconds * _numberOfNodeStarts) + 120);
 
-	protected override async Task Given() {
+	protected override async Task Given()
+	{
 		Guid? previousEpochId = null;
 		var epochId = await GetLastEpochId(previousEpochId);
 		_epochIds.Add(epochId);
 		previousEpochId = epochId;
 
-		for (int i = 0; i < _numberOfNodeStarts - 1; i++) {
+		for (int i = 0; i < _numberOfNodeStarts - 1; i++)
+		{
 			await ShutdownNode();
 			await StartNode();
 			epochId = await GetLastEpochId(previousEpochId);
@@ -43,16 +46,20 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 		await base.Given();
 	}
 
-	private async Task<Guid> GetLastEpochId(Guid? previousEpochId) {
-		_logFormat ??= LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new() {
+	private async Task<Guid> GetLastEpochId(Guid? previousEpochId)
+	{
+		_logFormat ??= LogFormatHelper<TLogFormat, TStreamId>.LogFormatFactory.Create(new()
+		{
 			IndexDirectory = GetFilePathFor("epoch-index"),
 		});
 
 		await _node.WaitForTcpEndPoint().WaitAsync(RestartTimeout);
 		var wait = Stopwatch.StartNew();
-		while (wait.Elapsed < RestartTimeout) {
+		while (wait.Elapsed < RestartTimeout)
+		{
 			var epochId = await TryGetLastEpochId();
-			if (epochId is { } currentEpochId && currentEpochId != previousEpochId) {
+			if (epochId is { } currentEpochId && currentEpochId != previousEpochId)
+			{
 				return currentEpochId;
 			}
 
@@ -63,7 +70,8 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 			$"Expected startup to persist a new epoch before restart assertions. Previous epoch: {previousEpochId}");
 	}
 
-	private async Task<Guid?> TryGetLastEpochId() {
+	private async Task<Guid?> TryGetLastEpochId()
+	{
 		var bus = new SynchronousScheduler(nameof(when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamId>));
 		await using var writer = new TFChunkWriter(_node.Db);
 		writer.Open();
@@ -89,13 +97,15 @@ public class when_a_single_node_is_restarted_multiple_times<TLogFormat, TStreamI
 	}
 
 	[OneTimeTearDown]
-	public override async Task TestFixtureTearDown() {
+	public override async Task TestFixtureTearDown()
+	{
 		_logFormat?.Dispose();
 		await base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void should_be_a_different_epoch_for_every_startup() {
+	public void should_be_a_different_epoch_for_every_startup()
+	{
 		Assert.AreEqual(_numberOfNodeStarts, _epochIds.Distinct().Count());
 	}
 }

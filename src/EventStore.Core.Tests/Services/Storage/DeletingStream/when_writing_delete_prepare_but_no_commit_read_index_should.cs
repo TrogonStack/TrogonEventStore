@@ -11,11 +11,13 @@ using ReadStreamResult = EventStore.Core.Services.Storage.ReaderIndex.ReadStream
 namespace EventStore.Core.Tests.Services.Storage.DeletingStream;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId> {
+public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStreamId> : ReadIndexTestScenario<TLogFormat, TStreamId>
+{
 	private EventRecord _event0;
 	private EventRecord _event1;
 
-	protected override async ValueTask WriteTestScenario(CancellationToken token) {
+	protected override async ValueTask WriteTestScenario(CancellationToken token)
+	{
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 		_event0 = await WriteSingleEvent("ES", 0, "bla1", token: token);
 		Assert.True(_logFormat.StreamNameIndex.GetOrReserve("ES", out var esStreamId, out _, out _));
@@ -27,22 +29,26 @@ public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStr
 	}
 
 	[Test]
-	public async Task indicate_that_stream_is_not_deleted() {
+	public async Task indicate_that_stream_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ES", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted() {
+	public async Task indicate_that_nonexisting_stream_with_same_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("ZZ", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted() {
+	public async Task indicate_that_nonexisting_stream_with_different_hash_is_not_deleted()
+	{
 		Assert.That(await ReadIndex.IsStreamDeleted("XXX", CancellationToken.None), Is.False);
 	}
 
 	[Test]
-	public async Task read_single_events_should_return_commited_records() {
+	public async Task read_single_events_should_return_commited_records()
+	{
 		var result = await ReadIndex.ReadEvent("ES", 0, CancellationToken.None);
 		Assert.AreEqual(ReadEventResult.Success, result.Result);
 		Assert.AreEqual(_event0, result.Record);
@@ -53,7 +59,8 @@ public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStr
 	}
 
 	[Test]
-	public async Task read_stream_events_forward_should_return_commited_records() {
+	public async Task read_stream_events_forward_should_return_commited_records()
+	{
 		var result = await ReadIndex.ReadStreamEventsForward("ES", 0, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -62,7 +69,8 @@ public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStr
 	}
 
 	[Test]
-	public async Task read_stream_events_backward_should_return_commited_records() {
+	public async Task read_stream_events_backward_should_return_commited_records()
+	{
 		var result = await ReadIndex.ReadStreamEventsBackward("ES", -1, 100, CancellationToken.None);
 		Assert.AreEqual(ReadStreamResult.Success, result.Result);
 		Assert.AreEqual(2, result.Records.Length);
@@ -71,7 +79,8 @@ public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStr
 	}
 
 	[Test]
-	public async Task read_all_forward_should_return_all_stream_records_except_uncommited() {
+	public async Task read_all_forward_should_return_all_stream_records_except_uncommited()
+	{
 		var events = (await ReadIndex.ReadAllEventsForward(new TFPos(0, 0), 100, CancellationToken.None)).EventRecords()
 			.Select(r => r.Event)
 			.ToArray();
@@ -81,7 +90,8 @@ public class WhenWritingDeletePrepareButNoCommitReadIndexShould<TLogFormat, TStr
 	}
 
 	[Test]
-	public async Task read_all_backward_should_return_all_stream_records_except_uncommited() {
+	public async Task read_all_backward_should_return_all_stream_records_except_uncommited()
+	{
 		var events = (await ReadIndex.ReadAllEventsBackward(GetBackwardReadPos(), 100, CancellationToken.None))
 			.EventRecords()
 			.Select(r => r.Event)

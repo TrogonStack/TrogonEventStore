@@ -17,32 +17,38 @@ using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
-public abstract class specification_with_projection_management_service<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+public abstract class specification_with_projection_management_service<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	protected ProjectionManager _manager;
 	protected ProjectionManagerMessageDispatcher _managerMessageDispatcher;
 	private bool _initializeSystemProjections;
 	protected AwakeService AwakeService;
 
 
-	protected override void Given1() {
+	protected override void Given1()
+	{
 		base.Given1();
 		_initializeSystemProjections = GivenInitializeSystemProjections();
-		if (!_initializeSystemProjections) {
+		if (!_initializeSystemProjections)
+		{
 			ExistingEvent(ProjectionNamesBuilder.ProjectionsRegistrationStream,
 				ProjectionEventTypes.ProjectionsInitialized, "", "");
 		}
 	}
 
-	protected virtual bool GivenInitializeSystemProjections() {
+	protected virtual bool GivenInitializeSystemProjections()
+	{
 		return false;
 	}
 
-	protected override ManualQueue GiveInputQueue() {
+	protected override ManualQueue GiveInputQueue()
+	{
 		return new ManualQueue(_bus, _timeProvider);
 	}
 
 	[SetUp]
-	public void Setup() {
+	public void Setup()
+	{
 		//TODO: this became an integration test - proper ProjectionCoreService and ProjectionManager testing is required as well
 		_bus.Subscribe(_consumer);
 

@@ -1,9 +1,11 @@
 using System;
 using EventStore.Common.Utils;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// These are stored in the data of the payload record
-	public class ScavengePointPayload {
+	public class ScavengePointPayload
+	{
 		public int Threshold { get; set; }
 
 		public byte[] ToJsonBytes() =>

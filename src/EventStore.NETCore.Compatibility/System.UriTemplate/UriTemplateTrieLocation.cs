@@ -4,10 +4,12 @@
 
 namespace System;
 
-class UriTemplateTrieLocation {
+class UriTemplateTrieLocation
+{
 	public UriTemplateTrieIntraNodeLocation locationWithin;
 	public UriTemplateTrieNode node;
-	public UriTemplateTrieLocation(UriTemplateTrieNode n, UriTemplateTrieIntraNodeLocation i) {
+	public UriTemplateTrieLocation(UriTemplateTrieNode n, UriTemplateTrieIntraNodeLocation i)
+	{
 		this.node = n;
 		this.locationWithin = i;
 	}

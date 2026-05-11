@@ -1,6 +1,7 @@
 namespace EventStore.Projections.Core.Services.Management;
 
-public enum ManagedProjectionState {
+public enum ManagedProjectionState
+{
 	Creating,
 	Loading,
 	Loaded,

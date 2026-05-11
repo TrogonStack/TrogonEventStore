@@ -8,9 +8,11 @@ using static EventStore.Core.XUnit.Tests.Scavenge.StreamMetadatas;
 
 namespace EventStore.Core.XUnit.Tests.Scavenge;
 
-public class ChunkRetentionTests : SqliteDbPerTest<MaxAgeTests> {
+public class ChunkRetentionTests : SqliteDbPerTest<MaxAgeTests>
+{
 	[Fact]
-	public async Task chunks_get_deleted() {
+	public async Task chunks_get_deleted()
+	{
 		var t = 0;
 		await new Scenario<LogFormat.V2, string>()
 			.WithDbPath(Fixture.Directory)

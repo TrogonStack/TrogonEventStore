@@ -9,11 +9,13 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.TransactionLog.Truncation;
 
 [TestFixture]
-public class when_truncating_against_max_truncation_config : SpecificationWithDirectoryPerTestFixture {
+public class when_truncating_against_max_truncation_config : SpecificationWithDirectoryPerTestFixture
+{
 	private TFChunkDbConfig _config;
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		// writer checkpoint = 5500, truncate to 0, max truncation = 1000
@@ -28,22 +30,27 @@ public class when_truncating_against_max_truncation_config : SpecificationWithDi
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		return base.TestFixtureTearDown();
 	}
 
 	[Test]
-	public void truncate_above_max_throws_exception() {
-		Assert.ThrowsAsync<Exception>(async () => {
+	public void truncate_above_max_throws_exception()
+	{
+		Assert.ThrowsAsync<Exception>(async () =>
+		{
 			var truncator = new TFChunkDbTruncator(_config, _ => new IdentityChunkTransformFactory());
 			await truncator.TruncateDb(0, CancellationToken.None);
 		});
 	}
 
 	[Test]
-	public void truncate_within_max_does_not_throw_exception() {
+	public void truncate_within_max_does_not_throw_exception()
+	{
 
-		Assert.DoesNotThrowAsync(async () => {
+		Assert.DoesNotThrowAsync(async () =>
+		{
 			var truncator = new TFChunkDbTruncator(_config, _ => new IdentityChunkTransformFactory());
 			await truncator.TruncateDb(4800, CancellationToken.None);
 		});

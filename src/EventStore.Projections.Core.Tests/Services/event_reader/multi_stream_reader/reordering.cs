@@ -12,19 +12,24 @@ using EventStore.Projections.Core.Services.Processing.Strategies;
 using EventStore.Projections.Core.Services.Processing.Subscriptions;
 using NUnit.Framework;
 
-namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader {
-	namespace reordering {
-		abstract class with_multi_stream_reader<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId> {
+namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_reader
+{
+	namespace reordering
+	{
+		abstract class with_multi_stream_reader<TLogFormat, TStreamId> : TestFixtureWithEventReaderService<TLogFormat, TStreamId>
+		{
 			protected Guid _subscriptionId;
 			private QuerySourcesDefinition _sourceDefinition;
 			protected IReaderStrategy _readerStrategy;
 			protected ReaderSubscriptionOptions _readerSubscriptionOptions;
 
-			protected override bool GivenHeadingReaderRunning() {
+			protected override bool GivenHeadingReaderRunning()
+			{
 				return true;
 			}
 
-			protected override void Given() {
+			protected override void Given()
+			{
 				base.Given();
 				AllWritesSucceed();
 				ExistingEvent("stream-a", "type1", "{}", "{\"Data\": 1}");
@@ -33,7 +38,8 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
 				GivenOtherEvents();
 
 				_subscriptionId = Guid.NewGuid();
-				_sourceDefinition = new QuerySourcesDefinition {
+				_sourceDefinition = new QuerySourcesDefinition
+				{
 					Streams = new[] { "stream-a", "stream-b" },
 					AllEvents = true,
 					Options = new QuerySourcesDefinitionOptions { ReorderEvents = true, ProcessingLag = 100 }
@@ -55,12 +61,14 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
 
 			protected abstract void GivenOtherEvents();
 
-			protected string TFPosToMetadata(TFPos tfPos) {
+			protected string TFPosToMetadata(TFPos tfPos)
+			{
 				return string.Format(@"{{""$c"":{0},""$p"":{1}}}", tfPos.CommitPosition, tfPos.PreparePosition);
 			}
 
 			[Test]
-			public void returns_all_events() {
+			public void returns_all_events()
+			{
 				var receivedEvents =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToArray();
 
@@ -68,7 +76,8 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
 			}
 
 			[Test]
-			public void returns_events_in_original_order() {
+			public void returns_events_in_original_order()
+			{
 				var receivedEvents =
 					_consumer.HandledMessages.OfType<EventReaderSubscriptionMessage.CommittedEventReceived>().ToArray();
 
@@ -82,11 +91,14 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
 		}
 
 		[TestFixture(typeof(LogFormat.V2), typeof(string))]
-		class when_event_commit_is_delayed<TLogFormat, TStreamId> : with_multi_stream_reader<TLogFormat, TStreamId> {
-			protected override void GivenOtherEvents() {
+		class when_event_commit_is_delayed<TLogFormat, TStreamId> : with_multi_stream_reader<TLogFormat, TStreamId>
+		{
+			protected override void GivenOtherEvents()
+			{
 			}
 
-			protected override IEnumerable<WhenStep> When() {
+			protected override IEnumerable<WhenStep> When()
+			{
 				var fromZeroPosition =
 					CheckpointTag.FromStreamPositions(0,
 						new Dictionary<string, long> { { "stream-a", -1 }, { "stream-b", -1 } });

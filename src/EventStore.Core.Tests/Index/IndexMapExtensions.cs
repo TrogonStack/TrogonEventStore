@@ -4,7 +4,8 @@ using EventStore.Core.Index;
 
 namespace EventStore.Core.Tests.Index;
 
-public static class IndexMapExtensions {
+public static class IndexMapExtensions
+{
 	public static MergeResult AddAndMergePTable(
 		this IndexMap indexMap,
 		PTable tableToAdd,
@@ -15,14 +16,17 @@ public static class IndexMapExtensions {
 		int indexCacheDepth = 16,
 		bool skipIndexVerify = false,
 		bool useBloomFilter = true,
-		int lruCacheSize = 1_000_000) {
+		int lruCacheSize = 1_000_000)
+	{
 
 		var addResult = indexMap.AddPTable(tableToAdd, prepareCheckpoint, commitCheckpoint);
-		if (addResult.CanMergeAny) {
+		if (addResult.CanMergeAny)
+		{
 			var toDelete = new List<PTable>();
 			MergeResult mergeResult;
 			IndexMap curMap = addResult.NewMap;
-			do {
+			do
+			{
 				mergeResult = curMap.TryMergeOneLevel(
 					filenameProvider,
 					version,

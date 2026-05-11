@@ -11,7 +11,8 @@ namespace EventStore.Core.Tests.Index.IndexV1;
 [TestFixture(PTableVersions.IndexV2)]
 [TestFixture(PTableVersions.IndexV3)]
 [TestFixture(PTableVersions.IndexV4)]
-public class saving_index_with_single_item_to_a_file : SpecificationWithDirectoryPerTestFixture {
+public class saving_index_with_single_item_to_a_file : SpecificationWithDirectoryPerTestFixture
+{
 	private string _filename;
 	private IndexMap _map;
 	private string _tablename;
@@ -20,12 +21,14 @@ public class saving_index_with_single_item_to_a_file : SpecificationWithDirector
 	protected byte _ptableVersion = PTableVersions.IndexV1;
 	private int _maxAutoMergeIndexLevel = 4;
 
-	public saving_index_with_single_item_to_a_file(byte version) {
+	public saving_index_with_single_item_to_a_file(byte version)
+	{
 		_ptableVersion = version;
 	}
 
 	[OneTimeSetUp]
-	public override async Task TestFixtureSetUp() {
+	public override async Task TestFixtureSetUp()
+	{
 		await base.TestFixtureSetUp();
 
 		_filename = GetFilePathFor("indexfile");
@@ -45,7 +48,8 @@ public class saving_index_with_single_item_to_a_file : SpecificationWithDirector
 	}
 
 	[OneTimeTearDown]
-	public override Task TestFixtureTearDown() {
+	public override Task TestFixtureTearDown()
+	{
 		_result.ToDelete.ForEach(x => x.MarkForDestruction());
 		_result.MergedMap.InOrder().ToList().ForEach(x => x.MarkForDestruction());
 		_result.MergedMap.InOrder().ToList().ForEach(x => x.WaitForDisposal(1000));
@@ -53,14 +57,17 @@ public class saving_index_with_single_item_to_a_file : SpecificationWithDirector
 	}
 
 	[Test]
-	public void the_file_exists() {
+	public void the_file_exists()
+	{
 		Assert.IsTrue(File.Exists(_filename));
 	}
 
 	[Test]
-	public void the_file_contains_correct_data() {
+	public void the_file_contains_correct_data()
+	{
 		using (var fs = File.OpenRead(_filename))
-		using (var reader = new StreamReader(fs)) {
+		using (var reader = new StreamReader(fs))
+		{
 			var text = reader.ReadToEnd();
 			var lines = text.Replace("\r", "").Split('\n');
 
@@ -79,7 +86,8 @@ public class saving_index_with_single_item_to_a_file : SpecificationWithDirector
 	}
 
 	[Test]
-	public void saved_file_could_be_read_correctly_and_without_errors() {
+	public void saved_file_could_be_read_correctly_and_without_errors()
+	{
 		var map = IndexMapTestFactory.FromFile(_filename, maxAutoMergeLevel: _maxAutoMergeIndexLevel);
 		map.InOrder().ToList().ForEach(x => x.Dispose());
 

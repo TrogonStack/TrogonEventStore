@@ -13,13 +13,17 @@ using Newtonsoft.Json.Linq;
 
 namespace EventStore.Projections.Core.Standard;
 
-public class ByCorrelationId : IProjectionStateHandler {
+public class ByCorrelationId : IProjectionStateHandler
+{
 	private readonly string _corrIdStreamPrefix;
 
-	public ByCorrelationId(string source, Action<string, object[]> logger) {
-		if (!string.IsNullOrWhiteSpace(source)) {
+	public ByCorrelationId(string source, Action<string, object[]> logger)
+	{
+		if (!string.IsNullOrWhiteSpace(source))
+		{
 			string correlationIdProperty;
-			if (!TryParseCorrelationIdProperty(source, out correlationIdProperty)) {
+			if (!TryParseCorrelationIdProperty(source, out correlationIdProperty))
+			{
 				throw new InvalidOperationException(
 					"Could not parse projection source. Please make sure the source is a valid JSON string with a property: 'correlationIdProperty' having a string value");
 			}
@@ -30,88 +34,109 @@ public class ByCorrelationId : IProjectionStateHandler {
 		_corrIdStreamPrefix = "$bc-";
 	}
 
-	private bool TryParseCorrelationIdProperty(string source, out string correlationIdProperty) {
+	private bool TryParseCorrelationIdProperty(string source, out string correlationIdProperty)
+	{
 		correlationIdProperty = null;
-		try {
+		try
+		{
 			var obj = JObject.Parse(source);
 			string prop = obj["correlationIdProperty"].Value<string>();
-			if (prop != null) {
+			if (prop != null)
+			{
 				correlationIdProperty = prop;
 				return true;
 			}
-			else {
+			else
+			{
 				return false;
 			}
 		}
-		catch (Exception) {
+		catch (Exception)
+		{
 			return false;
 		}
 	}
 
-	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder) {
+	public void ConfigureSourceProcessingStrategy(SourceDefinitionBuilder builder)
+	{
 		builder.FromAll();
 		builder.AllEvents();
 	}
 
-	public void Load(string state) {
+	public void Load(string state)
+	{
 	}
 
-	public void LoadShared(string state) {
+	public void LoadShared(string state)
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Initialize() {
+	public void Initialize()
+	{
 	}
 
-	public void InitializeShared() {
+	public void InitializeShared()
+	{
 	}
 
-	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data) {
+	public string GetStatePartition(CheckpointTag eventPosition, string category, ResolvedEvent data)
+	{
 		throw new NotImplementedException();
 	}
 
 	public bool ProcessEvent(
 		string partition, CheckpointTag eventPosition, string category1, ResolvedEvent data,
-		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents) {
+		out string newState, out string newSharedState, out EmittedEventEnvelope[] emittedEvents)
+	{
 		newSharedState = null;
 		emittedEvents = null;
 		newState = null;
-		if (data.EventStreamId != data.PositionStreamId) {
+		if (data.EventStreamId != data.PositionStreamId)
+		{
 			return false;
 		}
 
-		if (data.Metadata == null) {
+		if (data.Metadata == null)
+		{
 			return false;
 		}
 
 		JObject metadata;
-		try {
+		try
+		{
 			metadata = JObject.Parse(data.Metadata);
 		}
-		catch (JsonReaderException) {
+		catch (JsonReaderException)
+		{
 			return false;
 		}
 
-		if (metadata[CorrelationIdPropertyContext.CorrelationIdProperty] == null) {
+		if (metadata[CorrelationIdPropertyContext.CorrelationIdProperty] == null)
+		{
 			return false;
 		}
 
 		string correlationId = metadata[CorrelationIdPropertyContext.CorrelationIdProperty].Value<string>();
-		if (correlationId == null) {
+		if (correlationId == null)
+		{
 			return false;
 		}
 
 		string linkTarget;
-		if (data.EventType == SystemEventTypes.LinkTo) {
+		if (data.EventType == SystemEventTypes.LinkTo)
+		{
 			linkTarget = data.Data;
 		}
-		else {
+		else
+		{
 			linkTarget = data.EventSequenceNumber + "@" + data.EventStreamId;
 		}
 
 		var metadataDict = new Dictionary<string, string>();
 		metadataDict.Add("$eventTimestamp", "\"" + data.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ") + "\"");
-		if (data.EventType == SystemEventTypes.LinkTo) {
+		if (data.EventType == SystemEventTypes.LinkTo)
+		{
 			JObject linkObj = new JObject();
 			linkObj.Add("eventId", data.EventId);
 			linkObj.Add("metadata", metadata);
@@ -135,23 +160,28 @@ public class ByCorrelationId : IProjectionStateHandler {
 	}
 
 	public bool ProcessPartitionCreated(string partition, CheckpointTag createPosition, ResolvedEvent data,
-		out EmittedEventEnvelope[] emittedEvents) {
+		out EmittedEventEnvelope[] emittedEvents)
+	{
 		emittedEvents = null;
 		return false;
 	}
 
-	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState) {
+	public bool ProcessPartitionDeleted(string partition, CheckpointTag deletePosition, out string newState)
+	{
 		throw new NotImplementedException();
 	}
 
-	public string TransformStateToResult() {
+	public string TransformStateToResult()
+	{
 		throw new NotImplementedException();
 	}
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 
-	public IQuerySources GetSourceDefinition() {
+	public IQuerySources GetSourceDefinition()
+	{
 		return SourceDefinitionBuilder.From(ConfigureSourceProcessingStrategy);
 	}
 }

@@ -4,14 +4,18 @@ using EventStore.Projections.Core.Services.Processing.Checkpointing;
 
 namespace EventStore.Projections.Core.Services.Processing.AllStream;
 
-public class PreparePositionTagger : PositionTagger {
+public class PreparePositionTagger : PositionTagger
+{
 	public PreparePositionTagger(int phase)
-		: base(phase) {
+		: base(phase)
+	{
 	}
 
 	public override bool IsMessageAfterCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent) {
-		if (previous.Phase < Phase) {
+		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
+	{
+		if (previous.Phase < Phase)
+		{
 			return true;
 		}
 
@@ -19,8 +23,10 @@ public class PreparePositionTagger : PositionTagger {
 	}
 
 	public override CheckpointTag MakeCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent) {
-		if (previous.Phase != Phase) {
+		CheckpointTag previous, ReaderSubscriptionMessage.CommittedEventDistributed committedEvent)
+	{
+		if (previous.Phase != Phase)
+		{
 			throw new ArgumentException(
 				string.Format("Invalid checkpoint tag phase.  Expected: {0} Was: {1}", Phase, previous.Phase));
 		}
@@ -29,40 +35,49 @@ public class PreparePositionTagger : PositionTagger {
 	}
 
 	public override CheckpointTag MakeCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.EventReaderPartitionEof partitionEof) {
+		CheckpointTag previous, ReaderSubscriptionMessage.EventReaderPartitionEof partitionEof)
+	{
 		throw new NotImplementedException();
 	}
 
 	public override CheckpointTag MakeCheckpointTag(
-		CheckpointTag previous, ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted) {
+		CheckpointTag previous, ReaderSubscriptionMessage.EventReaderPartitionDeleted partitionDeleted)
+	{
 		throw new NotSupportedException();
 	}
 
-	public override CheckpointTag MakeZeroCheckpointTag() {
+	public override CheckpointTag MakeZeroCheckpointTag()
+	{
 		return CheckpointTag.FromPreparePosition(Phase, -1);
 	}
 
-	public override bool IsCompatible(CheckpointTag checkpointTag) {
+	public override bool IsCompatible(CheckpointTag checkpointTag)
+	{
 		return checkpointTag.Mode_ == CheckpointTag.Mode.PreparePosition;
 	}
 
-	public override CheckpointTag AdjustTag(CheckpointTag tag) {
-		if (tag.Phase < Phase) {
+	public override CheckpointTag AdjustTag(CheckpointTag tag)
+	{
+		if (tag.Phase < Phase)
+		{
 			return tag;
 		}
 
-		if (tag.Phase > Phase) {
+		if (tag.Phase > Phase)
+		{
 			throw new ArgumentException(
 				string.Format(
 					"Invalid checkpoint tag phase.  Expected less or equal to: {0} Was: {1}", Phase, tag.Phase),
 				"tag");
 		}
 
-		if (tag.Mode_ == CheckpointTag.Mode.PreparePosition) {
+		if (tag.Mode_ == CheckpointTag.Mode.PreparePosition)
+		{
 			return tag;
 		}
 
-		switch (tag.Mode_) {
+		switch (tag.Mode_)
+		{
 			case CheckpointTag.Mode.EventTypeIndex:
 				throw new NotSupportedException(
 					"Conversion from EventTypeIndex to PreparePosition position tag is not supported");

@@ -1,14 +1,17 @@
 using System;
 using EventStore.Core.TransactionLog.LogRecords;
 
-namespace EventStore.Core.TransactionLog.Scavenging {
+namespace EventStore.Core.TransactionLog.Scavenging
+{
 	// this abstracts the actual log records from the chunk execution logic
 	// TRecord is currently used as a LogRecord but in the future could just be bytes
-	public abstract class RecordForExecutor<TStreamId, TRecord> {
+	public abstract class RecordForExecutor<TStreamId, TRecord>
+	{
 		public int Length { get; private set; }
 		public TRecord Record { get; private set; }
 
-		public class Prepare : RecordForExecutor<TStreamId, TRecord> {
+		public class Prepare : RecordForExecutor<TStreamId, TRecord>
+		{
 			public void SetRecord(
 				int length,
 				long logPosition,
@@ -18,7 +21,8 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 				bool isSelfCommitted,
 				bool isTombstone,
 				bool isTransactionBegin,
-				long eventNumber) {
+				long eventNumber)
+			{
 
 				Length = length;
 				LogPosition = logPosition;
@@ -40,10 +44,12 @@ namespace EventStore.Core.TransactionLog.Scavenging {
 			public long EventNumber { get; private set; }
 		}
 
-		public class NonPrepare : RecordForExecutor<TStreamId, TRecord> {
+		public class NonPrepare : RecordForExecutor<TStreamId, TRecord>
+		{
 			public void SetRecord(
 				int length,
-				TRecord record) {
+				TRecord record)
+			{
 
 				Length = length;
 				Record = record;

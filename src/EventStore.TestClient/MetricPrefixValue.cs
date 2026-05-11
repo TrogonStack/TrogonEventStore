@@ -8,7 +8,8 @@ namespace EventStore.TestClient;
 /// With this we can write: WRFLGRPC 10 5M 500k 100 1 perftest
 /// instead of: WRFLGRPC 10 5000000 500000 100 1 perftest
 /// </summary>
-internal static class MetricPrefixValue {
+internal static class MetricPrefixValue
+{
 	private static readonly Dictionary<char, long> _metricPrefixes = new() {
 		{'k', 1_000},
 		{'m', 1_000_000},
@@ -19,10 +20,12 @@ internal static class MetricPrefixValue {
 
 	public static long ParseLong(string value) => long.Parse(Expand(value));
 
-	private static string Expand(string value) {
+	private static string Expand(string value)
+	{
 		value = value.ToLower();
 
-		if (!_metricPrefixes.Keys.Any(k => value.EndsWith(k))) {
+		if (!_metricPrefixes.Keys.Any(k => value.EndsWith(k)))
+		{
 			return value;
 		}
 

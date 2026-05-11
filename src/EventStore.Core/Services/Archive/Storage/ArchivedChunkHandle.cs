@@ -6,11 +6,13 @@ using EventStore.Core.TransactionLog.Chunks.TFChunk;
 
 namespace EventStore.Core.Services.Archive.Storage;
 
-internal sealed class ArchivedChunkHandle : IChunkHandle {
+internal sealed class ArchivedChunkHandle : IChunkHandle
+{
 	private readonly IArchiveStorageReader _reader;
 	private readonly string _chunkFile;
 
-	private ArchivedChunkHandle(IArchiveStorageReader reader, string chunkFile, long length) {
+	private ArchivedChunkHandle(IArchiveStorageReader reader, string chunkFile, long length)
+	{
 		_reader = reader;
 		_chunkFile = chunkFile;
 		Length = length;
@@ -19,7 +21,8 @@ internal sealed class ArchivedChunkHandle : IChunkHandle {
 	public static async ValueTask<IChunkHandle> OpenForReadAsync(
 		IArchiveStorageReader reader,
 		int logicalChunkNumber,
-		CancellationToken token) {
+		CancellationToken token)
+	{
 		var chunkFile = reader.ChunkNamer.GetFileNameFor(logicalChunkNumber);
 		var length = await reader.GetChunkLength(chunkFile, token);
 		return new ArchivedChunkHandle(reader, chunkFile, length);
@@ -31,7 +34,8 @@ internal sealed class ArchivedChunkHandle : IChunkHandle {
 
 	public FileAccess Access => FileAccess.Read;
 
-	public void Flush() {
+	public void Flush()
+	{
 	}
 
 	public Task FlushAsync(CancellationToken token) =>
@@ -40,13 +44,16 @@ internal sealed class ArchivedChunkHandle : IChunkHandle {
 	public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token) =>
 		ValueTask.FromException(new NotSupportedException());
 
-	public async ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) {
+	public async ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
+	{
 		await using var stream = await _reader.GetChunk(_chunkFile, offset, offset + buffer.Length, token);
 
 		var totalRead = 0;
-		while (totalRead < buffer.Length) {
+		while (totalRead < buffer.Length)
+		{
 			var bytesRead = await stream.ReadAsync(buffer[totalRead..], token);
-			if (bytesRead == 0) {
+			if (bytesRead == 0)
+			{
 				break;
 			}
 
@@ -59,6 +66,7 @@ internal sealed class ArchivedChunkHandle : IChunkHandle {
 	public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) =>
 		token.IsCancellationRequested ? ValueTask.FromCanceled(token) : ValueTask.CompletedTask;
 
-	public void Dispose() {
+	public void Dispose()
+	{
 	}
 }

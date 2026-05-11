@@ -10,32 +10,39 @@ using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Services.Transport.Grpc.MonitoringTests;
 
-public class StatsTests {
+public class StatsTests
+{
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
-	public class when_reading_stats<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId> {
+	public class when_reading_stats<TLogFormat, TStreamId> : specification_with_cluster<TLogFormat, TStreamId>
+	{
 
 		private const int _expected = 3;
 		private const int _refreshTimePeriodInMs = 250;
 		private readonly List<StatsResp> _stats;
 
-		public when_reading_stats() {
+		public when_reading_stats()
+		{
 			_stats = new List<StatsResp>();
 		}
 
-		protected override async Task Given() {
+		protected override async Task Given()
+		{
 			var node = GetLeader();
 			await Task.WhenAll(node.AdminUserCreated, node.Started);
 
 			using var channel = GrpcChannel.ForAddress(new Uri($"https://{node.HttpEndPoint}"),
-				new GrpcChannelOptions {
-					HttpClient = new HttpClient(new SocketsHttpHandler {
+				new GrpcChannelOptions
+				{
+					HttpClient = new HttpClient(new SocketsHttpHandler
+					{
 						SslOptions = {
 							RemoteCertificateValidationCallback = delegate { return true; }
 						}
 					}, true)
 				});
 			var client = new Client.Monitoring.Monitoring.MonitoringClient(channel);
-			var request = new StatsReq {
+			var request = new StatsReq
+			{
 				RefreshTimePeriodInMs = _refreshTimePeriodInMs
 			};
 
@@ -43,14 +50,16 @@ public class StatsTests {
 
 			var count = 0;
 			var cts = new CancellationTokenSource(_refreshTimePeriodInMs * _expected * 2);
-			while (count < _expected && await resp.ResponseStream.MoveNext(cts.Token)) {
+			while (count < _expected && await resp.ResponseStream.MoveNext(cts.Token))
+			{
 				_stats.Add(resp.ResponseStream.Current);
 				count++;
 			}
 		}
 
 		[Test]
-		public void should_receive_expected_amount_of_stats_messages() {
+		public void should_receive_expected_amount_of_stats_messages()
+		{
 			Assert.AreEqual(_expected, _stats.Count);
 		}
 

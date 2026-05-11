@@ -3,16 +3,19 @@ using Microsoft.Extensions.Configuration;
 
 namespace EventStore.Common.Configuration;
 
-public class SectionSource : IConfigurationSource {
+public class SectionSource : IConfigurationSource
+{
 	private readonly string _sectionName;
 	private readonly Action<IConfigurationBuilder> _configure;
 
-	public SectionSource(string sectionName, Action<IConfigurationBuilder> configure) {
+	public SectionSource(string sectionName, Action<IConfigurationBuilder> configure)
+	{
 		_sectionName = sectionName;
 		_configure = configure;
 	}
 
-	public IConfigurationProvider Build(IConfigurationBuilder builder) {
+	public IConfigurationProvider Build(IConfigurationBuilder builder)
+	{
 		var subBuilder = new ConfigurationBuilder();
 		_configure(subBuilder);
 		var configuration = subBuilder.Build();
@@ -21,7 +24,8 @@ public class SectionSource : IConfigurationSource {
 	}
 }
 
-public static class SectionConfigurationExtensions {
+public static class SectionConfigurationExtensions
+{
 	// Allows configuration to be mounted inside a specified section
 	public static IConfigurationBuilder AddSection(this IConfigurationBuilder self, string sectionName,
 		Action<IConfigurationBuilder> configure) =>

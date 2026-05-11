@@ -8,35 +8,43 @@ using EventStore.Core.Messaging;
 using EventStore.Core.Services;
 using EventStore.Core.Services.TimerService;
 
-namespace EventStore.Core.Helpers {
-	public static class IODispatcherAsync {
-		public class CancellationScope {
+namespace EventStore.Core.Helpers
+{
+	public static class IODispatcherAsync
+	{
+		public class CancellationScope
+		{
 			private bool _cancelled = false;
 			private readonly HashSet<Guid> _ids = new HashSet<Guid>();
 
-			public Guid Register(Guid id) {
+			public Guid Register(Guid id)
+			{
 				_ids.Add(id);
 				return id;
 			}
 
-			public bool Cancelled(Guid id) {
+			public bool Cancelled(Guid id)
+			{
 				_ids.Remove(id);
 				return _cancelled;
 			}
 
-			public void Cancel() {
+			public void Cancel()
+			{
 				_cancelled = true;
 			}
 		}
 
 		public delegate void Step(IEnumerator<Step> nextSteps);
 
-		public static void Run(this IEnumerable<Step> actions) {
+		public static void Run(this IEnumerable<Step> actions)
+		{
 			var actionsEnumerator = actions.GetEnumerator();
 			Run(actionsEnumerator);
 		}
 
-		public static void Run(this Step action) {
+		public static void Run(this Step action)
+		{
 			Run(new[] { action });
 		}
 
@@ -49,9 +57,11 @@ namespace EventStore.Core.Helpers {
 			bool resolveLinks,
 			ClaimsPrincipal principal,
 			Action<ClientMessage.ReadStreamEventsForwardCompleted> handler,
-			Action timeoutHandler) {
+			Action timeoutHandler)
+		{
 			return
-				steps => {
+				steps =>
+				{
 					var corrId = Guid.NewGuid();
 					cancellationScope.Register(corrId);
 					ioDispatcher.ReadForward(
@@ -60,16 +70,20 @@ namespace EventStore.Core.Helpers {
 						maxCount,
 						resolveLinks,
 						principal,
-						response => {
-							if (cancellationScope.Cancelled(response.CorrelationId)) {
+						response =>
+						{
+							if (cancellationScope.Cancelled(response.CorrelationId))
+							{
 								return;
 							}
 
 							handler(response);
 							Run(steps);
 						},
-						() => {
-							if (cancellationScope.Cancelled(corrId)) {
+						() =>
+						{
+							if (cancellationScope.Cancelled(corrId))
+							{
 								return;
 							}
 
@@ -89,9 +103,11 @@ namespace EventStore.Core.Helpers {
 			bool resolveLinks,
 			ClaimsPrincipal principal,
 			Action<ClientMessage.ReadStreamEventsBackwardCompleted> handler,
-			Action timeoutHandler) {
+			Action timeoutHandler)
+		{
 			return
-				steps => {
+				steps =>
+				{
 					var corrId = Guid.NewGuid();
 					cancellationScope.Register(corrId);
 					ioDispatcher.ReadBackward(
@@ -100,16 +116,20 @@ namespace EventStore.Core.Helpers {
 						maxCount,
 						resolveLinks,
 						principal,
-						response => {
-							if (cancellationScope.Cancelled(response.CorrelationId)) {
+						response =>
+						{
+							if (cancellationScope.Cancelled(response.CorrelationId))
+							{
 								return;
 							}
 
 							handler(response);
 							Run(steps);
 						},
-						() => {
-							if (cancellationScope.Cancelled(corrId)) {
+						() =>
+						{
+							if (cancellationScope.Cancelled(corrId))
+							{
 								return;
 							}
 
@@ -127,7 +147,8 @@ namespace EventStore.Core.Helpers {
 			long expectedVersion,
 			ClaimsPrincipal principal,
 			Event[] events,
-			Action<ClientMessage.WriteEventsCompleted> handler) {
+			Action<ClientMessage.WriteEventsCompleted> handler)
+		{
 			return
 				steps =>
 					WriteEventsWithRetry(ioDispatcher, cancellationScope, streamId, expectedVersion, principal, events,
@@ -141,7 +162,8 @@ namespace EventStore.Core.Helpers {
 			long expectedVersion,
 			bool hardDelete,
 			ClaimsPrincipal principal,
-			Action<ClientMessage.DeleteStreamCompleted> handler) {
+			Action<ClientMessage.DeleteStreamCompleted> handler)
+		{
 			return
 				steps =>
 					DeleteStreamWithRetry(
@@ -161,12 +183,15 @@ namespace EventStore.Core.Helpers {
 			string streamId,
 			TFPos from,
 			Action<IODispatcherDelayedMessage> handler,
-			Guid? correlationId = null) {
+			Guid? correlationId = null)
+		{
 			return steps => ioDispatcher.SubscribeAwake(
 				streamId,
 				@from,
-				message => {
-					if (cancellationScope.Cancelled(message.CorrelationId)) {
+				message =>
+				{
+					if (cancellationScope.Cancelled(message.CorrelationId))
+					{
 						return;
 					}
 
@@ -183,7 +208,8 @@ namespace EventStore.Core.Helpers {
 			long expectedVersion,
 			ClaimsPrincipal principal,
 			StreamMetadata metadata,
-			Action<ClientMessage.WriteEventsCompleted> handler) {
+			Action<ClientMessage.WriteEventsCompleted> handler)
+		{
 			return
 				steps =>
 					UpdateStreamAclWithRetry(
@@ -201,11 +227,14 @@ namespace EventStore.Core.Helpers {
 			this IODispatcher ioDispatcher,
 			CancellationScope cancellationScope,
 			TimeSpan timeout,
-			Action handler) {
+			Action handler)
+		{
 			return steps => ioDispatcher.Delay(
 				timeout,
-				_ => {
-					if (cancellationScope.Cancelled(Guid.Empty)) {
+				_ =>
+				{
+					if (cancellationScope.Cancelled(Guid.Empty))
+					{
 						return;
 					}
 
@@ -222,7 +251,8 @@ namespace EventStore.Core.Helpers {
 			ClaimsPrincipal principal,
 			Event[] events,
 			Action<ClientMessage.WriteEventsCompleted> handler,
-			IEnumerator<Step> steps) {
+			IEnumerator<Step> steps)
+		{
 			PerformWithRetry(
 				ioDispatcher,
 				handler,
@@ -236,8 +266,10 @@ namespace EventStore.Core.Helpers {
 							expectedVersion,
 							events,
 							principal,
-							response => {
-								if (cancellationScope.Cancelled(response.CorrelationId)) {
+							response =>
+							{
+								if (cancellationScope.Cancelled(response.CorrelationId))
+								{
 									return;
 								}
 
@@ -253,7 +285,8 @@ namespace EventStore.Core.Helpers {
 			bool hardDelete,
 			ClaimsPrincipal principal,
 			Action<ClientMessage.DeleteStreamCompleted> handler,
-			IEnumerator<Step> steps) {
+			IEnumerator<Step> steps)
+		{
 			PerformWithRetry(
 				ioDispatcher,
 				handler,
@@ -267,8 +300,10 @@ namespace EventStore.Core.Helpers {
 							expectedVersion,
 							hardDelete,
 							principal,
-							response => {
-								if (cancellationScope.Cancelled(response.CorrelationId)) {
+							response =>
+							{
+								if (cancellationScope.Cancelled(response.CorrelationId))
+								{
 									return;
 								}
 
@@ -285,7 +320,8 @@ namespace EventStore.Core.Helpers {
 			ClaimsPrincipal principal,
 			StreamMetadata metadata,
 			Action<ClientMessage.WriteEventsCompleted> handler,
-			IEnumerator<Step> steps) {
+			IEnumerator<Step> steps)
+		{
 			PerformWithRetry(
 				ioDispatcher,
 				handler,
@@ -302,8 +338,10 @@ namespace EventStore.Core.Helpers {
 									null)
 							},
 							principal,
-							response => {
-								if (cancellationScope.Cancelled(response.CorrelationId)) {
+							response =>
+							{
+								if (cancellationScope.Cancelled(response.CorrelationId))
+								{
 									return;
 								}
 
@@ -317,29 +355,37 @@ namespace EventStore.Core.Helpers {
 			IEnumerator<Step> steps,
 			bool retryExpectedVersion,
 			TimeSpan timeout,
-			Action<Action<T, OperationResult>> action) {
+			Action<Action<T, OperationResult>> action)
+		{
 			action(
-				(response, result) => {
-					if (ShouldRetry(result, retryExpectedVersion)) {
+				(response, result) =>
+				{
+					if (ShouldRetry(result, retryExpectedVersion))
+					{
 						ioDispatcher.Delay(
 							timeout,
-							_ => {
-								if (timeout < TimeSpan.FromSeconds(10)) {
+							_ =>
+							{
+								if (timeout < TimeSpan.FromSeconds(10))
+								{
 									timeout += timeout;
 								}
 
 								PerformWithRetry(ioDispatcher, handler, steps, retryExpectedVersion, timeout, action);
 							});
 					}
-					else {
+					else
+					{
 						handler(response);
 						Run(steps);
 					}
 				});
 		}
 
-		private static bool ShouldRetry(OperationResult result, bool retryExpectedVersion) {
-			switch (result) {
+		private static bool ShouldRetry(OperationResult result, bool retryExpectedVersion)
+		{
+			switch (result)
+			{
 				case OperationResult.CommitTimeout:
 				case OperationResult.ForwardTimeout:
 				case OperationResult.PrepareTimeout:
@@ -351,8 +397,10 @@ namespace EventStore.Core.Helpers {
 			}
 		}
 
-		private static void Run(IEnumerator<Step> actions) {
-			if (actions.MoveNext()) {
+		private static void Run(IEnumerator<Step> actions)
+		{
+			if (actions.MoveNext())
+			{
 				var action = actions.Current;
 				action(actions);
 			}

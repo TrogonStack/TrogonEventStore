@@ -3,8 +3,10 @@ using System.Runtime.CompilerServices;
 using EventStore.Common.Utils;
 using EventStore.Core.Caching;
 
-namespace EventStore.Core.Data {
-	public class StreamAcl {
+namespace EventStore.Core.Data
+{
+	public class StreamAcl
+	{
 		public readonly string[] ReadRoles;
 		public readonly string[] WriteRoles;
 		public readonly string[] DeleteRoles;
@@ -17,11 +19,13 @@ namespace EventStore.Core.Data {
 				writeRole == null ? null : new[] { writeRole },
 				deleteRole == null ? null : new[] { deleteRole },
 				metaReadRole == null ? null : new[] { metaReadRole },
-				metaWriteRole == null ? null : new[] { metaWriteRole }) {
+				metaWriteRole == null ? null : new[] { metaWriteRole })
+		{
 		}
 
 		public StreamAcl(string[] readRoles, string[] writeRoles, string[] deleteRoles, string[] metaReadRoles,
-			string[] metaWriteRoles) {
+			string[] metaWriteRoles)
+		{
 			ReadRoles = readRoles;
 			WriteRoles = writeRoles;
 			DeleteRoles = deleteRoles;
@@ -29,7 +33,8 @@ namespace EventStore.Core.Data {
 			MetaWriteRoles = metaWriteRoles;
 		}
 
-		public override string ToString() {
+		public override string ToString()
+		{
 			return string.Format("Read: {0}, Write: {1}, Delete: {2}, MetaRead: {3}, MetaWrite: {4}",
 				ReadRoles == null ? "<null>" : "[" + string.Join(",", ReadRoles) + "]",
 				WriteRoles == null ? "<null>" : "[" + string.Join(",", WriteRoles) + "]",
@@ -38,8 +43,10 @@ namespace EventStore.Core.Data {
 				MetaWriteRoles == null ? "<null>" : "[" + string.Join(",", MetaWriteRoles) + "]");
 		}
 
-		public int ApproximateSize {
-			get {
+		public int ApproximateSize
+		{
+			get
+			{
 				var size = 0;
 				size += MemSizer.ObjectHeaderSize; // StreamAcl object header
 				size += (Unsafe.SizeOf<string[]>() * 5) // string arrays refs

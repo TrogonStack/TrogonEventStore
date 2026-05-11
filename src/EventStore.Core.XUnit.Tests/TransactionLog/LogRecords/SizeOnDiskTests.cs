@@ -5,8 +5,10 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.LogRecords;
 
-public class SizeOnDiskTests {
-	public static TheoryData<ILogRecord> GetLogRecords() {
+public class SizeOnDiskTests
+{
+	public static TheoryData<ILogRecord> GetLogRecords()
+	{
 		return
 		[
 			CreatePrepareLogRecord(1),
@@ -17,7 +19,8 @@ public class SizeOnDiskTests {
 			CreateSystemLogRecord()
 		];
 
-		static PrepareLogRecord CreatePrepareLogRecord(int stringLength) {
+		static PrepareLogRecord CreatePrepareLogRecord(int stringLength)
+		{
 			var theString = new string('a', stringLength);
 
 			return new(
@@ -55,10 +58,12 @@ public class SizeOnDiskTests {
 
 	[Theory]
 	[MemberData(nameof(GetLogRecords))]
-	public void size_on_disk_is_correct(ILogRecord record) {
+	public void size_on_disk_is_correct(ILogRecord record)
+	{
 
 		var writer = new BufferWriterSlim<byte>(record.GetSizeWithLengthPrefixAndSuffix());
-		try {
+		try
+		{
 			const int dummyLength = 111;
 
 			writer.WriteLittleEndian(dummyLength);
@@ -67,7 +72,8 @@ public class SizeOnDiskTests {
 
 			Assert.Equal(writer.WrittenCount, record.GetSizeWithLengthPrefixAndSuffix());
 		}
-		finally {
+		finally
+		{
 			writer.Dispose();
 		}
 	}

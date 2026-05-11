@@ -18,14 +18,16 @@ namespace EventStore.Projections.Core.Tests.Services.event_reader.multi_stream_r
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_handling_streams_with_deleted_events_and_reader_starting_after_event_zero<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId> {
+	when_handling_streams_with_deleted_events_and_reader_starting_after_event_zero<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+{
 	private MultiStreamEventReader _edp;
 	private int _fromSequenceNumber;
 	private string[] _streamNames;
 	private Dictionary<string, long> _streamPositions;
 	private Guid _distibutionPointCorrelationId;
 
-	protected override void Given() {
+	protected override void Given()
+	{
 		TicksAreHandledImmediately();
 		_fromSequenceNumber = 10;
 		_streamNames = new[] { "stream1", "stream2" };
@@ -33,7 +35,8 @@ public class
 	}
 
 	[SetUp]
-	public new void When() {
+	public new void When()
+	{
 		_distibutionPointCorrelationId = Guid.NewGuid();
 
 		_edp = new MultiStreamEventReader(
@@ -43,11 +46,13 @@ public class
 		_edp.Resume();
 	}
 
-	private void HandleEvents(string stream, long[] eventNumbers) {
+	private void HandleEvents(string stream, long[] eventNumbers)
+	{
 		string eventType = "event_type";
 		List<ResolvedEvent> events = new List<ResolvedEvent>();
 
-		foreach (long eventNumber in eventNumbers) {
+		foreach (long eventNumber in eventNumbers)
+		{
 			events.Add(
 				ResolvedEvent.ForUnresolvedEvent(
 					new EventRecord(
@@ -61,11 +66,13 @@ public class
 		}
 
 		long start, end;
-		if (eventNumbers.Length > 0) {
+		if (eventNumbers.Length > 0)
+		{
 			start = eventNumbers[0];
 			end = eventNumbers[eventNumbers.Length - 1];
 		}
-		else {
+		else
+		{
 			start = _fromSequenceNumber;
 			end = _fromSequenceNumber;
 		}
@@ -80,9 +87,11 @@ public class
 		);
 	}
 
-	private void HandleEvents(string stream, long start, long end) {
+	private void HandleEvents(string stream, long start, long end)
+	{
 		List<long> eventNumbers = new List<long>();
-		for (long i = start; i <= end; i++) {
+		for (long i = start; i <= end; i++)
+		{
 			eventNumbers.Add(i);
 		}
 
@@ -90,10 +99,12 @@ public class
 	}
 
 	[Test]
-	public void allows_first_event_to_be_equal_to_sequence_number() {
+	public void allows_first_event_to_be_equal_to_sequence_number()
+	{
 		long eventSequenceNumber = _fromSequenceNumber;
 
-		Assert.DoesNotThrow(() => {
+		Assert.DoesNotThrow(() =>
+		{
 			HandleEvents(_streamNames[0], eventSequenceNumber, eventSequenceNumber);
 			//to trigger event delivery:
 			HandleEvents(_streamNames[1], 100, 101);
@@ -101,7 +112,8 @@ public class
 	}
 
 	[Test]
-	public void should_not_allow_first_event_to_be_greater_than_sequence_number() {
+	public void should_not_allow_first_event_to_be_greater_than_sequence_number()
+	{
 		long eventSequenceNumber = _fromSequenceNumber + 5;
 
 		HandleEvents(_streamNames[0], eventSequenceNumber, eventSequenceNumber);
@@ -112,7 +124,8 @@ public class
 	}
 
 	[Test]
-	public void should_not_allow_first_event_to_be_less_than_sequence_number() {
+	public void should_not_allow_first_event_to_be_less_than_sequence_number()
+	{
 		long eventSequenceNumber = _fromSequenceNumber - 1;
 
 		HandleEvents(_streamNames[0], eventSequenceNumber, eventSequenceNumber);
@@ -123,7 +136,8 @@ public class
 	}
 
 	[Test]
-	public void events_after_first_event_should_not_be_in_sequence() {
+	public void events_after_first_event_should_not_be_in_sequence()
+	{
 		//_fromSequenceNumber+2 has been omitted
 		HandleEvents(_streamNames[0],
 			new long[] {

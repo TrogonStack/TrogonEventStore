@@ -6,10 +6,12 @@ using Xunit;
 
 namespace EventStore.Projections.Core.XUnit.Tests.Metrics;
 
-public class ProjectionMetricsTests {
+public class ProjectionMetricsTests
+{
 	readonly ProjectionTracker _sut = new();
 
-	public ProjectionMetricsTests() {
+	public ProjectionMetricsTests()
+	{
 		_sut.OnNewStats([new() {
 			Name = "TestProjection",
 			ProjectionId = 1234,
@@ -24,21 +26,24 @@ public class ProjectionMetricsTests {
 	}
 
 	[Fact]
-	public void ObserveEventsProcessed() {
+	public void ObserveEventsProcessed()
+	{
 		var measurements = _sut.ObserveEventsProcessed();
 		var measurement = Assert.Single(measurements);
 		AssertMeasurement(50L, ("projection", "TestProjection"))(measurement);
 	}
 
 	[Fact]
-	public void ObserveRunning() {
+	public void ObserveRunning()
+	{
 		var measurements = _sut.ObserveRunning();
 		var measurement = Assert.Single(measurements);
 		AssertMeasurement(1L, ("projection", "TestProjection"))(measurement);
 	}
 
 	[Fact]
-	public void ObserveRunningWithCompoundStatus() {
+	public void ObserveRunningWithCompoundStatus()
+	{
 		_sut.OnNewStats([ProjectionWithState(ManagedProjectionState.Running, "Running/Writing results")]);
 
 		var measurements = _sut.ObserveRunning();
@@ -47,14 +52,16 @@ public class ProjectionMetricsTests {
 	}
 
 	[Fact]
-	public void ObserveProgress() {
+	public void ObserveProgress()
+	{
 		var measurements = _sut.ObserveProgress();
 		var measurement = Assert.Single(measurements);
 		AssertMeasurement(0.75f, ("projection", "TestProjection"))(measurement);
 	}
 
 	[Fact]
-	public void ObserveStatus() {
+	public void ObserveStatus()
+	{
 		var measurements = _sut.ObserveStatus();
 		Assert.Collection(measurements,
 			AssertMeasurement(1L, ("projection", "TestProjection"), ("status", "Running")),
@@ -67,7 +74,8 @@ public class ProjectionMetricsTests {
 	[InlineData(ManagedProjectionState.Faulted, "Faulted (Enabled)", 0, 1, 0)]
 	[InlineData(ManagedProjectionState.Stopped, "Stopped (Enabled)", 0, 0, 1)]
 	public void ObserveStatusWithCompoundStatus(ManagedProjectionState state, string status, long running,
-		long faulted, long stopped) {
+		long faulted, long stopped)
+	{
 		_sut.OnNewStats([ProjectionWithState(state, status)]);
 
 		var measurements = _sut.ObserveStatus();
@@ -80,7 +88,8 @@ public class ProjectionMetricsTests {
 	static Action<Measurement<T>> AssertMeasurement<T>(
 		T expectedValue, params (string, string?)[] tags) where T : struct =>
 
-		actualMeasurement => {
+		actualMeasurement =>
+		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
 
 			Assert.Equal(
@@ -89,7 +98,8 @@ public class ProjectionMetricsTests {
 		};
 
 	private static ProjectionStatistics ProjectionWithState(ManagedProjectionState state, string status) =>
-		new() {
+		new()
+		{
 			Name = "TestProjection",
 			ProjectionId = 1234,
 			Epoch = -1,

@@ -11,8 +11,10 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.Jint;
 
 [TestFixture]
-public class when_running_counting_js_projection : TestFixtureWithInterpretedProjection {
-	protected override void Given() {
+public class when_running_counting_js_projection : TestFixtureWithInterpretedProjection
+{
+	protected override void Given()
+	{
 		_projection = @"
                 fromAll().when({$any: 
                     function(state, event) {
@@ -24,7 +26,8 @@ public class when_running_counting_js_projection : TestFixtureWithInterpretedPro
 	}
 
 	[Test, Category(_projectionType)]
-	public void process_event_counts_events() {
+	public void process_event_counts_events()
+	{
 		_stateHandler.ProcessEvent(
 			"", CheckpointTag.FromPosition(0, 10, 5), "stream1", "type1", "category", Guid.NewGuid(), 0, "metadata",
 			@"{""a"":""b""}", out _, out _);
@@ -47,8 +50,10 @@ public class when_running_counting_js_projection : TestFixtureWithInterpretedPro
 	}
 
 	[Test, Category(_projectionType), Category("Manual"), Explicit]
-	public void can_handle_million_events() {
-		for (var i = 0; i < 1000000; i++) {
+	public void can_handle_million_events()
+	{
+		for (var i = 0; i < 1000000; i++)
+		{
 			_logged.Clear();
 			_stateHandler.ProcessEvent(
 				"", CheckpointTag.FromPosition(0, i * 10, i * 10 - 5), "stream" + i, "type" + i, "category",

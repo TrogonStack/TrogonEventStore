@@ -16,13 +16,15 @@ namespace EventStore.Core.Tests.TransactionLog;
 
 [TestFixture]
 [NonParallelizable]
-public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile {
+public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
+{
 	private ILogger _originalLogger;
 	private TFChunk _chunk;
 	private CollectingSink _sink;
 
 	[SetUp]
-	public override async Task SetUp() {
+	public override async Task SetUp()
+	{
 		await base.SetUp();
 
 		_originalLogger = Log.Logger;
@@ -34,14 +36,16 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 	}
 
 	[TearDown]
-	public override void TearDown() {
+	public override void TearDown()
+	{
 		Log.Logger = _originalLogger;
 		_chunk?.Dispose();
 		base.TearDown();
 	}
 
 	[Test]
-	public async Task default_local_chunk_io_does_not_warn_on_synchronous_reads() {
+	public async Task default_local_chunk_io_does_not_warn_on_synchronous_reads()
+	{
 		await CreateChunk(asyncIO: false);
 
 		using var stream = GetHandle().CreateStream();
@@ -52,7 +56,8 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 	}
 
 	[Test]
-	public async Task experimental_async_local_chunk_io_uses_timeout_capable_stream() {
+	public async Task experimental_async_local_chunk_io_uses_timeout_capable_stream()
+	{
 		await CreateChunk(asyncIO: true);
 
 		using var stream = GetHandle().CreateStream();
@@ -61,7 +66,8 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 	}
 
 	[Test]
-	public void generic_chunk_handles_warn_once_on_repeated_synchronous_reads() {
+	public void generic_chunk_handles_warn_once_on_repeated_synchronous_reads()
+	{
 		var handle = new TestChunkHandle();
 
 		using var stream = ((IChunkHandle)handle).CreateStream();
@@ -71,7 +77,8 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 		Assert.That(LoggedWarnings().Count(x => x.Contains("Synchronous reads should be uncommon.")), Is.EqualTo(1));
 	}
 
-	private async Task CreateChunk(bool asyncIO) {
+	private async Task CreateChunk(bool asyncIO)
+	{
 		_chunk = await TFChunk.CreateNew(
 			fileSystem: TFChunkHelper.CreateLocalFileSystem(Filename),
 			filename: Filename,
@@ -88,38 +95,45 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 			token: CancellationToken.None);
 	}
 
-	private IChunkHandle GetHandle() {
+	private IChunkHandle GetHandle()
+	{
 		var handleField = typeof(TFChunk).GetField("_handle", BindingFlags.NonPublic | BindingFlags.Instance)!;
 		return (IChunkHandle)handleField.GetValue(_chunk)!;
 	}
 
-	private static void ReadSingleByte(Stream stream) {
+	private static void ReadSingleByte(Stream stream)
+	{
 		var buffer = new byte[1];
 		var bytesRead = stream.Read(buffer, 0, buffer.Length);
 
 		Assert.That(bytesRead, Is.EqualTo(1));
 	}
 
-	private string[] LoggedWarnings() {
+	private string[] LoggedWarnings()
+	{
 		return _sink.Events
 			.Where(x => x.Level == LogEventLevel.Warning)
 			.Select(x => x.RenderMessage())
 			.ToArray();
 	}
 
-	private sealed class TestChunkHandle : IChunkHandle {
+	private sealed class TestChunkHandle : IChunkHandle
+	{
 		public long Length { get; set; } = 1;
 		public string Name => "test-handle";
 		public FileAccess Access => FileAccess.Read;
 
-		public void Flush() {
+		public void Flush()
+		{
 		}
 
 		public ValueTask WriteAsync(ReadOnlyMemory<byte> data, long offset, CancellationToken token) =>
 			ValueTask.CompletedTask;
 
-		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token) {
-			if (!buffer.IsEmpty) {
+		public ValueTask<int> ReadAsync(Memory<byte> buffer, long offset, CancellationToken token)
+		{
+			if (!buffer.IsEmpty)
+			{
 				buffer.Span[0] = 0x42;
 			}
 
@@ -128,15 +142,20 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 
 		public ValueTask SetReadOnlyAsync(bool value, CancellationToken token) => ValueTask.CompletedTask;
 
-		public void Dispose() {
+		public void Dispose()
+		{
 		}
 	}
 
-	private sealed class CollectingSink : ILogEventSink {
+	private sealed class CollectingSink : ILogEventSink
+	{
 		private readonly object _lock = new();
-		public LogEvent[] Events {
-			get {
-				lock (_lock) {
+		public LogEvent[] Events
+		{
+			get
+			{
+				lock (_lock)
+				{
 					return _events.ToArray();
 				}
 			}
@@ -144,8 +163,10 @@ public class when_accessing_tfchunk_stream_synchronously : SpecificationWithFile
 
 		private readonly System.Collections.Generic.List<LogEvent> _events = [];
 
-		public void Emit(LogEvent logEvent) {
-			lock (_lock) {
+		public void Emit(LogEvent logEvent)
+		{
+			lock (_lock)
+			{
 				_events.Add(logEvent);
 			}
 		}

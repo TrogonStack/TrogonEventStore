@@ -13,14 +13,16 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.position_tagging.multistream_position_tagger;
 
 [TestFixture]
-public class multistream_position_tagger {
+public class multistream_position_tagger
+{
 	private ReaderSubscriptionMessage.CommittedEventDistributed _zeroEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _firstEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _secondEvent;
 	private ReaderSubscriptionMessage.CommittedEventDistributed _thirdEvent;
 
 	[SetUp]
-	public void setup() {
+	public void setup()
+	{
 		_zeroEvent = ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 			Guid.NewGuid(), new TFPos(10, 0), "stream1", 0, false, Guid.NewGuid(), "StreamCreated", false,
 			new byte[0], new byte[0]);
@@ -36,13 +38,15 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void can_be_created() {
+	public void can_be_created()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		new PositionTracker(t);
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_after_case() {
+	public void is_message_after_checkpoint_tag_after_case()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -52,7 +56,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_before_case() {
+	public void is_message_after_checkpoint_tag_before_case()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -62,7 +67,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_equal_case() {
+	public void is_message_after_checkpoint_tag_equal_case()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -72,7 +78,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void is_message_after_checkpoint_tag_incompatible_streams_case() {
+	public void is_message_after_checkpoint_tag_incompatible_streams_case()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream-other", "stream2" });
 		var result =
 			t.IsMessageAfterCheckpointTag(
@@ -84,23 +91,27 @@ public class multistream_position_tagger {
 
 
 	[Test]
-	public void null_streams_throws_argument_null_exception() {
+	public void null_streams_throws_argument_null_exception()
+	{
 		Assert.Throws<ArgumentNullException>(() => { new MultiStreamPositionTagger(0, null); });
 	}
 
 	[Test]
-	public void empty_streams_throws_argument_exception() {
+	public void empty_streams_throws_argument_exception()
+	{
 		Assert.Throws<ArgumentException>(() => { new MultiStreamPositionTagger(0, new string[] { }); });
 	}
 
 	[Test]
-	public void position_checkpoint_tag_is_incompatible() {
+	public void position_checkpoint_tag_is_incompatible()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		Assert.IsFalse(t.IsCompatible(CheckpointTag.FromPosition(0, 1000, 500)));
 	}
 
 	[Test]
-	public void another_streams_checkpoint_tag_is_incompatible() {
+	public void another_streams_checkpoint_tag_is_incompatible()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		Assert.IsFalse(
 			t.IsCompatible(
@@ -109,7 +120,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void the_same_stream_checkpoint_tag_is_compatible() {
+	public void the_same_stream_checkpoint_tag_is_compatible()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		Assert.IsTrue(
 			t.IsCompatible(
@@ -118,7 +130,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void adjust_compatible_tag_returns_the_same_tag() {
+	public void adjust_compatible_tag_returns_the_same_tag()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var tag = CheckpointTag.FromStreamPositions(0,
 			new Dictionary<string, long> { { "stream1", 1 }, { "stream2", 2 } });
@@ -126,7 +139,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void can_adjust_stream_position_tag() {
+	public void can_adjust_stream_position_tag()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var tag = CheckpointTag.FromStreamPositions(0,
 			new Dictionary<string, long> { { "stream1", 1 }, { "stream2", -1 } });
@@ -135,7 +149,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void zero_position_tag_is_before_first_event_possible() {
+	public void zero_position_tag_is_before_first_event_possible()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var zero = t.MakeZeroCheckpointTag();
 
@@ -145,7 +160,8 @@ public class multistream_position_tagger {
 	}
 
 	[Test]
-	public void produced_checkpoint_tags_are_correctly_ordered() {
+	public void produced_checkpoint_tags_are_correctly_ordered()
+	{
 		var t = new MultiStreamPositionTagger(0, new[] { "stream1", "stream2" });
 		var zero = t.MakeZeroCheckpointTag();
 
