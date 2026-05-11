@@ -73,7 +73,7 @@ We recommend that when using Linux you set the 'open file limit' to a high numbe
 
 ### Building from source
 
-You can also build EventStoreDB from source. Before doing that, you need to install the .NET 8 SDK. EventStoreDB packages have the .NET Runtime embedded, so you don't need to install anything except the EventStoreDB package.
+You can also build EventStoreDB from source. Before doing that, you need to install the .NET 10 SDK. EventStoreDB packages have the .NET Runtime embedded, so you don't need to install anything except the EventStoreDB package.
 
 ### Uninstall
 
