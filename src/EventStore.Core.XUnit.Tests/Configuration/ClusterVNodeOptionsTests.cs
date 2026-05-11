@@ -59,6 +59,15 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void stream_info_cache_scales_automatically_by_default()
+	{
+		var configuration = EventStoreConfiguration.Build(Array.Empty<string>());
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.Cluster.StreamInfoCacheCapacity.Should().Be(0);
+	}
+
+	[Fact]
 	public void unknown_options_suggests_option_with_four_characters_off()
 	{
 		var options = GetOptions("--cluse-ie 3");
