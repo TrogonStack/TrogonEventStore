@@ -15,7 +15,7 @@ Find out [what's new](whatsnew.md) in this release to get details on new feature
 
 ## Getting started
 
-Check the [getting started guide](/getting-started.md) for resources on the principles of EventStoreDB, Event Sourcing, database installation guidelines and choosing a client SDK.
+Check the [installation guide](installation.md) for database setup and first-run guidance.
 
 ## Support
 
@@ -54,7 +54,7 @@ When developing software that uses EventStoreDB, we recommend using one of the o
 - Go: [EventStore/EventStore-Client-Go](https://github.com/EventStore/EventStore-Client-Go)
 - Rust: [EventStore/EventStoreDB-Client-Rust](https://github.com/EventStore/EventStoreDB-Client-Rust)
 
-Read more in the [gRPC clients documentation](@clients/grpc/README.md).
+Use the official SDK documentation for language-specific gRPC client guidance.
 
 #### Community developed clients
 
