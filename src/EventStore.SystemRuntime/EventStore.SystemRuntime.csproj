@@ -7,9 +7,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="JetBrains.Annotations" />
-	  <PackageReference Include="Serilog" />
-	  <PackageReference Include="System.Diagnostics.PerformanceCounter" />
+		<PackageReference Include="JetBrains.Annotations" />
+		<PackageReference Include="Serilog" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" />
 	</ItemGroup>
 
 	<ItemGroup>
