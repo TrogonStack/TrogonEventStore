@@ -214,7 +214,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			case LogRecordType.System:
 				{
 					var record = (ISystemLogRecord)result.LogRecord;
-					await ProcessSystemRecord(record, token);
+					await ProcessSystemRecord(record, result.RecordPostPosition, token);
 					break;
 				}
 			case LogRecordType.Partition:
@@ -296,9 +296,9 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			record.TransactionPosition, firstEventNumber, lastEventNumber));
 	}
 
-	private ValueTask ProcessSystemRecord(ISystemLogRecord record, CancellationToken token)
+	private ValueTask ProcessSystemRecord(ISystemLogRecord record, long postPosition, CancellationToken token)
 	{
-		CommitPendingTransaction(record.LogPosition);
+		CommitPendingTransaction(postPosition);
 
 		if (record.SystemRecordType is not SystemRecordType.Epoch)
 		{
