@@ -235,6 +235,7 @@ internal static class Program
 						.AddEnvironmentVariables("DOTNET_")
 						.AddCommandLine(args)
 						.AddConfiguration(configuration);
+					builder.Services.AddWindowsService();
 					builder.Logging.ClearProviders().AddSerilog();
 					builder.Services
 						.Configure<KestrelServerOptions>(configuration.GetSection("Kestrel"))
