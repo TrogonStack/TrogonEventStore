@@ -303,11 +303,14 @@ internal partial class Streams<TStreamId>
 					StreamIdentifier = streamNotFound.StreamName
 				}
 			},
-			ReadResponse.SubscriptionCaughtUp => new ReadResp
+			ReadResponse.SubscriptionCaughtUp caughtUp => new ReadResp
 			{
-				CaughtUp = new ReadResp.Types.CaughtUp()
+				CaughtUp = ToCaughtUp(caughtUp)
 			},
-			ReadResponse.SubscriptionFellBehind => null, // currently not sent to clients
+			ReadResponse.SubscriptionFellBehind fellBehind => new ReadResp
+			{
+				FellBehind = ToFellBehind(fellBehind)
+			},
 			ReadResponse.LastStreamPositionReceived lastStreamPositionReceived => new ReadResp
 			{
 				LastStreamPosition = lastStreamPositionReceived.LastStreamPosition
@@ -320,6 +323,77 @@ internal partial class Streams<TStreamId>
 		};
 
 		return readResp != null;
+	}
+
+	private static ReadResp.Types.CaughtUp ToCaughtUp(ReadResponse.SubscriptionCaughtUp caughtUp)
+	{
+		var response = new ReadResp.Types.CaughtUp();
+		SetPosition(response, caughtUp.AllStreamPosition, caughtUp.StreamPosition);
+		return response;
+	}
+
+	private static ReadResp.Types.FellBehind ToFellBehind(ReadResponse.SubscriptionFellBehind fellBehind)
+	{
+		var response = new ReadResp.Types.FellBehind();
+		SetPosition(response, fellBehind.AllStreamPosition, fellBehind.StreamPosition);
+		return response;
+	}
+
+	private static void SetPosition(ReadResp.Types.CaughtUp response, TFPos? allStreamPosition, long? streamPosition)
+	{
+		if (TrySetAllStreamPosition(allStreamPosition, position => response.AllStreamPosition = position))
+		{
+			return;
+		}
+
+		if (TrySetStreamPosition(streamPosition, position => response.StreamPosition = position))
+		{
+			return;
+		}
+
+		response.NoPosition = new Empty();
+	}
+
+	private static void SetPosition(ReadResp.Types.FellBehind response, TFPos? allStreamPosition, long? streamPosition)
+	{
+		if (TrySetAllStreamPosition(allStreamPosition, position => response.AllStreamPosition = position))
+		{
+			return;
+		}
+
+		if (TrySetStreamPosition(streamPosition, position => response.StreamPosition = position))
+		{
+			return;
+		}
+
+		response.NoPosition = new Empty();
+	}
+
+	private static bool TrySetAllStreamPosition(TFPos? position, Action<AllStreamPosition> setPosition)
+	{
+		if (position is not { CommitPosition: >= 0, PreparePosition: >= 0 } allPosition)
+		{
+			return false;
+		}
+
+		setPosition(new AllStreamPosition
+		{
+			CommitPosition = (ulong)allPosition.CommitPosition,
+			PreparePosition = (ulong)allPosition.PreparePosition
+		});
+
+		return true;
+	}
+
+	private static bool TrySetStreamPosition(long? streamPosition, Action<ulong> setPosition)
+	{
+		if (streamPosition is not >= 0)
+		{
+			return false;
+		}
+
+		setPosition((ulong)streamPosition);
+		return true;
 	}
 
 	private static void ConvertReadResponseException(ReadResponseException readResponseEx)

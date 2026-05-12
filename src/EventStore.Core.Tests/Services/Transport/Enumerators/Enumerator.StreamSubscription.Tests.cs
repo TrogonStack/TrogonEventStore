@@ -55,7 +55,10 @@ public partial class EnumeratorTests
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			Assert.AreEqual(_eventIds[0], ((Event)await sub.GetNext()).Id);
-			Assert.True(await sub.GetNext() is CaughtUp);
+
+			var caughtUp = (CaughtUp)await sub.GetNext();
+			Assert.Null(caughtUp.AllStreamPosition);
+			Assert.AreEqual(0, caughtUp.StreamPosition);
 		}
 	}
 

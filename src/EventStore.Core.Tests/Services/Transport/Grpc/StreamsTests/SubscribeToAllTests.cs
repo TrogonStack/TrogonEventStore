@@ -62,9 +62,14 @@ public class SubscribeToAllTests
 				}
 			}, GetCallOptions(AdminCredentials));
 
-			_responses.AddRange(await call.ResponseStream.ReadAllAsync()
-				.TakeWhile(response => response.ContentCase != ReadResp.ContentOneofCase.CaughtUp)
-				.ToArrayAsync());
+			await foreach (var response in call.ResponseStream.ReadAllAsync())
+			{
+				_responses.Add(response);
+				if (response.ContentCase == ReadResp.ContentOneofCase.CaughtUp)
+				{
+					break;
+				}
+			}
 		}
 
 		[Test]
@@ -72,6 +77,14 @@ public class SubscribeToAllTests
 		{
 			Assert.AreEqual(ReadResp.ContentOneofCase.Confirmation, _responses[0].ContentCase);
 			Assert.NotNull(_responses[0].Confirmation.SubscriptionId);
+		}
+
+		[Test]
+		public void caught_up_includes_the_all_stream_position()
+		{
+			var caughtUp = _responses.Single(x => x.ContentCase == ReadResp.ContentOneofCase.CaughtUp).CaughtUp;
+			Assert.AreEqual(_positionOfLastWrite.CommitPosition, caughtUp.AllStreamPosition.CommitPosition);
+			Assert.AreEqual(_positionOfLastWrite.PreparePosition, caughtUp.AllStreamPosition.PreparePosition);
 		}
 	}
 

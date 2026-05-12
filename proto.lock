@@ -6148,10 +6148,44 @@
             ],
             "messages": [
               {
-                "name": "CaughtUp"
+                "name": "CaughtUp",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "stream_position",
+                    "type": "uint64"
+                  },
+                  {
+                    "id": 2,
+                    "name": "all_stream_position",
+                    "type": "event_store.client.AllStreamPosition"
+                  },
+                  {
+                    "id": 3,
+                    "name": "no_position",
+                    "type": "event_store.client.Empty"
+                  }
+                ]
               },
               {
-                "name": "FellBehind"
+                "name": "FellBehind",
+                "fields": [
+                  {
+                    "id": 1,
+                    "name": "stream_position",
+                    "type": "uint64"
+                  },
+                  {
+                    "id": 2,
+                    "name": "all_stream_position",
+                    "type": "event_store.client.AllStreamPosition"
+                  },
+                  {
+                    "id": 3,
+                    "name": "no_position",
+                    "type": "event_store.client.Empty"
+                  }
+                ]
               },
               {
                 "name": "ReadEvent",
