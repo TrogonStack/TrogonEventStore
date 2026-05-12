@@ -156,3 +156,15 @@ The size of read operations is dependent on the size of the events appended, not
 A higher reader count can be useful, if disks are able to support more concurrent operations. Context switching incurs additional costs in terms of performance. If disks are already saturated, adding more reader threads can exacerbate that issue and lead to more failed requests.
 
 Increasing the count of reader threads can improve performance up to a point, but it is likely to rapidly tail off once that limit is reached.
+
+## Runtime
+
+### Garbage collection
+
+EventStoreDB runs with .NET Server GC enabled. Server GC improves throughput for database workloads by using multiple GC threads, but it can also let the managed heap grow larger before a collection runs.
+
+To keep memory available for the operating system page cache and other database buffers, EventStoreDB sets the .NET `System.GC.HeapHardLimitPercent` runtime option to `60` by default. The runtime interprets this as a percentage of the available process memory limit. In containers, that means the container memory limit when one is configured.
+
+The heap limit is separate from EventStoreDB cache settings such as `StreamInfoCacheCapacity`, `CachedChunks`, and `ChunksCacheSize`. Tune those cache settings first when adjusting database memory usage. Lower the .NET heap limit only when the process still competes with other important workloads on the same host.
+
+If you override .NET GC settings with environment variables or runtime configuration, keep enough memory headroom for file-system cache and native allocations. For example, disabling Server GC with `DOTNET_gcServer=0` can reduce CPU contention on shared hosts, but may reduce database throughput.
