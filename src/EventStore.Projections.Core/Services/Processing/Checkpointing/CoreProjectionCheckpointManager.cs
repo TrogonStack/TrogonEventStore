@@ -232,10 +232,10 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		info.WritesInProgress = (_closingCheckpoint != null ? _closingCheckpoint.GetWritesInProgress() : 0)
 								+ (_currentCheckpoint != null ? _currentCheckpoint.GetWritesInProgress() : 0);
 		info.CheckpointStatus = _inCheckpoint ? "Requested" : "";
+		info.StateSizes = new Dictionary<string, int>();
 
 		foreach (var (partition, stateSize) in _stateSizeByPartition)
 		{
-			info.StateSizes ??= new Dictionary<string, int>();
 			info.StateSizes[partition] = stateSize;
 		}
 	}
@@ -566,16 +566,9 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		{
 			_stateSizeByPartition[partition] = newStateSize;
 		}
-		else if (_stateSizeByPartition.TryGetValue(partition, out var oldStateSize))
+		else
 		{
-			if (oldStateSize >= _maxProjectionStateSizeThreshold)
-			{
-				_stateSizeByPartition[partition] = newStateSize;
-			}
-			else
-			{
-				_stateSizeByPartition.TryRemove(partition, out _);
-			}
+			_stateSizeByPartition.TryRemove(partition, out _);
 		}
 	}
 

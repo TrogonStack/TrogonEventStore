@@ -127,3 +127,47 @@ public class when_projection_state_is_near_the_limit<TLogFormat, TStreamId> :
 		Assert.AreEqual(80, stats.StateSizes[string.Empty]);
 	}
 }
+
+[TestFixture(typeof(LogFormat.V2), typeof(string))]
+public class when_projection_state_drops_below_the_metrics_threshold<TLogFormat, TStreamId> :
+	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
+{
+	protected override void Given()
+	{
+		AllWritesSucceed();
+		base.Given();
+		_maxProjectionStateSize = 100;
+	}
+
+	protected override void When()
+	{
+		base.When();
+
+		_checkpointReader.BeginLoadState();
+		var checkpointLoaded =
+			_consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.CheckpointLoaded>().First();
+		_checkpointWriter.StartFrom(checkpointLoaded.CheckpointTag, checkpointLoaded.CheckpointEventNumber);
+		_manager.BeginLoadPrerecordedEvents(checkpointLoaded.CheckpointTag);
+
+		var initialCheckpointTag = CheckpointTag.FromStreamPosition(0, "stream", 10);
+		_manager.Start(initialCheckpointTag, null);
+		var oldState = new PartitionState("", "", initialCheckpointTag);
+
+		var firstEventCheckpointTag = CheckpointTag.FromStreamPosition(0, "stream", 11);
+		var nearLimitState = new PartitionState(new string('x', 80), "", firstEventCheckpointTag);
+		_manager.StateUpdated("", oldState, nearLimitState);
+
+		var secondEventCheckpointTag = CheckpointTag.FromStreamPosition(0, "stream", 12);
+		var belowLimitState = new PartitionState(new string('x', 79), "", secondEventCheckpointTag);
+		_manager.StateUpdated("", nearLimitState, belowLimitState);
+	}
+
+	[Test]
+	public void stops_reporting_root_state_size()
+	{
+		var stats = new ProjectionStatistics();
+		_manager.GetStatistics(stats);
+
+		Assert.IsEmpty(stats.StateSizes);
+	}
+}
