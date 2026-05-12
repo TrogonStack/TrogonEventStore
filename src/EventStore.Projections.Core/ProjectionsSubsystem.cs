@@ -201,6 +201,7 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-progress", tracker.ObserveProgress);
 		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-running", tracker.ObserveRunning);
 		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-status", tracker.ObserveStatus);
+		projectionMeter.CreateObservableUpDownCounter("eventstore-projection-state-size", tracker.ObserveStateSize);
 	}
 
 	public void ConfigureServices(IServiceCollection services, IConfiguration configuration) =>

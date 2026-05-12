@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using EventStore.Projections.Core.Services.Management;
 
 namespace EventStore.Projections.Core.Services;
@@ -52,9 +53,13 @@ public class ProjectionStatistics
 
 	public long CoreProcessingTime { get; set; }
 
+	public Dictionary<string, int> StateSizes { get; set; }
+
 	public ProjectionStatistics Clone()
 	{
-		return (ProjectionStatistics)MemberwiseClone();
+		var clone = (ProjectionStatistics)MemberwiseClone();
+		clone.StateSizes = StateSizes is null ? null : new Dictionary<string, int>(StateSizes);
+		return clone;
 	}
 
 	protected bool Equals(ProjectionStatistics other)
@@ -81,7 +86,8 @@ public class ProjectionStatistics
 												   && WritesInProgress == other.WritesInProgress &&
 												   string.Equals(EffectiveName, other.EffectiveName)
 												   && string.Equals(ResultStreamName, other.ResultStreamName) &&
-												   CoreProcessingTime == other.CoreProcessingTime;
+												   CoreProcessingTime == other.CoreProcessingTime &&
+												   StateSizesEqual(StateSizes, other.StateSizes);
 	}
 
 	public override bool Equals(object obj)
@@ -131,6 +137,50 @@ public class ProjectionStatistics
 			hashCode = (hashCode * 397) ^ (EffectiveName != null ? EffectiveName.GetHashCode() : 0);
 			hashCode = (hashCode * 397) ^ (ResultStreamName != null ? ResultStreamName.GetHashCode() : 0);
 			hashCode = (hashCode * 397) ^ CoreProcessingTime.GetHashCode();
+			hashCode = (hashCode * 397) ^ GetStateSizesHashCode(StateSizes);
+			return hashCode;
+		}
+	}
+
+	private static bool StateSizesEqual(Dictionary<string, int> left, Dictionary<string, int> right)
+	{
+		if (ReferenceEquals(left, right))
+		{
+			return true;
+		}
+
+		if (left is null || right is null || left.Count != right.Count)
+		{
+			return false;
+		}
+
+		foreach (var (partition, stateSize) in left)
+		{
+			if (!right.TryGetValue(partition, out var otherStateSize) || stateSize != otherStateSize)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private static int GetStateSizesHashCode(Dictionary<string, int> stateSizes)
+	{
+		if (stateSizes is null)
+		{
+			return 0;
+		}
+
+		unchecked
+		{
+			var hashCode = 0;
+
+			foreach (var (partition, stateSize) in stateSizes)
+			{
+				hashCode ^= ((partition != null ? partition.GetHashCode() : 0) * 397) ^ stateSize;
+			}
+
 			return hashCode;
 		}
 	}

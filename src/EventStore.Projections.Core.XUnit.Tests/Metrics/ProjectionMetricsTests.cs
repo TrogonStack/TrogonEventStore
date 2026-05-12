@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using EventStore.Projections.Core.Metrics;
 using EventStore.Projections.Core.Services;
@@ -83,6 +84,32 @@ public class ProjectionMetricsTests
 			AssertMeasurement(running, ("projection", "TestProjection"), ("status", "Running")),
 			AssertMeasurement(faulted, ("projection", "TestProjection"), ("status", "Faulted")),
 			AssertMeasurement(stopped, ("projection", "TestProjection"), ("status", "Stopped")));
+	}
+
+	[Fact]
+	public void ObserveStateSizes()
+	{
+		_sut.OnNewStats([new() {
+			Name = "TestProjection",
+			StateSizes = new Dictionary<string, int> {
+				[string.Empty] = 10,
+				["test-partition"] = 12,
+			},
+		}]);
+
+		var measurements = _sut.ObserveStateSize();
+
+		Assert.Collection(measurements,
+			AssertMeasurement(10, ("projection", "TestProjection")),
+			AssertMeasurement(12, ("projection", "TestProjection"), ("partition", "test-partition")));
+	}
+
+	[Fact]
+	public void ObserveStateSizesWithoutStateSizes()
+	{
+		var measurements = _sut.ObserveStateSize();
+
+		Assert.Empty(measurements);
 	}
 
 	static Action<Measurement<T>> AssertMeasurement<T>(

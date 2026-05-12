@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using EventStore.Core.Bus;
 using EventStore.Projections.Core.Messages;
@@ -17,6 +19,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	protected readonly ProjectionConfig _projectionConfig;
 	protected readonly ILogger _logger;
 	protected readonly int _maxProjectionStateSize;
+	private readonly int _maxProjectionStateSizeThreshold;
 
 	private readonly bool _usePersistentCheckpoints;
 
@@ -40,6 +43,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 	protected bool _stopped;
 
 	private PartitionState _currentProjectionState;
+	private readonly ConcurrentDictionary<string, int> _stateSizeByPartition = new();
 
 	protected CoreProjectionCheckpointManager(
 		IPublisher publisher,
@@ -101,6 +105,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		_requestedCheckpointState = new PartitionState("", null, _zeroTag);
 		_currentProjectionState = new PartitionState("", null, _zeroTag);
 		_maxProjectionStateSize = maxProjectionStateSize;
+		_maxProjectionStateSizeThreshold = (int)(0.80 * _maxProjectionStateSize);
 	}
 
 	protected abstract ProjectionCheckpoint CreateProjectionCheckpoint(CheckpointTag checkpointPosition);
@@ -147,6 +152,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		_stopping = false;
 		_stopped = false;
 		_currentProjectionState = new PartitionState("", null, _zeroTag);
+		_stateSizeByPartition.Clear();
 	}
 
 	public virtual void Start(CheckpointTag checkpointTag, PartitionState rootPartitionState)
@@ -162,6 +168,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		if (rootPartitionState != null)
 		{
 			_currentProjectionState = rootPartitionState;
+			UpdateStateSizeMetrics(string.Empty, rootPartitionState.Size);
 		}
 
 		_lastProcessedEventPosition.UpdateByCheckpointTagInitial(checkpointTag);
@@ -225,6 +232,9 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		info.WritesInProgress = (_closingCheckpoint != null ? _closingCheckpoint.GetWritesInProgress() : 0)
 								+ (_currentCheckpoint != null ? _currentCheckpoint.GetWritesInProgress() : 0);
 		info.CheckpointStatus = _inCheckpoint ? "Requested" : "";
+		info.StateSizes = _stateSizeByPartition.IsEmpty
+			? null
+			: new Dictionary<string, int>(_stateSizeByPartition);
 	}
 
 	public void StateUpdated(
@@ -259,6 +269,7 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		if (partition == "")
 		{
 			_currentProjectionState = newState;
+			UpdateStateSizeMetrics(string.Empty, newState.Size);
 		}
 	}
 
@@ -544,6 +555,18 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		_publisher.Publish(
 			new CoreProjectionProcessingMessage.CheckpointCompleted(
 				_projectionCorrelationId, _lastCompletedCheckpointPosition));
+	}
+
+	protected void UpdateStateSizeMetrics(string partition, int newStateSize)
+	{
+		if (newStateSize >= _maxProjectionStateSizeThreshold)
+		{
+			_stateSizeByPartition[partition] = newStateSize;
+		}
+		else
+		{
+			_stateSizeByPartition.TryRemove(partition, out _);
+		}
 	}
 
 	public virtual void BeginLoadPrerecordedEvents(CheckpointTag checkpointTag)
