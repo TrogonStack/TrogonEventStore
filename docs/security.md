@@ -53,7 +53,7 @@ When running with protocol security disabled, everything is sent unencrypted ove
 
 ### Set initial passwords
 
-We are adding an ability to set default admin and ops passwords on the first run of the database. It will not impact the existing credentials, the user can log into their accounts with exising passwords.
+We are adding an ability to set default admin and ops passwords on the first run of the database. It will not impact the existing credentials, the user can log into their accounts with existing passwords.
 
 For this to work, you can use the `DefaultAdminPassword` option:
 
