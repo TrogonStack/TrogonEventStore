@@ -23,7 +23,7 @@ public interface IIndexCommitterService<TStreamId>
 	ValueTask Init(long checkpointPosition, CancellationToken token);
 	void Stop();
 	ValueTask<long> GetCommitLastEventNumber(CommitLogRecord record, CancellationToken token);
-	void AddPendingPrepare(IPrepareLogRecord<TStreamId>[] prepares, long postPosition);
+	void AddPendingPrepare(long transactionPosition, IPrepareLogRecord<TStreamId>[] prepares, long postPosition);
 	void AddPendingCommit(CommitLogRecord commit, long postPosition);
 }
 
@@ -180,6 +180,10 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 			{
 				await _indexCommitter.Commit(transaction.Prepares, isTfEof, true, token);
 			}
+			else if (isTfEof)
+			{
+				_publisher.Publish(new StorageMessage.TfEofAtNonCommitRecord());
+			}
 
 			if (transaction.Commit is not null)
 			{
@@ -203,9 +207,8 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 	public ValueTask<long> GetCommitLastEventNumber(CommitLogRecord commit, CancellationToken token)
 		=> _indexCommitter.GetCommitLastEventNumber(commit, token);
 
-	public void AddPendingPrepare(IPrepareLogRecord<TStreamId>[] prepares, long postPosition)
+	public void AddPendingPrepare(long transactionPosition, IPrepareLogRecord<TStreamId>[] prepares, long postPosition)
 	{
-		var transactionPosition = prepares[0].TransactionPosition;
 		PendingTransaction transaction;
 		if (_pendingTransactions.TryGetValue(transactionPosition, out transaction))
 		{
