@@ -87,3 +87,43 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 		Assert.AreEqual(CheckpointTag.FromStreamPosition(0, "stream", 11).ToString(), stats.Position);
 	}
 }
+
+[TestFixture(typeof(LogFormat.V2), typeof(string))]
+public class when_projection_state_is_near_the_limit<TLogFormat, TStreamId> :
+	TestFixtureWithCoreProjectionCheckpointManager<TLogFormat, TStreamId>
+{
+	protected override void Given()
+	{
+		AllWritesSucceed();
+		base.Given();
+		_maxProjectionStateSize = 100;
+	}
+
+	protected override void When()
+	{
+		base.When();
+
+		_checkpointReader.BeginLoadState();
+		var checkpointLoaded =
+			_consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.CheckpointLoaded>().First();
+		_checkpointWriter.StartFrom(checkpointLoaded.CheckpointTag, checkpointLoaded.CheckpointEventNumber);
+		_manager.BeginLoadPrerecordedEvents(checkpointLoaded.CheckpointTag);
+
+		var initialCheckpointTag = CheckpointTag.FromStreamPosition(0, "stream", 10);
+		_manager.Start(initialCheckpointTag, null);
+		var oldState = new PartitionState("", "", initialCheckpointTag);
+
+		var firstEventCheckpointTag = CheckpointTag.FromStreamPosition(0, "stream", 11);
+		var newState = new PartitionState(new string('x', 80), "", firstEventCheckpointTag);
+		_manager.StateUpdated("", oldState, newState);
+	}
+
+	[Test]
+	public void reports_root_state_size()
+	{
+		var stats = new ProjectionStatistics();
+		_manager.GetStatistics(stats);
+
+		Assert.AreEqual(80, stats.StateSizes[string.Empty]);
+	}
+}

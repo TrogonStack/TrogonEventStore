@@ -394,7 +394,10 @@ Projection metrics track the statistics for projections.
 | `eventstore_projection_events_processed_after_restart_total{projection=<PROJECTION_NAME>}` | [Counter](#common-types) | Projection event processed count after restart                   |
 | `eventstore_projection_progress{projection=<PROJECTION_NAME>}`                             | [Gauge](#common-types)   | Projection progress 0 - 1, where 1 = projection progress at 100% |
 | `eventstore_projection_running{projection=<PROJECTION_NAME>}`                              | [Gauge](#common-types)   | If 1, projection is in 'Running' state                           |
+| `eventstore_projection_state_size{projection=<PROJECTION_NAME>,partition=<PARTITION>}`     | [Gauge](#common-types)   | Projection state size in bytes when close to the configured limit |
 | `eventstore_projection_status{projection=<PROJECTION_NAME>,status=<PROJECTION_STATUS>}`    | [Gauge](#common-types)   | If 1, projection is in specified state                           |
+
+The `partition` label is omitted for the root projection state.
 
 `Status` can have one of the following statuses:
 
@@ -419,6 +422,9 @@ eventstore_projection_progress{projection="$stream_by_category"} 1 1719526306309
 
 # TYPE eventstore_projection_running gauge
 eventstore_projection_running{projection="$by_category"} 1 1719526306309
+
+# TYPE eventstore_projection_state_size gauge
+eventstore_projection_state_size{projection="$by_category"} 1048576 1719526306309
 
 # TYPE eventstore_projection_status gauge
 eventstore_projection_status{projection="$by_category",status="Running"} 1 1719526306309
