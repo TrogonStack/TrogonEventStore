@@ -25,7 +25,7 @@ internal class ReadAllProcessor : ICmdProcessor
 		Direction direction = Direction.Forwards;
 		Position position = Position.Start;
 		bool forward = true;
-		bool posOverriden = false;
+		bool positionOverridden = false;
 		int clientCount = 1;
 
 		if (args.Length > 0)
@@ -55,7 +55,7 @@ internal class ReadAllProcessor : ICmdProcessor
 
 			if (args.Length == 4)
 			{
-				posOverriden = true;
+				positionOverridden = true;
 				if (!ulong.TryParse(args[2], out var commitPos) || !ulong.TryParse(args[3], out var preparePos))
 				{
 					return false;
@@ -65,7 +65,7 @@ internal class ReadAllProcessor : ICmdProcessor
 			}
 		}
 
-		if (!posOverriden)
+		if (!positionOverridden)
 		{
 			position = forward ? Position.Start : Position.End;
 		}

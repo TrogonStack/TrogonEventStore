@@ -24,7 +24,7 @@ internal class ReadAllProcessor : ICmdProcessor
 		bool forward = true;
 		long commitPos = 0;
 		long preparePos = 0;
-		bool posOverriden = false;
+		bool positionOverridden = false;
 		bool resolveLinkTos = false;
 		bool requireLeader = false;
 
@@ -50,7 +50,7 @@ internal class ReadAllProcessor : ICmdProcessor
 
 			if (args.Length >= 3)
 			{
-				posOverriden = true;
+				positionOverridden = true;
 				if (!long.TryParse(args[1], out commitPos) || !long.TryParse(args[2], out preparePos))
 				{
 					return false;
@@ -63,7 +63,7 @@ internal class ReadAllProcessor : ICmdProcessor
 			}
 		}
 
-		if (!posOverriden)
+		if (!positionOverridden)
 		{
 			commitPos = forward ? 0 : -1;
 			preparePos = forward ? 0 : -1;
