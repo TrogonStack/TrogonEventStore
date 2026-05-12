@@ -67,21 +67,21 @@ public class Status
 		}
 	}
 
-	public void ReportReadError(int threadId, string stream, int indx)
+	public void ReportReadError(int threadId, string stream, int index)
 	{
 		_log.Fatal("FATAL : READER [{threadId}] encountered an error in {stream} ({index})", threadId, stream,
-			indx);
+			index);
 	}
 
-	public void ReportNotFoundOnRead(int threadId, string stream, int indx)
+	public void ReportNotFoundOnRead(int threadId, string stream, int index)
 	{
 		_log.Fatal(
 			"FATAL : READER [{threadId}] asked for event {index} in '{stream}' but server returned 'Not Found'",
 			threadId,
-			indx, stream);
+			index, stream);
 	}
 
-	public void FinilizeStatus(int threadId, bool success)
+	public void FinalizeStatus(int threadId, bool success)
 	{
 		ThreadId = threadId;
 		Success = success;
