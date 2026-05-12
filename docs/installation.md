@@ -93,10 +93,7 @@ If you built EventStoreDB from source, remove it by deleting the directory conta
 
 ## Windows
 
-::: warning
-EventStoreDB doesn't install as a Windows service. You need to ensure that the server executable
-starts automatically.
-:::
+EventStoreDB can run under the Windows Service Control Manager, but it does not install itself as a service automatically.
 
 ### Install from Chocolatey
 
@@ -117,6 +114,13 @@ Read more about configuring the EventStoreDB server in the [Configuration sectio
 
 ```powershell:no-line-numbers
 EventStore.ClusterNode.exe --dev --db ./db --log ./logs
+```
+
+To run EventStoreDB as a Windows service, register the executable with the Service Control Manager and pass the same arguments you would use on the command line:
+
+```powershell:no-line-numbers
+sc.exe create EventStoreDB binPath= "C:\EventStore\EventStore.ClusterNode.exe --config C:\EventStore\eventstore.conf"
+sc.exe start EventStoreDB
 ```
 
 EventStoreDB runs in an administration context because it starts an HTTP server through `http.sys`. For
