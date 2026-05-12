@@ -103,9 +103,21 @@ message ReadResp {
 		FellBehind fell_behind = 9;
 	}
 	
-	message CaughtUp {}
+	message CaughtUp {
+		oneof position {
+			uint64 stream_position = 1;
+			event_store.client.AllStreamPosition all_stream_position = 2;
+			event_store.client.Empty no_position = 3;
+		}
+	}
 
-	message FellBehind {}
+	message FellBehind {
+		oneof position {
+			uint64 stream_position = 1;
+			event_store.client.AllStreamPosition all_stream_position = 2;
+			event_store.client.Empty no_position = 3;
+		}
+	}
 
 	message ReadEvent {
 		RecordedEvent event = 1;
@@ -314,4 +326,3 @@ message TombstoneResp {
 		uint64 prepare_position = 2;
 	}
 }
-

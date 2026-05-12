@@ -14,8 +14,8 @@ public partial class EnumeratorTests
 	public record SubscriptionResponse { }
 	public record Event(Guid Id, long EventNumber, TFPos? EventPosition) : SubscriptionResponse { }
 	public record SubscriptionConfirmation() : SubscriptionResponse { }
-	public record CaughtUp : SubscriptionResponse { }
-	public record FellBehind : SubscriptionResponse { }
+	public record CaughtUp(Position? AllStreamPosition, long? StreamPosition) : SubscriptionResponse { }
+	public record FellBehind(Position? AllStreamPosition, long? StreamPosition) : SubscriptionResponse { }
 	public record Checkpoint(Position CheckpointPosition) : SubscriptionResponse { }
 
 	public class EnumeratorWrapper : IAsyncDisposable
@@ -42,11 +42,21 @@ public partial class EnumeratorTests
 			{
 				ReadResponse.EventReceived eventReceived => new Event(eventReceived.Event.Event.EventId, eventReceived.Event.OriginalEventNumber, eventReceived.Event.OriginalPosition),
 				ReadResponse.SubscriptionConfirmed => new SubscriptionConfirmation(),
-				ReadResponse.SubscriptionCaughtUp => new CaughtUp(),
-				ReadResponse.SubscriptionFellBehind => new FellBehind(),
+				ReadResponse.SubscriptionCaughtUp caughtUp => new CaughtUp(ToPosition(caughtUp.AllStreamPosition), caughtUp.StreamPosition),
+				ReadResponse.SubscriptionFellBehind fellBehind => new FellBehind(ToPosition(fellBehind.AllStreamPosition), fellBehind.StreamPosition),
 				ReadResponse.CheckpointReceived checkpointReceived => new Checkpoint(new Position(checkpointReceived.CommitPosition, checkpointReceived.PreparePosition)),
 				_ => throw new ArgumentOutOfRangeException(nameof(resp), resp, null),
 			};
+		}
+
+		private static Position? ToPosition(TFPos? position)
+		{
+			if (position is not { CommitPosition: >= 0, PreparePosition: >= 0 } allPosition)
+			{
+				return null;
+			}
+
+			return new Position((ulong)allPosition.CommitPosition, (ulong)allPosition.PreparePosition);
 		}
 	}
 }

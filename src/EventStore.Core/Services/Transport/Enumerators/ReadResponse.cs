@@ -15,9 +15,37 @@ public abstract class ReadResponse
 		}
 	}
 
-	public class SubscriptionCaughtUp : ReadResponse { }
+	public class SubscriptionCaughtUp : ReadResponse
+	{
+		public readonly TFPos? AllStreamPosition;
+		public readonly long? StreamPosition;
 
-	public class SubscriptionFellBehind : ReadResponse { }
+		public SubscriptionCaughtUp(TFPos allStreamPosition)
+		{
+			AllStreamPosition = allStreamPosition;
+		}
+
+		public SubscriptionCaughtUp(long streamPosition)
+		{
+			StreamPosition = streamPosition;
+		}
+	}
+
+	public class SubscriptionFellBehind : ReadResponse
+	{
+		public readonly TFPos? AllStreamPosition;
+		public readonly long? StreamPosition;
+
+		public SubscriptionFellBehind(TFPos allStreamPosition)
+		{
+			AllStreamPosition = allStreamPosition;
+		}
+
+		public SubscriptionFellBehind(long streamPosition)
+		{
+			StreamPosition = streamPosition;
+		}
+	}
 
 	public class CheckpointReceived : ReadResponse
 	{
