@@ -326,7 +326,7 @@ internal class DvuBasicProcessor : ICmdProcessor
 
 		status.ReportWritesProgress(writerIdx, sent, prepareTimeouts, commitTimeouts, forwardTimeouts,
 			wrongExpectedVersion, streamsDeleted, failed, requests);
-		status.FinilizeStatus(writerIdx, failed != sent);
+		status.FinalizeStatus(writerIdx, failed != sent);
 		context._tcpTestClient.Options.Reconnect = false;
 		connection.Close();
 		finish.Set();
@@ -425,7 +425,7 @@ internal class DvuBasicProcessor : ICmdProcessor
 		}
 
 		status.ReportReadsProgress(readerIdx, successes, fails);
-		status.FinilizeStatus(readerIdx, fails == 0);
+		status.FinalizeStatus(readerIdx, fails == 0);
 		context._tcpTestClient.Options.Reconnect = false;
 		connection.Close();
 		finishedEvent.Set();
