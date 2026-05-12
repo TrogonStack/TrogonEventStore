@@ -1963,6 +1963,37 @@ public class TimeoutTests
 		Assert.AreEqual(0, envelope1.Replies.Count);
 		Assert.AreEqual(1, parker.ParkedEvents.Count);
 		Assert.AreEqual(Helper.GetEventIdFor(0), parker.ParkedEvents[0].OriginalEvent.EventId);
+		Assert.AreEqual(1, parker.ParkedDueToMaxRetries);
+	}
+
+	[Test]
+	public void retrying_a_failed_park_write_does_not_count_a_new_park_request()
+	{
+		var envelope1 = new FakeEnvelope();
+		var reader = new FakeCheckpointReader();
+		var parker = new FakeMessageParker();
+		var sub = new Core.Services.PersistentSubscription.PersistentSubscription(
+			Helper.CreatePersistentSubscriptionBuilderFor(_eventSource)
+				.WithEventLoader(new FakeStreamReader())
+				.WithCheckpointReader(reader)
+				.WithCheckpointWriter(new FakeCheckpointWriter(i => { }))
+				.WithMessageParker(parker)
+				.PreferDispatchToSingle()
+				.StartFromBeginning()
+				.WithMaxRetriesOf(0)
+				.WithMessageTimeoutOf(TimeSpan.FromSeconds(1)));
+		reader.Load(null);
+		sub.AddClient(Guid.NewGuid(), Guid.NewGuid(), "connection-1", envelope1, 10, "foo", "bar");
+		sub.HandleReadCompleted(new[] {
+			Helper.GetFakeEventFor(0, _eventSource)
+		}, Helper.GetStreamPositionFor(1, _eventSource), false);
+
+		sub.NotifyClockTick(DateTime.UtcNow.AddSeconds(3));
+		Assert.AreEqual(1, parker.ParkedDueToMaxRetries);
+
+		parker.ParkMessageCompleted(0, OperationResult.PrepareTimeout);
+		Assert.AreEqual(2, parker.ParkedEvents.Count);
+		Assert.AreEqual(1, parker.ParkedDueToMaxRetries);
 	}
 
 	[Test]
@@ -2936,6 +2967,19 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 		_parkMessageCompleted?.Invoke(ParkedEvents[idx], result);
 	}
 
+	public void RecordParkMessageRequest(ParkReason parkReason)
+	{
+		switch (parkReason)
+		{
+			case ParkReason.ClientNak:
+				ParkedDueToClientNak++;
+				break;
+			case ParkReason.MaxRetries:
+				ParkedDueToMaxRetries++;
+				break;
+		}
+	}
+
 	public void BeginParkMessage(ResolvedEvent ev, string reason,
 		Action<ResolvedEvent, OperationResult> completed)
 	{
@@ -2947,6 +2991,7 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 	public void BeginReadEndSequence(Action<long?> completed)
 	{
 		BeginReadEndSequenceCount++;
+		ParkedMessageReplays++;
 		if (_lastParkedEventNumber == -1)
 		{
 			completed(null); //NoStream
@@ -2983,6 +3028,9 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 	}
 
 	public DateTime? GetOldestParkedMessage { get; }
+	public long ParkedDueToClientNak { get; private set; }
+	public long ParkedDueToMaxRetries { get; private set; }
+	public long ParkedMessageReplays { get; private set; }
 }
 
 

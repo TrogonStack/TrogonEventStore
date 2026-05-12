@@ -256,6 +256,8 @@ Persistent subscription metrics track the statistics for the persistent subscrip
 |:----------------------------------------------------------------------------------------------------------------------|:-------------------------|:---------------------------------------------------------------|
 | `eventstore_persistent_sub_connections{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>}`                        | [Gauge](#common-types)   | Number of connections                                          |
 | `eventstore_persistent_sub_parked_messages{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>}`                    | [Gauge](#common-types)   | Number of parked messages                                      |
+| `eventstore_persistent_sub_park_message_requests{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>,reason=<REASON>}` | [Counter](#common-types) | Number of park message requests by reason                      |
+| `eventstore_persistent_sub_parked_message_replays{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>}`              | [Counter](#common-types) | Number of parked message replay requests                       |
 | `eventstore_persistent_sub_in_flight_messages{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>}`                 | [Gauge](#common-types)   | Number of messages in flight                                   |
 | `eventstore_persistent_sub_oldest_parked_message_seconds{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>}`      | [Gauge](#common-types)   | Oldest parked message age in seconds                           |
 | `eventstore_persistent_sub_items_processed{event_stream_id=<STREAM_NAME>,group_name=<GROUP_NAME>}`                    | [Counter](#common-types) | Total items processed                                          |
@@ -280,6 +282,16 @@ eventstore_persistent_sub_connections{event_stream_id="$all",group_name="group1"
 # TYPE eventstore_persistent_sub_parked_messages gauge
 eventstore_persistent_sub_parked_messages{event_stream_id="test-stream",group_name="group1"} 0 1720172078179
 eventstore_persistent_sub_parked_messages{event_stream_id="$all",group_name="group1"} 0 1720172078179
+
+# TYPE eventstore_persistent_sub_park_message_requests counter
+eventstore_persistent_sub_park_message_requests{event_stream_id="test-stream",group_name="group1",reason="client-nak"} 0 1720172078179
+eventstore_persistent_sub_park_message_requests{event_stream_id="test-stream",group_name="group1",reason="max-retries"} 0 1720172078179
+eventstore_persistent_sub_park_message_requests{event_stream_id="$all",group_name="group1",reason="client-nak"} 0 1720172078179
+eventstore_persistent_sub_park_message_requests{event_stream_id="$all",group_name="group1",reason="max-retries"} 0 1720172078179
+
+# TYPE eventstore_persistent_sub_parked_message_replays counter
+eventstore_persistent_sub_parked_message_replays{event_stream_id="test-stream",group_name="group1"} 0 1720172078179
+eventstore_persistent_sub_parked_message_replays{event_stream_id="$all",group_name="group1"} 0 1720172078179
 
 # TYPE eventstore_persistent_sub_in_flight_messages gauge
 eventstore_persistent_sub_in_flight_messages{event_stream_id="test-stream",group_name="group1"} 0 1720172078179

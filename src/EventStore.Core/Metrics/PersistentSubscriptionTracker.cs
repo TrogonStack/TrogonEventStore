@@ -29,6 +29,27 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 				new("group_name", x.GroupName)
 			]));
 
+	public IEnumerable<Measurement<long>> ObserveParkMessageRequests() =>
+		_currentStats.SelectMany<MonitoringMessage.PersistentSubscriptionInfo, Measurement<long>>(x => [
+			new(x.ParkedDueToClientNak, [
+				new("event_stream_id", x.EventSource),
+				new("group_name", x.GroupName),
+				new("reason", "client-nak")
+			]),
+			new(x.ParkedDueToMaxRetries, [
+				new("event_stream_id", x.EventSource),
+				new("group_name", x.GroupName),
+				new("reason", "max-retries")
+			])
+		]);
+
+	public IEnumerable<Measurement<long>> ObserveParkedMessageReplays() =>
+		_currentStats.Select(x =>
+			new Measurement<long>(x.ParkedMessageReplays, [
+				new("event_stream_id", x.EventSource),
+				new("group_name", x.GroupName)
+			]));
+
 	public IEnumerable<Measurement<long>> ObserveInFlightMessages() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.TotalInFlightMessages, [

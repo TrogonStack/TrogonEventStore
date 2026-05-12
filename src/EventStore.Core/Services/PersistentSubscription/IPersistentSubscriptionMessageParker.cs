@@ -6,6 +6,7 @@ namespace EventStore.Core.Services.PersistentSubscription
 {
 	public interface IPersistentSubscriptionMessageParker
 	{
+		void RecordParkMessageRequest(ParkReason parkReason);
 		void BeginParkMessage(ResolvedEvent ev, string reason, Action<ResolvedEvent, OperationResult> completed);
 		void BeginReadEndSequence(Action<long?> completed);
 		void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? oldestParkedMessageTimestamp, bool updateOldestParkedMessage);
@@ -13,5 +14,15 @@ namespace EventStore.Core.Services.PersistentSubscription
 		long ParkedMessageCount { get; }
 		public void BeginLoadStats(Action completed);
 		DateTime? GetOldestParkedMessage { get; }
+		long ParkedDueToClientNak { get; }
+		long ParkedDueToMaxRetries { get; }
+		long ParkedMessageReplays { get; }
+	}
+
+	public enum ParkReason
+	{
+		Unknown,
+		ClientNak,
+		MaxRetries
 	}
 }
