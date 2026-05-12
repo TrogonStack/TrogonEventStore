@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using EventStore.Common.Exceptions;
 using EventStore.Common.Options;
+using EventStore.Common.Utils;
 using EventStore.Core.Configuration;
 using EventStore.Core.Configuration.Sources;
 using FluentAssertions;
@@ -15,6 +16,7 @@ using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
 
+[Collection("EventStoreConfigurationTests")]
 public class ClusterVNodeOptionsTests
 {
 	static ClusterVNodeOptions GetOptions(string args)
@@ -305,6 +307,42 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void explicit_yaml_config_overrides_default_json_config_files()
+	{
+		var configDirectory = Path.Combine(Locations.ApplicationDirectory, "config");
+		var jsonPath = Path.Combine(configDirectory, $"zzzz-yaml-precedence-{Guid.NewGuid():N}.json");
+		var yamlPath = Path.Combine(Path.GetTempPath(), $"eventstore-yaml-precedence-{Guid.NewGuid():N}.conf");
+
+		Directory.CreateDirectory(configDirectory);
+
+		try
+		{
+			File.WriteAllText(jsonPath, """
+				{
+					"EventStore": {
+						"ClusterSize": 3
+					}
+				}
+				""");
+			File.WriteAllText(yamlPath, """
+				---
+				ClusterSize: 5
+				""");
+
+			var config = EventStoreConfiguration.Build(["--config", yamlPath]);
+
+			var options = ClusterVNodeOptions.FromConfiguration(config);
+
+			options.Cluster.ClusterSize.Should().Be(5);
+		}
+		finally
+		{
+			File.Delete(jsonPath);
+			File.Delete(yamlPath);
+		}
+	}
+
+	[Fact]
 	public void can_set_log_level_from_env_vars()
 	{
 		var config = new ConfigurationBuilder()
@@ -327,3 +365,6 @@ public class ClusterVNodeOptionsTests
 		options.GetDeprecationWarnings().Should().BeNullOrEmpty();
 	}
 }
+
+[CollectionDefinition("EventStoreConfigurationTests", DisableParallelization = true)]
+public class EventStoreConfigurationTestsCollection;

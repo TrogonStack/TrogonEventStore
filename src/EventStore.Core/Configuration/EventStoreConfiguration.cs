@@ -25,7 +25,6 @@ public static class EventStoreConfiguration
 		var builder = new ConfigurationBuilder()
 			// we should be able to stop doing this soon as long as we bind the options automatically
 			.AddEventStoreDefaultValues()
-			.AddEventStoreYamlConfigFile(configFile.Path, configFile.Optional)
 
 			.AddSection("EventStore:Metrics", x => x.AddEsdbConfigFile("metricsconfig.json", true, true))
 
@@ -36,6 +35,7 @@ public static class EventStoreConfiguration
 			// Load all json files in the  `config` subdirectory (if it exists) of each configuration
 			// directory. We use the subdirectory to ensure that we only load configuration files.
 			.AddEsdbConfigFiles("*.json")
+			.AddEventStoreYamlConfigFile(configFile.Path, configFile.Optional)
 
 #if DEBUG
 			// load all json files in the current directory
