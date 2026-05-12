@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Configuration;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -57,10 +58,11 @@ public class ClusterStorageWriterService<TStreamId> : StorageWriterService<TStre
 		QueueTrackers trackers,
 		IMaxTracker<long> flushSizeTracker,
 		IDurationMaxTracker flushDurationTracker,
-		Func<long> getLastIndexedPosition)
+		Func<long> getLastIndexedPosition,
+		MetricsConfiguration metricsConfiguration = null)
 		: base(bus, subscribeToBus, minFlushDelay, db, writer, indexWriter, recordFactory, streamNameIndex,
 			eventTypeIndex, emptyEventTypeId, systemStreams, epochManager, queueStatsManager, trackers,
-			flushSizeTracker, flushDurationTracker)
+			flushSizeTracker, flushDurationTracker, metricsConfiguration)
 	{
 		Ensure.NotNull(getLastIndexedPosition, "getLastCommitPosition");
 

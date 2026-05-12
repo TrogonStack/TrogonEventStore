@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Configuration;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Cluster;
@@ -84,6 +85,7 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		TFChunkDb db,
 		INodeStatusTracker statusTracker,
 		ClusterVNodeOptions options, ClusterVNode<TStreamId> node, MessageForwardingProxy forwardingProxy,
+		MetricsConfiguration metricsConfiguration,
 		Action startSubsystems)
 	{
 		Ensure.NotNull(nodeInfo, "nodeInfo");
@@ -105,9 +107,14 @@ public sealed class ClusterVNodeController<TStreamId> : ClusterVNodeController
 		_forwardingTimeout = TimeSpan.FromMilliseconds(options.Database.PrepareTimeoutMs +
 													   options.Database.CommitTimeoutMs + 300);
 
-		_outputBus = new InMemoryBus("MainBus");
+		metricsConfiguration ??= new();
+		var mainBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("MainBus");
+		var mainQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("MainQueue");
+
+		_outputBus = new InMemoryBus("MainBus", slowMsgThreshold: mainBusSlowMessageThreshold);
 		_fsm = CreateFSM();
-		_mainQueue = new QueuedHandlerThreadPool(_fsm, "MainQueue", statsManager, trackers.QueueTrackers);
+		_mainQueue = new QueuedHandlerThreadPool(_fsm, "MainQueue", statsManager, trackers.QueueTrackers,
+			mainQueueSlowMessageThreshold > TimeSpan.Zero, mainQueueSlowMessageThreshold);
 		_publishEnvelope = _mainQueue;
 	}
 

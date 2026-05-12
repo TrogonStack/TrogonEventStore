@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Configuration;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
@@ -108,7 +109,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		QueueStatsManager queueStatsManager,
 		QueueTrackers queueTrackers,
 		IMaxTracker<long> flushSizeTracker,
-		IDurationMaxTracker flushDurationTracker)
+		IDurationMaxTracker flushDurationTracker,
+		MetricsConfiguration metricsConfiguration = null)
 	{
 
 		Ensure.NotNull(bus, "bus");
@@ -143,13 +145,18 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 		Writer = writer;
 
-		_writerBus = new InMemoryBus("StorageWriterBus", watchSlowMsg: false);
+		metricsConfiguration ??= new();
+		var writerBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("StorageWriterBus", TimeSpan.Zero);
+		var writerQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("StorageWriterQueue",
+			TimeSpan.FromMilliseconds(500));
+
+		_writerBus = new InMemoryBus("StorageWriterBus", slowMsgThreshold: writerBusSlowMessageThreshold);
 		_writerQueue = new QueuedHandlerThreadPool(new AdHocHandler<Message>(CommonHandle),
 			"StorageWriterQueue",
 			queueStatsManager,
 			queueTrackers,
-			true,
-			TimeSpan.FromMilliseconds(500));
+			writerQueueSlowMessageThreshold > TimeSpan.Zero,
+			writerQueueSlowMessageThreshold);
 
 		SubscribeToMessage<SystemMessage.SystemInit>();
 		SubscribeToMessage<SystemMessage.StateChangeMessage>();

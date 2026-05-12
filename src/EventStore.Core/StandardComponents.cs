@@ -30,7 +30,8 @@ namespace EventStore.Core
 			IPublisher monitoringQueue,
 			QueueStatsManager queueStatsManager,
 			QueueTrackers trackers,
-			bool projectionStats)
+			bool projectionStats,
+			MetricsConfiguration metricsConfiguration = null)
 		{
 			_dbConfig = dbConfig;
 			_mainQueue = mainQueue;
@@ -43,6 +44,7 @@ namespace EventStore.Core
 			_queueStatsManager = queueStatsManager;
 			QueueTrackers = trackers;
 			ProjectionStats = projectionStats;
+			MetricsConfiguration = metricsConfiguration ?? new();
 		}
 
 		public TFChunkDbConfig DbConfig
@@ -91,6 +93,8 @@ namespace EventStore.Core
 		}
 
 		public bool ProjectionStats { get; }
+
+		public MetricsConfiguration MetricsConfiguration { get; }
 
 		public QueueTrackers QueueTrackers { get; private set; }
 	}

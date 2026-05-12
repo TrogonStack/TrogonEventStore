@@ -124,6 +124,34 @@
 		"Processing": false
 	},
 
+	"SlowMessageThresholdMilliseconds": {
+		"MainBus": 48,
+		"MainQueue": 48,
+		"MonitoringInnerBus": 800,
+		"MonitoringRequestBus": -1,
+		"MonitoringQueue": 800,
+		"PersistentSubscriptionsBus": 50,
+		"PersistentSubscriptions": -1,
+		"ProjectionManagerInputBus": 48,
+		"ProjectionManagerOutputBus": 48,
+		"ProjectionManagerInputQueue": 48,
+		"ProjectionManagerOutputQueue": 48,
+		"ProjectionWorkerInputBus": 48,
+		"ProjectionWorkerOutputBus": 48,
+		"ProjectionWorkerInputQueue": 48,
+		"ProjectionWorkerOutputQueue": 48,
+		"RedactionBus": 2000,
+		"Redaction": -1,
+		"StorageReaderBus": 200,
+		"StorageReaderQueue": 200,
+		"StorageWriterBus": 500,
+		"StorageWriterQueue": 500,
+		"SubscriptionsBus": 50,
+		"Subscriptions": -1,
+		"WorkerBus": 200,
+		"WorkerQueue": 200
+	},
+
 	// this specifies what name to track each queue under, according to regular expressions to
 	// match the queue names against
 	"QueueLabels": [

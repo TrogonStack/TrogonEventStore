@@ -4,6 +4,7 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNext;
+using EventStore.Common.Configuration;
 using EventStore.Common.Options;
 using EventStore.Core;
 using EventStore.Core.Bus;
@@ -31,7 +32,8 @@ public record ProjectionSubsystemOptions(
 	bool FaultOutOfOrderProjections,
 	int CompilationTimeout,
 	int ExecutionTimeout,
-	int MaxProjectionStateSize = int.MaxValue);
+	int MaxProjectionStateSize = int.MaxValue,
+	MetricsConfiguration MetricsConfiguration = null);
 
 public sealed class ProjectionsSubsystem : ISubsystem,
 	IHandle<SystemMessage.SystemCoreReady>,
@@ -70,6 +72,7 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	private readonly int _compilationTimeout;
 	private readonly int _executionTimeout;
 	private readonly int _maxProjectionStateSize;
+	private readonly MetricsConfiguration _metricsConfiguration;
 
 	private readonly int _componentCount;
 	private readonly int _dispatcherCount;
@@ -113,9 +116,12 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		_startStandardProjections = projectionSubsystemOptions.StartStandardProjections;
 		_projectionsQueryExpiry = projectionSubsystemOptions.ProjectionQueryExpiry;
 		_faultOutOfOrderProjections = projectionSubsystemOptions.FaultOutOfOrderProjections;
+		_metricsConfiguration = projectionSubsystemOptions.MetricsConfiguration ?? new();
 
-		_leaderInputBus = new InMemoryBus("manager input bus");
-		_leaderOutputBus = new InMemoryBus("ProjectionManagerAndCoreCoordinatorOutput");
+		_leaderInputBus = new InMemoryBus("ProjectionManagerInputBus",
+			slowMsgThreshold: _metricsConfiguration.GetSlowMessageThreshold("ProjectionManagerInputBus"));
+		_leaderOutputBus = new InMemoryBus("ProjectionManagerOutputBus",
+			slowMsgThreshold: _metricsConfiguration.GetSlowMessageThreshold("ProjectionManagerOutputBus"));
 
 		_subsystemInitialized = new();
 		_executionTimeout = projectionSubsystemOptions.ExecutionTimeout;
@@ -138,18 +144,26 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{
 		var standardComponents = builder.ApplicationServices.GetRequiredService<StandardComponents>();
+		var leaderInputQueueSlowMessageThreshold =
+			_metricsConfiguration.GetSlowMessageThreshold("ProjectionManagerInputQueue");
+		var leaderOutputQueueSlowMessageThreshold =
+			_metricsConfiguration.GetSlowMessageThreshold("ProjectionManagerOutputQueue");
 
 		_leaderInputQueue = new QueuedHandlerThreadPool(
 			_leaderInputBus,
 			"Projections Leader",
 			standardComponents.QueueStatsManager,
-			standardComponents.QueueTrackers
+			standardComponents.QueueTrackers,
+			leaderInputQueueSlowMessageThreshold > TimeSpan.Zero,
+			leaderInputQueueSlowMessageThreshold
 		);
 		_leaderOutputQueue = new QueuedHandlerThreadPool(
 			_leaderOutputBus,
 			"Projections Leader",
 			standardComponents.QueueStatsManager,
-			standardComponents.QueueTrackers
+			standardComponents.QueueTrackers,
+			leaderOutputQueueSlowMessageThreshold > TimeSpan.Zero,
+			leaderOutputQueueSlowMessageThreshold
 		);
 
 		LeaderInputBus.Subscribe<ProjectionSubsystemMessage.RestartSubsystem>(this);
