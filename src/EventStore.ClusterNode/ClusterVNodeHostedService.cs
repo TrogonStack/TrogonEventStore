@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Configuration;
 using EventStore.Common.Exceptions;
 using EventStore.Common.Options;
 using EventStore.Common.Utils;
@@ -89,7 +90,8 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 					options.Projection.FaultOutOfOrderProjections,
 					options.Projection.ProjectionCompilationTimeout,
 					options.Projection.ProjectionExecutionTimeout,
-					options.Projection.MaxProjectionStateSize)))
+					options.Projection.MaxProjectionStateSize,
+					MetricsConfiguration.Get(configuration))))
 			: options;
 
 		var absolutePath = Path.GetFullPath(_options.Database.Db);

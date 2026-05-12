@@ -27,17 +27,31 @@ public static class ProjectionCoreWorkersNode
 		var coreWorkers = new Dictionary<Guid, CoreWorker>();
 		while (coreWorkers.Count < projectionsStandardComponents.ProjectionWorkerThreadCount)
 		{
-			var coreInputBus = new InMemoryBus("bus");
+			var coreInputBusSlowMessageThreshold =
+				standardComponents.MetricsConfiguration.GetSlowMessageThreshold("ProjectionWorkerInputBus");
+			var coreOutputBusSlowMessageThreshold =
+				standardComponents.MetricsConfiguration.GetSlowMessageThreshold("ProjectionWorkerOutputBus");
+			var coreInputQueueSlowMessageThreshold =
+				standardComponents.MetricsConfiguration.GetSlowMessageThreshold("ProjectionWorkerInputQueue");
+			var coreOutputQueueSlowMessageThreshold =
+				standardComponents.MetricsConfiguration.GetSlowMessageThreshold("ProjectionWorkerOutputQueue");
+			var coreInputBus = new InMemoryBus("ProjectionWorkerInputBus",
+				slowMsgThreshold: coreInputBusSlowMessageThreshold);
 			var coreInputQueue = new QueuedHandlerThreadPool(coreInputBus,
 				"Projection Core #" + coreWorkers.Count,
 				standardComponents.QueueStatsManager,
 				standardComponents.QueueTrackers,
+				coreInputQueueSlowMessageThreshold > TimeSpan.Zero,
+				coreInputQueueSlowMessageThreshold,
 				groupName: "Projection Core");
-			var coreOutputBus = new InMemoryBus("output bus");
+			var coreOutputBus = new InMemoryBus("ProjectionWorkerOutputBus",
+				slowMsgThreshold: coreOutputBusSlowMessageThreshold);
 			var coreOutputQueue = new QueuedHandlerThreadPool(coreOutputBus,
 				"Projection Core #" + coreWorkers.Count + " output",
 				standardComponents.QueueStatsManager,
 				standardComponents.QueueTrackers,
+				coreOutputQueueSlowMessageThreshold > TimeSpan.Zero,
+				coreOutputQueueSlowMessageThreshold,
 				groupName: "Projection Core");
 			var workerId = Guid.NewGuid();
 			var projectionNode = new ProjectionWorkerNode(

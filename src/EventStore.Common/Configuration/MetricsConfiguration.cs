@@ -6,10 +6,22 @@ namespace EventStore.Common.Configuration;
 
 public class MetricsConfiguration
 {
+	public static readonly TimeSpan DefaultSlowMessageThreshold = TimeSpan.FromMilliseconds(48);
+
 	public static MetricsConfiguration Get(IConfiguration configuration) =>
 		configuration
 			.GetSection("EventStore:Metrics")
 			.Get<MetricsConfiguration>() ?? new();
+
+	public TimeSpan GetSlowMessageThreshold(string name) =>
+		GetSlowMessageThreshold(name, DefaultSlowMessageThreshold);
+
+	public TimeSpan GetSlowMessageThreshold(string name, TimeSpan fallback) =>
+		SlowMessageThresholdMilliseconds.TryGetValue(name, out var thresholdMilliseconds)
+			? thresholdMilliseconds > 0
+				? TimeSpan.FromMilliseconds(thresholdMilliseconds)
+				: TimeSpan.Zero
+			: fallback;
 
 	public enum StatusTracker
 	{
@@ -175,6 +187,8 @@ public class MetricsConfiguration
 	public int ExpectedScrapeIntervalSeconds { get; set; }
 
 	public OtlpExporterConfiguration Otlp { get; set; } = new();
+
+	public Dictionary<string, int> SlowMessageThresholdMilliseconds { get; set; } = new();
 
 	public Dictionary<QueueTracker, bool> Queues { get; set; } = new();
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Configuration;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.LogAbstraction;
@@ -39,7 +40,8 @@ namespace EventStore.Core.Services.Storage
 			IReadOnlyCheckpoint writerCheckpoint,
 			IInMemoryStreamReader inMemReader,
 			QueueStatsManager queueStatsManager,
-			QueueTrackers trackers)
+			QueueTrackers trackers,
+			MetricsConfiguration metricsConfiguration = null)
 		{
 
 			Ensure.NotNull(bus, "bus");
@@ -52,12 +54,18 @@ namespace EventStore.Core.Services.Storage
 			_bus = bus;
 			_readIndex = readIndex;
 			_threadCount = threadCount;
+			metricsConfiguration ??= new();
+			var storageReaderBusSlowMessageThreshold =
+				metricsConfiguration.GetSlowMessageThreshold("StorageReaderBus", TimeSpan.Zero);
+			var storageReaderQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("StorageReaderQueue",
+				TimeSpan.FromMilliseconds(200));
 			StorageReaderWorker<TStreamId>[] readerWorkers = new StorageReaderWorker<TStreamId>[threadCount];
 			InMemoryBus[] storageReaderBuses = new InMemoryBus[threadCount];
 			for (var i = 0; i < threadCount; i++)
 			{
 				readerWorkers[i] = new StorageReaderWorker<TStreamId>(bus, readIndex, systemStreams, writerCheckpoint, inMemReader, i);
-				storageReaderBuses[i] = new InMemoryBus("StorageReaderBus", watchSlowMsg: false);
+				storageReaderBuses[i] = new InMemoryBus("StorageReaderBus",
+					slowMsgThreshold: storageReaderBusSlowMessageThreshold);
 				storageReaderBuses[i].Subscribe<ClientMessage.ReadEvent>(readerWorkers[i]);
 				storageReaderBuses[i].Subscribe<ClientMessage.ReadStreamEventsBackward>(readerWorkers[i]);
 				storageReaderBuses[i].Subscribe<ClientMessage.ReadStreamEventsForward>(readerWorkers[i]);
@@ -77,8 +85,8 @@ namespace EventStore.Core.Services.Storage
 					queueStatsManager,
 					trackers,
 					groupName: "StorageReaderQueue",
-					watchSlowMsg: true,
-					slowMsgThreshold: TimeSpan.FromMilliseconds(200)));
+					watchSlowMsg: storageReaderQueueSlowMessageThreshold > TimeSpan.Zero,
+					slowMsgThreshold: storageReaderQueueSlowMessageThreshold));
 			_workersMultiHandler.Start();
 
 			subscriber.Subscribe<ClientMessage.ReadEvent>(_workersMultiHandler);

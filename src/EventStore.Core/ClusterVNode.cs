@@ -333,6 +333,7 @@ public class ClusterVNode<TStreamId> :
 		var trackers = new Trackers();
 		var metricsConfiguration = MetricsConfiguration.Get(configuration);
 		MetricsBootstrapper.Bootstrap(metricsConfiguration, dbConfig, trackers);
+		static bool WatchSlowMessages(TimeSpan threshold) => threshold > TimeSpan.Zero;
 
 		Db = new TFChunkDb(
 			dbConfig,
@@ -516,10 +517,13 @@ public class ClusterVNode<TStreamId> :
 		var forwardingProxy = new MessageForwardingProxy();
 
 		// MISC WORKERS
+		var workerBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("WorkerBus",
+			TimeSpan.FromMilliseconds(200));
+		var workerQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("WorkerQueue",
+			TimeSpan.FromMilliseconds(200));
 		_workerBuses = Enumerable.Range(0, workerThreadsCount).Select(queueNum =>
 			new InMemoryBus($"Worker #{queueNum + 1} Bus",
-				watchSlowMsg: true,
-				slowMsgThreshold: TimeSpan.FromMilliseconds(200))).ToArray();
+				slowMsgThreshold: workerBusSlowMessageThreshold)).ToArray();
 		_workersHandler = new MultiQueuedHandler(
 			workerThreadsCount,
 			queueNum => new QueuedHandlerThreadPool(_workerBuses[queueNum],
@@ -527,8 +531,8 @@ public class ClusterVNode<TStreamId> :
 				_queueStatsManager,
 				trackers.QueueTrackers,
 				groupName: "Workers",
-				watchSlowMsg: true,
-				slowMsgThreshold: TimeSpan.FromMilliseconds(200)));
+				watchSlowMsg: WatchSlowMessages(workerQueueSlowMessageThreshold),
+				slowMsgThreshold: workerQueueSlowMessageThreshold));
 
 		void StartSubsystems()
 		{
@@ -554,6 +558,7 @@ public class ClusterVNode<TStreamId> :
 				_queueStatsManager, trackers, NodeInfo, Db,
 				trackers.NodeStatusTracker,
 				options, this, forwardingProxy,
+				metricsConfiguration,
 				startSubsystems: StartSubsystems);
 
 		_mainQueue = _controller.MainQueue;
@@ -591,12 +596,20 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<ClientMessage.ReloadConfig>(this);
 
 		// MONITORING
-		var monitoringInnerBus = new InMemoryBus("MonitoringInnerBus", watchSlowMsg: false);
-		var monitoringRequestBus = new InMemoryBus("MonitoringRequestBus", watchSlowMsg: false);
+		var monitoringInnerBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("MonitoringInnerBus",
+			TimeSpan.Zero);
+		var monitoringRequestBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("MonitoringRequestBus",
+			TimeSpan.Zero);
+		var monitoringQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("MonitoringQueue",
+			TimeSpan.FromMilliseconds(800));
+		var monitoringInnerBus = new InMemoryBus("MonitoringInnerBus",
+			slowMsgThreshold: monitoringInnerBusSlowMessageThreshold);
+		var monitoringRequestBus = new InMemoryBus("MonitoringRequestBus",
+			slowMsgThreshold: monitoringRequestBusSlowMessageThreshold);
 		var monitoringQueue = new QueuedHandlerThreadPool(monitoringInnerBus, "MonitoringQueue", _queueStatsManager,
 			trackers.QueueTrackers,
-			true,
-			TimeSpan.FromMilliseconds(800));
+			WatchSlowMessages(monitoringQueueSlowMessageThreshold),
+			monitoringQueueSlowMessageThreshold);
 
 		var monitoring = new MonitoringService(monitoringQueue,
 			monitoringRequestBus,
@@ -771,7 +784,8 @@ public class ClusterVNode<TStreamId> :
 			trackers.QueueTrackers,
 			trackers.WriterFlushSizeTracker,
 			trackers.WriterFlushDurationTracker,
-			() => readIndex.LastIndexedPosition);
+			() => readIndex.LastIndexedPosition,
+			metricsConfiguration);
 
 		monitoringRequestBus.Subscribe<MonitoringMessage.InternalStatsRequest>(storageWriter);
 
@@ -796,7 +810,8 @@ public class ClusterVNode<TStreamId> :
 		var storageReader = new StorageReaderService<TStreamId>(_mainQueue, _mainBus, readIndex,
 			logFormat.SystemStreams,
 			readerThreadsCount, Db.Config.WriterCheckpoint.AsReadOnly(), inMemReader, _queueStatsManager,
-			trackers.QueueTrackers);
+			trackers.QueueTrackers,
+			metricsConfiguration);
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(storageReader);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(storageReader);
@@ -1135,9 +1150,14 @@ public class ClusterVNode<TStreamId> :
 		_mainBus.Subscribe<StorageMessage.RequestManagerTimerTick>(requestManagement);
 
 		// SUBSCRIPTIONS
-		var subscrBus = new InMemoryBus("SubscriptionsBus", true, TimeSpan.FromMilliseconds(50));
+		var subscriptionBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("SubscriptionsBus",
+			TimeSpan.FromMilliseconds(50));
+		var subscriptionQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("Subscriptions",
+			TimeSpan.Zero);
+		var subscrBus = new InMemoryBus("SubscriptionsBus", slowMsgThreshold: subscriptionBusSlowMessageThreshold);
 		var subscrQueue = new QueuedHandlerThreadPool(subscrBus, "Subscriptions", _queueStatsManager,
-			trackers.QueueTrackers, false);
+			trackers.QueueTrackers, WatchSlowMessages(subscriptionQueueSlowMessageThreshold),
+			subscriptionQueueSlowMessageThreshold);
 		_mainBus.Subscribe<SystemMessage.SystemStart>(subscrQueue);
 		_mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(subscrQueue);
 		_mainBus.Subscribe<TcpMessage.ConnectionClosed>(subscrQueue);
@@ -1167,9 +1187,17 @@ public class ClusterVNode<TStreamId> :
 
 		// PERSISTENT SUBSCRIPTIONS
 		// IO DISPATCHER
-		var perSubscrBus = new InMemoryBus("PersistentSubscriptionsBus", true, TimeSpan.FromMilliseconds(50));
+		var persistentSubscriptionBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold(
+			"PersistentSubscriptionsBus",
+			TimeSpan.FromMilliseconds(50));
+		var persistentSubscriptionQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold(
+			"PersistentSubscriptions",
+			TimeSpan.Zero);
+		var perSubscrBus = new InMemoryBus("PersistentSubscriptionsBus",
+			slowMsgThreshold: persistentSubscriptionBusSlowMessageThreshold);
 		var perSubscrQueue = new QueuedHandlerThreadPool(perSubscrBus, "PersistentSubscriptions", _queueStatsManager,
-			trackers.QueueTrackers, false);
+			trackers.QueueTrackers, WatchSlowMessages(persistentSubscriptionQueueSlowMessageThreshold),
+			persistentSubscriptionQueueSlowMessageThreshold);
 		var psubDispatcher = new IODispatcher(_mainQueue, perSubscrQueue);
 		perSubscrBus.Subscribe<ClientMessage.ReadStreamEventsBackwardCompleted>(psubDispatcher.BackwardReader);
 		perSubscrBus.Subscribe<ClientMessage.NotHandled>(psubDispatcher.BackwardReader);
@@ -1430,9 +1458,13 @@ public class ClusterVNode<TStreamId> :
 		// ReSharper restore RedundantTypeArgumentsOfMethod
 
 		// REDACTION
-		var redactionBus = new InMemoryBus("RedactionBus", true, TimeSpan.FromSeconds(2));
+		var redactionBusSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("RedactionBus",
+			TimeSpan.FromSeconds(2));
+		var redactionQueueSlowMessageThreshold = metricsConfiguration.GetSlowMessageThreshold("Redaction", TimeSpan.Zero);
+		var redactionBus = new InMemoryBus("RedactionBus", slowMsgThreshold: redactionBusSlowMessageThreshold);
 		var redactionQueue = new QueuedHandlerThreadPool(redactionBus, "Redaction", _queueStatsManager,
-			trackers.QueueTrackers, false);
+			trackers.QueueTrackers, WatchSlowMessages(redactionQueueSlowMessageThreshold),
+			redactionQueueSlowMessageThreshold);
 
 		_mainBus.Subscribe<RedactionMessage.GetEventPosition>(redactionQueue);
 		_mainBus.Subscribe<RedactionMessage.AcquireChunksLock>(redactionQueue);
@@ -1605,7 +1637,7 @@ public class ClusterVNode<TStreamId> :
 
 		var standardComponents = new StandardComponents(Db.Config, _mainQueue, _mainBus, _timerService, _timeProvider,
 			new IHttpService[] { _httpService }, _workersHandler, monitoringQueue, _queueStatsManager,
-			trackers.QueueTrackers, metricsConfiguration.ProjectionStats);
+			trackers.QueueTrackers, metricsConfiguration.ProjectionStats, metricsConfiguration);
 
 		IServiceCollection ConfigureNodeServices(IServiceCollection services)
 		{

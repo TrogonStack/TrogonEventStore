@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DotNext;
 using DotNext.Diagnostics;
+using EventStore.Common.Configuration;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using ILogger = Serilog.ILogger;
@@ -21,7 +22,7 @@ public partial class InMemoryBus : ISubscriber, IAsyncHandle<Message>
 	public static InMemoryBus CreateTest(bool watchSlowMsg = true) =>
 		new("Test", watchSlowMsg);
 
-	public static readonly TimeSpan DefaultSlowMessageThreshold = TimeSpan.FromMilliseconds(48);
+	public static readonly TimeSpan DefaultSlowMessageThreshold = MetricsConfiguration.DefaultSlowMessageThreshold;
 	private static readonly ILogger Log = Serilog.Log.ForContext<InMemoryBus>();
 
 	private readonly FrozenDictionary<Type, MessageTypeHandler> _handlers;
