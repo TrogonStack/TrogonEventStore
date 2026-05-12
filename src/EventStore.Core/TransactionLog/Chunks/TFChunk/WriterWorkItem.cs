@@ -1,14 +1,13 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNext;
+using DotNext.Buffers;
 using DotNext.IO;
 using EventStore.Plugins.Transforms;
-using Microsoft.IO;
-using Microsoft.Win32.SafeHandles;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
@@ -19,6 +18,7 @@ internal sealed class WriterWorkItem : Disposable
 	public Stream WorkingStream { get; private set; }
 
 	private readonly Stream _fileStream;
+	private readonly IBufferedWriter _bufferedWriter;
 	private Stream _memStream;
 	public readonly IncrementalHash MD5;
 
@@ -42,12 +42,28 @@ internal sealed class WriterWorkItem : Disposable
 		var chunkStream = handle.CreateStream();
 		var fileStream = unbuffered
 			? chunkStream
-			: new BufferedStream(chunkStream, BufferSize);
+			: new PoolingBufferedStream(chunkStream, leaveOpen: false) { MaxBufferSize = BufferSize };
 		fileStream.Position = initialStreamPosition;
 		var chunkDataWriteStream = new ChunkDataWriteStream(fileStream, md5);
 
 		WorkingStream = _fileStream = chunkWriteTransform.TransformData(chunkDataWriteStream);
 		MD5 = md5;
+		_bufferedWriter = WorkingStream.GetType() == typeof(ChunkDataWriteStream)
+			? fileStream as IBufferedWriter
+			: null;
+	}
+
+	public Memory<byte> TryGetDirectBuffer(int length)
+	{
+		if (_bufferedWriter is not PoolingBufferedStream { HasBufferedDataToRead: false })
+		{
+			return Memory<byte>.Empty;
+		}
+
+		var buffer = _bufferedWriter.Buffer;
+		return buffer.Length >= length
+			? buffer[..length]
+			: Memory<byte>.Empty;
 	}
 
 	public void SetMemStream(UnmanagedMemoryStream memStream)
@@ -66,6 +82,16 @@ internal sealed class WriterWorkItem : Disposable
 
 		// as we are always append-only, stream's position should be right here
 		return _fileStream?.WriteAsync(buf, CancellationToken.None) ?? ValueTask.CompletedTask;
+	}
+
+	public void AppendData(int length)
+	{
+		Debug.Assert(_bufferedWriter is not null);
+
+		var buffer = _bufferedWriter.Buffer.Span[..length];
+		_memStream?.Write(buffer);
+		_bufferedWriter.Produce(length);
+		MD5.AppendData(buffer);
 	}
 
 	public void ResizeStream(int fileSize)

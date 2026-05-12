@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -620,6 +619,8 @@ public partial class TFChunk : IDisposable
 		var realPosition = GetRawPosition(writePosition);
 		// the writer work item's stream is responsible for computing the current checksum when the position is set
 		workItem.WorkingStream.Position = realPosition;
+		// Flush the seek through transform/checksum streams before direct buffer writes can bypass them.
+		await workItem.WorkingStream.WriteAsync(ReadOnlyMemory<byte>.Empty, token);
 		_writerWorkItem = workItem;
 
 		return chunkHeader;
@@ -951,21 +952,27 @@ public partial class TFChunk : IDisposable
 		}
 
 		var workItem = _writerWorkItem;
-		long oldPosition;
-		int length;
-		using (var dataOnDisk = SerializeLogRecord(record, out length))
+		var length = record.GetSizeWithLengthPrefixAndSuffix();
+		var oldPosition = GetDataPosition(workItem);
+		if (workItem.WorkingStream.Position + length > ChunkHeader.Size + _chunkHeader.ChunkSize)
 		{
-			oldPosition = GetDataPosition(workItem);
-			if (workItem.WorkingStream.Position + length + 2 * sizeof(int) > ChunkHeader.Size + _chunkHeader.ChunkSize)
-			{
-				return RecordWriteResult.Failed(oldPosition);
-			}
+			return RecordWriteResult.Failed(oldPosition);
+		}
 
+		if (workItem.TryGetDirectBuffer(length) is { IsEmpty: false } directBuffer)
+		{
+			var bytesWritten = SerializeLogRecordDirectly(record, directBuffer.Span);
+			Debug.Assert(bytesWritten == length);
+			workItem.AppendData(bytesWritten);
+		}
+		else
+		{
+			using var dataOnDisk = SerializeLogRecord(record, length);
 			await workItem.AppendData(dataOnDisk.Memory, token);
 		}
 
 		_physicalDataSize = (int)GetDataPosition(workItem); // should fit 32 bits
-		_logicalDataSize = ChunkHeader.GetLocalLogPosition(record.LogPosition + length + 2 * sizeof(int));
+		_logicalDataSize = ChunkHeader.GetLocalLogPosition(record.LogPosition + length);
 
 		// for non-scavenged chunk _physicalDataSize should be the same as _logicalDataSize
 		// for scavenged chunk _logicalDataSize should be at least the same as _physicalDataSize
@@ -978,21 +985,36 @@ public partial class TFChunk : IDisposable
 
 		return RecordWriteResult.Successful(oldPosition, _physicalDataSize);
 
-		static MemoryOwner<byte> SerializeLogRecord(ILogRecord record, out int recordLength)
+		static void WriteRecord(ILogRecord record, ref BufferWriterSlim<byte> writer)
 		{
-			var writer = new BufferWriterSlim<byte>(record.GetSizeWithLengthPrefixAndSuffix());
 			writer.Advance(sizeof(int)); // reserved for length prefix
 			record.WriteTo(ref writer);
 
-			recordLength = writer.WrittenCount - sizeof(int);
+			var recordLength = writer.WrittenCount - sizeof(int);
 			writer.WriteLittleEndian(recordLength); // length suffix
 
-			var buffer = writer.DetachOrCopyBuffer();
-			Debug.Assert(record.GetSizeWithLengthPrefixAndSuffix() == buffer.Length);
+			var bytesWritten = writer.WrittenCount;
+			writer.WrittenCount = 0;
+			writer.WriteLittleEndian(recordLength);
+			writer.WrittenCount = bytesWritten;
+		}
 
-			// write length prefix
-			BinaryPrimitives.WriteInt32LittleEndian(buffer.Span, recordLength);
+		static MemoryOwner<byte> SerializeLogRecord(ILogRecord record, int length)
+		{
+			var writer = new BufferWriterSlim<byte>(length);
+			WriteRecord(record, ref writer);
+
+			var buffer = writer.DetachOrCopyBuffer();
+			Debug.Assert(length == buffer.Length);
+
 			return buffer;
+		}
+
+		static int SerializeLogRecordDirectly(ILogRecord record, Span<byte> buffer)
+		{
+			var writer = new BufferWriterSlim<byte>(buffer);
+			WriteRecord(record, ref writer);
+			return writer.WrittenCount;
 		}
 	}
 
@@ -1004,7 +1026,16 @@ public partial class TFChunk : IDisposable
 			return false;
 		}
 
-		await workItem.AppendData(buffer, token);
+		if (workItem.TryGetDirectBuffer(buffer.Length) is { IsEmpty: false } directBuffer)
+		{
+			buffer.CopyTo(directBuffer);
+			workItem.AppendData(buffer.Length);
+		}
+		else
+		{
+			await workItem.AppendData(buffer, token);
+		}
+
 		return true;
 	}
 
