@@ -121,5 +121,5 @@ jobs:
           docker compose build
           docker compose up --detach
           printf 'Waiting for cluster'
-          timeout 60 bash -c -- 'until $(curl --output /dev/null --silent --insecure --fail https://localhost:2113/-/readiness); do printf '.'; sleep 2; done'
+          timeout 60 bash -c -- 'until curl --output /dev/null --silent --insecure --fail https://localhost:2113/-/readiness; do printf '.'; sleep 2; done'
           docker compose down
