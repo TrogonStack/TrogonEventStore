@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -329,7 +330,7 @@ public class ClusterVNodeOptionsTests
 				ClusterSize: 5
 				""");
 
-			var config = EventStoreConfiguration.Build(["--config", yamlPath]);
+			var config = EventStoreConfiguration.Build(["--config", yamlPath], new Hashtable());
 
 			var options = ClusterVNodeOptions.FromConfiguration(config);
 
