@@ -15,7 +15,7 @@ public class TcpClientConnector
 	private const int CheckPeriodMs = 200;
 
 	private readonly SocketArgsPool _connectSocketArgsPool;
-	private readonly ConcurrentDictionary<Guid, PendingConnection> _pendingConections;
+	private readonly ConcurrentDictionary<Guid, PendingConnection> _pendingConnections;
 	private readonly Timer _timer;
 
 	private static readonly ILogger Log = Serilog.Log.ForContext<TcpClientConnector>();
@@ -25,7 +25,7 @@ public class TcpClientConnector
 		_connectSocketArgsPool = new SocketArgsPool("TcpClientConnector._connectSocketArgsPool",
 			TcpConfiguration.ConnectPoolSize,
 			CreateConnectSocketArgs);
-		_pendingConections = new ConcurrentDictionary<Guid, PendingConnection>();
+		_pendingConnections = new ConcurrentDictionary<Guid, PendingConnection>();
 		_timer = new Timer(TimerCallback);
 		// prevent possible null reference exceptions in case of slow initialization
 		_timer.Change(CheckPeriodMs, Timeout.Infinite);
@@ -176,7 +176,7 @@ public class TcpClientConnector
 
 	private void TimerCallback(object state)
 	{
-		foreach (var pendingConnection in _pendingConections.Values)
+		foreach (var pendingConnection in _pendingConnections.Values)
 		{
 			if (DateTime.UtcNow >= pendingConnection.WhenToKill && RemoveFromConnecting(pendingConnection))
 			{
@@ -196,7 +196,7 @@ public class TcpClientConnector
 
 	private void AddToConnecting(PendingConnection pendingConnection)
 	{
-		_pendingConections.TryAdd(pendingConnection.Connection.ConnectionId, pendingConnection);
+		_pendingConnections.TryAdd(pendingConnection.Connection.ConnectionId, pendingConnection);
 	}
 
 	private bool RemoveFromConnecting(PendingConnection pendingConnection)
@@ -208,7 +208,7 @@ public class TcpClientConnector
 			return false;
 		}
 
-		return _pendingConections.TryRemove(pendingConnection.Connection.ConnectionId, out conn)
+		return _pendingConnections.TryRemove(pendingConnection.Connection.ConnectionId, out conn)
 			   && Interlocked.CompareExchange(ref conn.Done, 1, 0) == 0;
 	}
 
