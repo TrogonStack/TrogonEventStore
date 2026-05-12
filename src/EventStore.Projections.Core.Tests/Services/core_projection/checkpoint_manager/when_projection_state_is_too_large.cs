@@ -168,6 +168,6 @@ public class when_projection_state_drops_below_the_metrics_threshold<TLogFormat,
 		var stats = new ProjectionStatistics();
 		_manager.GetStatistics(stats);
 
-		Assert.IsEmpty(stats.StateSizes);
+		Assert.IsNull(stats.StateSizes);
 	}
 }

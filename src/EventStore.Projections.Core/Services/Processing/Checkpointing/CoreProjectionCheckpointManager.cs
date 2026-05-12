@@ -232,12 +232,9 @@ public abstract class CoreProjectionCheckpointManager : IProjectionCheckpointMan
 		info.WritesInProgress = (_closingCheckpoint != null ? _closingCheckpoint.GetWritesInProgress() : 0)
 								+ (_currentCheckpoint != null ? _currentCheckpoint.GetWritesInProgress() : 0);
 		info.CheckpointStatus = _inCheckpoint ? "Requested" : "";
-		info.StateSizes = new Dictionary<string, int>();
-
-		foreach (var (partition, stateSize) in _stateSizeByPartition)
-		{
-			info.StateSizes[partition] = stateSize;
-		}
+		info.StateSizes = _stateSizeByPartition.IsEmpty
+			? null
+			: new Dictionary<string, int>(_stateSizeByPartition);
 	}
 
 	public void StateUpdated(
