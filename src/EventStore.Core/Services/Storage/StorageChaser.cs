@@ -54,6 +54,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 	private long _lastFlush;
 
 	private readonly List<IPrepareLogRecord<TStreamId>> _transaction = [];
+	private long? _transactionPosition;
 	private bool _commitsAfterEof;
 
 	private readonly TaskCompletionSource<object> _tcs = new();
@@ -232,13 +233,15 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 
 	private void ProcessPrepareRecord(IPrepareLogRecord<TStreamId> record, long postPosition)
 	{
-		if (_transaction.Count > 0 && _transaction[0].TransactionPosition != record.TransactionPosition)
+		if (_transactionPosition is { } transactionPosition && transactionPosition != record.TransactionPosition)
 		{
-			CommitPendingTransaction(_transaction, postPosition);
+			CommitPendingTransaction(postPosition);
 		}
 
 		if (record.Flags.HasAnyOf(PrepareFlags.IsCommitted))
 		{
+			_transactionPosition ??= record.TransactionPosition;
+
 			if (record.Flags.HasAnyOf(PrepareFlags.Data | PrepareFlags.StreamDelete))
 			{
 				_transaction.Add(record);
@@ -249,7 +252,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 				return;
 			}
 
-			CommitPendingTransaction(_transaction, postPosition);
+			CommitPendingTransaction(postPosition);
 
 			long firstEventNumber;
 			long lastEventNumber;
@@ -279,7 +282,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 
 	private async ValueTask ProcessCommitRecord(CommitLogRecord record, long postPosition, CancellationToken token)
 	{
-		CommitPendingTransaction(_transaction, postPosition);
+		CommitPendingTransaction(postPosition);
 
 		var firstEventNumber = record.FirstEventNumber;
 		var lastEventNumber = await _indexCommitterService.GetCommitLastEventNumber(record, token);
@@ -295,7 +298,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 
 	private ValueTask ProcessSystemRecord(ISystemLogRecord record, CancellationToken token)
 	{
-		CommitPendingTransaction(_transaction, record.LogPosition);
+		CommitPendingTransaction(record.LogPosition);
 
 		if (record.SystemRecordType is not SystemRecordType.Epoch)
 		{
@@ -310,15 +313,17 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 		return _epochManager.CacheEpoch(epoch, token);
 	}
 
-	private void CommitPendingTransaction(List<IPrepareLogRecord<TStreamId>> transaction, long postPosition)
+	private void CommitPendingTransaction(long postPosition)
 	{
-		if (transaction.Count <= 0)
+		if (_transactionPosition is not { } transactionPosition)
 		{
+			_transaction.Clear();
 			return;
 		}
 
-		_indexCommitterService.AddPendingPrepare(transaction.ToArray(), postPosition);
+		_indexCommitterService.AddPendingPrepare(transactionPosition, _transaction.ToArray(), postPosition);
 		_transaction.Clear();
+		_transactionPosition = null;
 	}
 
 	public void Handle(SystemMessage.BecomeShuttingDown message)
