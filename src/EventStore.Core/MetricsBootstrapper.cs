@@ -195,6 +195,8 @@ public static class MetricsBootstrapper
 			coreMeter.CreateObservableUpDownCounter("eventstore-persistent-sub-in-flight-messages", tracker.ObserveInFlightMessages);
 			coreMeter.CreateObservableUpDownCounter("eventstore-persistent-sub-oldest-parked-message-seconds", tracker.ObserveOldestParkedMessage);
 
+			coreMeter.CreateObservableCounter("eventstore-persistent-sub-park-message-requests", tracker.ObserveParkMessageRequests);
+			coreMeter.CreateObservableCounter("eventstore-persistent-sub-parked-message-replays", tracker.ObserveParkedMessageReplays);
 			coreMeter.CreateObservableCounter("eventstore-persistent-sub-items-processed", tracker.ObserveItemsProcessed);
 			coreMeter.CreateObservableCounter("eventstore-persistent-sub-last-known-event-number", tracker.ObserveLastKnownEvent);
 			coreMeter.CreateObservableCounter("eventstore-persistent-sub-last-known-event-commit-position", tracker.ObserveLastKnownEventCommitPosition);

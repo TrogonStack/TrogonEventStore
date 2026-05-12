@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Data;
 using EventStore.Core.Helpers;
@@ -16,6 +17,9 @@ namespace EventStore.Core.Services.PersistentSubscription
 		public readonly string ParkedStreamId;
 		private long _lastTruncateBefore = -1;
 		private long _lastParkedEventNumber = -1;
+		private long _parkedDueToClientNak;
+		private long _parkedDueToMaxRetries;
+		private long _parkedMessageReplays;
 		private DateTime? _oldestParkedMessage;
 		public long ParkedMessageCount
 		{
@@ -26,6 +30,12 @@ namespace EventStore.Core.Services.PersistentSubscription
 					_lastParkedEventNumber - _lastTruncateBefore + 1;
 			}
 		}
+
+		public long ParkedDueToClientNak => Interlocked.Read(ref _parkedDueToClientNak);
+
+		public long ParkedDueToMaxRetries => Interlocked.Read(ref _parkedDueToMaxRetries);
+
+		public long ParkedMessageReplays => Interlocked.Read(ref _parkedMessageReplays);
 
 		private static readonly ILogger Log = Serilog.Log.ForContext<PersistentSubscriptionMessageParker>();
 
@@ -72,6 +82,21 @@ namespace EventStore.Core.Services.PersistentSubscription
 			}
 
 			completed?.Invoke(ev, msg.Result);
+		}
+
+		public void RecordParkMessageRequest(ParkReason parkReason)
+		{
+			switch (parkReason)
+			{
+				case ParkReason.ClientNak:
+					Interlocked.Increment(ref _parkedDueToClientNak);
+					break;
+				case ParkReason.MaxRetries:
+					Interlocked.Increment(ref _parkedDueToMaxRetries);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(parkReason));
+			}
 		}
 
 		public void BeginParkMessage(ResolvedEvent ev, string reason,
@@ -125,6 +150,8 @@ namespace EventStore.Core.Services.PersistentSubscription
 
 		public void BeginReadEndSequence(Action<long?> completed)
 		{
+			Interlocked.Increment(ref _parkedMessageReplays);
+
 			_ioDispatcher.ReadBackward(ParkedStreamId,
 				long.MaxValue,
 				1,

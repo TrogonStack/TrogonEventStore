@@ -129,6 +129,9 @@ namespace EventStore.Core.Services.PersistentSubscription
 				NamedConsumerStrategy = _settings.ConsumerStrategy.Name,
 				MaxSubscriberCount = _settings.MaxSubscriberCount,
 				ParkedMessageCount = parkedMessageCount,
+				ParkedDueToClientNak = _settings.MessageParker.ParkedDueToClientNak,
+				ParkedDueToMaxRetries = _settings.MessageParker.ParkedDueToMaxRetries,
+				ParkedMessageReplays = _settings.MessageParker.ParkedMessageReplays,
 				OldestParkedMessage = oldestParkedMessage
 			};
 		}

@@ -36,6 +36,9 @@ public class PersistentSubscriptionMetricsTests
 			NamedConsumerStrategy = "Round Robin",
 			OldestParkedMessage = 1007,
 			OutstandingMessagesCount = 2,
+			ParkedDueToClientNak = 1015,
+			ParkedDueToMaxRetries = 1016,
+			ParkedMessageReplays = 1017,
 			ParkedMessageCount = 1003,
 			ReadBatchSize = 20,
 			ReadBufferCount = 0,
@@ -69,6 +72,9 @@ public class PersistentSubscriptionMetricsTests
 			NamedConsumerStrategy = "Round Robin",
 			OldestParkedMessage = 1008,
 			OutstandingMessagesCount = 2,
+			ParkedDueToClientNak = 1018,
+			ParkedDueToMaxRetries = 1019,
+			ParkedMessageReplays = 1020,
 			ParkedMessageCount = 1004,
 			ReadBatchSize = 20,
 			ReadBufferCount = 0,
@@ -102,6 +108,26 @@ public class PersistentSubscriptionMetricsTests
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1003),
 			AssertMeasurement("$all", "testGroup", 1004));
+	}
+
+	[Fact]
+	public void ObserveParkMessageRequests()
+	{
+		var measurements = _sut.ObserveParkMessageRequests();
+		Assert.Collection(measurements,
+			AssertMeasurement("test", "testGroup", "client-nak", 1015),
+			AssertMeasurement("test", "testGroup", "max-retries", 1016),
+			AssertMeasurement("$all", "testGroup", "client-nak", 1018),
+			AssertMeasurement("$all", "testGroup", "max-retries", 1019));
+	}
+
+	[Fact]
+	public void ObserveParkedMessageReplays()
+	{
+		var measurements = _sut.ObserveParkedMessageReplays();
+		Assert.Collection(measurements,
+			AssertMeasurement("test", "testGroup", 1017),
+			AssertMeasurement("$all", "testGroup", 1020));
 	}
 
 	[Fact]
@@ -182,6 +208,35 @@ public class PersistentSubscriptionMetricsTests
 				{
 					Assert.Equal("group_name", tag.Key);
 					Assert.Equal(groupName, tag.Value);
+				}
+			);
+		};
+
+	static Action<Measurement<long>> AssertMeasurement(
+		string sourceName,
+		string groupName,
+		string reason,
+		long expectedValue) =>
+
+		actualMeasurement =>
+		{
+			Assert.Equal(expectedValue, actualMeasurement.Value);
+			Assert.Collection(
+				actualMeasurement.Tags.ToArray(),
+				tag =>
+				{
+					Assert.Equal("event_stream_id", tag.Key);
+					Assert.Equal(sourceName, tag.Value);
+				},
+				tag =>
+				{
+					Assert.Equal("group_name", tag.Key);
+					Assert.Equal(groupName, tag.Value);
+				},
+				tag =>
+				{
+					Assert.Equal("reason", tag.Key);
+					Assert.Equal(reason, tag.Value);
 				}
 			);
 		};

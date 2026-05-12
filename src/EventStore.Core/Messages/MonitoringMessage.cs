@@ -149,6 +149,9 @@ namespace EventStore.Core.Messages
 			public string NamedConsumerStrategy { get; set; }
 			public int MaxSubscriberCount { get; set; }
 			public long ParkedMessageCount { get; set; }
+			public long ParkedDueToClientNak { get; set; }
+			public long ParkedDueToMaxRetries { get; set; }
+			public long ParkedMessageReplays { get; set; }
 			public long OldestParkedMessage { get; set; }
 		}
 

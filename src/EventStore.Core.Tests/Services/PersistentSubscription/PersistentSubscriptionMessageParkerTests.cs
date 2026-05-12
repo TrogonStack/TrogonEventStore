@@ -234,10 +234,42 @@ public class PersistentSubscriptionMessageParkerTests
 		[Test]
 		public async Task should_have_one_parked_message()
 		{
+			_messageParker.RecordParkMessageRequest(ParkReason.ClientNak);
 			_messageParker.BeginParkMessage(CreateResolvedEvent(0, 0), "testing", (_, __) =>
 			{
 				Assert.AreEqual(1, _messageParker.ParkedMessageCount);
+				Assert.AreEqual(1, _messageParker.ParkedDueToClientNak);
+				Assert.AreEqual(0, _messageParker.ParkedDueToMaxRetries);
 				Assert.AreEqual(EventTimeStamps[0], _messageParker.GetOldestParkedMessage);
+				_done.TrySetResult(true);
+			});
+			await _done.Task.WithTimeout();
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class given_a_message_is_parked_due_to_max_retries<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
+		private PersistentSubscriptionMessageParker _messageParker;
+		private string _streamId = Guid.NewGuid().ToString();
+		private TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
+
+		protected override void Given()
+		{
+			base.Given();
+			_messageParker = new PersistentSubscriptionMessageParker(_streamId, _ioDispatcher);
+			NoOtherStreams();
+			AllWritesSucceed();
+		}
+
+		[Test]
+		public async Task should_count_max_retry_park_requests()
+		{
+			_messageParker.RecordParkMessageRequest(ParkReason.MaxRetries);
+			_messageParker.BeginParkMessage(CreateResolvedEvent(0, 0), "testing", (_, __) =>
+			{
+				Assert.AreEqual(0, _messageParker.ParkedDueToClientNak);
+				Assert.AreEqual(1, _messageParker.ParkedDueToMaxRetries);
 				_done.TrySetResult(true);
 			});
 			await _done.Task.WithTimeout();
@@ -281,6 +313,7 @@ public class PersistentSubscriptionMessageParkerTests
 			});
 			await _done.Task.WithTimeout();
 		}
+
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
