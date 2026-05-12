@@ -8,5 +8,7 @@ namespace EventStore.Core.Data
 
 		public const long Invalid = -3;
 		public const long StreamExists = -4;
+		public const long SoftDeleted = -5;
+		public const long MinValue = SoftDeleted;
 	}
 }

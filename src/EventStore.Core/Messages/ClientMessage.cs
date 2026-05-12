@@ -208,7 +208,7 @@ public static partial class ClientMessage
 				throw new ArgumentOutOfRangeException(nameof(eventStreamId));
 			}
 
-			if (expectedVersion < Data.ExpectedVersion.StreamExists ||
+			if (expectedVersion < Data.ExpectedVersion.MinValue ||
 				expectedVersion == Data.ExpectedVersion.Invalid)
 			{
 				throw new ArgumentOutOfRangeException(nameof(expectedVersion));
@@ -329,7 +329,9 @@ public static partial class ClientMessage
 			: base(internalCorrId, correlationId, envelope, requireLeader, user, tokens, CancellationToken.None)
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
-			if (expectedVersion < Data.ExpectedVersion.Any)
+			if (expectedVersion < Data.ExpectedVersion.MinValue ||
+				expectedVersion == Data.ExpectedVersion.Invalid ||
+				expectedVersion == Data.ExpectedVersion.StreamExists)
 			{
 				throw new ArgumentOutOfRangeException(nameof(expectedVersion));
 			}
@@ -506,7 +508,7 @@ public static partial class ClientMessage
 			ExpectedVersion = expectedVersion switch
 			{
 				Data.ExpectedVersion.Invalid => throw new ArgumentOutOfRangeException(nameof(expectedVersion)),
-				< Data.ExpectedVersion.StreamExists => throw new ArgumentOutOfRangeException(nameof(expectedVersion)),
+				< Data.ExpectedVersion.MinValue => throw new ArgumentOutOfRangeException(nameof(expectedVersion)),
 				_ => expectedVersion
 			};
 			HardDelete = hardDelete;

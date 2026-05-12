@@ -247,7 +247,7 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 		}
 
 		// idempotency checks
-		if (expectedVersion is ExpectedVersion.Any or ExpectedVersion.StreamExists)
+		if (expectedVersion is ExpectedVersion.Any or ExpectedVersion.StreamExists or ExpectedVersion.SoftDeleted)
 		{
 			var first = true;
 			long startEventNumber = -1;
@@ -257,9 +257,16 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				if (!_committedEvents.TryGetRecord(eventId, out var prepInfo) ||
 					!StreamIdComparer.Equals(prepInfo.StreamId, streamId))
 				{
+					var isSoftDeleted = await IsSoftDeleted(streamId, token);
+					if (expectedVersion is ExpectedVersion.SoftDeleted && !isSoftDeleted)
+					{
+						return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId,
+							curVersion, -1, -1, false);
+					}
+
 					return new CommitCheckResult<TStreamId>(
 						first ? CommitDecision.Ok : CommitDecision.CorruptedIdempotency,
-						streamId, curVersion, -1, -1, first && await IsSoftDeleted(streamId, token));
+						streamId, curVersion, -1, -1, first && isSoftDeleted);
 				}
 
 				if (first)
@@ -273,8 +280,15 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 			if (first) /*no data in transaction*/
 			{
+				var isSoftDeleted = await IsSoftDeleted(streamId, token);
+				if (expectedVersion is ExpectedVersion.SoftDeleted && !isSoftDeleted)
+				{
+					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion,
+						-1, -1, false);
+				}
+
 				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
-					await IsSoftDeleted(streamId, token));
+					isSoftDeleted);
 			}
 			else
 			{
