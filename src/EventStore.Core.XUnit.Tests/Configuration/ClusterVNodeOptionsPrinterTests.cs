@@ -93,7 +93,7 @@ DEFAULT OPTIONS:
 
 		var option = loadedOptions["EventStore:DbLogFormat"];
 
-		option.Metadata.AllowedValues.Should().BeEquivalentTo(Enum.GetNames(typeof(DbLogFormat)));
+		option.Metadata.AllowedValues.Should().BeEquivalentTo(Enum.GetNames<DbLogFormat>());
 	}
 
 	[Fact]
