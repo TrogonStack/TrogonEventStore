@@ -51,22 +51,22 @@ public class a_running_foreach_stream_projection
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_reader, new TFPos(100, 50), new TFPos(100, 50), "stream1", 1, "stream1", 1, false,
 					Guid.NewGuid(),
-					"type", false, Helper.UTF8NoBom.GetBytes("1"), new byte[0], 100, 33.3f));
+					"type", false, Helper.UTF8NoBom.GetBytes("1"), Array.Empty<byte>(), 100, 33.3f));
 			yield return
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_reader, new TFPos(200, 150), new TFPos(200, 150), "stream2", 1, "stream2", 1, false,
 					Guid.NewGuid(),
-					"type", false, Helper.UTF8NoBom.GetBytes("1"), new byte[0], 100, 33.3f));
+					"type", false, Helper.UTF8NoBom.GetBytes("1"), Array.Empty<byte>(), 100, 33.3f));
 			yield return
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_reader, new TFPos(300, 250), new TFPos(300, 250), "stream3", 1, "stream3", 1, false,
 					Guid.NewGuid(),
-					"type", false, Helper.UTF8NoBom.GetBytes("1"), new byte[0], 100, 33.3f));
+					"type", false, Helper.UTF8NoBom.GetBytes("1"), Array.Empty<byte>(), 100, 33.3f));
 			yield return
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_reader, new TFPos(400, 350), new TFPos(400, 350), "stream1", 2, "stream1", 2, false,
 					Guid.NewGuid(),
-					"type", false, Helper.UTF8NoBom.GetBytes("1"), new byte[0], 100, 33.3f));
+					"type", false, Helper.UTF8NoBom.GetBytes("1"), Array.Empty<byte>(), 100, 33.3f));
 		}
 	}
 

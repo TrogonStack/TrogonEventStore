@@ -40,7 +40,7 @@ public class an_expired_projection
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					_reader, new TFPos(100, 50), new TFPos(100, 50), "stream", 1, "stream", 1, false,
 					Guid.NewGuid(),
-					"type", false, new byte[0], new byte[0], 100, 33.3f));
+					"type", false, Array.Empty<byte>(), Array.Empty<byte>(), 100, 33.3f));
 			_timeProvider.AddToUtcTime(TimeSpan.FromMinutes(6));
 			yield return Yield;
 			foreach (var m in _consumer.HandledMessages.OfType<TimerMessage.Schedule>().ToArray())
