@@ -4,6 +4,10 @@ namespace EventStore.Common.Tests.Utils;
 
 public class LowAllocReadOnlyMemoryTests
 {
+	private static readonly int[] SingleItem = [5];
+	private static readonly int[] ManyItems = [3, 4, 5];
+	private static readonly int[] ForeachItems = [1, 2, 3];
+
 	[Fact]
 	public void Empty_has_no_items()
 	{
@@ -27,8 +31,8 @@ public class LowAllocReadOnlyMemoryTests
 
 		Assert.Equal(1, sut.Length);
 		Assert.Equal(5, sut.Single);
-		Assert.True(new[] { 5 }.AsSpan().SequenceEqual(sut.Span));
-		Assert.Equal(new[] { 5 }, sut.ToArray());
+		Assert.True(SingleItem.AsSpan().SequenceEqual(sut.Span));
+		Assert.Equal(SingleItem, sut.ToArray());
 	}
 
 	[Theory]
@@ -64,7 +68,7 @@ public class LowAllocReadOnlyMemoryTests
 
 		Assert.Equal(0, empty.Length);
 		Assert.Equal(2, single.Single);
-		Assert.True(new[] { 3, 4, 5 }.AsSpan().SequenceEqual(many.Span));
+		Assert.True(ManyItems.AsSpan().SequenceEqual(many.Span));
 	}
 
 	[Fact]
@@ -78,6 +82,6 @@ public class LowAllocReadOnlyMemoryTests
 			actual.Add(item);
 		}
 
-		Assert.Equal(new[] { 1, 2, 3 }, actual);
+		Assert.Equal(ForeachItems, actual);
 	}
 }
