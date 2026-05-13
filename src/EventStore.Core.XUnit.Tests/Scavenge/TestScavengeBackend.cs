@@ -37,6 +37,7 @@ public class TestScavengeBackend : IScavengeStateBackend<string>
 
 	public void Dispose()
 	{
+		GC.SuppressFinalize(this);
 	}
 
 	public void LogStats()
