@@ -65,10 +65,7 @@ public class BufferManager
 	/// <param name="manager">The new default buffer manager.</param>
 	public static void SetDefaultBufferManager(BufferManager manager)
 	{
-		if (manager == null)
-		{
-			throw new ArgumentNullException("manager");
-		}
+		ArgumentNullException.ThrowIfNull(manager);
 
 		_defaultBufferManager = manager;
 	}
@@ -136,17 +133,17 @@ public class BufferManager
 	{
 		if (segmentChunks <= 0)
 		{
-			throw new ArgumentException("segmentChunks");
+			throw new ArgumentException($"{nameof(segmentChunks)} must be greater than 0.", nameof(segmentChunks));
 		}
 
 		if (chunkSize <= 0)
 		{
-			throw new ArgumentException("chunkSize");
+			throw new ArgumentException($"{nameof(chunkSize)} must be greater than 0.", nameof(chunkSize));
 		}
 
 		if (initialSegments < 0)
 		{
-			throw new ArgumentException("initialSegments");
+			throw new ArgumentException($"{nameof(initialSegments)} must be greater than or equal to 0.", nameof(initialSegments));
 		}
 
 		_segmentChunks = segmentChunks;
@@ -298,10 +295,7 @@ public class BufferManager
 	/// <param name="buffersToReturn">The <see cref="ArraySegment{T}"></see> to return to the cache</param>
 	public void CheckIn(IEnumerable<ArraySegment<byte>> buffersToReturn)
 	{
-		if (buffersToReturn == null)
-		{
-			throw new ArgumentNullException("buffersToReturn");
-		}
+		ArgumentNullException.ThrowIfNull(buffersToReturn);
 
 		foreach (var buf in buffersToReturn)
 		{
@@ -320,7 +314,7 @@ public class BufferManager
 
 		if (buffer.Count != _chunkSize)
 		{
-			throw new ArgumentException("Buffer was not of the same chunk size as the buffer manager", "buffer");
+			throw new ArgumentException("Buffer was not of the same chunk size as the buffer manager", nameof(buffer));
 		}
 	}
 }

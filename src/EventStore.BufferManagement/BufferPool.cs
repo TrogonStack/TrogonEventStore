@@ -83,7 +83,7 @@ public class BufferPool : IDisposable
 			CheckDisposed();
 			if (index < 0 || index > _length)
 			{
-				throw new ArgumentOutOfRangeException("index");
+				throw new ArgumentOutOfRangeException(nameof(index));
 			}
 
 			Position l = GetPositionFor(index);
@@ -133,13 +133,10 @@ public class BufferPool : IDisposable
 	{
 		if (initialBufferCount <= 0)
 		{
-			throw new ArgumentException("initialBufferCount");
+			throw new ArgumentException($"{nameof(initialBufferCount)} must be greater than 0.", nameof(initialBufferCount));
 		}
 
-		if (bufferManager == null)
-		{
-			throw new ArgumentNullException("bufferManager");
-		}
+		ArgumentNullException.ThrowIfNull(bufferManager);
 
 		_length = 0;
 		_buffers = new List<ArraySegment<byte>>(bufferManager.CheckOut(initialBufferCount));
@@ -155,10 +152,7 @@ public class BufferPool : IDisposable
 	/// <param name="data">The data to write.</param>
 	public void Append(byte[] data)
 	{
-		if (data == null)
-		{
-			throw new ArgumentNullException("data");
-		}
+		ArgumentNullException.ThrowIfNull(data);
 
 		Write(_length, data, 0, data.Length);
 	}
@@ -183,19 +177,16 @@ public class BufferPool : IDisposable
 	/// <param name="count">The count.</param>
 	public void Write(int position, byte[] data, int offset, int count)
 	{
-		if (data == null)
-		{
-			throw new ArgumentNullException("data");
-		}
+		ArgumentNullException.ThrowIfNull(data);
 
 		if (offset < 0 || offset > data.Length)
 		{
-			throw new ArgumentOutOfRangeException("offset");
+			throw new ArgumentOutOfRangeException(nameof(offset));
 		}
 
 		if (count < 0 || count + offset > data.Length)
 		{
-			throw new ArgumentOutOfRangeException("count");
+			throw new ArgumentOutOfRangeException(nameof(count));
 		}
 
 		Write(position, new ArraySegment<byte>(data, offset, count));
@@ -242,19 +233,16 @@ public class BufferPool : IDisposable
 	/// <returns></returns>
 	public int ReadFrom(int position, byte[] data, int offset, int count)
 	{
-		if (data == null)
-		{
-			throw new ArgumentNullException("data");
-		}
+		ArgumentNullException.ThrowIfNull(data);
 
 		if (offset < 0 || offset > data.Length)
 		{
-			throw new ArgumentOutOfRangeException("offset");
+			throw new ArgumentOutOfRangeException(nameof(offset));
 		}
 
 		if (count < 0 || count + offset > data.Length)
 		{
-			throw new ArgumentOutOfRangeException("count");
+			throw new ArgumentOutOfRangeException(nameof(count));
 		}
 
 		return ReadFrom(position, new ArraySegment<byte>(data, offset, count));
@@ -415,9 +403,6 @@ public class BufferPool : IDisposable
 
 	private void CheckDisposed()
 	{
-		if (_disposed)
-		{
-			throw new ObjectDisposedException("Object has been disposed.");
-		}
+		ObjectDisposedException.ThrowIf(_disposed, this);
 	}
 }

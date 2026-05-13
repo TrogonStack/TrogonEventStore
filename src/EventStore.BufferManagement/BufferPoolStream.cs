@@ -45,7 +45,7 @@ public class BufferPoolStream : Stream
 		{
 			if (value < 0 || value > _bufferPool.Length)
 			{
-				throw new ArgumentOutOfRangeException("value");
+				throw new ArgumentOutOfRangeException(nameof(value));
 			}
 
 			_position = value;
@@ -58,10 +58,7 @@ public class BufferPoolStream : Stream
 	/// <param name="bufferPool">The buffer pool used as underlying storage.</param>
 	public BufferPoolStream(BufferPool bufferPool)
 	{
-		if (bufferPool == null)
-		{
-			throw new ArgumentNullException("bufferPool");
-		}
+		ArgumentNullException.ThrowIfNull(bufferPool);
 
 		_bufferPool = bufferPool;
 	}
