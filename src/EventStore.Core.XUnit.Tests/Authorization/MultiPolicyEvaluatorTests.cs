@@ -93,7 +93,7 @@ public class MultiPolicyEvaluatorTests
 		{
 			var result = await sut.EvaluateAsync(_cp, new Operation(resource, TestAction), _ct);
 			Assert.Equal(Grant.Deny, result.Grant);
-				Assert.Contains("denied by default", result.Matches[^1].Assertion.ToString());
+			Assert.Contains("denied by default", result.Matches[^1].Assertion.ToString());
 		}
 	}
 
@@ -103,7 +103,7 @@ public class MultiPolicyEvaluatorTests
 		{
 			var result = await sut.EvaluateAsync(_cp, new Operation(resource, TestAction), _ct);
 			Assert.Equal(expectedGrant, result.Grant);
-				Assert.Contains(TestAssertion.Name, result.Matches[^1].Assertion.ToString());
+			Assert.Contains(TestAssertion.Name, result.Matches[^1].Assertion.ToString());
 		}
 	}
 }
