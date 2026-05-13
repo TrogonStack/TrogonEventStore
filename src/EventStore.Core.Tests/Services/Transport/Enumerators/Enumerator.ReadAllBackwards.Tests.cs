@@ -23,7 +23,6 @@ public partial class EnumeratorTests
 			resolveLinks: false,
 			user: SystemAccounts.System,
 			requiresLeader: false,
-			deadline: DateTime.Now,
 			cancellationToken: CancellationToken.None));
 	}
 

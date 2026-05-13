@@ -74,7 +74,6 @@ internal partial class Streams<TStreamId>
 					countOptionsCase,
 					readDirection,
 					filterOptionsCase,
-					context.Deadline,
 					context.CancellationToken);
 
 				async void DisposeEnumerator() => await enumerator.DisposeAsync();
@@ -114,7 +113,6 @@ internal partial class Streams<TStreamId>
 		CountOptionOneofCase countOptionsCase,
 		ReadDirection readDirection,
 		FilterOptionOneofCase filterOptionsCase,
-		DateTime deadline,
 		CancellationToken cancellationToken)
 	{
 		return (streamOptionsCase, countOptionsCase, readDirection, filterOptionsCase) switch
@@ -130,7 +128,6 @@ internal partial class Streams<TStreamId>
 					request.Options.ResolveLinks,
 					user,
 					requiresLeader,
-					deadline,
 					compatibility,
 					cancellationToken),
 			(StreamOptionOneofCase.Stream,
@@ -144,7 +141,6 @@ internal partial class Streams<TStreamId>
 					request.Options.ResolveLinks,
 					user,
 					requiresLeader,
-					deadline,
 					compatibility,
 					cancellationToken),
 			(StreamOptionOneofCase.All,
@@ -157,7 +153,6 @@ internal partial class Streams<TStreamId>
 					request.Options.ResolveLinks,
 					user,
 					requiresLeader,
-					deadline,
 					cancellationToken),
 			(StreamOptionOneofCase.All,
 				CountOptionOneofCase.Count,
@@ -177,7 +172,6 @@ internal partial class Streams<TStreamId>
 							.Max,
 						_ => throw RpcExceptions.InvalidArgument(request.Options.Filter.WindowCase)
 					},
-					deadline,
 					cancellationToken),
 			(StreamOptionOneofCase.All,
 				CountOptionOneofCase.Count,
@@ -189,7 +183,6 @@ internal partial class Streams<TStreamId>
 					request.Options.ResolveLinks,
 					user,
 					requiresLeader,
-					deadline,
 					cancellationToken),
 			(StreamOptionOneofCase.All,
 				CountOptionOneofCase.Count,
@@ -209,7 +202,6 @@ internal partial class Streams<TStreamId>
 							.Max,
 						_ => throw RpcExceptions.InvalidArgument(request.Options.Filter.WindowCase)
 					},
-					deadline,
 					cancellationToken),
 			(StreamOptionOneofCase.Stream,
 				CountOptionOneofCase.Subscription,
