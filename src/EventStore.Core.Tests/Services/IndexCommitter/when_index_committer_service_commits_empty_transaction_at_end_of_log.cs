@@ -27,7 +27,7 @@ public class when_index_committer_service_commits_empty_transaction_at_end_of_lo
 		WriterCheckpoint.Flush();
 
 		Service.AddPendingPrepare(_logPrePosition, [], _logPostPosition);
-		Service.Handle(new StorageMessage.CommitAck(_correlationId, _logPrePosition, _logPrePosition, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(_correlationId, _logPrePosition, _logPrePosition, 0, 0));
 
 		ReplicationCheckpoint.Write(_logPostPosition);
 		ReplicationCheckpoint.Flush();

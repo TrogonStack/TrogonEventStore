@@ -36,7 +36,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 	IMonitoredQueue,
 	IHandle<SystemMessage.BecomeShuttingDown>,
 	IHandle<ReplicationTrackingMessage.ReplicatedTo>,
-	IHandle<StorageMessage.CommitAck>,
+	IHandle<StorageMessage.CommitChased>,
 	IHandle<ClientMessage.MergeIndexes>,
 	IThreadPoolWorkItem
 {
@@ -57,11 +57,11 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 
 	private readonly QueueStatsCollector _queueStats;
 
-	private readonly ConcurrentQueueWrapper<StorageMessage.CommitAck> _replicatedQueue = new();
+	private readonly ConcurrentQueueWrapper<StorageMessage.CommitChased> _commitChasedQueue = new();
 
 	private readonly ConcurrentDictionary<long, PendingTransaction> _pendingTransactions = new();
 
-	private readonly SortedList<long, StorageMessage.CommitAck> _commitAcks = new();
+	private readonly SortedList<long, StorageMessage.CommitChased> _commitsChased = new();
 	private readonly AsyncManualResetEvent _addMsgSignal = new(initialState: false);
 	private TimeSpan _waitTimeoutMs = TimeSpan.FromMilliseconds(100);
 	private readonly TaskCompletionSource<object> _tcs = new();
@@ -121,19 +121,19 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 			_queueStats.Start();
 			QueueMonitor.Default.Register(this);
 
-			StorageMessage.CommitAck replicatedMessage;
-			var msgType = typeof(StorageMessage.CommitAck);
+			StorageMessage.CommitChased commitChased;
+			var msgType = typeof(StorageMessage.CommitChased);
 			while (!_stopToken.IsCancellationRequested)
 			{
 				_addMsgSignal.Reset();
-				if (_replicatedQueue.TryDequeue(out replicatedMessage))
+				if (_commitChasedQueue.TryDequeue(out commitChased))
 				{
 					_queueStats.EnterBusy();
 #if DEBUG
-					_queueStats.Dequeued(replicatedMessage);
+					_queueStats.Dequeued(commitChased);
 #endif
-					_queueStats.ProcessingStarted(msgType, _replicatedQueue.Count);
-					await ProcessCommitReplicated(replicatedMessage, _stopToken);
+					_queueStats.ProcessingStarted(msgType, _commitChasedQueue.Count);
+					await ProcessCommitChased(commitChased, _stopToken);
 					_queueStats.ProcessingEnded(1);
 				}
 				else
@@ -169,7 +169,7 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		_publisher.Publish(new SystemMessage.ServiceShutdown(Name));
 	}
 
-	private async ValueTask ProcessCommitReplicated(StorageMessage.CommitAck message, CancellationToken token)
+	private async ValueTask ProcessCommitChased(StorageMessage.CommitChased message, CancellationToken token)
 	{
 		PendingTransaction transaction;
 		long lastEventNumber = message.LastEventNumber;
@@ -257,46 +257,46 @@ public class IndexCommitterService<TStreamId> : IndexCommitterService, IIndexCom
 		Stop();
 	}
 
-	public void Handle(StorageMessage.CommitAck message)
+	public void Handle(StorageMessage.CommitChased message)
 	{
-		lock (_commitAcks)
+		lock (_commitsChased)
 		{
-			_commitAcks.TryAdd(message.LogPosition, message);
+			_commitsChased.TryAdd(message.LogPosition, message);
 		}
 
-		EnqueueReplicatedCommits();
+		EnqueueCommitsChased();
 	}
 
 	public void Handle(ReplicationTrackingMessage.ReplicatedTo message)
 	{
-		EnqueueReplicatedCommits();
+		EnqueueCommitsChased();
 	}
 
-	private void EnqueueReplicatedCommits()
+	private void EnqueueCommitsChased()
 	{
-		var replicated = new List<StorageMessage.CommitAck>();
-		lock (_commitAcks)
+		var commitsChased = new List<StorageMessage.CommitChased>();
+		lock (_commitsChased)
 		{
-			if (_commitAcks.Count > 0)
+			if (_commitsChased.Count > 0)
 			{
 				do
 				{
-					var ack = _commitAcks.Values[0];
-					if (ack.LogPosition >= _replicationCheckpoint.Read())
+					var commitChased = _commitsChased.Values[0];
+					if (commitChased.LogPosition >= _replicationCheckpoint.Read())
 					{ break; }
 
-					replicated.Add(ack);
-					_commitAcks.RemoveAt(0);
-				} while (_commitAcks.Count > 0);
+					commitsChased.Add(commitChased);
+					_commitsChased.RemoveAt(0);
+				} while (_commitsChased.Count > 0);
 			}
 		}
 
-		foreach (var ack in replicated)
+		foreach (var commitChased in commitsChased)
 		{
 #if DEBUG
 			_queueStats.Enqueued();
 #endif
-			_replicatedQueue.Enqueue(ack);
+			_commitChasedQueue.Enqueue(commitChased);
 			_addMsgSignal.Set();
 		}
 	}

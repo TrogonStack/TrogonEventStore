@@ -6,7 +6,7 @@ namespace EventStore.Core.Tests.Services.IndexCommitter;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class
-	when_index_committer_service_receives_multiple_acks_for_different_positions_out_of_order<TLogFormat, TStreamId>
+	when_index_committer_service_receives_multiple_commits_chased_for_different_positions_out_of_order<TLogFormat, TStreamId>
 	: with_index_committer_service<TLogFormat, TStreamId>
 {
 
@@ -26,8 +26,8 @@ public class
 
 		AddPendingPrepare(_logPosition2);
 		AddPendingPrepare(_logPosition1);
-		Service.Handle(new StorageMessage.CommitAck(_correlationId2, _logPosition4, _logPosition2, 0, 0));
-		Service.Handle(new StorageMessage.CommitAck(_correlationId1, _logPosition3, _logPosition1, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(_correlationId2, _logPosition4, _logPosition2, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(_correlationId1, _logPosition3, _logPosition1, 0, 0));
 
 
 		ReplicationCheckpoint.Write(_logPosition4 + 1);
@@ -54,7 +54,7 @@ public class
 		Assert.AreEqual(_logPosition4, msg.LogPosition);
 	}
 	[Test]
-	public void prepare_ack_message_should_have_been_published_for_both_events()
+	public void committed_prepares_should_have_been_published_for_both_events()
 	{
 		AssertEx.IsOrBecomesTrue(() => 2 == IndexCommitter.CommittedPrepares.Count);
 		Assert.True(IndexCommitter.CommittedPrepares.TryDequeue(out var msg));

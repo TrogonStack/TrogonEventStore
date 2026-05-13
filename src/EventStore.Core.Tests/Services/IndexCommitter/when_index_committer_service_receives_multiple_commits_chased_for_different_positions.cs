@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace EventStore.Core.Tests.Services.IndexCommitter;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_index_committer_service_receives_multiple_acks_for_different_positions<TLogFormat, TStreamId> : with_index_committer_service<TLogFormat, TStreamId>
+public class when_index_committer_service_receives_multiple_commits_chased_for_different_positions<TLogFormat, TStreamId> : with_index_committer_service<TLogFormat, TStreamId>
 {
 
 	private readonly long _logPositionP1 = 1000;
@@ -22,9 +22,9 @@ public class when_index_committer_service_receives_multiple_acks_for_different_p
 		AddPendingPrepare(_logPositionP2);
 		AddPendingPrepare(_logPositionP3);
 
-		Service.Handle(new StorageMessage.CommitAck(Guid.NewGuid(), _logPositionCommit1, _logPositionP1, 0, 0));
-		Service.Handle(new StorageMessage.CommitAck(Guid.NewGuid(), _logPositionCommit2, _logPositionP2, 0, 0));
-		Service.Handle(new StorageMessage.CommitAck(Guid.NewGuid(), _logPositionCommit3, _logPositionP3, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(Guid.NewGuid(), _logPositionCommit1, _logPositionP1, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(Guid.NewGuid(), _logPositionCommit2, _logPositionP2, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(Guid.NewGuid(), _logPositionCommit3, _logPositionP3, 0, 0));
 	}
 
 	public override void When()

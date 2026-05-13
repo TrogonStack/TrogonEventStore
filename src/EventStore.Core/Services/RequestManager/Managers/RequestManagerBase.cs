@@ -12,7 +12,7 @@ using ILogger = Serilog.ILogger;
 namespace EventStore.Core.Services.RequestManager.Managers
 {
 	public abstract class RequestManagerBase :
-		IHandle<StorageMessage.PrepareAck>,
+		IHandle<StorageMessage.UncommittedPrepareChased>,
 		IHandle<StorageMessage.CommitIndexed>,
 		IHandle<StorageMessage.InvalidTransaction>,
 		IHandle<StorageMessage.StreamDeleted>,
@@ -106,7 +106,7 @@ namespace EventStore.Core.Services.RequestManager.Managers
 			Publisher.Publish(WriteRequestMsg);
 		}
 
-		public void Handle(StorageMessage.PrepareAck message)
+		public void Handle(StorageMessage.UncommittedPrepareChased message)
 		{
 			if (Interlocked.Read(ref _complete) == 1 || _allPreparesWritten)
 			{ return; }

@@ -40,11 +40,11 @@ public class WhenChaserReadsCommittedPrepareEvent<TLogFormat, TStreamId> : with_
 		await Writer.Flush(token);
 	}
 	[Test]
-	public void commit_ack_should_be_published()
+	public void commit_chased_should_be_published()
 	{
-		AssertEx.IsOrBecomesTrue(() => CommitAcks.Count >= 1, msg: "CommitAck msg not received");
-		Assert.True(CommitAcks.TryDequeue(out var commitAck));
-		Assert.AreEqual(_transactionId, commitAck.CorrelationId);
+		AssertEx.IsOrBecomesTrue(() => CommitsChased.Count >= 1, msg: "CommitChased msg not received");
+		Assert.True(CommitsChased.TryDequeue(out var commitChased));
+		Assert.AreEqual(_transactionId, commitChased.CorrelationId);
 
 	}
 
