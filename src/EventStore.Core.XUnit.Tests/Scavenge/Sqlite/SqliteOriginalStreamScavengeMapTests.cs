@@ -504,11 +504,11 @@ public class SqliteOriginalStreamScavengeMapTests : SqliteDbPerTest<SqliteOrigin
 
 		sut.DeleteMany(deleteArchived: true);
 
-		Assert.Collection(sut.AllRecords(),
-			item => { Assert.Equal(CalculationStatus.Active, item.Value.Status); });
-	}
+			var item = Assert.Single(sut.AllRecords());
+			Assert.Equal(CalculationStatus.Active, item.Value.Status);
+		}
 
-	private OriginalStreamData[] GetOriginalStreamTestData()
+		private static OriginalStreamData[] GetOriginalStreamTestData()
 	{
 		return new[] {
 			new OriginalStreamData() {

@@ -109,7 +109,7 @@ public class SqliteChunkTimeStampRangeScavengeMapTests : SqliteDbPerTest<SqliteC
 		Assert.False(sut.TryRemove(33, out _));
 	}
 
-	private ChunkTimeStampRange[] GetChunkTimeStampRangeTestData()
+		private static ChunkTimeStampRange[] GetChunkTimeStampRangeTestData()
 	{
 		return
 		[
