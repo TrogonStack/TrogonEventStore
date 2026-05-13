@@ -96,9 +96,8 @@ public class OriginalStreamCollisionMapTests : SqliteDbPerTest<OriginalStreamCol
 			x => Assert.Equal("(Hash: 102, 6)", $"({x.Item1}, {x.Item2.MaxCount})"));
 
 		// hash checkpoint
-		Assert.Collection(
-			sut.EnumerateActive(checkpoint: StreamHandle.ForHash<string>(101)),
-			x => Assert.Equal("(Hash: 102, 6)", $"({x.Item1}, {x.Item2.MaxCount})"));
+		var active = Assert.Single(sut.EnumerateActive(checkpoint: StreamHandle.ForHash<string>(101)));
+		Assert.Equal("(Hash: 102, 6)", $"({active.Item1}, {active.Item2.MaxCount})");
 
 		// end checkpoint
 		Assert.Empty(sut.EnumerateActive(checkpoint: StreamHandle.ForHash<string>(102)));
