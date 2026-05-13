@@ -32,9 +32,9 @@ COPY ./src .
 WORKDIR /build/.git
 COPY ./.git/ .
 
-WORKDIR /build/src
-RUN find /build/src -maxdepth 1 -type d -name "*.Tests" -print0 | xargs -r -I{} -0 -n1 sh -c \
-    'dotnet publish --runtime=${RUNTIME} --no-self-contained --configuration Release --output /build/published-tests/`basename $1` $1' - '{}'
+WORKDIR /build
+COPY ./scripts/publish-tests.sh ./scripts/publish-tests.sh
+RUN sh ./scripts/publish-tests.sh /build/src /build/published-tests
 
 # "test" image
 FROM mcr.microsoft.com/dotnet/sdk:10.0-${CONTAINER_RUNTIME} AS test
