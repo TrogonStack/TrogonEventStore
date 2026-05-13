@@ -20,12 +20,12 @@ public class FallbackStreamAccessPolicyVerification
 	private readonly ClaimsPrincipal _claimsPrincipal = new(new ClaimsIdentity(
 		new[] { new Claim(ClaimTypes.Name, "test-user") }));
 
-	private MultiPolicyEvaluator CreateSut()
-	{
-		var fallback = new FallbackStreamAccessPolicySelector();
-		var dummy = new DummyStreamAccess().Create(SampleOperations);
-		return new MultiPolicyEvaluator(new StaticAuthorizationPolicyRegistry([fallback, dummy]));
-	}
+		private static MultiPolicyEvaluator CreateSut()
+		{
+			var fallback = new FallbackStreamAccessPolicySelector();
+			var dummy = DummyStreamAccess.Create(SampleOperations);
+			return new MultiPolicyEvaluator(new StaticAuthorizationPolicyRegistry([fallback, dummy]));
+		}
 
 	// This is not an extensive list of all operations
 	// Just a sample of the different resources
@@ -133,7 +133,7 @@ public class FallbackStreamAccessPolicyVerification
 
 	private class DummyStreamAccess
 	{
-		public StaticPolicySelector Create(OperationDefinition[] operations)
+		public static StaticPolicySelector Create(OperationDefinition[] operations)
 		{
 			var policy = new Policy("dummy", 1, DateTimeOffset.MinValue);
 			foreach (var op in operations)
