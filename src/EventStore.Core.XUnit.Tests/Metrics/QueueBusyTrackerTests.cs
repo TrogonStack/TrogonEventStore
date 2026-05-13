@@ -20,18 +20,10 @@ public class QueueBusyTrackerTests
 		sut.EnterIdle();
 		listener.Observe();
 
-		Assert.Collection(
-			listener.RetrieveMeasurements("the-metric-seconds"),
-			m =>
-			{
-				Assert.True(m.Value > 0.0001);
-				Assert.Collection(
-					m.Tags,
-					t =>
-					{
-						Assert.Equal("queue", t.Key);
-						Assert.Equal("the-queue", t.Value);
-					});
-			});
+		var measurement = Assert.Single(listener.RetrieveMeasurements("the-metric-seconds"));
+		Assert.True(measurement.Value > 0.0001);
+		var tag = Assert.Single(measurement.Tags);
+		Assert.Equal("queue", tag.Key);
+		Assert.Equal("the-queue", tag.Value);
 	}
 }

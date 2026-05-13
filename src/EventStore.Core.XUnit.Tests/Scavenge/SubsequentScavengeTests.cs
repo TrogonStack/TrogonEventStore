@@ -37,14 +37,10 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 			.RunAsync();
 
 		Assert.Equal(ScavengeResult.Stopped, logger.Result);
-		Assert.Collection(
-			newScavengePoint,
-			sp =>
-			{
-				Assert.Equal(EffectiveNow, sp.EffectiveNow);
-				Assert.Equal(0, sp.EventNumber);
-				Assert.Equal(0, sp.Threshold);
-			});
+		var scavengePoint = Assert.Single(newScavengePoint);
+		Assert.Equal(EffectiveNow, scavengePoint.EffectiveNow);
+		Assert.Equal(0, scavengePoint.EventNumber);
+		Assert.Equal(0, scavengePoint.Threshold);
 	}
 
 	[Fact]
@@ -87,14 +83,10 @@ public class SubsequentScavengeTests : SqliteDbPerTest<SubsequentScavengeTests>
 			.RunAsync();
 
 		Assert.Equal(ScavengeResult.Stopped, logger.Result);
-		Assert.Collection(
-			newScavengePoint,
-			sp =>
-			{
-				Assert.Equal(EffectiveNow, sp.EffectiveNow);
-				Assert.Equal(1, sp.EventNumber);
-				Assert.Equal(0, sp.Threshold);
-			});
+		var scavengePoint = Assert.Single(newScavengePoint);
+		Assert.Equal(EffectiveNow, scavengePoint.EffectiveNow);
+		Assert.Equal(1, scavengePoint.EventNumber);
+		Assert.Equal(0, scavengePoint.Threshold);
 	}
 
 	[Fact]

@@ -160,13 +160,9 @@ public class IncomingGrpcCallsMetricTests
 		actualMeasurement =>
 		{
 			Assert.Equal(expectedValue, actualMeasurement.Value);
-			Assert.Collection(
-				actualMeasurement.Tags.ToArray(),
-				tag =>
-				{
-					Assert.Equal("kind", tag.Key);
-					Assert.Equal(expectedKind, tag.Value);
-				});
+			var tag = Assert.Single(actualMeasurement.Tags.ToArray());
+			Assert.Equal("kind", tag.Key);
+			Assert.Equal(expectedKind, tag.Value);
 		};
 
 	static void AssertMeasurements(

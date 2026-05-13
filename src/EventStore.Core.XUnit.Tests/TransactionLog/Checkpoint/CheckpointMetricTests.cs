@@ -19,23 +19,19 @@ public class CheckpointMetricTests
 			new InMemoryCheckpoint("checkpoint", 5));
 
 		listener.Observe();
+		var measurement = Assert.Single(listener.RetrieveMeasurements("eventstore-checkpoints"));
+		Assert.Equal(5, measurement.Value);
 		Assert.Collection(
-			listener.RetrieveMeasurements("eventstore-checkpoints"),
-			measurement =>
+			measurement.Tags.ToArray(),
+			tag =>
 			{
-				Assert.Equal(5, measurement.Value);
-				Assert.Collection(
-					measurement.Tags.ToArray(),
-					tag =>
-					{
-						Assert.Equal("name", tag.Key);
-						Assert.Equal("checkpoint", tag.Value);
-					},
-					tag =>
-					{
-						Assert.Equal("read", tag.Key);
-						Assert.Equal("non-flushed", tag.Value);
-					});
+				Assert.Equal("name", tag.Key);
+				Assert.Equal("checkpoint", tag.Value);
+			},
+			tag =>
+			{
+				Assert.Equal("read", tag.Key);
+				Assert.Equal("non-flushed", tag.Value);
 			});
 	}
 }
