@@ -35,6 +35,7 @@ COPY ./.git/ .
 WORKDIR /build
 COPY ./scripts/publish-tests.sh ./scripts/publish-tests.sh
 RUN sh ./scripts/publish-tests.sh /build/src /build/published-tests
+WORKDIR /build/src
 
 # "test" image
 FROM mcr.microsoft.com/dotnet/sdk:10.0-${CONTAINER_RUNTIME} AS test
