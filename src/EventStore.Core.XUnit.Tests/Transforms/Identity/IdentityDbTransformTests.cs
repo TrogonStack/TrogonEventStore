@@ -83,9 +83,9 @@ public class IdentityDbTransformTests
 		md5.AppendData(footer);
 
 		Assert.Equal(alignedSize, fileSize);
-		Assert.True(data.SequenceEqual(transformedData[..dataSize]));
-		Assert.True(new byte[paddingSize].SequenceEqual(transformedData[dataSize..^footerSize]));
-		Assert.True(footer.SequenceEqual(transformedData[^footerSize..]));
+		Assert.True(data.AsSpan().SequenceEqual(transformedData.AsSpan(0, dataSize)));
+		Assert.True(new byte[paddingSize].AsSpan().SequenceEqual(transformedData.AsSpan(dataSize, paddingSize)));
+		Assert.True(footer.AsSpan().SequenceEqual(transformedData.AsSpan(alignedSize - footerSize, footerSize)));
 
 		Assert.Equal(MD5.HashData(transformedData), md5.GetHashAndReset());
 	}
@@ -117,9 +117,9 @@ public class IdentityDbTransformTests
 		md5.AppendData(footer);
 
 		Assert.Equal(alignedSize, fileSize);
-		Assert.True(data.SequenceEqual(transformedData[..dataSize]));
-		Assert.True(new byte[paddingSize].SequenceEqual(transformedData[dataSize..^footerSize]));
-		Assert.True(footer.SequenceEqual(transformedData[^footerSize..]));
+		Assert.True(data.AsSpan().SequenceEqual(transformedData.AsSpan(0, dataSize)));
+		Assert.True(new byte[paddingSize].AsSpan().SequenceEqual(transformedData.AsSpan(dataSize, paddingSize)));
+		Assert.True(footer.AsSpan().SequenceEqual(transformedData.AsSpan(alignedSize - footerSize, footerSize)));
 
 		Assert.Equal(MD5.HashData(transformedData), md5.GetHashAndReset());
 	}
