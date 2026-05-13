@@ -363,6 +363,7 @@ public class MiniNode<TLogFormat, TStreamId> : MiniNode, IAsyncDisposable
 		HttpClient.Dispose();
 		_kestrelTestHost.Dispose();
 		await Node.StopAsync(TimeSpan.FromSeconds(20));
+		await Task.Delay(1000);
 
 		if (!keepDb)
 		{
