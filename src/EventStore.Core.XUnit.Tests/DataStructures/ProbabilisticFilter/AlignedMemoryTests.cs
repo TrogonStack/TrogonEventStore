@@ -16,7 +16,7 @@ public unsafe class AlignedMemoryTests
 	{
 		using var sut = new AlignedMemory(size, alignTo);
 
-		Assert.True((long)sut.Pointer % alignTo == 0);
+		Assert.Equal(0, (long)sut.Pointer % alignTo);
 
 		if (size <= int.MaxValue)
 		{
