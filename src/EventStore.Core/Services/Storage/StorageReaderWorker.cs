@@ -186,6 +186,14 @@ public class StorageReaderWorker<TStreamId> :
 
 		if (msg.Expires < DateTime.UtcNow)
 		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.ReadStreamEventsBackwardCompleted(
+					msg.CorrelationId, msg.EventStreamId, msg.FromEventNumber, msg.MaxCount,
+					ReadStreamResult.Expired,
+					ResolvedEvent.EmptyArray, default, default, default, default, default, default, default));
+			}
+
 			if (LogExpiredMessage(msg.Expires))
 			{
 				Log.Debug(
@@ -290,6 +298,15 @@ public class StorageReaderWorker<TStreamId> :
 
 		if (msg.Expires < DateTime.UtcNow)
 		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.ReadAllEventsBackwardCompleted(
+					msg.CorrelationId, ReadAllResult.Expired,
+					default, ResolvedEvent.EmptyArray, default, default, default,
+					currentPos: new TFPos(msg.CommitPosition, msg.PreparePosition),
+					TFPos.Invalid, TFPos.Invalid, default));
+			}
+
 			if (LogExpiredMessage(msg.Expires))
 			{
 				Log.Debug(
@@ -378,6 +395,15 @@ public class StorageReaderWorker<TStreamId> :
 
 		if (msg.Expires < DateTime.UtcNow)
 		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.FilteredReadAllEventsBackwardCompleted(
+					msg.CorrelationId, FilteredReadAllResult.Expired,
+					default, ResolvedEvent.EmptyArray, default, default, default,
+					currentPos: new TFPos(msg.CommitPosition, msg.PreparePosition),
+					TFPos.Invalid, TFPos.Invalid, default, default));
+			}
+
 			Log.Debug(
 				"Read All Stream Events Backward Filtered operation has expired for C:{0}/P:{1}. Operation Expired at {2}",
 				msg.CommitPosition, msg.PreparePosition, msg.Expires);

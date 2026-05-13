@@ -22,7 +22,6 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			private readonly bool _resolveLinks;
 			private readonly ClaimsPrincipal _user;
 			private readonly bool _requiresLeader;
-			private readonly DateTime _deadline;
 			private readonly uint _compatibility;
 			private readonly CancellationToken _cancellationToken;
 			private readonly SemaphoreSlim _semaphore;
@@ -39,7 +38,6 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				bool resolveLinks,
 				ClaimsPrincipal user,
 				bool requiresLeader,
-				DateTime deadline,
 				uint compatibility,
 				CancellationToken cancellationToken)
 			{
@@ -49,7 +47,6 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				_resolveLinks = resolveLinks;
 				_user = user;
 				_requiresLeader = requiresLeader;
-				_deadline = deadline;
 				_compatibility = compatibility;
 				_cancellationToken = cancellationToken;
 				_semaphore = new SemaphoreSlim(1, 1);
@@ -83,7 +80,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				_bus.Publish(new ClientMessage.ReadStreamEventsForward(
 					correlationId, correlationId, new ContinuationEnvelope(OnMessage, _semaphore, _cancellationToken),
 					_streamName, startRevision.ToInt64(), (int)Math.Min(ReadBatchSize, _maxCount), _resolveLinks,
-					_requiresLeader, null, _user, replyOnExpired: false, expires: _deadline,
+					_requiresLeader, null, _user, replyOnExpired: true,
 					cancellationToken: _cancellationToken));
 
 				async Task OnMessage(Message message, CancellationToken ct)
@@ -145,6 +142,9 @@ namespace EventStore.Core.Services.Transport.Enumerators
 							_channel.Writer.TryComplete();
 							return;
 
+						case ReadStreamResult.Expired:
+							ReadPage(StreamRevision.FromInt64(completed.FromEventNumber), readCount);
+							return;
 						case ReadStreamResult.NoStream:
 							await _channel.Writer.WriteAsync(new ReadResponse.StreamNotFound(_streamName), ct);
 							_channel.Writer.TryComplete();

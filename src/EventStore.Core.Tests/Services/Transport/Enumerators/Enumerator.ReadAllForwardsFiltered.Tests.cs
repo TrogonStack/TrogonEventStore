@@ -26,7 +26,6 @@ public partial class EnumeratorTests
 			user: SystemAccounts.System,
 			requiresLeader: false,
 			maxSearchWindow: null,
-			deadline: DateTime.Now,
 			cancellationToken: CancellationToken.None));
 	}
 

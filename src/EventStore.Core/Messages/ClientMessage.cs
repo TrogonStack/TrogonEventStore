@@ -720,11 +720,13 @@ public static partial class ClientMessage
 		public readonly bool RequireLeader;
 
 		public readonly long? ValidationStreamVersion;
+		public readonly bool ReplyOnExpired;
 
 		public ReadStreamEventsBackward(Guid internalCorrId, Guid correlationId, IEnvelope envelope,
 			string eventStreamId, long fromEventNumber, int maxCount, bool resolveLinkTos,
 			bool requireLeader, long? validationStreamVersion, ClaimsPrincipal user, DateTime? expires = null,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default,
+			bool replyOnExpired = false)
 			: base(internalCorrId, correlationId, envelope, user, expires, cancellationToken)
 		{
 			Ensure.NotNullOrEmpty(eventStreamId, "eventStreamId");
@@ -739,6 +741,7 @@ public static partial class ClientMessage
 			ResolveLinkTos = resolveLinkTos;
 			RequireLeader = requireLeader;
 			ValidationStreamVersion = validationStreamVersion;
+			ReplyOnExpired = replyOnExpired;
 		}
 
 		public override string ToString() =>
@@ -748,7 +751,8 @@ public static partial class ClientMessage
 			$"MaxCount: {MaxCount}, " +
 			$"ResolveLinkTos: {ResolveLinkTos}, " +
 			$"RequireLeader: {RequireLeader}, " +
-			$"ValidationStreamVersion: {ValidationStreamVersion}";
+			$"ValidationStreamVersion: {ValidationStreamVersion}, " +
+			$"ReplyOnExpired: {ReplyOnExpired}";
 	}
 
 	[DerivedMessage(CoreMessage.Client)]
@@ -785,7 +789,7 @@ public static partial class ClientMessage
 		{
 			Ensure.NotNull(events, "events");
 
-			if (result != ReadStreamResult.Success)
+			if (result != ReadStreamResult.Success && result != ReadStreamResult.Expired)
 			{
 				Ensure.Equal(nextEventNumber, -1, "nextEventNumber");
 				Ensure.Equal(isEndOfStream, true, "isEndOfStream");
@@ -904,12 +908,14 @@ public static partial class ClientMessage
 		public readonly bool RequireLeader;
 
 		public readonly long? ValidationTfLastCommitPosition;
+		public readonly bool ReplyOnExpired;
 
 		public ReadAllEventsBackward(Guid internalCorrId, Guid correlationId, IEnvelope envelope,
 			long commitPosition, long preparePosition, int maxCount, bool resolveLinkTos,
 			bool requireLeader, long? validationTfLastCommitPosition, ClaimsPrincipal user,
 			DateTime? expires = null,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default,
+			bool replyOnExpired = false)
 			: base(internalCorrId, correlationId, envelope, user, expires, cancellationToken)
 		{
 			CommitPosition = commitPosition;
@@ -918,6 +924,7 @@ public static partial class ClientMessage
 			ResolveLinkTos = resolveLinkTos;
 			RequireLeader = requireLeader;
 			ValidationTfLastCommitPosition = validationTfLastCommitPosition;
+			ReplyOnExpired = replyOnExpired;
 		}
 
 		public override string ToString() =>
@@ -927,7 +934,8 @@ public static partial class ClientMessage
 			$"MaxCount: {MaxCount}, " +
 			$"ResolveLinkTos: {ResolveLinkTos}, " +
 			$"RequireLeader: {RequireLeader}, " +
-			$"ValidationTfLastCommitPosition: {ValidationTfLastCommitPosition}";
+			$"ValidationTfLastCommitPosition: {ValidationTfLastCommitPosition}, " +
+			$"ReplyOnExpired: {ReplyOnExpired}";
 	}
 
 	[DerivedMessage(CoreMessage.Client)]
@@ -1075,6 +1083,7 @@ public static partial class ClientMessage
 		public readonly bool RequireLeader;
 		public readonly int MaxSearchWindow;
 		public readonly IEventFilter EventFilter;
+		public readonly bool ReplyOnExpired;
 
 		public readonly long? ValidationTfLastCommitPosition;
 		public readonly TimeSpan? LongPollTimeout;
@@ -1083,7 +1092,8 @@ public static partial class ClientMessage
 			long commitPosition, long preparePosition, int maxCount, bool resolveLinkTos, bool requireLeader,
 			int maxSearchWindow, long? validationTfLastCommitPosition, IEventFilter eventFilter, ClaimsPrincipal user,
 			TimeSpan? longPollTimeout = null, DateTime? expires = null,
-			CancellationToken cancellationToken = default)
+			CancellationToken cancellationToken = default,
+			bool replyOnExpired = false)
 			: base(internalCorrId, correlationId, envelope, user, expires, cancellationToken)
 		{
 			CommitPosition = commitPosition;
@@ -1095,6 +1105,7 @@ public static partial class ClientMessage
 			LongPollTimeout = longPollTimeout;
 			MaxSearchWindow = maxSearchWindow;
 			EventFilter = eventFilter;
+			ReplyOnExpired = replyOnExpired;
 		}
 
 		public override string ToString() =>
@@ -1107,7 +1118,8 @@ public static partial class ClientMessage
 			$"MaxSearchWindow: {MaxSearchWindow}, " +
 			$"EventFilter: {{ {EventFilter} }}, " +
 			$"LongPollTimeout: {LongPollTimeout}, " +
-			$"ValidationTfLastCommitPosition: {ValidationTfLastCommitPosition}";
+			$"ValidationTfLastCommitPosition: {ValidationTfLastCommitPosition}, " +
+			$"ReplyOnExpired: {ReplyOnExpired}";
 	}
 
 	[DerivedMessage(CoreMessage.Client)]

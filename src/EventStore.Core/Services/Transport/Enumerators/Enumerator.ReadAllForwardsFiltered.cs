@@ -27,7 +27,6 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			private readonly IEventFilter _eventFilter;
 			private readonly ClaimsPrincipal _user;
 			private readonly bool _requiresLeader;
-			private readonly DateTime _deadline;
 			private readonly uint _maxSearchWindow;
 			private readonly CancellationToken _cancellationToken;
 			private readonly SemaphoreSlim _semaphore;
@@ -45,7 +44,6 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				ClaimsPrincipal user,
 				bool requiresLeader,
 				uint? maxSearchWindow,
-				DateTime deadline,
 				CancellationToken cancellationToken)
 			{
 				if (bus == null)
@@ -65,7 +63,6 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				_user = user;
 				_requiresLeader = requiresLeader;
 				_maxSearchWindow = maxSearchWindow ?? ReadBatchSize;
-				_deadline = deadline;
 				_cancellationToken = cancellationToken;
 				_semaphore = new SemaphoreSlim(1, 1);
 				_channel = Channel.CreateBounded<ReadResponse>(BoundedChannelOptions);
@@ -101,8 +98,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 					correlationId, correlationId, new ContinuationEnvelope(OnMessage, _semaphore, _cancellationToken),
 					commitPosition, preparePosition, (int)Math.Min(ReadBatchSize, _maxCount), _resolveLinks,
 					_requiresLeader, (int)_maxSearchWindow, null, _eventFilter, _user,
-					replyOnExpired: false,
-					expires: _deadline,
+					replyOnExpired: true,
 					cancellationToken: _cancellationToken));
 
 				async Task OnMessage(Message message, CancellationToken ct)
@@ -145,6 +141,11 @@ namespace EventStore.Core.Services.Transport.Enumerators
 							ReadPage(Position.FromInt64(
 								completed.NextPos.CommitPosition,
 								completed.NextPos.PreparePosition), readCount);
+							return;
+						case FilteredReadAllResult.Expired:
+							ReadPage(Position.FromInt64(
+								completed.CurrentPos.CommitPosition,
+								completed.CurrentPos.PreparePosition), readCount);
 							return;
 						case FilteredReadAllResult.AccessDenied:
 							_channel.Writer.TryComplete(new ReadResponseException.AccessDenied());

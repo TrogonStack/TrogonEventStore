@@ -252,7 +252,7 @@ public class StreamBasedAuthorizationPolicyRegistry(
 		try
 		{
 			await using var read = new Enumerator.ReadStreamBackwards(publisher, _stream,
-				StreamRevision.End, ulong.MaxValue, false, SystemAccounts.System, false, DateTime.MaxValue, 1, ct);
+				StreamRevision.End, ulong.MaxValue, false, SystemAccounts.System, false, 1, ct);
 			while (await read.MoveNextAsync())
 			{
 				var readResponse = read.Current;
