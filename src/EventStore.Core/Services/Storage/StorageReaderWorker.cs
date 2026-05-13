@@ -95,11 +95,20 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		using var cts = Multiplex(ref token, msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg);
 		try
 		{
 			var ev = await ReadEvent(msg, token);
 			msg.Envelope.ReplyWith(ev);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (LogExpiredMessage(msg.Expires))
+			{
+				Log.Debug(
+					"Read Event operation has expired for Stream: {stream}, Event Number: {eventNumber}. Operation Expired at {expiryDateTime}",
+					msg.EventStreamId, msg.EventNumber, msg.Expires);
+			}
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
@@ -136,12 +145,31 @@ public class StorageReaderWorker<TStreamId> :
 		}
 
 		ClientMessage.ReadStreamEventsForwardCompleted res;
-		using var cts = Multiplex(ref token, msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg);
 		try
 		{
 			res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
 				? _memoryStreamReader.ReadForwards(msg)
 				: await ReadStreamEventsForward(msg, token);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.ReadStreamEventsForwardCompleted(
+					msg.CorrelationId, msg.EventStreamId, msg.FromEventNumber, msg.MaxCount,
+					ReadStreamResult.Expired,
+					ResolvedEvent.EmptyArray, default, default, default, default, default, default, default));
+			}
+
+			if (LogExpiredMessage(msg.Expires))
+			{
+				Log.Debug(
+					"Read Stream Events Forward operation has expired for Stream: {stream}, From Event Number: {fromEventNumber}, Max Count: {maxCount}. Operation Expired at {expiryDateTime}",
+					msg.EventStreamId, msg.FromEventNumber, msg.MaxCount, msg.Expires);
+			}
+
+			return;
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
@@ -204,7 +232,7 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		using var cts = Multiplex(ref token, msg.CancellationToken);
+		using var cts = Multiplex(ref token, msg);
 		try
 		{
 			var res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
@@ -212,6 +240,23 @@ public class StorageReaderWorker<TStreamId> :
 				: await ReadStreamEventsBackward(msg, token);
 
 			msg.Envelope.ReplyWith(res);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.ReadStreamEventsBackwardCompleted(
+					msg.CorrelationId, msg.EventStreamId, msg.FromEventNumber, msg.MaxCount,
+					ReadStreamResult.Expired,
+					ResolvedEvent.EmptyArray, default, default, default, default, default, default, default));
+			}
+
+			if (LogExpiredMessage(msg.Expires))
+			{
+				Log.Debug(
+					"Read Stream Events Backward operation has expired for Stream: {stream}, From Event Number: {fromEventNumber}, Max Count: {maxCount}. Operation Expired at {expiryDateTime}",
+					msg.EventStreamId, msg.FromEventNumber, msg.MaxCount, msg.Expires);
+			}
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
 		{
@@ -248,43 +293,69 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var res = await ReadAllEventsForward(msg, token);
-		switch (res.Result)
+		using var cts = Multiplex(ref token, msg);
+		try
 		{
-			case ReadAllResult.Success:
-				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream && res.Events.Count is 0)
-				{
-					_publisher.Publish(new SubscriptionMessage.PollStream(
-						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
-						DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
-				}
-				else
-				{
-					msg.Envelope.ReplyWith(res);
-				}
+			var res = await ReadAllEventsForward(msg, token);
+			switch (res.Result)
+			{
+				case ReadAllResult.Success:
+					if (msg.LongPollTimeout.HasValue && res.IsEndOfStream && res.Events.Count is 0)
+					{
+						_publisher.Publish(new SubscriptionMessage.PollStream(
+							SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
+							DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
+					}
+					else
+					{
+						msg.Envelope.ReplyWith(res);
+					}
 
-				break;
-			case ReadAllResult.NotModified:
-				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
-					res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
-				{
-					_publisher.Publish(new SubscriptionMessage.PollStream(
-						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
-						DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
-				}
-				else
-				{
-					msg.Envelope.ReplyWith(res);
-				}
+					break;
+				case ReadAllResult.NotModified:
+					if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
+						res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
+					{
+						_publisher.Publish(new SubscriptionMessage.PollStream(
+							SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
+							DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
+					}
+					else
+					{
+						msg.Envelope.ReplyWith(res);
+					}
 
-				break;
-			case ReadAllResult.Error:
-			case ReadAllResult.AccessDenied:
-			case ReadAllResult.InvalidPosition:
-				msg.Envelope.ReplyWith(res);
-				break;
-			default:
-				throw new ArgumentOutOfRangeException($"Unknown ReadAllResult: {res.Result}");
+					break;
+				case ReadAllResult.Error:
+				case ReadAllResult.AccessDenied:
+				case ReadAllResult.InvalidPosition:
+					msg.Envelope.ReplyWith(res);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException($"Unknown ReadAllResult: {res.Result}");
+			}
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.ReadAllEventsForwardCompleted(
+					msg.CorrelationId, ReadAllResult.Expired,
+					default, ResolvedEvent.EmptyArray, default, default, default,
+					currentPos: new TFPos(msg.CommitPosition, msg.PreparePosition),
+					TFPos.Invalid, TFPos.Invalid, default));
+			}
+
+			if (LogExpiredMessage(msg.Expires))
+			{
+				Log.Debug(
+					"Read All Stream Events Forward operation has expired for C:{commitPosition}/P:{preparePosition}. Operation Expired at {expiryDateTime}",
+					msg.CommitPosition, msg.PreparePosition, msg.Expires);
+			}
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+		{
+			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		}
 	}
 
@@ -317,7 +388,33 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		msg.Envelope.ReplyWith(await ReadAllEventsBackward(msg, token));
+		using var cts = Multiplex(ref token, msg);
+		try
+		{
+			msg.Envelope.ReplyWith(await ReadAllEventsBackward(msg, token));
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.ReadAllEventsBackwardCompleted(
+					msg.CorrelationId, ReadAllResult.Expired,
+					default, ResolvedEvent.EmptyArray, default, default, default,
+					currentPos: new TFPos(msg.CommitPosition, msg.PreparePosition),
+					TFPos.Invalid, TFPos.Invalid, default));
+			}
+
+			if (LogExpiredMessage(msg.Expires))
+			{
+				Log.Debug(
+					"Read All Stream Events Backward operation has expired for C:{commitPosition}/P:{preparePosition}. Operation Expired at {expiryDateTime}",
+					msg.CommitPosition, msg.PreparePosition, msg.Expires);
+			}
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+		{
+			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
+		}
 	}
 
 	async ValueTask IAsyncHandle<ClientMessage.FilteredReadAllEventsForward>.HandleAsync(
@@ -345,43 +442,66 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var res = await FilteredReadAllEventsForward(msg, token);
-		switch (res.Result)
+		using var cts = Multiplex(ref token, msg);
+		try
 		{
-			case FilteredReadAllResult.Success:
-				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream && res.Events.Count is 0)
-				{
-					_publisher.Publish(new SubscriptionMessage.PollStream(
-						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
-						DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
-				}
-				else
-				{
-					msg.Envelope.ReplyWith(res);
-				}
+			var res = await FilteredReadAllEventsForward(msg, token);
+			switch (res.Result)
+			{
+				case FilteredReadAllResult.Success:
+					if (msg.LongPollTimeout.HasValue && res.IsEndOfStream && res.Events.Count is 0)
+					{
+						_publisher.Publish(new SubscriptionMessage.PollStream(
+							SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
+							DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
+					}
+					else
+					{
+						msg.Envelope.ReplyWith(res);
+					}
 
-				break;
-			case FilteredReadAllResult.NotModified:
-				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
-					res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
-				{
-					_publisher.Publish(new SubscriptionMessage.PollStream(
-						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
-						DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
-				}
-				else
-				{
-					msg.Envelope.ReplyWith(res);
-				}
+					break;
+				case FilteredReadAllResult.NotModified:
+					if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
+						res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
+					{
+						_publisher.Publish(new SubscriptionMessage.PollStream(
+							SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
+							DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
+					}
+					else
+					{
+						msg.Envelope.ReplyWith(res);
+					}
 
-				break;
-			case FilteredReadAllResult.Error:
-			case FilteredReadAllResult.AccessDenied:
-			case FilteredReadAllResult.InvalidPosition:
-				msg.Envelope.ReplyWith(res);
-				break;
-			default:
-				throw new ArgumentOutOfRangeException($"Unknown ReadAllResult: {res.Result}");
+					break;
+				case FilteredReadAllResult.Error:
+				case FilteredReadAllResult.AccessDenied:
+				case FilteredReadAllResult.InvalidPosition:
+					msg.Envelope.ReplyWith(res);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException($"Unknown ReadAllResult: {res.Result}");
+			}
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.FilteredReadAllEventsForwardCompleted(
+					msg.CorrelationId, FilteredReadAllResult.Expired,
+					default, ResolvedEvent.EmptyArray, default, default, default,
+					currentPos: new TFPos(msg.CommitPosition, msg.PreparePosition),
+					TFPos.Invalid, TFPos.Invalid, default, default, default));
+			}
+
+			Log.Debug(
+				"Read All Stream Events Forward Filtered operation has expired for C:{0}/P:{1}. Operation Expired at {2}",
+				msg.CommitPosition, msg.PreparePosition, msg.Expires);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+		{
+			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		}
 	}
 
@@ -410,43 +530,66 @@ public class StorageReaderWorker<TStreamId> :
 			return;
 		}
 
-		var res = await FilteredReadAllEventsBackward(msg, token);
-		switch (res.Result)
+		using var cts = Multiplex(ref token, msg);
+		try
 		{
-			case FilteredReadAllResult.Success:
-				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream && res.Events.Count is 0)
-				{
-					_publisher.Publish(new SubscriptionMessage.PollStream(
-						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
-						DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
-				}
-				else
-				{
-					msg.Envelope.ReplyWith(res);
-				}
+			var res = await FilteredReadAllEventsBackward(msg, token);
+			switch (res.Result)
+			{
+				case FilteredReadAllResult.Success:
+					if (msg.LongPollTimeout.HasValue && res.IsEndOfStream && res.Events.Count is 0)
+					{
+						_publisher.Publish(new SubscriptionMessage.PollStream(
+							SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
+							DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
+					}
+					else
+					{
+						msg.Envelope.ReplyWith(res);
+					}
 
-				break;
-			case FilteredReadAllResult.NotModified:
-				if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
-					res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
-				{
-					_publisher.Publish(new SubscriptionMessage.PollStream(
-						SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
-						DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
-				}
-				else
-				{
-					msg.Envelope.ReplyWith(res);
-				}
+					break;
+				case FilteredReadAllResult.NotModified:
+					if (msg.LongPollTimeout.HasValue && res.IsEndOfStream &&
+						res.CurrentPos.CommitPosition > res.TfLastCommitPosition)
+					{
+						_publisher.Publish(new SubscriptionMessage.PollStream(
+							SubscriptionsService.AllStreamsSubscriptionId, res.TfLastCommitPosition, null,
+							DateTime.UtcNow + msg.LongPollTimeout.Value, msg));
+					}
+					else
+					{
+						msg.Envelope.ReplyWith(res);
+					}
 
-				break;
-			case FilteredReadAllResult.Error:
-			case FilteredReadAllResult.AccessDenied:
-			case FilteredReadAllResult.InvalidPosition:
-				msg.Envelope.ReplyWith(res);
-				break;
-			default:
-				throw new ArgumentOutOfRangeException($"Unknown ReadAllResult: {res.Result}");
+					break;
+				case FilteredReadAllResult.Error:
+				case FilteredReadAllResult.AccessDenied:
+				case FilteredReadAllResult.InvalidPosition:
+					msg.Envelope.ReplyWith(res);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException($"Unknown ReadAllResult: {res.Result}");
+			}
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)
+		{
+			if (msg.ReplyOnExpired)
+			{
+				msg.Envelope.ReplyWith(new ClientMessage.FilteredReadAllEventsBackwardCompleted(
+					msg.CorrelationId, FilteredReadAllResult.Expired,
+					default, ResolvedEvent.EmptyArray, default, default, default,
+					currentPos: new TFPos(msg.CommitPosition, msg.PreparePosition),
+					TFPos.Invalid, TFPos.Invalid, default, default));
+			}
+
+			Log.Debug(
+				"Read All Stream Events Backward Filtered operation has expired for C:{0}/P:{1}. Operation Expired at {2}",
+				msg.CommitPosition, msg.PreparePosition, msg.Expires);
+		}
+		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+		{
+			throw new OperationCanceledException(null, ex, cts.CancellationOrigin);
 		}
 	}
 
@@ -1093,6 +1236,18 @@ public class StorageReaderWorker<TStreamId> :
 		CancellationToken cancellationToken)
 	{
 		var scope = _tokenMultiplexer.Combine([token, cancellationToken]);
+		token = scope.Token;
+		return scope;
+	}
+
+	private CancellationTokenMultiplexer.Scope Multiplex(
+		ref CancellationToken token,
+		ClientMessage.ReadRequestMessage message)
+	{
+		var scope = message.CanExpire
+			? _tokenMultiplexer.Combine(message.Lifetime, [token, message.CancellationToken])
+			: _tokenMultiplexer.Combine([token, message.CancellationToken]);
+
 		token = scope.Token;
 		return scope;
 	}

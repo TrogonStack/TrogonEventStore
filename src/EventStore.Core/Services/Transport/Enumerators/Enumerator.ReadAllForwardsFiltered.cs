@@ -99,6 +99,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 					commitPosition, preparePosition, (int)Math.Min(ReadBatchSize, _maxCount), _resolveLinks,
 					_requiresLeader, (int)_maxSearchWindow, null, _eventFilter, _user,
 					replyOnExpired: true,
+					expires: ClientMessage.ReadRequestMessage.NeverExpires,
 					cancellationToken: _cancellationToken));
 
 				async Task OnMessage(Message message, CancellationToken ct)

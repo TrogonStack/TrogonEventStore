@@ -81,6 +81,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 					correlationId, correlationId, new ContinuationEnvelope(OnMessage, _semaphore, _cancellationToken),
 					_streamName, startRevision.ToInt64(), (int)Math.Min(ReadBatchSize, _maxCount), _resolveLinks,
 					_requiresLeader, null, _user,
+					expires: ClientMessage.ReadRequestMessage.NeverExpires,
 					cancellationToken: _cancellationToken,
 					replyOnExpired: true));
 

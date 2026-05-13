@@ -1,4 +1,3 @@
-using System;
 using EventStore.Core.Bus;
 using EventStore.Core.Messages;
 using EventStore.Projections.Core.Messages;
@@ -22,7 +21,8 @@ public class RequestResponseQueueForwarder(IPublisher inputQueue, IPublisher ext
 			new ClientMessage.ReadEvent(
 				msg.InternalCorrId, msg.CorrelationId,
 				new PublishToWrapEnvelop(inputQueue, msg.Envelope, nameof(ClientMessage.ReadEvent)),
-				msg.EventStreamId, msg.EventNumber, msg.ResolveLinkTos, msg.RequireLeader, msg.User));
+				msg.EventStreamId, msg.EventNumber, msg.ResolveLinkTos, msg.RequireLeader, msg.User,
+				expires: msg.CanExpire ? null : msg.Expires));
 
 	public void Handle(ClientMessage.WriteEvents msg) =>
 		externalRequestQueue.Publish(
@@ -38,13 +38,6 @@ public class RequestResponseQueueForwarder(IPublisher inputQueue, IPublisher ext
 				new PublishToWrapEnvelop(inputQueue, msg.Envelope, nameof(ClientMessage.DeleteStream)), true,
 				msg.EventStreamId, msg.ExpectedVersion, msg.HardDelete, msg.User));
 
-	// Historically, message forwarding here has discarded the original Expiration value,
-	// resetting it to the default (10 seconds from now). Ideally, we should propagate the
-	// original Expiration from the source message.
-	//
-	// For now, this fix takes a minimal-impact approach: we only preserve the Expiration
-	// when explicitly needed (i.e., DateTime.MaxValue), and only for the relevant messages.
-
 	public void Handle(ClientMessage.ReadStreamEventsBackward msg) =>
 		externalRequestQueue.Publish(
 			new ClientMessage.ReadStreamEventsBackward(
@@ -52,7 +45,7 @@ public class RequestResponseQueueForwarder(IPublisher inputQueue, IPublisher ext
 				new PublishToWrapEnvelop(inputQueue, msg.Envelope, nameof(ClientMessage.ReadStreamEventsBackward)),
 				msg.EventStreamId, msg.FromEventNumber, msg.MaxCount, msg.ResolveLinkTos, msg.RequireLeader,
 				msg.ValidationStreamVersion, msg.User,
-				expires: msg.Expires == DateTime.MaxValue ? msg.Expires : null));
+				expires: msg.CanExpire ? null : msg.Expires));
 
 	public void Handle(ClientMessage.ReadStreamEventsForward msg) =>
 		externalRequestQueue.Publish(
@@ -61,7 +54,7 @@ public class RequestResponseQueueForwarder(IPublisher inputQueue, IPublisher ext
 				new PublishToWrapEnvelop(inputQueue, msg.Envelope, nameof(ClientMessage.ReadStreamEventsForward)),
 				msg.EventStreamId, msg.FromEventNumber, msg.MaxCount, msg.ResolveLinkTos, msg.RequireLeader,
 				msg.ValidationStreamVersion, msg.User, replyOnExpired: false,
-				expires: msg.Expires == DateTime.MaxValue ? msg.Expires : null));
+				expires: msg.CanExpire ? null : msg.Expires));
 
 	public void Handle(ClientMessage.ReadAllEventsForward msg) =>
 		externalRequestQueue.Publish(
@@ -69,7 +62,8 @@ public class RequestResponseQueueForwarder(IPublisher inputQueue, IPublisher ext
 				msg.InternalCorrId, msg.CorrelationId,
 				new PublishToWrapEnvelop(inputQueue, msg.Envelope, nameof(ClientMessage.ReadAllEventsForward)),
 				msg.CommitPosition, msg.PreparePosition, msg.MaxCount, msg.ResolveLinkTos, msg.RequireLeader,
-				msg.ValidationTfLastCommitPosition, msg.User, replyOnExpired: false));
+				msg.ValidationTfLastCommitPosition, msg.User, replyOnExpired: false,
+				expires: msg.CanExpire ? null : msg.Expires));
 
 	public void Handle(SystemMessage.SubSystemInitialized msg) =>
 		externalRequestQueue.Publish(
