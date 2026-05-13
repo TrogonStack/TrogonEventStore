@@ -530,7 +530,7 @@ ReadLoop:
 					startPos.CommitPosition, startPos.PreparePosition, ReadBatchSize, _resolveLinks, _requiresLeader,
 					(int)_maxSearchWindow, null, _eventFilter, _user,
 					replyOnExpired: true,
-					expires: _expiryStrategy.GetExpiry(),
+					expires: _expiryStrategy.GetExpiry() ?? ClientMessage.ReadRequestMessage.NeverExpires,
 					cancellationToken: ct));
 			}
 

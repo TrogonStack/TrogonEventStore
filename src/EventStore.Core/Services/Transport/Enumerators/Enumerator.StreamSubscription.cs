@@ -436,7 +436,7 @@ ReadLoop:
 					_streamName, startEventNumber, ReadBatchSize, _resolveLinks, _requiresLeader, null,
 					_user,
 					replyOnExpired: true,
-					expires: _expiryStrategy.GetExpiry(),
+					expires: _expiryStrategy.GetExpiry() ?? ClientMessage.ReadRequestMessage.NeverExpires,
 					cancellationToken: ct));
 			}
 

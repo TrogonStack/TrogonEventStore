@@ -82,6 +82,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 					correlationId, correlationId, new ContinuationEnvelope(OnMessage, _semaphore, _cancellationToken),
 					commitPosition, preparePosition, (int)Math.Min(ReadBatchSize, _maxCount), _resolveLinks,
 					_requiresLeader, default, _user, replyOnExpired: true,
+					expires: ClientMessage.ReadRequestMessage.NeverExpires,
 					cancellationToken: _cancellationToken));
 
 				async Task OnMessage(Message message, CancellationToken ct)

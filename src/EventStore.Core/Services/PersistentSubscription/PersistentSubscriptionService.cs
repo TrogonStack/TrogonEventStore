@@ -1425,7 +1425,7 @@ public class PersistentSubscriptionService<TStreamId> :
 			1,
 			false,
 			SystemAccounts.System, x =>
-				HandleLoadCompleted(continueWith, x), expires: DateTime.MaxValue);
+				HandleLoadCompleted(continueWith, x), expires: ClientMessage.ReadRequestMessage.NeverExpires);
 
 	private void HandleLoadCompleted(Action continueWith,
 		ClientMessage.ReadStreamEventsBackwardCompleted readStreamEventsBackwardCompleted)

@@ -13,6 +13,7 @@ using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.Fakes;
 using EventStore.Core.TransactionLog.Checkpoint;
 using NUnit.Framework;
+using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
 namespace EventStore.Core.Tests.Services.Storage;
 
@@ -48,6 +49,87 @@ public class when_cancelling_storage_reader_worker
 		var ex = Assert.CatchAsync<OperationCanceledException>(async () => await task);
 		Assert.That(ex?.CancellationToken, Is.EqualTo(messageCancellation.Token));
 		Assert.That(reply, Is.Null);
+	}
+
+	[Test]
+	public async Task read_event_timeout_completes_without_reply()
+	{
+		using var readIndex = new BlockingReadIndex();
+		var worker = CreateWorker(readIndex);
+		var reply = default(Message);
+		var message = new ClientMessage.ReadEvent(
+			Guid.NewGuid(),
+			Guid.NewGuid(),
+			new CallbackEnvelope(m => reply = m),
+			"stream",
+			0,
+			resolveLinkTos: false,
+			requireLeader: false,
+			user: new ClaimsPrincipal(),
+			expires: DateTime.UtcNow.AddMilliseconds(100));
+
+		var task = ((IAsyncHandle<ClientMessage.ReadEvent>)worker)
+			.HandleAsync(message, CancellationToken.None)
+			.AsTask();
+
+		Assert.That(readIndex.ReadEventStarted.Wait(TimeSpan.FromSeconds(5)), Is.True);
+
+		await task.WaitAsync(TimeSpan.FromSeconds(5));
+
+		Assert.That(reply, Is.Null);
+	}
+
+	[Test]
+	public async Task read_request_lifetime_counts_down_to_expiry()
+	{
+		var message = new ClientMessage.ReadEvent(
+			Guid.NewGuid(),
+			Guid.NewGuid(),
+			new NoopEnvelope(),
+			"stream",
+			0,
+			resolveLinkTos: false,
+			requireLeader: false,
+			user: new ClaimsPrincipal(),
+			expires: DateTime.UtcNow.AddSeconds(5));
+
+		var initialLifetime = message.Lifetime;
+
+		await Task.Delay(50);
+
+		Assert.That(message.Lifetime, Is.LessThan(initialLifetime));
+	}
+
+	[Test]
+	public async Task read_stream_forward_timeout_replies_expired()
+	{
+		using var readIndex = new BlockingReadIndex();
+		var worker = CreateWorker(readIndex);
+		var reply = default(Message);
+		var message = new ClientMessage.ReadStreamEventsForward(
+			Guid.NewGuid(),
+			Guid.NewGuid(),
+			new CallbackEnvelope(m => reply = m),
+			"stream",
+			0,
+			1,
+			resolveLinkTos: false,
+			requireLeader: false,
+			validationStreamVersion: null,
+			user: new ClaimsPrincipal(),
+			replyOnExpired: true,
+			expires: DateTime.UtcNow.AddMilliseconds(100));
+
+		var task = ((IAsyncHandle<ClientMessage.ReadStreamEventsForward>)worker)
+			.HandleAsync(message, CancellationToken.None)
+			.AsTask();
+
+		Assert.That(readIndex.ReadStreamForwardStarted.Wait(TimeSpan.FromSeconds(5)), Is.True);
+
+		await task.WaitAsync(TimeSpan.FromSeconds(5));
+
+		Assert.That(reply, Is.TypeOf<ClientMessage.ReadStreamEventsForwardCompleted>());
+		Assert.That(((ClientMessage.ReadStreamEventsForwardCompleted)reply!).Result, Is.EqualTo(ReadStreamResult.Expired));
 	}
 
 	[Test]
@@ -113,6 +195,7 @@ public class when_cancelling_storage_reader_worker
 	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable
 	{
 		public ManualResetEventSlim ReadEventStarted { get; } = new(false);
+		public ManualResetEventSlim ReadStreamForwardStarted { get; } = new(false);
 		public ManualResetEventSlim EffectiveAclStarted { get; } = new(false);
 
 		public long LastIndexedPosition => 0;
@@ -133,7 +216,7 @@ public class when_cancelling_storage_reader_worker
 			throw new NotSupportedException();
 		public ValueTask<IndexReadStreamResult> ReadStreamEventsForward(string streamName, string streamId,
 			long fromEventNumber, int maxCount, CancellationToken token) =>
-			throw new NotSupportedException();
+			AwaitCancellation<IndexReadStreamResult>(ReadStreamForwardStarted, token);
 		public ValueTask<IndexReadEventInfoResult> ReadEventInfo_KeepDuplicates(string streamId, long eventNumber,
 			CancellationToken token) =>
 			throw new NotSupportedException();
@@ -180,6 +263,7 @@ public class when_cancelling_storage_reader_worker
 		public void Dispose()
 		{
 			ReadEventStarted.Dispose();
+			ReadStreamForwardStarted.Dispose();
 			EffectiveAclStarted.Dispose();
 		}
 

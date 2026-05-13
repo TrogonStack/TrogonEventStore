@@ -742,7 +742,7 @@ public class ManagedProjection : IDisposable
 				1,
 				resolveLinkTos: false, requireLeader: false, validationStreamVersion: null,
 				user: SystemAccounts.System,
-				expires: DateTime.MaxValue),
+				expires: ClientMessage.ReadRequestMessage.NeverExpires),
 			new ReadStreamEventsBackwardHandlers.Optimistic(PersistedStateReadCompleted));
 	}
 
