@@ -36,7 +36,7 @@ public class a_failed_projection
 			yield return
 				(ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					reader, new TFPos(100, 50), new TFPos(100, 50), "stream", 1, "stream", 1, false, Guid.NewGuid(),
-					"event", false, new byte[0], new byte[0], 100, 33.3f));
+					"event", false, Array.Empty<byte>(), Array.Empty<byte>(), 100, 33.3f));
 		}
 	}
 
