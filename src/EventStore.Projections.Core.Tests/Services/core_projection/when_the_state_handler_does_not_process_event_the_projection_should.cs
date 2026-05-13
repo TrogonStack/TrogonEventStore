@@ -29,7 +29,7 @@ public class when_the_state_handler_does_not_process_event_the_projection_should
 				new ResolvedEvent(
 					"/event_category/1", -1, "/event_category/1", -1, false, new TFPos(120, 110),
 					new TFPos(120, 110),
-					Guid.NewGuid(), "skip_this_type", false, new byte[0], new byte[0], null, null,
+					Guid.NewGuid(), "skip_this_type", false, Array.Empty<byte>(), Array.Empty<byte>(), null, null,
 					default(DateTime)),
 				_subscriptionId, 0));
 	}
