@@ -29,6 +29,7 @@ public class ScavengeStatusTrackerTests : IDisposable
 	public void Dispose()
 	{
 		_listener?.Dispose();
+		GC.SuppressFinalize(this);
 	}
 
 	[Fact]
@@ -51,23 +52,19 @@ public class ScavengeStatusTrackerTests : IDisposable
 	{
 		_listener.Observe();
 
+		var measurement = Assert.Single(_listener.RetrieveMeasurements("eventstore-statuses"));
+		Assert.Equal(expectedValue, measurement.Value);
 		Assert.Collection(
-			_listener.RetrieveMeasurements("eventstore-statuses"),
-			m =>
+			measurement.Tags.ToArray(),
+			t =>
 			{
-				Assert.Equal(expectedValue, m.Value);
-				Assert.Collection(
-					m.Tags.ToArray(),
-					t =>
-					{
-						Assert.Equal("name", t.Key);
-						Assert.Equal("Scavenge", t.Value);
-					},
-					t =>
-					{
-						Assert.Equal("status", t.Key);
-						Assert.Equal(expectedStatus, t.Value);
-					});
+				Assert.Equal("name", t.Key);
+				Assert.Equal("Scavenge", t.Value);
+			},
+			t =>
+			{
+				Assert.Equal("status", t.Key);
+				Assert.Equal(expectedStatus, t.Value);
 			});
 	}
 }
