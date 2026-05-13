@@ -53,7 +53,7 @@ public class when_has_been_created<TLogFormat, TStreamId> : TestFixtureWithExist
 		{
 			_edp.Handle(
 				new ClientMessage.ReadStreamEventsForwardCompleted(
-					_distibutionPointCorrelationId, "a", 100, 100, ReadStreamResult.Success, new ResolvedEvent[0],
+					_distibutionPointCorrelationId, "a", 100, 100, ReadStreamResult.Success, Array.Empty<ResolvedEvent>(),
 					null, false, "", -1, 4, true, 100));
 		});
 	}

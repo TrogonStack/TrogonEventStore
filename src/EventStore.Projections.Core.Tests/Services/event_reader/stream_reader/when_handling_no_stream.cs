@@ -40,7 +40,7 @@ public class when_handling_no_stream<TLogFormat, TStreamId> : TestFixtureWithExi
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
 				correlationId, "stream", 100, 100,
-				ReadStreamResult.NoStream, new ResolvedEvent[0], null, false, "", -1, ExpectedVersion.NoStream,
+				ReadStreamResult.NoStream, Array.Empty<ResolvedEvent>(), null, false, "", -1, ExpectedVersion.NoStream,
 				true, 200));
 	}
 

@@ -66,7 +66,7 @@ public class when_heading_event_reader_has_been_created : TestFixtureWithReadWri
 			_point.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(20, 10), "stream", 10, false, Guid.NewGuid(), "type", false,
-					new byte[0], new byte[0]));
+					Array.Empty<byte>(), Array.Empty<byte>()));
 		});
 	}
 

@@ -39,7 +39,7 @@ public class when_paused_then_handling_no_stream<TLogFormat, TStreamId> : TestFi
 			.CorrelationId;
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
-				correlationId, "stream", 100, 100, ReadStreamResult.NoStream, new ResolvedEvent[0]
+				correlationId, "stream", 100, 100, ReadStreamResult.NoStream, Array.Empty<ResolvedEvent>()
 				, null, false, "", -1, ExpectedVersion.NoStream, true, 200));
 	}
 

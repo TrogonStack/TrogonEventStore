@@ -44,11 +44,11 @@ public class when_the_heading_event_reader_subscribes_a_projection : TestFixture
 		_point.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				_distibutionPointCorrelationId, new TFPos(20, 10), "stream", 10, false, Guid.NewGuid(),
-				"type", false, new byte[0], new byte[0]));
+				"type", false, Array.Empty<byte>(), Array.Empty<byte>()));
 		_point.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				_distibutionPointCorrelationId, new TFPos(40, 30), "stream", 11, false, Guid.NewGuid(),
-				"type", false, new byte[0], new byte[0]));
+				"type", false, Array.Empty<byte>(), Array.Empty<byte>()));
 		_subscription = new FakeReaderSubscription();
 		_projectionSubscriptionId = Guid.NewGuid();
 		_point.TrySubscribe(_projectionSubscriptionId, _subscription, 30);
