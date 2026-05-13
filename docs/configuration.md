@@ -306,7 +306,7 @@ only: _Error while parsing options: The option UnknownConfig is not a known opti
 Some options are configured at startup to make better use of the available resources on larger instances or
 machines.
 
-These options are `StreamInfoCacheCapacity`, `ReaderThreadsCount`, and `WorkerThreads`.
+These options are `StreamInfoCacheCapacity`, `ReadConcurrencyLimit`, and `WorkerThreads`.
 
 Autoconfiguration does not apply in containerized environments.
 
@@ -335,9 +335,9 @@ The total number of streams can be obtained by checking the event count in the `
 It should be noted that the total number of streams does not necessarily give you the anticipated working set. The working set of streams is the set of streams that you intend on actively reading, writing, and/or subscribing to. This can be much lower than the total number of streams in certain cases, especially in systems that have many short-lived streams.
 :::
 
-### ReaderThreadsCount
+### ReadConcurrencyLimit
 
-This option configures the number of reader threads available to EventStoreDb. Having more reader threads
+This option configures the number of read requests EventStoreDb can process concurrently. Having more reader threads
 allows more concurrent reads to be processed.
 
 The reader threads count will be set at startup to twice the number of available processors, with a minimum of
@@ -345,9 +345,9 @@ The reader threads count will be set at startup to twice the number of available
 
 | Format               | Syntax                            |
 |:---------------------|:----------------------------------|
-| Command line         | `--reader-threads-count`          |
-| YAML                 | `ReaderThreadsCount`              |
-| Environment variable | `EVENTSTORE_READER_THREADS_COUNT` |
+| Command line         | `--read-concurrency-limit`        |
+| YAML                 | `ReadConcurrencyLimit`            |
+| Environment variable | `EVENTSTORE_READ_CONCURRENCY_LIMIT` |
 
 The option is set to 0 by default, which enables autoconfiguration. The default on previous versions of
 EventStoreDb was 4 threads.

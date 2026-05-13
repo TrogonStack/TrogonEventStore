@@ -449,8 +449,8 @@ public partial record ClusterVNodeOptions
 		public int InitializationThreads { get; init; } = 1;
 
 		[Description(
-			"The number of reader threads to use for processing reads. Set to '0' to scale automatically (Default)")]
-		public int ReaderThreadsCount { get; init; } = 0;
+			"The maximum number of read requests that can be processed concurrently. Set to '0' to scale automatically (Default)")]
+		public int ReadConcurrencyLimit { get; init; } = 0;
 
 		[Description("During large Index Merge operations, writes may be slowed down. Set this to the maximum " +
 					 "index file level for which automatic merges should happen. Merging indexes above this level " +
