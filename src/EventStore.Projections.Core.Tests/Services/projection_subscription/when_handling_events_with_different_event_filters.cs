@@ -83,7 +83,7 @@ public class
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), firstPosition, "a-random-stream-name", 1, false, Guid.NewGuid(),
-				"a-random-event-type", false, new byte[0], new byte[0]));
+				"a-random-event-type", false, Array.Empty<byte>(), Array.Empty<byte>()));
 
 		_checkpointHandler.HandledMessages.Clear();
 
@@ -92,7 +92,7 @@ public class
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), secondPosition, _stream, 1, false, Guid.NewGuid(),
-				_eventType, false, new byte[0], new byte[0]));
+				_eventType, false, Array.Empty<byte>(), Array.Empty<byte>()));
 	}
 
 	[Test]

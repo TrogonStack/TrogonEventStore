@@ -33,6 +33,6 @@ public class
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), position, stream, 1, resolvedLinkToEvent, Guid.NewGuid(),
-				eventType, false, new byte[0], new byte[0]));
+				eventType, false, Array.Empty<byte>(), Array.Empty<byte>()));
 	}
 }
