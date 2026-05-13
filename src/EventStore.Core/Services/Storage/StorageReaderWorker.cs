@@ -45,7 +45,7 @@ public class StorageReaderWorker<TStreamId> :
 	private readonly IReadIndex<TStreamId> _readIndex;
 	private readonly ISystemStreamLookup<TStreamId> _systemStreams;
 	private readonly IReadOnlyCheckpoint _writerCheckpoint;
-	private readonly IInMemoryStreamReader _memoryStreamReader;
+	private readonly IVirtualStreamReader _virtualStreamReader;
 	private readonly int _queueId;
 	private readonly CancellationTokenMultiplexer _tokenMultiplexer = new();
 	private static readonly char[] LinkToSeparator = { '@' };
@@ -59,7 +59,7 @@ public class StorageReaderWorker<TStreamId> :
 		IReadIndex<TStreamId> readIndex,
 		ISystemStreamLookup<TStreamId> systemStreams,
 		IReadOnlyCheckpoint writerCheckpoint,
-		IInMemoryStreamReader inMemoryStreamReader,
+		IVirtualStreamReader virtualStreamReader,
 		int queueId)
 	{
 		Ensure.NotNull(publisher, "publisher");
@@ -72,7 +72,7 @@ public class StorageReaderWorker<TStreamId> :
 		_systemStreams = systemStreams;
 		_writerCheckpoint = writerCheckpoint;
 		_queueId = queueId;
-		_memoryStreamReader = inMemoryStreamReader;
+		_virtualStreamReader = virtualStreamReader;
 	}
 
 	async ValueTask IAsyncHandle<ClientMessage.ReadEvent>.HandleAsync(ClientMessage.ReadEvent msg,
@@ -139,8 +139,8 @@ public class StorageReaderWorker<TStreamId> :
 		using var cts = Multiplex(ref token, msg.CancellationToken);
 		try
 		{
-			res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
-				? _memoryStreamReader.ReadForwards(msg)
+			res = _virtualStreamReader.CanReadStream(msg.EventStreamId)
+				? await _virtualStreamReader.ReadForwards(msg, token)
 				: await ReadStreamEventsForward(msg, token);
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
@@ -207,8 +207,8 @@ public class StorageReaderWorker<TStreamId> :
 		using var cts = Multiplex(ref token, msg.CancellationToken);
 		try
 		{
-			var res = SystemStreams.IsInMemoryStream(msg.EventStreamId)
-				? _memoryStreamReader.ReadBackwards(msg)
+			var res = _virtualStreamReader.CanReadStream(msg.EventStreamId)
+				? await _virtualStreamReader.ReadBackwards(msg, token)
 				: await ReadStreamEventsBackward(msg, token);
 
 			msg.Envelope.ReplyWith(res);

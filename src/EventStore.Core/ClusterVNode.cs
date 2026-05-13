@@ -800,16 +800,15 @@ public class ClusterVNode<TStreamId> :
 		var nodeStatusListener = new NodeStateListenerService(_mainQueue, memLog);
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(nodeStatusListener);
 
-		var inMemReader = new InMemoryStreamReader(new Dictionary<string, IInMemoryStreamReader>
-		{
-			[SystemStreams.GossipStream] = gossipListener,
-			[SystemStreams.NodeStateStream] = nodeStatusListener,
-		});
+		var virtualStreamReader = new VirtualStreamReader([
+			gossipListener.Stream,
+			nodeStatusListener.Stream,
+		]);
 
 		// Storage Reader
 		var storageReader = new StorageReaderService<TStreamId>(_mainQueue, _mainBus, readIndex,
 			logFormat.SystemStreams,
-			readerThreadsCount, Db.Config.WriterCheckpoint.AsReadOnly(), inMemReader, _queueStatsManager,
+			readerThreadsCount, Db.Config.WriterCheckpoint.AsReadOnly(), virtualStreamReader, _queueStatsManager,
 			trackers.QueueTrackers,
 			metricsConfiguration);
 
@@ -1172,7 +1171,7 @@ public class ClusterVNode<TStreamId> :
 
 		var subscription =
 			new SubscriptionsService<TStreamId>(_mainQueue, subscrQueue, _authorizationProvider, readIndex,
-				inMemReader);
+				virtualStreamReader);
 		subscrBus.Subscribe<SystemMessage.SystemStart>(subscription);
 		subscrBus.Subscribe<SystemMessage.BecomeShuttingDown>(subscription);
 		subscrBus.Subscribe<TcpMessage.ConnectionClosed>(subscription);
