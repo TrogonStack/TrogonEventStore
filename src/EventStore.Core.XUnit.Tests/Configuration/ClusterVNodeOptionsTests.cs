@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using EventStore.Common.Configuration;
 using EventStore.Common.Exceptions;
 using EventStore.Common.Options;
 using EventStore.Common.Utils;
@@ -196,10 +197,12 @@ public class ClusterVNodeOptionsTests
 	public void can_set_gossip_seed_values_via_array()
 	{
 		var config = new ConfigurationBuilder()
-			.AddInMemoryCollection([
-				new KeyValuePair<string, string?>("EventStore:GossipSeed:0", "127.0.0.1:1113"),
-				new KeyValuePair<string, string?>("EventStore:GossipSeed:1", "some-host:1114"),
-			])
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection([
+					new KeyValuePair<string, string?>("GossipSeed:0", "127.0.0.1:1113"),
+					new KeyValuePair<string, string?>("GossipSeed:1", "some-host:1114"),
+				]))
 			.Build();
 
 		var options = ClusterVNodeOptions.FromConfiguration(config);
