@@ -187,7 +187,7 @@ public class SqliteMetastreamScavengeMapTests : SqliteDbPerTest<SqliteMetastream
 		Assert.Empty(sut.AllRecords());
 	}
 
-		private static MetastreamData[] GetMetastreamTestData()
+	private static MetastreamData[] GetMetastreamTestData()
 	{
 		return new[] {
 			new MetastreamData(isTombstoned: false, DiscardPoint.DiscardIncluding(5)),
