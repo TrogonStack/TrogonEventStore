@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Common.Utils;
-using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 
 namespace EventStore.Core.Bus;
@@ -57,7 +56,7 @@ public class MultiQueuedHandler : IPublisher
 
 	public void Publish(Message message)
 	{
-		int queueHash = (message as IQueueAffineMessage)?.QueueId ?? NextQueueHash();
+		int queueHash = message.SynchronizationGroup?.GetHashCode() ?? NextQueueHash();
 		var queueNum = (int)((uint)queueHash % _queues.Length);
 		_queues.Span[queueNum].Publish(message);
 	}

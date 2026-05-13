@@ -393,17 +393,17 @@ namespace EventStore.Core.Messages
 		}
 
 		[DerivedMessage(CoreMessage.Storage)]
-		public partial class BatchLogExpiredMessages : Message, IQueueAffineMessage
+		public partial class BatchLogExpiredMessages : Message
 		{
 			public readonly Guid CorrelationId;
-			public int QueueId { get; }
+			public override object SynchronizationGroup { get; }
 
 			public BatchLogExpiredMessages(Guid correlationId, int queueId)
 			{
 				Ensure.NotEmptyGuid(correlationId, "correlationId");
 				Ensure.Nonnegative(queueId, "queueId");
 				CorrelationId = correlationId;
-				QueueId = queueId;
+				SynchronizationGroup = queueId;
 			}
 		}
 

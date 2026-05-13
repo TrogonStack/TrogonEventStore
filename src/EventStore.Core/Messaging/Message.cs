@@ -34,4 +34,7 @@ public abstract partial class Message
 
 	[JsonIgnore]
 	public CancellationToken CancellationToken { get; }
+
+	[JsonIgnore]
+	public virtual object SynchronizationGroup => null;
 }

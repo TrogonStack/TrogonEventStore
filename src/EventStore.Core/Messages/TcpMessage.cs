@@ -8,11 +8,11 @@ namespace EventStore.Core.Messages
 	public static partial class TcpMessage
 	{
 		[DerivedMessage(CoreMessage.Tcp)]
-		public partial class TcpSend : Message, IQueueAffineMessage
+		public partial class TcpSend : Message
 		{
-			public int QueueId
+			public override object SynchronizationGroup
 			{
-				get { return ConnectionManager.GetHashCode(); }
+				get { return ConnectionManager; }
 			}
 
 			public readonly TcpConnectionManager ConnectionManager;
