@@ -21,11 +21,11 @@ public class when_handling_multiple_committed_event_passing_the_filter : TestFix
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(200, 150), "test-stream", 1, false, Guid.NewGuid(),
-				"bad-event-type", false, new byte[0], new byte[0]));
+				"bad-event-type", false, Array.Empty<byte>(), Array.Empty<byte>()));
 		_subscription.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				Guid.NewGuid(), new TFPos(300, 250), "test-stream", 2, false, Guid.NewGuid(),
-				"bad-event-type", false, new byte[0], new byte[0]));
+				"bad-event-type", false, Array.Empty<byte>(), Array.Empty<byte>()));
 	}
 
 	[Test]

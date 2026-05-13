@@ -25,7 +25,7 @@ public class when_a_subscribed_projection_handler_throws : TestFixtureWithProjec
 		_readerService.Handle(
 			ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 				readerStrategy.EventReaderId, new TFPos(20, 10), "throws", 10, false, Guid.NewGuid(),
-				"type", false, new byte[0], new byte[0]));
+				"type", false, Array.Empty<byte>(), Array.Empty<byte>()));
 	}
 
 	[Test]

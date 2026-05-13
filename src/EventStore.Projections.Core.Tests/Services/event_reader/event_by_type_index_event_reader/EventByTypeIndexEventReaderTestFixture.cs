@@ -38,7 +38,7 @@ public abstract class EventByTypeIndexEventReaderTestFixture<TLogFormat, TStream
 		message.Envelope.ReplyWith(
 			new ClientMessage.ReadStreamEventsBackwardCompleted(
 				corrId == Guid.Empty ? message.CorrelationId : corrId, streamId, 0, 100, ReadStreamResult.Success,
-				new ResolvedEvent[] { }, null, false, "", lastEventNumber + 1, lastEventNumber, true, 200));
+				Array.Empty<ResolvedEvent>(), null, false, "", lastEventNumber + 1, lastEventNumber, true, 200));
 		return message.CorrelationId;
 	}
 

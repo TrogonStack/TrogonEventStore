@@ -129,6 +129,6 @@ public abstract class specification_with_a_v8_query_posted<TLogFormat, TStreamId
 
 	protected virtual IEnumerable<string> GivenOtherProjections()
 	{
-		return new string[0];
+		return Array.Empty<string>();
 	}
 }
