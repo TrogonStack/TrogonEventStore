@@ -107,7 +107,7 @@ public class when_cancelling_storage_reader_worker
 			readIndex,
 			new StubSystemStreamLookup(),
 			new StubCheckpoint(),
-			new StubInMemoryStreamReader(),
+			new StubVirtualStreamReader(),
 			queueId: 0);
 
 	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable
@@ -215,12 +215,22 @@ public class when_cancelling_storage_reader_worker
 		public long ReadNonFlushed() => 0;
 	}
 
-	private sealed class StubInMemoryStreamReader : IInMemoryStreamReader
+	private sealed class StubVirtualStreamReader : IVirtualStreamReader
 	{
-		public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(ClientMessage.ReadStreamEventsForward msg) =>
+		public ValueTask<ClientMessage.ReadStreamEventsForwardCompleted> ReadForwards(
+			ClientMessage.ReadStreamEventsForward msg,
+			CancellationToken token) =>
 			throw new NotSupportedException();
 
-		public ClientMessage.ReadStreamEventsBackwardCompleted ReadBackwards(ClientMessage.ReadStreamEventsBackward msg) =>
+		public ValueTask<ClientMessage.ReadStreamEventsBackwardCompleted> ReadBackwards(
+			ClientMessage.ReadStreamEventsBackward msg,
+			CancellationToken token) =>
 			throw new NotSupportedException();
+
+		public long GetLastEventNumber(string streamId) => ExpectedVersion.NoStream;
+
+		public long GetLastIndexedPosition(string streamId) => -1;
+
+		public bool CanReadStream(string streamId) => false;
 	}
 }

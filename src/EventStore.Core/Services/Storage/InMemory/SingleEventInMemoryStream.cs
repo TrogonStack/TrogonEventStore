@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
@@ -8,7 +10,7 @@ namespace EventStore.Core.Services.Storage.InMemory;
 
 // threading: we expect to handle one Write at a time, but Reads can happen concurrently
 // with the write and with other reads.
-public class SingleEventInMemoryStream : IInMemoryStreamReader
+public class SingleEventInMemoryStream : IVirtualStreamReader
 {
 	private readonly IPublisher _publisher;
 	private readonly InMemoryLog _memLog;
@@ -25,8 +27,9 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader
 		_streamName = streamName;
 	}
 
-	public ClientMessage.ReadStreamEventsForwardCompleted ReadForwards(
-		ClientMessage.ReadStreamEventsForward msg)
+	public ValueTask<ClientMessage.ReadStreamEventsForwardCompleted> ReadForwards(
+		ClientMessage.ReadStreamEventsForward msg,
+		CancellationToken token)
 	{
 
 		ReadStreamResult result;
@@ -60,7 +63,7 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader
 			}
 		}
 
-		return new ClientMessage.ReadStreamEventsForwardCompleted(
+		return ValueTask.FromResult(new ClientMessage.ReadStreamEventsForwardCompleted(
 			msg.CorrelationId,
 			msg.EventStreamId,
 			msg.FromEventNumber,
@@ -73,11 +76,12 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader
 			nextEventNumber: nextEventNumber,
 			lastEventNumber: lastEventNumber,
 			isEndOfStream: true,
-			tfLastCommitPosition: _memLog.GetLastCommitPosition());
+			tfLastCommitPosition: _memLog.GetLastCommitPosition()));
 	}
 
-	public ClientMessage.ReadStreamEventsBackwardCompleted ReadBackwards(
-		ClientMessage.ReadStreamEventsBackward msg)
+	public ValueTask<ClientMessage.ReadStreamEventsBackwardCompleted> ReadBackwards(
+		ClientMessage.ReadStreamEventsBackward msg,
+		CancellationToken token)
 	{
 
 		ReadStreamResult result;
@@ -113,7 +117,7 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader
 			}
 		}
 
-		return new ClientMessage.ReadStreamEventsBackwardCompleted(
+		return ValueTask.FromResult(new ClientMessage.ReadStreamEventsBackwardCompleted(
 			correlationId: msg.CorrelationId,
 			eventStreamId: msg.EventStreamId,
 			fromEventNumber: adjustedFromEventNumber,
@@ -126,8 +130,14 @@ public class SingleEventInMemoryStream : IInMemoryStreamReader
 			nextEventNumber: -1,
 			lastEventNumber: lastEventNumber,
 			isEndOfStream: true,
-			tfLastCommitPosition: _memLog.GetLastCommitPosition());
+			tfLastCommitPosition: _memLog.GetLastCommitPosition()));
 	}
+
+	public long GetLastEventNumber(string streamId) => _lastEvent?.EventNumber ?? ExpectedVersion.NoStream;
+
+	public long GetLastIndexedPosition(string streamId) => -1;
+
+	public bool CanReadStream(string streamId) => streamId == _streamName;
 
 	public void Write(string eventType, ReadOnlyMemory<byte> data)
 	{

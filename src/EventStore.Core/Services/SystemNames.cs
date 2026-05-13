@@ -32,7 +32,6 @@ namespace EventStore.Core.Services
 		public const string ScavengePointsStream = "$scavengePoints";
 		public const string AuthorizationPolicyRegistryStream = "$authorization-policy-settings";
 
-		// mem streams
 		public const string NodeStateStream = "$mem-node-state";
 		public const string GossipStream = "$mem-gossip";
 
@@ -52,10 +51,6 @@ namespace EventStore.Core.Services
 			return metastreamId.Substring(2);
 		}
 
-		public static bool IsInMemoryStream(string streamId)
-		{
-			return streamId.StartsWith("$mem-");
-		}
 	}
 
 	public static class SystemMetadata
