@@ -23,11 +23,11 @@ public class when_handling_events_with_content_type_validation
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(200, 200), "test-stream", 1, false, Guid.NewGuid(),
-					"invalid-json", true, Encoding.UTF8.GetBytes("{foo:bar}"), new byte[0]));
+					"invalid-json", true, Encoding.UTF8.GetBytes("{foo:bar}"), Array.Empty<byte>()));
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(300, 300), "test-stream", 2, false, Guid.NewGuid(),
-					"valid-json", true, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
+					"valid-json", true, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), Array.Empty<byte>()));
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(400, 400), "test-stream", 3, false, Guid.NewGuid(),
@@ -38,7 +38,7 @@ public class when_handling_events_with_content_type_validation
 							"foo": "bar",
 						}
 						"""),
-					new byte[0]));
+					Array.Empty<byte>()));
 		}
 
 		protected override IReaderSubscription CreateProjectionSubscription()
@@ -79,11 +79,11 @@ public class when_handling_events_with_content_type_validation
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(200, 200), "test-stream", 1, false, Guid.NewGuid(),
-					"plain-text", false, Encoding.UTF8.GetBytes("foo bar"), new byte[0]));
+					"plain-text", false, Encoding.UTF8.GetBytes("foo bar"), Array.Empty<byte>()));
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(300, 300), "test-stream", 2, false, Guid.NewGuid(),
-					"valid-json", false, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
+					"valid-json", false, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), Array.Empty<byte>()));
 		}
 
 		protected override IReaderSubscription CreateProjectionSubscription()
@@ -122,11 +122,11 @@ public class when_handling_events_with_content_type_validation
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(200, 200), "test-stream", 1, false, Guid.NewGuid(),
-					"invalid-json", true, Encoding.UTF8.GetBytes("{foo:bar}"), new byte[0]));
+					"invalid-json", true, Encoding.UTF8.GetBytes("{foo:bar}"), Array.Empty<byte>()));
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(300, 300), "test-stream", 2, false, Guid.NewGuid(),
-					"valid-json", true, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
+					"valid-json", true, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), Array.Empty<byte>()));
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(400, 400), "test-stream", 3, false, Guid.NewGuid(),
@@ -134,11 +134,11 @@ public class when_handling_events_with_content_type_validation
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(500, 500), "test-stream", 4, false, Guid.NewGuid(),
-					"plain-text", false, Encoding.UTF8.GetBytes("foo bar"), new byte[0]));
+					"plain-text", false, Encoding.UTF8.GetBytes("foo bar"), Array.Empty<byte>()));
 			_subscription.Handle(
 				ReaderSubscriptionMessage.CommittedEventDistributed.Sample(
 					Guid.NewGuid(), new TFPos(600, 600), "test-stream", 5, false, Guid.NewGuid(),
-					"valid-json", false, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), new byte[0]));
+					"valid-json", false, Encoding.UTF8.GetBytes("{\"foo\":\"bar\"}"), Array.Empty<byte>()));
 		}
 
 		protected override IReaderSubscription CreateProjectionSubscription()
