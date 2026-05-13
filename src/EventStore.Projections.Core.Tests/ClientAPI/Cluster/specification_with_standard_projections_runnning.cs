@@ -229,7 +229,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 	protected static EventData CreateEvent(string type, string data)
 	{
-		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), new byte[0]);
+		return new EventData(Guid.NewGuid(), type, true, Encoding.UTF8.GetBytes(data), Array.Empty<byte>());
 	}
 
 	protected void WaitIdle()
