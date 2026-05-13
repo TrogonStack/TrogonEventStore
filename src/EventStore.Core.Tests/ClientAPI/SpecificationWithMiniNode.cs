@@ -95,7 +95,6 @@ public abstract class SpecificationWithMiniNode<TLogFormat, TStreamId> : Specifi
 		}
 
 		await _node.Shutdown();
-		await Task.Delay(1000);
 		await base.TestFixtureTearDown();
 
 		MiniNodeLogging.Clear();
