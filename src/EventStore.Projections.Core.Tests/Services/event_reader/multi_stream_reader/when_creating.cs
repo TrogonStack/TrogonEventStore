@@ -77,7 +77,7 @@ public class when_creating<TLogFormat, TStreamId> : TestFixtureWithExistingEvent
 		Assert.Throws<ArgumentException>(() =>
 		{
 			new MultiStreamEventReader(
-				_ioDispatcher, _bus, Guid.NewGuid(), null, 0, new string[0], _ab12Tag, false, _timeProvider);
+				_ioDispatcher, _bus, Guid.NewGuid(), null, 0, Array.Empty<string>(), _ab12Tag, false, _timeProvider);
 		});
 	}
 

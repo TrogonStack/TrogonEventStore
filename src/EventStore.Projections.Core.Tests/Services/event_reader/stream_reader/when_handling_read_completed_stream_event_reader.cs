@@ -132,7 +132,7 @@ public class when_handling_read_completed_stream_event_reader<TLogFormat, TStrea
 							10, 50, Guid.NewGuid(), Guid.NewGuid(), 50, 0, "stream", ExpectedVersion.Any,
 							DateTime.UtcNow,
 							PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd,
-							"event_type", new byte[0], new byte[0]))
+							"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 				}, null, false, "", 11, 10, true, 100));
 		Assert.AreEqual(1, HandledMessages.OfType<ReaderSubscriptionMessage.Faulted>().Count());
 	}
@@ -151,7 +151,7 @@ public class when_handling_read_completed_stream_event_reader<TLogFormat, TStrea
 							12, 250, Guid.NewGuid(), Guid.NewGuid(), 250, 0, "stream", ExpectedVersion.Any,
 							DateTime.UtcNow,
 							PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd,
-							"event_type", new byte[0], new byte[0]))
+							"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 				}, null, false, "", 13, 11, true, 300));
 	}
 }

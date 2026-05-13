@@ -90,13 +90,13 @@ public class when_handling_read_completed_for_all_streams_and_eofs<TLogFormat, T
 			.Last(x => x.EventStreamId == "a").CorrelationId;
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
-				correlationId, "a", 100, 100, ReadStreamResult.Success, new ResolvedEvent[0], null, false, "", 3,
+				correlationId, "a", 100, 100, ReadStreamResult.Success, Array.Empty<ResolvedEvent>(), null, false, "", 3,
 				2, true, 400));
 		correlationId = _consumer.HandledMessages.OfType<ClientMessage.ReadStreamEventsForward>()
 			.Last(x => x.EventStreamId == "b").CorrelationId;
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
-				correlationId, "b", 100, 100, ReadStreamResult.Success, new ResolvedEvent[0], null, false, "", 4,
+				correlationId, "b", 100, 100, ReadStreamResult.Success, Array.Empty<ResolvedEvent>(), null, false, "", 4,
 				3, true, 400));
 	}
 

@@ -113,7 +113,7 @@ public class when_handling_read_completed<TLogFormat, TStreamId> : TestFixtureWi
 								DateTime.UtcNow,
 								PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin |
 								PrepareFlags.TransactionEnd,
-								"event_type", new byte[0], new byte[0]))
+								"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 					}, null, false, "", 3, 4, false, 100));
 		});
 	}

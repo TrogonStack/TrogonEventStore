@@ -123,7 +123,7 @@ public class when_handling_read_completed_for_all_streams_after_pause_requested<
 								DateTime.UtcNow,
 								PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin |
 								PrepareFlags.TransactionEnd,
-								"event_type", new byte[0], new byte[0]))
+								"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 					}, null, false, "", 4, 4, false, 300));
 		});
 	}

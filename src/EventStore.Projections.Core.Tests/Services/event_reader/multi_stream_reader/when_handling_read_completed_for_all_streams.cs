@@ -167,7 +167,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 								DateTime.UtcNow,
 								PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin |
 								PrepareFlags.TransactionEnd,
-								"event_type", new byte[0], new byte[0]))
+								"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 					}, null, false, "", 11, 10, true, 100));
 		});
 	}
@@ -186,7 +186,7 @@ public class when_handling_read_completed_for_all_streams<TLogFormat, TStreamId>
 							3, 250, Guid.NewGuid(), Guid.NewGuid(), 250, 0, "a", ExpectedVersion.Any,
 							DateTime.UtcNow,
 							PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd,
-							"event_type", new byte[0], new byte[0]))
+							"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 				}, null, false, "", 4, 4, false, 300));
 	}
 

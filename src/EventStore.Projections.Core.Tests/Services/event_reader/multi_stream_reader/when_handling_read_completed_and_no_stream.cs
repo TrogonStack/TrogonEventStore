@@ -67,7 +67,7 @@ public class when_handling_read_completed_and_no_stream<TLogFormat, TStreamId> :
 			.Last(x => x.EventStreamId == "b").CorrelationId;
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
-				correlationId, "b", 100, 100, ReadStreamResult.Success, new ResolvedEvent[0], null, false, "",
+				correlationId, "b", 100, 100, ReadStreamResult.Success, Array.Empty<ResolvedEvent>(), null, false, "",
 				-1, ExpectedVersion.NoStream, true, 200));
 	}
 
@@ -149,7 +149,7 @@ public class when_handling_read_completed_and_no_stream<TLogFormat, TStreamId> :
 							3, 250, Guid.NewGuid(), Guid.NewGuid(), 250, 0, "a", ExpectedVersion.Any,
 							DateTime.UtcNow,
 							PrepareFlags.SingleWrite | PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd,
-							"event_type", new byte[0], new byte[0]))
+							"event_type", Array.Empty<byte>(), Array.Empty<byte>()))
 				}, null, false, "", 4, 3, true, 300));
 	}
 }

@@ -61,7 +61,7 @@ public class when_handling_read_completed_and_eof<TLogFormat, TStreamId> : TestF
 			.CorrelationId;
 		_edp.Handle(
 			new ClientMessage.ReadStreamEventsForwardCompleted(
-				correlationId, "stream", 100, 100, ReadStreamResult.Success, new ResolvedEvent[0]
+				correlationId, "stream", 100, 100, ReadStreamResult.Success, Array.Empty<ResolvedEvent>()
 				, null, false, "", 12, 11, true, 400));
 	}
 
