@@ -41,7 +41,7 @@ public class when_instantiating_a_bufferpool : has_buffer_manager_fixture
 	public void the_requested_buffers_should_be_removed_from_the_buffer_manager()
 	{
 		int initialBuffers = BufferManager.AvailableBuffers;
-		new BufferPool(10, BufferManager);
+		_ = new BufferPool(10, BufferManager);
 		Assert.AreEqual(initialBuffers - 10, BufferManager.AvailableBuffers);
 	}
 }
