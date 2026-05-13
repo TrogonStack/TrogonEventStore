@@ -16,7 +16,7 @@ public class MultiPolicyEvaluatorTests
 	private ClaimsPrincipal _cp = new();
 	private const string TestAction = "read";
 
-	private MultiPolicyEvaluator CreateSut(Policy[] policies)
+	private static MultiPolicyEvaluator CreateSut(Policy[] policies)
 	{
 		var selectors = policies
 			.Select(x => new StaticPolicySelector(x.AsReadOnly()))
@@ -24,7 +24,7 @@ public class MultiPolicyEvaluatorTests
 		return new MultiPolicyEvaluator(new StaticAuthorizationPolicyRegistry(selectors));
 	}
 
-	private Policy CreatePolicy(string policyName, TestAssertion[] assertions)
+	private static Policy CreatePolicy(string policyName, TestAssertion[] assertions)
 	{
 		var policy = new Policy(policyName, 1, DateTimeOffset.MinValue);
 		foreach (var assertion in assertions)
@@ -93,7 +93,7 @@ public class MultiPolicyEvaluatorTests
 		{
 			var result = await sut.EvaluateAsync(_cp, new Operation(resource, TestAction), _ct);
 			Assert.Equal(Grant.Deny, result.Grant);
-			Assert.Contains("denied by default", result.Matches.Last().Assertion.ToString());
+			Assert.Contains("denied by default", result.Matches[^1].Assertion.ToString());
 		}
 	}
 
@@ -103,8 +103,7 @@ public class MultiPolicyEvaluatorTests
 		{
 			var result = await sut.EvaluateAsync(_cp, new Operation(resource, TestAction), _ct);
 			Assert.Equal(expectedGrant, result.Grant);
-			Assert.Contains(TestAssertion.Name, result.Matches.Last().Assertion.ToString());
+			Assert.Contains(TestAssertion.Name, result.Matches[^1].Assertion.ToString());
 		}
 	}
 }
-
