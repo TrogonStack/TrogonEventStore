@@ -16,15 +16,18 @@ public class QueueTrackers
 	private readonly Dictionary<string, SharedTrackers> _sharedTrackers = new();
 
 	private readonly PrivateTrackers _noOpPrivate = new(
-		new QueueBusyTracker.NoOp());
+		new QueueBusyTracker.NoOp(),
+		new QueueLengthTracker.NoOp());
 
 	private readonly SharedTrackers _noOpShared = new(
+		false,
 		"NoOp",
 		new DurationMaxTracker.NoOp(),
 		new QueueProcessingTracker.NoOp());
 
 	private readonly Conf.LabelMappingCase[] _cases;
 	private readonly Func<string, IQueueBusyTracker> _busyTrackerFactory;
+	private readonly Func<string, IQueueLengthTracker> _lengthTrackerFactory;
 	private readonly Func<string, IDurationMaxTracker> _durationTrackerFactory;
 	private readonly Func<string, IQueueProcessingTracker> _processingTrackerFactory;
 
@@ -32,6 +35,7 @@ public class QueueTrackers
 	{
 		_cases = Array.Empty<Conf.LabelMappingCase>();
 		_busyTrackerFactory = _ => _noOpPrivate.QueueBusyTracker;
+		_lengthTrackerFactory = _ => _noOpPrivate.QueueLengthTracker;
 		_durationTrackerFactory = _ => _noOpShared.QueueingDurationTracker;
 		_processingTrackerFactory = _ => _noOpShared.QueueProcessingTracker;
 	}
@@ -39,12 +43,14 @@ public class QueueTrackers
 	public QueueTrackers(
 		Conf.LabelMappingCase[] cases,
 		Func<string, IQueueBusyTracker> busyTrackerFactory,
+		Func<string, IQueueLengthTracker> lengthTrackerFactory,
 		Func<string, IDurationMaxTracker> durationTrackerFactory,
 		Func<string, IQueueProcessingTracker> processingTrackerFactory)
 	{
 
 		_cases = cases;
 		_busyTrackerFactory = busyTrackerFactory;
+		_lengthTrackerFactory = lengthTrackerFactory;
 		_durationTrackerFactory = durationTrackerFactory;
 		_processingTrackerFactory = processingTrackerFactory;
 	}
@@ -52,11 +58,12 @@ public class QueueTrackers
 	public QueueTracker GetTrackerForQueue(string queueName)
 	{
 		var sharedTrackers = GetSharedTrackerForQueue(queueName);
-		var privateTrackers = GetPrivateTrackerForLabel(sharedTrackers.Label);
+		var privateTrackers = GetPrivateTracker(sharedTrackers);
 
 		return new QueueTracker(
 			sharedTrackers.Label,
 			privateTrackers.QueueBusyTracker,
+			privateTrackers.QueueLengthTracker,
 			sharedTrackers.QueueingDurationTracker,
 			sharedTrackers.QueueProcessingTracker);
 	}
@@ -105,6 +112,7 @@ public class QueueTrackers
 		if (!_sharedTrackers.TryGetValue(label, out var tracker))
 		{
 			tracker = new(
+				true,
 				label,
 				_durationTrackerFactory(label),
 				_processingTrackerFactory(label));
@@ -114,18 +122,27 @@ public class QueueTrackers
 		return tracker;
 	}
 
-	private PrivateTrackers GetPrivateTrackerForLabel(string label)
+	private PrivateTrackers GetPrivateTracker(SharedTrackers sharedTrackers)
 	{
-		return new(_busyTrackerFactory(label));
+		if (!sharedTrackers.Enabled)
+		{
+			return _noOpPrivate;
+		}
+
+		return new(
+			_busyTrackerFactory(sharedTrackers.Label),
+			_lengthTrackerFactory(sharedTrackers.Label));
 	}
 
 	// each queue gets its own instance of the busytracker because it deals with the aggregation
 	// on observation rather than on measurement. two queues trying to start/stop the same stopwatch
 	// wouldn't make sense.
 	private record PrivateTrackers(
-		IQueueBusyTracker QueueBusyTracker);
+		IQueueBusyTracker QueueBusyTracker,
+		IQueueLengthTracker QueueLengthTracker);
 
 	private record SharedTrackers(
+		bool Enabled,
 		string Label,
 		IDurationMaxTracker QueueingDurationTracker,
 		IQueueProcessingTracker QueueProcessingTracker);

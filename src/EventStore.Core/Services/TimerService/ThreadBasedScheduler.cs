@@ -101,6 +101,7 @@ namespace EventStore.Core.Services.TimerService
 					}
 
 					_queueStats.ProcessingEnded(pending);
+					_tracker.RecordQueueLength(_pending.Count + _tasks.Count);
 
 					_queueStats.ProcessingStarted<ExecuteScheduledTasks>(_tasks.Count);
 					int processed = 0;
@@ -129,6 +130,7 @@ namespace EventStore.Core.Services.TimerService
 					}
 
 					_queueStats.ProcessingEnded(processed);
+					_tracker.RecordQueueLength(_pending.Count + _tasks.Count);
 
 					if (processed == 0 && !_pendingEvent.IsSet)
 					{
