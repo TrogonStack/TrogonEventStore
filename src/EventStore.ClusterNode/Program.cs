@@ -305,6 +305,7 @@ internal static class Program
 					{
 						app.MapAdminOperationsEndpoints();
 						app.MapQueueDashboardEndpoints();
+						app.MapStaticAssets();
 						app.MapRazorComponents<App>();
 					}
 
