@@ -424,7 +424,7 @@ public class StreamBasedAuthPolicyRegistryTests
 		return ResolvedEvent.ForUnresolvedEvent(eventRecord, logPosition);
 	}
 
-	private ClientMessage.ReadStreamEventsBackwardCompleted CreateReadCompleted(
+	private static ClientMessage.ReadStreamEventsBackwardCompleted CreateReadCompleted(
 		ClientMessage.ReadStreamEventsBackward msg, ResolvedEvent[] events) =>
 		new(msg.CorrelationId, msg.EventStreamId, msg.FromEventNumber, msg.MaxCount,
 			ReadStreamResult.Success, events, StreamMetadata.Empty, true, "",
