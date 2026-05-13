@@ -12,7 +12,10 @@ public class DefaultValuesConfigurationSourceTests
 	public void Adds()
 	{
 		// Arrange
-		var defaults = ClusterVNodeOptions.DefaultValues.OrderBy(x => x.Key).ToList();
+		var defaults = ClusterVNodeOptions.DefaultValues
+			.Where(x => x.Key is not nameof(ClusterVNodeOptions.ClusterOptions.GossipSeed))
+			.OrderBy(x => x.Key)
+			.ToList();
 
 		// Act
 		var configuration = new ConfigurationBuilder()

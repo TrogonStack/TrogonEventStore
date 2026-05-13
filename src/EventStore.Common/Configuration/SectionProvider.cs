@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 
@@ -50,6 +51,11 @@ public sealed class SectionProvider : ConfigurationProvider, IDisposable
 		var data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 		foreach (var kvp in _configuration.AsEnumerable())
 		{
+			if (kvp.Value is null && !_configuration.Providers.Any(provider => provider.TryGet(kvp.Key, out _)))
+			{
+				continue;
+			}
+
 			data[_sectionName + ":" + kvp.Key] = kvp.Value;
 		}
 

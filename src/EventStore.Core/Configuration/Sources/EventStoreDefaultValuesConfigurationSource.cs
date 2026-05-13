@@ -19,7 +19,9 @@ namespace EventStore.Core.Configuration.Sources
 	public class EventStoreDefaultValuesConfigurationProvider(IEnumerable<KeyValuePair<string, string?>> initialData)
 		: MemoryConfigurationProvider(new()
 		{
-			InitialData = initialData.ToDictionary(
+			InitialData = initialData
+				.Where(kvp => kvp.Key is not nameof(ClusterVNodeOptions.ClusterOptions.GossipSeed))
+				.ToDictionary(
 				kvp => $"{Prefix}:{kvp.Key}",
 				kvp => kvp.Value,
 				OrdinalIgnoreCase)
