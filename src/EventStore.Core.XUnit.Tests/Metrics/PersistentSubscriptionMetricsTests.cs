@@ -161,32 +161,28 @@ public class PersistentSubscriptionMetricsTests
 	public void ObserveLastKnownEvent()
 	{
 		var measurements = _sut.ObserveLastKnownEvent();
-		Assert.Collection(measurements,
-			AssertMeasurement("test", "testGroup", 1011));
+		AssertMeasurement("test", "testGroup", 1011)(Assert.Single(measurements));
 	}
 
 	[Fact]
 	public void ObserveLastKnownEventCommitPosition()
 	{
 		var measurements = _sut.ObserveLastKnownEventCommitPosition();
-		Assert.Collection(measurements,
-			AssertMeasurement("$all", "testGroup", 1012));
+		AssertMeasurement("$all", "testGroup", 1012)(Assert.Single(measurements));
 	}
 
 	[Fact]
 	public void ObserveLastCheckpointedEvent()
 	{
 		var measurements = _sut.ObserveLastCheckpointedEvent();
-		Assert.Collection(measurements,
-			AssertMeasurement("test", "testGroup", 1013));
+		AssertMeasurement("test", "testGroup", 1013)(Assert.Single(measurements));
 	}
 
 	[Fact]
 	public void ObserveLastCheckpointedEventCommitPosition()
 	{
 		var measurements = _sut.ObserveLastCheckpointedEventCommitPosition();
-		Assert.Collection(measurements,
-			AssertMeasurement("$all", "testGroup", 1014));
+		AssertMeasurement("$all", "testGroup", 1014)(Assert.Single(measurements));
 	}
 
 	static Action<Measurement<long>> AssertMeasurement(
