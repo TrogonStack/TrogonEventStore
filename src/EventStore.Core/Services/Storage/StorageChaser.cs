@@ -267,7 +267,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 				lastEventNumber = record.ExpectedVersion;
 			}
 
-			_leaderBus.Publish(new StorageMessage.CommitAck(record.CorrelationId,
+			_leaderBus.Publish(new StorageMessage.CommitChased(record.CorrelationId,
 				record.LogPosition,
 				record.TransactionPosition,
 				firstEventNumber,
@@ -276,7 +276,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 		else if (record.Flags.HasAnyOf(PrepareFlags.TransactionBegin | PrepareFlags.TransactionEnd | PrepareFlags.Data))
 		{
 			_leaderBus.Publish(
-				new StorageMessage.PrepareAck(record.CorrelationId, record.LogPosition, record.Flags));
+				new StorageMessage.UncommittedPrepareChased(record.CorrelationId, record.LogPosition, record.Flags));
 		}
 	}
 
@@ -292,7 +292,7 @@ public class StorageChaser<TStreamId> : StorageChaser, IMonitoredQueue,
 			lastEventNumber = record.FirstEventNumber - 1;
 		}
 
-		_leaderBus.Publish(new StorageMessage.CommitAck(record.CorrelationId, record.LogPosition,
+		_leaderBus.Publish(new StorageMessage.CommitChased(record.CorrelationId, record.LogPosition,
 			record.TransactionPosition, firstEventNumber, lastEventNumber));
 	}
 

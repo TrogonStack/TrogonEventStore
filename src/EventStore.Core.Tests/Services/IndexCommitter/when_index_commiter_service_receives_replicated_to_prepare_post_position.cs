@@ -23,7 +23,7 @@ public class when_index_committer_service_receives_replicated_to_prepare_post_po
 	{
 
 		AddPendingPrepare(_logPrePosition, _logPostPosition);
-		Service.Handle(new StorageMessage.CommitAck(_correlationId, _logPrePosition, _logPrePosition, 0, 0));
+		Service.Handle(new StorageMessage.CommitChased(_correlationId, _logPrePosition, _logPrePosition, 0, 0));
 		ReplicationCheckpoint.Write(_logPostPosition);
 		ReplicationCheckpoint.Flush();
 		Service.Handle(new ReplicationTrackingMessage.ReplicatedTo(_logPostPosition));

@@ -164,13 +164,13 @@ namespace EventStore.Core.Messages
 		}
 
 		[DerivedMessage(CoreMessage.Storage)]
-		public partial class PrepareAck : Message
+		public partial class UncommittedPrepareChased : Message
 		{
 			public readonly Guid CorrelationId;
 			public readonly long LogPosition;
 			public readonly PrepareFlags Flags;
 
-			public PrepareAck(Guid correlationId, long logPosition, PrepareFlags flags)
+			public UncommittedPrepareChased(Guid correlationId, long logPosition, PrepareFlags flags)
 			{
 				Ensure.NotEmptyGuid(correlationId, "correlationId");
 				Ensure.Nonnegative(logPosition, "logPosition");
@@ -182,7 +182,7 @@ namespace EventStore.Core.Messages
 		}
 
 		[DerivedMessage(CoreMessage.Storage)]
-		public partial class CommitAck : Message
+		public partial class CommitChased : Message
 		{
 			public readonly Guid CorrelationId;
 			public readonly long LogPosition;
@@ -190,7 +190,7 @@ namespace EventStore.Core.Messages
 			public readonly long FirstEventNumber;
 			public readonly long LastEventNumber;
 
-			public CommitAck(Guid correlationId, long logPosition, long transactionPosition, long firstEventNumber,
+			public CommitChased(Guid correlationId, long logPosition, long transactionPosition, long firstEventNumber,
 				long lastEventNumber)
 			{
 				Ensure.NotEmptyGuid(correlationId, "correlationId");

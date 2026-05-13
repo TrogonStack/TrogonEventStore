@@ -40,11 +40,11 @@ public class WhenChaserReadsPrepareEvent<TLogFormat, TStreamId> : with_storage_c
 		await Writer.Flush(token);
 	}
 	[Test]
-	public void prepare_ack_should_be_published()
+	public void uncommitted_prepare_chased_should_be_published()
 	{
-		AssertEx.IsOrBecomesTrue(() => PrepareAcks.Count == 1, msg: "PrepareAck msg not received");
-		Assert.True(PrepareAcks.TryDequeue(out var prepareAck));
-		Assert.AreEqual(_transactionId, prepareAck.CorrelationId);
+		AssertEx.IsOrBecomesTrue(() => UncommittedPreparesChased.Count == 1, msg: "UncommittedPrepareChased msg not received");
+		Assert.True(UncommittedPreparesChased.TryDequeue(out var uncommittedPrepareChased));
+		Assert.AreEqual(_transactionId, uncommittedPrepareChased.CorrelationId);
 
 	}
 
