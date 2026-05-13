@@ -7,7 +7,7 @@ namespace EventStore.Core.XUnit.Tests.DataStructures.ProbabilisticFilter;
 
 public unsafe class BloomFilterAccessorTests
 {
-	BloomFilterAccessor GenSut(long logicalFilterSize, BloomFilterAccessor.OnPageDirty onPageDirty = null)
+	static BloomFilterAccessor GenSut(long logicalFilterSize, BloomFilterAccessor.OnPageDirty onPageDirty = null)
 	{
 		return new BloomFilterAccessor(
 			logicalFilterSize: logicalFilterSize,
@@ -51,7 +51,7 @@ public unsafe class BloomFilterAccessorTests
 	{
 		var sut = GenSut(size);
 		Assert.Equal(expected, sut.FileSize);
-		Assert.True(sut.FileSize % 64 == 0);
+		Assert.Equal(0, sut.FileSize % 64);
 		Assert.Equal(expected / 64, sut.NumCacheLines);
 	}
 
