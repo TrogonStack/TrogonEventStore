@@ -27,6 +27,7 @@ public class MaxTrackerTests : IDisposable
 	public void Dispose()
 	{
 		_listener.Dispose();
+		GC.SuppressFinalize(this);
 	}
 
 	[Fact]
@@ -70,23 +71,19 @@ public class MaxTrackerTests : IDisposable
 	{
 		_listener.Observe();
 
+		var measurement = Assert.Single(_listener.RetrieveMeasurements("the-metric"));
+		Assert.Equal(expectedValue, measurement.Value);
 		Assert.Collection(
-			_listener.RetrieveMeasurements("the-metric"),
-			m =>
+			measurement.Tags.ToArray(),
+			t =>
 			{
-				Assert.Equal(expectedValue, m.Value);
-				Assert.Collection(
-					m.Tags.ToArray(),
-					t =>
-					{
-						Assert.Equal("name", t.Key);
-						Assert.Equal("the-tracker", t.Value);
-					},
-					t =>
-					{
-						Assert.Equal("range", t.Key);
-						Assert.Equal("16-20 seconds", t.Value);
-					});
+				Assert.Equal("name", t.Key);
+				Assert.Equal("the-tracker", t.Value);
+			},
+			t =>
+			{
+				Assert.Equal("range", t.Key);
+				Assert.Equal("16-20 seconds", t.Value);
 			});
 	}
 
@@ -102,18 +99,10 @@ public class MaxTrackerTests : IDisposable
 
 		listener.Observe();
 
-		Assert.Collection(
-			listener.RetrieveMeasurements("the-metric"),
-			m =>
-			{
-				Assert.Equal(0, m.Value);
-				Assert.Collection(
-					m.Tags.ToArray(),
-					t =>
-					{
-						Assert.Equal("range", t.Key);
-						Assert.Equal("16-20 seconds", t.Value);
-					});
-			});
+		var measurement = Assert.Single(listener.RetrieveMeasurements("the-metric"));
+		Assert.Equal(0, measurement.Value);
+		var tag = Assert.Single(measurement.Tags.ToArray());
+		Assert.Equal("range", tag.Key);
+		Assert.Equal("16-20 seconds", tag.Value);
 	}
 }

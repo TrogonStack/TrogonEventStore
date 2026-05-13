@@ -19,27 +19,19 @@ public class AverageMetricTests
 
 		Assert.Collection(
 			listener.RetrieveMeasurements("the-metric-seconds"),
-			m =>
-			{
-				Assert.Equal(1.5, m.Value);
-				Assert.Collection(
-					m.Tags,
-					t =>
-					{
-						Assert.Equal("queue", t.Key);
-						Assert.Equal("readers", t.Value);
-					});
-			},
-			m =>
-			{
-				Assert.Equal(3, m.Value);
-				Assert.Collection(
-					m.Tags,
-					t =>
-					{
-						Assert.Equal("queue", t.Key);
-						Assert.Equal("writer", t.Value);
-					});
-			});
+				m =>
+				{
+					Assert.Equal(1.5, m.Value);
+					var tag = Assert.Single(m.Tags);
+					Assert.Equal("queue", tag.Key);
+					Assert.Equal("readers", tag.Value);
+				},
+				m =>
+				{
+					Assert.Equal(3, m.Value);
+					var tag = Assert.Single(m.Tags);
+					Assert.Equal("queue", tag.Key);
+					Assert.Equal("writer", tag.Value);
+				});
 	}
 }
