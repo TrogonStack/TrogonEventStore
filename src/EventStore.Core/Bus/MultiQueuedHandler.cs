@@ -48,7 +48,7 @@ public class MultiQueuedHandler : IPublisher
 		var queues = _queues.Span;
 		for (int i = 0; i < queues.Length; ++i)
 		{
-			stopTasks[i] = Task.Run(queues[i].Stop);
+			stopTasks[i] = queues[i].Stop();
 		}
 
 		return Task.WhenAll(stopTasks);
