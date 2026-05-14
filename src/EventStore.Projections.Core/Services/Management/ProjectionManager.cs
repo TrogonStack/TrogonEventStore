@@ -554,7 +554,7 @@ public class ProjectionManager
 		var projection = GetProjection(message.Name);
 		if (projection == null)
 		{
-			_logger.Error("DBG: PROJECTION *{projection}* NOT FOUND.", message.Name);
+			_logger.Error("Projection '{projection}' not found.", message.Name);
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
 		else
@@ -602,12 +602,12 @@ public class ProjectionManager
 			return;
 		}
 
-		_logger.Information("Setting RunAs1 account for '{projection}' projection", message.Name);
+		_logger.Information("Setting RunAs account for '{projection}' projection", message.Name);
 
 		var projection = GetProjection(message.Name);
 		if (projection == null)
 		{
-			_logger.Error("DBG: PROJECTION *{projection}* NOT FOUND.", message.Name);
+			_logger.Error("Projection '{projection}' not found.", message.Name);
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
 		else
@@ -636,7 +636,7 @@ public class ProjectionManager
 		var projection = GetProjection(message.Name);
 		if (projection == null)
 		{
-			_logger.Error("DBG: PROJECTION *{projection}* NOT FOUND.", message.Name);
+			_logger.Error("Projection '{projection}' not found.", message.Name);
 			message.Envelope.ReplyWith(new ProjectionManagementMessage.NotFound());
 		}
 		else

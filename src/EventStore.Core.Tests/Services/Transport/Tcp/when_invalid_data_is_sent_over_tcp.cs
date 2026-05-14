@@ -21,6 +21,8 @@ public class when_invalid_data_is_sent_over_tcp<TLogFormat, TStreamId> : specifi
 	public async Task connection_should_be_closed_by_remote_party(string endpointProperty, bool secure)
 	{
 		IPEndPoint endpoint = (IPEndPoint)_nodes[0].GetType().GetProperty(endpointProperty).GetValue(_nodes[0], null);
+		await WaitForEndpoint(endpoint);
+
 		var closedEvent = new ManualResetEventSlim();
 		TaskCompletionSource<SocketError> connectionResult = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -63,5 +65,27 @@ public class when_invalid_data_is_sent_over_tcp<TLogFormat, TStreamId> : specifi
 		connection.EnqueueSend(data);
 		Assert.True(closedEvent.Wait(10000));
 		connection.Close("intentional close");
+	}
+
+	private static async Task WaitForEndpoint(IPEndPoint endpoint)
+	{
+		using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+		while (!timeout.IsCancellationRequested)
+		{
+			using var client = new TcpClient();
+
+			try
+			{
+				await client.ConnectAsync(endpoint.Address, endpoint.Port, timeout.Token);
+				return;
+			}
+			catch (Exception ex) when (ex is SocketException or OperationCanceledException)
+			{
+				await Task.Delay(100, CancellationToken.None);
+			}
+		}
+
+		throw new TimeoutException($"TCP endpoint {endpoint} did not accept connections before the test timeout.");
 	}
 }
