@@ -78,6 +78,20 @@ public class MultiQueuedHandlerTests
 		Assert.Same(failure, ex);
 	}
 
+	[Fact]
+	public async Task stop_attempts_all_queues_when_one_stop_throws_synchronously()
+	{
+		var queues = CreateQueues(2);
+		var failure = new InvalidOperationException("stop failed");
+		queues[0].StopException = failure;
+		var sut = new MultiQueuedHandler(queues.Length, i => queues[i]);
+
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(sut.Stop);
+
+		Assert.Same(failure, ex);
+		Assert.Equal(1, queues[1].StopCount);
+	}
+
 	private static RecordingQueuedHandler[] CreateQueues(int count)
 	{
 		var queues = new RecordingQueuedHandler[count];
@@ -102,11 +116,24 @@ public class MultiQueuedHandlerTests
 
 		public Task StopTask { get; set; } = Task.CompletedTask;
 
+		public Exception StopException { get; set; }
+
+		public int StopCount { get; private set; }
+
 		public void Publish(Message message) => Messages.Add(message);
 
 		public Task Start() => Task.CompletedTask;
 
-		public Task Stop() => StopTask;
+		public Task Stop()
+		{
+			StopCount++;
+			if (StopException is not null)
+			{
+				throw StopException;
+			}
+
+			return StopTask;
+		}
 
 		public void RequestStop()
 		{
