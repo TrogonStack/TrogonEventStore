@@ -14,7 +14,9 @@ public sealed class ThreadPoolBacklogMonitor : IMonitoredQueue, IThreadPoolWorkI
 	private readonly QueueStatsCollector _queueStats;
 	private readonly QueueTracker _tracker;
 	private readonly Timer _timer;
+	private readonly object _timerGate = new();
 	private Instant _enqueuedAt;
+	private bool _timerDisposed;
 	private int _stopped;
 
 	public ThreadPoolBacklogMonitor(QueueStatsManager queueStatsManager, QueueTrackers trackers)
@@ -40,7 +42,14 @@ public sealed class ThreadPoolBacklogMonitor : IMonitoredQueue, IThreadPoolWorkI
 			return;
 		}
 
-		_timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+		lock (_timerGate)
+		{
+			if (!_timerDisposed)
+			{
+				_timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+			}
+		}
+
 		QueueMonitor.Default.Unregister(this);
 		_queueStats.Stop();
 	}
@@ -48,7 +57,16 @@ public sealed class ThreadPoolBacklogMonitor : IMonitoredQueue, IThreadPoolWorkI
 	public void Dispose()
 	{
 		Stop();
-		_timer.Dispose();
+		lock (_timerGate)
+		{
+			if (_timerDisposed)
+			{
+				return;
+			}
+
+			_timerDisposed = true;
+			_timer.Dispose();
+		}
 	}
 
 	public void Execute()
@@ -63,7 +81,6 @@ public sealed class ThreadPoolBacklogMonitor : IMonitoredQueue, IThreadPoolWorkI
 		{
 			var length = GetPendingWorkItemCount();
 			_queueStats.ProcessingStarted<ThreadPoolBacklogSample>(length);
-			_queueStats.ReportQueueLength(length);
 			_tracker.RecordQueueLength(length);
 			_tracker.RecordMessageDequeued(_enqueuedAt);
 			_queueStats.ProcessingEnded(1);
@@ -73,9 +90,12 @@ public sealed class ThreadPoolBacklogMonitor : IMonitoredQueue, IThreadPoolWorkI
 			_queueStats.EnterIdle();
 		}
 
-		if (Volatile.Read(ref _stopped) == 0)
+		lock (_timerGate)
 		{
-			_timer.Change(SampleInterval, Timeout.InfiniteTimeSpan);
+			if (Volatile.Read(ref _stopped) == 0 && !_timerDisposed)
+			{
+				_timer.Change(SampleInterval, Timeout.InfiniteTimeSpan);
+			}
 		}
 	}
 

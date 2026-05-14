@@ -1,4 +1,5 @@
 using EventStore.Core.Bus;
+using EventStore.Core.Metrics;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -42,5 +43,15 @@ public class QueueStatsCollectorTests
 		{
 			collector.Stop();
 		}
+	}
+
+	[Fact]
+	public void thread_pool_backlog_monitor_dispose_is_idempotent()
+	{
+		var monitor = new ThreadPoolBacklogMonitor(new QueueStatsManager(), new QueueTrackers());
+
+		monitor.Start();
+		monitor.Dispose();
+		monitor.Dispose();
 	}
 }
