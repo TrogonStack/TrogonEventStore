@@ -89,10 +89,15 @@ namespace EventStore.Core.Bus
 
 		public void ProcessingStarted(Type msgType, int queueLength)
 		{
-			_lifetimeQueueLengthPeak = _lifetimeQueueLengthPeak > queueLength ? _lifetimeQueueLengthPeak : queueLength;
-			_currentQueueLengthPeak = _currentQueueLengthPeak > queueLength ? _currentQueueLengthPeak : queueLength;
+			ReportQueueLength(queueLength);
 
 			_inProgressMsgType = msgType;
+		}
+
+		public void ReportQueueLength(int queueLength)
+		{
+			_lifetimeQueueLengthPeak = Math.Max(_lifetimeQueueLengthPeak, queueLength);
+			_currentQueueLengthPeak = Math.Max(_currentQueueLengthPeak, queueLength);
 		}
 
 		public void ProcessingEnded(int itemsProcessed)
@@ -159,6 +164,8 @@ namespace EventStore.Core.Bus
 		{
 			lock (_statisticsLock)
 			{
+				ReportQueueLength(currentQueueLength);
+
 				var totalTime = _totalTimeWatch.Elapsed;
 				var totalIdleTime = _totalIdleWatch.Elapsed;
 				var totalBusyTime = _totalBusyWatch.Elapsed;

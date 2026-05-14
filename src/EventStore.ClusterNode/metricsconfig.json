@@ -168,6 +168,10 @@
 			"Label": "Timer"
 		},
 		{
+			"Regex": "ThreadPoolBacklog",
+			"Label": "ThreadPoolBacklog"
+		},
+		{
 			"Regex": "StorageReaderQueue #.*",
 			"Label": "Readers"
 		},
