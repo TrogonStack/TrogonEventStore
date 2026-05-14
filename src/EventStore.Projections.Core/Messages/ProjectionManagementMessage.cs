@@ -692,18 +692,6 @@ public static partial class ProjectionManagementMessage
 			}
 
 			return true;
-
-			//if (existingRunAs == null)
-			//    return true;
-			//if (message.RunAs1.Principal == null
-			//    || !string.Equals(
-			//        existingRunAs.Identity.Name, message.RunAs1.Principal.Identity.Name,
-			//        StringComparison.OrdinalIgnoreCase))
-			//{
-			//    message.Envelope.ReplyWith(new NotAuthorized());
-			//    return false;
-			//}
-			//return true;
 		}
 	}
 
