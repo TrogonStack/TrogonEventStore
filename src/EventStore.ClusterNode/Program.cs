@@ -38,7 +38,6 @@ internal static class Program
 	{
 		var configuration = EventStoreConfiguration.Build(args);
 
-		ThreadPool.SetMaxThreads(1000, 1000);
 		var exitCodeSource = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var cts = new CancellationTokenSource();
 
@@ -59,6 +58,8 @@ internal static class Program
 				options.Logging.DisableLogFile,
 				options.Logging.LogConfig,
 				configuration);
+
+			ConfigureThreadPool();
 
 			if (options.Application.Help)
 			{
@@ -442,5 +443,32 @@ internal static class Program
 
 			return ValueTask.FromResult(serverOptions);
 		});
+	}
+
+	private static void ConfigureThreadPool()
+	{
+		ThreadPool.GetMinThreads(out var minWorkerThreadsBefore, out var minCompletionPortThreadsBefore);
+		ThreadPool.GetMaxThreads(out var maxWorkerThreadsBefore, out var maxCompletionPortThreadsBefore);
+
+		const int maxThreads = 1000;
+		var configured = ThreadPool.SetMaxThreads(maxThreads, maxThreads);
+		if (!configured)
+		{
+			Log.Warning("ThreadPool.SetMaxThreads failed for worker threads {WorkerThreads} and completion port threads {CompletionPortThreads}",
+				maxThreads,
+				maxThreads);
+		}
+
+		ThreadPool.GetMinThreads(out var minWorkerThreadsAfter, out var minCompletionPortThreadsAfter);
+		ThreadPool.GetMaxThreads(out var maxWorkerThreadsAfter, out var maxCompletionPortThreadsAfter);
+
+		Log.Information("Thread pool MinWorkerThreads: {before} -> {after}",
+			minWorkerThreadsBefore, minWorkerThreadsAfter);
+		Log.Information("Thread pool MaxWorkerThreads: {before} -> {after}",
+			maxWorkerThreadsBefore, maxWorkerThreadsAfter);
+		Log.Information("Thread pool MinCompletionPortThreads: {before} -> {after}",
+			minCompletionPortThreadsBefore, minCompletionPortThreadsAfter);
+		Log.Information("Thread pool MaxCompletionPortThreads: {before} -> {after}",
+			maxCompletionPortThreadsBefore, maxCompletionPortThreadsAfter);
 	}
 }
