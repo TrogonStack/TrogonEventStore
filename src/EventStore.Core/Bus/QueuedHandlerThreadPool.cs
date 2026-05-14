@@ -156,6 +156,7 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 
 				while (!_lifetimeToken.IsCancellationRequested && _queue.TryDequeue(out var item))
 				{
+					_tracker.RecordQueueLength(_queue.Count);
 					var start = _tracker.RecordMessageDequeued(item.EnqueuedAt);
 					var msg = item.Message;
 #if DEBUG
@@ -259,6 +260,7 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		_queueStats.Enqueued();
 #endif
 		_queue.Enqueue(new(_tracker.Now, message));
+		_tracker.RecordQueueLength(_queue.Count);
 		if (!_lifetimeToken.IsCancellationRequested && Interlocked.CompareExchange(ref _isRunning, 1, 0) == 0)
 		{
 			ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);

@@ -120,15 +120,63 @@ public class QueueTrackersTests
 		Assert.Equal("Worker Queue 3", tracker.Name);
 	}
 
+	[Fact]
+	public void matched_queue_records_item_count()
+	{
+		var lengthTracker = new FakeTracker { Name = "MainQueue" };
+		var sut = new QueueTrackers(
+			[
+				new Conf.LabelMappingCase
+				{
+					Regex = "MainQueue",
+					Label = "MainQueue",
+				},
+			],
+			x => new FakeTracker { Name = x },
+			_ => lengthTracker,
+			x => new FakeTracker { Name = x },
+			x => new FakeTracker { Name = x });
+
+		var tracker = sut.GetTrackerForQueue("MainQueue");
+		tracker.RecordQueueLength(42);
+
+		Assert.Equal(42, lengthTracker.Length);
+	}
+
+	[Fact]
+	public void not_matched_queue_does_not_record_item_count()
+	{
+		var lengthTracker = new FakeTracker { Name = "MainQueue" };
+		var sut = new QueueTrackers(
+			[
+				new Conf.LabelMappingCase
+				{
+					Regex = "MainQueue",
+					Label = "MainQueue",
+				},
+			],
+			x => new FakeTracker { Name = x },
+			_ => lengthTracker,
+			x => new FakeTracker { Name = x },
+			x => new FakeTracker { Name = x });
+
+		var tracker = sut.GetTrackerForQueue("OtherQueue");
+		tracker.RecordQueueLength(42);
+
+		Assert.Null(lengthTracker.Length);
+	}
+
 	QueueTrackers GenSut(params Conf.LabelMappingCase[] map) =>
 		new(map,
 			x => new FakeTracker { Name = x },
 			x => new FakeTracker { Name = x },
+			x => new FakeTracker { Name = x },
 			x => new FakeTracker { Name = x });
 
-	class FakeTracker : IDurationMaxTracker, IQueueProcessingTracker, IQueueBusyTracker
+	class FakeTracker : IDurationMaxTracker, IQueueProcessingTracker, IQueueBusyTracker, IQueueLengthTracker
 	{
 		public string Name { get; init; }
+		public int? Length { get; private set; }
 
 		public void EnterBusy()
 		{
@@ -141,5 +189,10 @@ public class QueueTrackersTests
 		public Instant RecordNow(Instant start) => start;
 
 		public Instant RecordNow(Instant start, string messageType) => start;
+
+		public void SetQueueLength(int length)
+		{
+			Length = length;
+		}
 	}
 }

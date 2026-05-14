@@ -11,6 +11,7 @@ namespace EventStore.Core.Metrics
 	{
 		private readonly string _name;
 		private readonly IQueueBusyTracker _busyTracker;
+		private readonly IQueueLengthTracker _queueLengthTracker;
 		private readonly IDurationMaxTracker _queueingDurationTracker;
 		private readonly IQueueProcessingTracker _queueProcessingTracker;
 		private readonly IClock _clock;
@@ -18,6 +19,7 @@ namespace EventStore.Core.Metrics
 		public QueueTracker(
 			string name,
 			IQueueBusyTracker busyTracker,
+			IQueueLengthTracker queueLengthTracker,
 			IDurationMaxTracker queueingDurationTracker,
 			IQueueProcessingTracker processingDurationTracker,
 			IClock clock = null)
@@ -27,6 +29,7 @@ namespace EventStore.Core.Metrics
 			_queueingDurationTracker = queueingDurationTracker;
 			_queueProcessingTracker = processingDurationTracker;
 			_busyTracker = busyTracker;
+			_queueLengthTracker = queueLengthTracker;
 			_clock = clock ?? Clock.Instance;
 		}
 
@@ -37,6 +40,8 @@ namespace EventStore.Core.Metrics
 		public void EnterBusy() => _busyTracker.EnterBusy();
 
 		public void EnterIdle() => _busyTracker.EnterIdle();
+
+		public void RecordQueueLength(int length) => _queueLengthTracker.SetQueueLength(length);
 
 		public Instant RecordMessageDequeued(Instant enqueuedAt)
 		{
