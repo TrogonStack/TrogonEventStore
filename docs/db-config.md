@@ -132,7 +132,7 @@ Increasing the number of threads beyond that necessary to satisfy the workload g
 
 **Default**: `5`
 
-### Reader threads count
+### Read concurrency limit
 
 Reader threads are used for all read operations on data files - whether the requests originate from the client or internal requests to the database. There are a number of things that cause operations to be dispatched to reader threads, including:
 
@@ -143,11 +143,11 @@ Reader threads are used for all read operations on data files - whether the requ
 
 | Format               | Syntax                            |
 |:---------------------|:----------------------------------|
-| Command line         | `--reader-threads-count`          |
-| YAML                 | `ReaderThreadsCount`              |
-| Environment variable | `EVENTSTORE_READER_THREADS_COUNT` |
+| Command line         | `--read-concurrency-limit`        |
+| YAML                 | `ReadConcurrencyLimit`            |
+| Environment variable | `EVENTSTORE_READ_CONCURRENCY_LIMIT` |
 
-**Default**: `4`
+**Default**: `0`
 
 Reads are queued until a reader thread becomes available to service them. If an operation doesn't complete within an internal deadline window, a disk operation is not dispatched by the worker thread which processes the operation.
 

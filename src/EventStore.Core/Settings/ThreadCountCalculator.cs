@@ -15,8 +15,8 @@ namespace EventStore.Core.Settings
 			if (configuredCount > 0)
 			{
 				Log.Information(
-					"ReaderThreadsCount set to {readerThreadsCount:N0}. " +
-					"Calculated based on processor count of {processorCount:N0} and configured value of {configuredCount:N0}",
+					"Reader thread count set to {readerThreadsCount:N0}. " +
+					"Calculated based on processor count of {processorCount:N0} and configured ReadConcurrencyLimit of {configuredCount:N0}",
 					configuredCount,
 					processorCount, configuredCount);
 				return configuredCount;
@@ -25,8 +25,8 @@ namespace EventStore.Core.Settings
 			if (isRunningInContainer)
 			{
 				Log.Information(
-					"ReaderThreadsCount set to {readerThreadsCount:N0}. " +
-					"Calculated based on containerized environment and configured value of {configuredCount:N0}",
+					"Reader thread count set to {readerThreadsCount:N0}. " +
+					"Calculated based on containerized environment and configured ReadConcurrencyLimit of {configuredCount:N0}",
 					ContainerizedEnvironment.ReaderThreadCount,
 					configuredCount);
 				return ContainerizedEnvironment.ReaderThreadCount;
@@ -34,8 +34,8 @@ namespace EventStore.Core.Settings
 
 			var readerCount = Math.Clamp(processorCount * 2, ReaderThreadCountFloor, 16);
 			Log.Information(
-				"ReaderThreadsCount set to {readerThreadsCount:N0}. " +
-				"Calculated based on processor count of {processorCount:N0} and configured value of {configuredCount:N0}",
+				"Reader thread count set to {readerThreadsCount:N0}. " +
+				"Calculated based on processor count of {processorCount:N0} and configured ReadConcurrencyLimit of {configuredCount:N0}",
 				readerCount,
 				processorCount, configuredCount);
 			return readerCount;

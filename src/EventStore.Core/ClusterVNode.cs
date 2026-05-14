@@ -430,7 +430,7 @@ public class ClusterVNode<TStreamId> :
 			var processorCount = Environment.ProcessorCount;
 
 			readerThreadsCount =
-				ThreadCountCalculator.CalculateReaderThreadCount(options.Database.ReaderThreadsCount,
+				ThreadCountCalculator.CalculateReaderThreadCount(options.Database.ReadConcurrencyLimit,
 					processorCount, isRunningInContainer);
 
 			workerThreadsCount =

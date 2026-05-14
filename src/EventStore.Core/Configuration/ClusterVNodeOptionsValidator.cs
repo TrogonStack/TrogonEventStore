@@ -121,6 +121,7 @@ public static class ClusterVNodeOptionsValidator
 			throw new InvalidConfigurationException(
 				"The Archiving feature is not compatible with UnsafeIgnoreHardDelete.");
 		}
+
 	}
 
 	public static bool ValidateForStartup(ClusterVNodeOptions options)
@@ -158,4 +159,5 @@ public static class ClusterVNodeOptionsValidator
 
 		return true;
 	}
+
 }
