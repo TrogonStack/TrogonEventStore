@@ -96,8 +96,8 @@ namespace EventStore.Core.Bus
 
 		public void ReportQueueLength(int queueLength)
 		{
-			_lifetimeQueueLengthPeak = Math.Max(_lifetimeQueueLengthPeak, queueLength);
-			_currentQueueLengthPeak = Math.Max(_currentQueueLengthPeak, queueLength);
+			SetMax(ref _lifetimeQueueLengthPeak, queueLength);
+			SetMax(ref _currentQueueLengthPeak, queueLength);
 		}
 
 		public void ProcessingEnded(int itemsProcessed)
@@ -181,6 +181,11 @@ namespace EventStore.Core.Bus
 				var idleTimePercent = Math.Min(100.0,
 					lastRunMs.Ticks != 0 ? 100.0 * (totalIdleTime - _lastTotalIdleTime).Ticks / lastRunMs.Ticks : 100);
 
+				var shouldRefresh = totalTime - _lastTotalTime >= MinRefreshPeriod;
+				var currentQueueLengthPeak = shouldRefresh
+					? Interlocked.Exchange(ref _currentQueueLengthPeak, 0)
+					: Volatile.Read(ref _currentQueueLengthPeak);
+
 				var stats = new QueueStats(
 					Name,
 					GroupName,
@@ -191,22 +196,37 @@ namespace EventStore.Core.Bus
 					_busyWatch.IsRunning ? _busyWatch.Elapsed : (TimeSpan?)null,
 					_idleWatch.IsRunning ? _idleWatch.Elapsed : (TimeSpan?)null,
 					totalItems,
-					_currentQueueLengthPeak,
-					_lifetimeQueueLengthPeak,
+					currentQueueLengthPeak,
+					Volatile.Read(ref _lifetimeQueueLengthPeak),
 					_lastProcessedMsgType,
 					_inProgressMsgType);
 
-				if (totalTime - _lastTotalTime >= MinRefreshPeriod)
+				if (shouldRefresh)
 				{
 					_lastTotalTime = totalTime;
 					_lastTotalIdleTime = totalIdleTime;
 					_lastTotalBusyTime = totalBusyTime;
 					_lastTotalItems = totalItems;
-
-					_currentQueueLengthPeak = 0;
 				}
 
 				return stats;
+			}
+		}
+
+		private static void SetMax(ref int target, int value)
+		{
+			while (true)
+			{
+				var current = Volatile.Read(ref target);
+				if (value <= current)
+				{
+					return;
+				}
+
+				if (Interlocked.CompareExchange(ref target, value, current) == current)
+				{
+					return;
+				}
 			}
 		}
 
