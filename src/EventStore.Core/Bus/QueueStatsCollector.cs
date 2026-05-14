@@ -89,10 +89,15 @@ namespace EventStore.Core.Bus
 
 		public void ProcessingStarted(Type msgType, int queueLength)
 		{
-			_lifetimeQueueLengthPeak = _lifetimeQueueLengthPeak > queueLength ? _lifetimeQueueLengthPeak : queueLength;
-			_currentQueueLengthPeak = _currentQueueLengthPeak > queueLength ? _currentQueueLengthPeak : queueLength;
+			ReportQueueLength(queueLength);
 
 			_inProgressMsgType = msgType;
+		}
+
+		public void ReportQueueLength(int queueLength)
+		{
+			SetMax(ref _lifetimeQueueLengthPeak, queueLength);
+			SetMax(ref _currentQueueLengthPeak, queueLength);
 		}
 
 		public void ProcessingEnded(int itemsProcessed)
@@ -159,6 +164,8 @@ namespace EventStore.Core.Bus
 		{
 			lock (_statisticsLock)
 			{
+				ReportQueueLength(currentQueueLength);
+
 				var totalTime = _totalTimeWatch.Elapsed;
 				var totalIdleTime = _totalIdleWatch.Elapsed;
 				var totalBusyTime = _totalBusyWatch.Elapsed;
@@ -174,6 +181,11 @@ namespace EventStore.Core.Bus
 				var idleTimePercent = Math.Min(100.0,
 					lastRunMs.Ticks != 0 ? 100.0 * (totalIdleTime - _lastTotalIdleTime).Ticks / lastRunMs.Ticks : 100);
 
+				var shouldRefresh = totalTime - _lastTotalTime >= MinRefreshPeriod;
+				var currentQueueLengthPeak = shouldRefresh
+					? Interlocked.Exchange(ref _currentQueueLengthPeak, 0)
+					: Volatile.Read(ref _currentQueueLengthPeak);
+
 				var stats = new QueueStats(
 					Name,
 					GroupName,
@@ -184,22 +196,37 @@ namespace EventStore.Core.Bus
 					_busyWatch.IsRunning ? _busyWatch.Elapsed : (TimeSpan?)null,
 					_idleWatch.IsRunning ? _idleWatch.Elapsed : (TimeSpan?)null,
 					totalItems,
-					_currentQueueLengthPeak,
-					_lifetimeQueueLengthPeak,
+					currentQueueLengthPeak,
+					Volatile.Read(ref _lifetimeQueueLengthPeak),
 					_lastProcessedMsgType,
 					_inProgressMsgType);
 
-				if (totalTime - _lastTotalTime >= MinRefreshPeriod)
+				if (shouldRefresh)
 				{
 					_lastTotalTime = totalTime;
 					_lastTotalIdleTime = totalIdleTime;
 					_lastTotalBusyTime = totalBusyTime;
 					_lastTotalItems = totalItems;
-
-					_currentQueueLengthPeak = 0;
 				}
 
 				return stats;
+			}
+		}
+
+		private static void SetMax(ref int target, int value)
+		{
+			while (true)
+			{
+				var current = Volatile.Read(ref target);
+				if (value <= current)
+				{
+					return;
+				}
+
+				if (Interlocked.CompareExchange(ref target, value, current) == current)
+				{
+					return;
+				}
 			}
 		}
 

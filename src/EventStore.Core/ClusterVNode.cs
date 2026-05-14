@@ -31,6 +31,7 @@ using EventStore.Core.Index.Hashes;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
+using EventStore.Core.Metrics;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Naming;
@@ -205,6 +206,7 @@ public class ClusterVNode<TStreamId> :
 	private readonly Func<CancellationToken, Task> _start;
 	private readonly INodeHttpClientFactory _nodeHttpClientFactory;
 	private readonly EventStoreClusterClientCache _eventStoreClusterClientCache;
+	private ThreadPoolBacklogMonitor _threadPoolBacklogMonitor;
 
 	private int _stopCalled;
 	private int _systemInitPublished;
@@ -633,6 +635,9 @@ public class ClusterVNode<TStreamId> :
 		monitoringInnerBus.Subscribe<ClientMessage.WriteEventsCompleted>(monitoring);
 		monitoringInnerBus.Subscribe<MonitoringMessage.GetFreshStats>(monitoring);
 		monitoringInnerBus.Subscribe<MonitoringMessage.GetFreshTcpConnectionStats>(monitoring);
+
+		_threadPoolBacklogMonitor = new ThreadPoolBacklogMonitor(_queueStatsManager, trackers.QueueTrackers);
+		_threadPoolBacklogMonitor.Start();
 
 		var indexPath = options.Database.Index ?? Path.Combine(Db.Config.Path, ESConsts.DefaultIndexDirectoryName);
 
@@ -2007,6 +2012,8 @@ public class ClusterVNode<TStreamId> :
 
 		_reloadConfigSignalRegistration?.Dispose();
 		_reloadConfigSignalRegistration = null;
+		_threadPoolBacklogMonitor?.Dispose();
+		_threadPoolBacklogMonitor = null;
 
 		foreach (var subsystem in _subsystems ?? [])
 		{
