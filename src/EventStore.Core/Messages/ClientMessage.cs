@@ -273,6 +273,7 @@ public static partial class ClientMessage
 		public readonly long PreparePosition;
 		public readonly long CommitPosition;
 		public readonly long CurrentVersion;
+		public readonly IReadOnlyList<ConsistencyCheckFailure> ConsistencyCheckFailures;
 
 		public WriteEventsCompleted(Guid correlationId, long firstEventNumber, long lastEventNumber,
 			long preparePosition, long commitPosition)
@@ -296,10 +297,12 @@ public static partial class ClientMessage
 			LastEventNumber = lastEventNumber;
 			PreparePosition = preparePosition;
 			CommitPosition = commitPosition;
+			ConsistencyCheckFailures = Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		public WriteEventsCompleted(Guid correlationId, OperationResult result, string message,
-			long currentVersion = -1)
+			long currentVersion = -1,
+			IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures = null)
 		{
 			if (result == OperationResult.Success)
 			{
@@ -313,11 +316,13 @@ public static partial class ClientMessage
 			LastEventNumber = EventNumber.Invalid;
 			PreparePosition = EventNumber.Invalid;
 			CurrentVersion = currentVersion;
+			ConsistencyCheckFailures = consistencyCheckFailures ?? Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		private WriteEventsCompleted(Guid correlationId, OperationResult result, string message,
 			long firstEventNumber, long lastEventNumber, long preparePosition, long commitPosition,
-			long currentVersion)
+			long currentVersion,
+			IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures)
 		{
 			CorrelationId = correlationId;
 			Result = result;
@@ -327,12 +332,13 @@ public static partial class ClientMessage
 			PreparePosition = preparePosition;
 			CommitPosition = commitPosition;
 			CurrentVersion = currentVersion;
+			ConsistencyCheckFailures = consistencyCheckFailures ?? Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		public WriteEventsCompleted WithCorrelationId(Guid newCorrId)
 		{
 			return new WriteEventsCompleted(newCorrId, Result, Message, FirstEventNumber, LastEventNumber,
-				PreparePosition, CommitPosition, CurrentVersion);
+				PreparePosition, CommitPosition, CurrentVersion, ConsistencyCheckFailures);
 		}
 
 		public override string ToString()
@@ -455,6 +461,7 @@ public static partial class ClientMessage
 		public readonly long LastEventNumber;
 		public readonly long PreparePosition;
 		public readonly long CommitPosition;
+		public readonly IReadOnlyList<ConsistencyCheckFailure> ConsistencyCheckFailures;
 
 		public TransactionCommitCompleted(Guid correlationId, long transactionId, long firstEventNumber,
 			long lastEventNumber, long preparePosition, long commitPosition)
@@ -479,10 +486,11 @@ public static partial class ClientMessage
 			LastEventNumber = lastEventNumber;
 			PreparePosition = preparePosition;
 			CommitPosition = commitPosition;
+			ConsistencyCheckFailures = Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		public TransactionCommitCompleted(Guid correlationId, long transactionId, OperationResult result,
-			string message)
+			string message, IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures = null)
 		{
 			if (result == OperationResult.Success)
 			{
@@ -495,11 +503,12 @@ public static partial class ClientMessage
 			Message = message;
 			FirstEventNumber = EventNumber.Invalid;
 			LastEventNumber = EventNumber.Invalid;
+			ConsistencyCheckFailures = consistencyCheckFailures ?? Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		private TransactionCommitCompleted(Guid correlationId, long transactionId, OperationResult result,
 			string message,
-			long firstEventNumber, long lastEventNumber)
+			long firstEventNumber, long lastEventNumber, IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures)
 		{
 			CorrelationId = correlationId;
 			TransactionId = transactionId;
@@ -507,12 +516,13 @@ public static partial class ClientMessage
 			Message = message;
 			FirstEventNumber = firstEventNumber;
 			LastEventNumber = lastEventNumber;
+			ConsistencyCheckFailures = consistencyCheckFailures ?? Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		public TransactionCommitCompleted WithCorrelationId(Guid newCorrId)
 		{
 			return new TransactionCommitCompleted(newCorrId, TransactionId, Result, Message, FirstEventNumber,
-				LastEventNumber);
+				LastEventNumber, ConsistencyCheckFailures);
 		}
 	}
 
@@ -549,9 +559,11 @@ public static partial class ClientMessage
 		public readonly long PreparePosition;
 		public readonly long CommitPosition;
 		public readonly long CurrentVersion;
+		public readonly IReadOnlyList<ConsistencyCheckFailure> ConsistencyCheckFailures;
 
 		public DeleteStreamCompleted(Guid correlationId, OperationResult result, string message,
-			long currentVersion, long preparePosition, long commitPosition)
+			long currentVersion, long preparePosition, long commitPosition,
+			IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures = null)
 		{
 			CorrelationId = correlationId;
 			Result = result;
@@ -559,17 +571,19 @@ public static partial class ClientMessage
 			CurrentVersion = currentVersion;
 			PreparePosition = preparePosition;
 			CommitPosition = commitPosition;
+			ConsistencyCheckFailures = consistencyCheckFailures ?? Array.Empty<ConsistencyCheckFailure>();
 		}
 
 		public DeleteStreamCompleted(Guid correlationId, OperationResult result, string message,
-			long currentVersion = -1L) : this(correlationId, result, message, currentVersion, -1, -1)
+			long currentVersion = -1L, IReadOnlyList<ConsistencyCheckFailure> consistencyCheckFailures = null) :
+			this(correlationId, result, message, currentVersion, -1, -1, consistencyCheckFailures)
 		{
 		}
 
 		public DeleteStreamCompleted WithCorrelationId(Guid newCorrId)
 		{
 			return new DeleteStreamCompleted(newCorrId, Result, Message, CurrentVersion, PreparePosition,
-				CommitPosition);
+				CommitPosition, ConsistencyCheckFailures);
 		}
 	}
 

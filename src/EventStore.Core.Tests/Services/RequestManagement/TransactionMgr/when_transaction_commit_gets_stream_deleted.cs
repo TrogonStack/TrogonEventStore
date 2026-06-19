@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.RequestManager.Managers;
@@ -12,7 +13,9 @@ namespace EventStore.Core.Tests.Services.RequestManagement.TransactionMgr;
 public class when_transaction_commit_gets_stream_deleted : RequestManagerSpecification<TransactionCommit>
 {
 
-	private int transactionId = 2341;
+	private readonly int _transactionId = 2341;
+	private readonly long _expectedVersion = ExpectedVersion.StreamExists;
+
 	protected override TransactionCommit OnManager(FakePublisher publisher)
 	{
 		return new TransactionCommit(
@@ -22,7 +25,7 @@ public class when_transaction_commit_gets_stream_deleted : RequestManagerSpecifi
 			Envelope,
 			InternalCorrId,
 			ClientCorrId,
-			transactionId,
+			_transactionId,
 			CommitSource);
 	}
 
@@ -33,7 +36,11 @@ public class when_transaction_commit_gets_stream_deleted : RequestManagerSpecifi
 
 	protected override Message When()
 	{
-		return new StorageMessage.StreamDeleted(InternalCorrId);
+		return StorageMessage.ConsistencyChecksFailed.ForSingleStream(
+			InternalCorrId,
+			_expectedVersion,
+			currentVersion: 0,
+			isSoftDeleted: true);
 	}
 
 	[Test]
@@ -47,6 +54,10 @@ public class when_transaction_commit_gets_stream_deleted : RequestManagerSpecifi
 	public void the_envelope_is_replied_to_with_failure()
 	{
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.TransactionCommitCompleted>(
-			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.StreamDeleted));
+			x => x.CorrelationId == ClientCorrId &&
+				 x.Result == OperationResult.StreamDeleted &&
+				 x.ConsistencyCheckFailures.Count == 1 &&
+				 x.ConsistencyCheckFailures[0].ExpectedVersion == _expectedVersion &&
+				 x.ConsistencyCheckFailures[0].IsSoftDeleted == true));
 	}
 }

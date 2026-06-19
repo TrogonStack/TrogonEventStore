@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
+using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -15,8 +16,7 @@ namespace EventStore.Core.Services.RequestManager.Managers
 		IHandle<StorageMessage.UncommittedPrepareChased>,
 		IHandle<StorageMessage.CommitIndexed>,
 		IHandle<StorageMessage.InvalidTransaction>,
-		IHandle<StorageMessage.StreamDeleted>,
-		IHandle<StorageMessage.WrongExpectedVersion>,
+		IHandle<StorageMessage.ConsistencyChecksFailed>,
 		IHandle<StorageMessage.AlreadyCommitted>,
 		IHandle<StorageMessage.RequestManagerTimerTick>,
 		IDisposable
@@ -38,6 +38,8 @@ namespace EventStore.Core.Services.RequestManager.Managers
 		protected long LastEventNumber = -1;
 		protected string FailureMessage = string.Empty;
 		protected long FailureCurrentVersion = -1;
+		protected IReadOnlyList<ConsistencyCheckFailure> ConsistencyCheckFailures =
+			Array.Empty<ConsistencyCheckFailure>();
 		protected long TransactionId;
 
 		protected readonly CommitSource CommitSource;
@@ -187,14 +189,29 @@ namespace EventStore.Core.Services.RequestManager.Managers
 		{
 			CompleteFailedRequest(OperationResult.InvalidTransaction, "Invalid transaction.");
 		}
-		public void Handle(StorageMessage.WrongExpectedVersion message)
+		public void Handle(StorageMessage.ConsistencyChecksFailed message)
 		{
-			FailureCurrentVersion = message.CurrentVersion;
-			CompleteFailedRequest(OperationResult.WrongExpectedVersion, "Wrong expected version.", message.CurrentVersion);
-		}
-		public void Handle(StorageMessage.StreamDeleted message)
-		{
-			CompleteFailedRequest(OperationResult.StreamDeleted, "Stream is deleted.");
+			ConsistencyCheckFailures = message.Failures;
+			FailureCurrentVersion = message.Failures.Count == 1
+				? message.Failures[0].CurrentVersion
+				: -1;
+
+			foreach (var failure in message.Failures)
+			{
+				var tombstoned = failure.CurrentVersion == EventNumber.DeletedStream;
+				var softDeleted = failure.ExpectedVersion == EventStore.Core.Data.ExpectedVersion.StreamExists &&
+								  failure.IsSoftDeleted == true;
+
+				if (tombstoned || softDeleted)
+				{
+					CompleteFailedRequest(OperationResult.StreamDeleted, "Stream is deleted.",
+						FailureCurrentVersion);
+					return;
+				}
+			}
+
+			CompleteFailedRequest(OperationResult.WrongExpectedVersion, "Wrong expected version.",
+				FailureCurrentVersion);
 		}
 		public void Handle(StorageMessage.AlreadyCommitted message)
 		{

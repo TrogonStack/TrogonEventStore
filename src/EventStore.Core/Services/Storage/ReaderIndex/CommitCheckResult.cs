@@ -4,10 +4,11 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 	{
 		public readonly CommitDecision Decision;
 		public readonly TStreamId EventStreamId;
+		public readonly long ExpectedVersion;
 		public readonly long CurrentVersion;
 		public readonly long StartEventNumber;
 		public readonly long EndEventNumber;
-		public readonly bool IsSoftDeleted;
+		public readonly bool? IsSoftDeleted;
 		public readonly long IdempotentLogPosition;
 
 		public CommitCheckResult(CommitDecision decision,
@@ -17,9 +18,23 @@ namespace EventStore.Core.Services.Storage.ReaderIndex
 			long endEventNumber,
 			bool isSoftDeleted,
 			long idempotentLogPosition = -1)
+			: this(decision, eventStreamId, EventStore.Core.Data.ExpectedVersion.Invalid, currentVersion,
+				startEventNumber, endEventNumber, isSoftDeleted, idempotentLogPosition)
+		{
+		}
+
+		public CommitCheckResult(CommitDecision decision,
+			TStreamId eventStreamId,
+			long expectedVersion,
+			long currentVersion,
+			long startEventNumber,
+			long endEventNumber,
+			bool? isSoftDeleted,
+			long idempotentLogPosition = -1)
 		{
 			Decision = decision;
 			EventStreamId = eventStreamId;
+			ExpectedVersion = expectedVersion;
 			CurrentVersion = currentVersion;
 			StartEventNumber = startEventNumber;
 			EndEventNumber = endEventNumber;

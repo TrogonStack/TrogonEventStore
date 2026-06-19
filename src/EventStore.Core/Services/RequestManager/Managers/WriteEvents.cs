@@ -61,6 +61,7 @@ namespace EventStore.Core.Services.RequestManager.Managers
 				 ClientCorrId,
 				 Result,
 				 FailureMessage,
-				 FailureCurrentVersion);
+				 FailureCurrentVersion,
+				 ConsistencyCheckFailures);
 	}
 }

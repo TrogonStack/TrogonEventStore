@@ -58,6 +58,7 @@ namespace EventStore.Core.Services.RequestManager.Managers
 				 CommitPosition);
 
 		protected override Message ClientFailMsg =>
-			new ClientMessage.DeleteStreamCompleted(ClientCorrId, Result, FailureMessage, FailureCurrentVersion);
+			new ClientMessage.DeleteStreamCompleted(ClientCorrId, Result, FailureMessage, FailureCurrentVersion,
+				ConsistencyCheckFailures);
 	}
 }

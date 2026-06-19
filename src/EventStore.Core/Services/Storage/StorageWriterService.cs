@@ -447,7 +447,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			// note: the stream & event type records are indexed separately and must not be pre-committed to the main index
 			_indexWriter.PreCommit(CollectionsMarshal.AsSpan(prepares)[^msg.Events.Length..]);
 
-			if (commitCheck.IsSoftDeleted)
+			if (commitCheck.IsSoftDeleted is true)
 			{
 				await SoftUndeleteStream(streamId, commitCheck.CurrentVersion + 1, token);
 			}
@@ -613,7 +613,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 				if (await _indexWriter.GetStreamLastEventNumber(streamId, token) < 0 && expectedVersion < 0)
 				{
 					var result = new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId,
-						-1, -1, -1, false);
+						message.ExpectedVersion, -1, -1, -1, false);
 					await ActOnCommitCheckFailure(message.Envelope, message.CorrelationId, result, token);
 					return;
 				}
@@ -816,7 +816,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 
 			await _indexWriter.PreCommit(commit, token);
 
-			if (commitCheck.IsSoftDeleted)
+			if (commitCheck.IsSoftDeleted is true)
 			{
 				await SoftUndeleteStream(commitCheck.EventStreamId, commitCheck.CurrentVersion + 1, token);
 			}
@@ -843,10 +843,10 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 		switch (result.Decision)
 		{
 			case CommitDecision.WrongExpectedVersion:
-				envelope.ReplyWith(new StorageMessage.WrongExpectedVersion(correlationId, result.CurrentVersion));
+				envelope.ReplyWith(CreateConsistencyChecksFailed(correlationId, result));
 				break;
 			case CommitDecision.Deleted:
-				envelope.ReplyWith(new StorageMessage.StreamDeleted(correlationId));
+				envelope.ReplyWith(CreateConsistencyChecksFailed(correlationId, result));
 				break;
 			case CommitDecision.Idempotent:
 				var eventStreamName = await _indexWriter.GetStreamName(result.EventStreamId, token);
@@ -859,7 +859,7 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			case CommitDecision.CorruptedIdempotency:
 				// in case of corrupted idempotency (part of transaction is ok, other is different)
 				// then we can say that the transaction is not idempotent, so WrongExpectedVersion is ok answer
-				envelope.ReplyWith(new StorageMessage.WrongExpectedVersion(correlationId, result.CurrentVersion));
+				envelope.ReplyWith(CreateConsistencyChecksFailed(correlationId, result));
 				break;
 			case CommitDecision.InvalidTransaction:
 				envelope.ReplyWith(new StorageMessage.InvalidTransaction(correlationId));
@@ -874,6 +874,17 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
+	}
+
+	private static StorageMessage.ConsistencyChecksFailed CreateConsistencyChecksFailed(
+		Guid correlationId,
+		CommitCheckResult<TStreamId> result)
+	{
+		return StorageMessage.ConsistencyChecksFailed.ForSingleStream(
+			correlationId,
+			result.ExpectedVersion,
+			result.CurrentVersion,
+			result.IsSoftDeleted);
 	}
 
 	private async ValueTask<bool> TryWritePreparesWithRetry(IList<IPrepareLogRecord<TStreamId>> prepares,

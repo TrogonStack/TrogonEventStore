@@ -12,18 +12,20 @@ namespace EventStore.Core.Tests.Services.RequestManagement.WriteStreamMgr;
 [TestFixture]
 public class when_write_stream_gets_stream_deleted : RequestManagerSpecification<WriteEvents>
 {
+	private readonly long _expectedVersion = ExpectedVersion.StreamExists;
+
 	protected override WriteEvents OnManager(FakePublisher publisher)
 	{
 		return new WriteEvents(
-		publisher,
-		CommitTimeout,
-		Envelope,
-		InternalCorrId,
-		ClientCorrId,
-		"test123",
-		ExpectedVersion.Any,
-		new[] { DummyEvent() },
-		CommitSource);
+			publisher,
+			CommitTimeout,
+			Envelope,
+			InternalCorrId,
+			ClientCorrId,
+			"test123",
+			_expectedVersion,
+			new[] { DummyEvent() },
+			CommitSource);
 	}
 
 	protected override IEnumerable<Message> WithInitialMessages()
@@ -33,7 +35,11 @@ public class when_write_stream_gets_stream_deleted : RequestManagerSpecification
 
 	protected override Message When()
 	{
-		return new StorageMessage.StreamDeleted(InternalCorrId);
+		return StorageMessage.ConsistencyChecksFailed.ForSingleStream(
+			InternalCorrId,
+			_expectedVersion,
+			currentVersion: 0,
+			isSoftDeleted: true);
 	}
 
 	[Test]
@@ -47,6 +53,10 @@ public class when_write_stream_gets_stream_deleted : RequestManagerSpecification
 	public void the_envelope_is_replied_to_with_failure()
 	{
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.WriteEventsCompleted>(
-			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.StreamDeleted));
+			x => x.CorrelationId == ClientCorrId &&
+				 x.Result == OperationResult.StreamDeleted &&
+				 x.ConsistencyCheckFailures.Count == 1 &&
+				 x.ConsistencyCheckFailures[0].ExpectedVersion == _expectedVersion &&
+				 x.ConsistencyCheckFailures[0].IsSoftDeleted == true));
 	}
 }

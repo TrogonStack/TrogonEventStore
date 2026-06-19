@@ -33,7 +33,11 @@ public class when_delete_stream_gets_stream_deleted : RequestManagerSpecificatio
 
 	protected override Message When()
 	{
-		return new StorageMessage.StreamDeleted(InternalCorrId);
+		return StorageMessage.ConsistencyChecksFailed.ForSingleStream(
+			InternalCorrId,
+			ExpectedVersion.Any,
+			EventNumber.DeletedStream,
+			isSoftDeleted: false);
 	}
 
 	[Test]
@@ -47,6 +51,9 @@ public class when_delete_stream_gets_stream_deleted : RequestManagerSpecificatio
 	public void the_envelope_is_replied_to_with_failure()
 	{
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.DeleteStreamCompleted>(
-			x => x.CorrelationId == ClientCorrId && x.Result == OperationResult.StreamDeleted));
+			x => x.CorrelationId == ClientCorrId &&
+				 x.Result == OperationResult.StreamDeleted &&
+				 x.ConsistencyCheckFailures.Count == 1 &&
+				 x.ConsistencyCheckFailures[0].CurrentVersion == EventNumber.DeletedStream));
 	}
 }
