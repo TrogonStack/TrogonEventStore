@@ -452,6 +452,9 @@ public partial record ClusterVNodeOptions
 			"The maximum number of read requests that can be processed concurrently. Set to '0' to scale automatically (Default)")]
 		public int ReadConcurrencyLimit { get; init; } = 0;
 
+		[Description("The maximum number of read requests that can execute concurrently. Set to '0' to disable the limit.")]
+		public int MaxConcurrentReadRequests { get; init; } = 0;
+
 		[Description("During large Index Merge operations, writes may be slowed down. Set this to the maximum " +
 					 "index file level for which automatic merges should happen. Merging indexes above this level " +
 					 "should be done manually.")]

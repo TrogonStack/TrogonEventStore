@@ -47,6 +47,7 @@ public partial class StorageReaderWorker<TStreamId> :
 	private readonly IReadOnlyCheckpoint _writerCheckpoint;
 	private readonly IVirtualStreamReader _virtualStreamReader;
 	private readonly int _queueId;
+	private readonly StorageReaderConcurrencyLimiter _concurrencyLimiter;
 	private readonly CancellationTokenMultiplexer _tokenMultiplexer = new();
 	private static readonly char[] LinkToSeparator = { '@' };
 	private const int MaxPageSize = 4096;
@@ -60,12 +61,14 @@ public partial class StorageReaderWorker<TStreamId> :
 		ISystemStreamLookup<TStreamId> systemStreams,
 		IReadOnlyCheckpoint writerCheckpoint,
 		IVirtualStreamReader virtualStreamReader,
-		int queueId)
+		int queueId,
+		StorageReaderConcurrencyLimiter concurrencyLimiter)
 	{
 		Ensure.NotNull(publisher, "publisher");
 		Ensure.NotNull(readIndex, "readIndex");
 		Ensure.NotNull(systemStreams, nameof(systemStreams));
 		Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
+		Ensure.NotNull(concurrencyLimiter, nameof(concurrencyLimiter));
 
 		_publisher = publisher;
 		_readIndex = readIndex;
@@ -73,6 +76,7 @@ public partial class StorageReaderWorker<TStreamId> :
 		_writerCheckpoint = writerCheckpoint;
 		_queueId = queueId;
 		_virtualStreamReader = virtualStreamReader;
+		_concurrencyLimiter = concurrencyLimiter;
 	}
 
 
@@ -306,4 +310,7 @@ public partial class StorageReaderWorker<TStreamId> :
 		token = scope.Token;
 		return scope;
 	}
+
+	private ValueTask<StorageReaderConcurrencyLimiter.Lease> AcquireReadSlot(CancellationToken token) =>
+		_concurrencyLimiter.Acquire(token);
 }

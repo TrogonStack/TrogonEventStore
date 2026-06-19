@@ -1,3 +1,4 @@
+using System;
 using EventStore.Common.Exceptions;
 using Xunit;
 
@@ -39,6 +40,23 @@ public class ClusterVNodeOptionsValidatorTests
 		{
 			Assert.Throws<InvalidConfigurationException>(When);
 		}
+	}
+
+	[Fact]
+	public void max_concurrent_read_requests_cannot_be_negative()
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Database = new()
+			{
+				MaxConcurrentReadRequests = -1,
+			}
+		};
+
+		Assert.Throws<ArgumentOutOfRangeException>(() =>
+		{
+			ClusterVNodeOptionsValidator.Validate(options);
+		});
 	}
 
 	[Fact]

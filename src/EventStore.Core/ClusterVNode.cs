@@ -815,6 +815,7 @@ public class ClusterVNode<TStreamId> :
 			logFormat.SystemStreams,
 			readerThreadsCount, Db.Config.WriterCheckpoint.AsReadOnly(), virtualStreamReader, _queueStatsManager,
 			trackers.QueueTrackers,
+			StorageReaderConcurrencyLimiter.Create(options.Database.MaxConcurrentReadRequests),
 			metricsConfiguration);
 
 		_mainBus.Subscribe<SystemMessage.SystemInit>(storageReader);

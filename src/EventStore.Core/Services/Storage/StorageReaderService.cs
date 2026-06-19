@@ -41,6 +41,7 @@ namespace EventStore.Core.Services.Storage
 			IVirtualStreamReader virtualStreamReader,
 			QueueStatsManager queueStatsManager,
 			QueueTrackers trackers,
+			StorageReaderConcurrencyLimiter concurrencyLimiter,
 			MetricsConfiguration metricsConfiguration = null)
 		{
 
@@ -50,6 +51,7 @@ namespace EventStore.Core.Services.Storage
 			Ensure.NotNull(systemStreams, nameof(systemStreams));
 			Ensure.Positive(threadCount, "threadCount");
 			Ensure.NotNull(writerCheckpoint, "writerCheckpoint");
+			Ensure.NotNull(concurrencyLimiter, nameof(concurrencyLimiter));
 
 			_bus = bus;
 			_readIndex = readIndex;
@@ -64,7 +66,7 @@ namespace EventStore.Core.Services.Storage
 			for (var i = 0; i < threadCount; i++)
 			{
 				readerWorkers[i] = new StorageReaderWorker<TStreamId>(bus, readIndex, systemStreams, writerCheckpoint,
-					virtualStreamReader, i);
+					virtualStreamReader, i, concurrencyLimiter);
 				storageReaderBuses[i] = new InMemoryBus("StorageReaderBus",
 					slowMsgThreshold: storageReaderBusSlowMessageThreshold);
 				storageReaderBuses[i].Subscribe<ClientMessage.ReadEvent>(readerWorkers[i]);

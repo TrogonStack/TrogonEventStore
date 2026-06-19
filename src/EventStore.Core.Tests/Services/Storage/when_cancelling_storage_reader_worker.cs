@@ -12,6 +12,7 @@ using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Tests.Fakes;
 using EventStore.Core.TransactionLog.Checkpoint;
+using EventStore.Core.TransactionLog.LogRecords;
 using NUnit.Framework;
 using ReadStreamResult = EventStore.Core.Data.ReadStreamResult;
 
@@ -20,6 +21,37 @@ namespace EventStore.Core.Tests.Services.Storage;
 [TestFixture]
 public class when_cancelling_storage_reader_worker
 {
+	[Test]
+	public async Task read_event_waits_for_slot_when_concurrency_limit_is_reached()
+	{
+		using var readIndex = new BlockingReadIndex();
+		var worker = CreateWorker(readIndex, maxConcurrentReadRequests: 1);
+		var first = CreateReadEventMessage();
+		var second = CreateReadEventMessage();
+
+		var firstTask = ((IAsyncHandle<ClientMessage.ReadEvent>)worker)
+			.HandleAsync(first, CancellationToken.None)
+			.AsTask();
+
+		Assert.That(readIndex.ReadEventStarted.Wait(TimeSpan.FromSeconds(5)), Is.True);
+		Assert.That(readIndex.ReadEventStartedCount, Is.EqualTo(1));
+
+		var secondTask = ((IAsyncHandle<ClientMessage.ReadEvent>)worker)
+			.HandleAsync(second, CancellationToken.None)
+			.AsTask();
+
+		Assert.That(
+			SpinWait.SpinUntil(() => readIndex.ReadEventStartedCount == 2, TimeSpan.FromMilliseconds(200)),
+			Is.False);
+
+		readIndex.ReleaseReadEvents();
+
+		await firstTask.WaitAsync(TimeSpan.FromSeconds(5));
+		await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+		Assert.That(readIndex.ReadEventStartedCount, Is.EqualTo(2));
+	}
+
 	[Test]
 	public void read_event_cancellation_from_message_token_is_rethrown_without_reply()
 	{
@@ -183,27 +215,45 @@ public class when_cancelling_storage_reader_worker
 		Assert.That(reply, Is.Null);
 	}
 
-	private static StorageReaderWorker<string> CreateWorker(BlockingReadIndex readIndex) =>
+	private static ClientMessage.ReadEvent CreateReadEventMessage() =>
+		new(
+			Guid.NewGuid(),
+			Guid.NewGuid(),
+			new NoopEnvelope(),
+			"stream",
+			0,
+			resolveLinkTos: false,
+			requireLeader: false,
+			user: new ClaimsPrincipal());
+
+	private static StorageReaderWorker<string> CreateWorker(BlockingReadIndex readIndex, int maxConcurrentReadRequests = 0) =>
 		new(
 			new NoopPublisher(),
 			readIndex,
 			new StubSystemStreamLookup(),
 			new StubCheckpoint(),
 			new StubVirtualStreamReader(),
-			queueId: 0);
+			queueId: 0,
+			StorageReaderConcurrencyLimiter.Create(maxConcurrentReadRequests));
 
 	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable
 	{
 		public ManualResetEventSlim ReadEventStarted { get; } = new(false);
 		public ManualResetEventSlim ReadStreamForwardStarted { get; } = new(false);
 		public ManualResetEventSlim EffectiveAclStarted { get; } = new(false);
+		private readonly TaskCompletionSource _releaseReadEvents = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private int _readEventStartedCount;
+
+		public int ReadEventStartedCount => Volatile.Read(ref _readEventStartedCount);
 
 		public long LastIndexedPosition => 0;
 		public IIndexWriter<string> IndexWriter => throw new NotSupportedException();
 
 		public ValueTask<IndexReadEventResult> ReadEvent(string streamName, string streamId, long eventNumber,
 			CancellationToken token) =>
-			AwaitCancellation<IndexReadEventResult>(ReadEventStarted, token);
+			CompleteReadEvent(token);
+
+		public void ReleaseReadEvents() => _releaseReadEvents.TrySetResult();
 
 		public ValueTask<StorageMessage.EffectiveAcl> GetEffectiveAcl(string streamId, CancellationToken token) =>
 			AwaitCancellation<StorageMessage.EffectiveAcl>(EffectiveAclStarted, token);
@@ -265,6 +315,32 @@ public class when_cancelling_storage_reader_worker
 			ReadEventStarted.Dispose();
 			ReadStreamForwardStarted.Dispose();
 			EffectiveAclStarted.Dispose();
+		}
+
+		private async ValueTask<IndexReadEventResult> CompleteReadEvent(CancellationToken token)
+		{
+			Interlocked.Increment(ref _readEventStartedCount);
+			ReadEventStarted.Set();
+			await _releaseReadEvents.Task.WaitAsync(token);
+			return new IndexReadEventResult(
+				ReadEventResult.Success,
+				new EventRecord(
+					eventNumber: 0,
+					logPosition: 0,
+					correlationId: Guid.NewGuid(),
+					eventId: Guid.NewGuid(),
+					transactionPosition: 0,
+					transactionOffset: 0,
+					eventStreamId: "stream",
+					expectedVersion: 0,
+					timeStamp: DateTime.UtcNow,
+					flags: PrepareFlags.Data,
+					eventType: "event-type",
+					data: [],
+					metadata: []),
+				StreamMetadata.Empty,
+				lastEventNumber: 0,
+				originalStreamExists: true);
 		}
 
 		private static async ValueTask<T> AwaitCancellation<T>(ManualResetEventSlim started, CancellationToken token)
