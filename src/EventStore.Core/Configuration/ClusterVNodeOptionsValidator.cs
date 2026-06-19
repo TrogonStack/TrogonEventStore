@@ -51,6 +51,13 @@ public static class ClusterVNodeOptionsValidator
 				$"{nameof(options.Database.InitializationThreads)} must be greater than 0.");
 		}
 
+		if (options.Database.MaxConcurrentReadRequests < 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(options.Database.MaxConcurrentReadRequests),
+				options.Database.MaxConcurrentReadRequests,
+				$"{nameof(options.Database.MaxConcurrentReadRequests)} must be greater than or equal to 0.");
+		}
+
 		if (options.Grpc.KeepAliveTimeout < 0)
 		{
 			throw new ArgumentOutOfRangeException(

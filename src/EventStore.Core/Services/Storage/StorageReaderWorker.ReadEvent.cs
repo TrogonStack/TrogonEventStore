@@ -46,6 +46,7 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
+			using var readSlot = await AcquireReadSlot(token);
 			var ev = await ReadEvent(msg, token);
 			msg.Envelope.ReplyWith(ev);
 		}

@@ -55,6 +55,7 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
+			using var readSlot = await AcquireReadSlot(token);
 			var res = await ReadAllEventsForward(msg, token);
 			switch (res.Result)
 			{
@@ -150,6 +151,7 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
+			using var readSlot = await AcquireReadSlot(token);
 			msg.Envelope.ReplyWith(await ReadAllEventsBackward(msg, token));
 		}
 		catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token && cts.IsTimedOut)

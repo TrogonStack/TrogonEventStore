@@ -51,6 +51,7 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
+			using var readSlot = await AcquireReadSlot(token);
 			var res = await FilteredReadAllEventsForward(msg, token);
 			switch (res.Result)
 			{
@@ -139,6 +140,7 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
+			using var readSlot = await AcquireReadSlot(token);
 			var res = await FilteredReadAllEventsBackward(msg, token);
 			switch (res.Result)
 			{
