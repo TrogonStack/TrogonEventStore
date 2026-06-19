@@ -31,6 +31,7 @@
 		<PackageReference Include="Microsoft.Diagnostics.NETCore.Client" />
 		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" />
 		<PackageReference Include="Microsoft.Data.Sqlite" />
+		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
 		<PackageReference Include="DotNext" />
 		<PackageReference Include="DotNext.IO" />
 		<PackageReference Include="DotNext.Threading" />
