@@ -66,7 +66,8 @@ namespace EventStore.Core.Services.RequestManager.Managers
 					ClientCorrId,
 					TransactionId,
 					Result,
-					FailureMessage);
+					FailureMessage,
+					ConsistencyCheckFailures);
 
 		public override void Handle(StorageMessage.CommitIndexed message)
 		{

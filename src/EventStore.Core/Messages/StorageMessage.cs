@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -331,28 +332,28 @@ namespace EventStore.Core.Messages
 		}
 
 		[DerivedMessage(CoreMessage.Storage)]
-		public partial class WrongExpectedVersion : Message
+		public partial class ConsistencyChecksFailed : Message
 		{
 			public readonly Guid CorrelationId;
-			public readonly long CurrentVersion;
+			public readonly IReadOnlyList<ConsistencyCheckFailure> Failures;
 
-			public WrongExpectedVersion(Guid correlationId, long currentVersion)
+			public ConsistencyChecksFailed(Guid correlationId, IReadOnlyList<ConsistencyCheckFailure> failures)
 			{
 				Ensure.NotEmptyGuid(correlationId, "correlationId");
+				Ensure.NotNull(failures, nameof(failures));
 				CorrelationId = correlationId;
-				CurrentVersion = currentVersion;
+				Failures = failures;
 			}
-		}
 
-		[DerivedMessage(CoreMessage.Storage)]
-		public partial class StreamDeleted : Message
-		{
-			public readonly Guid CorrelationId;
-
-			public StreamDeleted(Guid correlationId)
+			public static ConsistencyChecksFailed ForSingleStream(Guid correlationId, long expectedVersion,
+				long currentVersion, bool? isSoftDeleted)
 			{
-				Ensure.NotEmptyGuid(correlationId, "correlationId");
-				CorrelationId = correlationId;
+				return new ConsistencyChecksFailed(
+					correlationId,
+					new[]
+					{
+						new ConsistencyCheckFailure(0, expectedVersion, currentVersion, isSoftDeleted)
+					});
 			}
 		}
 

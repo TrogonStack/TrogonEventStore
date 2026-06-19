@@ -51,7 +51,7 @@ public class when_checking_stream_with_expected_version_soft_deleted<TLogFormat,
 			CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.Ok, result.Decision);
-		Assert.IsTrue(result.IsSoftDeleted);
+		Assert.That(result.IsSoftDeleted, Is.True);
 	}
 
 	[Test]
@@ -65,7 +65,7 @@ public class when_checking_stream_with_expected_version_soft_deleted<TLogFormat,
 			CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.Ok, result.Decision);
-		Assert.IsTrue(result.IsSoftDeleted);
+		Assert.That(result.IsSoftDeleted, Is.True);
 	}
 
 	[Test]

@@ -13,7 +13,8 @@ namespace EventStore.Core.Tests.Services.RequestManagement.DeleteMgr;
 [TestFixture]
 public class when_delete_stream_completes_wrong_expected_version : RequestManagerSpecification<DeleteStream>
 {
-	private long commitPosition = 1000;
+	private readonly long _commitPosition = 1000;
+	private readonly long _expectedVersion = 10;
 	private readonly string _streamId = $"DeleteTest-{Guid.NewGuid()}";
 
 	protected override DeleteStream OnManager(FakePublisher publisher)
@@ -25,19 +26,23 @@ public class when_delete_stream_completes_wrong_expected_version : RequestManage
 			InternalCorrId,
 			ClientCorrId,
 			streamId: _streamId,
-			expectedVersion: 10,
+			expectedVersion: _expectedVersion,
 			hardDelete: false,
 			commitSource: CommitSource);
 	}
 
 	protected override IEnumerable<Message> WithInitialMessages()
 	{
-		yield return new StorageMessage.CommitIndexed(InternalCorrId, commitPosition, 2, 3, 3);
+		yield return new StorageMessage.CommitIndexed(InternalCorrId, _commitPosition, 2, 3, 3);
 	}
 
 	protected override Message When()
 	{
-		return new StorageMessage.WrongExpectedVersion(InternalCorrId, 3);
+		return StorageMessage.ConsistencyChecksFailed.ForSingleStream(
+			InternalCorrId,
+			_expectedVersion,
+			currentVersion: 3,
+			isSoftDeleted: false);
 	}
 
 	[Test]
@@ -53,6 +58,9 @@ public class when_delete_stream_completes_wrong_expected_version : RequestManage
 		Assert.That(Envelope.Replies.ContainsSingle<ClientMessage.DeleteStreamCompleted>(
 			x => x.CorrelationId == ClientCorrId &&
 				 x.Result == OperationResult.WrongExpectedVersion &&
-				 x.CurrentVersion == 3));
+				 x.CurrentVersion == 3 &&
+				 x.ConsistencyCheckFailures.Count == 1 &&
+				 x.ConsistencyCheckFailures[0].ExpectedVersion == _expectedVersion &&
+				 x.ConsistencyCheckFailures[0].CurrentVersion == 3));
 	}
 }

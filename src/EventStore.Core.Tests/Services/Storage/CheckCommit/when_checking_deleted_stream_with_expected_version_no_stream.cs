@@ -56,6 +56,6 @@ public class when_checking_deleted_stream_with_expected_version_no_stream<TLogFo
 			CancellationToken.None);
 
 		Assert.AreEqual(CommitDecision.Ok, result.Decision);
-		Assert.IsTrue(result.IsSoftDeleted);
+		Assert.That(result.IsSoftDeleted, Is.True);
 	}
 }

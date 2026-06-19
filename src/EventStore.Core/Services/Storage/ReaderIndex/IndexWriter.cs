@@ -197,7 +197,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			_ => CommitDecision.WrongExpectedVersion
 		};
 
-		return new CommitCheckResult<TStreamId>(commitDecision, streamId, ExpectedVersion.NoStream, -1, -1, false);
+		return new CommitCheckResult<TStreamId>(commitDecision, streamId, expectedVersion,
+			ExpectedVersion.NoStream, -1, -1, false);
 	}
 
 	public async ValueTask<CommitCheckResult<TStreamId>> CheckCommit(TStreamId streamId, long expectedVersion,
@@ -216,22 +217,25 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			if (!enumerator.MoveNext() &&
 				expectedVersion is ExpectedVersion.Any or ExpectedVersion.NoStream or EventNumber.DeletedStream)
 			{
-				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1, false);
+				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, expectedVersion, curVersion, -1,
+					-1, false);
 			}
 
-			return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, false);
+			return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, expectedVersion, curVersion,
+				-1, -1, false);
 		}
 		if (curVersion is EventNumber.Invalid)
 		{
-			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1, -1,
-				false);
+			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, expectedVersion,
+				curVersion, -1, -1, false);
 		}
 
 		if (expectedVersion is ExpectedVersion.StreamExists)
 		{
 			if (await IsSoftDeleted(streamId, token))
 			{
-				return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, curVersion, -1, -1, true);
+				return new CommitCheckResult<TStreamId>(CommitDecision.Deleted, streamId, expectedVersion, curVersion,
+					-1, -1, true);
 			}
 
 			if (curVersion < 0)
@@ -239,8 +243,8 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				var metadataVersion = await GetStreamLastEventNumber(_systemStreams.MetaStreamOf(streamId), token);
 				if (metadataVersion < 0)
 				{
-					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion,
-						-1, -1,
+					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId,
+						expectedVersion, curVersion, -1, -1,
 						false);
 				}
 			}
@@ -261,12 +265,12 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 					if (expectedVersion is ExpectedVersion.SoftDeleted && !isSoftDeleted)
 					{
 						return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId,
-							curVersion, -1, -1, false);
+							expectedVersion, curVersion, -1, -1, false);
 					}
 
 					return new CommitCheckResult<TStreamId>(
 						first ? CommitDecision.Ok : CommitDecision.CorruptedIdempotency,
-						streamId, curVersion, -1, -1, first && isSoftDeleted);
+						streamId, expectedVersion, curVersion, -1, -1, first && isSoftDeleted);
 				}
 
 				if (first)
@@ -283,11 +287,12 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				var isSoftDeleted = await IsSoftDeleted(streamId, token);
 				if (expectedVersion is ExpectedVersion.SoftDeleted && !isSoftDeleted)
 				{
-					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion,
-						-1, -1, false);
+					return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId,
+						expectedVersion, curVersion, -1, -1, false);
 				}
 
-				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
+				return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, expectedVersion, curVersion,
+					-1, -1,
 					isSoftDeleted);
 			}
 			else
@@ -303,12 +308,14 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 					: -1;
 				if (isReplicated)
 				{
-					return new CommitCheckResult<TStreamId>(CommitDecision.Idempotent, streamId, curVersion,
+					return new CommitCheckResult<TStreamId>(CommitDecision.Idempotent, streamId, expectedVersion,
+						curVersion,
 						startEventNumber, endEventNumber, false, logPos);
 				}
 				else
 				{
-					return new CommitCheckResult<TStreamId>(CommitDecision.IdempotentNotReady, streamId, curVersion,
+					return new CommitCheckResult<TStreamId>(CommitDecision.IdempotentNotReady, streamId,
+						expectedVersion, curVersion,
 						startEventNumber, endEventNumber, false, logPos);
 				}
 			}
@@ -336,17 +343,17 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 				var first = eventNumber == expectedVersion + 1;
 				if (!first)
 				{
-					return new(CommitDecision.CorruptedIdempotency, streamId, curVersion,
+					return new(CommitDecision.CorruptedIdempotency, streamId, expectedVersion, curVersion,
 						-1, -1,
 						false);
 				}
 
 				if (expectedVersion is ExpectedVersion.NoStream && await IsSoftDeleted(streamId, token))
 				{
-					return new(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
+					return new(CommitDecision.Ok, streamId, expectedVersion, curVersion, -1, -1, true);
 				}
 
-				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
+				return new(CommitDecision.WrongExpectedVersion, streamId, expectedVersion, curVersion, -1,
 					-1,
 					false);
 			}
@@ -355,10 +362,10 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 			{
 				if (expectedVersion is ExpectedVersion.NoStream && await IsSoftDeleted(streamId, token))
 				{
-					return new(CommitDecision.Ok, streamId, curVersion, -1, -1, true);
+					return new(CommitDecision.Ok, streamId, expectedVersion, curVersion, -1, -1, true);
 				}
 
-				return new(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1,
+				return new(CommitDecision.WrongExpectedVersion, streamId, expectedVersion, curVersion, -1,
 					-1, false);
 			}
 
@@ -374,18 +381,19 @@ public class IndexWriter<TStreamId> : IndexWriter, IIndexWriter<TStreamId>
 
 			return new(
 				isReplicated ? CommitDecision.Idempotent : CommitDecision.IdempotentNotReady, streamId,
+				expectedVersion,
 				curVersion,
 				expectedVersion + 1, eventNumber, false, logPos);
 		}
 
 		if (expectedVersion > curVersion)
 		{
-			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, curVersion, -1, -1,
-				false);
+			return new CommitCheckResult<TStreamId>(CommitDecision.WrongExpectedVersion, streamId, expectedVersion,
+				curVersion, -1, -1, false);
 		}
 
 		// expectedVersion == currentVersion
-		return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, curVersion, -1, -1,
+		return new CommitCheckResult<TStreamId>(CommitDecision.Ok, streamId, expectedVersion, curVersion, -1, -1,
 			await IsSoftDeleted(streamId, token));
 	}
 
