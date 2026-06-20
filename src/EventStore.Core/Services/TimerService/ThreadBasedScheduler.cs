@@ -27,11 +27,12 @@ namespace EventStore.Core.Services.TimerService
 
 		private readonly IClock _timeProvider;
 
-		private volatile bool _stop;
+		private int _stopRequested;
 
 		private readonly QueueStatsCollector _queueStats;
 		private readonly QueueTracker _tracker;
-		private readonly TaskCompletionSource<object> _tcs = new TaskCompletionSource<object>();
+		private readonly TaskCompletionSource<object> _tcs =
+			new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		private long _nextWakeupTimeTicks = long.MinValue;
 
@@ -84,7 +85,7 @@ namespace EventStore.Core.Services.TimerService
 			var minTimeout = TimeSpan.FromMilliseconds(1);
 			var maxTimeout = TimeSpan.FromSeconds(5);
 
-			while (!_stop)
+			while (Volatile.Read(ref _stopRequested) == 0)
 			{
 				try
 				{
@@ -163,11 +164,15 @@ namespace EventStore.Core.Services.TimerService
 			_queueStats.Stop();
 			QueueMonitor.Default.Unregister(this);
 			_pendingEvent.Dispose();
+			_tcs.TrySetResult(null);
 		}
 
 		public void Dispose()
 		{
-			_stop = true;
+			if (Interlocked.Exchange(ref _stopRequested, 1) == 0)
+			{
+				_pendingEvent.Set();
+			}
 		}
 
 		public QueueStats GetStatistics()
