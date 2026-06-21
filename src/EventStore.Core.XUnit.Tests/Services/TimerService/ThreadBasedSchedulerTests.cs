@@ -71,6 +71,28 @@ public class ThreadBasedSchedulerTests
 		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
 	}
 
+	[Fact]
+	public async Task callback_failure_is_counted_as_processed_work()
+	{
+		using var scheduler = CreateScheduler();
+		var failedCallbackRan = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var nextCallbackRan = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+		scheduler.Schedule(TimeSpan.Zero, static (_, state) =>
+		{
+			((TaskCompletionSource)state).SetResult();
+			throw new InvalidOperationException("boom");
+		}, failedCallbackRan);
+		scheduler.Schedule(TimeSpan.Zero, static (_, state) =>
+		{
+			((TaskCompletionSource)state).SetResult();
+		}, nextCallbackRan);
+
+		await Task.WhenAll(failedCallbackRan.Task, nextCallbackRan.Task).WaitAsync(TimeSpan.FromSeconds(1));
+
+		await AssertEventually(() => scheduler.GetStatistics().TotalItemsProcessed >= 4);
+	}
+
 	private static async Task AssertEventually(Func<bool> condition)
 	{
 		var deadline = DateTime.UtcNow.AddSeconds(1);
