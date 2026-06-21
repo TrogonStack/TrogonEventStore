@@ -100,11 +100,13 @@ public abstract class LogRecord : ILogRecord
 	public static IPrepareLogRecord<TStreamId> TransactionWrite<TStreamId>(IRecordFactory<TStreamId> factory,
 		long logPosition, Guid correlationId, Guid eventId,
 		long transactionPos, int transactionOffset, TStreamId eventStreamId, TStreamId eventType, byte[] data,
-		byte[] metadata, bool isJson)
+		byte[] metadata, bool isJson, bool isPropertyMetadata = false)
 	{
 		return factory.CreatePrepare(logPosition, correlationId, eventId, transactionPos, transactionOffset,
 			eventStreamId, ExpectedVersion.Any, DateTime.UtcNow,
-			PrepareFlags.Data | (isJson ? PrepareFlags.IsJson : PrepareFlags.None),
+			PrepareFlags.Data |
+			(isJson ? PrepareFlags.IsJson : PrepareFlags.None) |
+			(isPropertyMetadata ? PrepareFlags.IsPropertyMetadata : PrepareFlags.None),
 			eventType, data, metadata);
 	}
 

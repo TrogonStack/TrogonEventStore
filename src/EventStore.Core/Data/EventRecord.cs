@@ -27,6 +27,7 @@ namespace EventStore.Core.Data
 		public readonly string EventType;
 		public readonly ReadOnlyMemory<byte> Data;
 		public readonly ReadOnlyMemory<byte> Metadata;
+		public readonly ReadOnlyMemory<byte> Properties;
 
 		public EventRecord(long eventNumber, IPrepareLogRecord prepare, string eventStreamId, string eventType)
 		{
@@ -47,6 +48,9 @@ namespace EventStore.Core.Data
 			EventType = eventType ?? string.Empty;
 			Data = prepare.Data;
 			Metadata = prepare.Metadata;
+			Properties = prepare.Flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
+				? prepare.Metadata
+				: ReadOnlyMemory<byte>.Empty;
 		}
 
 		// called from tests only
@@ -89,6 +93,9 @@ namespace EventStore.Core.Data
 			EventType = eventType ?? string.Empty;
 			Data = data ?? Empty.ByteArray;
 			Metadata = metadata ?? Empty.ByteArray;
+			Properties = flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
+				? Metadata
+				: ReadOnlyMemory<byte>.Empty;
 		}
 
 		public bool Equals(EventRecord other)
@@ -115,7 +122,8 @@ namespace EventStore.Core.Data
 				   && Flags.Equals(other.Flags)
 				   && string.Equals(EventType, other.EventType)
 				   && Data.Span.SequenceEqual(other.Data.Span)
-				   && Metadata.Span.SequenceEqual(other.Metadata.Span);
+				   && Metadata.Span.SequenceEqual(other.Metadata.Span)
+				   && Properties.Span.SequenceEqual(other.Properties.Span);
 		}
 
 		public override bool Equals(object obj)
@@ -155,6 +163,7 @@ namespace EventStore.Core.Data
 				hashCode = (hashCode * 397) ^ EventType.GetHashCode();
 				hashCode = (hashCode * 397) ^ Data.GetHashCode();
 				hashCode = (hashCode * 397) ^ Metadata.GetHashCode();
+				hashCode = (hashCode * 397) ^ Properties.GetHashCode();
 				return hashCode;
 			}
 		}

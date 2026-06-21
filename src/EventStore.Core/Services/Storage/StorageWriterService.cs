@@ -399,6 +399,11 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 						flags |= PrepareFlags.IsJson;
 					}
 
+					if (evnt.IsPropertyMetadata)
+					{
+						flags |= PrepareFlags.IsPropertyMetadata;
+					}
+
 					// when IsCommitted ExpectedVersion is always explicit
 					var expectedVersion = commitCheck.CurrentVersion + i;
 					var prepare = LogRecord.Prepare(_recordFactory, logPosition, msg.CorrelationId, evnt.EventId,
@@ -710,7 +715,8 @@ public class StorageWriterService<TStreamId> : IHandle<SystemMessage.SystemInit>
 						eventType,
 						evnt.Data,
 						evnt.Metadata,
-						evnt.IsJson);
+						evnt.IsJson,
+						evnt.IsPropertyMetadata);
 					var res = await WritePrepareWithRetry(record, token);
 					logPosition = res.NewPos;
 					lastLogPosition = res.WrittenPos;

@@ -10,11 +10,13 @@ namespace EventStore.Core.Data
 		public readonly string EventType;
 		public readonly bool IsJson;
 		public readonly byte[] Data;
+		public readonly bool IsPropertyMetadata;
 		public readonly byte[] Metadata;
 
 		public Event(Guid eventId, string eventType, bool isJson, string data, string metadata)
 			: this(
 				eventId, eventType, isJson, Helper.UTF8NoBom.GetBytes(data),
+				isPropertyMetadata: false,
 				metadata != null ? Helper.UTF8NoBom.GetBytes(metadata) : null)
 		{
 		}
@@ -26,6 +28,11 @@ namespace EventStore.Core.Data
 			SizeOnDisk(eventType, data, metadata) > TFConsts.EffectiveMaxLogRecordSize;
 
 		public Event(Guid eventId, string eventType, bool isJson, byte[] data, byte[] metadata)
+			: this(eventId, eventType, isJson, data, isPropertyMetadata: false, metadata)
+		{
+		}
+
+		public Event(Guid eventId, string eventType, bool isJson, byte[] data, bool isPropertyMetadata, byte[] metadata)
 		{
 			if (eventId == Guid.Empty)
 			{
@@ -46,6 +53,7 @@ namespace EventStore.Core.Data
 			EventType = eventType;
 			IsJson = isJson;
 			Data = data ?? Array.Empty<byte>();
+			IsPropertyMetadata = isPropertyMetadata;
 			Metadata = metadata ?? Array.Empty<byte>();
 		}
 	}
