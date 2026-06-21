@@ -26,6 +26,7 @@ public enum PrepareFlags : ushort
 
 	IsJson = 0x100, // indicates data & metadata are valid json
 	IsRedacted = 0x200,
+	IsPropertyMetadata = 0x400,
 
 	// aggregate flag set
 	// unused and easily confused with StreamDelete:  DeleteTombstone = TransactionBegin | TransactionEnd | StreamDelete,
