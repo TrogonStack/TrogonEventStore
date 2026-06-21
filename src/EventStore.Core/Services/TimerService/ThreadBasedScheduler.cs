@@ -157,7 +157,6 @@ namespace EventStore.Core.Services.TimerService
 				catch (Exception ex)
 				{
 					Log.Error(ex, "Error executing scheduled task");
-					_tcs.TrySetException(ex);
 				}
 			}
 
