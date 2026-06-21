@@ -28,6 +28,9 @@ namespace EventStore.Core.Data
 		public readonly ReadOnlyMemory<byte> Data;
 		public readonly ReadOnlyMemory<byte> Metadata;
 		public readonly ReadOnlyMemory<byte> Properties;
+		public ReadOnlyMemory<byte> CustomMetadata => Flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
+			? ReadOnlyMemory<byte>.Empty
+			: Metadata;
 
 		public EventRecord(long eventNumber, IPrepareLogRecord prepare, string eventStreamId, string eventType)
 		{

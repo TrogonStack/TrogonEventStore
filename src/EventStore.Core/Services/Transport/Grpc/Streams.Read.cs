@@ -449,7 +449,7 @@ internal partial class Streams<TStreamId>
 					: Constants.Metadata.ContentTypes.ApplicationOctetStream
 			},
 			Data = ByteString.CopyFrom(e.Data.Span),
-			CustomMetadata = ByteString.CopyFrom(e.Metadata.Span)
+			CustomMetadata = ByteString.CopyFrom(e.CustomMetadata.Span)
 		};
 	}
 
