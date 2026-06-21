@@ -124,10 +124,7 @@ namespace EventStore.Core.Services.TimerService
 
 						processed += 1;
 						var scheduledTask = _tasks.DeleteMin();
-						var now = _tracker.RecordMessageDequeued(enqueuedAt: scheduledTask.DueTime);
-						scheduledTask.Action(this, scheduledTask.State);
-						var label = (scheduledTask.State as TimerMessage.Schedule)?.ReplyMessage.Label;
-						_tracker.RecordMessageProcessed(now, label ?? "");
+						ExecuteScheduledTask(scheduledTask);
 					}
 
 					_queueStats.ProcessingEnded(processed);
@@ -156,7 +153,7 @@ namespace EventStore.Core.Services.TimerService
 				}
 				catch (Exception ex)
 				{
-					Log.Error(ex, "Error executing scheduled task");
+					Log.Error(ex, "Error running timer scheduler");
 				}
 			}
 
@@ -164,6 +161,24 @@ namespace EventStore.Core.Services.TimerService
 			QueueMonitor.Default.Unregister(this);
 			_pendingEvent.Dispose();
 			_tcs.TrySetResult(null);
+		}
+
+		private void ExecuteScheduledTask(ScheduledTask scheduledTask)
+		{
+			var now = _tracker.RecordMessageDequeued(enqueuedAt: scheduledTask.DueTime);
+			var label = (scheduledTask.State as TimerMessage.Schedule)?.ReplyMessage.Label;
+			try
+			{
+				scheduledTask.Action(this, scheduledTask.State);
+			}
+			catch (Exception ex)
+			{
+				Log.Error(ex, "Error executing scheduled task");
+			}
+			finally
+			{
+				_tracker.RecordMessageProcessed(now, label ?? "");
+			}
 		}
 
 		public void Dispose()
