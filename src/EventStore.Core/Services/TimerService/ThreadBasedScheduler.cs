@@ -90,6 +90,7 @@ namespace EventStore.Core.Services.TimerService
 				try
 				{
 					_queueStats.EnterBusy();
+					_tracker.EnterBusy();
 					_queueStats.ProcessingStarted<SchedulePendingTasks>(_pending.Count);
 
 					_pendingEvent.Reset();
@@ -133,6 +134,7 @@ namespace EventStore.Core.Services.TimerService
 					if (processed == 0 && !_pendingEvent.IsSet)
 					{
 						_queueStats.EnterIdle();
+						_tracker.EnterIdle();
 
 						// give some processor time to other threads since we're free right now
 						Thread.Yield();
@@ -157,6 +159,7 @@ namespace EventStore.Core.Services.TimerService
 				}
 			}
 
+			_tracker.EnterIdle();
 			_queueStats.Stop();
 			QueueMonitor.Default.Unregister(this);
 			_pendingEvent.Dispose();
