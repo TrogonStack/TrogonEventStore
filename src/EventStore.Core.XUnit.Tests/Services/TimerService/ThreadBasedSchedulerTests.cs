@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using EventStore.Core.Bus;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services.TimerService;
+using EventStore.Core.Time;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Services.TimerService;
@@ -30,6 +31,42 @@ public class ThreadBasedSchedulerTests
 		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
 	}
 
-	private static ThreadBasedScheduler CreateScheduler() =>
-		new(new QueueStatsManager(), new QueueTrackers());
+	[Fact]
+	public async Task statistics_include_scheduled_work()
+	{
+		using var scheduler = CreateScheduler(new FrozenClock());
+
+		scheduler.Schedule(TimeSpan.FromMinutes(1), static (_, _) => { }, null);
+		scheduler.Schedule(TimeSpan.FromMinutes(2), static (_, _) => { }, null);
+
+		await AssertEventually(() => scheduler.GetStatistics().Length == 2);
+		scheduler.Stop();
+
+		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
+	}
+
+	private static async Task AssertEventually(Func<bool> condition)
+	{
+		var deadline = DateTime.UtcNow.AddSeconds(1);
+
+		while (!condition())
+		{
+			if (DateTime.UtcNow >= deadline)
+			{
+				Assert.True(condition());
+			}
+
+			await Task.Delay(10);
+		}
+	}
+
+	private static ThreadBasedScheduler CreateScheduler(IClock clock = null) =>
+		new(new QueueStatsManager(), new QueueTrackers(), clock);
+
+	private sealed class FrozenClock : IClock
+	{
+		public Instant Now => Instant.FromSeconds(1);
+
+		public long SecondsSinceEpoch => 1;
+	}
 }

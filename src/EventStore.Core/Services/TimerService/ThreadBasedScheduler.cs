@@ -177,7 +177,7 @@ namespace EventStore.Core.Services.TimerService
 
 		public QueueStats GetStatistics()
 		{
-			return _queueStats.GetStatistics(_tasks.Count);
+			return _queueStats.GetStatistics(_pending.Count + _tasks.Count);
 		}
 
 		private struct ScheduledTask
