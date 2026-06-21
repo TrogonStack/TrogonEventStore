@@ -61,6 +61,7 @@ public class PropertyMetadataTests
 
 		Assert.Equal(propertyMetadata, record.Metadata.ToArray());
 		Assert.Equal(propertyMetadata, record.Properties.ToArray());
+		Assert.Empty(record.CustomMetadata.ToArray());
 	}
 
 	[Fact]
@@ -85,6 +86,7 @@ public class PropertyMetadataTests
 		var record = new EventRecord(0, prepare, "test-stream", "test-event");
 
 		Assert.Equal(customMetadata, record.Metadata.ToArray());
+		Assert.Equal(customMetadata, record.CustomMetadata.ToArray());
 		Assert.Empty(record.Properties.ToArray());
 	}
 }
