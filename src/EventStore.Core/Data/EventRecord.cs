@@ -27,7 +27,9 @@ namespace EventStore.Core.Data
 		public readonly string EventType;
 		public readonly ReadOnlyMemory<byte> Data;
 		public readonly ReadOnlyMemory<byte> Metadata;
-		public readonly ReadOnlyMemory<byte> Properties;
+		public ReadOnlyMemory<byte> Properties => Flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
+			? Metadata
+			: ReadOnlyMemory<byte>.Empty;
 		public ReadOnlyMemory<byte> CustomMetadata => Flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
 			? ReadOnlyMemory<byte>.Empty
 			: Metadata;
@@ -51,9 +53,6 @@ namespace EventStore.Core.Data
 			EventType = eventType ?? string.Empty;
 			Data = prepare.Data;
 			Metadata = prepare.Metadata;
-			Properties = prepare.Flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
-				? prepare.Metadata
-				: ReadOnlyMemory<byte>.Empty;
 		}
 
 		// called from tests only
@@ -96,9 +95,6 @@ namespace EventStore.Core.Data
 			EventType = eventType ?? string.Empty;
 			Data = data ?? Empty.ByteArray;
 			Metadata = metadata ?? Empty.ByteArray;
-			Properties = flags.HasAllOf(PrepareFlags.IsPropertyMetadata)
-				? Metadata
-				: ReadOnlyMemory<byte>.Empty;
 		}
 
 		public bool Equals(EventRecord other)
