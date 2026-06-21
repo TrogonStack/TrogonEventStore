@@ -45,6 +45,32 @@ public class ThreadBasedSchedulerTests
 		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
 	}
 
+	[Fact]
+	public async Task callback_failure_does_not_fault_scheduler_lifetime()
+	{
+		using var scheduler = CreateScheduler();
+		var failedCallbackRan = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var nextCallbackRan = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+		scheduler.Schedule(TimeSpan.Zero, static (_, state) =>
+		{
+			((TaskCompletionSource)state).SetResult();
+			throw new InvalidOperationException("boom");
+		}, failedCallbackRan);
+
+		await failedCallbackRan.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+		scheduler.Schedule(TimeSpan.Zero, static (_, state) =>
+		{
+			((TaskCompletionSource)state).SetResult();
+		}, nextCallbackRan);
+
+		await nextCallbackRan.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		scheduler.Stop();
+
+		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
+	}
+
 	private static async Task AssertEventually(Func<bool> condition)
 	{
 		var deadline = DateTime.UtcNow.AddSeconds(1);
