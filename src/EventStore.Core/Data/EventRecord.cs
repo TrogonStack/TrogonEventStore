@@ -121,8 +121,7 @@ namespace EventStore.Core.Data
 				   && Flags.Equals(other.Flags)
 				   && string.Equals(EventType, other.EventType)
 				   && Data.Span.SequenceEqual(other.Data.Span)
-				   && Metadata.Span.SequenceEqual(other.Metadata.Span)
-				   && Properties.Span.SequenceEqual(other.Properties.Span);
+				   && Metadata.Span.SequenceEqual(other.Metadata.Span);
 		}
 
 		public override bool Equals(object obj)
@@ -162,7 +161,6 @@ namespace EventStore.Core.Data
 				hashCode = (hashCode * 397) ^ EventType.GetHashCode();
 				hashCode = (hashCode * 397) ^ Data.GetHashCode();
 				hashCode = (hashCode * 397) ^ Metadata.GetHashCode();
-				hashCode = (hashCode * 397) ^ Properties.GetHashCode();
 				return hashCode;
 			}
 		}
