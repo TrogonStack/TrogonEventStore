@@ -46,6 +46,7 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 	private readonly QueueMonitor _queueMonitor;
 	private readonly QueueStatsCollector _queueStats;
 	private readonly QueueTracker _tracker;
+	private readonly IQueueProcessingLimiter _processingLimiter;
 
 	private int _isRunning;
 	private int _queueStatsState; //0 - never started, 1 - started, 2 - stopped
@@ -59,7 +60,8 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		bool watchSlowMsg = true,
 		TimeSpan? slowMsgThreshold = null,
 		TimeSpan? threadStopWaitTimeout = null,
-		string groupName = null)
+		string groupName = null,
+		IQueueProcessingLimiter processingLimiter = null)
 	{
 		Ensure.NotNull(consumer, "consumer");
 		Ensure.NotNull(name, "name");
@@ -77,6 +79,7 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		_queueMonitor = QueueMonitor.Default;
 		_queueStats = queueStatsManager.CreateQueueStatsCollector(name, groupName);
 		_tracker = trackers.GetTrackerForQueue(name);
+		_processingLimiter = processingLimiter;
 	}
 
 	public Task Start()
@@ -154,8 +157,14 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 				_queueStats.EnterBusy();
 				_tracker.EnterBusy();
 
-				while (!_lifetimeToken.IsCancellationRequested && _queue.TryDequeue(out var item))
+				while (!_lifetimeToken.IsCancellationRequested && _queue.TryPeek(out var item))
 				{
+					using var processingLease = await AcquireProcessingLease(item.Message);
+					if (!_queue.TryDequeue(out item))
+					{
+						continue;
+					}
+
 					_tracker.RecordQueueLength(_queue.Count);
 					var start = _tracker.RecordMessageDequeued(item.EnqueuedAt);
 					var msg = item.Message;
@@ -245,6 +254,44 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 		}
 	}
 
+	private async ValueTask<IDisposable> AcquireProcessingLease(Message message)
+	{
+		if (_processingLimiter is null || !_processingLimiter.ShouldLimit(message))
+		{
+			return NoopProcessingLease.Instance;
+		}
+
+		using var source = CreateProcessingWaitCancellationSource(message);
+		try
+		{
+			return await _processingLimiter.Acquire(source?.Token ?? _lifetimeToken);
+		}
+		catch (OperationCanceledException ex) when (_lifetimeToken.IsCancellationRequested)
+		{
+			throw new OperationCanceledException(null, ex, _lifetimeToken);
+		}
+		catch (OperationCanceledException)
+		{
+			return NoopProcessingLease.Instance;
+		}
+	}
+
+	private CancellationTokenSource CreateProcessingWaitCancellationSource(Message message)
+	{
+		if (message is ClientMessage.ReadRequestMessage { CanExpire: true } readRequest)
+		{
+			var source = message.CancellationToken.CanBeCanceled
+				? CancellationTokenSource.CreateLinkedTokenSource(_lifetimeToken, message.CancellationToken)
+				: CancellationTokenSource.CreateLinkedTokenSource(_lifetimeToken);
+			source.CancelAfter(readRequest.Lifetime);
+			return source;
+		}
+
+		return message.CancellationToken.CanBeCanceled
+			? CancellationTokenSource.CreateLinkedTokenSource(_lifetimeToken, message.CancellationToken)
+			: null;
+	}
+
 	private static bool IsExpectedCancellation(
 		OperationCanceledException exception,
 		Message message,
@@ -270,5 +317,18 @@ public class QueuedHandlerThreadPool : IQueuedHandler, IMonitoredQueue, IThreadP
 	public QueueStats GetStatistics()
 	{
 		return _queueStats.GetStatistics(_queue.Count);
+	}
+
+	private sealed class NoopProcessingLease : IDisposable
+	{
+		public static readonly NoopProcessingLease Instance = new();
+
+		private NoopProcessingLease()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
 	}
 }

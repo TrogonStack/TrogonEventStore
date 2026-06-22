@@ -55,7 +55,6 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
-			using var readSlot = await AcquireReadSlot(token);
 			res = _virtualStreamReader.CanReadStream(msg.EventStreamId)
 				? await _virtualStreamReader.ReadForwards(msg, token)
 				: await ReadStreamEventsForward(msg, token);
@@ -143,7 +142,6 @@ public partial class StorageReaderWorker<TStreamId>
 		using var cts = Multiplex(ref token, msg);
 		try
 		{
-			using var readSlot = await AcquireReadSlot(token);
 			var res = _virtualStreamReader.CanReadStream(msg.EventStreamId)
 				? await _virtualStreamReader.ReadBackwards(msg, token)
 				: await ReadStreamEventsBackward(msg, token);
