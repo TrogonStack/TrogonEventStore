@@ -94,6 +94,11 @@ namespace EventStore.Core.Services.TimerService
 					_queueStats.ProcessingStarted<SchedulePendingTasks>(_pending.Count);
 
 					_pendingEvent.Reset();
+					if (Volatile.Read(ref _stopRequested) != 0)
+					{
+						_queueStats.ProcessingCancelled();
+						break;
+					}
 
 					int pending = 0;
 					while (_pending.TryDequeue(out var task))
