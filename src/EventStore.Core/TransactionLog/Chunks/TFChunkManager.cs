@@ -626,16 +626,21 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 	public bool TryGetChunkFor(long logPosition, out TFChunk.TFChunk chunk)
 	{
-		try
-		{
-			chunk = GetChunkFor(logPosition);
-			return true;
-		}
-		catch
+		var chunkNum = (int)(logPosition / _config.ChunkSize);
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
 		{
 			chunk = null;
 			return false;
 		}
+
+		chunk = _chunks[chunkNum];
+		if (chunk == null)
+		{
+			return false;
+		}
+
+		EnsureInitialized(chunk);
+		return true;
 	}
 
 	public TFChunk.TFChunk GetChunkFor(long logPosition)

@@ -207,6 +207,25 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 	}
 
 	[Fact]
+	public async Task try_get_chunk_for_propagates_archive_initialization_failures()
+	{
+		await AddLocalChunk(0, 0);
+		await StoreArchivedChunk(1);
+		await AddLocalChunk(2, 2);
+		await _sut.SwitchInCompletedChunks([
+			_locatorCodec.EncodeRemote(1),
+		], CancellationToken.None);
+		_archiveStorage.GetChunkLengthException = new IOException("archive chunk is unavailable");
+
+		var ex = Assert.Throws<IOException>(() =>
+		{
+			_sut.TryGetChunkFor(ChunkSize, out _);
+		});
+
+		Assert.Equal("archive chunk is unavailable", ex.Message);
+	}
+
+	[Fact]
 	public async Task rejects_misaligned_archive_ranges_without_mutating_chunks()
 	{
 		var chunk0 = await AddLocalChunk(0, 0);
@@ -358,6 +377,8 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 
 		public int GetChunkRangeCalls { get; private set; }
 
+		public Exception GetChunkLengthException { get; set; }
+
 		public IArchiveChunkNamer ChunkNamer => inner.ChunkNamer;
 
 		public void ResetCounts()
@@ -373,6 +394,11 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
 		{
 			GetChunkLengthCalls++;
+			if (GetChunkLengthException is not null)
+			{
+				throw GetChunkLengthException;
+			}
+
 			return inner.GetChunkLength(chunkFile, ct);
 		}
 
