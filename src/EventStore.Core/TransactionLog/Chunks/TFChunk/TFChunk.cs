@@ -53,7 +53,7 @@ public partial class TFChunk : IDisposable
 
 	internal bool IsInitialized => _lazyCompletedChunk is null;
 
-	public bool IsRemote => _isRemote;
+	public bool IsRemote => _isRemote || _handle is not null and not ChunkFileHandle;
 
 	// the logical size of (untransformed) data (could be > PhysicalDataSize if scavenged chunk)
 	public long LogicalDataSize
