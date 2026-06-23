@@ -258,13 +258,20 @@ public class TFChunkDb : IAsyncDisposable
 
 		if (verifyHash && lastChunkNum > 0)
 		{
-			var preLastChunk = Manager.GetChunk(lastChunkNum - 1);
-			var lastBgChunkNum = preLastChunk.ChunkHeader.ChunkStartNumber;
+			var preLastChunk = Manager.GetChunkInfo(lastChunkNum - 1);
+			var lastBgChunkNum = preLastChunk.ChunkStartNumber;
 			ThreadPool.UnsafeQueueUserWorkItem(async token =>
 			{
 				for (int chunkNum = lastBgChunkNum; chunkNum >= 0;)
 				{
-					var chunk = Manager.GetChunk(chunkNum);
+					var chunkInfo = Manager.GetChunkInfo(chunkNum);
+					if (chunkInfo.IsRemote && !Manager.IsChunkInitialized(chunkNum))
+					{
+						chunkNum = chunkInfo.ChunkStartNumber - 1;
+						continue;
+					}
+
+					var chunk = await Manager.GetChunkAsync(chunkNum, token);
 					try
 					{
 						await chunk.VerifyFileHash(token);
@@ -287,7 +294,7 @@ public class TFChunkDb : IAsyncDisposable
 						return;
 					}
 
-					chunkNum = chunk.ChunkHeader.ChunkStartNumber - 1;
+					chunkNum = chunkInfo.ChunkStartNumber - 1;
 				}
 			}, token, preferLocal: false);
 		}

@@ -86,7 +86,7 @@ public class RedactionService<TStreamId> :
 		{
 			var eventInfo = result.EventInfos[i];
 			var logPos = eventInfo.LogPosition;
-			var chunk = _db.Manager.GetChunkFor(logPos);
+			var chunk = await _db.Manager.GetChunkForAsync(logPos, token);
 			var localPosition = chunk.ChunkHeader.GetLocalLogPosition(logPos);
 			var chunkEventOffset = await chunk.GetActualRawPosition(localPosition, token);
 
@@ -249,7 +249,7 @@ public class RedactionService<TStreamId> :
 		TFChunk targetChunk;
 		try
 		{
-			targetChunk = _db.Manager.GetChunk(targetChunkNumber);
+			targetChunk = await _db.Manager.GetChunkAsync(targetChunkNumber, token);
 		}
 		catch (ArgumentOutOfRangeException)
 		{

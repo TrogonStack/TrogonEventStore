@@ -9,6 +9,7 @@ using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.Transforms;
 using EventStore.Core.Transforms.Identity;
+using EventStore.Plugins.Transforms;
 using ChunkInfo = EventStore.Core.Data.ChunkInfo;
 using ILogger = Serilog.ILogger;
 
@@ -100,10 +101,8 @@ public class TFChunkManager : IThreadPoolWorkItem
 			for (int chunkNum = _chunksCount - 1; chunkNum >= 0;)
 			{
 				var chunk = _chunks[chunkNum];
-				var chunkSize = chunk.IsReadOnly
-					? chunk.ChunkFooter.PhysicalDataSize + chunk.ChunkFooter.MapSize + ChunkHeader.Size +
-					  ChunkFooter.Size
-					: chunk.ChunkHeader.ChunkSize + ChunkHeader.Size + ChunkFooter.Size;
+				var chunkInfo = chunk.ChunkInfo;
+				var chunkSize = GetCacheBudgetSize(chunk, chunkInfo);
 
 				if (totalSize + chunkSize > _config.MaxChunksCacheSize)
 				{
@@ -111,9 +110,9 @@ public class TFChunkManager : IThreadPoolWorkItem
 				}
 
 				totalSize += chunkSize;
-				lastChunkToCache = chunk.ChunkHeader.ChunkStartNumber;
+				lastChunkToCache = chunkInfo.ChunkStartNumber;
 
-				chunkNum = chunk.ChunkHeader.ChunkStartNumber - 1;
+				chunkNum = chunkInfo.ChunkStartNumber - 1;
 			}
 		}
 		finally
@@ -129,19 +128,35 @@ public class TFChunkManager : IThreadPoolWorkItem
 				chunk.UnCacheFromMemory();
 			}
 
-			chunkNum = chunk.ChunkHeader.ChunkStartNumber - 1;
+			chunkNum = chunk.ChunkInfo.ChunkStartNumber - 1;
 		}
 
 		for (int chunkNum = lastChunkToCache; chunkNum < _chunksCount;)
 		{
 			var chunk = _chunks[chunkNum];
-			if (chunk.IsReadOnly)
+			var chunkInfo = chunk.ChunkInfo;
+			if (chunk.IsReadOnly && (!chunk.IsRemote || chunk.IsInitialized))
 			{
 				await chunk.CacheInMemory(token);
 			}
 
-			chunkNum = chunk.ChunkHeader.ChunkEndNumber + 1;
+			chunkNum = chunkInfo.ChunkEndNumber + 1;
 		}
+	}
+
+	private static long GetCacheBudgetSize(TFChunk.TFChunk chunk, ChunkInfo chunkInfo)
+	{
+		if (!chunk.IsReadOnly)
+		{
+			return chunk.ChunkHeader.ChunkSize + ChunkHeader.Size + ChunkFooter.Size;
+		}
+
+		if (!chunk.IsInitialized)
+		{
+			return chunkInfo.ChunkEndPosition - chunkInfo.ChunkStartPosition + ChunkHeader.Size + ChunkFooter.Size;
+		}
+
+		return chunk.ChunkFooter.PhysicalDataSize + chunk.ChunkFooter.MapSize + ChunkHeader.Size + ChunkFooter.Size;
 	}
 
 	public ValueTask<TFChunk.TFChunk> CreateTempChunk(ChunkHeader chunkHeader, int fileSize, CancellationToken token)
@@ -254,18 +269,19 @@ public class TFChunkManager : IThreadPoolWorkItem
 		Debug.Assert(chunk is not null);
 		Debug.Assert(_chunksLocker.IsLockHeld);
 
-		for (int i = chunk.ChunkHeader.ChunkStartNumber; i <= chunk.ChunkHeader.ChunkEndNumber; ++i)
+		var chunkInfo = chunk.ChunkInfo;
+		for (int i = chunkInfo.ChunkStartNumber; i <= chunkInfo.ChunkEndNumber; ++i)
 		{
 			_chunks[i] = chunk;
 		}
 
-		_chunksCount = Math.Max(chunk.ChunkHeader.ChunkEndNumber + 1, _chunksCount);
+		_chunksCount = Math.Max(chunkInfo.ChunkEndNumber + 1, _chunksCount);
 
 		if (isNew)
 		{
-			if (chunk.ChunkHeader.ChunkStartNumber > 0)
+			if (chunkInfo.ChunkStartNumber > 0)
 			{
-				OnChunkCompleted?.Invoke(_chunks[chunk.ChunkHeader.ChunkStartNumber - 1].ChunkInfo);
+				OnChunkCompleted?.Invoke(_chunks[chunkInfo.ChunkStartNumber - 1].ChunkInfo);
 			}
 		}
 		else
@@ -301,22 +317,20 @@ public class TFChunkManager : IThreadPoolWorkItem
 	{
 		Ensure.NotNull(locators, nameof(locators));
 		var getFactoryForExistingChunk = _transformManager.GetFactoryForExistingChunk;
-		var newChunks = new TFChunk.TFChunk[locators.Count];
+		var newChunks = new List<TFChunk.TFChunk>(locators.Count);
 		var ownsNewChunks = true;
 		try
 		{
 			for (var i = 0; i < locators.Count; i++)
 			{
-				newChunks[i] = await TFChunk.TFChunk.FromCompletedFile(
-					fileSystem: FileSystem,
-					filename: locators[i],
-					verifyHash: false,
-					unbufferedRead: _config.Unbuffered,
-					tracker: _tracker,
-					getTransformFactory: getFactoryForExistingChunk,
-					reduceFileCachePressure: _config.ReduceFileCachePressure,
-					asyncIO: _config.AsyncIO,
-					token: token);
+				var newChunk = await CreateSwitchInChunk(locators[i], getFactoryForExistingChunk, token);
+				if (newChunks.Count > 0 && SameLogicalRange(newChunks[^1], newChunk))
+				{
+					newChunk.Dispose();
+					continue;
+				}
+
+				newChunks.Add(newChunk);
 			}
 
 			return await SwitchInChunks(newChunks, removeChunksAfter: null, token,
@@ -331,6 +345,44 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 			throw;
 		}
+	}
+
+	private async ValueTask<TFChunk.TFChunk> CreateSwitchInChunk(string locator,
+		Func<TransformType, IChunkTransformFactory> getFactoryForExistingChunk,
+		CancellationToken token)
+	{
+		if (FileSystem is IArchivedChunkFileSystem archivedChunkFileSystem
+			&& await archivedChunkFileSystem.TryGetArchivedChunk(locator, token) is { } archivedChunk)
+		{
+			return TFChunk.TFChunk.FromArchivedCompletedFile(
+				fileSystem: FileSystem,
+				filename: locator,
+				archivedChunk: archivedChunk,
+				unbufferedRead: _config.Unbuffered,
+				tracker: _tracker,
+				getTransformFactory: getFactoryForExistingChunk,
+				reduceFileCachePressure: _config.ReduceFileCachePressure,
+				asyncIO: _config.AsyncIO);
+		}
+
+		return await TFChunk.TFChunk.FromCompletedFile(
+			fileSystem: FileSystem,
+			filename: locator,
+			verifyHash: false,
+			unbufferedRead: _config.Unbuffered,
+			tracker: _tracker,
+			getTransformFactory: getFactoryForExistingChunk,
+			reduceFileCachePressure: _config.ReduceFileCachePressure,
+			asyncIO: _config.AsyncIO,
+			token: token);
+	}
+
+	private static bool SameLogicalRange(TFChunk.TFChunk left, TFChunk.TFChunk right)
+	{
+		var leftInfo = left.ChunkInfo;
+		var rightInfo = right.ChunkInfo;
+		return leftInfo.ChunkStartNumber == rightInfo.ChunkStartNumber
+			   && leftInfo.ChunkEndNumber == rightInfo.ChunkEndNumber;
 	}
 
 	public async ValueTask<TFChunk.TFChunk> SwitchChunk(TFChunk.TFChunk chunk, bool verifyHash,
@@ -424,7 +476,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 			if (removeChunksAfter.HasValue)
 			{
 				var oldChunksCount = _chunksCount;
-				_chunksCount = newChunks[^1].ChunkHeader.ChunkEndNumber + 1;
+				_chunksCount = newChunks[^1].ChunkInfo.ChunkEndNumber + 1;
 				RemoveChunks(removeChunksAfter.Value + 1, oldChunksCount - 1, "Excessive");
 				if (_chunks[_chunksCount] is not null)
 				{
@@ -465,22 +517,23 @@ public class TFChunkManager : IThreadPoolWorkItem
 			return true;
 		}
 
-		var chunkStartNumber = newChunks[0].ChunkHeader.ChunkStartNumber;
-		var chunkEndNumber = newChunks[^1].ChunkHeader.ChunkEndNumber;
+		var chunkStartNumber = newChunks[0].ChunkInfo.ChunkStartNumber;
+		var chunkEndNumber = newChunks[^1].ChunkInfo.ChunkEndNumber;
 
 		var expectedStart = chunkStartNumber;
 		foreach (var newChunk in newChunks)
 		{
-			if (newChunk.ChunkHeader.ChunkStartNumber != expectedStart)
+			var newChunkInfo = newChunk.ChunkInfo;
+			if (newChunkInfo.ChunkStartNumber != expectedStart)
 			{
 				Log.Error(
 					"Cannot replace chunks because new chunks are not contiguous. ExpectedChunkNumber {Expected}. ActualChunkNumber {Actual}",
 					expectedStart,
-					newChunk.ChunkHeader.ChunkStartNumber);
+					newChunkInfo.ChunkStartNumber);
 				return false;
 			}
 
-			expectedStart = newChunk.ChunkHeader.ChunkEndNumber + 1;
+			expectedStart = newChunkInfo.ChunkEndNumber + 1;
 		}
 
 		for (int i = chunkStartNumber; i <= chunkEndNumber;)
@@ -488,13 +541,13 @@ public class TFChunkManager : IThreadPoolWorkItem
 			var chunk = _chunks[i];
 			if (chunk != null)
 			{
-				var chunkHeader = chunk.ChunkHeader;
-				if (chunkHeader.ChunkStartNumber < chunkStartNumber || chunkHeader.ChunkEndNumber > chunkEndNumber)
+				var chunkInfo = chunk.ChunkInfo;
+				if (chunkInfo.ChunkStartNumber < chunkStartNumber || chunkInfo.ChunkEndNumber > chunkEndNumber)
 				{
 					return false;
 				}
 
-				i = chunkHeader.ChunkEndNumber + 1;
+				i = chunkInfo.ChunkEndNumber + 1;
 			}
 			else
 			{
@@ -539,8 +592,8 @@ public class TFChunkManager : IThreadPoolWorkItem
 		return true;
 
 		static bool Covers(TFChunk.TFChunk chunk, int chunkNumber) =>
-			chunk.ChunkHeader.ChunkStartNumber <= chunkNumber &&
-			chunk.ChunkHeader.ChunkEndNumber >= chunkNumber;
+			chunk.ChunkInfo.ChunkStartNumber <= chunkNumber &&
+			chunk.ChunkInfo.ChunkEndNumber >= chunkNumber;
 	}
 
 	private void RemoveChunks(int chunkStartNumber, int chunkEndNumber, string chunkExplanation)
@@ -573,16 +626,21 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 	public bool TryGetChunkFor(long logPosition, out TFChunk.TFChunk chunk)
 	{
-		try
-		{
-			chunk = GetChunkFor(logPosition);
-			return true;
-		}
-		catch
+		var chunkNum = (int)(logPosition / _config.ChunkSize);
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
 		{
 			chunk = null;
 			return false;
 		}
+
+		chunk = _chunks[chunkNum];
+		if (chunk == null)
+		{
+			return false;
+		}
+
+		EnsureInitialized(chunk);
+		return true;
 	}
 
 	public TFChunk.TFChunk GetChunkFor(long logPosition)
@@ -601,6 +659,45 @@ public class TFChunkManager : IThreadPoolWorkItem
 				"Requested chunk for LogPosition {0}, which is not present in TFChunkManager.", logPosition));
 		}
 
+		EnsureInitialized(chunk);
+		return chunk;
+	}
+
+	public async ValueTask<TFChunk.TFChunk> TryGetChunkForAsync(long logPosition, CancellationToken token)
+	{
+		var chunkNum = (int)(logPosition / _config.ChunkSize);
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			return null;
+		}
+
+		var chunk = _chunks[chunkNum];
+		if (chunk is null)
+		{
+			return null;
+		}
+
+		await EnsureInitialized(chunk, token);
+		return chunk;
+	}
+
+	public async ValueTask<TFChunk.TFChunk> GetChunkForAsync(long logPosition, CancellationToken token)
+	{
+		var chunkNum = (int)(logPosition / _config.ChunkSize);
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException("logPosition",
+				string.Format("LogPosition {0} does not have corresponding chunk in DB.", logPosition));
+		}
+
+		var chunk = _chunks[chunkNum];
+		if (chunk == null)
+		{
+			throw new Exception(string.Format(
+				"Requested chunk for LogPosition {0}, which is not present in TFChunkManager.", logPosition));
+		}
+
+		await EnsureInitialized(chunk, token);
 		return chunk;
 	}
 
@@ -618,7 +715,71 @@ public class TFChunkManager : IThreadPoolWorkItem
 				chunkNum));
 		}
 
+		EnsureInitialized(chunk);
 		return chunk;
+	}
+
+	public async ValueTask<TFChunk.TFChunk> GetChunkAsync(int chunkNum, CancellationToken token)
+	{
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException("chunkNum",
+				string.Format("Chunk #{0} is not present in DB.", chunkNum));
+		}
+
+		if (_chunks[chunkNum] is not { } chunk)
+		{
+			throw new Exception(string.Format("Requested chunk #{0}, which is not present in TFChunkManager.",
+				chunkNum));
+		}
+
+		await EnsureInitialized(chunk, token);
+		return chunk;
+	}
+
+	public ChunkInfo GetChunkInfo(int chunkNum)
+	{
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException(nameof(chunkNum),
+				string.Format("Chunk #{0} is not present in DB.", chunkNum));
+		}
+
+		if (_chunks[chunkNum] is not { } chunk)
+		{
+			throw new Exception(string.Format("Requested chunk #{0}, which is not present in TFChunkManager.",
+				chunkNum));
+		}
+
+		return chunk.ChunkInfo;
+	}
+
+	public bool IsChunkInitialized(int chunkNum)
+	{
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException(nameof(chunkNum),
+				string.Format("Chunk #{0} is not present in DB.", chunkNum));
+		}
+
+		if (_chunks[chunkNum] is not { } chunk)
+		{
+			throw new Exception(string.Format("Requested chunk #{0}, which is not present in TFChunkManager.",
+				chunkNum));
+		}
+
+		return chunk.IsInitialized;
+	}
+
+	private static void EnsureInitialized(TFChunk.TFChunk chunk) =>
+		chunk.EnsureInitialized(CancellationToken.None).AsTask().GetAwaiter().GetResult();
+
+	private static async ValueTask EnsureInitialized(TFChunk.TFChunk chunk, CancellationToken token)
+	{
+		if (!chunk.IsInitialized)
+		{
+			await chunk.EnsureInitialized(token);
+		}
 	}
 
 	public async ValueTask<bool> TryClose(CancellationToken token)

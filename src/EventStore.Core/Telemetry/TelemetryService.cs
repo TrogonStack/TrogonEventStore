@@ -309,7 +309,7 @@ public sealed class TelemetryService :
 	{
 		try
 		{
-			var chunk = _manager.GetChunkFor(0);
+			var chunk = await _manager.GetChunkForAsync(0, token);
 			var result = await chunk.TryReadAt(0, false, token);
 
 			if (!result.Success)

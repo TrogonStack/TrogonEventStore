@@ -426,7 +426,7 @@ public class LeaderReplicationService : IMonitoredQueue,
 
 		try
 		{
-			var chunk = _db.Manager.GetChunkFor(logPosition);
+			var chunk = await _db.Manager.GetChunkForAsync(logPosition, token);
 			Debug.Assert(chunk != null, string.Format(
 				"Chunk for LogPosition {0} (0x{0:X}) is null in LeaderReplicationService! Replica: [{1},C:{2},S:{3}]",
 				logPosition, sub.ReplicaEndPoint, sub.ConnectionId, sub.SubscriptionId));
