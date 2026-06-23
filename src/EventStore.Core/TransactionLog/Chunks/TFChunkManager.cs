@@ -9,6 +9,7 @@ using EventStore.Common.Utils;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
 using EventStore.Core.Transforms;
 using EventStore.Core.Transforms.Identity;
+using EventStore.Plugins.Transforms;
 using ChunkInfo = EventStore.Core.Data.ChunkInfo;
 using ILogger = Serilog.ILogger;
 
@@ -310,33 +311,20 @@ public class TFChunkManager : IThreadPoolWorkItem
 	{
 		Ensure.NotNull(locators, nameof(locators));
 		var getFactoryForExistingChunk = _transformManager.GetFactoryForExistingChunk;
-		var newChunks = new TFChunk.TFChunk[locators.Count];
+		var newChunks = new List<TFChunk.TFChunk>(locators.Count);
 		var ownsNewChunks = true;
 		try
 		{
 			for (var i = 0; i < locators.Count; i++)
 			{
-				newChunks[i] = FileSystem is IArchivedChunkFileSystem archivedChunkFileSystem
-							   && archivedChunkFileSystem.TryGetArchivedChunk(locators[i], out var archivedChunk)
-					? TFChunk.TFChunk.FromArchivedCompletedFile(
-						fileSystem: FileSystem,
-						filename: locators[i],
-						archivedChunk: archivedChunk,
-						unbufferedRead: _config.Unbuffered,
-						tracker: _tracker,
-						getTransformFactory: getFactoryForExistingChunk,
-						reduceFileCachePressure: _config.ReduceFileCachePressure,
-						asyncIO: _config.AsyncIO)
-					: await TFChunk.TFChunk.FromCompletedFile(
-						fileSystem: FileSystem,
-						filename: locators[i],
-						verifyHash: false,
-						unbufferedRead: _config.Unbuffered,
-						tracker: _tracker,
-						getTransformFactory: getFactoryForExistingChunk,
-						reduceFileCachePressure: _config.ReduceFileCachePressure,
-						asyncIO: _config.AsyncIO,
-						token: token);
+				var newChunk = await CreateSwitchInChunk(locators[i], getFactoryForExistingChunk, token);
+				if (newChunks.Count > 0 && SameLogicalRange(newChunks[^1], newChunk))
+				{
+					newChunk.Dispose();
+					continue;
+				}
+
+				newChunks.Add(newChunk);
 			}
 
 			return await SwitchInChunks(newChunks, removeChunksAfter: null, token,
@@ -351,6 +339,44 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 			throw;
 		}
+	}
+
+	private async ValueTask<TFChunk.TFChunk> CreateSwitchInChunk(string locator,
+		Func<TransformType, IChunkTransformFactory> getFactoryForExistingChunk,
+		CancellationToken token)
+	{
+		if (FileSystem is IArchivedChunkFileSystem archivedChunkFileSystem
+			&& await archivedChunkFileSystem.TryGetArchivedChunk(locator, token) is { } archivedChunk)
+		{
+			return TFChunk.TFChunk.FromArchivedCompletedFile(
+				fileSystem: FileSystem,
+				filename: locator,
+				archivedChunk: archivedChunk,
+				unbufferedRead: _config.Unbuffered,
+				tracker: _tracker,
+				getTransformFactory: getFactoryForExistingChunk,
+				reduceFileCachePressure: _config.ReduceFileCachePressure,
+				asyncIO: _config.AsyncIO);
+		}
+
+		return await TFChunk.TFChunk.FromCompletedFile(
+			fileSystem: FileSystem,
+			filename: locator,
+			verifyHash: false,
+			unbufferedRead: _config.Unbuffered,
+			tracker: _tracker,
+			getTransformFactory: getFactoryForExistingChunk,
+			reduceFileCachePressure: _config.ReduceFileCachePressure,
+			asyncIO: _config.AsyncIO,
+			token: token);
+	}
+
+	private static bool SameLogicalRange(TFChunk.TFChunk left, TFChunk.TFChunk right)
+	{
+		var leftInfo = left.ChunkInfo;
+		var rightInfo = right.ChunkInfo;
+		return leftInfo.ChunkStartNumber == rightInfo.ChunkStartNumber
+			   && leftInfo.ChunkEndNumber == rightInfo.ChunkEndNumber;
 	}
 
 	public async ValueTask<TFChunk.TFChunk> SwitchChunk(TFChunk.TFChunk chunk, bool verifyHash,
@@ -626,6 +652,44 @@ public class TFChunkManager : IThreadPoolWorkItem
 		return chunk;
 	}
 
+	public async ValueTask<TFChunk.TFChunk> TryGetChunkForAsync(long logPosition, CancellationToken token)
+	{
+		var chunkNum = (int)(logPosition / _config.ChunkSize);
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			return null;
+		}
+
+		var chunk = _chunks[chunkNum];
+		if (chunk is null)
+		{
+			return null;
+		}
+
+		await EnsureInitialized(chunk, token);
+		return chunk;
+	}
+
+	public async ValueTask<TFChunk.TFChunk> GetChunkForAsync(long logPosition, CancellationToken token)
+	{
+		var chunkNum = (int)(logPosition / _config.ChunkSize);
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException("logPosition",
+				string.Format("LogPosition {0} does not have corresponding chunk in DB.", logPosition));
+		}
+
+		var chunk = _chunks[chunkNum];
+		if (chunk == null)
+		{
+			throw new Exception(string.Format(
+				"Requested chunk for LogPosition {0}, which is not present in TFChunkManager.", logPosition));
+		}
+
+		await EnsureInitialized(chunk, token);
+		return chunk;
+	}
+
 	public TFChunk.TFChunk GetChunk(int chunkNum)
 	{
 		if (chunkNum < 0 || chunkNum >= _chunksCount)
@@ -641,6 +705,24 @@ public class TFChunkManager : IThreadPoolWorkItem
 		}
 
 		EnsureInitialized(chunk);
+		return chunk;
+	}
+
+	public async ValueTask<TFChunk.TFChunk> GetChunkAsync(int chunkNum, CancellationToken token)
+	{
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException("chunkNum",
+				string.Format("Chunk #{0} is not present in DB.", chunkNum));
+		}
+
+		if (_chunks[chunkNum] is not { } chunk)
+		{
+			throw new Exception(string.Format("Requested chunk #{0}, which is not present in TFChunkManager.",
+				chunkNum));
+		}
+
+		await EnsureInitialized(chunk, token);
 		return chunk;
 	}
 
@@ -661,8 +743,33 @@ public class TFChunkManager : IThreadPoolWorkItem
 		return chunk.ChunkInfo;
 	}
 
+	public bool IsChunkInitialized(int chunkNum)
+	{
+		if (chunkNum < 0 || chunkNum >= _chunksCount)
+		{
+			throw new ArgumentOutOfRangeException(nameof(chunkNum),
+				string.Format("Chunk #{0} is not present in DB.", chunkNum));
+		}
+
+		if (_chunks[chunkNum] is not { } chunk)
+		{
+			throw new Exception(string.Format("Requested chunk #{0}, which is not present in TFChunkManager.",
+				chunkNum));
+		}
+
+		return chunk.IsInitialized;
+	}
+
 	private static void EnsureInitialized(TFChunk.TFChunk chunk) =>
 		chunk.EnsureInitialized(CancellationToken.None).AsTask().GetAwaiter().GetResult();
+
+	private static async ValueTask EnsureInitialized(TFChunk.TFChunk chunk, CancellationToken token)
+	{
+		if (!chunk.IsInitialized)
+		{
+			await chunk.EnsureInitialized(token);
+		}
+	}
 
 	public async ValueTask<bool> TryClose(CancellationToken token)
 	{

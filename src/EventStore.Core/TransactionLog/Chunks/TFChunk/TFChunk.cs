@@ -102,7 +102,7 @@ public partial class TFChunk : IDisposable
 				return new()
 				{
 					ChunkLocator = ChunkLocator,
-					ChunkStartNumber = lazyCompletedChunk.ArchivedChunk.ChunkNumber,
+					ChunkStartNumber = lazyCompletedChunk.ArchivedChunk.ChunkStartNumber,
 					ChunkEndNumber = lazyCompletedChunk.ArchivedChunk.ChunkEndNumber,
 					ChunkStartPosition = lazyCompletedChunk.ArchivedChunk.ChunkStartPosition,
 					ChunkEndPosition = lazyCompletedChunk.ArchivedChunk.ChunkEndPosition,
@@ -482,6 +482,7 @@ public partial class TFChunk : IDisposable
 			}
 			catch
 			{
+				ResetReaderStreamsAfterFailedInitialization();
 				_handle?.Dispose();
 				_handle = null;
 				_transform = null;
@@ -501,6 +502,14 @@ public partial class TFChunk : IDisposable
 		{
 			_cachedDataLock.Release();
 		}
+	}
+
+	private void ResetReaderStreamsAfterFailedInitialization()
+	{
+		_fileStreams.Drain(ref _fileStreamCount);
+		_fileStreams = new();
+		Interlocked.Exchange(ref _fileStreamCount, 0);
+		Interlocked.Exchange(ref _cleanedUpFileStreams, 0);
 	}
 
 	private async ValueTask InitNew(ChunkHeader chunkHeader, int fileSize, ITransactionFileTracker tracker,

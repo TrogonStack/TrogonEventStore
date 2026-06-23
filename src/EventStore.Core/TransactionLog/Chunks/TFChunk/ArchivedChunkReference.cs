@@ -1,15 +1,16 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-internal readonly record struct ArchivedChunkReference(int ChunkNumber, int ChunkSize)
+internal readonly record struct ArchivedChunkReference(int ChunkStartNumber, int ChunkEndNumber, int ChunkSize)
 {
-	public int ChunkEndNumber => ChunkNumber;
+	public long ChunkStartPosition => (long)ChunkStartNumber * ChunkSize;
 
-	public long ChunkStartPosition => (long)ChunkNumber * ChunkSize;
-
-	public long ChunkEndPosition => ChunkStartPosition + ChunkSize;
+	public long ChunkEndPosition => (long)(ChunkEndNumber + 1) * ChunkSize;
 }
 
 internal interface IArchivedChunkFileSystem
 {
-	bool TryGetArchivedChunk(string locator, out ArchivedChunkReference archivedChunk);
+	ValueTask<ArchivedChunkReference?> TryGetArchivedChunk(string locator, CancellationToken token);
 }

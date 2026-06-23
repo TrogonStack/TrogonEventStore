@@ -265,13 +265,13 @@ public class TFChunkDb : IAsyncDisposable
 				for (int chunkNum = lastBgChunkNum; chunkNum >= 0;)
 				{
 					var chunkInfo = Manager.GetChunkInfo(chunkNum);
-					if (chunkInfo.IsRemote)
+					if (chunkInfo.IsRemote && !Manager.IsChunkInitialized(chunkNum))
 					{
 						chunkNum = chunkInfo.ChunkStartNumber - 1;
 						continue;
 					}
 
-					var chunk = Manager.GetChunk(chunkNum);
+					var chunk = await Manager.GetChunkAsync(chunkNum, token);
 					try
 					{
 						await chunk.VerifyFileHash(token);

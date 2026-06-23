@@ -51,7 +51,7 @@ public class ChunkReaderForAccumulator<TStreamId> : IChunkReaderForAccumulator<T
 	{
 
 		// the physical chunk might contain several logical chunks, we are only interested in one of them
-		var chunk = _manager.GetChunk(logicalChunkNumber);
+		var chunk = await _manager.GetChunkAsync(logicalChunkNumber, cancellationToken);
 		long chunkStartPos = (long)_chunkSize * logicalChunkNumber;
 		long chunkEndPos = (long)_chunkSize * (logicalChunkNumber + 1);
 		long nextPos = chunkStartPos;

@@ -104,7 +104,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 	}
 
 	[Fact]
-	public async Task does_not_read_archive_objects_when_switching_in_archived_chunks()
+	public async Task reads_only_archive_header_when_switching_in_archived_chunks()
 	{
 		var chunk0 = await AddLocalChunk(0, 0);
 		var chunk2 = await AddLocalChunk(2, 2);
@@ -118,13 +118,38 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		Assert.True(switched);
 		Assert.Equal(0, _archiveStorage.GetChunkLengthCalls);
 		Assert.Equal(0, _archiveStorage.GetChunkCalls);
-		Assert.Equal(0, _archiveStorage.GetChunkRangeCalls);
+		Assert.Equal(1, _archiveStorage.GetChunkRangeCalls);
 		Assert.Equal(new[]
 		{
 			chunk0.ChunkLocator,
 			_locatorCodec.EncodeRemote(1),
 			chunk2.ChunkLocator,
 		}, ActualChunkInfoLocators);
+	}
+
+	[Fact]
+	public async Task uses_archived_header_range_when_switching_in_archived_chunks()
+	{
+		var chunk0 = await AddLocalChunk(0, 0);
+		var chunk4 = await AddLocalChunk(4, 4);
+		await AddLocalChunk(1, 3);
+		await StoreArchivedChunk(1, 3, destinationChunkNumber: 1);
+
+		var switched = await _sut.SwitchInCompletedChunks([
+			_locatorCodec.EncodeRemote(1),
+		], CancellationToken.None);
+
+		Assert.True(switched);
+		Assert.Equal(new[]
+		{
+			chunk0.ChunkLocator,
+			_locatorCodec.EncodeRemote(1),
+			_locatorCodec.EncodeRemote(1),
+			_locatorCodec.EncodeRemote(1),
+			chunk4.ChunkLocator,
+		}, ActualChunkInfoLocators);
+		Assert.Equal(1, _sut.GetChunkInfo(1).ChunkStartNumber);
+		Assert.Equal(3, _sut.GetChunkInfo(1).ChunkEndNumber);
 	}
 
 	[Fact]
@@ -218,10 +243,10 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 			fileSystem: _localFileSystem,
 			filename: fileName,
 			chunkDataSize: ChunkSize,
-				chunkStartNumber: start,
-				chunkEndNumber: end,
-				isScavenged: true,
-				unbuffered: false,
+			chunkStartNumber: start,
+			chunkEndNumber: end,
+			isScavenged: true,
+			unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: false,
@@ -251,17 +276,20 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		return chunk;
 	}
 
-	private async ValueTask StoreArchivedChunk(int chunkNumber)
+	private ValueTask StoreArchivedChunk(int chunkNumber) =>
+		StoreArchivedChunk(chunkNumber, chunkNumber, destinationChunkNumber: chunkNumber);
+
+	private async ValueTask StoreArchivedChunk(int chunkStartNumber, int chunkEndNumber, int destinationChunkNumber)
 	{
-		var sourcePath = Path.Combine(_dbPath, $"archive-source-{chunkNumber}.tmp");
+		var sourcePath = Path.Combine(_dbPath, $"archive-source-{chunkStartNumber}-{chunkEndNumber}.tmp");
 		var sourceChunk = await TFChunk.CreateNew(
 			fileSystem: _localFileSystem,
 			filename: sourcePath,
 			chunkDataSize: ChunkSize,
-				chunkStartNumber: chunkNumber,
-				chunkEndNumber: chunkNumber,
-				isScavenged: true,
-				unbuffered: false,
+			chunkStartNumber: chunkStartNumber,
+			chunkEndNumber: chunkEndNumber,
+			isScavenged: true,
+			unbuffered: false,
 			writethrough: false,
 			reduceFileCachePressure: false,
 			asyncIO: false,
@@ -273,7 +301,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 
 		await _archiveStorage.StoreChunk(
 			sourcePath,
-			_archiveChunkNamer.GetFileNameFor(chunkNumber),
+			_archiveChunkNamer.GetFileNameFor(destinationChunkNumber),
 			CancellationToken.None);
 	}
 

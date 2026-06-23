@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Exceptions;
 using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 
@@ -30,16 +31,25 @@ public sealed class FileSystemWithArchive : IChunkFileSystem, IArchivedChunkFile
 
 	public IVersionedFileNamingStrategy NamingStrategy => _localFileSystem.NamingStrategy;
 
-	bool IArchivedChunkFileSystem.TryGetArchivedChunk(string locator, out ArchivedChunkReference archivedChunk)
+	async ValueTask<ArchivedChunkReference?> IArchivedChunkFileSystem.TryGetArchivedChunk(
+		string locator,
+		CancellationToken token)
 	{
-		if (_locatorCodec.Decode(locator, out var logicalChunkNumber, out _))
+		if (!_locatorCodec.Decode(locator, out var logicalChunkNumber, out _))
 		{
-			archivedChunk = new(logicalChunkNumber, _chunkSize);
-			return true;
+			return null;
 		}
 
-		archivedChunk = default;
-		return false;
+		var chunkFile = _archive.ChunkNamer.GetFileNameFor(logicalChunkNumber);
+		await using var stream = await _archive.GetChunk(chunkFile, 0L, ChunkHeader.Size, token);
+		var header = await ChunkHeader.FromStream(stream, token);
+		if (logicalChunkNumber < header.ChunkStartNumber || logicalChunkNumber > header.ChunkEndNumber)
+		{
+			throw new CorruptDatabaseException(new BadChunkInDatabaseException(
+				$"Archived chunk locator '{locator}' does not match chunk header range #{header.ChunkStartNumber}-{header.ChunkEndNumber}."));
+		}
+
+		return new ArchivedChunkReference(header.ChunkStartNumber, header.ChunkEndNumber, header.ChunkSize);
 	}
 
 	public ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
