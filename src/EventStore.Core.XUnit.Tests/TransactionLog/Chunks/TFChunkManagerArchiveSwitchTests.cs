@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -28,7 +29,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 	private readonly string _archivePath;
 	private readonly ChunkLocalFileSystem _localFileSystem;
 	private readonly ILocatorCodec _locatorCodec = new PrefixingLocatorCodec();
-	private readonly IArchiveStorageWriter _archiveWriter;
+	private readonly CountingArchiveStorage _archiveStorage;
 	private readonly ArchiveChunkNamer _archiveChunkNamer;
 	private readonly TFChunkManager _sut;
 
@@ -42,8 +43,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		var dbNamingStrategy = new VersionedPatternFileNamingStrategy(_dbPath, "chunk-");
 		_localFileSystem = new ChunkLocalFileSystem(dbNamingStrategy);
 		_archiveChunkNamer = new ArchiveChunkNamer(new VersionedPatternFileNamingStrategy(_archivePath, "chunk-"));
-		var archiveStorage = new LocalArchiveStorage(_archivePath, _archiveChunkNamer, ArchiveCheckpointFile);
-		_archiveWriter = archiveStorage;
+		_archiveStorage = new(new LocalArchiveStorage(_archivePath, _archiveChunkNamer, ArchiveCheckpointFile));
 
 		var config = new TFChunkDbConfig(
 			path: _dbPath,
@@ -51,7 +51,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 				ChunkSize,
 				_locatorCodec,
 				_localFileSystem,
-				archiveStorage),
+				_archiveStorage),
 			chunkSize: ChunkSize,
 			maxChunksCacheSize: 0,
 			writerCheckpoint: new InMemoryCheckpoint(0),
@@ -101,6 +101,51 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 			chunk45.ChunkLocator,
 			chunk45.ChunkLocator,
 		}, ActualChunks);
+	}
+
+	[Fact]
+	public async Task does_not_read_archive_objects_when_switching_in_archived_chunks()
+	{
+		var chunk0 = await AddLocalChunk(0, 0);
+		var chunk2 = await AddLocalChunk(2, 2);
+		await StoreArchivedChunk(1);
+		_archiveStorage.ResetCounts();
+
+		var switched = await _sut.SwitchInCompletedChunks([
+			_locatorCodec.EncodeRemote(1),
+		], CancellationToken.None);
+
+		Assert.True(switched);
+		Assert.Equal(0, _archiveStorage.GetChunkLengthCalls);
+		Assert.Equal(0, _archiveStorage.GetChunkCalls);
+		Assert.Equal(0, _archiveStorage.GetChunkRangeCalls);
+		Assert.Equal(new[]
+		{
+			chunk0.ChunkLocator,
+			_locatorCodec.EncodeRemote(1),
+			chunk2.ChunkLocator,
+		}, ActualChunkInfoLocators);
+	}
+
+	[Fact]
+	public async Task initializes_archived_chunk_on_first_access()
+	{
+		await AddLocalChunk(0, 0);
+		await StoreArchivedChunk(1);
+		await AddLocalChunk(2, 2);
+		_archiveStorage.ResetCounts();
+		await _sut.SwitchInCompletedChunks([
+			_locatorCodec.EncodeRemote(1),
+		], CancellationToken.None);
+		_archiveStorage.ResetCounts();
+
+		var chunk = _sut.GetChunk(1);
+
+		Assert.True(chunk.IsRemote);
+		Assert.Equal(1, chunk.ChunkHeader.ChunkStartNumber);
+		Assert.Equal(1, chunk.ChunkHeader.ChunkEndNumber);
+		Assert.True(_archiveStorage.GetChunkLengthCalls > 0);
+		Assert.True(_archiveStorage.GetChunkRangeCalls > 0);
 	}
 
 	[Fact]
@@ -159,6 +204,11 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 	private string[] ActualChunks =>
 		Enumerable.Range(0, _sut.ChunksCount)
 			.Select(chunkNum => _sut.GetChunk(chunkNum).ChunkLocator)
+			.ToArray();
+
+	private string[] ActualChunkInfoLocators =>
+		Enumerable.Range(0, _sut.ChunksCount)
+			.Select(chunkNum => _sut.GetChunkInfo(chunkNum).ChunkLocator)
 			.ToArray();
 
 	private async ValueTask<TFChunk> AddLocalChunk(int start, int end)
@@ -221,9 +271,57 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		await sourceChunk.CompleteScavenge([], CancellationToken.None);
 		sourceChunk.Dispose();
 
-		await _archiveWriter.StoreChunk(
+		await _archiveStorage.StoreChunk(
 			sourcePath,
 			_archiveChunkNamer.GetFileNameFor(chunkNumber),
 			CancellationToken.None);
+	}
+
+	private sealed class CountingArchiveStorage(LocalArchiveStorage inner) : IArchiveStorageReader, IArchiveStorageWriter
+	{
+		public int GetChunkLengthCalls { get; private set; }
+
+		public int GetChunkCalls { get; private set; }
+
+		public int GetChunkRangeCalls { get; private set; }
+
+		public IArchiveChunkNamer ChunkNamer => inner.ChunkNamer;
+
+		public void ResetCounts()
+		{
+			GetChunkLengthCalls = 0;
+			GetChunkCalls = 0;
+			GetChunkRangeCalls = 0;
+		}
+
+		public ValueTask<long> GetCheckpoint(CancellationToken ct) =>
+			inner.GetCheckpoint(ct);
+
+		public ValueTask<long> GetChunkLength(string chunkFile, CancellationToken ct)
+		{
+			GetChunkLengthCalls++;
+			return inner.GetChunkLength(chunkFile, ct);
+		}
+
+		public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
+		{
+			GetChunkCalls++;
+			return inner.GetChunk(chunkFile, ct);
+		}
+
+		public ValueTask<Stream> GetChunk(string chunkFile, long start, long end, CancellationToken ct)
+		{
+			GetChunkRangeCalls++;
+			return inner.GetChunk(chunkFile, start, end, ct);
+		}
+
+		public IAsyncEnumerable<string> ListChunks(CancellationToken ct) =>
+			inner.ListChunks(ct);
+
+		public ValueTask<bool> StoreChunk(string chunkPath, string destinationFile, CancellationToken ct) =>
+			inner.StoreChunk(chunkPath, destinationFile, ct);
+
+		public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct) =>
+			inner.SetCheckpoint(checkpoint, ct);
 	}
 }

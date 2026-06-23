@@ -51,7 +51,9 @@ public partial class TFChunk : IDisposable
 		get { return _cacheStatus is CacheStatus.Cached; }
 	}
 
-	public bool IsRemote => _handle is not null and not ChunkFileHandle;
+	internal bool IsInitialized => _lazyCompletedChunk is null;
+
+	public bool IsRemote => _isRemote;
 
 	// the logical size of (untransformed) data (could be > PhysicalDataSize if scavenged chunk)
 	public long LogicalDataSize
@@ -92,16 +94,34 @@ public partial class TFChunk : IDisposable
 
 	public ChunkInfo ChunkInfo
 	{
-		get => new()
+		get
 		{
-			ChunkLocator = ChunkLocator,
-			ChunkStartNumber = _chunkHeader.ChunkStartNumber,
-			ChunkEndNumber = _chunkHeader.ChunkEndNumber,
-			ChunkStartPosition = _chunkHeader.ChunkStartPosition,
-			ChunkEndPosition = _chunkHeader.ChunkEndPosition,
-			IsCompleted = IsReadOnly,
-			IsRemote = IsRemote
-		};
+			var lazyCompletedChunk = _lazyCompletedChunk;
+			if (lazyCompletedChunk is not null)
+			{
+				return new()
+				{
+					ChunkLocator = ChunkLocator,
+					ChunkStartNumber = lazyCompletedChunk.ArchivedChunk.ChunkNumber,
+					ChunkEndNumber = lazyCompletedChunk.ArchivedChunk.ChunkEndNumber,
+					ChunkStartPosition = lazyCompletedChunk.ArchivedChunk.ChunkStartPosition,
+					ChunkEndPosition = lazyCompletedChunk.ArchivedChunk.ChunkEndPosition,
+					IsCompleted = IsReadOnly,
+					IsRemote = IsRemote
+				};
+			}
+
+			return new()
+			{
+				ChunkLocator = ChunkLocator,
+				ChunkStartNumber = _chunkHeader.ChunkStartNumber,
+				ChunkEndNumber = _chunkHeader.ChunkEndNumber,
+				ChunkStartPosition = _chunkHeader.ChunkStartPosition,
+				ChunkEndPosition = _chunkHeader.ChunkEndPosition,
+				IsCompleted = IsReadOnly,
+				IsRemote = IsRemote
+			};
+		}
 	}
 
 	public ReadOnlyMemory<byte> TransformHeader
@@ -124,6 +144,8 @@ public partial class TFChunk : IDisposable
 	private readonly IChunkFileSystem _fileSystem;
 	private readonly string _filename;
 	private IChunkHandle _handle;
+	private bool _isRemote;
+	private volatile LazyCompletedChunk _lazyCompletedChunk;
 	private int _fileSize;
 
 	// This field establishes happens-before relationship with _fileStreams as follows:
@@ -177,6 +199,18 @@ public partial class TFChunk : IDisposable
 		// UnCacheFromMemory. We are waiting for readers to be returned.
 		// invariants: _cachedData != IntPtr.Zero, _memStreamCount > 0
 		Uncaching,
+	}
+
+	private sealed class LazyCompletedChunk(
+		ArchivedChunkReference archivedChunk,
+		ITransactionFileTracker tracker,
+		Func<TransformType, IChunkTransformFactory> getTransformFactory)
+	{
+		public ArchivedChunkReference ArchivedChunk { get; } = archivedChunk;
+
+		public ITransactionFileTracker Tracker { get; } = tracker;
+
+		public Func<TransformType, IChunkTransformFactory> GetTransformFactory { get; } = getTransformFactory;
 	}
 
 	private readonly ManualResetEventSlim _destroyEvent = new ManualResetEventSlim(false);
@@ -247,6 +281,23 @@ public partial class TFChunk : IDisposable
 			throw;
 		}
 
+		return chunk;
+	}
+
+	internal static TFChunk FromArchivedCompletedFile(IChunkFileSystem fileSystem, string filename,
+		ArchivedChunkReference archivedChunk, bool unbufferedRead,
+		ITransactionFileTracker tracker, Func<TransformType, IChunkTransformFactory> getTransformFactory,
+		bool reduceFileCachePressure = false, bool asyncIO = false)
+	{
+		var chunk = new TFChunk(fileSystem,
+			filename,
+			TFConsts.MidpointsDepth, unbufferedRead, false, reduceFileCachePressure, asyncIO)
+		{
+			_isRemote = true,
+			_lazyCompletedChunk = new(archivedChunk, tracker, getTransformFactory)
+		};
+
+		chunk.IsReadOnly = true;
 		return chunk;
 	}
 
@@ -351,6 +402,7 @@ public partial class TFChunk : IDisposable
 		Func<TransformType, IChunkTransformFactory> getTransformFactory, CancellationToken token)
 	{
 		_handle = await _fileSystem.OpenForReadAsync(ChunkLocator, ReadOnlyReadOptimizationHint, _asyncIO, token);
+		_isRemote = _handle is not ChunkFileHandle;
 		_fileSize = (int)_handle.Length;
 
 		IsReadOnly = true;
@@ -400,6 +452,54 @@ public partial class TFChunk : IDisposable
 		if (verifyHash)
 		{
 			await VerifyFileHash(token);
+		}
+	}
+
+	internal async ValueTask EnsureInitialized(CancellationToken token)
+	{
+		if (_lazyCompletedChunk is null)
+		{
+			return;
+		}
+
+		await _cachedDataLock.AcquireAsync(token);
+		try
+		{
+			var lazyCompletedChunk = _lazyCompletedChunk;
+			if (lazyCompletedChunk is null)
+			{
+				return;
+			}
+
+			try
+			{
+				await InitCompleted(
+					verifyHash: false,
+					lazyCompletedChunk.Tracker,
+					lazyCompletedChunk.GetTransformFactory,
+					token);
+				_lazyCompletedChunk = null;
+			}
+			catch
+			{
+				_handle?.Dispose();
+				_handle = null;
+				_transform = null;
+				_transformHeader = ReadOnlyMemory<byte>.Empty;
+				_chunkFooter = null;
+				_chunkHeader = null;
+				_readSide = null;
+				_fileSize = 0;
+				_logicalDataSize = 0;
+				_physicalDataSize = 0;
+				_isRemote = true;
+				IsReadOnly = true;
+				throw;
+			}
+		}
+		finally
+		{
+			_cachedDataLock.Release();
 		}
 	}
 
@@ -1727,7 +1827,8 @@ public partial class TFChunk : IDisposable
 
 	public override string ToString()
 	{
-		return string.Format("#{0}-{1} ({2})", _chunkHeader.ChunkStartNumber, _chunkHeader.ChunkEndNumber,
+		var chunkInfo = ChunkInfo;
+		return string.Format("#{0}-{1} ({2})", chunkInfo.ChunkStartNumber, chunkInfo.ChunkEndNumber,
 			Path.GetFileName(ChunkLocator));
 	}
 

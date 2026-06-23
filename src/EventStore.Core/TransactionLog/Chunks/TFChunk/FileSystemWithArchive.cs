@@ -9,7 +9,7 @@ using EventStore.Core.TransactionLog.FileNamingStrategy;
 
 namespace EventStore.Core.TransactionLog.Chunks.TFChunk;
 
-public sealed class FileSystemWithArchive : IChunkFileSystem
+public sealed class FileSystemWithArchive : IChunkFileSystem, IArchivedChunkFileSystem
 {
 	private readonly int _chunkSize;
 	private readonly ILocatorCodec _locatorCodec;
@@ -29,6 +29,18 @@ public sealed class FileSystemWithArchive : IChunkFileSystem
 	}
 
 	public IVersionedFileNamingStrategy NamingStrategy => _localFileSystem.NamingStrategy;
+
+	bool IArchivedChunkFileSystem.TryGetArchivedChunk(string locator, out ArchivedChunkReference archivedChunk)
+	{
+		if (_locatorCodec.Decode(locator, out var logicalChunkNumber, out _))
+		{
+			archivedChunk = new(logicalChunkNumber, _chunkSize);
+			return true;
+		}
+
+		archivedChunk = default;
+		return false;
+	}
 
 	public ValueTask<IChunkHandle> OpenForReadAsync(string fileName, ReadOptimizationHint readOptimizationHint,
 		bool asyncIO, CancellationToken token) =>
