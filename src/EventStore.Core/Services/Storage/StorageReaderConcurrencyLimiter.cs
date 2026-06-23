@@ -1,12 +1,15 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Core.Bus;
+using EventStore.Core.Messages;
+using EventStore.Core.Messaging;
 
 #nullable enable
 
 namespace EventStore.Core.Services.Storage;
 
-public sealed class StorageReaderConcurrencyLimiter
+public sealed class StorageReaderConcurrencyLimiter : IQueueProcessingLimiter
 {
 	private readonly SemaphoreSlim? _semaphore;
 
@@ -19,6 +22,9 @@ public sealed class StorageReaderConcurrencyLimiter
 	}
 
 	public int MaxConcurrentReadRequests { get; }
+
+	public bool ShouldLimit(Message message) =>
+		message is ClientMessage.ReadRequestMessage;
 
 	public static StorageReaderConcurrencyLimiter Create(int maxConcurrentReadRequests)
 	{
@@ -47,6 +53,9 @@ public sealed class StorageReaderConcurrencyLimiter
 		await semaphore.WaitAsync(token);
 		return new Lease(semaphore);
 	}
+
+	async ValueTask<IDisposable> IQueueProcessingLimiter.Acquire(CancellationToken token) =>
+		await Acquire(token);
 
 	public readonly struct Lease : IDisposable
 	{

@@ -66,7 +66,7 @@ namespace EventStore.Core.Services.Storage
 			for (var i = 0; i < threadCount; i++)
 			{
 				readerWorkers[i] = new StorageReaderWorker<TStreamId>(bus, readIndex, systemStreams, writerCheckpoint,
-					virtualStreamReader, i, concurrencyLimiter);
+					virtualStreamReader, i);
 				storageReaderBuses[i] = new InMemoryBus("StorageReaderBus",
 					slowMsgThreshold: storageReaderBusSlowMessageThreshold);
 				storageReaderBuses[i].Subscribe<ClientMessage.ReadEvent>(readerWorkers[i]);
@@ -89,7 +89,8 @@ namespace EventStore.Core.Services.Storage
 					trackers,
 					groupName: "StorageReaderQueue",
 					watchSlowMsg: storageReaderQueueSlowMessageThreshold > TimeSpan.Zero,
-					slowMsgThreshold: storageReaderQueueSlowMessageThreshold));
+					slowMsgThreshold: storageReaderQueueSlowMessageThreshold,
+					processingLimiter: concurrencyLimiter));
 			_workersMultiHandler.Start();
 
 			subscriber.Subscribe<ClientMessage.ReadEvent>(_workersMultiHandler);

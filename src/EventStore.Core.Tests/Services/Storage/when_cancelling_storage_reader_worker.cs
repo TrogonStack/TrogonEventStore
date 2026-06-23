@@ -22,37 +22,6 @@ namespace EventStore.Core.Tests.Services.Storage;
 public class when_cancelling_storage_reader_worker
 {
 	[Test]
-	public async Task read_event_waits_for_slot_when_concurrency_limit_is_reached()
-	{
-		using var readIndex = new BlockingReadIndex();
-		var worker = CreateWorker(readIndex, maxConcurrentReadRequests: 1);
-		var first = CreateReadEventMessage();
-		var second = CreateReadEventMessage();
-
-		var firstTask = ((IAsyncHandle<ClientMessage.ReadEvent>)worker)
-			.HandleAsync(first, CancellationToken.None)
-			.AsTask();
-
-		Assert.That(readIndex.ReadEventStarted.Wait(TimeSpan.FromSeconds(5)), Is.True);
-		Assert.That(readIndex.ReadEventStartedCount, Is.EqualTo(1));
-
-		var secondTask = ((IAsyncHandle<ClientMessage.ReadEvent>)worker)
-			.HandleAsync(second, CancellationToken.None)
-			.AsTask();
-
-		Assert.That(
-			SpinWait.SpinUntil(() => readIndex.ReadEventStartedCount == 2, TimeSpan.FromMilliseconds(200)),
-			Is.False);
-
-		readIndex.ReleaseReadEvents();
-
-		await firstTask.WaitAsync(TimeSpan.FromSeconds(5));
-		await secondTask.WaitAsync(TimeSpan.FromSeconds(5));
-
-		Assert.That(readIndex.ReadEventStartedCount, Is.EqualTo(2));
-	}
-
-	[Test]
 	public void read_event_cancellation_from_message_token_is_rethrown_without_reply()
 	{
 		using var readIndex = new BlockingReadIndex();
@@ -226,15 +195,14 @@ public class when_cancelling_storage_reader_worker
 			requireLeader: false,
 			user: new ClaimsPrincipal());
 
-	private static StorageReaderWorker<string> CreateWorker(BlockingReadIndex readIndex, int maxConcurrentReadRequests = 0) =>
+	private static StorageReaderWorker<string> CreateWorker(BlockingReadIndex readIndex) =>
 		new(
 			new NoopPublisher(),
 			readIndex,
 			new StubSystemStreamLookup(),
 			new StubCheckpoint(),
 			new StubVirtualStreamReader(),
-			queueId: 0,
-			StorageReaderConcurrencyLimiter.Create(maxConcurrentReadRequests));
+			queueId: 0);
 
 	private sealed class BlockingReadIndex : IReadIndex<string>, IDisposable
 	{
