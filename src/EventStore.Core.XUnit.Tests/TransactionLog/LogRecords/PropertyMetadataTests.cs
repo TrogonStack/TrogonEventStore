@@ -1,4 +1,5 @@
 using System;
+using DotNext.Buffers;
 using EventStore.Core.Data;
 using EventStore.Core.LogV2;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -88,5 +89,41 @@ public class PropertyMetadataTests
 		Assert.Equal(customMetadata, record.Metadata.ToArray());
 		Assert.Equal(customMetadata, record.CustomMetadata.ToArray());
 		Assert.Empty(record.Properties.ToArray());
+	}
+
+	[Fact]
+	public void property_metadata_survives_log_record_roundtrip()
+	{
+		var propertyMetadata = new byte[] { 4, 5, 6 };
+		var prepare = LogRecord.TransactionWrite(
+			new LogV2RecordFactory(),
+			logPosition: 0,
+			correlationId: Guid.NewGuid(),
+			eventId: Guid.NewGuid(),
+			transactionPos: 0,
+			transactionOffset: 0,
+			eventStreamId: "test-stream",
+			eventType: "test-event",
+			data: [1, 2, 3],
+			metadata: propertyMetadata,
+			isJson: false,
+			isPropertyMetadata: true);
+
+		var writer = new BufferWriterSlim<byte>();
+		try
+		{
+			prepare.WriteTo(ref writer);
+
+			using var recordBuffer = writer.DetachOrCopyBuffer();
+			var recordBytes = recordBuffer.Memory.ToArray();
+			var prepareView = new PrepareLogRecordView(recordBytes, recordBytes.Length);
+
+			Assert.True(prepareView.Flags.HasAllOf(PrepareFlags.IsPropertyMetadata));
+			Assert.Equal(propertyMetadata, prepareView.Metadata.ToArray());
+		}
+		finally
+		{
+			writer.Dispose();
+		}
 	}
 }
