@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Archive;
@@ -45,6 +46,11 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 		_archiveChunkNamer = new ArchiveChunkNamer(new VersionedPatternFileNamingStrategy(_archivePath, "chunk-"));
 		_archiveStorage = new(new LocalArchiveStorage(_archivePath, _archiveChunkNamer, ArchiveCheckpointFile));
 
+		_sut = CreateManager(maxChunksCacheSize: 0);
+	}
+
+	private TFChunkManager CreateManager(long maxChunksCacheSize)
+	{
 		var config = new TFChunkDbConfig(
 			path: _dbPath,
 			chunkFileSystem: new FileSystemWithArchive(
@@ -53,7 +59,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 				_localFileSystem,
 				_archiveStorage),
 			chunkSize: ChunkSize,
-			maxChunksCacheSize: 0,
+			maxChunksCacheSize: maxChunksCacheSize,
 			writerCheckpoint: new InMemoryCheckpoint(0),
 			chaserCheckpoint: new InMemoryCheckpoint(0),
 			epochCheckpoint: new InMemoryCheckpoint(-1),
@@ -63,7 +69,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 			indexCheckpoint: new InMemoryCheckpoint(-1),
 			streamExistenceFilterCheckpoint: new InMemoryCheckpoint(-1));
 
-		_sut = new TFChunkManager(config, new TFChunkTracker.NoOp(), DbTransformManager.Default);
+		return new TFChunkManager(config, new TFChunkTracker.NoOp(), DbTransformManager.Default);
 	}
 
 	public Task InitializeAsync() =>
@@ -153,6 +159,33 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 	}
 
 	[Fact]
+	public async Task reserves_cache_budget_for_uninitialized_archive_chunks()
+	{
+		var manager = CreateManager(maxChunksCacheSize: ChunkSize - 1);
+		try
+		{
+			var olderChunk = await AddLocalChunk(manager, 0, 0);
+			await AddLocalChunk(manager, 1, 1);
+			var latestChunk = await AddLocalChunk(manager, 2, 2);
+			await StoreArchivedChunk(1);
+
+			var switched = await manager.SwitchInCompletedChunks([
+				_locatorCodec.EncodeRemote(1),
+			], CancellationToken.None);
+
+			await RunCachePass(manager);
+
+			Assert.True(switched);
+			Assert.False(olderChunk.IsCached);
+			Assert.True(latestChunk.IsCached);
+		}
+		finally
+		{
+			await manager.TryClose(CancellationToken.None);
+		}
+	}
+
+	[Fact]
 	public async Task initializes_archived_chunk_on_first_access()
 	{
 		await AddLocalChunk(0, 0);
@@ -236,7 +269,19 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 			.Select(chunkNum => _sut.GetChunkInfo(chunkNum).ChunkLocator)
 			.ToArray();
 
-	private async ValueTask<TFChunk> AddLocalChunk(int start, int end)
+	private static async ValueTask RunCachePass(TFChunkManager manager)
+	{
+		var cachePass = typeof(TFChunkManager).GetMethod(
+			"CacheUncacheReadOnlyChunks",
+			BindingFlags.Instance | BindingFlags.NonPublic);
+
+		await (ValueTask)cachePass!.Invoke(manager, [CancellationToken.None])!;
+	}
+
+	private ValueTask<TFChunk> AddLocalChunk(int start, int end) =>
+		AddLocalChunk(_sut, start, end);
+
+	private async ValueTask<TFChunk> AddLocalChunk(TFChunkManager manager, int start, int end)
 	{
 		var fileName = _localFileSystem.NamingStrategy.GetFilenameFor(start, 0);
 		var chunk = await TFChunk.CreateNew(
@@ -254,7 +299,7 @@ public class TFChunkManagerArchiveSwitchTests : IAsyncLifetime
 			transformFactory: new IdentityChunkTransformFactory(),
 			token: CancellationToken.None);
 		await chunk.CompleteScavenge([], CancellationToken.None);
-		await _sut.AddChunk(chunk, CancellationToken.None);
+		await manager.AddChunk(chunk, CancellationToken.None);
 		return chunk;
 	}
 

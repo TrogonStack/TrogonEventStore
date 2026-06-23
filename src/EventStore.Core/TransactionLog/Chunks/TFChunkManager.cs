@@ -102,16 +102,7 @@ public class TFChunkManager : IThreadPoolWorkItem
 			{
 				var chunk = _chunks[chunkNum];
 				var chunkInfo = chunk.ChunkInfo;
-				if (chunk.IsRemote && !chunk.IsInitialized)
-				{
-					chunkNum = chunkInfo.ChunkStartNumber - 1;
-					continue;
-				}
-
-				var chunkSize = chunk.IsReadOnly
-					? chunk.ChunkFooter.PhysicalDataSize + chunk.ChunkFooter.MapSize + ChunkHeader.Size +
-					  ChunkFooter.Size
-					: chunk.ChunkHeader.ChunkSize + ChunkHeader.Size + ChunkFooter.Size;
+				var chunkSize = GetCacheBudgetSize(chunk, chunkInfo);
 
 				if (totalSize + chunkSize > _config.MaxChunksCacheSize)
 				{
@@ -151,6 +142,21 @@ public class TFChunkManager : IThreadPoolWorkItem
 
 			chunkNum = chunkInfo.ChunkEndNumber + 1;
 		}
+	}
+
+	private static long GetCacheBudgetSize(TFChunk.TFChunk chunk, ChunkInfo chunkInfo)
+	{
+		if (!chunk.IsReadOnly)
+		{
+			return chunk.ChunkHeader.ChunkSize + ChunkHeader.Size + ChunkFooter.Size;
+		}
+
+		if (!chunk.IsInitialized)
+		{
+			return chunkInfo.ChunkEndPosition - chunkInfo.ChunkStartPosition + ChunkHeader.Size + ChunkFooter.Size;
+		}
+
+		return chunk.ChunkFooter.PhysicalDataSize + chunk.ChunkFooter.MapSize + ChunkHeader.Size + ChunkFooter.Size;
 	}
 
 	public ValueTask<TFChunk.TFChunk> CreateTempChunk(ChunkHeader chunkHeader, int fileSize, CancellationToken token)
