@@ -97,6 +97,7 @@ public abstract class ClusterVNode
 		IReadOnlyList<IPersistentSubscriptionConsumerStrategyFactory> factories = null,
 		CertificateProvider certificateProvider = null,
 		IConfiguration configuration = null,
+		IReadOnlyList<IVirtualStreamReader> additionalVirtualStreamReaders = null,
 		Guid? instanceId = null,
 		int debugIndex = 0)
 	{
@@ -109,6 +110,7 @@ public abstract class ClusterVNode
 			factories,
 			certificateProvider,
 			configuration,
+			additionalVirtualStreamReaders: additionalVirtualStreamReaders,
 			instanceId: instanceId,
 			debugIndex: debugIndex);
 	}
@@ -245,7 +247,8 @@ public class ClusterVNode<TStreamId> :
 		IConfiguration configuration = null,
 		IExpiryStrategy expiryStrategy = null,
 		Guid? instanceId = null, int debugIndex = 0,
-		Action<IServiceCollection> configureAdditionalNodeServices = null)
+		Action<IServiceCollection> configureAdditionalNodeServices = null,
+		IReadOnlyList<IVirtualStreamReader> additionalVirtualStreamReaders = null)
 	{
 
 		configuration ??= new ConfigurationBuilder().Build();
@@ -805,10 +808,18 @@ public class ClusterVNode<TStreamId> :
 		var nodeStatusListener = new NodeStateListenerService(_mainQueue, memLog);
 		_mainBus.Subscribe<SystemMessage.StateChangeMessage>(nodeStatusListener);
 
-		var virtualStreamReader = new VirtualStreamReader([
+		var virtualStreamReaders = new List<IVirtualStreamReader>
+		{
 			gossipListener.Stream,
 			nodeStatusListener.Stream,
-		]);
+		};
+
+		if (additionalVirtualStreamReaders is not null)
+		{
+			virtualStreamReaders.AddRange(additionalVirtualStreamReaders);
+		}
+
+		var virtualStreamReader = new VirtualStreamReader(virtualStreamReaders.ToArray());
 
 		// Storage Reader
 		var storageReader = new StorageReaderService<TStreamId>(_mainQueue, _mainBus, readIndex,

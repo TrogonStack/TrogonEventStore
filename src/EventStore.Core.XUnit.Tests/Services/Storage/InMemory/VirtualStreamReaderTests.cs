@@ -359,4 +359,107 @@ public class VirtualStreamReaderTests
 			Assert.Empty(result.Events);
 		}
 	}
+
+	public class MultipleReaderTests
+	{
+		private const string FirstStream = "$mem-first";
+		private const string SecondStream = "$mem-second";
+
+		[Fact]
+		public async Task read_forwards_uses_the_reader_that_claims_the_stream()
+		{
+			var firstReader = new FakeVirtualStreamReader(FirstStream, lastEventNumber: 10);
+			var secondReader = new FakeVirtualStreamReader(SecondStream, lastEventNumber: 20);
+			var sut = new VirtualStreamReader([firstReader, secondReader]);
+
+			var result = await sut.ReadForwards(
+				GenReadForwards(Guid.NewGuid(), fromEventNumber: 0, maxCount: 1, SecondStream),
+				CancellationToken.None);
+
+			Assert.Equal(ReadStreamResult.Success, result.Result);
+			Assert.Equal(20, result.LastEventNumber);
+			Assert.Equal(0, firstReader.ForwardReadCount);
+			Assert.Equal(1, secondReader.ForwardReadCount);
+		}
+
+		[Fact]
+		public void metadata_uses_the_reader_that_claims_the_stream()
+		{
+			var firstReader = new FakeVirtualStreamReader(FirstStream, lastEventNumber: 10, lastIndexedPosition: 100);
+			var secondReader = new FakeVirtualStreamReader(SecondStream, lastEventNumber: 20, lastIndexedPosition: 200);
+			var sut = new VirtualStreamReader([firstReader, secondReader]);
+
+			Assert.Equal(20, sut.GetLastEventNumber(SecondStream));
+			Assert.Equal(200, sut.GetLastIndexedPosition(SecondStream));
+		}
+
+		[Fact]
+		public async Task earlier_reader_wins_when_more_than_one_reader_claims_the_stream()
+		{
+			var firstReader = new FakeVirtualStreamReader(FirstStream, lastEventNumber: 10);
+			var secondReader = new FakeVirtualStreamReader(FirstStream, lastEventNumber: 20);
+			var sut = new VirtualStreamReader([firstReader, secondReader]);
+
+			var result = await sut.ReadForwards(
+				GenReadForwards(Guid.NewGuid(), fromEventNumber: 0, maxCount: 1, FirstStream),
+				CancellationToken.None);
+
+			Assert.Equal(10, result.LastEventNumber);
+			Assert.Equal(1, firstReader.ForwardReadCount);
+			Assert.Equal(0, secondReader.ForwardReadCount);
+		}
+	}
+
+	private sealed class FakeVirtualStreamReader(
+		string streamId,
+		long lastEventNumber,
+		long lastIndexedPosition = -1) : IVirtualStreamReader
+	{
+		public int ForwardReadCount { get; private set; }
+
+		public ValueTask<ClientMessage.ReadStreamEventsForwardCompleted> ReadForwards(
+			ClientMessage.ReadStreamEventsForward msg,
+			CancellationToken token)
+		{
+			ForwardReadCount++;
+			return ValueTask.FromResult(new ClientMessage.ReadStreamEventsForwardCompleted(
+				msg.CorrelationId,
+				msg.EventStreamId,
+				msg.FromEventNumber,
+				msg.MaxCount,
+				ReadStreamResult.Success,
+				Array.Empty<ResolvedEvent>(),
+				StreamMetadata.Empty,
+				isCachePublic: false,
+				error: string.Empty,
+				nextEventNumber: lastEventNumber + 1,
+				lastEventNumber: lastEventNumber,
+				isEndOfStream: true,
+				tfLastCommitPosition: lastIndexedPosition));
+		}
+
+		public ValueTask<ClientMessage.ReadStreamEventsBackwardCompleted> ReadBackwards(
+			ClientMessage.ReadStreamEventsBackward msg,
+			CancellationToken token) =>
+			ValueTask.FromResult(new ClientMessage.ReadStreamEventsBackwardCompleted(
+				msg.CorrelationId,
+				msg.EventStreamId,
+				msg.FromEventNumber,
+				msg.MaxCount,
+				ReadStreamResult.Success,
+				Array.Empty<ResolvedEvent>(),
+				StreamMetadata.Empty,
+				isCachePublic: false,
+				error: string.Empty,
+				nextEventNumber: -1,
+				lastEventNumber: lastEventNumber,
+				isEndOfStream: true,
+				tfLastCommitPosition: lastIndexedPosition));
+
+		public long GetLastEventNumber(string streamId) => lastEventNumber;
+
+		public long GetLastIndexedPosition(string streamId) => lastIndexedPosition;
+
+		public bool CanReadStream(string candidate) => candidate == streamId;
+	}
 }
