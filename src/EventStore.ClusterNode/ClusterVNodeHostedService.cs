@@ -21,6 +21,7 @@ using EventStore.Core.Hashing;
 using EventStore.Core.LogAbstraction;
 using EventStore.Core.PluginModel;
 using EventStore.Core.Services.PersistentSubscription.ConsumerStrategy;
+using EventStore.Core.Services.Storage.InMemory;
 using EventStore.PluginHosting;
 using EventStore.Plugins;
 using EventStore.Plugins.Authentication;
@@ -124,7 +125,10 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 		Node = ClusterVNode.Create(_options, logFormatFactory, GetAuthenticationProviderFactory(),
 			authProviderFactory,
 			GetPersistentSubscriptionConsumerStrategyFactories(), certificateProvider,
-			configuration);
+			configuration,
+			additionalVirtualStreamReaders: _options.PlugableComponents
+				.OfType<IVirtualStreamReaderProvider>()
+				.GetVirtualStreamReaders());
 
 		EnabledNodeSubsystems = projectionMode >= ProjectionType.System
 			? new[] { NodeSubsystems.Projections }
