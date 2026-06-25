@@ -31,6 +31,21 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task can_start_again_after_startup_failure()
+	{
+		var component = new FakeIndexingComponent(initializeFailures: 1);
+		var eventSource = new FakeIndexingEventSource();
+		await using var subscription = new IndexingSubscription(
+			component,
+			new FakeIndexingEventSourceFactory(eventSource),
+			IndexingSubscriptionOptions.Default);
+
+		await Assert.ThrowsAsync<InvalidOperationException>(() => subscription.Start(CancellationToken.None).AsTask());
+
+		await subscription.Start(CancellationToken.None);
+	}
+
+	[Fact]
 	public async Task indexes_events_from_source()
 	{
 		var first = CreateResolvedEvent(1);
@@ -104,6 +119,25 @@ public class IndexingSubscriptionTests
 		Assert.True(eventSource.Disposed);
 	}
 
+	[Fact]
+	public async Task cleans_up_after_event_source_completion_faults_worker()
+	{
+		var component = new FakeIndexingComponent();
+		var eventSource = new FakeIndexingEventSource(completeWhenDrained: true);
+		var subscription = new IndexingSubscription(
+			component,
+			new FakeIndexingEventSourceFactory(eventSource),
+			IndexingSubscriptionOptions.Default);
+
+		await subscription.Start(CancellationToken.None);
+		await eventSource.WaitForDrained();
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => subscription.DisposeAsync().AsTask());
+
+		Assert.Contains("completed unexpectedly", exception.Message);
+		Assert.True(component.Disposed);
+		Assert.True(eventSource.Disposed);
+	}
+
 	private static ResolvedEvent CreateResolvedEvent(long number)
 	{
 		var record = new EventRecord(
@@ -124,15 +158,27 @@ public class IndexingSubscriptionTests
 		return ResolvedEvent.ForUnresolvedEvent(record, number);
 	}
 
-	private sealed class FakeIndexingComponent(IndexCheckpoint? checkpoint = null) : IIndexingComponent
+	private sealed class FakeIndexingComponent(
+		IndexCheckpoint? checkpoint = null,
+		int initializeFailures = 0) : IIndexingComponent
 	{
+		private int _initializeFailures = initializeFailures;
+
 		public FakeIndexingProcessor Processor { get; } = new();
 
 		IIndexingProcessor IIndexingComponent.Processor => Processor;
 
 		public bool Disposed { get; private set; }
 
-		public ValueTask Initialize(CancellationToken token) => ValueTask.CompletedTask;
+		public ValueTask Initialize(CancellationToken token)
+		{
+			if (Interlocked.Decrement(ref _initializeFailures) >= 0)
+			{
+				throw new InvalidOperationException("initialize failed");
+			}
+
+			return ValueTask.CompletedTask;
+		}
 
 		public ValueTask<IndexCheckpoint?> ReadCheckpoint(CancellationToken token) => ValueTask.FromResult(checkpoint);
 
@@ -210,6 +256,7 @@ public class IndexingSubscriptionTests
 		public IIndexingEventSource Create(IndexCheckpoint? checkpoint, CancellationToken token)
 		{
 			Checkpoint = checkpoint;
+			source.Bind(token);
 			return source;
 		}
 	}
@@ -217,20 +264,39 @@ public class IndexingSubscriptionTests
 	private sealed class FakeIndexingEventSource(params ReadResponse[] responses) : IIndexingEventSource
 	{
 		private readonly Queue<ReadResponse> _responses = new(responses);
+		private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private readonly bool _completeWhenDrained;
+		private CancellationToken _token;
+
+		public FakeIndexingEventSource(bool completeWhenDrained, params ReadResponse[] responses) : this(responses)
+		{
+			_completeWhenDrained = completeWhenDrained;
+		}
 
 		public ReadResponse Current { get; private set; }
 
 		public bool Disposed { get; private set; }
 
-		public ValueTask<bool> MoveNextAsync()
+		public void Bind(CancellationToken token) => _token = token;
+
+		public Task WaitForDrained() => _drained.Task.WaitAsync(Timeout);
+
+		public async ValueTask<bool> MoveNextAsync()
 		{
 			if (!_responses.TryDequeue(out var response))
 			{
-				return ValueTask.FromResult(false);
+				if (_completeWhenDrained)
+				{
+					_drained.TrySetResult();
+					return false;
+				}
+
+				await Task.Delay(global::System.Threading.Timeout.InfiniteTimeSpan, _token);
+				return false;
 			}
 
 			Current = response;
-			return ValueTask.FromResult(true);
+			return true;
 		}
 
 		public ValueTask DisposeAsync()

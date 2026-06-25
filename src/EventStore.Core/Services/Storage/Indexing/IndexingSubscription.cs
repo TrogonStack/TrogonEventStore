@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Transport.Enumerators;
@@ -36,6 +37,7 @@ public sealed class IndexingSubscription(
 	private IIndexingEventSource _eventSource;
 	private IndexCheckpointCommitTracker _commitTracker;
 	private Task _processing;
+	private bool _starting;
 	private bool _started;
 	private bool _disposed;
 
@@ -44,27 +46,57 @@ public sealed class IndexingSubscription(
 		lock (_stateLock)
 		{
 			ObjectDisposedException.ThrowIf(_disposed, this);
-			if (_started)
+			if (_started || _starting)
 			{
 				throw new InvalidOperationException($"{nameof(IndexingSubscription)} has already been started.");
 			}
 
-			_started = true;
+			_starting = true;
 		}
 
 		using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
 
-		await component.Initialize(linked.Token);
-		var checkpoint = await component.ReadCheckpoint(linked.Token);
+		IIndexingEventSource eventSource = null;
+		IndexCheckpointCommitTracker commitTracker = null;
 
-		_commitTracker = new IndexCheckpointCommitTracker(
-			options.CheckpointCommitBatchSize,
-			options.CheckpointCommitDelay,
-			component.Processor.Commit,
-			_stop.Token);
+		try
+		{
+			await component.Initialize(linked.Token);
+			var checkpoint = await component.ReadCheckpoint(linked.Token);
 
-		_eventSource = eventSourceFactory.Create(checkpoint, _stop.Token);
-		_processing = Task.Run(ProcessEvents);
+			commitTracker = new IndexCheckpointCommitTracker(
+				options.CheckpointCommitBatchSize,
+				options.CheckpointCommitDelay,
+				component.Processor.Commit,
+				CancellationToken.None);
+
+			eventSource = eventSourceFactory.Create(checkpoint, _stop.Token);
+
+			lock (_stateLock)
+			{
+				ObjectDisposedException.ThrowIf(_disposed, this);
+
+				_commitTracker = commitTracker;
+				_eventSource = eventSource;
+				_processing = Task.Run(ProcessEvents);
+				ObserveProcessingFault(_processing);
+				_started = true;
+				_starting = false;
+			}
+		}
+		catch
+		{
+			lock (_stateLock)
+				_starting = false;
+
+			if (commitTracker is not null)
+				await commitTracker.DisposeAsync();
+
+			if (eventSource is not null)
+				await eventSource.DisposeAsync();
+
+			throw;
+		}
 	}
 
 	public async ValueTask DisposeAsync()
@@ -88,29 +120,79 @@ public sealed class IndexingSubscription(
 
 		await _stop.CancelAsync();
 
-		if (processing is not null)
+		Exception failure = null;
+
+		try
 		{
-			try
+			if (processing is not null)
 			{
-				await processing;
+				try
+				{
+					await processing;
+				}
+				catch (OperationCanceledException) when (_stop.IsCancellationRequested)
+				{
+				}
 			}
-			catch (OperationCanceledException)
+		}
+		catch (Exception ex)
+		{
+			failure = ex;
+		}
+
+		try
+		{
+			if (commitTracker is not null)
 			{
+				await commitTracker.DisposeAsync();
 			}
 		}
-
-		if (commitTracker is not null)
+		catch (Exception ex) when (failure is null)
 		{
-			await commitTracker.DisposeAsync();
+			failure = ex;
 		}
 
-		if (eventSource is not null)
+		try
 		{
-			await eventSource.DisposeAsync();
+			if (eventSource is not null)
+			{
+				await eventSource.DisposeAsync();
+			}
+		}
+		catch (Exception ex) when (failure is null)
+		{
+			failure = ex;
 		}
 
-		await component.DisposeAsync();
-		_stop.Dispose();
+		try
+		{
+			await component.DisposeAsync();
+		}
+		catch (Exception ex) when (failure is null)
+		{
+			failure = ex;
+		}
+
+		try
+		{
+			_stop.Dispose();
+		}
+		catch (Exception ex) when (failure is null)
+		{
+			failure = ex;
+		}
+
+		if (failure is not null)
+			ExceptionDispatchInfo.Capture(failure).Throw();
+	}
+
+	private static void ObserveProcessingFault(Task processing)
+	{
+		processing.ContinueWith(
+			static task => Log.Error(task.Exception, "Indexing subscription stopped unexpectedly"),
+			CancellationToken.None,
+			TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+			TaskScheduler.Default);
 	}
 
 	private async Task ProcessEvents()
@@ -129,7 +211,7 @@ public sealed class IndexingSubscription(
 
 			if (!hasNext)
 			{
-				return;
+				throw new InvalidOperationException("Indexing event source completed unexpectedly.");
 			}
 
 			if (_eventSource.Current is not ReadResponse.EventReceived eventReceived)
