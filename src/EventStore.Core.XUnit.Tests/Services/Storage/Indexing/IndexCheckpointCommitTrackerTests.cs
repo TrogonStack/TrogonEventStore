@@ -139,6 +139,31 @@ public class IndexCheckpointCommitTrackerTests
 	}
 
 	[Fact]
+	public async Task failed_commit_keeps_pending_changes_for_retry()
+	{
+		var calls = 0;
+		var committed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		await using var tracker = new IndexCheckpointCommitTracker(
+			batchSize: 1,
+			maxCommitDelay: TimeSpan.FromMilliseconds(25),
+			commit: _ =>
+			{
+				if (Interlocked.Increment(ref calls) == 1)
+					throw new InvalidOperationException("transient failure");
+
+				committed.SetResult();
+				return ValueTask.CompletedTask;
+			},
+			cancellationToken: CancellationToken.None);
+
+		tracker.Track();
+
+		await committed.Task.WaitAsync(CommitTimeout);
+
+		Assert.Equal(2, calls);
+	}
+
+	[Fact]
 	public async Task cancellation_stops_future_commits()
 	{
 		var calls = 0;

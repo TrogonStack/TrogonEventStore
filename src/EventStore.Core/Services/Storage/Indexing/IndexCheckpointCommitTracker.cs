@@ -77,7 +77,8 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 				break;
 			}
 
-			if (Interlocked.Exchange(ref _pending, 0) is 0)
+			var pending = Interlocked.Exchange(ref _pending, 0);
+			if (pending is 0)
 				continue;
 
 			try
@@ -90,6 +91,7 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 			}
 			catch (Exception ex)
 			{
+				Interlocked.Add(ref _pending, pending);
 				Log.Error(ex, "Error while committing an index checkpoint");
 			}
 		}
