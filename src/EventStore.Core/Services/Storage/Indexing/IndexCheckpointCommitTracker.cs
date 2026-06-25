@@ -115,36 +115,57 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 	{
 		var token = _lifetime.Token;
 
-		while (!token.IsCancellationRequested)
+		try
 		{
-			try
+			while (!token.IsCancellationRequested)
 			{
-				await _commitRequested.WaitAsync(_maxCommitDelay, token);
-			}
-			catch (OperationCanceledException) when (token.IsCancellationRequested)
-			{
-				break;
-			}
+				try
+				{
+					await _commitRequested.WaitAsync(_maxCommitDelay, token);
+				}
+				catch (OperationCanceledException) when (token.IsCancellationRequested)
+				{
+					break;
+				}
 
-			var pending = Interlocked.Exchange(ref _pending, 0);
-			if (pending is 0)
-				continue;
+				try
+				{
+					await CommitPending(token, requestRetry: true);
+				}
+				catch (OperationCanceledException) when (token.IsCancellationRequested)
+				{
+					break;
+				}
+			}
+		}
+		finally
+		{
+			StopTracking();
+			await CommitPending(CancellationToken.None, requestRetry: false);
+		}
+	}
 
-			try
-			{
-				await _commit(token);
-			}
-			catch (OperationCanceledException) when (token.IsCancellationRequested)
-			{
-				break;
-			}
-			catch (Exception ex)
-			{
-				if (Interlocked.Add(ref _pending, pending) >= _batchSize)
-					RequestCommit();
+	private async ValueTask CommitPending(CancellationToken token, bool requestRetry)
+	{
+		var pending = Interlocked.Exchange(ref _pending, 0);
+		if (pending is 0)
+			return;
 
-				Log.Error(ex, "Error while committing an index checkpoint");
-			}
+		try
+		{
+			await _commit(token);
+		}
+		catch (OperationCanceledException) when (token.IsCancellationRequested)
+		{
+			Interlocked.Add(ref _pending, pending);
+			throw;
+		}
+		catch (Exception ex)
+		{
+			if (Interlocked.Add(ref _pending, pending) >= _batchSize && requestRetry)
+				RequestCommit();
+
+			Log.Error(ex, "Error while committing an index checkpoint");
 		}
 	}
 

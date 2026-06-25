@@ -189,6 +189,51 @@ public class IndexCheckpointCommitTrackerTests
 	}
 
 	[Fact]
+	public async Task cancellation_commits_pending_changes_before_stopping()
+	{
+		var calls = 0;
+		var committed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		using var cancellation = new CancellationTokenSource();
+		await using var tracker = new IndexCheckpointCommitTracker(
+			batchSize: 100,
+			maxCommitDelay: TimeSpan.FromSeconds(30),
+			commit: _ =>
+			{
+				Interlocked.Increment(ref calls);
+				committed.SetResult();
+				return ValueTask.CompletedTask;
+			},
+			cancellationToken: cancellation.Token);
+
+		tracker.Track();
+		await cancellation.CancelAsync();
+
+		await committed.Task.WaitAsync(CommitTimeout);
+
+		Assert.Equal(1, calls);
+	}
+
+	[Fact]
+	public async Task dispose_commits_pending_changes_before_stopping()
+	{
+		var calls = 0;
+		var tracker = new IndexCheckpointCommitTracker(
+			batchSize: 100,
+			maxCommitDelay: TimeSpan.FromSeconds(30),
+			commit: _ =>
+			{
+				Interlocked.Increment(ref calls);
+				return ValueTask.CompletedTask;
+			},
+			cancellationToken: CancellationToken.None);
+
+		tracker.Track();
+		await tracker.DisposeAsync();
+
+		Assert.Equal(1, calls);
+	}
+
+	[Fact]
 	public async Task track_after_dispose_throws()
 	{
 		var tracker = new IndexCheckpointCommitTracker(
