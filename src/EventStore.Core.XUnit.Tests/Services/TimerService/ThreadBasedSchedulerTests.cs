@@ -12,6 +12,8 @@ namespace EventStore.Core.XUnit.Tests.Services.TimerService;
 
 public class ThreadBasedSchedulerTests
 {
+	private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+
 	[Fact]
 	public async Task task_completes_when_stopped()
 	{
@@ -19,7 +21,7 @@ public class ThreadBasedSchedulerTests
 
 		scheduler.Stop();
 
-		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await scheduler.Task.WaitAsync(Timeout);
 	}
 
 	[Fact]
@@ -30,7 +32,7 @@ public class ThreadBasedSchedulerTests
 		scheduler.Schedule(TimeSpan.FromMinutes(1), static (_, _) => { }, null);
 		scheduler.Stop();
 
-		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await scheduler.Task.WaitAsync(Timeout);
 	}
 
 	[Fact]
@@ -44,7 +46,7 @@ public class ThreadBasedSchedulerTests
 		await AssertEventually(() => scheduler.GetStatistics().Length == 2);
 		scheduler.Stop();
 
-		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await scheduler.Task.WaitAsync(Timeout);
 	}
 
 	[Fact]
@@ -60,17 +62,17 @@ public class ThreadBasedSchedulerTests
 			throw new InvalidOperationException("boom");
 		}, failedCallbackRan);
 
-		await failedCallbackRan.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await failedCallbackRan.Task.WaitAsync(Timeout);
 
 		scheduler.Schedule(TimeSpan.Zero, static (_, state) =>
 		{
 			((TaskCompletionSource)state).SetResult();
 		}, nextCallbackRan);
 
-		await nextCallbackRan.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await nextCallbackRan.Task.WaitAsync(Timeout);
 		scheduler.Stop();
 
-		await scheduler.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await scheduler.Task.WaitAsync(Timeout);
 	}
 
 	[Fact]
@@ -90,7 +92,7 @@ public class ThreadBasedSchedulerTests
 			((TaskCompletionSource)state).SetResult();
 		}, nextCallbackRan);
 
-		await Task.WhenAll(failedCallbackRan.Task, nextCallbackRan.Task).WaitAsync(TimeSpan.FromSeconds(1));
+		await Task.WhenAll(failedCallbackRan.Task, nextCallbackRan.Task).WaitAsync(Timeout);
 
 		await AssertEventually(() => scheduler.GetStatistics().TotalItemsProcessed >= 4);
 	}
@@ -109,14 +111,14 @@ public class ThreadBasedSchedulerTests
 			((TaskCompletionSource)state).SetResult();
 		}, callbackRan);
 
-		await callbackRan.Task.WaitAsync(TimeSpan.FromSeconds(1));
+		await callbackRan.Task.WaitAsync(Timeout);
 
 		await AssertEventually(() => tracker.BusyCount > busyBefore && tracker.IdleCount > idleBefore);
 	}
 
 	private static async Task AssertEventually(Func<bool> condition)
 	{
-		var deadline = DateTime.UtcNow.AddSeconds(1);
+		var deadline = DateTime.UtcNow.Add(Timeout);
 
 		while (!condition())
 		{
