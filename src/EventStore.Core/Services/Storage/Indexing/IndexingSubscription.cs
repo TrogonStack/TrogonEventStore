@@ -143,9 +143,8 @@ public sealed class IndexingSubscription(
 		catch (ObjectDisposedException) when (_stop.IsCancellationRequested)
 		{
 		}
-		catch (Exception ex)
+		catch
 		{
-			failure = ex;
 		}
 
 		lock (_stateLock)

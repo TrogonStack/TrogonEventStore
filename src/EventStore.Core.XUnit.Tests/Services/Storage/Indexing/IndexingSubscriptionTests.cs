@@ -68,6 +68,22 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task dispose_does_not_surface_failed_startup()
+	{
+		var component = new FakeIndexingComponent(initializeFailures: 1);
+		var eventSource = new FakeIndexingEventSource();
+		var subscription = new IndexingSubscription(
+			component,
+			new FakeIndexingEventSourceFactory(eventSource),
+			IndexingSubscriptionOptions.Default);
+
+		await Assert.ThrowsAsync<InvalidOperationException>(() => subscription.Start(CancellationToken.None).AsTask());
+		await subscription.DisposeAsync();
+
+		Assert.True(component.Disposed);
+	}
+
+	[Fact]
 	public async Task indexes_events_from_source()
 	{
 		var first = CreateResolvedEvent(1);
