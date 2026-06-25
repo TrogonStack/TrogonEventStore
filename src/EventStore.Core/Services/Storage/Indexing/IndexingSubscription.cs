@@ -221,7 +221,7 @@ public sealed class IndexingSubscription(
 
 			try
 			{
-				await component.Processor.Index(eventReceived.Event, _stop.Token);
+				await component.Processor.Index(eventReceived.Event, CancellationToken.None);
 				_commitTracker.Track();
 			}
 			catch (OperationCanceledException) when (_stop.IsCancellationRequested)

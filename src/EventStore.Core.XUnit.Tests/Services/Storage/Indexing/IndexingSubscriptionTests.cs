@@ -120,6 +120,28 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task commits_in_flight_event_when_disposed()
+	{
+		var component = new FakeIndexingComponent(pauseIndexCompletion: true);
+		var eventSource = new FakeIndexingEventSource(new ReadResponse.EventReceived(CreateResolvedEvent(1)));
+		var subscription = new IndexingSubscription(
+			component,
+			new FakeIndexingEventSourceFactory(eventSource),
+			new IndexingSubscriptionOptions(100, TimeSpan.FromSeconds(30)));
+
+		await subscription.Start(CancellationToken.None);
+		await component.Processor.WaitForIndexEntered();
+		var disposal = subscription.DisposeAsync().AsTask();
+
+		component.Processor.ReleaseIndex();
+		await disposal.WaitAsync(Timeout);
+
+		Assert.Equal(1, component.Processor.CommitCount);
+		Assert.True(component.Disposed);
+		Assert.True(eventSource.Disposed);
+	}
+
+	[Fact]
 	public async Task cleans_up_after_event_source_completion_faults_worker()
 	{
 		var component = new FakeIndexingComponent();
@@ -160,11 +182,12 @@ public class IndexingSubscriptionTests
 
 	private sealed class FakeIndexingComponent(
 		IndexCheckpoint? checkpoint = null,
-		int initializeFailures = 0) : IIndexingComponent
+		int initializeFailures = 0,
+		bool pauseIndexCompletion = false) : IIndexingComponent
 	{
 		private int _initializeFailures = initializeFailures;
 
-		public FakeIndexingProcessor Processor { get; } = new();
+		public FakeIndexingProcessor Processor { get; } = new(pauseIndexCompletion);
 
 		IIndexingProcessor IIndexingComponent.Processor => Processor;
 
@@ -189,11 +212,13 @@ public class IndexingSubscriptionTests
 		}
 	}
 
-	private sealed class FakeIndexingProcessor : IIndexingProcessor
+	private sealed class FakeIndexingProcessor(bool pauseIndexCompletion = false) : IIndexingProcessor
 	{
 		private readonly List<ResolvedEvent> _indexed = [];
 		private readonly TaskCompletionSource _indexedEvents = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private readonly TaskCompletionSource _committed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private readonly TaskCompletionSource _indexEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private readonly TaskCompletionSource _releaseIndex = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private int _commitCount;
 		private int _waitForIndexed;
 		private int _waitForCommits;
@@ -202,7 +227,7 @@ public class IndexingSubscriptionTests
 
 		public int CommitCount => Volatile.Read(ref _commitCount);
 
-		public ValueTask Index(ResolvedEvent resolvedEvent, CancellationToken token)
+		public async ValueTask Index(ResolvedEvent resolvedEvent, CancellationToken token)
 		{
 			lock (_indexed)
 			{
@@ -213,7 +238,11 @@ public class IndexingSubscriptionTests
 				}
 			}
 
-			return ValueTask.CompletedTask;
+			if (pauseIndexCompletion)
+			{
+				_indexEntered.TrySetResult();
+				await _releaseIndex.Task.WaitAsync(token);
+			}
 		}
 
 		public ValueTask Commit(CancellationToken token)
@@ -247,6 +276,10 @@ public class IndexingSubscriptionTests
 				? Task.CompletedTask
 				: _committed.Task.WaitAsync(Timeout);
 		}
+
+		public Task WaitForIndexEntered() => _indexEntered.Task.WaitAsync(Timeout);
+
+		public void ReleaseIndex() => _releaseIndex.TrySetResult();
 	}
 
 	private sealed class FakeIndexingEventSourceFactory(FakeIndexingEventSource source) : IIndexingEventSourceFactory
