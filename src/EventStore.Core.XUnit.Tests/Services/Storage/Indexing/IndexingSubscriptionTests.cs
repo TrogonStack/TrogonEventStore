@@ -271,8 +271,8 @@ public class IndexingSubscriptionTests
 		private readonly TaskCompletionSource _indexEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private readonly TaskCompletionSource _releaseIndex = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private int _commitCount;
-		private int _waitForIndexed;
-		private int _waitForCommits;
+		private int _waitForIndexed = int.MaxValue;
+		private int _waitForCommits = int.MaxValue;
 
 		public IReadOnlyList<ResolvedEvent> Indexed => _indexed;
 
