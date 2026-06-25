@@ -1,11 +1,6 @@
 name: Ubuntu LTS ARM64
 
 on:
-  pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "samples/**"
-      - "**.md"
   push:
     branches:
       - master
@@ -16,10 +11,6 @@ on:
       - "docs/**"
       - "samples/**"
       - "**.md"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build:
