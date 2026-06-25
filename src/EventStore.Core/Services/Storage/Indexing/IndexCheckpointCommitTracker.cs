@@ -53,7 +53,18 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		if (Interlocked.Exchange(ref _disposed, 1) is not 0)
+		var dispose = false;
+		lock (_stateLock)
+		{
+			if (_disposed is 0)
+			{
+				_disposed = 1;
+				_stopped = true;
+				dispose = true;
+			}
+		}
+
+		if (!dispose)
 		{
 			await _disposeCompleted.Task;
 			return;
