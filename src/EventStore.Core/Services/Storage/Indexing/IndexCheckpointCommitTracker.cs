@@ -162,7 +162,14 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 		}
 		catch (Exception ex)
 		{
-			if (Interlocked.Add(ref _pending, pending) >= _batchSize && requestRetry)
+			var restoredPending = Interlocked.Add(ref _pending, pending);
+			if (!requestRetry)
+			{
+				Log.Error(ex, "Error while committing an index checkpoint");
+				throw;
+			}
+
+			if (restoredPending >= _batchSize)
 				RequestCommit();
 
 			Log.Error(ex, "Error while committing an index checkpoint");

@@ -234,6 +234,23 @@ public class IndexCheckpointCommitTrackerTests
 	}
 
 	[Fact]
+	public async Task dispose_surfaces_pending_commit_failure()
+	{
+		var tracker = new IndexCheckpointCommitTracker(
+			batchSize: 100,
+			maxCommitDelay: TimeSpan.FromSeconds(30),
+			commit: _ => throw new InvalidOperationException("commit failed"),
+			cancellationToken: CancellationToken.None);
+
+		tracker.Track();
+
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+			() => tracker.DisposeAsync().AsTask());
+
+		Assert.Equal("commit failed", exception.Message);
+	}
+
+	[Fact]
 	public async Task track_after_dispose_throws()
 	{
 		var tracker = new IndexCheckpointCommitTracker(
