@@ -108,7 +108,9 @@ public sealed class IndexingSubscription(
 		}
 	}
 
-	public async ValueTask DisposeAsync()
+	public ValueTask DisposeAsync() => DisposeAsync(ignoreProcessingFailure: false);
+
+	private async ValueTask DisposeAsync(bool ignoreProcessingFailure)
 	{
 		Task startup;
 		Task processing;
@@ -167,6 +169,9 @@ public sealed class IndexingSubscription(
 				}
 			}
 		}
+		catch (Exception) when (ignoreProcessingFailure)
+		{
+		}
 		catch (Exception ex)
 		{
 			failure = ex;
@@ -218,13 +223,27 @@ public sealed class IndexingSubscription(
 			ExceptionDispatchInfo.Capture(failure).Throw();
 	}
 
-	private static void ObserveProcessingFault(Task processing)
+	private void ObserveProcessingFault(Task processing)
 	{
 		processing.ContinueWith(
-			static task => Log.Error(task.Exception, "Indexing subscription stopped unexpectedly"),
+			task => _ = DisposeAfterProcessingFault(task),
 			CancellationToken.None,
 			TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
 			TaskScheduler.Default);
+	}
+
+	private async Task DisposeAfterProcessingFault(Task processing)
+	{
+		Log.Error(processing.Exception, "Indexing subscription stopped unexpectedly");
+
+		try
+		{
+			await DisposeAsync(ignoreProcessingFailure: true);
+		}
+		catch (Exception ex)
+		{
+			Log.Error(ex, "Error while disposing failed indexing subscription");
+		}
 	}
 
 	private async Task ProcessEvents()

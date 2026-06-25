@@ -191,9 +191,10 @@ public class IndexingSubscriptionTests
 
 		await subscription.Start(CancellationToken.None);
 		await eventSource.WaitForDrained();
-		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => subscription.DisposeAsync().AsTask());
+		await eventSource.WaitForDisposed();
+		await component.WaitForDisposed();
+		await subscription.DisposeAsync();
 
-		Assert.Contains("completed unexpectedly", exception.Message);
 		Assert.True(component.Disposed);
 		Assert.True(eventSource.Disposed);
 	}
@@ -226,6 +227,7 @@ public class IndexingSubscriptionTests
 	{
 		private readonly TaskCompletionSource _initializeEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private readonly TaskCompletionSource _releaseInitialize = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private readonly TaskCompletionSource _disposed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private int _initializeFailures = initializeFailures;
 
 		public FakeIndexingProcessor Processor { get; } = new(pauseIndexCompletion);
@@ -255,10 +257,13 @@ public class IndexingSubscriptionTests
 		{
 			DisposedBeforeInitializeCompleted = pauseInitializeCompletion && !_releaseInitialize.Task.IsCompleted;
 			Disposed = true;
+			_disposed.TrySetResult();
 			return ValueTask.CompletedTask;
 		}
 
 		public Task WaitForInitializeEntered() => _initializeEntered.Task.WaitAsync(Timeout);
+
+		public Task WaitForDisposed() => _disposed.Task.WaitAsync(Timeout);
 
 		public void ReleaseInitialize() => _releaseInitialize.TrySetResult();
 	}
@@ -349,6 +354,7 @@ public class IndexingSubscriptionTests
 	{
 		private readonly Queue<ReadResponse> _responses = new(responses);
 		private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private readonly TaskCompletionSource _disposed = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private readonly bool _completeWhenDrained;
 		private CancellationToken _token;
 
@@ -364,6 +370,8 @@ public class IndexingSubscriptionTests
 		public void Bind(CancellationToken token) => _token = token;
 
 		public Task WaitForDrained() => _drained.Task.WaitAsync(Timeout);
+
+		public Task WaitForDisposed() => _disposed.Task.WaitAsync(Timeout);
 
 		public async ValueTask<bool> MoveNextAsync()
 		{
@@ -386,6 +394,7 @@ public class IndexingSubscriptionTests
 		public ValueTask DisposeAsync()
 		{
 			Disposed = true;
+			_disposed.TrySetResult();
 			return ValueTask.CompletedTask;
 		}
 	}
