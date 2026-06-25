@@ -46,6 +46,28 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task waits_for_in_flight_start_before_disposing_component()
+	{
+		var component = new FakeIndexingComponent(pauseInitializeCompletion: true);
+		var eventSource = new FakeIndexingEventSource();
+		var subscription = new IndexingSubscription(
+			component,
+			new FakeIndexingEventSourceFactory(eventSource),
+			IndexingSubscriptionOptions.Default);
+
+		var startup = subscription.Start(CancellationToken.None).AsTask();
+		await component.WaitForInitializeEntered();
+		var disposal = subscription.DisposeAsync().AsTask();
+
+		component.ReleaseInitialize();
+		await Assert.ThrowsAsync<ObjectDisposedException>(() => startup.WaitAsync(Timeout));
+		await disposal.WaitAsync(Timeout);
+
+		Assert.False(component.DisposedBeforeInitializeCompleted);
+		Assert.True(component.Disposed);
+	}
+
+	[Fact]
 	public async Task indexes_events_from_source()
 	{
 		var first = CreateResolvedEvent(1);
@@ -183,8 +205,11 @@ public class IndexingSubscriptionTests
 	private sealed class FakeIndexingComponent(
 		IndexCheckpoint? checkpoint = null,
 		int initializeFailures = 0,
+		bool pauseInitializeCompletion = false,
 		bool pauseIndexCompletion = false) : IIndexingComponent
 	{
+		private readonly TaskCompletionSource _initializeEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		private readonly TaskCompletionSource _releaseInitialize = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		private int _initializeFailures = initializeFailures;
 
 		public FakeIndexingProcessor Processor { get; } = new(pauseIndexCompletion);
@@ -192,24 +217,34 @@ public class IndexingSubscriptionTests
 		IIndexingProcessor IIndexingComponent.Processor => Processor;
 
 		public bool Disposed { get; private set; }
+		public bool DisposedBeforeInitializeCompleted { get; private set; }
 
-		public ValueTask Initialize(CancellationToken token)
+		public async ValueTask Initialize(CancellationToken token)
 		{
 			if (Interlocked.Decrement(ref _initializeFailures) >= 0)
 			{
 				throw new InvalidOperationException("initialize failed");
 			}
 
-			return ValueTask.CompletedTask;
+			if (pauseInitializeCompletion)
+			{
+				_initializeEntered.TrySetResult();
+				await _releaseInitialize.Task;
+			}
 		}
 
 		public ValueTask<IndexCheckpoint?> ReadCheckpoint(CancellationToken token) => ValueTask.FromResult(checkpoint);
 
 		public ValueTask DisposeAsync()
 		{
+			DisposedBeforeInitializeCompleted = pauseInitializeCompletion && !_releaseInitialize.Task.IsCompleted;
 			Disposed = true;
 			return ValueTask.CompletedTask;
 		}
+
+		public Task WaitForInitializeEntered() => _initializeEntered.Task.WaitAsync(Timeout);
+
+		public void ReleaseInitialize() => _releaseInitialize.TrySetResult();
 	}
 
 	private sealed class FakeIndexingProcessor(bool pauseIndexCompletion = false) : IIndexingProcessor

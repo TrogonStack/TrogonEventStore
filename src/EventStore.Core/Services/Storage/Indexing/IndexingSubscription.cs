@@ -36,13 +36,15 @@ public sealed class IndexingSubscription(
 
 	private IIndexingEventSource _eventSource;
 	private IndexCheckpointCommitTracker _commitTracker;
+	private Task _startup;
 	private Task _processing;
 	private bool _starting;
 	private bool _started;
 	private bool _disposed;
 
-	public async ValueTask Start(CancellationToken token)
+	public ValueTask Start(CancellationToken token)
 	{
+		Task startup;
 		lock (_stateLock)
 		{
 			ObjectDisposedException.ThrowIf(_disposed, this);
@@ -52,8 +54,15 @@ public sealed class IndexingSubscription(
 			}
 
 			_starting = true;
+			startup = StartCore(token);
+			_startup = startup;
 		}
 
+		return new ValueTask(startup);
+	}
+
+	private async Task StartCore(CancellationToken token)
+	{
 		using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, _stop.Token);
 
 		IIndexingEventSource eventSource = null;
@@ -101,6 +110,7 @@ public sealed class IndexingSubscription(
 
 	public async ValueTask DisposeAsync()
 	{
+		Task startup;
 		Task processing;
 		IIndexingEventSource eventSource;
 		IndexCheckpointCommitTracker commitTracker;
@@ -113,14 +123,37 @@ public sealed class IndexingSubscription(
 			}
 
 			_disposed = true;
-			processing = _processing;
-			eventSource = _eventSource;
-			commitTracker = _commitTracker;
+			startup = _startup;
 		}
 
 		await _stop.CancelAsync();
 
 		Exception failure = null;
+
+		try
+		{
+			if (startup is not null)
+			{
+				await startup;
+			}
+		}
+		catch (OperationCanceledException) when (_stop.IsCancellationRequested)
+		{
+		}
+		catch (ObjectDisposedException) when (_stop.IsCancellationRequested)
+		{
+		}
+		catch (Exception ex)
+		{
+			failure = ex;
+		}
+
+		lock (_stateLock)
+		{
+			processing = _processing;
+			eventSource = _eventSource;
+			commitTracker = _commitTracker;
+		}
 
 		try
 		{
