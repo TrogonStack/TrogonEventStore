@@ -35,7 +35,7 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 
 	public void Track()
 	{
-		ObjectDisposedException.ThrowIf(_disposed is not 0, this);
+		ObjectDisposedException.ThrowIf(_disposed is not 0 || _lifetime.IsCancellationRequested, this);
 
 		if (Interlocked.Increment(ref _pending) == _batchSize)
 			RequestCommit();

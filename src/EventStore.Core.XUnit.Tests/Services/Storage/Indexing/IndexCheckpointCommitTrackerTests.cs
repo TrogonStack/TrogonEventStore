@@ -164,7 +164,7 @@ public class IndexCheckpointCommitTrackerTests
 	}
 
 	[Fact]
-	public async Task cancellation_stops_future_commits()
+	public async Task cancellation_stops_future_tracks()
 	{
 		var calls = 0;
 		using var cancellation = new CancellationTokenSource();
@@ -181,9 +181,10 @@ public class IndexCheckpointCommitTrackerTests
 		await cancellation.CancelAsync();
 		await Task.Delay(TimeSpan.FromMilliseconds(50));
 
-		tracker.Track();
+		var exception = Assert.Throws<ObjectDisposedException>(tracker.Track);
 		await Task.Delay(TimeSpan.FromMilliseconds(50));
 
+		Assert.Contains(nameof(IndexCheckpointCommitTracker), exception.Message);
 		Assert.Equal(0, calls);
 	}
 
