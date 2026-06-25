@@ -145,7 +145,7 @@ public class IndexCheckpointCommitTrackerTests
 		var committed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 		await using var tracker = new IndexCheckpointCommitTracker(
 			batchSize: 1,
-			maxCommitDelay: TimeSpan.FromMilliseconds(25),
+			maxCommitDelay: TimeSpan.FromSeconds(30),
 			commit: _ =>
 			{
 				if (Interlocked.Increment(ref calls) == 1)
@@ -206,15 +206,33 @@ public class IndexCheckpointCommitTrackerTests
 	[Fact]
 	public async Task concurrent_dispose_calls_are_safe()
 	{
+		var commitStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var releaseCommit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 		var tracker = new IndexCheckpointCommitTracker(
-			batchSize: 10,
+			batchSize: 1,
 			maxCommitDelay: TimeSpan.FromSeconds(30),
-			commit: _ => ValueTask.CompletedTask,
+			commit: async _ =>
+			{
+				commitStarted.SetResult();
+				await releaseCommit.Task;
+			},
 			cancellationToken: CancellationToken.None);
 
-		await Task.WhenAll(Enumerable
+		tracker.Track();
+		await commitStarted.Task.WaitAsync(CommitTimeout);
+
+		var disposeTasks = Enumerable
 			.Range(0, 5)
-			.Select(_ => Task.Run(async () => await tracker.DisposeAsync())));
+			.Select(_ => Task.Run(async () => await tracker.DisposeAsync()))
+			.ToArray();
+
+		await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+		foreach (var disposeTask in disposeTasks)
+			Assert.False(disposeTask.IsCompleted);
+
+		releaseCommit.SetResult();
+		await Task.WhenAll(disposeTasks).WaitAsync(CommitTimeout);
 	}
 
 	[Fact]

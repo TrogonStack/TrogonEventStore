@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
@@ -10,12 +11,16 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 	private readonly int _batchSize;
 	private readonly TimeSpan _maxCommitDelay;
 	private readonly Func<CancellationToken, ValueTask> _commit;
+	private readonly object _stateLock = new();
 	private readonly CancellationTokenSource _lifetime;
+	private readonly CancellationTokenRegistration _stopTracking;
 	private readonly SemaphoreSlim _commitRequested = new(0, 1);
+	private readonly TaskCompletionSource _disposeCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
 	private readonly Task _runTask;
 
 	private int _disposed;
 	private int _pending;
+	private bool _stopped;
 
 	public IndexCheckpointCommitTracker(
 		int batchSize,
@@ -30,36 +35,69 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 		_maxCommitDelay = maxCommitDelay;
 		_commit = commit ?? throw new ArgumentNullException(nameof(commit));
 		_lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		_stopTracking = _lifetime.Token.Register(static state =>
+			((IndexCheckpointCommitTracker)state!).StopTracking(), this);
 		_runTask = Task.Run(RunAsync);
 	}
 
 	public void Track()
 	{
-		ObjectDisposedException.ThrowIf(_disposed is not 0 || _lifetime.IsCancellationRequested, this);
+		lock (_stateLock)
+		{
+			ObjectDisposedException.ThrowIf(_stopped, this);
 
-		if (Interlocked.Increment(ref _pending) == _batchSize)
-			RequestCommit();
+			if (Interlocked.Increment(ref _pending) >= _batchSize)
+				RequestCommit();
+		}
 	}
 
 	public async ValueTask DisposeAsync()
 	{
 		if (Interlocked.Exchange(ref _disposed, 1) is not 0)
+		{
+			await _disposeCompleted.Task;
 			return;
+		}
 
-		await _lifetime.CancelAsync();
+		Exception failure = null;
 
 		try
 		{
-			await _runTask;
+			StopTracking();
+			await _lifetime.CancelAsync();
+
+			try
+			{
+				await _runTask;
+			}
+			catch (OperationCanceledException)
+			{
+			}
 		}
-		catch (OperationCanceledException)
+		catch (Exception ex)
 		{
+			failure = ex;
 		}
-		finally
+
+		try
 		{
+			_stopTracking.Dispose();
 			_commitRequested.Dispose();
 			_lifetime.Dispose();
 		}
+		catch (Exception ex) when (failure is null)
+		{
+			failure = ex;
+		}
+
+		if (failure is null)
+		{
+			_disposeCompleted.SetResult();
+			return;
+		}
+
+		_disposeCompleted.SetException(failure);
+		ExceptionDispatchInfo.Capture(failure).Throw();
 	}
 
 	private async Task RunAsync()
@@ -91,10 +129,18 @@ public sealed class IndexCheckpointCommitTracker : IAsyncDisposable
 			}
 			catch (Exception ex)
 			{
-				Interlocked.Add(ref _pending, pending);
+				if (Interlocked.Add(ref _pending, pending) >= _batchSize)
+					RequestCommit();
+
 				Log.Error(ex, "Error while committing an index checkpoint");
 			}
 		}
+	}
+
+	private void StopTracking()
+	{
+		lock (_stateLock)
+			_stopped = true;
 	}
 
 	private void RequestCommit()
