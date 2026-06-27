@@ -6,7 +6,6 @@ using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage;
 using EventStore.Core.TransactionLog.FileNamingStrategy;
 using EventStore.Plugins;
-using EventStore.Plugins.Licensing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,8 +24,6 @@ public class ArchivePlugableComponent(bool isArchiver) : IPlugableComponent
 	public string Version => "0.0.1";
 
 	public bool Enabled { get; private set; }
-
-	public string LicensePublicKey => LicenseConstants.LicensePublicKey;
 
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{
