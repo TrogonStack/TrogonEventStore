@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using DotNext.Buffers;
+using DotNext.IO;
 using EventStore.Core.TransactionLog.LogRecords;
 using Xunit;
 
@@ -17,7 +18,7 @@ public class PrepareLogRecordViewTests
 	private const int TransactionOffset = 321;
 	private const string EventStreamId = "test_stream";
 	private const long ExpectedVersion = 789;
-	private readonly DateTime _timestamp = new(DateTime.UtcNow.Ticks);
+	private readonly DateTime _timestamp = DateTime.UtcNow;
 	private const PrepareFlags Flags = PrepareFlags.SingleWrite;
 	private const string EventType = "test_event_type";
 	private readonly byte[] _data = { 0xDE, 0XAD, 0xC0, 0XDE };
@@ -63,9 +64,41 @@ public class PrepareLogRecordViewTests
 		Assert.True(_prepare.EventStreamId.SequenceEqual(Encoding.UTF8.GetBytes(EventStreamId)));
 		Assert.Equal(ExpectedVersion, _prepare.ExpectedVersion);
 		Assert.Equal(_timestamp, _prepare.TimeStamp);
+		Assert.Equal(DateTimeKind.Utc, _prepare.TimeStamp.Kind);
 		Assert.Equal(Flags, _prepare.Flags);
 		Assert.True(_prepare.Data.SequenceEqual(_data));
 		Assert.True(_prepare.Metadata.SequenceEqual(_metadata));
 		Assert.Equal(Version, _prepare.Version);
+	}
+
+	[Fact]
+	public void parsed_record_should_preserve_utc_timestamp_kind()
+	{
+		var prepare = new PrepareLogRecord(
+			LogPosition,
+			_correlationId,
+			_eventId,
+			TransactionPosition,
+			TransactionOffset,
+			EventStreamId,
+			null,
+			ExpectedVersion,
+			_timestamp,
+			Flags,
+			EventType,
+			null,
+			_data,
+			_metadata,
+			Version);
+
+		var writer = new BufferWriterSlim<byte>();
+		prepare.WriteTo(ref writer);
+
+		using var recordBuffer = writer.DetachOrCopyBuffer();
+		var reader = new SequenceReader(new(recordBuffer.Memory));
+		var parsed = Assert.IsType<PrepareLogRecord>(LogRecord.ReadFrom(ref reader));
+
+		Assert.Equal(_timestamp, parsed.TimeStamp);
+		Assert.Equal(DateTimeKind.Utc, parsed.TimeStamp.Kind);
 	}
 }
