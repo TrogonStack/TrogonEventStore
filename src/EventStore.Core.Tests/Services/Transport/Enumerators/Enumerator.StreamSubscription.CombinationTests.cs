@@ -16,6 +16,7 @@ namespace EventStore.Core.Tests.Services.Transport.Enumerators;
 public partial class EnumeratorTests
 {
 	[TestFixtureSource(nameof(TestCases))]
+	[NonParallelizable]
 	public class StreamSubscriptionCombinationTests : TestFixtureWithMiniNodeConnection
 	{
 		public record struct StreamProperties(int NumEvents = 0, TruncationInfo TruncationInfo = new(), bool IsHardDeleted = false, bool IsEphemeralStream = false);

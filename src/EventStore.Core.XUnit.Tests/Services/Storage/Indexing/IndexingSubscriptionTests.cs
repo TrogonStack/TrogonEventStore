@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
 using EventStore.Core.Services.Storage.Indexing;
+using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.Transport.Common;
 using EventStore.Core.Services.Transport.Enumerators;
 using EventStore.Core.TransactionLog.LogRecords;
@@ -233,6 +234,8 @@ public class IndexingSubscriptionTests
 		public FakeIndexingProcessor Processor { get; } = new(pauseIndexCompletion);
 
 		IIndexingProcessor IIndexingComponent.Processor => Processor;
+
+		public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders { get; } = [];
 
 		public bool Disposed { get; private set; }
 		public bool DisposedBeforeInitializeCompleted { get; private set; }

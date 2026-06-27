@@ -7,6 +7,7 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Storage.Indexing;
+using EventStore.Core.Services.Storage.InMemory;
 using EventStore.Core.Services.Transport.Enumerators;
 using Xunit;
 
@@ -69,6 +70,8 @@ public class IndexingServiceTests
 	private sealed class FakeIndexingComponent(bool throwOnDispose = false) : IIndexingComponent
 	{
 		public IIndexingProcessor Processor { get; } = new FakeIndexingProcessor();
+
+		public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders { get; } = [];
 
 		public bool Disposed { get; private set; }
 

@@ -2,10 +2,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Data;
+using EventStore.Core.Services.Storage.InMemory;
 
 namespace EventStore.Core.Services.Storage.Indexing;
 
-public interface IIndexingComponent : IAsyncDisposable
+public interface IIndexingComponent : IAsyncDisposable, IVirtualStreamReaderProvider
 {
 	ValueTask Initialize(CancellationToken token);
 
