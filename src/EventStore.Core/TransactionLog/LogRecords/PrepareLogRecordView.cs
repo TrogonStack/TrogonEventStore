@@ -19,7 +19,7 @@ namespace EventStore.Core.TransactionLog.LogRecords
 		public ReadOnlySpan<byte> EventStreamId => _record.AsSpan(_streamIdOffset, _streamIdSize);
 		public Guid EventId => new Guid(_record.AsSpan(_eventIdOffset, 16).ToArray()); // allocates
 		public Guid CorrelationId => new Guid(_record.AsSpan(_correlationIdOffset, 16).ToArray()); // allocates
-		public DateTime TimeStamp => new DateTime(BitConverter.ToInt64(_record, _timestampOffset));
+		public DateTime TimeStamp => new(BitConverter.ToInt64(_record, _timestampOffset), DateTimeKind.Utc);
 		public ReadOnlySpan<byte> EventType => _record.AsSpan(_eventTypeOffset, _eventTypeSize);
 		public ReadOnlySpan<byte> Data => _record.AsSpan(_dataOffset, _dataSize);
 		public ReadOnlySpan<byte> Metadata => _record.AsSpan(_metadataOffset, _metadataSize);
