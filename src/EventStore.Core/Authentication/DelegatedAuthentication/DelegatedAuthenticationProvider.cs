@@ -14,7 +14,6 @@ public class DelegatedAuthenticationProvider(IAuthenticationProvider inner) : Au
 {
 	Name = inner.Name,
 	Version = inner.Version,
-	LicensePublicKey = inner.LicensePublicKey,
 	DiagnosticsName = inner.DiagnosticsName,
 	DiagnosticsTags = inner.DiagnosticsTags
 })

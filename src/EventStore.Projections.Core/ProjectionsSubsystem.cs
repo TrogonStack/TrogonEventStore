@@ -139,7 +139,6 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 	public KeyValuePair<string, object>[] DiagnosticsTags => [];
 	public string Version => VERSION.ToString();
 	public bool Enabled => true;
-	public string LicensePublicKey => string.Empty;
 
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{

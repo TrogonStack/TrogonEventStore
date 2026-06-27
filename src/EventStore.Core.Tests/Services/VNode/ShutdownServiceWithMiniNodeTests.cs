@@ -88,7 +88,6 @@ public class ShutdownServiceWithMiniNodeTests<TLogFormat, TStreamId> : Specifica
 		public KeyValuePair<string, object>[] DiagnosticsTags { get; }
 		public string Version => "version";
 		public bool Enabled => true;
-		public string LicensePublicKey { get; }
 		public Task Start() => Task.CompletedTask;
 
 		public Task Stop() => Task.CompletedTask;
