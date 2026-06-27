@@ -84,4 +84,65 @@ public class LowAllocReadOnlyMemoryTests
 
 		Assert.Equal(ForeachItems, actual);
 	}
+
+	[Fact]
+	public void Builder_starts_empty()
+	{
+		var sut = LowAllocReadOnlyMemory<int>.Builder.Empty;
+
+		var built = sut.Build();
+
+		Assert.Equal(0, sut.Count);
+		Assert.Equal(0, built.Length);
+		Assert.True(built.Span.IsEmpty);
+	}
+
+	[Fact]
+	public void Builder_can_hold_single_item()
+	{
+		var sut = new LowAllocReadOnlyMemory<int>.Builder(5);
+
+		var built = sut.Build();
+
+		Assert.Equal(1, sut.Count);
+		Assert.Equal(5, built.Single);
+		Assert.Equal(5, built.Span[0]);
+	}
+
+	[Fact]
+	public void Builder_can_append_items()
+	{
+		var sut = LowAllocReadOnlyMemory<int>.Builder.Empty;
+
+		sut = sut.Add(5);
+		sut = sut.Add(6);
+
+		var built = sut.Build();
+
+		Assert.Equal(2, sut.Count);
+		Assert.Equal([5, 6], built.ToArray());
+	}
+
+	[Fact]
+	public void Builder_can_start_from_many_items()
+	{
+		var sut = new LowAllocReadOnlyMemory<int>.Builder(ManyItems);
+
+		var built = sut.Build();
+
+		Assert.Equal(ManyItems.Length, sut.Count);
+		Assert.Equal(ManyItems, built.ToArray());
+	}
+
+	[Fact]
+	public void List_can_convert_to_low_alloc_memory()
+	{
+		IList<int> empty = [];
+		IList<int> single = [5];
+		IList<int> many = [5, 6];
+
+		Assert.Equal(0, empty.ToLowAllocReadOnlyMemory().Length);
+		Assert.Equal(5, single.ToLowAllocReadOnlyMemory().Single);
+		Assert.Equal([5, 6], many.ToLowAllocReadOnlyMemory().ToArray());
+	}
 }
