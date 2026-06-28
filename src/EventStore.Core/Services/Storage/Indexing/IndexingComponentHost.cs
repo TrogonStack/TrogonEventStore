@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using EventStore.Core.Bus;
 using EventStore.Core.Services.Storage.InMemory;
 using Microsoft.AspNetCore.Builder;
@@ -7,24 +9,60 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EventStore.Core.Services.Storage.Indexing;
 
-public sealed class IndexingComponentHost(
-	IIndexingComponent component,
-	IndexingSubscriptionOptions options) : IVirtualStreamReaderProvider
+public sealed class IndexingComponentHost : IVirtualStreamReaderProvider
 {
+	private readonly IReadOnlyList<IIndexingComponent> _components;
+	private readonly IReadOnlyList<IVirtualStreamReader> _virtualStreamReaders;
+	private readonly IndexingSubscriptionOptions _options;
+
 	public IndexingComponentHost(IIndexingComponent component)
 		: this(component, IndexingSubscriptionOptions.Default)
 	{
 	}
 
-	public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders => component.VirtualStreamReaders;
+	public IndexingComponentHost(IIndexingComponent component, IndexingSubscriptionOptions options)
+		: this([component], options)
+	{
+	}
+
+	public IndexingComponentHost(IReadOnlyList<IIndexingComponent> components)
+		: this(components, IndexingSubscriptionOptions.Default)
+	{
+	}
+
+	public IndexingComponentHost(IReadOnlyList<IIndexingComponent> components, IndexingSubscriptionOptions options)
+	{
+		ArgumentNullException.ThrowIfNull(components);
+		ArgumentNullException.ThrowIfNull(options);
+
+		var componentArray = components.ToArray();
+		if (componentArray.Length == 0)
+		{
+			throw new ArgumentException("At least one indexing component is required.", nameof(components));
+		}
+
+		if (componentArray.Any(static component => component is null))
+		{
+			throw new ArgumentException("Indexing components cannot contain null.", nameof(components));
+		}
+
+		_components = componentArray;
+		_options = options;
+		_virtualStreamReaders = componentArray.SelectMany(static component => component.VirtualStreamReaders).ToArray();
+	}
+
+	public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders => _virtualStreamReaders;
 
 	public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 	{
-		services.AddSingleton(serviceProvider => new IndexingService(
-			component,
-			new AllStreamsIndexingEventSourceFactory(serviceProvider.GetRequiredService<IPublisher>()),
-			serviceProvider.GetRequiredService<ISubscriber>(),
-			options));
+		foreach (var component in _components)
+		{
+			services.AddSingleton(serviceProvider => new IndexingService(
+				component,
+				new AllStreamsIndexingEventSourceFactory(serviceProvider.GetRequiredService<IPublisher>()),
+				serviceProvider.GetRequiredService<ISubscriber>(),
+				_options));
+		}
 	}
 
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)

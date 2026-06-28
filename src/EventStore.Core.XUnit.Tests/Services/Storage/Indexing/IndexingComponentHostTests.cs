@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core.Bus;
@@ -30,6 +31,18 @@ public class IndexingComponentHostTests
 	}
 
 	[Fact]
+	public void exposes_grouped_component_virtual_stream_readers()
+	{
+		var first = new FakeVirtualStreamReader("$idx-first");
+		var second = new FakeVirtualStreamReader("$idx-second");
+		var firstComponent = new FakeIndexingComponent(first);
+		var secondComponent = new FakeIndexingComponent(second);
+		var host = new IndexingComponentHost([firstComponent, secondComponent]);
+
+		Assert.Equal([first, second], host.VirtualStreamReaders);
+	}
+
+	[Fact]
 	public async Task configure_application_activates_registered_indexing_service()
 	{
 		var subscriber = new RecordingSubscriber();
@@ -52,6 +65,29 @@ public class IndexingComponentHostTests
 
 		Assert.True(subscriber.Has<SystemMessage.SystemReady>());
 		Assert.True(subscriber.Has<SystemMessage.BecomeShuttingDown>());
+	}
+
+	[Fact]
+	public async Task configure_application_activates_grouped_indexing_services()
+	{
+		var subscriber = new RecordingSubscriber();
+		var services = new ServiceCollection();
+		var first = new FakeIndexingComponent();
+		var second = new FakeIndexingComponent();
+		var host = new IndexingComponentHost([first, second]);
+		var configuration = new ConfigurationBuilder().Build();
+
+		services.AddSingleton<ISubscriber>(subscriber);
+		services.AddSingleton<IPublisher>(new RecordingPublisher());
+		host.ConfigureServices(services, configuration);
+
+		await using var provider = services.BuildServiceProvider();
+		Assert.Equal(2, provider.GetServices<IndexingService>().Count());
+
+		host.ConfigureApplication(new ApplicationBuilder(provider), configuration);
+
+		Assert.Equal(2, subscriber.SubscriptionCount<SystemMessage.SystemReady>());
+		Assert.Equal(2, subscriber.SubscriptionCount<SystemMessage.BecomeShuttingDown>());
 	}
 
 	[Fact]
