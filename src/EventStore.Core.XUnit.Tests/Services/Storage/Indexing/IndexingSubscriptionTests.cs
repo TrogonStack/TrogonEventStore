@@ -80,6 +80,41 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task start_honors_cancelled_token_before_activation()
+	{
+		var checkpoint = new IndexCheckpoint(10, 5);
+		var component = new FakeIndexingComponent(checkpoint);
+		var eventSources = new FakeIndexingEventSourceFactory(new FakeIndexingEventSource());
+		using var cancellation = new CancellationTokenSource();
+		await cancellation.CancelAsync();
+		await using var subscription = new IndexingSubscription(
+			component,
+			eventSources,
+			IndexingSubscriptionOptions.Default);
+
+		await Assert.ThrowsAsync<OperationCanceledException>(() =>
+			subscription.Start(cancellation.Token).AsTask());
+
+		Assert.Null(eventSources.Checkpoint);
+	}
+
+	[Fact]
+	public async Task start_disposes_event_source_when_cancelled_during_activation()
+	{
+		var eventSource = new FakeIndexingEventSource();
+		using var cancellation = new CancellationTokenSource();
+		await using var subscription = new IndexingSubscription(
+			new FakeIndexingComponent(),
+			new CancellingIndexingEventSourceFactory(eventSource, cancellation),
+			IndexingSubscriptionOptions.Default);
+
+		await Assert.ThrowsAsync<OperationCanceledException>(() =>
+			subscription.Start(cancellation.Token).AsTask());
+
+		Assert.True(eventSource.Disposed);
+	}
+
+	[Fact]
 	public async Task start_rejects_missing_event_source()
 	{
 		await using var subscription = new IndexingSubscription(
@@ -418,6 +453,18 @@ public class IndexingSubscriptionTests
 	private sealed class NullIndexingEventSourceFactory : IIndexingEventSourceFactory
 	{
 		public IIndexingEventSource Create(IndexCheckpoint? checkpoint, CancellationToken token) => null!;
+	}
+
+	private sealed class CancellingIndexingEventSourceFactory(
+		FakeIndexingEventSource source,
+		CancellationTokenSource startupCancellation) : IIndexingEventSourceFactory
+	{
+		public IIndexingEventSource Create(IndexCheckpoint? checkpoint, CancellationToken token)
+		{
+			source.Bind(token);
+			startupCancellation.Cancel();
+			return source;
+		}
 	}
 
 	private sealed class FakeIndexingEventSourceFactory(FakeIndexingEventSource source) : IIndexingEventSourceFactory
