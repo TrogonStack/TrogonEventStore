@@ -12,6 +12,7 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 	private readonly IndexingSubscription _subscription;
 	private readonly object _registrationLock = new();
 	private int _disposed;
+	private int _started;
 	private bool _registered;
 
 	public IndexingService(
@@ -40,8 +41,23 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 		}
 	}
 
-	public ValueTask HandleAsync(SystemMessage.SystemReady message, CancellationToken token) =>
-		_subscription.Start(token);
+	public async ValueTask HandleAsync(SystemMessage.SystemReady message, CancellationToken token)
+	{
+		if (Interlocked.CompareExchange(ref _started, 1, 0) is not 0)
+		{
+			return;
+		}
+
+		try
+		{
+			await _subscription.Start(token);
+		}
+		catch
+		{
+			Volatile.Write(ref _started, 0);
+			throw;
+		}
+	}
 
 	public ValueTask HandleAsync(SystemMessage.BecomeShuttingDown message, CancellationToken token) =>
 		DisposeAsync();
