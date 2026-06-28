@@ -27,6 +27,7 @@ public class IndexingServiceTests
 			subscriber,
 			IndexingSubscriptionOptions.Default);
 
+		service.Register();
 		await service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None);
 		await service.HandleAsync(new SystemMessage.BecomeShuttingDown(Guid.NewGuid(), false, false), CancellationToken.None);
 
@@ -46,6 +47,7 @@ public class IndexingServiceTests
 			subscriber,
 			IndexingSubscriptionOptions.Default);
 
+		service.Register();
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(
 			() => service.DisposeAsync().AsTask());
 
