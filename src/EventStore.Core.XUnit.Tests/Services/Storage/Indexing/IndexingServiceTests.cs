@@ -89,6 +89,41 @@ public class IndexingServiceTests
 	}
 
 	[Fact]
+	public async Task system_ready_after_dispose_is_rejected()
+	{
+		var service = new IndexingService(
+			new FakeIndexingComponent(),
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			new RecordingSubscriber(),
+			IndexingSubscriptionOptions.Default);
+
+		await service.DisposeAsync();
+
+		var exception = await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+			service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None).AsTask());
+
+		Assert.Contains(nameof(IndexingService), exception.Message);
+	}
+
+	[Fact]
+	public async Task system_ready_after_started_service_is_disposed_is_rejected()
+	{
+		var service = new IndexingService(
+			new FakeIndexingComponent(),
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			new RecordingSubscriber(),
+			IndexingSubscriptionOptions.Default);
+
+		await service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None);
+		await service.DisposeAsync();
+
+		var exception = await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+			service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None).AsTask());
+
+		Assert.Contains(nameof(IndexingService), exception.Message);
+	}
+
+	[Fact]
 	public async Task dispose_unsubscribes_when_subscription_cleanup_fails()
 	{
 		var subscriber = new RecordingSubscriber();

@@ -45,6 +45,8 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 
 	public async ValueTask HandleAsync(SystemMessage.SystemReady message, CancellationToken token)
 	{
+		ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) is not 0, this);
+
 		if (Interlocked.CompareExchange(ref _started, 1, 0) is not 0)
 		{
 			return;
