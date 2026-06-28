@@ -21,7 +21,10 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 		ISubscriber subscriber,
 		IndexingSubscriptionOptions options)
 	{
+		ArgumentNullException.ThrowIfNull(component);
+		ArgumentNullException.ThrowIfNull(eventSourceFactory);
 		ArgumentNullException.ThrowIfNull(subscriber);
+		ArgumentNullException.ThrowIfNull(options);
 
 		_subscriber = subscriber;
 		_subscription = new IndexingSubscription(component, eventSourceFactory, options);

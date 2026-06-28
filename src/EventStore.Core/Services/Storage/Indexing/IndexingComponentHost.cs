@@ -55,6 +55,9 @@ public sealed class IndexingComponentHost : IVirtualStreamReaderProvider
 
 	public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 	{
+		ArgumentNullException.ThrowIfNull(services);
+		ArgumentNullException.ThrowIfNull(configuration);
+
 		foreach (var component in _components)
 		{
 			services.AddSingleton(serviceProvider => new IndexingService(
@@ -67,6 +70,9 @@ public sealed class IndexingComponentHost : IVirtualStreamReaderProvider
 
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{
+		ArgumentNullException.ThrowIfNull(builder);
+		ArgumentNullException.ThrowIfNull(configuration);
+
 		foreach (var service in builder.ApplicationServices.GetServices<IndexingService>())
 		{
 			service.Register();

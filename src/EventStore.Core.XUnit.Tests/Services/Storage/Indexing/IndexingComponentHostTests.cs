@@ -20,6 +20,53 @@ namespace EventStore.Core.XUnit.Tests.Services.Storage.Indexing;
 public class IndexingComponentHostTests
 {
 	[Fact]
+	public void configure_services_rejects_missing_services()
+	{
+		var host = new IndexingComponentHost(new FakeIndexingComponent());
+		var configuration = new ConfigurationBuilder().Build();
+
+		var exception = Assert.Throws<ArgumentNullException>(() =>
+			host.ConfigureServices(null!, configuration));
+
+		Assert.Equal("services", exception.ParamName);
+	}
+
+	[Fact]
+	public void configure_services_rejects_missing_configuration()
+	{
+		var host = new IndexingComponentHost(new FakeIndexingComponent());
+
+		var exception = Assert.Throws<ArgumentNullException>(() =>
+			host.ConfigureServices(new ServiceCollection(), null!));
+
+		Assert.Equal("configuration", exception.ParamName);
+	}
+
+	[Fact]
+	public void configure_application_rejects_missing_builder()
+	{
+		var host = new IndexingComponentHost(new FakeIndexingComponent());
+		var configuration = new ConfigurationBuilder().Build();
+
+		var exception = Assert.Throws<ArgumentNullException>(() =>
+			host.ConfigureApplication(null!, configuration));
+
+		Assert.Equal("builder", exception.ParamName);
+	}
+
+	[Fact]
+	public void configure_application_rejects_missing_configuration()
+	{
+		var host = new IndexingComponentHost(new FakeIndexingComponent());
+		using var provider = new ServiceCollection().BuildServiceProvider();
+
+		var exception = Assert.Throws<ArgumentNullException>(() =>
+			host.ConfigureApplication(new ApplicationBuilder(provider), null!));
+
+		Assert.Equal("configuration", exception.ParamName);
+	}
+
+	[Fact]
 	public void constructor_rejects_component_with_missing_virtual_stream_readers()
 	{
 		var exception = Assert.Throws<ArgumentException>(() =>

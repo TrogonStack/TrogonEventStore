@@ -16,6 +16,30 @@ namespace EventStore.Core.XUnit.Tests.Services.Storage.Indexing;
 public class IndexingServiceTests
 {
 	[Fact]
+	public void constructor_rejects_missing_component()
+	{
+		var exception = Assert.Throws<ArgumentNullException>(() => new IndexingService(
+			null!,
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			new RecordingSubscriber(),
+			IndexingSubscriptionOptions.Default));
+
+		Assert.Equal("component", exception.ParamName);
+	}
+
+	[Fact]
+	public void constructor_rejects_missing_event_source_factory()
+	{
+		var exception = Assert.Throws<ArgumentNullException>(() => new IndexingService(
+			new FakeIndexingComponent(),
+			null!,
+			new RecordingSubscriber(),
+			IndexingSubscriptionOptions.Default));
+
+		Assert.Equal("eventSourceFactory", exception.ParamName);
+	}
+
+	[Fact]
 	public void constructor_rejects_missing_subscriber()
 	{
 		var exception = Assert.Throws<ArgumentNullException>(() => new IndexingService(
@@ -25,6 +49,18 @@ public class IndexingServiceTests
 			IndexingSubscriptionOptions.Default));
 
 		Assert.Equal("subscriber", exception.ParamName);
+	}
+
+	[Fact]
+	public void constructor_rejects_missing_options()
+	{
+		var exception = Assert.Throws<ArgumentNullException>(() => new IndexingService(
+			new FakeIndexingComponent(),
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			new RecordingSubscriber(),
+			null!));
+
+		Assert.Equal("options", exception.ParamName);
 	}
 
 	[Fact]
