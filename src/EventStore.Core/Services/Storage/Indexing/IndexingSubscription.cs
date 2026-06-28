@@ -81,8 +81,11 @@ public sealed class IndexingSubscription : IAsyncDisposable
 
 		try
 		{
+			token.ThrowIfCancellationRequested();
 			await _component.Initialize(linked.Token);
 			var checkpoint = await _component.ReadCheckpoint(linked.Token);
+			token.ThrowIfCancellationRequested();
+
 			var processor = _component.Processor
 				?? throw new InvalidOperationException("Indexing component returned null processor.");
 
@@ -94,6 +97,7 @@ public sealed class IndexingSubscription : IAsyncDisposable
 
 			eventSource = _eventSourceFactory.Create(checkpoint, _stop.Token)
 				?? throw new InvalidOperationException("Indexing event source factory returned null.");
+			token.ThrowIfCancellationRequested();
 
 			lock (_stateLock)
 			{
