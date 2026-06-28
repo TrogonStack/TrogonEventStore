@@ -24,13 +24,13 @@ public sealed record IndexingSubscriptionOptions
 	}
 }
 
-public sealed class IndexingSubscription(
-	IIndexingComponent component,
-	IIndexingEventSourceFactory eventSourceFactory,
-	IndexingSubscriptionOptions options) : IAsyncDisposable
+public sealed class IndexingSubscription : IAsyncDisposable
 {
 	private static readonly ILogger Log = Serilog.Log.ForContext<IndexingSubscription>();
 
+	private readonly IIndexingComponent _component;
+	private readonly IIndexingEventSourceFactory _eventSourceFactory;
+	private readonly IndexingSubscriptionOptions _options;
 	private readonly CancellationTokenSource _stop = new();
 	private readonly object _stateLock = new();
 
@@ -41,6 +41,16 @@ public sealed class IndexingSubscription(
 	private bool _starting;
 	private bool _started;
 	private bool _disposed;
+
+	public IndexingSubscription(
+		IIndexingComponent component,
+		IIndexingEventSourceFactory eventSourceFactory,
+		IndexingSubscriptionOptions options)
+	{
+		_component = component ?? throw new ArgumentNullException(nameof(component));
+		_eventSourceFactory = eventSourceFactory ?? throw new ArgumentNullException(nameof(eventSourceFactory));
+		_options = options ?? throw new ArgumentNullException(nameof(options));
+	}
 
 	public ValueTask Start(CancellationToken token)
 	{
@@ -70,16 +80,16 @@ public sealed class IndexingSubscription(
 
 		try
 		{
-			await component.Initialize(linked.Token);
-			var checkpoint = await component.ReadCheckpoint(linked.Token);
+			await _component.Initialize(linked.Token);
+			var checkpoint = await _component.ReadCheckpoint(linked.Token);
 
 			commitTracker = new IndexCheckpointCommitTracker(
-				options.CheckpointCommitBatchSize,
-				options.CheckpointCommitDelay,
-				component.Processor.Commit,
+				_options.CheckpointCommitBatchSize,
+				_options.CheckpointCommitDelay,
+				_component.Processor.Commit,
 				CancellationToken.None);
 
-			eventSource = eventSourceFactory.Create(checkpoint, _stop.Token);
+			eventSource = _eventSourceFactory.Create(checkpoint, _stop.Token);
 
 			lock (_stateLock)
 			{
@@ -96,13 +106,19 @@ public sealed class IndexingSubscription(
 		catch
 		{
 			lock (_stateLock)
+			{
 				_starting = false;
+			}
 
 			if (commitTracker is not null)
+			{
 				await commitTracker.DisposeAsync();
+			}
 
 			if (eventSource is not null)
+			{
 				await eventSource.DisposeAsync();
+			}
 
 			throw;
 		}
@@ -203,7 +219,7 @@ public sealed class IndexingSubscription(
 
 		try
 		{
-			await component.DisposeAsync();
+			await _component.DisposeAsync();
 		}
 		catch (Exception ex) when (failure is null)
 		{
@@ -220,7 +236,9 @@ public sealed class IndexingSubscription(
 		}
 
 		if (failure is not null)
+		{
 			ExceptionDispatchInfo.Capture(failure).Throw();
+		}
 	}
 
 	private void ObserveProcessingFault(Task processing)
@@ -272,7 +290,7 @@ public sealed class IndexingSubscription(
 
 			try
 			{
-				await component.Processor.Index(eventReceived.Event, CancellationToken.None);
+				await _component.Processor.Index(eventReceived.Event, CancellationToken.None);
 				_commitTracker.Track();
 			}
 			catch (OperationCanceledException) when (_stop.IsCancellationRequested)
