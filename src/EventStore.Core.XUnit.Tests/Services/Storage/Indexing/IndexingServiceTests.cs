@@ -38,6 +38,45 @@ public class IndexingServiceTests
 	}
 
 	[Fact]
+	public async Task repeated_system_ready_does_not_restart_subscription()
+	{
+		var subscriber = new RecordingSubscriber();
+		var component = new FakeIndexingComponent();
+		var service = new IndexingService(
+			component,
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			subscriber,
+			IndexingSubscriptionOptions.Default);
+
+		await service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None);
+		await service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None);
+
+		Assert.Equal(1, component.InitializeCount);
+
+		await service.DisposeAsync();
+	}
+
+	[Fact]
+	public async Task failed_system_ready_can_be_retried()
+	{
+		var subscriber = new RecordingSubscriber();
+		var component = new FakeIndexingComponent(initializeFailures: 1);
+		var service = new IndexingService(
+			component,
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			subscriber,
+			IndexingSubscriptionOptions.Default);
+
+		await Assert.ThrowsAsync<InvalidOperationException>(() =>
+			service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None).AsTask());
+		await service.HandleAsync(new SystemMessage.SystemReady(), CancellationToken.None);
+
+		Assert.Equal(2, component.InitializeCount);
+
+		await service.DisposeAsync();
+	}
+
+	[Fact]
 	public async Task dispose_unsubscribes_when_subscription_cleanup_fails()
 	{
 		var subscriber = new RecordingSubscriber();
@@ -69,15 +108,28 @@ public class IndexingServiceTests
 		public bool Has<T>() where T : Message => _subscriptions.Contains(typeof(T));
 	}
 
-	private sealed class FakeIndexingComponent(bool throwOnDispose = false) : IIndexingComponent
+	private sealed class FakeIndexingComponent(bool throwOnDispose = false, int initializeFailures = 0) : IIndexingComponent
 	{
+		private int _initializeFailures = initializeFailures;
+
 		public IIndexingProcessor Processor { get; } = new FakeIndexingProcessor();
 
 		public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders { get; } = [];
 
 		public bool Disposed { get; private set; }
 
-		public ValueTask Initialize(CancellationToken token) => ValueTask.CompletedTask;
+		public int InitializeCount { get; private set; }
+
+		public ValueTask Initialize(CancellationToken token)
+		{
+			InitializeCount++;
+			if (Interlocked.Decrement(ref _initializeFailures) >= 0)
+			{
+				throw new InvalidOperationException("initialize failed");
+			}
+
+			return ValueTask.CompletedTask;
+		}
 
 		public ValueTask<IndexCheckpoint?> ReadCheckpoint(CancellationToken token) => ValueTask.FromResult<IndexCheckpoint?>(null);
 
