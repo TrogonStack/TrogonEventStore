@@ -16,6 +16,18 @@ namespace EventStore.Core.XUnit.Tests.Services.Storage.Indexing;
 public class IndexingServiceTests
 {
 	[Fact]
+	public void constructor_rejects_missing_subscriber()
+	{
+		var exception = Assert.Throws<ArgumentNullException>(() => new IndexingService(
+			new FakeIndexingComponent(),
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			null!,
+			IndexingSubscriptionOptions.Default));
+
+		Assert.Equal("subscriber", exception.ParamName);
+	}
+
+	[Fact]
 	public async Task shutdown_disposes_subscription_and_unsubscribes()
 	{
 		var subscriber = new RecordingSubscriber();
