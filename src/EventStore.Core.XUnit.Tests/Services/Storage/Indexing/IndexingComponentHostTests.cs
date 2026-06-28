@@ -67,6 +67,35 @@ public class IndexingComponentHostTests
 	}
 
 	[Fact]
+	public void constructor_rejects_missing_components()
+	{
+		var exception = Assert.Throws<ArgumentNullException>(() =>
+			new IndexingComponentHost((IReadOnlyList<IIndexingComponent>)null!));
+
+		Assert.Equal("components", exception.ParamName);
+	}
+
+	[Fact]
+	public void constructor_rejects_empty_components()
+	{
+		var exception = Assert.Throws<ArgumentException>(() =>
+			new IndexingComponentHost([]));
+
+		Assert.Equal("components", exception.ParamName);
+		Assert.Equal("At least one indexing component is required. (Parameter 'components')", exception.Message);
+	}
+
+	[Fact]
+	public void constructor_rejects_missing_component()
+	{
+		var exception = Assert.Throws<ArgumentException>(() =>
+			new IndexingComponentHost([null!]));
+
+		Assert.Equal("components", exception.ParamName);
+		Assert.Equal("Indexing components cannot contain null. (Parameter 'components')", exception.Message);
+	}
+
+	[Fact]
 	public void constructor_rejects_component_with_missing_virtual_stream_readers()
 	{
 		var exception = Assert.Throws<ArgumentException>(() =>
