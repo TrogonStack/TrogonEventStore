@@ -26,6 +26,23 @@ public class VirtualStreamReaderTests
 		_sut = new VirtualStreamReader([_listener.Stream]);
 	}
 
+	[Fact]
+	public void constructor_rejects_missing_readers()
+	{
+		var exception = Assert.Throws<ArgumentNullException>(() => new VirtualStreamReader(null!));
+
+		Assert.Equal("readers", exception.ParamName);
+	}
+
+	[Fact]
+	public void constructor_rejects_missing_reader()
+	{
+		var exception = Assert.Throws<ArgumentException>(() => new VirtualStreamReader([null!]));
+
+		Assert.Equal("readers", exception.ParamName);
+		Assert.Equal("Virtual stream readers cannot contain null. (Parameter 'readers')", exception.Message);
+	}
+
 	private static ClientMessage.ReadStreamEventsBackward GenReadBackwards(
 		Guid correlation,
 		long fromEventNumber,
