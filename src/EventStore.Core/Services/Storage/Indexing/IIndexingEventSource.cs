@@ -21,12 +21,17 @@ public interface IIndexingEventSourceFactory
 	IIndexingEventSource Create(IndexCheckpoint? checkpoint, CancellationToken token);
 }
 
-public sealed class AllStreamsIndexingEventSourceFactory(IPublisher publisher) : IIndexingEventSourceFactory
+public sealed class AllStreamsIndexingEventSourceFactory : IIndexingEventSourceFactory
 {
+	private readonly IPublisher _publisher;
+
+	public AllStreamsIndexingEventSourceFactory(IPublisher publisher) =>
+		_publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+
 	public IIndexingEventSource Create(IndexCheckpoint? checkpoint, CancellationToken token)
 	{
 		var subscription = new Enumerator.AllSubscription(
-			publisher,
+			_publisher,
 			new DefaultExpiryStrategy(),
 			checkpoint?.ToPosition(),
 			resolveLinks: false,

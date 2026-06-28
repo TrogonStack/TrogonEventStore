@@ -89,7 +89,8 @@ public sealed class IndexingSubscription : IAsyncDisposable
 				_component.Processor.Commit,
 				CancellationToken.None);
 
-			eventSource = _eventSourceFactory.Create(checkpoint, _stop.Token);
+			eventSource = _eventSourceFactory.Create(checkpoint, _stop.Token)
+				?? throw new InvalidOperationException("Indexing event source factory returned null.");
 
 			lock (_stateLock)
 			{
