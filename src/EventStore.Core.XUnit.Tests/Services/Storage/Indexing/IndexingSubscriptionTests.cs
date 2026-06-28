@@ -80,6 +80,20 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task start_rejects_missing_event_source()
+	{
+		await using var subscription = new IndexingSubscription(
+			new FakeIndexingComponent(),
+			new NullIndexingEventSourceFactory(),
+			IndexingSubscriptionOptions.Default);
+
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+			subscription.Start(CancellationToken.None).AsTask());
+
+		Assert.Equal("Indexing event source factory returned null.", exception.Message);
+	}
+
+	[Fact]
 	public async Task waits_for_in_flight_start_before_disposing_component()
 	{
 		var component = new FakeIndexingComponent(pauseInitializeCompletion: true);
@@ -372,6 +386,11 @@ public class IndexingSubscriptionTests
 		public Task WaitForIndexEntered() => _indexEntered.Task.WaitAsync(Timeout);
 
 		public void ReleaseIndex() => _releaseIndex.TrySetResult();
+	}
+
+	private sealed class NullIndexingEventSourceFactory : IIndexingEventSourceFactory
+	{
+		public IIndexingEventSource Create(IndexCheckpoint? checkpoint, CancellationToken token) => null!;
 	}
 
 	private sealed class FakeIndexingEventSourceFactory(FakeIndexingEventSource source) : IIndexingEventSourceFactory
