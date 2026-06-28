@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
-using EventStore.Common.Exceptions;
 using EventStore.Core.Services.Archive.Naming;
 using EventStore.Core.Services.Archive.Storage.Exceptions;
 using FluentStorage.AWS.Blobs;
@@ -26,16 +25,6 @@ public class S3Reader : FluentReader, IArchiveStorageReader
 	{
 		AwsTraceLogging.Configure();
 		_options = options;
-
-		if (string.IsNullOrEmpty(options.Bucket))
-		{
-			throw new InvalidConfigurationException("Please specify an Archive S3 Bucket");
-		}
-
-		if (string.IsNullOrEmpty(options.Region))
-		{
-			throw new InvalidConfigurationException("Please specify an Archive S3 Region");
-		}
 
 		_awsBlobStorage = S3Storage.Create(options);
 	}

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Amazon.Runtime;
 using Amazon.S3;
+using EventStore.Common.Exceptions;
 using EventStore.Core.Services.Archive;
 using EventStore.Core.Services.Archive.Storage;
 using FluentStorage.AWS.Blobs;
@@ -44,6 +45,31 @@ public class S3StorageCredentialTests
 		var credentials = Assert.IsType<BasicAWSCredentials>(GetCredentials(client));
 
 		Assert.True(string.IsNullOrEmpty(credentials.GetCredentials().Token));
+	}
+
+	[Fact]
+	public void native_s3_rejects_missing_bucket_before_creating_client()
+	{
+		var exception = Assert.Throws<InvalidConfigurationException>(() => new InspectableS3Writer(new S3Options
+		{
+			Region = "us-east-1",
+		}));
+
+		Assert.Contains("Bucket", exception.Message);
+	}
+
+	[Fact]
+	public void s3_compatible_storage_rejects_missing_credentials_before_creating_client()
+	{
+		var exception = Assert.Throws<InvalidConfigurationException>(() => new InspectableS3Writer(new S3Options
+		{
+			Bucket = "archive",
+			Region = "us-east-1",
+			ServiceUrl = "https://s3-compatible.example",
+		}));
+
+		Assert.Contains("AccessKeyId", exception.Message);
+		Assert.Contains("SecretAccessKey", exception.Message);
 	}
 
 	private sealed class InspectableS3Writer(S3Options options) : S3Writer(options, "archive.chk")
