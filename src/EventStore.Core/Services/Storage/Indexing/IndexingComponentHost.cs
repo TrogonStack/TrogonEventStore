@@ -29,11 +29,9 @@ public sealed class IndexingComponentHost(
 
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{
-		// IndexingService subscribes to the bus from its constructor, so force singleton activation
-		// while the application is being configured instead of waiting for the first service lookup.
 		foreach (var service in builder.ApplicationServices.GetServices<IndexingService>())
 		{
-			_ = service;
+			service.Register();
 		}
 	}
 }

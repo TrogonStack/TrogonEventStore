@@ -10,7 +10,9 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 {
 	private readonly ISubscriber _subscriber;
 	private readonly IndexingSubscription _subscription;
+	private readonly object _registrationLock = new();
 	private int _disposed;
+	private bool _registered;
 
 	public IndexingService(
 		IIndexingComponent component,
@@ -20,9 +22,22 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 	{
 		_subscriber = subscriber;
 		_subscription = new IndexingSubscription(component, eventSourceFactory, options);
+	}
 
-		subscriber.Subscribe<SystemMessage.SystemReady>(this);
-		subscriber.Subscribe<SystemMessage.BecomeShuttingDown>(this);
+	public void Register()
+	{
+		lock (_registrationLock)
+		{
+			ObjectDisposedException.ThrowIf(_disposed is not 0, this);
+			if (_registered)
+			{
+				return;
+			}
+
+			_subscriber.Subscribe<SystemMessage.SystemReady>(this);
+			_subscriber.Subscribe<SystemMessage.BecomeShuttingDown>(this);
+			_registered = true;
+		}
 	}
 
 	public ValueTask HandleAsync(SystemMessage.SystemReady message, CancellationToken token) =>
@@ -44,8 +59,21 @@ public sealed class IndexingService : IAsyncHandle<SystemMessage.SystemReady>, I
 		}
 		finally
 		{
-			_subscriber.Unsubscribe<SystemMessage.SystemReady>(this);
-			_subscriber.Unsubscribe<SystemMessage.BecomeShuttingDown>(this);
+			var registered = false;
+			lock (_registrationLock)
+			{
+				if (_registered)
+				{
+					_registered = false;
+					registered = true;
+				}
+			}
+
+			if (registered)
+			{
+				_subscriber.Unsubscribe<SystemMessage.SystemReady>(this);
+				_subscriber.Unsubscribe<SystemMessage.BecomeShuttingDown>(this);
+			}
 		}
 	}
 }

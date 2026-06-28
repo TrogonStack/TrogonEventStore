@@ -43,23 +43,54 @@ public class IndexingComponentHostTests
 		host.ConfigureServices(services, configuration);
 
 		await using var provider = services.BuildServiceProvider();
+		_ = provider.GetRequiredService<IndexingService>();
+
+		Assert.False(subscriber.Has<SystemMessage.SystemReady>());
+		Assert.False(subscriber.Has<SystemMessage.BecomeShuttingDown>());
+
 		host.ConfigureApplication(new ApplicationBuilder(provider), configuration);
 
 		Assert.True(subscriber.Has<SystemMessage.SystemReady>());
 		Assert.True(subscriber.Has<SystemMessage.BecomeShuttingDown>());
 	}
 
+	[Fact]
+	public async Task configure_application_can_register_indexing_service_more_than_once()
+	{
+		var subscriber = new RecordingSubscriber();
+		var services = new ServiceCollection();
+		var component = new FakeIndexingComponent();
+		var host = new IndexingComponentHost(component);
+		var configuration = new ConfigurationBuilder().Build();
+
+		services.AddSingleton<ISubscriber>(subscriber);
+		services.AddSingleton<IPublisher>(new RecordingPublisher());
+		host.ConfigureServices(services, configuration);
+
+		await using var provider = services.BuildServiceProvider();
+		var application = new ApplicationBuilder(provider);
+
+		host.ConfigureApplication(application, configuration);
+		host.ConfigureApplication(application, configuration);
+
+		Assert.Equal(1, subscriber.SubscriptionCount<SystemMessage.SystemReady>());
+		Assert.Equal(1, subscriber.SubscriptionCount<SystemMessage.BecomeShuttingDown>());
+	}
+
 	private sealed class RecordingSubscriber : ISubscriber
 	{
-		private readonly HashSet<Type> _subscriptions = [];
+		private readonly Dictionary<Type, int> _subscriptions = [];
 
 		public void Subscribe<T>(IAsyncHandle<T> handler) where T : Message =>
-			_subscriptions.Add(typeof(T));
+			_subscriptions[typeof(T)] = SubscriptionCount<T>() + 1;
 
 		public void Unsubscribe<T>(IAsyncHandle<T> handler) where T : Message =>
 			_subscriptions.Remove(typeof(T));
 
-		public bool Has<T>() where T : Message => _subscriptions.Contains(typeof(T));
+		public bool Has<T>() where T : Message => SubscriptionCount<T>() > 0;
+
+		public int SubscriptionCount<T>() where T : Message =>
+			_subscriptions.GetValueOrDefault(typeof(T));
 	}
 
 	private sealed class RecordingPublisher : IPublisher
