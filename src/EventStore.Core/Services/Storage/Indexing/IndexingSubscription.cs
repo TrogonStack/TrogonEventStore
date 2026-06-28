@@ -34,6 +34,7 @@ public sealed class IndexingSubscription : IAsyncDisposable
 	private readonly CancellationTokenSource _stop = new();
 	private readonly object _stateLock = new();
 
+	private IIndexingProcessor _processor;
 	private IIndexingEventSource _eventSource;
 	private IndexCheckpointCommitTracker _commitTracker;
 	private Task _startup;
@@ -82,11 +83,13 @@ public sealed class IndexingSubscription : IAsyncDisposable
 		{
 			await _component.Initialize(linked.Token);
 			var checkpoint = await _component.ReadCheckpoint(linked.Token);
+			var processor = _component.Processor
+				?? throw new InvalidOperationException("Indexing component returned null processor.");
 
 			commitTracker = new IndexCheckpointCommitTracker(
 				_options.CheckpointCommitBatchSize,
 				_options.CheckpointCommitDelay,
-				_component.Processor.Commit,
+				processor.Commit,
 				CancellationToken.None);
 
 			eventSource = _eventSourceFactory.Create(checkpoint, _stop.Token)
@@ -97,6 +100,7 @@ public sealed class IndexingSubscription : IAsyncDisposable
 				ObjectDisposedException.ThrowIf(_disposed, this);
 
 				_commitTracker = commitTracker;
+				_processor = processor;
 				_eventSource = eventSource;
 				_processing = Task.Run(ProcessEvents);
 				ObserveProcessingFault(_processing);
@@ -291,7 +295,7 @@ public sealed class IndexingSubscription : IAsyncDisposable
 
 			try
 			{
-				await _component.Processor.Index(eventReceived.Event, CancellationToken.None);
+				await _processor.Index(eventReceived.Event, CancellationToken.None);
 				_commitTracker.Track();
 			}
 			catch (OperationCanceledException) when (_stop.IsCancellationRequested)

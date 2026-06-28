@@ -94,6 +94,20 @@ public class IndexingSubscriptionTests
 	}
 
 	[Fact]
+	public async Task start_rejects_missing_processor()
+	{
+		await using var subscription = new IndexingSubscription(
+			new MissingProcessorComponent(),
+			new FakeIndexingEventSourceFactory(new FakeIndexingEventSource()),
+			IndexingSubscriptionOptions.Default);
+
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+			subscription.Start(CancellationToken.None).AsTask());
+
+		Assert.Equal("Indexing component returned null processor.", exception.Message);
+	}
+
+	[Fact]
 	public async Task waits_for_in_flight_start_before_disposing_component()
 	{
 		var component = new FakeIndexingComponent(pauseInitializeCompletion: true);
@@ -316,6 +330,19 @@ public class IndexingSubscriptionTests
 		public Task WaitForDisposed() => _disposed.Task.WaitAsync(Timeout);
 
 		public void ReleaseInitialize() => _releaseInitialize.TrySetResult();
+	}
+
+	private sealed class MissingProcessorComponent : IIndexingComponent
+	{
+		public IIndexingProcessor Processor => null!;
+
+		public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders { get; } = [];
+
+		public ValueTask Initialize(CancellationToken token) => ValueTask.CompletedTask;
+
+		public ValueTask<IndexCheckpoint?> ReadCheckpoint(CancellationToken token) => ValueTask.FromResult<IndexCheckpoint?>(null);
+
+		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 	}
 
 	private sealed class FakeIndexingProcessor(bool pauseIndexCompletion = false) : IIndexingProcessor
