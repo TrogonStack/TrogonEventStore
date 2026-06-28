@@ -48,7 +48,7 @@ public sealed class IndexingComponentHost : IVirtualStreamReaderProvider
 
 		_components = componentArray;
 		_options = options;
-		_virtualStreamReaders = componentArray.SelectMany(static component => component.VirtualStreamReaders).ToArray();
+		_virtualStreamReaders = GetVirtualStreamReaders(componentArray);
 	}
 
 	public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders => _virtualStreamReaders;
@@ -71,5 +71,20 @@ public sealed class IndexingComponentHost : IVirtualStreamReaderProvider
 		{
 			service.Register();
 		}
+	}
+
+	private static IReadOnlyList<IVirtualStreamReader> GetVirtualStreamReaders(IReadOnlyList<IIndexingComponent> components)
+	{
+		var readers = components.SelectMany(static component =>
+			component.VirtualStreamReaders
+				?? throw new ArgumentException("Indexing component virtual stream readers cannot be null.", nameof(components)))
+			.ToArray();
+
+		if (readers.Any(static reader => reader is null))
+		{
+			throw new ArgumentException("Indexing component virtual stream readers cannot contain null.", nameof(components));
+		}
+
+		return readers;
 	}
 }

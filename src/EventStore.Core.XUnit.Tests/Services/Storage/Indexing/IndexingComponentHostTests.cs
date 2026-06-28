@@ -20,6 +20,26 @@ namespace EventStore.Core.XUnit.Tests.Services.Storage.Indexing;
 public class IndexingComponentHostTests
 {
 	[Fact]
+	public void constructor_rejects_component_with_missing_virtual_stream_readers()
+	{
+		var exception = Assert.Throws<ArgumentException>(() =>
+			new IndexingComponentHost(new MissingVirtualStreamReadersComponent()));
+
+		Assert.Equal("components", exception.ParamName);
+		Assert.Equal("Indexing component virtual stream readers cannot be null. (Parameter 'components')", exception.Message);
+	}
+
+	[Fact]
+	public void constructor_rejects_component_with_missing_virtual_stream_reader()
+	{
+		var exception = Assert.Throws<ArgumentException>(() =>
+			new IndexingComponentHost(new FakeIndexingComponent([null!])));
+
+		Assert.Equal("components", exception.ParamName);
+		Assert.Equal("Indexing component virtual stream readers cannot contain null. (Parameter 'components')", exception.Message);
+	}
+
+	[Fact]
 	public void exposes_component_virtual_stream_readers()
 	{
 		var first = new FakeVirtualStreamReader("$idx-first");
@@ -141,6 +161,19 @@ public class IndexingComponentHostTests
 		public IIndexingProcessor Processor { get; } = new FakeIndexingProcessor();
 
 		public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders { get; } = virtualStreamReaders;
+
+		public ValueTask Initialize(CancellationToken token) => ValueTask.CompletedTask;
+
+		public ValueTask<IndexCheckpoint?> ReadCheckpoint(CancellationToken token) => ValueTask.FromResult<IndexCheckpoint?>(null);
+
+		public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+	}
+
+	private sealed class MissingVirtualStreamReadersComponent : IIndexingComponent
+	{
+		public IIndexingProcessor Processor { get; } = new FakeIndexingProcessor();
+
+		public IReadOnlyList<IVirtualStreamReader> VirtualStreamReaders => null!;
 
 		public ValueTask Initialize(CancellationToken token) => ValueTask.CompletedTask;
 
