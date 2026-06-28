@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using EventStore.Core.Bus;
 using EventStore.Core.Services.Storage.InMemory;
 using Microsoft.AspNetCore.Builder;
@@ -30,6 +29,11 @@ public sealed class IndexingComponentHost(
 
 	public void ConfigureApplication(IApplicationBuilder builder, IConfiguration configuration)
 	{
-		_ = builder.ApplicationServices.GetServices<IndexingService>().ToArray();
+		// IndexingService subscribes to the bus from its constructor, so force singleton activation
+		// while the application is being configured instead of waiting for the first service lookup.
+		foreach (var service in builder.ApplicationServices.GetServices<IndexingService>())
+		{
+			_ = service;
+		}
 	}
 }
