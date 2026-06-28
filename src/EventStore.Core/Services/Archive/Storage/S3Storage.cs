@@ -8,6 +8,8 @@ internal static class S3Storage
 {
 	public static IAwsS3BlobStorage Create(S3Options options)
 	{
+		options.Validate();
+
 		if (!string.IsNullOrWhiteSpace(options.ServiceUrl))
 		{
 			var sessionToken = string.IsNullOrWhiteSpace(options.SessionToken) ? null : options.SessionToken;
