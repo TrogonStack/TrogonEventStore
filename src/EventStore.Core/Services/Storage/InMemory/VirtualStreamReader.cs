@@ -12,6 +12,12 @@ public class VirtualStreamReader : IVirtualStreamReader
 
 	public VirtualStreamReader(IVirtualStreamReader[] readers)
 	{
+		ArgumentNullException.ThrowIfNull(readers);
+		if (Array.Exists(readers, static reader => reader is null))
+		{
+			throw new ArgumentException("Virtual stream readers cannot contain null.", nameof(readers));
+		}
+
 		_readers = readers;
 	}
 
