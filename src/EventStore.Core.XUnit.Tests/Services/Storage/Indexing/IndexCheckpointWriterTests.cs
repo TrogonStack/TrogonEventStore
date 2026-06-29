@@ -38,6 +38,20 @@ public class IndexCheckpointWriterTests
 	}
 
 	[Fact]
+	public async Task read_discards_stale_pending_checkpoint()
+	{
+		var store = new FakeIndexCheckpointStore { Checkpoint = new IndexCheckpoint(20, 15) };
+		var writer = new IndexCheckpointWriter(store);
+
+		writer.Track(CreateResolvedEvent(commitPosition: 10, preparePosition: 5));
+		await writer.Read(CancellationToken.None);
+		await writer.Commit(CancellationToken.None);
+
+		Assert.Equal(0, store.WriteCalls);
+		Assert.Equal(new IndexCheckpoint(20, 15), store.Checkpoint);
+	}
+
+	[Fact]
 	public async Task commit_before_tracking_is_no_op()
 	{
 		var store = new FakeIndexCheckpointStore();

@@ -10,6 +10,7 @@ public sealed class IndexCheckpointWriter
 	private readonly IIndexCheckpointStore _store;
 	private readonly object _lock = new();
 	private IndexCheckpoint? _latestCheckpoint;
+	private IndexCheckpoint? _persistedCheckpoint;
 	private IndexCheckpoint? _pendingCheckpoint;
 
 	public IndexCheckpointWriter(IIndexCheckpointStore store)
@@ -30,6 +31,16 @@ public sealed class IndexCheckpointWriter
 			if (IsAheadOfLatest(latest))
 			{
 				_latestCheckpoint = latest;
+			}
+
+			if (IsAheadOfPersisted(latest))
+			{
+				_persistedCheckpoint = latest;
+			}
+
+			if (_pendingCheckpoint is { } pending && !IsAheadOfPersisted(pending))
+			{
+				_pendingCheckpoint = null;
 			}
 		}
 
@@ -82,6 +93,12 @@ public sealed class IndexCheckpointWriter
 				return;
 			}
 
+			if (!IsAheadOfPersisted(pending))
+			{
+				_pendingCheckpoint = null;
+				return;
+			}
+
 			checkpoint = pending;
 		}
 
@@ -89,6 +106,11 @@ public sealed class IndexCheckpointWriter
 
 		lock (_lock)
 		{
+			if (IsAheadOfPersisted(checkpoint))
+			{
+				_persistedCheckpoint = checkpoint;
+			}
+
 			if (IsAheadOfLatest(checkpoint))
 			{
 				_latestCheckpoint = checkpoint;
@@ -103,4 +125,7 @@ public sealed class IndexCheckpointWriter
 
 	private bool IsAheadOfLatest(IndexCheckpoint checkpoint) =>
 		_latestCheckpoint is not { } latest || checkpoint.ToPosition() > latest.ToPosition();
+
+	private bool IsAheadOfPersisted(IndexCheckpoint checkpoint) =>
+		_persistedCheckpoint is not { } persisted || checkpoint.ToPosition() > persisted.ToPosition();
 }
