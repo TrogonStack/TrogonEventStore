@@ -9,6 +9,8 @@ public sealed class IndexCheckpointWriter
 {
 	private readonly IIndexCheckpointStore _store;
 	private readonly object _lock = new();
+	private IndexCheckpoint? _latestCheckpoint;
+	private IndexCheckpoint? _persistedCheckpoint;
 	private IndexCheckpoint? _pendingCheckpoint;
 
 	public IndexCheckpointWriter(IIndexCheckpointStore store)
@@ -16,7 +18,34 @@ public sealed class IndexCheckpointWriter
 		_store = store ?? throw new ArgumentNullException(nameof(store));
 	}
 
-	public ValueTask<IndexCheckpoint?> Read(CancellationToken token) => _store.Read(token);
+	public async ValueTask<IndexCheckpoint?> Read(CancellationToken token)
+	{
+		var checkpoint = await _store.Read(token);
+		if (checkpoint is not { } latest)
+		{
+			return checkpoint;
+		}
+
+		lock (_lock)
+		{
+			if (IsAheadOfLatest(latest))
+			{
+				_latestCheckpoint = latest;
+			}
+
+			if (IsAheadOfPersisted(latest))
+			{
+				_persistedCheckpoint = latest;
+			}
+
+			if (_pendingCheckpoint is { } pending && !IsAheadOfPersisted(pending))
+			{
+				_pendingCheckpoint = null;
+			}
+		}
+
+		return checkpoint;
+	}
 
 	public void Track(ResolvedEvent resolvedEvent)
 	{
@@ -31,6 +60,24 @@ public sealed class IndexCheckpointWriter
 
 		lock (_lock)
 		{
+			if (_latestCheckpoint is { } latest)
+			{
+				var latestPosition = latest.ToPosition();
+				var checkpointPosition = checkpoint.ToPosition();
+
+				if (checkpointPosition < latestPosition)
+				{
+					throw new InvalidOperationException(
+						$"Cannot track index checkpoint progress backwards from {latestPosition} to {checkpointPosition}.");
+				}
+
+				if (checkpointPosition == latestPosition)
+				{
+					return;
+				}
+			}
+
+			_latestCheckpoint = checkpoint;
 			_pendingCheckpoint = checkpoint;
 		}
 	}
@@ -46,6 +93,12 @@ public sealed class IndexCheckpointWriter
 				return;
 			}
 
+			if (!IsAheadOfPersisted(pending))
+			{
+				_pendingCheckpoint = null;
+				return;
+			}
+
 			checkpoint = pending;
 		}
 
@@ -53,10 +106,26 @@ public sealed class IndexCheckpointWriter
 
 		lock (_lock)
 		{
+			if (IsAheadOfPersisted(checkpoint))
+			{
+				_persistedCheckpoint = checkpoint;
+			}
+
+			if (IsAheadOfLatest(checkpoint))
+			{
+				_latestCheckpoint = checkpoint;
+			}
+
 			if (_pendingCheckpoint == checkpoint)
 			{
 				_pendingCheckpoint = null;
 			}
 		}
 	}
+
+	private bool IsAheadOfLatest(IndexCheckpoint checkpoint) =>
+		_latestCheckpoint is not { } latest || checkpoint.ToPosition() > latest.ToPosition();
+
+	private bool IsAheadOfPersisted(IndexCheckpoint checkpoint) =>
+		_persistedCheckpoint is not { } persisted || checkpoint.ToPosition() > persisted.ToPosition();
 }
