@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace EventStore.Core.Services.Storage.Indexing;
 
 public sealed class InMemoryIndexDefinitionStore : IIndexDefinitionStore
@@ -31,7 +33,7 @@ public sealed class InMemoryIndexDefinitionStore : IIndexDefinitionStore
 		}
 	}
 
-	public ValueTask<StoredIndexDefinition> Read(IndexName name, CancellationToken token)
+	public ValueTask<StoredIndexDefinition?> Read(IndexName name, CancellationToken token)
 	{
 		ArgumentNullException.ThrowIfNull(name);
 		token.ThrowIfCancellationRequested();

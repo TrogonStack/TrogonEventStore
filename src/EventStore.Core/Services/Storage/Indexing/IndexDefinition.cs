@@ -27,6 +27,24 @@ public sealed record IndexDefinition
 		Filter = filter;
 		Fields = fields.ToArray();
 	}
+
+	public bool Equals(IndexDefinition other) =>
+		other is not null
+		&& Equals(Filter, other.Filter)
+		&& Fields.SequenceEqual(other.Fields);
+
+	public override int GetHashCode()
+	{
+		var hash = new HashCode();
+		hash.Add(Filter);
+
+		foreach (var field in Fields)
+		{
+			hash.Add(field);
+		}
+
+		return hash.ToHashCode();
+	}
 }
 
 public sealed record IndexEventFilter

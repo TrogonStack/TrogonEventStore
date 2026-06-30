@@ -62,6 +62,33 @@ public class IndexDefinitionTests
 		Assert.Equal([field], definition.Fields);
 	}
 
+	[Fact]
+	public void equivalent_definitions_are_equal()
+	{
+		var first = new IndexDefinition(
+			new IndexEventFilter("event.type == 'order'"),
+			[new IndexFieldDefinition("customerId", new IndexFieldSelector("event.body.customerId"))]);
+		var second = new IndexDefinition(
+			new IndexEventFilter("event.type == 'order'"),
+			[new IndexFieldDefinition("customerId", new IndexFieldSelector("event.body.customerId"))]);
+
+		Assert.Equal(first, second);
+		Assert.Equal(first.GetHashCode(), second.GetHashCode());
+	}
+
+	[Fact]
+	public void different_fields_are_not_equal()
+	{
+		var first = new IndexDefinition(
+			new IndexEventFilter("event.type == 'order'"),
+			[new IndexFieldDefinition("customerId", new IndexFieldSelector("event.body.customerId"))]);
+		var second = new IndexDefinition(
+			new IndexEventFilter("event.type == 'order'"),
+			[new IndexFieldDefinition("tenantId", new IndexFieldSelector("event.body.tenantId"))]);
+
+		Assert.NotEqual(first, second);
+	}
+
 	[Theory]
 	[InlineData(null)]
 	[InlineData("")]

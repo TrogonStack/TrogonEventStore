@@ -48,6 +48,22 @@ public class InMemoryIndexDefinitionStoreTests
 	}
 
 	[Fact]
+	public async Task create_is_idempotent_for_equivalent_definition()
+	{
+		var store = new InMemoryIndexDefinitionStore();
+		var name = new IndexName("orders");
+		var first = CreateDefinition("event.type == 'order'");
+		var second = CreateDefinition("event.type == 'order'");
+
+		await store.Create(name, first, CancellationToken.None);
+		var result = await store.Create(name, second, CancellationToken.None);
+		var stored = await store.Read(name, CancellationToken.None);
+
+		Assert.Equal(IndexDefinitionCreateResult.AlreadyExists, result);
+		Assert.Equal(first, stored.Definition);
+	}
+
+	[Fact]
 	public async Task create_reports_conflict_for_different_definition()
 	{
 		var store = new InMemoryIndexDefinitionStore();

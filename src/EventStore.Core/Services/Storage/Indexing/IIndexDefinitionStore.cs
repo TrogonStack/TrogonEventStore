@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace EventStore.Core.Services.Storage.Indexing;
 
 public interface IIndexDefinitionStore
 {
 	ValueTask<IndexDefinitionCreateResult> Create(IndexName name, IndexDefinition definition, CancellationToken token);
 
-	ValueTask<StoredIndexDefinition> Read(IndexName name, CancellationToken token);
+	ValueTask<StoredIndexDefinition?> Read(IndexName name, CancellationToken token);
 
 	ValueTask<IReadOnlyList<StoredIndexDefinition>> List(CancellationToken token);
 
