@@ -16,7 +16,5 @@ public interface IVirtualStreamReader
 
 	long GetLastEventNumber(string streamId);
 
-	long GetLastIndexedPosition(string streamId);
-
 	bool CanReadStream(string streamId);
 }

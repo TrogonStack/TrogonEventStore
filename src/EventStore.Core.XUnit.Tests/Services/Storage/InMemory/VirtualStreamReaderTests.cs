@@ -402,12 +402,11 @@ public class VirtualStreamReaderTests
 		[Fact]
 		public void metadata_uses_the_reader_that_claims_the_stream()
 		{
-			var firstReader = new FakeVirtualStreamReader(FirstStream, lastEventNumber: 10, lastIndexedPosition: 100);
-			var secondReader = new FakeVirtualStreamReader(SecondStream, lastEventNumber: 20, lastIndexedPosition: 200);
+			var firstReader = new FakeVirtualStreamReader(FirstStream, lastEventNumber: 10);
+			var secondReader = new FakeVirtualStreamReader(SecondStream, lastEventNumber: 20);
 			var sut = new VirtualStreamReader([firstReader, secondReader]);
 
 			Assert.Equal(20, sut.GetLastEventNumber(SecondStream));
-			Assert.Equal(200, sut.GetLastIndexedPosition(SecondStream));
 		}
 
 		[Fact]
@@ -429,8 +428,7 @@ public class VirtualStreamReaderTests
 
 	private sealed class FakeVirtualStreamReader(
 		string streamId,
-		long lastEventNumber,
-		long lastIndexedPosition = -1) : IVirtualStreamReader
+		long lastEventNumber) : IVirtualStreamReader
 	{
 		public int ForwardReadCount { get; private set; }
 
@@ -452,7 +450,7 @@ public class VirtualStreamReaderTests
 				nextEventNumber: lastEventNumber + 1,
 				lastEventNumber: lastEventNumber,
 				isEndOfStream: true,
-				tfLastCommitPosition: lastIndexedPosition));
+				tfLastCommitPosition: -1));
 		}
 
 		public ValueTask<ClientMessage.ReadStreamEventsBackwardCompleted> ReadBackwards(
@@ -471,11 +469,9 @@ public class VirtualStreamReaderTests
 				nextEventNumber: -1,
 				lastEventNumber: lastEventNumber,
 				isEndOfStream: true,
-				tfLastCommitPosition: lastIndexedPosition));
+				tfLastCommitPosition: -1));
 
 		public long GetLastEventNumber(string streamId) => lastEventNumber;
-
-		public long GetLastIndexedPosition(string streamId) => lastIndexedPosition;
 
 		public bool CanReadStream(string candidate) => candidate == streamId;
 	}
