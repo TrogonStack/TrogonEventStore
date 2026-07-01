@@ -35,6 +35,12 @@ in the stock market.
 It's important to remember the types of problems that projections help to solve. Many problems are not a good
 fit for projections and are better served by hosting another read model populated by a catchup subscription.
 
+::: tip Future direction
+TrogonEventStore treats user-defined projection execution as external component work by default. The database
+node should stay focused on append, read, replication, storage, and native read semantics. See the
+[architecture direction](architecture.md#projection-execution) for the boundary.
+:::
+
 ### Continuous querying
 
 Projections support the concept of continuous queries. When running a projection you can choose whether the
@@ -51,6 +57,10 @@ There are two types of projections in EventStoreDB:
 - [Built in (system) projections](#system-projections)
 - [User-defined JavaScript projections](#user-defined-projections) which you create via the API or the admin
   UI
+
+System projections are compatibility and query-convenience features. They should not be treated as approval to
+grow a general in-node projection runtime. New projection engines, rich read models, and custom query models
+belong outside the database process unless they are explicitly accepted as native database behavior.
 
 ### Performance impact
 
@@ -101,6 +111,10 @@ EventStoreDB ships with five built in projections:
 When you start EventStoreDB from a fresh database, these projections are present but disabled and querying
 their statuses returns `Stopped`. You can enable a projection from the Admin UI or through the projection
 management gRPC surface, which switches the status of the projection from `Stopped` to `Running`.
+
+Use system projections when existing clients depend on the streams they produce. Prefer external projection
+components for new read-model workloads, especially when the workload needs custom compute, independent
+scaling, or component-owned storage.
 
 ### By category
 
