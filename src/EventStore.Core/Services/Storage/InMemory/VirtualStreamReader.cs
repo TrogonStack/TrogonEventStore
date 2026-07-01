@@ -74,9 +74,6 @@ public class VirtualStreamReader : IVirtualStreamReader
 	public long GetLastEventNumber(string streamId) =>
 		TryGetReader(streamId, out var reader) ? reader.GetLastEventNumber(streamId) : ExpectedVersion.NoStream;
 
-	public long GetLastIndexedPosition(string streamId) =>
-		TryGetReader(streamId, out var reader) ? reader.GetLastIndexedPosition(streamId) : -1;
-
 	public bool CanReadStream(string streamId) => TryGetReader(streamId, out _);
 
 	private bool TryGetReader(string streamId, out IVirtualStreamReader reader)

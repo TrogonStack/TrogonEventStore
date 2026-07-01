@@ -97,7 +97,6 @@ public abstract class ClusterVNode
 		IReadOnlyList<IPersistentSubscriptionConsumerStrategyFactory> factories = null,
 		CertificateProvider certificateProvider = null,
 		IConfiguration configuration = null,
-		IReadOnlyList<IVirtualStreamReader> additionalVirtualStreamReaders = null,
 		Guid? instanceId = null,
 		int debugIndex = 0)
 	{
@@ -110,7 +109,6 @@ public abstract class ClusterVNode
 			factories,
 			certificateProvider,
 			configuration,
-			additionalVirtualStreamReaders: additionalVirtualStreamReaders,
 			instanceId: instanceId,
 			debugIndex: debugIndex);
 	}
@@ -247,8 +245,7 @@ public class ClusterVNode<TStreamId> :
 		IConfiguration configuration = null,
 		IExpiryStrategy expiryStrategy = null,
 		Guid? instanceId = null, int debugIndex = 0,
-		Action<IServiceCollection> configureAdditionalNodeServices = null,
-		IReadOnlyList<IVirtualStreamReader> additionalVirtualStreamReaders = null)
+		Action<IServiceCollection> configureAdditionalNodeServices = null)
 	{
 
 		configuration ??= new ConfigurationBuilder().Build();
@@ -813,11 +810,6 @@ public class ClusterVNode<TStreamId> :
 			gossipListener.Stream,
 			nodeStatusListener.Stream,
 		};
-
-		if (additionalVirtualStreamReaders is not null)
-		{
-			virtualStreamReaders.AddRange(additionalVirtualStreamReaders);
-		}
 
 		var virtualStreamReader = new VirtualStreamReader(virtualStreamReaders.ToArray());
 

@@ -48,6 +48,7 @@ public class SubscriptionsService<TStreamId> :
 	IAsyncHandle<StorageMessage.EventCommitted>
 {
 	private const int DontReportCheckpointReached = -1;
+	private const long InMemoryStreamLastIndexedPosition = -1;
 
 	private static readonly TimeSpan TimeoutPeriod = TimeSpan.FromSeconds(1);
 
@@ -169,7 +170,7 @@ public class SubscriptionsService<TStreamId> :
 		}
 
 		var lastIndexedPos = isVirtualStream
-			? _virtualStreamReader.GetLastIndexedPosition(msg.EventStreamId)
+			? InMemoryStreamLastIndexedPosition
 			: _readIndex.LastIndexedPosition;
 
 		SubscribeToStream(msg.CorrelationId, msg.Envelope, msg.ConnectionId, msg.EventStreamId,
@@ -199,7 +200,7 @@ public class SubscriptionsService<TStreamId> :
 		}
 
 		var lastIndexedPos = isVirtualStream
-			? _virtualStreamReader.GetLastIndexedPosition(msg.EventStreamId)
+			? InMemoryStreamLastIndexedPosition
 			: _readIndex.LastIndexedPosition;
 
 		SubscribeToStream(msg.CorrelationId, msg.Envelope, msg.ConnectionId, msg.EventStreamId,

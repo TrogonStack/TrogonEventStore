@@ -357,8 +357,6 @@ public class when_cancelling_storage_reader_worker
 
 		public long GetLastEventNumber(string streamId) => ExpectedVersion.NoStream;
 
-		public long GetLastIndexedPosition(string streamId) => -1;
-
 		public bool CanReadStream(string streamId) => false;
 	}
 }

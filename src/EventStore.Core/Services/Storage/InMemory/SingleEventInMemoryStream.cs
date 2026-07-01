@@ -135,8 +135,6 @@ public class SingleEventInMemoryStream : IVirtualStreamReader
 
 	public long GetLastEventNumber(string streamId) => _lastEvent?.EventNumber ?? ExpectedVersion.NoStream;
 
-	public long GetLastIndexedPosition(string streamId) => -1;
-
 	public bool CanReadStream(string streamId) => streamId == _streamName;
 
 	public void Write(string eventType, ReadOnlyMemory<byte> data)
