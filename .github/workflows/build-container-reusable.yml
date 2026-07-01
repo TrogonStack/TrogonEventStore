@@ -30,7 +30,7 @@ jobs:
     name: ${{ format('{0} / {1}', inputs.container-runtime, inputs.test-group-name) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
         if: ${{ inputs.mode != 'test-only' }}
