@@ -3,6 +3,7 @@ module.exports = [
         text: "Server Quick Start",
         children: [
             "README.md",
+            "architecture.md",
             "whatsnew.md",
             "installation.md",
             "usage-telemetry.md"

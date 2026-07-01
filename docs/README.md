@@ -17,6 +17,12 @@ Find out [what's new](whatsnew.md) in this release to get details on new feature
 
 Check the [installation guide](installation.md) for database setup and first-run guidance.
 
+## Architecture direction
+
+Read the [architecture direction](architecture.md) before expanding database-node features. The project keeps
+the core node focused on durable event-log behavior and treats projection execution, rich read models, and
+custom query surfaces as external component work by default.
+
 ## Support
 
 ### EventStoreDB community
