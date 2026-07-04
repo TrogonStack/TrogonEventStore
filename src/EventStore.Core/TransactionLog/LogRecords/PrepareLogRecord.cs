@@ -156,6 +156,11 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 			throw new ArgumentOutOfRangeException("expectedVersion");
 		}
 
+		if (timeStamp.Kind != DateTimeKind.Utc)
+		{
+			throw new ArgumentException("Prepare log record timestamps must be UTC.", nameof(timeStamp));
+		}
+
 		Flags = flags;
 		TransactionPosition = transactionPosition;
 		TransactionOffset = transactionOffset;
@@ -271,7 +276,6 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 		CorrelationId.TryWriteBytes(buffer);
 		writer.Advance(16);
 
-		Debug.Assert(TimeStamp.Kind == DateTimeKind.Utc);
 		writer.WriteLittleEndian(TimeStamp.Ticks);
 
 		_eventTypeSize ??= Encoding.UTF8.GetByteCount(EventType);
