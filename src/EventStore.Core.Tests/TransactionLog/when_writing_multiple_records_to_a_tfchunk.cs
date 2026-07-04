@@ -34,13 +34,15 @@ public class when_writing_multiple_records_to_a_tfchunk<TLogFormat, TStreamId> :
 		var eventTypeId2 = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId2;
 
 		_prepare1 = LogRecord.Prepare(recordFactory, 0, _corrId, _eventId, 0, 0, streamId1, 1,
-			PrepareFlags.None, eventTypeId1, new byte[12], new byte[15], new DateTime(2000, 1, 1, 12, 0, 0));
+			PrepareFlags.None, eventTypeId1, new byte[12], new byte[15],
+			new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
 		var r1 = await _chunk.TryAppend(_prepare1, CancellationToken.None);
 		_written1 = r1.Success;
 		_position1 = r1.OldPosition;
 
 		_prepare2 = LogRecord.Prepare(recordFactory, r1.NewPosition, _corrId, _eventId, 0, 0, streamId2, 2,
-			PrepareFlags.None, eventTypeId2, new byte[12], new byte[15], new DateTime(2000, 1, 1, 12, 0, 0));
+			PrepareFlags.None, eventTypeId2, new byte[12], new byte[15],
+			new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
 		var r2 = await _chunk.TryAppend(_prepare2, CancellationToken.None);
 		_written2 = r2.Success;
 		_position2 = r2.OldPosition;

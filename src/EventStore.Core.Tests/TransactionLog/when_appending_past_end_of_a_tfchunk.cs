@@ -25,7 +25,8 @@ public class when_appending_past_end_of_a_tfchunk<TLogFormat, TStreamId> : Speci
 		var eventTypeId = LogFormatHelper<TLogFormat, TStreamId>.EventTypeId;
 
 		var record = LogRecord.Prepare(recordFactory, 15556, _corrId, _eventId, 15556, 0, streamId, 1,
-			PrepareFlags.None, eventTypeId, new byte[12], new byte[15], new DateTime(2000, 1, 1, 12, 0, 0));
+			PrepareFlags.None, eventTypeId, new byte[12], new byte[15],
+			new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
 		_chunk = await TFChunkHelper.CreateNewChunk(Filename, 20);
 		_written = (await _chunk.TryAppend(record, CancellationToken.None)).Success;
 	}

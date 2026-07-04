@@ -45,7 +45,7 @@ public class when_chaser_reads_commit_event<TLogFormat, TStreamId> : with_storag
 			logPosition: _logPosition,
 			correlationId: _transactionId,
 			transactionPosition: 0,
-			timeStamp: new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc),
+			timeStamp: new DateTime(2012, 12, 21),
 			firstEventNumber: 10);
 
 		(written, _) = await Writer.Write(record2, token);
