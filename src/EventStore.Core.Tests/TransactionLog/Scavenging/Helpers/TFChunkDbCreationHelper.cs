@@ -581,9 +581,12 @@ public class Rec
 		Transaction = transaction;
 		StreamId = streamId;
 		EventType = eventType ?? string.Empty;
-		TimeStamp = timestamp.HasValue
-			? DateTime.SpecifyKind(timestamp.Value, DateTimeKind.Utc)
-			: DateTime.UtcNow;
+		if (timestamp.HasValue && timestamp.Value.Kind != DateTimeKind.Utc)
+		{
+			throw new ArgumentException("Scavenge fixture prepare timestamps must be UTC.", nameof(timestamp));
+		}
+
+		TimeStamp = timestamp ?? DateTime.UtcNow;
 		Version = version;
 		EventNumber = eventNumber;
 		Data = data;
