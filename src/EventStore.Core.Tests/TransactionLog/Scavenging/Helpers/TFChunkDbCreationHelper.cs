@@ -581,7 +581,9 @@ public class Rec
 		Transaction = transaction;
 		StreamId = streamId;
 		EventType = eventType ?? string.Empty;
-		TimeStamp = timestamp ?? DateTime.UtcNow;
+		TimeStamp = timestamp.HasValue
+			? DateTime.SpecifyKind(timestamp.Value, DateTimeKind.Utc)
+			: DateTime.UtcNow;
 		Version = version;
 		EventNumber = eventNumber;
 		Data = data;
