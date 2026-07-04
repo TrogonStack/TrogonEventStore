@@ -30,7 +30,7 @@ public class WhenChaserReadsPrepareEvent<TLogFormat, TStreamId> : with_storage_c
 			transactionOffset: 0xBEEF,
 			eventStreamId: streamId,
 			expectedVersion: 1234,
-			timeStamp: new DateTime(2012, 12, 21),
+			timeStamp: new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc),
 			flags: PrepareFlags.SingleWrite,
 			eventType: eventTypeId,
 			data: new byte[] { 1, 2, 3, 4, 5 },

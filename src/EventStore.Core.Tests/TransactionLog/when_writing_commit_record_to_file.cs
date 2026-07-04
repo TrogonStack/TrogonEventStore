@@ -33,7 +33,7 @@ public class when_writing_commit_record_to_file : SpecificationWithDirectoryPerT
 		_record = new CommitLogRecord(logPosition: 0,
 			correlationId: _eventId,
 			transactionPosition: 4321,
-			timeStamp: new DateTime(2012, 12, 21),
+			timeStamp: new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc),
 			firstEventNumber: 10);
 		await _writer.Write(_record, CancellationToken.None);
 		await _writer.Flush(CancellationToken.None);
@@ -62,7 +62,7 @@ public class when_writing_commit_record_to_file : SpecificationWithDirectoryPerT
 		Assert.AreEqual(c.LogPosition, 0);
 		Assert.AreEqual(c.CorrelationId, _eventId);
 		Assert.AreEqual(c.TransactionPosition, 4321);
-		Assert.AreEqual(c.TimeStamp, new DateTime(2012, 12, 21));
+		Assert.AreEqual(c.TimeStamp, new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc));
 	}
 
 	[Test]

@@ -27,7 +27,7 @@ public class
 	{
 		return LogRecord.Prepare(_recordFactory, logPosition, Guid.NewGuid(), Guid.NewGuid(), 0, 0, _streamId, 1,
 			PrepareFlags.None, _eventTypeId, new byte[dataSize], Array.Empty<byte>(),
-			new DateTime(2000, 1, 1, 12, 0, 0));
+			new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
 	}
 
 	private async ValueTask<TFChunk> CreateChunk(int numEvents, bool completed, bool scavenged,

@@ -58,7 +58,7 @@ public class
 			transactionOffset: 543,
 			eventStreamId: streamId,
 			expectedVersion: 1234,
-			timeStamp: new DateTime(2012, 12, 21),
+			timeStamp: new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc),
 			flags: PrepareFlags.SingleWrite,
 			eventType: eventTypeId,
 			data: bytes,

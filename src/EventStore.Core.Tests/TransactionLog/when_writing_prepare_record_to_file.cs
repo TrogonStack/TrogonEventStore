@@ -45,7 +45,7 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 			transactionOffset: 0xBEEF,
 			eventStreamId: streamId,
 			expectedVersion: 1234,
-			timeStamp: new DateTime(2012, 12, 21),
+			timeStamp: new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc),
 			flags: PrepareFlags.SingleWrite,
 			eventType: eventTypeId,
 			data: new byte[] { 1, 2, 3, 4, 5 },
@@ -86,7 +86,7 @@ public class when_writing_prepare_record_to_file<TLogFormat, TStreamId> : Specif
 		Assert.AreEqual(p.EventId, _eventId);
 		Assert.AreEqual(p.EventStreamId, streamId);
 		Assert.AreEqual(p.ExpectedVersion, 1234);
-		Assert.That(p.TimeStamp, Is.EqualTo(new DateTime(2012, 12, 21)).Within(7).Milliseconds);
+		Assert.That(p.TimeStamp, Is.EqualTo(new DateTime(2012, 12, 21, 0, 0, 0, DateTimeKind.Utc)).Within(7).Milliseconds);
 		Assert.AreEqual(p.Flags, PrepareFlags.SingleWrite);
 		Assert.AreEqual(p.EventType, eventTypeId);
 		Assert.AreEqual(p.Data.Length, 5);
