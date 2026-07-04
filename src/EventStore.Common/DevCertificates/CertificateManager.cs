@@ -65,6 +65,13 @@ public abstract class CertificateManager
 		bool isValid,
 		bool requireExportable = true)
 	{
+		if (location == StoreLocation.LocalMachine &&
+			storeName is not (StoreName.Root or StoreName.CertificateAuthority) &&
+			!RuntimeInformation.IsWindows && !RuntimeInformation.IsOSX)
+		{
+			return [];
+		}
+
 		Log.ListCertificatesStart(location, storeName);
 		var certificates = new List<X509Certificate2>();
 		try
@@ -169,6 +176,32 @@ public abstract class CertificateManager
 		CertificateKeyExportFormat keyExportFormat = CertificateKeyExportFormat.Pfx,
 		bool isInteractive = true)
 	{
+		var result = EnsureDevelopmentCertificate(
+			notBefore,
+			notAfter,
+			out var certificate,
+			path,
+			trust,
+			includePrivateKey,
+			password,
+			keyExportFormat,
+			isInteractive);
+		DisposeCertificates(certificate == null ? [] : [certificate]);
+		return result;
+	}
+
+	public EnsureCertificateResult EnsureDevelopmentCertificate(
+		DateTimeOffset notBefore,
+		DateTimeOffset notAfter,
+		out X509Certificate2 certificate,
+		string path = null,
+		bool trust = false,
+		bool includePrivateKey = false,
+		string password = null,
+		CertificateKeyExportFormat keyExportFormat = CertificateKeyExportFormat.Pfx,
+		bool isInteractive = true)
+	{
+		certificate = null;
 		var result = EnsureCertificateResult.Succeeded;
 
 		var currentUserCertificates = ListCertificates(StoreName.My, StoreLocation.CurrentUser, isValid: true,
@@ -188,8 +221,6 @@ public abstract class CertificateManager
 
 		certificates = filteredCertificates;
 
-		X509Certificate2 certificate = null;
-		var isNewCertificate = false;
 		if (certificates.Any())
 		{
 			certificate = certificates.First();
@@ -252,7 +283,6 @@ public abstract class CertificateManager
 			try
 			{
 				Log.CreateDevelopmentCertificateStart();
-				isNewCertificate = true;
 				certificate = CreateDevelopmentCertificate(notBefore, notAfter);
 			}
 			catch (Exception e)
@@ -347,7 +377,8 @@ public abstract class CertificateManager
 			}
 		}
 
-		DisposeCertificates(!isNewCertificate ? certificates : certificates.Append(certificate));
+		var returnedCertificate = certificate;
+		DisposeCertificates(certificates.Where(c => !ReferenceEquals(c, returnedCertificate)));
 
 		return result;
 	}

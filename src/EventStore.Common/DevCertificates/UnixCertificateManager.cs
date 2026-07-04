@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using EventStore.Common.Utils;
 
@@ -24,18 +26,26 @@ internal sealed class UnixCertificateManager : CertificateManager
 	{
 		var export = certificate.ExportToPkcs12(string.Empty);
 		certificate.Dispose();
-		certificate = X509CertificateLoader.LoadPkcs12(export, "",
-			X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
-		Array.Clear(export, 0, export.Length);
-
-		using (var store = new X509Store(storeName, storeLocation))
+		try
 		{
+			certificate = X509CertificateLoader.LoadPkcs12(export, "",
+				X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+
+			using var store = new X509Store(storeName, storeLocation);
 			store.Open(OpenFlags.ReadWrite);
 			store.Add(certificate);
 			store.Close();
 		}
-
-		;
+		catch (Exception ex) when (IsHomeDirectoryAccessError(ex))
+		{
+			certificate.Dispose();
+			certificate = X509CertificateLoader.LoadPkcs12(export, "",
+				X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
+		}
+		finally
+		{
+			Array.Clear(export, 0, export.Length);
+		}
 
 		return certificate;
 	}
@@ -66,5 +76,18 @@ internal sealed class UnixCertificateManager : CertificateManager
 		StoreLocation storeLocation)
 	{
 		return ListCertificates(StoreName.My, StoreLocation.CurrentUser, isValid: false, requireExportable: false);
+	}
+
+	static bool IsHomeDirectoryAccessError(Exception ex)
+	{
+		for (var current = ex; current != null; current = current.InnerException)
+		{
+			if (current is UnauthorizedAccessException or DirectoryNotFoundException)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

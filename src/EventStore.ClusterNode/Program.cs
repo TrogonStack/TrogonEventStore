@@ -141,8 +141,10 @@ internal static class Program
 					"DEV MODE WILL GENERATE AND TRUST DEV CERTIFICATES FOR RUNNING A SINGLE SECURE NODE ON LOCALHOST.\n" +
 					"==============================================================================================================\n");
 				var manager = CertificateManager.Instance;
-				var result =
-					manager.EnsureDevelopmentCertificate(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMonths(1));
+				var result = manager.EnsureDevelopmentCertificate(
+					DateTimeOffset.UtcNow,
+					DateTimeOffset.UtcNow.AddMonths(1),
+					out var devCertificate);
 				if (result is not (EnsureCertificateResult.Succeeded
 					or EnsureCertificateResult.ValidCertificatePresent))
 				{
@@ -150,29 +152,30 @@ internal static class Program
 					return 1;
 				}
 
-				var userCerts = manager.ListCertificates(StoreName.My, StoreLocation.CurrentUser, true);
-				var machineCerts = manager.ListCertificates(StoreName.My, StoreLocation.LocalMachine, true);
-				var certs = userCerts.Concat(machineCerts).ToList();
-
-				if (!certs.Any())
+				if (devCertificate == null)
 				{
 					Log.Fatal("Could not create dev certificate.");
 					return 1;
 				}
 
-				if (!manager.IsTrusted(certs[0]) && RuntimeInformation.IsWindows)
+				if (manager.IsTrusted(devCertificate))
 				{
-					Log.Information("Dev certificate {cert} is not trusted. Adding it to the trusted store.", certs[0]);
-					manager.TrustCertificate(certs[0]);
+					Log.Information("Dev certificate {cert} is already trusted.", devCertificate);
+				}
+				else if (RuntimeInformation.IsWindows)
+				{
+					Log.Information("Dev certificate {cert} is not trusted. Adding it to the trusted store.",
+						devCertificate);
+					manager.TrustCertificate(devCertificate);
 				}
 				else
 				{
 					Log.Warning("Automatically trusting dev certs is only supported on Windows.\n" +
-								"Please trust certificate {cert} if it's not trusted already.", certs[0]);
+								"Please trust certificate {cert} if it's not trusted already.", devCertificate);
 				}
 
-				Log.Information("Running in dev mode using certificate '{cert}'", certs[0]);
-				certificateProvider = new DevCertificateProvider(certs[0]);
+				Log.Information("Running in dev mode using certificate '{cert}'", devCertificate);
+				certificateProvider = new DevCertificateProvider(devCertificate);
 			}
 			else
 			{
