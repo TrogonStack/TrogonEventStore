@@ -27,15 +27,16 @@ public class StreamMetadatas
 		new StreamMetadata(truncateBefore: EventNumber.DeletedStream);
 
 	public static DateTime EffectiveNow { get; } = new DateTime(2022, 1, 5, 00, 00, 00);
-	public static DateTime Expired { get; } = EffectiveNow - TimeSpan.FromDays(3);
-	public static DateTime Cutoff { get; } = EffectiveNow - MaxAgeTimeSpan;
-	public static DateTime Active { get; } = EffectiveNow - TimeSpan.FromDays(1);
+	private static DateTime EffectiveNowRecordTimestamp { get; } = new DateTime(2022, 1, 5, 00, 00, 00, DateTimeKind.Utc);
+	public static DateTime Expired { get; } = EffectiveNowRecordTimestamp - TimeSpan.FromDays(3);
+	public static DateTime Cutoff { get; } = EffectiveNowRecordTimestamp - MaxAgeTimeSpan;
+	public static DateTime Active { get; } = EffectiveNowRecordTimestamp - TimeSpan.FromDays(1);
 
 	public static Rec ScavengePointRec(int transaction, int threshold = 0, DateTime? timeStamp = null) => Rec.Write(
 		transaction: transaction,
 		stream: SystemStreams.ScavengePointsStream,
 		eventType: SystemEventTypes.ScavengePoint,
-		timestamp: timeStamp ?? EffectiveNow,
+		timestamp: timeStamp ?? EffectiveNowRecordTimestamp,
 		data: new ScavengePointPayload
 		{
 			Threshold = threshold,

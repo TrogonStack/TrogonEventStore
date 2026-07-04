@@ -156,6 +156,11 @@ public sealed class PrepareLogRecord : LogRecord, IEquatable<PrepareLogRecord>, 
 			throw new ArgumentOutOfRangeException("expectedVersion");
 		}
 
+		if (timeStamp.Kind != DateTimeKind.Utc)
+		{
+			throw new ArgumentException("Prepare log record timestamps must be UTC.", nameof(timeStamp));
+		}
+
 		Flags = flags;
 		TransactionPosition = transactionPosition;
 		TransactionOffset = transactionOffset;

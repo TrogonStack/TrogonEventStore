@@ -72,6 +72,27 @@ public class PrepareLogRecordViewTests
 	}
 
 	[Fact]
+	public void constructor_should_reject_non_utc_timestamp()
+	{
+		Assert.Throws<ArgumentException>(() => new PrepareLogRecord(
+			LogPosition,
+			_correlationId,
+			_eventId,
+			TransactionPosition,
+			TransactionOffset,
+			EventStreamId,
+			null,
+			ExpectedVersion,
+			DateTime.Now,
+			Flags,
+			EventType,
+			null,
+			_data,
+			_metadata,
+			Version));
+	}
+
+	[Fact]
 	public void parsed_record_should_preserve_utc_timestamp_kind()
 	{
 		var prepare = new PrepareLogRecord(

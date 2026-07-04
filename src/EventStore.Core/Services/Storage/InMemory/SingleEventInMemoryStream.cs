@@ -149,7 +149,7 @@ public class SingleEventInMemoryStream : IVirtualStreamReader
 			eventStreamId: _streamName,
 			eventStreamIdSize: null,
 			expectedVersion: _eventNumber - 1,
-			timeStamp: DateTime.Now,
+			timeStamp: DateTime.UtcNow,
 			flags: Flags,
 			eventType: eventType,
 			eventTypeSize: null,
