@@ -42,6 +42,7 @@ message CreateReq {
 		bool checkpoints_enabled = 9;
 		bool emit_enabled = 10;
 		bool track_emitted_streams = 11;
+		map<string, string> annotations = 12;
 
 		message Transient {
 			string name = 1;
@@ -67,6 +68,7 @@ message UpdateReq {
 			bool emit_enabled = 3;
 			event_store.client.Empty no_emit_options = 4;
 		}
+		map<string, string> annotations = 5;
 	}
 }
 

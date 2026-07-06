@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Tests;
 using EventStore.Projections.Core.Messages;
@@ -13,6 +14,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
 public class when_updating_a_persistent_projection_query_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 {
+	private static readonly byte[] UpdatedDefinitionMetadata = { 4, 5, 6 };
+
 	protected override void Given()
 	{
 		NoStream("$projections-test-projection");
@@ -41,7 +44,7 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 		yield return
 			(new ProjectionManagementMessage.Command.UpdateQuery(
 				_bus, _projectionName, ProjectionManagementMessage.RunAs.System,
-				_newProjectionSource, emitEnabled: null));
+				_newProjectionSource, emitEnabled: null, definitionMetadata: UpdatedDefinitionMetadata));
 	}
 
 	[Test, Category("v8")]
@@ -112,5 +115,17 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 		var lastPrepared = _consumer.HandledMessages.OfType<CoreProjectionStatusMessage.Prepared>().LastOrDefault();
 		Assert.IsNotNull(lastPrepared);
 		Assert.IsFalse(lastPrepared.SourceDefinition.AllEvents);
+	}
+
+	[Test, Category("v8")]
+	public void projection_definition_metadata_is_written()
+	{
+		var writtenEvent = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
+			.Where(v => v.EventStreamId == "$projections-test-projection")
+			.Last()
+			.Events[0];
+
+		Assert.IsTrue(writtenEvent.IsPropertyMetadata);
+		CollectionAssert.AreEqual(UpdatedDefinitionMetadata, writtenEvent.Metadata);
 	}
 }

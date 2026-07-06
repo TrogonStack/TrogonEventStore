@@ -4543,6 +4543,16 @@
                     "type": "bool"
                   }
                 ],
+                "maps": [
+                  {
+                    "key_type": "string",
+                    "field": {
+                      "id": 12,
+                      "name": "annotations",
+                      "type": "string"
+                    }
+                  }
+                ],
                 "messages": [
                   {
                     "name": "Transient",
@@ -4613,6 +4623,16 @@
                     "id": 4,
                     "name": "no_emit_options",
                     "type": "event_store.client.Empty"
+                  }
+                ],
+                "maps": [
+                  {
+                    "key_type": "string",
+                    "field": {
+                      "id": 5,
+                      "name": "annotations",
+                      "type": "string"
+                    }
                   }
                 ]
               }

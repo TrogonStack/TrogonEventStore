@@ -556,7 +556,9 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 										new EventRecord(
 											eventNumber, tfPosition, correlationId, e.EventId, tfPosition, 0, streamId,
 											ExpectedVersion.Any, _timeProvider.UtcNow,
-											PrepareFlags.SingleWrite | (e.IsJson ? PrepareFlags.IsJson : PrepareFlags.None),
+											PrepareFlags.SingleWrite
+											| (e.IsJson ? PrepareFlags.IsJson : PrepareFlags.None)
+											| (e.IsPropertyMetadata ? PrepareFlags.IsPropertyMetadata : PrepareFlags.None),
 											e.EventType, e.Data, e.Metadata)
 								}); //NOTE: DO NOT MAKE ARRAY
 		foreach (var eventRecord in eventRecords)
@@ -576,7 +578,7 @@ public abstract class TestFixtureWithExistingEvents<TLogFormat, TStreamId> : Tes
 
 	public void Handle(StorageMessage.EventCommitted msg)
 	{
-		var metadata = Json.ParseJson<ParkedMessageMetadata>(msg.Event.Metadata);
+		var metadata = Json.ParseJson<ParkedMessageMetadata>(msg.Event.CustomMetadata);
 		if (metadata != null)
 		{
 			EventTimeStamps.Add(metadata.Added.ToUniversalTime());
