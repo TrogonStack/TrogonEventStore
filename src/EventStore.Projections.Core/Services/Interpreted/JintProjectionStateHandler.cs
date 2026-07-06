@@ -243,14 +243,7 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				var arr = _state.AsArray();
 				if (arr.TryGetValue(0, out var state))
 				{
-					if (_state.IsString())
-					{
-						newState = _state.AsString();
-					}
-					else
-					{
-						newState = ConvertToStringHandlingNulls(state);
-					}
+					newState = ConvertToStringHandlingNulls(state);
 				}
 				else
 				{
@@ -266,11 +259,6 @@ namespace EventStore.Projections.Core.Services.Interpreted
 					newSharedState = null;
 				}
 
-			}
-			else if (_state.IsString())
-			{
-				newState = _state.AsString();
-				newSharedState = null;
 			}
 			else
 			{
@@ -921,7 +909,7 @@ namespace EventStore.Projections.Core.Services.Interpreted
 				}
 				else
 				{
-					newState = eventEnvelope.BodyRaw;
+					newState = eventEnvelope.IsJson ? eventEnvelope.Body : eventEnvelope.BodyRaw;
 				}
 				return newState == Undefined ? state : newState;
 			}
@@ -1096,33 +1084,32 @@ namespace EventStore.Projections.Core.Services.Interpreted
 			{
 				get
 				{
-					if (TryGetValue("body", out var value) && value is ObjectInstance oi)
+					if (TryGetValue("body", out var value) && value is not JsUndefined)
 					{
-						return oi;
+						return value;
 					}
 
-					if (EnsureBody(out JsValue objectInstance))
+					if (EnsureBody(out var body))
 					{
-						return objectInstance;
+						return body;
 					}
 
 					return Undefined;
 				}
 			}
 
-			private bool EnsureBody(out JsValue objectInstance)
+			private bool EnsureBody(out JsValue body)
 			{
 				if (IsJson && TryGetValue("bodyRaw", out var raw) && raw is not JsUndefined)
 				{
-					var body = raw.IsNull() ? raw : _parser.Parse(raw.AsString());
+					body = raw.IsNull() ? raw : _parser.Parse(raw.AsString());
 					var pd = new PropertyDescriptor(body, false, true, false);
 					SetOwnProperty("body", pd);
 					SetOwnProperty("data", pd);
-					objectInstance = (ObjectInstance)body;
 					return true;
 				}
 
-				objectInstance = Undefined;
+				body = Undefined;
 				return false;
 			}
 
@@ -1555,7 +1542,15 @@ namespace EventStore.Projections.Core.Services.Interpreted
 
 						break;
 					case Types.Number:
-						writer.WriteNumberValue(value.AsNumber());
+						var number = value.AsNumber();
+						if (double.IsFinite(number))
+						{
+							writer.WriteNumberValue(number);
+						}
+						else
+						{
+							writer.WriteNullValue();
+						}
 						break;
 					case Types.BigInt:
 						writer.WriteStringValue(value.ToString());
