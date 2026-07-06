@@ -82,13 +82,19 @@ internal partial class ProjectionManagement
 
 		void OnMessage(Message message)
 		{
-			if (message is not ProjectionManagementMessage.Updated)
+			if (message is ProjectionManagementMessage.Updated)
 			{
-				createdSource.TrySetException(UnknownMessage<ProjectionManagementMessage.Updated>(message));
+				createdSource.TrySetResult(true);
 				return;
 			}
 
-			createdSource.TrySetResult(true);
+			if (message is ProjectionManagementMessage.OperationFailed failed)
+			{
+				createdSource.TrySetException(MapFailure(failed));
+				return;
+			}
+
+			createdSource.TrySetException(UnknownMessage<ProjectionManagementMessage.Updated>(message));
 		}
 	}
 }
