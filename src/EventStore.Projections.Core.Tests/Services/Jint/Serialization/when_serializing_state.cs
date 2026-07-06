@@ -136,6 +136,15 @@ public class when_serializing_state
 		Assert.AreEqual(@"null", serialized);
 	}
 
+	[TestCase("NaN")]
+	[TestCase("Infinity")]
+	[TestCase("-Infinity")]
+	public void non_finite_numbers_are_serialized_as_null(string expression)
+	{
+		var serialized = _sut.Serialize(_engine.Evaluate(expression));
+		Assert.AreEqual(@"null", serialized);
+	}
+
 	[Test]
 	public void undefined_property()
 	{
