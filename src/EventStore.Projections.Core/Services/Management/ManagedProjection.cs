@@ -11,6 +11,7 @@ using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.TimerService;
 using EventStore.Core.Services.UserManagement;
+using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Projections.Core.Common;
 using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services.Management.ManagedProjectionStates;
@@ -573,8 +574,14 @@ public class ManagedProjection : IDisposable
 
 		UpdateProjectionVersion();
 		_pendingWritePersistedState = true;
-		WritePersistedState(CreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
-			ProjectionNamesBuilder.ProjectionsStreamPrefix + _name));
+		if (!TryCreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
+				ProjectionNamesBuilder.ProjectionsStreamPrefix + _name, out var persistedStateEvent, out var recordSize))
+		{
+			FailPersistedStateWrite(recordSize, message.Envelope);
+			return;
+		}
+
+		WritePersistedState(persistedStateEvent);
 
 		message.Envelope.ReplyWith(new ProjectionManagementMessage.Updated(message.Name));
 	}
@@ -845,8 +852,15 @@ public class ManagedProjection : IDisposable
 	{
 		if (_pendingWritePersistedState)
 		{
-			WritePersistedState(CreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
-				ProjectionNamesBuilder.ProjectionsStreamPrefix + _name));
+			if (!TryCreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
+					ProjectionNamesBuilder.ProjectionsStreamPrefix + _name, out var persistedStateEvent, out var recordSize))
+			{
+				FailPersistedStateWrite(recordSize, _lastReplyEnvelope);
+				_lastReplyEnvelope = null;
+				return;
+			}
+
+			WritePersistedState(persistedStateEvent);
 		}
 		else
 		{
@@ -859,14 +873,41 @@ public class ManagedProjection : IDisposable
 		Reply();
 	}
 
-	private ClientMessage.WriteEvents CreatePersistedStateEvent(Guid correlationId, PersistedState persistedState,
-		string eventStreamId)
+	private bool TryCreatePersistedStateEvent(Guid correlationId, PersistedState persistedState, string eventStreamId,
+		out ClientMessage.WriteEvents persistedStateEvent, out int recordSize)
 	{
-		return new ClientMessage.WriteEvents(
+		var data = persistedState.ToJsonBytes();
+		recordSize = Event.SizeOnDisk(ProjectionEventTypes.ProjectionUpdated, data, Empty.ByteArray);
+		if (recordSize > TFConsts.EffectiveMaxLogRecordSize)
+		{
+			persistedStateEvent = null;
+			return false;
+		}
+
+		persistedStateEvent = new ClientMessage.WriteEvents(
 			correlationId, correlationId, _writeDispatcher.Envelope, true, eventStreamId, ExpectedVersion.Any,
-			new Event(Guid.NewGuid(), ProjectionEventTypes.ProjectionUpdated, true, persistedState.ToJsonBytes(),
+			new Event(Guid.NewGuid(), ProjectionEventTypes.ProjectionUpdated, true, data,
 				Empty.ByteArray),
 			SystemAccounts.System);
+		return true;
+	}
+
+	private void FailPersistedStateWrite(int recordSize, IEnvelope replyEnvelope)
+	{
+		_pendingWritePersistedState = false;
+		var reason =
+			$"Projection '{_name}' definition record size ({recordSize} bytes) exceeds the maximum of {TFConsts.EffectiveMaxLogRecordSize} bytes.";
+		if (Created)
+		{
+			DisposeCoreProjection();
+		}
+
+		if (_state != ManagedProjectionState.Faulted)
+		{
+			Fault(reason);
+		}
+
+		replyEnvelope?.ReplyWith(new ProjectionManagementMessage.RecordTooLarge(reason));
 	}
 
 	private void WritePersistedState(ClientMessage.WriteEvents persistedStateEvent)

@@ -639,6 +639,15 @@ public static partial class ProjectionManagementMessage
 		}
 	}
 
+	[DerivedMessage(ProjectionMessage.Management)]
+	public partial class RecordTooLarge : OperationFailed
+	{
+		public RecordTooLarge(string reason)
+			: base(reason)
+		{
+		}
+	}
+
 	public sealed class RunAs
 	{
 		private readonly ClaimsPrincipal _runAs;

@@ -6,6 +6,7 @@ using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Plugins.Authorization;
+using EventStore.Projections.Core.Messages;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
@@ -53,6 +54,18 @@ namespace EventStore.Projections.Core.Services.Grpc
 
 		private static Exception ProjectionNotFound(string name) =>
 			new RpcException(new Status(StatusCode.NotFound, $"Projection '{name}' not found"));
+
+		private static Exception MapFailure(ProjectionManagementMessage.OperationFailed failed) =>
+			failed switch
+			{
+				ProjectionManagementMessage.RecordTooLarge => new RpcException(
+					new Status(StatusCode.InvalidArgument, failed.Reason)),
+				ProjectionManagementMessage.Conflict => new RpcException(
+					new Status(StatusCode.AlreadyExists, failed.Reason)),
+				ProjectionManagementMessage.NotAuthorized => new RpcException(
+					new Status(StatusCode.PermissionDenied, failed.Reason)),
+				_ => new RpcException(new Status(StatusCode.FailedPrecondition, failed.Reason))
+			};
 
 		private static Value GetProtoValue(JsonElement element) =>
 			element.ValueKind switch
