@@ -99,7 +99,7 @@ public class EventReorderingReaderSubscription : ReaderSubscriptionBase, IReader
 
 	protected override void EofReached()
 	{
-		// flush all available events as wqe reached eof (currently onetime projections only)
+		// EOF means no earlier event can still arrive, so every buffered event can be released.
 		ProcessAllFor(DateTime.MaxValue);
 	}
 

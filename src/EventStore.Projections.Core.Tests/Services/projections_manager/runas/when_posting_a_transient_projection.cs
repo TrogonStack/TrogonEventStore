@@ -46,20 +46,16 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
 						checkpointsEnabled: true, emitEnabled: true, trackEmittedStreams: true, enableRunAs: true);
 			}
 
-			[Test, Ignore("ignored")]
-			public void anonymous_cannot_retrieve_projection_query()
+			[Test]
+			public void the_operation_fails()
 			{
-				GetInputQueue()
-					.Publish(
-						new ProjectionManagementMessage.Command.GetQuery(
-							Envelope, _projectionName, ProjectionManagementMessage.RunAs.Anonymous));
-				_queue.Process();
+				var failure = HandledMessages.OfType<ProjectionManagementMessage.OperationFailed>().Single();
 
-				Assert.IsTrue(HandledMessages.OfType<ProjectionManagementMessage.NotAuthorized>().Any());
+				StringAssert.Contains("Transient projections are not supported", failure.Reason);
 			}
 
 			[Test]
-			public void projection_owner_can_retrieve_projection_query()
+			public void the_projection_is_not_registered()
 			{
 				GetInputQueue()
 					.Publish(
@@ -67,9 +63,7 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
 							Envelope, _projectionName, new ProjectionManagementMessage.RunAs(_testUserPrincipal)));
 				_queue.Process();
 
-				var query = HandledMessages.OfType<ProjectionManagementMessage.ProjectionQuery>().FirstOrDefault();
-				Assert.NotNull(query);
-				Assert.AreEqual(_projectionBody, query.Query);
+				Assert.IsTrue(HandledMessages.OfType<ProjectionManagementMessage.NotFound>().Any());
 			}
 		}
 

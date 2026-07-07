@@ -31,6 +31,7 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 	private GetConfigResp _updatedConfig;
 	private ReadEventsResp _feedPage;
 	private StatisticsResp.Types.Details[] _allNonTransientStatistics;
+	private RpcException _transientCreateFailure;
 
 	public override async Task Given()
 	{
@@ -67,18 +68,6 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 				EmitEnabled = false,
 				TrackEmittedStreams = false,
 				Query = "fromAll().when({$any:function(s,e){return s;}});"
-			}
-		}, GetCallOptions());
-
-		await _client.CreateAsync(new CreateReq
-		{
-			Options = new CreateReq.Types.Options
-			{
-				Transient = new CreateReq.Types.Options.Types.Transient
-				{
-					Name = TransientProjectionName
-				},
-				Query = $"fromStream(\"{DebugStream}\").when({{$any:function(s,e){{return s;}}}});"
 			}
 		}, GetCallOptions());
 
@@ -153,13 +142,17 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 			}
 		}, GetCallOptions());
 
-		await _client.AbortAsync(new AbortReq
+		_transientCreateFailure = Assert.ThrowsAsync<RpcException>(() => _client.CreateAsync(new CreateReq
 		{
-			Options = new AbortReq.Types.Options
+			Options = new CreateReq.Types.Options
 			{
-				Name = TransientProjectionName
+				Transient = new CreateReq.Types.Options.Types.Transient
+				{
+					Name = TransientProjectionName
+				},
+				Query = $"fromStream(\"{DebugStream}\").when({{$any:function(s,e){{return s;}}}});"
 			}
-		}, GetCallOptions());
+		}, GetCallOptions()).ResponseAsync);
 
 		_allNonTransientStatistics = await ReadStatisticsAsync(new StatisticsReq
 		{
@@ -212,11 +205,17 @@ public class ProjectionManagementParityTests<TLogFormat, TStreamId> : Specificat
 	}
 
 	[Test]
-	public void all_non_transient_statistics_excludes_transient_projections()
+	public void create_rejects_transient_projections()
+	{
+		Assert.That(_transientCreateFailure.StatusCode, Is.EqualTo(StatusCode.FailedPrecondition));
+		Assert.That(_transientCreateFailure.Status.Detail, Does.Contain("Transient projections are not supported"));
+	}
+
+	[Test]
+	public void all_non_transient_statistics_returns_registered_non_transient_projections()
 	{
 		Assert.That(_allNonTransientStatistics.Any(x => x.Name == ProjectionName), Is.True);
 		Assert.That(_allNonTransientStatistics.Any(x => x.Name == DisabledOneTimeProjectionName), Is.True);
-		Assert.That(_allNonTransientStatistics.Any(x => x.Name == TransientProjectionName), Is.False);
 	}
 
 	[OneTimeTearDown]

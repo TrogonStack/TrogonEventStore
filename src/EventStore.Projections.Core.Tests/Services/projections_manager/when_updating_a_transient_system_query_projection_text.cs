@@ -11,7 +11,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+[Ignore("Transient query projections are not supported.")]
+public class when_updating_a_transient_system_query_projection_text<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 {
 	private string _projectionName;
 	private string _newProjectionSource;
@@ -19,6 +20,22 @@ public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamI
 	protected override void Given()
 	{
 		NoOtherStreams();
+	}
+
+	protected override IEnumerable<WhenStep> When()
+	{
+		_projectionName = "$by_correlation_id";
+		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
+		yield return
+			(new ProjectionManagementMessage.Command.Post(
+				_bus, ProjectionMode.Transient, _projectionName,
+				ProjectionManagementMessage.RunAs.Anonymous, "native:EventStore.Projections.Core.Standard.ByCorrelationId", "{\"correlationIdProperty\":\"$myCorrelationId\"}",
+				enabled: true, checkpointsEnabled: false, emitEnabled: false, trackEmittedStreams: true));
+		_newProjectionSource = "{\"correlationIdProperty\":\"$updateCorrelationId\"}";
+		yield return
+			(new ProjectionManagementMessage.Command.UpdateQuery(
+				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous,
+				_newProjectionSource, emitEnabled: null));
 	}
 
 	[Test, Category("v8")]
@@ -68,22 +85,5 @@ public class when_updating_an_onetime_projection_query_text<TLogFormat, TStreamI
 			_consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().Name);
 		Assert.AreEqual(
 			"", _consumer.HandledMessages.OfType<ProjectionManagementMessage.ProjectionState>().Single().State);
-	}
-
-	protected override IEnumerable<WhenStep> When()
-	{
-		_projectionName = "test-projection";
-		yield return (new ProjectionSubsystemMessage.StartComponents(Guid.NewGuid()));
-		yield return
-			(new ProjectionManagementMessage.Command.Post(
-				_bus, ProjectionMode.Transient, _projectionName,
-				ProjectionManagementMessage.RunAs.Anonymous, "JS", @"fromAll(); on_any(function(){});log(1);",
-				enabled: true, checkpointsEnabled: false, emitEnabled: false, trackEmittedStreams: true));
-		// when
-		_newProjectionSource = @"fromAll(); on_any(function(){});log(2);";
-		yield return
-			(new ProjectionManagementMessage.Command.UpdateQuery(
-				_bus, _projectionName, ProjectionManagementMessage.RunAs.Anonymous,
-				_newProjectionSource, emitEnabled: null));
 	}
 }

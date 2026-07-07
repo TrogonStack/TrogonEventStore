@@ -129,7 +129,7 @@ public static partial class ProjectionManagementMessage
 				_definitionMetadata = definitionMetadata ?? Empty.ByteArray;
 			}
 
-			// shortcut for posting ad-hoc JS queries
+			// Kept so legacy ad-hoc JS callers fail through the transient projection boundary.
 			public Post(IEnvelope envelope, RunAs runAs, string query, bool enabled)
 				: base(envelope, runAs)
 			{

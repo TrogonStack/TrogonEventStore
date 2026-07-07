@@ -9,7 +9,8 @@ using NUnit.Framework;
 namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 
 [TestFixture(typeof(LogFormat.V2), typeof(string))]
-public class when_the_onetime_projection_has_been_posted<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
+[Ignore("Transient query projections are not supported.")]
+public class when_the_transient_query_projection_has_been_posted<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 {
 	private string _projectionName;
 	private string _projectionQuery;
