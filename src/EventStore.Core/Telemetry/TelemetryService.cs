@@ -220,6 +220,7 @@ public sealed class TelemetryService :
 			{
 				["clusterSize"] = _nodeOptions.Cluster.ClusterSize,
 				["insecure"] = _nodeOptions.Application.Insecure,
+				["disableTls"] = _nodeOptions.Application.DisableTls,
 				["runProjections"] = _nodeOptions.Projection.RunProjections.ToString(),
 				["authorizationType"] = _nodeOptions.Auth.AuthorizationType,
 				["authenticationType"] = _nodeOptions.Auth.AuthenticationType

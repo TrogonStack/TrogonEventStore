@@ -21,7 +21,8 @@ public sealed class ConfigurationBrowserService(
 		var options = hostedService.Options;
 		var features = new[] {
 			new ConfigurationFeature("Projections", options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev),
-			new ConfigurationFeature("User management", options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.Insecure)
+			new ConfigurationFeature("User management",
+				options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.AuthDisabled())
 		};
 
 		var subsystems = hostedService.EnabledNodeSubsystems
@@ -46,6 +47,7 @@ public sealed class ConfigurationBrowserService(
 			canInspectRuntimeDetails ? options.Auth.AuthenticationType : "",
 			canInspectRuntimeDetails ? options.Auth.AuthorizationType : "",
 			options.Application.Insecure,
+			options.Application.TlsDisabled(),
 			canInspectRuntimeDetails,
 			features,
 			subsystems,
@@ -66,14 +68,15 @@ public sealed record ConfigurationPage(
 	string AuthenticationType,
 	string AuthorizationType,
 	bool IsInsecure,
+	bool IsTlsDisabled,
 	bool CanInspectRuntimeDetails,
 	IReadOnlyList<ConfigurationFeature> Features,
 	IReadOnlyList<ConfigurationSubsystem> Subsystems,
 	IReadOnlyList<ConfigurationOption> LoadedOptions,
 	string OptionsMessage)
 {
-	public string SecurityMode => IsInsecure ? "Insecure" : "Secure";
-	public string SecurityTone => IsInsecure ? "warn" : "good";
+	public string SecurityMode => IsInsecure ? "Insecure" : IsTlsDisabled ? "TLS disabled" : "Secure";
+	public string SecurityTone => IsInsecure || IsTlsDisabled ? "warn" : "good";
 	public bool HasSubsystems => Subsystems.Count > 0;
 	public bool HasLoadedOptions => LoadedOptions.Count > 0;
 }

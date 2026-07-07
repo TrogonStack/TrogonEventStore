@@ -48,6 +48,7 @@ public class with_default_node_as_single_node<TLogFormat, TStreamId> : SingleNod
 		Assert.AreEqual(true, _options.Cluster.DiscoverViaDns, "DiscoverViaDns");
 		Assert.AreEqual(30, _options.Application.StatsPeriodSec, "StatsPeriod");
 		Assert.AreEqual(false, _options.Application.DisableHttpCaching, "DisableHTTPCaching");
+		Assert.AreEqual(false, _options.Application.DisableTls, "DisableTls");
 		Assert.AreEqual(false, _options.Database.SkipDbVerify, "VerifyDbHash");
 		Assert.AreEqual(TFConsts.MinFlushDelayMs.TotalMilliseconds, _options.Database.MinFlushDelayMs, "MinFlushDelay");
 		Assert.AreEqual(30, _options.Database.ScavengeHistoryMaxAge,
