@@ -298,13 +298,8 @@ public class ProjectionManager
 
 		if (message.Mode == ProjectionMode.Transient)
 		{
-			var transientProjection = new PendingProjection(ProjectionQueryId, message);
-			if (!ValidateProjections(new[] { transientProjection }, message))
-			{
-				return;
-			}
-
-			PostNewTransientProjection(transientProjection, message.Envelope);
+			message.Envelope.ReplyWith(new ProjectionManagementMessage.OperationFailed(
+				"Transient projections are not supported."));
 		}
 		else
 		{
@@ -1226,14 +1221,6 @@ public class ProjectionManager
 			emitEnabled: true,
 			trackEmittedStreams: false,
 			enableRunAs: true);
-	}
-
-	private void PostNewTransientProjection(PendingProjection projection, IEnvelope replyEnvelope)
-	{
-		var initializer = projection.CreateInitializer(replyEnvelope);
-		ReadProjectionPossibleStream(projection.Name,
-			m => ReadProjectionPossibleStreamCompleted
-				(m, initializer, replyEnvelope));
 	}
 
 	private void PostNewProjections

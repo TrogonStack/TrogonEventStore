@@ -151,8 +151,7 @@ public abstract class EventReaderBasedProjectionProcessingStrategy : ProjectionP
 	{
 		var emitAny = _projectionConfig.EmitEventEnabled;
 
-		//NOTE: not emitting one-time/transient projections are always handled by default checkpoint manager
-		// as they don't depend on stable event order
+		// Unordered reads need the multi-output checkpoint manager only when emitted output must be repeatable.
 		if (emitAny && !readerStrategy.IsReadingOrderRepeatable)
 		{
 			return new MultiStreamMultiOutputCheckpointManager(

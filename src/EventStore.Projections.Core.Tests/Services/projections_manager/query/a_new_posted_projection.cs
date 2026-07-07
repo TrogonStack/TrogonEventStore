@@ -26,6 +26,7 @@ public static class a_new_posted_projection
 		protected override void Given()
 		{
 			base.Given();
+			Assert.Ignore("Transient query projections are not supported.");
 
 			_projectionName = "test-projection";
 			_projectionSource = @"";

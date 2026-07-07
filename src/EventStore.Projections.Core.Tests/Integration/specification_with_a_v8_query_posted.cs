@@ -7,6 +7,7 @@ using EventStore.Projections.Core.Messages;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Processing;
 using EventStore.Projections.Core.Tests.Services.projections_manager;
+using NUnit.Framework;
 
 namespace EventStore.Projections.Core.Tests.Integration;
 
@@ -34,6 +35,10 @@ public abstract class specification_with_a_v8_query_posted<TLogFormat, TStreamId
 		_trackEmittedStreams = false;
 		_emitEnabled = false;
 		_startSystemProjections = GivenStartSystemProjections();
+		if (!string.IsNullOrEmpty(_projectionSource))
+		{
+			Assert.Ignore("Transient query projections are not supported.");
+		}
 	}
 
 	protected override Tuple<SynchronousScheduler, IPublisher, SynchronousScheduler, Guid>[] GivenProcessingQueues()
@@ -66,6 +71,8 @@ public abstract class specification_with_a_v8_query_posted<TLogFormat, TStreamId
 
 	protected Message CreateQueryMessage(string name, string source)
 	{
+		Assert.Ignore("Transient query projections are not supported.");
+
 		return new ProjectionManagementMessage.Command.Post(
 			_bus, ProjectionMode.Transient, name,
 			ProjectionManagementMessage.RunAs.System, "JS", source, enabled: true, checkpointsEnabled: false,
