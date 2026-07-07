@@ -65,7 +65,6 @@
 					<AntiforgeryToken />
 					<button class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" type="submit">Reset</button>
 				</EditForm>
-				<a class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="@QueryHref">Open in query</a>
 				<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@EditHref">Edit source</a>
 			</div>
 		</article>
@@ -105,7 +104,6 @@
 	private string LinkName => Page?.Name ?? Name;
 	private string DetailHref => $"/ui/projections/{Uri.EscapeDataString(LinkName)}";
 	private string EditHref => $"/ui/projections/edit/{Uri.EscapeDataString(LinkName)}";
-	private string QueryHref => $"/ui/query?location={Uri.EscapeDataString(LinkName)}";
 
 	protected override async Task OnParametersSetAsync() {
 		DisableInput ??= new();

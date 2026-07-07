@@ -58,19 +58,18 @@ public sealed class ProjectionBrowserService(
 			"Reading Speed Test Handler")
 	};
 
-	public async Task<ProjectionListPage> ReadAll(bool includeQueries, CancellationToken cancellationToken = default)
+	public async Task<ProjectionListPage> ReadAll(CancellationToken cancellationToken = default)
 	{
 		if (!await HasAccess(ListOperation, cancellationToken))
 		{
-			return ProjectionListPage.Unavailable("Projection list access was denied.", includeQueries);
+			return ProjectionListPage.Unavailable("Projection list access was denied.");
 		}
 
-		var read = await ReadStatistics(includeQueries ? null : ProjectionMode.AllNonTransient, name: null, cancellationToken);
+		var read = await ReadStatistics(ProjectionMode.AllNonTransient, name: null, cancellationToken);
 		return read.IsAvailable
 			? ProjectionListPage.Success(
-				read.Projections.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray(),
-				includeQueries)
-			: ProjectionListPage.Unavailable(read.Message, includeQueries);
+				read.Projections.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray())
+			: ProjectionListPage.Unavailable(read.Message);
 	}
 
 	public async Task<ProjectionDetailPage> ReadProjection(
@@ -294,9 +293,9 @@ public sealed class ProjectionBrowserService(
 				new ProjectionManagementMessage.RunAs(CurrentUser)),
 			cancellationToken);
 
-	public async Task<ProjectionBulkCommandResult> EnableAll(bool includeQueries, CancellationToken cancellationToken = default)
+	public async Task<ProjectionBulkCommandResult> EnableAll(CancellationToken cancellationToken = default)
 	{
-		var page = await ReadAll(includeQueries, cancellationToken);
+		var page = await ReadAll(cancellationToken);
 		if (!page.IsAvailable)
 		{
 			return ProjectionBulkCommandResult.Failure(page.Message);
@@ -306,9 +305,9 @@ public sealed class ProjectionBrowserService(
 		return await RunBulk(candidates, projection => Enable(projection.Name, cancellationToken), "enable");
 	}
 
-	public async Task<ProjectionBulkCommandResult> DisableAll(bool includeQueries, CancellationToken cancellationToken = default)
+	public async Task<ProjectionBulkCommandResult> DisableAll(CancellationToken cancellationToken = default)
 	{
-		var page = await ReadAll(includeQueries, cancellationToken);
+		var page = await ReadAll(cancellationToken);
 		if (!page.IsAvailable)
 		{
 			return ProjectionBulkCommandResult.Failure(page.Message);
@@ -799,7 +798,6 @@ public sealed record ProjectionDataRead(
 
 public sealed record ProjectionListPage(
 	IReadOnlyList<ProjectionView> Projections,
-	bool IncludeQueries,
 	string Message)
 {
 	public bool IsAvailable => string.IsNullOrWhiteSpace(Message);
@@ -810,14 +808,12 @@ public sealed record ProjectionListPage(
 	public string RunningCountLabel => IsAvailable ? RunningCount.ToString() : "-";
 	public string FaultedCountLabel => IsAvailable ? FaultedCount.ToString() : "-";
 	public string DisabledCountLabel => IsAvailable ? DisabledCount.ToString() : "-";
-	public string ToggleQueriesHref => IncludeQueries ? "/ui/projections" : "/ui/projections?includeQueries=true";
-	public string ToggleQueriesLabel => IncludeQueries ? "Hide transient queries" : "Include transient queries";
 
-	public static ProjectionListPage Success(IReadOnlyList<ProjectionView> projections, bool includeQueries) =>
-		new(projections, includeQueries, "");
+	public static ProjectionListPage Success(IReadOnlyList<ProjectionView> projections) =>
+		new(projections, "");
 
-	public static ProjectionListPage Unavailable(string message, bool includeQueries = false) =>
-		new(Array.Empty<ProjectionView>(), includeQueries, message);
+	public static ProjectionListPage Unavailable(string message) =>
+		new(Array.Empty<ProjectionView>(), message);
 }
 
 public sealed record ProjectionDetailPage(
