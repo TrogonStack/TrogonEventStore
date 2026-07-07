@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Grpc;
@@ -185,7 +187,8 @@ public sealed class ProjectionBrowserService(
 				checkpointsEnabled,
 				emitEnabled,
 				trackEmittedStreams,
-				enableRunAs: true),
+				enableRunAs: true,
+				definitionMetadata: DefinitionMetadataFor("create")),
 			cancellationToken);
 	}
 
@@ -217,7 +220,8 @@ public sealed class ProjectionBrowserService(
 				name,
 				new ProjectionManagementMessage.RunAs(CurrentUser),
 				request.Query,
-				request.EmitEnabled),
+				request.EmitEnabled,
+				DefinitionMetadataFor("update")),
 			cancellationToken);
 	}
 
@@ -604,6 +608,17 @@ public sealed class ProjectionBrowserService(
 
 	private ClaimsPrincipal CurrentUser =>
 		httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+
+	private static byte[] DefinitionMetadataFor(string operation)
+	{
+		var annotations = new Dictionary<string, string>
+		{
+			["trogondb.com/tool"] = "embedded-ui",
+			["trogondb.com/tool-version"] = VersionInfo.Version,
+			["trogondb.com/operation"] = operation
+		};
+		return JsonSerializer.SerializeToUtf8Bytes(annotations);
+	}
 
 	private Task<bool> HasAccess(Operation operation, CancellationToken cancellationToken) =>
 		authorizationProvider.CheckAccessAsync(CurrentUser, operation, cancellationToken).AsTask();

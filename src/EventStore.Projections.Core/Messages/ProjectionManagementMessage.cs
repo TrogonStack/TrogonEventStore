@@ -57,11 +57,12 @@ public static partial class ProjectionManagementMessage
 				public bool EmitEnabled { get; }
 				public bool EnableRunAs { get; }
 				public bool TrackEmittedStreams { get; }
+				public byte[] DefinitionMetadata { get; }
 
 				public ProjectionPost(
 					ProjectionMode mode, RunAs runAs, string name, string handlerType, string query,
 					bool enabled, bool checkpointsEnabled, bool emitEnabled, bool enableRunAs,
-					bool trackEmittedStreams)
+					bool trackEmittedStreams, byte[] definitionMetadata = null)
 				{
 					Mode = mode;
 					RunAs = runAs;
@@ -73,6 +74,7 @@ public static partial class ProjectionManagementMessage
 					EmitEnabled = emitEnabled;
 					EnableRunAs = enableRunAs;
 					TrackEmittedStreams = trackEmittedStreams;
+					DefinitionMetadata = definitionMetadata ?? Empty.ByteArray;
 				}
 			}
 		}
@@ -89,11 +91,12 @@ public static partial class ProjectionManagementMessage
 			private readonly bool _emitEnabled;
 			private readonly bool _enableRunAs;
 			private readonly bool _trackEmittedStreams;
+			private readonly byte[] _definitionMetadata;
 
 			public Post(
 				IEnvelope envelope, ProjectionMode mode, string name, RunAs runAs, string handlerType, string query,
 				bool enabled, bool checkpointsEnabled, bool emitEnabled, bool trackEmittedStreams,
-				bool enableRunAs = false)
+				bool enableRunAs = false, byte[] definitionMetadata = null)
 				: base(envelope, runAs)
 			{
 				_name = name;
@@ -105,12 +108,13 @@ public static partial class ProjectionManagementMessage
 				_emitEnabled = emitEnabled;
 				_trackEmittedStreams = trackEmittedStreams;
 				_enableRunAs = enableRunAs;
+				_definitionMetadata = definitionMetadata ?? Empty.ByteArray;
 			}
 
 			public Post(
 				IEnvelope envelope, ProjectionMode mode, string name, RunAs runAs, Type handlerType, string query,
 				bool enabled, bool checkpointsEnabled, bool emitEnabled, bool trackEmittedStreams,
-				bool enableRunAs = false)
+				bool enableRunAs = false, byte[] definitionMetadata = null)
 				: base(envelope, runAs)
 			{
 				_name = name;
@@ -122,6 +126,7 @@ public static partial class ProjectionManagementMessage
 				_emitEnabled = emitEnabled;
 				_trackEmittedStreams = trackEmittedStreams;
 				_enableRunAs = enableRunAs;
+				_definitionMetadata = definitionMetadata ?? Empty.ByteArray;
 			}
 
 			// shortcut for posting ad-hoc JS queries
@@ -136,6 +141,7 @@ public static partial class ProjectionManagementMessage
 				_checkpointsEnabled = false;
 				_emitEnabled = false;
 				_trackEmittedStreams = false;
+				_definitionMetadata = Empty.ByteArray;
 			}
 
 			public ProjectionMode Mode
@@ -181,6 +187,11 @@ public static partial class ProjectionManagementMessage
 			public bool TrackEmittedStreams
 			{
 				get { return _trackEmittedStreams; }
+			}
+
+			public byte[] DefinitionMetadata
+			{
+				get { return _definitionMetadata; }
 			}
 		}
 
@@ -271,14 +282,17 @@ public static partial class ProjectionManagementMessage
 			private readonly string _name;
 			private readonly string _query;
 			private readonly bool? _emitEnabled;
+			private readonly byte[] _definitionMetadata;
 
 			public UpdateQuery(
-				IEnvelope envelope, string name, RunAs runAs, string query, bool? emitEnabled)
+				IEnvelope envelope, string name, RunAs runAs, string query, bool? emitEnabled,
+				byte[] definitionMetadata = null)
 				: base(envelope, runAs)
 			{
 				_name = name;
 				_query = query;
 				_emitEnabled = emitEnabled;
+				_definitionMetadata = definitionMetadata ?? Empty.ByteArray;
 			}
 
 			public string Query
@@ -294,6 +308,11 @@ public static partial class ProjectionManagementMessage
 			public bool? EmitEnabled
 			{
 				get { return _emitEnabled; }
+			}
+
+			public byte[] DefinitionMetadata
+			{
+				get { return _definitionMetadata; }
 			}
 		}
 

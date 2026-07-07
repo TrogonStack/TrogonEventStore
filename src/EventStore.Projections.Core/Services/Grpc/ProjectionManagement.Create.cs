@@ -74,7 +74,8 @@ internal partial class ProjectionManagement
 		var envelope = new CallbackEnvelope(OnMessage);
 
 		_publisher.Publish(new ProjectionManagementMessage.Command.Post(envelope, projectionMode, name, runAs,
-			handlerType, options.Query, enabled, checkpointsEnabled, emitEnabled, trackEmittedStreams, true));
+			handlerType, options.Query, enabled, checkpointsEnabled, emitEnabled, trackEmittedStreams, true,
+			ToMetadata(options.Annotations)));
 
 		await createdSource.Task;
 

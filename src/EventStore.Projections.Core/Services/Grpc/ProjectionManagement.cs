@@ -7,6 +7,8 @@ using EventStore.Core.Messaging;
 using EventStore.Core.Services.Transport.Grpc;
 using EventStore.Plugins.Authorization;
 using EventStore.Projections.Core.Messages;
+using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
@@ -102,6 +104,19 @@ namespace EventStore.Projections.Core.Services.Grpc
 
 		private static string ToJson<T>(T value) where T : class =>
 			value is null ? "{}" : value.ToJson();
+
+		internal static byte[] ToMetadata(MapField<string, string> annotations)
+		{
+			if (annotations is null || annotations.Count == 0)
+			{
+				return EventStore.Common.Utils.Empty.ByteArray;
+			}
+
+			var metadata = annotations.ToDictionary(
+				annotation => annotation.Key,
+				annotation => annotation.Value);
+			return JsonSerializer.SerializeToUtf8Bytes(metadata);
+		}
 
 		private static Value GetProtoValue(string value, bool isJson)
 		{

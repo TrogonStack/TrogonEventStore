@@ -133,6 +133,8 @@ public class ManagedProjection : IDisposable
 
 	private ManagedProjectionStateBase _stateHandler;
 	private IEnvelope _lastReplyEnvelope;
+	private byte[] _pendingDefinitionMetadata = Empty.ByteArray;
+	private long _pendingDefinitionMetadataVersion;
 	private bool _writing;
 	private IODispatcher _ioDispatcher;
 	private ProjectionConfig _projectionConfig;
@@ -439,6 +441,7 @@ public class ManagedProjection : IDisposable
 		_lastAccessed = _timeProvider.UtcNow;
 
 		Prepared = false;
+		SetPendingDefinitionMetadata(message.DefinitionMetadata);
 		UpdateQuery(message);
 		UpdateProjectionVersion();
 		SetLastReplyEnvelope(message.Envelope);
@@ -571,17 +574,19 @@ public class ManagedProjection : IDisposable
 		PersistedProjectionState.MaxWriteBatchLength = message.MaxWriteBatchLength;
 		PersistedProjectionState.MaxAllowedWritesInFlight = message.MaxAllowedWritesInFlight;
 		PersistedProjectionState.ProjectionExecutionTimeout = message.ProjectionExecutionTimeout;
+		SetPendingDefinitionMetadata(Empty.ByteArray);
 
 		UpdateProjectionVersion();
 		_pendingWritePersistedState = true;
 		if (!TryCreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
-				ProjectionNamesBuilder.ProjectionsStreamPrefix + _name, out var persistedStateEvent, out var recordSize))
+				ProjectionNamesBuilder.ProjectionsStreamPrefix + _name, out var persistedStateEvent, out var recordSize,
+				out var definitionMetadataVersion))
 		{
 			FailPersistedStateWrite(recordSize, message.Envelope);
 			return;
 		}
 
-		WritePersistedState(persistedStateEvent);
+		WritePersistedState(persistedStateEvent, definitionMetadataVersion);
 
 		message.Envelope.ReplyWith(new ProjectionManagementMessage.Updated(message.Name));
 	}
@@ -725,9 +730,10 @@ public class ManagedProjection : IDisposable
 			   _lastAccessed.Add(_projectionsQueryExpiry) < _timeProvider.UtcNow && _persistedStateLoaded;
 	}
 
-	public void InitializeNew(PersistedState persistedState, IEnvelope replyEnvelope)
+	public void InitializeNew(PersistedState persistedState, IEnvelope replyEnvelope, byte[] definitionMetadata = null)
 	{
 		LoadPersistedState(persistedState);
+		SetPendingDefinitionMetadata(definitionMetadata);
 		UpdateProjectionVersion();
 		_pendingWritePersistedState = true;
 		SetLastReplyEnvelope(replyEnvelope);
@@ -853,14 +859,15 @@ public class ManagedProjection : IDisposable
 		if (_pendingWritePersistedState)
 		{
 			if (!TryCreatePersistedStateEvent(Guid.NewGuid(), PersistedProjectionState,
-					ProjectionNamesBuilder.ProjectionsStreamPrefix + _name, out var persistedStateEvent, out var recordSize))
+					ProjectionNamesBuilder.ProjectionsStreamPrefix + _name, out var persistedStateEvent, out var recordSize,
+					out var definitionMetadataVersion))
 			{
 				FailPersistedStateWrite(recordSize, _lastReplyEnvelope);
 				_lastReplyEnvelope = null;
 				return;
 			}
 
-			WritePersistedState(persistedStateEvent);
+			WritePersistedState(persistedStateEvent, definitionMetadataVersion);
 		}
 		else
 		{
@@ -874,10 +881,12 @@ public class ManagedProjection : IDisposable
 	}
 
 	private bool TryCreatePersistedStateEvent(Guid correlationId, PersistedState persistedState, string eventStreamId,
-		out ClientMessage.WriteEvents persistedStateEvent, out int recordSize)
+		out ClientMessage.WriteEvents persistedStateEvent, out int recordSize, out long definitionMetadataVersion)
 	{
 		var data = persistedState.ToJsonBytes();
-		recordSize = Event.SizeOnDisk(ProjectionEventTypes.ProjectionUpdated, data, Empty.ByteArray);
+		var metadata = _pendingDefinitionMetadata;
+		definitionMetadataVersion = _pendingDefinitionMetadataVersion;
+		recordSize = Event.SizeOnDisk(ProjectionEventTypes.ProjectionUpdated, data, metadata);
 		if (recordSize > TFConsts.EffectiveMaxLogRecordSize)
 		{
 			persistedStateEvent = null;
@@ -887,14 +896,29 @@ public class ManagedProjection : IDisposable
 		persistedStateEvent = new ClientMessage.WriteEvents(
 			correlationId, correlationId, _writeDispatcher.Envelope, true, eventStreamId, ExpectedVersion.Any,
 			new Event(Guid.NewGuid(), ProjectionEventTypes.ProjectionUpdated, true, data,
-				Empty.ByteArray),
+				metadata.Length > 0, metadata),
 			SystemAccounts.System);
 		return true;
+	}
+
+	private void SetPendingDefinitionMetadata(byte[] definitionMetadata)
+	{
+		_pendingDefinitionMetadata = definitionMetadata ?? Empty.ByteArray;
+		_pendingDefinitionMetadataVersion++;
+	}
+
+	private void ClearPendingDefinitionMetadata(long definitionMetadataVersion)
+	{
+		if (_pendingDefinitionMetadataVersion == definitionMetadataVersion)
+		{
+			SetPendingDefinitionMetadata(Empty.ByteArray);
+		}
 	}
 
 	private void FailPersistedStateWrite(int recordSize, IEnvelope replyEnvelope)
 	{
 		_pendingWritePersistedState = false;
+		SetPendingDefinitionMetadata(Empty.ByteArray);
 		var reason =
 			$"Projection '{_name}' definition record size ({recordSize} bytes) exceeds the maximum of {TFConsts.EffectiveMaxLogRecordSize} bytes.";
 		if (Created)
@@ -910,13 +934,14 @@ public class ManagedProjection : IDisposable
 		replyEnvelope?.ReplyWith(new ProjectionManagementMessage.RecordTooLarge(reason));
 	}
 
-	private void WritePersistedState(ClientMessage.WriteEvents persistedStateEvent)
+	private void WritePersistedState(ClientMessage.WriteEvents persistedStateEvent, long definitionMetadataVersion)
 	{
 		if (Mode == ProjectionMode.Transient)
 		{
 			//TODO: move to common completion procedure
 			_lastWrittenVersion = PersistedProjectionState.Version ?? -1;
 			_pendingWritePersistedState = false;
+			ClearPendingDefinitionMetadata(definitionMetadataVersion);
 			StartOrLoadStopped();
 			return;
 		}
@@ -924,11 +949,12 @@ public class ManagedProjection : IDisposable
 		_writing = true;
 		_writeDispatcher.Publish(
 			persistedStateEvent,
-			m => WritePersistedStateCompleted(m, persistedStateEvent, persistedStateEvent.EventStreamId));
+			m => WritePersistedStateCompleted(m, persistedStateEvent, persistedStateEvent.EventStreamId,
+				definitionMetadataVersion));
 	}
 
 	private void WritePersistedStateCompleted(ClientMessage.WriteEventsCompleted message,
-		ClientMessage.WriteEvents eventToRetry, string eventStreamId)
+		ClientMessage.WriteEvents eventToRetry, string eventStreamId, long definitionMetadataVersion)
 	{
 		if (!_writing)
 		{
@@ -939,6 +965,7 @@ public class ManagedProjection : IDisposable
 		{
 			_logger.Information("'{projection}' projection source has been written", _name);
 			_pendingWritePersistedState = false;
+			ClearPendingDefinitionMetadata(definitionMetadataVersion);
 			var writtenEventNumber = message.FirstEventNumber;
 			if (writtenEventNumber != (PersistedProjectionState.Version ?? writtenEventNumber))
 			{
@@ -961,7 +988,7 @@ public class ManagedProjection : IDisposable
 															OperationResult.WrongExpectedVersion)
 		{
 			_logger.Information("Retrying write projection source for {projection}", _name);
-			WritePersistedState(eventToRetry);
+			WritePersistedState(eventToRetry, definitionMetadataVersion);
 		}
 		else
 		{
@@ -1170,6 +1197,7 @@ public class ManagedProjection : IDisposable
 	public void Fault(string reason)
 	{
 		_logger.Error("The '{projection}' projection faulted due to '{e}'", _name, reason);
+		SetPendingDefinitionMetadata(Empty.ByteArray);
 		SetState(ManagedProjectionState.Faulted);
 		_faultedReason = reason;
 	}

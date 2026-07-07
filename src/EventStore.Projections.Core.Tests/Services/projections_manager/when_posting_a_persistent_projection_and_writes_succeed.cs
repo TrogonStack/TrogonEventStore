@@ -15,6 +15,8 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager;
 public class
 	when_posting_a_persistent_projection_and_writes_succeed<TLogFormat, TStreamId> : TestFixtureWithProjectionCoreAndManagementServices<TLogFormat, TStreamId>
 {
+	private static readonly byte[] DefinitionMetadata = { 1, 2, 3 };
+
 	protected override void Given()
 	{
 		NoStream("$projections-test-projection-order");
@@ -34,7 +36,8 @@ public class
 			new ProjectionManagementMessage.Command.Post(
 				_bus, ProjectionMode.Continuous, _projectionName,
 				ProjectionManagementMessage.RunAs.System, "JS", @"fromAll().when({$any:function(s,e){return s;}});",
-				enabled: true, checkpointsEnabled: true, emitEnabled: true, trackEmittedStreams: true);
+				enabled: true, checkpointsEnabled: true, emitEnabled: true, trackEmittedStreams: true,
+				definitionMetadata: DefinitionMetadata);
 	}
 
 	[Test, Category("v8")]
@@ -55,6 +58,17 @@ public class
 		Assert.IsTrue(
 			_consumer.HandledMessages.OfType<ClientMessage.WriteEvents>().Any(
 				v => v.Events[0].EventType == ProjectionEventTypes.ProjectionUpdated));
+	}
+
+	[Test, Category("v8")]
+	public void projection_definition_metadata_is_written()
+	{
+		var writtenEvent = _consumer.HandledMessages.OfType<ClientMessage.WriteEvents>()
+			.Single(v => v.EventStreamId == "$projections-test-projection")
+			.Events[0];
+
+		Assert.IsTrue(writtenEvent.IsPropertyMetadata);
+		CollectionAssert.AreEqual(DefinitionMetadata, writtenEvent.Metadata);
 	}
 
 	[Test, Category("v8")]
