@@ -73,6 +73,28 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void disable_tls_is_a_valid_parameter()
+	{
+		var options = GetOptions("--disable-tls true");
+
+		options.Application.DisableTls.Should().BeTrue();
+		options.Application.TlsDisabled().Should().BeTrue();
+		options.Application.AuthDisabled().Should().BeFalse();
+		Assert.Empty(options.Unknown.Options);
+	}
+
+	[Fact]
+	public void insecure_disables_tls_and_auth()
+	{
+		var options = GetOptions("--insecure true");
+
+		options.Application.Insecure.Should().BeTrue();
+		options.Application.TlsDisabled().Should().BeTrue();
+		options.Application.AuthDisabled().Should().BeTrue();
+		Assert.Empty(options.Unknown.Options);
+	}
+
+	[Fact]
 	public void stream_info_cache_scales_automatically_by_default()
 	{
 		var configuration = EventStoreConfiguration.Build(Array.Empty<string>());

@@ -201,6 +201,14 @@ internal static class Program
 					"INSECURE MODE WILL DISABLE ALL AUTHENTICATION, AUTHORIZATION AND TRANSPORT SECURITY FOR ALL CLIENTS AND NODES.\n" +
 					"==============================================================================================================\n");
 			}
+			else if (options.Application.DisableTls)
+			{
+				Log.Warning(
+					"\n==============================================================================================================\n" +
+					"TLS IS DISABLED. THIS MODE IS *NOT* RECOMMENDED FOR PRODUCTION USE.\n" +
+					"AUTHENTICATION AND AUTHORIZATION REMAIN ENABLED, BUT TRAFFIC IS NOT ENCRYPTED.\n" +
+					"==============================================================================================================\n");
+			}
 
 			if (options.Application.WhatIf)
 			{
