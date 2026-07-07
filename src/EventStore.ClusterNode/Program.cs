@@ -276,7 +276,6 @@ internal static class Program
 					builder.Services.AddHttpContextAccessor();
 					builder.Services.AddRazorComponents();
 					builder.Services.AddScoped<ProjectionBrowserService>();
-					builder.Services.AddScoped<QueryBrowserService>();
 					builder.Services.AddSingleton<QueueDashboardService>();
 					builder.Services.AddSingleton<ClusterStatusService>();
 					builder.Services.AddSingleton<NodeProbeService>();

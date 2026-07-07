@@ -16,7 +16,7 @@ The dashboard opens at `/ui` and combines the daily operational view in one plac
 
 ## Navigator
 
-The _Navigator_ page links to the main workspace areas: streams, queries, projections, subscriptions, users, operations, observability, and configuration.
+The _Navigator_ page links to the main workspace areas: streams, projections, subscriptions, users, operations, observability, and configuration.
 
 ## Observability
 
@@ -37,15 +37,11 @@ The _Streams_ page lets you find recently created or changed streams and open a 
 
 - paged event browsing
 - event detail views with data and metadata
-- append, metadata, ACL, delete, and query actions
-
-## Query
-
-The _Query_ page runs transient JavaScript projections for short-lived analysis and can stop the generated transient projection from the same page.
+- append, metadata, ACL, and delete actions
 
 ## Projections
 
-The _Projections_ page shows user, system, and optionally transient projections. It supports creating projections, creating standard projections, bulk enable or disable, and opening a projection for inspection.
+The _Projections_ page shows user and system projections. It supports creating projections, creating standard projections, bulk enable or disable, and opening a projection for inspection.
 
 Projection detail pages provide source, status, config, state, result, debug, edit, reset, and delete workflows. Projection features are available when projections are enabled on the node.
 

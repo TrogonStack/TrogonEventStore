@@ -514,8 +514,7 @@ Once the projection is running, open the Admin UI, go to _Projections_, select t
 _Debug_. The debug page shows the current projection source, state payload, and status, with actions to stop or
 reset the projection when the runtime state needs to be cleared.
 
-Use _Open in query_ to run the projection source as a transient query, or _Edit source_ to change the persistent
-projection definition.
+Use _Edit source_ to change the persistent projection definition.
 
 ## Projections settings
 

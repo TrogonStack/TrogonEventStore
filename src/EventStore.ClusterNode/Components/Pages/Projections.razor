@@ -12,7 +12,6 @@
 		<div class="mt-6 flex flex-wrap gap-2">
 			<a class="rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="/ui/projections/new">New projection</a>
 			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui/projections/standard">New standard projection</a>
-			<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="@(Page?.ToggleQueriesHref ?? (IncludeQueries ? "/ui/projections" : "/ui/projections?includeQueries=true"))">@(Page?.ToggleQueriesLabel ?? (IncludeQueries ? "Hide transient queries" : "Include transient queries"))</a>
 		</div>
 	</div>
 	<div class="grid gap-3 rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-[0_20px_70px_rgba(23,32,51,0.09)] sm:grid-cols-3">
@@ -55,7 +54,7 @@
 	{
 		<div class="overflow-hidden rounded-[2rem] border border-white/80 bg-white/85 shadow-[0_20px_70px_rgba(23,32,51,0.09)]">
 			<div class="flex flex-wrap items-center justify-between gap-3 border-b border-es-ink/10 px-5 py-4">
-				<p class="text-sm font-bold text-es-muted">Showing @(Page.IncludeQueries ? "all projections including transient queries" : "non-transient projections").</p>
+				<p class="text-sm font-bold text-es-muted">Showing non-transient projections.</p>
 				<div class="flex flex-wrap gap-2">
 					<EditForm Model="EnableAllInput" FormName="projection-enable-all" OnValidSubmit="EnableAll">
 						<AntiforgeryToken />
@@ -128,8 +127,6 @@
 </section>
 
 @code {
-	[SupplyParameterFromQuery] public bool IncludeQueries { get; set; }
-
 	[SupplyParameterFromForm(FormName = "projection-enable-all")]
 	private ProjectionBulkInput EnableAllInput { get; set; }
 
@@ -138,8 +135,7 @@
 
 	private ProjectionListPage Page { get; set; }
 	private ProjectionBulkCommandResult CommandResult { get; set; }
-	private string EmptyProjectionsMessage =>
-		Page?.IncludeQueries == true ? "No projections are available." : "No non-transient projections are available.";
+	private const string EmptyProjectionsMessage = "No non-transient projections are available.";
 
 	protected override async Task OnParametersSetAsync() {
 		EnableAllInput ??= new();
@@ -149,7 +145,7 @@
 
 		try
 		{
-			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
+			Page = await ProjectionBrowser.ReadAll();
 		}
 		catch (OperationCanceledException)
 		{
@@ -157,13 +153,13 @@
 		}
 		catch (Exception ex)
 		{
-			Page = ProjectionListPage.Unavailable($"Failed to load projections: {UiMessages.Friendly(ex)}", IncludeQueries);
+			Page = ProjectionListPage.Unavailable($"Failed to load projections: {UiMessages.Friendly(ex)}");
 		}
 	}
 
 	private async Task EnableAll() {
 		try {
-			CommandResult = await ProjectionBrowser.EnableAll(IncludeQueries);
+			CommandResult = await ProjectionBrowser.EnableAll();
 		} catch (OperationCanceledException) {
 			CommandResult = ProjectionBulkCommandResult.Failure("Enable projections was canceled.");
 			return;
@@ -177,7 +173,7 @@
 
 	private async Task DisableAll() {
 		try {
-			CommandResult = await ProjectionBrowser.DisableAll(IncludeQueries);
+			CommandResult = await ProjectionBrowser.DisableAll();
 		} catch (OperationCanceledException) {
 			CommandResult = ProjectionBulkCommandResult.Failure("Disable projections was canceled.");
 			return;
@@ -191,11 +187,11 @@
 
 	private async Task RefreshAfterBulkAction() {
 		try {
-			Page = await ProjectionBrowser.ReadAll(IncludeQueries);
+			Page = await ProjectionBrowser.ReadAll();
 		} catch (OperationCanceledException) {
-			Page = ProjectionListPage.Unavailable("Projection command completed, but refresh was canceled.", IncludeQueries);
+			Page = ProjectionListPage.Unavailable("Projection command completed, but refresh was canceled.");
 		} catch (Exception ex) {
-			Page = ProjectionListPage.Unavailable($"Projection command completed, but refresh failed: {UiMessages.Friendly(ex)}", IncludeQueries);
+			Page = ProjectionListPage.Unavailable($"Projection command completed, but refresh failed: {UiMessages.Friendly(ex)}");
 		}
 	}
 
