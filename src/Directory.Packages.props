@@ -14,7 +14,7 @@
     <PackageVersion Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
     <!--Version 8 and beyond are free for open-source projects and non-commercial use, but commercial use requires a paid license-->
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
-    <PackageVersion Include="AWSSDK.Core" Version="4.0.100.2" />
+    <PackageVersion Include="AWSSDK.Core" Version="4.0.100.4" />
     <PackageVersion Include="FluentStorage.AWS" Version="6.0.3" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.4">
       <PrivateAssets>all</PrivateAssets>
@@ -32,7 +32,7 @@
     <PackageVersion Include="Grpc.Net.Client" Version="2.80.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.82.0" />
     <PackageVersion Include="JetBrains.Annotations" Version="2025.2.4" />
-    <PackageVersion Include="Jint" Version="4.11.0" />
+    <PackageVersion Include="Jint" Version="4.12.0" />
     <PackageVersion Include="librdkafka.redist" Version="2.15.0" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.9" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" />
@@ -65,7 +65,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
     <PackageVersion Include="Quickenshtein" Version="1.5.1" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
-    <PackageVersion Include="Serilog" Version="4.3.1" />
+    <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.Enrichers.Process" Version="3.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
     <PackageVersion Include="Serilog.Expressions" Version="5.0.0" />
@@ -79,7 +79,7 @@
     <PackageVersion Include="Serilog.Sinks.TextWriter" Version="3.0.0" />
     <PackageVersion Include="SharpDotYaml.Extensions.Configuration" Version="0.4.0" />
     <PackageVersion Include="System.CommandLine.DragonFruit" Version="0.4.0-alpha.25306.1" />
-    <PackageVersion Include="System.ComponentModel.Composition" Version="10.0.7" />
+    <PackageVersion Include="System.ComponentModel.Composition" Version="10.0.9" />
     <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="10.0.9" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.9" />
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9" />
