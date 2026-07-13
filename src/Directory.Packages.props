@@ -90,6 +90,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="YamlDotnet" Version="17.1.0" />
+    <PackageVersion Include="YamlDotnet" Version="18.1.0" />
   </ItemGroup>
 </Project>
