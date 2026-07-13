@@ -43,43 +43,43 @@ dependencyOverrides:
       - key: "MIT"
         url: "https://github.com/mono/mono/blob/main/LICENSE"
 
-  # not automatically detectable in this older package
+  # not automatically detectable by Qodana
   - name: "OpenTelemetry"
-    version: "1.4.0-rc.1"
+    version: "1.16.0"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
 
-  # not automatically detectable in this older package
+  # not automatically detectable by Qodana
   - name: "OpenTelemetry.Api"
-    version: "1.4.0-rc.1"
+    version: "1.16.0"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
 
-  # not automatically detectable in this older package
+  # not automatically detectable by Qodana
   - name: "OpenTelemetry.Exporter.Prometheus.AspNetCore"
-    version: "1.4.0-rc.1"
+    version: "1.16.0-beta.1"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
 
-  # not automatically detectable in this older package
+  # not automatically detectable by Qodana
   - name: "OpenTelemetry.Extensions.DependencyInjection"
-    version: "1.4.0-rc.1"
+    version: "1.16.0"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
 
-  # not automatically detectable in this older package
+  # not automatically detectable by Qodana
   - name: "OpenTelemetry.Extensions.Hosting"
-    version: "1.4.0-rc.1"
+    version: "1.16.0"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
 
   - name: "OpenTelemetry.Instrumentation.AspNetCore"
-    version: "1.15.2"
+    version: "1.16.0"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/main/LICENSE"

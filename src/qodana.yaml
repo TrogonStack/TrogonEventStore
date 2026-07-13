@@ -30,12 +30,12 @@ profile:
 
 dependencyOverrides:
   - name: "OpenTelemetry.Exporter.Prometheus.AspNetCore"
-    version: "1.15.3-beta.1"
+    version: "1.16.0-beta.1"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet/blob/main/LICENSE.TXT"
   - name: "OpenTelemetry.Instrumentation.AspNetCore"
-    version: "1.15.2"
+    version: "1.16.0"
     licenses:
       - key: "Apache-2.0"
         url: "https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/main/LICENSE"
