@@ -58,7 +58,7 @@ public class CurrentTests
 		{
 			Assert.AreEqual("ops", _current.UserDetails.LoginName);
 			Assert.AreEqual("Event Store Operations", _current.UserDetails.FullName);
-			CollectionAssert.Contains(_current.UserDetails.Groups, "$ops");
+			Assert.That(_current.UserDetails.Groups, Does.Contain("$ops"));
 		}
 	}
 

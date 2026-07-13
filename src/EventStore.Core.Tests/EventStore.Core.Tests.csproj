@@ -13,7 +13,9 @@
 		<PackageReference Include="Microsoft.AspNetCore.TestHost" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="NUnit" />
-		<PackageReference Include="NUnit3TestAdapter" />
+		<PackageReference Include="NUnit3TestAdapter">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="Google.Protobuf" />
 		<PackageReference Include="Grpc.Tools">
 			<PrivateAssets>all</PrivateAssets>

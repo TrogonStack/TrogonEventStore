@@ -92,8 +92,8 @@ public class DetailsTests
 		public void streams_the_user_list()
 		{
 			var loginNames = _details.Select(x => x.UserDetails.LoginName).ToArray();
-			CollectionAssert.Contains(loginNames, "details-list-test-user-1");
-			CollectionAssert.Contains(loginNames, "details-list-test-user-2");
+			Assert.That(loginNames, Does.Contain("details-list-test-user-1"));
+			Assert.That(loginNames, Does.Contain("details-list-test-user-2"));
 
 			var enabledUser = _details.Single(x => x.UserDetails.LoginName == "details-list-test-user-1");
 			Assert.AreEqual("Details Test User", enabledUser.UserDetails.FullName);

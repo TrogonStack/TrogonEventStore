@@ -281,7 +281,7 @@ public class when_node_becomes_leader_with_unindexed_data<TLogFormat, TStreamId>
 
 	[TestCase(true)]
 	[TestCase(false)]
-	[Explicit, Category("LongRunning"), Timeout(80000), NonParallelizable]
+	[Explicit, Category("LongRunning"), HardTimeout(80000), NonParallelizable]
 	public async Task new_events_should_have_correct_event_numbers(bool appendInitialEvent)
 	{
 		await WaitForAllNodesToBeLive();

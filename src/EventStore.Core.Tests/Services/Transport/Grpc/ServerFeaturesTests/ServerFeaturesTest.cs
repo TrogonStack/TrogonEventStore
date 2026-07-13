@@ -90,7 +90,7 @@ public class ServerFeaturesTest
 		[Test]
 		public void should_receive_expected_endpoints()
 		{
-			CollectionAssert.AreEquivalent(_expectedEndPoints, _supportedEndPoints);
+			Assert.That(_supportedEndPoints, Is.EquivalentTo(_expectedEndPoints));
 		}
 
 		[Test]

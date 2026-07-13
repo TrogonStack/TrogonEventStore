@@ -49,7 +49,6 @@ class when_requesting_state_from_a_faulted_projection<TLogFormat, TStreamId> : w
 		Assert.That(state.Position.Streams.Count == 1);
 		Assert.That(state.Position.Streams.Keys.First() == "message1");
 		Assert.That(state.Position.Streams["message1"] == -1);
-		Assert.That(
-			state.Position.Position <= _message1Position, "{0} <= {1}", state.Position.Position, _message1Position);
+		Assert.That(state.Position.Position, Is.LessThanOrEqualTo(_message1Position));
 	}
 }

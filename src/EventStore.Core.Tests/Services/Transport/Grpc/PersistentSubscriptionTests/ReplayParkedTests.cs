@@ -117,7 +117,7 @@ public class ReplayParkedTests
 		public void should_receive_replayed_messages()
 		{
 			_expectedEventVersions = Enumerable.Range(0, _eventCount).Select(x => (ulong)x).ToList();
-			CollectionAssert.AreEqual(_expectedEventVersions, _actualEventVersions);
+			Assert.That(_actualEventVersions, Is.EqualTo(_expectedEventVersions));
 		}
 
 		[TearDown]
@@ -251,7 +251,7 @@ public class ReplayParkedTests
 		public void should_receive_one_replayed_message_and_new_message()
 		{
 			_expectedEventVersions = new List<ulong> { 0, 10 };
-			CollectionAssert.AreEqual(_expectedEventVersions, _actualEventVersions);
+			Assert.That(_actualEventVersions, Is.EqualTo(_expectedEventVersions));
 		}
 
 		[TearDown]

@@ -60,7 +60,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 			.ToList();
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task only_return_events_with_a_given_stream_prefix()
 	{
 		var filter = Filter.StreamId.Prefix("stream-a");
@@ -98,7 +98,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task only_return_events_with_a_given_event_prefix()
 	{
 		var filter = Filter.EventType.Prefix("AE");
@@ -141,7 +141,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task only_return_events_that_satisfy_a_given_stream_regex()
 	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
@@ -179,7 +179,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task only_return_events_that_satisfy_a_given_event_regex()
 	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
@@ -217,7 +217,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task only_return_events_that_are_not_system_events()
 	{
 		var filter = Filter.ExcludeSystemEvents;
@@ -277,7 +277,7 @@ public class subscribe_to_all_filtered_should<TLogFormat, TStreamId> : Specifica
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task calls_checkpoint_reached_according_to_checkpoint_message_count()
 	{
 		var filter = Filter.ExcludeSystemEvents;

@@ -345,6 +345,6 @@ public class DynamicCacheManagerTests
 			{"es-cache-test2-utilizationPercent", 100.0 * 10 / 15},
 		};
 
-		CollectionAssert.AreEquivalent(expectedStats, msg.Stats);
+		Assert.That(msg.Stats, Is.EquivalentTo(expectedStats));
 	}
 }

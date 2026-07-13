@@ -41,7 +41,7 @@ public class when_posting_a_transient_projection<TLogFormat, TStreamId> : TestFi
 	{
 		var failure = HandledMessages.OfType<ProjectionManagementMessage.OperationFailed>().Single();
 
-		StringAssert.Contains("Transient projections are not supported", failure.Reason);
+		Assert.That(failure.Reason, Does.Contain("Transient projections are not supported"));
 	}
 
 	[Test, Category("v8")]

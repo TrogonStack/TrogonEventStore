@@ -68,7 +68,7 @@ public class
 			.Events[0];
 
 		Assert.IsTrue(writtenEvent.IsPropertyMetadata);
-		CollectionAssert.AreEqual(DefinitionMetadata, writtenEvent.Metadata);
+		Assert.That(writtenEvent.Metadata, Is.EqualTo(DefinitionMetadata));
 	}
 
 	[Test, Category("v8")]

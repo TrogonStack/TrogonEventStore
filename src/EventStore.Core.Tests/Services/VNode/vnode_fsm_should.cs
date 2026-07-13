@@ -32,7 +32,7 @@ public class vnode_fsm_should
 		var fsm = new VNodeFSMBuilder(new ValueReference<VNodeState>(VNodeState.Leader))
 			.InAnyState()
 			.When<P>().Ignore()
-			.WhenOther().Do(x => Assert.Fail("{0} slipped through", x.GetType().Name))
+			.WhenOther().Do(x => Assert.Fail($"{x.GetType().Name} slipped through"))
 			.Build();
 
 		await fsm.HandleAsync(new A());
@@ -47,7 +47,7 @@ public class vnode_fsm_should
 			.InAnyState()
 			.When<P>().Ignore()
 			.When<A>().Do(x => aHandled = true)
-			.WhenOther().Do(x => Assert.Fail("{0} slipped through", x.GetType().Name))
+			.WhenOther().Do(x => Assert.Fail($"{x.GetType().Name} slipped through"))
 			.Build();
 
 		await fsm.HandleAsync(new A());

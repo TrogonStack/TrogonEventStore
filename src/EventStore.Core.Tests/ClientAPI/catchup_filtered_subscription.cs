@@ -176,7 +176,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public void only_return_events_with_a_given_stream_prefix()
 	{
 		var filter = Filter.StreamId.Prefix("stream-a");
@@ -198,7 +198,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public void only_return_events_with_a_given_event_prefix()
 	{
 		var filter = Filter.EventType.Prefix("AE");
@@ -220,7 +220,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public void only_return_events_that_satisfy_a_given_stream_regex()
 	{
 		var filter = Filter.StreamId.Regex(new Regex(@"^.*eam-b.*$"));
@@ -242,7 +242,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public void only_return_events_that_satisfy_a_given_event_regex()
 	{
 		var filter = Filter.EventType.Regex(new Regex(@"^.*BEv.*$"));
@@ -264,7 +264,7 @@ public class catchup_filtered_subscription<TLogFormat, TStreamId> : Specificatio
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public void only_return_events_that_are_not_system_events()
 	{
 		var filter = Filter.ExcludeSystemEvents;

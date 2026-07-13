@@ -14,7 +14,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 {
 	private const int LongRunningTimeout = 120000;
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task everything_should_go_fine()
 	{
 		var miniNode = new MiniNode<TLogFormat, TStreamId>(PathName);
@@ -69,7 +69,7 @@ public class when_truncating_database<TLogFormat, TStreamId> : SpecificationWith
 		await miniNode.Shutdown();
 	}
 
-	[Test, Category("LongRunning"), Category("Network"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), Category("Network"), HardTimeout(LongRunningTimeout)]
 	public async Task with_truncate_position_in_completed_chunk_everything_should_go_fine()
 	{
 		const int chunkSize = 1024 * 1024;

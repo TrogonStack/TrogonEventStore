@@ -36,9 +36,13 @@ public static class VersionInfo
 
 		VersionPrefix = versionPrefix;
 
-		var versionFilePath = Path.Join(
-			Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory),
-			"version.properties");
+		var versionFilePath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "version.properties");
+		if (!File.Exists(versionFilePath))
+		{
+			versionFilePath = Path.Join(
+				Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory),
+				"version.properties");
+		}
 		var properties = LoadProperties(versionFilePath);
 
 		if (properties.TryGetValue("version_suffix", out var versionSuffix))

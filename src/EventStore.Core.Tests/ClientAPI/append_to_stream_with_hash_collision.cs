@@ -42,7 +42,7 @@ public class append_to_stream_with_hash_collision<TLogFormat, TStreamId> : Speci
 		await base.TestFixtureTearDown();
 	}
 
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, HardTimeout(LongRunningTimeout)]
 	public async Task should_throw_wrong_expected_version()
 	{
 		const string stream1 = "account--696193173";

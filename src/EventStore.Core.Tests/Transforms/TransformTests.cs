@@ -29,7 +29,7 @@ public class TransformTests<TLogFormat, TStreamId> : SpecificationWithDirectoryP
 	[TestCase("bitflip")]
 	[TestCase("bytedup")]
 	[TestCase("withheader")]
-	[Timeout(600000)]
+	[HardTimeout(600000)]
 	public async Task transform_works(string transform)
 	{
 		MiniNode<TLogFormat, TStreamId> node = null;

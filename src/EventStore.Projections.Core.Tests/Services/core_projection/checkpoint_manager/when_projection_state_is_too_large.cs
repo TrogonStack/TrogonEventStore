@@ -73,7 +73,7 @@ public class when_projection_state_is_too_large<TLogFormat, TStreamId> :
 		var failedMessages = _consumer.HandledMessages.OfType<CoreProjectionProcessingMessage.Failed>().ToArray();
 
 		Assert.AreEqual(1, failedMessages.Length);
-		StringAssert.Contains("exceeds the configured MaxProjectionStateSize", failedMessages[0].Reason);
+		Assert.That(failedMessages[0].Reason, Does.Contain("exceeds the configured MaxProjectionStateSize"));
 	}
 
 	[Test]

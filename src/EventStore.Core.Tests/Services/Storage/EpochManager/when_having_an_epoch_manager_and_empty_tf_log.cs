@@ -139,7 +139,7 @@ public class
 			epoch = epoch.Next;
 		}
 
-		CollectionAssert.IsOrdered(epochs);
+		Assert.That(epochs, Is.Ordered);
 
 		// can_write_more_epochs_than_cache_size
 
@@ -159,7 +159,7 @@ public class
 			epoch = epoch.Next;
 		}
 
-		CollectionAssert.IsOrdered(epochs);
+		Assert.That(epochs, Is.Ordered);
 
 		// has written epoch information
 		var epochsWritten = _published.OfType<SystemMessage.EpochWritten>().ToArray();

@@ -37,6 +37,6 @@ public class when_specifying_meta_data_for_linked_event : TestFixtureWithInterpr
 		Assert.IsNotNull(emittedEvents[0].Event);
 
 		var metaData = emittedEvents[0].Event.ExtraMetaData();
-		CollectionAssert.AreEquivalent(new Dictionary<string, string> { { "meta", "\"data\"" } }, metaData);
+		Assert.That(metaData, Is.EquivalentTo(new Dictionary<string, string> { { "meta", "\"data\"" } }));
 	}
 }

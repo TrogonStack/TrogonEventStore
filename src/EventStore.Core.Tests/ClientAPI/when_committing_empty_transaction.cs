@@ -68,7 +68,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, HardTimeout(LongRunningTimeout)]
 	public async Task following_append_with_correct_expected_version_are_commited_correctly()
 	{
 		Assert.AreEqual(4,
@@ -85,7 +85,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, HardTimeout(LongRunningTimeout)]
 	public async Task following_append_with_expected_version_any_are_commited_correctly()
 	{
 		Assert.AreEqual(4,
@@ -101,7 +101,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, HardTimeout(LongRunningTimeout)]
 	public async Task committing_first_event_with_expected_version_no_stream_is_idempotent()
 	{
 		Assert.AreEqual(0,
@@ -117,7 +117,7 @@ public class when_committing_empty_transaction<TLogFormat, TStreamId> : Specific
 		}
 	}
 
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, HardTimeout(LongRunningTimeout)]
 	public async Task trying_to_append_new_events_with_expected_version_no_stream_fails()
 	{
 		await AssertEx.ThrowsAsync<WrongExpectedVersionException>(() =>

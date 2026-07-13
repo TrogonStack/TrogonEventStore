@@ -47,7 +47,7 @@ public class when_updating_a_projection_with_oversized_definition<TLogFormat, TS
 	public void the_operation_fails_as_record_too_large()
 	{
 		var failure = _consumer.HandledMessages.OfType<ProjectionManagementMessage.RecordTooLarge>().Single();
-		StringAssert.Contains("exceeds the maximum", failure.Reason);
+		Assert.That(failure.Reason, Does.Contain("exceeds the maximum"));
 	}
 
 	[Test, Category("v8")]

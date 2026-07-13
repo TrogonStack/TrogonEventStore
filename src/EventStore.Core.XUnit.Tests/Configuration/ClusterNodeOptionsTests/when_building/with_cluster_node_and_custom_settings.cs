@@ -95,7 +95,7 @@ public class with_dns_discovery_disabled_and_gossip_seeds_defined<TLogFormat, TS
 	[Test]
 	public void should_set_the_gossip_seeds()
 	{
-		CollectionAssert.AreEqual(_gossipSeeds, _options.Cluster.GossipSeed);
+		Assert.That(_options.Cluster.GossipSeed, Is.EqualTo(_gossipSeeds));
 	}
 }
 
@@ -116,7 +116,7 @@ public class with_custom_gossip_seeds<TLogFormat, TStreamId> : ClusterMemberScen
 	[Test]
 	public void should_set_the_gossip_seeds()
 	{
-		CollectionAssert.AreEqual(_gossipSeeds, _options.Cluster.GossipSeed);
+		Assert.That(_options.Cluster.GossipSeed, Is.EqualTo(_gossipSeeds));
 	}
 }
 

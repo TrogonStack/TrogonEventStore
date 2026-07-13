@@ -74,7 +74,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		return TestConnection.Create(node.TcpEndPoint);
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task call_dropped_callback_after_stop_method_call()
 	{
 		using (var store = BuildConnection(_node))
@@ -94,7 +94,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task call_dropped_callback_when_an_error_occurs_while_processing_an_event()
 	{
 		const string stream = "call_dropped_callback_when_an_error_occurs_while_processing_an_event";
@@ -113,7 +113,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task be_able_to_subscribe_to_empty_db()
 	{
 		using (var store = BuildConnection(_node))
@@ -147,7 +147,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task read_all_existing_events_and_keep_listening_to_new_ones()
 	{
 		using (var store = BuildConnection(_node))
@@ -202,7 +202,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task filter_events_and_keep_listening_to_new_ones()
 	{
 		using (var store = BuildConnection(_node))
@@ -269,7 +269,7 @@ public class subscribe_to_all_catching_up_should<TLogFormat, TStreamId> : Specif
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task filter_events_and_work_if_nothing_was_written_after_subscription()
 	{
 		using (var store = BuildConnection(_node))

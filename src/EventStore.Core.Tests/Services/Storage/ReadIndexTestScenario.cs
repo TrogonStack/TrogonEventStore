@@ -257,8 +257,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 
 				if (await Writer.Write(prepare, token) is (false, _))
 				{
-					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
-						prepare.LogPosition);
+					Assert.Fail(
+						$"Second write try failed when first writing prepare at {firstPos}, then at {prepare.LogPosition}.");
 				}
 			}
 		}
@@ -280,8 +280,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 					eventNumber);
 				if (await Writer.Write(commit, token) is (false, _))
 				{
-					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
-						prepare.LogPosition);
+					Assert.Fail(
+						$"Second write try failed when first writing prepare at {firstPos}, then at {prepare.LogPosition}.");
 				}
 			}
 		}
@@ -398,8 +398,8 @@ public abstract class ReadIndexTestScenario<TLogFormat, TStreamId> : Specificati
 					transactionPosition: tPos);
 				if (await Writer.Write(prepare, token) is (false, _))
 				{
-					Assert.Fail("Second write try failed when first writing prepare at {0}, then at {1}.", firstPos,
-						prepare.LogPosition);
+					Assert.Fail(
+						$"Second write try failed when first writing prepare at {firstPos}, then at {prepare.LogPosition}.");
 				}
 			}
 

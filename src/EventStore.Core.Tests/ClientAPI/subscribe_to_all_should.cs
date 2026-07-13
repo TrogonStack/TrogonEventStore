@@ -76,7 +76,7 @@ public class subscribe_to_all_should<TLogFormat, TStreamId> : SpecificationWithD
 		}
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public async Task catch_deleted_events_as_well()
 	{
 		const string stream = "subscribe_to_all_should_catch_created_and_deleted_events_as_well";

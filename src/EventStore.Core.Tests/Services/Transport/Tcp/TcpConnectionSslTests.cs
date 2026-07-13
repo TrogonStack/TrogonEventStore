@@ -31,7 +31,7 @@ public class TcpConnectionSslTests
 		return data;
 	}
 
-	[Test, Timeout(120000)]
+	[Test, HardTimeout(120000)]
 	public async Task no_data_should_be_dispatched_after_tcp_connection_closed()
 	{
 		for (int i = 0; i < 1000; i++)
@@ -110,7 +110,7 @@ public class TcpConnectionSslTests
 		}
 	}
 
-	[Test, Timeout(120000)]
+	[Test, HardTimeout(120000)]
 	public void when_connection_closed_quickly_socket_should_be_properly_disposed()
 	{
 		for (int i = 0; i < 1000; i++)

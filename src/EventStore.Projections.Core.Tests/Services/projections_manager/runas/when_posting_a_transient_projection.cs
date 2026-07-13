@@ -51,7 +51,7 @@ namespace EventStore.Projections.Core.Tests.Services.projections_manager.runas
 			{
 				var failure = HandledMessages.OfType<ProjectionManagementMessage.OperationFailed>().Single();
 
-				StringAssert.Contains("Transient projections are not supported", failure.Reason);
+				Assert.That(failure.Reason, Does.Contain("Transient projections are not supported"));
 			}
 
 			[Test]

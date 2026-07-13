@@ -67,7 +67,7 @@ public static class ReplicationTestHelper
 
 			if (readResult.Result == ReadAllResult.Error)
 			{
-				Assert.Fail("Failed to read forwards. Read result error: {0}", readResult.Error);
+				Assert.Fail($"Failed to read forwards. Read result error: {readResult.Error}");
 				return null;
 			}
 
@@ -105,7 +105,7 @@ public static class ReplicationTestHelper
 
 			if (readResult.Result == ReadAllResult.Error)
 			{
-				Assert.Fail("Failed to read backwards. Read result error: {0}", readResult.Error);
+				Assert.Fail($"Failed to read backwards. Read result error: {readResult.Error}");
 				return null;
 			}
 

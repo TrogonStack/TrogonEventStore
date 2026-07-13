@@ -126,6 +126,6 @@ public class when_updating_a_persistent_projection_query_text<TLogFormat, TStrea
 			.Events[0];
 
 		Assert.IsTrue(writtenEvent.IsPropertyMetadata);
-		CollectionAssert.AreEqual(UpdatedDefinitionMetadata, writtenEvent.Metadata);
+		Assert.That(writtenEvent.Metadata, Is.EqualTo(UpdatedDefinitionMetadata));
 	}
 }

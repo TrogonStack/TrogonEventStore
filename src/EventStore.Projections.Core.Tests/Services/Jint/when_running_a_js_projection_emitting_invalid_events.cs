@@ -33,12 +33,12 @@ public abstract class when_running_a_js_projection_emitting_invalid_events : Tes
 	{
 		string state;
 		EmittedEventEnvelope[] emittedEvents;
-		TestDelegate td = () =>
+		Action action = () =>
 			_stateHandler.ProcessEvent(
 				"", CheckpointTag.FromPosition(0, 20, 10), "stream1", "type1", "category", Guid.NewGuid(), 0,
 				"metadata",
 				@"{""a"":""b""}", out state, out emittedEvents);
-		var ae = IsNull ? Assert.Throws<ArgumentNullException>(td) : Assert.Throws<ArgumentException>(td);
+		var ae = IsNull ? Assert.Throws<ArgumentNullException>(action) : Assert.Throws<ArgumentException>(action);
 		Assert.AreEqual(ParameterName, ae.ParamName);
 	}
 

@@ -173,7 +173,7 @@ public class GetInfoTests
 		[Test]
 		public void should_receive_the_correct_stats()
 		{
-			CollectionAssert.AreEquivalent(_expectedSubscriptionInfo, _actualSubscriptionInfo);
+			Assert.That(_actualSubscriptionInfo, Is.EquivalentTo(_expectedSubscriptionInfo));
 		}
 	}
 
@@ -330,7 +330,7 @@ public class GetInfoTests
 			// Set the buffer counts to 0 to make comparison easier
 			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
-			CollectionAssert.AreEquivalent(_expectedSubscriptionInfo, _actualSubscriptionInfo);
+			Assert.That(_actualSubscriptionInfo, Is.EquivalentTo(_expectedSubscriptionInfo));
 		}
 	}
 
@@ -418,7 +418,7 @@ public class GetInfoTests
 			// Set the buffer counts to 0 to make comparison easier
 			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
-			CollectionAssert.AreEquivalent(_expectedSubscriptionInfo, _actualSubscriptionInfo);
+			Assert.That(_actualSubscriptionInfo, Is.EquivalentTo(_expectedSubscriptionInfo));
 		}
 	}
 
@@ -469,7 +469,7 @@ public class GetInfoTests
 		{
 			_actualSubscriptionInfo.ForEach(x => x.LiveBufferCount = 0);
 			_actualSubscriptionInfo.ForEach(x => x.ReadBufferCount = 0);
-			CollectionAssert.AreEquivalent(new[] { _expectedSubscriptionInfo }, _actualSubscriptionInfo);
+			Assert.That(_actualSubscriptionInfo, Is.EquivalentTo(new[] { _expectedSubscriptionInfo }));
 		}
 	}
 

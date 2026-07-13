@@ -100,7 +100,7 @@ public class ptable_midpoint_cache_should : SpecificationWithDirectory
 		construct_valid_cache_for_any_combination_of_params(4096);
 	}
 
-	[Test, Timeout(LongRunningTimeout)]
+	[Test, HardTimeout(LongRunningTimeout)]
 	public void construct_valid_cache_for_any_combination_of_params_small()
 	{
 		construct_valid_cache_for_any_combination_of_params(20);

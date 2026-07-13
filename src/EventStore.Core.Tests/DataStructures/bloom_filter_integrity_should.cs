@@ -105,10 +105,10 @@ public class bloom_filter_integrity_should
 		Assert.True(BloomFilterIntegrity.ValidateHash(cacheLine));
 
 		// same data
-		CollectionAssert.AreEqual(copy[..^4], cacheLine[..^4]);
+		Assert.That(cacheLine[..^4], Is.EqualTo(copy[..^4]));
 
 		// changed hash
-		CollectionAssert.AreNotEqual(copy[^4..], cacheLine[^4..]);
+		Assert.That(cacheLine[^4..], Is.Not.EqualTo(copy[^4..]));
 	}
 
 	[TestCase]

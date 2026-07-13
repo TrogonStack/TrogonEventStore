@@ -223,10 +223,10 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		switch (result.Status)
 		{
 			case SliceReadStatus.StreamDeleted:
-				Assert.Fail("Stream '{0}' is deleted", streamId);
+				Assert.Fail($"Stream '{streamId}' is deleted");
 				break;
 			case SliceReadStatus.StreamNotFound:
-				Assert.Fail("Stream '{0}' does not exist", streamId);
+				Assert.Fail($"Stream '{streamId}' does not exist");
 				break;
 			case SliceReadStatus.Success:
 				var resultEventsReversed = result.Events.Reverse().ToArray();
@@ -267,10 +267,10 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 		switch (result.Status)
 		{
 			case SliceReadStatus.StreamDeleted:
-				Assert.Fail("Stream '{0}' is deleted", streamId);
+				Assert.Fail($"Stream '{streamId}' is deleted");
 				break;
 			case SliceReadStatus.StreamNotFound:
-				Assert.Fail("Stream '{0}' does not exist", streamId);
+				Assert.Fail($"Stream '{streamId}' does not exist");
 				break;
 			case SliceReadStatus.Success:
 				Dump("Dumping..", streamId, result.Events.Reverse().ToArray());
@@ -291,9 +291,7 @@ public abstract class specification_with_standard_projections_runnning<TLogForma
 
 
 		Assert.Fail(
-			"Stream: '{0}'\r\n{1}\r\n\r\nExisting events: \r\n{2}\r\n Expected events: \r\n{3}\r\n\r\nActual metas:{4}",
-			streamId,
-			message, actual, expected, actualMeta);
+			$"Stream: '{streamId}'\r\n{message}\r\n\r\nExisting events: \r\n{actual}\r\n Expected events: \r\n{expected}\r\n\r\nActual metas:{actualMeta}");
 	}
 
 	protected void Dump(string message, string streamId, ResolvedEvent[] resultEvents)

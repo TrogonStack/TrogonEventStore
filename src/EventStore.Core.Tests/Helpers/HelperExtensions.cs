@@ -42,7 +42,7 @@ public static class HelperExtensions
 			{
 				if (response.TryGetValue(propertyName.Substring(0, propertyName.Length - "___".Length), out _))
 				{
-					Assert.Fail("{0}/{1} found, but it is explicitly forbidden", path, propertyName);
+					Assert.Fail($"{path}/{propertyName} found, but it is explicitly forbidden");
 				}
 			}
 			else if (propertyName.EndsWith("___exists"))
@@ -50,12 +50,12 @@ public static class HelperExtensions
 				if (!response.TryGetValue(propertyName.Substring(0, propertyName.Length - "___exists".Length),
 					out _))
 				{
-					Assert.Fail("{0}/{1} not found, but it is explicitly required", path, propertyName);
+					Assert.Fail($"{path}/{propertyName} not found, but it is explicitly required");
 				}
 			}
 			else if (!response.TryGetValue(propertyName, out vv))
 			{
-				Assert.Fail("{0}/{1} not found in '{2}'", path, propertyName, response.ToString());
+				Assert.Fail($"{path}/{propertyName} not found in '{response}'");
 			}
 			else
 			{

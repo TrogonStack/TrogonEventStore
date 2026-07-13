@@ -241,7 +241,7 @@ public class persistent_stream_bloom_filter : SpecificationWithDirectoryPerTestF
 		Assert.GreaterOrEqual(falsePositives, Math.Max(0, expectedFalsePositives - threeStandardDeviations));
 	}
 
-	[Test, Category("LongRunning"), Timeout(LongRunningTimeout)]
+	[Test, Category("LongRunning"), HardTimeout(LongRunningTimeout)]
 	public void always_returns_true_when_an_item_was_added([Range(10_000, 100_000, 13337)] long size)
 	{
 		using var filter = GenSut(GetTempFilePath(), create: true, size, hasher: null);
