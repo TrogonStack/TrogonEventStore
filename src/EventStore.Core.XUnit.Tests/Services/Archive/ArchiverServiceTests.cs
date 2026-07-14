@@ -23,11 +23,13 @@ public class ArchiverServiceTests
 
 	private static (ArchiverService, FakeArchiveStorage) CreateSut(
 		TimeSpan? chunkStorageDelay = null,
+		TimeSpan? checkpointStorageDelay = null,
 		string[] existingChunks = null,
 		long? existingCheckpoint = null)
 	{
 		var archive = new FakeArchiveStorage(
 			chunkStorageDelay ?? TimeSpan.Zero,
+			checkpointStorageDelay ?? TimeSpan.Zero,
 			existingChunks ?? Array.Empty<string>(),
 			existingCheckpoint ?? 0L);
 		var service = new ArchiverService(new FakeSubscriber(), archive, new FakeUnmerger(), new FakeArchiveChunkNamer());
@@ -212,7 +214,23 @@ public class ArchiverServiceTests
 	}
 
 	[Fact]
-	public async Task prioritizes_archiving_of_scavenged_chunks_over_new_chunks()
+	public async Task archives_a_chunk_once_when_multiple_notifications_are_received()
+	{
+		var (sut, archive) = CreateSut();
+
+		var chunkInfo = GetChunkInfo(0, 0, complete: true);
+		sut.Handle(new SystemMessage.ChunkLoaded(chunkInfo));
+		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+
+		await WaitFor(archive, numStores: 1, numCheckpoints: 1);
+
+		Assert.Equal(["chunk-0-0.renamed"], archive.Chunks);
+		Assert.Equal(ChunkSize, await archive.GetCheckpoint(CancellationToken.None));
+	}
+
+	[Fact]
+	public async Task waits_for_checkpoint_gap_before_archiving_later_chunks()
 	{
 		var (sut, archive) = CreateSut(chunkStorageDelay: TimeSpan.FromMilliseconds(100));
 
@@ -222,16 +240,14 @@ public class ArchiverServiceTests
 		sut.Handle(new SystemMessage.ChunkCompleted(GetChunkInfo(4, 4, complete: true)));
 		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(GetChunkInfo(4, 4, complete: true).ChunkEndPosition));
 
-		await WaitFor(archive, numStores: 1);
+		await WaitFor(archive, numStores: 0);
+		Assert.Equal([], archive.Chunks);
 
-		sut.Handle(new SystemMessage.ChunkCompleted(GetChunkInfo(5, 5, complete: true)));
-		sut.Handle(new SystemMessage.ChunkSwitched(GetChunkInfo(1, 2, complete: true)));
+		sut.Handle(new SystemMessage.ChunkSwitched(GetChunkInfo(0, 2, complete: true)));
 
-		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(GetChunkInfo(5, 5, complete: true).ChunkEndPosition));
+		await WaitFor(archive, numStores: 5, numCheckpoints: 3);
 
-		await WaitFor(archive, numStores: 5);
-
-		Assert.Equal(["chunk-3-3.renamed", "chunk-4-4.renamed", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-5-5.renamed"], archive.Chunks);
+		Assert.Equal(["chunk-0-0.renamed", "chunk-1-1.renamed", "chunk-2-2.renamed", "chunk-3-3.renamed", "chunk-4-4.renamed"], archive.Chunks);
 	}
 
 	[Fact]
@@ -281,6 +297,26 @@ public class ArchiverServiceTests
 	}
 
 	[Fact]
+	public async Task ignores_stale_chunk_scheduled_while_checkpoint_is_advancing()
+	{
+		var (sut, archive) = CreateSut(checkpointStorageDelay: TimeSpan.FromMilliseconds(250));
+
+		var chunkInfo = GetChunkInfo(0, 0);
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(0));
+		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+
+		await archive.WaitForCheckpointUpdateStarted();
+
+		sut.Handle(new SystemMessage.ChunkSwitched(chunkInfo));
+
+		await WaitFor(archive, numStores: 1, numCheckpoints: 1);
+
+		Assert.Equal(["chunk-0-0.renamed"], archive.Chunks);
+		Assert.Equal(ChunkSize, await archive.GetCheckpoint(CancellationToken.None));
+	}
+
+	[Fact]
 	public async Task moves_the_archive_checkpoint_forward()
 	{
 		var (sut, archive) = CreateSut();
@@ -305,7 +341,7 @@ public class ArchiverServiceTests
 	}
 
 	[Fact]
-	public async Task doesnt_move_the_archive_checkpoint_backward()
+	public async Task doesnt_move_the_archive_checkpoint_beyond_missing_chunks()
 	{
 		var (sut, archive) = CreateSut();
 
@@ -317,14 +353,21 @@ public class ArchiverServiceTests
 		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
 		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
 
-		await WaitFor(archive, numStores: 1, numCheckpoints: 1);
-		Assert.Equal(5 * ChunkSize, await archive.GetCheckpoint(CancellationToken.None));
+		await WaitFor(archive, numStores: 0, numCheckpoints: 0);
+		Assert.Equal(0, await archive.GetCheckpoint(CancellationToken.None));
 
 		chunkInfo = GetChunkInfo(0, 2);
 		sut.Handle(new SystemMessage.ChunkSwitched(chunkInfo));
 		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
 
-		await WaitFor(archive, numStores: 2, numCheckpoints: 1);
+		await WaitFor(archive, numStores: 3, numCheckpoints: 1);
+		Assert.Equal(3 * ChunkSize, await archive.GetCheckpoint(CancellationToken.None));
+
+		chunkInfo = GetChunkInfo(3, 3);
+		sut.Handle(new SystemMessage.ChunkCompleted(chunkInfo));
+		sut.Handle(new ReplicationTrackingMessage.ReplicatedTo(chunkInfo.ChunkEndPosition));
+
+		await WaitFor(archive, numStores: 5, numCheckpoints: 3);
 		Assert.Equal(5 * ChunkSize, await archive.GetCheckpoint(CancellationToken.None));
 	}
 
@@ -378,14 +421,22 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 	private int _stores;
 
 	private readonly TimeSpan _chunkStorageDelay;
+	private readonly TimeSpan _checkpointStorageDelay;
 	private readonly string[] _existingChunks;
+	private readonly TaskCompletionSource _checkpointUpdateStarted =
+		new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 	public int NumCheckpoints { get; private set; }
 	private long _checkpoint;
 
-	public FakeArchiveStorage(TimeSpan chunkStorageDelay, string[] existingChunks, long existingCheckpoint)
+	public FakeArchiveStorage(
+		TimeSpan chunkStorageDelay,
+		TimeSpan checkpointStorageDelay,
+		string[] existingChunks,
+		long existingCheckpoint)
 	{
 		_chunkStorageDelay = chunkStorageDelay;
+		_checkpointStorageDelay = checkpointStorageDelay;
 		_existingChunks = existingChunks;
 		_checkpoint = existingCheckpoint;
 		Chunks = new List<string>(existingChunks);
@@ -414,12 +465,17 @@ internal class FakeArchiveStorage : IArchiveStorageWriter, IArchiveStorageReader
 		return ValueTask.FromException<long>(new NotImplementedException());
 	}
 
-	public ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
+	public async ValueTask<bool> SetCheckpoint(long checkpoint, CancellationToken ct)
 	{
+		_checkpointUpdateStarted.TrySetResult();
+		await Task.Delay(_checkpointStorageDelay, ct);
 		_checkpoint = checkpoint;
 		NumCheckpoints++;
-		return ValueTask.FromResult(true);
+		return true;
 	}
+
+	public Task WaitForCheckpointUpdateStarted() =>
+		_checkpointUpdateStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
 	public ValueTask<Stream> GetChunk(string chunkFile, CancellationToken ct)
 	{
