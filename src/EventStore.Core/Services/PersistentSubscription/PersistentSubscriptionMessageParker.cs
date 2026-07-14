@@ -20,6 +20,7 @@ namespace EventStore.Core.Services.PersistentSubscription
 		private long _parkedDueToClientNak;
 		private long _parkedDueToMaxRetries;
 		private long _parkedMessageReplays;
+		private long _parkedMessageTruncates;
 		private DateTime? _oldestParkedMessage;
 		public long ParkedMessageCount
 		{
@@ -36,6 +37,8 @@ namespace EventStore.Core.Services.PersistentSubscription
 		public long ParkedDueToMaxRetries => Interlocked.Read(ref _parkedDueToMaxRetries);
 
 		public long ParkedMessageReplays => Interlocked.Read(ref _parkedMessageReplays);
+
+		public long ParkedMessageTruncates => Interlocked.Read(ref _parkedMessageTruncates);
 
 		private static readonly ILogger Log = Serilog.Log.ForContext<PersistentSubscriptionMessageParker>();
 
@@ -99,6 +102,16 @@ namespace EventStore.Core.Services.PersistentSubscription
 			}
 		}
 
+		public void RecordParkedMessageReplay()
+		{
+			Interlocked.Increment(ref _parkedMessageReplays);
+		}
+
+		public void RecordParkedMessageTruncate()
+		{
+			Interlocked.Increment(ref _parkedMessageTruncates);
+		}
+
 		public void BeginParkMessage(ResolvedEvent ev, string reason,
 			Action<ResolvedEvent, OperationResult> completed)
 		{
@@ -148,10 +161,8 @@ namespace EventStore.Core.Services.PersistentSubscription
 			});
 		}
 
-		public void BeginReadEndSequence(Action<long?> completed)
+		public void BeginReadEndSequence(Action<ParkedStreamEndReadResult> completed)
 		{
-			Interlocked.Increment(ref _parkedMessageReplays);
-
 			_ioDispatcher.ReadBackward(ParkedStreamId,
 				long.MaxValue,
 				1,
@@ -161,16 +172,19 @@ namespace EventStore.Core.Services.PersistentSubscription
 					switch (comp.Result)
 					{
 						case ReadStreamResult.Success:
-							completed?.Invoke(comp.LastEventNumber);
+							completed?.Invoke(ParkedStreamEndReadResult.Success(comp.LastEventNumber));
 							break;
 						case ReadStreamResult.NoStream:
-							completed?.Invoke(null);
+							completed?.Invoke(ParkedStreamEndReadResult.Success(null));
 							break;
 						default:
+							var reason =
+								$"Unable to read the last event in the parked message stream due to {comp.Result}.";
 							Log.Error(
 								"An error occured reading the last event in the parked message stream {stream} due to {e}.",
 								ParkedStreamId, comp.Result);
 							Log.Error("Messages were not removed on retry");
+							completed?.Invoke(ParkedStreamEndReadResult.Failure(reason));
 							break;
 					}
 				});
@@ -262,10 +276,17 @@ namespace EventStore.Core.Services.PersistentSubscription
 
 		public void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? timestamp, bool updateOldestParkedMessage)
 		{
-			BeginMarkParkedMessagesReprocessed(sequence, timestamp, updateOldestParkedMessage, null);
+			BeginMarkParkedMessagesReprocessed(sequence, timestamp, updateOldestParkedMessage, _ => { });
 		}
 
-		public void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? timestamp, bool updateOldestParkedMessage, Action completed)
+		public void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? timestamp, bool updateOldestParkedMessage,
+			Action completed)
+		{
+			BeginMarkParkedMessagesReprocessed(sequence, timestamp, updateOldestParkedMessage, _ => completed?.Invoke());
+		}
+
+		private void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? timestamp, bool updateOldestParkedMessage,
+			Action<OperationResult> completed)
 		{
 			var metaStreamId = SystemStreams.MetastreamOf(ParkedStreamId);
 			_ioDispatcher.WriteEvent(
@@ -281,16 +302,35 @@ namespace EventStore.Core.Services.PersistentSubscription
 								_oldestParkedMessage = timestamp;
 							}
 
-							completed?.Invoke();
+							completed?.Invoke(OperationResult.Success);
 							break;
 						default:
 							Log.Error("An error occured truncating the parked message stream {stream} due to {e}.",
 								ParkedStreamId, msg.Result);
 							Log.Error("Messages were not removed on retry");
-							completed?.Invoke();
+							completed?.Invoke(msg.Result);
 							break;
 					}
 				});
+		}
+
+		public void BeginMarkParkedMessagesTruncated(long sequence, Action<OperationResult> completed)
+		{
+			var truncateBefore = Math.Max(sequence, _lastTruncateBefore);
+			BeginMarkParkedMessagesReprocessed(truncateBefore, null, false, result =>
+			{
+				if (result != OperationResult.Success)
+				{
+					completed?.Invoke(result);
+					return;
+				}
+
+				BeginReadFirstEvent(truncateBefore, (_, timestamp) =>
+				{
+					_oldestParkedMessage = timestamp;
+					completed?.Invoke(OperationResult.Success);
+				});
+			});
 		}
 
 		class ParkedMessageMetadata

@@ -132,6 +132,7 @@ namespace EventStore.Core.Services.PersistentSubscription
 				ParkedDueToClientNak = _settings.MessageParker.ParkedDueToClientNak,
 				ParkedDueToMaxRetries = _settings.MessageParker.ParkedDueToMaxRetries,
 				ParkedMessageReplays = _settings.MessageParker.ParkedMessageReplays,
+				ParkedMessageTruncates = _settings.MessageParker.ParkedMessageTruncates,
 				OldestParkedMessage = oldestParkedMessage
 			};
 		}

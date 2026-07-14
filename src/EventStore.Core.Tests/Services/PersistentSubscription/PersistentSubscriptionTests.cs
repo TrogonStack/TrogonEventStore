@@ -2980,6 +2980,16 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 		}
 	}
 
+	public void RecordParkedMessageReplay()
+	{
+		ParkedMessageReplays++;
+	}
+
+	public void RecordParkedMessageTruncate()
+	{
+		ParkedMessageTruncates++;
+	}
+
 	public void BeginParkMessage(ResolvedEvent ev, string reason,
 		Action<ResolvedEvent, OperationResult> completed)
 	{
@@ -2988,23 +2998,30 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 		_parkMessageCompleted = completed;
 	}
 
-	public void BeginReadEndSequence(Action<long?> completed)
+	public void BeginReadEndSequence(Action<ParkedStreamEndReadResult> completed)
 	{
 		BeginReadEndSequenceCount++;
-		ParkedMessageReplays++;
 		if (_lastParkedEventNumber == -1)
 		{
-			completed(null); //NoStream
+			completed(ParkedStreamEndReadResult.Success(null)); //NoStream
 		}
 		else
 		{
-			completed(_lastParkedEventNumber);
+			completed(ParkedStreamEndReadResult.Success(_lastParkedEventNumber));
 		}
 	}
 
 	public void BeginMarkParkedMessagesReprocessed(long sequence, DateTime? dateTime, bool updateOldestParkedMessage)
 	{
 		MarkedAsProcessed = sequence;
+		_lastTruncateBefore = sequence;
+	}
+
+	public void BeginMarkParkedMessagesTruncated(long sequence, Action<OperationResult> completed)
+	{
+		MarkedAsProcessed = sequence;
+		_lastTruncateBefore = sequence;
+		completed?.Invoke(OperationResult.Success);
 	}
 
 	public void BeginDelete(Action<IPersistentSubscriptionMessageParker> completed)
@@ -3031,6 +3048,7 @@ class FakeMessageParker : IPersistentSubscriptionMessageParker
 	public long ParkedDueToClientNak { get; private set; }
 	public long ParkedDueToMaxRetries { get; private set; }
 	public long ParkedMessageReplays { get; private set; }
+	public long ParkedMessageTruncates { get; private set; }
 }
 
 

@@ -361,6 +361,63 @@ public class PersistentSubscriptionMessageParkerTests
 
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class given_messages_are_parked_and_then_truncated<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
+	{
+		private PersistentSubscriptionMessageParker _messageParker;
+		private string _streamId = Guid.NewGuid().ToString();
+		private TaskCompletionSource<bool> _parked;
+		private TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
+
+		protected override void Given()
+		{
+			base.Given();
+
+			AllWritesSucceed();
+
+			_parked = new TaskCompletionSource<bool>();
+			_messageParker = new PersistentSubscriptionMessageParker(_streamId, _ioDispatcher);
+			_messageParker.BeginParkMessage(CreateResolvedEvent(0, 0), "testing", (_, __) =>
+			{
+				_messageParker.BeginParkMessage(CreateResolvedEvent(1, 100), "testing", (_, __) =>
+				{
+					_parked.SetResult(true);
+				});
+			});
+		}
+
+		[Test]
+		public async Task should_have_no_parked_messages()
+		{
+			await _parked.Task;
+			_messageParker.BeginMarkParkedMessagesTruncated(2, _ =>
+			{
+				Assert.Zero(_messageParker.ParkedMessageCount);
+				Assert.Null(_messageParker.GetOldestParkedMessage);
+				Assert.Zero(_messageParker.ParkedMessageReplays);
+				_done.TrySetResult(true);
+			});
+			await _done.Task.WithTimeout();
+		}
+
+		[Test]
+		public async Task should_not_lower_the_truncate_before_watermark()
+		{
+			await _parked.Task;
+			_messageParker.BeginMarkParkedMessagesTruncated(2, _ =>
+			{
+				_messageParker.BeginMarkParkedMessagesTruncated(0, __ =>
+				{
+					Assert.Zero(_messageParker.ParkedMessageCount);
+					Assert.Null(_messageParker.GetOldestParkedMessage);
+					_done.TrySetResult(true);
+				});
+			});
+			await _done.Task.WithTimeout();
+		}
+	}
+
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class given_read_backwards_fails_when_getting_stats<TLogFormat, TStreamId> : TestFixtureWithExistingEvents<TLogFormat, TStreamId>
 	{
 		private PersistentSubscriptionMessageParker _messageParker;

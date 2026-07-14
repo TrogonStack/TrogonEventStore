@@ -35,6 +35,7 @@ public class PersistentSubscriptionService<TStreamId> :
 	IHandle<SubscriptionMessage.PersistentSubscriptionTimerTick>,
 	IHandle<SubscriptionMessage.PersistentSubscriptionPushToClients>,
 	IHandle<ClientMessage.ReplayParkedMessages>,
+	IHandle<ClientMessage.TruncateParkedMessages>,
 	IHandle<ClientMessage.ReplayParkedMessage>,
 	IHandle<SystemMessage.StateChangeMessage>,
 	IAsyncHandle<ClientMessage.ConnectToPersistentSubscriptionToStream>,
@@ -1398,6 +1399,41 @@ public class PersistentSubscriptionService<TStreamId> :
 		subscription.RetryParkedMessages(message.StopAt);
 		message.Envelope.ReplyWith(new ClientMessage.ReplayMessagesReceived(message.CorrelationId,
 			ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.Success, ""));
+	}
+
+	public void Handle(ClientMessage.TruncateParkedMessages message)
+	{
+		if (!_started)
+		{
+			ReplyWithNotReady(message.Envelope, message.CorrelationId);
+			return;
+		}
+
+		PersistentSubscription subscription;
+		var key = BuildSubscriptionGroupKey(message.EventStreamId, message.GroupName);
+		Log.Debug("Truncating parked messages for persistent subscription {subscriptionKey} {to}",
+			key,
+			message.StopAt.HasValue ? $" (To: '{message.StopAt.ToString()}')" : " (All)");
+
+		if (message.StopAt.HasValue && message.StopAt.Value < 0)
+		{
+			message.Envelope.ReplyWith(new ClientMessage.TruncateParkedMessagesCompleted(message.CorrelationId,
+				ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Fail,
+				"Cannot stop truncating parked messages at a negative version."));
+			return;
+		}
+
+		if (!_subscriptionsById.TryGetValue(key, out subscription))
+		{
+			message.Envelope.ReplyWith(new ClientMessage.TruncateParkedMessagesCompleted(message.CorrelationId,
+				ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.DoesNotExist,
+				"Unable to locate '" + key + "'"));
+			return;
+		}
+
+		subscription.TruncateParkedMessages(message.StopAt, (result, reason) =>
+			message.Envelope.ReplyWith(new ClientMessage.TruncateParkedMessagesCompleted(message.CorrelationId,
+				result, reason)));
 	}
 
 	public void Handle(ClientMessage.ReplayParkedMessage message)
