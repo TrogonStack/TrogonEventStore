@@ -113,6 +113,11 @@ namespace EventStore.Core.DataStructures
 			var newCount = Interlocked.Increment(ref _count);
 			if (newCount > _maxCount)
 			{
+				if (Interlocked.Decrement(ref _count) == 0 && _disposing)
+				{
+					OnPoolDisposed();
+				}
+
 				throw new ObjectPoolMaxLimitReachedException(ObjectPoolName, _maxCount);
 			}
 
