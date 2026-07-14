@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -31,9 +29,10 @@ public class ArchiverService :
 	private readonly IArchiveStorageWriter _archiveWriter;
 	private readonly IArchiveStorageReader _archiveReader;
 	private readonly Queue<ChunkInfo> _uncommittedChunks;
-	private readonly ConcurrentDictionary<string, ChunkInfo> _existingChunks;
+	private readonly SortedDictionary<(int StartNumber, int EndNumber, string Locator), ChunkInfo> _chunksToArchive;
+	private readonly object _chunksToArchiveLock = new();
 	private readonly CancellationTokenSource _cts;
-	private readonly Channel<Commands.ArchiveChunk> _archiveChunkCommands;
+	private readonly Channel<bool> _archiveSignal;
 	private readonly IChunkUnmerger _chunkUnmerger;
 	private readonly IArchiveChunkNamer _chunkNamer;
 
@@ -55,15 +54,13 @@ public class ArchiverService :
 		_chunkNamer = chunkNamer;
 
 		_uncommittedChunks = new();
-		_existingChunks = new();
+		_chunksToArchive = new();
 		_cts = new();
-		_archiveChunkCommands = Channel.CreateUnboundedPrioritized(
-			new UnboundedPrioritizedChannelOptions<Commands.ArchiveChunk>
-			{
-				SingleWriter = false,
-				SingleReader = true,
-				Comparer = new ChunkPrioritizer()
-			});
+		_archiveSignal = Channel.CreateUnbounded<bool>(new UnboundedChannelOptions
+		{
+			SingleWriter = false,
+			SingleReader = true
+		});
 
 		Subscribe();
 	}
@@ -84,7 +81,7 @@ public class ArchiverService :
 			return;
 		}
 
-		_existingChunks[Path.GetFileName(message.ChunkInfo.ChunkLocator)!] = message.ChunkInfo;
+		ScheduleChunkForArchiving(message.ChunkInfo, "old");
 	}
 
 	public void Handle(SystemMessage.ChunkCompleted message)
@@ -178,15 +175,17 @@ public class ArchiverService :
 
 	private void ScheduleChunkForArchiving(ChunkInfo chunkInfo, string chunkType)
 	{
-		var writeResult = _archiveChunkCommands.Writer.TryWrite(new Commands.ArchiveChunk
+		lock (_chunksToArchiveLock)
 		{
-			ChunkPath = chunkInfo.ChunkLocator,
-			ChunkStartNumber = chunkInfo.ChunkStartNumber,
-			ChunkEndNumber = chunkInfo.ChunkEndNumber,
-			ChunkEndPosition = chunkInfo.ChunkEndPosition
-		});
+			if (chunkInfo.ChunkEndPosition <= _checkpoint)
+			{
+				return;
+			}
 
-		Debug.Assert(writeResult); // writes should never fail as the channel's length is unbounded
+			_chunksToArchive[(chunkInfo.ChunkStartNumber, chunkInfo.ChunkEndNumber, chunkInfo.ChunkLocator)] = chunkInfo;
+		}
+
+		_archiveSignal.Writer.TryWrite(true);
 
 		Log.Information("Scheduled archiving of {chunkFile} ({chunkType})",
 			Path.GetFileName(chunkInfo.ChunkLocator), chunkType);
@@ -194,15 +193,50 @@ public class ArchiverService :
 
 	private async Task ArchiveChunks(CancellationToken ct)
 	{
-		await foreach (var cmd in _archiveChunkCommands.Reader.ReadAllAsync(ct))
+		while (await _archiveSignal.Reader.WaitToReadAsync(ct))
 		{
-			await ArchiveChunk(cmd.ChunkPath, cmd.ChunkStartNumber, cmd.ChunkEndNumber, cmd.ChunkEndPosition, ct);
+			while (_archiveSignal.Reader.TryRead(out _))
+			{
+			}
+
+			while (TryGetNextChunkToArchive(out var chunkInfo))
+			{
+				await ArchiveChunk(chunkInfo, ct);
+			}
 		}
 	}
 
-	private async Task ArchiveChunk(string chunkPath, int chunkStartNumber, int chunkEndNumber, long chunkEndPosition,
-		CancellationToken ct)
+	private bool TryGetNextChunkToArchive(out ChunkInfo chunkInfo)
 	{
+		lock (_chunksToArchiveLock)
+		{
+			while (_chunksToArchive.Count > 0)
+			{
+				var (key, candidate) = _chunksToArchive.First();
+				if (candidate.ChunkEndPosition <= _checkpoint)
+				{
+					_chunksToArchive.Remove(key);
+					continue;
+				}
+
+				if (candidate.ChunkStartPosition > _checkpoint)
+				{
+					break;
+				}
+
+				_chunksToArchive.Remove(key);
+				chunkInfo = candidate;
+				return true;
+			}
+		}
+
+		chunkInfo = default;
+		return false;
+	}
+
+	private async Task ArchiveChunk(ChunkInfo chunkInfo, CancellationToken ct)
+	{
+		var chunkPath = chunkInfo.ChunkLocator;
 		var chunkFile = Path.GetFileName(chunkPath);
 		try
 		{
@@ -211,7 +245,7 @@ public class ArchiverService :
 			string[] chunksToStore;
 			bool chunksUnmerged;
 
-			if (chunkStartNumber == chunkEndNumber)
+			if (chunkInfo.ChunkStartNumber == chunkInfo.ChunkEndNumber)
 			{
 				chunksToStore = [chunkPath];
 				chunksUnmerged = false;
@@ -219,12 +253,15 @@ public class ArchiverService :
 			else
 			{
 				Log.Information("Unmerging {chunkFile}", chunkFile);
-				chunksToStore = await _chunkUnmerger.Unmerge(chunkPath, chunkStartNumber, chunkEndNumber)
+				chunksToStore = await _chunkUnmerger.Unmerge(
+						chunkPath,
+						chunkInfo.ChunkStartNumber,
+						chunkInfo.ChunkEndNumber)
 					.ToArrayAsync(cancellationToken: ct);
 				chunksUnmerged = true;
 			}
 
-			var logicalChunkNumber = chunkStartNumber;
+			var logicalChunkNumber = chunkInfo.ChunkStartNumber;
 			foreach (var chunkToStore in chunksToStore)
 			{
 				var destinationFile = _chunkNamer.GetFileNameFor(logicalChunkNumber);
@@ -246,18 +283,22 @@ public class ArchiverService :
 				logicalChunkNumber++;
 			}
 
-			if (chunkEndPosition > _checkpoint)
+			if (chunkInfo.ChunkEndPosition > _checkpoint)
 			{
-				while (!await _archiveWriter.SetCheckpoint(chunkEndPosition, ct))
+				while (!await _archiveWriter.SetCheckpoint(chunkInfo.ChunkEndPosition, ct))
 				{
 					Log.Warning(
 						"Failed to set the archive checkpoint to: 0x{checkpoint:X}. Retrying in: {retryInterval}.",
-						chunkEndPosition, RetryInterval);
+						chunkInfo.ChunkEndPosition, RetryInterval);
 					await Task.Delay(RetryInterval, ct);
 				}
 
-				_checkpoint = chunkEndPosition;
-				Log.Debug("Archive checkpoint set to: 0x{checkpoint:X}", _checkpoint);
+				lock (_chunksToArchiveLock)
+				{
+					_checkpoint = chunkInfo.ChunkEndPosition;
+				}
+
+				Log.Debug("Archive checkpoint set to: 0x{checkpoint:X}", chunkInfo.ChunkEndPosition);
 			}
 
 			Log.Information("Archiving of {chunkFile} succeeded.", chunkFile);
@@ -303,18 +344,21 @@ public class ArchiverService :
 	private void ScheduleExistingChunksForArchiving()
 	{
 		var scheduledChunks = 0;
-		foreach (var chunkInfo in _existingChunks.Values)
+		lock (_chunksToArchiveLock)
 		{
-			if (chunkInfo.ChunkEndPosition <= _checkpoint)
+			foreach (var (key, chunkInfo) in _chunksToArchive.ToArray())
 			{
-				continue;
-			}
+				if (chunkInfo.ChunkEndPosition > _checkpoint)
+				{
+					scheduledChunks++;
+					continue;
+				}
 
-			ScheduleChunkForArchiving(chunkInfo, "old");
-			scheduledChunks++;
+				_chunksToArchive.Remove(key);
+			}
 		}
 
+		_archiveSignal.Writer.TryWrite(true);
 		Log.Information("Scheduled archiving of {numChunks} existing chunks.", scheduledChunks);
-		_existingChunks.Clear();
 	}
 }
