@@ -39,6 +39,7 @@ public class PersistentSubscriptionMetricsTests
 			ParkedDueToClientNak = 1015,
 			ParkedDueToMaxRetries = 1016,
 			ParkedMessageReplays = 1017,
+			ParkedMessageTruncates = 1021,
 			ParkedMessageCount = 1003,
 			ReadBatchSize = 20,
 			ReadBufferCount = 0,
@@ -75,6 +76,7 @@ public class PersistentSubscriptionMetricsTests
 			ParkedDueToClientNak = 1018,
 			ParkedDueToMaxRetries = 1019,
 			ParkedMessageReplays = 1020,
+			ParkedMessageTruncates = 1022,
 			ParkedMessageCount = 1004,
 			ReadBatchSize = 20,
 			ReadBufferCount = 0,
@@ -128,6 +130,15 @@ public class PersistentSubscriptionMetricsTests
 		Assert.Collection(measurements,
 			AssertMeasurement("test", "testGroup", 1017),
 			AssertMeasurement("$all", "testGroup", 1020));
+	}
+
+	[Fact]
+	public void ObserveParkedMessageTruncates()
+	{
+		var measurements = _sut.ObserveParkedMessageTruncates();
+		Assert.Collection(measurements,
+			AssertMeasurement("test", "testGroup", 1021),
+			AssertMeasurement("$all", "testGroup", 1022));
 	}
 
 	[Fact]

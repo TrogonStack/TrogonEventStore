@@ -152,6 +152,7 @@ namespace EventStore.Core.Messages
 			public long ParkedDueToClientNak { get; set; }
 			public long ParkedDueToMaxRetries { get; set; }
 			public long ParkedMessageReplays { get; set; }
+			public long ParkedMessageTruncates { get; set; }
 			public long OldestParkedMessage { get; set; }
 		}
 

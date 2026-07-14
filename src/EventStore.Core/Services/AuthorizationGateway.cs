@@ -90,6 +90,10 @@ namespace EventStore.Core.Services
 			msg => new ClientMessage.ReplayMessagesReceived(msg.CorrelationId,
 				ClientMessage.ReplayMessagesReceived.ReplayMessagesReceivedResult.AccessDenied, AccessDenied);
 
+		private static readonly Func<ClientMessage.TruncateParkedMessages, Message> TruncateParkedMessagesDenied =
+			msg => new ClientMessage.TruncateParkedMessagesCompleted(msg.CorrelationId,
+				ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.AccessDenied, AccessDenied);
+
 		private static readonly Func<ClientMessage.DeletePersistentSubscriptionToStream, Message>
 			DeletePersistentSubscriptionDenied =
 				msg => new ClientMessage.DeletePersistentSubscriptionToStreamCompleted(msg.CorrelationId,
@@ -185,6 +189,9 @@ namespace EventStore.Core.Services
 				case ClientMessage.ReplayParkedMessages msg:
 					Authorize(msg, destination);
 					break;
+				case ClientMessage.TruncateParkedMessages msg:
+					Authorize(msg, destination);
+					break;
 				case ClientMessage.ReadEvent msg:
 					Authorize(msg, destination);
 					break;
@@ -268,6 +275,11 @@ namespace EventStore.Core.Services
 		private void Authorize(ClientMessage.ReplayParkedMessages msg, IPublisher destination)
 		{
 			Authorize(msg.User, ReplayAllParkedMessages, msg.Envelope, destination, msg, ReplayAllParkedMessagesDenied);
+		}
+
+		private void Authorize(ClientMessage.TruncateParkedMessages msg, IPublisher destination)
+		{
+			Authorize(msg.User, ReplayAllParkedMessages, msg.Envelope, destination, msg, TruncateParkedMessagesDenied);
 		}
 
 		private void Authorize(ClientMessage.ReadAllEventsForward msg, IPublisher destination)

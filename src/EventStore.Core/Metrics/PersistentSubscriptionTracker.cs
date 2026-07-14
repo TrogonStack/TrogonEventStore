@@ -50,6 +50,13 @@ public class PersistentSubscriptionTracker : IPersistentSubscriptionTracker
 				new("group_name", x.GroupName)
 			]));
 
+	public IEnumerable<Measurement<long>> ObserveParkedMessageTruncates() =>
+		_currentStats.Select(x =>
+			new Measurement<long>(x.ParkedMessageTruncates, [
+				new("event_stream_id", x.EventSource),
+				new("group_name", x.GroupName)
+			]));
+
 	public IEnumerable<Measurement<long>> ObserveInFlightMessages() =>
 		_currentStats.Select(x =>
 			new Measurement<long>(x.TotalInFlightMessages, [

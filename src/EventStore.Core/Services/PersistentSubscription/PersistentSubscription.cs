@@ -740,16 +740,89 @@ namespace EventStore.Core.Services.PersistentSubscription
 				}
 
 				_state |= PersistentSubscriptionState.ReplayingParkedMessages;
+				_settings.MessageParker.RecordParkedMessageReplay();
 				_settings.MessageParker.BeginReadEndSequence(end =>
 				{
-					if (!end.HasValue)
+					long? stopRead = null;
+					lock (_lock)
 					{
-						_state ^= PersistentSubscriptionState.ReplayingParkedMessages;
-						return; //nothing to do.
+						if (!end.Succeeded || !end.LastEventNumber.HasValue)
+						{
+							_state &= ~PersistentSubscriptionState.ReplayingParkedMessages;
+							return;
+						}
+
+						stopRead = stopAt.HasValue ? Math.Min(stopAt.Value, end.LastEventNumber.Value + 1) :
+							end.LastEventNumber.Value + 1;
 					}
 
-					var stopRead = stopAt.HasValue ? Math.Min(stopAt.Value, end.Value + 1) : end.Value + 1;
-					TryReadingParkedMessagesFrom(0, stopRead);
+					TryReadingParkedMessagesFrom(0, stopRead.Value);
+				});
+			}
+		}
+
+		public void TruncateParkedMessages(long? stopAt,
+			Action<ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult, string> completed)
+		{
+			lock (_lock)
+			{
+				if (_state == PersistentSubscriptionState.NotReady)
+				{
+					completed?.Invoke(ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Fail,
+						"Persistent subscription is not ready.");
+					return;
+				}
+
+				if ((_state & PersistentSubscriptionState.ReplayingParkedMessages) > 0)
+				{
+					completed?.Invoke(ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Fail,
+						"Parked messages are already being replayed or truncated.");
+					return;
+				}
+
+				_state |= PersistentSubscriptionState.ReplayingParkedMessages;
+				_settings.MessageParker.RecordParkedMessageTruncate();
+				_settings.MessageParker.BeginReadEndSequence(end =>
+				{
+					long? truncateBefore = null;
+					lock (_lock)
+					{
+						if (!end.Succeeded)
+						{
+							_state &= ~PersistentSubscriptionState.ReplayingParkedMessages;
+							completed?.Invoke(ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Fail,
+								end.Error);
+							return;
+						}
+
+						if (!end.LastEventNumber.HasValue)
+						{
+							_state &= ~PersistentSubscriptionState.ReplayingParkedMessages;
+							completed?.Invoke(ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Success,
+								"");
+							return;
+						}
+
+						truncateBefore = stopAt.HasValue ? Math.Min(stopAt.Value, end.LastEventNumber.Value + 1) :
+							end.LastEventNumber.Value + 1;
+					}
+
+					_settings.MessageParker.BeginMarkParkedMessagesTruncated(truncateBefore.Value, result =>
+					{
+						lock (_lock)
+						{
+							_state &= ~PersistentSubscriptionState.ReplayingParkedMessages;
+							if (result == OperationResult.Success)
+							{
+								completed?.Invoke(ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Success,
+									"");
+								return;
+							}
+
+							completed?.Invoke(ClientMessage.TruncateParkedMessagesCompleted.TruncateParkedMessagesResult.Fail,
+								$"Unable to truncate parked messages: {result}.");
+						}
+					});
 				});
 			}
 		}
@@ -831,7 +904,7 @@ namespace EventStore.Core.Services.PersistentSubscription
 						_settings.MessageParker.BeginMarkParkedMessagesReprocessed(replayedEnd, replayedEndTimeStamp, updateOldestParkedMessageTimeStamp);
 					}
 
-					_state ^= PersistentSubscriptionState.ReplayingParkedMessages;
+					_state &= ~PersistentSubscriptionState.ReplayingParkedMessages;
 				}
 				else
 				{

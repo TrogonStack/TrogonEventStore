@@ -263,6 +263,185 @@ public class ReplayParkedTests
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
 	public class
+		when_truncating_parked_messages_with_no_limit_for_existing_subscription<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private string _groupName = "test-group";
+		private string _streamName = "test-stream";
+		private int _eventCount = 10;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+		private AsyncDuplexStreamingCall<ReadReq, ReadResp> _subscriptionStream;
+		private ulong _actualEventVersion;
+		private long _parkedMessageCount;
+
+		protected override async Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+
+			await CreateTestPersistentSubscription(_persistentSubscriptionsClient, _streamName, _groupName, GetCallOptions(AdminCredentials));
+
+			_subscriptionStream = await SubscribeToPersistentSubscription(
+				_persistentSubscriptionsClient, _groupName, _streamName, GetCallOptions(AdminCredentials));
+
+			var writeRes = await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
+					Any = new(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(_streamName) }
+				},
+				IsFinal = true,
+				ProposedMessages = { CreateEvents(_eventCount) },
+				CorrelationId = Uuid.NewUuid().ToDto(),
+			});
+			Assert.NotNull(writeRes.Success);
+
+			await ParkMessages(_subscriptionStream, _eventCount);
+
+			await WaitForEventsInStream(
+				StreamsClient, $"$persistentsubscription-{_streamName}::{_groupName}-parked", _eventCount, GetCallOptions(AdminCredentials));
+		}
+
+		protected override async Task When()
+		{
+			await _persistentSubscriptionsClient.TruncateParkedAsync(new TruncateParkedReq
+			{
+				Options = new TruncateParkedReq.Types.Options
+				{
+					GroupName = _groupName,
+					StreamIdentifier = new StreamIdentifier
+					{
+						StreamName = ByteString.CopyFromUtf8(_streamName)
+					},
+					NoLimit = new()
+				}
+			}, GetCallOptions(AdminCredentials));
+
+			var info = await _persistentSubscriptionsClient.GetInfoAsync(GetInfoRequest(_streamName, _groupName), GetCallOptions(AdminCredentials));
+			_parkedMessageCount = info.SubscriptionInfo.ParkedMessageCount;
+
+			var writeRes = await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
+					Any = new(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(_streamName) }
+				},
+				IsFinal = true,
+				ProposedMessages = { CreateEvents(1) },
+				CorrelationId = Uuid.NewUuid().ToDto(),
+			});
+			Assert.NotNull(writeRes.Success);
+
+			Assert.True(await _subscriptionStream.ResponseStream.MoveNext());
+			var curr = _subscriptionStream.ResponseStream.Current;
+			Assert.AreEqual(ReadResp.ContentOneofCase.Event, curr.ContentCase);
+			_actualEventVersion = curr.Event.Event.StreamRevision;
+
+			await _subscriptionStream.RequestStream.WriteAsync(new ReadReq
+			{
+				Ack = new ReadReq.Types.Ack
+				{
+					Ids = {
+						curr.Event.Event.Id
+					},
+				}
+			});
+		}
+
+		[Test]
+		public void should_remove_all_parked_messages()
+		{
+			Assert.AreEqual(0, _parkedMessageCount);
+		}
+
+		[Test]
+		public void should_not_replay_truncated_messages()
+		{
+			Assert.AreEqual((ulong)_eventCount, _actualEventVersion);
+		}
+
+		[TearDown]
+		public void Teardown()
+		{
+			_subscriptionStream.Dispose();
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_truncating_parked_messages_with_a_stop_at_for_existing_subscription<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private string _groupName = "test-group";
+		private string _streamName = "test-stream";
+		private int _eventCount = 10;
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+		private AsyncDuplexStreamingCall<ReadReq, ReadResp> _subscriptionStream;
+		private long _parkedMessageCount;
+
+		protected override async Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+
+			await CreateTestPersistentSubscription(_persistentSubscriptionsClient, _streamName, _groupName, GetCallOptions(AdminCredentials));
+
+			_subscriptionStream = await SubscribeToPersistentSubscription(
+				_persistentSubscriptionsClient, _groupName, _streamName, GetCallOptions(AdminCredentials));
+
+			var writeRes = await AppendToStreamBatch(new BatchAppendReq
+			{
+				Options = new()
+				{
+					Any = new(),
+					StreamIdentifier = new() { StreamName = ByteString.CopyFromUtf8(_streamName) }
+				},
+				IsFinal = true,
+				ProposedMessages = { CreateEvents(_eventCount) },
+				CorrelationId = Uuid.NewUuid().ToDto(),
+			});
+			Assert.NotNull(writeRes.Success);
+
+			await ParkMessages(_subscriptionStream, _eventCount);
+
+			await WaitForEventsInStream(
+				StreamsClient, $"$persistentsubscription-{_streamName}::{_groupName}-parked", _eventCount, GetCallOptions(AdminCredentials));
+		}
+
+		protected override async Task When()
+		{
+			await _persistentSubscriptionsClient.TruncateParkedAsync(new TruncateParkedReq
+			{
+				Options = new TruncateParkedReq.Types.Options
+				{
+					GroupName = _groupName,
+					StreamIdentifier = new StreamIdentifier
+					{
+						StreamName = ByteString.CopyFromUtf8(_streamName)
+					},
+					StopAt = 1
+				}
+			}, GetCallOptions(AdminCredentials));
+
+			var info = await _persistentSubscriptionsClient.GetInfoAsync(GetInfoRequest(_streamName, _groupName), GetCallOptions(AdminCredentials));
+			_parkedMessageCount = info.SubscriptionInfo.ParkedMessageCount;
+		}
+
+		[Test]
+		public void should_keep_messages_from_stop_at()
+		{
+			Assert.AreEqual(_eventCount - 1, _parkedMessageCount);
+		}
+
+		[TearDown]
+		public void Teardown()
+		{
+			_subscriptionStream.Dispose();
+		}
+	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
 		when_replaying_parked_messages_for_non_existent_subscription<TLogFormat, TStreamId>
 			: GrpcSpecification<TLogFormat, TStreamId>
 	{
@@ -307,6 +486,86 @@ public class ReplayParkedTests
 			Assert.AreEqual(StatusCode.NotFound, ((RpcException)_exception).Status.StatusCode);
 		}
 	}
+
+	[TestFixture(typeof(LogFormat.V2), typeof(string))]
+	public class
+		when_truncating_parked_messages_for_non_existent_subscription<TLogFormat, TStreamId>
+			: GrpcSpecification<TLogFormat, TStreamId>
+	{
+		private string _groupName = "test-group";
+		private string _streamName = "test-stream";
+		private PersistentSubscriptions.PersistentSubscriptionsClient _persistentSubscriptionsClient;
+		private Exception _exception;
+
+		protected override Task Given()
+		{
+			_persistentSubscriptionsClient = new PersistentSubscriptions.PersistentSubscriptionsClient(Channel);
+			return Task.CompletedTask;
+		}
+
+		protected override async Task When()
+		{
+			try
+			{
+				await _persistentSubscriptionsClient.TruncateParkedAsync(new TruncateParkedReq
+				{
+					Options = new TruncateParkedReq.Types.Options
+					{
+						GroupName = _groupName,
+						StreamIdentifier = new StreamIdentifier
+						{
+							StreamName = ByteString.CopyFromUtf8(_streamName)
+						},
+						NoLimit = new()
+					}
+				}, GetCallOptions(AdminCredentials));
+			}
+			catch (Exception e)
+			{
+				_exception = e;
+			}
+		}
+
+		[Test]
+		public void should_receive_not_found_error()
+		{
+			Assert.IsInstanceOf<RpcException>(_exception);
+			Assert.AreEqual(StatusCode.NotFound, ((RpcException)_exception).Status.StatusCode);
+		}
+	}
+
+	private static async Task ParkMessages(AsyncDuplexStreamingCall<ReadReq, ReadResp> subscriptionStream, int count)
+	{
+		for (var i = 0; i < count; i++)
+		{
+			Assert.True(await subscriptionStream.ResponseStream.MoveNext());
+			Assert.AreEqual(ReadResp.ContentOneofCase.Event, subscriptionStream.ResponseStream.Current.ContentCase);
+			var evnt = subscriptionStream.ResponseStream.Current.Event;
+			await subscriptionStream.RequestStream.WriteAsync(new ReadReq
+			{
+				Nack = new ReadReq.Types.Nack
+				{
+					Action = ReadReq.Types.Nack.Types.Action.Park,
+					Ids = {
+						evnt.Event.Id
+					},
+					Reason = "testing"
+				}
+			});
+		}
+	}
+
+	private static GetInfoReq GetInfoRequest(string streamName, string groupName) => new()
+	{
+		Options = new GetInfoReq.Types.Options
+		{
+			StreamIdentifier = new StreamIdentifier
+			{
+				StreamName = ByteString.CopyFromUtf8(streamName)
+			},
+			GroupName = groupName
+		}
+	};
 
 	private static async Task<AsyncDuplexStreamingCall<ReadReq, ReadResp>> SubscribeToPersistentSubscription(
 		PersistentSubscriptions.PersistentSubscriptionsClient client, string groupName, string streamName, CallOptions callOptions)
