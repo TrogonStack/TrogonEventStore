@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using EventStore.Common.Configuration;
@@ -15,6 +16,7 @@ using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Plugins;
 using EventStore.Plugins.Authentication;
 using EventStore.Plugins.Authorization;
+using Grpc.Net.Compression;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
@@ -238,6 +240,19 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddGrpc(options =>
 			{
 				options.Interceptors.Add<RetryInterceptor>();
+
+				var eventStoreConfiguration = _configuration.GetSection("EventStore");
+				var compressionLevel = (eventStoreConfiguration.Exists()
+						? eventStoreConfiguration
+						: _configuration)
+					.BindOptions<ClusterVNodeOptions.GrpcOptions>()
+					.CompressionLevel;
+				options.CompressionProviders.Add(new GzipCompressionProvider(compressionLevel));
+				if (compressionLevel != CompressionLevel.NoCompression)
+				{
+					options.ResponseCompressionAlgorithm = "gzip";
+					options.ResponseCompressionLevel = compressionLevel;
+				}
 			})
 			.AddServiceOptions<Streams<TStreamId>>(options =>
 				options.MaxReceiveMessageSize = TFConsts.EffectiveMaxLogRecordSize)
