@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using EventStore.Common.Configuration;
@@ -70,6 +71,24 @@ public class ClusterVNodeOptionsTests
 
 		var values = options.Unknown.Options;
 		Assert.Empty(values);
+	}
+
+	[Fact]
+	public void grpc_compression_level_defaults_to_optimal()
+	{
+		var configuration = EventStoreConfiguration.Build(Array.Empty<string>());
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.Grpc.CompressionLevel.Should().Be(CompressionLevel.Optimal);
+	}
+
+	[Fact]
+	public void grpc_compression_level_is_configurable()
+	{
+		var options = GetOptions("--compression-level NoCompression");
+
+		options.Grpc.CompressionLevel.Should().Be(CompressionLevel.NoCompression);
+		Assert.Empty(options.Unknown.Options);
 	}
 
 	[Fact]

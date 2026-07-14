@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -510,6 +511,9 @@ public partial record ClusterVNodeOptions
 	[Description("gRPC Options")]
 	public record GrpcOptions
 	{
+		[Description("The gzip compression level applied to gRPC responses when clients advertise gzip support.")]
+		public CompressionLevel CompressionLevel { get; init; } = CompressionLevel.Optimal;
+
 		[Description("Controls the period (in milliseconds) after which a keepalive ping " +
 					 "is sent on the transport."),
 		 Unit("ms")]
@@ -523,6 +527,7 @@ public partial record ClusterVNodeOptions
 
 		internal static GrpcOptions FromConfiguration(IConfiguration configurationRoot) => new()
 		{
+			CompressionLevel = configurationRoot.GetValue<CompressionLevel>(nameof(CompressionLevel)),
 			KeepAliveInterval = configurationRoot.GetValue<int>(nameof(KeepAliveInterval)),
 			KeepAliveTimeout = configurationRoot.GetValue<int>(nameof(KeepAliveTimeout))
 		};
