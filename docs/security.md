@@ -572,11 +572,68 @@ You can, however, disable TLS for both internal and external TCP.
 
 ## Authentication
 
-EventStoreDB supports authentication based on usernames and passwords out of the box. The Enterprise version
-also supports LDAP as the authentication source.
+EventStoreDB supports authentication based on usernames and passwords out of the box. Nodes can also enable
+OAuth bearer-token authentication as a built-in authentication method. This follows PostgreSQL's model of
+making the database authentication method explicit, so password and OAuth access can be reasoned about side by side.
 
 Authentication is applied to all HTTP endpoints by default, except `/-/liveness`, `/-/readiness`, static web
 content, and redirects.
+
+### Authentication methods
+
+Use `Auth:Methods` to choose the authentication methods enabled by the node. If `Auth:Methods` is not set, the
+legacy `Auth:AuthenticationType` setting is still honored for compatibility.
+
+| Format               | Syntax                      |
+|:---------------------|:----------------------------|
+| Command line         | `--auth:methods:0 password --auth:methods:1 oauth` |
+| YAML                 | `Auth:Methods`              |
+| Environment variable | `EVENTSTORE__AUTH__METHODS__0`, `EVENTSTORE__AUTH__METHODS__1`, ... |
+
+Supported built-in values are:
+
+- `password` enables username and password authentication against the node user store.
+- `oauth` enables bearer-token authentication against the configured OAuth or OIDC issuer.
+
+For example, to enable both methods:
+
+```yaml
+Auth:
+  Methods:
+    - password
+    - oauth
+```
+
+### OAuth authentication
+
+OAuth authentication validates bearer tokens issued by the configured OAuth or OIDC identity provider. The node
+requires an issuer and at least one accepted audience.
+
+```yaml
+Auth:
+  Methods:
+    - password
+    - oauth
+  OAuth:
+    Issuer: https://identity.example.com
+    Audiences:
+      - eventstore
+```
+
+The browser sign-in flow is available when the OAuth authorization endpoint, token endpoint, client id, and scopes
+are configured. The flow stores only access tokens that the node can validate as JWT bearer tokens.
+
+```yaml
+Auth:
+  OAuth:
+    AuthorizationEndpoint: https://identity.example.com/oauth2/authorize
+    TokenEndpoint: https://identity.example.com/oauth2/token
+    ClientId: eventstore-ui
+    Scopes:
+      - openid
+      - profile
+      - email
+```
 
 ### Default users
 

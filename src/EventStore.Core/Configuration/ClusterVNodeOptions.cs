@@ -78,7 +78,7 @@ public partial record ClusterVNodeOptions
 			DevMode = configuration.BindOptions<DevModeOptions>(),
 			DefaultUser = configuration.BindOptions<DefaultUserOptions>(),
 			Logging = configuration.BindOptions<LoggingOptions>(),
-			Auth = configuration.BindOptions<AuthOptions>(),
+			Auth = BindOptions<AuthOptions>(configuration, nameof(Auth)),
 			Certificate = configuration.BindOptions<CertificateOptions>(),
 			CertificateFile = configuration.BindOptions<CertificateFileOptions>(),
 			CertificateStore = configuration.BindOptions<CertificateStoreOptions>(),
@@ -94,6 +94,18 @@ public partial record ClusterVNodeOptions
 		};
 
 		return options;
+
+		static T BindOptions<T>(IConfiguration configuration, string sectionName) where T : new()
+		{
+			var options = configuration.BindOptions<T>();
+			var section = configuration.GetSection(sectionName);
+			if (section.Exists())
+			{
+				section.Bind(options);
+			}
+
+			return options;
+		}
 	}
 
 	[Description("Default User Options")]
@@ -235,7 +247,7 @@ public partial record ClusterVNodeOptions
 		[Description("Path to the configuration file for authorization configuration (if applicable).")]
 		public string? AuthorizationConfig { get; init; }
 
-		[Description("Legacy authentication provider name. Prefer Authentication:Methods for new configurations.")]
+		[Description("Legacy authentication provider name. Prefer Auth:Methods for new configurations.")]
 		public string AuthenticationType { get; init; } = "internal";
 
 		[Description("Authentication methods enabled by the node. PostgreSQL also models client authentication this way, keeping password and OAuth explicit.")]
