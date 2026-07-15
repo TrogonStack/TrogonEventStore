@@ -238,9 +238,39 @@ public partial record ClusterVNodeOptions
 		[Description("The type of Authentication to use.")]
 		public string AuthenticationType { get; init; } = "internal";
 
+		[Description("Authentication methods enabled by the node. PostgreSQL also models client authentication as a set of methods, which keeps password and OAuth authentication explicit.")]
+		public string[] Methods { get; init; } = ["Password"];
+
 		[Description("Path to the configuration file for Authentication configuration (if applicable).")]
 		public string? AuthenticationConfig { get; init; }
 
+		[Description("OAuth authentication options.")]
+		public OAuthOptions OAuth { get; init; } = new();
+
+	}
+
+	public record OAuthOptions
+	{
+		[Description("OpenID Connect issuer URL that signs accepted access tokens.")]
+		public string? Issuer { get; init; }
+
+		[Description("OpenID Connect discovery document URL. Defaults to '<Issuer>/.well-known/openid-configuration'.")]
+		public string? MetadataAddress { get; init; }
+
+		[Description("Accepted token audiences for this node.")]
+		public string[] Audiences { get; init; } = [];
+
+		[Description("Claim used as the authenticated user name.")]
+		public string NameClaimType { get; init; } = "sub";
+
+		[Description("Claim whose values are mapped to EventStore role claims.")]
+		public string RoleClaimType { get; init; } = "roles";
+
+		[Description("Require HTTPS for OpenID Connect metadata.")]
+		public bool RequireHttpsMetadata { get; init; } = true;
+
+		[Description("Allowed token clock skew in seconds.")]
+		public int ClockSkewSeconds { get; init; } = 300;
 	}
 
 	[Description("Certificate Options (from file)")]

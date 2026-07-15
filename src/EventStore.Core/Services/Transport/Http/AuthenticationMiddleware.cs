@@ -147,8 +147,11 @@ public class AuthenticationMiddleware : IMiddleware
 		var authSchemes = _authenticationProvider.GetSupportedAuthenticationSchemes();
 		if (authSchemes != null && authSchemes.Any())
 		{
-			//add "X-" in front to prevent any default browser behaviour e.g Basic Auth popups
-			context.Response.Headers.Append("WWW-Authenticate", $"X-{authSchemes.First()} realm=\"ESDB\"");
+			foreach (var scheme in authSchemes)
+			{
+				context.Response.Headers.Append("WWW-Authenticate", $"X-{scheme} realm=\"ESDB\"");
+			}
+
 			var properties = _authenticationProvider.GetPublicProperties();
 			if (properties != null && properties.Any())
 			{

@@ -11,6 +11,7 @@ using DotNext;
 using DotNext.Collections.Generic;
 using DotNext.Runtime.CompilerServices;
 using EventStore.Common.Utils;
+using EventStore.Core.Authentication;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Messages;
@@ -223,7 +224,7 @@ public sealed class TelemetryService :
 				["disableTls"] = _nodeOptions.Application.DisableTls,
 				["runProjections"] = _nodeOptions.Projection.RunProjections.ToString(),
 				["authorizationType"] = _nodeOptions.Auth.AuthorizationType,
-				["authenticationType"] = _nodeOptions.Auth.AuthenticationType
+				["authenticationMethods"] = JsonSerializer.SerializeToNode(AuthenticationMethodNames.FromOptions(_nodeOptions.Auth))
 			}));
 
 		message.Envelope.ReplyWith(new TelemetryMessage.Response(

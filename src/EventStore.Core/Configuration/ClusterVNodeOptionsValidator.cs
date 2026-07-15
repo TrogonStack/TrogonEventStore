@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using EventStore.Common.Exceptions;
+using EventStore.Core.Authentication;
 using EventStore.Core.Services;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.Util;
@@ -149,17 +150,17 @@ public static class ClusterVNodeOptionsValidator
 			return false;
 		}
 
-		if (options.Application.AuthDisabled() || options.Auth.AuthenticationType != Opts.AuthenticationTypeDefault)
+		if (options.Application.AuthDisabled() || !AuthenticationMethodNames.IncludesPassword(options.Auth))
 		{
 			if (options.DefaultUser.DefaultAdminPassword != SystemUsers.DefaultAdminPassword)
 			{
-				Log.Error("Cannot set default admin password when not using the internal authentication.");
+				Log.Error("Cannot set default admin password when password authentication is not enabled.");
 				return false;
 			}
 
 			if (options.DefaultUser.DefaultOpsPassword != SystemUsers.DefaultOpsPassword)
 			{
-				Log.Error("Cannot set default ops password when not using the internal authentication.");
+				Log.Error("Cannot set default ops password when password authentication is not enabled.");
 				return false;
 			}
 		}

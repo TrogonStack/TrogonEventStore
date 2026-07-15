@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using EventStore.Core.Services.Transport.Http;
@@ -48,6 +49,22 @@ public class authentication_middleware_should
 		Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
 		Assert.False(context.Response.Headers.ContainsKey(HeaderNames.Location));
 		Assert.AreEqual("X-Basic realm=\"ESDB\"", context.Response.Headers.WWWAuthenticate);
+	}
+
+	[Test]
+	public async Task includes_every_supported_authentication_scheme_in_challenge()
+	{
+		var context = new DefaultHttpContext();
+		var middleware = new AuthenticationMiddleware(
+			[],
+			new TestAuthenticationProvider(["Basic", "Bearer"]));
+
+		await middleware.InvokeAsync(context, _ => Task.CompletedTask);
+
+		Assert.That(context.Response.Headers.WWWAuthenticate.ToArray(), Is.EqualTo(new[] {
+			"X-Basic realm=\"ESDB\"",
+			"X-Bearer realm=\"ESDB\""
+		}));
 	}
 
 	[Test]
@@ -101,11 +118,11 @@ public class authentication_middleware_should
 		}
 	}
 
-	private sealed class TestAuthenticationProvider : AuthenticationProviderBase
+	private sealed class TestAuthenticationProvider(IReadOnlyList<string> schemes = null) : AuthenticationProviderBase
 	{
 		public override void Authenticate(AuthenticationRequest authenticationRequest) =>
 			throw new System.NotImplementedException();
 
-		public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => ["Basic"];
+		public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => schemes ?? ["Basic"];
 	}
 }

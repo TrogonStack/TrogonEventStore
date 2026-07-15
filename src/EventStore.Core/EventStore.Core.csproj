@@ -18,6 +18,8 @@
 		</PackageReference>
 		<PackageReference Include="JetBrains.Annotations" />
 		<PackageReference Include="librdkafka.redist" />
+		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+		<PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
 		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
 		<PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />

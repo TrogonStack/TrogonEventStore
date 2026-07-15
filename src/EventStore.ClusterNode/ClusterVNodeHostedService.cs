@@ -14,6 +14,7 @@ using EventStore.Common.Utils;
 using EventStore.Core;
 using EventStore.Core.Authentication;
 using EventStore.Core.Authentication.InternalAuthentication;
+using EventStore.Core.Authentication.OAuth;
 using EventStore.Core.Authentication.PassthroughAuthentication;
 using EventStore.Core.Authorization;
 using EventStore.Core.Certificates;
@@ -246,10 +247,18 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 				return new AuthenticationProviderFactory(_ => new PassthroughAuthenticationProviderFactory());
 			}
 
-			var authenticationTypeToPlugin = new Dictionary<string, AuthenticationProviderFactory> {
+			var authenticationMethodFactories = new Dictionary<string, AuthenticationProviderFactory> {
 				{
-					"internal", new AuthenticationProviderFactory(components =>
+					AuthenticationMethodNames.LegacyInternal, new AuthenticationProviderFactory(components =>
 						new InternalAuthenticationProviderFactory(components, _options.DefaultUser))
+				},
+				{
+					AuthenticationMethodNames.Password, new AuthenticationProviderFactory(components =>
+						new InternalAuthenticationProviderFactory(components, _options.DefaultUser))
+				},
+				{
+					AuthenticationMethodNames.OAuth, new AuthenticationProviderFactory(_ =>
+						new OAuthAuthenticationProviderFactory(_options.Auth.OAuth))
 				}
 			};
 
@@ -261,7 +270,7 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 					Log.Information(
 						"Loaded authentication plugin: {plugin} version {version} (Command Line: {commandLine})",
 						potentialPlugin.Name, potentialPlugin.Version, commandLine);
-					authenticationTypeToPlugin.Add(commandLine,
+					authenticationMethodFactories.Add(commandLine,
 						new AuthenticationProviderFactory(_ =>
 							potentialPlugin.GetAuthenticationProviderFactory(authenticationConfig)));
 				}
@@ -271,14 +280,22 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 				}
 			}
 
-			return authenticationTypeToPlugin.TryGetValue(_options.Auth.AuthenticationType.ToLowerInvariant(),
-				out var factory)
-				? factory
-				: throw new ApplicationInitializationException(
-					$"The authentication type {_options.Auth.AuthenticationType} is not recognised. If this is supposed " +
-					$"to be provided by an authentication plugin, confirm the plugin DLL is located in {Locations.PluginsDirectory}." +
-					Environment.NewLine +
-					$"Valid options for authentication are: {string.Join(", ", authenticationTypeToPlugin.Keys)}.");
+			var methods = AuthenticationMethodNames.FromOptions(_options.Auth);
+			foreach (var method in methods)
+			{
+				if (!authenticationMethodFactories.ContainsKey(method))
+				{
+					throw new ApplicationInitializationException(
+						$"The authentication method {method} is not recognised. If this is supposed " +
+						$"to be provided by an authentication plugin, confirm the plugin DLL is located in {Locations.PluginsDirectory}." +
+						Environment.NewLine +
+						$"Valid options for authentication are: {string.Join(", ", authenticationMethodFactories.Keys)}.");
+				}
+			}
+
+			return new AuthenticationProviderFactory(components =>
+				new CompositeAuthenticationProviderFactory(methods.Select(method =>
+					authenticationMethodFactories[method].GetFactory(components)).ToArray()));
 		}
 
 		static ClusterVNodeOptions LoadSubsystemsPlugins(PluginLoader pluginLoader, ClusterVNodeOptions options)

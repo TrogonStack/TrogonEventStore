@@ -21,8 +21,6 @@ namespace EventStore.Core.Util
 
 		public const byte IndexBitnessVersionDefault = Index.PTableVersions.IndexV4;
 
-		public static readonly string AuthenticationTypeDefault = "internal";
-
 		public const bool SkipIndexScanOnReadsDefault = false;
 
 		public const long StreamExistenceFilterSizeDefault = 256_000_000;
