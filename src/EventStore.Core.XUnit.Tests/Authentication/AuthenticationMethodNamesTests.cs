@@ -27,4 +27,20 @@ public class AuthenticationMethodNamesTests
 			.Should()
 			.Equal(AuthenticationMethodNames.Password, AuthenticationMethodNames.OAuth);
 	}
+
+	[Fact]
+	public void methods_override_legacy_authentication_type()
+	{
+		AuthenticationMethodNames.FromOptions(new() { AuthenticationType = "ldaps", Methods = ["Password", "OAuth"] })
+			.Should()
+			.Equal(AuthenticationMethodNames.Password, AuthenticationMethodNames.OAuth);
+	}
+
+	[Fact]
+	public void keeps_legacy_authentication_type_when_methods_are_not_configured()
+	{
+		AuthenticationMethodNames.FromOptions(new() { AuthenticationType = "ldaps" })
+			.Should()
+			.Equal("ldaps");
+	}
 }

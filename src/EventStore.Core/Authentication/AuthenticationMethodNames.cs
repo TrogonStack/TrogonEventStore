@@ -12,18 +12,18 @@ public static class AuthenticationMethodNames
 
 	public static IReadOnlyList<string> FromOptions(ClusterVNodeOptions.AuthOptions options)
 	{
-		if (!IsLegacyInternal(options.AuthenticationType))
-		{
-			return [Normalize(options.AuthenticationType)];
-		}
-
 		var methods = options.Methods
 			.Where(method => !string.IsNullOrWhiteSpace(method))
 			.Select(Normalize)
 			.Distinct(StringComparer.OrdinalIgnoreCase)
 			.ToArray();
 
-		return methods.Length == 0 ? [Password] : methods;
+		if (methods.Length > 0)
+		{
+			return methods;
+		}
+
+		return IsLegacyInternal(options.AuthenticationType) ? [Password] : [Normalize(options.AuthenticationType)];
 	}
 
 	public static bool IncludesPassword(ClusterVNodeOptions.AuthOptions options) =>

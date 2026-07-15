@@ -239,7 +239,7 @@ public partial record ClusterVNodeOptions
 		public string AuthenticationType { get; init; } = "internal";
 
 		[Description("Authentication methods enabled by the node. PostgreSQL also models client authentication as a set of methods, which keeps password and OAuth authentication explicit.")]
-		public string[] Methods { get; init; } = ["Password"];
+		public string[] Methods { get; init; } = [];
 
 		[Description("Path to the configuration file for Authentication configuration (if applicable).")]
 		public string? AuthenticationConfig { get; init; }
