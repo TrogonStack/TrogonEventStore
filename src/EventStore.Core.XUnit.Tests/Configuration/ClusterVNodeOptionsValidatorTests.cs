@@ -1,5 +1,7 @@
 using System;
 using EventStore.Common.Exceptions;
+using EventStore.Core.Authentication;
+using EventStore.Core.Services;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Configuration;
@@ -80,5 +82,66 @@ public class ClusterVNodeOptionsValidatorTests
 		{
 			ClusterVNodeOptionsValidator.Validate(options);
 		});
+	}
+
+	[Fact]
+	public void startup_allows_default_user_passwords_when_oauth_needs_certificate_users()
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Auth = new()
+			{
+				Methods = [AuthenticationMethodNames.OAuth]
+			},
+			DefaultUser = new()
+			{
+				DefaultAdminPassword = "admin-password",
+				DefaultOpsPassword = "ops-password"
+			}
+		};
+
+		Assert.True(ClusterVNodeOptionsValidator.ValidateForStartup(options));
+	}
+
+	[Fact]
+	public void startup_rejects_default_user_passwords_when_builtin_user_store_is_not_used()
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Auth = new()
+			{
+				Methods = ["external"]
+			},
+			DefaultUser = new()
+			{
+				DefaultAdminPassword = "admin-password",
+				DefaultOpsPassword = "ops-password"
+			}
+		};
+
+		Assert.False(ClusterVNodeOptionsValidator.ValidateForStartup(options));
+	}
+
+	[Fact]
+	public void startup_rejects_default_user_passwords_when_auth_is_disabled()
+	{
+		var options = new ClusterVNodeOptions
+		{
+			Application = new()
+			{
+				Insecure = true
+			},
+			Auth = new()
+			{
+				Methods = [AuthenticationMethodNames.OAuth]
+			},
+			DefaultUser = new()
+			{
+				DefaultAdminPassword = "admin-password",
+				DefaultOpsPassword = SystemUsers.DefaultOpsPassword
+			}
+		};
+
+		Assert.False(ClusterVNodeOptionsValidator.ValidateForStartup(options));
 	}
 }

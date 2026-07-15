@@ -37,5 +37,5 @@ public class UserCertificateAuthenticationProvider(IAuthenticationProvider inner
 	public override void ConfigureApplication(IApplicationBuilder app, IConfiguration configuration) =>
 		inner.ConfigureApplication(app, configuration);
 
-	public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => ["UserCertificate"];
+	public override IReadOnlyList<string> GetSupportedAuthenticationSchemes() => ["Basic", "UserCertificate"];
 }

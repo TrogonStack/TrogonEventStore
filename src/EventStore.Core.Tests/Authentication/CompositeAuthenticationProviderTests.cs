@@ -76,6 +76,36 @@ public class CompositeAuthenticationProviderTests
 		Assert.AreEqual(0, certificateProvider.Calls);
 	}
 
+	[Test]
+	public async Task user_certificate_wrapper_allows_certificate_requests_over_basic_http_path()
+	{
+		var innerProvider = new RecordingAuthenticationProvider(["Basic", "UserCertificate"]);
+		var certificateProvider = new UserCertificateAuthenticationProvider(innerProvider);
+		var provider = new CompositeAuthenticationProvider([new RecordingAuthenticationProvider(["Bearer"]), certificateProvider]);
+		var context = new DefaultHttpContext();
+		var request = HttpAuthenticationRequest.CreateWithValidCertificate(context, "admin", CreateCertificate());
+
+		provider.Authenticate(request);
+		await request.AuthenticateAsync();
+
+		Assert.AreEqual(1, innerProvider.Calls);
+	}
+
+	[Test]
+	public async Task user_certificate_wrapper_rejects_basic_password_requests()
+	{
+		var innerProvider = new RecordingAuthenticationProvider(["Basic", "UserCertificate"]);
+		var certificateProvider = new UserCertificateAuthenticationProvider(innerProvider);
+		var provider = new CompositeAuthenticationProvider([new RecordingAuthenticationProvider(["Bearer"]), certificateProvider]);
+		var request = new HttpAuthenticationRequest(new DefaultHttpContext(), "admin", "changeit");
+
+		provider.Authenticate(request);
+		var status = await request.AuthenticateAsync();
+
+		Assert.AreEqual(HttpAuthenticationRequestStatus.Unauthenticated, status.Item1);
+		Assert.AreEqual(0, innerProvider.Calls);
+	}
+
 	private static X509Certificate2 CreateCertificate()
 	{
 		using var rsa = RSA.Create();
