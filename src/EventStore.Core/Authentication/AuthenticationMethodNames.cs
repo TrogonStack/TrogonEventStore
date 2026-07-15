@@ -6,9 +6,9 @@ namespace EventStore.Core.Authentication;
 
 public static class AuthenticationMethodNames
 {
-	public const string LegacyInternal = "internal";
 	public const string Password = "password";
 	public const string OAuth = "oauth";
+	private const string LegacyInternal = "internal";
 
 	public static IReadOnlyList<string> FromOptions(ClusterVNodeOptions.AuthOptions options)
 	{
