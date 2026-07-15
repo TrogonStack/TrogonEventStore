@@ -81,7 +81,31 @@ public class OAuthBrowserFlowServiceTests
 		await result.ExecuteAsync(context);
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
-		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?oauth_error=invalid_state"));
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams&oauth_error=invalid_state"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
+		Assert.That(handler.Body, Is.Empty);
+	}
+
+	[Test]
+	public async Task callback_with_provider_error_preserves_return_url_without_exchanging_code()
+	{
+		var handler = new TokenHandler();
+		var service = Service(handler);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["error"] = new StringValues("access_denied"),
+			["state"] = new StringValues(State(challenge.CodeChallengeCorrelationId))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams&oauth_error=provider_error"));
 		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
 		Assert.That(handler.Body, Is.Empty);
 	}

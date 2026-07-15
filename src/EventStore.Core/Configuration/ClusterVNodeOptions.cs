@@ -235,10 +235,10 @@ public partial record ClusterVNodeOptions
 		[Description("Path to the configuration file for authorization configuration (if applicable).")]
 		public string? AuthorizationConfig { get; init; }
 
-		[Description("The type of Authentication to use.")]
+		[Description("Legacy authentication provider name. Prefer Authentication:Methods for new configurations.")]
 		public string AuthenticationType { get; init; } = "internal";
 
-		[Description("Authentication methods enabled by the node. PostgreSQL also models client authentication as a set of methods, which keeps password and OAuth authentication explicit.")]
+		[Description("Authentication methods enabled by the node. PostgreSQL also models client authentication this way, keeping password and OAuth explicit.")]
 		public string[] Methods { get; init; } = [];
 
 		[Description("Path to the configuration file for Authentication configuration (if applicable).")]

@@ -62,17 +62,30 @@ public sealed class OAuthBrowserFlowService(
 	{
 		var code = context.Request.Query["code"].ToString();
 		var state = context.Request.Query["state"].ToString();
+		var providerError = context.Request.Query["error"].ToString();
+		var hasState = TryReadState(state, out var correlationId, out var returnUrl);
+		if (!string.IsNullOrWhiteSpace(providerError))
+		{
+			DeleteChallengeCookie(context.Response);
+			return SignInRedirect("provider_error", hasState ? returnUrl : "");
+		}
+
 		if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
 		{
 			return SignInRedirect("missing_callback", "");
 		}
 
-		if (!TryReadState(state, out var correlationId, out var returnUrl) ||
-			!TryReadChallenge(context.Request, correlationId, out var challenge) ||
-			challenge.ExpiresAt <= timeProvider.GetUtcNow())
+		if (!hasState)
 		{
 			DeleteChallengeCookie(context.Response);
 			return SignInRedirect("invalid_state", "");
+		}
+
+		if (!TryReadChallenge(context.Request, correlationId, out var challenge) ||
+			challenge.ExpiresAt <= timeProvider.GetUtcNow())
+		{
+			DeleteChallengeCookie(context.Response);
+			return SignInRedirect("invalid_state", returnUrl);
 		}
 
 		DeleteChallengeCookie(context.Response);
