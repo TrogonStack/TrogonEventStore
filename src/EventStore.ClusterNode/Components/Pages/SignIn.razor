@@ -120,7 +120,7 @@
 			AuthenticationAvailable = true;
 			Message = string.IsNullOrWhiteSpace(OAuthError)
 				? ""
-				: "The OAuth sign-in flow could not be completed.";
+				: OAuthErrorMessage(OAuthError);
 		} catch (Exception ex) {
 			Authentication = SecurityAuthenticationInfo.Unavailable();
 			AuthenticationAvailable = false;
@@ -138,6 +138,16 @@
 		request.Query.ContainsKey("code") ||
 		request.Query.ContainsKey("state") ||
 		request.Query.ContainsKey("error");
+
+	private static string OAuthErrorMessage(string error) =>
+		error switch
+		{
+			"invalid_state" => "The OAuth sign-in session expired or could not be verified. Try again.",
+			"missing_callback" => "The identity provider did not return the expected OAuth callback data.",
+			"missing_token" => "The identity provider did not return an OAuth access token.",
+			"provider_error" => "The identity provider rejected the OAuth sign-in request.",
+			_ => "The OAuth sign-in flow could not be completed."
+		};
 
 	private async Task SignInUser() {
 		try {

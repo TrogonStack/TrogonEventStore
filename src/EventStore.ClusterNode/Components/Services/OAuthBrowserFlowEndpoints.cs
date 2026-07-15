@@ -37,7 +37,8 @@ public sealed class OAuthBrowserFlowService(
 	ClusterVNodeOptions.OAuthOptions options,
 	HttpClient httpClient,
 	TimeProvider timeProvider,
-	IDataProtectionProvider dataProtectionProvider) : IDisposable
+	IDataProtectionProvider dataProtectionProvider,
+	bool adminUiEnabled) : IDisposable
 {
 	public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 	private const string ChallengeCookieName = "eventstore-ui-oauth-pkce";
@@ -67,26 +68,26 @@ public sealed class OAuthBrowserFlowService(
 		if (!string.IsNullOrWhiteSpace(providerError))
 		{
 			DeleteChallengeCookie(context);
-			return SignInRedirect("provider_error", hasState ? returnUrl : "");
+			return ErrorRedirect("provider_error", hasState ? returnUrl : "");
 		}
 
 		if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
 		{
 			DeleteChallengeCookie(context);
-			return SignInRedirect("missing_callback", "");
+			return ErrorRedirect("missing_callback", "");
 		}
 
 		if (!hasState)
 		{
 			DeleteChallengeCookie(context);
-			return SignInRedirect("invalid_state", "");
+			return ErrorRedirect("invalid_state", "");
 		}
 
 		if (!TryReadChallenge(context.Request, correlationId, out var challenge) ||
 			challenge.ExpiresAt <= timeProvider.GetUtcNow())
 		{
 			DeleteChallengeCookie(context);
-			return SignInRedirect("invalid_state", returnUrl);
+			return ErrorRedirect("invalid_state", returnUrl);
 		}
 
 		DeleteChallengeCookie(context);
@@ -97,12 +98,12 @@ public sealed class OAuthBrowserFlowService(
 			cancellationToken);
 		if (string.IsNullOrWhiteSpace(token))
 		{
-			return SignInRedirect("missing_token", returnUrl);
+			return ErrorRedirect("missing_token", returnUrl);
 		}
 
 		UiCredentialCookie.Delete(context.Response);
 		UiCredentialCookie.AppendOAuthToken(context.Response, token);
-		return Results.Redirect(SignInLocation(returnUrl));
+		return Results.Redirect(adminUiEnabled ? SignInLocation(returnUrl) : DirectReturnLocation(returnUrl));
 	}
 
 	private async Task<string> ExchangeCode(
@@ -170,10 +171,10 @@ public sealed class OAuthBrowserFlowService(
 		}
 	}
 
-	private static IResult SignInRedirect(string error, string returnUrl)
+	private IResult ErrorRedirect(string error, string returnUrl)
 	{
-		var signInLocation = SignInLocation(returnUrl);
-		return Results.Redirect($"{signInLocation}{(signInLocation.Contains('?') ? '&' : '?')}oauth_error={Uri.EscapeDataString(error)}");
+		var location = adminUiEnabled ? SignInLocation(returnUrl) : DirectReturnLocation(returnUrl);
+		return Results.Redirect($"{location}{(location.Contains('?') ? '&' : '?')}oauth_error={Uri.EscapeDataString(error)}");
 	}
 
 	private bool TryReadState(string state, out string correlationId, out string returnUrl, out string redirectUri)
@@ -236,6 +237,11 @@ public sealed class OAuthBrowserFlowService(
 		string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/ui"
 			? "/ui/signin"
 			: $"/ui/signin?returnUrl={Uri.EscapeDataString(returnUrl)}";
+
+	private static string DirectReturnLocation(string returnUrl) =>
+		string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/ui"
+			? "/"
+			: returnUrl;
 
 	private void DeleteChallengeCookie(HttpContext context) =>
 		context.Response.Cookies.Delete(ChallengeCookieName, ChallengeCookieOptions(context.Request, maxAge: null));

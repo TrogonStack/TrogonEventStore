@@ -66,6 +66,29 @@ public class OAuthBrowserFlowServiceTests
 	}
 
 	[Test]
+	public async Task callback_redirects_to_return_url_when_admin_ui_is_disabled()
+	{
+		var handler = new TokenHandler();
+		var service = Service(handler, adminUiEnabled: false);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["code"] = new StringValues("authorization-code"),
+			["state"] = new StringValues(State(challenge.CodeChallengeCorrelationId))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/streams"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
+	}
+
+	[Test]
 	public async Task callback_without_matching_challenge_cookie_does_not_exchange_code()
 	{
 		var handler = new TokenHandler();
@@ -106,6 +129,30 @@ public class OAuthBrowserFlowServiceTests
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
 		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams&oauth_error=provider_error"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
+		Assert.That(handler.Body, Is.Empty);
+	}
+
+	[Test]
+	public async Task callback_with_provider_error_redirects_to_return_url_when_admin_ui_is_disabled()
+	{
+		var handler = new TokenHandler();
+		var service = Service(handler, adminUiEnabled: false);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["error"] = new StringValues("access_denied"),
+			["state"] = new StringValues(State(challenge.CodeChallengeCorrelationId))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/streams?oauth_error=provider_error"));
 		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
 		Assert.That(handler.Body, Is.Empty);
 	}
@@ -170,7 +217,7 @@ public class OAuthBrowserFlowServiceTests
 	private static string State(string correlationId, string redirectUri = "https://node.example.test/ui/auth/oauth/callback") =>
 		Convert.ToBase64String(Encoding.UTF8.GetBytes($$"""{"code_challenge_correlation_id":"{{correlationId}}","return_url":"/ui/streams","redirect_uri":"{{redirectUri}}"}"""));
 
-	private static OAuthBrowserFlowService Service(TokenHandler handler)
+	private static OAuthBrowserFlowService Service(TokenHandler handler, bool adminUiEnabled = true)
 	{
 		var services = new ServiceCollection()
 			.AddLogging()
@@ -181,7 +228,8 @@ public class OAuthBrowserFlowServiceTests
 			Options(),
 			new HttpClient(handler),
 			TimeProvider.System,
-			services.GetRequiredService<IDataProtectionProvider>());
+			services.GetRequiredService<IDataProtectionProvider>(),
+			adminUiEnabled);
 	}
 
 	private static DefaultHttpContext HttpsContext()

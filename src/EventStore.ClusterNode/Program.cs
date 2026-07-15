@@ -301,6 +301,7 @@ internal static class Program
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddScoped<ConfigurationBrowserService>();
 					var oauthEnabled = AuthenticationMethodNames.IncludesOAuth(options.Auth);
+					var adminUiEnabled = !options.Interface.DisableAdminUi;
 					if (oauthEnabled)
 					{
 						var oauthHttpHandler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) };
@@ -309,14 +310,14 @@ internal static class Program
 								options.Auth.OAuth,
 								new HttpClient(oauthHttpHandler),
 								TimeProvider.System,
-								serviceProvider.GetRequiredService<IDataProtectionProvider>()));
+								serviceProvider.GetRequiredService<IDataProtectionProvider>(),
+								adminUiEnabled));
 					}
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
-					var adminUiEnabled = !options.Interface.DisableAdminUi;
 					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory))
 					{
 						app.UseStaticFiles(new StaticFileOptions
