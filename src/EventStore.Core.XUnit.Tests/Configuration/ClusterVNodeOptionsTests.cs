@@ -254,6 +254,87 @@ public class ClusterVNodeOptionsTests
 		});
 	}
 
+	[Fact]
+	public void can_set_authentication_methods_from_auth_section()
+	{
+		var config = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection([
+					new KeyValuePair<string, string?>("Auth:Methods:0", "password"),
+					new KeyValuePair<string, string?>("Auth:Methods:1", "oauth"),
+				]))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(config);
+
+		options.Auth.Methods.Should().Equal("password", "oauth");
+	}
+
+	[Fact]
+	public void can_set_authentication_methods_from_environment_variables()
+	{
+		var config = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddEventStoreEnvironmentVariables(
+				("EVENTSTORE__AUTH__METHODS__0", "password"),
+				("EVENTSTORE__AUTH__METHODS__1", "oauth"))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(config);
+
+		options.Auth.Methods.Should().Equal("password", "oauth");
+	}
+
+	[Fact]
+	public void can_set_authentication_methods_from_command_line()
+	{
+		var config = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddEventStoreCommandLine("--auth:methods:0", "password", "--auth:methods:1", "oauth")
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(config);
+
+		options.Auth.Methods.Should().Equal("password", "oauth");
+	}
+
+	[Fact]
+	public void can_set_oauth_options_from_auth_section()
+	{
+		var config = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection([
+					new KeyValuePair<string, string?>("Auth:OAuth:Issuer", "https://identity.example.com"),
+					new KeyValuePair<string, string?>("Auth:OAuth:Audiences:0", "eventstore"),
+				]))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(config);
+
+		options.Auth.OAuth.Issuer.Should().Be("https://identity.example.com");
+		options.Auth.OAuth.Audiences.Should().Equal("eventstore");
+	}
+
+	[Fact]
+	public void auth_section_preserves_flat_authentication_type()
+	{
+		var config = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddSection(EventStoreConfigurationKeys.Prefix, builder => builder
+				.AddInMemoryCollection([
+					new KeyValuePair<string, string?>("AuthenticationType", "external"),
+					new KeyValuePair<string, string?>("Auth:OAuth:Issuer", "https://identity.example.com"),
+				]))
+			.Build();
+
+		var options = ClusterVNodeOptions.FromConfiguration(config);
+
+		options.Auth.AuthenticationType.Should().Be("external");
+		options.Auth.OAuth.Issuer.Should().Be("https://identity.example.com");
+	}
+
 	[Theory]
 	[InlineData("127.0.0.1", "You must specify the ports in the gossip seed.")]
 	[InlineData("127.0.0.1:3.1415", "Invalid format for gossip seed port: 3.1415.")]

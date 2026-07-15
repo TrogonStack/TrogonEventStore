@@ -1105,7 +1105,7 @@ public class ClusterVNode<TStreamId> :
 			{
 				["projections"] = options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev,
 				["userManagement"] =
-					options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault &&
+					AuthenticationMethodNames.IncludesBuiltInUserStore(options.Auth) &&
 					!options.Application.AuthDisabled()
 			},
 			_authenticationProvider

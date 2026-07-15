@@ -14,10 +14,16 @@ public sealed record UiCredentials(string Username, string Password)
 public static class UiCredentialCookie
 {
 	public const string BasicCookieName = "es-creds";
-	public const string OAuthCookieName = "oauth_id_token";
+	public const string OAuthCookieName = "oauth_token";
 
 	public static void AppendBasic(HttpResponse response, UiCredentials credentials) =>
 		AppendBasicValue(response, credentials.BasicValue);
+
+	public static void AppendOAuthToken(HttpResponse response, string token) =>
+		response.Cookies.Append(
+			OAuthCookieName,
+			token,
+			Options(response.HttpContext.Request.IsHttps));
 
 	private static void AppendBasicValue(HttpResponse response, string value) =>
 		response.Cookies.Append(

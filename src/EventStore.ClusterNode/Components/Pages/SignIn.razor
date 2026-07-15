@@ -37,16 +37,34 @@
 			<p class="mt-3 text-sm leading-6 text-es-muted">This node is running with insecure access, so there is no credential exchange to perform.</p>
 			<a class="mt-6 inline-flex rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" href="@Destination">Continue to UI</a>
 		}
-		else if (!Authentication.SupportsBasic)
+		else if (!Authentication.SupportsBasic && !Authentication.SupportsOAuthBrowserFlow)
 		{
 			<StatusBadge Label="@Authentication.TypeLabel" Tone="warn" />
-			<h2 class="mt-4 text-3xl font-black tracking-tight text-es-ink">Continue with the configured provider.</h2>
-			<p class="mt-3 text-sm leading-6 text-es-muted">This node does not advertise Basic authentication, so sign-in is delegated to the configured browser authentication flow.</p>
-			<button class="mt-6 rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="button" data-ui-oauth-signin data-ui-oauth-return="@Destination" data-ui-oauth-type="@Authentication.Type" data-ui-oauth-properties="@Authentication.PropertiesJson">Continue</button>
-			<p class="mt-4 hidden rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800" data-ui-oauth-status></p>
+			<h2 class="mt-4 text-3xl font-black tracking-tight text-es-ink">Sign-in needs more configuration.</h2>
+			<p class="mt-3 text-sm leading-6 text-es-muted">This node does not advertise Basic authentication or a browser OAuth flow.</p>
+			@if (!string.IsNullOrWhiteSpace(Message))
+			{
+				<p class="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Message</p>
+			}
 		}
 		else
 		{
+			@if (Authentication.SupportsOAuthBrowserFlow)
+			{
+				<div class="mb-6 rounded-[1.5rem] border border-es-ink/10 bg-es-cloud/70 p-5">
+					<h2 class="text-2xl font-black tracking-tight text-es-ink">Continue with OAuth</h2>
+					<p class="mt-2 text-sm leading-6 text-es-muted">Use the configured browser sign-in flow for this node.</p>
+					<button class="mt-4 rounded-2xl bg-es-ink px-5 py-3 text-sm font-black text-white shadow-lg shadow-es-ink/15 transition hover:bg-es-green" type="button" data-ui-oauth-signin data-ui-oauth-return="@Destination" data-ui-oauth-type="@Authentication.Type" data-ui-oauth-properties="@Authentication.PropertiesJson">Continue with OAuth</button>
+					@if (!string.IsNullOrWhiteSpace(Message))
+					{
+						<p class="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">@Message</p>
+					}
+					<p class="mt-4 hidden rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800" data-ui-oauth-status></p>
+				</div>
+			}
+
+			@if (Authentication.SupportsBasic)
+			{
 			<EditForm Model="Input" FormName="ui-signin" OnValidSubmit="SignInUser">
 				<AntiforgeryToken />
 				<DataAnnotationsValidator />
@@ -74,6 +92,7 @@
 					<a class="rounded-2xl border border-es-ink/10 bg-white px-5 py-3 text-sm font-black text-es-ink transition hover:border-es-green/30 hover:text-es-forest" href="/ui">Back to UI</a>
 				</div>
 			</EditForm>
+			}
 		}
 	</article>
 </section>
@@ -82,12 +101,16 @@
 	[SupplyParameterFromQuery(Name = "returnUrl")]
 	private string ReturnUrl { get; set; } = "";
 
+	[SupplyParameterFromQuery(Name = "oauth_error")]
+	private string OAuthError { get; set; } = "";
+
 	[SupplyParameterFromForm(FormName = "ui-signin")]
 	private SignInInput Input { get; set; }
 
 	private SecurityAuthenticationInfo Authentication { get; set; } = SecurityAuthenticationInfo.Unavailable();
 	private bool AuthenticationAvailable { get; set; } = true;
 	private string Message { get; set; } = "";
+	private string DisplayedOAuthError { get; set; } = "";
 	private string Destination => SecurityBrowserService.NormalizeReturnUrl(ReturnUrl);
 
 	protected override void OnParametersSet() {
@@ -96,9 +119,19 @@
 		try {
 			Authentication = Security.AuthenticationInfo();
 			AuthenticationAvailable = true;
+			if (string.IsNullOrWhiteSpace(OAuthError)) {
+				if (!string.IsNullOrWhiteSpace(DisplayedOAuthError)) {
+					Message = "";
+					DisplayedOAuthError = "";
+				}
+			} else {
+				Message = OAuthErrorMessage(OAuthError);
+				DisplayedOAuthError = OAuthError;
+			}
 		} catch (Exception ex) {
 			Authentication = SecurityAuthenticationInfo.Unavailable();
 			AuthenticationAvailable = false;
+			DisplayedOAuthError = "";
 			Message = $"Unable to load authentication information: {UserInterfaceMessages.Friendly(ex)}";
 		}
 
@@ -114,16 +147,29 @@
 		request.Query.ContainsKey("state") ||
 		request.Query.ContainsKey("error");
 
+	private static string OAuthErrorMessage(string error) =>
+		error switch
+		{
+			"invalid_state" => "The OAuth sign-in session expired or could not be verified. Try again.",
+			"missing_callback" => "The identity provider did not return the expected OAuth callback data.",
+			"missing_token" => "The identity provider did not return an OAuth access token.",
+			"unsupported_token" => "The identity provider did not return a token this node can validate.",
+			"provider_error" => "The identity provider rejected the OAuth sign-in request.",
+			_ => "The OAuth sign-in flow could not be completed."
+		};
+
 	private async Task SignInUser() {
 		try {
 			var result = await Security.Validate(Input.Username, Input.Password);
 			if (!result.Success) {
+				DisplayedOAuthError = "";
 				Message = result.Message;
 				return;
 			}
 
 			var context = HttpContextAccessor.HttpContext;
 			if (context is null) {
+				DisplayedOAuthError = "";
 				Message = "The sign-in response is no longer available.";
 				return;
 			}
@@ -131,9 +177,11 @@
 			UiCredentialCookie.DeleteOAuthToken(context.Response);
 			UiCredentialCookie.AppendBasic(context.Response, new UiCredentials(Input.Username.Trim(), Input.Password));
 		} catch (OperationCanceledException) {
+			DisplayedOAuthError = "";
 			Message = "Sign-in was canceled.";
 			return;
 		} catch (Exception ex) {
+			DisplayedOAuthError = "";
 			Message = $"Failed to sign in: {UserInterfaceMessages.Friendly(ex)}";
 			return;
 		}

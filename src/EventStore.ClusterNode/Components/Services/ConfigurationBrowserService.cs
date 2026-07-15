@@ -5,6 +5,7 @@ using System.Net;
 using EventStore.Common.Options;
 using EventStore.Common.Utils;
 using EventStore.Core;
+using EventStore.Core.Authentication;
 using EventStore.Core.Data;
 using EventStore.Core.Services;
 using EventStore.Core.Util;
@@ -22,7 +23,7 @@ public sealed class ConfigurationBrowserService(
 		var features = new[] {
 			new ConfigurationFeature("Projections", options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev),
 			new ConfigurationFeature("User management",
-				options.Auth.AuthenticationType == Opts.AuthenticationTypeDefault && !options.Application.AuthDisabled())
+				AuthenticationMethodNames.IncludesBuiltInUserStore(options.Auth) && !options.Application.AuthDisabled())
 		};
 
 		var subsystems = hostedService.EnabledNodeSubsystems
@@ -44,7 +45,7 @@ public sealed class ConfigurationBrowserService(
 			canInspectRuntimeDetails ? new IPEndPoint(options.Interface.NodeIp, options.Interface.NodePort).ToString() : "",
 			canInspectRuntimeDetails ? options.Database.Db : "",
 			canInspectRuntimeDetails ? options.Database.DbLogFormat.ToString() : "",
-			canInspectRuntimeDetails ? options.Auth.AuthenticationType : "",
+			canInspectRuntimeDetails ? string.Join(", ", AuthenticationMethodNames.FromOptions(options.Auth)) : "",
 			canInspectRuntimeDetails ? options.Auth.AuthorizationType : "",
 			options.Application.Insecure,
 			options.Application.TlsDisabled(),

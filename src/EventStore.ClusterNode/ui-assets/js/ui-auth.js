@@ -30,7 +30,7 @@
 	}
 
 	function readAuthorization() {
-		var token = safeDecode(readCookie("oauth_id_token"));
+		var token = safeDecode(readCookie("oauth_token"));
 		if (isHeaderSafe(token))
 			return "Bearer " + token;
 
@@ -81,7 +81,7 @@
 
 	function clearReadableAuthCookies() {
 		clearCookie("es-creds");
-		clearCookie("oauth_id_token");
+		clearCookie("oauth_token");
 	}
 
 	function setStatus(message) {
@@ -103,10 +103,14 @@
 
 	async function beginOAuthSignIn(button) {
 		try {
-			var providerType = (button.getAttribute("data-ui-oauth-type") || "").toLowerCase();
 			var properties = readJsonAttribute(button, "data-ui-oauth-properties");
-			if (providerType !== "oauth")
-				throw new Error("The configured provider is not an OAuth browser flow.");
+			if (!properties.authorization_endpoint ||
+				!properties.client_id ||
+				!properties.code_challenge_uri ||
+				!properties.redirect_uri ||
+				!properties.response_type ||
+				!properties.scope)
+				throw new Error("The configured provider does not advertise an OAuth browser flow.");
 
 			var baseUrl = window.location.protocol + "//" + window.location.host;
 			var challengeResponse = await originalFetch(baseUrl + properties.code_challenge_uri);
@@ -114,20 +118,22 @@
 				throw new Error("Code challenge endpoint returned " + challengeResponse.status + " " + challengeResponse.statusText);
 
 			var challenge = await challengeResponse.json();
+			var returnUrl = button.getAttribute("data-ui-oauth-return") || "";
+			var redirectUri = baseUrl + properties.redirect_uri;
 			var state = btoa(JSON.stringify({
-				code_challenge_correlation_id: challenge.code_challenge_correlation_id
+				code_challenge_correlation_id: challenge.code_challenge_correlation_id,
+				return_url: returnUrl,
+				redirect_uri: redirectUri
 			}));
-			var redirectUri = encodeURIComponent(baseUrl + properties.redirect_uri);
 			var target = properties.authorization_endpoint +
 				"?response_type=" + encodeURIComponent(properties.response_type) +
 				"&client_id=" + encodeURIComponent(properties.client_id) +
-				"&redirect_uri=" + redirectUri +
+				"&redirect_uri=" + encodeURIComponent(redirectUri) +
 				"&scope=" + encodeURIComponent(properties.scope) +
 				"&code_challenge=" + encodeURIComponent(challenge.code_challenge) +
 				"&code_challenge_method=" + encodeURIComponent(challenge.code_challenge_method) +
 				"&state=" + encodeURIComponent(state);
 
-			var returnUrl = button.getAttribute("data-ui-oauth-return");
 			if (returnUrl)
 				sessionStorage.setItem("eventstore-ui-return-url", returnUrl);
 

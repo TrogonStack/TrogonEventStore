@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Net.Security;
 using System.Runtime;
 using System.Security.Authentication;
@@ -15,10 +16,14 @@ using EventStore.Common.Exceptions;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
 using EventStore.Core;
+using EventStore.Core.Authentication;
+using EventStore.Core.Authentication.OAuth;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
 using EventStore.Core.Services.Transport.Http;
+using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
@@ -282,6 +287,7 @@ internal static class Program
 
 					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
 					builder.Services.AddHttpContextAccessor();
+					builder.Services.AddDataProtection();
 					builder.Services.AddRazorComponents();
 					builder.Services.AddScoped<ProjectionBrowserService>();
 					builder.Services.AddSingleton<QueueDashboardService>();
@@ -290,15 +296,30 @@ internal static class Program
 					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddScoped<SubscriptionBrowserService>();
 					builder.Services.AddScoped<UserBrowserService>();
-					builder.Services.AddScoped<SecurityBrowserService>();
+					builder.Services.AddScoped(serviceProvider => new SecurityBrowserService(
+						serviceProvider.GetRequiredService<IAuthenticationProvider>(),
+						AuthenticationMethodNames.IncludesPassword(options.Auth)));
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddScoped<ConfigurationBrowserService>();
+					var oauthEnabled = AuthenticationMethodNames.IncludesOAuth(options.Auth);
+					var adminUiEnabled = !options.Interface.DisableAdminUi;
+					if (oauthEnabled)
+					{
+						var oauthHttpHandler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) };
+						builder.Services.AddSingleton(serviceProvider =>
+							new OAuthBrowserFlowService(
+								options.Auth.OAuth,
+								new HttpClient(oauthHttpHandler),
+								TimeProvider.System,
+								serviceProvider.GetRequiredService<IDataProtectionProvider>(),
+								new OAuthTokenValidator(options.Auth.OAuth),
+								adminUiEnabled));
+					}
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
 					var app = builder.Build();
 					app.UseMiddleware<UiCredentialsMiddleware>();
-					var adminUiEnabled = !options.Interface.DisableAdminUi;
 					if (adminUiEnabled && Directory.Exists(Locations.UiAssetsDirectory))
 					{
 						app.UseStaticFiles(new StaticFileOptions
@@ -312,6 +333,11 @@ internal static class Program
 						Log.Warning("UI assets directory {UiAssetsDirectory} is not available.", Locations.UiAssetsDirectory);
 					}
 					hostedService.Node.Startup.Configure(app);
+					if (oauthEnabled)
+					{
+						app.MapOAuthBrowserFlowEndpoints(options.Auth.OAuth);
+					}
+
 					if (adminUiEnabled)
 					{
 						app.MapAdminOperationsEndpoints();

@@ -78,7 +78,7 @@ public partial record ClusterVNodeOptions
 			DevMode = configuration.BindOptions<DevModeOptions>(),
 			DefaultUser = configuration.BindOptions<DefaultUserOptions>(),
 			Logging = configuration.BindOptions<LoggingOptions>(),
-			Auth = configuration.BindOptions<AuthOptions>(),
+			Auth = BindOptions<AuthOptions>(configuration, nameof(Auth)),
 			Certificate = configuration.BindOptions<CertificateOptions>(),
 			CertificateFile = configuration.BindOptions<CertificateFileOptions>(),
 			CertificateStore = configuration.BindOptions<CertificateStoreOptions>(),
@@ -94,6 +94,18 @@ public partial record ClusterVNodeOptions
 		};
 
 		return options;
+
+		static T BindOptions<T>(IConfiguration configuration, string sectionName) where T : new()
+		{
+			var options = configuration.BindOptions<T>();
+			var section = configuration.GetSection(sectionName);
+			if (section.Exists())
+			{
+				section.Bind(options);
+			}
+
+			return options;
+		}
 	}
 
 	[Description("Default User Options")]
@@ -235,12 +247,64 @@ public partial record ClusterVNodeOptions
 		[Description("Path to the configuration file for authorization configuration (if applicable).")]
 		public string? AuthorizationConfig { get; init; }
 
-		[Description("The type of Authentication to use.")]
+		[Description("Legacy authentication provider name. Prefer Auth:Methods for new configurations.")]
 		public string AuthenticationType { get; init; } = "internal";
+
+		[Description("Authentication methods enabled by the node. PostgreSQL also models client authentication this way, keeping password and OAuth explicit.")]
+		public string[] Methods { get; init; } = [];
 
 		[Description("Path to the configuration file for Authentication configuration (if applicable).")]
 		public string? AuthenticationConfig { get; init; }
 
+		[Description("OAuth authentication options.")]
+		public OAuthOptions OAuth { get; init; } = new();
+
+	}
+
+	public record OAuthOptions
+	{
+		[Description("OpenID Connect issuer URL that signs accepted access tokens.")]
+		public string? Issuer { get; init; }
+
+		[Description("OpenID Connect discovery document URL. Defaults to '<Issuer>/.well-known/openid-configuration'.")]
+		public string? MetadataAddress { get; init; }
+
+		[Description("Accepted token audiences for this node.")]
+		public string[] Audiences { get; init; } = [];
+
+		[Description("OAuth authorization endpoint used by the browser sign-in flow.")]
+		public string? AuthorizationEndpoint { get; init; }
+
+		[Description("OAuth token endpoint used by the browser sign-in flow.")]
+		public string? TokenEndpoint { get; init; }
+
+		[Description("OAuth public client id used by the browser sign-in flow.")]
+		public string? ClientId { get; init; }
+
+		[Description("OAuth client secret used by confidential browser sign-in clients."),
+		 Sensitive]
+		public string? ClientSecret { get; init; }
+
+		[Description("OAuth scopes requested by the browser sign-in flow.")]
+		public string[] Scopes { get; init; } = ["openid", "profile"];
+
+		[Description("Path that receives the OAuth authorization-code callback.")]
+		public string RedirectPath { get; init; } = "/ui/auth/oauth/callback";
+
+		[Description("Path that creates PKCE code challenges for the OAuth browser sign-in flow.")]
+		public string CodeChallengePath { get; init; } = "/ui/auth/oauth/code-challenge";
+
+		[Description("Claim used as the authenticated user name.")]
+		public string NameClaimType { get; init; } = "sub";
+
+		[Description("Claim whose values are mapped to EventStore role claims.")]
+		public string RoleClaimType { get; init; } = "roles";
+
+		[Description("Require HTTPS for OpenID Connect metadata.")]
+		public bool RequireHttpsMetadata { get; init; } = true;
+
+		[Description("Allowed token clock skew in seconds.")]
+		public int ClockSkewSeconds { get; init; } = 300;
 	}
 
 	[Description("Certificate Options (from file)")]
