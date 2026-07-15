@@ -20,6 +20,7 @@ using EventStore.Core.Authentication;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
 using EventStore.Core.Services.Transport.Http;
+using EventStore.Plugins.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -294,7 +295,9 @@ internal static class Program
 					builder.Services.AddScoped<StreamBrowserService>();
 					builder.Services.AddScoped<SubscriptionBrowserService>();
 					builder.Services.AddScoped<UserBrowserService>();
-					builder.Services.AddScoped<SecurityBrowserService>();
+					builder.Services.AddScoped(serviceProvider => new SecurityBrowserService(
+						serviceProvider.GetRequiredService<IAuthenticationProvider>(),
+						AuthenticationMethodNames.IncludesPassword(options.Auth)));
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddScoped<ConfigurationBrowserService>();
 					var oauthEnabled = AuthenticationMethodNames.IncludesOAuth(options.Auth);

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace EventStore.ClusterNode.Components.Services;
 
-public sealed class SecurityBrowserService(IAuthenticationProvider authenticationProvider)
+public sealed class SecurityBrowserService(IAuthenticationProvider authenticationProvider, bool supportsPassword)
 {
 	private static readonly Uri LocalBaseUri = new("http://localhost", UriKind.Absolute);
 
@@ -24,7 +24,7 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 
 		return new SecurityAuthenticationInfo(
 			authenticationProvider.Name,
-			schemes.Any(x => string.Equals(x, "Basic", StringComparison.OrdinalIgnoreCase)),
+			supportsPassword,
 			schemes.Any(x => string.Equals(x, "Bearer", StringComparison.OrdinalIgnoreCase)) &&
 			properties.ContainsKey("authorization_endpoint") &&
 			properties.ContainsKey("client_id") &&
