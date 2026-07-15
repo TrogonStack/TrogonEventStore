@@ -45,6 +45,22 @@ public class AuthenticationMethodNamesTests
 	}
 
 	[Fact]
+	public void oauth_uses_the_built_in_user_store()
+	{
+		AuthenticationMethodNames.IncludesBuiltInUserStore(new() { Methods = ["OAuth"] })
+			.Should()
+			.BeTrue();
+	}
+
+	[Fact]
+	public void external_authentication_without_oauth_does_not_use_the_built_in_user_store()
+	{
+		AuthenticationMethodNames.IncludesBuiltInUserStore(new() { AuthenticationType = "ldaps" })
+			.Should()
+			.BeFalse();
+	}
+
+	[Fact]
 	public void keeps_legacy_authentication_type_when_methods_are_not_configured()
 	{
 		AuthenticationMethodNames.FromOptions(new() { AuthenticationType = "ldaps" })

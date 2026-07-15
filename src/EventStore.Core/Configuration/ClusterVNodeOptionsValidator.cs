@@ -150,8 +150,7 @@ public static class ClusterVNodeOptionsValidator
 			return false;
 		}
 
-		var needsDefaultUsers = AuthenticationMethodNames.IncludesPassword(options.Auth) ||
-								AuthenticationMethodNames.IncludesOAuth(options.Auth);
+		var needsDefaultUsers = AuthenticationMethodNames.IncludesBuiltInUserStore(options.Auth);
 		if (options.Application.AuthDisabled() || !needsDefaultUsers)
 		{
 			if (options.DefaultUser.DefaultAdminPassword != SystemUsers.DefaultAdminPassword)

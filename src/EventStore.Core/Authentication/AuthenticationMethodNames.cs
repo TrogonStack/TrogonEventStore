@@ -32,6 +32,9 @@ public static class AuthenticationMethodNames
 	public static bool IncludesOAuth(ClusterVNodeOptions.AuthOptions options) =>
 		FromOptions(options).Any(method => string.Equals(Normalize(method), OAuth, StringComparison.OrdinalIgnoreCase));
 
+	public static bool IncludesBuiltInUserStore(ClusterVNodeOptions.AuthOptions options) =>
+		IncludesPassword(options) || IncludesOAuth(options);
+
 	public static string Normalize(string method) =>
 		IsLegacyInternal(method) ? Password : method?.Trim().ToLowerInvariant() ?? string.Empty;
 

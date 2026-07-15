@@ -23,7 +23,7 @@ public sealed class ConfigurationBrowserService(
 		var features = new[] {
 			new ConfigurationFeature("Projections", options.Projection.RunProjections != ProjectionType.None || options.DevMode.Dev),
 			new ConfigurationFeature("User management",
-				AuthenticationMethodNames.IncludesPassword(options.Auth) && !options.Application.AuthDisabled())
+				AuthenticationMethodNames.IncludesBuiltInUserStore(options.Auth) && !options.Application.AuthDisabled())
 		};
 
 		var subsystems = hostedService.EnabledNodeSubsystems
