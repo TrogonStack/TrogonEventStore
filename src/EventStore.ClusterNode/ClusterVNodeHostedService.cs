@@ -270,9 +270,16 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 					Log.Information(
 						"Loaded authentication plugin: {plugin} version {version} (Command Line: {commandLine})",
 						potentialPlugin.Name, potentialPlugin.Version, commandLine);
-					authenticationMethodFactories.Add(commandLine,
+					if (!authenticationMethodFactories.TryAdd(commandLine,
 						new AuthenticationProviderFactory(_ =>
-							potentialPlugin.GetAuthenticationProviderFactory(authenticationConfig)));
+							potentialPlugin.GetAuthenticationProviderFactory(authenticationConfig))))
+					{
+						throw new ApplicationInitializationException(
+							$"The authentication plugin {potentialPlugin.Name} uses command-line name {commandLine}, " +
+							"which conflicts with an existing authentication method." +
+							Environment.NewLine +
+							$"Valid options for authentication are: {string.Join(", ", authenticationMethodFactories.Keys)}.");
+					}
 				}
 				catch (CompositionException ex)
 				{
