@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core;
+using EventStore.Core.Authentication.OAuth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
@@ -39,6 +40,7 @@ public sealed class OAuthBrowserFlowService(
 	HttpClient httpClient,
 	TimeProvider timeProvider,
 	IDataProtectionProvider dataProtectionProvider,
+	OAuthTokenValidator tokenValidator,
 	bool adminUiEnabled) : IDisposable
 {
 	public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -105,6 +107,12 @@ public sealed class OAuthBrowserFlowService(
 		if (!LooksLikeJwt(token))
 		{
 			return ErrorRedirect("unsupported_token", returnUrl);
+		}
+
+		var validationResult = await tokenValidator.ValidateTokenAsync(token, cancellationToken);
+		if (!validationResult.IsValid)
+		{
+			return ErrorRedirect("invalid_token", returnUrl);
 		}
 
 		UiCredentialCookie.Delete(context.Response);

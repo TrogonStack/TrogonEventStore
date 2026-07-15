@@ -17,6 +17,7 @@ using EventStore.Common.Log;
 using EventStore.Common.Utils;
 using EventStore.Core;
 using EventStore.Core.Authentication;
+using EventStore.Core.Authentication.OAuth;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
 using EventStore.Core.Services.Transport.Http;
@@ -311,6 +312,7 @@ internal static class Program
 								new HttpClient(oauthHttpHandler),
 								TimeProvider.System,
 								serviceProvider.GetRequiredService<IDataProtectionProvider>(),
+								new OAuthTokenValidator(options.Auth.OAuth),
 								adminUiEnabled));
 					}
 					builder.Services.AddSingleton(hostedService);

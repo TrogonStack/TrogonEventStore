@@ -23,8 +23,7 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 
 	private readonly ClusterVNodeOptions.OAuthOptions _options;
 	private readonly bool _logFailedAuthenticationAttempts;
-	private readonly JsonWebTokenHandler _tokenHandler = new() { MapInboundClaims = false };
-	private readonly Func<CancellationToken, ValueTask<TokenValidationParameters>> _validationParametersFactory;
+	private readonly OAuthTokenValidator _tokenValidator;
 
 	public OAuthAuthenticationProvider(
 		ClusterVNodeOptions.OAuthOptions options,
@@ -34,7 +33,7 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 	{
 		_options = options;
 		_logFailedAuthenticationAttempts = logFailedAuthenticationAttempts;
-		_validationParametersFactory = validationParametersFactory ?? CreateValidationParametersFactory(options);
+		_tokenValidator = new OAuthTokenValidator(options, validationParametersFactory);
 	}
 
 	public override void Authenticate(AuthenticationRequest authenticationRequest) =>
@@ -76,8 +75,7 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 				return;
 			}
 
-			var validationParameters = await _validationParametersFactory(CancellationToken.None);
-			var result = await _tokenHandler.ValidateTokenAsync(token, validationParameters);
+			var result = await _tokenValidator.ValidateTokenAsync(token, CancellationToken.None);
 			if (!result.IsValid)
 			{
 				if (_logFailedAuthenticationAttempts)
@@ -159,6 +157,32 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 		}
 	}
 
+	private static bool HasBrowserFlow(ClusterVNodeOptions.OAuthOptions options) =>
+		!string.IsNullOrWhiteSpace(options.ClientId) &&
+		!string.IsNullOrWhiteSpace(options.AuthorizationEndpoint) &&
+		!string.IsNullOrWhiteSpace(options.TokenEndpoint) &&
+		options.Scopes.Any(scope => !string.IsNullOrWhiteSpace(scope));
+
+	private static string BrowserAuthorizationEndpoint(ClusterVNodeOptions.OAuthOptions options) =>
+		options.AuthorizationEndpoint!;
+}
+
+public sealed class OAuthTokenValidator
+{
+	private readonly JsonWebTokenHandler _tokenHandler = new() { MapInboundClaims = false };
+	private readonly Func<CancellationToken, ValueTask<TokenValidationParameters>> _validationParametersFactory;
+
+	public OAuthTokenValidator(
+		ClusterVNodeOptions.OAuthOptions options,
+		Func<CancellationToken, ValueTask<TokenValidationParameters>>? validationParametersFactory = null) =>
+		_validationParametersFactory = validationParametersFactory ?? CreateValidationParametersFactory(options);
+
+	public async ValueTask<TokenValidationResult> ValidateTokenAsync(string token, CancellationToken cancellationToken)
+	{
+		var validationParameters = await _validationParametersFactory(cancellationToken);
+		return await _tokenHandler.ValidateTokenAsync(token, validationParameters);
+	}
+
 	private static Func<CancellationToken, ValueTask<TokenValidationParameters>> CreateValidationParametersFactory(
 		ClusterVNodeOptions.OAuthOptions options)
 	{
@@ -200,13 +224,4 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 			};
 		};
 	}
-
-	private static bool HasBrowserFlow(ClusterVNodeOptions.OAuthOptions options) =>
-		!string.IsNullOrWhiteSpace(options.ClientId) &&
-		!string.IsNullOrWhiteSpace(options.AuthorizationEndpoint) &&
-		!string.IsNullOrWhiteSpace(options.TokenEndpoint) &&
-		options.Scopes.Any(scope => !string.IsNullOrWhiteSpace(scope));
-
-	private static string BrowserAuthorizationEndpoint(ClusterVNodeOptions.OAuthOptions options) =>
-		options.AuthorizationEndpoint!;
 }

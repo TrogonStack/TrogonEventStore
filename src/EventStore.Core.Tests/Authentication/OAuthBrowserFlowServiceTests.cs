@@ -3,16 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClusterNode.Components.Services;
 using EventStore.Core;
+using EventStore.Core.Authentication.OAuth;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
 
 namespace EventStore.Core.Tests.Authentication;
@@ -20,7 +24,10 @@ namespace EventStore.Core.Tests.Authentication;
 [TestFixture]
 public class OAuthBrowserFlowServiceTests
 {
-	private const string JwtToken = "header.payload.signature";
+	private static readonly SymmetricSecurityKey SigningKey =
+		new(Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").ToByteArray().Concat(
+			Guid.Parse("11111111-2222-3333-4444-555555555555").ToByteArray()).ToArray());
+	private static readonly string JwtToken = CreateToken(audience: "eventstore");
 
 	[Test]
 	public void creates_code_challenge_using_browser_contract_names()
@@ -110,6 +117,29 @@ public class OAuthBrowserFlowServiceTests
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
 		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams&oauth_error=unsupported_token"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}="));
+	}
+
+	[Test]
+	public async Task callback_rejects_token_that_fails_validation()
+	{
+		var handler = new TokenHandler($$"""{"access_token":"{{CreateToken(audience: "other-service")}}"}""");
+		var service = Service(handler);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["code"] = new StringValues("authorization-code"),
+			["state"] = new StringValues(State(challenge.CodeChallengeCorrelationId))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams&oauth_error=invalid_token"));
 		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}="));
 	}
 
@@ -254,8 +284,39 @@ public class OAuthBrowserFlowServiceTests
 			new HttpClient(handler),
 			TimeProvider.System,
 			services.GetRequiredService<IDataProtectionProvider>(),
+			new OAuthTokenValidator(Options(), _ => new ValueTask<TokenValidationParameters>(CreateValidationParameters())),
 			adminUiEnabled);
 	}
+
+	private static string CreateToken(string audience)
+	{
+		var descriptor = new SecurityTokenDescriptor
+		{
+			Issuer = "https://login.example.test",
+			Audience = audience,
+			Subject = new ClaimsIdentity([new Claim("sub", "alice")]),
+			NotBefore = DateTime.UtcNow.AddMinutes(-1),
+			Expires = DateTime.UtcNow.AddMinutes(5),
+			SigningCredentials = new SigningCredentials(SigningKey, SecurityAlgorithms.HmacSha256)
+		};
+
+		return new JsonWebTokenHandler().CreateToken(descriptor);
+	}
+
+	private static TokenValidationParameters CreateValidationParameters() =>
+		new()
+		{
+			ValidateIssuer = true,
+			ValidIssuer = "https://login.example.test",
+			ValidateAudience = true,
+			ValidAudiences = ["eventstore"],
+			ValidateIssuerSigningKey = true,
+			IssuerSigningKey = SigningKey,
+			ValidateLifetime = true,
+			ClockSkew = TimeSpan.Zero,
+			NameClaimType = "sub",
+			RoleClaimType = "roles"
+		};
 
 	private static DefaultHttpContext HttpsContext()
 	{
@@ -273,7 +334,12 @@ public class OAuthBrowserFlowServiceTests
 		private readonly string _response;
 		public string Body { get; private set; } = "";
 
-		public TokenHandler(string response = $$"""{"access_token":"{{JwtToken}}"}""") =>
+		public TokenHandler()
+			: this($$"""{"access_token":"{{JwtToken}}"}""")
+		{
+		}
+
+		public TokenHandler(string response) =>
 			_response = response;
 
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
