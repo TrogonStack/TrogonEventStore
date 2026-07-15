@@ -110,6 +110,50 @@ public class OAuthBrowserFlowServiceTests
 		Assert.That(handler.Body, Is.Empty);
 	}
 
+	[Test]
+	public async Task callback_deletes_pkce_cookie_when_callback_data_is_missing()
+	{
+		var handler = new TokenHandler();
+		var service = Service(handler);
+		var challengeContext = HttpsContext();
+		service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?oauth_error=missing_callback"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain("eventstore-ui-oauth-pkce=;"));
+		Assert.That(handler.Body, Is.Empty);
+	}
+
+	[Test]
+	public async Task callback_exchanges_code_with_redirect_uri_from_state()
+	{
+		var handler = new TokenHandler();
+		var service = Service(handler);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Scheme = "http";
+		context.Request.Host = new HostString("internal-node:2113");
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["code"] = new StringValues("authorization-code"),
+			["state"] = new StringValues(State(challenge.CodeChallengeCorrelationId, "https://public.example.test/ui/auth/oauth/callback"))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(handler.Body, Does.Contain("redirect_uri=https%3A%2F%2Fpublic.example.test%2Fui%2Fauth%2Foauth%2Fcallback"));
+		Assert.That(handler.Body, Does.Not.Contain("redirect_uri=http%3A%2F%2Finternal-node%3A2113"));
+	}
+
 	private static ClusterVNodeOptions.OAuthOptions Options() => new()
 	{
 		Issuer = "https://login.example.test",
@@ -118,8 +162,8 @@ public class OAuthBrowserFlowServiceTests
 		ClientId = "eventstore-ui"
 	};
 
-	private static string State(string correlationId) =>
-		Convert.ToBase64String(Encoding.UTF8.GetBytes($$"""{"code_challenge_correlation_id":"{{correlationId}}","return_url":"/ui/streams"}"""));
+	private static string State(string correlationId, string redirectUri = "https://node.example.test/ui/auth/oauth/callback") =>
+		Convert.ToBase64String(Encoding.UTF8.GetBytes($$"""{"code_challenge_correlation_id":"{{correlationId}}","return_url":"/ui/streams","redirect_uri":"{{redirectUri}}"}"""));
 
 	private static OAuthBrowserFlowService Service(TokenHandler handler)
 	{

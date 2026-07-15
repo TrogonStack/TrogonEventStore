@@ -119,15 +119,16 @@
 
 			var challenge = await challengeResponse.json();
 			var returnUrl = button.getAttribute("data-ui-oauth-return") || "";
+			var redirectUri = baseUrl + properties.redirect_uri;
 			var state = btoa(JSON.stringify({
 				code_challenge_correlation_id: challenge.code_challenge_correlation_id,
-				return_url: returnUrl
+				return_url: returnUrl,
+				redirect_uri: redirectUri
 			}));
-			var redirectUri = encodeURIComponent(baseUrl + properties.redirect_uri);
 			var target = properties.authorization_endpoint +
 				"?response_type=" + encodeURIComponent(properties.response_type) +
 				"&client_id=" + encodeURIComponent(properties.client_id) +
-				"&redirect_uri=" + redirectUri +
+				"&redirect_uri=" + encodeURIComponent(redirectUri) +
 				"&scope=" + encodeURIComponent(properties.scope) +
 				"&code_challenge=" + encodeURIComponent(challenge.code_challenge) +
 				"&code_challenge_method=" + encodeURIComponent(challenge.code_challenge_method) +

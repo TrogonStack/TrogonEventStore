@@ -63,7 +63,7 @@ public sealed class OAuthBrowserFlowService(
 		var code = context.Request.Query["code"].ToString();
 		var state = context.Request.Query["state"].ToString();
 		var providerError = context.Request.Query["error"].ToString();
-		var hasState = TryReadState(state, out var correlationId, out var returnUrl);
+		var hasState = TryReadState(state, out var correlationId, out var returnUrl, out var redirectUri);
 		if (!string.IsNullOrWhiteSpace(providerError))
 		{
 			DeleteChallengeCookie(context.Response);
@@ -72,6 +72,7 @@ public sealed class OAuthBrowserFlowService(
 
 		if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
 		{
+			DeleteChallengeCookie(context.Response);
 			return SignInRedirect("missing_callback", "");
 		}
 
@@ -89,7 +90,11 @@ public sealed class OAuthBrowserFlowService(
 		}
 
 		DeleteChallengeCookie(context.Response);
-		var token = await ExchangeCode(code, challenge.CodeVerifier, PublicBaseUri(context.Request), cancellationToken);
+		var token = await ExchangeCode(
+			code,
+			challenge.CodeVerifier,
+			RedirectUri(context.Request, redirectUri),
+			cancellationToken);
 		if (string.IsNullOrWhiteSpace(token))
 		{
 			return SignInRedirect("missing_token", returnUrl);
@@ -121,7 +126,7 @@ public sealed class OAuthBrowserFlowService(
 			["grant_type"] = "authorization_code",
 			["client_id"] = options.ClientId,
 			["code"] = code,
-			["redirect_uri"] = $"{baseUri}{options.RedirectPath}",
+			["redirect_uri"] = baseUri,
 			["code_verifier"] = codeVerifier
 		};
 
@@ -171,10 +176,11 @@ public sealed class OAuthBrowserFlowService(
 		return Results.Redirect($"{signInLocation}{(signInLocation.Contains('?') ? '&' : '?')}oauth_error={Uri.EscapeDataString(error)}");
 	}
 
-	private static bool TryReadState(string state, out string correlationId, out string returnUrl)
+	private bool TryReadState(string state, out string correlationId, out string returnUrl, out string redirectUri)
 	{
 		correlationId = "";
 		returnUrl = "";
+		redirectUri = "";
 		try
 		{
 			var json = Encoding.UTF8.GetString(Convert.FromBase64String(state));
@@ -190,6 +196,11 @@ public sealed class OAuthBrowserFlowService(
 				returnUrl = SecurityBrowserService.NormalizeReturnUrl(returnUrlElement.GetString() ?? "");
 			}
 
+			if (document.RootElement.TryGetProperty("redirect_uri", out var redirectUriElement))
+			{
+				redirectUri = NormalizeRedirectUri(redirectUriElement.GetString() ?? "");
+			}
+
 			return !string.IsNullOrWhiteSpace(correlationId);
 		}
 		catch (Exception ex) when (ex is FormatException or JsonException)
@@ -198,8 +209,28 @@ public sealed class OAuthBrowserFlowService(
 		}
 	}
 
-	private static string PublicBaseUri(HttpRequest request) =>
-		$"{request.Scheme}://{request.Host}";
+	private string RedirectUri(HttpRequest request, string redirectUri) =>
+		string.IsNullOrWhiteSpace(redirectUri)
+			? $"{request.Scheme}://{request.Host}{options.RedirectPath}"
+			: redirectUri;
+
+	private string NormalizeRedirectUri(string redirectUri)
+	{
+		if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
+		{
+			return "";
+		}
+
+		if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+			!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
+		{
+			return "";
+		}
+
+		return uri.AbsolutePath.Equals(options.RedirectPath, StringComparison.Ordinal)
+			? uri.GetLeftPart(UriPartial.Path)
+			: "";
+	}
 
 	private static string SignInLocation(string returnUrl) =>
 		string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/ui"

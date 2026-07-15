@@ -16,6 +16,7 @@ using EventStore.Common.Exceptions;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
 using EventStore.Core;
+using EventStore.Core.Authentication;
 using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
 using EventStore.Core.Services.Transport.Http;
@@ -296,13 +297,17 @@ internal static class Program
 					builder.Services.AddScoped<SecurityBrowserService>();
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddScoped<ConfigurationBrowserService>();
-					var oauthHttpHandler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) };
-					builder.Services.AddSingleton(serviceProvider =>
-						new OAuthBrowserFlowService(
-							options.Auth.OAuth,
-							new HttpClient(oauthHttpHandler),
-							TimeProvider.System,
-							serviceProvider.GetRequiredService<IDataProtectionProvider>()));
+					var oauthEnabled = AuthenticationMethodNames.IncludesOAuth(options.Auth);
+					if (oauthEnabled)
+					{
+						var oauthHttpHandler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) };
+						builder.Services.AddSingleton(serviceProvider =>
+							new OAuthBrowserFlowService(
+								options.Auth.OAuth,
+								new HttpClient(oauthHttpHandler),
+								TimeProvider.System,
+								serviceProvider.GetRequiredService<IDataProtectionProvider>()));
+					}
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
@@ -325,7 +330,11 @@ internal static class Program
 					if (adminUiEnabled)
 					{
 						app.MapAdminOperationsEndpoints();
-						app.MapOAuthBrowserFlowEndpoints(options.Auth.OAuth);
+						if (oauthEnabled)
+						{
+							app.MapOAuthBrowserFlowEndpoints(options.Auth.OAuth);
+						}
+
 						app.MapQueueDashboardEndpoints();
 						app.MapStaticAssets();
 						app.MapRazorComponents<App>();

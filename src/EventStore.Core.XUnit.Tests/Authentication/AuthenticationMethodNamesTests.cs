@@ -37,6 +37,14 @@ public class AuthenticationMethodNamesTests
 	}
 
 	[Fact]
+	public void detects_oauth_method()
+	{
+		AuthenticationMethodNames.IncludesOAuth(new() { Methods = ["Password", "OAuth"] })
+			.Should()
+			.BeTrue();
+	}
+
+	[Fact]
 	public void keeps_legacy_authentication_type_when_methods_are_not_configured()
 	{
 		AuthenticationMethodNames.FromOptions(new() { AuthenticationType = "ldaps" })

@@ -29,6 +29,9 @@ public static class AuthenticationMethodNames
 	public static bool IncludesPassword(ClusterVNodeOptions.AuthOptions options) =>
 		FromOptions(options).Any(IsPassword);
 
+	public static bool IncludesOAuth(ClusterVNodeOptions.AuthOptions options) =>
+		FromOptions(options).Any(method => string.Equals(Normalize(method), OAuth, StringComparison.OrdinalIgnoreCase));
+
 	public static string Normalize(string method) =>
 		IsLegacyInternal(method) ? Password : method?.Trim().ToLowerInvariant() ?? string.Empty;
 
