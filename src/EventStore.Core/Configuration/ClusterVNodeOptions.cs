@@ -260,6 +260,28 @@ public partial record ClusterVNodeOptions
 		[Description("Accepted token audiences for this node.")]
 		public string[] Audiences { get; init; } = [];
 
+		[Description("OAuth authorization endpoint used by the browser sign-in flow.")]
+		public string? AuthorizationEndpoint { get; init; }
+
+		[Description("OAuth token endpoint used by the browser sign-in flow.")]
+		public string? TokenEndpoint { get; init; }
+
+		[Description("OAuth public client id used by the browser sign-in flow.")]
+		public string? ClientId { get; init; }
+
+		[Description("OAuth client secret used by confidential browser sign-in clients."),
+		 Sensitive]
+		public string? ClientSecret { get; init; }
+
+		[Description("OAuth scopes requested by the browser sign-in flow.")]
+		public string[] Scopes { get; init; } = ["openid", "profile"];
+
+		[Description("Path that receives the OAuth authorization-code callback.")]
+		public string RedirectPath { get; init; } = "/ui/auth/oauth/callback";
+
+		[Description("Path that creates PKCE code challenges for the OAuth browser sign-in flow.")]
+		public string CodeChallengePath { get; init; } = "/ui/auth/oauth/code-challenge";
+
 		[Description("Claim used as the authenticated user name.")]
 		public string NameClaimType { get; init; } = "sub";
 

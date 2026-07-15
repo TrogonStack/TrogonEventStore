@@ -25,6 +25,11 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 		return new SecurityAuthenticationInfo(
 			authenticationProvider.Name,
 			schemes.Any(x => string.Equals(x, "Basic", StringComparison.OrdinalIgnoreCase)),
+			schemes.Any(x => string.Equals(x, "Bearer", StringComparison.OrdinalIgnoreCase)) &&
+			properties.ContainsKey("authorization_endpoint") &&
+			properties.ContainsKey("client_id") &&
+			properties.ContainsKey("code_challenge_uri") &&
+			properties.ContainsKey("redirect_uri"),
 			schemes.Any(x => string.Equals(x, "Insecure", StringComparison.OrdinalIgnoreCase)),
 			properties);
 	}
@@ -87,11 +92,12 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 public sealed record SecurityAuthenticationInfo(
 	string Type,
 	bool SupportsBasic,
+	bool SupportsOAuthBrowserFlow,
 	bool IsInsecure,
 	IReadOnlyDictionary<string, string> Properties)
 {
 	public static SecurityAuthenticationInfo Unavailable() =>
-		new("Unavailable", SupportsBasic: false, IsInsecure: false, new Dictionary<string, string>());
+		new("Unavailable", SupportsBasic: false, SupportsOAuthBrowserFlow: false, IsInsecure: false, new Dictionary<string, string>());
 
 	public string TypeLabel => string.IsNullOrWhiteSpace(Type) ? "External authentication" : Type;
 	public string PropertiesJson => JsonSerializer.Serialize(Properties);

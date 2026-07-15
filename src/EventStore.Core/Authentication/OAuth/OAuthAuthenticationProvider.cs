@@ -53,6 +53,16 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 		{
 			yield return new("oauth_audiences", string.Join(",", _options.Audiences));
 		}
+
+		if (HasBrowserFlow(_options))
+		{
+			yield return new("authorization_endpoint", BrowserAuthorizationEndpoint(_options));
+			yield return new("client_id", _options.ClientId!);
+			yield return new("code_challenge_uri", _options.CodeChallengePath);
+			yield return new("redirect_uri", _options.RedirectPath);
+			yield return new("response_type", "code");
+			yield return new("scope", string.Join(" ", _options.Scopes));
+		}
 	}
 
 	private async Task AuthenticateAsync(AuthenticationRequest authenticationRequest)
@@ -190,4 +200,12 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 			};
 		};
 	}
+
+	private static bool HasBrowserFlow(ClusterVNodeOptions.OAuthOptions options) =>
+		!string.IsNullOrWhiteSpace(options.ClientId) &&
+		!string.IsNullOrWhiteSpace(options.AuthorizationEndpoint) &&
+		!string.IsNullOrWhiteSpace(options.TokenEndpoint);
+
+	private static string BrowserAuthorizationEndpoint(ClusterVNodeOptions.OAuthOptions options) =>
+		options.AuthorizationEndpoint!;
 }

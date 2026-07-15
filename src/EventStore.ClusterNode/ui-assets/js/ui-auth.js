@@ -30,7 +30,7 @@
 	}
 
 	function readAuthorization() {
-		var token = safeDecode(readCookie("oauth_id_token"));
+		var token = safeDecode(readCookie("oauth_token"));
 		if (isHeaderSafe(token))
 			return "Bearer " + token;
 
@@ -81,7 +81,7 @@
 
 	function clearReadableAuthCookies() {
 		clearCookie("es-creds");
-		clearCookie("oauth_id_token");
+		clearCookie("oauth_token");
 	}
 
 	function setStatus(message) {
@@ -103,10 +103,9 @@
 
 	async function beginOAuthSignIn(button) {
 		try {
-			var providerType = (button.getAttribute("data-ui-oauth-type") || "").toLowerCase();
 			var properties = readJsonAttribute(button, "data-ui-oauth-properties");
-			if (providerType !== "oauth")
-				throw new Error("The configured provider is not an OAuth browser flow.");
+			if (!properties.authorization_endpoint || !properties.client_id)
+				throw new Error("The configured provider does not advertise an OAuth browser flow.");
 
 			var baseUrl = window.location.protocol + "//" + window.location.host;
 			var challengeResponse = await originalFetch(baseUrl + properties.code_challenge_uri);

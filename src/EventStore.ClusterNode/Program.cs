@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Net.Security;
 using System.Runtime;
 using System.Security.Authentication;
@@ -293,6 +294,7 @@ internal static class Program
 					builder.Services.AddScoped<SecurityBrowserService>();
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddScoped<ConfigurationBrowserService>();
+					builder.Services.AddSingleton(new OAuthBrowserFlowService(options.Auth.OAuth, new HttpClient(), TimeProvider.System));
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 
@@ -315,6 +317,7 @@ internal static class Program
 					if (adminUiEnabled)
 					{
 						app.MapAdminOperationsEndpoints();
+						app.MapOAuthBrowserFlowEndpoints(options.Auth.OAuth);
 						app.MapQueueDashboardEndpoints();
 						app.MapStaticAssets();
 						app.MapRazorComponents<App>();
