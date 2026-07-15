@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -101,6 +102,11 @@ public sealed class OAuthBrowserFlowService(
 			return ErrorRedirect("missing_token", returnUrl);
 		}
 
+		if (!LooksLikeJwt(token))
+		{
+			return ErrorRedirect("unsupported_token", returnUrl);
+		}
+
 		UiCredentialCookie.Delete(context.Response);
 		UiCredentialCookie.AppendOAuthToken(context.Response, token);
 		return Results.Redirect(adminUiEnabled ? SignInLocation(returnUrl) : DirectReturnLocation(returnUrl));
@@ -148,6 +154,17 @@ public sealed class OAuthBrowserFlowService(
 		await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 		var tokenResponse = await JsonSerializer.DeserializeAsync<OAuthTokenResponse>(stream, JsonOptions, cancellationToken);
 		return tokenResponse?.AccessToken ?? "";
+	}
+
+	private static bool LooksLikeJwt(string token)
+	{
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			return false;
+		}
+
+		var segments = token.Split('.');
+		return segments.Length is 3 or 5 && segments.All(segment => !string.IsNullOrWhiteSpace(segment));
 	}
 
 	private bool TryReadChallenge(HttpRequest request, string correlationId, out OAuthChallengeCookie challenge)
@@ -239,7 +256,9 @@ public sealed class OAuthBrowserFlowService(
 			: $"/ui/signin?returnUrl={Uri.EscapeDataString(returnUrl)}";
 
 	private static string DirectReturnLocation(string returnUrl) =>
-		string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/ui"
+		string.IsNullOrWhiteSpace(returnUrl) ||
+		returnUrl.Equals("/ui", StringComparison.OrdinalIgnoreCase) ||
+		returnUrl.StartsWith("/ui/", StringComparison.OrdinalIgnoreCase)
 			? "/"
 			: returnUrl;
 

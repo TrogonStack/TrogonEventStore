@@ -20,6 +20,8 @@ namespace EventStore.Core.Tests.Authentication;
 [TestFixture]
 public class OAuthBrowserFlowServiceTests
 {
+	private const string JwtToken = "header.payload.signature";
+
 	[Test]
 	public void creates_code_challenge_using_browser_contract_names()
 	{
@@ -58,7 +60,7 @@ public class OAuthBrowserFlowServiceTests
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
 		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams"));
-		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain($"{UiCredentialCookie.OAuthCookieName}={JwtToken}"));
 		Assert.That(handler.Body, Does.Contain("grant_type=authorization_code"));
 		Assert.That(handler.Body, Does.Contain("client_id=eventstore-ui"));
 		Assert.That(handler.Body, Does.Contain("redirect_uri=https%3A%2F%2Fnode.example.test%2Fui%2Fauth%2Foauth%2Fcallback"));
@@ -84,8 +86,31 @@ public class OAuthBrowserFlowServiceTests
 		await result.ExecuteAsync(context);
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
-		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/streams"));
-		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain($"{UiCredentialCookie.OAuthCookieName}={JwtToken}"));
+	}
+
+	[Test]
+	public async Task callback_rejects_opaque_token_response()
+	{
+		var handler = new TokenHandler("""{"access_token":"opaque-token"}""");
+		var service = Service(handler);
+		var challengeContext = HttpsContext();
+		var challenge = service.CreateCodeChallenge(challengeContext);
+		var context = HttpsContext();
+		context.Request.Headers.Cookie = challengeContext.Response.Headers.SetCookie.ToString().Split(';')[0];
+		context.Request.Query = new QueryCollection(new Dictionary<string, StringValues>
+		{
+			["code"] = new StringValues("authorization-code"),
+			["state"] = new StringValues(State(challenge.CodeChallengeCorrelationId))
+		});
+
+		var result = await service.HandleCallback(context, CancellationToken.None);
+		await result.ExecuteAsync(context);
+
+		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?returnUrl=%2Fui%2Fstreams&oauth_error=unsupported_token"));
+		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}="));
 	}
 
 	[Test]
@@ -152,7 +177,7 @@ public class OAuthBrowserFlowServiceTests
 		await result.ExecuteAsync(context);
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
-		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/streams?oauth_error=provider_error"));
+		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/?oauth_error=provider_error"));
 		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Not.Contain($"{UiCredentialCookie.OAuthCookieName}=access-token"));
 		Assert.That(handler.Body, Is.Empty);
 	}
@@ -245,14 +270,18 @@ public class OAuthBrowserFlowServiceTests
 
 	private sealed class TokenHandler : HttpMessageHandler
 	{
+		private readonly string _response;
 		public string Body { get; private set; } = "";
+
+		public TokenHandler(string response = $$"""{"access_token":"{{JwtToken}}"}""") =>
+			_response = response;
 
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 		{
 			Body = await request.Content.ReadAsStringAsync(cancellationToken);
 			return new(HttpStatusCode.OK)
 			{
-				Content = new StringContent("""{"access_token":"access-token"}""", Encoding.UTF8, "application/json")
+				Content = new StringContent(_response, Encoding.UTF8, "application/json")
 			};
 		}
 	}

@@ -110,6 +110,7 @@
 	private SecurityAuthenticationInfo Authentication { get; set; } = SecurityAuthenticationInfo.Unavailable();
 	private bool AuthenticationAvailable { get; set; } = true;
 	private string Message { get; set; } = "";
+	private string DisplayedOAuthError { get; set; } = "";
 	private string Destination => SecurityBrowserService.NormalizeReturnUrl(ReturnUrl);
 
 	protected override void OnParametersSet() {
@@ -118,12 +119,19 @@
 		try {
 			Authentication = Security.AuthenticationInfo();
 			AuthenticationAvailable = true;
-			Message = string.IsNullOrWhiteSpace(OAuthError)
-				? ""
-				: OAuthErrorMessage(OAuthError);
+			if (string.IsNullOrWhiteSpace(OAuthError)) {
+				if (!string.IsNullOrWhiteSpace(DisplayedOAuthError)) {
+					Message = "";
+					DisplayedOAuthError = "";
+				}
+			} else {
+				Message = OAuthErrorMessage(OAuthError);
+				DisplayedOAuthError = OAuthError;
+			}
 		} catch (Exception ex) {
 			Authentication = SecurityAuthenticationInfo.Unavailable();
 			AuthenticationAvailable = false;
+			DisplayedOAuthError = "";
 			Message = $"Unable to load authentication information: {UserInterfaceMessages.Friendly(ex)}";
 		}
 
@@ -145,6 +153,7 @@
 			"invalid_state" => "The OAuth sign-in session expired or could not be verified. Try again.",
 			"missing_callback" => "The identity provider did not return the expected OAuth callback data.",
 			"missing_token" => "The identity provider did not return an OAuth access token.",
+			"unsupported_token" => "The identity provider did not return a token this node can validate.",
 			"provider_error" => "The identity provider rejected the OAuth sign-in request.",
 			_ => "The OAuth sign-in flow could not be completed."
 		};
@@ -153,12 +162,14 @@
 		try {
 			var result = await Security.Validate(Input.Username, Input.Password);
 			if (!result.Success) {
+				DisplayedOAuthError = "";
 				Message = result.Message;
 				return;
 			}
 
 			var context = HttpContextAccessor.HttpContext;
 			if (context is null) {
+				DisplayedOAuthError = "";
 				Message = "The sign-in response is no longer available.";
 				return;
 			}
@@ -166,9 +177,11 @@
 			UiCredentialCookie.DeleteOAuthToken(context.Response);
 			UiCredentialCookie.AppendBasic(context.Response, new UiCredentials(Input.Username.Trim(), Input.Password));
 		} catch (OperationCanceledException) {
+			DisplayedOAuthError = "";
 			Message = "Sign-in was canceled.";
 			return;
 		} catch (Exception ex) {
+			DisplayedOAuthError = "";
 			Message = $"Failed to sign in: {UserInterfaceMessages.Friendly(ex)}";
 			return;
 		}
