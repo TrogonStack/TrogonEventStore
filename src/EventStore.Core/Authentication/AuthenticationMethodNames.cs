@@ -12,7 +12,7 @@ public static class AuthenticationMethodNames
 
 	public static IReadOnlyList<string> FromOptions(ClusterVNodeOptions.AuthOptions options)
 	{
-		var methods = options.Methods
+		var methods = (options.Methods ?? [])
 			.Where(method => !string.IsNullOrWhiteSpace(method))
 			.Select(Normalize)
 			.Distinct(StringComparer.OrdinalIgnoreCase)
@@ -30,7 +30,7 @@ public static class AuthenticationMethodNames
 		FromOptions(options).Any(IsPassword);
 
 	public static string Normalize(string method) =>
-		IsLegacyInternal(method) ? Password : method.Trim().ToLowerInvariant();
+		IsLegacyInternal(method) ? Password : method?.Trim().ToLowerInvariant() ?? string.Empty;
 
 	public static bool IsPassword(string method) =>
 		string.Equals(Normalize(method), Password, StringComparison.OrdinalIgnoreCase);

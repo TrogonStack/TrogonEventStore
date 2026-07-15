@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -10,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.Core;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
@@ -21,8 +21,8 @@ internal static class OAuthBrowserFlowEndpoints
 		this IEndpointRouteBuilder app,
 		ClusterVNodeOptions.OAuthOptions options)
 	{
-		app.MapGet(options.CodeChallengePath, (OAuthBrowserFlowService service) =>
-			Results.Json(service.CreateCodeChallenge(), OAuthBrowserFlowService.JsonOptions));
+		app.MapGet(options.CodeChallengePath, (HttpContext context, OAuthBrowserFlowService service) =>
+			Results.Json(service.CreateCodeChallenge(context), OAuthBrowserFlowService.JsonOptions));
 
 		app.MapGet(options.RedirectPath, async (
 			HttpContext context,
@@ -36,20 +36,25 @@ internal static class OAuthBrowserFlowEndpoints
 public sealed class OAuthBrowserFlowService(
 	ClusterVNodeOptions.OAuthOptions options,
 	HttpClient httpClient,
-	TimeProvider timeProvider) : IDisposable
+	TimeProvider timeProvider,
+	IDataProtectionProvider dataProtectionProvider) : IDisposable
 {
 	public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-	private readonly ConcurrentDictionary<string, PendingChallenge> _pendingChallenges = new();
+	private const string ChallengeCookieName = "eventstore-ui-oauth-pkce";
+	private static readonly TimeSpan ChallengeLifetime = TimeSpan.FromMinutes(5);
+	private readonly IDataProtector _challengeProtector = dataProtectionProvider.CreateProtector("EventStore.ClusterNode.Components.Services.OAuthBrowserFlowService.Pkce");
 
-	public OAuthCodeChallenge CreateCodeChallenge()
+	public OAuthCodeChallenge CreateCodeChallenge(HttpContext context)
 	{
-		PruneExpired();
-
 		var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
 		var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
 		var correlationId = Base64Url(RandomNumberGenerator.GetBytes(32));
+		var payload = new OAuthChallengeCookie(verifier, correlationId, timeProvider.GetUtcNow().Add(ChallengeLifetime));
 
-		_pendingChallenges[correlationId] = new PendingChallenge(verifier, timeProvider.GetUtcNow().AddMinutes(5));
+		context.Response.Cookies.Append(
+			ChallengeCookieName,
+			_challengeProtector.Protect(JsonSerializer.Serialize(payload, JsonOptions)),
+			ChallengeCookieOptions(context.Request));
 		return new OAuthCodeChallenge(correlationId, challenge, "S256");
 	}
 
@@ -59,25 +64,27 @@ public sealed class OAuthBrowserFlowService(
 		var state = context.Request.Query["state"].ToString();
 		if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
 		{
-			return SignInRedirect("missing_callback");
+			return SignInRedirect("missing_callback", "");
 		}
 
-		if (!TryReadCorrelationId(state, out var correlationId) ||
-			!_pendingChallenges.TryRemove(correlationId, out var pending) ||
-			pending.ExpiresAt <= timeProvider.GetUtcNow())
+		if (!TryReadState(state, out var correlationId, out var returnUrl) ||
+			!TryReadChallenge(context.Request, correlationId, out var challenge) ||
+			challenge.ExpiresAt <= timeProvider.GetUtcNow())
 		{
-			return SignInRedirect("invalid_state");
+			DeleteChallengeCookie(context.Response);
+			return SignInRedirect("invalid_state", "");
 		}
 
-		var token = await ExchangeCode(code, pending.CodeVerifier, PublicBaseUri(context.Request), cancellationToken);
+		DeleteChallengeCookie(context.Response);
+		var token = await ExchangeCode(code, challenge.CodeVerifier, PublicBaseUri(context.Request), cancellationToken);
 		if (string.IsNullOrWhiteSpace(token))
 		{
-			return SignInRedirect("missing_token");
+			return SignInRedirect("missing_token", returnUrl);
 		}
 
 		UiCredentialCookie.Delete(context.Response);
 		UiCredentialCookie.AppendOAuthToken(context.Response, token);
-		return Results.Redirect("/ui/signin");
+		return Results.Redirect(SignInLocation(returnUrl));
 	}
 
 	private async Task<string> ExchangeCode(
@@ -124,24 +131,37 @@ public sealed class OAuthBrowserFlowService(
 		return tokenResponse?.AccessToken ?? "";
 	}
 
-	private void PruneExpired()
+	private bool TryReadChallenge(HttpRequest request, string correlationId, out OAuthChallengeCookie challenge)
 	{
-		var now = timeProvider.GetUtcNow();
-		foreach (var (key, value) in _pendingChallenges)
+		challenge = new OAuthChallengeCookie("", "", DateTimeOffset.MinValue);
+		try
 		{
-			if (value.ExpiresAt <= now)
+			if (!request.Cookies.TryGetValue(ChallengeCookieName, out var value))
 			{
-				_pendingChallenges.TryRemove(key, out _);
+				return false;
 			}
+
+			var json = _challengeProtector.Unprotect(value);
+			challenge = JsonSerializer.Deserialize<OAuthChallengeCookie>(json, JsonOptions) ?? challenge;
+			return !string.IsNullOrWhiteSpace(challenge.CodeVerifier) &&
+				string.Equals(challenge.CorrelationId, correlationId, StringComparison.Ordinal);
+		}
+		catch (Exception ex) when (ex is CryptographicException or JsonException)
+		{
+			return false;
 		}
 	}
 
-	private static IResult SignInRedirect(string error) =>
-		Results.Redirect($"/ui/signin?oauth_error={Uri.EscapeDataString(error)}");
+	private static IResult SignInRedirect(string error, string returnUrl)
+	{
+		var signInLocation = SignInLocation(returnUrl);
+		return Results.Redirect($"{signInLocation}{(signInLocation.Contains('?') ? '&' : '?')}oauth_error={Uri.EscapeDataString(error)}");
+	}
 
-	private static bool TryReadCorrelationId(string state, out string correlationId)
+	private static bool TryReadState(string state, out string correlationId, out string returnUrl)
 	{
 		correlationId = "";
+		returnUrl = "";
 		try
 		{
 			var json = Encoding.UTF8.GetString(Convert.FromBase64String(state));
@@ -152,6 +172,11 @@ public sealed class OAuthBrowserFlowService(
 			}
 
 			correlationId = element.GetString() ?? "";
+			if (document.RootElement.TryGetProperty("return_url", out var returnUrlElement))
+			{
+				returnUrl = SecurityBrowserService.NormalizeReturnUrl(returnUrlElement.GetString() ?? "");
+			}
+
 			return !string.IsNullOrWhiteSpace(correlationId);
 		}
 		catch (Exception ex) when (ex is FormatException or JsonException)
@@ -162,6 +187,26 @@ public sealed class OAuthBrowserFlowService(
 
 	private static string PublicBaseUri(HttpRequest request) =>
 		$"{request.Scheme}://{request.Host}";
+
+	private static string SignInLocation(string returnUrl) =>
+		string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/ui"
+			? "/ui/signin"
+			: $"/ui/signin?returnUrl={Uri.EscapeDataString(returnUrl)}";
+
+	private void DeleteChallengeCookie(HttpResponse response) =>
+		response.Cookies.Delete(ChallengeCookieName, new CookieOptions
+		{
+			Path = "/"
+		});
+
+	private CookieOptions ChallengeCookieOptions(HttpRequest request) => new()
+	{
+		HttpOnly = true,
+		Secure = request.IsHttps,
+		SameSite = SameSiteMode.Lax,
+		Path = "/",
+		MaxAge = ChallengeLifetime
+	};
 
 	private static string TokenEndpoint(ClusterVNodeOptions.OAuthOptions options) =>
 		options.TokenEndpoint;
@@ -175,7 +220,7 @@ public sealed class OAuthBrowserFlowService(
 	public void Dispose() =>
 		httpClient.Dispose();
 
-	private sealed record PendingChallenge(string CodeVerifier, DateTimeOffset ExpiresAt);
+	private sealed record OAuthChallengeCookie(string CodeVerifier, string CorrelationId, DateTimeOffset ExpiresAt);
 }
 
 public sealed record OAuthCodeChallenge(

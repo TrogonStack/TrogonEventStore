@@ -104,7 +104,12 @@
 	async function beginOAuthSignIn(button) {
 		try {
 			var properties = readJsonAttribute(button, "data-ui-oauth-properties");
-			if (!properties.authorization_endpoint || !properties.client_id)
+			if (!properties.authorization_endpoint ||
+				!properties.client_id ||
+				!properties.code_challenge_uri ||
+				!properties.redirect_uri ||
+				!properties.response_type ||
+				!properties.scope)
 				throw new Error("The configured provider does not advertise an OAuth browser flow.");
 
 			var baseUrl = window.location.protocol + "//" + window.location.host;
@@ -113,8 +118,10 @@
 				throw new Error("Code challenge endpoint returned " + challengeResponse.status + " " + challengeResponse.statusText);
 
 			var challenge = await challengeResponse.json();
+			var returnUrl = button.getAttribute("data-ui-oauth-return") || "";
 			var state = btoa(JSON.stringify({
-				code_challenge_correlation_id: challenge.code_challenge_correlation_id
+				code_challenge_correlation_id: challenge.code_challenge_correlation_id,
+				return_url: returnUrl
 			}));
 			var redirectUri = encodeURIComponent(baseUrl + properties.redirect_uri);
 			var target = properties.authorization_endpoint +
@@ -126,7 +133,6 @@
 				"&code_challenge_method=" + encodeURIComponent(challenge.code_challenge_method) +
 				"&state=" + encodeURIComponent(state);
 
-			var returnUrl = button.getAttribute("data-ui-oauth-return");
 			if (returnUrl)
 				sessionStorage.setItem("eventstore-ui-return-url", returnUrl);
 

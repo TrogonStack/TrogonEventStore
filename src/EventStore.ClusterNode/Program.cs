@@ -20,6 +20,7 @@ using EventStore.Core.Certificates;
 using EventStore.Core.Configuration;
 using EventStore.Core.Services.Transport.Http;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
@@ -283,6 +284,7 @@ internal static class Program
 
 					hostedService.Node.Startup.ConfigureServicesOnly(builder.Services);
 					builder.Services.AddHttpContextAccessor();
+					builder.Services.AddDataProtection();
 					builder.Services.AddRazorComponents();
 					builder.Services.AddScoped<ProjectionBrowserService>();
 					builder.Services.AddSingleton<QueueDashboardService>();
@@ -294,7 +296,13 @@ internal static class Program
 					builder.Services.AddScoped<SecurityBrowserService>();
 					builder.Services.AddScoped<AdminOperationsService>();
 					builder.Services.AddScoped<ConfigurationBrowserService>();
-					builder.Services.AddSingleton(new OAuthBrowserFlowService(options.Auth.OAuth, new HttpClient(), TimeProvider.System));
+					var oauthHttpHandler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) };
+					builder.Services.AddSingleton(serviceProvider =>
+						new OAuthBrowserFlowService(
+							options.Auth.OAuth,
+							new HttpClient(oauthHttpHandler),
+							TimeProvider.System,
+							serviceProvider.GetRequiredService<IDataProtectionProvider>()));
 					builder.Services.AddSingleton(hostedService);
 					builder.Services.AddSingleton<IHostedService>(hostedService);
 

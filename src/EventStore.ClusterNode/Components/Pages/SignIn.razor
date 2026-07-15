@@ -137,7 +137,8 @@
 	private static bool IsOAuthCallback(HttpRequest request) =>
 		request.Query.ContainsKey("code") ||
 		request.Query.ContainsKey("state") ||
-		request.Query.ContainsKey("error");
+		request.Query.ContainsKey("error") ||
+		request.Query.ContainsKey("oauth_error");
 
 	private async Task SignInUser() {
 		try {

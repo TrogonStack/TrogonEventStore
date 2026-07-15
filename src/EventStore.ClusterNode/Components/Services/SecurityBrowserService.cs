@@ -29,7 +29,9 @@ public sealed class SecurityBrowserService(IAuthenticationProvider authenticatio
 			properties.ContainsKey("authorization_endpoint") &&
 			properties.ContainsKey("client_id") &&
 			properties.ContainsKey("code_challenge_uri") &&
-			properties.ContainsKey("redirect_uri"),
+			properties.ContainsKey("redirect_uri") &&
+			properties.ContainsKey("response_type") &&
+			properties.ContainsKey("scope"),
 			schemes.Any(x => string.Equals(x, "Insecure", StringComparison.OrdinalIgnoreCase)),
 			properties);
 	}
