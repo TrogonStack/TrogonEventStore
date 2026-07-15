@@ -330,14 +330,14 @@ internal static class Program
 						Log.Warning("UI assets directory {UiAssetsDirectory} is not available.", Locations.UiAssetsDirectory);
 					}
 					hostedService.Node.Startup.Configure(app);
+					if (oauthEnabled)
+					{
+						app.MapOAuthBrowserFlowEndpoints(options.Auth.OAuth);
+					}
+
 					if (adminUiEnabled)
 					{
 						app.MapAdminOperationsEndpoints();
-						if (oauthEnabled)
-						{
-							app.MapOAuthBrowserFlowEndpoints(options.Auth.OAuth);
-						}
-
 						app.MapQueueDashboardEndpoints();
 						app.MapStaticAssets();
 						app.MapRazorComponents<App>();
