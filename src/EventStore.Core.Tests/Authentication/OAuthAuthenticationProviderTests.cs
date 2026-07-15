@@ -85,6 +85,28 @@ public class OAuthAuthenticationProviderTests
 	}
 
 	[Test]
+	public void does_not_advertise_browser_flow_without_scopes()
+	{
+		var provider = new OAuthAuthenticationProvider(
+			new()
+			{
+				Issuer = "https://login.example.test",
+				Audiences = ["eventstore"],
+				AuthorizationEndpoint = "https://login.example.test/oauth2/auth",
+				TokenEndpoint = "https://login.example.test/oauth2/token",
+				ClientId = "eventstore-ui",
+				Scopes = []
+			},
+			logFailedAuthenticationAttempts: false,
+			_ => new ValueTask<TokenValidationParameters>(CreateValidationParameters(new SymmetricSecurityKey(new byte[32]))));
+
+		var properties = provider.GetPublicProperties().ToDictionary(x => x.Key, x => x.Value);
+
+		Assert.That(properties.ContainsKey("authorization_endpoint"), Is.False);
+		Assert.That(properties.ContainsKey("scope"), Is.False);
+	}
+
+	[Test]
 	public void advertises_configured_browser_flow_properties()
 	{
 		var provider = new OAuthAuthenticationProvider(

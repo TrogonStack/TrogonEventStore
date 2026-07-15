@@ -204,7 +204,8 @@ public class OAuthAuthenticationProvider : AuthenticationProviderBase
 	private static bool HasBrowserFlow(ClusterVNodeOptions.OAuthOptions options) =>
 		!string.IsNullOrWhiteSpace(options.ClientId) &&
 		!string.IsNullOrWhiteSpace(options.AuthorizationEndpoint) &&
-		!string.IsNullOrWhiteSpace(options.TokenEndpoint);
+		!string.IsNullOrWhiteSpace(options.TokenEndpoint) &&
+		options.Scopes.Any(scope => !string.IsNullOrWhiteSpace(scope));
 
 	private static string BrowserAuthorizationEndpoint(ClusterVNodeOptions.OAuthOptions options) =>
 		options.AuthorizationEndpoint!;
