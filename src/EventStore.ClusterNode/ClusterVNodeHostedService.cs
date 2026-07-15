@@ -301,8 +301,18 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 			}
 
 			return new AuthenticationProviderFactory(components =>
-				new CompositeAuthenticationProviderFactory(methods.Select(method =>
-					authenticationMethodFactories[method].GetFactory(components)).ToArray()));
+			{
+				var factories = methods.Select(method =>
+					authenticationMethodFactories[method].GetFactory(components)).ToList();
+				if (methods.Contains(AuthenticationMethodNames.OAuth, StringComparer.OrdinalIgnoreCase) &&
+					!methods.Contains(AuthenticationMethodNames.Password, StringComparer.OrdinalIgnoreCase))
+				{
+					factories.Add(new UserCertificateAuthenticationProviderFactory(
+						authenticationMethodFactories[AuthenticationMethodNames.Password].GetFactory(components)));
+				}
+
+				return new CompositeAuthenticationProviderFactory(factories);
+			});
 		}
 
 		static ClusterVNodeOptions LoadSubsystemsPlugins(PluginLoader pluginLoader, ClusterVNodeOptions options)

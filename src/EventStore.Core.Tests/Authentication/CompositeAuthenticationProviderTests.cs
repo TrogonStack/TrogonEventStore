@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using EventStore.Core.Authentication;
 using EventStore.Plugins.Authentication;
@@ -39,6 +42,45 @@ public class CompositeAuthenticationProviderTests
 
 		Assert.AreEqual(1, basicProvider.Calls);
 		Assert.AreEqual(0, bearerProvider.Calls);
+	}
+
+	[Test]
+	public async Task routes_certificate_requests_to_user_certificate_provider()
+	{
+		var bearerProvider = new RecordingAuthenticationProvider(["Bearer"]);
+		var certificateProvider = new RecordingAuthenticationProvider(["UserCertificate"]);
+		var provider = new CompositeAuthenticationProvider([bearerProvider, certificateProvider]);
+		var context = new DefaultHttpContext();
+		var request = HttpAuthenticationRequest.CreateWithValidCertificate(context, "admin", CreateCertificate());
+
+		provider.Authenticate(request);
+		await request.AuthenticateAsync();
+
+		Assert.AreEqual(0, bearerProvider.Calls);
+		Assert.AreEqual(1, certificateProvider.Calls);
+	}
+
+	[Test]
+	public async Task does_not_route_password_requests_to_user_certificate_provider()
+	{
+		var bearerProvider = new RecordingAuthenticationProvider(["Bearer"]);
+		var certificateProvider = new RecordingAuthenticationProvider(["UserCertificate"]);
+		var provider = new CompositeAuthenticationProvider([bearerProvider, certificateProvider]);
+		var request = new HttpAuthenticationRequest(new DefaultHttpContext(), "admin", "changeit");
+
+		provider.Authenticate(request);
+		var status = await request.AuthenticateAsync();
+
+		Assert.AreEqual(HttpAuthenticationRequestStatus.Unauthenticated, status.Item1);
+		Assert.AreEqual(0, bearerProvider.Calls);
+		Assert.AreEqual(0, certificateProvider.Calls);
+	}
+
+	private static X509Certificate2 CreateCertificate()
+	{
+		using var rsa = RSA.Create();
+		var request = new CertificateRequest("CN=test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+		return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddMinutes(1));
 	}
 
 	private sealed class RecordingAuthenticationProvider(IReadOnlyList<string> schemes) : AuthenticationProviderBase

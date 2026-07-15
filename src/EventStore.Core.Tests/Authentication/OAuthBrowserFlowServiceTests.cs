@@ -125,7 +125,12 @@ public class OAuthBrowserFlowServiceTests
 
 		Assert.AreEqual(HttpStatusCode.Redirect, (HttpStatusCode)context.Response.StatusCode);
 		Assert.That(context.Response.Headers.Location.ToString(), Is.EqualTo("/ui/signin?oauth_error=missing_callback"));
-		Assert.That(context.Response.Headers.SetCookie.ToString(), Does.Contain("eventstore-ui-oauth-pkce=;"));
+		var setCookie = context.Response.Headers.SetCookie.ToString();
+		Assert.That(setCookie, Does.Contain("eventstore-ui-oauth-pkce=;"));
+		Assert.That(setCookie, Does.Contain("path=/"));
+		Assert.That(setCookie, Does.Contain("secure"));
+		Assert.That(setCookie, Does.Contain("samesite=lax"));
+		Assert.That(setCookie, Does.Contain("httponly"));
 		Assert.That(handler.Body, Is.Empty);
 	}
 

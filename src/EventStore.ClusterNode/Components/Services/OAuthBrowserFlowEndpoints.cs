@@ -66,30 +66,30 @@ public sealed class OAuthBrowserFlowService(
 		var hasState = TryReadState(state, out var correlationId, out var returnUrl, out var redirectUri);
 		if (!string.IsNullOrWhiteSpace(providerError))
 		{
-			DeleteChallengeCookie(context.Response);
+			DeleteChallengeCookie(context);
 			return SignInRedirect("provider_error", hasState ? returnUrl : "");
 		}
 
 		if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
 		{
-			DeleteChallengeCookie(context.Response);
+			DeleteChallengeCookie(context);
 			return SignInRedirect("missing_callback", "");
 		}
 
 		if (!hasState)
 		{
-			DeleteChallengeCookie(context.Response);
+			DeleteChallengeCookie(context);
 			return SignInRedirect("invalid_state", "");
 		}
 
 		if (!TryReadChallenge(context.Request, correlationId, out var challenge) ||
 			challenge.ExpiresAt <= timeProvider.GetUtcNow())
 		{
-			DeleteChallengeCookie(context.Response);
+			DeleteChallengeCookie(context);
 			return SignInRedirect("invalid_state", returnUrl);
 		}
 
-		DeleteChallengeCookie(context.Response);
+		DeleteChallengeCookie(context);
 		var token = await ExchangeCode(
 			code,
 			challenge.CodeVerifier,
@@ -237,19 +237,19 @@ public sealed class OAuthBrowserFlowService(
 			? "/ui/signin"
 			: $"/ui/signin?returnUrl={Uri.EscapeDataString(returnUrl)}";
 
-	private void DeleteChallengeCookie(HttpResponse response) =>
-		response.Cookies.Delete(ChallengeCookieName, new CookieOptions
-		{
-			Path = "/"
-		});
+	private void DeleteChallengeCookie(HttpContext context) =>
+		context.Response.Cookies.Delete(ChallengeCookieName, ChallengeCookieOptions(context.Request, maxAge: null));
 
-	private CookieOptions ChallengeCookieOptions(HttpRequest request) => new()
+	private CookieOptions ChallengeCookieOptions(HttpRequest request) =>
+		ChallengeCookieOptions(request, ChallengeLifetime);
+
+	private CookieOptions ChallengeCookieOptions(HttpRequest request, TimeSpan? maxAge) => new()
 	{
 		HttpOnly = true,
 		Secure = request.IsHttps,
 		SameSite = SameSiteMode.Lax,
 		Path = "/",
-		MaxAge = ChallengeLifetime
+		MaxAge = maxAge
 	};
 
 	private static string TokenEndpoint(ClusterVNodeOptions.OAuthOptions options) =>
