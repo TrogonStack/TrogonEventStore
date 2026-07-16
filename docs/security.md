@@ -52,6 +52,24 @@ For this to work, you can use the `Insecure` option:
 When running with protocol security disabled, everything is sent unencrypted over the wire. In the previous version it included the server credentials. Sending username and password over the wire without encryption is not secure by definition, but it might give a false sense of security. To make things explicit, TrogonEventStore v20+ **does not use any authentication and authorisation** (including ACLs) when running insecure.
 :::
 
+### Disable TLS
+
+Use `DisableTls` when authentication and authorization must remain enabled while transport encryption is
+disabled.
+
+| Format               | Syntax                   |
+|:---------------------|:-------------------------|
+| Command line         | `--disable-tls`          |
+| YAML                 | `DisableTls`             |
+| Environment variable | `EVENTSTORE_DISABLE_TLS` |
+
+**Default**: `false`
+
+::: warning
+`DisableTls` sends credentials and all other traffic without encryption. Use it only on a trusted network or
+when another network layer provides transport security.
+:::
+
 ### Set initial passwords
 
 We are adding an ability to set default admin and ops passwords on the first run of the database. It will not impact the existing credentials, the user can log into their accounts with existing passwords.
@@ -157,7 +175,7 @@ If you are running on Windows, you can also load the trusted root certificate fr
 
 | Format               | Syntax                                      |
 |:---------------------|:--------------------------------------------|
-| Command line         | `--trusted-root-certificates-paths`         |
+| Command line         | `--trusted-root-certificates-path`          |
 | YAML                 | `TrustedRootCertificatesPath`               |
 | Environment variable | `EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH` |
 
@@ -286,11 +304,16 @@ For a multi-node deployment, provision:
 - Subject alternative names for every DNS name and IP address used by clients or replication traffic.
 - A common-name policy that matches `CertificateReservedNodeCommonName`.
 
+Node certificates require Digital Signature plus either Key Encipherment or Key Agreement. If an Extended Key
+Usage extension is present, it must contain both Server Authentication (`1.3.6.1.5.5.7.3.1`) and Client
+Authentication (`1.3.6.1.5.5.7.3.2`). Certificates without an Extended Key Usage extension remain accepted for
+compatibility.
+
 Keep CA private keys outside the node and client environments. Install only the CA certificate, node certificate, and node private key required by each machine.
 
 ::: warning
-If you are running TrogonEventStore on Linux, remember that all certificate files should have restrictive rights, otherwise the OS won't allow using them.
-Usually, you'd need to change rights for each certificate file to prevent the "permissions are too open" error.
+Keep certificate private keys readable only by the account running TrogonEventStore. Restrictive permissions
+reduce the risk of another local account reading the key.
 
 You can do it by running the following command:
 
@@ -444,19 +467,11 @@ Import-Certificate -FilePath .\ca.crt -CertStoreLocation Cert:\LocalMachine\CA
 :::
 ::::
 
-### TCP protocol security
+### Replication protocol security
 
-Cluster nodes use TCP for replication. Unless TrogonEventStore is running without transport security, replication TCP uses the configured node certificates.
-
-You can disable TLS for replication TCP with the following setting.
-
-| Format               | Syntax                                |
-|:---------------------|:--------------------------------------|
-| Command line         | `--disable-internal-tcp-tls`          |
-| YAML                 | `DisableInternalTcpTls`               |
-| Environment variable | `EVENTSTORE_DISABLE_INTERNAL_TCP_TLS` |
-
-**Default**: `false`
+When TLS is enabled, cluster replication uses the configured node certificate. Replication TLS cannot be
+disabled independently. Use [`DisableTls`](#disable-tls) to disable transport encryption for both HTTP and
+replication while preserving authentication and authorization.
 
 ## Authentication
 

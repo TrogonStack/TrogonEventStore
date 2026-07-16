@@ -15,8 +15,8 @@ The TrogonEventStore logs may contain sensitive information such as stream names
 
 ## Log format
 
-TrogonEventStore uses the structured logging in JSON format that is more machine-friendly and can be ingested by
-vendor-specific tools like Logstash or Datadog agent.
+Log files use compact JSON that can be ingested by log-processing tools. Console output defaults to the
+human-readable `Plain` format.
 
 Here is how the structured log looks like:
 
@@ -197,7 +197,7 @@ Defines how many log files need to be kept on disk. By default, logs for the las
 |:---------------------|:---------------------------------|
 | Command line         | `--log-file-retention-count`     |
 | YAML                 | `LogFileRetentionCount`          |
-| Environment variable | `EVENTSTORE_LOG_RETENTION_COUNT` |
+| Environment variable | `EVENTSTORE_LOG_FILE_RETENTION_COUNT` |
 
 **Default**: `31`
 

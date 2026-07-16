@@ -34,7 +34,7 @@ Clients must acknowledge (or not acknowledge) messages as they are handled. If m
 
 ## Parked messages
 
-Messages that have been retried too often will be parked in the persistent subscription's parked message stream. This stream is named `$persistentsubscription-{groupname}::{streamname}-parked`. You can easily see the number of parked events in the persistent subscription statistics or browse and replay parked messages from the Admin UI _Subscriptions_ page.
+Messages that have been retried too often are parked in `$persistentsubscription-{streamname}::{groupname}-parked`. You can easily see the number of parked events in the persistent subscription statistics or browse and replay parked messages from the Admin UI _Subscriptions_ page.
 
 If you want to retry the parked messages, you can `Replay` the parked messages for that subscription. This will push the parked messages to subscribers before any new events on the subscription.
 
@@ -44,7 +44,7 @@ If you don't want to replay any of the parked messages for a subscription and wa
 
 ## Checkpointing
 
-Once a persistent subscription has handled enough events, it will write a checkpoint. If the subscription is restarted, for example due to a Leader change, then the persistent subscription will continue processing from the last checkpoint. This means that some events my be received multiple times by consumers.
+Checkpoints are `$SubscriptionCheckpoint` events stored in `$persistentsubscription-{streamname}::{groupname}-checkpoint`. On restart, the subscription loads the latest checkpoint and resumes after that position. Events processed after the last durable checkpoint may therefore be delivered again. For compatibility, the server also reads checkpoints using the earlier `SubscriptionCheckpoint` event type.
 
 If a persistent subscription has a filter, then the persistent subscription will checkpoint when enough events are either handled or skipped by the filter.
 

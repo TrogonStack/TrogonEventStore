@@ -28,7 +28,8 @@ The HTTP endpoint always binds to the IP address configured in the `NodeIp` sett
 | YAML                 | `NodeIp`             |
 | Environment variable | `EVENTSTORE_NODE_IP` |
 
-When the `NodeIp` setting is not provided, TrogonEventStore will use the first available non-loopback address. You can also bind HTTP to all available interfaces using `0.0.0.0` as the setting value. If you do that, you'd need to configure the `NodeHostAdvertiseAs` (previously `ExtHostAdvertiseAs`) setting (read more [here](#network-address-translation)), since `0.0.0.0` is not a valid IP address to connect from the outside world.
+`NodeIp` defaults to `127.0.0.1`. Set it to `0.0.0.0` to bind all interfaces and configure a
+`NodeHostAdvertiseAs` value that clients can resolve, since `0.0.0.0` is not a connectable address.
 
 ::: warning
 Please note that the `ExtIp` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `NodeIp` parameter instead.
@@ -184,15 +185,9 @@ Please note that the `IntTcpPort` parameter has been deprecated as of version 23
 
 ### Security
 
-When the node is secured, replication TCP uses TLS. You can disable TLS for replication TCP using the setting described below.
-
-| Format               | Syntax                                |
-|:---------------------|:--------------------------------------|
-| Command line         | `--disable-internal-tcp-tls`          |
-| YAML                 | `DisableInternalTcpTls`               |
-| Environment variable | `EVENTSTORE_DISABLE_INTERNAL_TCP_TLS` |
-
-**Default**: `false`
+When TLS is enabled, replication uses the configured node certificate. Replication TLS cannot be disabled
+independently. `DisableTls` disables TLS for both HTTP and replication while preserving authentication and
+authorization.
 
 If your network setup requires any kind of IP address, DNS name and port translation for internal communication, you can use available [address translation](#network-address-translation) settings.
 
@@ -333,7 +328,7 @@ For the gRPC heartbeats, TrogonEventStore and its gRPC clients use the protocol 
 
 If you need to reduce the HTTP surface, you can disable the browser-facing Admin UI and the Prometheus metrics endpoint. Health probes and gRPC remain part of the supported HTTP listener.
 
-You can disable the Admin UI by setting `DisableAdminUi` to `true`.
+You can disable the Admin UI and its administrative API endpoints by setting `DisableAdminUi` to `true`.
 
 | Format               | Syntax                    |
 |:---------------------|:--------------------------|
@@ -341,7 +336,7 @@ You can disable the Admin UI by setting `DisableAdminUi` to `true`.
 | YAML                 | `DisableAdminUi`          |
 | Environment variable | `EVENTSTORE_DISABLE_ADMIN_UI` |
 
-**Default**: `false`, Admin UI is enabled.
+**Default**: `false`, Admin UI and administrative API endpoints are enabled.
 
 You can disable the Prometheus metrics endpoint by setting `DisableStatsOnHttp` to `true`.
 

@@ -89,6 +89,8 @@ variables. See [Configuration](configuration.md).
 TrogonEventStore can run under the Windows Service Control Manager, but the
 source build does not register itself automatically.
 
+The node handles Service Control Manager stop requests through graceful shutdown.
+
 Example service registration:
 
 ```powershell:no-line-numbers
@@ -96,13 +98,10 @@ sc.exe create TrogonDB binPath= "C:\TrogonDB\EventStore.ClusterNode.exe --config
 sc.exe start TrogonDB
 ```
 
-If the HTTP listener needs a URL ACL, configure it explicitly:
-
-```powershell:no-line-numbers
-netsh http add urlacl url=http://+:2113/ user=DOMAIN\username
-```
-
-For more information, refer to Microsoft's `add urlacl` documentation.
+Do not rely on Service Control Manager failure actions alone to keep the service running. Some server workflows
+intentionally exit successfully, including the restart required after database truncation, and successful exits
+do not trigger failure recovery. Use an external service monitor or scheduled start command when automatic
+recovery is required.
 
 ## Cluster startup
 

@@ -1,11 +1,13 @@
 services:
   eventstore.db:
-    image: eventstore/eventstore:24.2.0-jammy
+    build:
+      context: ../..
     environment:
       - EVENTSTORE_CLUSTER_SIZE=1
       - EVENTSTORE_RUN_PROJECTIONS=All
       - EVENTSTORE_START_STANDARD_PROJECTIONS=true
       - EVENTSTORE_NODE_PORT=2113
+      # Local development only: Insecure disables TLS, authentication, and authorization.
       - EVENTSTORE_INSECURE=true
     ports:
       - "2113:2113"

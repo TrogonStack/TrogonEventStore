@@ -96,6 +96,35 @@ etc. If anyone can append to the emitted streams, then the projection would have
 in terms of processing. Therefore, it can no longer trust that the projection itself emitted that event or if
 something else did.
 
+### Resetting a projection
+
+Resetting a projection advances its epoch. The next start ignores checkpoints from the previous epoch and
+processes its source again from the beginning.
+
+Reset does not delete the projection definition or immediately delete all of its streams. When the new epoch
+emits to an existing output stream, the runtime updates that stream's metadata so the previous logical output is
+truncated before replacement events are appended.
+
+### Projection streams
+
+The projection subsystem uses reserved streams for definitions, checkpoints, ordering, and results.
+
+| Purpose                          | Stream                                                         |
+|:---------------------------------|:---------------------------------------------------------------|
+| Registration                     | `$projections-$all`                                            |
+| Definition and configuration     | `$projections-{projection-name}`                               |
+| Checkpoint                       | `$projections-{projection-name}-checkpoint`                    |
+| Default result                   | `$projections-{projection-name}-result`                        |
+| Partition result                 | `$projections-{projection-name}-{partition}-result`            |
+| Partition checkpoint             | `$projections-{projection-name}-{partition}-checkpoint`        |
+| Partition catalog                | `$projections-{projection-name}-partitions`                    |
+| Multi-stream ordering            | `$projections-{projection-name}-order`                         |
+| Emitted-stream tracking          | `$projections-{projection-name}-emittedstreams`                |
+| Emitted-stream deletion progress | `$projections-{projection-name}-emittedstreams-checkpoint`     |
+
+`resultStreamName` can override the default result stream. Projection handlers can also use `emit()` and
+`linkTo()` to target other streams.
+
 ## System projections
 
 TrogonEventStore ships with five built in projections:
@@ -451,15 +480,11 @@ projection starts reading again.
 
 **Default:** `5000` (events).
 
-#### Projection Execution Timeout
+#### Per-projection execution timeout
 
-The `ProjectionExecutionTimeout` setting specifies per event projection processing timeout. If an event is not processed within the specified duration, the projection will fault and won't process further events.
-
-::: tip 
-Increase value of this setting if projection handler is compute intensive or server is under heavy load
-:::
-
-**Default:** `250` (ms).
+A projection's optional `ProjectionExecutionTimeout` value specifies a positive timeout in milliseconds. When
+set, it overrides the node-wide projection execution timeout. When omitted, the projection inherits the
+node-wide value. A projection faults and stops processing when a handler exceeds the effective timeout.
 
 ## Debugging
 
@@ -527,6 +552,15 @@ events that are stored in the database in addition to the original event. This e
 the number of events appended and therefore creates pressure on the IO of the server node. We often call this
 effect "write amplification".
 :::
+
+### Projection execution timeout
+
+The node-wide `ProjectionExecutionTimeout` applies to projections without a per-projection override. Its default
+is `250` milliseconds.
+
+A projection faulted by a timeout can be restarted to resume from its latest checkpoint. If the limit is still
+insufficient, it will fault again. Changing the node-wide value requires restarting the server. A faulted
+projection's individual override can be updated and the projection restarted without restarting the server.
 
 ### Projection runtime
 

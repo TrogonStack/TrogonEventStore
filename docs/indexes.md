@@ -9,7 +9,7 @@ TrogonEventStore stores indexes separately from the main data files, accessing r
 ### Overview
 
 TrogonEventStore creates index entries as it processes commit events. It holds these in memory (called
-_memtables_) until it reaches the `MaxMemTableSize` and then persisted on disk in the _index_ folder along
+_memtables_) until the entry count reaches or exceeds `MaxMemTableSize`, then persists them in the _index_ folder along
 with `.bloomfilter` files and an index map file. The index files are uniquely named, and the index map file
 called _indexmap_. The index map describes the order and the level of the index file as well as containing the
 data checkpoint for the last written file, the version of the index map file and a checksum for the index map
@@ -19,7 +19,7 @@ Indexes are sorted lists based on the hashes of stream names. To speed up seekin
 file of an entry for a stream, TrogonEventStore keeps midpoints to relate the stream hash to the physical offset
 in the file.
 
-As TrogonEventStore saves more files, they are automatically merged together whenever there are more than 2 files
+As TrogonEventStore saves more files, they are automatically merged together whenever there are two files
 at the same level into a single file at the next level. Each index entry is 24 bytes and the index file size
 is approximately 24Mb per 1M events. The Bloom filter files are approximately 1% of the size of the rest of
 the index.
@@ -60,8 +60,8 @@ The _indexmap_ structure is as follows:
 - `hash` - an md5 hash of the rest of the file
 - `version` - the version of the _indexmap_ file
 - `checkpoint` - the maximum prepare/commit position of the persisted _ptables_
-- `maxAutoMergeLevel` - either the value of `MaxAutoMergeLevel` or `int32.MaxValue` if it was not set. This is
-  primarily used to detect increases in `MaxAutoMergeLevel`, which is not supported.
+- `maxAutoMergeLevel` - either the value of `MaxAutoMergeIndexLevel` or `int32.MaxValue` if it was not set. This
+  is primarily used to detect increases in `MaxAutoMergeIndexLevel`, which is not supported.
 - `ptable`,`level`,`index`- List of all the _ptables_ used by this index map with the level of the _ptable_
   and it's order.
 
@@ -160,8 +160,8 @@ files from the last position in the `indexmap` file and rebuild the in memory in
 
 <!-- TODO: Polish a little more -->
 
-Increasing `MaxMemTableSize` also decreases the number of times TrogonEventStore writes index files to disk and
-how often it merges them together, which increases IO operations. It also reduces the number of seek
+Increasing `MaxMemTableSize` also decreases index write and merge frequency, although each flush is larger and
+recovery may take longer. It also reduces the number of seek
 operations when stream entries span multiple files as TrogonEventStore needs to search each file for the stream
 entries. This affects streams written to over longer periods of time more than streams written to over a
 shorter time, where time is measured by the number of events created, not time passed. This is because streams
@@ -228,7 +228,7 @@ index merges will use a large amount of disk IO.
 
 For example:
 
-> Merging 2 level 7 files results in at least 3072 MB reads (2 \* 1536 MB), and 3072 MB writes while merging 2 level 8 files together results in at least 6144 MB reads (2 \* 3072 MB) and 6144 MB writes. Setting `MaxAutoMergeLevel` to 7 allows all levels up to and including level 7 to be automatically merged, but to merge the level 8 files together, you need to trigger a manual merge. This manual merge allows better control over when these larger merges happen and which nodes they happen on. Due to the replication process, all nodes tend to merge at about the same time.
+> Merging 2 level 7 files results in at least 3072 MB reads (2 \* 1536 MB), and 3072 MB writes while merging 2 level 8 files together results in at least 6144 MB reads (2 \* 3072 MB) and 6144 MB writes. Setting `MaxAutoMergeIndexLevel` to 7 allows all levels up to and including level 7 to be automatically merged, but to merge the level 8 files together, you need to trigger a manual merge. This manual merge allows better control over when these larger merges happen and which nodes they happen on. Due to the replication process, all nodes tend to merge at about the same time.
 
 ### Stream existence filter size
 
@@ -295,7 +295,7 @@ For most TrogonEventStore clusters, the default settings are enough to give cons
 clusters with larger numbers of events, or those that run in constrained environments the configuration
 options allow for some tuning to meet operational constraints.
 
-The most common optimization needed is to set a `MaxAutoMergeLevel` to avoid large merges occurring across all
+The most common optimization needed is to set a `MaxAutoMergeIndexLevel` to avoid large merges occurring across all
 nodes at approximately the same time. Large index merges use a lot of IOPS and in IOPS constrained
 environments it is often desirable to have better control over when these happen. Because increasing this
 value requires an index rebuild you should start with a higher value and decrease until the desired balance
@@ -305,4 +305,4 @@ cluster.
 
 For example:
 
-> A cluster with 3000 256b IOPS can read/write about 0.73Gb/sec (This level of IOPS represents a small cloud instance). Assuming sustained read/write throughput of 0.73Gb/s. When an index merge of level 7 or above starts, it consumes as many IOPS up to all on the node until it completes. Because TrogonEventStore has a shared nothing architecture for clustering this operation is likely to cause all nodes to appear to stall simultaneously as they all try and perform an index merge at the same time. By setting `MaxAutoMergeLevel` to 6 or below you can avoid this, and you can run the merge on each node individually keeping read/write latency in the cluster consistent.
+> A cluster with 3000 256b IOPS can read/write about 0.73Gb/sec (This level of IOPS represents a small cloud instance). Assuming sustained read/write throughput of 0.73Gb/s. When an index merge of level 7 or above starts, it consumes as many IOPS up to all on the node until it completes. Because TrogonEventStore has a shared nothing architecture for clustering this operation is likely to cause all nodes to appear to stall simultaneously as they all try and perform an index merge at the same time. By setting `MaxAutoMergeIndexLevel` to 6 or below you can avoid this, and you can run the merge on each node individually keeping read/write latency in the cluster consistent.

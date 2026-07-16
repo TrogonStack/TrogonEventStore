@@ -217,6 +217,10 @@ You can add read-only replica nodes, which will not become cluster members and w
 
 A cluster asynchronously replicates data one way to a node with the read-only replica role. The read-only replica node is not part of the cluster, so does not add to the replication requirements needed to acknowledge a write. For this reason a node with a read-only replica role does not add much overhead to the other nodes.
 
+Do not include read-only replicas in `ClusterSize`. On every node, including each read-only replica, set
+`ClusterSize` to the number of voting Leader and Follower nodes. For example, a deployment with three voting
+nodes and one read-only replica uses `ClusterSize: 3` on all four nodes.
+
 You need to explicitly configure the node as a read-only replica using this setting:
 
 | Format               | Syntax                         |

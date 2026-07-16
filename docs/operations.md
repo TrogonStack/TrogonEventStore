@@ -97,10 +97,18 @@ Scavenging does place extra load on the server, especially in terms of disk IO. 
 
 ### Archive storage
 
-Archive mode stores completed chunks outside the local database directory before retention can remove them locally.
-The supported archive backend is the S3 API. This includes AWS S3 and S3-compatible services that expose the same object-storage API.
+Archive mode lets archive-enabled nodes read completed chunks from S3 and remove local copies during scavenging
+after the retention conditions are met. The supported archive backend is the S3 API, including compatible
+object-storage services.
+
+One designated Archiver node uploads completed, committed chunks in log order. In a multi-node cluster, the
+Archiver must be a read-only replica. Configure `ReadOnlyReplica: true` and `Archiver: true` on that node, and
+configure the same `Archive` storage on every node that must read archived chunks.
 
 ```yaml
+ClusterSize: 3
+ReadOnlyReplica: true
+Archiver: true
 Archive:
   Enabled: true
   StorageType: S3
@@ -122,6 +130,22 @@ Deployments that use explicit S3 credentials must provide these keys in each env
 The same keys can be supplied with environment variables such as `EventStore__Archive__S3__AccessKeyId`,
 `EventStore__Archive__S3__SecretAccessKey`, `EventStore__Archive__S3__SessionToken`, and
 `EventStore__Archive__S3__ServiceUrl`.
+
+Archiving is asynchronous. Upload and checkpoint failures retry every minute. Shutdown cancels current work;
+completed local chunks are discovered again after restart.
+
+Reads for chunks no longer stored locally issue object-storage requests. Their latency and availability depend
+on the S3 service and network. When read concurrency is limited, slower archive reads may cause other reads to
+wait.
+
+There are currently no dedicated archive queue-depth or archive-checkpoint metrics. The
+`eventstore-logical-chunk-read-distribution` metric measures how far reads are from the log tail when event-read
+metrics are enabled.
+
+Archive storage supplements backups; it does not replace them. Only completed, committed chunks through the
+archive checkpoint are uploaded. Keep normal database and index backups. During startup, an archive-enabled
+node whose writer checkpoint is behind the archive downloads missing chunks through that checkpoint before
+joining the cluster.
 
 ## Scavenging algorithm
 
@@ -311,7 +335,7 @@ rewriting unrelated business history.
 
 ## Backup and restore
 
-Backing up an TrogonEventStore database is straightforward but relies on carrying out the steps below in the
+Backing up a TrogonEventStore database is straightforward but relies on carrying out the steps below in the
 correct order.
 
 ### Types of backups
@@ -358,7 +382,7 @@ By default, there are two directories containing data that needs to be included 
 The exact name and location are dependent on your configuration.
 
 - `db/ ` contains:
-  - the chunks files named `chk-X.Y` where `X` is the chunk number and `Y` the version.
+  - the chunk files named `chunk-X.Y` where `X` is the chunk number and `Y` the version.
   - the checkpoints files `*.chk` (`chaser.chk`, `epoch.chk`, `proposal.chk`, `truncate.chk`, `writer.chk`)
 - `index/ ` contains:
   - the index map: `indexmap`
