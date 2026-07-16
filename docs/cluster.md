@@ -4,22 +4,22 @@ title: Clustering
 
 ## Highly-available cluster
 
-EventStoreDB allows you to run more than one node in a cluster for high availability.
+TrogonEventStore allows you to run more than one node in a cluster for high availability.
 
 ::: info Cluster member authentication
-EventStoreDB starts in secure mode by default, which requires configuration [settings for certificates](security.md#certificates-configuration).
+TrogonEventStore starts in secure mode by default, which requires configuration [settings for certificates](security.md#certificates-configuration).
 Cluster members authenticate each other using the certificate Common Name. All the cluster nodes must have the same common name in their certificates.
 :::
 
 ### Cluster nodes
 
-EventStoreDB clusters follow a "shared nothing" philosophy, meaning that clustering requires no shared disks. Instead, each node has a copy of the data to ensure it is not lost in case of a drive failure or a node crashing. 
+TrogonEventStore clusters follow a "shared nothing" philosophy, meaning that clustering requires no shared disks. Instead, each node has a copy of the data to ensure it is not lost in case of a drive failure or a node crashing.
 
 ::: tip
 Lean more about [node roles](#node-roles).
 :::
 
-EventStoreDB uses a quorum-based replication model, in which a majority of nodes in the cluster must acknowledge that they have received a copy of the write before the write is acknowledged to the client. This means that to be able to tolerate the failure of _n_ nodes, the cluster must be of size _(2n + 1)_. A three node cluster can continue to accept writes if one node is unavailable. A five node cluster can continue to accept writes if two nodes are unavailable, and so forth.
+TrogonEventStore uses a quorum-based replication model, in which a majority of nodes in the cluster must acknowledge that they have received a copy of the write before the write is acknowledged to the client. This means that to be able to tolerate the failure of _n_ nodes, the cluster must be of size _(2n + 1)_. A three node cluster can continue to accept writes if one node is unavailable. A five node cluster can continue to accept writes if two nodes are unavailable, and so forth.
 
 ### Cluster size
 
@@ -45,7 +45,7 @@ Common values for the `ClusterSize` setting are three or five (to have a majorit
 
 Cluster nodes use the gossip protocol to discover each other and elect the cluster leader.
 
-Cluster nodes need to know about one another to gossip. To start this process, you provide gossip seeds for each node. 
+Cluster nodes need to know about one another to gossip. To start this process, you provide gossip seeds for each node.
 
 Configure cluster nodes to discover other nodes in one of two ways:
 - [via a DNS entry](#cluster-with-dns) and a well-known [gossip port](#gossip-port)
@@ -61,7 +61,7 @@ Learn more about [internal TCP configuration](networking.md#replication-protocol
 
 ## Cluster with DNS
 
-When you tell EventStoreDB to use DNS for its gossip, the server will resolve the DNS name to a list of IP addresses and connect to each of those addresses to find other nodes. This method is very flexible because you can change the list of nodes on your DNS server without changing the cluster configuration. The DNS method is also useful in automated deployment scenarios when you control both the cluster deployment and the DNS server from your infrastructure-as-code scripts.
+When you tell TrogonEventStore to use DNS for its gossip, the server will resolve the DNS name to a list of IP addresses and connect to each of those addresses to find other nodes. This method is very flexible because you can change the list of nodes on your DNS server without changing the cluster configuration. The DNS method is also useful in automated deployment scenarios when you control both the cluster deployment and the DNS server from your infrastructure-as-code scripts.
 
 To use DNS discovery, you need to set the `ClusterDns` option to the DNS name that allows making an HTTP call to it. When the server starts, it will attempt to make a gRPC call using the `https://<cluster-dns>:<gossip-port>` URL (`http` if the cluster is insecure).
 
@@ -105,7 +105,7 @@ The setting accepts a comma-separated list of IP addresses or host names with th
 
 ## Gossip protocol
 
-EventStoreDB uses a quorum-based replication model. When working normally, a cluster has one node known as a leader, and the remaining nodes are followers. The leader node is responsible for coordinating writes while it is the leader. Cluster nodes use a consensus algorithm to determine which node should be the leader and which should be followers. EventStoreDB bases the decision as to which node should be the leader on a number of factors.
+TrogonEventStore uses a quorum-based replication model. When working normally, a cluster has one node known as a leader, and the remaining nodes are followers. The leader node is responsible for coordinating writes while it is the leader. Cluster nodes use a consensus algorithm to determine which node should be the leader and which should be followers. TrogonEventStore bases the decision as to which node should be the leader on a number of factors.
 
 For a cluster node to have this information available to them, the nodes gossip with other nodes in the cluster. Gossip runs over HTTP interfaces of cluster nodes.
 
@@ -143,7 +143,7 @@ The default value is two seconds (2000 ms).
 
 ### Time difference toleration
 
-EventStoreDB expects the time on cluster nodes to be in sync within a given tolerance.
+TrogonEventStore expects the time on cluster nodes to be in sync within a given tolerance.
 
 If different nodes have their clock out of sync for a number of milliseconds that exceeds the value of this setting, the gossip is rejected and the node will not be accepted as a cluster member.
 
@@ -171,7 +171,7 @@ If your cluster network is congested, you might increase the gossip timeout usin
 
 ### Gossip on single node
 
-You can connect using gossip seeds regardless of whether you have a cluster or not. In the previous versions of EventStoreDB gossip on a single node was disabled. Starting from 21.2 it is enabled by default.
+You can connect using gossip seeds regardless of whether you have a cluster or not. In the previous versions of TrogonEventStore gossip on a single node was disabled. Starting from 21.2 it is enabled by default.
 
 ::: warning
 Please note that the `GossipOnSingleNode` option is deprecated and will be removed in a future version. The client gossip read operation is now unconditionally available for any deployment topology.
@@ -201,7 +201,7 @@ In some cases the leader election messages may be delayed, which can result in e
 
 ## Node roles
 
-Every node in a stable EventStoreDB deployment settles into one of three roles: Leader, Follower, and ReadOnlyReplica. The cluster is composed of the Leader and Followers.
+Every node in a stable TrogonEventStore deployment settles into one of three roles: Leader, Follower, and ReadOnlyReplica. The cluster is composed of the Leader and Followers.
 
 ### Leader
 
@@ -216,6 +216,10 @@ A cluster assigns the follower role based on an election process. A cluster uses
 You can add read-only replica nodes, which will not become cluster members and will not take part in elections. Read-only replicas can be used for scaling up reads if you have many catch-up subscriptions and want to off-load cluster members.
 
 A cluster asynchronously replicates data one way to a node with the read-only replica role. The read-only replica node is not part of the cluster, so does not add to the replication requirements needed to acknowledge a write. For this reason a node with a read-only replica role does not add much overhead to the other nodes.
+
+Do not include read-only replicas in `ClusterSize`. On every node, including each read-only replica, set
+`ClusterSize` to the number of voting Leader and Follower nodes. For example, a deployment with three voting
+nodes and one read-only replica uses `ClusterSize: 3` on all four nodes.
 
 You need to explicitly configure the node as a read-only replica using this setting:
 

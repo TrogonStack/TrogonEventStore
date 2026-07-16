@@ -4,7 +4,7 @@ title: Admin UI
 
 # Admin UI
 
-The EventStoreDB Admin UI is available at `http://SERVER_IP:2113/ui` and helps operators inspect and manage a node or cluster from the browser.
+The TrogonEventStore Admin UI is available at `http://SERVER_IP:2113/ui` and helps operators inspect and manage a node or cluster from the browser.
 
 ## Dashboard
 

@@ -1,24 +1,25 @@
 # Diagnostics
 
-EventStoreDB provides several ways to diagnose and troubleshoot issues.
+TrogonEventStore provides several ways to diagnose and troubleshoot issues.
 
 - [Logging](logs.md): structured or plain-text logs on the console and in log files.
 - [Metrics](metrics.md): collect standard metrics using Prometheus or OpenTelemetry.
 - [Stats](#statistics): runtime statistics exposed through the monitoring gRPC service.
 
-You can also use external tools to measure the performance of EventStoreDB and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.
+You can also use external tools to measure the performance of TrogonEventStore and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.
 
 ## Statistics
 
-EventStoreDB servers collect internal statistics and make them available through the monitoring gRPC service.
+TrogonEventStore servers collect internal statistics and make them available through the monitoring gRPC service.
 Use the `Monitoring.Stats` RPC when you need the structured runtime view that used to be exposed through the
 legacy `/stats` HTTP endpoint. That RPC only exposes information about the node you query and does not include
 cluster-wide state.
 
-What you see in the `Monitoring.Stats` response is the last collected state of the server. The server collects
-this information using events that are appended to the statistics stream. Each node has one. We use a reserved
-name for the stats stream, `$stats-<host:port>`. For example, for a single node running locally the stream
-name would be `$stats-127.0.0.1:2113`.
+`Monitoring.Stats` collects fresh node-local statistics and memoizes the result for up to one second. It does
+not read persisted statistics events.
+
+When statistics persistence is enabled, each node writes events to a reserved `$stats-<host:port>` stream. For
+example, a single local node writes to `$stats-127.0.0.1:2113`.
 
 As all other events, stats events are also linked in the `$all` stream. These events have a reserved event
 type `$statsCollected`.
@@ -329,14 +330,15 @@ type `$statsCollected`.
 
 :::
 
-Stats stream has the max time-to-live set to 24 hours, so all the events that are older than 24 hours will be
+Stats stream has the max time-to-live set to 10 days, so all the events that are older than 10 days will be
 deleted.
 
 ### Stats period
 
-Using this setting you can control how often stats events are generated. By default, the node will produce one
+Using this setting you can control how often statistics are persisted to files and, when enabled, to the stats
+stream. It does not control how frequently `Monitoring.Stats` refreshes its response. By default, the node will produce one
 event in 30 seconds. If you want to decrease network pressure on subscribers to the `$all` stream, you can
-tell EventStoreDB to produce stats less often.
+tell TrogonEventStore to produce stats less often.
 
 | Format               | Syntax                        |
 | :------------------- | :---------------------------- |
@@ -352,7 +354,7 @@ As mentioned before, stats events are quite large and whilst it is sometimes ben
 history, it is most of the time not necessary. Therefore, we do not write stats events to the database by
 default. When this option is set to `true`, all the stats events will be persisted.
 
-As mentioned before, stats events have a TTL of 24 hours and when writing stats to the database is enabled,
+As mentioned before, stats events have a TTL of 10 days and when writing stats to the database is enabled,
 you'd need to scavenge more often to release the disk space.
 
 | Format               | Syntax                         |

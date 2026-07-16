@@ -4,13 +4,13 @@ title: Database
 
 ## Database settings
 
-On this page, you find settings that tune the database server behaviour. Only modify these settings if you know what you are doing or when requested by Event Store support personnel.
+On this page, you find settings that tune the database server behaviour. Only modify these settings if you know what you are doing or when requested by project maintainers.
 
 ### Database location
 
-EventStoreDB has a single database, which is spread across ever-growing number of physical files on the file system. Those files are called chunks and new data is always appended to the end of the latest chunk. When the chunk grows over 256 MiB, the server closes the chunk and opens a new one.
+TrogonEventStore has a single database, which is spread across ever-growing number of physical files on the file system. Those files are called chunks and new data is always appended to the end of the latest chunk. When the chunk grows over 256 MiB, the server closes the chunk and opens a new one.
 
-Normally, you'd want to keep the database files separated from the OS and other application files. The `Db` setting tells EventStoreDB where to put those chunk files. If the database server doesn't find anything at the specified location, it will create a new database.
+Normally, you'd want to keep the database files separated from the OS and other application files. The `Db` setting tells TrogonEventStore where to put those chunk files. If the database server doesn't find anything at the specified location, it will create a new database.
 
 | Format               | Syntax          |
 |:---------------------|:----------------|
@@ -18,11 +18,11 @@ Normally, you'd want to keep the database files separated from the OS and other 
 | YAML                 | `Db`            |
 | Environment variable | `EVENTSTORE_DB` |
 
-**Default**: the default database location is platform specific. On Windows, the database will be stored in the `data` directory inside the EventStoreDB installation location. On Linux, it will be `/var/lib/eventstore`.
+**Default**: the default database location is platform specific. On Windows, the database will be stored in the `data` directory inside the TrogonEventStore installation location. On Linux, it will be `/var/lib/eventstore`.
 
 ### Skip database verification
 
-When the database node restarts, it checks the database files to ensure they aren't corrupted. It is a lengthy process and can take hours on a large database. EventStoreDB normally flushes every write to disk, so database files are unlikely to get corrupted. In an environment where nodes restart often for some reason, you might want to disable the database verification to allow faster startup of the node.
+When the database node restarts, it checks the database files to ensure they aren't corrupted. It is a lengthy process and can take hours on a large database. TrogonEventStore normally flushes every write to disk, so database files are unlikely to get corrupted. In an environment where nodes restart often for some reason, you might want to disable the database verification to allow faster startup of the node.
 
 | Format               | Syntax                      |
 |:---------------------|:----------------------------|
@@ -90,9 +90,9 @@ Depending on your client operation timeout settings (default is 7 seconds), incr
 Using this option might cause data loss.
 :::
 
-This will prevent EventStoreDB from forcing the flush to disk after writes. Please note that this is unsafe in case of a power outage.
+This will prevent TrogonEventStore from forcing the flush to disk after writes. Please note that this is unsafe in case of a power outage.
 
-With this option enabled, EventStoreDB will still write data to the disk at the application level but not necessarily at the OS level. Usually, the OS should flush its buffers at regular intervals or when a process exits but it is something that's opaque to EventStoreDB.
+With this option enabled, TrogonEventStore will still write data to the disk at the application level but not necessarily at the OS level. Usually, the OS should flush its buffers at regular intervals or when a process exits but it is something that's opaque to TrogonEventStore.
 
 | Format               | Syntax                                    |
 |:---------------------|:------------------------------------------|
@@ -161,10 +161,10 @@ Increasing the count of reader threads can improve performance up to a point, bu
 
 ### Garbage collection
 
-EventStoreDB runs with .NET Server GC enabled. Server GC improves throughput for database workloads by using multiple GC threads, but it can also let the managed heap grow larger before a collection runs.
+TrogonEventStore runs with .NET Server GC enabled. Server GC improves throughput for database workloads by using multiple GC threads, but it can also let the managed heap grow larger before a collection runs.
 
-To keep memory available for the operating system page cache and other database buffers, EventStoreDB sets the .NET `System.GC.HeapHardLimitPercent` runtime option to `60` by default. The runtime interprets this as a percentage of the available process memory limit. In containers, that means the container memory limit when one is configured.
+To keep memory available for the operating system page cache and other database buffers, TrogonEventStore sets the .NET `System.GC.HeapHardLimitPercent` runtime option to `60` by default. The runtime interprets this as a percentage of the available process memory limit. In containers, that means the container memory limit when one is configured.
 
-The heap limit is separate from EventStoreDB cache settings such as `StreamInfoCacheCapacity`, `CachedChunks`, and `ChunksCacheSize`. Tune those cache settings first when adjusting database memory usage. Lower the .NET heap limit only when the process still competes with other important workloads on the same host.
+The heap limit is separate from TrogonEventStore cache settings such as `StreamInfoCacheCapacity`, `CachedChunks`, and `ChunksCacheSize`. Tune those cache settings first when adjusting database memory usage. Lower the .NET heap limit only when the process still competes with other important workloads on the same host.
 
 If you override .NET GC settings with environment variables or runtime configuration, keep enough memory headroom for file-system cache and native allocations. For example, disabling Server GC with `DOTNET_gcServer=0` can reduce CPU contention on shared hosts, but may reduce database throughput.

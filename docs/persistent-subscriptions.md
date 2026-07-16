@@ -8,7 +8,7 @@ A common operation is to subscribe to a stream and receive notifications for cha
 
 You can only subscribe to one stream or the `$all` stream. You can use server-side projections for linking events to new aggregated streams. System projections create pre-defined streams that aggregate events by type or by category and are available out-of-the box. Learn more about system and user-defined projections [here](projections.md).
 
-Persistent subscriptions run on the Leader node and are not dropped when the connection is closed. Moreover, this subscription type supports the "[competing consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)" messaging pattern and are useful when you need to distribute messages to many workers. EventStoreDB saves the subscription state server-side and allows for at-least-once delivery guarantees across multiple consumers on the same stream. It is possible to have many groups of consumers compete on the same stream, with each group getting an at-least-once guarantee.
+Persistent subscriptions run on the Leader node and are not dropped when the connection is closed. Moreover, this subscription type supports the "[competing consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)" messaging pattern and are useful when you need to distribute messages to many workers. TrogonEventStore saves the subscription state server-side and allows for at-least-once delivery guarantees across multiple consumers on the same stream. It is possible to have many groups of consumers compete on the same stream, with each group getting an at-least-once guarantee.
 
 ::: tip
 The Admin UI _Subscriptions_ page can create, update, delete, and inspect persistent subscriptions for streams and the `$all` stream.
@@ -34,7 +34,7 @@ Clients must acknowledge (or not acknowledge) messages as they are handled. If m
 
 ## Parked messages
 
-Messages that have been retried too often will be parked in the persistent subscription's parked message stream. This stream is named `$persistentsubscription-{groupname}::{streamname}-parked`. You can easily see the number of parked events in the persistent subscription statistics or browse and replay parked messages from the Admin UI _Subscriptions_ page.
+Messages that have been retried too often are parked in `$persistentsubscription-{streamname}::{groupname}-parked`. You can easily see the number of parked events in the persistent subscription statistics or browse and replay parked messages from the Admin UI _Subscriptions_ page.
 
 If you want to retry the parked messages, you can `Replay` the parked messages for that subscription. This will push the parked messages to subscribers before any new events on the subscription.
 
@@ -44,7 +44,7 @@ If you don't want to replay any of the parked messages for a subscription and wa
 
 ## Checkpointing
 
-Once a persistent subscription has handled enough events, it will write a checkpoint. If the subscription is restarted, for example due to a Leader change, then the persistent subscription will continue processing from the last checkpoint. This means that some events my be received multiple times by consumers.
+Checkpoints are `$SubscriptionCheckpoint` events stored in `$persistentsubscription-{streamname}::{groupname}-checkpoint`. On restart, the subscription loads the latest checkpoint and resumes after that position. Events processed after the last durable checkpoint may therefore be delivered again. For compatibility, the server also reads checkpoints using the earlier `SubscriptionCheckpoint` event type.
 
 If a persistent subscription has a filter, then the persistent subscription will checkpoint when enough events are either handled or skipped by the filter.
 
@@ -72,7 +72,7 @@ This option can be seen as a fall-back scenario for high availability, when a si
 
 For use with an indexing projection such as the [system](projections.md#by-category) `$by_category` projection.
 
-EventStoreDB inspects the event for its source stream id, hashing the id to one of 1024 buckets assigned to individual clients. When a client disconnects its buckets are assigned to other clients. When a client connects, it is assigned some existing buckets. This naively attempts to maintain a balanced workload.
+TrogonEventStore inspects the event for its source stream id, hashing the id to one of 1024 buckets assigned to individual clients. When a client disconnects its buckets are assigned to other clients. When a client connects, it is assigned some existing buckets. This naively attempts to maintain a balanced workload.
 
 The main aim of this strategy is to decrease the likelihood of concurrency and ordering issues while maintaining load balancing. This is not a guarantee, and you should handle the usual ordering and concurrency issues.
 

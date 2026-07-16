@@ -4,7 +4,7 @@ title: Projections
 
 ## Introduction
 
-Projections is an EventStoreDB subsystem that lets you append new events or link existing events to streams in
+Projections is an TrogonEventStore subsystem that lets you append new events or link existing events to streams in
 a reactive manner.
 
 Projections are good at solving one specific query type, a category known as 'temporal correlation queries'.
@@ -52,7 +52,7 @@ meet the criteria. The output of all queries is a stream, you can listen to this
 
 ### Types of projections
 
-There are two types of projections in EventStoreDB:
+There are two types of projections in TrogonEventStore:
 
 - [Built in (system) projections](#system-projections)
 - [User-defined JavaScript projections](#user-defined-projections) which you create via the API or the admin
@@ -96,9 +96,38 @@ etc. If anyone can append to the emitted streams, then the projection would have
 in terms of processing. Therefore, it can no longer trust that the projection itself emitted that event or if
 something else did.
 
+### Resetting a projection
+
+Resetting a projection advances its epoch. The next start ignores checkpoints from the previous epoch and
+processes its source again from the beginning.
+
+Reset does not delete the projection definition or immediately delete all of its streams. When the new epoch
+emits to an existing output stream, the runtime updates that stream's metadata so the previous logical output is
+truncated before replacement events are appended.
+
+### Projection streams
+
+The projection subsystem uses reserved streams for definitions, checkpoints, ordering, and results.
+
+| Purpose                          | Stream                                                         |
+|:---------------------------------|:---------------------------------------------------------------|
+| Registration                     | `$projections-$all`                                            |
+| Definition and configuration     | `$projections-{projection-name}`                               |
+| Checkpoint                       | `$projections-{projection-name}-checkpoint`                    |
+| Default result                   | `$projections-{projection-name}-result`                        |
+| Partition result                 | `$projections-{projection-name}-{partition}-result`            |
+| Partition checkpoint             | `$projections-{projection-name}-{partition}-checkpoint`        |
+| Partition catalog                | `$projections-{projection-name}-partitions`                    |
+| Multi-stream ordering            | `$projections-{projection-name}-order`                         |
+| Emitted-stream tracking          | `$projections-{projection-name}-emittedstreams`                |
+| Emitted-stream deletion progress | `$projections-{projection-name}-emittedstreams-checkpoint`     |
+
+`resultStreamName` can override the default result stream. Projection handlers can also use `emit()` and
+`linkTo()` to target other streams.
+
 ## System projections
 
-EventStoreDB ships with five built in projections:
+TrogonEventStore ships with five built in projections:
 
 - [By Category](#by-category) (`$by_category`)
 - [By Event Type](#by-event-type) (`$by_event_type`)
@@ -108,7 +137,7 @@ EventStoreDB ships with five built in projections:
 
 ### Enabling system projections
 
-When you start EventStoreDB from a fresh database, these projections are present but disabled and querying
+When you start TrogonEventStore from a fresh database, these projections are present but disabled and querying
 their statuses returns `Stopped`. You can enable a projection from the Admin UI or through the projection
 management gRPC surface, which switches the status of the projection from `Stopped` to `Running`.
 
@@ -314,7 +343,7 @@ handler. The event provided through the handler contains the following propertie
 
 ## Configuring projections
 
-By changing these settings, you can lessen the amount of pressure projections put on an EventStoreDB node or
+By changing these settings, you can lessen the amount of pressure projections put on an TrogonEventStore node or
 improve projection performance. You can change these settings on a case-by-case basis, and monitor potential
 improvements.
 
@@ -332,7 +361,7 @@ Admin UI _Projections_ page.
 These options control how projections append events.
 
 In busy systems, projections can put a lot of extra pressure on the master node. This is especially true for
-EventStoreDB servers that also have persistent subscriptions running, which only the master node can process.
+TrogonEventStore servers that also have persistent subscriptions running, which only the master node can process.
 If you see a lot of commit timeouts and slow writes from your projections and other clients, then start with
 these settings.
 
@@ -348,7 +377,7 @@ you see an error message like the following:
 'emit' is not allowed by the projection/configuration/mode
 ```
 
-EventStoreDB disables this setting by default, and is usually set when you create the projection and if you
+TrogonEventStore disables this setting by default, and is usually set when you create the projection and if you
 need the projection to emit events.
 
 #### Track emitted streams
@@ -361,7 +390,7 @@ should only the setting if you intend to delete a projection and create new ones
 stream.
 
 ::: warning 
-By default, EventStoreDB disables the `trackemittedstreams` setting for projections. When enabled,
+By default, TrogonEventStore disables the `trackemittedstreams` setting for projections. When enabled,
 an event appended records the stream name (in `$projections-{projection_name}-emittedstreams`) of each event
 emitted by the projection. This means that write amplification is a possibility, as each event that the
 projection emits appends a separate event. As such, this option is not recommended for projections that emit a
@@ -369,7 +398,7 @@ lot of events, and you should enable only where necessary.
 :::
 
 ::: tip 
-Between EventStoreDB versions 3.8.0 and 4.0.2, this option was enabled by default when a projection
+Between TrogonEventStore versions 3.8.0 and 4.0.2, this option was enabled by default when a projection
 was created through the UI. If you have any projections created during this time frame, it's worth checking
 whether this option is enabled.
 :::
@@ -451,15 +480,11 @@ projection starts reading again.
 
 **Default:** `5000` (events).
 
-#### Projection Execution Timeout
+#### Per-projection execution timeout
 
-The `ProjectionExecutionTimeout` setting specifies per event projection processing timeout. If an event is not processed within the specified duration, the projection will fault and won't process further events.
-
-::: tip 
-Increase value of this setting if projection handler is compute intensive or server is under heavy load
-:::
-
-**Default:** `250` (ms).
+A projection's optional `ProjectionExecutionTimeout` value specifies a positive timeout in milliseconds. When
+set, it overrides the node-wide projection execution timeout. When omitted, the projection inherits the
+node-wide value. A projection faults and stops processing when a handler exceeds the effective timeout.
 
 ## Debugging
 
@@ -470,7 +495,7 @@ projection from the same node view.
 ### Logging from within a projection
 
 For debugging purposes, projections includes a log method which, when called, sends messages to the configured
-EventStoreDB logger (the default is `NLog`, to a file, and `stdout`).
+TrogonEventStore logger (the default is `NLog`, to a file, and `stdout`).
 
 You might find printing out the structure of the event body for inspection useful.
 
@@ -521,12 +546,21 @@ Use _Edit source_ to change the persistent projection definition.
 Settings in this section concern projections that are running on the server.
 
 ::: warning 
-Server-side projections impact the performance of the EventStoreDB server. For example, some
+Server-side projections impact the performance of the TrogonEventStore server. For example, some
 standard [system projections](#system-projections) like Category or Event Type projections produce new (link)
 events that are stored in the database in addition to the original event. This effectively doubles or triples
 the number of events appended and therefore creates pressure on the IO of the server node. We often call this
 effect "write amplification".
 :::
+
+### Projection execution timeout
+
+The node-wide `ProjectionExecutionTimeout` applies to projections without a per-projection override. Its default
+is `250` milliseconds.
+
+A projection faulted by a timeout can be restarted to resume from its latest checkpoint. If the limit is still
+insufficient, it will fault again. Changing the node-wide value requires restarting the server. A faulted
+projection's individual override can be updated and the projection restarted without restarting the server.
 
 ### Projection runtime
 
@@ -554,7 +588,7 @@ projections.
 
 The option accepts three values: `None`, `System` and `All`.
 
-When the option value is set to `None`, the projections subsystem of EventStoreDB will be completely disabled
+When the option value is set to `None`, the projections subsystem of TrogonEventStore will be completely disabled
 and projection workflows in the Admin UI will be unavailable.
 
 By using the `System` value for this option, you can instruct the server to enable system projections when the
