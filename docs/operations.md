@@ -472,8 +472,7 @@ In TrogonEventStore, the certificates require updating when they have expired or
 ### Step 1: Generate new certificates
 
 The new certificates can be created in the same manner as you generated the existing certificates.
-You can use the EventStore [es-gencert-cli](https://github.com/EventStore/es-gencert-cli) tool to generate the CA and node certificates.
-You can also follow the [Configurator](https://configurator.eventstore.com/) to create commands for generating the certificates based on your cluster's configuration.
+Use the same CA process that issued the current certificates, and verify that each replacement satisfies the [certificate requirements](security.md#certificate-generation) for the node's current DNS names and IP addresses.
 
 ::: tip
 As of version 23.10.0, it is possible to do a rolling update with new certificates having a Common Name (CN) that's different from the original certificates. If `CertificateReservedNodeCommonName` was set in your configuration, any changes to its value will be taken into consideration during a config reload.

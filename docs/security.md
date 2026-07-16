@@ -226,7 +226,7 @@ If using the thumbprint, the server expects to only find one certificate file ma
 | Environment variable | `EVENTSTORE_CERTIFICATE_THUMBPRINT` |
 
 The subject name matches any certificate that contains the specified name. This means that multiple matching certificates could be found.
-To match any certificate made by the es-gencert-cli, you can set the subject name to `eventstoredb-node`.
+Set it to the subject used by your node certificates, such as `trogondb-node` for a private development CA.
 
 If multiple matching certificates are found, then the certificate with the latest expiry date will be selected.
 
@@ -265,7 +265,7 @@ If using the thumbprint, the server expects to only find one trusted root certif
 | Environment variable | `EVENTSTORE_TRUSTED_ROOT_CERTIFICATE_THUMBPRINT` |
 
 The subject name matches any certificate that contains the specified name. This means that multiple matching certificates could be found.
-To match any root certificate made through the es-gencert-cli, you can set the Subject Name to `TrogonEventStore CA`.
+Set it to the subject used by your trusted root certificate, such as `TrogonEventStore CA` for a private development CA.
 
 If multiple matching root certificates are found, then the root certificate with the latest expiry date will be selected.
 
@@ -275,27 +275,18 @@ If multiple matching root certificates are found, then the root certificate with
 | YAML                 | `TrustedRootCertificateSubjectName`                |
 | Environment variable | `EVENTSTORE_TRUSTED_ROOT_CERTIFICATE_SUBJECT_NAME` |
 
-### Certificate generation tool
+### Certificate generation
 
-Use your platform certificate tooling, public CA, or private CA process to create certificates that match your deployment. For local development, generated certificates can be useful as long as the resulting node and trust settings are explicit.
+Use your platform certificate tooling, public CA, or private CA process to create certificates that match your deployment. The built-in development mode can generate a certificate for one secure node on localhost, but it is not a cluster PKI bootstrap mechanism.
 
-#### Getting started
+For a multi-node deployment, provision:
 
-The CLI is available as Open Source project in the [Github Repository](https://github.com/EventStore/es-gencert-cli). The latest release can be found under the [GitHub releases page.](https://github.com/EventStore/es-gencert-cli/releases)
+- A trusted CA certificate available to every node and client.
+- A separate certificate and private key for each node.
+- Subject alternative names for every DNS name and IP address used by clients or replication traffic.
+- A common-name policy that matches `CertificateReservedNodeCommonName`.
 
-We're releasing binaries for Windows, Linux and macOS. We also publish the tool as a Docker image.
-
-Basic usage for the Certificate Generation CLI:
-
-```bash
-./es-gencert-cli [options] <command> [args]
-```
-
-Getting help for a specific command:
-
-```bash
-./es-gencert-cli -help <command>
-```
+Keep CA private keys outside the node and client environments. Install only the CA certificate, node certificate, and node private key required by each machine.
 
 ::: warning
 If you are running TrogonEventStore on Linux, remember that all certificate files should have restrictive rights, otherwise the OS won't allow using them.
@@ -308,117 +299,13 @@ chmod 600 [file]
 ```
 :::
 
-#### Generating the CA certificate
-
-As the first step CA certificate needs to be generated. It'll need to be trusted for each of the nodes and client environment.
-
-By default, the tool will create the `ca` directory in the `certs` directory you created. Two keys will be generated:
-- `ca.crt` - public file that need to be used also for the nodes and client configuration,
-- `ca.key` - private key file that should be used only in the node configuration. **Do not copy it to client environment**.
-
-CA certificate will be generated with pre-defined CN `eventstoredb-node`.
-
-To generate CA certificate run:
-
-```bash
-./es-gencert-cli create-ca
-```
-
-You can customise generated cert by providing following params:
-
-| Param   | Description                                                       |
-|:--------|:------------------------------------------------------------------|
-| `-days` | The validity period of the certificate in days (default: 5 years) |
-| `-out`  | The output directory (default: ./ca)                              |
-
-Example:
-
-```bash
-./es-gencert-cli create-ca -out ./es-ca
-```
-
-#### Generating the Node certificate
-
-You need to generate certificates signed by the CA for each node. They should be installed only on the specific node machine.
-
-By default, the tool will create the `ca` directory in the `certs` directory you created. Two keys will be generated:
-- `node.crt` - the public file that needs to be also used for the nodes and client configuration,
-- `node.key` - the private key file that should be used only in the node's configuration. **Do not copy it to client environment**.
-
-To generate node certificate run command:
-
-```bash
-./es-gencert-cli -help create_node
-```
-
-You can customise generated cert by providing following params:
-
-| Param             | Description                                                                   |
-|:------------------|:------------------------------------------------------------------------------|
-| `-ca-certificate` | The path to the CA certificate file (default: `./ca/ca.crt`)                  |
-| `-ca-key`         | The path to the CA key file (default: `./ca/ca.key`)                          |
-| `-days`           | The output directory (default: `./nodeX` where X is an auto-generated number) |
-| `-out`            | The output directory (default: `./ca`)                                        |
-| `-ip-addresses`   | Comma-separated list of IP addresses of the node                              |
-| `-dns-names`      | Comma-separated list of DNS names of the node                                 |
-
-::: warning
-While generating the certificate, you need to remember to pass internal end external:
-- IP addresses to `-ip-addresses`: e.g. `127.0.0.1,172.20.240.1` and/or
-- DNS names to `-dns-names`: e.g. `localhost,node1.eventstore`
-  that will match the URLs that you will be accessing TrogonEventStore nodes.
-  :::
-
-Sample:
-
-```
-./es-gencert-cli-cli create-node \
-    -ca-certificate ./es-ca/ca.crt \
-    -ca-key ./es-ca/ca.key \
-    -out ./node1 \
-    -ip-addresses 127.0.0.1,172.20.240.1 \
-    -dns-names localhost,node1.eventstore
-```
-
-#### Running with Docker
-
-You could also run the tool using Docker interactive container:
-
-```bash
-docker run --rm -i eventstore/es-gencert-cli <command> <options>
-```
-
-One useful scenario is to use the Docker Compose file tool to generate all the necessary certificates before starting cluster nodes.
-
-Sample:
-
-```yaml
-services:
-  setup:
-    image: eventstore/es-gencert-cli:1.0.2
-    entrypoint: bash
-    user: "1000:1000"
-    command: >
-      -c "mkdir -p ./certs && cd /certs
-      && es-gencert-cli create-ca
-      && es-gencert-cli create-node -out ./node1 -ip-addresses 127.0.0.1,172.20.240.1 -dns-names localhost,node1.eventstore
-      && es-gencert-cli create-node -out ./node2 -ip-addresses 127.0.0.1,172.20.240.2 -dns-names localhost,node2.eventstore
-      && es-gencert-cli create-node -out ./node3 -ip-addresses 127.0.0.1,172.20.240.3 -dns-names localhost,node3.eventstore
-      && find . -type f -print0 | xargs -0 chmod 666"
-    container_name: setup
-    volumes:
-      - ./certs:/certs
-```
-
-See more in the [cluster startup guidance.](installation.md#cluster-startup)
-
 ### Certificate installation on a client environment
 
-To connect to TrogonEventStore, you need to install the auto-generated CA certificate file on the client machine (e.g. machine where the client is hosted, or your dev environment).
+To connect to TrogonEventStore when using a private CA, install its certificate on the client machine, such as the machine where the client is hosted or your development environment.
 
 #### Linux (Ubuntu, Debian)
 
-1. Copy auto-generated CA file to dir `/usr/local/share/ca-certificates/`, e.g. using command:
+1. Copy the private CA certificate to `/usr/local/share/ca-certificates/`, for example:
   ```bash
   sudo cp ca.crt /usr/local/share/ca-certificates/event_store_ca.crt
   ```
@@ -449,7 +336,7 @@ sudo security add-certificates -k /Library/Keychains/System.keychain ca.crt
 
 Intermediate CA certificates are supported by loading them from a [PEM](https://datatracker.ietf.org/doc/html/rfc1422) or [PKCS #12](https://datatracker.ietf.org/doc/html/rfc7292) bundle specified by the [`CertificateFile` configuration parameter](#certificate-file). To make sure that the configuration is correct, the certificate chain is validated on startup with the node's own certificate.
 
-If you've used the [certificate generation tool](#certificate-generation-tool) with the default settings to generate your CA and node certificates, then you're not using intermediate CA certificates.
+If your root CA directly signed the node certificate, then the certificate chain has no intermediate CA certificate.
 
 However, if you're using a public certificate authority (e.g [Let's Encrypt](https://letsencrypt.org/)) to generate your node certificates there is a chance that you're using intermediate CA certificates without knowing. This is due to the [Authority Information Access (AIA)](https://datatracker.ietf.org/doc/html/rfc4325#section-2) extension which allows intermediate certificates to be fetched from a remote server.
 
@@ -559,9 +446,9 @@ Import-Certificate -FilePath .\ca.crt -CertStoreLocation Cert:\LocalMachine\CA
 
 ### TCP protocol security
 
-Although TCP is disabled by default for external connections (clients), cluster nodes still use TCP for replication. If you aren't running TrogonEventStore in insecure mode, all TCP communication will use TLS using the same certificates as SSL.
+Cluster nodes use TCP for replication. Unless TrogonEventStore is running without transport security, replication TCP uses the configured node certificates.
 
-You can, however, disable TLS for both internal and external TCP.
+You can disable TLS for replication TCP with the following setting.
 
 | Format               | Syntax                                |
 |:---------------------|:--------------------------------------|

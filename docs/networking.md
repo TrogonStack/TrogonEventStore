@@ -184,7 +184,7 @@ Please note that the `IntTcpPort` parameter has been deprecated as of version 23
 
 ### Security
 
-When the node is secured (by default), all the TCP traffic will use TLS. You can disable TLS for TCP internally and externally using the settings described below.
+When the node is secured, replication TCP uses TLS. You can disable TLS for replication TCP using the setting described below.
 
 | Format               | Syntax                                |
 |:---------------------|:--------------------------------------|
