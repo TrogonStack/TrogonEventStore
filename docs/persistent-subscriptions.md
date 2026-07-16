@@ -8,7 +8,7 @@ A common operation is to subscribe to a stream and receive notifications for cha
 
 You can only subscribe to one stream or the `$all` stream. You can use server-side projections for linking events to new aggregated streams. System projections create pre-defined streams that aggregate events by type or by category and are available out-of-the box. Learn more about system and user-defined projections [here](projections.md).
 
-Persistent subscriptions run on the Leader node and are not dropped when the connection is closed. Moreover, this subscription type supports the "[competing consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)" messaging pattern and are useful when you need to distribute messages to many workers. EventStoreDB saves the subscription state server-side and allows for at-least-once delivery guarantees across multiple consumers on the same stream. It is possible to have many groups of consumers compete on the same stream, with each group getting an at-least-once guarantee.
+Persistent subscriptions run on the Leader node and are not dropped when the connection is closed. Moreover, this subscription type supports the "[competing consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)" messaging pattern and are useful when you need to distribute messages to many workers. TrogonEventStore saves the subscription state server-side and allows for at-least-once delivery guarantees across multiple consumers on the same stream. It is possible to have many groups of consumers compete on the same stream, with each group getting an at-least-once guarantee.
 
 ::: tip
 The Admin UI _Subscriptions_ page can create, update, delete, and inspect persistent subscriptions for streams and the `$all` stream.
@@ -72,7 +72,7 @@ This option can be seen as a fall-back scenario for high availability, when a si
 
 For use with an indexing projection such as the [system](projections.md#by-category) `$by_category` projection.
 
-EventStoreDB inspects the event for its source stream id, hashing the id to one of 1024 buckets assigned to individual clients. When a client disconnects its buckets are assigned to other clients. When a client connects, it is assigned some existing buckets. This naively attempts to maintain a balanced workload.
+TrogonEventStore inspects the event for its source stream id, hashing the id to one of 1024 buckets assigned to individual clients. When a client disconnects its buckets are assigned to other clients. When a client connects, it is assigned some existing buckets. This naively attempts to maintain a balanced workload.
 
 The main aim of this strategy is to decrease the likelihood of concurrency and ordering issues while maintaining load balancing. This is not a guarantee, and you should handle the usual ordering and concurrency issues.
 

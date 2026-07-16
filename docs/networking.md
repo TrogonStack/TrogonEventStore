@@ -4,19 +4,22 @@ title: Networking
 
 ## Network configuration
 
-EventStoreDB provides two interfaces: 
+TrogonEventStore provides two interfaces:
 - HTTP(S) for gRPC communication, the Admin UI, and operational endpoints such as health checks and metrics
 - TCP for cluster replication (internal)
 
 Nodes in the cluster replicate with each other using the TCP protocol, but use gRPC for [discovering other cluster nodes](cluster.md#discovering-cluster-members).
 
-Server nodes separate internal and external TCP communication explicitly, but use a single HTTP binding. Replication between the cluster nodes is considered internal, and all the TCP clients that connect to the database are external. EventStoreDB allows you to separate network configurations for internal and external communication. For example, you can use different network interfaces on the node. All the internal communication can go over the isolated private network, but access for external clients can be configured on another interface, which is connected to a more open network. You can set restrictions on those external interfaces to make your deployment more secure.
+Server nodes use a single HTTP binding for gRPC, the Admin UI, health, metrics,
+and supported diagnostics. Replication between cluster nodes is internal and can
+be placed on a private network interface. Keep public client access on gRPC and
+avoid exposing replication ports outside the cluster network.
 
 For gRPC and HTTP, there's no internal vs external separation of traffic.
 
 ## HTTP configuration
 
-HTTP is the primary protocol for EventStoreDB. It carries gRPC communication, the Admin UI, health checks, metrics, and supported diagnostics endpoints.
+HTTP is the primary protocol for TrogonEventStore. It carries gRPC communication, the Admin UI, health checks, metrics, and supported diagnostics endpoints.
 The HTTP endpoint always binds to the IP address configured in the `NodeIp` setting (previously referred to as `ExtIp`).
 
 | Format               | Syntax               |
@@ -25,7 +28,7 @@ The HTTP endpoint always binds to the IP address configured in the `NodeIp` sett
 | YAML                 | `NodeIp`             |
 | Environment variable | `EVENTSTORE_NODE_IP` |
 
-When the `NodeIp` setting is not provided, EventStoreDB will use the first available non-loopback address. You can also bind HTTP to all available interfaces using `0.0.0.0` as the setting value. If you do that, you'd need to configure the `NodeHostAdvertiseAs` (previously `ExtHostAdvertiseAs`) setting (read more [here](#network-address-translation)), since `0.0.0.0` is not a valid IP address to connect from the outside world.
+When the `NodeIp` setting is not provided, TrogonEventStore will use the first available non-loopback address. You can also bind HTTP to all available interfaces using `0.0.0.0` as the setting value. If you do that, you'd need to configure the `NodeHostAdvertiseAs` (previously `ExtHostAdvertiseAs`) setting (read more [here](#network-address-translation)), since `0.0.0.0` is not a valid IP address to connect from the outside world.
 
 ::: warning
 Please note that the `ExtIp` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `NodeIp` parameter instead.
@@ -53,7 +56,7 @@ If your network setup requires any kind of IP address, DNS name and port transla
 
 The reliability of the connection between the client application and database is crucial for the stability of the solution. If the network is not stable or has some periodic issues, the client may drop the connection. Stability is essential for stream subscriptions where a client is listening to database notifications. Having an existing connection open when an app resumes activity allows for the initial gRPC calls to be made quickly, without any delay caused by the reestablished connection.
 
-EventStoreDB supports the built-in gRPC mechanism for keeping the connection alive. If the other side does not acknowledge the ping within a certain period, the connection will be closed. Note that pings are only necessary when there's no activity on the connection.
+TrogonEventStore supports the built-in gRPC mechanism for keeping the connection alive. If the other side does not acknowledge the ping within a certain period, the connection will be closed. Note that pings are only necessary when there's no activity on the connection.
 
 Keepalive pings are enabled by default, with the default interval set to 10 seconds. The default value is based on the [gRPC proposal](https://github.com/grpc/proposal/blob/master/A8-client-side-keepalive.md#extending-for-basic-health-checking) that suggests 10 seconds as the minimum. It's a compromise value to ensure that the connection is open and not making too many redundant network calls.
 
@@ -83,7 +86,7 @@ After having pinged for keepalive check, the server waits for a duration of `kee
 
 **Default**: `10000` (ms, 10 sec)
 
-As a general rule, we do not recommend putting EventStoreDB behind a load balancer. However, if you are using it and want to benefit from the Keepalive feature, then you should make sure if the compatible settings are properly set. Some load balancers may also override the Keepalive settings. Most of them require setting the idle timeout larger/longer than the `keepAliveTimeout`. We suggest checking the load balancer documentation before using Keepalive pings.
+As a general rule, we do not recommend putting TrogonEventStore behind a load balancer. However, if you are using it and want to benefit from the Keepalive feature, then you should make sure if the compatible settings are properly set. Some load balancers may also override the Keepalive settings. Most of them require setting the idle timeout larger/longer than the `keepAliveTimeout`. We suggest checking the load balancer documentation before using Keepalive pings.
 
 ### HTTP caching
 
@@ -91,11 +94,11 @@ As a general rule, we do not recommend putting EventStoreDB behind a load balanc
 This section is about caching HTTP resources such as the Admin UI. It does not affect the server performance directly and cannot be used with gRPC clients.
 :::
 
-Most static resources that EventStoreDB emits are immutable and can be cached safely.
+Most static resources that TrogonEventStore emits are immutable and can be cached safely.
 
 This caching behavior is great for performance in a production environment and we recommended you use it, but in a developer environment it can become confusing.
 
-To avoid this during development it's best to run EventStoreDB with the `--disable-http-caching` command line option. This disables all caching and solves the issue.
+To avoid this during development it's best to run TrogonEventStore with the `--disable-http-caching` command line option. This disables all caching and solves the issue.
 
 The option can be set as follows:
 
@@ -109,7 +112,7 @@ The option can be set as follows:
 
 ### Kestrel Settings
 
-It's generally not expected that you'll need to update the Kestrel configuration that EventStoreDB has set by default, but it's good to know that you can update the following settings if needed.
+It's generally not expected that you'll need to update the Kestrel configuration that TrogonEventStore has set by default, but it's good to know that you can update the following settings if needed.
 
 Kestrel uses the `kestrelsettings.json` configuration file. This file should be located in the [default configuration directory](configuration.md#configuration-file).
 
@@ -143,13 +146,13 @@ This is configured with `Kestrel.Limits.Http2.InitialStreamWindowSize` in the se
 
 ## Replication protocol
 
-Replication between cluster nodes uses a proprietary TCP-based protocol. Options for configuring the internal replication protocol are described below.
+Replication between cluster nodes uses an internal TCP-based protocol. Options for configuring the internal replication protocol are described below.
 
 ### Interface and port
 
 Internal TCP binds to the IP address specified in the `ReplicationIp` setting (previously `IntIp`). It must be configured if you run a multi-node cluster.
 
-By default, EventStoreDB binds its internal networking on the loopback interface only (`127.0.0.1`). You can change this behaviour and tell EventStoreDB to listen on a specific internal IP address. To do that set the `ReplicationIp` to `0.0.0.0` or the IP address of the network interface.
+By default, TrogonEventStore binds its internal networking on the loopback interface only (`127.0.0.1`). You can change this behaviour and tell TrogonEventStore to listen on a specific internal IP address. To do that set the `ReplicationIp` to `0.0.0.0` or the IP address of the network interface.
 
 | Format               | Syntax                      |
 |:---------------------|:----------------------------|
@@ -165,7 +168,7 @@ If you keep this setting to its default value, cluster nodes won't be able to ta
 Please note that the `IntIp` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `ReplicationIp` parameter instead.
 :::
 
-By default, EventStoreDB uses port `1112` for internal TCP. You can change this by specifying the `ReplicationPort` setting (previously `IntTcpPort` setting).
+By default, TrogonEventStore uses port `1112` for internal TCP. You can change this by specifying the `ReplicationPort` setting (previously `IntTcpPort` setting).
 
 | Format               | Syntax                        |
 |:---------------------|:------------------------------|
@@ -197,9 +200,9 @@ If your network setup requires any kind of IP address, DNS name and port transla
 
 Due to NAT (network address translation), or other reasons a node may not be bound to the address it is reachable from other nodes. For example, the machine has an IP address of `192.168.1.13`, but the node is visible to other nodes as `10.114.12.112`.
 
-Options described below allow you to tell the node that even though it is bound to a given address it should not gossip that address. When returning links over HTTP, EventStoreDB will also use the specified addresses instead of physical addresses, so the clients that use HTTP can follow those links.
+Options described below allow you to tell the node that even though it is bound to a given address it should not gossip that address. When returning links over HTTP, TrogonEventStore will also use the specified addresses instead of physical addresses, so the clients that use HTTP can follow those links.
 
-Another case when you might want to specify the advertised address although there's no address translation involved. When you configure EventStoreDB to bind to `0.0.0.0`, it will use the first non-loopback address for gossip. It might or might not be the address you want it to use. Whilst the best way to avoid such a situation is to configure the binding properly using the `NodeIp` and `ReplicationIp` settings, you can also use address translation setting with the correct IP address or DNS name.
+Another case when you might want to specify the advertised address although there's no address translation involved. When you configure TrogonEventStore to bind to `0.0.0.0`, it will use the first non-loopback address for gossip. It might or might not be the address you want it to use. Whilst the best way to avoid such a situation is to configure the binding properly using the `NodeIp` and `ReplicationIp` settings, you can also use address translation setting with the correct IP address or DNS name.
 
 Also, even if you specified the `NodeIp` and `ReplicationIp` settings in the configuration, you might still want to override the advertised address if you want to use hostnames and not IP addresses. That might be needed when running a secure cluster with certificates that only contain DNS names of the nodes.
 
@@ -213,7 +216,7 @@ By default, a cluster node will advertise itself using `NodeIp` and `NodePort`. 
 |:---------------------|:------------------------------------|
 | Command line         | `--node-port-advertise-as`          |
 | YAML                 | `NodePortAdvertiseAs`               |
-| Environment variable | `EVENTSTORE_NODE_PORT_ADVERTISE_AS` | 
+| Environment variable | `EVENTSTORE_NODE_PORT_ADVERTISE_AS` |
 
 ::: warning
 Please note that the `HttpPortAdvertiseAs` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `NodePortAdvertiseAs` parameter instead.
@@ -225,7 +228,7 @@ If you want the node to advertise itself using the hostname rather than its IP a
 |:---------------------|:------------------------------------|
 | Command line         | `--node-host-advertise-as`          |
 | YAML                 | `NodeHostAdvertiseAs`               |
-| Environment variable | `EVENTSTORE_NODE_HOST_ADVERTISE_AS` | 
+| Environment variable | `EVENTSTORE_NODE_HOST_ADVERTISE_AS` |
 
 ::: warning
 Please note that the `ExtHostAdvertiseAs` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `NodeHostAdvertiseAs` parameter instead.
@@ -239,7 +242,7 @@ TCP ports used for replication can be advertised using custom values:
 |:---------------------|:-----------------------------------------------|
 | Command line         | `--replication-tcp-port-advertise-as`          |
 | YAML                 | `ReplicationTcpPortAdvertiseAs`                |
-| Environment variable | `EVENTSTORE_REPLICATION_TCP_PORT_ADVERTISE_AS` | 
+| Environment variable | `EVENTSTORE_REPLICATION_TCP_PORT_ADVERTISE_AS` |
 
 ::: warning
 Please note that the `IntTcpPortAdvertiseAs` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `ReplicationTcpPortAdvertiseAs` and `NodeTcpPortAdvertiseAs` parameters instead, respectively.
@@ -251,7 +254,7 @@ If you want to change how the node TCP address is advertised internally, use the
 |:---------------------|:-------------------------------------------|
 | Command line         | `--replication-host-advertise-as`          |
 | YAML                 | `ReplicationHostAdvertiseAs`               |
-| Environment variable | `EVENTSTORE_REPLICATION_HOST_ADVERTISE_AS` | 
+| Environment variable | `EVENTSTORE_REPLICATION_HOST_ADVERTISE_AS` |
 
 ::: warning
 Please note that the `IntHostAdvertiseAs` parameter has been deprecated as of version 23.10.0 and will be removed in future versions. It is recommended to use the `ReplicationHostAdvertiseAs` parameter instead.
@@ -269,7 +272,7 @@ Specify the advertised hostname or IP address:
 |:---------------------|:-----------------------------------------|
 | Command line         | `--advertise-host-to-client-as`          |
 | YAML                 | `AdvertiseHostToClientAs`                |
-| Environment variable | `EVENTSTORE_ADVERTISE_HOST_TO_CLIENT_AS` | 
+| Environment variable | `EVENTSTORE_ADVERTISE_HOST_TO_CLIENT_AS` |
 
 Specify the advertised HTTP(S) port (previously `AdvertiseHttpPortToClientAs` setting):
 
@@ -285,11 +288,11 @@ Please note that the `AdvertiseHttpPortToClientAs` parameter has been deprecated
 
 ## Heartbeat timeouts
 
-EventStoreDB uses heartbeats over all TCP connections to discover dead clients and nodes. Heartbeat timeouts should not be too short, as short timeouts will produce false positives. At the same time, setting too long timeouts will prevent discovering dead nodes and clients in time.
+TrogonEventStore uses heartbeats over all TCP connections to discover dead clients and nodes. Heartbeat timeouts should not be too short, as short timeouts will produce false positives. At the same time, setting too long timeouts will prevent discovering dead nodes and clients in time.
 
-Each heartbeat has two points of configuration. The first is the _interval;_ this represents how often the system should consider a heartbeat. EventStoreDB doesn't send a heartbeat for every interval, but only if it has not heard from a node within the configured interval. In a busy cluster, you may never see any heartbeats.
+Each heartbeat has two points of configuration. The first is the _interval;_ this represents how often the system should consider a heartbeat. TrogonEventStore doesn't send a heartbeat for every interval, but only if it has not heard from a node within the configured interval. In a busy cluster, you may never see any heartbeats.
 
-The second point of configuration is the _timeout_. This determines how long EventStoreDB server waits for a client or node to respond to a heartbeat request.
+The second point of configuration is the _timeout_. This determines how long TrogonEventStore server waits for a client or node to respond to a heartbeat request.
 
 Different environments need different values for these settings. The defaults are likely fine on a LAN. If you experience frequent elections in your environment, you can try to increase both interval and timeout, for example:
 
@@ -306,7 +309,7 @@ Replication/Internal TCP heartbeat (between cluster nodes):
 |:---------------------|:--------------------------------------------|
 | Command line         | `--replication-heartbeat-interval`          |
 | YAML                 | `ReplicationHeartbeatInterval`              |
-| Environment variable | `EVENTSTORE_REPLICATION_HEARTBEAT_INTERVAL` | 
+| Environment variable | `EVENTSTORE_REPLICATION_HEARTBEAT_INTERVAL` |
 
 **Default**: `700` (ms)
 
@@ -314,7 +317,7 @@ Replication/Internal TCP heartbeat (between cluster nodes):
 |:---------------------|:-------------------------------------------|
 | Command line         | `--replication-heartbeat-timeout`          |
 | YAML                 | `ReplicationHeartbeatTimeout`              |
-| Environment variable | `EVENTSTORE_REPLICATION_HEARTBEAT_TIMEOUT` | 
+| Environment variable | `EVENTSTORE_REPLICATION_HEARTBEAT_TIMEOUT` |
 
 **Default**: `700` (ms)
 
@@ -324,7 +327,7 @@ Please note that the `IntTcpHeartbeatInterval` and `IntTcpHeartbeatTimeout` para
 
 ### gRPC heartbeats
 
-For the gRPC heartbeats, EventStoreDB and its gRPC clients use the protocol feature called _Keepalive ping_. Read more about it on the [HTTP configuration page](#keep-alive-pings).
+For the gRPC heartbeats, TrogonEventStore and its gRPC clients use the protocol feature called _Keepalive ping_. Read more about it on the [HTTP configuration page](#keep-alive-pings).
 
 ## Exposing endpoints
 
@@ -350,96 +353,11 @@ You can disable the Prometheus metrics endpoint by setting `DisableStatsOnHttp` 
 
 **Default**: `false`, the Prometheus metrics endpoint is enabled on `/-/metrics`.
 
-## External TCP 
+## Application protocol boundary
 
-<wbr><Badge type="warning" text="Commercial" vertical="middle"/>
+TrogonEventStore does not document an external TCP client protocol. Application
+reads and writes should use gRPC clients.
 
-The TCP client protocol plugin enables client applications based on the external TCP API to run without any changes. This provides developers a mechanism to migrate to gRPC clients. This bridge solution enables development teams to plan for the End Of Life (EOL) of the external TCP API. Past the EOL, the external TCP API will no longer be supported.
-
-### Enabling the plugin
-
-Refer to the general [plugins configuration](./configuration.md#plugins-configuration) guide to see how to configure plugins with JSON files and environment variables.
-
-To enable the TCP API plugin, save the following configuration in a JSON file, for example `<esdb-installation-directory>/config/tcp-plugin-config.json`, in the EventStoreDB installation directory for a node:
-
-```json
-{
-  "EventStore": {
-    "TcpPlugin": {
-      "EnableExternalTcp": true
-    }
-  }
-}
-```
-
-Once the plugin is enabled, the server will log a message similar to the one below:
-
-```text
-[11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
-```
-
-### Other parameters
-
-The following options can be set in the json configuration:
-
-1. `NodeHeartbeatTimeout` - defaults to: 1000
-2. `NodeHeartbeatInterval` - defaults to: 2000
-3. `NodeTcpPort` - defaults to: 1113
-4. `NodeTcpPortAdvertiseAs` - defaults to: 1113
-
-The above default values can be overridden, for example:
-
-```json
-{
-  "EventStore": {
-    "TcpPlugin": {
-      "EnableExternalTcp": true,
-      "NodeTcpPort": 8113,
-      "NodeTcpPortAdvertiseAs": 8113,
-      "NodeHeartbeatInterval": 2000,
-      "NodeHeartbeatTimeout": 1000
-    }
-  }
-}
-```
-
-### Troubleshooting
-
-#### Plugin doesn't load
-
-The plugin has to be located in a subdirectory of the server's plugins directory. To check this:
-
-1. Go to the installation directory of a node, the directory containing the EventStoreDb executable.
-2. In this directory, there should be a directory called `plugins`, create it if this is not the case.
-3. The `plugins` directory should have a subdirectory for the TCP API plugin, for example `EventStore.TcpPlugin`. Create it if it doesn't exist.
-4. The binaries of the plugin should be located in that same subdirectory.
-
-You can verify which plugins have been found and loaded by searching for log entries similar to the following:
-
-```text
-[11212, 1,18:44:30.420,INF] Plugins path: "C:\\EventStore\\plugins"
-[11212, 1,18:44:30.420,INF] Adding: "C:\\EventStore\\plugins" to the plugin catalog.
-[11212, 1,18:44:30.422,INF] Adding: "C:\\EventStore\\plugins\\EventStore.Licensing" to the plugin catalog.
-[11212, 1,18:44:30.432,INF] Adding: "C:\\EventStore\\plugins\\EventStore.POC.ConnectedSubsystemsPlugin" to the plugin catalog.
-[11212, 1,18:44:30.433,INF] Adding: "C:\\EventStore\\plugins\\EventStore.POC.ConnectorsPlugin" to the plugin catalog.
-[11212, 1,18:44:30.436,INF] Adding: "C:\\EventStore\\plugins\\EventStore.TcpPlugin" to the plugin catalog.
-[11212, 1,18:44:30.479,INF] Loaded SubsystemsPlugin plugin: "licensing" "24.10.0.0".
-[11212, 1,18:44:30.483,INF] Loaded SubsystemsPlugin plugin: "connected" "0.0.5".
-[11212, 1,18:44:30.496,INF] Loaded ConnectedSubsystemsPlugin plugin: "connectors" "0.0.5".
-[11212, 1,18:44:30.504,INF] Loaded SubsystemsPlugin plugin: "tcp-api" "24.10.0.0".
-```
-
-#### Plugin doesn't start
-
-The plugin has to be configured to be enabled.
-If you see the following log it means the plugin was found but not started:
-
-```text
-[ 5104, 1,19:03:13.807,INF] "TcpApi" "24.6.0.0" plugin disabled. "Set 'EventStore:TcpPlugin:EnableExternalTcp' to 'true' to enable"
-```
-
-When the plugin starts, you should see a log similar to the following:
-
-```text
-[11212, 1,18:44:34.070,INF] "TcpApi" "24.6.0.0" plugin enabled.
-```
+Internal replication can still use node-to-node transport that is not part of
+the public client API. Treat those settings as cluster internals, not as a
+client integration surface.

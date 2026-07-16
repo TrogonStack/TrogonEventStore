@@ -1,17 +1,17 @@
 # Maintenance
 
-EventStoreDB requires regular maintenance with three operational concerns:
+TrogonEventStore requires regular maintenance with three operational concerns:
 
 - [Scavenging](#scavenging) for freeing up space after deleting events.
 - [Backup and restore](#backup-and-restore) for disaster recovery.
 - [Certificate update](#certificate-update-upon-expiry) to renew certificates.
 
-You might also be interested learning about EventStoreDB [diagnostics](diagnostics/README.md)
+You might also be interested learning about TrogonEventStore [diagnostics](diagnostics/README.md)
 and [indexes](./indexes.md), which might require some Ops attention.
 
 ## Scavenging
 
-In EventStoreDB, events are no longer present in stream reads or subscriptions after they have been deleted or they have expired according to the metadata of the stream.
+In TrogonEventStore, events are no longer present in stream reads or subscriptions after they have been deleted or they have expired according to the metadata of the stream.
 
 The events are, however, still present in the database and will be visible in reads and subscriptions to the `$all` stream.
 
@@ -296,74 +296,22 @@ The default value is 100000.
 | YAML                 | `ScavengeHashUsersCacheCapacity`                |
 | Environment variable | `EVENTSTORE_SCAVENGE_HASH_USERS_CACHE_CAPACITY` |
 
-## Redaction <Badge text="Commercial" type="warning" vertical="middle"/>
+## Removing sensitive event data
 
-In EventStoreDB, events are immutable and cannot be changed after they are written. Usually, when you have an event with data that needs to be deleted you should take the following steps:
+Events are immutable once written. If event data must no longer be retained,
+prefer an event-sourcing correction flow:
 
-- Rewrite the stream to a new stream without the data to be removed.
-- Delete the old stream.
-- Run a scavenge to remove the data from disk on each node in turn.
+- Write replacement events or replacement streams that omit the sensitive data.
+- Stop using the old stream in application code.
+- Delete the old stream when it is no longer needed.
+- Run scavenging on each node to reclaim deleted data from disk.
 
-If this procedure is impractical for your use case, then you can use the redaction tool (the "redactor") to blank out the data of specific events.
-
-::: warning
-Use the redactor as a last resort and only if you know what you're doing. Redacting events may lead to unintended consequences in your subscriptions and projections!
-:::
-
-### Prerequisites
-
-Using redaction has the following prerequisites:
-
-- A commercial license.
-- EventStoreDB version 23.6.0 or above. If running on Windows, Windows Server 2019 or above is required.
-- Server configuration option: `EnableUnixSocket: True`.
-- The redactor tool (see steps below on how to get it).
-
-### Getting the redactor
-
-Redaction requires a commercial license. Due to its sensitive nature, the tool is available only upon request. Please [contact us here](https://www.eventstore.com/contact) if you do not have commercial support, or reach out to our support team if you do.
-
-### Running the redactor
-
-The binary needs to be extracted and run locally on an EventStoreDB node. Similar to scavenging, redaction affects only the node where it's running. Thus, it must be run once on each node of the cluster.
-
-The redactor takes two mandatory parameters as input:
-
-| Parameter  | Description                                                                             |
-| :--------- | --------------------------------------------------------------------------------------- |
-| `--db`     | The path to the database directory containing the chunk files.                          |
-| `--events` | A comma-separated list of events to be redacted in the format: `eventNumber@streamName` |
-
-Specify `--help` to see the full list of options.
-
-The redactor will blank out the data section of the specified events with one bits (0xFF bytes) keeping the data size exactly the same as it was before. It will also set a flag (`IsRedacted`) on the event's record to indicate that the event has been redacted. All other properties of the event such as the event type, event metadata, and timestamp will remain unchanged.
-
-![Redactor run](./images/redaction-run.png)
-
-If you read the data of a redacted event from an external client, you should see data composed of only 0xFF bytes. The Admin UI will also label redacted events.
-
-::: tip
-The redactor is not an offline tool. The EventStoreDB server must be running, as the redactor needs to communicate with it to obtain information about the events to be redacted and replace the chunk files with the redacted ones.
-:::
-
-### How the redactor works
-
-The redactor follows these steps:
-
-1. It establishes a connection to the database via a unix domain socket located in the database directory.
-
-2. It then fetches information about the events to be redacted from the server via an RPC call. This information includes the chunk file the event is in and the event's position in the chunk.
-
-3. A list is built of chunk files containing events to be redacted.
-
-4. For each chunk in the list:
-   - It is copied to a file with a .tmp extension in the database directory.
-   - The requested event(s) are redacted in the .tmp chunk file.
-   - The .tmp chunk is atomically switched into the database via an RPC call on the server.
+Design streams so sensitive data can be isolated, deleted, or replaced without
+rewriting unrelated business history.
 
 ## Backup and restore
 
-Backing up an EventStoreDB database is straightforward but relies on carrying out the steps below in the
+Backing up an TrogonEventStore database is straightforward but relies on carrying out the steps below in the
 correct order.
 
 ### Types of backups
@@ -443,7 +391,7 @@ rsync -a data/*.0* backup
 
 #### Restore
 
-1. Ensure the EventStoreDB process is stopped. Restoring a database on running instance is not possible and,
+1. Ensure the TrogonEventStore process is stopped. Restoring a database on running instance is not possible and,
    in most cases, will lead to data corruption.
 2. Copy all files to the desired location.
 3. Create a copy of `chaser.chk` and call it `truncate.chk`. This effectively overwrites the
@@ -486,7 +434,7 @@ Then backup the log:
 
 #### Restore
 
-1. Ensure the Event Store DB process is stopped. Restoring a database on running instance is not possible and,
+1. Ensure the TrogonEventStore process is stopped. Restoring a database on running instance is not possible and,
    in most cases, will lead to data corruption.
 2. Copy all files to the desired location.
 3. Create a copy of `chaser.chk` and call it `truncate.chk`.
@@ -508,7 +456,7 @@ column store. These methods would require a manual set up for restoring a cluste
 
 #### Backup cluster
 
-Use a second EventStoreDB cluster as a backup. Such a strategy is known as a primary/secondary back up scheme.
+Use a second TrogonEventStore cluster as a backup. Such a strategy is known as a primary/secondary back up scheme.
 
 The primary cluster asynchronously pushes data to the second cluster using a durable subscription. The second
 cluster is available in case of a disaster on the primary cluster.
@@ -519,7 +467,7 @@ problem.
 
 ## Certificate update upon expiry
 
-In EventStoreDB, the certificates require updating when they have expired or are going to expire soon. Follow the steps below to perform a rolling certificate update.
+In TrogonEventStore, the certificates require updating when they have expired or are going to expire soon. Follow the steps below to perform a rolling certificate update.
 
 ### Step 1: Generate new certificates
 
@@ -561,7 +509,7 @@ reload the configuration from the _Operations_ page of the Admin UI.
 
 #### Linux OS
 
-Linux users can also send the SIGHUP signal to the EventStoreDB to reload the certificates.
+Linux users can also send the SIGHUP signal to the TrogonEventStore to reload the certificates.
 
 For Example:
 
@@ -569,7 +517,7 @@ For Example:
 kill -s SIGHUP 38956
 ```
 
-Here "38956" is the Process ID (PID) of EventStoreDB on our local machine. To find the PID, use the following command in the Linux terminal.
+Here "38956" is the Process ID (PID) of TrogonEventStore on our local machine. To find the PID, use the following command in the Linux terminal.
 
 ```
 pidof eventstored
@@ -579,11 +527,11 @@ Once the configuration has been reloaded successfully, the server logs will look
 
 ```
 [108277,29,14:46:07.457,INF] Loading the node's certificate(s) from file: "/home/ubuntu/links/node.crt"
-[108277,29,14:46:07.488,INF] Loading the node's certificate. Subject: "CN=eventstoredb-node", Previous thumbprint: "05526714107700C519E24794E8964A3B30EF9BD0", New thumbprint: "BE6D5CD681D7B9281D60A5969B5A7E31AF775E9F"
-[108277,29,14:46:07.488,INF] Loading intermediate certificate. Subject: "CN=EventStoreDB Intermediate CA 78ae8d5a159b247568039cf64f4b04ad, O=Event Store Ltd, C=UK", Thumbprint: "ED4AA0C5ED4AD120DDEE2FA8B3B0CCC5A30B81E3"
+[108277,29,14:46:07.488,INF] Loading the node's certificate. Subject: "CN=trogondb-node", Previous thumbprint: "05526714107700C519E24794E8964A3B30EF9BD0", New thumbprint: "BE6D5CD681D7B9281D60A5969B5A7E31AF775E9F"
+[108277,29,14:46:07.488,INF] Loading intermediate certificate. Subject: "CN=TrogonDB Intermediate CA 78ae8d5a159b247568039cf64f4b04ad, O=Straw Hat, LLC, C=US", Thumbprint: "ED4AA0C5ED4AD120DDEE2FA8B3B0CCC5A30B81E3"
 [108277,29,14:46:07.489,INF] Loading trusted root certificates.
 [108277,29,14:46:07.490,INF] Loading trusted root certificate file: "/home/ubuntu/links/ca/ca.crt"
-[108277,29,14:46:07.491,INF] Loading trusted root certificate. Subject: "CN=EventStoreDB CA c39fece76b4efcb65846145c942c037c, O=Event Store Ltd, C=UK", Thumbprint: "5F020804E8D7C419F9FC69ED3B4BC72DD79A5996"
+[108277,29,14:46:07.491,INF] Loading trusted root certificate. Subject: "CN=TrogonDB CA c39fece76b4efcb65846145c942c037c, O=Straw Hat, LLC, C=US", Thumbprint: "5F020804E8D7C419F9FC69ED3B4BC72DD79A5996"
 [108277,29,14:46:07.493,INF] Certificate chain verification successful.
 [108277,29,14:46:07.493,INF] All certificates successfully loaded.
 [108277,29,14:46:07.494,INF] The node's configuration was successfully reloaded
@@ -607,8 +555,8 @@ Now update the certificates on the other nodes.
 
 ### Step 5: Monitor the cluster
 
-The connection between nodes in EventStoreDB reset every 10 minutes so the new configuration won’t take immediate effect. Use this time to update the certificates on all of the nodes. It is advisable to monitor the cluster after this timeframe to make sure everything is working as expected.
-The EventStoreDB will log certificate errors if the certificates are not reloaded on all of the nodes before the connection resets.
+The connection between nodes in TrogonEventStore reset every 10 minutes so the new configuration won’t take immediate effect. Use this time to update the certificates on all of the nodes. It is advisable to monitor the cluster after this timeframe to make sure everything is working as expected.
+The TrogonEventStore will log certificate errors if the certificates are not reloaded on all of the nodes before the connection resets.
 
 ```
 [108277,29,14:59:47.489,ERR] eventstoredb-node : A certificate chain could not be built to a trusted root authority.

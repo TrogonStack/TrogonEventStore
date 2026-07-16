@@ -1,20 +1,20 @@
 ---
 id: server-settings
-title: Server settings | v24.6
+title: Server settings
 sidebar_label: Server settings
 ---
 
-# Server settings with ESDB v24.6
+# Server settings
 
-EventStoreDB server settings allow you to tweak the behavior of the database server during the startup and at run-time. You may want to adjust these settings if performance issues occur.
+TrogonEventStore server settings allow you to tweak the behavior of the database server during the startup and at run-time. You may want to adjust these settings if performance issues occur.
 
 ## Default directories
 
-The default directories used by EventStoreDB vary by platform to fit with the common practices each platform.
+The default directories used by TrogonEventStore vary by platform to fit with the common practices each platform.
 
 ### Linux
 
-When you install EventStoreDB from PackageCloud on Linux, the following locations apply:
+When TrogonEventStore is installed as a Linux service, the following locations are commonly used:
 
 - **Application:** `/usr/bin`
 - **Content:** `/usr/share/eventstore`
@@ -38,7 +38,7 @@ When you install EventStoreDB from PackageCloud on Linux, the following location
 
 ### Local binaries
 
-When running EventStoreDB using local binaries, either downloaded or built from source, the server will use its location and place the necessary files inside it:
+When running TrogonEventStore using local binaries, either downloaded or built from source, the server will use its location and place the necessary files inside it:
 
 - **Configuration:** `./`
 - **Data:** `./data`
@@ -48,15 +48,15 @@ When running EventStoreDB using local binaries, either downloaded or built from 
 - **Projections:** `./projections`
 - **Prelude:** `./Prelude`
 
-Depending on the platform and installation type, the location of EventStoreDB executables, configuration and other necessary files vary.
+Depending on the platform and installation type, the location of TrogonEventStore executables, configuration and other necessary files vary.
 
 ## Database settings
 
 ### Database location
 
-EventStoreDB has a single database, which is spread across ever-growing number of physical files on the file system. Those files are called chunks and new data is always appended to the end of the latest chunk. When the chunk grows over 256 MiB, the server closes the chunk and opens a new one.
+TrogonEventStore has a single database, which is spread across ever-growing number of physical files on the file system. Those files are called chunks and new data is always appended to the end of the latest chunk. When the chunk grows over 256 MiB, the server closes the chunk and opens a new one.
 
-Normally, you'd want to keep the database files separated from the OS and other application files. The `Db` setting tells EventStoreDB where to put those chunk files. If the database server doesn't find anything at the specified location, it will create a new database.
+Normally, you'd want to keep the database files separated from the OS and other application files. The `Db` setting tells TrogonEventStore where to put those chunk files. If the database server doesn't find anything at the specified location, it will create a new database.
 
 | Format               | Syntax          |
 | :------------------- | :-------------- |
@@ -64,11 +64,11 @@ Normally, you'd want to keep the database files separated from the OS and other 
 | YAML                 | `Db`            |
 | Environment variable | `EVENTSTORE_DB` |
 
-**Default**: the default database location is platform specific. On Windows, the database will be stored in the `data` directory inside the EventStoreDB installation location. On Linux, it will be `/var/lib/eventstore`.
+**Default**: the default database location is platform specific. On Windows, the database will be stored in the `data` directory inside the TrogonEventStore installation location. On Linux, it will be `/var/lib/eventstore`.
 
 ### Skip database verification
 
-When the database node restarts, it checks the database files to ensure they aren't corrupted. It is a lengthy process and can take hours on a large database. EventStoreDB normally flushes every write to disk, so database files are unlikely to get corrupted. In an environment where nodes restart often for some reason, you might want to disable the database verification to allow faster startup of the node.
+When the database node restarts, it checks the database files to ensure they aren't corrupted. It is a lengthy process and can take hours on a large database. TrogonEventStore normally flushes every write to disk, so database files are unlikely to get corrupted. In an environment where nodes restart often for some reason, you might want to disable the database verification to allow faster startup of the node.
 
 | Format               | Syntax                      |
 | :------------------- | :-------------------------- |
@@ -136,9 +136,9 @@ Depending on your client operation timeout settings (default is 7 seconds), incr
 Using this option might cause data loss.
 :::
 
-This will prevent EventStoreDB from forcing the flush to disk after writes. Please note that this is unsafe in case of a power outage.
+This will prevent TrogonEventStore from forcing the flush to disk after writes. Please note that this is unsafe in case of a power outage.
 
-With this option enabled, EventStoreDB will still write data to the disk at the application level but not necessarily at the OS level. Usually, the OS should flush its buffers at regular intervals or when a process exits but it is something that's opaque to EventStoreDB.
+With this option enabled, TrogonEventStore will still write data to the disk at the application level but not necessarily at the OS level. Usually, the OS should flush its buffers at regular intervals or when a process exits but it is something that's opaque to TrogonEventStore.
 
 | Format               | Syntax                                    |
 | :------------------- | :---------------------------------------- |
@@ -209,11 +209,11 @@ Increasing the count of reader threads can improve performance up to a point, bu
 This section is about caching HTTP resources such as the Admin UI. It does not affect the server performance directly and cannot be used with gRPC clients.
 :::
 
-Most static resources that EventStoreDB emits are immutable and can be cached safely.
+Most static resources that TrogonEventStore emits are immutable and can be cached safely.
 
 This caching behavior is great for performance in a production environment and we recommended you use it, but in a developer environment it can become confusing.
 
-To avoid this during development it's best to run EventStoreDB with the `--disable-http-caching` command line option. This disables all caching and solves the issue.
+To avoid this during development it's best to run TrogonEventStore with the `--disable-http-caching` command line option. This disables all caching and solves the issue.
 
 The option can be set as follows:
 

@@ -1,78 +1,69 @@
 # Introduction
 
-Welcome to the EventStoreDB documentation.
+Welcome to the TrogonEventStore documentation.
 
-EventStoreDB is a database designed for [Event Sourcing](https://eventstore.com/blog/what-is-event-sourcing/). This documentation introduces key concepts of EventStoreDB and explains its installation, configuration, and operational concerns.
+TrogonEventStore is the open-source event database behind TrogonDB. It stores
+business events durably, streams them to consumers, and exposes operational
+surfaces for running a node or cluster.
 
-EventStoreDB is available in both an Open-Source and a Commercial version:
+## Current product direction
 
-- EventStoreDB OSS is the [open-source](https://github.com/EventStore/EventStore) and free-to-use edition of EventStoreDB.
-- EventStoreDB Commercial is available for customers with an EventStoreDB [paid support subscription](https://eventstore.com/support/). EventStoreDB Commercial adds enterprise-focused features such as LDAP and X.509 authentication, OpenTelemetry Exporter, correlation event sequence visualisation, and management CLI tool.
+TrogonEventStore keeps the database node focused on the durable event log:
 
-## What's new
+- Application event access is gRPC-first.
+- HTTP is reserved for the Admin UI, health probes, metrics, and other
+  infrastructure-level concerns.
+- The project is FOSS-only. The documentation does not describe unsupported
+  proprietary server features.
+- Rich read models, user-defined query engines, connector runtimes, and
+  projection execution are expected to live outside the database node unless a
+  local product decision says otherwise.
 
-Find out [what's new](whatsnew.md) in this release to get details on new features and other changes.
+Read the [architecture direction](architecture.md) before adding new runtime
+surfaces to the core node.
 
 ## Getting started
 
-Check the [installation guide](installation.md) for database setup and first-run guidance.
+Use the [installation guide](installation.md) for local development, Docker, and
+cluster startup guidance.
 
-## Architecture direction
+For a production node, review:
 
-Read the [architecture direction](architecture.md) before expanding database-node features. The project keeps
-the core node focused on durable event-log behavior and treats projection execution, rich read models, and
-custom query surfaces as external component work by default.
+- [Configuration](configuration.md)
+- [Networking](networking.md)
+- [Security](security.md)
+- [Operations](operations.md)
+- [Diagnostics](diagnostics/README.md)
 
-## Support
+## Protocols and clients
 
-### EventStoreDB community
+The supported application protocol is gRPC. Existing TrogonEventStore-compatible
+gRPC clients can be useful while the TrogonDB client libraries continue to
+evolve, but the server documentation should be treated as authoritative for this
+repository.
 
-Users of EventStoreDB OSS can use the [community forum](https://discuss.eventstore.com) for questions, discussions and getting help from community members.
+HTTP endpoints are not an application event API. They are used for browser UI,
+health, metrics, and infrastructure integration.
 
-### Enterprise customers
+## Admin UI
 
-Customers with the paid [support plan](https://eventstore.com/support/) can open tickets using the [support portal](https://eventstore.freshdesk.com).
+The embedded Admin UI is served from the node and is documented in
+[Admin UI](admin-ui.md). It is browser plumbing for operators, not a replacement
+for the gRPC application API.
 
-### Issues
+## Observability
 
-Since EventStoreDB is an open-source product, we track most of the issues openly in the EventStoreDB [repository on GitHub](https://github.com/EventStore/EventStore). Before opening an issue, please ensure that a similar issue hasn't been opened already. Also, try searching closed issues that might contain a solution or workaround for your problem.
+Use [metrics](diagnostics/metrics.md), [logs](diagnostics/logs.md), and
+[OpenTelemetry integration](diagnostics/integrations.md) for production
+observability.
 
-When opening an issue, follow our [guidelines](https://github.com/EventStore/EventStore/blob/master/CONTRIBUTING.md) for bug reports and feature requests. By doing so, you will greatly help us to solve your concerns most efficiently.
+The HTTP probe endpoints are:
 
-## Protocols, clients, and SDKs
+- `/-/liveness`
+- `/-/readiness`
+- `/-/metrics`
 
-EventStoreDB supports one client protocol, which is described below. The older TCP client API has been deprecated in version 20.2 and removed in version 24.2. The final version with TCP API support is 23.10. More information can be found in our [blog post](https://www.eventstore.com/blog/sunsetting-eventstoredb-tcp-based-client-protocol).
+## Support and issues
 
-Since version 24.6, the legacy protocol is available as a [commercial plugin](networking.md#external-tcp) available for Event Store customers.
-
-### Client protocol
-
-The client protocol is based on [open standards](https://grpc.io/) and is widely supported by many programming languages. EventStoreDB uses gRPC to communicate between the cluster nodes as well as for client-server communication.
-
-When developing software that uses EventStoreDB, we recommend using one of the official SDKs.
-
-#### EventStoreDB supported clients
-
-- Python: [pyeventsourcing/esdbclient](https://pypi.org/project/esdbclient/)
-- Node.js (JavaScript/TypeScript): [EventStore/EventStore-Client-NodeJS](https://github.com/EventStore/EventStore-Client-NodeJS)
-- Java: [EventStore/EventStoreDB-Client-Java](https://github.com/EventStore/EventStoreDB-Client-Java)
-- .NET: [EventStore/EventStore-Client-Dotnet](https://github.com/EventStore/EventStore-Client-Dotnet)
-- Go: [EventStore/EventStore-Client-Go](https://github.com/EventStore/EventStore-Client-Go)
-- Rust: [EventStore/EventStoreDB-Client-Rust](https://github.com/EventStore/EventStoreDB-Client-Rust)
-
-Use the official SDK documentation for language-specific gRPC client guidance.
-
-#### Community developed clients
-
-- [Ruby (yousty/event_store_client)](https://github.com/yousty/event_store_client)
-- [Elixir (NFIBrokerage/spear)](https://github.com/NFIBrokerage/spear)
-
-### HTTP
-
-EventStoreDB also offers HTTP surfaces for the Admin UI, management workflows, health probes, gossip, and diagnostics. Application event access uses the gRPC clients listed above.
-
-Find out more about configuring the HTTP protocol on the [HTTP configuration](networking.md#http-configuration) page.
-
-#### Community developed clients
-
-- [Ruby (yousty/event_store_client)](https://github.com/yousty/event_store_client)
+Use the TrogonStack repository and community channels for issues, discussions,
+and feature requests for this distribution.

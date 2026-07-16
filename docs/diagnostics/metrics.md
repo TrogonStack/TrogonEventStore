@@ -1,8 +1,8 @@
 # Metrics
 
-EventStoreDB collects metrics in [Prometheus format](https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format), available on the `/-/metrics` endpoint. Prometheus can be configured to scrape this endpoint directly. The metrics are configured in `metricsconfig.json`.
+TrogonEventStore collects metrics in [Prometheus format](https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format), available on the `/-/metrics` endpoint. Prometheus can be configured to scrape this endpoint directly. The metrics are configured in `metricsconfig.json`.
 
-In addition, EventStoreDB can actively export metrics to a specified endpoint using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
+In addition, TrogonEventStore can actively export metrics to a specified endpoint using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
 
 ## Metrics reference
 
@@ -10,7 +10,7 @@ In addition, EventStoreDB can actively export metrics to a specified endpoint us
 
 #### Cache hits and misses
 
-EventStoreDB tracks cache hits/misses metrics for `stream-info` and `chunk` caches.
+TrogonEventStore tracks cache hits/misses metrics for `stream-info` and `chunk` caches.
 
 | Time series                                                                | Type                     | Description                             |
 |:---------------------------------------------------------------------------|:-------------------------|:----------------------------------------|
@@ -33,7 +33,7 @@ eventstore_cache_hits_misses{cache="stream-info",kind="misses"} 117 168815748954
 
 #### Dynamic cache resources
 
-Certain caches that EventStoreDB uses are dynamic in nature i.e. their capacity scales up/down during their lifetime. EventStoreDB records metrics for resources being used by each such dynamic cache.
+Certain caches that TrogonEventStore uses are dynamic in nature i.e. their capacity scales up/down during their lifetime. TrogonEventStore records metrics for resources being used by each such dynamic cache.
 
 | Time series                                                                      | Type                   | Description                                          |
 |:---------------------------------------------------------------------------------|:-----------------------|:-----------------------------------------------------|
@@ -196,7 +196,7 @@ eventstore_incoming_grpc_calls{kind="failed"} 1 1687962877623
 
 #### Client protocol gRPC methods
 
-In addition, EventStoreDB also records metrics for each of client protocol gRPC methods: `StreamRead`, `StreamAppend`, `StreamBatchAppend`, `StreamDelete` and `StreamTombstone`. They are grouped together according to the mapping defined in the configuration.
+In addition, TrogonEventStore also records metrics for each of client protocol gRPC methods: `StreamRead`, `StreamAppend`, `StreamBatchAppend`, `StreamDelete` and `StreamTombstone`. They are grouped together according to the mapping defined in the configuration.
 
 | Time series                                                                                                    | Type                       | Description                                                                                      |
 |:---------------------------------------------------------------------------------------------------------------|:---------------------------|:-------------------------------------------------------------------------------------------------|
@@ -320,11 +320,11 @@ eventstore_persistent_sub_checkpointed_event_commit_position{event_stream_id="$a
 
 ### Process
 
-EventStoreDB collects key metrics about the running process.
+TrogonEventStore collects key metrics about the running process.
 
 | Time Series                                                                              | Type                     | Description                                                                                                                                                                                                                                                                                                                                                                          |
 |:-----------------------------------------------------------------------------------------|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `eventstore_proc_up_time{pid=<PID>}`                                                     | [Counter](#common-types) | Time in seconds this process has been running for. _PID_ is process Id of EventStoreDB process                                                                                                                                                                                                                                                                                       |
+| `eventstore_proc_up_time{pid=<PID>}`                                                     | [Counter](#common-types) | Time in seconds this process has been running for. _PID_ is process Id of TrogonEventStore process                                                                                                                                                                                                                                                                                       |
 | `eventstore_proc_cpu`                                                                    | [Gauge](#common-types)   | Process CPU usage                                                                                                                                                                                                                                                                                                                                                                    |
 | `eventstore_proc_thread_count`                                                           | [Gauge](#common-types)   | Current number of threadpool threads ([ThreadPool.ThreadCount](https://learn.microsoft.com/en-us/dotnet/api/system.threading.threadpool.threadcount?view=net-6.0))                                                                                                                                                                                                                   |
 | `eventstore_proc_thread_pool_pending_work_item_count`                                    | [Gauge](#common-types)   | Current number of items that are queued to be processed by threadpool threads ([ThreadPool.PendingWorkItemCount](https://learn.microsoft.com/en-us/dotnet/api/system.threading.threadpool.pendingworkitemcount?view=net-6.0))                                                                                                                                                        |
@@ -434,7 +434,7 @@ eventstore_projection_status{projection="$by_category",status="Stopped"} 0 17195
 
 ### Queues
 
-EventStoreDB uses various queues for asynchronous processing for which it also collects different metrics. In addition, EventStoreDB allows users to group queues and monitor them as a unit.
+TrogonEventStore uses various queues for asynchronous processing for which it also collects different metrics. In addition, TrogonEventStore allows users to group queues and monitor them as a unit.
 
 | Time series                                                                                                         | Type                       | Description                                                                                                                                                                                      |
 |:--------------------------------------------------------------------------------------------------------------------|:---------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -484,7 +484,7 @@ eventstore_queue_queueing_duration_max_seconds{name="Others",range="16-20 second
 
 ### Status
 
-EventStoreDB tracks the current status of the `Node` role  as well as  progress of  `Index`, and `Scavenge` processes.
+TrogonEventStore tracks the current status of the `Node` role  as well as  progress of  `Index`, and `Scavenge` processes.
 
 | Time series                                        | Type                   | Description                                                                              |
 |:---------------------------------------------------|:-----------------------|:-----------------------------------------------------------------------------------------|

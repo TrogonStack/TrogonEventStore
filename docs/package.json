@@ -1,8 +1,8 @@
 {
-  "name": "esdb-docs",
+  "name": "trogoneventstore-docs",
   "version": "1.0.0",
   "private": true,
-  "author": "Event Store Ltd",
+  "author": "Straw Hat, LLC",
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
     "eslint": "^10.6.0",

@@ -2,261 +2,115 @@
 title: "Installation"
 ---
 
-## Quick start
+# Installation
 
-EventStoreDB can run as a single node or as a highly-available cluster. For the cluster deployment, you'd need
-three server nodes.
+TrogonEventStore can run as a single node for local development or as a cluster
+for production-like deployments.
 
-The installation procedure consists of the following steps:
-
-- Create a configuration file for each cluster node.
-- Install EventStoreDB on each node using one of the available methods.
-- Obtain SSL certificates, either signed by a publicly trusted or private certificate authority.
-- Copy the configuration files and SSL certificates to each node.
-- Start the EventStoreDB service on each node.
-- Check the cluster status using the Admin UI on any node.
-
-### Default access
+## Default access
 
 | User  | Password |
 |-------|----------|
 | admin | changeit |
 | ops   | changeit |
 
-## Linux
+Change the default credentials before using a node outside a disposable local
+environment.
 
-### Install from PackageCloud
+## Local development
 
-EventStoreDB has pre-built [packages available for Debian-based distributions](https://packagecloud.io/EventStore/EventStore-OSS), or you can [build from source](https://github.com/EventStore/EventStore#linux). The package name to install is `eventstore-oss`.
-
-Commercial version with additional features is available as a separate package `eventstore-commercial`.
-
-Before installing the package from Packagecloud, add the repository to your system:
+Build the cluster node from source:
 
 ```bash:no-line-numbers
-curl -s https://packagecloud.io/install/repositories/EventStore/EventStore-OSS/script.deb.sh | sudo bash
+dotnet build -c Release src
 ```
 
-For the commercial version:
+Start a single local node:
 
 ```bash:no-line-numbers
-curl -s https://<key>@packagecloud.io/install/repositories/EventStore/EventStore-Commercial/script.deb.sh | sudo bash
+dotnet ./src/EventStore.ClusterNode/bin/Release/net10.0/EventStore.ClusterNode.dll \
+  --dev \
+  --db ./tmp/data \
+  --index ./tmp/index \
+  --log ./tmp/log
 ```
 
-Then, install the package:
+The `--dev` option is intended for disposable local development. For any shared
+or production-like environment, configure certificates and authentication
+explicitly.
+
+## Docker
+
+Build a local Docker image from the repository:
 
 ```bash:no-line-numbers
-sudo apt install eventstore-oss
+docker build --tag trogondb-local . \
+  --build-arg CONTAINER_RUNTIME=noble \
+  --build-arg RUNTIME=linux-x64
 ```
 
-For the commercial version:
+Run a single local node:
 
 ```bash:no-line-numbers
-sudo apt install eventstore-commercial
+docker run --rm --name trogondb-node -it -p 2113:2113 \
+  trogondb-local \
+  --dev \
+  --db /var/lib/trogondb/data \
+  --index /var/lib/trogondb/index \
+  --log /var/log/trogondb
 ```
 
-::: tip
-RPM packages are not available as part of the [EventStore/EventStore-OSS](https://packagecloud.io/EventStore/EventStore-OSS/) Packagecloud repository
-::: 
+For durable local data, mount database, index, and log directories into the
+container.
 
-If you installed from a pre-built package, the server is registered as a service. Therefore, you can start EventStoreDB with:
+## Production checklist
 
-```bash:no-line-numbers
-sudo systemctl start eventstore
-```
+Before running a durable node or cluster:
 
-When you install the EventStoreDB package, the service doesn't start by default. This allows you to change the configuration located at `etc/eventstore/eventstore.conf` and to prevent creating database and index files in the default location.
+- Provide node certificates explicitly.
+- Decide whether clients use TLS and configure the connection strings
+  accordingly.
+- Configure authentication methods in [Security](security.md).
+- Store data, index, and logs on durable volumes.
+- Expose `/-/liveness`, `/-/readiness`, and `/-/metrics` to the platform.
+- Use gRPC clients for application reads and writes.
 
-::: warning
-We recommend that when using Linux you set the 'open file limit' to a high number. The precise value depends on your use case, but at least between `30,000` and `60,000`.
-:::
+## Linux service notes
 
-### Building from source
+When running on Linux, set the open file limit high enough for the expected
+database size and workload. The precise value depends on the deployment, but
+operators commonly start between `30000` and `60000`.
 
-You can also build EventStoreDB from source. Before doing that, you need to install the .NET 10 SDK. EventStoreDB packages have the .NET Runtime embedded, so you don't need to install anything except the EventStoreDB package.
+Configuration can be supplied with command-line options, YAML, or environment
+variables. See [Configuration](configuration.md).
 
-### Uninstall
+## Windows service notes
 
-If you installed one of the [pre-built packages for Debian based systems](https://packagecloud.io/EventStore/EventStore-OSS), you can remove it with:
+TrogonEventStore can run under the Windows Service Control Manager, but the
+source build does not register itself automatically.
 
-```bash
-sudo apt-get purge eventstore-oss
-```
-or
-```bash
-sudo apt-get purge eventstore-commercial
-```
-
-This removes EventStoreDB completely, including any user settings.
-
-If you built EventStoreDB from source, remove it by deleting the directory containing the source and build and manually removing any environment variables.
-
-## Windows
-
-EventStoreDB can run under the Windows Service Control Manager, but it does not install itself as a service automatically.
-
-### Install from Chocolatey
-
-EventStoreDB has [Chocolatey packages](https://chocolatey.org/packages/eventstore-oss) available that you can
-install with the following command with administrator permissions.
+Example service registration:
 
 ```powershell:no-line-numbers
-choco install eventstore-oss
+sc.exe create TrogonDB binPath= "C:\TrogonDB\EventStore.ClusterNode.exe --config C:\TrogonDB\trogondb.conf"
+sc.exe start TrogonDB
 ```
 
-### Download the binaries
-
-You can also [download](https://eventstore.com/downloads/) a binary, unzip the archive and run from the folder
-location with administrator permissions.
-
-The following command starts EventStoreDB in dev mode with the database stored at the path `./db` and the logs in `./logs`.
-Read more about configuring the EventStoreDB server in the [Configuration section](configuration.md).
-
-```powershell:no-line-numbers
-EventStore.ClusterNode.exe --dev --db ./db --log ./logs
-```
-
-To run EventStoreDB as a Windows service, register the executable with the Service Control Manager and pass the same arguments you would use on the command line:
-
-```powershell:no-line-numbers
-sc.exe create EventStoreDB binPath= "C:\EventStore\EventStore.ClusterNode.exe --config C:\EventStore\eventstore.conf"
-sc.exe start EventStoreDB
-```
-
-EventStoreDB runs in an administration context because it starts an HTTP server through `http.sys`. For
-permanent or production instances, you need to provide an ACL such as:
+If the HTTP listener needs a URL ACL, configure it explicitly:
 
 ```powershell:no-line-numbers
 netsh http add urlacl url=http://+:2113/ user=DOMAIN\username
 ```
 
-For more information, refer to
-Microsoft's `add urlacl` [documentation](https://docs.microsoft.com/en-us/windows/win32/http/add-urlacl).
+For more information, refer to Microsoft's `add urlacl` documentation.
 
-To build EventStoreDB from source, refer to the
-EventStoreDB [GitHub repository](https://github.com/EventStore/EventStore#building-eventstoredb).
+## Cluster startup
 
-### Uninstall
+A production cluster normally uses three nodes. For each node:
 
-If you installed EventStoreDB with Chocolatey, you can uninstall with:
-
-```powershell:no-line-numbers
-choco uninstall eventstore-oss
-```
-
-This removes the `eventstore-oss` Chocolatey package.
-
-If you installed EventStoreDB by [downloading a binary](https://eventstore.com/downloads/), you can remove it
-by:
-
-- Deleting the `EventStore-OSS-Win-*` directory.
-- Removing the directory from your PATH.
-
-## Docker
-
-You can run EventStoreDB in a Docker container as a single node, using insecure mode. It is useful in most
-cases to try out the product and for local development purposes.
-
-It's also possible to run a three-node cluster with or without SSL using Docker Compose. Such a setup is
-closer to what you'd run in production.
-
-### Run with Docker
-
-EventStoreDB has a Docker image available for any platform that supports Docker.
-
-The following command will start the EventStoreDB node using default HTTP port, without security. You can then
-connect to it using one of the clients and the `esdb://localhost:2113?tls=false` connection string. You can also access the Admin UI by opening http://localhost:2113/ui in your browser.
-
-```bash:no-line-numbers
-docker run --name esdb-node -it -p 2113:2113 \
-    eventstore/eventstore:latest --insecure --run-projections=All
-```
-
-Then, you'd be able to connect to EventStoreDB with gRPC clients and use the Admin UI.
-
-In order to sustainably keep the data, we also recommend mapping the database and index volumes.
-
-### Use Docker Compose
-
-You can also run a single-node instance or a three-node secure cluster locally using Docker Compose.
-
-#### Insecure single node
-
-You can use Docker Compose to run EventStoreDB in the same setup as the `docker run` command mentioned before.
-
-Create file `docker-compose.yaml` with following content:
-
-@[code{curl}](@samples/docker-compose.yaml)
-
-Run the instance:
-
-```bash:no-line-numbers
-docker-compose up
-```
-
-The command above would run EventStoreDB as a single node without SSL.
-
-::: warning
-The legacy TCP client protocol is disabled by default and will no longer be available since version 24.2. 
-To enable it in versions lower than 24.2, add the environment variable to the yaml file: 
-EVENTSTORE_ENABLE_EXTERNAL_TCP=true
-:::
-
-#### Secure cluster
-
-With Docker Compose, you can also run a three-node cluster with security enabled. That kind of setup is
-something you'd expect to use in production.
-
-Create file `docker-compose.yaml` with following content:
-
-@[code{curl}](@samples/docker-compose-cluster.yaml)
-
-Quite a few settings are shared between the nodes and we use the `env` file to avoid repeating those settings.
-So, add the `vars.env` file to the same location:
-
-@[code{curl}](@samples/vars.env)
-
-Containers will use the shared volume using the local `./certs` directory for certificates. However, if you
-let Docker create the directory on startup, the container won't be able to get write access to it.
-Therefore, you should create the `certs` directory manually. You only need to do it once.
-
-```bash:no-line-numbers
-mkdir certs
-```
-
-Now you are ready to start the cluster.
-
-```bash:no-line-numbers
-docker-compose up
-```
-
-Watching the log messages, you will see that after some time, the elections process completes. Then you're able to connect to each
-node using the Admin UI. Nodes should be accessible on the loopback address (`127.0.0.1` or `localhost`) over
-HTTP, using ports specified below:
-
-| Node  | HTTP port |
-|:------|:----------|
-| node1 | 2111      |
-| node2 | 2112      |
-| node3 | 2113      |
-
-You have to tell your client to use secure connection.
-
-| Protocol | Connection string                                                                  |
-|:---------|:-----------------------------------------------------------------------------------|
-| gRPC     | `esdb://localhost:2111,localhost:2112,localhost:2113?tls=true&tlsVerifyCert=false` |
-
-As you might've noticed, the connection string has a setting to disable the certificate validation (`tlsVerifyCert=false`). It would prevent the invalid certificate error since the cluster uses a private, auto-generated CA.
-
-However, **we do not recommend using this setting in production**. Instead, you can either add the CA certificate to the trusted root CA store or instruct your application to use such a certificate. See the [security section](security.md#certificate-installation-on-a-client-environment) for detailed instructions.
-
-## Compatibility notes
-
-Depending on how your EventStoreDB instance is configured, some features might not work. Below are some features that are unavailable due to the specified options.
-
-| Feature                       | Options impact                                                                                                                                                                          |
-|:------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Connection without SSL or TLS | EventStoreDB 20.6+ is secure by default. Your clients need to establish a secure connection, unless you use the `Insecure` option.                                                      |
-| Authentication and ACLs       | When using the `Insecure` option for the server, all security is disabled. User management workflows are unavailable because there is no authentication subsystem to manage.             |
-| Projections                   | Running projections is disabled by default. Projection workflows require enabling projections explicitly by using the `RunProjections` option.                                         |
-| Stream browser                | The Admin UI stream browser uses the server management surface. Application clients should use gRPC for event access.                                                                  |
+1. Create a node-specific configuration file.
+2. Provide node certificates and trusted roots.
+3. Configure gossip addresses for the cluster members.
+4. Start the node.
+5. Check readiness on `/-/readiness`.
+6. Check the cluster view in the Admin UI.

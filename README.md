@@ -38,13 +38,6 @@ the [User Documentation](https://developers.trogondb.com/).
 
 Follow the [getting started guide](https://developers.trogondb.com/latest.html).
 
-## Getting started with Event Store Cloud
-
-Event Store can manage TrogonDB for you, so you don't have to run your own
-clusters.
-See the online documentation:
-[Getting started with Event Store Cloud](https://developers.trogondb.com/cloud/).
-
 ## Client libraries
 
 This guide shows you how to get started with TrogonDB by setting up an instance

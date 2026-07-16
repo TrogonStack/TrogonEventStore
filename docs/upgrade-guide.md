@@ -2,137 +2,72 @@
 title: "Upgrade Guide"
 ---
 
-# Upgrade guide for EventStoreDB 24.6
+# Upgrade Guide
 
-EventStoreDB 24.6 is now available for download. You can install it using [Packagecloud](https://packagecloud.io/EventStore/EventStore-OSS), [Chocolatey](https://chocolatey.org/packages/eventstore-oss), or [Docker](https://hub.docker.com/r/eventstore/eventstore/tags?page=1&name=24.6).  Packages are available on our [website](https://www.eventstore.com/downloads) with detailed instructions for each platform.
+Use this guide when moving a TrogonEventStore node or cluster to a newer build
+from this repository.
 
-### Should you upgrade?
+## Before upgrading
 
-Version 24.6 is an interim release that will be supported until the launch of version 24.10 in October 2024.
-We recommend upgrading to 24.6 if you are interested in using the new features introduced in this release.
+- Back up the database and index directories.
+- Record the current server version, configuration file, container image, and
+  command-line arguments.
+- Check that clients are using gRPC.
+- Review changed configuration keys before restarting a durable node.
+- Verify that health probes use `/-/liveness` and `/-/readiness`.
+- Verify that metrics scraping uses `/-/metrics`.
 
-::: warning
-Do not upgrade to version 24.6 if your applications rely on the external TCP API. This has been removed in 24.2. See the [breaking changes](#external-tcp-api-removed) for more information. You can prevent automatic upgrades by pinning the version in your package manager. Find out about package holding on Linux [here](https://askubuntu.com/questions/18654/how-to-prevent-updating-of-a-specific-package).
-
-The commercial version of EventStoreDB 24.6 includes a plugin that enables the TCP client protocol. 
-:::
-
-### Security update
-
-If you are not upgrading to 24.6, please ensure that you are running a patch of EventStoreDB with the security release addressing [CVE-2024-26133](https://www.eventstore.com/blog/eventstoredb-security-release-23.10-22.10-21.10-and-20.10-for-cve-2024-26133):
-
-- **Version 23.10.0:** Upgrade to at least 23.10.1.
-- **Versions 22.10.x:** Upgrade to at least 22.10.5 or 23.10.1.
-- **Versions 21.10.x:** Upgrade to at least 21.10.11 for the security fix, or 22.10.5 for ongoing support.
-- **Versions 20.10.x:** Upgrade to at least 20.10.6 for the security fix, or 22.10.5 for ongoing support.
-
-### Upgrade procedure
-
-You can perform an online rolling upgrade directly to 24.6 from these versions of EventStoreDB:
-- 24.2
-- 23.10
-- 22.10
-- 21.10
-
-Follow the upgrade procedure below on each node, starting with a follower node:
+## Single-node upgrade
 
 1. Stop the node.
-2. Upgrade EventstoreDB to 24.6 and update configuration.
+2. Replace the binary or container image.
+3. Review configuration against [Configuration](configuration.md).
+4. Start the node.
+5. Wait for `/-/readiness` to return success.
+6. Check logs for truncation, index rebuild, or certificate errors.
+7. Confirm the Admin UI and gRPC clients can connect.
+
+## Cluster upgrade
+
+Upgrade one node at a time, starting with a follower or read-only replica.
+
+1. Stop one non-leader node.
+2. Replace the binary or container image.
 3. Start the node.
-4. Wait for the node to become a follower or read-only replica.
-5. Repeat the process for the next node.
+4. Wait for the node to rejoin the cluster and become ready.
+5. Repeat for the next non-leader node.
+6. Upgrade the leader last.
 
-As illustrated below:
+During the rollout:
 
-![EventStoreDB upgrade procedure for each node](./images/upgrade-procedure.png)
+- Client connections can be interrupted when a node restarts or elections occur.
+- Write availability depends on cluster quorum.
+- Catch-up work can temporarily increase load on the leader.
 
-Upgrading the cluster in this manner keeps the cluster online and able to service requests. There may still be disruptions to your services during the upgrade, namely:
-- Client connections may be disconnected when nodes go offline, or when elections take place.
-- The cluster is less fault-tolerant while a node is offline for an upgrade because the cluster requires a quorum of nodes to be online to service write requests.
-- Replicating large amounts of data to a node can have a performance impact on the Leader in the cluster.
+## Configuration review
 
-::: warning
-If you modified the Linux service file to increase the open files limit, those changes will be overridden during the upgrade. You will need to reapply them after the upgrade.
-:::
+Before upgrading, search for obsolete client and HTTP-management settings. The
+current product direction is:
 
-### Breaking changes
+- gRPC for application event access.
+- HTTP for Admin UI, health, metrics, and infrastructure concerns.
+- No external TCP client protocol.
+- No proprietary plugin configuration.
 
-#### From version 23.10 and earlier
+If a setting is no longer documented, remove it rather than carrying it forward
+silently.
 
-##### External TCP API removed
+## Authentication review
 
-The external TCP API has been removed in 24.2.0. This affects external clients using the TCP API and configurations related to it.
+Check [Security](security.md) for the current authentication model. Local
+username/password authentication and OAuth methods can coexist as configured
+methods. Avoid depending on undocumented authentication plugins.
 
-A number of configuration options have been removed as part of this. EventStoreDB will not start by default if any of the following options are present in the database configuration:
-- `AdvertiseTcpPortToClientAs`
-- `DisableExternalTcpTls`
-- `EnableExternalTcp`
-- `ExtHostAdvertiseAs`
-- `ExtTcpHeartbeatInterval`
-- `ExtTcpHeartbeatTimeout`
-- `ExtTcpPort`
-- `ExtTcpPortAdvertiseAs`
-- `NodeHeartbeatInterval`
-- `NodeHeartbeatTimeout`
-- `NodeTcpPort`
-- `NodeTcpPortAdvertiseAs`
+## Observability review
 
-#### From version 22.10 and earlier
+Use [OpenTelemetry integration](diagnostics/integrations.md) for explicit OTLP
+export and [Metrics](diagnostics/metrics.md) for Prometheus scraping.
 
-The updates to anonymous access described in the [release notes](https://www.eventstore.com/blog/23.10.0-release-notes) have introduced some breaking changes. We have also removed, renamed, and deprecated some options in EventStoreDB.
-
-None of these changes will prevent you from performing an online rolling upgrade of the cluster, but you will need to take them into account before you perform an upgrade.
-
-When upgrading from 22.10 and earlier, you will need to account for the following breaking changes:
-
-##### Clients must be authenticated by default
-
-We have disabled anonymous access to streams by default in this version. This means that read and write requests from clients need to be authenticated.
-
-If you see authentication errors when connecting to EventStoreDB after upgrading, please ensure that you are either using default credentials on the connection, or are providing user credentials with the request itself.
-
-If you want to revert back to the old behavior, you can enable the `AllowAnonymousStreamAccess` and `AllowAnonymousEndpointAccess` options in EventStoreDB.
-Like with anonymous access to streams, anonymous access to gRPC and protected HTTP endpoints has been disabled by default. The HTTP exceptions are `/-/liveness`, `/-/readiness`, static UI content, and redirects.
-
-Any tools or monitoring scripts still using legacy HTTP diagnostics endpoints must move to the supported metrics and gRPC monitoring surfaces in this release.
-
-##### PrepareCount and CommitCount options have been removed
-
-We have removed the `PrepareCount` and `CommitCount` options from EventStoreDB. EventStoreDB will now fail if these options are present in the config on startup.
-
-These options did not have any effect and can be safely removed from your configuration file if you have them defined.
-
-##### Persistent subscriptions config event has been renamed
-
-We have renamed the event type used to store a persistent subscriptions configuration from `PersistentConfig1` to `$PersistentConfig`. This event type is a system event, so naming it as such will allow certain filters to exclude it correctly.
-
-If you have any tools or clients relying on this event type, then you will need to update them before you upgrade.
-
-#### From 21.10 and earlier
-
-If you are upgrading from version 21.10 and earlier, then you need to be aware of a breaking change in the TCP proto:
-
-##### Proto2 upgraded to Proto3 (TCP)
-
-The server now uses Proto3 for messages sent over TCP. This affects replication between servers in a cluster.
-
-EventStoreDB nodes on version 22.10 cannot replicate data to version 21.10 and below, but older nodes can still replicate to version 22.10 and above.
-Follow the [upgrade procedure](#upgrade-procedure) and ensure that the Leader node is the last node to be upgraded to avoid any issues.
-
-##### Deprecated configuration options
-
-Several options are deprecated and slated for removal in future releases. See the table below for guidance.
-
-| Deprecated Option             | Use Instead                     |
-|:------------------------------|:--------------------------------|
-| `ExtIp`                       | `NodeIp`                        |
-| `ExtPort`                     | `NodePort`                      |
-| `HttpPortAdvertiseAs`         | `NodePortAdvertiseAs`           |
-| `ExtHostAdvertiseAs`          | `NodeHostAdvertiseAs`           |
-| `AdvertiseHttpPortToClientAs` | `AdvertiseNodePortToClientAs`   |
-| `IntIp`                       | `ReplicationIp`                 |
-| `IntTcpPort`                  | `ReplicationTcpPort`            |
-| `IntTcpPortAdvertiseAs`       | `ReplicationTcpPortAdvertiseAs` |
-| `IntHostAdvertiseAs`          | `ReplicationHostAdvertiseAs`    |
-| `IntTcpHeartbeatTimeout`      | `ReplicationHeartbeatTimeout`   |
-| `IntTcpHeartbeatInterval`     | `ReplicationHeartbeatInterval`  |
+Legacy usage telemetry is separate from OTLP observability. See
+[Usage telemetry](usage-telemetry.md) before running a node in an environment
+that should not make outbound telemetry calls.

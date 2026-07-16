@@ -4,26 +4,26 @@ title: "Integrations"
 
 # Monitoring integrations
 
-EventStoreDB supports several methods to integrate with external monitoring and observability tools. Those include:
+TrogonEventStore supports several methods to integrate with external monitoring and observability tools. Those include:
 
 - [OpenTelemetry](#opentelemetry-exporter): export telemetry to an OpenTelemetry-compatible endpoint
 - [Prometheus](#prometheus): collect metrics in Prometheus
 - [Datadog](#datadog): monitor and measure the cluster with Datadog
-- [ElasticSearch](#elasticsearch): this section describes how to collect EventStoreDB logs in ElasticSearch
+- [ElasticSearch](#elasticsearch): this section describes how to collect TrogonEventStore logs in ElasticSearch
 - [Vector](#vector): collect metrics and logs to your APM tool using Vector
 
 ## Prometheus
 
-You can collect EventStoreDB metrics to Prometheus and configure Grafana dashboards to monitor your deployment.
-Event Store provides Prometheus support out of the box since version 23.6. Refer to [metrics](metrics.md) documentation to learn more.
+You can collect TrogonEventStore metrics to Prometheus and configure Grafana dashboards to monitor your deployment.
+TrogonEventStore exposes Prometheus metrics on `/-/metrics`. Refer to [metrics](metrics.md) documentation to learn more.
 
 Older versions can be monitored by Prometheus using the community-supported exporter available in the [GitHub repository](https://github.com/marcinbudny/eventstore_exporter).
 
 ## OpenTelemetry Exporter
 
-EventStoreDB passively exposes metrics for scraping on the `/-/metrics` endpoint. It can also actively export logs, metrics, and traces using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
+TrogonEventStore passively exposes metrics for scraping on the `/-/metrics` endpoint. It can also actively export logs, metrics, and traces using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
 
-A number of APM providers natively support OTLP, so you might be able to send EventStoreDB telemetry directly to your APM provider. Alternatively, you can export to the OpenTelemetry Collector, which can then fan out to a variety of backends. You can find out more about the [OpenTelemetry collector](https://opentelemetry.io/docs/collector/).
+A number of APM providers natively support OTLP, so you might be able to send TrogonEventStore telemetry directly to your APM provider. Alternatively, you can export to the OpenTelemetry Collector, which can then fan out to a variety of backends. You can find out more about the [OpenTelemetry collector](https://opentelemetry.io/docs/collector/).
 
 ### Configuration
 
@@ -95,9 +95,9 @@ The interval is taken from the `ExpectedScrapeIntervalSeconds` value in `metrics
 
 ## Datadog
 
-The best way to integrate EventStoreDB telemetry with Datadog today is by using the built-in OpenTelemetry export support.
+The best way to integrate TrogonEventStore telemetry with Datadog today is by using the built-in OpenTelemetry export support.
 
-You can use the community-supported integration to collect EventStoreDB logs and metrics in Datadog.
+You can use the community-supported integration to collect TrogonEventStore logs and metrics in Datadog.
 
 Find out more details about the integration
 in [Datadog documentation](https://docs.datadoghq.com/integrations/eventstore/).
@@ -107,17 +107,14 @@ in [Datadog documentation](https://docs.datadoghq.com/integrations/eventstore/).
 > Vector is a lightweight and ultra-fast tool for building observability pipelines.
 > (from Vector website)
 
-You can use [Vector] for extracting metrics or logs from your self-managed EventStore server.
-
-It's also possible to collect metrics from the Event Store Cloud managed cluster or instance, as long as the
-Vector agent is running on a machine that has a direct connection to the EventStoreDB server. You cannot,
-however, fetch logs from Event Store Cloud using your own Vector agent.
+You can use [Vector] for extracting metrics or logs from a self-managed
+TrogonEventStore server.
 
 ### Installation
 
 Follow the [installation instructions](https://vector.dev/docs/setup/installation/) provided by Vector to
-deploy the agent. You can deploy and run it on the same machine where you run EventStoreDB server. If you run
-EventStoreDB in Kubernetes, you can run Vector as a sidecar for each of the EventStoreDB pods.
+deploy the agent. You can deploy and run it on the same machine where you run TrogonEventStore server. If you run
+TrogonEventStore in Kubernetes, you can run Vector as a sidecar for each of the TrogonEventStore pods.
 
 ### Configuration
 
@@ -137,8 +134,8 @@ need grouped stats or queue-level detail.
 
 #### Collecting logs
 
-To collect logs, you can use the [file source] and configure it to target EventStoreDB log file. For log
-collection, Vector must run on the same machine as EventStoreDB server as it collects the logs from files on
+To collect logs, you can use the [file source] and configure it to target TrogonEventStore log file. For log
+collection, Vector must run on the same machine as TrogonEventStore server as it collects the logs from files on
 the local file system.
 
 ```toml
@@ -151,7 +148,7 @@ read_from = "end"
 
 #### Example
 
-In this example, Vector runs on the same machine as EventStoreDB, collects logs, and then sends them to
+In this example, Vector runs on the same machine as TrogonEventStore, collects logs, and then sends them to
 Datadog.
 
 ```toml
@@ -175,20 +172,20 @@ Elastic Stack is one of the most popular tools for ingesting and analyzing logs 
 - [Logstash](https://www.elastic.co/guide/en/logstash/current/getting-started-with-logstash.html) enables log transformations and processing pipelines.
 - [Kibana](https://www.elastic.co/guide/en/kibana/8.2/index.html) is a dashboard and visualization UI for Elasticsearch data.
 
-EventStoreDB exposes structured information through its logs and statistics, allowing straightforward integration with mentioned tooling.
+TrogonEventStore exposes structured information through its logs and statistics, allowing straightforward integration with mentioned tooling.
 
 ### Logstash
 
-Logstash is the plugin based data processing component of the Elastic Stack which sends incoming data to Elasticsearch. It's excellent for building a text-based processing pipeline. It can also gather logs from files (although Elastic recommends now Filebeat for that, see more in the following paragraphs). Logstash needs to either be installed on the EventStoreDB node or have access to logs storage. The processing pipeline can be configured through the configuration file (e.g. `logstash.conf`). This file contains the three essential building blocks:
+Logstash is the plugin based data processing component of the Elastic Stack which sends incoming data to Elasticsearch. It's excellent for building a text-based processing pipeline. It can also gather logs from files (although Elastic recommends now Filebeat for that, see more in the following paragraphs). Logstash needs to either be installed on the TrogonEventStore node or have access to logs storage. The processing pipeline can be configured through the configuration file (e.g. `logstash.conf`). This file contains the three essential building blocks:
 - input - source of logs, e.g. log files, system output, Filebeat.
 - filter - processing pipeline, e.g. to modify, enrich, tag log data,
 - output - place where we'd like to put transformed logs. Typically that contains Elasticsearch configuration.
 
-See the sample Logstash 8.2 configuration file. It shows how to take the EventStoreDB log files, split them based on the log type (regular and stats) and output them to separate indices to Elasticsearch:
+See the sample Logstash 8.2 configuration file. It shows how to take the TrogonEventStore log files, split them based on the log type (regular and stats) and output them to separate indices to Elasticsearch:
 
 ```ruby
 #######################################################
-#  EventStoreDB logs file input
+#  TrogonEventStore logs file input
 #######################################################
 input {
   file {
@@ -242,16 +239,16 @@ Logstash was an initial attempt by Elastic to provide a log harvester tool. Howe
 
 Filebeat can pipe logs directly to Elasticsearch and set up a Kibana data view.
 
-Filebeat needs to either be installed on the EventStoreDB node or have access to logs storage. The processing pipeline can be configured through the configuration file (e.g. `filebeat.yml`). This file contains the three essential building blocks:
+Filebeat needs to either be installed on the TrogonEventStore node or have access to logs storage. The processing pipeline can be configured through the configuration file (e.g. `filebeat.yml`). This file contains the three essential building blocks:
 - input - configuration for file source, e.g. if stored in JSON format.
 - output - place where we'd like to put transformed logs, e.g. Elasticsearch, Logstash,
 - setup - additional setup and simple transformations (e.g. Elasticsearch indices template, Kibana data view).
 
-See the sample Filebeat 8.2 configuration file. It shows how to take the EventStoreDB log files, output them to Elasticsearch prefixing index with `eventstoredb` and create a Kibana data view:
+See the sample Filebeat 8.2 configuration file. It shows how to take the TrogonEventStore log files, output them to Elasticsearch prefixing index with `eventstoredb` and create a Kibana data view:
 
 ```yml
 #######################################################
-#  EventStoreDB logs file input
+#  TrogonEventStore logs file input
 #######################################################
 filebeat.inputs:
   - type: log
@@ -291,13 +288,13 @@ You can play with such configuration through the [sample docker-compose](https:/
 
 ### Filebeat with Logstash
 
-Even though Filebeat can pipe logs directly to Elasticsearch and do a basic Kibana setup, you'd like to have more control and expand the processing pipeline. That's why for production, it's recommended to use both. Multiple Filebeat instances (e.g. from different EventStoreDB clusters) can collect logs and pipe them to Logstash, which will play an aggregator role. Filebeat can output logs to Logstash, and Logstash can receive and process these logs with the Beats input. Logstash can transform and route logs to Elasticsearch instance(s).
+Even though Filebeat can pipe logs directly to Elasticsearch and do a basic Kibana setup, you'd like to have more control and expand the processing pipeline. That's why for production, it's recommended to use both. Multiple Filebeat instances (e.g. from different TrogonEventStore clusters) can collect logs and pipe them to Logstash, which will play an aggregator role. Filebeat can output logs to Logstash, and Logstash can receive and process these logs with the Beats input. Logstash can transform and route logs to Elasticsearch instance(s).
 
-In that configuration, Filebeat should be installed on the EventStoreDB node (or have access to file logs) and define Logstash as output. See the sample Filebeat 8.2 configuration file.
+In that configuration, Filebeat should be installed on the TrogonEventStore node (or have access to file logs) and define Logstash as output. See the sample Filebeat 8.2 configuration file.
 
 ```yml
 #######################################################
-#  EventStoreDB logs file input
+#  TrogonEventStore logs file input
 #######################################################
 filebeat.inputs:
   - type: log
@@ -313,7 +310,7 @@ output.logstash:
   hosts: ["logstash:5044"]
 ```
 
-Then the sample Logstash 8.2 configuration file will look like the below. It shows how to take the EventStoreDB logs from Filebeat, split them based on the log type (regular and stats) and output them to separate indices to Elasticsearch:
+Then the sample Logstash 8.2 configuration file will look like the below. It shows how to take the TrogonEventStore logs from Filebeat, split them based on the log type (regular and stats) and output them to separate indices to Elasticsearch:
 
 ```ruby
 #######################################################
@@ -364,7 +361,7 @@ output {
 You can play with such configuration through the [sample docker-compose](https://github.com/EventStore/samples/blob/2829b0a90a6488e1eee73fad0be33a3ded7d13d2/Logging/Elastic/FilebeatWithLogstash/docker-compose.yml).
 
 [Vector]: https://vector.dev/docs/
-[EventStoreDB source]: https://vector.dev/docs/reference/configuration/sources/eventstoredb_metrics/
+[TrogonEventStore source]: https://vector.dev/docs/reference/configuration/sources/eventstoredb_metrics/
 [file source]: https://vector.dev/docs/reference/configuration/sources/file/
 [many different sinks]: https://vector.dev/docs/reference/configuration/sinks/
 [Console]: https://vector.dev/docs/reference/configuration/sinks/console/

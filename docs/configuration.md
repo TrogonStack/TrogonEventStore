@@ -4,29 +4,29 @@ title: "How-to"
 
 ## Configuration options
 
-EventStoreDB has a number of configuration options that can be changed. You can find all the options described
+TrogonEventStore has a number of configuration options that can be changed. You can find all the options described
 in details in this section.
 
-When you don't change the configuration, EventStoreDB will use sensible defaults, but they might not suit your
-needs. You can always instruct EventStoreDB to use a different set of options. There are multiple ways to
-configure EventStoreDB server, described below.
+When you don't change the configuration, TrogonEventStore will use sensible defaults, but they might not suit your
+needs. You can always instruct TrogonEventStore to use a different set of options. There are multiple ways to
+configure TrogonEventStore server, described below.
 
 ### Version and help
 
-You can check what version of EventStoreDB you have installed by using the `--version` parameter in the
+You can check what version of TrogonEventStore you have installed by using the `--version` parameter in the
 command line. For example:
 
 :::: code-group
 ::: code Linux
 ```bash:no-line-numbers
 $ eventstored --version
-EventStoreDB version 24.6.0.0 (v24.6.0-alpha-16-g8e06f9f77/8e06f9f77, 2023-10-24T22:05:57-05:00)
+TrogonEventStore version <version>
 ```
 :::
 ::: code Windows
 ```powershell:no-line-numbers
 > EventStore.ClusterNode.exe --version
-EventStoreDB version 24.6.0.0 (v24.6.0-alpha-16-g8e06f9f77/8e06f9f77, 2023-10-24T22:05:57-05:00)
+TrogonEventStore version <version>
 ```
 :::
 ::::
@@ -42,7 +42,7 @@ them from a configuration management system.
 
 The default configuration file name is `eventstore.conf` and it's located in
 - **Linux:** `/etc/eventstore/`
-- **Windows:** EventStoreDB installation directory
+- **Windows:** TrogonEventStore installation directory
 
 The configuration file has YAML-compatible format. The basic format of the YAML configuration file is as
 follows:
@@ -59,9 +59,9 @@ You need to use the three dashes and spacing in your YAML file.
 
 The default configuration file name is `eventstore.conf`. It is located in `/etc/eventstore/` on Linux and the
 server installation directory on Windows. You can either change this file or create another file and instruct
-EventStoreDB to use it.
+TrogonEventStore to use it.
 
-To tell the EventStoreDB server to use a different configuration file, you pass the file path on the command
+To tell the TrogonEventStore server to use a different configuration file, you pass the file path on the command
 line with `--config=filename`, or use the `CONFIG`
 environment variable.
 
@@ -77,7 +77,7 @@ Environment variables override all the options specified in configuration files.
 
 You can also override options from both configuration files and environment variables using the command line.
 
-For example, starting EventStoreDB with the `--log` option will override the default log files location:
+For example, starting TrogonEventStore with the `--log` option will override the default log files location:
 
 :::: code-group
 ::: code-group-item Linux
@@ -98,7 +98,7 @@ If more than one method is used to configure the server, it might be hard to fin
 configuration will be when the server starts. To help to find out just that, you can use the `--what-if`
 option.
 
-When you run EventStoreDB with this option, it will print out the effective configuration applied from all
+When you run TrogonEventStore with this option, it will print out the effective configuration applied from all
 available sources (default and custom configuration file, environment variables and command line parameters)
 and print it out to the console.
 
@@ -325,7 +325,7 @@ By default, the cache dynamically resizes according to the amount of free memory
 | Environment variable | `EVENTSTORE_STREAM_INFO_CACHE_CAPACITY` |
 
 The option is set to 0 by default, which enables dynamic resizing. The default on previous versions of
-EventStoreDb was 100,000 entries.
+TrogonEventStore was 100,000 entries.
 
 ::: note
 The default value of 0 for `StreamInfoCacheCapacity` might not always be the best value for optimal performance. Ideally, it should be set to double the number of streams in the anticipated working set.
@@ -337,7 +337,7 @@ It should be noted that the total number of streams does not necessarily give yo
 
 ### ReadConcurrencyLimit
 
-This option configures the number of read requests EventStoreDb can process concurrently. Having more reader threads
+This option configures the number of read requests TrogonEventStore can process concurrently. Having more reader threads
 allows more concurrent reads to be processed.
 
 The reader threads count will be set at startup to twice the number of available processors, with a minimum of
@@ -350,7 +350,7 @@ The reader threads count will be set at startup to twice the number of available
 | Environment variable | `EVENTSTORE_READ_CONCURRENCY_LIMIT` |
 
 The option is set to 0 by default, which enables autoconfiguration. The default on previous versions of
-EventStoreDb was 4 threads.
+TrogonEventStore was 4 threads.
 
 ::: warning 
 Increasing the reader threads count too high can cause read timeouts if your disk cannot handle the
@@ -371,45 +371,16 @@ it will be set to have 5 threads available.
 | Environment variable | `EVENTSTORE_WORKER_THREADS` |
 
 The option is set to 0 by default, which enables autoconfiguration. The default on previous versions of
-EventStoreDb was 5 threads.
+TrogonEventStore was 5 threads.
 
-## Plugins configuration
+## Component configuration
 
-The commercial edition of EventStoreDB ships with several plugins that augment the behavior of the open source server. Each plugin is documented in relevant sections. For example, under Security, you will find the User Certificates plugin documentation.
+The supported server configuration surface is documented in this guide and in
+the feature-specific pages linked from it.
 
-The plugins (apart from the `ldap` plugin) are configured separately to the main server configuration and can be configured via `json` files and `environment variables`.
+Some runtime configuration keys retain the inherited `EventStore` prefix for
+compatibility. Do not treat undocumented plugin keys as supported product
+features.
 
-Environment variables take precedence.
-
-#### JSON files
-
-Each configurable plugin comes with a sample JSON file in the `<installation-directory>/plugins/<plugin-name>` directory.
-Here is an example file called `user-certificates-plugin-example.json` to enable the user certificates plugin.
-
-```json
-{
-  "EventStore": {
-    "Plugins": {
-      "UserCertificates": {
-        "Enabled": true
-      }
-    }
-  }
-}
-```
-
-The system looks for JSON configuration files in a `<installation-directory>/config/` directory, and on Linux and OS X, the server additionally looks in `/etc/eventstore/config/`. To take effect, JSON configuration must be saved to one of these locations.
-
-The JSON configuration may be split across multiple files or combined into a single file. Apart from the `.json` extension, the names of the files is not important.
-
-#### Environment variables
-
-Any configuration can alternatively be provided via environment variables.
-
-Use `__` as the level delimiter.
-
-For example, the key configured above in json can also be set with the following environment variable:
-
-```:no-line-numbers
-EventStore__Plugins__UserCertificates__Enabled
-```
+Environment variables can configure nested sections by using `__` as the level
+delimiter.

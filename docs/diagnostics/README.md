@@ -1,16 +1,16 @@
 # Diagnostics
 
-EventStoreDB provides several ways to diagnose and troubleshoot issues.
+TrogonEventStore provides several ways to diagnose and troubleshoot issues.
 
 - [Logging](logs.md): structured or plain-text logs on the console and in log files.
 - [Metrics](metrics.md): collect standard metrics using Prometheus or OpenTelemetry.
 - [Stats](#statistics): runtime statistics exposed through the monitoring gRPC service.
 
-You can also use external tools to measure the performance of EventStoreDB and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.
+You can also use external tools to measure the performance of TrogonEventStore and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.
 
 ## Statistics
 
-EventStoreDB servers collect internal statistics and make them available through the monitoring gRPC service.
+TrogonEventStore servers collect internal statistics and make them available through the monitoring gRPC service.
 Use the `Monitoring.Stats` RPC when you need the structured runtime view that used to be exposed through the
 legacy `/stats` HTTP endpoint. That RPC only exposes information about the node you query and does not include
 cluster-wide state.
@@ -336,7 +336,7 @@ deleted.
 
 Using this setting you can control how often stats events are generated. By default, the node will produce one
 event in 30 seconds. If you want to decrease network pressure on subscribers to the `$all` stream, you can
-tell EventStoreDB to produce stats less often.
+tell TrogonEventStore to produce stats less often.
 
 | Format               | Syntax                        |
 | :------------------- | :---------------------------- |
