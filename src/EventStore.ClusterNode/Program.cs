@@ -49,6 +49,12 @@ internal static class Program
 		Log.Logger = EventStoreLoggerConfiguration.ConsoleLog;
 		try
 		{
+			if (!Environment.Is64BitProcess)
+			{
+				Log.Fatal("A 64-bit process is required to run the server.");
+				return 1;
+			}
+
 			var options = ClusterVNodeOptions.FromConfiguration(configuration);
 
 			var logsDirectory = string.IsNullOrWhiteSpace(options.Logging.Log)
