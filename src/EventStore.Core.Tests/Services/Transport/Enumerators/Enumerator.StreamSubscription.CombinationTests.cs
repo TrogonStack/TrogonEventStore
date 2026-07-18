@@ -670,11 +670,21 @@ public partial class EnumeratorTests
 				throw new Exception("Ephemeral streams cannot be written to.");
 			}
 
-			var numEvents = StreamProps.NumEvents;
-			for (int i = 0; i < numEvents; i++)
+			if (StreamProps.NumEvents > 0)
 			{
-				await WriteEvent();
+				await WriteEvents(StreamProps.NumEvents);
 			}
+		}
+
+		private async Task WriteEvents(int count)
+		{
+			var events = new EventData[count];
+			for (var i = 0; i < count; i++)
+			{
+				events[i] = new EventData(Guid.NewGuid(), "type", true, "{}"u8.ToArray(), Array.Empty<byte>());
+			}
+
+			await NodeConnection.AppendToStreamAsync(_stream, ExpectedVersion.Any, events);
 		}
 
 		private async Task WriteEvent(string stream, string eventType, string data, string metadata)
@@ -765,10 +775,7 @@ public partial class EnumeratorTests
 				}
 
 				numEventsAdded = LiveProps.NumEventsToAdd;
-				for (var i = 0; i < numEventsAdded; i++)
-				{
-					await WriteEvent();
-				}
+				await WriteEvents(numEventsAdded);
 			}
 			else if (LiveProps.SoftDeleteStream)
 			{
@@ -803,10 +810,7 @@ public partial class EnumeratorTests
 			else if (LiveProps.FallBehindThenCatchUp)
 			{
 				numEventsAdded = NumEventsToFallBehind;
-				for (var i = 0; i < NumEventsToFallBehind; i++)
-				{
-					await WriteEvent();
-				}
+				await WriteEvents(NumEventsToFallBehind);
 
 				shouldFallBehindThenCatchup = true;
 			}
@@ -929,10 +933,9 @@ public partial class EnumeratorTests
 		}
 
 		[Test]
-		[Retry(3)]
 		public async Task enumeration_is_correct()
 		{
-			var sub = Subscribe();
+			await using var sub = Subscribe();
 
 			if (HardDeleted)
 			{
