@@ -21,6 +21,10 @@ on:
         required: false
         type: string
         default: eventstore-test-image
+      image-artifact-name:
+        required: false
+        type: string
+        default: eventstore-image
 
 jobs:
   build-container:
@@ -62,6 +66,9 @@ jobs:
           build-args: |
             CONTAINER_RUNTIME=${{ inputs.container-runtime }}
             RUNTIME=${{ inputs.runtime }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=${{ format('container-{0}-{1}', inputs.container-runtime, inputs.runtime) }}
           cache-to: type=gha,mode=max,scope=${{ format('container-{0}-{1}', inputs.container-runtime, inputs.runtime) }}
           secrets: |
@@ -89,6 +96,10 @@ jobs:
         if: ${{ inputs.mode == 'build-only' }}
         run: |
           docker save eventstore-test -o eventstore-test.tar
+      - name: Export Container
+        if: ${{ inputs.mode == 'build-only' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
+        run: |
+          docker save eventstore -o eventstore.tar
       - name: Publish Test Container
         uses: actions/upload-artifact@v7
         if: ${{ inputs.mode == 'build-only' }}
@@ -96,6 +107,15 @@ jobs:
           name: ${{ inputs.test-image-artifact-name }}
           path: eventstore-test.tar
           if-no-files-found: error
+          retention-days: 1
+      - name: Publish Container
+        uses: actions/upload-artifact@v7
+        if: ${{ inputs.mode == 'build-only' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
+        with:
+          name: ${{ inputs.image-artifact-name }}
+          path: eventstore.tar
+          if-no-files-found: error
+          retention-days: 1
       - name: Download Test Container
         uses: actions/download-artifact@v8
         if: ${{ inputs.mode == 'test-only' }}
@@ -110,7 +130,7 @@ jobs:
         run: |
           docker run \
           --env TEST_GROUP="${{ inputs.test-group-name }}" \
-          --volume $(pwd)/test-results:/build/test-results \
+          --volume "$(pwd)/test-results:/build/test-results" \
           --rm \
           eventstore-test
       - name: Normalize Test Result Permissions

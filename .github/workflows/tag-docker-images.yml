@@ -1,0 +1,54 @@
+name: Publish Container Image
+
+on:
+  workflow_call:
+    inputs:
+      image-artifact-name:
+        required: true
+        type: string
+
+jobs:
+  publish-container-image:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Container
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.image-artifact-name }}
+      - name: Load Container
+        run: docker load --input eventstore.tar
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Container
+        env:
+          IMAGE: ghcr.io/trogonstack/trogoneventstore
+        run: |
+          tags=()
+
+          if [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
+            tags+=(ci)
+          elif [[ "$GITHUB_REF" =~ ^refs/tags/v([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            version="${GITHUB_REF_NAME#v}"
+            tags+=("$version")
+
+            if [[ "$version" == *-* ]]; then
+              tags+=(preview)
+            else
+              tags+=("$major.$minor" "$major" stable)
+            fi
+          else
+            echo "Unsupported image publication ref: $GITHUB_REF" >&2
+            exit 1
+          fi
+
+          for tag in "${tags[@]}"; do
+            docker tag eventstore "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+          done
