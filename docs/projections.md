@@ -188,8 +188,8 @@ You cannot configure this projection.
 
 ### By correlation ID
 
-The `$by_correlation_id` projection links existing
-events from projections to a new stream with a stream id in the format `$bc-<correlation id>`.
+The `$by_correlation_id` projection links existing events whose JSON metadata contains the configured
+correlation property to a new stream with a stream id in the format `$bc-<correlation id>`.
 
 The projection takes one parameter, a JSON string as a projection source:
 

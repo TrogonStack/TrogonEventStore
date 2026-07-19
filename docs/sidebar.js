@@ -45,6 +45,7 @@ module.exports = [
             "README.md",
             "logs.md",
             "metrics.md",
+            "monitoring.md",
             "integrations.md",
         ]
     }
