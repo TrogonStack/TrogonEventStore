@@ -30,6 +30,7 @@ jobs:
       runtime: linux-x64
       mode: build-only
       test-image-artifact-name: eventstore-test-image-noble-linux-x64
+      image-artifact-name: eventstore-image-noble-linux-x64
     secrets: inherit
 
   test:
@@ -59,4 +60,18 @@ jobs:
       mode: test-only
       test-image-artifact-name: eventstore-test-image-noble-linux-x64
       test-group-name: ${{ matrix.test-group-name }}
+    secrets: inherit
+
+  publish-image:
+    name: Publish Image
+    if: ${{ github.repository == 'TrogonStack/TrogonEventStore' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
+    needs:
+      - build-images
+      - test
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/tag-docker-images.yml
+    with:
+      image-artifact-name: eventstore-image-noble-linux-x64
     secrets: inherit
