@@ -97,6 +97,24 @@ public class http_service_should : SpecificationWithDirectory
 		Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
 		Assert.That(result.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/plain"));
 	}
+
+	[Test]
+	[Category("Network")]
+	public async Task serve_openmetrics_when_requested()
+	{
+		await using var node = new MiniNode<LogFormat.V2, string>(PathName);
+		await node.Start();
+
+		var request = new HttpRequestMessage(HttpMethod.Get, "/-/metrics");
+		request.Headers.Accept.ParseAdd("application/openmetrics-text; version=1.0.0");
+
+		var result = await node.HttpClient.SendAsync(request);
+		var body = await result.Content.ReadAsStringAsync();
+
+		Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
+		Assert.That(result.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/openmetrics-text"));
+		Assert.That(body, Does.EndWith("# EOF\n"));
+	}
 }
 
 [TestFixture]
