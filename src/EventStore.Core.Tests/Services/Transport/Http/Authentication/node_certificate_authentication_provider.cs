@@ -60,6 +60,25 @@ public class when_handling_a_node_certificate_without_the_client_auth_eku :
 		Assert.False(result);
 	}
 
+	[Test]
+	public void observes_policy_changes_for_new_connections()
+	{
+		var allowNodeCertificateWithoutClientAuthEku = false;
+		_provider = new NodeCertificateAuthenticationProvider(
+			() => "eventstoredb-node",
+			() => allowNodeCertificateWithoutClientAuthEku);
+		using var certificate = CreateCertificate("eventstoredb-node");
+
+		var strictContext = new DefaultHttpContext();
+		strictContext.Connection.ClientCertificate = certificate;
+		Assert.False(_provider.Authenticate(strictContext, out _));
+
+		allowNodeCertificateWithoutClientAuthEku = true;
+		var compatibleContext = new DefaultHttpContext();
+		compatibleContext.Connection.ClientCertificate = certificate;
+		Assert.True(_provider.Authenticate(compatibleContext, out _));
+	}
+
 	private static X509Certificate2 CreateCertificate(string commonName)
 	{
 		using var rsa = RSA.Create();
