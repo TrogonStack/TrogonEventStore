@@ -38,6 +38,7 @@ namespace EventStore.ClusterNode;
 public class ClusterVNodeHostedService : IHostedService, IDisposable
 {
 	private static readonly ILogger Log = Serilog.Log.ForContext<ClusterVNodeHostedService>();
+	private static readonly TimeProvider Time = TimeProvider.System;
 
 	private readonly ClusterVNodeOptions _options;
 	private readonly ExclusiveDbLock _dbLock;
@@ -389,11 +390,42 @@ public class ClusterVNodeHostedService : IHostedService, IDisposable
 		}
 	}
 
-	public Task StartAsync(CancellationToken cancellationToken) =>
-		_options.Application.WhatIf ? Task.CompletedTask : Node.StartAsync(false, cancellationToken);
+	public async Task StartAsync(CancellationToken cancellationToken)
+	{
+		if (_options.Application.WhatIf)
+		{
+			return;
+		}
 
-	public Task StopAsync(CancellationToken cancellationToken) =>
-		Node.StopAsync(cancellationToken: cancellationToken);
+		var startedAt = Time.GetTimestamp();
+		Log.Information("Starting cluster node.");
+		try
+		{
+			await Node.StartAsync(false, cancellationToken);
+			Log.Information("Cluster node started in {Elapsed}.", Time.GetElapsedTime(startedAt));
+		}
+		catch (Exception exception)
+		{
+			Log.Error(exception, "Cluster node failed to start after {Elapsed}.", Time.GetElapsedTime(startedAt));
+			throw;
+		}
+	}
+
+	public async Task StopAsync(CancellationToken cancellationToken)
+	{
+		var startedAt = Time.GetTimestamp();
+		Log.Information("Stopping cluster node.");
+		try
+		{
+			await Node.StopAsync(cancellationToken: cancellationToken);
+			Log.Information("Cluster node stopped in {Elapsed}.", Time.GetElapsedTime(startedAt));
+		}
+		catch (Exception exception)
+		{
+			Log.Error(exception, "Cluster node failed to stop after {Elapsed}.", Time.GetElapsedTime(startedAt));
+			throw;
+		}
+	}
 
 	public void Dispose()
 	{
