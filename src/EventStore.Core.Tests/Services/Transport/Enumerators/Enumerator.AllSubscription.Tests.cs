@@ -20,7 +20,8 @@ public partial class EnumeratorTests
 	private static EnumeratorWrapper CreateAllSubscription(
 		IPublisher publisher,
 		Position? checkpoint,
-		ClaimsPrincipal user = null)
+		ClaimsPrincipal user = null,
+		CancellationToken cancellationToken = default)
 	{
 
 		return new EnumeratorWrapper(new Enumerator.AllSubscription(
@@ -30,7 +31,7 @@ public partial class EnumeratorTests
 			resolveLinks: false,
 			user: user ?? SystemAccounts.System,
 			requiresLeader: false,
-			cancellationToken: CancellationToken.None));
+			cancellationToken: cancellationToken));
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
@@ -82,6 +83,20 @@ public partial class EnumeratorTests
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			Assert.True(await sub.GetNext() is CaughtUp);
+		}
+
+		[Test]
+		public async Task cancellation_preserves_the_callers_token()
+		{
+			using var cancellation = new CancellationTokenSource();
+			await using var sub = CreateAllSubscription(_publisher, Position.End, cancellationToken: cancellation.Token);
+
+			Assert.That(await sub.GetNext(), Is.InstanceOf<SubscriptionConfirmation>());
+			Assert.That(await sub.GetNext(), Is.InstanceOf<CaughtUp>());
+			cancellation.Cancel();
+
+			var exception = Assert.ThrowsAsync<OperationCanceledException>(() => sub.GetNext());
+			Assert.That(exception!.CancellationToken, Is.EqualTo(cancellation.Token));
 		}
 	}
 

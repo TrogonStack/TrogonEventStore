@@ -18,6 +18,11 @@ namespace EventStore.Core.Services.Transport.Grpc
 		public static RpcException ServerBusy() =>
 			new(new Status(StatusCode.Unavailable, "Server Is Too Busy"));
 
+		public static RpcException ServerShuttingDown() =>
+			new(new Status(StatusCode.Unavailable, "Server Is Shutting Down"), new Metadata {
+				{Constants.Exceptions.ExceptionKey, Constants.Exceptions.ServerShuttingDown}
+			});
+
 		public static Exception NoLeaderInfo() =>
 			new RpcException(new Status(StatusCode.Unknown, "No leader info available in response"));
 

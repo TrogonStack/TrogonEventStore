@@ -27,6 +27,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			private readonly ClaimsPrincipal _user;
 			private readonly bool _requiresLeader;
 			private readonly CancellationTokenSource _cts;
+			private readonly CancellationToken _cancellationToken;
 			private readonly Channel<ReadResponse> _channel;
 			private readonly Channel<(ulong SequenceNumber, ResolvedEvent ResolvedEvent)> _liveEvents;
 
@@ -54,6 +55,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				_resolveLinks = resolveLinks;
 				_user = user;
 				_requiresLeader = requiresLeader;
+				_cancellationToken = cancellationToken;
 				_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 				_channel = Channel.CreateBounded<ReadResponse>(BoundedChannelOptions);
 				_liveEvents = Channel.CreateBounded<(ulong, ResolvedEvent)>(LiveChannelOptions);
@@ -82,6 +84,19 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			}
 
 			public async ValueTask<bool> MoveNextAsync()
+			{
+				try
+				{
+					return await MoveNextCoreAsync();
+				}
+				catch (OperationCanceledException exception) when (
+					exception.CancellationToken == _cts.Token && _cancellationToken.IsCancellationRequested)
+				{
+					throw new OperationCanceledException(exception.Message, exception, _cancellationToken);
+				}
+			}
+
+			private async ValueTask<bool> MoveNextCoreAsync()
 			{
 ReadLoop:
 

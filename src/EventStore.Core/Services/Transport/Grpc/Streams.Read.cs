@@ -76,18 +76,13 @@ internal partial class Streams<TStreamId>
 					filterOptionsCase,
 					context.CancellationToken);
 
-				async void DisposeEnumerator() => await enumerator.DisposeAsync();
-
 				await using (enumerator)
 				{
-					await using (context.CancellationToken.Register(DisposeEnumerator))
+					while (await enumerator.MoveNextAsync())
 					{
-						while (await enumerator.MoveNextAsync())
+						if (TryConvertReadResponse(enumerator.Current, uuidOption, out var readResponse))
 						{
-							if (TryConvertReadResponse(enumerator.Current, uuidOption, out var readResponse))
-							{
-								await responseStream.WriteAsync(readResponse);
-							}
+							await responseStream.WriteAsync(readResponse);
 						}
 					}
 				}

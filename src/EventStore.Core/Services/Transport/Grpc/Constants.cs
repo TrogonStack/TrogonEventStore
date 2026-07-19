@@ -14,6 +14,7 @@ namespace EventStore.Core.Services.Transport.Grpc
 			public const string MaximumAppendSizeExceeded = "maximum-append-size-exceeded";
 			public const string MissingRequiredMetadataProperty = "missing-required-metadata-property";
 			public const string NotLeader = "not-leader";
+			public const string ServerShuttingDown = "server-shutting-down";
 
 			public const string PersistentSubscriptionFailed = "persistent-subscription-failed";
 			public const string PersistentSubscriptionDoesNotExist = "persistent-subscription-does-not-exist";

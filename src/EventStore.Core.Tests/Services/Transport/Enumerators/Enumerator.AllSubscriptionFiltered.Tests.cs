@@ -23,7 +23,8 @@ public partial class EnumeratorTests
 		IEventFilter eventFilter = null,
 		uint? maxSearchWindow = null,
 		uint checkpointIntervalMultiplier = 1,
-		ClaimsPrincipal user = null)
+		ClaimsPrincipal user = null,
+		CancellationToken cancellationToken = default)
 	{
 
 		return new EnumeratorWrapper(new Enumerator.AllSubscriptionFiltered(
@@ -36,7 +37,7 @@ public partial class EnumeratorTests
 			requiresLeader: false,
 			maxSearchWindow: maxSearchWindow,
 			checkpointIntervalMultiplier: checkpointIntervalMultiplier,
-			cancellationToken: CancellationToken.None));
+			cancellationToken: cancellationToken));
 	}
 
 
@@ -100,6 +101,24 @@ public partial class EnumeratorTests
 
 			Assert.True(await sub.GetNext() is SubscriptionConfirmation);
 			Assert.True(await sub.GetNext() is CaughtUp);
+		}
+
+		[Test]
+		public async Task cancellation_preserves_the_callers_token()
+		{
+			using var cancellation = new CancellationTokenSource();
+			await using var sub = CreateAllSubscriptionFiltered(
+				_publisher,
+				Position.End,
+				EventFilter.EventType.Prefixes(false, "type1"),
+				cancellationToken: cancellation.Token);
+
+			Assert.That(await sub.GetNext(), Is.InstanceOf<SubscriptionConfirmation>());
+			Assert.That(await sub.GetNext(), Is.InstanceOf<CaughtUp>());
+			cancellation.Cancel();
+
+			var exception = Assert.ThrowsAsync<OperationCanceledException>(() => sub.GetNext());
+			Assert.That(exception!.CancellationToken, Is.EqualTo(cancellation.Token));
 		}
 	}
 

@@ -30,6 +30,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			private readonly uint _maxSearchWindow;
 			private readonly uint _checkpointInterval;
 			private readonly CancellationTokenSource _cts;
+			private readonly CancellationToken _cancellationToken;
 			private readonly Channel<ReadResponse> _channel;
 			private readonly Channel<(ulong SequenceNumber, ResolvedEvent? ResolvedEvent, TFPos? Checkpoint)> _liveEvents;
 
@@ -65,6 +66,7 @@ namespace EventStore.Core.Services.Transport.Enumerators
 				_requiresLeader = requiresLeader;
 				_maxSearchWindow = maxSearchWindow ?? ReadBatchSize;
 				_checkpointInterval = checkpointIntervalMultiplier * _maxSearchWindow;
+				_cancellationToken = cancellationToken;
 				_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 				_channel = Channel.CreateBounded<ReadResponse>(BoundedChannelOptions);
 				_liveEvents = Channel.CreateBounded<(ulong, ResolvedEvent?, TFPos?)>(LiveChannelOptions);
@@ -93,6 +95,19 @@ namespace EventStore.Core.Services.Transport.Enumerators
 			}
 
 			public async ValueTask<bool> MoveNextAsync()
+			{
+				try
+				{
+					return await MoveNextCoreAsync();
+				}
+				catch (OperationCanceledException exception) when (
+					exception.CancellationToken == _cts.Token && _cancellationToken.IsCancellationRequested)
+				{
+					throw new OperationCanceledException(exception.Message, exception, _cancellationToken);
+				}
+			}
+
+			private async ValueTask<bool> MoveNextCoreAsync()
 			{
 ReadLoop:
 
