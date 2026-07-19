@@ -20,7 +20,8 @@ public partial class EnumeratorTests
 		IPublisher publisher,
 		string streamName,
 		StreamRevision? checkpoint = null,
-		ClaimsPrincipal user = null)
+		ClaimsPrincipal user = null,
+		CancellationToken cancellationToken = default)
 	{
 
 		return new EnumeratorWrapper(new Enumerator.StreamSubscription<TStreamId>(
@@ -31,7 +32,7 @@ public partial class EnumeratorTests
 			resolveLinks: false,
 			user: user ?? SystemAccounts.System,
 			requiresLeader: false,
-			cancellationToken: CancellationToken.None));
+			cancellationToken: cancellationToken));
 	}
 
 	[TestFixture(typeof(LogFormat.V2), typeof(string))]
@@ -83,6 +84,21 @@ public partial class EnumeratorTests
 
 			Assert.True(await enumerator.GetNext() is SubscriptionConfirmation);
 			Assert.True(await enumerator.GetNext() is CaughtUp);
+		}
+
+		[Test]
+		public async Task cancellation_preserves_the_callers_token()
+		{
+			using var cancellation = new CancellationTokenSource();
+			await using var enumerator = CreateStreamSubscription<TStreamId>(
+				_publisher, streamName: "test-stream1", StreamRevision.End, cancellationToken: cancellation.Token);
+
+			Assert.That(await enumerator.GetNext(), Is.InstanceOf<SubscriptionConfirmation>());
+			Assert.That(await enumerator.GetNext(), Is.InstanceOf<CaughtUp>());
+			cancellation.Cancel();
+
+			var exception = Assert.ThrowsAsync<OperationCanceledException>(() => enumerator.GetNext());
+			Assert.That(exception!.CancellationToken, Is.EqualTo(cancellation.Token));
 		}
 	}
 }

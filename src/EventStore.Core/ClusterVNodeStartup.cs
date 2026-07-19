@@ -131,6 +131,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			// is driven by the HttpContext.User established above
 			.UseAuthentication()
 			.UseRouting()
+			.UseMiddleware<GrpcStreamLifetimeMiddleware>()
 			.UseAuthorization()
 			.UseAntiforgery();
 
@@ -237,9 +238,11 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 			// gRPC
 			.AddSingleton<RetryInterceptor>()
+			.AddSingleton<GrpcServerShutdownInterceptor>()
 			.AddGrpc(options =>
 			{
 				options.Interceptors.Add<RetryInterceptor>();
+				options.Interceptors.Add<GrpcServerShutdownInterceptor>();
 
 				var eventStoreConfiguration = _configuration.GetSection("EventStore");
 				var compressionLevel = (eventStoreConfiguration.Exists()
