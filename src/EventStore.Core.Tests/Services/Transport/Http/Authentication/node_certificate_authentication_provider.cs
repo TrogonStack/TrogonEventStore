@@ -1,6 +1,9 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -16,9 +19,127 @@ public class TestFixtureWithNodeCertificateHttpAuthenticationProvider
 {
 	protected NodeCertificateAuthenticationProvider _provider;
 
-	protected void SetUpProvider()
+	protected void SetUpProvider(bool allowNodeCertificateWithoutClientAuthEku = false)
 	{
-		_provider = new NodeCertificateAuthenticationProvider(() => "eventstoredb-node");
+		_provider = new NodeCertificateAuthenticationProvider(
+			() => "eventstoredb-node",
+			allowNodeCertificateWithoutClientAuthEku);
+	}
+}
+
+[TestFixture]
+public class when_handling_a_node_certificate_without_the_client_auth_eku :
+	TestFixtureWithNodeCertificateHttpAuthenticationProvider
+{
+	[TestCase(false, false)]
+	[TestCase(true, true)]
+	public async Task follows_the_explicit_compatibility_policy(bool allowNodeCertificateWithoutClientAuthEku,
+		bool expectedResult)
+	{
+		SetUpProvider(allowNodeCertificateWithoutClientAuthEku);
+		var context = new DefaultHttpContext();
+		using var certificate = CreateCertificate("eventstoredb-node");
+		using var presentedCertificate = await PresentCertificateOverTls(certificate);
+		context.Connection.ClientCertificate = presentedCertificate;
+
+		var result = _provider.Authenticate(context, out _);
+
+		Assert.AreEqual(expectedResult, result);
+	}
+
+	[Test]
+	public void does_not_relax_the_node_identity_policy()
+	{
+		SetUpProvider(allowNodeCertificateWithoutClientAuthEku: true);
+		var context = new DefaultHttpContext();
+		using var certificate = CreateCertificate("another-node");
+		context.Connection.ClientCertificate = certificate;
+
+		var result = _provider.Authenticate(context, out _);
+
+		Assert.False(result);
+	}
+
+	private static X509Certificate2 CreateCertificate(string commonName)
+	{
+		using var rsa = RSA.Create();
+		var request = new CertificateRequest(
+			$"CN={commonName}",
+			rsa,
+			HashAlgorithmName.SHA256,
+			RSASignaturePadding.Pkcs1);
+		var sanBuilder = new SubjectAlternativeNameBuilder();
+		sanBuilder.AddDnsName("localhost");
+		request.CertificateExtensions.Add(sanBuilder.Build());
+		request.CertificateExtensions.Add(new X509KeyUsageExtension(
+			X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment,
+			critical: false));
+		request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+			[new Oid("1.3.6.1.5.5.7.3.1")],
+			critical: false));
+
+		return request.CreateSelfSigned(
+			DateTimeOffset.UtcNow.AddMonths(-1),
+			DateTimeOffset.UtcNow.AddMonths(1));
+	}
+
+	private static async Task<X509Certificate2> PresentCertificateOverTls(X509Certificate2 clientCertificate)
+	{
+		using var serverCertificate = CreateCertificate("localhost");
+		var listener = new TcpListener(IPAddress.Loopback, 0);
+		listener.Start();
+
+		try
+		{
+			var serverTask = Task.Run(async () =>
+			{
+				using var serverClient = await listener.AcceptTcpClientAsync();
+				using var serverStream = new SslStream(
+					serverClient.GetStream(),
+					leaveInnerStreamOpen: false,
+					(_, certificate, chain, errors) =>
+					{
+						var result = ClusterVNode<string>.ValidateClientCertificate(
+							certificate,
+							chain,
+							errors,
+							() => null,
+							() => new X509Certificate2Collection(clientCertificate));
+						return result.Item1;
+					});
+				await serverStream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
+				{
+					ServerCertificate = serverCertificate,
+					ClientCertificateRequired = true,
+					CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+					EnabledSslProtocols = SslProtocols.None
+				});
+
+				return X509CertificateLoader.LoadCertificate(
+					serverStream.RemoteCertificate.Export(X509ContentType.Cert));
+			});
+
+			using var client = new TcpClient();
+			await client.ConnectAsync((IPEndPoint)listener.LocalEndpoint);
+			using var clientStream = new SslStream(
+				client.GetStream(),
+				leaveInnerStreamOpen: false,
+				(_, _, _, _) => true,
+				(_, _, _, _, _) => clientCertificate);
+			await clientStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+			{
+				TargetHost = "localhost",
+				ClientCertificates = new X509CertificateCollection { clientCertificate },
+				CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+				EnabledSslProtocols = SslProtocols.None
+			});
+
+			return await serverTask.WaitAsync(TimeSpan.FromSeconds(10));
+		}
+		finally
+		{
+			listener.Stop();
+		}
 	}
 }
 

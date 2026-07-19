@@ -165,6 +165,32 @@ If the domains are `node1.esdb.mycompany.org`, `node2.esdb.mycompany.org` and `n
 Server certificates **must** have the internal and external IP addresses (`ReplicationIp` and `NodeIp` respectively) or DNS names as subject alternative names.
 :::
 
+#### Node certificate Client Authentication usage
+
+Cluster nodes normally use the same certificate when accepting and initiating node-to-node connections. For HTTPS
+cluster traffic, strict node authentication therefore requires both Server Authentication and Client Authentication usages
+when an Extended Key Usage extension is present.
+
+Some public certificate authorities issue TLS server certificates without the Client Authentication usage. A node can
+accept those certificates from other cluster members only when this compatibility policy is explicitly enabled:
+
+| Format               | Syntax                                                   |
+|:---------------------|:---------------------------------------------------------|
+| Command line         | `--allow-node-certificate-without-client-auth-eku`        |
+| YAML                 | `AllowNodeCertificateWithoutClientAuthEku`                |
+| Environment variable | `EVENTSTORE_ALLOW_NODE_CERTIFICATE_WITHOUT_CLIENT_AUTH_EKU` |
+
+**Default**: `false`
+
+::: warning
+Enable this option only when your certificate authority cannot issue node certificates with both usages. Trusted chain,
+validity period, common-name policy, subject alternative names, key usage, and Server Authentication usage remain
+required. This option does not relax user certificate authentication.
+:::
+
+This setting controls node identity authentication for HTTPS cluster traffic. It does not change legacy secure TCP
+replication certificate handling.
+
 #### Trusted root certificates
 
 When getting an incoming connection, the server needs to ensure if the certificate used for the connection can be trusted. For this to work, the server needs to know where trusted root certificates are located.

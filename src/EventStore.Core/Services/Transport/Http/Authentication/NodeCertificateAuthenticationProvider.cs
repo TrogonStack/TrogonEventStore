@@ -15,12 +15,15 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 	public class NodeCertificateAuthenticationProvider : IHttpAuthenticationProvider
 	{
 		private readonly Func<string> _getCertificateReservedNodeCommonName;
+		private readonly bool _allowNodeCertificateWithoutClientAuthEku;
 
 		public string Name => "node-certificate";
 
-		public NodeCertificateAuthenticationProvider(Func<string> getCertificateReservedNodeCommonName)
+		public NodeCertificateAuthenticationProvider(Func<string> getCertificateReservedNodeCommonName,
+			bool allowNodeCertificateWithoutClientAuthEku = false)
 		{
 			_getCertificateReservedNodeCommonName = getCertificateReservedNodeCommonName;
+			_allowNodeCertificateWithoutClientAuthEku = allowNodeCertificateWithoutClientAuthEku;
 		}
 
 		public bool Authenticate(HttpContext context, out HttpAuthenticationRequest request)
@@ -98,7 +101,9 @@ namespace EventStore.Core.Services.Transport.Http.Authentication
 		private bool AuthenticateUncached(HttpContext context, X509Certificate2 clientCertificate)
 		{
 			var ip = context.Connection.RemoteIpAddress?.ToString() ?? "<unknown>";
-			var isServerCertificate = clientCertificate.IsServerCertificate(out var serverCertReason);
+			var isServerCertificate = clientCertificate.IsServerCertificate(
+				_allowNodeCertificateWithoutClientAuthEku,
+				out var serverCertReason);
 
 			var reservedNodeCN = _getCertificateReservedNodeCommonName();
 			bool hasReservedNodeCN;

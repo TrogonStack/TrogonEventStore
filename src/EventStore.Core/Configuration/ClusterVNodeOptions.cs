@@ -339,6 +339,11 @@ public partial record ClusterVNodeOptions
 		[Description(
 			"The pattern the CN (Common Name) of a connecting EventStoreDB node must match to be authenticated. A wildcard FQDN can be specified if using wildcard certificates or if the CN is not the same on all nodes. Leave empty to automatically use the CN of this node's certificate.")]
 		public string CertificateReservedNodeCommonName { get; init; } = string.Empty;
+
+		[Description(
+			"Allows an incoming node certificate to omit the Client Authentication extended key usage. " +
+			"All other node certificate validation remains enabled. Enable only when the certificate authority cannot issue node certificates with both Server Authentication and Client Authentication usages.")]
+		public bool AllowNodeCertificateWithoutClientAuthEku { get; init; } = false;
 	}
 
 	[Description("Certificate Options (from store)")]
