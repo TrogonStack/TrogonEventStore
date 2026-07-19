@@ -61,6 +61,12 @@ Alert on a growing difference between the last-known and checkpointed event posi
 growing gap means consumers are not keeping up. Also alert on parked messages and the age of the oldest parked
 message.
 
+The persistent-subscription position metrics differ by source. Stream subscriptions expose
+`eventstore_persistent_sub_last_known_event_number` and
+`eventstore_persistent_sub_checkpointed_event_number`. Subscriptions to `$all` expose the corresponding
+`eventstore_persistent_sub_last_known_event_commit_position` and
+`eventstore_persistent_sub_checkpointed_event_commit_position` metrics.
+
 ### Projection failure
 
 Alert when `eventstore_projection_status{status="Faulted"}` is `1`, when a required projection stops
@@ -72,12 +78,6 @@ generated streams stale.
 Alert on low free disk or memory, sustained CPU pressure, growing thread-pool pending work, or long garbage
 collection pauses. Resource pressure can increase queue time, trigger timeouts, and make a node miss cluster
 heartbeats.
-
-The persistent-subscription position metrics differ by source. Stream subscriptions expose
-`eventstore_persistent_sub_last_known_event_number` and
-`eventstore_persistent_sub_checkpointed_event_number`. Subscriptions to `$all` expose the corresponding
-`eventstore_persistent_sub_last_known_event_commit_position` and
-`eventstore_persistent_sub_checkpointed_event_commit_position` metrics.
 
 ## Keep logs in the same incident view
 
