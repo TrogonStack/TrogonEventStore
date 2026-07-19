@@ -207,6 +207,26 @@ Every node in a stable TrogonEventStore deployment settles into one of three rol
 
 The leader ensures that writes are persisted to its own disk, replicated to a majority of cluster nodes, and indexed on the leader so that they can be read from the leader, before acknowledging the write as successful to the client.
 
+#### Resign the current leader
+
+Use leader resignation when maintenance or load placement requires the cluster to elect a different leader
+without stopping a node. From the current leader, use the _Resign leader_ action on the Admin UI Operations page,
+or call the gRPC `event_store.client.operations.Operations/ResignNode` method as an `admin` or `ops` user.
+
+The gRPC response confirms that the request was accepted, not that the election has finished. It does not
+report a later failure to reach quorum. After a majority of voting nodes acknowledges the resignation, the
+leader continues to serve reads but rejects new writes and persistent-subscription requests, lets requests
+already in progress drain, and starts a new election. Monitor the node roles and client operations until the
+cluster has one leader again.
+
+Send the request to the current leader. A request sent to another node is accepted by the gRPC transport but is
+ignored by the election service. Applications must tolerate temporary `NotReady` responses while the election
+completes and follow the discovery and retry guidance for their client.
+
+Resignation makes the previous leader less preferable than another equally up-to-date candidate. It does not
+exclude that node from the election, so the same node can become leader again when it remains the best eligible
+candidate.
+
 ### Follower
 
 A cluster assigns the follower role based on an election process. A cluster uses one or more nodes with the follower role to form the quorum, or the majority of nodes necessary to confirm that the write is persisted.

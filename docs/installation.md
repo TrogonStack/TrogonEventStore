@@ -91,6 +91,19 @@ source build does not register itself automatically.
 
 The node handles Service Control Manager stop requests through graceful shutdown.
 
+::: warning Windows startup deadline
+Windows Service Control Manager expects a service to report that it is running within its configured startup
+deadline. Configuration, certificate loading, and host construction occur before TrogonEventStore connects to
+the service manager, so delays or failures in that work can exhaust the deadline. Windows records service
+startup timeouts as Service Control Manager events such as 7000 or 7011.
+
+Service Control Manager can report the service as running before the database is ready to accept traffic.
+Always use `/-/readiness` as the traffic gate. Before registering the node as a service, start the same command
+interactively to expose configuration or certificate delays. If Windows stops an otherwise healthy startup,
+investigate the delay first, then adjust the host's `ServicesPipeTimeout` policy if it is expected. Microsoft
+documents that policy in [A slow service does not start due to time-out error in Windows](https://learn.microsoft.com/en-us/troubleshoot/windows-server/system-management-components/service-not-start-events-7000-7011-time-out-error).
+:::
+
 Example service registration:
 
 ```powershell:no-line-numbers

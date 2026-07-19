@@ -4,6 +4,7 @@ TrogonEventStore provides several ways to diagnose and troubleshoot issues.
 
 - [Logging](logs.md): structured or plain-text logs on the console and in log files.
 - [Metrics](metrics.md): collect standard metrics using Prometheus or OpenTelemetry.
+- [Monitoring and alerting](monitoring.md): turn health, metrics, and logs into operational signals.
 - [Stats](#statistics): runtime statistics exposed through the monitoring gRPC service.
 
 You can also use external tools to measure the performance of TrogonEventStore and monitor the cluster health. Learn more on the [Integrations](./integrations.md) page.

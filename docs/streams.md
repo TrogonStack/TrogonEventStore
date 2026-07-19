@@ -124,6 +124,35 @@ If you plan to use projections and delete streams, there are some considerations
 
 ## System events and streams
 
+Stream and event names beginning with `$` are reserved for database-managed data. The metadata stream for a
+system stream consequently begins with `$$$`, because stream metadata adds `$$` to the original stream name.
+Unless a stream-specific ACL overrides it, system streams use the `$systemStreamAcl` from `$settings`, which
+restricts reads and writes to `$admins` by default. See [Default ACL](security.md#default-acl) before granting
+broader access, because changing the system default also affects sensitive streams such as `$settings`.
+
+Do not append application events directly to streams owned by the projection subsystem. Projections use their
+own output and checkpoint history to recover deterministically, and an unexpected event can fault a projection.
+
+### Streams created by system projections
+
+Enabled [system projections](projections.md#system-projections) create the following reserved streams:
+
+| Projection              | Stream                                      | Purpose                                      |
+|:------------------------|:--------------------------------------------|:---------------------------------------------|
+| `$streams`              | `$streams`                                  | A link to the first event in each source stream |
+| `$by_category`          | `$ce-{category}`                            | Links to events grouped by stream category   |
+| `$by_event_type`        | `$et-{event-type}`                          | Links to events grouped by event type        |
+| `$by_event_type`        | `$et`                                       | Event-type index checkpoints                 |
+| `$by_correlation_id`    | `$bc-{correlation-id}`                      | Links grouped by metadata correlation ID     |
+| `$stream_by_category`   | `$category-{category}`                      | References to streams grouped by category    |
+
+Deleting an original event does not delete an existing link event from a system-projection stream. Consumers
+must tolerate links that no longer resolve after deletion and scavenging.
+
+Under the built-in ACL authorization policy, the projection runtime gives `$all` read and metadata-read access
+to its generated output streams. Write and delete access remains protected by the system-stream ACL. Review any
+custom stream ACL before depending on this access from an application.
+
 ### **`$persistentSubscriptionConfig`**
 
 **`$persistentSubscriptionConfig`** is a specialized paged stream that stores all configuration events for all
