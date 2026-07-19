@@ -103,6 +103,38 @@ public class ClusterVNodeOptionsTests
 	}
 
 	[Fact]
+	public void node_certificate_client_auth_eku_validation_is_strict_by_default()
+	{
+		var configuration = EventStoreConfiguration.Build(Array.Empty<string>());
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.Certificate.AllowNodeCertificateWithoutClientAuthEku.Should().BeFalse();
+	}
+
+	[Fact]
+	public void node_certificate_client_auth_eku_compatibility_is_explicitly_configurable()
+	{
+		var options = GetOptions("--allow-node-certificate-without-client-auth-eku true");
+
+		options.Certificate.AllowNodeCertificateWithoutClientAuthEku.Should().BeTrue();
+		Assert.Empty(options.Unknown.Options);
+	}
+
+	[Fact]
+	public void node_certificate_client_auth_eku_compatibility_can_be_configured_from_the_environment()
+	{
+		var configuration = new ConfigurationBuilder()
+			.AddEventStoreDefaultValues()
+			.AddEventStoreEnvironmentVariables((
+				"EVENTSTORE_ALLOW_NODE_CERTIFICATE_WITHOUT_CLIENT_AUTH_EKU",
+				"true"))
+			.Build();
+		var options = ClusterVNodeOptions.FromConfiguration(configuration);
+
+		options.Certificate.AllowNodeCertificateWithoutClientAuthEku.Should().BeTrue();
+	}
+
+	[Fact]
 	public void insecure_disables_tls_and_auth()
 	{
 		var options = GetOptions("--insecure true");

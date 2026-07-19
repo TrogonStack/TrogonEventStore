@@ -212,6 +212,7 @@ public class ClusterVNode<TStreamId> :
 	private int _systemInitPublished;
 	private int _shutdownStarted;
 	private int _reloadingConfig;
+	private int _allowNodeCertificateWithoutClientAuthEku;
 	private PosixSignalRegistration _reloadConfigSignalRegistration;
 	private readonly object _startupTaskGate = new();
 	private Task _startupTask = null!;
@@ -1077,8 +1078,10 @@ public class ClusterVNode<TStreamId> :
 		if (!options.Application.TlsDisabled())
 		{
 			//transport-level authentication providers
-			httpAuthenticationProviders.Add(
-				new NodeCertificateAuthenticationProvider(() => _certificateProvider.GetReservedNodeCommonName()));
+			httpAuthenticationProviders.Add(new NodeCertificateAuthenticationProvider(
+				getCertificateReservedNodeCommonName: () => _certificateProvider.GetReservedNodeCommonName(),
+				getAllowNodeCertificateWithoutClientAuthEku: () =>
+					Volatile.Read(ref _allowNodeCertificateWithoutClientAuthEku) != 0));
 		}
 
 		if (!options.Application.AuthDisabled() && options.Interface.EnableTrustedAuth)
@@ -2247,6 +2250,10 @@ public class ClusterVNode<TStreamId> :
 		{
 			throw new InvalidConfigurationException("Aborting certificate loading due to verification errors.");
 		}
+
+		Volatile.Write(
+			ref _allowNodeCertificateWithoutClientAuthEku,
+			options.Certificate.AllowNodeCertificateWithoutClientAuthEku ? 1 : 0);
 	}
 
 	public override string ToString() =>

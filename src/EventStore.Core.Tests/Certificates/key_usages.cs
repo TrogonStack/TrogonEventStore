@@ -76,6 +76,7 @@ public class key_usages
 
 		// historically, server certificates also have the clientAuth EKU
 		Assert.False(sut.IsServerCertificate(out _));
+		Assert.True(sut.IsServerCertificate(allowMissingClientAuthEku: true, out _));
 		Assert.False(sut.IsClientCertificate(out _));
 	}
 
@@ -99,6 +100,7 @@ public class key_usages
 
 		Assert.False(sut.IsClientCertificate(out _));
 		Assert.False(sut.IsServerCertificate(out _));
+		Assert.False(sut.IsServerCertificate(allowMissingClientAuthEku: true, out _));
 	}
 
 	[Test]
