@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Testing;
-using Microsoft.CodeAnalysis.Testing.Verifiers;
+using Microsoft.CodeAnalysis.Testing;
 
 namespace EventStore.SourceGenerators.Tests.Messaging;
 
@@ -12,7 +12,7 @@ public static class CSharpSourceGeneratorVerifier<TSourceGenerator>
 	where TSourceGenerator : ISourceGenerator, new()
 {
 
-	public class Test : CSharpSourceGeneratorTest<TSourceGenerator, XUnitVerifier>
+	public class Test : CSharpSourceGeneratorTest<TSourceGenerator, DefaultVerifier>
 	{
 		public Test()
 		{
