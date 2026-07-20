@@ -8,6 +8,7 @@ using OpenTelemetry.Logs;
 using Serilog;
 using Serilog.Filters;
 using Serilog.Sinks.OpenTelemetry;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Common.Log;
 
@@ -37,9 +38,9 @@ public static class OpenTelemetryLogger
 			{
 				options.ResourceAttributes = new Dictionary<string, object>
 				{
-					["service.name"] = "eventstore",
-					["service.instance.id"] = componentName,
-					["service.version"] = VersionInfo.Version
+					[AttributeNames.ServiceName] = "eventstore",
+					[AttributeNames.ServiceInstanceId] = componentName,
+					[AttributeNames.ServiceVersion] = VersionInfo.Version
 				};
 				options.Protocol = otlpExporterConfig.Protocol switch
 				{

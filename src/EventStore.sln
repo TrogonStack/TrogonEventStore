@@ -63,6 +63,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.SystemRuntime.Te
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{CB56B2BD-5ABA-49C7-BD57-21B9CD5C3205}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrogonEventStore.SemanticConventions", "TrogonEventStore.SemanticConventions\TrogonEventStore.SemanticConventions.csproj", "{05D9513D-A26A-410A-A145-4A17548EB79C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -349,6 +351,18 @@ Global
 		{CA966906-51C8-4520-924E-988FA396B712}.Release|ARM64.Build.0 = Release|ARM64
 		{CA966906-51C8-4520-924E-988FA396B712}.Release|x64.ActiveCfg = Release|x64
 		{CA966906-51C8-4520-924E-988FA396B712}.Release|x64.Build.0 = Release|x64
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Debug|x64.Build.0 = Debug|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Release|ARM64.Build.0 = Release|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Release|x64.ActiveCfg = Release|Any CPU
+		{05D9513D-A26A-410A-A145-4A17548EB79C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

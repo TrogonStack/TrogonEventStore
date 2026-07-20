@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<VersionPrefix>0.1.0</VersionPrefix>
+		<VersionSuffix></VersionSuffix>
+		<IsPackable>true</IsPackable>
+		<PackageId>TrogonEventStore.SemanticConventions</PackageId>
+		<RootNamespace>TrogonEventStore.SemanticConventions</RootNamespace>
+		<AssemblyName>TrogonEventStore.SemanticConventions</AssemblyName>
+		<Authors>Straw Hat, LLC</Authors>
+		<Company>Straw Hat, LLC</Company>
+		<Copyright>Copyright Straw Hat, LLC</Copyright>
+		<Description>Shared OpenTelemetry semantic convention constants for TrogonEventStore components.</Description>
+		<PackageProjectUrl>https://github.com/TrogonStack/TrogonEventStore</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReleaseNotes></PackageReleaseNotes>
+		<PackageTags>opentelemetry;semantic-conventions;weaver</PackageTags>
+		<RepositoryUrl>https://github.com/TrogonStack/TrogonEventStore</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+		<None Remove="..\..\ouro.png" />
+	</ItemGroup>
+</Project>

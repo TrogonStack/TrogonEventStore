@@ -1,0 +1,12 @@
+#!/bin/sh
+#MISE description="Validate the semantic convention registry and generated constants"
+
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
+expected="$root/src/TrogonEventStore.SemanticConventions/Generated"
+generated=$(mktemp -d)
+trap 'rm -rf "$generated"' EXIT HUP INT TERM
+
+"$root/.config/mise/tasks/semconv/generate" "$generated"
+diff -ru "$expected" "$generated"

@@ -1,3 +1,6 @@
+[tools]
+"github:open-telemetry/weaver" = "0.24.2"
+
 [tasks."ui:dev"]
 description = "Run a local file-backed node for Razor UI testing"
 run = '''
