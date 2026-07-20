@@ -1,5 +1,5 @@
 using System;
-using EventStore.Common.Utils;
+using System.Reflection;
 using EventStore.Core.Diagnostics;
 using FluentAssertions;
 using Xunit;
@@ -12,9 +12,12 @@ public class TelemetryMeterFactoryTests
 	public void UsesTheCurrentServerVersionForTheInstrumentationScope()
 	{
 		using var meter = TelemetryMeterFactory.Create("test-scope");
+		var informationalVersion = typeof(TelemetryMeterFactory).Assembly
+			.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+			.InformationalVersion;
 
 		meter.Name.Should().Be("test-scope");
-		meter.Version.Should().Be(VersionInfo.Version);
+		meter.Version.Should().Be(informationalVersion.Split('+', 2)[0]);
 	}
 
 	[Theory]
