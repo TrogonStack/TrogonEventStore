@@ -205,7 +205,7 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 			return;
 		}
 
-		var projectionMeter = TelemetryMeterFactory.Create("EventStore.Projections.Core");
+		var projectionMeter = TelemetryMeterFactory.Create(TelemetryMeterInstrumentation.ProjectionsName);
 
 		var tracker = new ProjectionTracker();
 		_projectionTracker = tracker;

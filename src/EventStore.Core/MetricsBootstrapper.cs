@@ -84,7 +84,7 @@ public static class MetricsBootstrapper
 			return;
 		}
 
-		var coreMeter = TelemetryMeterFactory.Create("EventStore.Core");
+		var coreMeter = TelemetryMeterFactory.Create(TelemetryMeterInstrumentation.CoreName);
 		var statusMetric = new StatusMetric(coreMeter, "eventstore-statuses");
 		var grpcMethodMetric = new DurationMetric(coreMeter, "eventstore-grpc-method-duration");
 		var gossipLatencyMetric = new DurationMetric(coreMeter, "eventstore-gossip-latency");
