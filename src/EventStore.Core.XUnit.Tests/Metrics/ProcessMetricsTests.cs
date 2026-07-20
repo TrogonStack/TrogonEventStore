@@ -42,7 +42,7 @@ public class ProcessMetricsTests : IDisposable
 			{ MetricsConfiguration.ProcessTracker.HeapSize, "eventstore-gc-heap-size-bytes" },
 			{ MetricsConfiguration.ProcessTracker.HeapFragmentation, "eventstore-gc-heap-fragmentation" },
 			{ MetricsConfiguration.ProcessTracker.TotalAllocatedBytes, "eventstore-gc-total-allocated" },
-			{ MetricsConfiguration.ProcessTracker.GcPauseDuration, "eventstore-gc-pause-duration-seconds" },
+			{ MetricsConfiguration.ProcessTracker.GcPauseDuration, "eventstore-gc-pause-duration-max-seconds" },
 		});
 
 		_sut.CreateMemoryMetric("eventstore-proc-mem-bytes", new() {
@@ -70,8 +70,8 @@ public class ProcessMetricsTests : IDisposable
 		});
 
 		_sut.CreateDiskOpsMetric("eventstore-disk-io-operations", new() {
-			{ MetricsConfiguration.ProcessTracker.DiskReadBytes, "read" },
-			{ MetricsConfiguration.ProcessTracker.DiskWrittenBytes, "written" },
+			{ MetricsConfiguration.ProcessTracker.DiskReadOps, "read" },
+			{ MetricsConfiguration.ProcessTracker.DiskWrittenOps, "written" },
 		});
 
 		// To trigger the GC pause detection metric.
@@ -383,7 +383,7 @@ public class ProcessMetricsTests : IDisposable
 			try
 			{
 				Assert.Collection(
-					_doubleListener.RetrieveMeasurements("eventstore-gc-pause-duration-seconds"),
+					_doubleListener.RetrieveMeasurements("eventstore-gc-pause-duration-max-seconds"),
 					m =>
 					{
 						Assert.Collection(
