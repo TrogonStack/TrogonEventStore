@@ -8,10 +8,7 @@
 		"Enabled": false
 	},
 
-	"Meters": [
-		"EventStore.Core",
-		"EventStore.Projections.Core"
-	],
+	"Meters": [],
 
 	"Statuses": {
 		"Index": true,

@@ -4,6 +4,8 @@ TrogonEventStore collects metrics in [Prometheus format](https://prometheus.io/d
 
 In addition, TrogonEventStore can actively export metrics to a specified endpoint using the [OpenTelemetry Protocol](https://opentelemetry.io/docs/specs/otel/protocol/) (OTLP).
 
+The built-in Core and Projections meter sources are always registered. Use the `Meters` array in `metricsconfig.json` only when additional components expose their own `System.Diagnostics.Metrics` meter sources.
+
 ## Metrics reference
 
 ### Caches

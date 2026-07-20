@@ -301,7 +301,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	{
 		meterOptions
 			.SetResourceBuilder(serviceIdentity.CreateResourceBuilder())
-			.AddMeter(metricsConfiguration.Meters)
+			.AddMeter(TelemetryMeterInstrumentation.GetNames(metricsConfiguration.Meters))
 			.AddView(i =>
 			{
 				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
