@@ -12,7 +12,7 @@ public class QueueBusyTrackerTests
 	{
 		using var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
 		using var listener = new TestMeterListener<double>(meter);
-		var metric = new AverageMetric(meter, "the-metric", "seconds", label => new("queue", label));
+		var metric = new AverageMetric(meter, "the-metric-seconds", label => new("queue", label));
 		var sut = new QueueBusyTracker(metric, "the-queue");
 
 		sut.EnterBusy();

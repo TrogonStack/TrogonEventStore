@@ -16,7 +16,7 @@ public class QueueProcessingTrackerTests : IDisposable
 	public QueueProcessingTrackerTests()
 	{
 		var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
-		var metric = new DurationMetric(meter, "the-metric", _clock);
+		var metric = new DurationMetric(meter, "the-metric-seconds", _clock);
 		_listener = new TestMeterListener<double>(meter);
 		_sut = new(metric, "the-queue");
 	}

@@ -1,0 +1,414 @@
+groups:
+  - id: metric.eventstore.statuses
+    type: metric
+    stability: stable
+    brief: Component status transition timestamps.
+    metric_name: eventstore-statuses
+    instrument: counter
+    unit: s
+  - id: metric.eventstore.grpc.method.duration
+    type: metric
+    stability: stable
+    brief: Duration of gRPC method calls.
+    metric_name: eventstore-grpc-method-duration-seconds
+    instrument: histogram
+    unit: s
+  - id: metric.eventstore.gossip.latency
+    type: metric
+    stability: stable
+    brief: Duration of gossip exchanges.
+    metric_name: eventstore-gossip-latency-seconds
+    instrument: histogram
+    unit: s
+  - id: metric.eventstore.gossip.processing.duration
+    type: metric
+    stability: stable
+    brief: Duration of gossip message processing.
+    metric_name: eventstore-gossip-processing-duration-seconds
+    instrument: histogram
+    unit: s
+  - id: metric.eventstore.queue.queueing.duration.max
+    type: metric
+    stability: stable
+    brief: Maximum time messages wait in queues.
+    metric_name: eventstore-queue-queueing-duration-max-seconds
+    instrument: gauge
+    unit: s
+  - id: metric.eventstore.queue.processing.duration
+    type: metric
+    stability: stable
+    brief: Duration of queue message processing.
+    metric_name: eventstore-queue-processing-duration-seconds
+    instrument: histogram
+    unit: s
+  - id: metric.eventstore.queue.busy
+    type: metric
+    stability: stable
+    brief: Average queue processing time.
+    metric_name: eventstore-queue-busy-seconds
+    instrument: counter
+    unit: s
+  - id: metric.eventstore.queue.length
+    type: metric
+    stability: stable
+    brief: Number of messages waiting in queues.
+    metric_name: eventstore-queue-length
+    instrument: updowncounter
+    unit: "{item}"
+  - id: metric.eventstore.io.bytes
+    type: metric
+    stability: stable
+    brief: Bytes read by transaction file operations.
+    metric_name: eventstore-io-bytes
+    instrument: counter
+    unit: By
+  - id: metric.eventstore.io.events
+    type: metric
+    stability: stable
+    brief: Events read or indexed by storage operations.
+    metric_name: eventstore-io-events
+    instrument: counter
+    unit: "{event}"
+  - id: metric.eventstore.io.record.read.duration
+    type: metric
+    stability: stable
+    brief: Duration of transaction file record reads.
+    metric_name: eventstore-io-record-read-duration-seconds
+    instrument: histogram
+    unit: s
+  - id: metric.eventstore.elections.count
+    type: metric
+    stability: stable
+    brief: Number of cluster elections.
+    metric_name: eventstore-elections-count
+    instrument: counter
+    unit: "{election}"
+  - id: metric.eventstore.current.incoming.grpc.calls
+    type: metric
+    stability: stable
+    brief: Number of active incoming gRPC calls.
+    metric_name: eventstore-current-incoming-grpc-calls
+    instrument: updowncounter
+    unit: "{call}"
+  - id: metric.eventstore.incoming.grpc.calls
+    type: metric
+    stability: stable
+    brief: Number of incoming gRPC calls by outcome.
+    metric_name: eventstore-incoming-grpc-calls
+    instrument: counter
+    unit: "{call}"
+  - id: metric.eventstore.cache.hits.misses
+    type: metric
+    stability: stable
+    brief: Cache hits and misses.
+    metric_name: eventstore-cache-hits-misses
+    instrument: counter
+    unit: "{operation}"
+  - id: metric.eventstore.cache.resources.bytes
+    type: metric
+    stability: stable
+    brief: Cache resource size and capacity in bytes.
+    metric_name: eventstore-cache-resources-bytes
+    instrument: updowncounter
+    unit: By
+  - id: metric.eventstore.cache.resources.entries
+    type: metric
+    stability: stable
+    brief: Cache resource size, capacity, and count in entries.
+    metric_name: eventstore-cache-resources-entries
+    instrument: updowncounter
+    unit: "{entry}"
+  - id: metric.eventstore.logical.chunk.read.distribution
+    type: metric
+    stability: stable
+    brief: Distance between read and current logical chunks.
+    metric_name: eventstore-logical-chunk-read-distribution
+    instrument: histogram
+    unit: "{chunk}"
+  - id: metric.eventstore.persistent.sub.connections
+    type: metric
+    stability: stable
+    brief: Persistent subscription connections.
+    metric_name: eventstore-persistent-sub-connections
+    instrument: updowncounter
+    unit: "{connection}"
+  - id: metric.eventstore.persistent.sub.parked.messages
+    type: metric
+    stability: stable
+    brief: Parked persistent subscription messages.
+    metric_name: eventstore-persistent-sub-parked-messages
+    instrument: updowncounter
+    unit: "{message}"
+  - id: metric.eventstore.persistent.sub.in.flight.messages
+    type: metric
+    stability: stable
+    brief: In-flight persistent subscription messages.
+    metric_name: eventstore-persistent-sub-in-flight-messages
+    instrument: updowncounter
+    unit: "{message}"
+  - id: metric.eventstore.persistent.sub.oldest.parked.message
+    type: metric
+    stability: stable
+    brief: Age of the oldest parked persistent subscription message.
+    metric_name: eventstore-persistent-sub-oldest-parked-message-seconds
+    instrument: updowncounter
+    unit: s
+  - id: metric.eventstore.persistent.sub.park.message.requests
+    type: metric
+    stability: stable
+    brief: Persistent subscription park requests.
+    metric_name: eventstore-persistent-sub-park-message-requests
+    instrument: counter
+    unit: "{request}"
+  - id: metric.eventstore.persistent.sub.parked.message.replays
+    type: metric
+    stability: stable
+    brief: Persistent subscription parked-message replays.
+    metric_name: eventstore-persistent-sub-parked-message-replays
+    instrument: counter
+    unit: "{operation}"
+  - id: metric.eventstore.persistent.sub.parked.message.truncates
+    type: metric
+    stability: stable
+    brief: Persistent subscription parked-message truncations.
+    metric_name: eventstore-persistent-sub-parked-message-truncates
+    instrument: counter
+    unit: "{operation}"
+  - id: metric.eventstore.persistent.sub.items.processed
+    type: metric
+    stability: stable
+    brief: Items processed by persistent subscriptions.
+    metric_name: eventstore-persistent-sub-items-processed
+    instrument: counter
+    unit: "{item}"
+  - id: metric.eventstore.persistent.sub.last.known.event.number
+    type: metric
+    stability: stable
+    brief: Last known event number for persistent subscriptions.
+    metric_name: eventstore-persistent-sub-last-known-event-number
+    instrument: counter
+    unit: "{event}"
+  - id: metric.eventstore.persistent.sub.last.known.event.commit.position
+    type: metric
+    stability: stable
+    brief: Last known commit position for persistent subscriptions.
+    metric_name: eventstore-persistent-sub-last-known-event-commit-position
+    instrument: counter
+    unit: "1"
+  - id: metric.eventstore.persistent.sub.checkpointed.event.number
+    type: metric
+    stability: stable
+    brief: Last checkpointed event number for persistent subscriptions.
+    metric_name: eventstore-persistent-sub-checkpointed-event-number
+    instrument: counter
+    unit: "{event}"
+  - id: metric.eventstore.persistent.sub.checkpointed.event.commit.position
+    type: metric
+    stability: stable
+    brief: Last checkpointed commit position for persistent subscriptions.
+    metric_name: eventstore-persistent-sub-checkpointed-event-commit-position
+    instrument: counter
+    unit: "1"
+  - id: metric.eventstore.checkpoints
+    type: metric
+    stability: stable
+    brief: Transaction log checkpoint positions.
+    metric_name: eventstore-checkpoints
+    instrument: updowncounter
+    unit: "1"
+  - id: metric.eventstore.writer.flush.size.max
+    type: metric
+    stability: stable
+    brief: Maximum writer flush size.
+    metric_name: eventstore-writer-flush-size-max
+    instrument: gauge
+    unit: By
+  - id: metric.eventstore.writer.flush.duration.max
+    type: metric
+    stability: stable
+    brief: Maximum writer flush duration.
+    metric_name: eventstore-writer-flush-duration-max-seconds
+    instrument: gauge
+    unit: s
+  - id: metric.eventstore.kestrel.connections
+    type: metric
+    stability: stable
+    brief: Active Kestrel connections.
+    metric_name: eventstore-kestrel-connections
+    instrument: updowncounter
+    unit: "{connection}"
+  - id: metric.eventstore.sys.load.avg
+    type: metric
+    stability: stable
+    brief: System load average.
+    metric_name: eventstore-sys-load-avg
+    instrument: gauge
+    unit: "1"
+  - id: metric.eventstore.sys.cpu
+    type: metric
+    stability: stable
+    brief: System CPU utilization.
+    metric_name: eventstore-sys-cpu
+    instrument: updowncounter
+    unit: "%"
+  - id: metric.eventstore.sys.mem
+    type: metric
+    stability: stable
+    brief: System memory capacity and usage.
+    metric_name: eventstore-sys-mem-bytes
+    instrument: gauge
+    unit: By
+  - id: metric.eventstore.sys.disk
+    type: metric
+    stability: stable
+    brief: System disk capacity and usage.
+    metric_name: eventstore-sys-disk-bytes
+    instrument: gauge
+    unit: By
+  - id: metric.eventstore.proc.up.time
+    type: metric
+    stability: stable
+    brief: Process uptime.
+    metric_name: eventstore-proc-up-time
+    instrument: counter
+    unit: s
+  - id: metric.eventstore.proc.cpu
+    type: metric
+    stability: stable
+    brief: Process CPU utilization.
+    metric_name: eventstore-proc-cpu
+    instrument: updowncounter
+    unit: "%"
+  - id: metric.eventstore.proc.thread.count
+    type: metric
+    stability: stable
+    brief: Process thread count.
+    metric_name: eventstore-proc-thread-count
+    instrument: updowncounter
+    unit: "{thread}"
+  - id: metric.eventstore.proc.thread.pool.pending.work.item.count
+    type: metric
+    stability: stable
+    brief: Pending thread-pool work items.
+    metric_name: eventstore-proc-thread-pool-pending-work-item-count
+    instrument: updowncounter
+    unit: "{item}"
+  - id: metric.eventstore.proc.contention.count
+    type: metric
+    stability: stable
+    brief: Process lock contentions.
+    metric_name: eventstore-proc-contention-count
+    instrument: counter
+    unit: "{contention}"
+  - id: metric.eventstore.proc.exception.count
+    type: metric
+    stability: stable
+    brief: Process exceptions.
+    metric_name: eventstore-proc-exception-count
+    instrument: counter
+    unit: "{exception}"
+  - id: metric.eventstore.gc.time.in.gc
+    type: metric
+    stability: stable
+    brief: Time spent in garbage collection.
+    metric_name: eventstore-gc-time-in-gc
+    instrument: updowncounter
+    unit: "%"
+  - id: metric.eventstore.gc.heap.size
+    type: metric
+    stability: stable
+    brief: Managed heap size.
+    metric_name: eventstore-gc-heap-size-bytes
+    instrument: updowncounter
+    unit: By
+  - id: metric.eventstore.gc.heap.fragmentation
+    type: metric
+    stability: stable
+    brief: Managed heap fragmentation.
+    metric_name: eventstore-gc-heap-fragmentation
+    instrument: updowncounter
+    unit: "%"
+  - id: metric.eventstore.gc.total.allocated
+    type: metric
+    stability: stable
+    brief: Total bytes allocated by the managed process.
+    metric_name: eventstore-gc-total-allocated
+    instrument: counter
+    unit: By
+  - id: metric.eventstore.gc.pause.duration.max
+    type: metric
+    stability: stable
+    brief: Maximum garbage collection pause duration.
+    metric_name: eventstore-gc-pause-duration-max-seconds
+    instrument: gauge
+    unit: s
+  - id: metric.eventstore.proc.mem
+    type: metric
+    stability: stable
+    brief: Process memory usage.
+    metric_name: eventstore-proc-mem-bytes
+    instrument: gauge
+    unit: By
+  - id: metric.eventstore.gc.generation.size
+    type: metric
+    stability: stable
+    brief: Managed heap generation size.
+    metric_name: eventstore-gc-generation-size-bytes
+    instrument: updowncounter
+    unit: By
+  - id: metric.eventstore.gc.collection.count
+    type: metric
+    stability: stable
+    brief: Garbage collection count by generation.
+    metric_name: eventstore-gc-collection-count
+    instrument: counter
+    unit: "{collection}"
+  - id: metric.eventstore.disk.io.bytes
+    type: metric
+    stability: stable
+    brief: Process disk I/O bytes.
+    metric_name: eventstore-disk-io-bytes
+    instrument: counter
+    unit: By
+  - id: metric.eventstore.disk.io.operations
+    type: metric
+    stability: stable
+    brief: Process disk I/O operations.
+    metric_name: eventstore-disk-io-operations
+    instrument: counter
+    unit: "{operation}"
+  - id: metric.eventstore.projection.events.processed.after.restart
+    type: metric
+    stability: stable
+    brief: Events processed by projections after restart.
+    metric_name: eventstore-projection-events-processed-after-restart-total
+    instrument: counter
+    unit: "{event}"
+  - id: metric.eventstore.projection.progress
+    type: metric
+    stability: stable
+    brief: Projection progress.
+    metric_name: eventstore-projection-progress
+    instrument: updowncounter
+    unit: "1"
+  - id: metric.eventstore.projection.running
+    type: metric
+    stability: stable
+    brief: Whether a projection is running.
+    metric_name: eventstore-projection-running
+    instrument: updowncounter
+    unit: "1"
+  - id: metric.eventstore.projection.status
+    type: metric
+    stability: stable
+    brief: Projection status.
+    metric_name: eventstore-projection-status
+    instrument: updowncounter
+    unit: "1"
+  - id: metric.eventstore.projection.state.size
+    type: metric
+    stability: stable
+    brief: Projection state size.
+    metric_name: eventstore-projection-state-size
+    instrument: updowncounter
+    unit: By

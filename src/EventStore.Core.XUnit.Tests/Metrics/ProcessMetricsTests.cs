@@ -39,19 +39,19 @@ public class ProcessMetricsTests : IDisposable
 			{ MetricsConfiguration.ProcessTracker.LockContentionCount, "eventstore-proc-contention-count" },
 			{ MetricsConfiguration.ProcessTracker.ExceptionCount, "eventstore-proc-exception-count" },
 			{ MetricsConfiguration.ProcessTracker.TimeInGc, "eventstore-gc-time-in-gc" },
-			{ MetricsConfiguration.ProcessTracker.HeapSize, "eventstore-gc-heap-size" },
+			{ MetricsConfiguration.ProcessTracker.HeapSize, "eventstore-gc-heap-size-bytes" },
 			{ MetricsConfiguration.ProcessTracker.HeapFragmentation, "eventstore-gc-heap-fragmentation" },
 			{ MetricsConfiguration.ProcessTracker.TotalAllocatedBytes, "eventstore-gc-total-allocated" },
-			{ MetricsConfiguration.ProcessTracker.GcPauseDuration, "eventstore-gc-pause-duration" },
+			{ MetricsConfiguration.ProcessTracker.GcPauseDuration, "eventstore-gc-pause-duration-seconds" },
 		});
 
-		_sut.CreateMemoryMetric("eventstore-proc-mem", new() {
+		_sut.CreateMemoryMetric("eventstore-proc-mem-bytes", new() {
 			{ MetricsConfiguration.ProcessTracker.MemWorkingSet, "working-set" },
 			{ MetricsConfiguration.ProcessTracker.MemPagedBytes, "paged-bytes" },
 			{ MetricsConfiguration.ProcessTracker.MemVirtualBytes, "virtual-bytes" },
 		});
 
-		_sut.CreateGcGenerationSizeMetric("eventstore-gc-generation-size", new() {
+		_sut.CreateGcGenerationSizeMetric("eventstore-gc-generation-size-bytes", new() {
 			{ MetricsConfiguration.ProcessTracker.Gen0Size, "gen0" },
 			{ MetricsConfiguration.ProcessTracker.Gen1Size, "gen1" },
 			{ MetricsConfiguration.ProcessTracker.Gen2Size, "gen2" },
@@ -64,12 +64,12 @@ public class ProcessMetricsTests : IDisposable
 			{ MetricsConfiguration.ProcessTracker.Gen2CollectionCount, "gen2" },
 		});
 
-		_sut.CreateDiskBytesMetric("eventstore-disk-io", new() {
+		_sut.CreateDiskBytesMetric("eventstore-disk-io-bytes", new() {
 			{ MetricsConfiguration.ProcessTracker.DiskReadBytes, "read" },
 			{ MetricsConfiguration.ProcessTracker.DiskWrittenBytes, "written" },
 		});
 
-		_sut.CreateDiskOpsMetric("eventstore-disk-io", new() {
+		_sut.CreateDiskOpsMetric("eventstore-disk-io-operations", new() {
 			{ MetricsConfiguration.ProcessTracker.DiskReadBytes, "read" },
 			{ MetricsConfiguration.ProcessTracker.DiskWrittenBytes, "written" },
 		});

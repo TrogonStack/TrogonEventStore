@@ -51,7 +51,7 @@ public class SystemMetrics(Meter meter, TimeSpan timeout, Dictionary<SystemTrack
 
 		if (dims.AnyRegistered())
 		{
-			meter.CreateObservableGauge($"{metricName}-bytes", dims.GenObserve());
+			meter.CreateObservableGauge(metricName, dims.GenObserve());
 		}
 	}
 
@@ -66,7 +66,7 @@ public class SystemMetrics(Meter meter, TimeSpan timeout, Dictionary<SystemTrack
 
 		if (dims.AnyRegistered())
 		{
-			meter.CreateObservableGauge($"{metricName}-bytes", dims.GenObserve());
+			meter.CreateObservableGauge(metricName, dims.GenObserve());
 		}
 
 		return;

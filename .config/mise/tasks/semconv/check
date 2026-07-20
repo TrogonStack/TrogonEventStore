@@ -10,3 +10,11 @@ trap 'rm -rf "$generated"' EXIT HUP INT TERM
 
 "$root/.config/mise/tasks/semconv/generate" "$generated"
 diff -ru "$expected" "$generated"
+
+if grep -n '"eventstore-' \
+	"$root/src/EventStore.Core/MetricsBootstrapper.cs" \
+	"$root/src/EventStore.Projections.Core/ProjectionsSubsystem.cs"
+then
+	echo "Built-in metric names must come from the generated MetricNames catalog." >&2
+	exit 1
+fi

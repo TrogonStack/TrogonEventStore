@@ -43,13 +43,13 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 
 		CreateObservableCounter(ProcessTracker.LockContentionCount, () => Monitor.LockContentionCount);
 		CreateObservableCounter(ProcessTracker.ExceptionCount, RuntimeStats.GetExceptionCount);
-		CreateObservableCounter(ProcessTracker.TotalAllocatedBytes, () => GC.GetTotalAllocatedBytes(), "bytes");
+		CreateObservableCounter(ProcessTracker.TotalAllocatedBytes, () => GC.GetTotalAllocatedBytes());
 
 		CreateObservableUpDownCounter(ProcessTracker.Cpu, RuntimeStats.GetCpuUsage);
 		CreateObservableUpDownCounter(ProcessTracker.ThreadCount, () => ThreadPool.ThreadCount);
 		CreateObservableUpDownCounter(ProcessTracker.ThreadPoolPendingWorkItemCount, () => ThreadPool.PendingWorkItemCount);
 		CreateObservableUpDownCounter(ProcessTracker.TimeInGc, RuntimeStats.GetLastGCPercentTimeInGC);
-		CreateObservableUpDownCounter(ProcessTracker.HeapSize, () => GC.GetGCMemoryInfo().HeapSizeBytes, "bytes");
+		CreateObservableUpDownCounter(ProcessTracker.HeapSize, () => GC.GetGCMemoryInfo().HeapSizeBytes);
 		CreateObservableUpDownCounter(ProcessTracker.HeapFragmentation, () =>
 		{
 			var info = GC.GetGCMemoryInfo();
@@ -58,7 +58,7 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 
 		return;
 
-		void CreateObservableCounter<T>(ProcessTracker tracker, Func<T> observe, string? unit = null) where T : struct
+		void CreateObservableCounter<T>(ProcessTracker tracker, Func<T> observe) where T : struct
 		{
 			if (enabledNames.TryGetValue(tracker, out var name))
 			{
@@ -66,11 +66,11 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 			}
 		}
 
-		void CreateObservableUpDownCounter<T>(ProcessTracker tracker, Func<T> observe, string? unit = null) where T : struct
+		void CreateObservableUpDownCounter<T>(ProcessTracker tracker, Func<T> observe) where T : struct
 		{
 			if (enabledNames.TryGetValue(tracker, out var name))
 			{
-				meter.CreateObservableUpDownCounter(unit is null ? name : $"{name}-{unit}", observe);
+				meter.CreateObservableUpDownCounter(name, observe);
 			}
 		}
 	}
@@ -85,7 +85,7 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 
 		if (dims.AnyRegistered())
 		{
-			meter.CreateObservableGauge($"{metricName}-bytes", dims.GenObserve());
+			meter.CreateObservableGauge(metricName, dims.GenObserve());
 		}
 	}
 
@@ -104,7 +104,7 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 
 		if (dims.AnyRegistered())
 		{
-			meter.CreateObservableUpDownCounter($"{metricName}-bytes", dims.GenObserve());
+			meter.CreateObservableUpDownCounter(metricName, dims.GenObserve());
 		}
 	}
 
@@ -131,7 +131,7 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 
 		if (dims.AnyRegistered())
 		{
-			meter.CreateObservableCounter($"{metricName}-bytes", dims.GenObserve());
+			meter.CreateObservableCounter(metricName, dims.GenObserve());
 		}
 	}
 
@@ -144,7 +144,7 @@ public class ProcessMetrics(Meter meter, TimeSpan timeout, int scrapingPeriodInS
 
 		if (dims.AnyRegistered())
 		{
-			meter.CreateObservableCounter($"{name}-operations", dims.GenObserve());
+			meter.CreateObservableCounter(name, dims.GenObserve());
 		}
 	}
 }

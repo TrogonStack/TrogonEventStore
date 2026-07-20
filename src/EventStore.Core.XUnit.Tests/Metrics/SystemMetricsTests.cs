@@ -40,12 +40,12 @@ public class SystemMetricsTests : IDisposable
 
 		_sut.CreateCpuMetric("eventstore-sys-cpu");
 
-		_sut.CreateMemoryMetric("eventstore-sys-mem", new() {
+		_sut.CreateMemoryMetric("eventstore-sys-mem-bytes", new() {
 			{ MetricsConfiguration.SystemTracker.FreeMem, "free" },
 			{ MetricsConfiguration.SystemTracker.TotalMem, "total" },
 		});
 
-		_sut.CreateDiskMetric("eventstore-sys-disk", ".", new() {
+		_sut.CreateDiskMetric("eventstore-sys-disk-bytes", ".", new() {
 			{ MetricsConfiguration.SystemTracker.DriveTotalBytes, "total" },
 			{ MetricsConfiguration.SystemTracker.DriveUsedBytes, "used" },
 		});

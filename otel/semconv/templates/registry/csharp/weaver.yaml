@@ -2,18 +2,35 @@ whitespace_control:
   trim_blocks: true
   lstrip_blocks: true
 
+params:
+  attributes: true
+  metrics: true
+
 templates:
   - template: attribute-names.cs.j2
     filter: >
-      semconv_grouped_attributes
-      | map({
-          root_namespace: .root_namespace,
-          attributes: [.attributes[] | select(
-            .name == "service.name" or
-            .name == "service.instance.id" or
-            .name == "service.version"
-          )]
-        })
-      | map(select(.attributes | length > 0))
+      if $attributes then
+        semconv_grouped_attributes
+        | map({
+            root_namespace: .root_namespace,
+            attributes: [.attributes[] | select(
+              .name == "service.name" or
+              .name == "service.instance.id" or
+              .name == "service.version"
+            )]
+          })
+        | map(select(.attributes | length > 0))
+      else
+        empty
+      end
     application_mode: single
     file_name: AttributeNames.g.cs
+  - template: metric-names.cs.j2
+    filter: >
+      if $metrics then
+        semconv_grouped_metrics
+      else
+        empty
+      end
+    application_mode: single
+    file_name: MetricNames.g.cs

@@ -29,6 +29,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using TrogonEventStore.SemanticConventions;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
 using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
 using GrpcOperations = EventStore.Core.Services.Transport.Grpc.Operations;
@@ -304,7 +305,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddMeter(TelemetryMeterInstrumentation.GetNames(metricsConfiguration.Meters))
 			.AddView(i =>
 			{
-				if (i.Name == MetricsBootstrapper.LogicalChunkReadDistributionName)
+				if (i.Name == MetricNames.LogicalChunkReadDistribution)
 				{
 					// 20 buckets, 0, 1, 2, 4, 8, ...
 					return new ExplicitBucketHistogramConfiguration

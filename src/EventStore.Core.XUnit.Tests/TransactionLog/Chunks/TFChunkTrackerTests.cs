@@ -27,14 +27,14 @@ public class TFChunkTrackerTests : IDisposable
 		var meter = new Meter($"{typeof(TFChunkTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		_doubleListener = new TestMeterListener<double>(meter);
-		var byteMetric = new CounterMetric(meter, "eventstore-io", unit: "bytes");
-		var eventMetric = new CounterMetric(meter, "eventstore-io", unit: "events");
+		var byteMetric = new CounterMetric(meter, "eventstore-io-bytes");
+		var eventMetric = new CounterMetric(meter, "eventstore-io-events");
 		var writerCheckpoint = new InMemoryCheckpoint(WriterCheckpoint);
 
 		var readTag = new KeyValuePair<string, object>("activity", "read");
 		_sut = new TFChunkTracker(
 			readDistribution: new LogicalChunkReadDistributionMetric(meter, "chunk-read-distribution", writerCheckpoint, ChunkSize),
-			readDurationMetric: new DurationMetric(meter, "eventstore-io-record-read-duration", _clock),
+			readDurationMetric: new DurationMetric(meter, "eventstore-io-record-read-duration-seconds", _clock),
 			readBytes: new CounterSubMetric(byteMetric, [readTag]),
 			readEvents: new CounterSubMetric(eventMetric, [readTag]));
 	}
