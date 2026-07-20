@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Core.Bus;
+using EventStore.Core.Diagnostics;
 using EventStore.Core.Index;
 using EventStore.Core.Metrics;
 using EventStore.Core.Services.VNode;
@@ -84,7 +84,7 @@ public static class MetricsBootstrapper
 			return;
 		}
 
-		var coreMeter = new Meter("EventStore.Core", version: "1.0.0");
+		var coreMeter = TelemetryMeterFactory.Create("EventStore.Core");
 		var statusMetric = new StatusMetric(coreMeter, "eventstore-statuses");
 		var grpcMethodMetric = new DurationMetric(coreMeter, "eventstore-grpc-method-duration");
 		var gossipLatencyMetric = new DurationMetric(coreMeter, "eventstore-gossip-latency");

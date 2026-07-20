@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNext;
@@ -9,6 +8,7 @@ using EventStore.Common.Options;
 using EventStore.Core;
 using EventStore.Core.Bus;
 using EventStore.Core.Data;
+using EventStore.Core.Diagnostics;
 using EventStore.Core.Messages;
 using EventStore.Core.Messaging;
 using EventStore.Core.Services.AwakeReaderService;
@@ -205,7 +205,7 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 			return;
 		}
 
-		var projectionMeter = new Meter("EventStore.Projections.Core", version: "1.0.0");
+		var projectionMeter = TelemetryMeterFactory.Create("EventStore.Projections.Core");
 
 		var tracker = new ProjectionTracker();
 		_projectionTracker = tracker;
