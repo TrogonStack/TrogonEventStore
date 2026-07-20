@@ -25,6 +25,7 @@ using EventStore.Core.Certificates;
 using EventStore.Core.Cluster;
 using EventStore.Core.Data;
 using EventStore.Core.DataStructures;
+using EventStore.Core.Diagnostics;
 using EventStore.Core.Helpers;
 using EventStore.Core.Index;
 using EventStore.Core.Index.Hashes;
@@ -1761,6 +1762,7 @@ public class ClusterVNode<TStreamId> :
 			options.Interface.DisableStatsOnHttp,
 			configuration,
 			trackers,
+			TelemetryServiceIdentity.ForComponent(options.GetComponentName()),
 			nodeInformationProvider,
 			options.Cluster.DiscoverViaDns ? options.Cluster.ClusterDns : null,
 			ConfigureNodeServices,

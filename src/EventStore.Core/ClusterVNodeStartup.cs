@@ -7,6 +7,7 @@ using EventStore.Common.Configuration;
 using EventStore.Common.Utils;
 using EventStore.Core.Bus;
 using EventStore.Core.Configuration;
+using EventStore.Core.Diagnostics;
 using EventStore.Core.Messages;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.Services.Transport.Grpc;
@@ -27,7 +28,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using ClientGossip = EventStore.Core.Services.Transport.Grpc.Gossip;
 using ClusterGossip = EventStore.Core.Services.Transport.Grpc.Cluster.Gossip;
@@ -51,6 +51,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private readonly IExpiryStrategy _expiryStrategy;
 	private readonly IConfiguration _configuration;
 	private readonly Trackers _trackers;
+	private readonly TelemetryServiceIdentity _telemetryServiceIdentity;
 	private readonly NodeHealthState _nodeHealthState;
 	private readonly NodeInformationProvider _nodeInformationProvider;
 	private readonly bool _disableHttpMetrics;
@@ -73,6 +74,7 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		bool disableHttpMetrics,
 		IConfiguration configuration,
 		Trackers trackers,
+		TelemetryServiceIdentity telemetryServiceIdentity,
 		NodeInformationProvider nodeInformationProvider,
 		string clusterDns,
 		Func<IServiceCollection, IServiceCollection> configureNodeServices,
@@ -106,6 +108,8 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 		_disableHttpMetrics = disableHttpMetrics;
 		_configuration = configuration;
 		_trackers = trackers;
+		_telemetryServiceIdentity = telemetryServiceIdentity ??
+			throw new ArgumentNullException(nameof(telemetryServiceIdentity));
 		_nodeInformationProvider =
 			nodeInformationProvider ?? throw new ArgumentNullException(nameof(nodeInformationProvider));
 		_clusterDns = clusterDns;
@@ -225,8 +229,15 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 			.AddSingleton<ServerFeatures>()
 
 			.AddOpenTelemetry()
-			.WithMetrics(meterOptions => ConfigureMetrics(meterOptions, metricsConfiguration, _configuration))
-			.WithTracing(tracerOptions => ConfigureTracing(tracerOptions, _configuration))
+			.WithMetrics(meterOptions => ConfigureMetrics(
+				meterOptions,
+				metricsConfiguration,
+				_configuration,
+				_telemetryServiceIdentity))
+			.WithTracing(tracerOptions => ConfigureTracing(
+				tracerOptions,
+				_configuration,
+				_telemetryServiceIdentity))
 			.Services
 			.AddGrpcHealthChecks(options =>
 			{
@@ -285,10 +296,11 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 	private static void ConfigureMetrics(
 		MeterProviderBuilder meterOptions,
 		MetricsConfiguration metricsConfiguration,
-		IConfiguration configuration)
+		IConfiguration configuration,
+		TelemetryServiceIdentity serviceIdentity)
 	{
 		meterOptions
-			.SetResourceBuilder(CreateResourceBuilder())
+			.SetResourceBuilder(serviceIdentity.CreateResourceBuilder())
 			.AddMeter(metricsConfiguration.Meters)
 			.AddView(i =>
 			{
@@ -377,9 +389,10 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 
 	private static void ConfigureTracing(
 		TracerProviderBuilder tracerOptions,
-		IConfiguration configuration)
+		IConfiguration configuration,
+		TelemetryServiceIdentity serviceIdentity)
 	{
-		tracerOptions.SetResourceBuilder(CreateResourceBuilder());
+		tracerOptions.SetResourceBuilder(serviceIdentity.CreateResourceBuilder());
 
 		if (!configuration.OtlpTracesEnabled())
 		{
@@ -393,11 +406,6 @@ public class ClusterVNodeStartup<TStreamId> : IInternalStartup, IHandle<SystemMe
 				OpenTelemetryConfiguration.OtlpTracesOtlpPrefix,
 				exporterOptions));
 	}
-
-	private static ResourceBuilder CreateResourceBuilder() =>
-		ResourceBuilder.CreateDefault().AddService(
-			serviceName: "eventstore",
-			serviceVersion: VersionInfo.Version);
 
 	public void Handle(SystemMessage.SystemReady _) => _nodeHealthState.MarkReady();
 
