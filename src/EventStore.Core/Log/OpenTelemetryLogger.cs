@@ -1,14 +1,12 @@
 using System;
-using System.Collections.Generic;
-using EventStore.Common.Utils;
 using EventStore.Core.Configuration;
+using EventStore.Core.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using Serilog;
 using Serilog.Filters;
 using Serilog.Sinks.OpenTelemetry;
-using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Common.Log;
 
@@ -18,6 +16,17 @@ public static class OpenTelemetryLogger
 		this LoggerConfiguration loggerConfiguration,
 		IConfiguration configuration,
 		string componentName,
+		Action<OtlpExporterOptions> configureOtlp = null) =>
+		AddOpenTelemetryLogger(
+			loggerConfiguration,
+			configuration,
+			TelemetryServiceIdentity.ForComponent(componentName),
+			configureOtlp);
+
+	private static LoggerConfiguration AddOpenTelemetryLogger(
+		LoggerConfiguration loggerConfiguration,
+		IConfiguration configuration,
+		TelemetryServiceIdentity serviceIdentity,
 		Action<OtlpExporterOptions> configureOtlp = null)
 	{
 		if (configuration is null || !configuration.OtlpLogsEnabled())
@@ -36,12 +45,7 @@ public static class OpenTelemetryLogger
 			.Filter.ByExcluding(Matching.FromSource("REGULAR-STATS-LOGGER"))
 			.WriteTo.OpenTelemetry(options =>
 			{
-				options.ResourceAttributes = new Dictionary<string, object>
-				{
-					[AttributeNames.ServiceName] = "eventstore",
-					[AttributeNames.ServiceInstanceId] = componentName,
-					[AttributeNames.ServiceVersion] = VersionInfo.Version
-				};
+				options.ResourceAttributes = serviceIdentity.CreateAttributeDictionary();
 				options.Protocol = otlpExporterConfig.Protocol switch
 				{
 					OtlpExportProtocol.Grpc => OtlpProtocol.Grpc,
