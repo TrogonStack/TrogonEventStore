@@ -1,0 +1,35 @@
+#!/bin/sh
+#MISE description="Generate the reusable semantic convention constants"
+
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../../../.." && pwd)
+output=${1:-"$root/src/TrogonEventStore.SemanticConventions/Generated"}
+registry_version=$(sed -n '1p' "$root/otel/semconv/registry-version")
+registry="https://github.com/open-telemetry/semantic-conventions@${registry_version}[model]"
+staging=$(mktemp -d)
+trap 'rm -rf "$staging"' EXIT HUP INT TERM
+
+weaver registry check \
+	--future \
+	--registry "$registry"
+
+weaver registry generate csharp "$staging" \
+	--future \
+	--registry "$registry" \
+	--templates "$root/otel/semconv/templates"
+
+set -- "$staging"/*.g.cs
+[ -e "$1" ] || exit 1
+
+mkdir -p "$output"
+for generated_file in "$output"/*.g.cs
+do
+	[ -e "$generated_file" ] || break
+	rm "$generated_file"
+done
+
+for generated_file
+do
+	mv "$generated_file" "$output/"
+done

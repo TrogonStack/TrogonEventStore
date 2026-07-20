@@ -47,6 +47,7 @@
 		<ProjectReference Include="..\EventStore.Transport.Tcp\EventStore.Transport.Tcp.csproj" />
 		<ProjectReference Include="..\EventStore.NETCore.Compatibility\EventStore.NETCore.Compatibility.csproj" />
 		<ProjectReference Include="..\EventStore.SourceGenerators\EventStore.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\TrogonEventStore.SemanticConventions\TrogonEventStore.SemanticConventions.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<Protobuf Include="..\Protos\ClientAPI\ClientMessageDtos.proto">
