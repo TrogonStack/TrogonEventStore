@@ -8,16 +8,19 @@ public class TestMeterListener<T> : IDisposable where T : struct
 {
 	private readonly MeterListener _listener;
 	private readonly Dictionary<string, List<TestMeasurement>> _measurementsByInstrument;
+	private readonly Dictionary<string, Instrument> _instrumentsByName;
 
 	public TestMeterListener(Meter meter)
 	{
 		_measurementsByInstrument = new();
+		_instrumentsByName = new();
 		_listener = new MeterListener
 		{
 			InstrumentPublished = (instrument, listener) =>
 			{
 				if (instrument.Meter == meter)
 				{
+					_instrumentsByName[instrument.Name] = instrument;
 					listener.EnableMeasurementEvents(instrument);
 				}
 			}
@@ -47,6 +50,9 @@ public class TestMeterListener<T> : IDisposable where T : struct
 		return measurements;
 	}
 
+	public Instrument GetInstrument(string instrumentName) =>
+		_instrumentsByName[instrumentName];
+
 	private void OnMeasurement(
 		Instrument instrument,
 		T value,
@@ -54,7 +60,7 @@ public class TestMeterListener<T> : IDisposable where T : struct
 		object state)
 	{
 
-		var instrumentName = GenName(instrument);
+		var instrumentName = instrument.Name;
 		if (!_measurementsByInstrument.TryGetValue(instrumentName, out var measurements))
 		{
 			measurements = new();
@@ -67,11 +73,6 @@ public class TestMeterListener<T> : IDisposable where T : struct
 			Tags = tags.ToArray(),
 		});
 	}
-
-	private static string GenName(Instrument instrument) =>
-		string.IsNullOrWhiteSpace(instrument.Unit)
-		? instrument.Name
-		: instrument.Name + "-" + instrument.Unit;
 
 	public class TestMeasurement
 	{

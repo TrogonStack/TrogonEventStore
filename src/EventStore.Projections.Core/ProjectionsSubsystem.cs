@@ -211,11 +211,33 @@ public sealed class ProjectionsSubsystem : ISubsystem,
 		var tracker = new ProjectionTracker();
 		_projectionTracker = tracker;
 
-		projectionMeter.CreateObservableCounter(MetricNames.ProjectionEventsProcessedAfterRestartTotal, tracker.ObserveEventsProcessed);
-		projectionMeter.CreateObservableUpDownCounter(MetricNames.ProjectionProgress, tracker.ObserveProgress);
-		projectionMeter.CreateObservableUpDownCounter(MetricNames.ProjectionRunning, tracker.ObserveRunning);
-		projectionMeter.CreateObservableUpDownCounter(MetricNames.ProjectionStatus, tracker.ObserveStatus);
-		projectionMeter.CreateObservableUpDownCounter(MetricNames.ProjectionStateSize, tracker.ObserveStateSize);
+		var eventsProcessed = MetricDefinitions.TrogonEventstoreProjectionEventProcessedCount;
+		projectionMeter.CreateObservableCounter(
+			eventsProcessed.Name,
+			tracker.ObserveEventsProcessed,
+			eventsProcessed.Unit,
+			eventsProcessed.Description);
+
+		var progress = MetricDefinitions.TrogonEventstoreProjectionProgress;
+		projectionMeter.CreateObservableGauge(
+			progress.Name,
+			tracker.ObserveProgress,
+			progress.Unit,
+			progress.Description);
+
+		var status = MetricDefinitions.TrogonEventstoreProjectionStatus;
+		projectionMeter.CreateObservableUpDownCounter(
+			status.Name,
+			tracker.ObserveStatus,
+			status.Unit,
+			status.Description);
+
+		var stateSize = MetricDefinitions.TrogonEventstoreProjectionStateSize;
+		projectionMeter.CreateObservableUpDownCounter(
+			stateSize.Name,
+			tracker.ObserveStateSize,
+			stateSize.Unit,
+			stateSize.Description);
 	}
 
 	public void ConfigureServices(IServiceCollection services, IConfiguration configuration) =>

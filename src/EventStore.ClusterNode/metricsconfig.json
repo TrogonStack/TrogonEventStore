@@ -70,43 +70,16 @@
 
 	"CacheResources": true,
 
-	"Kestrel": {
-		"ConnectionCount": true
-	},
-
 	"System": {
-		"Cpu": true,
 		"LoadAverage1m": true,
 		"LoadAverage5m": true,
 		"LoadAverage15m": true,
-		"FreeMem": true,
-		"TotalMem": true,
 		"DriveTotalBytes": true,
 		"DriveUsedBytes": true
 	},
 
 	"Process": {
 		"UpTime": true,
-		"Cpu": true,
-		"MemWorkingSet": true,
-		"MemPagedBytes": false,
-		"MemVirtualBytes": false,
-		"ThreadCount": true,
-		"ThreadPoolPendingWorkItemCount": true,
-		"LockContentionCount": true,
-		"ExceptionCount": true,
-		"Gen0CollectionCount": true,
-		"Gen1CollectionCount": true,
-		"Gen2CollectionCount": true,
-		"Gen0Size": true,
-		"Gen1Size": true,
-		"Gen2Size": true,
-		"LohSize": true,
-		"TimeInGc": true,
-		"GcPauseDuration": true,
-		"HeapSize": true,
-		"HeapFragmentation": true,
-		"TotalAllocatedBytes": true,
 		"DiskReadBytes": true,
 		"DiskReadOps": true,
 		"DiskWrittenBytes": true,

@@ -4,6 +4,7 @@ using System.Linq;
 using EventStore.Core.Index;
 using EventStore.Core.Metrics;
 using EventStore.Core.XUnit.Tests.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Index;
@@ -11,7 +12,6 @@ namespace EventStore.Core.XUnit.Tests.Index;
 public class IndexStatusTrackerTests : IDisposable
 {
 	private readonly TestMeterListener<long> _listener;
-	private readonly FakeClock _clock = new();
 	private readonly StatusMetric _metric;
 	private readonly IndexStatusTracker _sut;
 
@@ -21,8 +21,7 @@ public class IndexStatusTrackerTests : IDisposable
 		_listener = new TestMeterListener<long>(meter);
 		_metric = new StatusMetric(
 			meter,
-			"eventstore-statuses",
-			_clock);
+			MetricDefinitions.TrogonEventstoreComponentStatus);
 		_sut = new IndexStatusTracker(_metric);
 	}
 
@@ -34,104 +33,86 @@ public class IndexStatusTrackerTests : IDisposable
 	[Fact]
 	public void can_observe_opening()
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Idle", 500);
+		AssertMeasurements("Idle");
 
 		using (_sut.StartOpening())
 		{
-			_clock.SecondsSinceEpoch = 501;
-			AssertMeasurements("Opening", 501);
+			AssertMeasurements("Opening");
 		}
 
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Idle", 502);
+		AssertMeasurements("Idle");
 	}
 
 	[Fact]
 	public void can_observe_rebuilding()
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Idle", 500);
+		AssertMeasurements("Idle");
 
 		using (_sut.StartRebuilding())
 		{
-			_clock.SecondsSinceEpoch = 501;
-			AssertMeasurements("Rebuilding", 501);
+			AssertMeasurements("Rebuilding");
 		}
 
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Idle", 502);
+		AssertMeasurements("Idle");
 	}
 
 	[Fact]
 	public void can_observe_initializing()
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Idle", 500);
+		AssertMeasurements("Idle");
 
 		using (_sut.StartInitializing())
 		{
-			_clock.SecondsSinceEpoch = 501;
-			AssertMeasurements("Initializing", 501);
+			AssertMeasurements("Initializing");
 		}
 
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Idle", 502);
+		AssertMeasurements("Idle");
 	}
 
 	[Fact]
 	public void can_observe_merging()
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Idle", 500);
+		AssertMeasurements("Idle");
 
 		using (_sut.StartMerging())
 		{
-			_clock.SecondsSinceEpoch = 501;
-			AssertMeasurements("Merging", 501);
+			AssertMeasurements("Merging");
 		}
 
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Idle", 502);
+		AssertMeasurements("Idle");
 	}
 
 	[Fact]
 	public void can_observe_scavenging()
 	{
-		_clock.SecondsSinceEpoch = 500;
-		AssertMeasurements("Idle", 500);
+		AssertMeasurements("Idle");
 
 		using (_sut.StartScavenging())
 		{
-			_clock.SecondsSinceEpoch = 501;
-			AssertMeasurements("Scavenging", 501);
+			AssertMeasurements("Scavenging");
 		}
 
-		_clock.SecondsSinceEpoch = 502;
-		AssertMeasurements("Idle", 502);
+		AssertMeasurements("Idle");
 	}
 
-	void AssertMeasurements(string expectedStatus, int expectedValue)
+	void AssertMeasurements(string expectedStatus)
 	{
 		_listener.Observe();
 
+		var measurements = _listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreComponentStatus.Name);
+		var active = Assert.Single(measurements, measurement => measurement.Value == 1);
+		Assert.All(measurements.Where(measurement => measurement != active), measurement => Assert.Equal(0, measurement.Value));
 		Assert.Collection(
-			_listener.RetrieveMeasurements("eventstore-statuses"),
-			m =>
+			active.Tags.ToArray(),
+			t =>
 			{
-				Assert.Equal(expectedValue, m.Value);
-				Assert.Collection(
-					m.Tags.ToArray(),
-					t =>
-					{
-						Assert.Equal("name", t.Key);
-						Assert.Equal("Index", t.Value);
-					},
-					t =>
-					{
-						Assert.Equal("status", t.Key);
-						Assert.Equal(expectedStatus, t.Value);
-					});
+				Assert.Equal(TrogonAttributeNames.ComponentName, t.Key);
+				Assert.Equal("index", t.Value);
+			},
+			t =>
+			{
+				Assert.Equal(TrogonAttributeNames.ComponentStatus, t.Key);
+				Assert.Equal(expectedStatus.ToLowerInvariant(), t.Value);
 			});
 	}
 }

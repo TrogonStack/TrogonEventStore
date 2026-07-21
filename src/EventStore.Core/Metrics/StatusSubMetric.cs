@@ -1,45 +1,76 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
-using System.Threading;
+using System.Linq;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics
 {
 	// Use this class if the status can transition from one to another, as in a state machine
 	// Use ActivityStatusMetric if the status represents an activity that starts and stops
 	//
-	// This does create a time series for each name * status that gets instantiated.
-	// However, prometheus does efficiently store series whose values are not changing.
+	// A closed state set keeps one-hot aggregation complete without unbounded cardinality.
 	//
 	// The component name and status are stored in tags
-	// The value contains time in seconds since epoch so we can tell which status is active
-	//
 	// Multiple threads can SetStatus and Observe concurrently
 	public class StatusSubMetric
 	{
-		private readonly KeyValuePair<string, object>[] _tags;
+		private readonly object _lock = new();
+		private readonly string _componentName;
+		private readonly string[] _statuses;
 		private string _status;
 
-		public StatusSubMetric(string componentName, object initialStatus, StatusMetric metric)
+		public StatusSubMetric(
+			string componentName,
+			object initialStatus,
+			StatusMetric metric,
+			IEnumerable<string> statuses)
 		{
-			_status = initialStatus?.ToString();
-			_tags = new[] {
-				new KeyValuePair<string, object>("name", componentName),
-				new KeyValuePair<string, object>("status", _status),
-			};
+			ArgumentNullException.ThrowIfNull(componentName);
+			ArgumentNullException.ThrowIfNull(metric);
+			ArgumentNullException.ThrowIfNull(statuses);
+			_componentName = componentName.ToLowerInvariant();
+			_statuses = new HashSet<string>(
+				statuses.Select(NormalizeStatus).Append("unknown"),
+				StringComparer.Ordinal).ToArray();
+			_status = ResolveStatus(initialStatus?.ToString());
 
 			metric.Add(this);
 		}
 
 		public void SetStatus(string status)
 		{
-			Interlocked.Exchange(ref _status, status);
+			lock (_lock)
+			{
+				_status = ResolveStatus(status);
+			}
 		}
 
-		public Measurement<long> Observe(long secondsSinceEpoch)
+		public Measurement<long>[] Observe()
 		{
-			_tags[1] = new KeyValuePair<string, object>("status", _status);
-			return new Measurement<long>(secondsSinceEpoch, _tags.AsSpan());
+			lock (_lock)
+			{
+				var measurements = new Measurement<long>[_statuses.Length];
+				var index = 0;
+				foreach (var status in _statuses)
+				{
+					measurements[index++] = new(
+						status == _status ? 1 : 0,
+						new KeyValuePair<string, object>(TrogonAttributeNames.ComponentName, _componentName),
+						new KeyValuePair<string, object>(TrogonAttributeNames.ComponentStatus, status));
+				}
+
+				return measurements;
+			}
 		}
+
+		private string ResolveStatus(string status)
+		{
+			var normalized = NormalizeStatus(status);
+			return Array.IndexOf(_statuses, normalized) >= 0 ? normalized : "unknown";
+		}
+
+		private static string NormalizeStatus(string status) =>
+			string.IsNullOrWhiteSpace(status) ? "unknown" : status.ToLowerInvariant();
 	}
 }

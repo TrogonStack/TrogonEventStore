@@ -21,13 +21,17 @@ weaver registry generate csharp "$staging" \
 	--future \
 	--registry "$registry" \
 	--templates "$root/otel/semconv/templates" \
-	-D attributes=false
+	-D attributes=false \
+	-D custom_attributes=true \
+	-D official_metrics=false
 
 weaver registry generate csharp "$staging" \
 	--future \
 	--registry "$official_registry" \
 	--templates "$root/otel/semconv/templates" \
-	-D metrics=false
+	-D custom_attributes=false \
+	-D metrics=false \
+	-D official_metrics=true
 
 set -- "$staging"/*.g.cs
 [ -e "$1" ] || exit 1

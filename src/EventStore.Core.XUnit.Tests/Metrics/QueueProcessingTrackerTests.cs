@@ -3,6 +3,7 @@ using System.Diagnostics.Metrics;
 using System.Threading.Tasks;
 using EventStore.Core.Metrics;
 using EventStore.Core.Time;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -12,11 +13,13 @@ public class QueueProcessingTrackerTests : IDisposable
 	private readonly TestMeterListener<double> _listener;
 	private readonly FakeClock _clock = new();
 	private readonly QueueProcessingTracker _sut;
+	private readonly MetricDefinition _definition =
+		MetricDefinitions.TrogonEventstoreQueueMessageProcessingDuration;
 
 	public QueueProcessingTrackerTests()
 	{
 		var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
-		var metric = new DurationMetric(meter, "the-metric-seconds", _clock);
+		var metric = new DurationMetric(meter, _definition, _clock);
 		_listener = new TestMeterListener<double>(meter);
 		_sut = new(metric, "the-queue");
 	}
@@ -42,7 +45,7 @@ public class QueueProcessingTrackerTests : IDisposable
 	{
 
 		Assert.Collection(
-			_listener.RetrieveMeasurements("the-metric-seconds"),
+			_listener.RetrieveMeasurements(_definition.Name),
 			m =>
 			{
 				Assert.Equal(expectedValue, m.Value);
@@ -50,12 +53,12 @@ public class QueueProcessingTrackerTests : IDisposable
 					m.Tags,
 					t =>
 					{
-						Assert.Equal("queue", t.Key);
+						Assert.Equal(TrogonAttributeNames.QueueName, t.Key);
 						Assert.Equal("the-queue", t.Value);
 					},
 					t =>
 					{
-						Assert.Equal("message-type", t.Key);
+						Assert.Equal(TrogonAttributeNames.QueueMessageType, t.Key);
 						Assert.Equal("the-message-type", t.Value);
 					});
 			});

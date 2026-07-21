@@ -8,6 +8,7 @@ using EventStore.Core.Data;
 using EventStore.Core.Messages;
 using EventStore.Core.Metrics;
 using EventStore.Core.Tests;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -16,6 +17,8 @@ public class ElectionsCounterTrackerTests : IDisposable
 {
 	private Scope _disposables = new();
 	private readonly ElectionMessage.ElectionsDone _electionsDoneMessage;
+	private static readonly MetricDefinition Definition =
+		MetricDefinitions.TrogonEventstoreClusterElectionCount;
 
 	public ElectionsCounterTrackerTests()
 	{
@@ -41,7 +44,7 @@ public class ElectionsCounterTrackerTests : IDisposable
 
 		var listener = new TestMeterListener<long>(meter);
 		_disposables.RegisterForDispose(meter);
-		var metric = new CounterMetric(meter, "test-metric");
+		var metric = new CounterMetric(meter, Definition);
 		var sut = new ElectionsCounterTracker(new CounterSubMetric(metric, []));
 
 		return (sut, listener);
@@ -82,6 +85,6 @@ public class ElectionsCounterTrackerTests : IDisposable
 	{
 
 		listener.Observe();
-		Assert.Collection(listener.RetrieveMeasurements("test-metric"), actions);
+		Assert.Collection(listener.RetrieveMeasurements(Definition.Name), actions);
 	}
 }

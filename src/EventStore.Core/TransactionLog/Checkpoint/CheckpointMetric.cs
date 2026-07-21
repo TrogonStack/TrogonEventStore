@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.TransactionLog.Checkpoint
 {
@@ -12,8 +14,12 @@ namespace EventStore.Core.TransactionLog.Checkpoint
 		private readonly Measurement<long>[] _measurements;
 		private readonly KeyValuePair<string, object>[][] _tagss;
 
-		public CheckpointMetric(Meter meter, string name, params IReadOnlyCheckpoint[] checkpoints)
+		public CheckpointMetric(
+			Meter meter,
+			MetricDefinition definition,
+			params IReadOnlyCheckpoint[] checkpoints)
 		{
+			definition.EnsureInstrumentKind(MetricInstrumentKind.Gauge);
 			_checkpoints = checkpoints;
 			_measurements = new Measurement<long>[checkpoints.Length];
 			_tagss = new KeyValuePair<string, object>[checkpoints.Length][];
@@ -21,14 +27,16 @@ namespace EventStore.Core.TransactionLog.Checkpoint
 			for (var i = 0; i < checkpoints.Length; i++)
 			{
 				_tagss[i] = new KeyValuePair<string, object>[] {
-					new("name", checkpoints[i].Name),
-					new("read", "non-flushed"),
+					new(TrogonAttributeNames.CheckpointName, checkpoints[i].Name),
+					new(TrogonAttributeNames.CheckpointReadKind, "non_flushed"),
 				};
 			}
 
-			// we could consider using ObservableCounter, but ICheckpoint does allow the values to
-			// go down as well as up, so we are currently supporting that here.
-			meter.CreateObservableUpDownCounter(name, Observe);
+			meter.CreateObservableGauge(
+				definition.Name,
+				Observe,
+				definition.Unit,
+				definition.Description);
 		}
 
 		private IEnumerable<Measurement<long>> Observe()

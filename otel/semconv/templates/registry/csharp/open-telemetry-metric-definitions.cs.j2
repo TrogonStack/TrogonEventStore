@@ -5,11 +5,11 @@ using System.Collections.Generic;
 
 namespace TrogonEventStore.SemanticConventions
 {
-	public static class MetricDefinitions
+	public static class OpenTelemetryMetricDefinitions
 	{
 {% for group in ctx %}
 {% for metric in group.metrics | sort(attribute="metric_name") %}
-		public static MetricDefinition {{ metric.metric_name | pascal_case | regex_replace("^Eventstore", "") }} { get; } = new MetricDefinition(
+		public static MetricDefinition {{ metric.metric_name | pascal_case }} { get; } = new MetricDefinition(
 			"{{ metric.metric_name }}",
 			"{{ metric.unit }}",
 			"{{ metric.brief }}",
@@ -25,7 +25,7 @@ namespace TrogonEventStore.SemanticConventions
 		{
 {% for group in ctx %}
 {% for metric in group.metrics | sort(attribute="metric_name") %}
-			{{ metric.metric_name | pascal_case | regex_replace("^Eventstore", "") }},
+			{{ metric.metric_name | pascal_case }},
 {% endfor %}
 {% endfor %}
 		});

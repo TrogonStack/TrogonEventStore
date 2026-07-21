@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using EventStore.Core.Time;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics;
 
@@ -45,10 +46,12 @@ public class DurationMaxTracker : IDurationMaxTracker
 		var maxTags = new List<KeyValuePair<string, object>>();
 		if (!string.IsNullOrWhiteSpace(name))
 		{
-			maxTags.Add(new("name", name));
+			maxTags.Add(new(TrogonAttributeNames.QueueName, name));
 		}
 
-		maxTags.Add(new("range", $"{_recentMax.MinPeriodSeconds}-{_recentMax.MaxPeriodSeconds} seconds"));
+		maxTags.Add(new(
+			TrogonAttributeNames.MeasurementWindow,
+			$"{_recentMax.MinPeriodSeconds}-{_recentMax.MaxPeriodSeconds}s"));
 		_maxTags = maxTags.ToArray();
 
 		metric.Add(this);

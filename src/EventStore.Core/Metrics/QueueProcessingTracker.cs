@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using EventStore.Core.Time;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics;
 
@@ -14,8 +15,8 @@ public class QueueProcessingTracker(DurationMetric metric, string queueName) : I
 	{
 		return metric.Record(
 			start: start,
-			new KeyValuePair<string, object>("queue", queueName),
-			new KeyValuePair<string, object>("message-type", messageType));
+			new KeyValuePair<string, object>(TrogonAttributeNames.QueueName, queueName),
+			new KeyValuePair<string, object>(TrogonAttributeNames.QueueMessageType, messageType));
 	}
 
 	public class NoOp : IQueueProcessingTracker

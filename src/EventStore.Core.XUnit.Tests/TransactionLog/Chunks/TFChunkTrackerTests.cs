@@ -7,6 +7,7 @@ using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.TransactionLog.Chunks;
 using EventStore.Core.TransactionLog.LogRecords;
 using EventStore.Core.XUnit.Tests.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 using static EventStore.Core.TransactionLog.ITransactionFileTracker;
 
@@ -27,14 +28,16 @@ public class TFChunkTrackerTests : IDisposable
 		var meter = new Meter($"{typeof(TFChunkTrackerTests)}");
 		_listener = new TestMeterListener<long>(meter);
 		_doubleListener = new TestMeterListener<double>(meter);
-		var byteMetric = new CounterMetric(meter, "eventstore-io-bytes");
-		var eventMetric = new CounterMetric(meter, "eventstore-io-events");
+		var byteMetric = new CounterMetric(meter, MetricDefinitions.TrogonEventstoreStorageIo);
+		var eventMetric = new CounterMetric(meter, MetricDefinitions.TrogonEventstoreStorageEventCount);
 		var writerCheckpoint = new InMemoryCheckpoint(WriterCheckpoint);
 
-		var readTag = new KeyValuePair<string, object>("activity", "read");
+		var readTag = new KeyValuePair<string, object>(TrogonAttributeNames.StorageActivity, "read");
 		_sut = new TFChunkTracker(
-			readDistribution: new LogicalChunkReadDistributionMetric(meter, "chunk-read-distribution", writerCheckpoint, ChunkSize),
-			readDurationMetric: new DurationMetric(meter, "eventstore-io-record-read-duration-seconds", _clock),
+			readDistribution: new LogicalChunkReadDistributionMetric(
+				meter, MetricDefinitions.TrogonEventstoreStorageChunkReadDistance, writerCheckpoint, ChunkSize),
+			readDurationMetric: new DurationMetric(
+				meter, MetricDefinitions.TrogonEventstoreStorageRecordReadDuration, _clock),
 			readBytes: new CounterSubMetric(byteMetric, [readTag]),
 			readEvents: new CounterSubMetric(eventMetric, [readTag]));
 	}
@@ -96,7 +99,8 @@ public class TFChunkTrackerTests : IDisposable
 		_sut.OnRead(start, prepare, source);
 		_doubleListener.Observe();
 
-		var actual = _doubleListener.RetrieveMeasurements("eventstore-io-record-read-duration-seconds");
+		var actual = _doubleListener.RetrieveMeasurements(
+			MetricDefinitions.TrogonEventstoreStorageRecordReadDuration.Name);
 		Assert.Collection(
 			actual,
 			m =>
@@ -106,8 +110,8 @@ public class TFChunkTrackerTests : IDisposable
 					m.Tags.ToArray(),
 					t =>
 					{
-						Assert.Equal("source", t.Key);
-						Assert.Equal(source, t.Value);
+						Assert.Equal(TrogonAttributeNames.StorageSource, t.Key);
+						Assert.Equal(source == Source.ChunkCache ? "chunk_cache" : "file_system", t.Value);
 					});
 			});
 	}
@@ -132,7 +136,7 @@ public class TFChunkTrackerTests : IDisposable
 			Source.Unknown);
 
 		_listener.Observe();
-		var actual = _listener.RetrieveMeasurements("chunk-read-distribution");
+		var actual = _listener.RetrieveMeasurements(MetricDefinitions.TrogonEventstoreStorageChunkReadDistance.Name);
 		Assert.Collection(
 			actual,
 			m =>
@@ -143,10 +147,10 @@ public class TFChunkTrackerTests : IDisposable
 	}
 
 	private void AssertEventsRead(long? expectedEventsRead) =>
-		AssertMeasurements("eventstore-io-events", expectedEventsRead);
+		AssertMeasurements(MetricDefinitions.TrogonEventstoreStorageEventCount.Name, expectedEventsRead);
 
 	private void AssertBytesRead(long? expectedBytesRead) =>
-		AssertMeasurements("eventstore-io-bytes", expectedBytesRead);
+		AssertMeasurements(MetricDefinitions.TrogonEventstoreStorageIo.Name, expectedBytesRead);
 
 	private void AssertMeasurements(string instrumentName, long? expectedValue)
 	{
@@ -165,7 +169,7 @@ public class TFChunkTrackerTests : IDisposable
 					Assert.Equal(expectedValue, m.Value);
 					Assert.Collection(m.Tags.ToArray(), t =>
 					{
-						Assert.Equal("activity", t.Key);
+						Assert.Equal(TrogonAttributeNames.StorageActivity, t.Key);
 						Assert.Equal("read", t.Value);
 					});
 				});

@@ -10,7 +10,7 @@
 		<Authors>Straw Hat, LLC</Authors>
 		<Company>Straw Hat, LLC</Company>
 		<Copyright>Copyright Straw Hat, LLC</Copyright>
-		<Description>Shared OpenTelemetry semantic convention constants for TrogonEventStore components.</Description>
+		<Description>Shared OpenTelemetry semantic convention definitions for TrogonEventStore components.</Description>
 		<PackageProjectUrl>https://github.com/TrogonStack/TrogonEventStore</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageReleaseNotes></PackageReleaseNotes>

@@ -12,6 +12,8 @@ public class TelemetryMeterInstrumentationTests
 	public void PreservesBuiltInMeterNames()
 	{
 		TelemetryMeterInstrumentation.CoreName.Should().Be("EventStore.Core");
+		TelemetryMeterInstrumentation.DotNetRuntimeName.Should().Be("System.Runtime");
+		TelemetryMeterInstrumentation.KestrelName.Should().Be("Microsoft.AspNetCore.Server.Kestrel");
 		TelemetryMeterInstrumentation.ProjectionsName.Should().Be("EventStore.Projections.Core");
 	}
 
@@ -36,6 +38,8 @@ public class TelemetryMeterInstrumentationTests
 		names.Should().Equal(
 			TelemetryMeterInstrumentation.CoreName,
 			TelemetryMeterInstrumentation.ProjectionsName,
+			TelemetryMeterInstrumentation.DotNetRuntimeName,
+			TelemetryMeterInstrumentation.KestrelName,
 			"Custom.Component");
 	}
 

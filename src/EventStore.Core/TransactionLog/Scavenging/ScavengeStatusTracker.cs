@@ -14,7 +14,14 @@ namespace EventStore.Core.TransactionLog.Scavenging
 
 		public ScavengeStatusTracker(StatusMetric metric)
 		{
-			_subMetric = new("Scavenge", metric);
+			_subMetric = new(
+				"Scavenge",
+				metric,
+				"Accumulation Phase",
+				"Chunk execution Phase",
+				"Chunk merging Phase",
+				"Index execution Phase",
+				"Cleaning Phase");
 		}
 
 		public IDisposable StartActivity(string name) =>

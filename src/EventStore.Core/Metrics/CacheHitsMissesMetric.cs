@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using TrogonEventStore.SemanticConventions;
 using static EventStore.Common.Configuration.MetricsConfiguration;
 
 namespace EventStore.Core.Metrics;
@@ -16,18 +17,23 @@ public class CacheHitsMissesMetric
 	public CacheHitsMissesMetric(
 		Meter meter,
 		Cache[] enabledCaches,
-		string name,
+		MetricDefinition definition,
 		Dictionary<Cache, string> cacheNames)
 	{
 
+		definition.EnsureInstrumentKind(MetricInstrumentKind.Counter);
 		_enabledCaches = new(cacheNames.Where(x => enabledCaches.Contains(x.Key)));
-		meter.CreateObservableCounter(name, Observe);
+		meter.CreateObservableCounter(
+			definition.Name,
+			Observe,
+			definition.Unit,
+			definition.Description);
 	}
 
 	public void Register(Cache cache, Func<long> getHits, Func<long> getMisses)
 	{
-		Register(cache, "hits", getHits);
-		Register(cache, "misses", getMisses);
+		Register(cache, "hit", getHits);
+		Register(cache, "miss", getMisses);
 	}
 
 	private void Register(Cache cache, string kind, Func<long> func)
@@ -41,8 +47,8 @@ public class CacheHitsMissesMetric
 		{
 			_funcs.Add(func);
 			_tagss.Add(new KeyValuePair<string, object>[] {
-				new("cache", cacheName),
-				new("kind", kind),
+				new(TrogonAttributeNames.CacheName, cacheName),
+				new(TrogonAttributeNames.CacheResult, kind),
 			});
 		}
 	}

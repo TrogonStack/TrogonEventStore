@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Threading;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Core.Metrics;
 
@@ -17,7 +18,7 @@ public class QueueLengthTracker : IQueueLengthTracker
 
 	public QueueLengthTracker(ObservableUpDownMetric<int> metric, string queueName)
 	{
-		_tags = [new("queue", queueName)];
+		_tags = [new(TrogonAttributeNames.QueueName, queueName)];
 		metric.Register(() => new Measurement<int>(Volatile.Read(ref _length), _tags.AsSpan()));
 	}
 

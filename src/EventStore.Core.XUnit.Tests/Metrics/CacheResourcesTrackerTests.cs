@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using DotNext.Runtime.CompilerServices;
 using EventStore.Core.Metrics;
 using EventStore.Core.Tests;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
@@ -27,7 +28,10 @@ public sealed class CacheResourcesTrackerTests : IDisposable
 
 		var listener = new TestMeterListener<long>(meter);
 		_disposables.RegisterForDispose(listener);
-		var metrics = new CacheResourcesMetrics(meter, "the-metric-bytes", "the-metric-entries");
+		var metrics = new CacheResourcesMetrics(
+			meter,
+			MetricDefinitions.TrogonEventstoreCacheResourceSize,
+			MetricDefinitions.TrogonEventstoreCacheResourceCount);
 		var sut = new CacheResourcesTracker(metrics);
 		return (sut, listener);
 	}
@@ -50,13 +54,13 @@ public sealed class CacheResourcesTrackerTests : IDisposable
 			numChildren: 0));
 
 		listener.Observe();
-		AssertMeasurements(listener, "the-metric-entries",
+		AssertMeasurements(listener, MetricDefinitions.TrogonEventstoreCacheResourceCount.Name,
 			AssertMeasurement("cacheA", "capacity", 1),
 			AssertMeasurement("cacheA", "size", 2),
 			AssertMeasurement("cacheA", "count", 3),
 			AssertMeasurement("cacheB", "count", 6));
 
-		AssertMeasurements(listener, "the-metric-bytes",
+		AssertMeasurements(listener, MetricDefinitions.TrogonEventstoreCacheResourceSize.Name,
 			AssertMeasurement("cacheB", "capacity", 4),
 			AssertMeasurement("cacheB", "size", 5));
 	}
@@ -73,12 +77,12 @@ public sealed class CacheResourcesTrackerTests : IDisposable
 				actualMeasurement.Tags.ToArray(),
 				tag =>
 				{
-					Assert.Equal("cache", tag.Key);
+					Assert.Equal(TrogonAttributeNames.CacheName, tag.Key);
 					Assert.Equal(cacheKey, tag.Value);
 				},
 				tag =>
 				{
-					Assert.Equal("kind", tag.Key);
+					Assert.Equal(TrogonAttributeNames.CacheResource, tag.Key);
 					Assert.Equal(kind, tag.Value);
 				});
 		};

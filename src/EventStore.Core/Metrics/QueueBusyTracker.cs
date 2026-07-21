@@ -12,7 +12,7 @@ public class QueueBusyTracker : IQueueBusyTracker
 {
 	private readonly Stopwatch _stopwatch = new();
 
-	public QueueBusyTracker(AverageMetric metric, string label)
+	public QueueBusyTracker(SummedCounterMetric metric, string label)
 	{
 		metric.Register(label, () => _stopwatch.Elapsed.TotalSeconds);
 	}

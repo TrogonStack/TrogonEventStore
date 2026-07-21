@@ -3,6 +3,7 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Projections.Core.Services;
 using EventStore.Projections.Core.Services.Management;
+using TrogonEventStore.SemanticConventions;
 
 namespace EventStore.Projections.Core.Metrics;
 
@@ -20,29 +21,16 @@ public class ProjectionTracker : IProjectionTracker
 			new Measurement<long>(
 				x.EventsProcessedAfterRestart,
 				[
-					new("projection", x.Name)
+					new(TrogonAttributeNames.ProjectionName, x.Name)
 				]));
 
 	public IEnumerable<Measurement<float>> ObserveProgress() =>
 		_currentStats.Select(x =>
 			new Measurement<float>(
-				x.Progress / 100.0f,
+				NormalizeProgress(x.Progress),
 				[
-					new("projection", x.Name)
+					new(TrogonAttributeNames.ProjectionName, x.Name)
 				]));
-
-	public IEnumerable<Measurement<long>> ObserveRunning() =>
-		_currentStats.Select(x =>
-		{
-			var projectionRunning = x.LeaderStatus == ManagedProjectionState.Running
-				? 1
-				: 0;
-
-			return new Measurement<long>(
-				projectionRunning, [
-					new("projection", x.Name)
-				]);
-		});
 
 	public IEnumerable<Measurement<long>> ObserveStatus()
 	{
@@ -66,23 +54,23 @@ public class ProjectionTracker : IProjectionTracker
 			}
 
 			yield return new(projectionRunning, [
-				new("projection", statistics.Name),
-				new("status", "Running"),
+				new(TrogonAttributeNames.ProjectionName, statistics.Name),
+				new(TrogonAttributeNames.ProjectionStatus, "running"),
 			]);
 
 			yield return new(projectionFaulted, [
-				new("projection", statistics.Name),
-				new("status", "Faulted"),
+				new(TrogonAttributeNames.ProjectionName, statistics.Name),
+				new(TrogonAttributeNames.ProjectionStatus, "faulted"),
 			]);
 
 			yield return new(projectionStopped, [
-				new("projection", statistics.Name),
-				new("status", "Stopped"),
+				new(TrogonAttributeNames.ProjectionName, statistics.Name),
+				new(TrogonAttributeNames.ProjectionStatus, "stopped"),
 			]);
 		}
 	}
 
-	public IEnumerable<Measurement<int>> ObserveStateSize()
+	public IEnumerable<Measurement<long>> ObserveStateSize()
 	{
 		foreach (var statistics in _currentStats)
 		{
@@ -91,19 +79,14 @@ public class ProjectionTracker : IProjectionTracker
 				continue;
 			}
 
-			foreach (var (partition, stateSize) in statistics.StateSizes)
-			{
-				List<KeyValuePair<string, object>> tags = [
-					new("projection", statistics.Name),
-				];
-
-				if (partition != string.Empty)
-				{
-					tags.Add(new KeyValuePair<string, object>("partition", partition));
-				}
-
-				yield return new Measurement<int>(stateSize, tags);
-			}
+			yield return new(
+				statistics.StateSizes.Values.Sum(stateSize => (long)stateSize),
+				new KeyValuePair<string, object>(TrogonAttributeNames.ProjectionName, statistics.Name));
 		}
 	}
+
+	private static float NormalizeProgress(float progress) =>
+		float.IsNaN(progress)
+			? 0
+			: float.Clamp(progress / 100.0f, 0, 1);
 }

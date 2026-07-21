@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using EventStore.Core.Data;
 using EventStore.Core.Metrics;
 
@@ -15,6 +17,13 @@ namespace EventStore.Core.Services.VNode
 
 	public class NodeStatusTracker : INodeStatusTracker
 	{
+		private static readonly string[] Statuses = Enum.GetValues<VNodeState>()
+			.Select(nodeState => nodeState.ToString())
+			.Concat(Enum.GetValues<InaugurationManager.ManagerState>()
+				.Where(inaugurationState => inaugurationState != InaugurationManager.ManagerState.Idle)
+				.Select(inaugurationState => $"{VNodeState.PreLeader} - {inaugurationState}"))
+			.ToArray();
+
 		private readonly StatusSubMetric _subMetric;
 		private readonly object _lock = new();
 
@@ -25,7 +34,7 @@ namespace EventStore.Core.Services.VNode
 		{
 			_nodeState = VNodeState.Initializing;
 			_inaugurationState = InaugurationManager.ManagerState.Idle;
-			_subMetric = new StatusSubMetric("Node", _nodeState, metric);
+			_subMetric = new StatusSubMetric("Node", _nodeState, metric, Statuses);
 		}
 
 		public void OnStateChange(VNodeState newState)

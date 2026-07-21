@@ -1,36 +1,41 @@
 using System.Diagnostics.Metrics;
 using EventStore.Core.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.Metrics;
 
-public class AverageMetricTests
+public class SummedCounterMetricTests
 {
 	[Fact]
-	public void calculates_average()
+	public void calculates_sum()
 	{
 		using var meter = new Meter($"{typeof(QueueProcessingTrackerTests)}");
 		using var listener = new TestMeterListener<double>(meter);
-		var sut = new AverageMetric(meter, "the-metric-seconds", label => new("queue", label));
+		var definition = MetricDefinitions.TrogonEventstoreQueueBusyTime;
+		var sut = new SummedCounterMetric(
+			meter,
+			definition,
+			label => new(TrogonAttributeNames.QueueName, label));
 		sut.Register("readers", () => 1);
 		sut.Register("readers", () => 2);
 		sut.Register("writer", () => 3);
 		listener.Observe();
 
 		Assert.Collection(
-			listener.RetrieveMeasurements("the-metric-seconds"),
+			listener.RetrieveMeasurements(definition.Name),
 				m =>
 				{
-					Assert.Equal(1.5, m.Value);
+					Assert.Equal(3, m.Value);
 					var tag = Assert.Single(m.Tags);
-					Assert.Equal("queue", tag.Key);
+					Assert.Equal(TrogonAttributeNames.QueueName, tag.Key);
 					Assert.Equal("readers", tag.Value);
 				},
 				m =>
 				{
 					Assert.Equal(3, m.Value);
 					var tag = Assert.Single(m.Tags);
-					Assert.Equal("queue", tag.Key);
+					Assert.Equal(TrogonAttributeNames.QueueName, tag.Key);
 					Assert.Equal("writer", tag.Value);
 				});
 	}

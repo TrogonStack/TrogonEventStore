@@ -2,6 +2,7 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using EventStore.Core.TransactionLog.Checkpoint;
 using EventStore.Core.XUnit.Tests.Metrics;
+using TrogonEventStore.SemanticConventions;
 using Xunit;
 
 namespace EventStore.Core.XUnit.Tests.TransactionLog.Checkpoint;
@@ -15,23 +16,24 @@ public class CheckpointMetricTests
 		using var listener = new TestMeterListener<long>(meter);
 		var metric = new CheckpointMetric(
 			meter,
-			"eventstore-checkpoints",
+			MetricDefinitions.TrogonEventstoreCheckpointPosition,
 			new InMemoryCheckpoint("checkpoint", 5));
 
 		listener.Observe();
-		var measurement = Assert.Single(listener.RetrieveMeasurements("eventstore-checkpoints"));
+		var measurement = Assert.Single(listener.RetrieveMeasurements(
+			MetricDefinitions.TrogonEventstoreCheckpointPosition.Name));
 		Assert.Equal(5, measurement.Value);
 		Assert.Collection(
 			measurement.Tags.ToArray(),
 			tag =>
 			{
-				Assert.Equal("name", tag.Key);
+				Assert.Equal(TrogonAttributeNames.CheckpointName, tag.Key);
 				Assert.Equal("checkpoint", tag.Value);
 			},
 			tag =>
 			{
-				Assert.Equal("read", tag.Key);
-				Assert.Equal("non-flushed", tag.Value);
+				Assert.Equal(TrogonAttributeNames.CheckpointReadKind, tag.Key);
+				Assert.Equal("non_flushed", tag.Value);
 			});
 	}
 }
